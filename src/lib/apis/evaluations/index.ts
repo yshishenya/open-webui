@@ -93,6 +93,31 @@ export const getAllFeedbacks = async (token: string = '') => {
 	return res;
 };
 
+/**
+ * Asynchronously exports all feedbacks from the evaluations API.
+ *
+ * This function fetches feedback data from the specified API endpoint and returns the result as a JSON object.
+ * If the request fails, it logs the error and returns null. If an error occurs during the fetch operation,
+ * it throws an error with the details of the failure.
+ *
+ * @param {string} [token=''] - The authorization token to access the API. Defaults to an empty string.
+ * @returns {Promise<Object|null>} A promise that resolves to the feedback data as a JSON object, or null if an error occurred.
+ * @throws {Error} Throws an error if the fetch operation fails and contains the error details.
+ *
+ * @example
+ * const token = 'your-auth-token';
+ * exportAllFeedbacks(token)
+ *   .then(feedbacks => {
+ *     if (feedbacks) {
+ *       console.log('Feedbacks exported successfully:', feedbacks);
+ *     } else {
+ *       console.log('No feedbacks available or an error occurred.');
+ *     }
+ *   })
+ *   .catch(error => {
+ *     console.error('Error exporting feedbacks:', error);
+ *   });
+ */
 export const exportAllFeedbacks = async (token: string = '') => {
 	let error = null;
 
