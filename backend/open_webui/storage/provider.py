@@ -45,7 +45,26 @@ class StorageProvider:
         self.bucket_name = S3_BUCKET_NAME
 
     def _upload_to_s3(self, file_path: str, filename: str) -> Tuple[bytes, str]:
-        """Handles uploading of the file to S3 storage."""
+        """Handles uploading of the file to S3 storage.
+
+        This method uploads a specified file to an Amazon S3 bucket using the
+        provided S3 client. It first checks if the S3 client is initialized. If
+        not, it raises a RuntimeError. Upon successful upload, it reads the file
+        in binary mode and returns its content along with the file path. If an
+        error occurs during the upload process, it raises a RuntimeError with
+        details about the failure.
+
+        Args:
+            file_path (str): The local path of the file to be uploaded.
+            filename (str): The name to be used for the file in S3.
+
+        Returns:
+            Tuple[bytes, str]: A tuple containing the binary content of the uploaded file
+            and the file path.
+
+        Raises:
+            RuntimeError: If the S3 client is not initialized or if there is an error
+        """
         if not self.s3_client:
             raise RuntimeError("S3 Client is not initialized.")
 
@@ -128,7 +147,24 @@ class StorageProvider:
             print(f"Directory {UPLOAD_DIR} not found in local storage.")
 
     def upload_file(self, file: BinaryIO, filename: str) -> Tuple[bytes, str]:
-        """Uploads a file either to S3 or the local file system."""
+        """Uploads a file to either S3 or the local file system.
+
+        This function reads the contents of the provided file and uploads it to
+        the specified storage provider. If the contents are empty, a ValueError
+        is raised. Depending on the storage provider, the function either
+        uploads the file to S3 or saves it locally.
+
+        Args:
+            file (BinaryIO): The file object to be uploaded.
+            filename (str): The name of the file to be uploaded.
+
+        Returns:
+            Tuple[bytes, str]: A tuple containing the contents of the file and
+            the file path where it was uploaded.
+
+        Raises:
+            ValueError: If the contents of the file are empty.
+        """
         contents = file.read()
         if not contents:
             raise ValueError(ERROR_MESSAGES.EMPTY_CONTENT)
