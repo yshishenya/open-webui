@@ -19,6 +19,17 @@ depends_on = None
 
 
 def upgrade():
+    """Upgrade the 'chat' column in the 'chat' table from Text to JSON format.
+
+    This function performs a series of operations to upgrade the 'chat'
+    column in the 'chat' table. It first checks if the current 'chat' column
+    is of type Text. If so, it renames the existing 'chat' column to
+    'old_chat', adds a new 'chat' column of type JSON, and migrates the data
+    from 'old_chat' to the new 'chat' column. Finally, it drops the
+    'old_chat' column. If the 'chat' column is already of type JSON, no
+    changes are made.
+    """
+
     conn = op.get_bind()
     inspector = sa.inspect(conn)
 
@@ -79,6 +90,17 @@ def upgrade():
 
 
 def downgrade():
+    """Downgrade the database schema by reverting changes made to the 'chat'
+    table.
+
+    This function performs a series of operations to restore the previous
+    state of the 'chat' table in the database. It adds an 'old_chat' column
+    to store text data, transfers existing JSON data from the 'chat' column
+    to the 'old_chat' column, removes the 'chat' JSON column, and finally
+    renames the 'old_chat' column back to 'chat'. This is typically used in
+    a database migration context where changes need to be rolled back.
+    """
+
     # Step 1: Add 'old_chat' column back as Text
     op.add_column("chat", sa.Column("old_chat", sa.Text(), nullable=True))
 
