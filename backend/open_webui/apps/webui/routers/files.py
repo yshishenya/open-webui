@@ -40,6 +40,25 @@ router = APIRouter()
 
 @router.post("/", response_model=FileModelResponse)
 def upload_file(file: UploadFile = File(...), user=Depends(get_verified_user)):
+    """Upload a file and process it.
+
+    This function handles the uploading of a file by first sanitizing the
+    filename and generating a unique identifier for it. It then stores the
+    file and attempts to process it. If any errors occur during processing,
+    they are logged, and an error message is returned. The function also
+    ensures that the user is verified before allowing the upload.
+
+    Args:
+        file (UploadFile): The file to be uploaded.
+        user: The verified user who is uploading the file.
+
+    Returns:
+        FileModelResponse: The response containing the details of the uploaded file.
+
+    Raises:
+        HTTPException: If there is an error during file upload or processing.
+    """
+
     log.info(f"file.content_type: {file.content_type}")
     try:
         unsanitized_filename = file.filename

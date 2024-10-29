@@ -369,6 +369,26 @@ async def get_content_from_response(response) -> Optional[str]:
 async def chat_completion_tools_handler(
     body: dict, user: UserModel, extra_params: dict
 ) -> tuple[dict, dict]:
+    """Handle chat completion tools based on the provided input.
+
+    This function processes the input body to identify any tool IDs
+    specified in the metadata. If tool IDs are present, it retrieves the
+    corresponding tools and generates a prompt for function calling. The
+    function then attempts to generate chat completions using the specified
+    tools and captures any relevant contexts and citations from the tool
+    outputs. If no tools are found or if an error occurs during processing,
+    it returns the original body along with empty contexts and citations.
+
+    Args:
+        body (dict): The input data containing messages and metadata.
+        user (UserModel): The user model representing the current user.
+        extra_params (dict): Additional parameters to be passed to tool functions.
+
+    Returns:
+        tuple[dict, dict]: A tuple containing the modified body and a dictionary with
+        contexts and citations extracted from the tool outputs.
+    """
+
     # If tool_ids field is present, call the functions
     metadata = body.get("metadata", {})
 

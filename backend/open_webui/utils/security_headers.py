@@ -57,6 +57,21 @@ def set_security_headers() -> Dict[str, str]:
 
 # Set HTTP Strict Transport Security(HSTS) response header
 def set_hsts(value: str):
+    """Set the HTTP Strict Transport Security (HSTS) response header.
+
+    This function takes a string value representing the HSTS configuration.
+    It validates the format of the input value against a predefined pattern.
+    If the input does not match the expected format, it defaults to a
+    standard HSTS configuration of "max-age=31536000;includeSubDomains". The
+    function then returns a dictionary containing the HSTS header.
+
+    Args:
+        value (str): The HSTS configuration string to be validated and set.
+
+    Returns:
+        dict: A dictionary containing the HSTS response header.
+    """
+
     pattern = r"^max-age=(\d+)(;includeSubDomains)?(;preload)?$"
     match = re.match(pattern, value, re.IGNORECASE)
     if not match:

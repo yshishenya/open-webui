@@ -36,6 +36,31 @@ router = APIRouter()
 async def get_knowledge_items(
     id: Optional[str] = None, user=Depends(get_verified_user)
 ):
+    """Retrieve knowledge items based on the provided ID or return all
+    knowledge items.
+
+    This function checks if an ID is provided. If an ID is given, it
+    attempts to fetch the corresponding knowledge item. If the knowledge
+    item exists, it is returned. If not, an HTTPException is raised
+    indicating that the item was not found. If no ID is provided, the
+    function retrieves all knowledge items and checks for associated files.
+    It ensures that all referenced files exist; if any files are missing, it
+    updates the knowledge item to remove references to those files before
+    returning the list of knowledge items.
+
+    Args:
+        id (Optional[str]): The ID of the knowledge item to retrieve. If None, all knowledge items
+            are fetched.
+        user: The verified user making the request (dependency injection).
+
+    Returns:
+        KnowledgeResponse or list[KnowledgeResponse]: A single knowledge item if an ID is provided,
+        or a list of knowledge items if no ID is given.
+
+    Raises:
+        HTTPException: If the knowledge item with the specified ID is not found.
+    """
+
     if id:
         knowledge = Knowledges.get_knowledge_by_id(id=id)
 

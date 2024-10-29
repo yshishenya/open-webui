@@ -644,6 +644,33 @@ def save_docs_to_vector_db(
     split: bool = True,
     add: bool = False,
 ) -> bool:
+    """Save documents to a vector database collection.
+
+    This function takes a list of documents and saves them to a specified
+    collection in a vector database. It checks for existing documents based
+    on a hash in the metadata to prevent duplicates. If specified, it can
+    split the documents into smaller chunks before saving. The function also
+    handles metadata and embeddings for each document.
+
+    Args:
+        docs (list): A list of documents to be saved.
+        collection_name (str): The name of the collection to save the documents in.
+        metadata (Optional[dict]?): Additional metadata for the documents. Defaults to None.
+        overwrite (bool?): Whether to overwrite the existing collection if it exists. Defaults to
+            False.
+        split (bool?): Whether to split the documents into smaller chunks. Defaults to True.
+        add (bool?): Whether to add to the existing collection without overwriting. Defaults
+            to False.
+
+    Returns:
+        bool: True if the documents were successfully saved, False otherwise.
+
+    Raises:
+        ValueError: If a document with the same hash already exists.
+        ValueError: If the input list of documents is empty.
+        ValueError: If an invalid text splitter is specified.
+    """
+
     log.info(f"save_docs_to_vector_db {docs} {collection_name}")
 
     # Check if entries with the same hash (metadata.hash) already exist

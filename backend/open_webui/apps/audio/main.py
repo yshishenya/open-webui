@@ -473,6 +473,28 @@ def transcription(
     file: UploadFile = File(...),
     user=Depends(get_verified_user),
 ):
+    """Transcribe an audio file uploaded by the user.
+
+    This function handles the transcription of audio files uploaded through
+    a web interface. It first checks the content type of the uploaded file
+    to ensure it is a supported audio format. If the file exceeds a
+    specified size limit, it compresses the audio before proceeding with
+    transcription. The function also manages file storage and handles
+    potential errors during the process.
+
+    Args:
+        file (UploadFile): The audio file to be transcribed.
+        user: The verified user making the request.
+
+    Returns:
+        dict: A dictionary containing the transcription data and the filename of the
+            processed audio.
+
+    Raises:
+        HTTPException: If the uploaded file type is not supported or if the file size exceeds
+            the maximum allowed limit.
+    """
+
     log.info(f"file.content_type: {file.content_type}")
 
     if file.content_type not in ["audio/mpeg", "audio/wav", "audio/ogg", "audio/x-m4a"]:
