@@ -52,7 +52,47 @@ def prompt_template(
 
 
 def replace_prompt_variable(template: str, prompt: str) -> str:
+    """Replace prompt variables in a template string with corresponding values
+    from a prompt.
+
+    This function searches for specific prompt variable patterns within a
+    given template string and replaces them with appropriate substrings from
+    the provided prompt. The function supports four types of replacements:
+    1. Replacing the variable `{{prompt}}` with the entire prompt. 2.
+    Replacing `{{prompt:start:<n>}}` with the first `<n>` characters of the
+    prompt. 3. Replacing `{{prompt:end:<n>}}` with the last `<n>` characters
+    of the prompt. 4. Replacing `{{prompt:middletruncate:<n>}}` with a
+    truncated version of the prompt, showing a portion from both    the
+    start and end if the length of the prompt exceeds `<n>`.
+
+    Args:
+        template (str): The template string containing prompt variable patterns to be replaced.
+        prompt (str): The prompt string from which substrings will be extracted for
+            replacement.
+
+    Returns:
+        str: The template string with all prompt variables replaced by their
+            corresponding values from the prompt.
+    """
+
     def replacement_function(match):
+        """Replace matched patterns in a string based on specified lengths.
+
+        This function processes a regular expression match object and replaces
+        the matched string with a portion of the `prompt` string. It handles
+        different cases based on the lengths specified in the match groups,
+        allowing for the return of the full prompt, a substring from the start,
+        a substring from the end, or a shortened version of the prompt with
+        ellipses in the middle.
+
+        Args:
+            match (re.Match): A match object containing the matched string and
+                optional length specifications.
+
+        Returns:
+            str: The modified string based on the match and lengths provided.
+        """
+
         full_match = match.group(
             0
         ).lower()  # Normalize to lowercase for consistent handling
@@ -84,7 +124,46 @@ def replace_prompt_variable(template: str, prompt: str) -> str:
 def replace_messages_variable(
     template: str, messages: Optional[list[str]] = None
 ) -> str:
+    """Replace placeholders in a template string with formatted message
+    content.
+
+    This function searches for specific placeholders in the given template
+    string and replaces them with content derived from the provided list of
+    messages. The placeholders can represent all messages, a specified
+    number of messages from the start or end of the list, or a truncated set
+    of messages from the middle of the list. If the messages list is None,
+    it is treated as an empty list, resulting in no content being inserted.
+
+    Args:
+        template (str): The template string containing placeholders for messages.
+        messages (Optional[list[str]]): A list of message strings to be inserted
+            into the template. Defaults to None.
+
+    Returns:
+        str: The template string with placeholders replaced by the corresponding
+            message content.
+    """
+
     def replacement_function(match):
+        """Replace placeholders in a string with formatted message content.
+
+        This function processes a match object to determine how to replace the
+        placeholder "{{MESSAGES}}" or its variants based on the specified
+        lengths. It handles different cases for full, start, end, and middle
+        truncation of messages. If the `messages` variable is None, it returns
+        an empty string. The function utilizes helper functions to format the
+        messages appropriately.
+
+        Args:
+            match (re.Match): A match object containing the full match and
+                optional lengths for start, end, and middle
+                message truncation.
+
+        Returns:
+            str: The formatted message content based on the specified lengths
+                or an empty string if no valid replacement is found.
+        """
+
         full_match = match.group(0)
         start_length = match.group(1)
         end_length = match.group(2)
@@ -127,6 +206,25 @@ def replace_messages_variable(
 
 
 def rag_template(template: str, context: str, query: str):
+    """Generate a RAG (Retrieval-Augmented Generation) template.
+
+    This function takes a template string and replaces placeholders for
+    context and query with the provided context and query strings. It also
+    performs checks for potential issues such as missing placeholders and
+    potential prompt injection attacks. If the template is empty, it
+    defaults to a predefined RAG template.
+
+    Args:
+        template (str): The template string containing placeholders for context
+            and query.
+        context (str): The context string to be inserted into the template.
+        query (str): The query string to be inserted into the template.
+
+    Returns:
+        str: The generated template with placeholders replaced by the context
+            and query.
+    """
+
     if template.strip() == "":
         template = DEFAULT_RAG_TEMPLATE
 
@@ -224,6 +322,30 @@ def autocomplete_generation_template(
     type: Optional[str] = None,
     user: Optional[dict] = None,
 ) -> str:
+    """Generate an autocomplete template based on the provided parameters.
+
+    This function takes a template string and replaces specific placeholders
+    with the provided prompt, messages, and user information. It allows for
+    dynamic generation of templates by substituting variables such as type,
+    prompt, and user details into the template. The resulting string can be
+    used for various purposes, such as generating user-specific prompts or
+    messages in an application.
+
+    Args:
+        template (str): The template string containing placeholders to be replaced.
+        prompt (str): The prompt string to replace the corresponding placeholder in the
+            template.
+        messages (Optional[list[dict]]): A list of message dictionaries to replace the corresponding placeholder
+            in the template.
+        type (Optional[str]): A string representing the type to replace the corresponding placeholder
+            in the template.
+        user (Optional[dict]): A dictionary containing user information, such as name and location.
+
+    Returns:
+        str: The generated template string with placeholders replaced by actual
+            values.
+    """
+
     template = template.replace("{{TYPE}}", type if type else "")
     template = replace_prompt_variable(template, prompt)
     template = replace_messages_variable(template, messages)
