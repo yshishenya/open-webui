@@ -454,6 +454,27 @@ async def update_reranking_config(
 
 @app.get("/config")
 async def get_rag_config(user=Depends(get_admin_user)):
+    """Retrieve the configuration settings for the RAG (Retrieval-Augmented
+    Generation) system.
+
+    This function gathers various configuration parameters related to the
+    RAG system, including settings for PDF extraction, content extraction,
+    chunking, file handling, YouTube integration, and web search
+    capabilities. It returns a dictionary containing these settings, which
+    can be used to configure the behavior of the RAG system.
+
+    Args:
+        user (Depends): A dependency that retrieves the admin user. Defaults to the result of
+            `get_admin_user`.
+
+    Returns:
+        dict: A dictionary containing the RAG configuration settings, including
+            status, PDF extraction options,
+            content extraction engine details, chunking parameters, file limits,
+            YouTube loader settings,
+            and web search configurations.
+    """
+
     return {
         "status": True,
         "pdf_extract_images": app.state.config.PDF_EXTRACT_IMAGES,
@@ -562,6 +583,28 @@ class ConfigUpdateForm(BaseModel):
 
 @app.post("/config/update")
 async def update_rag_config(form_data: ConfigUpdateForm, user=Depends(get_admin_user)):
+    """Update the RAG configuration based on the provided form data.
+
+    This function updates various configuration settings for the RAG
+    (Retrieval-Augmented Generation) system based on the input from a
+    `ConfigUpdateForm`. It modifies settings related to PDF extraction, file
+    handling, content extraction engines, chunking parameters, YouTube
+    loader configurations, and web search options. Each setting is updated
+    only if the corresponding field in the form data is not `None`. The
+    updated configuration values are then returned in a structured format.
+
+    Args:
+        form_data (ConfigUpdateForm): The form data containing new configuration settings.
+        user: The user making the request, typically an admin user.
+
+    Returns:
+        dict: A dictionary containing the status of the update and the new
+            configuration values
+            for PDF extraction, file settings, content extraction, chunking, YouTube
+            loader,
+            and web search options.
+    """
+
     app.state.config.PDF_EXTRACT_IMAGES = (
         form_data.pdf_extract_images
         if form_data.pdf_extract_images is not None
@@ -754,6 +797,35 @@ def save_docs_to_vector_db(
     split: bool = True,
     add: bool = False,
 ) -> bool:
+    """Save documents to a vector database collection.
+
+    This function takes a list of documents and saves them to a specified
+    collection in a vector database. It checks for existing documents with
+    the same hash in the metadata to avoid duplicates. If specified, it can
+    also split the documents into smaller chunks before saving. The function
+    handles various configurations for text splitting and embedding, and
+    allows for overwriting or adding to existing collections.
+
+    Args:
+        docs (list): A list of documents to be saved.
+        collection_name (str): The name of the collection in the vector database.
+        metadata (Optional[dict]?): Additional metadata for the documents. Defaults to None.
+        overwrite (bool?): Flag indicating whether to overwrite an existing collection. Defaults to
+            False.
+        split (bool?): Flag indicating whether to split documents into smaller chunks. Defaults
+            to True.
+        add (bool?): Flag indicating whether to add to an existing collection without
+            overwriting. Defaults to False.
+
+    Returns:
+        bool: True if the documents were successfully saved, False otherwise.
+
+    Raises:
+        ValueError: If a document with the same hash already exists or if the content is
+            empty.
+        ValueError: If an invalid text splitter is specified.
+    """
+
     log.info(
         f"save_docs_to_vector_db: document {_get_docs_info(docs)} {collection_name}"
     )
@@ -887,6 +959,31 @@ def process_file(
     form_data: ProcessFileForm,
     user=Depends(get_verified_user),
 ):
+    """Process a file and update its content in the database.
+
+    This function retrieves a file based on the provided file ID from the
+    form data. It then processes the file's content based on the input
+    parameters. If content is provided, it updates the existing content in
+    the file. If a collection name is given, it checks if the file has
+    already been processed and retrieves the existing content. If neither is
+    provided, it processes the file to extract its content and saves it. The
+    function also updates the file's metadata and saves the processed
+    documents to a vector database.
+
+    Args:
+        form_data (ProcessFileForm): The form data containing file ID,
+            content, and collection name.
+        user: The verified user making the request.
+
+    Returns:
+        dict: A dictionary containing the status of the operation,
+            collection name, filename, and content of the processed file.
+
+    Raises:
+        HTTPException: If there is an error during processing, such as
+            missing dependencies or other exceptions.
+    """
+
     try:
         file = Files.get_file_by_id(form_data.file_id)
 
@@ -1081,6 +1178,31 @@ def process_text(
 
 @app.post("/process/youtube")
 def process_youtube_video(form_data: ProcessUrlForm, user=Depends(get_verified_user)):
+    """Process a YouTube video and save its content to a vector database.
+
+    This function takes form data containing a YouTube video URL and
+    processes it by loading the video content. If a collection name is not
+    provided in the form data, it generates one using the SHA-256 hash of
+    the URL. The video content is then extracted and saved to a vector
+    database under the specified collection name. The function returns a
+    structured response containing the status, collection name, filename,
+    and the content of the video.
+
+    Args:
+        form_data (ProcessUrlForm): The form data containing the YouTube video URL
+            and optional collection name.
+        user: The verified user making the request.
+
+    Returns:
+        dict: A dictionary containing the status of the operation, the collection
+            name,
+            the filename of the video, and the content of the video.
+
+    Raises:
+        HTTPException: If an error occurs during processing, a 400 Bad Request
+            exception is raised with an appropriate error message.
+    """
+
     try:
         collection_name = form_data.collection_name
         if not collection_name:

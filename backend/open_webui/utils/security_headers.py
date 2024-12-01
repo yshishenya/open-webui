@@ -14,24 +14,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 def set_security_headers() -> Dict[str, str]:
-    """
-    Sets security headers based on environment variables.
+    """Set security headers based on environment variables.
 
     This function reads specific environment variables and uses their values
-    to set corresponding security headers. The headers that can be set are:
-    - cache-control
-    - permissions-policy
-    - strict-transport-security
-    - referrer-policy
-    - x-content-type-options
-    - x-download-options
-    - x-frame-options
-    - x-permitted-cross-domain-policies
-    - content-security-policy
-
-    Each environment variable is associated with a specific setter function
-    that constructs the header. If the environment variable is set, the
-    corresponding header is added to the options dictionary.
+    to set corresponding security headers. The headers that can be set
+    include: - cache-control - permissions-policy - strict-transport-
+    security - referrer-policy - x-content-type-options - x-download-options
+    - x-frame-options - x-permitted-cross-domain-policies - content-
+    security-policy  Each environment variable is associated with a specific
+    setter function that constructs the header. If the environment variable
+    is set, the corresponding header is added to the options dictionary.
+    This allows for dynamic configuration of security headers based on the
+    deployment environment.
 
     Returns:
         dict: A dictionary containing the security headers and their values.
@@ -121,6 +115,21 @@ def set_xcontent_type(value: str):
 
 # Set X-Permitted-Cross-Domain-Policies response header
 def set_xpermitted_cross_domain_policies(value: str):
+    """Set the X-Permitted-Cross-Domain-Policies response header.
+
+    This function validates the input value against a predefined pattern for
+    allowed values of the X-Permitted-Cross-Domain-Policies header. If the
+    input value does not match the pattern, it defaults to "none". The
+    function returns a dictionary containing the header and its value.
+
+    Args:
+        value (str): The value to set for the X-Permitted-Cross-Domain-Policies header.
+
+    Returns:
+        dict: A dictionary with the key "X-Permitted-Cross-Domain-Policies"
+            and the validated or default value.
+    """
+
     pattern = r"^(none|master-only|by-content-type|by-ftp-filename)$"
     match = re.match(pattern, value, re.IGNORECASE)
     if not match:

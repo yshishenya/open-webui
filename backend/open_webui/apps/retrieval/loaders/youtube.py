@@ -70,7 +70,23 @@ class YoutubeLoader:
             self.language = language
 
     def load(self) -> List[Document]:
-        """Load YouTube transcripts into `Document` objects."""
+        """Load YouTube transcripts into `Document` objects.
+
+        This method attempts to load the transcript for a specified YouTube
+        video using the YouTube Transcript API. It handles potential import
+        errors and proxy configurations, and retrieves the transcript in the
+        specified language. If the desired language transcript is not found, it
+        defaults to English. The fetched transcript is then formatted and
+        returned as a list of `Document` objects containing the transcript text
+        and associated metadata.
+
+        Returns:
+            List[Document]: A list containing `Document` objects with the
+            transcript text and metadata.
+
+        Raises:
+            ImportError: If the `youtube_transcript_api` package is not installed.
+        """
         try:
             from youtube_transcript_api import (
                 NoTranscriptFound,

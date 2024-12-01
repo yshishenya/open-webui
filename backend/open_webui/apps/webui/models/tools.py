@@ -143,6 +143,18 @@ class ToolsTable:
             return None
 
     def get_tools(self) -> list[ToolUserModel]:
+        """Retrieve a list of tools along with their associated user information.
+
+        This function queries the database for all tools, orders them by their
+        last updated timestamp in descending order, and constructs a list of
+        `ToolUserModel` instances. Each instance contains the tool's details
+        along with the corresponding user's information, if available.
+
+        Returns:
+            list[ToolUserModel]: A list of validated `ToolUserModel` instances
+            representing the tools and their associated users.
+        """
+
         with get_db() as db:
             tools = []
             for tool in db.query(Tool).order_by(Tool.updated_at.desc()).all():
@@ -160,6 +172,23 @@ class ToolsTable:
     def get_tools_by_user_id(
         self, user_id: str, permission: str = "write"
     ) -> list[ToolUserModel]:
+        """Retrieve a list of tools associated with a specific user ID.
+
+        This function fetches all tools and filters them based on the provided
+        user ID and the specified permission level. It checks if the tool's user
+        ID matches the given user ID or if the user has the necessary access
+        rights to the tool.
+
+        Args:
+            user_id (str): The ID of the user for whom to retrieve tools.
+            permission (str?): The permission level to check for access.
+                Defaults to "write".
+
+        Returns:
+            list[ToolUserModel]: A list of tools that belong to the specified user
+            or that the user has access to.
+        """
+
         tools = self.get_tools()
 
         return [

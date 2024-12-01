@@ -397,6 +397,26 @@ export const generateQueries = async (
 	}
 };
 
+/**
+ * Generates auto-completion suggestions based on the provided prompt and model.
+ *
+ * This asynchronous function sends a POST request to the auto-completion API and returns the suggestions
+ * based on the response. It handles errors gracefully and attempts to parse the response for useful data.
+ *
+ * @param {string} [token=''] - The authorization token for API access. Defaults to an empty string.
+ * @param {string} model - The model to be used for generating completions.
+ * @param {string} prompt - The prompt text to guide the auto-completion.
+ * @param {object[]} [messages] - Optional array of message objects to provide context for the completion.
+ * @param {string} [type='search query'] - The type of completion request. Defaults to 'search query'.
+ *
+ * @returns {Promise<string>} A promise that resolves to the generated completion text or an empty string if no valid response is found.
+ *
+ * @throws {Error} Throws an error if the API response indicates a failure or if there is an issue parsing the response.
+ *
+ * @example
+ * const suggestions = await generateAutoCompletion('your_token', 'gpt-3', 'What is the capital of France?');
+ * console.log(suggestions); // Outputs: 'The capital of France is Paris.'
+ */
 export const generateAutoCompletion = async (
 	token: string = '',
 	model: string,
