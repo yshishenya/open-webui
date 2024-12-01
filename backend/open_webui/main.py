@@ -1675,6 +1675,21 @@ async def chat_action(action_id: str, form_data: dict, user=Depends(get_verified
 
 @app.get("/api/task/config")
 async def get_task_config(user=Depends(get_verified_user)):
+    """Retrieve the task configuration settings.
+
+    This function gathers various configuration settings related to task
+    management from the application state. It returns a dictionary
+    containing settings such as task models, prompt templates for title and
+    tags generation, and flags for enabling autocomplete and query
+    generation features.
+
+    Args:
+        user (Depends): A dependency that verifies the user.
+
+    Returns:
+        dict: A dictionary containing task configuration settings.
+    """
+
     return {
         "TASK_MODEL": app.state.config.TASK_MODEL,
         "TASK_MODEL_EXTERNAL": app.state.config.TASK_MODEL_EXTERNAL,
@@ -1706,6 +1721,24 @@ class TaskConfigForm(BaseModel):
 
 @app.post("/api/task/config/update")
 async def update_task_config(form_data: TaskConfigForm, user=Depends(get_admin_user)):
+    """Update the task configuration based on the provided form data.
+
+    This function updates various configuration settings related to task
+    management in the application. It takes a `TaskConfigForm` object that
+    contains the new configuration values and applies them to the
+    application's state. The updated settings include task model, prompt
+    templates for title and tags generation, and flags for enabling or
+    disabling various features such as autocomplete and query generation.
+
+    Args:
+        form_data (TaskConfigForm): An object containing the new configuration
+            values for the task settings.
+        user: The user making the request, which is expected to be an admin.
+
+    Returns:
+        dict: A dictionary containing the updated configuration values.
+    """
+
     app.state.config.TASK_MODEL = form_data.TASK_MODEL
     app.state.config.TASK_MODEL_EXTERNAL = form_data.TASK_MODEL_EXTERNAL
     app.state.config.TITLE_GENERATION_PROMPT_TEMPLATE = (
@@ -1932,6 +1965,29 @@ JSON format: { "tags": ["tag1", "tag2", "tag3"] }
 
 @app.post("/api/task/queries/completions")
 async def generate_queries(form_data: dict, user=Depends(get_verified_user)):
+    """Generate queries based on the provided form data and user context.
+
+    This function processes the input form data to generate queries for
+    either web search or retrieval tasks. It first checks if the query
+    generation is enabled for the specified type and validates the model ID
+    against available models. If a custom task model is associated with the
+    user, it retrieves that model. The function then prepares a payload for
+    query generation, applying any necessary filters. Finally, it generates
+    chat completions based on the constructed payload.
+
+    Args:
+        form_data (dict): A dictionary containing form data, including the type of query and model
+            ID.
+        user: The user context, typically obtained from dependency injection.
+
+    Returns:
+        The result of the chat completions generation.
+
+    Raises:
+        HTTPException: If query generation is disabled for the specified type.
+        HTTPException: If the specified model ID is not found.
+    """
+
 
     type = form_data.get("type")
     if type == "web_search":
@@ -2012,6 +2068,30 @@ async def generate_queries(form_data: dict, user=Depends(get_verified_user)):
 
 @app.post("/api/task/auto/completions")
 async def generate_autocompletion(form_data: dict, user=Depends(get_verified_user)):
+    """Generate autocompletion based on user input and configuration settings.
+
+    This function processes the provided form data to generate an
+    autocompletion response. It first checks if autocompletion generation is
+    enabled in the application configuration. If enabled, it validates the
+    input prompt length against a maximum allowed length. The function
+    retrieves available models and checks if the specified model exists. If
+    a custom task model is associated with the user, it uses that model for
+    autocompletion. Finally, it prepares a payload for generating chat
+    completions and handles any potential errors during the process.
+
+    Args:
+        form_data (dict): A dictionary containing the input data for autocompletion,
+            including 'type', 'prompt', 'messages', and 'model'.
+        user: The verified user requesting autocompletion.
+
+    Returns:
+        The result of the chat completion generation.
+
+    Raises:
+        HTTPException: If autocompletion generation is disabled, if the input prompt exceeds
+            the maximum length, or if the specified model is not found.
+    """
+
     if not app.state.config.ENABLE_AUTOCOMPLETE_GENERATION:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
