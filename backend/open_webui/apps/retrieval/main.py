@@ -1395,6 +1395,31 @@ def query_collection_handler(
     form_data: QueryCollectionsForm,
     user=Depends(get_verified_user),
 ):
+    """Handle queries to a collection based on provided form data.
+
+    This function processes a query to a specified collection, utilizing
+    either hybrid search or standard search based on the application's
+    configuration. It retrieves the relevant results by calling the
+    appropriate query function with the necessary parameters, including
+    collection names, query strings, and other configuration settings.
+
+    Args:
+        form_data (QueryCollectionsForm): The form data containing query parameters
+            such as collection names, the query string, and optional parameters
+            like 'k' and 'r'.
+        user: The verified user making the request, obtained through dependency
+            injection.
+
+    Returns:
+        The results of the query, which may vary depending on whether hybrid
+            search
+        or standard search is used.
+
+    Raises:
+        HTTPException: If an error occurs during the query processing, a 400 Bad Request
+            exception is raised with an appropriate error message.
+    """
+
     try:
         if app.state.config.ENABLE_RAG_HYBRID_SEARCH:
             return query_collection_with_hybrid_search(
