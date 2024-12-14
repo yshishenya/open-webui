@@ -606,6 +606,29 @@ async def get_body_and_model_and_user(request, models):
 
 class ChatCompletionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        """Dispatches a request for chat completion and handles model access
+        control.
+
+        This method processes incoming requests to determine if they are chat
+        completion requests. It retrieves the necessary model information and
+        user details, checks access permissions, and modifies the request body
+        as needed. The function also handles various exceptions that may arise
+        during the processing of the request and prepares the response
+        accordingly. If the request is valid, it streams the response back to
+        the client, ensuring that any additional data items are included.
+
+        Args:
+            request (Request): The incoming request object containing user and model information.
+            call_next (Callable): A callable to process the next middleware or endpoint.
+
+        Returns:
+            StreamingResponse: A streaming response containing the processed data.
+
+        Raises:
+            HTTPException: If the user does not have access to the requested model.
+            Exception: If no user message is found during processing.
+        """
+
         if not is_chat_completion_request(request):
             return await call_next(request)
         log.debug(f"request.url.path: {request.url.path}")
@@ -1207,6 +1230,23 @@ async def get_all_models():
 
 @app.get("/api/models")
 async def get_models(user=Depends(get_verified_user)):
+    """Retrieve a list of models accessible to the verified user.
+
+    This function fetches all available models and filters them based on
+    specific criteria. It removes any models that are classified as filter
+    pipelines and sorts the remaining models according to a predefined order
+    list, if provided. Additionally, it ensures that the user has the
+    appropriate access rights to view each model. If the user does not have
+    access to a model, it will be excluded from the final list.
+
+    Args:
+        user (Depends): The verified user object, which contains user role and access
+            information.
+
+    Returns:
+        dict: A dictionary containing a list of models that the user has access to.
+    """
+
     models = await get_all_models()
 
     # Filter out filter pipelines

@@ -354,6 +354,27 @@ async def get_all_models() -> dict[str, list]:
 @app.get("/models")
 @app.get("/models/{url_idx}")
 async def get_models(url_idx: Optional[int] = None, user=Depends(get_verified_user)):
+    """Retrieve models based on the provided index or fetch all models.
+
+    This asynchronous function retrieves a list of models from an external
+    API. If a specific index is provided, it constructs the request using
+    the corresponding OpenAI API base URL and key. It also includes user
+    information in the headers if enabled. The function handles various
+    exceptions, including HTTP errors and client connection issues, and
+    filters the models based on user access control if applicable.
+
+    Args:
+        url_idx (Optional[int]): The index of the OpenAI API base URL to use.
+            If None, all models are retrieved.
+        user: The verified user, used for adding user-specific headers.
+
+    Returns:
+        dict: A dictionary containing the retrieved models.
+
+    Raises:
+        HTTPException: If there is a connection error or unexpected error during the request.
+    """
+
     models = {
         "data": [],
     }

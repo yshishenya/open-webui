@@ -322,6 +322,32 @@ async def get_all_models():
 async def get_ollama_tags(
     url_idx: Optional[int] = None, user=Depends(get_verified_user)
 ):
+    """Retrieve Ollama tags based on the provided index or fetch all models if
+    no index is given.
+
+    This function checks if a specific model index is provided. If not, it
+    retrieves all models from the Ollama API. If an index is provided, it
+    constructs the appropriate URL and makes a GET request to fetch the tags
+    associated with that model. The function also handles authorization
+    using a bearer token if available. In case of an error during the API
+    request, it logs the exception and raises an HTTPException with a
+    relevant error message. Additionally, if the user has a role of "user"
+    and model access control is enforced, it filters the models based on the
+    user's access rights.
+
+    Args:
+        url_idx (Optional[int]): The index of the model to retrieve tags for. If None, fetches all
+            models.
+        user: The user object containing information about the authenticated user.
+
+    Returns:
+        dict: A dictionary containing the models and their associated tags.
+
+    Raises:
+        HTTPException: If there is an error connecting to the Ollama API or if the user does
+            not have access to
+    """
+
     models = []
     if url_idx is None:
         models = await get_all_models()
@@ -1039,6 +1065,30 @@ async def generate_openai_chat_completion(
     url_idx: Optional[int] = None,
     user=Depends(get_verified_user),
 ):
+    """Generate a chat completion using OpenAI's API based on the provided form
+    data.
+
+    This function processes the input form data to create a payload for the
+    OpenAI chat completion API. It validates the model ID, applies necessary
+    parameters, and checks user access rights before making the API call. If
+    any errors occur during the processing of the form data or while
+    checking access, appropriate HTTP exceptions are raised.
+
+    Args:
+        form_data (dict): A dictionary containing the data required for generating the chat
+            completion.
+        url_idx (Optional[int]?): An optional index to select a specific URL configuration.
+            Defaults to None.
+        user: The user making the request, verified through dependency injection.
+
+    Returns:
+        The response from the OpenAI chat completion API.
+
+    Raises:
+        HTTPException: If there is an error in processing the form data or if the user does not
+            have
+    """
+
     try:
         completion_form = OpenAIChatCompletionForm(**form_data)
     except Exception as e:
@@ -1110,6 +1160,26 @@ async def get_openai_models(
     url_idx: Optional[int] = None,
     user=Depends(get_verified_user),
 ):
+    """Retrieve OpenAI models based on the provided index or fetch all models.
+
+    This function fetches a list of OpenAI models. If a URL index is
+    provided, it makes a request to the corresponding Ollama server to
+    retrieve model tags. If no index is provided, it retrieves all models
+    from the default source. The function also handles user access control,
+    filtering the models based on the user's permissions.
+
+    Args:
+        url_idx (Optional[int]): The index of the URL to fetch models from. If None, fetches all models.
+        user: The verified user making the request.
+
+    Returns:
+        dict: A dictionary containing a list of models and an object type.
+
+    Raises:
+        HTTPException: If there is an error connecting to the server or if the server returns
+            an error response.
+    """
+
 
     models = []
     if url_idx is None:
