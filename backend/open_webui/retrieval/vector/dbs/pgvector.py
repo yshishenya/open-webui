@@ -87,9 +87,21 @@ class PgvectorClient:
             raise
 
     def check_vector_length(self) -> None:
-        """
-        Check if the VECTOR_LENGTH matches the existing vector column dimension in the database.
-        Raises an exception if there is a mismatch.
+        """Check if the VECTOR_LENGTH matches the existing vector column dimension
+        in the database.
+
+        This method inspects the 'document_chunk' table in the database to
+        verify that the dimension of the 'vector' column aligns with the
+        predefined VECTOR_LENGTH. If there is a discrepancy between the two, an
+        exception is raised to indicate the mismatch. The method also checks
+        whether the 'vector' column exists and is of the correct type. If the
+        column is missing or of an incorrect type, appropriate exceptions are
+        raised.
+
+        Raises:
+            Exception: If the 'vector' column does not exist in the 'document_chunk' table.
+            Exception: If the 'vector' column exists but is not of type 'Vector'.
+            Exception: If VECTOR_LENGTH does not match the existing vector column dimension.
         """
         metadata = MetaData()
         metadata.reflect(bind=self.session.bind, only=["document_chunk"])
