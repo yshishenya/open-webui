@@ -618,6 +618,27 @@ export const cloneChatById = async (token: string, id: string) => {
 	return res;
 };
 
+/**
+ * Clones a shared chat by its ID.
+ *
+ * This asynchronous function sends a POST request to the specified API endpoint to clone a chat
+ * identified by the provided ID. It includes an optional authorization token in the request headers.
+ * If the request is successful, it returns the cloned chat data. If an error occurs during the fetch,
+ * it logs the error and throws a detailed error message.
+ *
+ * @param {string} token - The authorization token to access the API. If not provided, the request will be made without authorization.
+ * @param {string} id - The ID of the chat to be cloned.
+ * @returns {Promise<Object|null>} A promise that resolves to the cloned chat data as an object, or null if an error occurred.
+ * @throws {Object} Throws an error object containing details about the failure if the fetch operation fails.
+ *
+ * @example
+ * try {
+ *   const clonedChat = await cloneSharedChatById('your_token_here', 'chat_id_here');
+ *   console.log(clonedChat);
+ * } catch (error) {
+ *   console.error('Failed to clone chat:', error);
+ * }
+ */
 export const cloneSharedChatById = async (token: string, id: string) => {
 	let error = null;
 
