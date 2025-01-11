@@ -290,6 +290,29 @@ async def chat_completed(request: Request, form_data: dict, user: Any):
 
 
 async def chat_action(request: Request, action_id: str, form_data: dict, user: Any):
+    """Handle chat actions based on the provided request and action ID.
+
+    This function processes a chat action by retrieving the corresponding
+    function module and executing the action with the provided form data. It
+    first checks if the action ID is valid and if the required models are
+    available. The function also prepares the necessary parameters for the
+    action, including user information and event emitters. If the action is
+    a coroutine, it awaits its execution; otherwise, it executes it
+    synchronously. The result of the action is returned.
+
+    Args:
+        request (Request): The request object containing application state.
+        action_id (str): The identifier for the action to be performed.
+        form_data (dict): A dictionary containing data required for the action.
+        user (Any): The user object containing user information.
+
+    Returns:
+        Any: The result of the executed action.
+
+    Raises:
+        Exception: If the action is not found or if the model is not found.
+    """
+
     if "." in action_id:
         action_id, sub_action_id = action_id.split(".")
     else:
