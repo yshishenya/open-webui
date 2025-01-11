@@ -174,6 +174,28 @@ class MessageTable:
     def get_messages_by_parent_id(
         self, channel_id: str, parent_id: str, skip: int = 0, limit: int = 50
     ) -> list[MessageModel]:
+        """Retrieve messages associated with a specific parent message in a
+        channel.
+
+        This function queries the database for messages that are linked to a
+        given parent message identified by its ID within a specified channel. It
+        allows pagination through the `skip` and `limit` parameters. If the
+        number of retrieved messages is less than the specified limit, the
+        parent message itself is included in the results.
+
+        Args:
+            channel_id (str): The ID of the channel from which to retrieve messages.
+            parent_id (str): The ID of the parent message for which to find replies.
+            skip (int?): The number of messages to skip before starting to
+                collect the result set. Defaults to 0.
+            limit (int?): The maximum number of messages to return.
+                Defaults to 50.
+
+        Returns:
+            list[MessageModel]: A list of MessageModel instances representing the
+                messages associated with the specified parent message.
+        """
+
         with get_db() as db:
             message = db.get(Message, parent_id)
 

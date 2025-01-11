@@ -467,6 +467,23 @@ class ChatTable:
             return None
 
     def get_chat_by_share_id(self, id: str) -> Optional[ChatModel]:
+        """Retrieve a chat by its shared ID.
+
+        This function attempts to fetch a chat from the database using the
+        provided shared ID. It checks if a chat with the specified shared ID
+        exists. If the chat is found, it retrieves the chat details using the
+        chat's ID. If the shared link has been deleted or does not exist, the
+        function returns None. Additionally, any exceptions that occur during
+        the database query are caught, and None is returned in such cases.
+
+        Args:
+            id (str): The shared ID of the chat to retrieve.
+
+        Returns:
+            Optional[ChatModel]: The chat associated with the given shared ID, or None if
+            no chat is found or an error occurs.
+        """
+
         try:
             with get_db() as db:
                 # it is possible that the shared link was deleted. hence,

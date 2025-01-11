@@ -489,6 +489,30 @@ async def chat_web_search_handler(
 async def chat_completion_files_handler(
     request: Request, body: dict, user: UserModel
 ) -> tuple[dict, dict[str, list]]:
+    """Handle chat completion requests with file sources.
+
+    This function processes a chat completion request by extracting files
+    from the request body and generating queries based on the provided
+    messages. It attempts to retrieve relevant sources using the generated
+    queries and returns the original request body along with the sources
+    found. If no queries are generated, it defaults to using the last user
+    message to retrieve sources.
+
+    Args:
+        request (Request): The HTTP request object containing metadata and application state.
+        body (dict): A dictionary containing the model, messages, and metadata including
+            files.
+        user (UserModel): The user model representing the user making the request.
+
+    Returns:
+        tuple[dict, dict[str, list]]: A tuple containing the original request body and a
+        dictionary with a key "sources" that maps to a list of sources
+            retrieved.
+
+    Raises:
+        Exception: If no JSON object is found in the response from the query generation.
+    """
+
     sources = []
 
     if files := body.get("metadata", {}).get("files", None):
@@ -566,6 +590,34 @@ def apply_params_to_form_data(form_data, model):
 
 
 async def process_chat_payload(request, form_data, metadata, user, model):
+    """Process the chat payload and prepare the response data.
+
+    This function takes in the request and form data, applies necessary
+    parameters, and handles various events related to the chat. It manages
+    knowledge searches, filters, and tools associated with the chat
+    completion process. The function also constructs context strings from
+    sources and updates the messages accordingly. It ensures that the
+    appropriate events are emitted during the processing.
+
+    Args:
+        request (Request): The HTTP request object containing metadata and
+            application state.
+        form_data (dict): A dictionary containing the form data for the chat.
+        metadata (dict): Metadata related to the chat session.
+        user (User): The user object containing user details such as ID,
+            email, name, and role.
+        model (dict): The model configuration and information used for
+            processing.
+
+    Returns:
+        tuple: A tuple containing the updated form data and a list of events
+            generated during processing.
+
+    Raises:
+        Exception: If an error occurs during processing, such as missing user
+            messages or issues with event handling.
+    """
+
     form_data = apply_params_to_form_data(form_data, model)
     log.debug(f"form_data: {form_data}")
 

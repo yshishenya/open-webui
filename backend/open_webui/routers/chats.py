@@ -470,6 +470,28 @@ async def clone_chat_by_id(id: str, user=Depends(get_verified_user)):
 
 @router.post("/{id}/clone/shared", response_model=Optional[ChatResponse])
 async def clone_shared_chat_by_id(id: str, user=Depends(get_verified_user)):
+    """Clone a shared chat by its ID.
+
+    This function retrieves a chat using its shared ID and creates a clone
+    of it. If the chat is found, it updates the chat details, including
+    setting a new title and preserving the original chat ID and branch point
+    message ID. The cloned chat is then inserted into the database and
+    returned as a response. If the chat is not found, an HTTP exception is
+    raised indicating that the user is unauthorized.
+
+    Args:
+        id (str): The shared ID of the chat to be cloned.
+        user: The user requesting the clone operation, verified through dependency
+            injection.
+
+    Returns:
+        ChatResponse: The response containing the details of the cloned chat.
+
+    Raises:
+        HTTPException: If the chat with the given ID does not exist or the user is
+            unauthorized.
+    """
+
     chat = Chats.get_chat_by_share_id(id)
     if chat:
         updated_chat = {
