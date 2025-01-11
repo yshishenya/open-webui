@@ -78,6 +78,28 @@ def get_current_user(
     request: Request,
     auth_token: HTTPAuthorizationCredentials = Depends(bearer_security),
 ):
+    """Get the current user based on the provided request and authentication
+    token.
+
+    This function retrieves the current user by checking the provided
+    authentication token or a token stored in the request cookies. It
+    supports both API key and JWT token authentication methods. If the token
+    is invalid or the user cannot be found, appropriate HTTP exceptions are
+    raised.
+
+    Args:
+        request (Request): The HTTP request object containing cookies and other request data.
+        auth_token (HTTPAuthorizationCredentials?): The credentials from the
+            authorization header, if present. Defaults to None.
+
+    Returns:
+        User: The user object corresponding to the authenticated user.
+
+    Raises:
+        HTTPException: If the user is not authenticated, the token is invalid, or the user
+            cannot be found.
+    """
+
     token = None
 
     if auth_token is not None:
