@@ -466,6 +466,33 @@ async def generate_emoji(
 async def generate_moa_response(
     request: Request, form_data: dict, user=Depends(get_verified_user)
 ):
+    """Generate a response for the MOA (Model of Action) based on the provided
+    request and form data.
+
+    This function processes the incoming request to generate a MOA response.
+    It first checks if the specified model exists in the application's
+    state. If the model is not found, it raises an HTTPException. The
+    function then retrieves the appropriate task model ID based on the
+    user's input and the application's configuration. After preparing the
+    content using a predefined template, it constructs a payload for
+    generating a chat completion. Finally, it attempts to generate the chat
+    completion and returns the result. If an error occurs during this
+    process, it returns a JSON response with an error message.
+
+    Args:
+        request (Request): The incoming request object containing application state.
+        form_data (dict): A dictionary containing form data, including model ID, prompt, and
+            responses.
+        user: The verified user making the request (default is obtained from
+            Depends(get_verified_user)).
+
+    Returns:
+        JSONResponse: The response from the chat completion generation or an error message.
+
+    Raises:
+        HTTPException: If the specified model ID is not found in the application's models.
+    """
+
 
     models = request.app.state.MODELS
     model_id = form_data["model"]
