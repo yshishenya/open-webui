@@ -40,7 +40,21 @@ class PDFGenerator:
             return ""
 
     def _build_html_message(self, message: Dict[str, Any]) -> str:
-        """Build HTML for a single message."""
+        """Build HTML for a single message.
+
+        This function constructs an HTML representation of a message based on
+        its role, content, and timestamp. It formats the message into a
+        structured HTML layout, including the role of the sender (user or
+        assistant), the content of the message, and an optional timestamp. The
+        content is also formatted to replace newline characters with HTML line
+        breaks for proper display in web browsers.
+
+        Args:
+            message (Dict[str, Any]): A dictionary containing the
+
+        Returns:
+            str: The HTML representation of the message.
+        """
         role = message.get("role", "user")
         content = message.get("content", "")
         timestamp = message.get("timestamp")
