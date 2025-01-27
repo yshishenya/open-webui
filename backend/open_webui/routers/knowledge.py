@@ -207,6 +207,30 @@ async def update_knowledge_by_id(
     form_data: KnowledgeForm,
     user=Depends(get_verified_user),
 ):
+    """Update knowledge entry by its ID.
+
+    This function retrieves a knowledge entry based on the provided ID and
+    updates it with the given form data. It first checks if the knowledge
+    entry exists and whether the user has the necessary permissions to
+    perform the update. If the user is not the original creator, does not
+    have write access, and is not an admin, an access prohibited error is
+    raised. If the update is successful, it retrieves any associated files
+    and returns a response containing the updated knowledge data along with
+    the files.
+
+    Args:
+        id (str): The ID of the knowledge entry to be updated.
+        form_data (KnowledgeForm): The data to update the knowledge entry with.
+        user: The user performing the update, verified through dependency injection.
+
+    Returns:
+        KnowledgeFilesResponse: The updated knowledge entry along with associated files.
+
+    Raises:
+        HTTPException: If the knowledge entry is not found, if access is prohibited, or if the
+            ID is already taken.
+    """
+
     knowledge = Knowledges.get_knowledge_by_id(id=id)
     if not knowledge:
         raise HTTPException(
@@ -399,6 +423,30 @@ def remove_file_from_knowledge_by_id(
     form_data: KnowledgeFileIdForm,
     user=Depends(get_verified_user),
 ):
+    """Remove a file from a knowledge entry by its ID.
+
+    This function removes a specified file from a knowledge entry in the
+    database. It first verifies the existence of the knowledge entry and
+    checks if the user has the necessary permissions to modify it. If the
+    user is authorized, the function proceeds to delete the file from both
+    the vector database and the physical storage. It also updates the
+    knowledge entry to reflect the removal of the file. If any of the checks
+    fail or if the operations cannot be completed, appropriate HTTP
+    exceptions are raised.
+
+    Args:
+        id (str): The ID of the knowledge entry from which the file will be removed.
+        form_data (KnowledgeFileIdForm): The form data containing the file ID to be removed.
+        user: The user making the request, verified through dependency injection.
+
+    Returns:
+        KnowledgeFilesResponse: The updated knowledge entry along with the remaining files.
+
+    Raises:
+        HTTPException: If the knowledge entry or file is not found, if access is prohibited,
+            or if there are issues updating the knowledge entry.
+    """
+
     knowledge = Knowledges.get_knowledge_by_id(id=id)
     if not knowledge:
         raise HTTPException(
@@ -477,6 +525,27 @@ def remove_file_from_knowledge_by_id(
 
 @router.delete("/{id}/delete", response_model=bool)
 async def delete_knowledge_by_id(id: str, user=Depends(get_verified_user)):
+    """Delete a knowledge base entry by its ID.
+
+    This function retrieves a knowledge base entry using the provided ID and
+    checks if the user has the necessary permissions to delete it. If the
+    knowledge base exists and the user is authorized (either the owner or an
+    admin), it proceeds to update any models that reference this knowledge
+    base by removing it from their metadata. Finally, it attempts to delete
+    the knowledge base from the vector database and returns the result of
+    the deletion operation.
+
+    Args:
+        id (str): The ID of the knowledge base to be deleted.
+        user: The user requesting the deletion, verified through dependency injection.
+
+    Returns:
+        The result of the knowledge base deletion operation.
+
+    Raises:
+        HTTPException: If the knowledge base is not found or if access is prohibited.
+    """
+
     knowledge = Knowledges.get_knowledge_by_id(id=id)
     if not knowledge:
         raise HTTPException(
