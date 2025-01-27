@@ -493,6 +493,29 @@ async def chat_web_search_handler(
 async def chat_image_generation_handler(
     request: Request, form_data: dict, extra_params: dict, user
 ):
+    """Handle the image generation process for chat requests.
+
+    This function manages the workflow of generating an image based on user
+    input and the specified model. It emits status updates during the
+    process and handles the retrieval of prompts from the response of an
+    image generation API. The function also manages error handling and
+    updates the message context accordingly.
+
+    Args:
+        request (Request): The HTTP request object containing application state and configuration.
+        form_data (dict): A dictionary containing user messages and model information.
+        extra_params (dict): A dictionary of additional parameters, including an event emitter.
+        user: The user object representing the current user.
+
+    Returns:
+        dict: The updated form_data dictionary with messages reflecting the image
+            generation status.
+
+    Raises:
+        Exception: If there is an error during the image prompt generation or image
+            generation process.
+    """
+
     __event_emitter__ = extra_params["__event_emitter__"]
     await __event_emitter__(
         {
@@ -587,6 +610,32 @@ async def chat_image_generation_handler(
 async def chat_completion_files_handler(
     request: Request, body: dict, user: UserModel
 ) -> tuple[dict, dict[str, list]]:
+    """Handle chat completion files and retrieve sources based on user queries.
+
+    This function processes a request to handle chat completion files. It
+    extracts files from the request body, generates queries based on the
+    provided messages, and retrieves relevant sources using those queries.
+    If no valid queries are generated, it defaults to using the last user
+    message. The function utilizes asynchronous execution to offload the
+    source retrieval process to a separate thread for efficiency.
+
+    Args:
+        request (Request): The request object containing application state and
+            configuration.
+        body (dict): A dictionary containing the model, messages, and metadata
+            including files.
+        user (UserModel): The user model representing the current user.
+
+    Returns:
+        tuple[dict, dict[str, list]]: A tuple containing the original request body
+            and a dictionary with a key "sources" that holds a list of retrieved
+            sources.
+
+    Raises:
+        Exception: If there is an error in processing the queries or retrieving
+            sources.
+    """
+
     sources = []
 
     if files := body.get("metadata", {}).get("files", None):
@@ -647,6 +696,24 @@ async def chat_completion_files_handler(
 
 
 def apply_params_to_form_data(form_data, model):
+    """Apply parameters from form data to the model's configuration.
+
+    This function extracts parameters from the provided `form_data` and
+    applies them to the `form_data` dictionary based on the characteristics
+    of the `model`. If the model has an "ollama" attribute, it will set
+    specific options such as "format" and "keep_alive". If the model does
+    not have this attribute, it will apply other parameters like "seed",
+    "stop", "temperature", "top_p", "frequency_penalty", and
+    "reasoning_effort".
+
+    Args:
+        form_data (dict): A dictionary containing form data, which may include a "params" key.
+        model (dict): A dictionary representing the model configuration.
+
+    Returns:
+        dict: The updated form_data dictionary with applied parameters.
+    """
+
     params = form_data.pop("params", {})
     if model.get("ollama"):
         form_data["options"] = params
@@ -679,6 +746,34 @@ def apply_params_to_form_data(form_data, model):
 
 
 async def process_chat_payload(request, form_data, metadata, user, model):
+    """Process the chat payload and handle various features.
+
+    This function processes the incoming chat payload by applying parameters
+    to the form data, emitting events based on the user's message and model
+    knowledge, and handling features such as web search and image
+    generation. It also manages the context and citations for the chat
+    messages, ensuring that relevant information is included in the
+    response. The function returns the modified form data and any events
+    that need to be sent to the client.
+
+    Args:
+        request (Request): The HTTP request object containing the context of the request.
+        form_data (dict): The form data containing user messages and other parameters.
+        metadata (dict): Metadata associated with the request, including user and model
+            information.
+        user (User): The user object containing user details such as ID, email, name, and
+            role.
+        model (dict): The model configuration and information.
+
+    Returns:
+        tuple: A tuple containing the modified form data (dict) and a list of events
+            (list).
+
+    Raises:
+        Exception: If an error occurs during processing, such as missing user message or
+            other issues.
+    """
+
     form_data = apply_params_to_form_data(form_data, model)
     log.debug(f"form_data: {form_data}")
 
@@ -867,7 +962,43 @@ async def process_chat_payload(request, form_data, metadata, user, model):
 async def process_chat_response(
     request, response, form_data, user, events, metadata, tasks
 ):
+    """Process a chat response and handle background tasks for chat events.
+
+    This function processes the response from a chat request, updates chat
+    titles and tags, and manages background tasks related to chat events. It
+    checks the metadata for necessary identifiers and determines whether to
+    emit events based on the response content. If the response is not a
+    streaming response, it handles the response directly, updating the chat
+    with new messages and potentially sending webhook notifications if the
+    user is inactive. If the response is a streaming response, it sets up a
+    handler to process incoming data in real-time, updating the chat as new
+    data arrives.
+
+    Args:
+        request (Request): The incoming request object.
+        response (Response): The response object from the chat service.
+        form_data (dict): The form data associated with the request.
+        user (User): The user object representing the current user.
+        events (list): A list of events to be processed.
+        metadata (dict): Metadata containing identifiers like chat_id and message_id.
+        tasks (dict): A dictionary of tasks to be performed, such as title or tags generation.
+
+    Returns:
+        Response: The processed response object.
+    """
+
     async def background_tasks_handler():
+        """Handle background tasks related to chat messages.
+
+        This function processes background tasks such as title and tag
+        generation for a chat. It retrieves messages based on the provided chat
+        ID and message ID, and depending on the tasks specified, it may generate
+        a title for the chat or update the chat tags. The function interacts
+        with the `Chats` class to update the chat title and tags in the
+        database, and emits events to notify other parts of the application
+        about these updates.
+        """
+
         message_map = Chats.get_messages_by_chat_id(metadata["chat_id"])
         message = message_map.get(metadata["message_id"]) if message_map else None
 
@@ -1053,6 +1184,22 @@ async def process_chat_response(
 
         # Handle as a background task
         async def post_response_handler(response, events):
+            """Handle the response from a chat completion event and process associated
+            events.
+
+            This function processes the response from a chat completion event,
+            handling the incoming data, updating the chat messages in the database,
+            and emitting events as necessary. It listens for lines of data from the
+            response body, decodes them, and extracts relevant information to update
+            the chat's state. The function also manages reasoning tags to format the
+            content appropriately and saves messages in real-time if enabled.
+            Additionally, it sends a webhook notification if the user is inactive.
+
+            Args:
+                response (Response): The response object containing the body iterator.
+                events (list): A list of events to be processed.
+            """
+
             message = Chats.get_message_by_id_and_message_id(
                 metadata["chat_id"], metadata["message_id"]
             )
