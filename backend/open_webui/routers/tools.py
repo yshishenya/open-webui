@@ -69,6 +69,28 @@ async def create_new_tools(
     form_data: ToolForm,
     user=Depends(get_verified_user),
 ):
+    """Create a new tool based on the provided form data.
+
+    This function checks if the user has the necessary permissions to create
+    a new tool. It validates the tool ID and processes the form data to
+    create a new tool. If the tool ID is already taken or if any validation
+    fails, appropriate HTTP exceptions are raised.
+
+    Args:
+        request (Request): The HTTP request object.
+        form_data (ToolForm): The form data containing tool information.
+        user: The user making the request, verified through dependency injection.
+
+    Returns:
+        Tool: The newly created tool object if successful.
+
+    Raises:
+        HTTPException: If the user is unauthorized to create tools.
+        HTTPException: If the tool ID is not valid.
+        HTTPException: If the tool ID is already taken.
+        HTTPException: If there is an error during tool creation.
+    """
+
     if user.role != "admin" and not has_permission(
         user.id, "workspace.tools", request.app.state.config.USER_PERMISSIONS
     ):
@@ -158,6 +180,30 @@ async def update_tools_by_id(
     form_data: ToolForm,
     user=Depends(get_verified_user),
 ):
+    """Update a tool's information by its ID.
+
+    This function retrieves a tool based on the provided ID and updates its
+    information using the data from the provided form. It first checks if
+    the tool exists and whether the user has the necessary permissions to
+    perform the update. If the user is not authorized or if the tool does
+    not exist, an HTTPException is raised. The function also handles any
+    exceptions that may occur during the update process and raises an
+    appropriate HTTPException with a relevant error message.
+
+    Args:
+        request (Request): The HTTP request object.
+        id (str): The ID of the tool to be updated.
+        form_data (ToolForm): The form data containing the updated tool information.
+        user (Depends): The verified user making the request.
+
+    Returns:
+        Tool: The updated tool object.
+
+    Raises:
+        HTTPException: If the tool is not found, the user is unauthorized, or an error occurs
+            during the update.
+    """
+
     tools = Tools.get_tool_by_id(id)
     if not tools:
         raise HTTPException(
@@ -303,6 +349,30 @@ async def get_tools_valves_spec_by_id(
 async def update_tools_valves_by_id(
     request: Request, id: str, form_data: dict, user=Depends(get_verified_user)
 ):
+    """Update the valves of a tool identified by its ID.
+
+    This function updates the valves associated with a specific tool. It
+    first retrieves the tool using the provided ID and checks if the user
+    has the necessary permissions to update it. If the tool is found and the
+    user has access, it loads the corresponding tools module and updates the
+    valves based on the provided form data. The function ensures that only
+    valid data is processed and raises appropriate HTTP exceptions for
+    various error conditions.
+
+    Args:
+        request (Request): The HTTP request object.
+        id (str): The unique identifier of the tool.
+        form_data (dict): A dictionary containing the valve data to be updated.
+        user: The user making the request, verified through dependency injection.
+
+    Returns:
+        dict: The updated valve data.
+
+    Raises:
+        HTTPException: If the tool is not found, if access is prohibited, or if there is an
+            error during the update process.
+    """
+
     tools = Tools.get_tool_by_id(id)
     if not tools:
         raise HTTPException(
