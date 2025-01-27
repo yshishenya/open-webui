@@ -166,6 +166,30 @@ async def update_password(
 ############################
 @router.post("/ldap", response_model=SigninResponse)
 async def ldap_auth(request: Request, response: Response, form_data: LdapForm):
+    """Authenticate a user against an LDAP server.
+
+    This function performs LDAP authentication by connecting to the
+    specified LDAP server and validating the user's credentials. It
+    retrieves user information such as email and common name (cn) from the
+    LDAP server and creates a new user in the local database if the user
+    does not already exist. If authentication is successful, it generates a
+    JWT token and sets it as a cookie in the response.
+
+    Args:
+        request (Request): The HTTP request object containing application state and configuration.
+        response (Response): The HTTP response object used to set cookies.
+        form_data (LdapForm): The form data containing user credentials (username and password).
+
+    Returns:
+        dict: A dictionary containing the authentication token and user details.
+
+    Raises:
+        HTTPException: If LDAP authentication is not enabled, if there are issues with TLS,
+            if the application account bind fails, if the user is not found,
+            if the user's email is missing, if authentication fails, or if
+            the user does not match the record found in the LDAP server.
+    """
+
     ENABLE_LDAP = request.app.state.config.ENABLE_LDAP
     LDAP_SERVER_LABEL = request.app.state.config.LDAP_SERVER_LABEL
     LDAP_SERVER_HOST = request.app.state.config.LDAP_SERVER_HOST
@@ -711,6 +735,21 @@ class LdapServerConfig(BaseModel):
 
 @router.get("/admin/config/ldap/server", response_model=LdapServerConfig)
 async def get_ldap_server(request: Request, user=Depends(get_admin_user)):
+    """Retrieve LDAP server configuration details.
+
+    This function extracts and returns the LDAP server configuration details
+    from the application state. It includes various parameters such as the
+    server label, host, port, and other relevant attributes necessary for
+    connecting to the LDAP server. This is useful for applications that
+    require LDAP authentication or directory services.
+
+    Args:
+        request (Request): The request object containing application state.
+
+    Returns:
+        dict: A dictionary containing the LDAP server configuration details.
+    """
+
     return {
         "label": request.app.state.config.LDAP_SERVER_LABEL,
         "host": request.app.state.config.LDAP_SERVER_HOST,
@@ -731,6 +770,27 @@ async def get_ldap_server(request: Request, user=Depends(get_admin_user)):
 async def update_ldap_server(
     request: Request, form_data: LdapServerConfig, user=Depends(get_admin_user)
 ):
+    """Update the LDAP server configuration.
+
+    This function updates the LDAP server settings based on the provided
+    form data. It checks for the presence of required fields and validates
+    the TLS configuration. If any required fields are missing or if TLS is
+    enabled without a certificate path, an HTTP exception is raised. Upon
+    successful validation, the LDAP server configuration is updated in the
+    application state.
+
+    Args:
+        request (Request): The request object containing application state.
+        form_data (LdapServerConfig): The configuration data for the LDAP server.
+        user: The user making the request, defaulting to an admin user.
+
+    Returns:
+        dict: A dictionary containing the updated LDAP server configuration.
+
+    Raises:
+        HTTPException: If any required field is empty or if TLS is enabled
+    """
+
     required_fields = [
         "label",
         "host",
