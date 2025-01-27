@@ -147,6 +147,27 @@ async def update_model_by_id(
     form_data: ModelForm,
     user=Depends(get_verified_user),
 ):
+    """Update a model instance by its ID.
+
+    This function retrieves a model instance based on the provided ID and
+    updates it with the given form data. It first checks if the model exists
+    and whether the user has the necessary permissions to perform the
+    update. If the model is not found, or if the user lacks the required
+    access rights, appropriate HTTP exceptions are raised.
+
+    Args:
+        id (str): The unique identifier of the model to be updated.
+        form_data (ModelForm): The data to update the model with.
+        user: The user making the request, verified through dependency injection.
+
+    Returns:
+        Model: The updated model instance.
+
+    Raises:
+        HTTPException: If the model is not found (status code 401) or if access is prohibited
+            (status code 400).
+    """
+
     model = Models.get_model_by_id(id)
 
     if not model:
