@@ -48,6 +48,22 @@ router = APIRouter()
 
 @router.get("/config")
 async def get_task_config(request: Request, user=Depends(get_verified_user)):
+    """Retrieve the task configuration from the application state.
+
+    This function extracts various configuration settings related to task
+    management from the application's state. It returns a dictionary
+    containing model names, prompt templates, and flags that control the
+    behavior of different features such as autocomplete and tag generation.
+
+    Args:
+        request (Request): The request object containing application context.
+        user: The verified user dependency (default is obtained from
+            `get_verified_user`).
+
+    Returns:
+        dict: A dictionary containing task-related configuration settings.
+    """
+
     return {
         "TASK_MODEL": request.app.state.config.TASK_MODEL,
         "TASK_MODEL_EXTERNAL": request.app.state.config.TASK_MODEL_EXTERNAL,
@@ -83,6 +99,23 @@ class TaskConfigForm(BaseModel):
 async def update_task_config(
     request: Request, form_data: TaskConfigForm, user=Depends(get_admin_user)
 ):
+    """Update the task configuration settings.
+
+    This function updates various task-related configuration settings based
+    on the provided form data. It modifies the application's state
+    configuration to reflect the new values for task models, prompt
+    templates, and generation settings. After updating the configuration, it
+    returns a dictionary containing the updated configuration values.
+
+    Args:
+        request (Request): The request object containing application state.
+        form_data (TaskConfigForm): The form data containing new configuration values.
+        user: The user making the request, defaulting to an admin user.
+
+    Returns:
+        dict: A dictionary containing the updated task configuration values.
+    """
+
     request.app.state.config.TASK_MODEL = form_data.TASK_MODEL
     request.app.state.config.TASK_MODEL_EXTERNAL = form_data.TASK_MODEL_EXTERNAL
     request.app.state.config.TITLE_GENERATION_PROMPT_TEMPLATE = (
@@ -265,6 +298,32 @@ async def generate_chat_tags(
 async def generate_image_prompt(
     request: Request, form_data: dict, user=Depends(get_verified_user)
 ):
+    """Generate an image prompt based on user input and selected model.
+
+    This function processes a request to generate an image prompt using a
+    specified model. It first checks if the model exists in the
+    application's state. If the model is not found, it raises an
+    HTTPException. The function then retrieves the appropriate task model
+    ID, logs the action, and generates the content for the image prompt
+    based on a template. Finally, it constructs a payload and attempts to
+    generate a chat completion using the provided parameters. If an error
+    occurs during this process, it logs the error and returns a JSON
+    response indicating an internal error.
+
+    Args:
+        request (Request): The request object containing application state and configuration.
+        form_data (dict): A dictionary containing user input data, including the selected model
+            and messages.
+        user: The verified user making the request (default is obtained via dependency
+            injection).
+
+    Returns:
+        JSONResponse: A response containing the generated image prompt or an error message.
+
+    Raises:
+        HTTPException: If the specified model is not found in the application's state.
+    """
+
     models = request.app.state.MODELS
 
     model_id = form_data["model"]
