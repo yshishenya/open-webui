@@ -42,6 +42,23 @@ def apply_model_params_to_body(
 
 # inplace function: form_data is modified
 def apply_model_params_to_body_openai(params: dict, form_data: dict) -> dict:
+    """Apply model parameters to the form data for OpenAI.
+
+    This function modifies the provided form data by applying the specified
+    model parameters. It uses a predefined mapping to convert the parameter
+    values to their appropriate types. The mappings include conversions for
+    temperature, top_p, max_tokens, frequency_penalty, reasoning_effort,
+    seed, and stop. The function directly modifies the `form_data`
+    dictionary based on the values in the `params` dictionary.
+
+    Args:
+        params (dict): A dictionary containing model parameters to be applied.
+        form_data (dict): A dictionary representing the form data to be modified.
+
+    Returns:
+        dict: The modified form data with applied model parameters.
+    """
+
     mappings = {
         "temperature": float,
         "top_p": float,
