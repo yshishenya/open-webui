@@ -83,6 +83,23 @@ export const processResponseContent = (content: string) => {
 	return content.trim();
 };
 
+/**
+ * Converts HTML-encoded strings back to their original representation by parsing the HTML.
+ *
+ * This function takes a string containing HTML entities and returns a plain text string
+ * with the entities replaced by their corresponding characters. It utilizes the DOMParser
+ * to parse the HTML and extract the text content.
+ *
+ * @param {string} html - The HTML-encoded string to be unescaped.
+ * @returns {string} The unescaped plain text string.
+ *
+ * @example
+ * const escapedHtml = '&lt;div&gt;Hello, World!&lt;/div&gt;';
+ * const result = unescapeHtml(escapedHtml);
+ * console.log(result); // Outputs: <div>Hello, World!</div>
+ *
+ * @throws {DOMException} Throws an error if the HTML string cannot be parsed.
+ */
 export function unescapeHtml(html: string) {
 	const doc = new DOMParser().parseFromString(html, 'text/html');
 	return doc.documentElement.textContent;
@@ -290,6 +307,29 @@ export const generateInitialsImage = (name) => {
 	return canvas.toDataURL();
 };
 
+/**
+ * Formats a given date into a human-readable string.
+ *
+ * The function checks if the provided date is today, yesterday, or a different date,
+ * and formats it accordingly. If the date is today, it returns a string indicating
+ * "Today at HH:mm". If the date is yesterday, it returns "Yesterday at HH:mm".
+ * For any other date, it returns the date in the format "DD/MM/YYYY at HH:mm".
+ *
+ * @param {string | Date} inputDate - The date to format. This can be a string or a Date object.
+ * @returns {string} A formatted string representing the input date.
+ *
+ * @example
+ * // Returns "Today at 14:30" if the input date is today at 14:30
+ * formatDate(new Date());
+ *
+ * @example
+ * // Returns "Yesterday at 14:30" if the input date is yesterday at 14:30
+ * formatDate(new Date(Date.now() - 86400000)); // 86400000 ms = 1 day
+ *
+ * @example
+ * // Returns "15/10/2023 at 14:30" if the input date is 15th October 2023 at 14:30
+ * formatDate('2023-10-15T14:30:00Z');
+ */
 export const formatDate = (inputDate) => {
 	const date = dayjs(inputDate);
 	const now = dayjs();
@@ -666,6 +706,22 @@ export const cleanText = (content: string) => {
 	return removeFormattings(removeEmojis(content.trim()));
 };
 
+/**
+ * Removes HTML <details> elements of type "reasoning" from the provided content.
+ *
+ * This function searches for <details> tags with the attribute type set to "reasoning"
+ * and removes them along with their content from the input string.
+ *
+ * @param {string} content - The input string containing HTML content.
+ * @returns {string} The modified string with the specified <details> elements removed.
+ *
+ * @example
+ * const input = '<details type="reasoning">This is reasoning.</details><p>Other content.</p>';
+ * const result = removeDetailsWithReasoning(input);
+ * console.log(result); // Output: '<p>Other content.</p>'
+ *
+ * @throws {Error} Throws an error if the input is not a string.
+ */
 export const removeDetailsWithReasoning = (content) => {
 	return content.replace(/<details\s+type="reasoning"[^>]*>.*?<\/details>/gis, '').trim();
 };
@@ -738,6 +794,28 @@ export const extractSentencesForAudio = (text: string) => {
 	}, [] as string[]);
 };
 
+/**
+ * Splits the provided content into parts based on the specified criteria.
+ *
+ * This function processes the input content by removing any details with reasoning,
+ * and then splits the content into different parts based on the `split_on` parameter.
+ * The available options for splitting are by punctuation, paragraphs, or not splitting at all.
+ *
+ * @param {string} content - The content to be split into parts.
+ * @param {string} [split_on='punctuation'] - The criterion for splitting the content.
+ *        Possible values include:
+ *        - 'punctuation': splits the content into sentences.
+ *        - 'paragraphs': splits the content into paragraphs.
+ *        - 'none': returns the cleaned text without splitting.
+ *
+ * @returns {string[]} An array of strings representing the split content parts.
+ *
+ * @throws {Error} Throws an error if the content is invalid or cannot be processed.
+ *
+ * @example
+ * const parts = getMessageContentParts("Hello world! This is a test.", "punctuation");
+ * console.log(parts); // ["Hello world!", "This is a test."]
+ */
 export const getMessageContentParts = (content: string, split_on: string = 'punctuation') => {
 	content = removeDetailsWithReasoning(content);
 	const messageContentParts: string[] = [];
