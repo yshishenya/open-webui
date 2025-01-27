@@ -10,9 +10,25 @@ import json
 def fill_missing_permissions(
     permissions: Dict[str, Any], default_permissions: Dict[str, Any]
 ) -> Dict[str, Any]:
-    """
-    Recursively fills in missing properties in the permissions dictionary
-    using the default permissions as a template.
+    """Recursively fills in missing properties in the permissions dictionary.
+
+    This function takes a permissions dictionary and a default permissions
+    dictionary. It iterates through the default permissions, checking for
+    any keys that are missing in the permissions dictionary. If a key is
+    missing, it adds the corresponding value from the default permissions.
+    If both the permissions and default permissions for a key are
+    dictionaries, the function is called recursively to fill in any missing
+    properties in the nested dictionaries.
+
+    Args:
+        permissions (Dict[str, Any]): A dictionary representing the current
+            permissions.
+        default_permissions (Dict[str, Any]): A dictionary representing the
+            default permissions to use as a template.
+
+    Returns:
+        Dict[str, Any]: The updated permissions dictionary with missing
+            properties filled in.
     """
     for key, value in default_permissions.items():
         if key not in permissions:
@@ -29,16 +45,46 @@ def get_permissions(
     user_id: str,
     default_permissions: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """
-    Get all permissions for a user by combining the permissions of all groups the user is a member of.
-    If a permission is defined in multiple groups, the most permissive value is used (True > False).
-    Permissions are nested in a dict with the permission key as the key and a boolean as the value.
+    """Get all permissions for a user by combining the permissions of all
+    groups the user is a member of.
+
+    This function retrieves the permissions associated with a specific user
+    by aggregating the permissions from all groups that the user belongs to.
+    If a permission exists in multiple groups, the function prioritizes the
+    most permissive value, ensuring that True takes precedence over False.
+    The permissions are structured as a nested dictionary, where each key
+    represents a permission and its corresponding value is a boolean
+    indicating whether the permission is granted.
+
+    Args:
+        user_id (str): The unique identifier of the user whose permissions are to be retrieved.
+        default_permissions (Dict[str, Any]): A dictionary containing the default permissions to be used
+            as a baseline.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the combined permissions for the user.
     """
 
     def combine_permissions(
         permissions: Dict[str, Any], group_permissions: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Combine permissions from multiple groups by taking the most permissive value."""
+        """Combine permissions from multiple groups by taking the most permissive
+        value.
+
+        This function merges two dictionaries of permissions. It iterates
+        through the `group_permissions` dictionary and updates the `permissions`
+        dictionary. If a permission key is associated with a dictionary, the
+        function calls itself recursively to combine the nested permissions. For
+        non-dictionary values, it sets the permission to the most permissive
+        value, where `True` is considered more permissive than `False`.
+
+        Args:
+            permissions (Dict[str, Any]): The existing permissions to be updated.
+            group_permissions (Dict[str, Any]): The permissions from a group to combine.
+
+        Returns:
+            Dict[str, Any]: The updated permissions after combining with group permissions.
+        """
         for key, value in group_permissions.items():
             if isinstance(value, dict):
                 if key not in permissions:
@@ -74,15 +120,41 @@ def has_permission(
     permission_key: str,
     default_permissions: Dict[str, Any] = {},
 ) -> bool:
-    """
-    Check if a user has a specific permission by checking the group permissions
-    and fall back to default permissions if not found in any group.
+    """Check if a user has a specific permission based on group permissions.
 
-    Permission keys can be hierarchical and separated by dots ('.').
+    This function checks whether a user has a specified permission by
+    examining the permissions associated with the user's groups. If the
+    permission is not found in any of the user's group permissions, it falls
+    back to the provided default permissions. The permission keys can be
+    hierarchical, allowing for structured permission management.
+
+    Args:
+        user_id (str): The unique identifier of the user whose permissions are being checked.
+        permission_key (str): The key representing the permission to check, which can be hierarchical.
+        default_permissions (Dict[str, Any]?): A dictionary of default permissions to check if
+            group permissions do not grant access. Defaults to an empty dictionary.
+
+    Returns:
+        bool: True if the user has the specified permission, False otherwise.
     """
 
     def get_permission(permissions: Dict[str, Any], keys: List[str]) -> bool:
-        """Traverse permissions dict using a list of keys (from dot-split permission_key)."""
+        """Check access permissions based on a hierarchy of keys.
+
+        This function traverses a nested dictionary of permissions using a list
+        of keys, which represent a dot-split permission key. It checks if each
+        key exists in the permissions dictionary and moves one level deeper in
+        the hierarchy. If any key is missing, access is denied. The function
+        returns a boolean indicating whether access is granted at the final
+        level of the hierarchy.
+
+        Args:
+            permissions (Dict[str, Any]): A dictionary representing the permissions hierarchy.
+            keys (List[str]): A list of keys to traverse the permissions dictionary.
+
+        Returns:
+            bool: True if access is granted at the final level, False otherwise.
+        """
         for key in keys:
             if key not in permissions:
                 return False  # If any part of the hierarchy is missing, deny access
