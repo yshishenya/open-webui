@@ -89,6 +89,24 @@ class UserPermissions(BaseModel):
 
 @router.get("/default/permissions", response_model=UserPermissions)
 async def get_user_permissions(request: Request, user=Depends(get_admin_user)):
+    """Retrieve user permissions for various application features.
+
+    This function extracts user permissions from the application
+    configuration based on the provided request. It returns a dictionary
+    containing permissions for workspace, chat, and features, which are
+    structured according to the application's permission model. The
+    permissions are fetched from the application's state configuration and
+    are instantiated into their respective permission classes.
+
+    Args:
+        request (Request): The HTTP request object containing application context.
+        user: The user dependency, which defaults to the admin user.
+
+    Returns:
+        dict: A dictionary containing user permissions for workspace, chat,
+            and features.
+    """
+
     return {
         "workspace": WorkspacePermissions(
             **request.app.state.config.USER_PERMISSIONS.get("workspace", {})
