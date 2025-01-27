@@ -490,10 +490,38 @@ OAUTH_ALLOWED_DOMAINS = PersistentConfig(
 
 
 def load_oauth_providers():
+    """Load OAuth providers and register them based on the configured client
+    IDs and secrets.
+
+    This function initializes the `OAUTH_PROVIDERS` dictionary by checking
+    the presence of client IDs and secrets for various OAuth providers,
+    including Google, Microsoft, GitHub, and a generic OpenID Connect
+    provider. If the required credentials are available, it defines a
+    registration function for each provider and adds the provider's
+    configuration to the `OAUTH_PROVIDERS` dictionary. This setup allows for
+    seamless integration with the specified OAuth services.
+    """
+
     OAUTH_PROVIDERS.clear()
     if GOOGLE_CLIENT_ID.value and GOOGLE_CLIENT_SECRET.value:
 
         def google_oauth_register(client):
+            """Register a client for Google OAuth authentication.
+
+            This function configures the provided client to use Google as an
+            authentication provider. It sets the necessary parameters such as client
+            ID, client secret, server metadata URL, client kwargs, and redirect URI
+            to facilitate the OAuth flow.
+
+            Args:
+                client: An OAuth client instance that will be configured for
+                    Google authentication.
+
+            Returns:
+                None: This function does not return a value; it modifies the
+                    client instance in place.
+            """
+
             client.register(
                 name="google",
                 client_id=GOOGLE_CLIENT_ID.value,
@@ -515,6 +543,18 @@ def load_oauth_providers():
     ):
 
         def microsoft_oauth_register(client):
+            """Register a Microsoft OAuth client.
+
+            This function configures the provided client to use Microsoft OAuth for
+            authentication. It sets the necessary parameters such as client ID,
+            client secret, server metadata URL, and redirect URI. The scope for the
+            OAuth request is also specified in the client configuration.
+
+            Args:
+                client: An OAuth client instance that will be configured for Microsoft
+                    authentication.
+            """
+
             client.register(
                 name="microsoft",
                 client_id=MICROSOFT_CLIENT_ID.value,
@@ -535,6 +575,21 @@ def load_oauth_providers():
     if GITHUB_CLIENT_ID.value and GITHUB_CLIENT_SECRET.value:
 
         def github_oauth_register(client):
+            """Register a client for GitHub OAuth authentication.
+
+            This function configures the provided client with the necessary
+            parameters to enable GitHub OAuth authentication. It sets up the client
+            with the required URLs for access token retrieval, user authorization,
+            and API interactions, as well as the necessary credentials and scopes.
+
+            Args:
+                client (OAuth2Client): An instance of an OAuth2 client that
+
+            Returns:
+                None: This function does not return a value, but it modifies
+                the client instance in place to include GitHub OAuth settings.
+            """
+
             client.register(
                 name="github",
                 client_id=GITHUB_CLIENT_ID.value,
@@ -560,6 +615,18 @@ def load_oauth_providers():
     ):
 
         def oidc_oauth_register(client):
+            """Register an OpenID Connect (OIDC) client for OAuth authentication.
+
+            This function configures the provided client with the necessary
+            parameters to enable OpenID Connect authentication. It sets the client
+            ID, client secret, server metadata URL, and other relevant OAuth scopes.
+            The redirect URI is also specified to handle the response from the
+            authentication server.
+
+            Args:
+                client: An instance of an OAuth client that will be configured for OIDC.
+            """
+
             client.register(
                 name="oidc",
                 client_id=OAUTH_CLIENT_ID.value,

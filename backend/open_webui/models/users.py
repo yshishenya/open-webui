@@ -272,6 +272,21 @@ class UsersTable:
             return None
 
     def delete_user_by_id(self, id: str) -> bool:
+        """Delete a user by their ID.
+
+        This function removes a user from all associated groups, deletes their
+        chats, and finally deletes the user from the database. It performs these
+        operations in a sequence, ensuring that all related data is cleaned up.
+        If any step fails, the function will return False, indicating that the
+        user could not be deleted.
+
+        Args:
+            id (str): The unique identifier of the user to be deleted.
+
+        Returns:
+            bool: True if the user was successfully deleted, False otherwise.
+        """
+
         try:
             # Remove User from Groups
             Groups.remove_user_from_all_groups(id)
@@ -308,6 +323,21 @@ class UsersTable:
             return None
 
     def get_valid_user_ids(self, user_ids: list[str]) -> list[str]:
+        """Retrieve valid user IDs from the database.
+
+        This function takes a list of user IDs and queries the database to
+        return a list of IDs that are valid and exist in the User table. It uses
+        a context manager to ensure the database connection is properly handled.
+        The resulting list contains only those user IDs that are found in the
+        database.
+
+        Args:
+            user_ids (list[str]): A list of user IDs to validate.
+
+        Returns:
+            list[str]: A list of valid user IDs that exist in the database.
+        """
+
         with get_db() as db:
             users = db.query(User).filter(User.id.in_(user_ids)).all()
             return [user.id for user in users]

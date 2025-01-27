@@ -25,6 +25,15 @@ class RedisLock:
         )
 
     def release_lock(self):
+        """Release a lock from Redis.
+
+        This function checks if the current lock value in Redis matches the
+        expected lock ID. If it does, the function deletes the lock from Redis,
+        effectively releasing it. This is useful for ensuring that resources can
+        be accessed by other processes or threads once the lock is no longer
+        needed.
+        """
+
         lock_value = self.redis.get(self.lock_name)
         if lock_value and lock_value == self.lock_id:
             self.redis.delete(self.lock_name)

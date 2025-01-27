@@ -183,6 +183,35 @@ class OAuthManager:
         return await client.authorize_redirect(request, redirect_uri)
 
     async def handle_callback(self, provider, request, response):
+        """Handle the OAuth callback for user authentication.
+
+        This method processes the OAuth callback by verifying the provider,
+        authorizing the access token, and managing user data. It checks if the
+        user exists, updates their role if necessary, and handles account
+        merging or sign-up based on the configuration. If the user is
+        successfully authenticated, a JWT token is created and set in the
+        response cookies. The user is then redirected back to the frontend with
+        the JWT token.
+
+        Args:
+            provider (str): The OAuth provider being used for authentication.
+            request (Request): The incoming request containing the OAuth callback data.
+            response (Response): The response object to set cookies and redirect.
+
+        Returns:
+            RedirectResponse: A redirect response to the frontend with the JWT token.
+
+        Raises:
+            HTTPException: If the provider is not recognized (404).
+            HTTPException: If there is an error during token authorization (400).
+            HTTPException: If user data is missing after authorization (400).
+            HTTPException: If the 'sub' claim is missing from user data (400).
+            HTTPException: If the email is missing from user data (400).
+            HTTPException: If the email domain is not allowed (400).
+            HTTPException: If the email is already taken during sign-up (400).
+            HTTPException: If sign-ups are disabled and the user does not exist (403).
+        """
+
         if provider not in OAUTH_PROVIDERS:
             raise HTTPException(404)
         client = self.get_client(provider)

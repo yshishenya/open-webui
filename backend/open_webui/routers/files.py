@@ -343,6 +343,26 @@ async def get_file_content_by_id(id: str, user=Depends(get_verified_user)):
 
 @router.delete("/{id}")
 async def delete_file_by_id(id: str, user=Depends(get_verified_user)):
+    """Delete a file by its ID.
+
+    This function attempts to delete a file associated with the given ID. It
+    first checks if the file exists and whether the user has permission to
+    delete it (either as the owner or as an admin). If the file is
+    successfully deleted from the database, it proceeds to delete the
+    physical file from storage. If any errors occur during the deletion
+    process, appropriate HTTP exceptions are raised.
+
+    Args:
+        id (str): The ID of the file to be deleted.
+        user: The user requesting the deletion, verified through dependency injection.
+
+    Returns:
+        dict: A message indicating that the file was deleted successfully.
+
+    Raises:
+        HTTPException: If the file is not found, if the user does not have
+    """
+
     file = Files.get_file_by_id(id)
     if file and (file.user_id == user.id or user.role == "admin"):
         # We should add Chroma cleanup here

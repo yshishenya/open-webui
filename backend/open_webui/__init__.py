@@ -14,6 +14,20 @@ KEY_FILE = Path.cwd() / ".webui_secret_key"
 
 
 def version_callback(value: bool):
+    """Display the Open WebUI version and exit the application.
+
+    This function checks the value of the input parameter. If the value is
+    True, it imports the VERSION from the open_webui.env module, prints the
+    version to the console, and then raises a typer.Exit() to terminate the
+    application.
+
+    Args:
+        value (bool): A flag indicating whether to display the version.
+
+    Raises:
+        typer.Exit: If the value is True, the application will exit after
+    """
+
     if value:
         from open_webui.env import VERSION
 

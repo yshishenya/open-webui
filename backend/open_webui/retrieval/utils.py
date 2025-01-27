@@ -183,6 +183,26 @@ def query_collection(
     embedding_function,
     k: int,
 ) -> dict:
+    """Query multiple collections with given queries and return sorted results.
+
+    This function takes a list of collection names and a list of queries,
+    processes each query by generating its embedding using the provided
+    embedding function, and then queries each collection for results. The
+    results from all collections are aggregated and sorted based on the
+    specified criteria. The function handles exceptions that may occur
+    during the querying process and logs them for debugging purposes.
+
+    Args:
+        collection_names (list[str]): A list of names of the collections to query.
+        queries (list[str]): A list of query strings to be processed.
+        embedding_function: A function that takes a query string and returns its embedding.
+        k (int): The number of top results to return from each collection.
+
+    Returns:
+        dict: A dictionary containing the merged and sorted results from all
+            collections.
+    """
+
     results = []
     for query in queries:
         query_embedding = embedding_function(query)
@@ -217,6 +237,32 @@ def query_collection_with_hybrid_search(
     reranking_function,
     r: float,
 ) -> dict:
+    """Query multiple collections using a hybrid search approach.
+
+    This function performs a hybrid search across specified collections for
+    given queries. It utilizes an embedding function to process the queries
+    and a reranking function to refine the results. The function handles
+    errors during the querying process and raises an exception if all
+    collections fail to return results. Depending on the vector database
+    type, it merges and sorts the results accordingly.
+
+    Args:
+        collection_names (list[str]): A list of names of the collections to query.
+        queries (list[str]): A list of queries to search for in the collections.
+        embedding_function: A function used to generate embeddings for the queries.
+        k (int): The number of top results to return from each query.
+        reranking_function: A function used to rerank the results after initial retrieval.
+        r (float): A parameter used in the reranking process.
+
+    Returns:
+        dict: A dictionary containing the merged and sorted results from the hybrid
+            search.
+
+    Raises:
+        Exception: If hybrid search fails for all collections, indicating a fallback to
+            non-hybrid search.
+    """
+
     results = []
     error = False
     for collection_name in collection_names:

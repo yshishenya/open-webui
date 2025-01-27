@@ -105,6 +105,28 @@ async def update_prompt_by_command(
     form_data: PromptForm,
     user=Depends(get_verified_user),
 ):
+    """Update a prompt based on the provided command.
+
+    This function retrieves a prompt using the specified command and checks
+    if the user has the necessary permissions to update it. If the prompt
+    does not exist or the user lacks the required access rights, an
+    HTTPException is raised. If the user is authorized, the prompt is
+    updated with the provided form data.
+
+    Args:
+        command (str): The command associated with the prompt to be updated.
+        form_data (PromptForm): The data used to update the prompt.
+        user: The user attempting to update the prompt, verified through
+            dependency injection.
+
+    Returns:
+        Prompt: The updated prompt object if the update is successful.
+
+    Raises:
+        HTTPException: If the prompt is not found or if the user does not
+            have permission to update the prompt.
+    """
+
     prompt = Prompts.get_prompt_by_command(f"/{command}")
     if not prompt:
         raise HTTPException(

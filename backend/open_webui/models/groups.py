@@ -91,6 +91,24 @@ class GroupTable:
     def insert_new_group(
         self, user_id: str, form_data: GroupForm
     ) -> Optional[GroupModel]:
+        """Insert a new group into the database.
+
+        This function creates a new group entry based on the provided user ID
+        and form data. It generates a unique ID for the group, records the
+        creation and update timestamps, and attempts to add the new group to the
+        database. If successful, it returns a validated model of the newly
+        created group. If any exception occurs during the process, it returns
+        None.
+
+        Args:
+            user_id (str): The ID of the user creating the group.
+            form_data (GroupForm): The form data containing the group's information.
+
+        Returns:
+            Optional[GroupModel]: A validated model of the newly created group if successful,
+                or None if an error occurs.
+        """
+
         with get_db() as db:
             group = GroupModel(
                 **{
@@ -189,6 +207,22 @@ class GroupTable:
                 return False
 
     def remove_user_from_all_groups(self, user_id: str) -> bool:
+        """Remove a user from all groups in the database.
+
+        This function retrieves all groups associated with the specified user ID
+        and removes the user from each group's user IDs list. It updates the
+        database accordingly to reflect these changes. If any error occurs
+        during the process, the function will return False, indicating that the
+        removal was not successful.
+
+        Args:
+            user_id (str): The ID of the user to be removed from all groups.
+
+        Returns:
+            bool: True if the user was successfully removed from all groups,
+                False otherwise.
+        """
+
         with get_db() as db:
             try:
                 groups = self.get_groups_by_member_id(user_id)

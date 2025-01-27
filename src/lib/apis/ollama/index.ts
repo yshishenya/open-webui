@@ -360,6 +360,33 @@ export const generateChatCompletion = async (token: string = '', body: object) =
 	return [res, controller];
 };
 
+/**
+ * Creates a model by sending a POST request to the specified API endpoint.
+ *
+ * This function takes a token for authorization, a payload containing the model data,
+ * and an optional URL index to specify the endpoint. It handles errors that may occur
+ * during the fetch operation and throws them if they occur.
+ *
+ * @param {string} token - The authorization token required for the API request.
+ * @param {object} payload - The data to be sent in the body of the POST request.
+ * @param {string|null} [urlIdx=null] - An optional index to specify a particular endpoint.
+ *
+ * @returns {Promise<Response|null>} A promise that resolves to the response object
+ * from the fetch call or null if an error occurred.
+ *
+ * @throws {Error} Throws an error if the fetch operation fails.
+ *
+ * @example
+ * const token = 'your_token_here';
+ * const payload = { name: 'exampleModel', version: 1 };
+ * createModel(token, payload)
+ *   .then(response => {
+ *     console.log('Model created successfully:', response);
+ *   })
+ *   .catch(error => {
+ *     console.error('Error creating model:', error);
+ *   });
+ */
 export const createModel = async (token: string, payload: object, urlIdx: string | null = null) => {
 	let error = null;
 

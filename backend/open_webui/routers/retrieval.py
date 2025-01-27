@@ -344,6 +344,23 @@ async def update_reranking_config(
 
 @router.get("/config")
 async def get_rag_config(request: Request, user=Depends(get_admin_user)):
+    """Retrieve the RAG configuration settings.
+
+    This function gathers various configuration settings related to the RAG
+    (Retrieval-Augmented Generation) system from the application state. It
+    compiles settings for PDF extraction, content extraction, file handling,
+    YouTube integration, and web search capabilities into a structured
+    dictionary. The returned configuration can be used to manage and
+    customize the behavior of the RAG system.
+
+    Args:
+        request (Request): The request object containing application state and configuration.
+        user: The user dependency, which defaults to an admin user.
+
+    Returns:
+        dict: A dictionary containing the RAG configuration settings.
+    """
+
     return {
         "status": True,
         "pdf_extract_images": request.app.state.config.PDF_EXTRACT_IMAGES,

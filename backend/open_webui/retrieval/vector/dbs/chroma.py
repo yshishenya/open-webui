@@ -50,6 +50,20 @@ class ChromaClient:
             )
 
     def has_collection(self, collection_name: str) -> bool:
+        """Check if a collection exists by its name.
+
+        This function queries the client to retrieve a list of all existing
+        collections and checks if the specified collection name is present in
+        that list. It returns a boolean value indicating the existence of the
+        collection.
+
+        Args:
+            collection_name (str): The name of the collection to check for existence.
+
+        Returns:
+            bool: True if the collection exists, False otherwise.
+        """
+
         # Check if the collection exists based on the collection name.
         collection_names = self.client.list_collections()
         return collection_name in collection_names
