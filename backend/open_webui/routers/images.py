@@ -40,6 +40,25 @@ router = APIRouter()
 
 @router.get("/config")
 async def get_config(request: Request, user=Depends(get_admin_user)):
+    """Retrieve the configuration settings for image generation.
+
+    This function gathers various configuration parameters related to image
+    generation from the application state. It returns a dictionary
+    containing settings for enabling image generation, the engine to be
+    used, and specific configurations for different services such as OpenAI
+    and Automatic1111. The returned configuration can be used to manage how
+    image generation is handled within the application.
+
+    Args:
+        request (Request): The request object containing application state and user context.
+        user: The user dependency, which defaults to an admin user.
+
+    Returns:
+        dict: A dictionary containing configuration settings for image generation,
+            including
+            enabled status, engine type, and service-specific configurations.
+    """
+
     return {
         "enabled": request.app.state.config.ENABLE_IMAGE_GENERATION,
         "engine": request.app.state.config.IMAGE_GENERATION_ENGINE,
@@ -97,6 +116,23 @@ class ConfigForm(BaseModel):
 async def update_config(
     request: Request, form_data: ConfigForm, user=Depends(get_admin_user)
 ):
+    """Update the application configuration based on the provided form data.
+
+    This function updates various configuration settings of the application,
+    including image generation engine settings, OpenAI API credentials, and
+    ComfyUI workflow parameters. It retrieves values from the provided
+    `form_data` and assigns them to the application's state configuration.
+
+    Args:
+        request (Request): The HTTP request object containing application state.
+        form_data (ConfigForm): The form data containing new configuration values.
+        user: The user making the request, defaulting to an admin user.
+
+    Returns:
+        dict: A dictionary containing the updated configuration values, including
+            image generation settings and API credentials.
+    """
+
     request.app.state.config.IMAGE_GENERATION_ENGINE = form_data.engine
     request.app.state.config.ENABLE_IMAGE_GENERATION = form_data.enabled
 
@@ -416,6 +452,26 @@ def save_b64_image(b64_str):
 
 
 def save_url_image(url, headers=None):
+    """Save an image from a URL to a local directory.
+
+    This function retrieves an image from the specified URL and saves it to
+    a local directory. It generates a unique filename for the image using a
+    UUID and determines the appropriate file extension based on the MIME
+    type of the content. If the URL does not point to an image or if there
+    is an error during the request, the function logs the error and returns
+    None.
+
+    Args:
+        url (str): The URL of the image to be saved.
+        headers (dict?): Optional headers to include in the request.
+
+    Returns:
+        str: The filename of the saved image if successful, otherwise None.
+
+    Raises:
+        ValueError: If the MIME type cannot be determined.
+    """
+
     image_id = str(uuid.uuid4())
     try:
         if headers:
@@ -453,6 +509,29 @@ async def image_generations(
     form_data: GenerateImageForm,
     user=Depends(get_verified_user),
 ):
+    """Generate images based on user input and specified generation engine.
+
+    This function handles image generation requests by interacting with
+    various image generation engines such as OpenAI, ComfyUI, and
+    Automatic1111. It retrieves the necessary configuration from the
+    application state, constructs the appropriate request payload, and sends
+    the request to the selected engine. The generated images are then saved
+    and their URLs are returned.
+
+    Args:
+        request (Request): The HTTP request object containing user input and application state.
+        form_data (GenerateImageForm): The form data containing parameters for image generation.
+        user (User): The verified user making the request (default is obtained via dependency
+            injection).
+
+    Returns:
+        list: A list of dictionaries containing URLs of the generated images.
+
+    Raises:
+        HTTPException: If an error occurs during the image generation process, an HTTPException
+            is raised with a 400 status code and an error message.
+    """
+
     width, height = tuple(map(int, request.app.state.config.IMAGE_SIZE.split("x")))
 
     r = None
