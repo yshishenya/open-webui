@@ -81,6 +81,26 @@ async def get_group_by_id(id: str, user=Depends(get_admin_user)):
 async def update_group_by_id(
     id: str, form_data: GroupUpdateForm, user=Depends(get_admin_user)
 ):
+    """Update a group by its ID.
+
+    This function updates the details of a group identified by the given ID.
+    It first validates the user IDs provided in the form data, then attempts
+    to update the group. If the update is successful, the updated group is
+    returned. If the update fails or an error occurs, an HTTPException is
+    raised with an appropriate error message.
+
+    Args:
+        id (str): The ID of the group to be updated.
+        form_data (GroupUpdateForm): The form data containing the new group details.
+        user: The user performing the update, defaulting to an admin user.
+
+    Returns:
+        Group: The updated group object.
+
+    Raises:
+        HTTPException: If the update fails or if an error occurs during processing.
+    """
+
     try:
         if form_data.user_ids:
             form_data.user_ids = Users.get_valid_user_ids(form_data.user_ids)
