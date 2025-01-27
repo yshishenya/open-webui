@@ -67,6 +67,20 @@ export const AIAutocompletion = Extension.create({
 
 		let isComposing = false;
 
+		/**
+		 * Handles the AI completion logic for a given view.
+		 * This function initiates a debounce mechanism to generate AI suggestions
+		 * only when the cursor is positioned at the end of a paragraph.
+		 *
+		 * @param {Object} view - The view object containing the state and dispatch methods.
+		 * @param {Object} view.state - The current state of the editor.
+		 * @param {Object} view.dispatch - The method to dispatch changes to the editor state.
+		 * @throws {Error} Throws an error if the view is not valid or if the debounce time is not set correctly.
+		 *
+		 * @example
+		 * const editorView = getEditorView(); // Assume this function retrieves the editor view
+		 * handleAICompletion(editorView);
+		 */
 		const handleAICompletion = (view) => {
 			const { state, dispatch } = view;
 			const { selection } = state;
