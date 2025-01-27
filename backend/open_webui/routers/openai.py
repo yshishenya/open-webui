@@ -121,6 +121,26 @@ class OpenAIConfigForm(BaseModel):
 async def update_config(
     request: Request, form_data: OpenAIConfigForm, user=Depends(get_admin_user)
 ):
+    """Update the OpenAI API configuration settings.
+
+    This function updates the application state with the provided OpenAI
+    configuration settings from the form data. It ensures that the number of
+    API keys matches the number of API base URLs by either truncating the
+    keys or padding them with empty strings as necessary. Additionally, it
+    filters the API configurations to only include those that correspond to
+    the valid API URLs.
+
+    Args:
+        request (Request): The request object containing application state.
+        form_data (OpenAIConfigForm): The form data containing new configuration values.
+        user: The user dependency, which defaults to an admin user.
+
+    Returns:
+        dict: A dictionary containing the updated OpenAI API configuration settings,
+            including ENABLE_OPENAI_API, OPENAI_API_BASE_URLS, OPENAI_API_KEYS,
+            and OPENAI_API_CONFIGS.
+    """
+
     request.app.state.config.ENABLE_OPENAI_API = form_data.ENABLE_OPENAI_API
     request.app.state.config.OPENAI_API_BASE_URLS = form_data.OPENAI_API_BASE_URLS
     request.app.state.config.OPENAI_API_KEYS = form_data.OPENAI_API_KEYS
@@ -248,6 +268,24 @@ async def speech(request: Request, user=Depends(get_verified_user)):
 
 
 async def get_all_models_responses(request: Request) -> list:
+    """Retrieve all model responses from OpenAI API.
+
+    This function checks if the OpenAI API is enabled in the application
+    configuration. It ensures that the number of API keys matches the number
+    of API URLs, adjusting them as necessary. The function then constructs a
+    list of asynchronous tasks to fetch model information from the OpenAI
+    API. If specific models are configured to be enabled, it will retrieve
+    their details; otherwise, it will return an empty response. Finally, it
+    gathers all responses and formats them, potentially adding a prefix to
+    model IDs based on the configuration.
+
+    Args:
+        request (Request): The request object containing application state and configuration.
+
+    Returns:
+        list: A list of model responses from the OpenAI API.
+    """
+
     if not request.app.state.config.ENABLE_OPENAI_API:
         return []
 
@@ -547,6 +585,32 @@ async def generate_chat_completion(
     user=Depends(get_verified_user),
     bypass_filter: Optional[bool] = False,
 ):
+    """Generate a chat completion response from the OpenAI API.
+
+    This function processes a request to generate a chat completion using
+    the OpenAI API. It first validates the user's access to the specified
+    model and prepares the payload with the necessary parameters. The
+    function handles different scenarios based on the model type and user
+    roles, ensuring that the correct API configurations are used. It also
+    manages streaming responses if applicable.
+
+    Args:
+        request (Request): The HTTP request object containing metadata and context.
+        form_data (dict): A dictionary containing the input data for the chat completion.
+        user: The verified user making the request, defaults to a dependency that
+            retrieves the user.
+        bypass_filter (Optional[bool]): A flag to bypass access control checks, defaults to False.
+
+    Returns:
+        dict or StreamingResponse: The response from the OpenAI API, which can
+            be either a JSON
+        object containing the chat completion or a streaming response if
+            applicable.
+
+    Raises:
+        HTTPException: If the user does not have access to the model or if there is an error
+    """
+
     if BYPASS_MODEL_ACCESS_CONTROL:
         bypass_filter = True
 
