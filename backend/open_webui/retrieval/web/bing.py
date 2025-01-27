@@ -22,6 +22,30 @@ def search_bing(
     count: int,
     filter_list: Optional[list[str]] = None,
 ) -> list[SearchResult]:
+    """Search for web pages using the Bing Search API.
+
+    This function sends a search query to the Bing Search API and retrieves
+    a list of web page results. It constructs the request with the provided
+    subscription key, endpoint, locale, and query parameters. The results
+    can be filtered based on an optional list of criteria. If the request is
+    successful, it returns a list of `SearchResult` objects containing the
+    URL, title, and snippet of each result.
+
+    Args:
+        subscription_key (str): The subscription key for accessing the Bing Search API.
+        endpoint (str): The endpoint URL for the Bing Search API.
+        locale (str): The locale to use for the search results.
+        query (str): The search query string.
+        count (int): The number of results to return.
+        filter_list (Optional[list[str]]): A list of filters to apply to the results (default is None).
+
+    Returns:
+        list[SearchResult]: A list of `SearchResult` objects containing the search results.
+
+    Raises:
+        Exception: If there is an error during the API request or response processing.
+    """
+
     mkt = locale
     params = {"q": query, "mkt": mkt, "count": count}
     headers = {"Ocp-Apim-Subscription-Key": subscription_key}
