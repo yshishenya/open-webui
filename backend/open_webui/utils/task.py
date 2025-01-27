@@ -220,6 +220,24 @@ def tags_generation_template(
 def image_prompt_generation_template(
     template: str, messages: list[dict], user: Optional[dict] = None
 ) -> str:
+    """Generate an image prompt based on a template and user messages.
+
+    This function takes a template string and a list of messages, and
+    generates a customized prompt by replacing variables in the template
+    with the last user message and the provided messages. If a user
+    dictionary is provided, it also incorporates the user's name and
+    location into the prompt.
+
+    Args:
+        template (str): The template string used for generating the prompt.
+        messages (list[dict]): A list of message dictionaries containing user messages.
+        user (Optional[dict]?): A dictionary containing user information such as
+            name and location. Defaults to None.
+
+    Returns:
+        str: The generated image prompt based on the provided template and messages.
+    """
+
     prompt = get_last_user_message(messages)
     template = replace_prompt_variable(template, prompt)
     template = replace_messages_variable(template, messages)
