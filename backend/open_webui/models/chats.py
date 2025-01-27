@@ -392,6 +392,23 @@ class ChatTable:
         skip: int = 0,
         limit: int = 50,
     ) -> list[ChatModel]:
+        """Retrieve a list of chat records for a specific user.
+
+        This function queries the database for chat records associated with the
+        given user ID. It allows for filtering out archived chats and supports
+        pagination through the `skip` and `limit` parameters. The results are
+        ordered by the last updated timestamp in descending order.
+
+        Args:
+            user_id (str): The ID of the user whose chat records are to be retrieved.
+            include_archived (bool?): Whether to include archived chats in the results. Defaults to False.
+            skip (int?): The number of records to skip for pagination. Defaults to 0.
+            limit (int?): The maximum number of records to return. Defaults to 50.
+
+        Returns:
+            list[ChatModel]: A list of chat records validated as ChatModel instances.
+        """
+
         with get_db() as db:
             query = db.query(Chat).filter_by(user_id=user_id)
             if not include_archived:
