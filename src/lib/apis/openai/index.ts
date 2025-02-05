@@ -302,6 +302,27 @@ export const chatCompletion = async (
 	return [res, controller];
 };
 
+/**
+ * Sends a request to the OpenAI Chat Completion API to generate a chat response.
+ *
+ * @param {string} [token=''] - The authorization token for the API. Defaults to an empty string.
+ * @param {object} body - The request body containing the necessary parameters for the chat completion.
+ * @param {string} [url=`${WEBUI_BASE_URL}/api`] - The base URL for the API endpoint. Defaults to the WEBUI_BASE_URL.
+ * @returns {Promise<object|null>} A promise that resolves to the response object from the API, or null if an error occurred.
+ * @throws {Error} Throws an error if the response from the API is not successful.
+ *
+ * @example
+ * const response = await generateOpenAIChatCompletion('your_token', { prompt: 'Hello, world!' });
+ * console.log(response);
+ *
+ * @example
+ * try {
+ *   const response = await generateOpenAIChatCompletion('your_token', { prompt: 'Hello, world!' });
+ *   console.log(response);
+ * } catch (error) {
+ *   console.error('Error:', error);
+ * }
+ */
 export const generateOpenAIChatCompletion = async (
 	token: string = '',
 	body: object,
