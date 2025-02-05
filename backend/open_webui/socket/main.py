@@ -325,7 +325,40 @@ def get_event_emitter(request_info):
 
 
 def get_event_call(request_info):
+    """Get an event caller function for handling chat events.
+
+    This function creates and returns an asynchronous event caller function
+    that can be used to send chat event data to a specified session. The
+    returned function, when called with event data, will send a request to
+    the "chat-events" service with the necessary parameters extracted from
+    the provided request_info. It uses the session ID to route the request
+    appropriately.
+
+    Args:
+        request_info (dict): A dictionary containing information about the chat,
+            including 'chat_id', 'message_id', and 'session_id'.
+
+    Returns:
+        function: An asynchronous function that takes event data as input and
+            returns the response from the chat-events service.
+    """
+
     async def __event_caller__(event_data):
+        """Call a chat event and await the response.
+
+        This function sends a request to the "chat-events" endpoint with the
+        specified event data, chat ID, message ID, and session ID. It uses the
+        Socket.IO client to make the call and waits for the response. This is
+        typically used in scenarios where chat events need to be processed
+        asynchronously.
+
+        Args:
+            event_data (dict): A dictionary containing the event data to be sent.
+
+        Returns:
+            response: The response received from the chat event call.
+        """
+
         response = await sio.call(
             "chat-events",
             {
