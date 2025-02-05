@@ -359,6 +359,28 @@ async def get_filtered_models(models, user):
 async def get_ollama_tags(
     request: Request, url_idx: Optional[int] = None, user=Depends(get_verified_user)
 ):
+    """Retrieve Ollama tags based on the provided request and user context.
+
+    This function fetches tags from the Ollama API. If a specific URL index
+    is provided, it uses that to construct the API request; otherwise, it
+    retrieves all available models. The function handles potential errors
+    during the API call and raises an HTTPException with appropriate details
+    if the request fails. Additionally, it applies access control based on
+    the user's role.
+
+    Args:
+        request (Request): The request object containing application state and configuration.
+        url_idx (Optional[int]): An optional index to specify which Ollama base URL to use.
+        user: A dependency that provides the verified user context.
+
+    Returns:
+        list: A list of models or tags retrieved from the Ollama API.
+
+    Raises:
+        HTTPException: If there is an error during the API request or if the user does not have
+            access to the models.
+    """
+
     models = []
 
     if url_idx is None:
@@ -976,6 +998,32 @@ async def generate_chat_completion(
     user=Depends(get_verified_user),
     bypass_filter: Optional[bool] = False,
 ):
+    """Generate a chat completion based on the provided request and form data.
+
+    This function processes the incoming request and form data to generate a
+    chat completion. It validates the input, checks user access to the
+    specified model, and prepares the payload for the chat completion
+    request. If the model is found and the user has the necessary
+    permissions, it sends a request to the appropriate API endpoint to
+    retrieve the chat completion response.
+
+    Args:
+        request (Request): The incoming request object containing metadata and other information.
+        form_data (dict): A dictionary containing form data for generating chat completion.
+        url_idx (Optional[int]?): An optional index for selecting the API URL. Defaults to None.
+        user: The user object obtained from dependency injection, which contains user
+            information.
+        bypass_filter (Optional[bool]?): A flag indicating whether to bypass access control checks. Defaults to
+            False.
+
+    Returns:
+        Any: The response from the chat completion API.
+
+    Raises:
+        HTTPException: If there is an error in processing the form data or if the user does not
+            have access to the model.
+    """
+
     if BYPASS_MODEL_ACCESS_CONTROL:
         bypass_filter = True
 
