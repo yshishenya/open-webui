@@ -68,6 +68,26 @@ class VectorSearchRetriever(BaseRetriever):
 def query_doc(
     collection_name: str, query_embedding: list[float], k: int, user: UserModel = None
 ):
+    """Query a document collection using an embedding vector.
+
+    This function searches for documents in a specified collection based on
+    the provided embedding vector. It retrieves a limited number of results
+    as specified by the parameter `k`. If the search is successful, it logs
+    the result IDs and their associated metadata.
+
+    Args:
+        collection_name (str): The name of the collection to search.
+        query_embedding (list[float]): The embedding vector used for the search.
+        k (int): The maximum number of results to return.
+        user (UserModel?): An optional user model for context.
+
+    Returns:
+        SearchResult: The result of the search containing document IDs and metadata.
+
+    Raises:
+        Exception: If an error occurs during the search operation.
+    """
+
     try:
         result = VECTOR_DB_CLIENT.search(
             collection_name=collection_name,
@@ -261,6 +281,30 @@ def get_embedding_function(
     key,
     embedding_batch_size,
 ):
+    """Get a function to generate embeddings based on the specified engine.
+
+    This function returns a callable that generates embeddings for a given
+    query using the specified embedding engine and model. If the embedding
+    engine is not recognized, it raises a ValueError. The returned function
+    can handle both single queries and lists of queries, processing them in
+    batches if necessary.
+
+    Args:
+        embedding_engine (str): The name of the embedding engine to use.
+        embedding_model (str): The model to use for generating embeddings.
+        embedding_function (object): The function used to encode queries.
+        url (str): The URL for the embedding service, if applicable.
+        key (str): The API key for authentication, if required.
+        embedding_batch_size (int): The number of queries to process in a single batch.
+
+    Returns:
+        function: A function that takes a query or a list of queries and returns
+            their corresponding embeddings.
+
+    Raises:
+        ValueError: If the specified embedding engine is unknown.
+    """
+
     if embedding_engine == "":
         return lambda query, user=None: embedding_function.encode(query).tolist()
     elif embedding_engine in ["ollama", "openai"]:
@@ -274,6 +318,23 @@ def get_embedding_function(
         )
 
         def generate_multiple(query, user, func):
+            """Generate embeddings for a query or a list of queries.
+
+            This function checks if the provided query is a list. If it is, it
+            processes the list in batches, generating embeddings for each batch
+            using the provided function. If the query is not a list, it directly
+            applies the function to the query. This is useful for handling multiple
+            queries efficiently.
+
+            Args:
+                query (Union[str, list]): A single query string or a list of query strings.
+                user (Any): The user context to be passed to the function.
+                func (Callable): A function that generates embeddings for the given query or queries.
+
+            Returns:
+                list: A list of generated embeddings.
+            """
+
             if isinstance(query, list):
                 embeddings = []
                 for i in range(0, len(query), embedding_batch_size):
@@ -437,6 +498,29 @@ def generate_openai_batch_embeddings(
     key: str = "",
     user: UserModel = None,
 ) -> Optional[list[list[float]]]:
+    """Generate batch embeddings from OpenAI's API for a list of texts.
+
+    This function sends a request to the OpenAI API to generate embeddings
+    for the provided texts using the specified model. It constructs the
+    request with necessary headers, including optional user information if
+    available. The function handles the response and extracts the embeddings
+    from the returned JSON data. If the request fails or if there is an
+    issue with the response, it will print the exception and return None.
+
+    Args:
+        model (str): The name of the model to use for generating embeddings.
+        texts (list[str]): A list of texts for which embeddings are to be generated.
+        url (str?): The URL of the OpenAI API. Defaults to "https://api.openai.com/v1".
+        key (str?): The API key for authentication. Defaults to an empty string.
+        user (UserModel?): An optional user model containing user information.
+
+    Returns:
+        Optional[list[list[float]]]: A list of embeddings for the input texts, or None if an error occurs.
+
+    Raises:
+        Exception: If there is an error during the API request or response handling.
+    """
+
     try:
         r = requests.post(
             f"{url}/embeddings",
@@ -470,6 +554,31 @@ def generate_openai_batch_embeddings(
 def generate_ollama_batch_embeddings(
     model: str, texts: list[str], url: str, key: str = "", user: UserModel = None
 ) -> Optional[list[list[float]]]:
+    """Generate batch embeddings using the Ollama model.
+
+    This function sends a request to the specified URL to generate
+    embeddings for a list of texts using the specified model. It constructs
+    the request with appropriate headers, including authorization and user
+    information if provided. The function handles the response and returns
+    the embeddings if successful. If the response does not contain
+    embeddings or an error occurs during the request, it returns None.
+
+    Args:
+        model (str): The name of the model to use for generating embeddings.
+        texts (list[str]): A list of texts for which embeddings are to be generated.
+        url (str): The endpoint URL for the embedding API.
+        key (str?): The authorization key for accessing the API. Defaults to an empty
+            string.
+        user (UserModel?): An optional user model containing user information. Defaults to None.
+
+    Returns:
+        Optional[list[list[float]]]: A list of embeddings for the input texts, or None if an error occurs.
+
+    Raises:
+        Exception: If there is an error during the API request or if the response does not
+            contain embeddings.
+    """
+
     try:
         r = requests.post(
             f"{url}/api/embed",
@@ -502,6 +611,31 @@ def generate_ollama_batch_embeddings(
 
 
 def generate_embeddings(engine: str, model: str, text: Union[str, list[str]], **kwargs):
+    """Generate embeddings for the given text using the specified engine.
+
+    This function generates embeddings for a single string or a list of
+    strings using either the "ollama" or "openai" engine. It retrieves the
+    necessary parameters from the provided keyword arguments and calls the
+    appropriate embedding generation function based on the selected engine.
+    The function returns the embeddings in a format that corresponds to the
+    input type.
+
+    Args:
+        engine (str): The name of the engine to use for generating embeddings.
+            Supported values are "ollama" and "openai".
+        model (str): The model to be used for generating embeddings.
+        text (Union[str, list[str]]): A single string or a list of strings for
+            which embeddings are to be generated.
+        **kwargs: Additional keyword arguments that may include:
+            - url (str): The URL for the embedding service.
+            - key (str): The API key for authentication.
+            - user: Optional user information.
+
+    Returns:
+        Union[list, str]: The generated embeddings as a list if input is a list,
+            or as a single embedding if input is a string.
+    """
+
     url = kwargs.get("url", "")
     key = kwargs.get("key", "")
     user = kwargs.get("user")
