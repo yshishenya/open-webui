@@ -73,6 +73,25 @@ class SessionUserResponse(Token, UserResponse):
 async def get_session_user(
     request: Request, response: Response, user=Depends(get_current_user)
 ):
+    """Get the session user and set the authentication token in the response.
+
+    This function retrieves the current user from the request context,
+    generates a JWT token for the user, and sets it as a cookie in the
+    response. It also calculates the expiration time for the token based on
+    the application's configuration. The user's permissions are fetched and
+    included in the returned user information.
+
+    Args:
+        request (Request): The HTTP request object containing application state and configuration.
+        response (Response): The HTTP response object used to set the authentication cookie.
+        user (User): The current user retrieved from the dependency injection.
+
+    Returns:
+        dict: A dictionary containing the token, token type, expiration time, and user
+            details,
+            including id, email, name, role, profile image URL, and permissions.
+    """
+
     expires_delta = parse_duration(request.app.state.config.JWT_EXPIRES_IN)
     expires_at = None
     if expires_delta:
@@ -166,6 +185,33 @@ async def update_password(
 ############################
 @router.post("/ldap", response_model=SessionUserResponse)
 async def ldap_auth(request: Request, response: Response, form_data: LdapForm):
+    """Authenticate a user via LDAP.
+
+    This function performs LDAP authentication by connecting to the
+    specified LDAP server, binding with the application credentials, and
+    searching for the user based on the provided username. If the user is
+    found, it attempts to bind with the user's credentials. If the user does
+    not exist, it creates a new user entry in the system. The function also
+    sets a secure cookie with a generated token upon successful
+    authentication.
+
+    Args:
+        request (Request): The HTTP request object containing application state and configuration.
+        response (Response): The HTTP response object used to set cookies.
+        form_data (LdapForm): The form data containing user credentials.
+
+    Returns:
+        dict: A dictionary containing authentication details including token, user ID,
+            email,
+            name, role, profile image URL, and permissions.
+
+    Raises:
+        HTTPException: If LDAP authentication is not enabled, if there are issues with TLS,
+            if the application account bind fails, if the user is not found,
+            if the user's email is not available, if user authentication fails,
+            or if there are any other errors during the process.
+    """
+
     ENABLE_LDAP = request.app.state.config.ENABLE_LDAP
     LDAP_SERVER_LABEL = request.app.state.config.LDAP_SERVER_LABEL
     LDAP_SERVER_HOST = request.app.state.config.LDAP_SERVER_HOST
@@ -320,6 +366,33 @@ async def ldap_auth(request: Request, response: Response, form_data: LdapForm):
 
 @router.post("/signin", response_model=SessionUserResponse)
 async def signin(request: Request, response: Response, form_data: SigninForm):
+    """Sign in a user and return authentication details.
+
+    This function handles user sign-in by checking for trusted email headers
+    or falling back to admin credentials if no trusted headers are present.
+    If the user does not exist, it will automatically sign them up. Upon
+    successful authentication, it generates a JWT token and sets it as a
+    cookie in the response. The function also retrieves user permissions and
+    includes them in the returned data.
+
+    Args:
+        request (Request): The HTTP request object containing headers and
+            other request data.
+        response (Response): The HTTP response object used to set cookies.
+        form_data (SigninForm): The form data containing user credentials
+            for sign-in.
+
+    Returns:
+        dict: A dictionary containing the authentication token, token type,
+            expiration time, user ID, email, name, role, profile image URL,
+            and permissions.
+
+    Raises:
+        HTTPException: If the trusted email header is missing or invalid,
+            if there are existing users when trying to sign up the admin,
+            or if the provided credentials are invalid.
+    """
+
     if WEBUI_AUTH_TRUSTED_EMAIL_HEADER:
         if WEBUI_AUTH_TRUSTED_EMAIL_HEADER not in request.headers:
             raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_TRUSTED_HEADER)
@@ -413,6 +486,34 @@ async def signin(request: Request, response: Response, form_data: SigninForm):
 
 @router.post("/signup", response_model=SessionUserResponse)
 async def signup(request: Request, response: Response, form_data: SignupForm):
+    """Sign up a new user and create an authentication token.
+
+    This function handles the user signup process by validating the provided
+    email and password, creating a new user in the system, and generating an
+    authentication token. It checks if signup is enabled and ensures that
+    the email format is valid and not already taken. Upon successful signup,
+    it sets a secure cookie with the generated token and can also trigger a
+    webhook notification.
+
+    Args:
+        request (Request): The HTTP request object containing the user's
+            signup information.
+        response (Response): The HTTP response object used to set the cookie
+            with the authentication token.
+        form_data (SignupForm): The form data containing the user's email,
+            password, name, and profile image URL.
+
+    Returns:
+        dict: A dictionary containing the authentication token, token type,
+            expiration time, user ID, email, name, role, profile image URL,
+            and user permissions.
+
+    Raises:
+        HTTPException: If signup is prohibited, the email format is invalid,
+            the email is already taken, or if there is an error creating
+            the user.
+    """
+
     if WEBUI_AUTH:
         if (
             not request.app.state.config.ENABLE_SIGNUP
