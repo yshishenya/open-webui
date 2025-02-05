@@ -44,6 +44,21 @@ def validate_url(url: Union[str, Sequence[str]]):
 
 
 def safe_validate_urls(url: Sequence[str]) -> Sequence[str]:
+    """Validate a list of URLs and return only the valid ones.
+
+    This function iterates through a sequence of URLs, validating each one
+    using the `validate_url` function. If a URL is valid, it is added to the
+    list of valid URLs. If a ValueError is raised during validation, the
+    function catches the exception and continues to the next URL without
+    adding it to the list.
+
+    Args:
+        url (Sequence[str]): A sequence of URLs to be validated.
+
+    Returns:
+        Sequence[str]: A sequence containing only the valid URLs.
+    """
+
     valid_urls = []
     for u in url:
         try:
@@ -97,6 +112,27 @@ def get_web_loader(
     verify_ssl: bool = True,
     requests_per_second: int = 2,
 ):
+    """Create a web loader for the specified URLs.
+
+    This function takes one or more URLs and validates them for safety. It
+    then initializes a SafeWebBaseLoader with the validated URLs, allowing
+    for options to verify SSL certificates and control the number of
+    requests per second. The loader can be used to fetch content from the
+    web in a safe manner.
+
+    Args:
+        urls (Union[str, Sequence[str]]): A single URL as a string or
+            a sequence of URLs.
+        verify_ssl (bool?): Whether to verify SSL certificates.
+            Defaults to True.
+        requests_per_second (int?): The number of requests to
+            make per second. Defaults to 2.
+
+    Returns:
+        SafeWebBaseLoader: An instance of SafeWebBaseLoader configured
+        with the validated URLs and specified options.
+    """
+
     # Check if the URLs are valid
     safe_urls = safe_validate_urls([urls] if isinstance(urls, str) else urls)
 
