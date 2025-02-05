@@ -345,6 +345,23 @@ async def update_reranking_config(
 
 @router.get("/config")
 async def get_rag_config(request: Request, user=Depends(get_admin_user)):
+    """Retrieve the RAG configuration settings.
+
+    This function gathers various configuration settings related to the
+    Retrieval-Augmented Generation (RAG) process from the application state.
+    It returns a dictionary containing settings for PDF extraction, content
+    extraction, chunking, file handling, YouTube integration, and web search
+    capabilities. The returned configuration can be used to customize the
+    behavior of the RAG system based on the application's current settings.
+
+    Args:
+        request (Request): The request object containing application context.
+        user: The user dependency, defaulting to an admin user.
+
+    Returns:
+        dict: A dictionary containing RAG configuration settings.
+    """
+
     return {
         "status": True,
         "pdf_extract_images": request.app.state.config.PDF_EXTRACT_IMAGES,
@@ -462,6 +479,25 @@ class ConfigUpdateForm(BaseModel):
 async def update_rag_config(
     request: Request, form_data: ConfigUpdateForm, user=Depends(get_admin_user)
 ):
+    """Update the RAG configuration based on the provided form data.
+
+    This function updates various configuration settings for the RAG
+    (Retrieval-Augmented Generation) system based on the values provided in
+    the `form_data`. It modifies settings related to PDF extraction, Google
+    Drive integration, file size limits, content extraction engines,
+    chunking parameters, YouTube loader settings, and web search
+    configurations. If a particular setting is not provided in the form
+    data, it retains its existing value.
+
+    Args:
+        request (Request): The request object containing application state.
+        form_data (ConfigUpdateForm): The form data containing new configuration values.
+        user: The user making the request, expected to be an admin.
+
+    Returns:
+        dict: A dictionary containing the updated configuration values.
+    """
+
     request.app.state.config.PDF_EXTRACT_IMAGES = (
         form_data.pdf_extract_images
         if form_data.pdf_extract_images is not None
@@ -668,6 +704,36 @@ def save_docs_to_vector_db(
     add: bool = False,
     user=None,
 ) -> bool:
+    """Save documents to a vector database collection.
+
+    This function processes a list of documents and saves them to a
+    specified collection in a vector database. It checks for existing
+    documents based on a hash in the metadata to avoid duplicates. The
+    documents can be split into smaller chunks based on the specified text
+    splitter configuration. The function also handles embedding generation
+    for the document texts before insertion.
+
+    Args:
+        request (Request): The request object containing application state and configuration.
+        docs (list): A list of documents to be saved.
+        collection_name (str): The name of the collection where documents will be stored.
+        metadata (Optional[dict]?): Additional metadata to associate with the documents. Defaults to None.
+        overwrite (bool?): Whether to overwrite the existing collection if it exists. Defaults to
+            False.
+        split (bool?): Whether to split the documents into smaller chunks. Defaults to True.
+        add (bool?): Whether to add to the existing collection without overwriting. Defaults
+            to False.
+        user (optional): User information for embedding generation. Defaults to None.
+
+    Returns:
+        bool: True if documents were successfully saved, False otherwise.
+
+    Raises:
+        ValueError: If a document with the same hash already exists in the collection.
+        ValueError: If no documents are provided for saving.
+        ValueError: If an invalid text splitter configuration is specified.
+    """
+
     def _get_docs_info(docs: list[Document]) -> str:
         docs_info = set()
 
@@ -818,6 +884,29 @@ def process_file(
     form_data: ProcessFileForm,
     user=Depends(get_verified_user),
 ):
+    """Process a file based on the provided form data.
+
+    This function handles the processing of a file by either updating its
+    content, querying existing content from a vector database, or loading
+    new content from the file system. It manages the storage and retrieval
+    of file metadata and ensures that the processed content is saved
+    appropriately. The function also handles exceptions related to file
+    processing and provides meaningful error messages.
+
+    Args:
+        request (Request): The HTTP request object containing metadata about the request.
+        form_data (ProcessFileForm): The form data containing information about the file to process.
+        user (Depends): The user dependency that verifies the user making the request.
+
+    Returns:
+        dict: A dictionary containing the status of the operation, collection name,
+            filename, and processed content.
+
+    Raises:
+        HTTPException: If there is an error during file processing, including cases
+            where Pandoc is not installed or other processing errors occur.
+    """
+
     try:
         file = Files.get_file_by_id(form_data.file_id)
 
@@ -985,6 +1074,31 @@ def process_text(
     form_data: ProcessTextForm,
     user=Depends(get_verified_user),
 ):
+    """Process and save text documents to a vector database.
+
+    This function handles the processing of text input from a user,
+    including the creation of a document object and saving it to a specified
+    vector database collection. If the collection name is not provided, it
+    generates one using a SHA-256 hash of the content. The function also
+    logs the content being processed and returns a status indicating the
+    success of the operation along with the collection name and content.
+
+    Args:
+        request (Request): The HTTP request object.
+        form_data (ProcessTextForm): The form data containing the text content
+            and metadata for the document.
+        user (User): The verified user making the request. This is obtained
+            through dependency injection.
+
+    Returns:
+        dict: A dictionary containing the status of the operation, the
+            collection name, and the processed content.
+
+    Raises:
+        HTTPException: If there is an error saving documents to the vector
+            database, an HTTP exception is raised with a 500 status code.
+    """
+
     collection_name = form_data.collection_name
     if collection_name is None:
         collection_name = calculate_sha256_string(form_data.content)
@@ -1016,6 +1130,31 @@ def process_text(
 def process_youtube_video(
     request: Request, form_data: ProcessUrlForm, user=Depends(get_verified_user)
 ):
+    """Process a YouTube video and save its content to a vector database.
+
+    This function takes a request and form data containing the URL of a
+    YouTube video. It loads the video content using the YoutubeLoader,
+    processes it, and saves the documents to a vector database. If the
+    collection name is not provided in the form data, it generates one using
+    the SHA-256 hash of the URL. The function also handles exceptions and
+    logs any errors that occur during processing.
+
+    Args:
+        request (Request): The HTTP request object.
+        form_data (ProcessUrlForm): The form data containing the YouTube video URL and optional collection
+            name.
+        user: The verified user making the request.
+
+    Returns:
+        dict: A dictionary containing the status of the operation, the collection
+            name,
+            the filename of the video, and the content of the video.
+
+    Raises:
+        HTTPException: If an error occurs during processing, a 400 Bad Request exception is
+            raised.
+    """
+
     try:
         collection_name = form_data.collection_name
         if not collection_name:
@@ -1060,6 +1199,32 @@ def process_youtube_video(
 def process_web(
     request: Request, form_data: ProcessUrlForm, user=Depends(get_verified_user)
 ):
+    """Process a web request and save the loaded documents to a vector
+    database.
+
+    This function handles the processing of a web request by loading
+    documents from a specified URL. It first checks if a collection name is
+    provided; if not, it generates one using the SHA-256 hash of the URL.
+    The documents are then loaded and their content is extracted. After
+    logging the content, the documents are saved to a vector database with
+    the specified collection name. The function returns a status response
+    containing details about the operation.
+
+    Args:
+        request (Request): The HTTP request object.
+        form_data (ProcessUrlForm): The form data containing the URL and collection name.
+        user: The verified user making the request.
+
+    Returns:
+        dict: A dictionary containing the status of the operation, the collection
+            name,
+            the filename (URL), and the content of the loaded documents.
+
+    Raises:
+        HTTPException: If an error occurs during processing, an HTTP exception is raised
+            with a 400 status code and an error message.
+    """
+
     try:
         collection_name = form_data.collection_name
         if not collection_name:
@@ -1100,21 +1265,28 @@ def process_web(
 
 
 def search_web(request: Request, engine: str, query: str) -> list[SearchResult]:
-    """Search the web using a search engine and return the results as a list of SearchResult objects.
-    Will look for a search engine API key in environment variables in the following order:
-    - SEARXNG_QUERY_URL
-    - GOOGLE_PSE_API_KEY + GOOGLE_PSE_ENGINE_ID
-    - BRAVE_SEARCH_API_KEY
-    - KAGI_SEARCH_API_KEY
-    - MOJEEK_SEARCH_API_KEY
-    - SERPSTACK_API_KEY
-    - SERPER_API_KEY
-    - SERPLY_API_KEY
-    - TAVILY_API_KEY
-    - EXA_API_KEY
-    - SEARCHAPI_API_KEY + SEARCHAPI_ENGINE (by default `google`)
+    """Search the web using a specified search engine and return the results.
+
+    This function takes a search query and the name of a search engine, then
+    attempts to retrieve search results by utilizing the appropriate API
+    based on the provided engine. The function checks for the necessary API
+    keys in the environment variables in a predefined order. If the required
+    API key for the specified search engine is not found, an exception is
+    raised. Supported search engines include SearxNG, Google PSE, Brave,
+    Kagi, Mojeek, Serpstack, Serper, Serply, DuckDuckGo, Tavily, SearchAPI,
+    Jina, Bing, and Exa.
+
     Args:
-        query (str): The query to search for
+        request (Request): The request object containing application state and configuration.
+        engine (str): The name of the search engine to use for the query.
+        query (str): The query string to search for.
+
+    Returns:
+        list[SearchResult]: A list of SearchResult objects containing the search results.
+
+    Raises:
+        Exception: If the required API key for the specified search engine is not found in
+            environment variables.
     """
 
     # TODO: add playwright to search the web
@@ -1261,6 +1433,29 @@ def search_web(request: Request, engine: str, query: str) -> list[SearchResult]:
 def process_web_search(
     request: Request, form_data: SearchForm, user=Depends(get_verified_user)
 ):
+    """Process a web search request and save the results to a vector database.
+
+    This function handles a web search based on the provided query from the
+    `form_data`. It logs the search attempt, performs the web search, and
+    processes the results. If the collection name is not provided, it
+    generates one based on the query. The resulting documents are then saved
+    to a vector database.
+
+    Args:
+        request (Request): The HTTP request object containing application state.
+        form_data (SearchForm): The form data containing the search query and
+            optional collection name.
+        user: The verified user making the request.
+
+    Returns:
+        dict: A dictionary containing the status of the operation, the collection
+            name used, and the list of URLs retrieved from the web search.
+
+    Raises:
+        HTTPException: If an error occurs during the web search or while saving
+            documents to the vector database.
+    """
+
     try:
         logging.info(
             f"trying to web search with {request.app.state.config.RAG_WEB_SEARCH_ENGINE, form_data.query}"
@@ -1323,6 +1518,31 @@ def query_doc_handler(
     form_data: QueryDocForm,
     user=Depends(get_verified_user),
 ):
+    """Handle document queries based on the provided request and form data.
+
+    This function processes a document query by determining whether to use
+    hybrid search or standard query methods based on the application's
+    configuration. It retrieves the necessary parameters from the request
+    and form data, applies the appropriate embedding function, and returns
+    the results. If an error occurs during the query process, it logs the
+    exception and raises an HTTPException with a 400 status code.
+
+    Args:
+        request (Request): The incoming request object containing application state and user
+            context.
+        form_data (QueryDocForm): The form data containing query parameters such as collection name,
+            query string, and other relevant settings.
+        user: The verified user making the request (default is obtained from Depends).
+
+    Returns:
+        The result of the document query, which may vary depending on the search
+            method used.
+
+    Raises:
+        HTTPException: If an error occurs during the query process, a 400 Bad Request exception
+            is raised.
+    """
+
     try:
         if request.app.state.config.ENABLE_RAG_HYBRID_SEARCH:
             return query_doc_with_hybrid_search(
@@ -1371,6 +1591,30 @@ def query_collection_handler(
     form_data: QueryCollectionsForm,
     user=Depends(get_verified_user),
 ):
+    """Handle the query collection based on the request and form data.
+
+    This function processes a request to query a collection of data. It
+    checks if hybrid search is enabled in the application configuration. If
+    it is enabled, it performs a hybrid search using the specified
+    collection names, query, and other parameters. If hybrid search is not
+    enabled, it falls back to a standard query collection method. The
+    function also handles exceptions by logging the error and raising an
+    HTTPException with a 400 status code.
+
+    Args:
+        request (Request): The incoming request object containing application state and
+            configuration.
+        form_data (QueryCollectionsForm): The form data containing collection names, query, and other parameters.
+        user: The verified user, obtained through dependency injection.
+
+    Returns:
+        The result of the query collection, which may vary based on whether
+            hybrid search is used or not.
+
+    Raises:
+        HTTPException: If an error occurs during the processing of the request.
+    """
+
     try:
         if request.app.state.config.ENABLE_RAG_HYBRID_SEARCH:
             return query_collection_with_hybrid_search(
@@ -1494,8 +1738,25 @@ def process_files_batch(
     form_data: BatchProcessFilesForm,
     user=Depends(get_verified_user),
 ) -> BatchProcessFilesResponse:
-    """
-    Process a batch of files and save them to the vector database.
+    """Process a batch of files and save them to the vector database.
+
+    This function takes a request and form data containing a list of files
+    to be processed. It prepares the documents by extracting their content
+    and metadata, updates the file hashes, and saves the documents to a
+    specified vector database collection. The function also handles errors
+    during processing and saving, returning the results and any errors
+    encountered.
+
+    Args:
+        request (Request): The request object containing information about the HTTP request.
+        form_data (BatchProcessFilesForm): The form data containing the files to be processed
+            and the collection name.
+        user (Depends): The user object obtained from dependency injection, representing
+            the verified user performing the operation.
+
+    Returns:
+        BatchProcessFilesResponse: A response object containing the results of the file processing
+            and any errors that occurred.
     """
     results: List[BatchProcessFilesResult] = []
     errors: List[BatchProcessFilesResult] = []
