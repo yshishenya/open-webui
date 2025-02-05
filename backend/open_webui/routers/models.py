@@ -176,6 +176,27 @@ async def update_model_by_id(
 
 @router.delete("/model/delete", response_model=bool)
 async def delete_model_by_id(id: str, user=Depends(get_verified_user)):
+    """Delete a model by its ID.
+
+    This function retrieves a model based on the provided ID and checks if
+    the user has the necessary permissions to delete it. If the model is not
+    found, or if the user is not authorized to delete the model, an
+    HTTPException is raised. If the user is authorized, the model is deleted
+    from the database.
+
+    Args:
+        id (str): The ID of the model to be deleted.
+        user: The user attempting to delete the model, verified through dependency
+            injection.
+
+    Returns:
+        The result of the deletion operation.
+
+    Raises:
+        HTTPException: If the model is not found or if the user is unauthorized to delete the
+            model.
+    """
+
     model = Models.get_model_by_id(id)
     if not model:
         raise HTTPException(
