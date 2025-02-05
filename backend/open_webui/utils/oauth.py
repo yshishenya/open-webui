@@ -70,6 +70,27 @@ class OAuthManager:
         return self.oauth.create_client(provider_name)
 
     def get_user_role(self, user, user_data):
+        """Determine the role of a user based on various conditions.
+
+        This function assigns a role to a user based on the number of users in
+        the system, the presence of the user, and the configuration of OAuth
+        role management. If the user is the only one in the system, they are
+        assigned the "admin" role. If there are no users, the first user is also
+        assigned the "admin" role. If OAuth role management is enabled, the
+        function checks the user's data for roles and assigns either "user" or
+        "admin" based on the allowed and admin roles defined in the
+        configuration. If role management is disabled, it assigns a default role
+        for new users or retains the existing role for current users.
+
+        Args:
+            user (User): The user object for which to determine the role.
+            user_data (dict): A dictionary containing user data, potentially including OAuth claims.
+
+        Returns:
+            str: The assigned role for the user, which can be "admin", "user", or a
+                default role.
+        """
+
         if user and Users.get_num_users() == 1:
             # If the user is the only user, assign the role "admin" - actually repairs role for single user on login
             return "admin"
@@ -184,6 +205,27 @@ class OAuthManager:
         return await client.authorize_redirect(request, redirect_uri)
 
     async def handle_callback(self, provider, request, response):
+        """Handle the OAuth callback for user authentication.
+
+        This method processes the OAuth callback from the specified provider. It
+        validates the provider, retrieves the access token, and extracts user
+        information. If the user does not exist, it checks if account merging or
+        signups are enabled. The method also handles user role determination and
+        updates, as well as setting cookies for JWT and OAuth tokens.
+
+        Args:
+            provider (str): The name of the OAuth provider.
+            request (Request): The incoming request containing the OAuth callback data.
+            response (Response): The response object to set cookies and redirect.
+
+        Returns:
+            RedirectResponse: A redirect response to the frontend with the JWT token.
+
+        Raises:
+            HTTPException: If the provider is not recognized or if there are issues with user data,
+                such as missing email or sub claims, or if signups are disabled.
+        """
+
         if provider not in OAUTH_PROVIDERS:
             raise HTTPException(404)
         client = self.get_client(provider)
