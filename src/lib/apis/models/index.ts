@@ -197,6 +197,27 @@ export const updateModelById = async (token: string, id: string, model: object) 
 	return res;
 };
 
+/**
+ * Deletes a model by its unique identifier.
+ *
+ * This asynchronous function sends a DELETE request to the specified API endpoint
+ * to remove a model from the database. It requires a valid authorization token and
+ * the ID of the model to be deleted.
+ *
+ * @param {string} token - The authorization token used for API access.
+ * @param {string} id - The unique identifier of the model to be deleted.
+ * @returns {Promise<Object|null>} A promise that resolves to the response JSON object
+ *          if the deletion is successful, or null if an error occurs.
+ * @throws {Error} Throws an error if the deletion fails, containing the error details.
+ *
+ * @example
+ * try {
+ *   const response = await deleteModelById('your_token_here', 'model_id_here');
+ *   console.log('Model deleted successfully:', response);
+ * } catch (error) {
+ *   console.error('Error deleting model:', error);
+ * }
+ */
 export const deleteModelById = async (token: string, id: string) => {
 	let error = null;
 
