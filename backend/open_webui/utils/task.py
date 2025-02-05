@@ -33,6 +33,24 @@ def get_task_model_id(
 
 
 def prompt_variables_template(template: str, variables: dict[str, str]) -> str:
+    """Replace placeholders in a template string with corresponding variable
+    values.
+
+    This function takes a template string containing placeholders and a
+    dictionary of variables. It iterates through the dictionary, replacing
+    each placeholder in the template with its corresponding value from the
+    dictionary. The modified template is then returned.
+
+    Args:
+        template (str): The template string containing placeholders.
+        variables (dict[str, str]): A dictionary where keys are placeholders and
+            values are the corresponding replacements.
+
+    Returns:
+        str: The template string with placeholders replaced by their corresponding
+            values.
+    """
+
     for variable, value in variables.items():
         template = template.replace(variable, value)
     return template
