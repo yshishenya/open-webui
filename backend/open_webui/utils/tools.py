@@ -38,6 +38,27 @@ def apply_extra_params_to_tool_function(
 def get_tools(
     request: Request, tool_ids: list[str], user: UserModel, extra_params: dict
 ) -> dict[str, dict]:
+    """Retrieve tools and their specifications based on provided tool IDs.
+
+    This function takes a request object, a list of tool IDs, a user model,
+    and a dictionary of extra parameters. It retrieves the tools associated
+    with the given IDs, loads their respective modules, and populates the
+    extra parameters as needed. The function also processes the
+    specifications of each tool, ensuring that internal parameters are
+    removed and that the callable functions are properly prepared with the
+    extra parameters. The result is a dictionary containing the tool
+    specifications and associated callables.
+
+    Args:
+        request (Request): The request object containing application state.
+        tool_ids (list[str]): A list of tool IDs to retrieve.
+        user (UserModel): The user model associated with the request.
+        extra_params (dict): A dictionary of additional parameters to be passed to the tools.
+
+    Returns:
+        dict[str, dict]: A dictionary mapping tool names to their specifications and callables.
+    """
+
     tools_dict = {}
 
     for tool_id in tool_ids:

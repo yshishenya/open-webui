@@ -292,6 +292,29 @@ export const generateInitialsImage = (name) => {
 	return canvas.toDataURL();
 };
 
+/**
+ * Formats a given date into a human-readable string.
+ *
+ * This function checks if the provided date is today, yesterday, or any other date,
+ * and formats it accordingly. If the date is today, it returns a string indicating
+ * "Today at [time]". If the date is yesterday, it returns "Yesterday at [time]".
+ * For any other date, it returns the date in the format "[date] at [time]".
+ *
+ * @param {string | Date} inputDate - The date to format. This can be a string or a Date object.
+ * @returns {string} A formatted string representing the input date.
+ *
+ * @example
+ * // Returns "Today at 3:00 PM" if the current date is today and the time is 3:00 PM
+ * formatDate(new Date());
+ *
+ * @example
+ * // Returns "Yesterday at 3:00 PM" if the input date is yesterday and the time was 3:00 PM
+ * formatDate(new Date(Date.now() - 86400000)); // 1 day ago
+ *
+ * @example
+ * // Returns "12/31/2020 at 3:00 PM" if the input date is December 31, 2020 at 3:00 PM
+ * formatDate('2020-12-31T15:00:00Z');
+ */
 export const formatDate = (inputDate) => {
 	const date = dayjs(inputDate);
 	const now = dayjs();
@@ -668,6 +691,24 @@ export const cleanText = (content: string) => {
 	return removeFormattings(removeEmojis(content.trim()));
 };
 
+/**
+ * Removes <details> elements of specified types from the given content.
+ *
+ * This function searches for all <details> elements in the provided content
+ * that match the specified types and removes them. The removal is done using
+ * a regular expression that targets <details> tags with a specific type attribute.
+ *
+ * @param {string} content - The content from which <details> elements will be removed.
+ * @param {Array<string>} types - An array of types to match against the <details> elements.
+ *
+ * @returns {string} The modified content with the specified <details> elements removed.
+ *
+ * @example
+ * const result = removeDetails('<details type="info">Some info</details><details type="warning">A warning</details>', ['info']);
+ * console.log(result); // Outputs: '<details type="warning">A warning</details>'
+ *
+ * @throws {Error} Throws an error if the content is not a string or if types is not an array.
+ */
 export const removeDetails = (content, types) => {
 	for (const type of types) {
 		content = content.replace(
@@ -747,6 +788,27 @@ export const extractSentencesForAudio = (text: string) => {
 	}, [] as string[]);
 };
 
+/**
+ * Splits the provided content into parts based on the specified splitting criteria.
+ *
+ * This function removes specific details from the content and then splits it into
+ * either sentences, paragraphs, or returns the cleaned text based on the `split_on` parameter.
+ *
+ * @param {string} content - The content to be split into parts.
+ * @param {string} [split_on='punctuation'] - The criteria for splitting the content.
+ *        It can be one of the following:
+ *        - 'punctuation': splits the content into sentences.
+ *        - 'paragraphs': splits the content into paragraphs.
+ *        - 'none': returns the cleaned text without splitting.
+ *
+ * @returns {string[]} An array of strings representing the split content parts.
+ *
+ * @throws {Error} Throws an error if the content is invalid or cannot be processed.
+ *
+ * @example
+ * const parts = getMessageContentParts("Hello world! This is a test.", "punctuation");
+ * // parts will be: ["Hello world!", "This is a test."]
+ */
 export const getMessageContentParts = (content: string, split_on: string = 'punctuation') => {
 	content = removeDetails(content, ['reasoning', 'code_interpreter']);
 	const messageContentParts: string[] = [];
@@ -773,6 +835,43 @@ export const blobToFile = (blob, fileName) => {
 	return file;
 };
 
+/**
+ * Generates an object containing prompt variables based on user information and current context.
+ *
+ * This function retrieves various pieces of information such as the user's name, location,
+ * current date and time, and user language settings. If certain values are not provided,
+ * default values will be used.
+ *
+ * @param {string} user_name - The name of the user.
+ * @param {string} [user_location] - The location of the user. Defaults to 'Unknown' if not provided.
+ *
+ * @returns {Object} An object containing the following properties:
+ * - `{{USER_NAME}}`: The user's name.
+ * - `{{USER_LOCATION}}`: The user's location or 'Unknown'.
+ * - `{{CURRENT_DATETIME}}`: The current date and time.
+ * - `{{CURRENT_DATE}}`: The current date formatted as a string.
+ * - `{{CURRENT_TIME}}`: The current time formatted as a string.
+ * - `{{CURRENT_WEEKDAY}}`: The current day of the week.
+ * - `{{CURRENT_TIMEZONE}}`: The user's timezone.
+ * - `{{USER_LANGUAGE}}`: The user's language preference from local storage or 'en-US' if not set.
+ *
+ * @throws {Error} Throws an error if there is an issue retrieving the current date/time or user timezone.
+ *
+ * @example
+ * const variables = getPromptVariables('Alice', 'New York');
+ * console.log(variables);
+ * // Output might look like:
+ * // {
+ * //   '{{USER_NAME}}': 'Alice',
+ * //   '{{USER_LOCATION}}': 'New York',
+ * //   '{{CURRENT_DATETIME}}': '2023-10-01T12:00:00Z',
+ * //   '{{CURRENT_DATE}}': '2023-10-01',
+ * //   '{{CURRENT_TIME}}': '12:00:00',
+ * //   '{{CURRENT_WEEKDAY}}': 'Sunday',
+ * //   '{{CURRENT_TIMEZONE}}': 'America/New_York',
+ * //   '{{USER_LANGUAGE}}': 'en-US'
+ * // }
+ */
 export const getPromptVariables = (user_name, user_location) => {
 	return {
 		'{{USER_NAME}}': user_name,

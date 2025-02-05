@@ -220,6 +220,27 @@ async def update_tools_by_id(
 async def delete_tools_by_id(
     request: Request, id: str, user=Depends(get_verified_user)
 ):
+    """Delete a tool by its ID.
+
+    This function handles the deletion of a tool identified by its unique
+    ID. It first checks if the tool exists and whether the user has the
+    necessary permissions to delete it. If the tool does not exist, or if
+    the user lacks the required access rights, an HTTPException is raised.
+    If the deletion is successful, the tool is removed from the
+    application's state.
+
+    Args:
+        request (Request): The HTTP request object.
+        id (str): The unique identifier of the tool to be deleted.
+        user: The user requesting the deletion, verified through dependency injection.
+
+    Returns:
+        bool: True if the tool was successfully deleted, otherwise False.
+
+    Raises:
+        HTTPException: If the tool is not found or if the user is unauthorized
+    """
+
     tools = Tools.get_tool_by_id(id)
     if not tools:
         raise HTTPException(

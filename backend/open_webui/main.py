@@ -852,6 +852,30 @@ async def chat_completion(
     form_data: dict,
     user=Depends(get_verified_user),
 ):
+    """Handle chat completion requests.
+
+    This function processes a chat completion request by validating the
+    model, checking user access, and preparing the necessary metadata. It
+    retrieves the model based on the provided model ID, ensures that the
+    user has access to the model if access control is enabled, and then
+    processes the chat payload. The function also handles exceptions that
+    may arise during the process, returning appropriate HTTP error
+    responses.
+
+    Args:
+        request (Request): The request object containing application state and parameters.
+        form_data (dict): A dictionary containing form data for the chat completion.
+        user: The verified user making the request (default is obtained from
+            `get_verified_user`).
+
+    Returns:
+        Any: The processed chat response.
+
+    Raises:
+        HTTPException: If there is an error in processing the request or if the model is not
+            found.
+    """
+
     if not request.app.state.MODELS:
         await get_all_models(request)
 
@@ -970,6 +994,29 @@ async def list_tasks_endpoint(user=Depends(get_verified_user)):
 
 @app.get("/api/config")
 async def get_app_config(request: Request):
+    """Retrieve the application configuration based on the request.
+
+    This function checks for a token in the request cookies and attempts to
+    decode it. If the token is valid, it retrieves the user associated with
+    the token. If no user is found, it determines if the application is in
+    onboarding mode based on the number of registered users. The function
+    then constructs and returns a configuration dictionary that includes
+    various application settings and features.
+
+    Args:
+        request (Request): The incoming HTTP request containing cookies.
+
+    Returns:
+        dict: A dictionary containing the application configuration, including
+            onboarding status,
+            application name, version, default locale, OAuth providers, and feature
+            flags.
+
+    Raises:
+        HTTPException: If the token is invalid or cannot be decoded, a 401 Unauthorized error
+            is raised.
+    """
+
     user = None
     if "token" in request.cookies:
         token = request.cookies.get("token")
@@ -1081,6 +1128,22 @@ async def get_app_version():
 
 @app.get("/api/version/updates")
 async def get_app_latest_release_version(user=Depends(get_verified_user)):
+    """Get the latest release version of the application.
+
+    This function checks for the latest release version of the application
+    from the GitHub repository. If the application is in offline mode, it
+    returns the current version as the latest version. When online, it makes
+    an asynchronous request to the GitHub API to fetch the latest release
+    information and extracts the version tag.
+
+    Args:
+        user (Depends): A dependency that verifies the user.
+
+    Returns:
+        dict: A dictionary containing the current version and the latest
+            version of the application.
+    """
+
     if OFFLINE_MODE:
         log.debug(
             f"Offline mode is enabled, returning current version as latest version"

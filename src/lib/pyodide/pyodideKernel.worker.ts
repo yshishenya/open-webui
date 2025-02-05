@@ -18,6 +18,27 @@ type CellState = {
 	stderr: string;
 };
 
+/**
+ * Initializes the Pyodide environment by loading it if it is not already loaded.
+ * This function ensures that Pyodide is cached in the worker's global scope to prevent
+ * redundant loading.
+ *
+ * It sets up the necessary properties such as `indexURL`, `stdout`, `stderr`, and
+ * `cells` in the global scope before loading Pyodide.
+ *
+ * @async
+ * @returns {Promise<void>} A promise that resolves when Pyodide has been successfully loaded.
+ *
+ * @throws {Error} Throws an error if the loading of Pyodide fails.
+ *
+ * @example
+ * // Usage example:
+ * initializePyodide().then(() => {
+ *   console.log('Pyodide is ready to use.');
+ * }).catch((error) => {
+ *   console.error('Failed to initialize Pyodide:', error);
+ * });
+ */
 const initializePyodide = async () => {
 	// Ensure Pyodide is loaded once and cached in the worker's global scope
 	if (!self.pyodide) {
@@ -32,6 +53,27 @@ const initializePyodide = async () => {
 	}
 };
 
+/**
+ * Executes a given Python code asynchronously using Pyodide.
+ *
+ * This function initializes Pyodide if it is not already initialized, updates the cell state to "running",
+ * and redirects standard output and error streams to capture messages. It dynamically loads required packages
+ * based on the imports in the provided Python code and executes the code. The results, including any output or errors,
+ * are communicated back to the parent thread.
+ *
+ * @param {string} id - The unique identifier for the cell being executed.
+ * @param {string} code - The Python code to be executed.
+ *
+ * @returns {Promise<void>} A promise that resolves when the execution is complete.
+ *
+ * @throws {Error} Throws an error if there is an issue during package loading or code execution.
+ *
+ * @example
+ * // Example usage of executeCode function
+ * executeCode('cell1', 'print("Hello, World!")')
+ *   .then(() => console.log('Execution completed'))
+ *   .catch(error => console.error('Execution failed:', error));
+ */
 const executeCode = async (id: string, code: string) => {
 	if (!self.pyodide) {
 		await initializePyodide();

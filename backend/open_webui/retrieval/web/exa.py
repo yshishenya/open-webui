@@ -25,13 +25,23 @@ def search_exa(
     count: int,
     filter_list: Optional[list[str]] = None,
 ) -> list[SearchResult]:
-    """Search using Exa Search API and return the results as a list of SearchResult objects.
+    """Search using Exa Search API and return the results as a list of
+    SearchResult objects.
+
+    This function performs a search using the Exa Search API based on the
+    provided query and returns a list of results formatted as SearchResult
+    objects. The function allows for filtering results by specific domains
+    and specifies the number of results to return. It handles API requests
+    and processes the response to extract relevant information.
 
     Args:
-        api_key (str): A Exa Search API key
-        query (str): The query to search for
-        count (int): Number of results to return
-        filter_list (Optional[list[str]]): List of domains to filter results by
+        api_key (str): An Exa Search API key.
+        query (str): The query to search for.
+        count (int): Number of results to return.
+        filter_list (Optional[list[str]]): List of domains to filter results by.
+
+    Returns:
+        list[SearchResult]: A list of SearchResult objects containing the search results.
     """
     log.info(f"Searching with Exa for query: {query}")
 

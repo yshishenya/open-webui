@@ -880,6 +880,27 @@ export const getChangelog = async () => {
 	return res;
 };
 
+/**
+ * Fetches the version updates from the server.
+ *
+ * This asynchronous function retrieves the latest version updates by making a GET request to the specified API endpoint.
+ * It requires a valid authorization token to access the resource.
+ *
+ * @param {string} token - The authorization token used to authenticate the request.
+ * @returns {Promise<Object|null>} A promise that resolves to the version updates data as an object, or null if an error occurs.
+ *
+ * @throws {Object} Throws an error object if the response is not ok or if there is an issue during the fetch operation.
+ *
+ * @example
+ * const token = 'your-auth-token';
+ * getVersionUpdates(token)
+ *   .then(updates => {
+ *     console.log('Version Updates:', updates);
+ *   })
+ *   .catch(error => {
+ *     console.error('Error fetching version updates:', error);
+ *   });
+ */
 export const getVersionUpdates = async (token: string) => {
 	let error = null;
 

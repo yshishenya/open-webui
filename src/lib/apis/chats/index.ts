@@ -580,6 +580,33 @@ export const toggleChatPinnedStatusById = async (token: string, id: string) => {
 	return res;
 };
 
+/**
+ * Clones a chat by its ID and optionally assigns a new title.
+ *
+ * This asynchronous function sends a POST request to the specified API endpoint to clone a chat.
+ * It requires a valid authorization token and the ID of the chat to be cloned.
+ * An optional title can be provided for the new chat.
+ *
+ * @param {string} token - The authorization token for API access.
+ * @param {string} id - The ID of the chat to be cloned.
+ * @param {string} [title] - An optional title for the cloned chat.
+ * @returns {Promise<Object|null>} - Returns a promise that resolves to the cloned chat object if successful, or null if an error occurs.
+ *
+ * @throws {Object} Throws an error object containing details about the failure if the cloning process fails.
+ *
+ * @example
+ * const token = 'your-auth-token';
+ * const chatId = '12345';
+ * const newTitle = 'Cloned Chat Title';
+ *
+ * cloneChatById(token, chatId, newTitle)
+ *   .then(clonedChat => {
+ *     console.log('Cloned Chat:', clonedChat);
+ *   })
+ *   .catch(error => {
+ *     console.error('Error cloning chat:', error);
+ *   });
+ */
 export const cloneChatById = async (token: string, id: string, title?: string) => {
 	let error = null;
 

@@ -13,6 +13,26 @@ declare global {
 	}
 }
 
+/**
+ * Asynchronously loads Pyodide and specified Python packages.
+ *
+ * This function initializes the Pyodide environment, sets up output streams for standard output and error,
+ * creates a filesystem mount directory, and installs the provided packages using micropip.
+ *
+ * @param {string[]} [packages=[]] - An array of package names to install. Defaults to an empty array if not provided.
+ *
+ * @returns {Promise<void>} A promise that resolves when the packages have been successfully installed.
+ *
+ * @throws {Error} Throws an error if there is an issue during the loading of Pyodide or the installation of packages.
+ *
+ * @example
+ * // Load Pyodide and install the 'numpy' package
+ * loadPyodideAndPackages(['numpy']).then(() => {
+ *   console.log('Packages loaded successfully!');
+ * }).catch((error) => {
+ *   console.error('Failed to load packages:', error);
+ * });
+ */
 async function loadPyodideAndPackages(packages: string[] = []) {
 	self.stdout = null;
 	self.stderr = null;
@@ -132,6 +152,32 @@ matplotlib.pyplot.show = show`);
 	self.postMessage({ id, result: self.result, stdout: self.stdout, stderr: self.stderr });
 };
 
+/**
+ * Processes the input result and returns a JSON-safe representation.
+ * This function handles various data types including primitives, arrays,
+ * objects, and special cases like BigInt and Pyodide proxy objects.
+ *
+ * @param {any} result - The input value to be processed. It can be of any type,
+ *                       including null, primitive types, arrays, objects, or
+ *                       special proxy objects.
+ * @returns {any} - A JSON-safe representation of the input value. This may
+ *                  include null for null or undefined inputs, primitive values
+ *                  for strings, numbers, and booleans, a string for BigInt,
+ *                  an array of processed items for arrays, and a recursively
+ *                  serialized object for JS objects.
+ *
+ * @throws {Error} - If an unexpected error occurs during processing, a stringified
+ *                   error message will be returned instead of throwing an exception.
+ *
+ * @example
+ * // Example usage:
+ * const result1 = processResult(null); // returns null
+ * const result2 = processResult(42); // returns 42
+ * const result3 = processResult("Hello"); // returns "Hello"
+ * const result4 = processResult([1, 2, 3]); // returns [1, 2, 3]
+ * const result5 = processResult({ key: "value" }); // returns { key: "value" }
+ * const result6 = processResult(BigInt(123)); // returns "123"
+ */
 function processResult(result: any): any {
 	// Catch and always return JSON-safe string representations
 	try {

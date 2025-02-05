@@ -452,6 +452,28 @@ class CloneForm(BaseModel):
 async def clone_chat_by_id(
     form_data: CloneForm, id: str, user=Depends(get_verified_user)
 ):
+    """Clone a chat by its ID for a specific user.
+
+    This function retrieves a chat based on the provided ID and the user's
+    ID. If the chat exists, it creates a new chat with updated details,
+    including the original chat ID and the current message ID. The title of
+    the new chat can be specified in the form data; if not provided, it
+    defaults to "Clone of {original title}". If the chat does not exist for
+    the user, an HTTP 401 Unauthorized exception is raised.
+
+    Args:
+        form_data (CloneForm): The form data containing the title for the new chat.
+        id (str): The ID of the chat to be cloned.
+        user (Depends): The verified user attempting to clone the chat.
+
+    Returns:
+        ChatResponse: The response object containing details of the newly created chat.
+
+    Raises:
+        HTTPException: If the chat does not exist for the user, a 401 Unauthorized error is
+            raised.
+    """
+
     chat = Chats.get_chat_by_id_and_user_id(id, user.id)
     if chat:
         updated_chat = {

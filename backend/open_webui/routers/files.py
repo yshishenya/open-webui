@@ -43,6 +43,27 @@ router = APIRouter()
 def upload_file(
     request: Request, file: UploadFile = File(...), user=Depends(get_verified_user)
 ):
+    """Upload a file and process it.
+
+    This function handles the upload of a file by generating a unique
+    identifier for the file, sanitizing the filename, and storing the file
+    in a designated storage system. It also processes the uploaded file and
+    returns the file item details. If any errors occur during the upload or
+    processing stages, appropriate exceptions are raised.
+
+    Args:
+        request (Request): The HTTP request object.
+        file (UploadFile?): The file to be uploaded. Defaults to File(...).
+        user: The verified user making the request.
+
+    Returns:
+        FileModelResponse: The details of the uploaded file, including any error messages if
+            applicable.
+
+    Raises:
+        HTTPException: If there is an error during file upload or processing.
+    """
+
     log.info(f"file.content_type: {file.content_type}")
     try:
         unsanitized_filename = file.filename
@@ -188,6 +209,30 @@ class ContentForm(BaseModel):
 async def update_file_data_content_by_id(
     request: Request, id: str, form_data: ContentForm, user=Depends(get_verified_user)
 ):
+    """Update the content of a file by its ID.
+
+    This function retrieves a file based on the provided ID and checks if
+    the requesting user has permission to update it. If the user is either
+    the owner of the file or an admin, it processes the file with the new
+    content provided in the form data. If successful, it returns the updated
+    content of the file. If the file is not found or the user lacks
+    permission, an HTTP exception is raised.
+
+    Args:
+        request (Request): The HTTP request object.
+        id (str): The ID of the file to be updated.
+        form_data (ContentForm): The form data containing the new content for the file.
+        user: The verified user making the request (default is obtained via dependency
+            injection).
+
+    Returns:
+        dict: A dictionary containing the updated content of the file.
+
+    Raises:
+        HTTPException: If the file is not found or the user does not have permission to update
+            it.
+    """
+
     file = Files.get_file_by_id(id)
 
     if file and (file.user_id == user.id or user.role == "admin"):

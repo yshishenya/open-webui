@@ -166,6 +166,22 @@ def load_function_module_by_id(function_id, content=None):
 
 
 def install_frontmatter_requirements(requirements):
+    """Install Python packages specified in the requirements string.
+
+    This function takes a comma-separated string of package requirements,
+    splits it into a list, and installs each package using pip. It logs the
+    installation process and handles any exceptions that may occur during
+    the installation. If no requirements are provided, it logs an
+    informational message indicating that there are no requirements to
+    install.
+
+    Args:
+        requirements (str): A comma-separated string of package names to install.
+
+    Raises:
+        Exception: If an error occurs during the installation of any package.
+    """
+
     if requirements:
         try:
             req_list = [req.strip() for req in requirements.split(",")]
