@@ -84,6 +84,25 @@ class TaskConfigForm(BaseModel):
 async def update_task_config(
     request: Request, form_data: TaskConfigForm, user=Depends(get_admin_user)
 ):
+    """Update the task configuration based on the provided form data.
+
+    This function updates various configuration settings related to task
+    management in the application. It modifies the application's state
+    configuration with values from the provided `form_data`. The updated
+    configurations include task model settings, prompt templates for title
+    and image generation, and options for autocomplete and tags generation.
+    After updating the configuration, it returns the current state of the
+    configuration settings.
+
+    Args:
+        request (Request): The request object containing application state.
+        form_data (TaskConfigForm): The form data containing new configuration values.
+        user: The user making the request, defaulting to an admin user.
+
+    Returns:
+        dict: A dictionary containing the updated task configuration settings.
+    """
+
     request.app.state.config.TASK_MODEL = form_data.TASK_MODEL
     request.app.state.config.TASK_MODEL_EXTERNAL = form_data.TASK_MODEL_EXTERNAL
     request.app.state.config.TITLE_GENERATION_PROMPT_TEMPLATE = (
@@ -139,6 +158,30 @@ async def update_task_config(
 async def generate_title(
     request: Request, form_data: dict, user=Depends(get_verified_user)
 ):
+    """Generate a title based on user input and a specified model.
+
+    This function processes a request to generate a title using a specified
+    model. It first verifies the existence of the model in the application's
+    state. If the model is not found, it raises an HTTP exception. The
+    function then checks if the user has a custom task model and retrieves
+    it accordingly. It prepares the messages by removing any reasoning
+    details and generates the title using a template. Finally, it constructs
+    a payload for generating chat completion and returns the result of that
+    operation.
+
+    Args:
+        request (Request): The request object containing application state and user data.
+        form_data (dict): A dictionary containing form data, including model ID and messages.
+        user: The verified user object, defaulting to the result of
+            `get_verified_user`.
+
+    Returns:
+        JSONResponse: The response containing the generated title or an error message.
+
+    Raises:
+        HTTPException: If the specified model is not found in the application state.
+    """
+
     models = request.app.state.MODELS
 
     model_id = form_data["model"]
