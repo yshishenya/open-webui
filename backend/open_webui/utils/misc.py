@@ -11,6 +11,22 @@ import collections.abc
 
 
 def deep_update(d, u):
+    """Deeply update a dictionary with values from another dictionary.
+
+    This function recursively updates the first dictionary `d` with values
+    from the second dictionary `u`. If a key in `u` corresponds to a
+    dictionary in `d`, the function will recursively update that nested
+    dictionary. If the key in `u` is not a dictionary, it will simply set
+    the value in `d` to the value from `u`.
+
+    Args:
+        d (dict): The original dictionary to be updated.
+        u (dict): The dictionary containing updates.
+
+    Returns:
+        dict: The updated dictionary after applying the changes from `u`.
+    """
+
     for k, v in u.items():
         if isinstance(v, collections.abc.Mapping):
             d[k] = deep_update(d.get(k, {}), v)
@@ -20,12 +36,24 @@ def deep_update(d, u):
 
 
 def get_message_list(messages, message_id):
-    """
-    Reconstructs a list of messages in order up to the specified message_id.
+    """Reconstructs a list of messages in order up to the specified message_id.
 
-    :param message_id: ID of the message to reconstruct the chain
-    :param messages: Message history dict containing all messages
-    :return: List of ordered messages starting from the root to the given message
+    This function takes a dictionary of messages and a specific message ID,
+    and reconstructs the chain of messages leading up to that message. It
+    follows the parentId links in the messages to build a list that starts
+    from the root message and ends with the specified message. If the
+    specified message ID does not exist in the messages, the function will
+    return None.
+
+    Args:
+        messages (dict): A dictionary containing all messages, where each
+            message is represented as a dictionary with
+            at least a "parentId" key.
+        message_id (str): The ID of the message to reconstruct the chain.
+
+    Returns:
+        list: A list of ordered messages starting from the root to the
+            given message, or None if the message ID is not found.
     """
 
     # Find the message by its id
@@ -144,13 +172,22 @@ def add_or_update_system_message(content: str, messages: list[dict]):
 
 
 def add_or_update_user_message(content: str, messages: list[dict]):
-    """
-    Adds a new user message at the end of the messages list
-    or updates the existing user message at the end.
+    """Add or update a user message in the messages list.
 
-    :param msg: The message to be added or appended.
-    :param messages: The list of message dictionaries.
-    :return: The updated list of message dictionaries.
+    This function checks if the last message in the list has the role of
+    'user'. If it does, it appends the new content to the existing message.
+    If not, it creates a new message with the role of 'user' and adds it to
+    the end of the list. This allows for maintaining a coherent conversation
+    flow by either updating the last user message or adding a new one when
+    necessary.
+
+    Args:
+        content (str): The message content to be added or appended.
+        messages (list[dict]): The list of message dictionaries, where each dictionary contains
+            at least a 'role' and 'content' key.
+
+    Returns:
+        list[dict]: The updated list of message dictionaries.
     """
 
     if messages and messages[-1].get("role") == "user":
@@ -163,13 +200,21 @@ def add_or_update_user_message(content: str, messages: list[dict]):
 
 
 def append_or_update_assistant_message(content: str, messages: list[dict]):
-    """
-    Adds a new assistant message at the end of the messages list
-    or updates the existing assistant message at the end.
+    """Add or update an assistant message in the messages list.
 
-    :param msg: The message to be added or appended.
-    :param messages: The list of message dictionaries.
-    :return: The updated list of message dictionaries.
+    This function checks if the last message in the provided list has the
+    role of "assistant". If it does, the function appends the new content to
+    the existing assistant message. If not, it creates a new assistant
+    message and appends it to the end of the list. This allows for
+    maintaining a continuous conversation with the assistant by either
+    updating the last message or adding a new one.
+
+    Args:
+        content (str): The message content to be added or appended.
+        messages (list[dict]): The list of message dictionaries.
+
+    Returns:
+        list[dict]: The updated list of message dictionaries.
     """
 
     if messages and messages[-1].get("role") == "assistant":
@@ -196,6 +241,25 @@ def openai_chat_chunk_message_template(
     tool_calls: Optional[list[dict]] = None,
     usage: Optional[dict] = None,
 ) -> dict:
+    """Create a chat chunk message template for OpenAI's chat model.
+
+    This function generates a structured message template for chat
+    completions based on the specified model. It allows for optional
+    content, tool calls, and usage statistics to be included in the
+    template. The function initializes the template with default values and
+    updates it based on the provided arguments. If neither content nor tool
+    calls are provided, the finish reason is set to "stop".
+
+    Args:
+        model (str): The identifier of the OpenAI chat model to use.
+        content (Optional[str]?): The content to include in the message. Defaults to None.
+        tool_calls (Optional[list[dict]]?): A list of tool call dictionaries to include. Defaults to None.
+        usage (Optional[dict]?): A dictionary containing usage statistics. Defaults to None.
+
+    Returns:
+        dict: A dictionary representing the chat chunk message template.
+    """
+
     template = openai_chat_message_template(model)
     template["object"] = "chat.completion.chunk"
 
