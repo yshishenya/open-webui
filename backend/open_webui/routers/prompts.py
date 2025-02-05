@@ -140,6 +140,26 @@ async def update_prompt_by_command(
 
 @router.delete("/command/{command}/delete", response_model=bool)
 async def delete_prompt_by_command(command: str, user=Depends(get_verified_user)):
+    """Delete a prompt based on the provided command.
+
+    This function retrieves a prompt associated with the given command and
+    checks if the user has the necessary permissions to delete it. If the
+    prompt is not found or the user does not have access rights, an
+    HTTPException is raised. If the user is authorized, the prompt is
+    deleted and the result is returned.
+
+    Args:
+        command (str): The command associated with the prompt to be deleted.
+        user: The user attempting to delete the prompt, verified through dependency
+            injection.
+
+    Returns:
+        The result of the deletion operation.
+
+    Raises:
+        HTTPException: If the prompt is not found or if the user does not have
+    """
+
     prompt = Prompts.get_prompt_by_command(f"/{command}")
     if not prompt:
         raise HTTPException(
