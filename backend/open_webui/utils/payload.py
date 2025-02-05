@@ -10,6 +10,25 @@ from typing import Callable, Optional
 def apply_model_system_prompt_to_body(
     params: dict, form_data: dict, metadata: Optional[dict] = None
 ) -> dict:
+    """Apply a system prompt to the body of form data.
+
+    This function modifies the provided form_data dictionary by adding or
+    updating a system message based on the parameters and optional metadata.
+    If the 'system' key is not present in the params dictionary, the
+    original form_data is returned unchanged. If metadata is provided, it is
+    used to replace variables in the system prompt before it is added to the
+    form_data.
+
+    Args:
+        params (dict): A dictionary containing parameters, including an optional 'system' key.
+        form_data (dict): A dictionary representing the form data to be modified.
+        metadata (Optional[dict]?): A dictionary containing metadata that may include
+            variables for the system prompt. Defaults to None.
+
+    Returns:
+        dict: The modified form_data with the system message added or updated.
+    """
+
     system = params.get("system", None)
     if not system:
         return form_data
@@ -136,8 +155,13 @@ def convert_messages_openai_to_ollama(messages: list[dict]) -> list[dict]:
 
 
 def convert_payload_openai_to_ollama(openai_payload: dict) -> dict:
-    """
-    Converts a payload formatted for OpenAI's API to be compatible with Ollama's API endpoint for chat completions.
+    """Convert a payload from OpenAI's API format to Ollama's API format.
+
+    This function takes a dictionary payload that is structured for OpenAI's
+    API and transforms it into a format that is compatible with Ollama's API
+    for chat completions. It maps various parameters, including model
+    details, message formatting, and advanced options, ensuring that the
+    resulting payload adheres to the expected structure of the Ollama API.
 
     Args:
         openai_payload (dict): The payload originally designed for OpenAI API usage.
