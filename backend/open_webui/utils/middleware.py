@@ -187,6 +187,33 @@ async def chat_completion_filter_functions_handler(request, body, model, extra_p
 async def chat_completion_tools_handler(
     request: Request, body: dict, user: UserModel, models, tools
 ) -> tuple[dict, dict]:
+    """Handle chat completion tools and manage tool function calls.
+
+    This function processes a chat completion request, extracting the
+    necessary information from the request body and user model. It generates
+    a payload for tool function calling based on the provided messages and
+    tools specifications. The function then awaits a response from the chat
+    completion service and handles any tool calls specified in the response.
+    It also manages the extraction of content from the response and
+    organizes sources for further reference.
+
+    Args:
+        request (Request): The HTTP request object containing metadata and
+            application state.
+        body (dict): The request body containing model information and messages.
+        user (UserModel): The user model representing the current user.
+        models: A collection of available models for processing.
+        tools: A dictionary of available tools with their specifications.
+
+    Returns:
+        tuple[dict, dict]: A tuple containing the modified request body and a
+            dictionary of sources extracted from tool calls.
+
+    Raises:
+        Exception: If there is an error during tool function execution or if
+            no JSON object is found in the response.
+    """
+
     async def get_content_from_response(response) -> Optional[str]:
         content = None
         if hasattr(response, "body_iterator"):
@@ -263,6 +290,27 @@ async def chat_completion_tools_handler(
             result = json.loads(content)
 
             async def tool_call_handler(tool_call):
+                """Handle tool calls and execute the corresponding tool functions.
+
+                This function processes a tool call by extracting the tool function name
+                and its parameters. It checks if the tool function exists in the
+                predefined tools dictionary. If it does, it retrieves the required
+                parameters and invokes the tool function asynchronously. The output of
+                the tool function is then processed and stored in a sources list, along
+                with relevant metadata. If an exception occurs during the execution of
+                the tool function, the exception message is captured and handled
+                accordingly. Additionally, if the tool function has a file handler, it
+                sets a flag to skip files.
+
+                Args:
+                    tool_call (dict): A dictionary containing the tool call information, including the name of
+                        the
+                        tool function and its parameters.
+
+                Returns:
+                    tuple: A tuple containing the body and a dictionary of results.
+                """
+
                 nonlocal skip_files
 
                 log.debug(f"{tool_call=}")
@@ -347,6 +395,33 @@ async def chat_completion_tools_handler(
 async def chat_web_search_handler(
     request: Request, form_data: dict, extra_params: dict, user
 ):
+    """Handle web search requests and manage the search process.
+
+    This function processes a web search request by generating search
+    queries based on user messages and then performing the search. It
+    utilizes an event emitter to communicate the status of the search
+    process, including the generation of queries and the results of the
+    search. If no valid queries are generated or if an error occurs during
+    the search, appropriate status updates are sent through the event
+    emitter.
+
+    Args:
+        request (Request): The request object containing information about the
+            web search.
+        form_data (dict): A dictionary containing form data, including user
+            messages and model information.
+        extra_params (dict): A dictionary of additional parameters, including
+            an event emitter for status updates.
+        user: The user initiating the web search.
+
+    Returns:
+        dict: The updated form data, potentially including search results.
+
+    Raises:
+        Exception: If there is an error during query generation or web search
+            processing.
+    """
+
     event_emitter = extra_params["__event_emitter__"]
     await event_emitter(
         {
@@ -591,6 +666,28 @@ async def chat_image_generation_handler(
 async def chat_completion_files_handler(
     request: Request, body: dict, user: UserModel
 ) -> tuple[dict, dict[str, list]]:
+    """Handle chat completion requests with file sources.
+
+    This function processes a chat completion request by extracting files
+    from the request body and generating queries based on the provided
+    messages. It then retrieves sources related to those queries using an
+    asynchronous approach. If no valid queries are generated, it defaults to
+    using the last user message from the conversation. The function returns
+    the original request body along with the sources retrieved.
+
+    Args:
+        request (Request): The request object containing metadata and application state.
+        body (dict): A dictionary containing the model, messages, and metadata.
+        user (UserModel): The user model representing the current user.
+
+    Returns:
+        tuple[dict, dict[str, list]]: A tuple containing the original request body
+        and a dictionary with a key "sources" that holds a list of sources.
+
+    Raises:
+        Exception: If there is an error in processing the queries or retrieving sources.
+    """
+
     sources = []
 
     if files := body.get("metadata", {}).get("files", None):
@@ -653,6 +750,26 @@ async def chat_completion_files_handler(
 
 
 def apply_params_to_form_data(form_data, model):
+    """Apply parameters from form data to the given model.
+
+    This function extracts parameters from the provided form data and
+    applies them to the model's options or other relevant fields based on
+    the model's characteristics. If the model has an "ollama" key, it
+    populates specific fields in the form data with the parameters related
+    to options. Otherwise, it applies a broader set of parameters including
+    seed, stop, temperature, max_tokens, top_p, frequency_penalty, and
+    reasoning_effort.
+
+    Args:
+        form_data (dict): A dictionary containing form data, which may include
+            a "params" key with various parameters.
+        model (dict): A dictionary representing the model configuration, which
+            may include an "ollama" key.
+
+    Returns:
+        dict: The updated form data with applied parameters.
+    """
+
     params = form_data.pop("params", {})
     if model.get("ollama"):
         form_data["options"] = params
@@ -688,6 +805,32 @@ def apply_params_to_form_data(form_data, model):
 
 
 async def process_chat_payload(request, form_data, metadata, user, model):
+    """Process the chat payload and prepare data for further handling.
+
+    This function takes in a chat request along with form data, metadata,
+    user information, and model details. It applies necessary parameters to
+    the form data, initializes event emitters, and handles various features
+    such as web search, image generation, and code interpretation. The
+    function also manages knowledge retrieval and context insertion into
+    messages. Finally, it returns the processed form data, metadata, and any
+    events generated during the processing.
+
+    Args:
+        request (Request): The HTTP request object containing the chat request.
+        form_data (dict): A dictionary containing the form data from the chat.
+        metadata (dict): A dictionary containing metadata related to the request.
+        user (User): An object representing the user making the request.
+        model (dict): A dictionary containing model information and configuration.
+
+    Returns:
+        tuple: A tuple containing the processed form data (dict), updated
+        metadata (dict), and a list of events (list) generated during
+            processing.
+
+    Raises:
+        Exception: If an error occurs during processing or if no user message
+    """
+
 
     form_data = apply_params_to_form_data(form_data, model)
     log.debug(f"form_data: {form_data}")
@@ -918,7 +1061,42 @@ async def process_chat_payload(request, form_data, metadata, user, model):
 async def process_chat_response(
     request, response, form_data, user, events, metadata, tasks
 ):
+    """Process a chat response and handle background tasks for title and tag
+    generation.
+
+    This function processes the response from a chat request, updating the
+    chat title and tags based on the provided metadata and events. It
+    handles both non-streaming and streaming responses, managing background
+    tasks for generating titles and tags when necessary. The function also
+    emits events to notify other components of the system about updates to
+    the chat.
+
+    Args:
+        request: The HTTP request object.
+        response: The response object from the chat service.
+        form_data: The form data containing additional parameters for processing.
+        user: The user object representing the current user.
+        events: A list of events to process during the response handling.
+        metadata: A dictionary containing metadata related to the chat, including chat ID
+            and message ID.
+        tasks: A dictionary of tasks to perform, such as title and tag generation.
+
+    Returns:
+        dict: A dictionary indicating the status of the operation and the task ID if
+            applicable.
+    """
+
     async def background_tasks_handler():
+        """Handle background tasks related to chat messages.
+
+        This function processes background tasks for chat messages, including
+        title and tag generation. It retrieves messages based on the provided
+        chat ID and message ID, and if applicable, generates a title and tags
+        for the chat using external functions. The generated title and tags are
+        then updated in the chat database, and events are emitted to notify
+        other components of the changes.
+        """
+
         message_map = Chats.get_messages_by_chat_id(metadata["chat_id"])
         message = message_map.get(metadata["message_id"]) if message_map else None
 
@@ -1124,7 +1302,42 @@ async def process_chat_response(
 
         # Handle as a background task
         async def post_response_handler(response, events):
+            """Handle the response from a chat event and process various content
+            blocks.
+
+            This function processes the response from a chat event, handling
+            different types of content blocks such as text, tool calls, reasoning,
+            and code interpretation. It serializes the content blocks into a
+            structured format and manages the execution of tool calls, including
+            error handling and retries. The function also emits events for chat
+            completion and saves messages to a database.
+
+            Args:
+                response (Response): The response object containing the chat event data.
+                events (list): A list of events to be processed during the chat interaction.
+            """
+
             def serialize_content_blocks(content_blocks, raw=False):
+                """Serialize a list of content blocks into a formatted string.
+
+                This function processes various types of content blocks, including text,
+                tool calls, reasoning, and code interpreter blocks. It constructs a
+                string representation of the content, formatting it according to the
+                type of each block. For tool calls, it includes details about the
+                execution status and results. For reasoning blocks, it captures the
+                duration of reasoning if available. The output can be customized to
+                include raw content or formatted details based on the `raw` parameter.
+
+                Args:
+                    content_blocks (list): A list of dictionaries representing content blocks, each containing
+                        a type and associated content.
+                    raw (bool): A flag indicating whether to return raw content without formatting.
+                        Defaults to False.
+
+                Returns:
+                    str: A formatted string representation of the serialized content blocks.
+                """
+
                 content = ""
 
                 for block in content_blocks:
@@ -1208,10 +1421,47 @@ async def process_chat_response(
                 return content.strip()
 
             def tag_content_handler(content_type, tags, content, content_blocks):
+                """Handle the processing of tags within the provided content.
+
+                This function processes the content to extract and manage tags based on
+                the specified content type. It identifies start and end tags, extracts
+                attributes, and updates the content blocks accordingly. If a start tag
+                is found, it captures the attributes and manages the content before and
+                after the tag. If an end tag is encountered, it processes the content
+                within the tag and updates the duration of the content block.
+
+                Args:
+                    content_type (str): The type of content being processed (e.g., 'text', 'code_interpreter').
+                    tags (list): A list of tags to be processed.
+                    content (str): The content string that may contain tags.
+                    content_blocks (list): A list of dictionaries representing the current state of content blocks.
+
+                Returns:
+                    tuple: A tuple containing:
+                        - str: The remaining content after processing tags.
+                        - list: The updated list of content blocks.
+                        - bool: A flag indicating whether an end tag was found.
+                """
+
                 end_flag = False
 
                 def extract_attributes(tag_content):
-                    """Extract attributes from a tag if they exist."""
+                    """Extract attributes from a tag if they exist.
+
+                    This function takes a string containing tag content and extracts
+                    attributes in the format of key-value pairs, where the values are
+                    enclosed in double quotes. If the input string is empty or None, an
+                    empty dictionary is returned. The function uses regular expressions to
+                    find matches for the attributes.
+
+                    Args:
+                        tag_content (str): A string containing the tag content from which
+                            to extract attributes.
+
+                    Returns:
+                        dict: A dictionary containing the extracted attributes as key-value
+                            pairs.
+                    """
                     attributes = {}
                     if not tag_content:  # Ensure tag_content is not None
                         return attributes
