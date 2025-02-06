@@ -134,6 +134,30 @@ async def get_function_models(request):
 async def generate_function_chat_completion(
     request, form_data, user, models: dict = {}
 ):
+    """Generate a chat completion response based on the provided request and
+    form data.
+
+    This function orchestrates the execution of a specified function
+    pipeline to generate a chat completion response. It handles both
+    synchronous and asynchronous function calls, processes the response, and
+    formats it for streaming or direct return. The function also manages
+    user metadata, tool integration, and error handling throughout the
+    process.
+
+    Args:
+        request: The incoming request object containing necessary data.
+        form_data (dict): A dictionary containing form data including model
+            specifications and metadata.
+        user: The user object representing the current user making the request.
+        models (dict?): A dictionary of models available for use.
+            Defaults to an empty dictionary.
+
+    Returns:
+        StreamingResponse or dict: A streaming response if streaming is enabled,
+            otherwise a dictionary containing the chat completion result or an
+            error message.
+    """
+
     async def execute_pipe(pipe, params):
         if inspect.iscoroutinefunction(pipe):
             return await pipe(**params)

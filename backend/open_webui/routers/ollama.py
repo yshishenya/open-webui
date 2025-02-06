@@ -359,6 +359,30 @@ async def get_filtered_models(models, user):
 async def get_ollama_tags(
     request: Request, url_idx: Optional[int] = None, user=Depends(get_verified_user)
 ):
+    """Retrieve tags for models from the Ollama API.
+
+    This function fetches model tags from the specified Ollama API endpoint.
+    If no specific URL index is provided, it retrieves all available models.
+    If a URL index is given, it constructs the request to the corresponding
+    Ollama API URL to obtain the tags. The function handles potential
+    exceptions during the API request and raises an HTTPException with
+    appropriate details if an error occurs. Additionally, it applies access
+    control based on the user's role.
+
+    Args:
+        request (Request): The request object containing application state and configuration.
+        url_idx (Optional[int]): The index of the Ollama base URL to use. Defaults to None.
+        user: The user object obtained through dependency injection, used for access
+            control.
+
+    Returns:
+        list: A list of models or tags retrieved from the Ollama API.
+
+    Raises:
+        HTTPException: If there is an error during the API request or if the user does not have
+            access.
+    """
+
     models = []
 
     if url_idx is None:
@@ -976,6 +1000,34 @@ async def generate_chat_completion(
     user=Depends(get_verified_user),
     bypass_filter: Optional[bool] = False,
 ):
+    """Generate a chat completion response based on the provided request and
+    form data.
+
+    This function processes the incoming request and form data to generate a
+    chat completion response. It validates the model access based on user
+    roles and applies any necessary model parameters and system prompts. If
+    the user does not have access to the specified model, an HTTP exception
+    is raised. The function also handles any exceptions that may occur
+    during the processing of the form data and raises appropriate HTTP
+    exceptions for client errors.
+
+    Args:
+        request (Request): The incoming request object.
+        form_data (dict): A dictionary containing the form data for generating the chat
+            completion.
+        url_idx (Optional[int]?): An optional index for the URL configuration. Defaults to None.
+        user: The user object obtained through dependency injection.
+        bypass_filter (Optional[bool]?): A flag to bypass model access control. Defaults to False.
+
+    Returns:
+        Response: The response from the chat completion API.
+
+    Raises:
+        HTTPException: If there is an error in processing the form data or if the user does not
+            have access
+            to the specified model.
+    """
+
     if BYPASS_MODEL_ACCESS_CONTROL:
         bypass_filter = True
 
@@ -1160,6 +1212,32 @@ async def generate_openai_chat_completion(
     url_idx: Optional[int] = None,
     user=Depends(get_verified_user),
 ):
+    """Generate a chat completion using OpenAI's API.
+
+    This function processes a request to generate a chat completion by
+    extracting form data, validating it, and preparing a payload to send to
+    the OpenAI API. It handles model information retrieval, user access
+    control, and constructs the appropriate API request. If any errors occur
+    during the process, appropriate HTTP exceptions are raised.
+
+    Args:
+        request (Request): The incoming request object containing metadata and
+            other information.
+        form_data (dict): A dictionary containing the form data for the chat
+            completion request.
+        url_idx (Optional[int]?): An optional index for the URL
+            configuration. Defaults to None.
+        user: The verified user making the request, obtained through
+            dependency injection.
+
+    Returns:
+        Response: The response from the OpenAI API containing the chat completion.
+
+    Raises:
+        HTTPException: If there is an error in processing the form data or if
+            the user does not have access to the requested model.
+    """
+
     metadata = form_data.pop("metadata", None)
 
     try:

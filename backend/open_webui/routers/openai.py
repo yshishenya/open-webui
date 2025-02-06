@@ -413,6 +413,32 @@ async def get_all_models(request: Request) -> dict[str, list]:
 async def get_models(
     request: Request, url_idx: Optional[int] = None, user=Depends(get_verified_user)
 ):
+    """Retrieve models from the OpenAI API or a local source.
+
+    This function fetches a list of models based on the provided request and
+    optional URL index. If no URL index is specified, it retrieves all
+    models from a local source. If a URL index is provided, it makes an
+    asynchronous HTTP GET request to the OpenAI API to retrieve the models.
+    The function also handles user information headers if enabled and
+    filters the models based on specific conditions. In case of errors
+    during the request, appropriate exceptions are raised.
+
+    Args:
+        request (Request): The request object containing application state and configuration.
+        url_idx (Optional[int]): The index of the OpenAI API base URL to use. If None, fetches all
+            models.
+        user: The verified user object containing user information.
+
+    Returns:
+        dict: A dictionary containing the list of models under the "data" key.
+
+    Raises:
+        HTTPException: If there is a client error during the HTTP request or any unexpected
+            error occurs.
+        Exception: If the HTTP response status is not 200, an exception with error details
+            is raised.
+    """
+
     models = {
         "data": [],
     }
@@ -547,6 +573,33 @@ async def generate_chat_completion(
     user=Depends(get_verified_user),
     bypass_filter: Optional[bool] = False,
 ):
+    """Generate a chat completion response from a specified model.
+
+    This function processes a request to generate a chat completion using a
+    specified model. It first checks the user's access to the model and
+    prepares the payload with the necessary parameters. The function handles
+    different model configurations, including legacy support and specific
+    adjustments for certain models. It then makes an asynchronous HTTP POST
+    request to the OpenAI API to retrieve the chat completion response. If
+    the response is in streaming format, it returns a StreamingResponse;
+    otherwise, it returns the JSON response from the API.
+
+    Args:
+        request (Request): The incoming request object.
+        form_data (dict): A dictionary containing the form data for the request.
+        user (Depends): The verified user making the request.
+        bypass_filter (Optional[bool]): A flag to bypass access control checks (default is False).
+
+    Returns:
+        dict or StreamingResponse: The chat completion response from the OpenAI
+            API, either as
+        a JSON object or as a streaming response.
+
+    Raises:
+        HTTPException: If the user does not have access to the model or if the model is not
+            found.
+    """
+
     if BYPASS_MODEL_ACCESS_CONTROL:
         bypass_filter = True
 
