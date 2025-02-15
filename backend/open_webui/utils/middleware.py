@@ -98,6 +98,30 @@ log.setLevel(SRC_LOG_LEVELS["MAIN"])
 async def chat_completion_tools_handler(
     request: Request, body: dict, user: UserModel, models, tools
 ) -> tuple[dict, dict]:
+    """Handle chat completion tools and process the response.
+
+    This function manages the interaction with chat completion tools by
+    processing the incoming request and body, generating a payload for tool
+    function calling, and handling the responses. It retrieves the task
+    model ID, constructs a prompt for the tools, and processes the response
+    to extract relevant content. If tool calls are present in the response,
+    it invokes the corresponding tool functions and collects their outputs.
+
+    Args:
+        request (Request): The incoming request object.
+        body (dict): The request body containing necessary data.
+        user (UserModel): The user model instance representing the user.
+        models: The available models for processing.
+        tools: A dictionary of available tools for function calling.
+
+    Returns:
+        tuple[dict, dict]: A tuple containing the modified body and a
+        dictionary of sources collected from tool outputs.
+
+    Raises:
+        Exception: If there is an error during processing or if no JSON
+    """
+
     async def get_content_from_response(response) -> Optional[str]:
         content = None
         if hasattr(response, "body_iterator"):
@@ -408,6 +432,33 @@ async def chat_web_search_handler(
 async def chat_image_generation_handler(
     request: Request, form_data: dict, extra_params: dict, user
 ):
+    """Handle the image generation process for a chat application.
+
+    This function manages the workflow of generating an image based on user
+    messages. It first emits a status update indicating that the image
+    generation is in progress. Then, it retrieves the last user message and
+    attempts to generate a prompt for the image. If the prompt generation is
+    enabled and successful, it extracts the prompt from the response.
+    Afterward, it calls the image generation function and emits another
+    status update upon completion. Finally, it sends the generated images
+    back to the user and updates the message history with relevant system
+    messages.
+
+    Args:
+        request (Request): The request object containing application state and configuration.
+        form_data (dict): A dictionary containing form data, including user messages and model
+            information.
+        extra_params (dict): A dictionary containing additional parameters, including an event
+            emitter.
+        user: The user object representing the current user.
+
+    Returns:
+        dict: The updated form data including the system messages.
+
+    Raises:
+        Exception: If there is an error during prompt generation or image generation.
+    """
+
     __event_emitter__ = extra_params["__event_emitter__"]
     await __event_emitter__(
         {
@@ -599,6 +650,35 @@ def apply_params_to_form_data(form_data, model):
 
 
 async def process_chat_payload(request, form_data, metadata, user, model):
+    """Process the chat payload and prepare data for further handling.
+
+    This function takes in a chat request along with associated form data,
+    metadata, user information, and model details. It processes the input to
+    apply necessary parameters, handle events, and manage features such as
+    web search, image generation, and code interpretation. The function also
+    manages knowledge files and tool IDs, ensuring that the context is
+    properly integrated into the messages for the chat. It raises exceptions
+    if there are issues during processing.
+
+    Args:
+        request (Request): The incoming request object containing state and
+            other relevant information.
+        form_data (dict): A dictionary containing the form data from the
+            chat input.
+        metadata (dict): A dictionary containing metadata related to the
+            request.
+        user (User): An object representing the user making the request.
+        model (dict): A dictionary containing model information and settings.
+
+    Returns:
+        tuple: A tuple containing the processed form data, updated metadata,
+            and a list of events generated during processing.
+
+    Raises:
+        Exception: If an error occurs during processing, including issues
+            with user messages or tool handling.
+    """
+
 
     form_data = apply_params_to_form_data(form_data, model)
     log.debug(f"form_data: {form_data}")
@@ -835,6 +915,29 @@ async def process_chat_payload(request, form_data, metadata, user, model):
 async def process_chat_response(
     request, response, form_data, user, events, metadata, tasks
 ):
+    """Process the chat response and handle background tasks.
+
+    This function processes the response from a chat request, updating chat
+    titles and tags as necessary, and handling various types of events. It
+    manages both streaming and non-streaming responses, ensuring that
+    messages are saved to the database and notifications are sent when users
+    are inactive. The function also handles background tasks related to
+    title and tag generation based on the provided metadata and tasks.
+
+    Args:
+        request: The HTTP request object containing the chat request data.
+        response: The response object from the chat service.
+        form_data: The form data submitted with the chat request.
+        user: The user object representing the current user.
+        events: A list of events to process during the chat response.
+        metadata: Metadata associated with the chat, including session and message IDs.
+        tasks: A dictionary of tasks to perform, such as title or tag generation.
+
+    Returns:
+        dict: A dictionary containing the status of the processing and task ID if
+            applicable.
+    """
+
     async def background_tasks_handler():
         message_map = Chats.get_messages_by_chat_id(metadata["chat_id"])
         message = message_map.get(metadata["message_id"]) if message_map else None
@@ -1040,6 +1143,21 @@ async def process_chat_response(
         )
 
         def split_content_and_whitespace(content):
+            """Split content into stripped text and trailing whitespace.
+
+            This function takes a string input and removes any trailing whitespace
+            from it. It also captures the original whitespace that was removed. The
+            function returns a tuple containing the stripped content and the
+            original trailing whitespace.
+
+            Args:
+                content (str): The input string from which to strip whitespace.
+
+            Returns:
+                tuple: A tuple containing the stripped content (str) and the
+                original trailing whitespace (str).
+            """
+
             content_stripped = content.rstrip()
             original_whitespace = (
                 content[len(content_stripped) :]
@@ -1049,13 +1167,65 @@ async def process_chat_response(
             return content_stripped, original_whitespace
 
         def is_opening_code_block(content):
+            """Determine if the provided content opens a new code block.
+
+            This function checks the content for backtick segments, which are used
+            to denote code blocks in Markdown. It splits the content by the backtick
+            characters and evaluates whether the number of segments is even. An even
+            number of segments indicates that the last set of backticks is opening a
+            new code block.
+
+            Args:
+                content (str): The string content to be analyzed for code block syntax.
+
+            Returns:
+                bool: True if the content opens a new code block, False otherwise.
+            """
+
             backtick_segments = content.split("```")
             # Even number of segments means the last backticks are opening a new block
             return len(backtick_segments) > 1 and len(backtick_segments) % 2 == 0
 
         # Handle as a background task
         async def post_response_handler(response, events):
+            """Handle the response from a chat and process events.
+
+            This function processes the response from a chat system and handles
+            various events related to the chat. It manages content blocks, tool
+            calls, and reasoning, and updates the chat messages accordingly. The
+            function also includes mechanisms for streaming responses and handling
+            code execution results.
+
+            Args:
+                response (Response): The response object from the chat system.
+                events (list): A list of events to be processed during the chat.
+            """
+
             def serialize_content_blocks(content_blocks, raw=False):
+                """Serialize a list of content blocks into a formatted string.
+
+                This function processes a list of content blocks, each of which can be
+                of different types such as 'text', 'tool_calls', 'reasoning', or
+                'code_interpreter'. It constructs a string representation of these
+                blocks, applying specific formatting based on the type of each block.
+                For 'tool_calls', it includes details about the executed tools and their
+                results. For 'reasoning', it summarizes the thought process along with
+                the duration if available. The function also handles raw output
+                formatting based on the `raw` parameter.
+
+                Args:
+                    content_blocks (list): A list of dictionaries representing content blocks. Each block
+                        should contain at least a 'type' key and may contain other keys such as
+                        'content',
+                        'attributes', 'results', and 'duration'.
+                    raw (bool): A flag indicating whether to return raw content without additional
+                        formatting.
+                        Defaults to False.
+
+                Returns:
+                    str: A formatted string representation of the serialized content blocks.
+                """
+
                 content = ""
 
                 for block in content_blocks:
@@ -1152,6 +1322,24 @@ async def process_chat_response(
                 return content.strip()
 
             def convert_content_blocks_to_messages(content_blocks):
+                """Convert content blocks into a structured message format.
+
+                This function processes a list of content blocks, which may include tool
+                calls and other types of content. It organizes these blocks into
+                messages that can be used for further processing or communication. When
+                a block of type "tool_calls" is encountered, it serializes any preceding
+                blocks into a message and appends the tool call information to the
+                messages list. If there are any results associated with the tool call,
+                those are also added as separate messages. Finally, any remaining blocks
+                are serialized and added as a message if they exist.
+
+                Args:
+                    content_blocks (list): A list of dictionaries representing content blocks.
+
+                Returns:
+                    list: A list of structured messages derived from the input content blocks.
+                """
+
                 messages = []
 
                 temp_blocks = []
@@ -1192,6 +1380,29 @@ async def process_chat_response(
                 return messages
 
             def tag_content_handler(content_type, tags, content, content_blocks):
+                """Handle the processing of content blocks based on specified tags.
+
+                This function processes the provided content to extract and manage
+                content blocks associated with specific tags. It identifies start and
+                end tags, extracts attributes from the tags, and updates the content
+                blocks accordingly. If a start tag is found, it creates a new content
+                block; if an end tag is found, it finalizes the current block and
+                prepares for any leftover content.
+
+                Args:
+                    content_type (str): The type of content being processed (e.g., 'text').
+                    tags (list): A list of tags to look for in the content.
+                    content (str): The content string that contains the tags.
+                    content_blocks (list): A list of dictionaries representing the current
+                        state of content blocks.
+
+                Returns:
+                    tuple: A tuple containing:
+                        - str: The remaining content after processing.
+                        - list: The updated list of content blocks.
+                        - bool: A flag indicating whether an end tag was found.
+                """
+
                 end_flag = False
 
                 def extract_attributes(tag_content):
