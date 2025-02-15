@@ -41,7 +41,20 @@ class PDFGenerator:
             return ""
 
     def _build_html_message(self, message: Dict[str, Any]) -> str:
-        """Build HTML for a single message."""
+        """Build HTML for a single message.
+
+        This function constructs an HTML representation of a message based on
+        the provided dictionary. It extracts the role, content, timestamp, and
+        model from the dictionary and formats them into an HTML structure. The
+        content is also processed to replace newline characters with HTML line
+        breaks.
+
+        Args:
+            message (Dict[str, Any]): A dictionary containing the message
+
+        Returns:
+            str: The HTML representation of the message.
+        """
         role = escape(message.get("role", "user"))
         content = escape(message.get("content", ""))
         timestamp = message.get("timestamp")
@@ -76,7 +89,16 @@ class PDFGenerator:
         return html_message
 
     def _generate_html_body(self) -> str:
-        """Generate the full HTML body for the PDF."""
+        """Generate the full HTML body for the PDF.
+
+        This method constructs an HTML document as a string, which includes a
+        title and messages formatted in HTML. The title is escaped to prevent
+        any HTML injection issues. The generated HTML can be used for rendering
+        a PDF document.
+
+        Returns:
+            str: The complete HTML body as a string.
+        """
         escaped_title = escape(self.form_data.title)
         return f"""
         <html>
