@@ -17,11 +17,24 @@ def search_serpapi(
     count: int,
     filter_list: Optional[list[str]] = None,
 ) -> list[SearchResult]:
-    """Search using serpapi.com's API and return the results as a list of SearchResult objects.
+    """Search using serpapi.com's API and return the results as a list of
+    SearchResult objects.
+
+    This function constructs a request to the serpapi.com search API using
+    the provided API key, search engine, and query. It retrieves the search
+    results, sorts them based on their position, and applies any specified
+    filters before returning a limited number of results as SearchResult
+    objects.
 
     Args:
-      api_key (str): A serpapi.com API key
-      query (str): The query to search for
+        api_key (str): A serpapi.com API key.
+        engine (str): The search engine to use (default is "google").
+        query (str): The query to search for.
+        count (int): The maximum number of results to return.
+        filter_list (Optional[list[str]]): A list of filters to apply to the results (default is None).
+
+    Returns:
+        list[SearchResult]: A list of SearchResult objects containing the search results.
     """
     url = "https://serpapi.com/search"
 
