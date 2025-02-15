@@ -222,6 +222,27 @@ def openai_chat_completion_message_template(
     tool_calls: Optional[list[dict]] = None,
     usage: Optional[dict] = None,
 ) -> dict:
+    """Generate a chat completion message template for OpenAI.
+
+    This function creates a structured message template for OpenAI's chat
+    completion API. It initializes the template with the specified model and
+    populates it with optional message content, tool calls, and usage
+    information if provided. The resulting template is formatted according
+    to the requirements of the OpenAI API for chat completions.
+
+    Args:
+        model (str): The name of the model to be used for the chat completion.
+        message (Optional[str]): An optional message content to be included in the
+            template. Defaults to None.
+        tool_calls (Optional[list[dict]]): An optional list of tool calls to be
+            included in the message. Defaults to None.
+        usage (Optional[dict]): An optional dictionary containing usage information
+            for the API call. Defaults to None.
+
+    Returns:
+        dict: A dictionary representing the chat completion message template.
+    """
+
     template = openai_chat_message_template(model)
     template["object"] = "chat.completion"
     if message is not None:
@@ -253,6 +274,21 @@ def get_gravatar_url(email):
 
 
 def calculate_sha256(file_path, chunk_size):
+    """Compute the SHA-256 hash of a file efficiently in chunks.
+
+    This function reads a file in specified chunk sizes and updates the
+    SHA-256 hash incrementally. This approach is memory efficient and
+    suitable for large files. The resulting hash is returned as a
+    hexadecimal string.
+
+    Args:
+        file_path (str): The path to the file for which the SHA-256 hash is to be computed.
+        chunk_size (int): The size of each chunk to read from the file in bytes.
+
+    Returns:
+        str: The SHA-256 hash of the file as a hexadecimal string.
+    """
+
     # Compute SHA-256 hash of a file efficiently in chunks
     sha256 = hashlib.sha256()
     with open(file_path, "rb") as f:
