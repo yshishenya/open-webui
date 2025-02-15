@@ -10,14 +10,21 @@ log.setLevel(SRC_LOG_LEVELS["RAG"])
 
 
 def search_jina(api_key: str, query: str, count: int) -> list[SearchResult]:
-    """
-    Search using Jina's Search API and return the results as a list of SearchResult objects.
+    """Search for results using Jina's Search API.
+
+    This function sends a search query to Jina's Search API and retrieves a
+    list of results formatted as SearchResult objects. It constructs the
+    request with the provided API key, query string, and the desired number
+    of results. The function ensures that no more than 10 results are
+    returned, even if a higher count is requested.
+
     Args:
-        query (str): The query to search for
-        count (int): The number of results to return
+        api_key (str): The API key for authenticating with Jina's Search API.
+        query (str): The query to search for.
+        count (int): The number of results to return (maximum of 10).
 
     Returns:
-        list[SearchResult]: A list of search results
+        list[SearchResult]: A list of search results as SearchResult objects.
     """
     jina_search_endpoint = "https://s.jina.ai/"
 
