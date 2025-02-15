@@ -97,7 +97,25 @@ class S3StorageProvider(StorageProvider):
         self.key_prefix = S3_KEY_PREFIX if S3_KEY_PREFIX else ""
 
     def upload_file(self, file: BinaryIO, filename: str) -> Tuple[bytes, str]:
-        """Handles uploading of the file to S3 storage."""
+        """Handles uploading of the file to S3 storage.
+
+        This method takes a binary file and a filename as input, uploads the
+        file to an S3 bucket, and returns the content of the file along with its
+        S3 URI. It first uploads the file to a local storage provider and then
+        uses the S3 client to upload the file to the specified S3 bucket. If any
+        error occurs during the upload process, a RuntimeError is raised.
+
+        Args:
+            file (BinaryIO): The binary file to be uploaded.
+            filename (str): The name of the file to be uploaded.
+
+        Returns:
+            Tuple[bytes, str]: A tuple containing the content of the uploaded file
+            and its S3 URI.
+
+        Raises:
+            RuntimeError: If there is an error uploading the file to S3.
+        """
         _, file_path = LocalStorageProvider.upload_file(file, filename)
         try:
             s3_key = os.path.join(self.key_prefix, filename)
@@ -110,7 +128,23 @@ class S3StorageProvider(StorageProvider):
             raise RuntimeError(f"Error uploading file to S3: {e}")
 
     def get_file(self, file_path: str) -> str:
-        """Handles downloading of the file from S3 storage."""
+        """Handles the downloading of a file from S3 storage.
+
+        This function takes a file path, extracts the S3 key from it, and
+        downloads the corresponding file to a local path. It utilizes the S3
+        client to perform the download operation and returns the local file path
+        where the file has been saved. If an error occurs during the download
+        process, a RuntimeError is raised with details about the failure.
+
+        Args:
+            file_path (str): The path of the file to be downloaded from S3.
+
+        Returns:
+            str: The local file path where the downloaded file is stored.
+
+        Raises:
+            RuntimeError: If there is an error downloading the file from S3.
+        """
         try:
             s3_key = self._extract_s3_key(file_path)
             local_file_path = self._get_local_file_path(s3_key)
@@ -120,7 +154,20 @@ class S3StorageProvider(StorageProvider):
             raise RuntimeError(f"Error downloading file from S3: {e}")
 
     def delete_file(self, file_path: str) -> None:
-        """Handles deletion of the file from S3 storage."""
+        """Handles deletion of the file from S3 storage.
+
+        This function deletes a specified file from S3 storage by extracting the
+        S3 key from the provided file path and invoking the delete operation on
+        the S3 client. If an error occurs during the deletion process, a
+        RuntimeError is raised with a descriptive message. Additionally, the
+        function ensures that the file is also deleted from local storage.
+
+        Args:
+            file_path (str): The path of the file to be deleted from S3 and local storage.
+
+        Raises:
+            RuntimeError: If there is an error deleting the file from S3.
+        """
         try:
             s3_key = self._extract_s3_key(file_path)
             self.s3_client.delete_object(Bucket=self.bucket_name, Key=s3_key)
@@ -131,7 +178,17 @@ class S3StorageProvider(StorageProvider):
         LocalStorageProvider.delete_file(file_path)
 
     def delete_all_files(self) -> None:
-        """Handles deletion of all files from S3 storage."""
+        """Delete all files from S3 storage and local storage.
+
+        This method handles the deletion of all files stored in an S3 bucket. It
+        first lists all objects in the specified bucket and iterates through
+        them, deleting only those that match a specific key prefix. After
+        deleting the files from S3, it also ensures that all files are deleted
+        from local storage.
+
+        Raises:
+            RuntimeError: If there is an error while deleting files from S3.
+        """
         try:
             response = self.s3_client.list_objects_v2(Bucket=self.bucket_name)
             if "Contents" in response:

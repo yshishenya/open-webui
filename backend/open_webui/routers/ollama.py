@@ -974,6 +974,31 @@ async def generate_chat_completion(
     user=Depends(get_verified_user),
     bypass_filter: Optional[bool] = False,
 ):
+    """Generate a chat completion response based on the provided request and
+    form data.
+
+    This function processes the incoming request and form data to generate a
+    chat completion. It validates the model access based on the user's role
+    and applies any necessary parameters to the request payload. If the
+    model is not found or access is denied, appropriate HTTP exceptions are
+    raised. The function also handles metadata and prepares the payload for
+    sending to the chat API.
+
+    Args:
+        request (Request): The incoming request object.
+        form_data (dict): A dictionary containing form data for generating chat completion.
+        url_idx (Optional[int]?): An optional index for the URL configuration. Defaults to None.
+        user: The verified user making the request.
+        bypass_filter (Optional[bool]?): A flag to bypass access control checks. Defaults to False.
+
+    Returns:
+        Any: The response from the chat API after sending the generated payload.
+
+    Raises:
+        HTTPException: If there is an error in processing the form data or if access to the
+            model is denied.
+    """
+
     if BYPASS_MODEL_ACCESS_CONTROL:
         bypass_filter = True
 
@@ -1417,6 +1442,30 @@ async def upload_model(
     url_idx: Optional[int] = None,
     user=Depends(get_admin_user),
 ):
+    """Upload a model file to the Ollama service and stream the upload
+    progress.
+
+    This function handles the uploading of a model file to the Ollama
+    service. It first saves the uploaded file locally, then calculates its
+    SHA256 hash, and streams the upload progress as well as the final result
+    back to the client. The function also creates a model in the Ollama
+    service after successfully uploading the file.
+
+    Args:
+        request (Request): The HTTP request object.
+        file (UploadFile?): The file to be uploaded. Defaults to a required file input.
+        url_idx (Optional[int]?): The index of the Ollama base URL to use. Defaults to None, which will
+            set it to 0.
+        user: The user dependency for authorization, defaults to an admin user.
+
+    Returns:
+        StreamingResponse: A streaming response that yields progress updates and final status
+            messages.
+
+    Raises:
+        Exception: If there is an error during file upload or model creation in Ollama.
+    """
+
     if url_idx is None:
         url_idx = 0
     ollama_url = request.app.state.config.OLLAMA_BASE_URLS[url_idx]
@@ -1434,6 +1483,22 @@ async def upload_model(
             out_f.write(chunk)
 
     async def file_process_stream():
+        """Process a file stream for uploading and model creation.
+
+        This function handles the processing of a file by calculating its SHA256
+        hash, tracking the upload progress, and creating a model in the Ollama
+        system. It reads the file in chunks, yielding progress updates as it
+        uploads the file to the specified Ollama URL. Upon successful upload, it
+        creates a model using the uploaded file's metadata.
+
+        Yields:
+            str: A JSON-formatted string containing progress updates or
+            completion messages.
+
+        Raises:
+            Exception: If there is an error during file upload or model
+        """
+
         nonlocal ollama_url
         total_size = os.path.getsize(file_path)
         log.info(f"Total Model Size: {str(total_size)}")  # DEBUG

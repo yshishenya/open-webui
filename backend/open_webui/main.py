@@ -333,6 +333,27 @@ log.setLevel(SRC_LOG_LEVELS["MAIN"])
 
 class SPAStaticFiles(StaticFiles):
     async def get_response(self, path: str, scope):
+        """Get the HTTP response for a given path and scope.
+
+        This method overrides the parent class's `get_response` method to handle
+        specific HTTP exceptions. If a 404 error occurs and the requested path
+        ends with ".js", the exception is raised as is. For other paths that
+        result in a 404 error, the method attempts to return the response for
+        "index.html" instead. Any other exceptions are re-raised.
+
+        Args:
+            path (str): The requested path for the HTTP response.
+            scope: The scope of the request, typically containing information about
+                the request context.
+
+        Returns:
+            Response: The HTTP response for the given path.
+
+        Raises:
+            HTTPException: If a 404 error occurs for a JavaScript file.
+            StarletteHTTPException: If any other HTTP-related exception occurs.
+        """
+
         try:
             return await super().get_response(path, scope)
         except (HTTPException, StarletteHTTPException) as ex:
@@ -903,6 +924,30 @@ async def chat_completion(
     form_data: dict,
     user=Depends(get_verified_user),
 ):
+    """Handle chat completion requests and process the associated data.
+
+    This function manages the chat completion process by validating the
+    model requested, checking user access, and preparing metadata for the
+    chat session. It retrieves the necessary model information, processes
+    the chat payload, and handles any exceptions that may arise during these
+    operations. The function also ensures that the appropriate response is
+    generated based on the processed data.
+
+    Args:
+        request (Request): The HTTP request object containing application state.
+        form_data (dict): A dictionary containing the form data submitted by the user.
+        user: The verified user making the request, obtained through dependency
+            injection.
+
+    Returns:
+        Any: The processed chat response after handling the completion.
+
+    Raises:
+        HTTPException: If there is an error processing the chat payload or generating
+            the chat response, a 400 Bad Request error is raised with
+            details of the exception.
+    """
+
     if not request.app.state.MODELS:
         await get_all_models(request)
 
@@ -990,6 +1035,27 @@ generate_chat_completion = chat_completion
 async def chat_completed(
     request: Request, form_data: dict, user=Depends(get_verified_user)
 ):
+    """Handle the completion of a chat request.
+
+    This function processes a chat completion request by extracting the
+    model item from the provided form data. If the model item indicates a
+    direct chat, it updates the request state accordingly. Finally, it calls
+    the chat_completed_handler to perform the actual handling of the chat
+    completion.
+
+    Args:
+        request (Request): The HTTP request object containing state and other information.
+        form_data (dict): A dictionary containing form data related to the chat request.
+        user: The verified user making the request (default is obtained from Depends).
+
+    Returns:
+        The result of the chat_completed_handler function.
+
+    Raises:
+        HTTPException: If an error occurs during processing, a 400 Bad Request exception is
+            raised.
+    """
+
     try:
         model_item = form_data.pop("model_item", {})
 
@@ -1009,6 +1075,33 @@ async def chat_completed(
 async def chat_action(
     request: Request, action_id: str, form_data: dict, user=Depends(get_verified_user)
 ):
+    """Handle chat actions based on the provided request and form data.
+
+    This function processes a chat action by extracting the model item from
+    the form data and determining if it should be treated as a direct
+    action. If the model item indicates a direct action, it sets the
+    appropriate state in the request. Finally, it delegates the handling of
+    the chat action to another function, `chat_action_handler`, passing
+    along the necessary parameters.
+
+    Args:
+        request (Request): The HTTP request object containing state and other
+            information.
+        action_id (str): The identifier for the specific chat action to be
+            performed.
+        form_data (dict): A dictionary containing the form data submitted with
+            the request.
+        user (Depends): The verified user making the request, obtained through
+            dependency injection.
+
+    Returns:
+        Any: The result of the chat action handler.
+
+    Raises:
+        HTTPException: If an error occurs during processing, a 400 Bad Request
+            exception is raised with details of the error.
+    """
+
     try:
         model_item = form_data.pop("model_item", {})
 
@@ -1047,6 +1140,32 @@ async def list_tasks_endpoint(user=Depends(get_verified_user)):
 
 @app.get("/api/config")
 async def get_app_config(request: Request):
+    """Retrieve application configuration based on the request.
+
+    This function checks for a token in the request cookies and attempts to
+    decode it to retrieve user information. If the user is found, it returns
+    the application configuration including onboarding status, application
+    name, version, locale, OAuth providers, and various feature flags. If no
+    user is found, it determines if the application is in onboarding mode
+    based on the number of users.
+
+    Args:
+        request (Request): The incoming request object containing cookies.
+
+    Returns:
+        dict: A dictionary containing the application configuration, including:
+            - onboarding (bool): Indicates if the application is in onboarding mode.
+            - status (bool): Indicates the status of the application.
+            - name (str): The name of the web UI.
+            - version (str): The version of the application.
+            - default_locale (str): The default locale for the application.
+            - oauth (dict): OAuth provider configurations.
+            - features (dict): Feature flags for various functionalities.
+
+    Raises:
+        HTTPException: If the token is invalid or cannot be decoded.
+    """
+
     user = None
     if "token" in request.cookies:
         token = request.cookies.get("token")

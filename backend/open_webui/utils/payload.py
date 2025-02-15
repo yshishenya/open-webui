@@ -10,6 +10,26 @@ from typing import Callable, Optional
 def apply_model_system_prompt_to_body(
     params: dict, form_data: dict, metadata: Optional[dict] = None, user=None
 ) -> dict:
+    """Apply the system prompt to the form data.
+
+    This function modifies the provided form data by incorporating a system
+    prompt based on the parameters and optional metadata. If a user is
+    provided, their information is used to customize the prompt. The
+    resulting form data will include updated messages reflecting the applied
+    system prompt.
+
+    Args:
+        params (dict): A dictionary containing parameters, including the system prompt.
+        form_data (dict): A dictionary representing the form data to be modified.
+        metadata (Optional[dict]?): A dictionary containing metadata,
+            which may include variables for prompt customization. Defaults to None.
+        user (optional): An object representing the user, which may contain
+            user-specific information for prompt customization.
+
+    Returns:
+        dict: The modified form data with the updated messages.
+    """
+
     system = params.get("system", None)
     if not system:
         return form_data

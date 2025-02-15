@@ -208,6 +208,26 @@ export const updateOpenAIKeys = async (token: string = '', keys: string[]) => {
 	return res.OPENAI_API_KEYS;
 };
 
+/**
+ * Fetches the available OpenAI models from the specified URL.
+ *
+ * This asynchronous function sends a GET request to the OpenAI API to retrieve
+ * the list of models. It requires a URL and an optional API key for authorization.
+ * If the request fails, it throws an error with a descriptive message.
+ *
+ * @param {string} url - The base URL of the OpenAI API.
+ * @param {string} key - The API key for authorization (optional).
+ * @returns {Promise<Array>} A promise that resolves to an array of models if the request is successful.
+ * @throws {string} Throws an error message if the request fails or if there is a network problem.
+ *
+ * @example
+ * try {
+ *   const models = await getOpenAIModelsDirect('https://api.openai.com/v1', 'your_api_key');
+ *   console.log(models);
+ * } catch (error) {
+ *   console.error(error);
+ * }
+ */
 export const getOpenAIModelsDirect = async (url: string, key: string) => {
 	let error = null;
 
@@ -265,6 +285,29 @@ export const getOpenAIModels = async (token: string, urlIdx?: number) => {
 	return res;
 };
 
+/**
+ * Verifies the connection to the OpenAI API.
+ *
+ * This asynchronous function checks if the provided token and URL can successfully connect to the OpenAI API.
+ * It can operate in two modes: direct connection to the OpenAI models endpoint or through a verification endpoint.
+ *
+ * @param {string} [token=''] - The token used for authorization. Defaults to an empty string.
+ * @param {string} [url='https://api.openai.com/v1'] - The base URL for the OpenAI API. Defaults to the official OpenAI API URL.
+ * @param {string} [key=''] - The API key used for authorization. Defaults to an empty string.
+ * @param {boolean} [direct=false] - A flag indicating whether to use direct connection mode. Defaults to false.
+ *
+ * @returns {Promise<Object[]>} A promise that resolves to an array of models or an empty array if an error occurs.
+ *
+ * @throws {string} Throws an error message if the URL is not provided or if the connection fails.
+ *
+ * @example
+ * try {
+ *   const models = await verifyOpenAIConnection('your-token', 'https://api.openai.com/v1', 'your-key', true);
+ *   console.log(models);
+ * } catch (error) {
+ *   console.error(error);
+ * }
+ */
 export const verifyOpenAIConnection = async (
 	token: string = '',
 	url: string = 'https://api.openai.com/v1',

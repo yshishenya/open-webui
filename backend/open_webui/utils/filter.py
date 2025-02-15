@@ -4,7 +4,39 @@ from open_webui.models.functions import Functions
 
 
 def get_sorted_filter_ids(model):
+    """Get sorted filter IDs based on the provided model.
+
+    This function retrieves a list of filter IDs from the global filter
+    functions and any additional filter IDs specified in the model's
+    metadata. It then filters these IDs to include only those that are
+    currently enabled. The resulting list is sorted based on the priority of
+    the associated functions, which is determined by their valves attribute.
+
+    Args:
+        model (dict): A dictionary representing the model, which may contain
+            additional filter IDs in its "info" -> "meta" section.
+
+    Returns:
+        list: A sorted list of enabled filter IDs.
+    """
+
     def get_priority(function_id):
+        """Get the priority of a function based on its ID.
+
+        This function retrieves a function object using the provided function
+        ID. If the function object has an attribute named 'valves', it attempts
+        to return the priority value from that attribute. If the 'valves'
+        attribute does not exist or is empty, it defaults to returning 0. If the
+        function cannot be found, it also returns 0.
+
+        Args:
+            function_id (int): The unique identifier for the function.
+
+        Returns:
+            int: The priority of the function, or 0 if not found or if no priority
+            is set.
+        """
+
         function = Functions.get_function_by_id(function_id)
         if function is not None and hasattr(function, "valves"):
             # TODO: Fix FunctionModel to include vavles
@@ -29,6 +61,29 @@ def get_sorted_filter_ids(model):
 async def process_filter_functions(
     request, filter_ids, filter_type, form_data, extra_params
 ):
+    """Process filter functions based on the provided filter IDs and type.
+
+    This function iterates through a list of filter IDs, retrieves the
+    corresponding function modules, and applies the necessary processing
+    based on the filter type. It prepares parameters for the handler
+    function and executes it, handling both synchronous and asynchronous
+    functions. Additionally, it manages user parameters and performs file
+    cleanup if necessary.
+
+    Args:
+        request (Request): The request object containing application state and context.
+        filter_ids (list): A list of filter IDs to process.
+        filter_type (str): The type of filter to apply (e.g., "inlet").
+        form_data (dict): The form data to be processed by the handler.
+        extra_params (dict): Additional parameters to be passed to the handler.
+
+    Returns:
+        tuple: A tuple containing the processed form data and an empty dictionary.
+
+    Raises:
+        Exception: If an error occurs during the execution of the handler function.
+    """
+
     skip_files = None
 
     for filter_id in filter_ids:

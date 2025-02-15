@@ -272,6 +272,24 @@ class UsersTable:
             return None
 
     def update_user_settings_by_id(self, id: str, updated: dict) -> Optional[UserModel]:
+        """Update user settings by user ID.
+
+        This function retrieves the current settings of a user identified by the
+        given ID, updates those settings with the provided new values, and saves
+        the changes back to the database. If the user does not have existing
+        settings, it initializes them as an empty dictionary. The function
+        handles any exceptions that may occur during the database operations and
+        returns None in such cases.
+
+        Args:
+            id (str): The unique identifier of the user whose settings are to be updated.
+            updated (dict): A dictionary containing the updated settings for the user.
+
+        Returns:
+            Optional[UserModel]: An instance of UserModel representing the updated user
+            if the operation is successful; otherwise, None.
+        """
+
         try:
             with get_db() as db:
                 user_settings = db.query(User).filter_by(id=id).first().settings

@@ -38,6 +38,28 @@ def upload_file(
     user=Depends(get_verified_user),
     file_metadata: dict = {},
 ):
+    """Upload a file and process it.
+
+    This function handles the uploading of a file provided in the request.
+    It generates a unique identifier for the file, sanitizes the filename,
+    and uploads the file to storage. After uploading, it attempts to process
+    the file and returns the file item. If any errors occur during
+    processing or uploading, appropriate exceptions are raised.
+
+    Args:
+        request (Request): The HTTP request object containing the file upload.
+        file (UploadFile?): The file to be uploaded. Defaults to File(...).
+        user: The verified user making the request. This is obtained via dependency
+            injection.
+        file_metadata (dict?): Additional metadata for the file. Defaults to an empty dictionary.
+
+    Returns:
+        FileModelResponse: The response object containing details of the uploaded file.
+
+    Raises:
+        HTTPException: If there is an error during file upload or processing.
+    """
+
     log.info(f"file.content_type: {file.content_type}")
     try:
         unsanitized_filename = file.filename
@@ -116,6 +138,25 @@ async def list_files(user=Depends(get_verified_user)):
 
 @router.delete("/all")
 async def delete_all_files(user=Depends(get_admin_user)):
+    """Delete all files from the storage.
+
+    This function attempts to delete all files associated with the user. It
+    first calls the `Files.delete_all_files()` method to remove files from
+    the file system. If this operation is successful, it then tries to
+    delete files from the storage. If any exceptions occur during the
+    deletion process, an HTTPException is raised with a 400 status code and
+    an appropriate error message.
+
+    Args:
+        user (Depends): The user performing the deletion, defaulting to
+
+    Returns:
+        dict: A message indicating that all files were deleted successfully.
+
+    Raises:
+        HTTPException: If there is an error deleting files from either
+    """
+
     result = Files.delete_all_files()
     if result:
         try:
@@ -213,6 +254,29 @@ async def update_file_data_content_by_id(
 
 @router.get("/{id}/content")
 async def get_file_content_by_id(id: str, user=Depends(get_verified_user)):
+    """Retrieve the content of a file by its ID.
+
+    This function checks if the file exists and if the user has the
+    necessary permissions to access it. If the file is found and the user is
+    authorized, it attempts to retrieve the file from storage. If the file
+    exists in the cache, it prepares the file for download with appropriate
+    headers. If the file does not exist or the user is not authorized, it
+    raises an HTTPException with a relevant error message.
+
+    Args:
+        id (str): The unique identifier of the file to retrieve.
+        user: The user requesting access to the file, which is verified
+            through dependency injection.
+
+    Returns:
+        FileResponse: A response object containing the file content and
+            headers for download.
+
+    Raises:
+        HTTPException: If the file is not found or if there is an error
+            retrieving the file content.
+    """
+
     file = Files.get_file_by_id(id)
     if file and (file.user_id == user.id or user.role == "admin"):
         try:
@@ -258,6 +322,24 @@ async def get_file_content_by_id(id: str, user=Depends(get_verified_user)):
 
 @router.get("/{id}/content/html")
 async def get_html_file_content_by_id(id: str, user=Depends(get_verified_user)):
+    """Retrieve the HTML file content by its ID.
+
+    This function checks if the file exists and if the user has the
+    necessary permissions to access it. If the file is found and accessible,
+    it returns the file content. If the file does not exist or the user
+    lacks permissions, appropriate HTTP exceptions are raised.
+
+    Args:
+        id (str): The unique identifier of the file to retrieve.
+        user: The user requesting access, verified through dependency injection.
+
+    Returns:
+        FileResponse: The response containing the HTML file content.
+
+    Raises:
+        HTTPException: If the file is not found or if the user does not have
+    """
+
     file = Files.get_file_by_id(id)
     if file and (file.user_id == user.id or user.role == "admin"):
         try:
@@ -341,6 +423,27 @@ async def get_file_content_by_id(id: str, user=Depends(get_verified_user)):
 
 @router.delete("/{id}")
 async def delete_file_by_id(id: str, user=Depends(get_verified_user)):
+    """Delete a file by its ID.
+
+    This function attempts to delete a file associated with the given ID. It
+    first checks if the file exists and whether the user has the necessary
+    permissions to delete it (either being the owner or an admin). If the
+    file is successfully deleted from the database, it proceeds to remove
+    the file from storage. If any errors occur during the deletion process,
+    appropriate HTTP exceptions are raised to inform the client of the
+    issue.
+
+    Args:
+        id (str): The ID of the file to be deleted.
+        user: The user requesting the deletion, verified through dependency injection.
+
+    Returns:
+        dict: A message indicating that the file was deleted successfully.
+
+    Raises:
+        HTTPException: If the file is not found (404), if the user does not have
+    """
+
     file = Files.get_file_by_id(id)
     if file and (file.user_id == user.id or user.role == "admin"):
         # We should add Chroma cleanup here

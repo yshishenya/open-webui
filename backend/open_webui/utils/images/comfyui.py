@@ -119,6 +119,29 @@ class ComfyUIGenerateImageForm(BaseModel):
 async def comfyui_generate_image(
     model: str, payload: ComfyUIGenerateImageForm, client_id, base_url, api_key
 ):
+    """Generate an image using a specified model and workflow via a WebSocket
+    connection.
+
+    This function takes a model name, a payload containing the workflow and
+    parameters, and connects to a WebSocket server to send the workflow for
+    image generation. It modifies the workflow based on the provided
+    payload, setting various parameters such as prompt, negative prompt,
+    dimensions, and others. The function handles WebSocket connection
+    establishment and error logging, and it retrieves the generated images
+    asynchronously.
+
+    Args:
+        model (str): The name of the model to use for image generation.
+        payload (ComfyUIGenerateImageForm): The payload containing workflow and parameters.
+        client_id: The client identifier for the WebSocket connection.
+        base_url: The base URL for the WebSocket server.
+        api_key: The API key for authorization.
+
+    Returns:
+        images: The generated images from the WebSocket server, or None if an error
+            occurs.
+    """
+
     ws_url = base_url.replace("http://", "ws://").replace("https://", "wss://")
     workflow = json.loads(payload.workflow.workflow)
 

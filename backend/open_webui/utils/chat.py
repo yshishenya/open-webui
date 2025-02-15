@@ -66,6 +66,29 @@ async def generate_direct_chat_completion(
     user: Any,
     models: dict,
 ):
+    """Generate a direct chat completion response.
+
+    This function processes a chat completion request by handling streaming
+    responses if specified in the form data. It generates a unique request
+    ID and sets up a channel for communication. If streaming is enabled, it
+    listens for incoming messages and yields them as they arrive. If
+    streaming is not enabled, it directly returns the response from the
+    event caller.
+
+    Args:
+        request (Request): The incoming request object.
+        form_data (dict): A dictionary containing the form data for the chat completion.
+        user (Any): The user initiating the chat completion.
+        models (dict): A dictionary of available models for processing the chat.
+
+    Returns:
+        StreamingResponse: A streaming response if streaming is enabled; otherwise,
+        a direct response from the event caller.
+
+    Raises:
+        Exception: If there is an error in the response from the event caller or if
+    """
+
     print("generate_direct_chat_completion")
 
     metadata = form_data.pop("metadata", {})
@@ -82,8 +105,16 @@ async def generate_direct_chat_completion(
         q = asyncio.Queue()
 
         async def message_listener(sid, data):
-            """
-            Handle received socket messages and push them into the queue.
+            """Handle received socket messages and push them into the queue.
+
+            This function is designed to process incoming messages from a socket
+            connection. It takes the message data and places it into a queue for
+            further processing. The function is asynchronous and should be awaited
+            to ensure proper execution.
+
+            Args:
+                sid (str): The session ID associated with the socket message.
+                data (Any): The data received from the socket, which will be pushed into the queue.
             """
             await q.put(data)
 
@@ -108,6 +139,19 @@ async def generate_direct_chat_completion(
         if res.get("status", False):
             # Define a generator to stream responses
             async def event_generator():
+                """Generate an asynchronous event stream from a queue.
+
+                This function continuously retrieves messages from a queue and yields
+                them as formatted event data. It handles both dictionary and string
+                types of messages. If a dictionary message contains a key "done" with a
+                value of True, the streaming process will stop. In case of any
+                exceptions during the retrieval process, the error is logged for
+                debugging purposes.
+
+                Yields:
+                    str: Formatted event data as a string.
+                """
+
                 nonlocal q
                 try:
                     while True:
@@ -125,6 +169,14 @@ async def generate_direct_chat_completion(
 
             # Define a background task to run the event generator
             async def background():
+                """Remove the background handler for a specific channel.
+
+                This function attempts to delete the background handler associated with
+                a given channel from the `sio.handlers` dictionary. If the specified
+                handler does not exist or if an exception occurs during the deletion
+                process, the exception is caught and ignored.
+                """
+
                 try:
                     del sio.handlers["/"][channel]
                 except Exception as e:
@@ -161,6 +213,34 @@ async def generate_chat_completion(
     user: Any,
     bypass_filter: bool = False,
 ):
+    """Generate a chat completion response based on the provided request and
+    form data.
+
+    This function processes the incoming request and form data to generate a
+    chat completion response. It handles model access control, metadata
+    merging, and can route the request to different model endpoints based on
+    the user's role and the model's ownership. If the model is not found or
+    if there are issues with access control, appropriate exceptions are
+    raised. The function also supports streaming responses if specified in
+    the form data.
+
+    Args:
+        request (Request): The incoming request object containing state and metadata.
+        form_data (dict): A dictionary containing the parameters for generating chat completion.
+        user (Any): The user object representing the current user making the request.
+        bypass_filter (bool?): A flag indicating whether to bypass model access control.
+            Defaults to False.
+
+    Returns:
+        dict or StreamingResponse: The generated chat completion response, which
+            can be either
+            a dictionary or a streaming response depending on the input.
+
+    Raises:
+        Exception: If the specified model is not found or if there are issues with model
+            access.
+    """
+
     log.debug(f"generate_chat_completion: {form_data}")
     if BYPASS_MODEL_ACCESS_CONTROL:
         bypass_filter = True
@@ -232,6 +312,21 @@ async def generate_chat_completion(
             if form_data.get("stream") == True:
 
                 async def stream_wrapper(stream):
+                    """Wrap a stream to yield formatted data.
+
+                    This function takes an asynchronous stream as input and yields formatted
+                    data in the form of a string that includes the selected model ID. It
+                    first yields a JSON-encoded string containing the selected model ID,
+                    followed by yielding each chunk of data from the provided stream
+                    asynchronously.
+
+                    Args:
+                        stream (AsyncIterable): An asynchronous iterable stream of data chunks.
+
+                    Yields:
+                        str: Formatted data strings from the stream.
+                    """
+
                     yield f"data: {json.dumps({'selected_model_id': selected_model_id})}\n\n"
                     async for chunk in stream:
                         yield chunk
@@ -290,6 +385,29 @@ chat_completion = generate_chat_completion
 
 
 async def chat_completed(request: Request, form_data: dict, user: Any):
+    """Handle the completion of a chat request.
+
+    This function processes a chat completion request by retrieving the
+    appropriate model, validating the input data, and executing the
+    necessary processing functions. It first ensures that the required
+    models are loaded and then checks if the specified model ID is valid. If
+    the model is found, it processes the data through a pipeline and returns
+    the result. The function also constructs metadata and extra parameters
+    to be used in the processing functions.
+
+    Args:
+        request (Request): The request object containing application state and user context.
+        form_data (dict): A dictionary containing the form data for the chat request.
+        user (Any): The user object representing the current user.
+
+    Returns:
+        Any: The result of the processing functions.
+
+    Raises:
+        Exception: If the specified model ID is not found or if an error occurs during
+            processing.
+    """
+
     if not request.app.state.MODELS:
         await get_all_models(request)
 
@@ -347,6 +465,29 @@ async def chat_completed(request: Request, form_data: dict, user: Any):
 
 
 async def chat_action(request: Request, action_id: str, form_data: dict, user: Any):
+    """Perform a chat action based on the provided request and action ID.
+
+    This function processes a chat action by first validating the action ID
+    and retrieving the corresponding function. It checks if the necessary
+    models are available and prepares the parameters required for the action
+    function. The function can handle both synchronous and asynchronous
+    actions, and it also manages user-related data if applicable. If any
+    errors occur during the execution of the action, they are caught and
+    returned.
+
+    Args:
+        request (Request): The HTTP request object containing application state.
+        action_id (str): The identifier for the action to be performed.
+        form_data (dict): A dictionary containing data required for the action.
+        user (Any): The user object representing the current user.
+
+    Returns:
+        Any: The result of the executed action.
+
+    Raises:
+        Exception: If the action or model is not found, or if an error occurs
+    """
+
     if "." in action_id:
         action_id, sub_action_id = action_id.split(".")
     else:

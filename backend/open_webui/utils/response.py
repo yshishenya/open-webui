@@ -7,6 +7,23 @@ from open_webui.utils.misc import (
 
 
 def convert_ollama_tool_call_to_openai(tool_calls: dict) -> dict:
+    """Convert a list of OLLAMA tool calls to OpenAI tool call format.
+
+    This function takes a dictionary of tool calls in the OLLAMA format and
+    transforms it into a list of tool calls formatted for OpenAI. Each tool
+    call is processed to extract relevant information such as index, id,
+    function name, and arguments. The function ensures that each tool call
+    is structured correctly for compatibility with OpenAI's expected input
+    format.
+
+    Args:
+        tool_calls (dict): A dictionary containing OLLAMA tool calls, where each tool call
+            is expected to have an index, id, function name, and arguments.
+
+    Returns:
+        dict: A list of dictionaries representing the converted OpenAI tool calls.
+    """
+
     openai_tool_calls = []
     for tool_call in tool_calls:
         openai_tool_call = {
@@ -25,6 +42,23 @@ def convert_ollama_tool_call_to_openai(tool_calls: dict) -> dict:
 
 
 def convert_response_ollama_to_openai(ollama_response: dict) -> dict:
+    """Convert an Ollama response dictionary to an OpenAI-compatible format.
+
+    This function takes a response from the Ollama API and transforms it
+    into a format that is compatible with OpenAI's API. It extracts relevant
+    information such as the model, message content, and tool calls.
+    Additionally, it calculates usage metrics based on evaluation counts and
+    durations. The resulting dictionary is structured to align with OpenAI's
+    expected input.
+
+    Args:
+        ollama_response (dict): A dictionary containing the response from the
+
+    Returns:
+        dict: A dictionary formatted for OpenAI's API, including the model,
+        message content, tool calls (if any), and usage statistics.
+    """
+
     model = ollama_response.get("model", "ollama")
     message_content = ollama_response.get("message", {}).get("content", "")
     tool_calls = ollama_response.get("message", {}).get("tool_calls", None)
@@ -81,6 +115,29 @@ def convert_response_ollama_to_openai(ollama_response: dict) -> dict:
 
 
 async def convert_streaming_response_ollama_to_openai(ollama_streaming_response):
+    """Convert a streaming response from Ollama format to OpenAI format.
+
+    This asynchronous generator function processes a streaming response from
+    an Ollama API and converts it into a format compatible with OpenAI's
+    API. It iterates over the response data, extracting relevant information
+    such as the model, message content, tool calls, and usage statistics.
+    The function yields formatted data chunks that can be consumed by an
+    OpenAI-compatible client.
+
+    Args:
+        ollama_streaming_response (AsyncIterator): An asynchronous iterator
+
+    Yields:
+        str: A formatted string representing the converted data chunk for
+        OpenAI, or a completion signal when the streaming is done.
+
+    Notes:
+        The function handles tool calls by converting them to OpenAI's
+        format if present. It also calculates usage statistics based on
+        evaluation counts and durations, yielding this information along
+        with the message content.
+    """
+
     async for data in ollama_streaming_response.body_iterator:
         data = json.loads(data)
 

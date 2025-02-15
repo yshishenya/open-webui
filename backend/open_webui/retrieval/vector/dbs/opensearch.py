@@ -116,6 +116,25 @@ class OpenSearchClient:
     def query(
         self, collection_name: str, filter: dict, limit: Optional[int] = None
     ) -> Optional[GetResult]:
+        """Query a specified collection in the database.
+
+        This function constructs a query to search for documents in a specified
+        collection based on the provided filter criteria. It allows for an
+        optional limit on the number of results returned. If the collection does
+        not exist, the function will return None. The query is built using a
+        boolean filter that matches the specified fields and values.
+
+        Args:
+            collection_name (str): The name of the collection to query.
+            filter (dict): A dictionary containing field-value pairs to filter the results.
+            limit (Optional[int]?): The maximum number of results to return.
+                Defaults to 10 if not specified.
+
+        Returns:
+            Optional[GetResult]: The result of the query, or None if the collection
+            does not exist or an error occurs during the search.
+        """
+
         if not self.has_collection(collection_name):
             return None
 
