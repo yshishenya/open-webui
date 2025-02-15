@@ -269,7 +269,39 @@ async def disconnect(sid):
 
 
 def get_event_emitter(request_info):
+    """Create an event emitter for chat events.
+
+    This function returns an asynchronous event emitter that handles chat
+    events based on the provided request information. It retrieves user
+    session IDs and emits chat-related events to the appropriate sessions.
+    The function also processes different types of events, including status
+    updates, new messages, and message replacements, updating the chat
+    messages accordingly.
+
+    Args:
+        request_info (dict): A dictionary containing information about
+            the request, including user ID, session ID,
+            chat ID, and message ID.
+
+    Returns:
+        function: An asynchronous function that emits chat events.
+    """
+
     async def __event_emitter__(event_data):
+        """Emit chat events and update message status in the chat.
+
+        This function handles the emission of chat events to connected clients
+        based on the provided event data. It retrieves the user ID and session
+        IDs associated with the user, then emits the specified event data to
+        each session. Depending on the type of event (status, message, or
+        replace), it updates the message status or modifies the content of the
+        message in the chat.
+
+        Args:
+            event_data (dict): A dictionary containing event details,
+                including the type of event and associated data.
+        """
+
         user_id = request_info["user_id"]
         session_ids = list(
             set(USER_POOL.get(user_id, []) + [request_info["session_id"]])
@@ -325,7 +357,39 @@ def get_event_emitter(request_info):
 
 
 def get_event_call(request_info):
+    """Get an event caller function for handling chat events.
+
+    This function returns an asynchronous inner function that can be used to
+    call the "chat-events" service with the provided request information.
+    The inner function takes event data as input and sends a request to the
+    specified session, including the chat ID and message ID from the request
+    info. It awaits the response from the service and returns it.
+
+    Args:
+        request_info (dict): A dictionary containing the chat ID, message ID,
+            and session ID required for the event call.
+
+    Returns:
+        function: An asynchronous function that takes event data and returns
+            the response from the "chat-events" service.
+    """
+
     async def __event_caller__(event_data):
+        """Call a chat event and await its response.
+
+        This function sends a request to the "chat-events" service with the
+        provided event data, along with the chat ID and message ID extracted
+        from the request information. It awaits the response from the service,
+        which can be used for further processing or handling within the
+        application.
+
+        Args:
+            event_data (dict): A dictionary containing the event data to be sent.
+
+        Returns:
+            response: The response received from the "chat-events" service.
+        """
+
         response = await sio.call(
             "chat-events",
             {
