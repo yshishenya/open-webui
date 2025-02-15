@@ -16,15 +16,22 @@ def search_google_pse(
     count: int,
     filter_list: Optional[list[str]] = None,
 ) -> list[SearchResult]:
-    """Search using Google's Programmable Search Engine API and return the results as a list of SearchResult objects.
-    Handles pagination for counts greater than 10.
+    """Search using Google's Programmable Search Engine API and return the
+    results as a list of SearchResult objects.
+
+    This function interacts with the Google Programmable Search Engine API
+    to perform a search based on the provided query. It handles pagination
+    to retrieve multiple pages of results if the requested count exceeds the
+    maximum results per page. Additionally, it allows for filtering of
+    results based on a provided list of keywords.
 
     Args:
-        api_key (str): A Programmable Search Engine API key
-        search_engine_id (str): A Programmable Search Engine ID
-        query (str): The query to search for
-        count (int): The number of results to return (max 100, as PSE max results per query is 10 and max page is 10)
-        filter_list (Optional[list[str]], optional): A list of keywords to filter out from results. Defaults to None.
+        api_key (str): A Programmable Search Engine API key.
+        search_engine_id (str): A Programmable Search Engine ID.
+        query (str): The query to search for.
+        count (int): The number of results to return (max 100, as PSE max results per query
+            is 10 and max page is 10).
+        filter_list (Optional[list[str]]?): A list of keywords to filter out from results. Defaults to None.
 
     Returns:
         list[SearchResult]: A list of SearchResult objects.
