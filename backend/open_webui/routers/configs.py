@@ -47,6 +47,20 @@ class DirectConnectionsConfigForm(BaseModel):
 
 @router.get("/direct_connections", response_model=DirectConnectionsConfigForm)
 async def get_direct_connections_config(request: Request, user=Depends(get_admin_user)):
+    """Get the configuration for direct connections.
+
+    This function retrieves the configuration setting for enabling direct
+    connections from the application state. It accesses the configuration
+    through the provided request object and returns a dictionary containing
+    the relevant setting.
+
+    Args:
+        request (Request): The request object containing application state.
+
+    Returns:
+        dict: A dictionary with the configuration setting for direct connections.
+    """
+
     return {
         "ENABLE_DIRECT_CONNECTIONS": request.app.state.config.ENABLE_DIRECT_CONNECTIONS,
     }
@@ -58,6 +72,24 @@ async def set_direct_connections_config(
     form_data: DirectConnectionsConfigForm,
     user=Depends(get_admin_user),
 ):
+    """Set the configuration for direct connections.
+
+    This function updates the application's configuration to enable or
+    disable direct connections based on the provided form data. It modifies
+    the `ENABLE_DIRECT_CONNECTIONS` attribute in the application's state and
+    returns the updated configuration.
+
+    Args:
+        request (Request): The request object containing application state.
+        form_data (DirectConnectionsConfigForm): The form data containing
+            the new configuration value for direct connections.
+        user: The user making the request, which is expected to be an admin.
+
+    Returns:
+        dict: A dictionary containing the updated configuration for
+            `ENABLE_DIRECT_CONNECTIONS`.
+    """
+
     request.app.state.config.ENABLE_DIRECT_CONNECTIONS = (
         form_data.ENABLE_DIRECT_CONNECTIONS
     )
@@ -81,6 +113,32 @@ class CodeInterpreterConfigForm(BaseModel):
 
 @router.get("/code_interpreter", response_model=CodeInterpreterConfigForm)
 async def get_code_interpreter_config(request: Request, user=Depends(get_admin_user)):
+    """Retrieve the configuration settings for the code interpreter.
+
+    This function extracts various configuration parameters related to the
+    code interpreter from the application state. It returns a dictionary
+    containing settings such as whether the code interpreter is enabled, the
+    engine being used, the prompt template, and Jupyter-related URLs and
+    authentication details.
+
+    Args:
+        request (Request): The request object containing application state.
+
+    Returns:
+        dict: A dictionary with configuration settings for the code interpreter,
+            including:
+            - ENABLE_CODE_INTERPRETER: A boolean indicating if the code interpreter
+            is enabled.
+            - CODE_INTERPRETER_ENGINE: The engine used for the code interpreter.
+            - CODE_INTERPRETER_PROMPT_TEMPLATE: The template used for prompts in the
+            code interpreter.
+            - CODE_INTERPRETER_JUPYTER_URL: The URL for the Jupyter server.
+            - CODE_INTERPRETER_JUPYTER_AUTH: Authentication method for Jupyter.
+            - CODE_INTERPRETER_JUPYTER_AUTH_TOKEN: Token for Jupyter authentication.
+            - CODE_INTERPRETER_JUPYTER_AUTH_PASSWORD: Password for Jupyter
+            authentication.
+    """
+
     return {
         "ENABLE_CODE_INTERPRETER": request.app.state.config.ENABLE_CODE_INTERPRETER,
         "CODE_INTERPRETER_ENGINE": request.app.state.config.CODE_INTERPRETER_ENGINE,
@@ -96,6 +154,27 @@ async def get_code_interpreter_config(request: Request, user=Depends(get_admin_u
 async def set_code_interpreter_config(
     request: Request, form_data: CodeInterpreterConfigForm, user=Depends(get_admin_user)
 ):
+    """Set the configuration for the code interpreter.
+
+    This function updates the application state with the provided
+    configuration settings for the code interpreter. It modifies various
+    parameters such as enabling the code interpreter, setting the engine,
+    and configuring the Jupyter URL and authentication details based on the
+    input from the `form_data`.
+
+    Args:
+        request (Request): The request object containing application state.
+        form_data (CodeInterpreterConfigForm): The form data containing
+            configuration settings for the code interpreter.
+        user: The user making the request, which is validated to ensure
+            administrative privileges.
+
+    Returns:
+        dict: A dictionary containing the updated configuration settings for
+            the code interpreter, including whether it is enabled, the engine
+            used, prompt template, and Jupyter authentication details.
+    """
+
     request.app.state.config.ENABLE_CODE_INTERPRETER = form_data.ENABLE_CODE_INTERPRETER
     request.app.state.config.CODE_INTERPRETER_ENGINE = form_data.CODE_INTERPRETER_ENGINE
     request.app.state.config.CODE_INTERPRETER_PROMPT_TEMPLATE = (
