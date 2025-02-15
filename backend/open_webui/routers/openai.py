@@ -76,8 +76,18 @@ async def cleanup_response(
 
 
 def openai_o1_o3_handler(payload):
-    """
-    Handle o1, o3 specific parameters
+    """Handle o1 and o3 specific parameters in the payload.
+
+    This function modifies the input payload by removing the "max_tokens"
+    parameter and replacing it with "max_completion_tokens". Additionally,
+    it checks if the first message in the payload has a role of "system" and
+    changes it to "user" since o1 does not support the "system" role.
+
+    Args:
+        payload (dict): A dictionary containing parameters for the OpenAI API.
+
+    Returns:
+        dict: The modified payload with updated parameters.
     """
     if "max_tokens" in payload:
         # Remove "max_tokens" from the payload
@@ -547,6 +557,36 @@ async def generate_chat_completion(
     user=Depends(get_verified_user),
     bypass_filter: Optional[bool] = False,
 ):
+    """Generate a chat completion response based on the provided request and
+    form data.
+
+    This function handles the generation of chat completions by interacting
+    with an OpenAI model. It first verifies the user's access to the
+    specified model and prepares the payload with the necessary parameters.
+    The function also manages different configurations based on the model
+    type and user role. If the model is found and accessible, it sends a
+    request to the OpenAI API and returns the response. The function
+    supports both standard responses and streaming responses, depending on
+    the API's content type.
+
+    Args:
+        request (Request): The HTTP request object containing metadata about the request.
+        form_data (dict): A dictionary containing the form data for generating the chat
+            completion.
+        user: The verified user making the request (default is obtained from
+            `get_verified_user`).
+        bypass_filter (Optional[bool]): A flag indicating whether to bypass access control checks (default is
+            False).
+
+    Returns:
+        dict or StreamingResponse: The response from the OpenAI API, which can
+            either be a JSON object or a streaming response.
+
+    Raises:
+        HTTPException: If the user does not have access to the model, if the model is not
+            found, or if there is an error during the API request.
+    """
+
     if BYPASS_MODEL_ACCESS_CONTROL:
         bypass_filter = True
 
