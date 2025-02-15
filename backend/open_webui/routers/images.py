@@ -265,6 +265,26 @@ async def get_image_config(request: Request, user=Depends(get_admin_user)):
 async def update_image_config(
     request: Request, form_data: ImageConfigForm, user=Depends(get_admin_user)
 ):
+    """Update the image configuration settings.
+
+    This function updates the image generation model, size, and steps based
+    on the provided form data. It validates the image size format and
+    ensures that the number of image steps is non-negative. If the
+    validations fail, it raises an HTTPException with a 400 status code.
+
+    Args:
+        request (Request): The request object containing application state.
+        form_data (ImageConfigForm): The form data containing new configuration values.
+        user: The user making the request, defaulting to an admin user.
+
+    Returns:
+        dict: A dictionary containing the updated image configuration values including
+            MODEL, IMAGE_SIZE, and IMAGE_STEPS.
+
+    Raises:
+        HTTPException: If the IMAGE_SIZE format is incorrect or if IMAGE_STEPS is negative.
+    """
+
     set_image_model(request, form_data.MODEL)
 
     pattern = r"^\d+x\d+$"
@@ -377,6 +397,22 @@ class GenerateImageForm(BaseModel):
 
 
 def load_b64_image_data(b64_str):
+    """Load image data from a base64 encoded string.
+
+    This function takes a base64 encoded string, decodes it, and returns the
+    image data along with its MIME type. If the input string contains a
+    comma, it is assumed to have a header that specifies the MIME type. If
+    no comma is present, the function defaults to "image/png".
+
+    Args:
+        b64_str (str): A base64 encoded string representing the image data.
+
+    Returns:
+        tuple: A tuple containing the decoded image data (bytes) and the MIME type
+            (str).
+            Returns (None, None) if an error occurs during decoding.
+    """
+
     try:
         if "," in b64_str:
             header, encoded = b64_str.split(",", 1)
@@ -392,6 +428,24 @@ def load_b64_image_data(b64_str):
 
 
 def load_url_image_data(url, headers=None):
+    """Load image data from a specified URL.
+
+    This function retrieves the content from the provided URL and checks if
+    the content type is an image. If the content type is an image, it
+    returns the image data along with its MIME type. If the URL does not
+    point to an image or if an error occurs during the request, it logs the
+    error and returns None.
+
+    Args:
+        url (str): The URL of the image to be loaded.
+        headers (dict?): Optional HTTP headers to send with the request.
+
+    Returns:
+        tuple or None: A tuple containing the image data and its MIME type if
+            successful;
+            otherwise, None.
+    """
+
     try:
         if headers:
             r = requests.get(url, headers=headers)
@@ -412,6 +466,26 @@ def load_url_image_data(url, headers=None):
 
 
 def upload_image(request, image_metadata, image_data, content_type, user):
+    """Upload an image and return its accessible URL.
+
+    This function handles the uploading of an image by creating an
+    `UploadFile` instance with the provided image data and metadata. It
+    determines the appropriate file format based on the content type and
+    generates a unique filename for the upload. After successfully uploading
+    the file, it constructs and returns the URL for accessing the uploaded
+    image.
+
+    Args:
+        request (Request): The request object containing application context.
+        image_metadata (dict): Metadata associated with the image being uploaded.
+        image_data (bytes): The binary data of the image to be uploaded.
+        content_type (str): The MIME type of the image (e.g., 'image/png').
+        user (User): The user object representing the uploader.
+
+    Returns:
+        str: The URL for accessing the uploaded image.
+    """
+
     image_format = mimetypes.guess_extension(content_type)
     file = UploadFile(
         file=io.BytesIO(image_data),
@@ -431,6 +505,28 @@ async def image_generations(
     form_data: GenerateImageForm,
     user=Depends(get_verified_user),
 ):
+    """Generate images based on user input and specified generation engine.
+
+    This function handles the generation of images using different engines
+    such as OpenAI, ComfyUI, and Automatic1111. It retrieves configuration
+    settings from the application state, constructs the appropriate request
+    data based on the selected engine, and processes the response to upload
+    the generated images. The function also manages user information headers
+    if enabled.
+
+    Args:
+        request (Request): The HTTP request object containing application state and user context.
+        form_data (GenerateImageForm): The form data containing parameters for image generation.
+        user: The verified user object, obtained through dependency injection.
+
+    Returns:
+        list: A list of dictionaries containing URLs of the generated images.
+
+    Raises:
+        HTTPException: If an error occurs during the image generation process, a 400 status
+            code is raised with
+    """
+
     width, height = tuple(map(int, request.app.state.config.IMAGE_SIZE.split("x")))
 
     r = None
