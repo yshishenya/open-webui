@@ -149,6 +149,22 @@ class AudioConfigUpdateForm(BaseModel):
 
 @router.get("/config")
 async def get_audio_config(request: Request, user=Depends(get_admin_user)):
+    """Retrieve the audio configuration settings.
+
+    This function gathers and returns the text-to-speech (TTS) and speech-
+    to-text (STT) configuration settings from the application state. It
+    compiles the necessary API keys, model details, and other relevant
+    parameters required for audio processing into a structured dictionary
+    format.
+
+    Args:
+        request (Request): The request object containing application state and configuration.
+        user: The user dependency, which defaults to an admin user.
+
+    Returns:
+        dict: A dictionary containing TTS and STT configuration settings.
+    """
+
     return {
         "tts": {
             "OPENAI_API_BASE_URL": request.app.state.config.TTS_OPENAI_API_BASE_URL,
@@ -176,6 +192,26 @@ async def get_audio_config(request: Request, user=Depends(get_admin_user)):
 async def update_audio_config(
     request: Request, form_data: AudioConfigUpdateForm, user=Depends(get_admin_user)
 ):
+    """Update the audio configuration settings.
+
+    This function updates the text-to-speech (TTS) and speech-to-text (STT)
+    configuration settings based on the provided form data. It modifies the
+    application's state configuration with the new values for various API
+    keys, engine types, models, and other related parameters. If the STT
+    engine is not specified, it sets a faster whisper model based on the
+    provided whisper model.
+
+    Args:
+        request (Request): The request object containing application state.
+        form_data (AudioConfigUpdateForm): The form data containing new
+            configuration values for TTS and STT.
+        user: The user making the request, defaulting to an admin user.
+
+    Returns:
+        dict: A dictionary containing the updated TTS and STT configuration
+            settings.
+    """
+
     request.app.state.config.TTS_OPENAI_API_BASE_URL = form_data.tts.OPENAI_API_BASE_URL
     request.app.state.config.TTS_OPENAI_API_KEY = form_data.tts.OPENAI_API_KEY
     request.app.state.config.TTS_API_KEY = form_data.tts.API_KEY
@@ -458,6 +494,28 @@ async def speech(request: Request, user=Depends(get_verified_user)):
 
 
 def transcribe(request: Request, file_path):
+    """Transcribe audio files using specified speech-to-text engine.
+
+    This function processes an audio file located at the given file path and
+    transcribes its content into text. The transcription is performed using
+    different speech-to-text engines based on the configuration provided in
+    the request object. Supported engines include Faster Whisper, OpenAI,
+    and Deepgram. The transcribed text is saved to a JSON file in the same
+    directory as the audio file.
+
+    Args:
+        request (Request): The request object containing application state
+            and configuration settings.
+        file_path (str): The path to the audio file that needs to be transcribed.
+
+    Returns:
+        dict: A dictionary containing the transcribed text under the key "text".
+
+    Raises:
+        Exception: If an error occurs during the transcription process,
+            including issues with external API calls or malformed responses.
+    """
+
     print("transcribe", file_path)
     filename = os.path.basename(file_path)
     file_dir = os.path.dirname(file_path)
