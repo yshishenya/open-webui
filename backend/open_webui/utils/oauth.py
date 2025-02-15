@@ -75,6 +75,26 @@ class OAuthManager:
         return self.oauth.create_client(provider_name)
 
     def get_user_role(self, user, user_data):
+        """Determine the role of a user based on various conditions.
+
+        This function assigns a role to a user based on the number of users in
+        the system, whether the user is new or existing, and the configuration
+        of OAuth role management. If the user is the only one in the system,
+        they are assigned the "admin" role. If there are no users, the first
+        user is also assigned the "admin" role. When OAuth role management is
+        enabled, it checks the user's roles against allowed and admin roles to
+        determine their final role. If no roles are found or if role management
+        is disabled, it defaults to a predefined user role.
+
+        Args:
+            user (User): The user object for which the role is being determined.
+            user_data (dict): A dictionary containing user data, potentially including OAuth claims.
+
+        Returns:
+            str: The assigned role of the user, which can be "admin", "user", or a
+                default role.
+        """
+
         if user and Users.get_num_users() == 1:
             # If the user is the only user, assign the role "admin" - actually repairs role for single user on login
             log.debug("Assigning the only user the admin role")
@@ -132,6 +152,26 @@ class OAuthManager:
         return role
 
     def update_user_groups(self, user, user_data, default_permissions):
+        """Update the user's group memberships based on OAuth claims.
+
+        This function manages the user's group memberships by comparing the
+        groups associated with the user's OAuth claims to their current groups.
+        It removes the user from any groups that are no longer present in the
+        OAuth claims and adds them to any new groups that have been assigned.
+        The function also ensures that group permissions are properly assigned,
+        using default permissions if necessary.
+
+        Args:
+            user (UserModel): The user whose groups are being updated.
+            user_data (dict): A dictionary containing user data, including
+                OAuth group claims.
+            default_permissions (list): A list of default permissions to
+                assign to groups if no permissions are specified.
+
+        Returns:
+            None: This function does not return a value.
+        """
+
         log.debug("Running OAUTH Group management")
         oauth_claim = auth_manager_config.OAUTH_GROUPS_CLAIM
 
@@ -213,6 +253,28 @@ class OAuthManager:
         return await client.authorize_redirect(request, redirect_uri)
 
     async def handle_callback(self, provider, request, response):
+        """Handle the OAuth callback for user authentication.
+
+        This method processes the OAuth callback from the specified provider,
+        validating the received token and user information. It checks if the
+        provider is valid, retrieves user data, and manages user accounts based
+        on the OAuth response. If the user does not exist and signups are
+        enabled, it creates a new user account. The method also sets cookies for
+        JWT and OAuth tokens and redirects the user back to the frontend.
+
+        Args:
+            provider (str): The name of the OAuth provider.
+            request (Request): The incoming request containing OAuth data.
+            response (Response): The response object to set cookies.
+
+        Returns:
+            RedirectResponse: A redirect response to the frontend with the JWT token.
+
+        Raises:
+            HTTPException: If the provider is not recognized or if there are issues
+                with the OAuth token or user data.
+        """
+
         if provider not in OAUTH_PROVIDERS:
             raise HTTPException(404)
         client = self.get_client(provider)
