@@ -347,6 +347,23 @@ async def update_reranking_config(
 
 @router.get("/config")
 async def get_rag_config(request: Request, user=Depends(get_admin_user)):
+    """Retrieve the RAG configuration settings.
+
+    This function gathers various configuration settings related to the RAG
+    (Retrieval-Augmented Generation) system from the application state. It
+    returns a dictionary containing settings for PDF extraction, Google
+    Drive integration, content extraction engines, chunking parameters, file
+    limits, and web search configurations. Each of these settings is sourced
+    from the application's configuration state, ensuring that the returned
+    values are up-to-date and consistent with the current application setup.
+
+    Args:
+        request (Request): The request object containing application state.
+
+    Returns:
+        dict: A dictionary containing RAG configuration settings.
+    """
+
     return {
         "status": True,
         "pdf_extract_images": request.app.state.config.PDF_EXTRACT_IMAGES,
@@ -472,6 +489,37 @@ class ConfigUpdateForm(BaseModel):
 async def update_rag_config(
     request: Request, form_data: ConfigUpdateForm, user=Depends(get_admin_user)
 ):
+    """Update the RAG configuration based on the provided form data.
+
+    This function updates various configuration settings related to the RAG
+    (Retrieval-Augmented Generation) system based on the input from a
+    configuration update form. It modifies settings such as PDF extraction
+    options, Google Drive integration, file size limits, content extraction
+    engine, chunking parameters, YouTube loader settings, and web search
+    configurations. Each setting is updated only if the corresponding value
+    in the form data is not None. The updated configuration values are then
+    returned in a structured format.
+
+    Args:
+        request (Request): The HTTP request object containing application state.
+        form_data (ConfigUpdateForm): The form data containing new configuration values.
+        user: The user making the request, typically an admin user.
+
+    Returns:
+        dict: A dictionary containing the updated configuration settings, including:
+            - status (bool): Indicates if the update was successful.
+            - pdf_extract_images (bool): The updated PDF extraction image setting.
+            - file (dict): Contains max size and count for files.
+            - content_extraction (dict): Contains engine and Tika server URL for
+            content extraction.
+            - chunk (dict): Contains text splitter, chunk size, and chunk overlap
+            settings.
+            - youtube (dict): Contains language, proxy URL, and translation settings
+            for YouTube loader.
+            - web (dict): Contains web loader SSL verification and search
+            configurations.
+    """
+
     request.app.state.config.PDF_EXTRACT_IMAGES = (
         form_data.pdf_extract_images
         if form_data.pdf_extract_images is not None
@@ -691,6 +739,37 @@ def save_docs_to_vector_db(
     add: bool = False,
     user=None,
 ) -> bool:
+    """Save documents to a vector database collection.
+
+    This function processes a list of documents and saves them to a
+    specified collection in a vector database. It handles metadata, checks
+    for existing documents to avoid duplicates, and can split documents into
+    smaller chunks based on the specified configuration. The function also
+    manages the embedding of document content using a specified embedding
+    engine and model.
+
+    Args:
+        request (Request): The request object containing application state and configuration.
+        docs (list): A list of documents to be saved.
+        collection_name (str): The name of the collection where documents will be stored.
+        metadata (Optional[dict]?): Additional metadata to associate with the documents. Defaults to None.
+        overwrite (bool?): Whether to overwrite the existing collection if it exists. Defaults to
+            False.
+        split (bool?): Whether to split documents into smaller chunks. Defaults to True.
+        add (bool?): Whether to add to the existing collection instead of overwriting.
+            Defaults to False.
+        user (optional): The user associated with the request. Defaults to None.
+
+    Returns:
+        bool: True if the documents were successfully saved, otherwise raises an
+            exception.
+
+    Raises:
+        ValueError: If a document with the same hash already exists, if the input list of
+            documents is empty,
+            or if an invalid text splitter configuration is provided.
+    """
+
     def _get_docs_info(docs: list[Document]) -> str:
         docs_info = set()
 
@@ -1127,23 +1206,25 @@ def process_web(
 
 
 def search_web(request: Request, engine: str, query: str) -> list[SearchResult]:
-    """Search the web using a search engine and return the results as a list of SearchResult objects.
-    Will look for a search engine API key in environment variables in the following order:
-    - SEARXNG_QUERY_URL
-    - GOOGLE_PSE_API_KEY + GOOGLE_PSE_ENGINE_ID
-    - BRAVE_SEARCH_API_KEY
-    - KAGI_SEARCH_API_KEY
-    - MOJEEK_SEARCH_API_KEY
-    - BOCHA_SEARCH_API_KEY
-    - SERPSTACK_API_KEY
-    - SERPER_API_KEY
-    - SERPLY_API_KEY
-    - TAVILY_API_KEY
-    - EXA_API_KEY
-    - SEARCHAPI_API_KEY + SEARCHAPI_ENGINE (by default `google`)
-    - SERPAPI_API_KEY + SERPAPI_ENGINE (by default `google`)
+    """Search the web using a specified search engine and return the results.
+
+    This function performs a web search using the specified search engine
+    and returns the results as a list of SearchResult objects. It checks for
+    the necessary API keys in the environment variables in a predefined
+    order for various search engines. If the required API key for the
+    selected engine is not found, an exception is raised.
+
     Args:
-        query (str): The query to search for
+        request (Request): The request object containing application state and configuration.
+        engine (str): The name of the search engine to use for the query.
+        query (str): The query string to search for.
+
+    Returns:
+        list[SearchResult]: A list of SearchResult objects containing the search results.
+
+    Raises:
+        Exception: If the required API key for the specified search engine is not found in
+            the environment variables.
     """
 
     # TODO: add playwright to search the web
