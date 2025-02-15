@@ -1,6 +1,24 @@
 import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 import { getOpenAIModelsDirect } from './openai';
 
+/**
+ * Fetches models from the API and optionally retrieves additional models based on provided connections.
+ *
+ * @param {string} [token=''] - The authorization token for API access. Defaults to an empty string.
+ * @param {object|null} [connections=null] - An object containing connection details, including API base URLs and keys. Defaults to null.
+ * @param {boolean} [base=false] - A flag indicating whether to fetch base models. Defaults to false.
+ * @returns {Promise<Array>} A promise that resolves to an array of models. Each model includes properties such as id, name, and ownership details.
+ * @throws {Error} Throws an error if the API request fails or if any connection-related errors occur.
+ *
+ * @example
+ * const models = await getModels('your_token', connectionsObject, true);
+ * console.log(models);
+ *
+ * @example
+ * // Fetch models without a token
+ * const models = await getModels();
+ * console.log(models);
+ */
 export const getModels = async (
 	token: string = '',
 	connections: object | null = null,
