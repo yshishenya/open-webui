@@ -153,6 +153,25 @@ async def get_user_settings_by_session_user(user=Depends(get_verified_user)):
 async def update_user_settings_by_session_user(
     form_data: UserSettings, user=Depends(get_verified_user)
 ):
+    """Update user settings based on the session user.
+
+    This function updates the settings of a user by utilizing the provided
+    form data. It first attempts to update the user settings using the
+    user's ID. If the update is successful, it returns the updated settings.
+    If the user is not found, it raises an HTTPException with a 400 status
+    code.
+
+    Args:
+        form_data (UserSettings): The new settings data for the user.
+        user (Depends): The currently verified user, retrieved from the session.
+
+    Returns:
+        UserSettings: The updated settings of the user.
+
+    Raises:
+        HTTPException: If the user is not found during the update process.
+    """
+
     user = Users.update_user_settings_by_id(user.id, form_data.model_dump())
     if user:
         return user.settings
