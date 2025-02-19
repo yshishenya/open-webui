@@ -143,6 +143,30 @@ async def update_task_config(
 async def generate_title(
     request: Request, form_data: dict, user=Depends(get_verified_user)
 ):
+    """Generate a title based on user input and model configuration.
+
+    This function handles the generation of a title by utilizing a specified
+    model and user-provided messages. It first checks if title generation is
+    enabled in the application configuration. If enabled, it retrieves the
+    appropriate model based on the user's input and processes the messages
+    to remove any reasoning details. The function then constructs a payload
+    for generating a chat completion and returns the generated title. If any
+    errors occur during this process, an appropriate error response is
+    returned.
+
+    Args:
+        request (Request): The request object containing application state and user context.
+        form_data (dict): A dictionary containing form data, including model ID and messages.
+        user: The verified user making the request (default is obtained via dependency
+            injection).
+
+    Returns:
+        JSONResponse: A response containing the generated title or an error message.
+
+    Raises:
+        HTTPException: If the specified model ID is not found in the available models.
+    """
+
 
     if not request.app.state.config.ENABLE_TITLE_GENERATION:
         return JSONResponse(
@@ -528,6 +552,29 @@ async def generate_autocompletion(
 async def generate_emoji(
     request: Request, form_data: dict, user=Depends(get_verified_user)
 ):
+    """Generate an emoji based on user input and model selection.
+
+    This function processes a request to generate an emoji using a specified
+    model. It first checks if the request has a direct state and retrieves
+    the corresponding model. If not, it defaults to the application's state
+    models. The function then validates the model ID provided in the form
+    data and raises an HTTPException if the model is not found. It also
+    checks if the user has a custom task model and retrieves it accordingly.
+    The emoji generation is performed using a template and user information,
+    and the result is returned as a chat completion response.
+
+    Args:
+        request (Request): The HTTP request object containing state and application context.
+        form_data (dict): A dictionary containing form data, including the model ID and prompt.
+        user: The verified user making the request (default is obtained from Depends).
+
+    Returns:
+        JSONResponse: A response containing the generated emoji or an error message.
+
+    Raises:
+        HTTPException: If the specified model ID is not found in the available models.
+    """
+
 
     if getattr(request.state, "direct", False) and hasattr(request.state, "model"):
         models = {
