@@ -83,6 +83,29 @@ class SafeWebBaseLoader(WebBaseLoader):
     async def _fetch(
         self, url: str, retries: int = 3, cooldown: int = 2, backoff: float = 1.5
     ) -> str:
+        """Fetch the content from a specified URL with retries.
+
+        This function attempts to retrieve the content from the given URL using
+        an asynchronous HTTP GET request. It allows for a specified number of
+        retries in case of connection errors, with an exponential backoff
+        strategy for the wait time between attempts. The function also handles
+        SSL verification based on the session settings.
+
+        Args:
+            url (str): The URL to fetch the content from.
+            retries (int?): The number of retry attempts in case of failure. Defaults to 3.
+            cooldown (int?): The base wait time (in seconds) before retrying. Defaults to 2.
+            backoff (float?): The multiplier for the exponential backoff. Defaults to 1.5.
+
+        Returns:
+            str: The content of the response from the URL.
+
+        Raises:
+            aiohttp.ClientConnectionError: If there is a connection error during the fetch attempts.
+            ValueError: If the maximum number of retry attempts is exceeded without a successful
+                fetch.
+        """
+
         async with aiohttp.ClientSession(trust_env=self.trust_env) as session:
             for i in range(retries):
                 try:
@@ -113,7 +136,24 @@ class SafeWebBaseLoader(WebBaseLoader):
     def _unpack_fetch_results(
         self, results: Any, urls: List[str], parser: Union[str, None] = None
     ) -> List[Any]:
-        """Unpack fetch results into BeautifulSoup objects."""
+        """Unpack fetch results into BeautifulSoup objects.
+
+        This function takes a list of fetched results and their corresponding
+        URLs, then converts each result into a BeautifulSoup object using the
+        specified parser. If no parser is provided, it determines the parser
+        based on the URL's file extension (using "xml" for URLs ending with
+        .xml) or defaults to a predefined parser. The function also checks if
+        the parser is valid before proceeding.
+
+        Args:
+            results (Any): A list of fetched results to be unpacked.
+            urls (List[str]): A list of URLs corresponding to the fetched results.
+            parser (Union[str, None]?): The parser to use for BeautifulSoup.
+                If None, the parser is determined based on the URL.
+
+        Returns:
+            List[Any]: A list of BeautifulSoup objects created from the fetched results.
+        """
         from bs4 import BeautifulSoup
 
         final_results = []
@@ -131,7 +171,21 @@ class SafeWebBaseLoader(WebBaseLoader):
     async def ascrape_all(
         self, urls: List[str], parser: Union[str, None] = None
     ) -> List[Any]:
-        """Async fetch all urls, then return soups for all results."""
+        """Asynchronously fetch all URLs and return the parsed results.
+
+        This function takes a list of URLs, fetches their content
+        asynchronously, and then unpacks the results into a list of parsed
+        objects. The optional parser argument allows for specifying a parsing
+        method to be applied to the fetched content.
+
+        Args:
+            urls (List[str]): A list of URLs to fetch.
+            parser (Union[str, None]?): An optional parser to use for
+                processing the fetched content. Defaults to None.
+
+        Returns:
+            List[Any]: A list of parsed results corresponding to the fetched URLs.
+        """
         results = await self.fetch_all(urls)
         return self._unpack_fetch_results(results, urls, parser=parser)
 
@@ -159,7 +213,18 @@ class SafeWebBaseLoader(WebBaseLoader):
                 log.error(f"Error loading {path}: {e}")
 
     async def alazy_load(self) -> AsyncIterator[Document]:
-        """Async lazy load text from the url(s) in web_path."""
+        """Asynchronously lazy load text from the specified URLs.
+
+        This function retrieves and processes the content from a list of web
+        paths. It scrapes the HTML content, extracts the text, and gathers
+        relevant metadata such as the title, description, and language of the
+        page. The results are yielded as Document objects, which contain both
+        the page content and its associated metadata.
+
+        Yields:
+            Document: An object containing the scraped text and its metadata for each web
+                path.
+        """
         results = await self.ascrape_all(self.web_paths)
         for path, soup in zip(self.web_paths, results):
             text = soup.get_text(**self.bs_get_text_kwargs)
@@ -175,7 +240,15 @@ class SafeWebBaseLoader(WebBaseLoader):
             yield Document(page_content=text, metadata=metadata)
 
     async def aload(self) -> list[Document]:
-        """Load data into Document objects."""
+        """Load data into Document objects.
+
+        This method asynchronously loads data and returns a list of Document
+        objects. It utilizes an asynchronous generator to fetch the documents,
+        ensuring that the loading process is efficient and non-blocking.
+
+        Returns:
+            list[Document]: A list of loaded Document objects.
+        """
         return [document async for document in self.alazy_load()]
 
 
@@ -185,6 +258,28 @@ def get_web_loader(
     requests_per_second: int = 2,
     trust_env: bool = False,
 ):
+    """Create a web loader for the specified URLs.
+
+    This function validates the provided URLs and initializes a
+    SafeWebBaseLoader instance with the specified parameters. It ensures
+    that the URLs are safe for loading and configures options such as SSL
+    verification, request rate, and environment trust settings.
+
+    Args:
+        urls (Union[str, Sequence[str]]): A single URL as a string or
+            a sequence of URLs to be loaded.
+        verify_ssl (bool?): Whether to verify SSL certificates.
+            Defaults to True.
+        requests_per_second (int?): The number of requests to
+            be made per second. Defaults to 2.
+        trust_env (bool?): Whether to trust the environment
+            settings for proxies and certificates. Defaults to False.
+
+    Returns:
+        SafeWebBaseLoader: An instance of SafeWebBaseLoader configured
+        with the validated URLs and specified parameters.
+    """
+
     # Check if the URLs are valid
     safe_urls = safe_validate_urls([urls] if isinstance(urls, str) else urls)
 
