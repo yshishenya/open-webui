@@ -58,6 +58,30 @@ def get_sorted_filters(model_id, models):
 
 
 async def process_pipeline_inlet_filter(request, payload, user, models):
+    """Process the inlet filter for a given pipeline request.
+
+    This function takes a request, payload, user information, and model data
+    to process the inlet filters for a specified model. It retrieves sorted
+    filters based on the model ID and sends asynchronous POST requests to
+    the appropriate API endpoints for each filter. The user information and
+    payload are included in the request data. If any errors occur during the
+    API calls, they are handled accordingly.
+
+    Args:
+        request (Request): The request object containing application state and configuration.
+        payload (dict): The payload data to be sent in the request.
+        user (User): The user object containing user information such as ID, email, name, and
+            role.
+        models (dict): A dictionary of models containing filter information.
+
+    Returns:
+        dict: The updated payload received from the API response.
+
+    Raises:
+        Exception: If there is an error in the API response indicating a failure in
+            processing.
+    """
+
     user = {"id": user.id, "email": user.email, "name": user.name, "role": user.role}
     model_id = payload["model"]
     sorted_filters = get_sorted_filters(model_id, models)
@@ -107,6 +131,32 @@ async def process_pipeline_inlet_filter(request, payload, user, models):
 
 
 async def process_pipeline_outlet_filter(request, payload, user, models):
+    """Process the pipeline outlet filter based on the provided request and
+    payload.
+
+    This function retrieves the necessary filters for a specified model and
+    processes them by making asynchronous POST requests to an external API.
+    It constructs the user information from the provided user object and
+    prepares the request data to be sent. The function handles the response
+    from the API, raising exceptions for any client response errors
+    encountered during the request. If the model contains a "pipeline", it
+    includes the model in the sorted filters.
+
+    Args:
+        request (Request): The request object containing application state and configuration.
+        payload (dict): The payload containing data to be sent in the request.
+        user (User): The user object containing user details such as id, email, name, and
+            role.
+        models (dict): A dictionary of models used to retrieve filters.
+
+    Returns:
+        dict: The updated payload received from the external API after processing the
+            filters.
+
+    Raises:
+        Exception: If there is an error in processing the response from the API.
+    """
+
     user = {"id": user.id, "email": user.email, "name": user.name, "role": user.role}
     model_id = payload["model"]
     sorted_filters = get_sorted_filters(model_id, models)
