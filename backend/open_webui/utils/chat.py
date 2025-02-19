@@ -161,6 +161,32 @@ async def generate_chat_completion(
     user: Any,
     bypass_filter: bool = False,
 ):
+    """Generate a chat completion response based on the provided request and
+    form data.
+
+    This function processes a chat completion request by determining the
+    appropriate model to use based on the provided form data and user
+    permissions. It handles different scenarios such as direct model access,
+    model ownership, and streaming responses. The function also manages
+    metadata and model filtering based on user roles and model attributes.
+
+    Args:
+        request (Request): The HTTP request object containing state and metadata.
+        form_data (dict): A dictionary containing the form data for the chat completion request.
+        user (Any): The user object representing the current user making the request.
+        bypass_filter (bool?): A flag indicating whether to bypass model access control.
+            Defaults to False.
+
+    Returns:
+        dict or StreamingResponse: The chat completion response, which can
+            either be a dictionary
+        containing the response data or a StreamingResponse if streaming is
+            enabled.
+
+    Raises:
+        Exception: If the specified model is not found in the available models.
+    """
+
     log.debug(f"generate_chat_completion: {form_data}")
     if BYPASS_MODEL_ACCESS_CONTROL:
         bypass_filter = True
@@ -284,6 +310,32 @@ chat_completion = generate_chat_completion
 
 
 async def chat_completed(request: Request, form_data: dict, user: Any):
+    """Handle the completion of a chat request.
+
+    This function processes a chat completion request by retrieving the
+    appropriate model, validating the input data, and executing a series of
+    processing functions. It first checks if the required models are
+    available and retrieves them if necessary. The function then validates
+    the provided model ID against the available models. If the model is
+    found, it proceeds to process the data through a pipeline and applies
+    any relevant filter functions. The results are then returned for further
+    use.
+
+    Args:
+        request (Request): The HTTP request object containing application state and user context.
+        form_data (dict): A dictionary containing the input data for processing, including the
+            model ID.
+        user (Any): An object representing the user making the request, containing user-
+            specific information.
+
+    Returns:
+        Any: The result of the processing functions, which may vary based on the
+            implementation.
+
+    Raises:
+        Exception: If the specified model is not found in the available models.
+    """
+
     if not request.app.state.MODELS:
         await get_all_models(request)
 
