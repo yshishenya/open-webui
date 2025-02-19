@@ -12,14 +12,21 @@ log.setLevel(SRC_LOG_LEVELS["RAG"])
 def search_duckduckgo(
     query: str, count: int, filter_list: Optional[list[str]] = None
 ) -> list[SearchResult]:
-    """
-    Search using DuckDuckGo's Search API and return the results as a list of SearchResult objects.
+    """Search for a query using DuckDuckGo's Search API and return the results.
+
+    This function utilizes DuckDuckGo's Search API to perform a search based
+    on the provided query string. It retrieves a specified number of search
+    results and returns them as a list of SearchResult objects. If a filter
+    list is provided, the results can be further refined based on the
+    specified criteria.
+
     Args:
-        query (str): The query to search for
-        count (int): The number of results to return
+        query (str): The query to search for.
+        count (int): The number of results to return.
+        filter_list (Optional[list[str]]): A list of filters to apply to the search results.
 
     Returns:
-        list[SearchResult]: A list of search results
+        list[SearchResult]: A list of search results represented as SearchResult objects.
     """
     # Use the DDGS context manager to create a DDGS object
     with DDGS() as ddgs:
