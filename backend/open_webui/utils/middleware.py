@@ -261,6 +261,29 @@ async def chat_completion_tools_handler(
 async def chat_web_search_handler(
     request: Request, form_data: dict, extra_params: dict, user
 ):
+    """Handle web search requests and manage the search process.
+
+    This function processes a web search request by generating search
+    queries based on user messages and then executing the search. It emits
+    status updates through an event emitter to inform about the progress of
+    the search. The function also handles exceptions that may occur during
+    the query generation and search process, ensuring that appropriate
+    status messages are sent back to the user.
+
+    Args:
+        request (Request): The request object containing metadata about the request.
+        form_data (dict): A dictionary containing form data, including user messages.
+        extra_params (dict): A dictionary containing additional parameters, including
+            an event emitter for status updates.
+        user: The user initiating the search request.
+
+    Returns:
+        dict: The updated form data, potentially including search results.
+
+    Raises:
+        Exception: If there is an error during query generation or web search processing.
+    """
+
     event_emitter = extra_params["__event_emitter__"]
     await event_emitter(
         {
@@ -607,6 +630,31 @@ def apply_params_to_form_data(form_data, model):
 
 
 async def process_chat_payload(request, form_data, metadata, user, model):
+    """Process the chat payload and handle various features based on the input
+    data.
+
+    This function takes a request and associated data to process a chat
+    payload. It applies parameters to the form data, initializes event
+    emitters, and manages user messages and model knowledge. The function
+    also handles various features such as web search, image generation, and
+    code interpretation based on the provided form data. Additionally, it
+    manages tool IDs and integrates context into the messages if available.
+
+    Args:
+        request (Request): The incoming request object containing state and configuration.
+        form_data (dict): A dictionary containing form data related to the chat.
+        metadata (dict): Metadata associated with the request.
+        user (User): The user object containing user information.
+        model (dict): The model object containing information about the model being used.
+
+    Returns:
+        tuple: A tuple containing the processed form data, updated metadata, and
+            events.
+
+    Raises:
+        Exception: If an error occurs during processing of the form data or features.
+    """
+
 
     form_data = apply_params_to_form_data(form_data, model)
     log.debug(f"form_data: {form_data}")
@@ -851,6 +899,29 @@ async def process_chat_payload(request, form_data, metadata, user, model):
 async def process_chat_response(
     request, response, form_data, user, events, metadata, tasks
 ):
+    """Process a chat response and handle background tasks.
+
+    This function processes a chat response by updating chat titles and
+    tags, handling background tasks, and emitting events based on the
+    response content. It supports both streaming and non-streaming
+    responses, and manages tool calls and code execution as part of the chat
+    interaction.
+
+    Args:
+        request: The HTTP request object.
+        response: The response object from the chat service.
+        form_data: The form data containing additional parameters for processing.
+        user: The user object representing the current user.
+        events: A list of events to be processed during the response handling.
+        metadata: A dictionary containing metadata related to the chat session.
+        tasks: A dictionary of tasks to perform during processing, such as title
+            or tags generation.
+
+    Returns:
+        dict: A dictionary indicating the status of the processing and the task ID
+            if applicable.
+    """
+
     async def background_tasks_handler():
         message_map = Chats.get_messages_by_chat_id(metadata["chat_id"])
         message = message_map.get(metadata["message_id"]) if message_map else None
@@ -1072,6 +1143,22 @@ async def process_chat_response(
 
         # Handle as a background task
         async def post_response_handler(response, events):
+            """Handle the response from a chat event and manage the processing of
+            content blocks.
+
+            This function processes the response from a chat event, handling various
+            types of content blocks such as text, tool calls, reasoning, and code
+            interpreter outputs. It serializes the content blocks into a structured
+            format and manages the flow of events, including saving messages to a
+            database and emitting events for real-time updates. The function also
+            handles the execution of tool calls and code interpretation, ensuring
+            that results are captured and formatted appropriately.
+
+            Args:
+                response (Response): The response object containing the chat event data.
+                events (list): A list of events to process related to the chat.
+            """
+
             def serialize_content_blocks(content_blocks, raw=False):
                 content = ""
 
