@@ -115,6 +115,29 @@ export const setDirectConnectionsConfig = async (token: string, config: object) 
 	return res;
 };
 
+/**
+ * Asynchronously retrieves the code execution configuration from the server.
+ *
+ * This function sends a GET request to the code execution configuration endpoint
+ * using the provided authorization token. If the request is successful, it returns
+ * the configuration data. If an error occurs during the fetch operation or if the
+ * response is not ok, it handles the error accordingly.
+ *
+ * @param {string} token - The authorization token used to authenticate the request.
+ * @returns {Promise<Object|null>} A promise that resolves to the configuration object
+ *                                  if successful, or null if an error occurred.
+ * @throws {Error} Throws an error if the response from the server indicates a failure.
+ *
+ * @example
+ * const token = 'your-auth-token';
+ * getCodeExecutionConfig(token)
+ *   .then(config => {
+ *     console.log('Configuration:', config);
+ *   })
+ *   .catch(error => {
+ *     console.error('Error fetching configuration:', error);
+ *   });
+ */
 export const getCodeExecutionConfig = async (token: string) => {
 	let error = null;
 
@@ -142,6 +165,26 @@ export const getCodeExecutionConfig = async (token: string) => {
 	return res;
 };
 
+/**
+ * Asynchronously sets the configuration for code execution by sending a POST request to the specified API endpoint.
+ *
+ * @param {string} token - The authorization token required to authenticate the request.
+ * @param {object} config - The configuration object containing the settings for code execution.
+ * @returns {Promise<object|null>} A promise that resolves to the response object from the API if successful, or null if an error occurs.
+ * @throws {Error} Throws an error if the response from the API indicates a failure.
+ *
+ * @example
+ * const token = 'your-auth-token';
+ * const config = { setting1: 'value1', setting2: 'value2' };
+ *
+ * setCodeExecutionConfig(token, config)
+ *   .then(response => {
+ *     console.log('Configuration set successfully:', response);
+ *   })
+ *   .catch(error => {
+ *     console.error('Error setting configuration:', error);
+ *   });
+ */
 export const setCodeExecutionConfig = async (token: string, config: object) => {
 	let error = null;
 
