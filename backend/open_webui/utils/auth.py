@@ -32,8 +32,20 @@ ALGORITHM = "HS256"
 
 
 def verify_signature(payload: str, signature: str) -> bool:
-    """
-    Verifies the HMAC signature of the received payload.
+    """Verifies the HMAC signature of the received payload.
+
+    This function takes a payload and its corresponding HMAC signature,
+    computes the expected signature using a trusted key, and securely
+    compares it to the provided signature. If the signatures match, it
+    returns True; otherwise, it returns False. This is useful for ensuring
+    the integrity and authenticity of the payload.
+
+    Args:
+        payload (str): The data payload whose signature needs to be verified.
+        signature (str): The HMAC signature to compare against the expected signature.
+
+    Returns:
+        bool: True if the signatures match, False otherwise.
     """
     try:
         expected_signature = base64.b64encode(
@@ -48,6 +60,19 @@ def verify_signature(payload: str, signature: str) -> bool:
 
 
 def override_static(path: str, content: str):
+    """Override a static file with the provided content.
+
+    This function takes a file path and content in Base64 format, decodes
+    the content, and writes it to the specified file path within a static
+    directory. It ensures that the provided path is safe by checking for
+    invalid characters such as "/" or "..". If the path is deemed unsafe, it
+    prints an error message and does not proceed with the file operation.
+
+    Args:
+        path (str): The relative path to the static file to be overridden.
+        content (str): The Base64 encoded content to write to the file.
+    """
+
     # Ensure path is safe
     if "/" in path or ".." in path:
         print(f"Invalid path: {path}")
@@ -61,6 +86,25 @@ def override_static(path: str, content: str):
 
 
 def get_license_data(app, key):
+    """Retrieve license data from the OpenWebUI API.
+
+    This function sends a POST request to the OpenWebUI API to retrieve
+    license information using the provided key. If the request is
+    successful, it processes the response payload to update the
+    application's state with user count and web UI name. Additionally, it
+    overrides static resources if specified in the response. If the key is
+    not provided or if an error occurs during the request, the function will
+    return False.
+
+    Args:
+        app: The application instance where the state will be updated.
+        key (str): The license key used to retrieve license data.
+
+    Returns:
+        bool: True if the license data was successfully retrieved and processed,
+            False otherwise.
+    """
+
     if key:
         try:
             res = requests.post(
