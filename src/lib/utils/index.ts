@@ -998,6 +998,21 @@ export const bestMatchingLanguage = (supportedLanguages, preferredLanguages, def
 };
 
 // Get the date in the format YYYY-MM-DD
+/**
+ * Retrieves the current date formatted as 'YYYY-MM-DD'.
+ *
+ * This function creates a new Date object representing the current date and time,
+ * extracts the year, month, and day, and formats them into a string in the
+ * 'YYYY-MM-DD' format. The month is zero-indexed in JavaScript, so it is adjusted
+ * by adding 1. Both the month and day are padded with leading zeros if they are
+ * single digits to ensure consistent formatting.
+ *
+ * @returns {string} The formatted date string.
+ *
+ * @example
+ * const today = getFormattedDate();
+ * console.log(today); // Outputs: '2023-10-05' (or the current date)
+ */
 export const getFormattedDate = () => {
 	const date = new Date();
 	const year = date.getFullYear();
