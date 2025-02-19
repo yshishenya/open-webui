@@ -19,6 +19,26 @@ log.setLevel(SRC_LOG_LEVELS["RAG"])
 def get_task_model_id(
     default_model_id: str, task_model: str, task_model_external: str, models
 ) -> str:
+    """Get the appropriate task model ID based on user input and ownership.
+
+    This function determines which task model ID to use based on the
+    provided parameters. It first checks if the default model is owned by
+    "ollama". If so, it will use the user-specified task model if it exists
+    in the models dictionary. If the default model is not owned by "ollama",
+    it will check for an external task model and use that if it is
+    available.
+
+    Args:
+        default_model_id (str): The ID of the default task model.
+        task_model (str): The user-specified task model ID.
+        task_model_external (str): The external task model ID.
+        models (dict): A dictionary containing model information, where keys are
+            model IDs and values are dictionaries with model details.
+
+    Returns:
+        str: The selected task model ID based on the input parameters.
+    """
+
     # Set the task model
     task_model_id = default_model_id
     # Check if the user has a custom task model and use that model

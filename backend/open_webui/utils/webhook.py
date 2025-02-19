@@ -10,6 +10,26 @@ log.setLevel(SRC_LOG_LEVELS["WEBHOOK"])
 
 
 def post_webhook(name: str, url: str, message: str, event_data: dict) -> bool:
+    """Post a message to a specified webhook URL.
+
+    This function constructs a payload based on the provided message and
+    event data, and sends it to a webhook URL. It supports various platforms
+    including Slack, Discord, and Microsoft Teams, adjusting the payload
+    format accordingly. If the message exceeds the character limit for
+    Discord, it truncates the message. The function logs the payload and the
+    response from the webhook request.
+
+    Args:
+        name (str): The name of the user or entity sending the message.
+        url (str): The webhook URL to which the message will be posted.
+        message (str): The message content to be sent.
+        event_data (dict): Additional data related to the event, which may be included in the
+            payload.
+
+    Returns:
+        bool: True if the message was successfully posted, False otherwise.
+    """
+
     try:
         log.debug(f"post_webhook: {url}, {message}, {event_data}")
         payload = {}

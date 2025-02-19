@@ -166,6 +166,32 @@ async def update_password(
 ############################
 @router.post("/ldap", response_model=SessionUserResponse)
 async def ldap_auth(request: Request, response: Response, form_data: LdapForm):
+    """Authenticate a user via LDAP.
+
+    This function performs LDAP authentication by connecting to the
+    specified LDAP server, binding with the application credentials, and
+    searching for the user based on the provided username. If the user is
+    found, it attempts to bind with the user's credentials. If successful,
+    it generates a JWT token and sets it as a cookie in the response. The
+    function also handles user creation if the user does not already exist
+    in the system.
+
+    Args:
+        request (Request): The HTTP request object containing application state and configuration.
+        response (Response): The HTTP response object used to set cookies.
+        form_data (LdapForm): The form data containing user credentials for authentication.
+
+    Returns:
+        dict: A dictionary containing the authentication token and user details if
+            successful.
+
+    Raises:
+        HTTPException: If LDAP authentication is not enabled, if there are issues with TLS,
+            if the application account bind fails, if the user is not found,
+            if the user's email is missing, if authentication fails, or if any other
+            error occurs during the process.
+    """
+
     ENABLE_LDAP = request.app.state.config.ENABLE_LDAP
     LDAP_SERVER_LABEL = request.app.state.config.LDAP_SERVER_LABEL
     LDAP_SERVER_HOST = request.app.state.config.LDAP_SERVER_HOST
@@ -423,6 +449,31 @@ async def signin(request: Request, response: Response, form_data: SigninForm):
 
 @router.post("/signup", response_model=SessionUserResponse)
 async def signup(request: Request, response: Response, form_data: SignupForm):
+    """Sign up a new user and create an authentication token.
+
+    This function handles the user signup process by validating the input
+    data, checking for existing users, and creating a new user if all
+    conditions are met. It also generates a JWT token for the newly created
+    user and sets it as a cookie in the response. The function enforces
+    various rules such as limiting the number of users and validating email
+    formats.
+
+    Args:
+        request (Request): The HTTP request object containing user input and application state.
+        response (Response): The HTTP response object used to set cookies.
+        form_data (SignupForm): The data submitted by the user during signup.
+
+    Returns:
+        dict: A dictionary containing the user's authentication token, token type,
+            expiration time, user ID, email, name, role, profile image URL,
+            and permissions.
+
+    Raises:
+        HTTPException: If signup is not allowed, if the email format is invalid,
+            if the email is already taken, or if there is an error
+            creating the user.
+    """
+
 
     if WEBUI_AUTH:
         if (

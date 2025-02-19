@@ -298,6 +298,35 @@ def get_sources_from_files(
     r,
     hybrid_search,
 ):
+    """Retrieve sources from a list of files based on specified queries.
+
+    This function processes a list of files to extract relevant contexts
+    based on the provided queries and embedding functions. It handles
+    different file types and structures, including documents, collections,
+    and full context files. The function also supports hybrid search
+    capabilities, allowing for more flexible querying of collections. It
+    aggregates the results into a structured format that includes both the
+    document content and associated metadata.
+
+    Args:
+        files (list): A list of file dictionaries containing information
+            about the files to be processed.
+        queries (list): A list of queries to be used for searching
+            within the files.
+        embedding_function (callable): A function used to generate
+            embeddings for the queries.
+        k (int): The number of top results to return from the search.
+        reranking_function (callable): A function used to rerank the
+            results after initial retrieval.
+        r (int): The number of top results to consider for reranking.
+        hybrid_search (bool): A flag indicating whether to use hybrid
+            search methods.
+
+    Returns:
+        list: A list of dictionaries containing the sources, documents,
+            and metadata extracted from the files.
+    """
+
     log.debug(f"files: {files} {queries} {embedding_function} {reranking_function}")
 
     extracted_collections = []

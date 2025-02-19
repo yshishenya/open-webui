@@ -59,6 +59,26 @@ async def get_all_base_models(request: Request):
 
 
 async def get_all_models(request):
+    """Retrieve all available models based on the request context.
+
+    This function fetches base models and, if evaluation arena models are
+    enabled, it adds them to the list. It also incorporates custom models
+    and their associated actions. The function processes the models to
+    ensure they contain the necessary information, including action IDs and
+    metadata. If any action IDs correspond to functions that are not found,
+    an exception is raised.
+
+    Args:
+        request: The request object containing application state and configuration.
+
+    Returns:
+        list: A list of models, each represented as a dictionary containing model
+        details and associated actions.
+
+    Raises:
+        Exception: If an action corresponding to an action ID is not found.
+    """
+
     models = await get_all_base_models(request)
 
     # If there are no models, return an empty list

@@ -86,6 +86,21 @@ class CodeInterpreterConfigForm(BaseModel):
 
 @router.get("/code_execution", response_model=CodeInterpreterConfigForm)
 async def get_code_execution_config(request: Request, user=Depends(get_admin_user)):
+    """Retrieve the configuration settings for code execution.
+
+    This function gathers various configuration parameters related to code
+    execution from the application state. It returns a dictionary containing
+    settings for both the code execution engine and the code interpreter,
+    including URLs, authentication tokens, and other relevant options.
+
+    Args:
+        request (Request): The request object containing application state.
+
+    Returns:
+        dict: A dictionary with configuration settings for code execution and
+            code interpreter.
+    """
+
     return {
         "CODE_EXECUTION_ENGINE": request.app.state.config.CODE_EXECUTION_ENGINE,
         "CODE_EXECUTION_JUPYTER_URL": request.app.state.config.CODE_EXECUTION_JUPYTER_URL,
@@ -106,6 +121,26 @@ async def get_code_execution_config(request: Request, user=Depends(get_admin_use
 async def set_code_execution_config(
     request: Request, form_data: CodeInterpreterConfigForm, user=Depends(get_admin_user)
 ):
+    """Set the configuration for code execution and interpreter.
+
+    This function updates the application state with various configuration
+    settings related to code execution and the code interpreter. It takes a
+    request object and a form data object containing the necessary
+    configuration parameters. The updated settings include the code
+    execution engine, Jupyter URL, authentication details, and interpreter
+    settings.
+
+    Args:
+        request (Request): The request object containing application state.
+        form_data (CodeInterpreterConfigForm): The form data with configuration settings.
+        user: The user requesting the configuration change, defaulting to an admin
+            user.
+
+    Returns:
+        dict: A dictionary containing the updated configuration settings for
+            code execution and interpreter.
+    """
+
 
     request.app.state.config.CODE_EXECUTION_ENGINE = form_data.CODE_EXECUTION_ENGINE
     request.app.state.config.CODE_EXECUTION_JUPYTER_URL = (

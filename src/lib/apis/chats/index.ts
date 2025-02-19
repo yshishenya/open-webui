@@ -440,6 +440,35 @@ export const getChatListByTagName = async (token: string = '', tagName: string) 
 	}));
 };
 
+/**
+ * Fetches a chat by its ID from the Web UI API.
+ *
+ * This asynchronous function retrieves a chat object based on the provided chat ID.
+ * It requires an authorization token to access the API securely. If the request fails,
+ * it will log the error and return null. If an error occurs during the fetching process,
+ * it will throw the error details.
+ *
+ * @param {string} token - The authorization token for accessing the API.
+ * @param {string} id - The unique identifier of the chat to be fetched.
+ * @returns {Promise<Object|null>} A promise that resolves to the chat object if successful, or null if an error occurs.
+ * @throws {Error} Throws an error containing the details if the fetch operation fails.
+ *
+ * @example
+ * const token = 'your-auth-token';
+ * const chatId = '12345';
+ *
+ * getChatById(token, chatId)
+ *   .then(chat => {
+ *     if (chat) {
+ *       console.log('Chat retrieved:', chat);
+ *     } else {
+ *       console.log('Chat not found or an error occurred.');
+ *     }
+ *   })
+ *   .catch(error => {
+ *     console.error('Error fetching chat:', error);
+ *   });
+ */
 export const getChatById = async (token: string, id: string) => {
 	let error = null;
 

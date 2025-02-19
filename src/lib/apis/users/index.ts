@@ -282,6 +282,33 @@ export const updateUserInfo = async (token: string, info: object) => {
 	return res;
 };
 
+/**
+ * Asynchronously retrieves the user's current location and updates the user's information with it.
+ *
+ * This function first attempts to get the user's position using the `getUserPosition` function.
+ * If successful, it updates the user's information by calling `updateUserInfo` with the provided token
+ * and the retrieved location. If the location cannot be obtained, it logs an error message and returns null.
+ *
+ * @param {string} token - The authentication token used to update the user's information.
+ * @returns {Promise<null | Geolocation>} A promise that resolves to the user's location if successful,
+ * or null if the location could not be retrieved.
+ *
+ * @throws {Error} Throws an error if there is an issue with retrieving the user's position or updating user info.
+ *
+ * @example
+ * const token = 'your-auth-token';
+ * getAndUpdateUserLocation(token)
+ *   .then(location => {
+ *     if (location) {
+ *       console.log('User location updated:', location);
+ *     } else {
+ *       console.log('Could not update user location.');
+ *     }
+ *   })
+ *   .catch(error => {
+ *     console.error('Error updating user location:', error);
+ *   });
+ */
 export const getAndUpdateUserLocation = async (token: string) => {
 	const location = await getUserPosition().catch((err) => {
 		console.log(err);

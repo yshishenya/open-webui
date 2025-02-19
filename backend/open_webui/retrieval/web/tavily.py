@@ -16,14 +16,24 @@ def search_tavily(
     filter_list: Optional[list[str]] = None,
     # **kwargs,
 ) -> list[SearchResult]:
-    """Search using Tavily's Search API and return the results as a list of SearchResult objects.
+    """Search using Tavily's Search API and return the results as a list of
+    SearchResult objects.
+
+    This function sends a search request to Tavily's Search API using the
+    provided API key and query. It processes the response to extract
+    relevant search results and returns them as a list of SearchResult
+    objects. The number of results returned can be controlled by the `count`
+    parameter. Optionally, a filter list can be provided to refine the
+    search results.
 
     Args:
-        api_key (str): A Tavily Search API key
-        query (str): The query to search for
+        api_key (str): A Tavily Search API key.
+        query (str): The query to search for.
+        count (int): The number of search results to return.
+        filter_list (Optional[list[str]]): A list of filters to apply to the search results (default is None).
 
     Returns:
-        list[SearchResult]: A list of search results
+        list[SearchResult]: A list of search results as SearchResult objects.
     """
     url = "https://api.tavily.com/search"
     data = {"query": query, "api_key": api_key}

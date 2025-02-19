@@ -348,6 +348,23 @@ async def update_reranking_config(
 
 @router.get("/config")
 async def get_rag_config(request: Request, user=Depends(get_admin_user)):
+    """Retrieve the RAG configuration settings.
+
+    This function gathers various configuration settings related to the RAG
+    (Retrieval-Augmented Generation) system from the application state. It
+    compiles settings for PDF extraction, content extraction, chunking, file
+    handling, YouTube integration, and web search capabilities. The returned
+    configuration is structured in a dictionary format for easy access and
+    use in other parts of the application.
+
+    Args:
+        request (Request): The request object containing application state information.
+        user: The user dependency, which defaults to the admin user.
+
+    Returns:
+        dict: A dictionary containing the RAG configuration settings.
+    """
+
     return {
         "status": True,
         "pdf_extract_images": request.app.state.config.PDF_EXTRACT_IMAGES,
@@ -476,6 +493,26 @@ class ConfigUpdateForm(BaseModel):
 async def update_rag_config(
     request: Request, form_data: ConfigUpdateForm, user=Depends(get_admin_user)
 ):
+    """Update the RAG configuration based on the provided form data.
+
+    This function updates various configuration settings related to the
+    Retrieval-Augmented Generation (RAG) system. It modifies settings such
+    as PDF extraction options, Google Drive integration, file size limits,
+    content extraction engines, chunking parameters, YouTube loader
+    settings, and web search configurations. The updates are applied
+    conditionally based on the presence of values in the `form_data`
+    parameter. If a value is not provided, the existing configuration value
+    is retained.
+
+    Args:
+        request (Request): The HTTP request object containing application state.
+        form_data (ConfigUpdateForm): The form data containing new configuration values.
+        user: The user making the request, defaulting to an admin user.
+
+    Returns:
+        dict: A dictionary containing the updated configuration status and values.
+    """
+
     request.app.state.config.PDF_EXTRACT_IMAGES = (
         form_data.pdf_extract_images
         if form_data.pdf_extract_images is not None
@@ -1141,23 +1178,26 @@ def process_web(
 
 
 def search_web(request: Request, engine: str, query: str) -> list[SearchResult]:
-    """Search the web using a search engine and return the results as a list of SearchResult objects.
-    Will look for a search engine API key in environment variables in the following order:
-    - SEARXNG_QUERY_URL
-    - GOOGLE_PSE_API_KEY + GOOGLE_PSE_ENGINE_ID
-    - BRAVE_SEARCH_API_KEY
-    - KAGI_SEARCH_API_KEY
-    - MOJEEK_SEARCH_API_KEY
-    - BOCHA_SEARCH_API_KEY
-    - SERPSTACK_API_KEY
-    - SERPER_API_KEY
-    - SERPLY_API_KEY
-    - TAVILY_API_KEY
-    - EXA_API_KEY
-    - SEARCHAPI_API_KEY + SEARCHAPI_ENGINE (by default `google`)
-    - SERPAPI_API_KEY + SERPAPI_ENGINE (by default `google`)
+    """Search the web using a specified search engine and return the results.
+
+    This function takes a search query and the name of a search engine, then
+    attempts to find the appropriate API key from the environment variables
+    to perform the search. It supports multiple search engines, including
+    Searxng, Google PSE, Brave, Kagi, Mojeek, Bocha, Serpstack, Serper,
+    Serply, DuckDuckGo, Tavily, SearchAPI, SerpAPI, Jina, Bing, and Exa. If
+    the required API key for the specified engine is not found, an exception
+    is raised.
+
     Args:
-        query (str): The query to search for
+        request (Request): The request object containing application state and configuration.
+        engine (str): The name of the search engine to use for the query.
+        query (str): The query string to search for.
+
+    Returns:
+        list[SearchResult]: A list of SearchResult objects containing the search results.
+
+    Raises:
+        Exception: If no API key is found for the specified search engine.
     """
 
     # TODO: add playwright to search the web
@@ -1326,6 +1366,32 @@ def search_web(request: Request, engine: str, query: str) -> list[SearchResult]:
 async def process_web_search(
     request: Request, form_data: SearchForm, user=Depends(get_verified_user)
 ):
+    """Process a web search request and handle the results.
+
+    This function performs a web search based on the provided query from the
+    form data. It logs the attempt to search and retrieves results using a
+    specified search engine. If the search is successful, it processes the
+    results and either returns them directly or saves them to a vector
+    database based on the configuration settings. The function also handles
+    exceptions that may occur during the search and loading processes,
+    providing appropriate HTTP error responses.
+
+    Args:
+        request (Request): The HTTP request object containing application state and configuration.
+        form_data (SearchForm): The form data containing the search query and collection name.
+        user: The verified user making the request (default is obtained via dependency
+            injection).
+
+    Returns:
+        dict: A dictionary containing the status of the operation, either the loaded
+            documents
+            and their metadata or the collection name and filenames of the loaded
+            documents.
+
+    Raises:
+        HTTPException: If an error occurs during the web search or document loading process.
+    """
+
     try:
         logging.info(
             f"trying to web search with {request.app.state.config.RAG_WEB_SEARCH_ENGINE, form_data.query}"

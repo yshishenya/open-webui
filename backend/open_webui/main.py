@@ -375,6 +375,22 @@ https://github.com/open-webui/open-webui
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Manage the lifespan of the FastAPI application.
+
+    This function is responsible for initializing the application state and
+    performing necessary setup tasks when the FastAPI application starts. It
+    checks if the configuration should be reset and retrieves license data
+    if a valid license key is provided. Additionally, it schedules a
+    periodic task for cleaning up usage data.
+
+    Args:
+        app (FastAPI): The FastAPI application instance.
+
+    Yields:
+        None: This function is a generator and yields control back to
+        the FastAPI application lifecycle.
+    """
+
     if RESET_CONFIG_ON_START:
         reset_config()
 
@@ -1074,6 +1090,28 @@ async def list_tasks_endpoint(user=Depends(get_verified_user)):
 
 @app.get("/api/config")
 async def get_app_config(request: Request):
+    """Get the application configuration based on the request.
+
+    This function retrieves the application configuration details, including
+    user onboarding status, application name, version, locale, OAuth
+    providers, and various feature flags. It checks for a token in the
+    request cookies to identify the user and determine if onboarding is
+    necessary. If the token is invalid or absent, it defaults to a general
+    configuration.
+
+    Args:
+        request (Request): The HTTP request object containing cookies and other
+            relevant data.
+
+    Returns:
+        dict: A dictionary containing the application configuration, including
+            onboarding status, application name, version, locale, OAuth
+            providers, and feature flags.
+
+    Raises:
+        HTTPException: If the token is invalid or cannot be decoded.
+    """
+
     user = None
     if "token" in request.cookies:
         token = request.cookies.get("token")
@@ -1250,6 +1288,19 @@ async def oauth_callback(provider: str, request: Request, response: Response):
 
 @app.get("/manifest.json")
 async def get_manifest_json():
+    """Generate a manifest JSON for the web application.
+
+    This function constructs and returns a JSON object that contains
+    metadata for the web application, including its name, description, start
+    URL, display mode, background color, orientation, and icons. This
+    manifest is typically used in Progressive Web Apps (PWAs) to provide
+    information to the browser about how the app should behave when
+    installed on a user's device.
+
+    Returns:
+        dict: A dictionary representing the manifest JSON for the web application.
+    """
+
     return {
         "name": app.state.WEBUI_NAME,
         "short_name": app.state.WEBUI_NAME,
@@ -1277,6 +1328,18 @@ async def get_manifest_json():
 
 @app.get("/opensearch.xml")
 async def get_opensearch_xml():
+    """<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/"
+    xmlns:moz="http://www.mozilla.org/2006/browser/search/">
+    <ShortName>{app.state.WEBUI_NAME}</ShortName> <Description>Search
+    {app.state.WEBUI_NAME}</Description>
+    <InputEncoding>UTF-8</InputEncoding> <Image width="16" height="16" type=
+    "image/x-icon">{app.state.config.WEBUI_URL}/static/favicon.png</Image>
+    <Url type="text/html" method="get"
+    template="{app.state.config.WEBUI_URL}/?q={"{searchTerms}"}"/>
+    <moz:SearchForm>{app.state.config.WEBUI_URL}</moz:SearchForm>
+    </OpenSearchDescription>
+    """
+
     xml_content = rf"""
     <OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/" xmlns:moz="http://www.mozilla.org/2006/browser/search/">
     <ShortName>{app.state.WEBUI_NAME}</ShortName>

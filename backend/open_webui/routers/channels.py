@@ -193,6 +193,25 @@ async def get_channel_messages(
 
 
 async def send_notification(name, webui_url, channel, message, active_user_ids):
+    """Send notifications to users who have access to a specific channel.
+
+    This function retrieves users with read access to the specified channel
+    and sends a notification message to those who are not in the list of
+    active user IDs. If a user has a webhook URL configured in their
+    settings, the notification is sent via that webhook. The message
+    includes the channel name and a link to the channel.
+
+    Args:
+        name (str): The name of the sender or the notification source.
+        webui_url (str): The base URL of the web user interface.
+        channel (Channel): The channel object containing access control and other details.
+        message (Message): The message object containing the content to be sent.
+        active_user_ids (list): A list of user IDs that are currently active.
+
+    Returns:
+        None: This function does not return any value.
+    """
+
     users = get_users_with_access("read", channel.access_control)
 
     for user in users:
@@ -226,6 +245,33 @@ async def post_new_message(
     background_tasks: BackgroundTasks,
     user=Depends(get_verified_user),
 ):
+    """Post a new message to a specified channel.
+
+    This function handles the process of posting a new message to a channel
+    identified by its ID. It first verifies the existence of the channel and
+    checks the user's permissions to ensure they are authorized to post
+    messages. If the user is allowed, it inserts the new message into the
+    database and emits an event to notify other users in the channel. If the
+    message is a reply, it also emits an event for the parent message.
+    Additionally, it sends notifications to active users in the channel.
+
+    Args:
+        request (Request): The HTTP request object.
+        id (str): The ID of the channel where the message will be posted.
+        form_data (MessageForm): The data for the new message.
+        background_tasks (BackgroundTasks): Background tasks to be executed after the response.
+        user (Depends): The verified user attempting to post the message.
+
+    Returns:
+        MessageModel: The model representation of the newly created message.
+
+    Raises:
+        HTTPException: If the channel is not found (404) or if the user does not have
+            permission
+            to post messages (403).
+        HTTPException: If there is an error during message insertion or event emission (400).
+    """
+
     channel = Channels.get_channel_by_id(id)
     if not channel:
         raise HTTPException(
