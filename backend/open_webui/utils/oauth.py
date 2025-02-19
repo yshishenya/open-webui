@@ -206,6 +206,25 @@ class OAuthManager:
                 )
 
     async def handle_login(self, request, provider):
+        """Handle the login process for a specified OAuth provider.
+
+        This function checks if the provided OAuth provider is valid and
+        retrieves the appropriate redirect URI. If the provider has a custom
+        redirect URL, it will use that; otherwise, it will generate one
+        automatically. It then attempts to get the OAuth client for the provider
+        and initiates the authorization redirect process.
+
+        Args:
+            request: The incoming request object containing information about the request.
+            provider (str): The name of the OAuth provider to handle the login for.
+
+        Returns:
+            Awaitable: The result of the authorization redirect process.
+
+        Raises:
+            HTTPException: If the provider is not recognized or if the client cannot be found.
+        """
+
         if provider not in OAUTH_PROVIDERS:
             raise HTTPException(404)
         # If the provider has a custom redirect URL, use that, otherwise automatically generate one
@@ -218,6 +237,33 @@ class OAuthManager:
         return await client.authorize_redirect(request, redirect_uri)
 
     async def handle_callback(self, request, provider, response):
+        """Handle the OAuth callback for user authentication.
+
+        This method processes the OAuth callback from a provider, validates the
+        received token, retrieves user information, and manages user accounts
+        based on the authentication results. It checks if the provider is valid,
+        handles potential errors during token authorization, and ensures that
+        the user data contains necessary claims such as email and sub. If the
+        user does not exist, it may create a new account if signups are enabled
+        and the user count limit is not exceeded. The function also sets
+        authentication cookies and redirects the user to the frontend with a JWT
+        token.
+
+        Args:
+            request: The incoming request object containing user data.
+            provider (str): The OAuth provider identifier.
+            response: The response object to set cookies and redirect.
+
+        Returns:
+            RedirectResponse: A response that redirects the user to the frontend
+                with the JWT token.
+
+        Raises:
+            HTTPException: If the provider is invalid, token authorization fails,
+                user data is missing, email is not provided, or if
+                signups are disabled when the user does not exist.
+        """
+
         if provider not in OAUTH_PROVIDERS:
             raise HTTPException(404)
         client = self.get_client(provider)
