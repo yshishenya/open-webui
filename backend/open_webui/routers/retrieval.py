@@ -348,6 +348,24 @@ async def update_reranking_config(
 
 @router.get("/config")
 async def get_rag_config(request: Request, user=Depends(get_admin_user)):
+    """Retrieve the RAG configuration settings.
+
+    This function gathers various configuration settings related to the RAG
+    (Retrieval-Augmented Generation) system from the application state and
+    returns them in a structured dictionary format. The configuration
+    includes settings for PDF extraction, content extraction engines,
+    chunking parameters, file limits, YouTube loader options, and web search
+    configurations. This allows for easy access to the necessary parameters
+    required for the RAG system to function properly.
+
+    Args:
+        request (Request): The request object containing application state and configuration.
+        user: The user dependency, which defaults to an admin user.
+
+    Returns:
+        dict: A dictionary containing the RAG configuration settings.
+    """
+
     return {
         "status": True,
         "pdf_extract_images": request.app.state.config.PDF_EXTRACT_IMAGES,
@@ -478,6 +496,26 @@ class ConfigUpdateForm(BaseModel):
 async def update_rag_config(
     request: Request, form_data: ConfigUpdateForm, user=Depends(get_admin_user)
 ):
+    """Update the RAG configuration based on the provided form data.
+
+    This function updates various configuration settings related to the RAG
+    (Retrieval-Augmented Generation) system. It modifies settings such as
+    PDF extraction options, content extraction engine, chunking parameters,
+    YouTube loader settings, and web search configurations. The function
+    checks if each setting in the form data is provided; if not, it retains
+    the existing configuration value.
+
+    Args:
+        request (Request): The HTTP request object containing application state.
+        form_data (ConfigUpdateForm): The form data containing new configuration values.
+        user: The user making the request, expected to be an admin.
+
+    Returns:
+        dict: A dictionary containing the updated configuration values, including
+            PDF extraction settings, content extraction engine, chunking parameters,
+            YouTube loader settings, and web search configurations.
+    """
+
     request.app.state.config.PDF_EXTRACT_IMAGES = (
         form_data.pdf_extract_images
         if form_data.pdf_extract_images is not None
