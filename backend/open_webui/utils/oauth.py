@@ -137,6 +137,26 @@ class OAuthManager:
         return role
 
     def update_user_groups(self, user, user_data, default_permissions):
+        """Update user groups based on OAuth claims.
+
+        This function manages the user's group memberships by comparing the
+        user's current groups with the groups specified in the OAuth claims. It
+        removes the user from groups that are no longer present in the OAuth
+        claims and adds the user to new groups that are found in the claims but
+        not currently assigned to the user. The function also ensures that group
+        permissions are maintained, using default permissions if none are
+        assigned.
+
+        Args:
+            user (UserModel): The user whose groups are being updated.
+            user_data (dict): The data containing OAuth claims for the user.
+            default_permissions (list): The default permissions to apply to
+                groups if none are assigned.
+
+        Returns:
+            None: This function does not return a value.
+        """
+
         log.debug("Running OAUTH Group management")
         oauth_claim = auth_manager_config.OAUTH_GROUPS_CLAIM
 
@@ -225,6 +245,29 @@ class OAuthManager:
         return await client.authorize_redirect(request, redirect_uri)
 
     async def handle_callback(self, request, provider, response):
+        """Handle the OAuth callback for user authentication.
+
+        This method processes the OAuth callback from the specified provider,
+        validates the received token, retrieves user information, and manages
+        user accounts based on the authentication results. It checks if the
+        provider is valid, handles potential errors during token authorization,
+        and ensures that the user's email is present and valid. If the user does
+        not exist, it may create a new user account if signups are enabled and
+        the email is not already taken. Finally, it sets the appropriate cookies
+        for authentication and redirects the user back to the frontend.
+
+        Args:
+            request: The HTTP request object containing the callback data.
+            provider (str): The name of the OAuth provider.
+            response: The HTTP response object to set cookies and redirect.
+
+        Returns:
+            RedirectResponse: A response that redirects to the frontend with a JWT token.
+
+        Raises:
+            HTTPException: If the provider is not recognized or if there are issues
+        """
+
         if provider not in OAUTH_PROVIDERS:
             raise HTTPException(404)
         client = self.get_client(provider)
