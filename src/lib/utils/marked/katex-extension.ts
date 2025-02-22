@@ -125,6 +125,28 @@ function katexTokenizer(src, tokens, displayMode: boolean) {
 	}
 }
 
+/**
+ * Creates a plugin for inline KaTeX rendering.
+ *
+ * This function generates an object that contains methods for handling
+ * inline KaTeX expressions within a markdown parser. It provides the
+ * necessary hooks to identify, tokenize, and render inline math expressions
+ * using KaTeX.
+ *
+ * @param {Object} options - Configuration options for the plugin.
+ * @returns {Object} An object representing the inline KaTeX plugin with
+ *                  the following properties:
+ *                  - name: The name of the plugin.
+ *                  - level: The level of parsing (inline).
+ *                  - start: A function that identifies the start of an
+ *                           inline KaTeX expression in the source text.
+ *                  - tokenizer: A function that tokenizes the inline
+ *                               KaTeX expression from the source text.
+ *                  - renderer: A function that renders the tokenized
+ *                             inline KaTeX expression into HTML.
+ *
+ * @example
+ * const katexPlugin = inlineKatex({ /* options */
 function inlineKatex(options) {
 	return {
 		name: 'inlineKatex',
@@ -141,6 +163,26 @@ function inlineKatex(options) {
 	};
 }
 
+/**
+ * Creates a block-level Katex renderer for parsing and rendering mathematical expressions.
+ *
+ * @param {Object} options - Configuration options for the blockKatex renderer.
+ * @returns {Object} An object representing the blockKatex renderer with properties and methods for processing.
+ * @property {string} name - The name of the renderer.
+ * @property {string} level - The level of the renderer, which is 'block' in this case.
+ * @property {function} start - A function that determines the starting point of the block in the source text.
+ * @param {string} src - The source text to search for the start of the block.
+ * @returns {number|null} The index of the start position or null if not found.
+ * @property {function} tokenizer - A function that tokenizes the source text into manageable pieces.
+ * @param {string} src - The source text to tokenize.
+ * @param {Array} tokens - An array of existing tokens to append to.
+ * @returns {Array} An array of tokens generated from the source text.
+ * @property {function} renderer - A function that renders a token into its final output format.
+ * @param {Object} token - The token to be rendered.
+ * @returns {string} The rendered output as a string.
+ *
+ * @example
+ * const katexRenderer = blockKatex({ /* options */
 function blockKatex(options) {
 	return {
 		name: 'blockKatex',
