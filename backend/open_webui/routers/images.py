@@ -34,6 +34,23 @@ router = APIRouter()
 
 @router.get("/config")
 async def get_config(request: Request, user=Depends(get_admin_user)):
+    """Retrieve the configuration settings for image generation.
+
+    This function gathers various configuration settings related to image
+    generation from the application state. It returns a dictionary
+    containing flags and API credentials for different image generation
+    engines, including OpenAI, Automatic1111, ComfyUI, and Gemini. The
+    returned configuration can be used to determine which features are
+    enabled and how to interact with the respective APIs.
+
+    Args:
+        request (Request): The request object containing application state.
+
+    Returns:
+        dict: A dictionary containing configuration settings for image generation,
+            including engine settings and API credentials.
+    """
+
     return {
         "enabled": request.app.state.config.ENABLE_IMAGE_GENERATION,
         "engine": request.app.state.config.IMAGE_GENERATION_ENGINE,
@@ -101,6 +118,25 @@ class ConfigForm(BaseModel):
 async def update_config(
     request: Request, form_data: ConfigForm, user=Depends(get_admin_user)
 ):
+    """Update the configuration settings for image generation.
+
+    This function updates various configuration parameters related to image
+    generation based on the provided form data. It modifies the
+    application's state to reflect the new settings, including enabling or
+    disabling image generation, setting API keys, and configuring specific
+    engines and workflows.
+
+    Args:
+        request (Request): The HTTP request object containing application state.
+        form_data (ConfigForm): The form data containing new configuration values.
+        user: The user requesting the update, defaults to an admin user.
+
+    Returns:
+        dict: A dictionary containing the updated configuration settings, including
+            whether image generation is enabled, the selected engine, and API
+            details for OpenAI, Automatic1111, ComfyUI, and Gemini.
+    """
+
     request.app.state.config.IMAGE_GENERATION_ENGINE = form_data.engine
     request.app.state.config.ENABLE_IMAGE_GENERATION = form_data.enabled
 
@@ -237,6 +273,26 @@ def set_image_model(request: Request, model: str):
 
 
 def get_image_model(request):
+    """Retrieve the image generation model based on the configured engine.
+
+    This function checks the application's configuration to determine which
+    image generation engine is being used. Depending on the engine, it
+    returns the corresponding model name. If no specific model is set in the
+    configuration, it defaults to a predefined model for each engine. For
+    the "automatic1111" engine, it makes an HTTP request to retrieve the
+    current model checkpoint from an external service.
+
+    Args:
+        request: The request object containing application state and configuration.
+
+    Returns:
+        str: The name of the image generation model.
+
+    Raises:
+        HTTPException: If there is an error while retrieving the model from the "automatic1111"
+            engine.
+    """
+
     if request.app.state.config.IMAGE_GENERATION_ENGINE == "openai":
         return (
             request.app.state.config.IMAGE_GENERATION_MODEL
@@ -318,6 +374,28 @@ async def update_image_config(
 
 @router.get("/models")
 def get_models(request: Request, user=Depends(get_verified_user)):
+    """Retrieve available image generation models based on the configured
+    engine.
+
+    This function checks the image generation engine specified in the
+    application configuration and retrieves a list of available models
+    accordingly. It supports multiple engines, including OpenAI, Gemini,
+    ComfyUI, and Automatic1111. For ComfyUI, it fetches model information
+    from an external API, while for other engines, it returns predefined
+    model lists. If an error occurs during the retrieval process, it
+    disables image generation and raises an HTTPException.
+
+    Args:
+        request (Request): The request object containing application state and configuration.
+        user (Depends): A dependency that verifies the user.
+
+    Returns:
+        list: A list of dictionaries containing model IDs and names.
+
+    Raises:
+        HTTPException: If an error occurs during the model retrieval process.
+    """
+
     try:
         if request.app.state.config.IMAGE_GENERATION_ENGINE == "openai":
             return [
@@ -460,6 +538,30 @@ async def image_generations(
     form_data: GenerateImageForm,
     user=Depends(get_verified_user),
 ):
+    """Generate images based on user input and specified generation engine.
+
+    This function handles image generation requests from users by utilizing
+    different image generation engines such as OpenAI, Gemini, ComfyUI, and
+    Automatic1111. It processes the incoming request, extracts necessary
+    parameters from the form data, and constructs the appropriate API call
+    to the selected image generation engine. The generated images are then
+    uploaded and returned as URLs.
+
+    Args:
+        request (Request): The incoming request object containing application state and
+            configuration.
+        form_data (GenerateImageForm): The form data containing user inputs for image generation.
+        user: The verified user making the request (default is obtained via dependency
+            injection).
+
+    Returns:
+        list: A list of dictionaries containing URLs of the generated images.
+
+    Raises:
+        HTTPException: If an error occurs during the image generation process,
+            a 400 status code is raised with an error message.
+    """
+
     width, height = tuple(map(int, request.app.state.config.IMAGE_SIZE.split("x")))
 
     r = None
