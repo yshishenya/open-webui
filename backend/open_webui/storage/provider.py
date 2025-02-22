@@ -249,7 +249,25 @@ class AzureStorageProvider(StorageProvider):
         )
 
     def upload_file(self, file: BinaryIO, filename: str) -> Tuple[bytes, str]:
-        """Handles uploading of the file to Azure Blob Storage."""
+        """Handles uploading of the file to Azure Blob Storage.
+
+        This method takes a binary file and a filename as input, uploads the
+        file to Azure Blob Storage, and returns the contents of the file along
+        with the URL of the uploaded blob. It first retrieves a blob client for
+        the specified filename and then uploads the file contents. If the upload
+        fails, it raises a RuntimeError with an appropriate error message.
+
+        Args:
+            file (BinaryIO): The binary file object to be uploaded.
+            filename (str): The name under which the file will be stored in Azure Blob Storage.
+
+        Returns:
+            Tuple[bytes, str]: A tuple containing the contents of the uploaded file and
+            the URL of the uploaded blob.
+
+        Raises:
+            RuntimeError: If there is an error during the upload process.
+        """
         contents, file_path = LocalStorageProvider.upload_file(file, filename)
         try:
             blob_client = self.container_client.get_blob_client(filename)
@@ -259,7 +277,23 @@ class AzureStorageProvider(StorageProvider):
             raise RuntimeError(f"Error uploading file to Azure Blob Storage: {e}")
 
     def get_file(self, file_path: str) -> str:
-        """Handles downloading of the file from Azure Blob Storage."""
+        """Handles downloading of a file from Azure Blob Storage.
+
+        This function takes a file path as input, retrieves the corresponding
+        file from Azure Blob Storage, and saves it to a local directory. It
+        constructs the local file path based on the provided file path and
+        writes the content of the blob to a local file. If the specified file
+        does not exist in the blob storage, it raises a RuntimeError.
+
+        Args:
+            file_path (str): The path of the file in Azure Blob Storage.
+
+        Returns:
+            str: The local file path where the downloaded file is saved.
+
+        Raises:
+            RuntimeError: If the specified file is not found in Azure Blob Storage.
+        """
         try:
             filename = file_path.split("/")[-1]
             local_file_path = f"{UPLOAD_DIR}/{filename}"
@@ -271,7 +305,20 @@ class AzureStorageProvider(StorageProvider):
             raise RuntimeError(f"Error downloading file from Azure Blob Storage: {e}")
 
     def delete_file(self, file_path: str) -> None:
-        """Handles deletion of the file from Azure Blob Storage."""
+        """Handles deletion of the file from Azure Blob Storage.
+
+        This function attempts to delete a specified file from Azure Blob
+        Storage using the provided file path. It retrieves the blob client for
+        the file and calls the delete method. If the file is not found in the
+        storage, it raises a RuntimeError. Additionally, it ensures that the
+        file is also deleted from local storage.
+
+        Args:
+            file_path (str): The path of the file to be deleted.
+
+        Raises:
+            RuntimeError: If the file does not exist in Azure Blob Storage.
+        """
         try:
             filename = file_path.split("/")[-1]
             blob_client = self.container_client.get_blob_client(filename)
@@ -283,7 +330,17 @@ class AzureStorageProvider(StorageProvider):
         LocalStorageProvider.delete_file(file_path)
 
     def delete_all_files(self) -> None:
-        """Handles deletion of all files from Azure Blob Storage."""
+        """Handles the deletion of all files from Azure Blob Storage.
+
+        This function retrieves a list of all blobs in the specified Azure Blob
+        Storage container and deletes each one. It also ensures that all files
+        are deleted from local storage by invoking the corresponding method from
+        the LocalStorageProvider. If any error occurs during the deletion
+        process, a RuntimeError is raised with details about the failure.
+
+        Raises:
+            RuntimeError: If an error occurs while deleting files from Azure Blob Storage.
+        """
         try:
             blobs = self.container_client.list_blobs()
             for blob in blobs:
@@ -296,6 +353,24 @@ class AzureStorageProvider(StorageProvider):
 
 
 def get_storage_provider(storage_provider: str):
+    """Get the appropriate storage provider based on the input string.
+
+    This function returns an instance of a storage provider class based on
+    the specified storage provider type. It supports local, S3, GCS, and
+    Azure storage providers. If an unsupported storage provider is
+    specified, a RuntimeError is raised.
+
+    Args:
+        storage_provider (str): The type of storage provider to instantiate.
+            Supported values are "local", "s3", "gcs", and "azure".
+
+    Returns:
+        StorageProvider: An instance of the corresponding storage provider class.
+
+    Raises:
+        RuntimeError: If the specified storage provider is unsupported.
+    """
+
     if storage_provider == "local":
         Storage = LocalStorageProvider()
     elif storage_provider == "s3":

@@ -20,8 +20,21 @@ import { setGlobalDispatcher, ProxyAgent } from 'undici';
 import { writeFile, readFile, copyFile, readdir, rmdir } from 'fs/promises';
 
 /**
- * Loading network proxy configurations from the environment variables.
- * And the proxy config with lowercase name has the highest priority to use.
+ * Initializes the network proxy configuration based on environment variables.
+ * The function checks for proxy settings in the environment and prioritizes
+ * them according to the following order: HTTPS proxy, all proxy, and HTTP proxy.
+ *
+ * It is important to note that only HTTP(S) proxies are supported;
+ * SOCKS5 proxies will not be utilized. If the preferred proxy URL is invalid,
+ * a warning will be logged to the console, and the function will exit without
+ * making any changes to the global dispatcher.
+ *
+ * @throws {Error} Throws an error if the preferred proxy URL is invalid.
+ *
+ * @example
+ * // Assuming the environment variable HTTPS_PROXY is set to a valid URL
+ * initNetworkProxyFromEnv();
+ * // Console output: Initialized network proxy "http://example.com" from env
  */
 function initNetworkProxyFromEnv() {
 	// we assume all subsequent requests in this script are HTTPS:
@@ -49,6 +62,25 @@ function initNetworkProxyFromEnv() {
 	console.log(`Initialized network proxy "${preferedProxy}" from env`);
 }
 
+/**
+ * Asynchronously downloads and installs Pyodide packages using micropip.
+ *
+ * This function sets up the Pyodide environment, checks for version mismatches,
+ * and installs the specified packages. It also creates a lock file to record
+ * the installed packages.
+ *
+ * @async
+ * @function downloadPackages
+ * @throws {Error} Throws an error if loading Pyodide fails, if package installation fails,
+ *                 or if writing the lock file fails.
+ *
+ * @example
+ * // Call the function to download packages
+ * await downloadPackages();
+ *
+ * @returns {Promise<void>} A promise that resolves when the packages have been downloaded
+ *                          and the lock file has been created.
+ */
 async function downloadPackages() {
 	console.log('Setting up pyodide + micropip');
 

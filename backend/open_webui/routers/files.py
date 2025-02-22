@@ -213,6 +213,30 @@ async def update_file_data_content_by_id(
 
 @router.get("/{id}/content")
 async def get_file_content_by_id(id: str, user=Depends(get_verified_user)):
+    """Retrieve the content of a file by its ID.
+
+    This function checks if the user has permission to access the file based
+    on the user ID and role. If the user is authorized, it attempts to
+    retrieve the file from storage. If the file exists, it prepares the
+    appropriate headers for the response based on the file type and returns
+    the file content. If the file does not exist or if there are any errors
+    during retrieval, it raises an HTTPException with the appropriate status
+    code and error message.
+
+    Args:
+        id (str): The unique identifier of the file to retrieve.
+        user: The user requesting access to the file, verified through
+            dependency injection.
+
+    Returns:
+        FileResponse: The response containing the file content and headers
+            if the file is successfully retrieved.
+
+    Raises:
+        HTTPException: If the file is not found or if there is an error
+            retrieving the file content.
+    """
+
     file = Files.get_file_by_id(id)
     if file and (file.user_id == user.id or user.role == "admin"):
         try:

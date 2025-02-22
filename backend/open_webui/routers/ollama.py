@@ -943,6 +943,26 @@ class ChatMessage(BaseModel):
     @validator("content", pre=True)
     @classmethod
     def check_at_least_one_field(cls, field_value, values, **kwargs):
+        """Check that at least one of the specified fields is provided.
+
+        This class method verifies that either the 'field_value' or 'tool_calls'
+        in the 'values' dictionary is not None. If both are None, it raises a
+        ValueError. This is useful for ensuring that necessary data is present
+        before proceeding with further operations.
+
+        Args:
+            cls: The class that this method belongs to.
+            field_value (Any): The value of the primary field to check.
+            values (dict): A dictionary containing additional fields to check.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Any: The value of 'field_value' if the check passes.
+
+        Raises:
+            ValueError: If both 'field_value' and 'tool_calls' are None.
+        """
+
         # Raise an error if both 'content' and 'tool_calls' are None
         if field_value is None and (
             "tool_calls" not in values or values["tool_calls"] is None

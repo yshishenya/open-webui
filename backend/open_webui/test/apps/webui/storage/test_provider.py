@@ -20,6 +20,15 @@ def mock_upload_dir(monkeypatch, tmp_path):
 
 
 def test_imports():
+    """Test the availability of storage provider classes.
+
+    This function checks the importability of various storage provider
+    classes within the provider module. It ensures that the classes are
+    accessible and can be imported without any issues. This is particularly
+    useful for verifying that the necessary dependencies are correctly
+    installed and available in the environment.
+    """
+
     provider.StorageProvider
     provider.LocalStorageProvider
     provider.S3StorageProvider
@@ -29,6 +38,15 @@ def test_imports():
 
 
 def test_get_storage_provider():
+    """Test the retrieval of storage providers.
+
+    This function tests the `get_storage_provider` method from the
+    `provider` module to ensure that it correctly returns instances of the
+    appropriate storage provider classes based on the input string. It
+    checks for local, S3, GCS, and Azure storage providers and verifies that
+    an invalid input raises a RuntimeError.
+    """
+
     Storage = provider.get_storage_provider("local")
     assert isinstance(Storage, provider.LocalStorageProvider)
     Storage = provider.get_storage_provider("s3")
@@ -42,6 +60,17 @@ def test_get_storage_provider():
 
 
 def test_class_instantiation():
+    """Test the instantiation of storage provider classes.
+
+    This function verifies that the appropriate exceptions are raised when
+    attempting to instantiate storage provider classes without the required
+    arguments. It checks that a TypeError is raised for the base class
+    `StorageProvider` and for a subclass that does not provide the necessary
+    initialization. Additionally, it confirms that the derived classes
+    `LocalStorageProvider`, `S3StorageProvider`, `GCSStorageProvider`, and
+    `AzureStorageProvider` can be instantiated without errors.
+    """
+
     with pytest.raises(TypeError):
         provider.StorageProvider()
     with pytest.raises(TypeError):
@@ -255,6 +284,21 @@ class TestGCSStorageProvider:
         assert self.Storage.bucket.get_blob(self.filename) == None
 
     def test_delete_all_files(self, monkeypatch, tmp_path, setup):
+        """Test the deletion of all files in the storage.
+
+        This test function uploads two files to a storage system, verifies their
+        existence and content, and then calls the method to delete all files. It
+        checks that both files are successfully deleted from the storage and
+        that they no longer exist in the upload directory.
+
+        Args:
+            monkeypatch (pytest.MonkeyPatch): A pytest fixture that allows for temporary modifications
+                of objects during the test.
+            tmp_path (py.path.local): A pytest fixture that provides a temporary directory unique to
+                the test invocation.
+            setup (function): A setup function that prepares the test environment.
+        """
+
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
         # create 2 files
         self.Storage.upload_file(io.BytesIO(self.file_content), self.filename)
@@ -286,6 +330,28 @@ class TestAzureStorageProvider:
 
     @pytest.fixture(scope="class")
     def setup_storage(self, monkeypatch):
+        """Set up mock storage for testing Azure Blob Storage interactions.
+
+        This method creates mock instances of the Blob Service Client, Container
+        Client, and Blob Client using the `unittest.mock.MagicMock` class. It
+        configures these mocks to return the appropriate clients when called.
+        The method also monkeypatches the Azure Blob Storage classes to use the
+        mock clients instead of the real ones, allowing for isolated testing
+        without actual Azure storage interactions.
+
+        Args:
+            monkeypatch (pytest.MonkeyPatch): The monkeypatch fixture provided by pytest
+                to modify the behavior of the Azure Blob Storage classes.
+
+        Attributes:
+            Storage (AzureStorageProvider): An instance of the AzureStorageProvider
+                initialized with a specific endpoint and container name.
+            file_content (bytes): The content of the file to be used in tests.
+            filename (str): The name of the test file.
+            filename_extra (str): An additional test file name.
+            file_bytesio_empty (BytesIO): An empty BytesIO object for testing purposes.
+        """
+
         # Create mock Blob Service Client and related clients
         mock_blob_service_client = MagicMock()
         mock_container_client = MagicMock()
@@ -325,6 +391,22 @@ class TestAzureStorageProvider:
         self.Storage.container_client = mock_container_client
 
     def test_upload_file(self, monkeypatch, tmp_path):
+        """Test the upload_file method of the Storage class.
+
+        This test function verifies the behavior of the upload_file method when
+        uploading a file to Azure Blob Storage. It simulates scenarios where the
+        container does not exist and where an empty file is attempted to be
+        uploaded. The function uses pytest to assert that the correct exceptions
+        are raised and that the upload process behaves as expected when the
+        container is available.
+
+        Args:
+            monkeypatch (pytest.MonkeyPatch): A pytest fixture that allows for
+                temporary modifications of objects for testing purposes.
+            tmp_path (pathlib.Path): A pytest fixture that provides a temporary
+                directory unique to the test invocation.
+        """
+
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
 
         # Simulate an error when container does not exist
@@ -358,6 +440,20 @@ class TestAzureStorageProvider:
             self.Storage.upload_file(self.file_bytesio_empty, self.filename)
 
     def test_get_file(self, monkeypatch, tmp_path):
+        """Test the retrieval of a file from the storage service.
+
+        This test function verifies that a file can be uploaded to the storage
+        service and then successfully downloaded. It mocks the upload behavior
+        and the blob download behavior to ensure that the file is correctly
+        stored and can be retrieved from the specified URL. The function checks
+        that the file path returned by the storage service matches the expected
+        path and that the file content is as expected.
+
+        Args:
+            monkeypatch (pytest.MonkeyPatch): A pytest fixture that allows for monkey patching.
+            tmp_path (pathlib.Path): A pytest fixture that provides a temporary directory.
+        """
+
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
         self.Storage.create_container()
 
@@ -376,6 +472,19 @@ class TestAzureStorageProvider:
         assert (upload_dir / self.filename).read_bytes() == self.file_content
 
     def test_delete_file(self, monkeypatch, tmp_path):
+        """Test the deletion of a file from the storage.
+
+        This test function verifies that a file can be successfully deleted from
+        the storage system. It sets up a mock environment, uploads a file, and
+        then calls the delete function to remove the file. The test checks that
+        the delete operation was called exactly once and confirms that the file
+        no longer exists in the upload directory.
+
+        Args:
+            monkeypatch (pytest.MonkeyPatch): A pytest fixture that allows for monkey patching.
+            tmp_path (pathlib.Path): A pytest fixture that provides a temporary directory.
+        """
+
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
         self.Storage.create_container()
 
@@ -391,6 +500,23 @@ class TestAzureStorageProvider:
         assert not (upload_dir / self.filename).exists()
 
     def test_delete_all_files(self, monkeypatch, tmp_path):
+        """Test the deletion of all files in the storage.
+
+        This test function verifies that all files uploaded to the storage are
+        correctly deleted. It mocks the necessary components to simulate file
+        uploads and checks that the deletion process works as expected. The
+        function sets up a temporary upload directory, uploads two files, and
+        then calls the method to delete all files. After deletion, it asserts
+        that the files no longer exist in the upload directory and verifies that
+        the appropriate methods were called on the storage client.
+
+        Args:
+            monkeypatch (pytest.MonkeyPatch): A pytest fixture that allows
+                modifying or mocking parts of the system under test.
+            tmp_path (pathlib.Path): A pytest fixture that provides a temporary
+                directory unique to the test invocation.
+        """
+
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
         self.Storage.create_container()
 
@@ -413,6 +539,17 @@ class TestAzureStorageProvider:
         assert not (upload_dir / self.filename_extra).exists()
 
     def test_get_file_not_found(self, monkeypatch):
+        """Test the behavior of getting a file when the blob is not found.
+
+        This test simulates the scenario where a file is requested from a
+        storage container, but the blob does not exist. It uses mocking to raise
+        an exception when attempting to download the blob, ensuring that the
+        appropriate error handling is in place in the `get_file` method.
+
+        Args:
+            monkeypatch (pytest.MonkeyPatch): A pytest fixture that allows
+        """
+
         self.Storage.create_container()
 
         file_url = f"https://myaccount.blob.core.windows.net/{self.Storage.container_name}/{self.filename}"

@@ -67,6 +67,25 @@ def apply_model_params_to_body_openai(params: dict, form_data: dict) -> dict:
 
 
 def apply_model_params_to_body_ollama(params: dict, form_data: dict) -> dict:
+    """Apply model parameters for Ollama from a given set of parameters.
+
+    This function converts OpenAI parameter names to Ollama parameter names,
+    ensuring compatibility with the Ollama API. It maps specific parameters
+    to their corresponding types and formats, and then applies these
+    parameters to the body of the request using the
+    `apply_model_params_to_body` function. This is particularly useful when
+    transitioning between different model APIs that may have differing
+    parameter requirements.
+
+    Args:
+        params (dict): A dictionary containing model parameters.
+        form_data (dict): A dictionary containing form data to be used in the request.
+
+    Returns:
+        dict: A dictionary containing the updated parameters ready for use in the
+            Ollama API request.
+    """
+
     # Convert OpenAI parameter names to Ollama parameter names if needed.
     name_differences = {
         "max_tokens": "num_predict",
@@ -113,6 +132,26 @@ def apply_model_params_to_body_ollama(params: dict, form_data: dict) -> dict:
 
 
 def convert_messages_openai_to_ollama(messages: list[dict]) -> list[dict]:
+    """Convert OpenAI messages to Ollama message format.
+
+    This function takes a list of messages formatted for OpenAI and converts
+    them into a format compatible with Ollama. Each message is processed to
+    extract relevant fields such as role, content, tool calls, and tool call
+    IDs. The function handles different types of content, including plain
+    text, tool calls, and lists of content items that may include text and
+    image URLs. The resulting messages are structured according to the
+    requirements of the Ollama messaging system.
+
+    Args:
+        messages (list[dict]): A list of dictionaries representing OpenAI messages. Each dictionary
+            should contain
+
+    Returns:
+        list[dict]: A list of dictionaries formatted for Ollama, with each dictionary
+            containing the converted message
+        structure.
+    """
+
     ollama_messages = []
 
     for message in messages:
@@ -187,8 +226,16 @@ def convert_messages_openai_to_ollama(messages: list[dict]) -> list[dict]:
 
 
 def convert_payload_openai_to_ollama(openai_payload: dict) -> dict:
-    """
-    Converts a payload formatted for OpenAI's API to be compatible with Ollama's API endpoint for chat completions.
+    """Converts a payload formatted for OpenAI's API to be compatible with
+    Ollama's API endpoint for chat completions.
+
+    This function takes a dictionary payload that is structured for OpenAI's
+    API and transforms it into a format that can be utilized by Ollama's
+    API. It maps essential fields such as model, messages, and stream, while
+    also handling advanced parameters and ensuring compatibility with
+    Ollama's requirements. The function also manages the conversion of
+    specific options, such as `max_tokens` to `num_predict`, and handles the
+    absence of a "system" prompt in Ollama's API.
 
     Args:
         openai_payload (dict): The payload originally designed for OpenAI API usage.

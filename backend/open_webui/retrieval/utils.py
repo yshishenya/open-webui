@@ -86,6 +86,25 @@ def query_doc(
 
 
 def get_doc(collection_name: str, user: UserModel = None):
+    """Retrieve documents from a specified collection in the vector database.
+
+    This function interacts with the vector database client to fetch
+    documents associated with the given collection name. If the operation is
+    successful, it logs the result's IDs and metadata. In case of any
+    exceptions during the retrieval process, the exception is printed and
+    re-raised for further handling.
+
+    Args:
+        collection_name (str): The name of the collection to retrieve documents from.
+        user (UserModel?): An optional user model instance for user-specific operations.
+
+    Returns:
+        ResultType: The result containing the retrieved documents from the collection.
+
+    Raises:
+        Exception: If there is an error during the retrieval process.
+    """
+
     try:
         result = VECTOR_DB_CLIENT.get(collection_name=collection_name)
 
@@ -152,6 +171,22 @@ def query_doc_with_hybrid_search(
 
 
 def merge_get_results(get_results: list[dict]) -> dict:
+    """Merge results from multiple sources into a single dictionary.
+
+    This function takes a list of dictionaries, each containing 'documents',
+    'metadatas', and 'ids', and combines them into a single dictionary. It
+    extracts the first element from each of these keys in the input
+    dictionaries and aggregates them into lists. The resulting dictionary
+    contains combined lists of documents, metadatas, and ids.
+
+    Args:
+        get_results (list[dict]): A list of dictionaries, where each dictionary
+
+    Returns:
+        dict: A dictionary containing combined lists of documents, metadatas,
+        and ids.
+    """
+
     # Initialize lists to store combined data
     combined_documents = []
     combined_metadatas = []
@@ -216,6 +251,23 @@ def merge_and_sort_query_results(
 
 
 def get_all_items_from_collections(collection_names: list[str]) -> dict:
+    """Retrieve all items from specified collections.
+
+    This function takes a list of collection names and attempts to retrieve
+    documents from each collection. For each valid collection name, it calls
+    the `get_doc` function to fetch the document. If the document is
+    successfully retrieved and is not None, it is added to the results list.
+    Any exceptions raised during the retrieval process are logged for
+    debugging purposes. Finally, the function merges all retrieved results
+    and returns them as a dictionary.
+
+    Args:
+        collection_names (list[str]): A list of names of the collections to query.
+
+    Returns:
+        dict: A dictionary containing the merged results from all queried collections.
+    """
+
     results = []
 
     for collection_name in collection_names:
@@ -351,6 +403,35 @@ def get_sources_from_files(
     hybrid_search,
     full_context=False,
 ):
+    """Retrieve sources from a list of files based on specified queries.
+
+    This function processes a list of files to extract relevant contexts
+    based on the provided queries and various parameters. It handles
+    different file types and contexts, including collections and full
+    document retrieval. The function also supports hybrid search methods for
+    improved relevance in the results. The extracted sources are returned in
+    a structured format, including documents and their associated metadata.
+
+    Args:
+        files (list): A list of file dictionaries containing information
+            about the documents to be processed.
+        queries (list): A list of queries to search against the documents.
+        embedding_function (callable): A function used to generate
+            embeddings for the queries.
+        k (int): The number of top results to return from the search.
+        reranking_function (callable): A function used to rerank the
+            retrieved results.
+        r (int): A parameter for the reranking function.
+        hybrid_search (bool): A flag indicating whether to use hybrid
+            search methods.
+        full_context (bool?): A flag indicating whether to
+            retrieve full context from collections. Defaults to False.
+
+    Returns:
+        list: A list of dictionaries containing the sources, documents,
+            and metadata extracted from the files.
+    """
+
     log.debug(
         f"files: {files} {queries} {embedding_function} {reranking_function} {full_context}"
     )
