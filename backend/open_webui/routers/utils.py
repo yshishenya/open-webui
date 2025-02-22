@@ -42,6 +42,26 @@ async def format_code(form_data: CodeForm, user=Depends(get_verified_user)):
 async def execute_code(
     request: Request, form_data: CodeForm, user=Depends(get_verified_user)
 ):
+    """Execute code using the specified execution engine.
+
+    This function checks the configuration to determine which code execution
+    engine to use. If the engine is set to "jupyter", it calls the
+    `execute_code_jupyter` function with the appropriate parameters to
+    execute the provided code. If the engine is not supported, it raises an
+    HTTPException.
+
+    Args:
+        request (Request): The HTTP request object containing application state and configuration.
+        form_data (CodeForm): The form data containing the code to be executed.
+        user: The verified user, obtained through dependency injection.
+
+    Returns:
+        Any: The output from the code execution.
+
+    Raises:
+        HTTPException: If the code execution engine is not supported.
+    """
+
     if request.app.state.config.CODE_EXECUTION_ENGINE == "jupyter":
         output = await execute_code_jupyter(
             request.app.state.config.CODE_EXECUTION_JUPYTER_URL,
