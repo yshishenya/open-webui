@@ -950,6 +950,30 @@ async def chat_completion(
     form_data: dict,
     user=Depends(get_verified_user),
 ):
+    """Handle chat completion requests and process the associated payload.
+
+    This function is responsible for managing chat completion requests by
+    verifying the user's access to the specified model, preparing the
+    necessary metadata, and processing the chat payload. It checks if the
+    requested model exists and if the user has the appropriate permissions
+    to access it. If the model is found and accessible, it processes the
+    chat payload and returns a response. In case of any errors during
+    processing, it raises an HTTPException with a 400 status code.
+
+    Args:
+        request (Request): The request object containing application state and user information.
+        form_data (dict): A dictionary containing form data related to the chat request.
+        user: The verified user making the request, obtained through dependency
+            injection.
+
+    Returns:
+        Any: The processed chat response.
+
+    Raises:
+        HTTPException: If there is an error processing the chat payload or if the model is not
+            found.
+    """
+
     if not request.app.state.MODELS:
         await get_all_models(request)
 
