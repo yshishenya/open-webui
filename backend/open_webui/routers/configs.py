@@ -88,6 +88,25 @@ class CodeInterpreterConfigForm(BaseModel):
 
 @router.get("/code_execution", response_model=CodeInterpreterConfigForm)
 async def get_code_execution_config(request: Request, user=Depends(get_admin_user)):
+    """Retrieve the configuration settings for code execution.
+
+    This function gathers various configuration parameters related to code
+    execution from the application state. It returns a dictionary containing
+    settings for both the code execution engine and the code interpreter,
+    including URLs, authentication details, and timeouts. This is useful for
+    initializing or configuring environments where code execution is
+    performed.
+
+    Args:
+        request (Request): The request object containing application state information.
+        user: The user dependency, typically used for authorization (default is an
+            admin user).
+
+    Returns:
+        dict: A dictionary containing configuration settings for code execution and
+            interpretation.
+    """
+
     return {
         "CODE_EXECUTION_ENGINE": request.app.state.config.CODE_EXECUTION_ENGINE,
         "CODE_EXECUTION_JUPYTER_URL": request.app.state.config.CODE_EXECUTION_JUPYTER_URL,
@@ -110,6 +129,25 @@ async def get_code_execution_config(request: Request, user=Depends(get_admin_use
 async def set_code_execution_config(
     request: Request, form_data: CodeInterpreterConfigForm, user=Depends(get_admin_user)
 ):
+    """Set the configuration for code execution and interpreter.
+
+    This function updates the application state with the provided
+    configuration settings for the code execution engine and interpreter. It
+    modifies various parameters such as the Jupyter URL, authentication
+    details, and timeout settings based on the input from the form data. The
+    updated configuration is then returned as a dictionary.
+
+    Args:
+        request (Request): The request object containing application state.
+        form_data (CodeInterpreterConfigForm): The form data containing
+            configuration settings for the code execution and interpreter.
+        user: The user making the request, defaulting to an admin user.
+
+    Returns:
+        dict: A dictionary containing the updated configuration settings for
+            the code execution engine and interpreter.
+    """
+
 
     request.app.state.config.CODE_EXECUTION_ENGINE = form_data.CODE_EXECUTION_ENGINE
     request.app.state.config.CODE_EXECUTION_JUPYTER_URL = (
