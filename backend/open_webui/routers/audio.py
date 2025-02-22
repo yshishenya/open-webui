@@ -241,6 +241,28 @@ def load_speech_pipeline(request):
 
 @router.post("/speech")
 async def speech(request: Request, user=Depends(get_verified_user)):
+    """Generate speech audio from text input using various TTS engines.
+
+    This function handles requests to generate speech audio based on the
+    provided text input. It supports multiple TTS engines, including OpenAI,
+    ElevenLabs, Azure, and Transformers. The function first checks if the
+    audio file is already cached; if not, it processes the request to
+    generate the audio. It handles JSON payloads and raises appropriate HTTP
+    exceptions for invalid inputs or errors during the TTS service calls.
+
+    Args:
+        request (Request): The HTTP request object containing the input data.
+        user (Depends): The verified user information, defaulting to the result of
+            `get_verified_user`.
+
+    Returns:
+        FileResponse: The generated audio file in MP3 format.
+
+    Raises:
+        HTTPException: If the input JSON payload is invalid or if there are errors during the
+            TTS service calls.
+    """
+
     body = await request.body()
     name = hashlib.sha256(
         body
