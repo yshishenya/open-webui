@@ -85,6 +85,26 @@ def resolve_hostname(hostname):
 
 
 def extract_metadata(soup, url):
+    """Extract metadata from a BeautifulSoup object.
+
+    This function retrieves metadata such as the title, description, and
+    language from a given BeautifulSoup object representing an HTML
+    document. It constructs a dictionary containing the source URL and the
+    extracted metadata. If certain metadata elements are not found, default
+    values are provided.
+
+    Args:
+        soup (BeautifulSoup): A BeautifulSoup object representing the HTML document.
+        url (str): The source URL of the HTML document.
+
+    Returns:
+        dict: A dictionary containing the extracted metadata, which includes:
+            - 'source': The source URL.
+            - 'title': The title of the document (if found).
+            - 'description': The meta description of the document (if found).
+            - 'language': The language of the document (if found).
+    """
+
     metadata = {"source": url}
     if title := soup.find("title"):
         metadata["title"] = title.get_text()
@@ -96,7 +116,22 @@ def extract_metadata(soup, url):
 
 
 def verify_ssl_cert(url: str) -> bool:
-    """Verify SSL certificate for the given URL."""
+    """Verify the SSL certificate for the given URL.
+
+    This function checks if the provided URL has a valid SSL certificate. It
+    first ensures that the URL starts with "https://". If it does, it
+    attempts to create a secure socket connection to the hostname extracted
+    from the URL. If the connection is successful, it indicates that the SSL
+    certificate is valid. If there is an SSL error or any other exception
+    during the connection attempt, it logs a warning and returns False.
+
+    Args:
+        url (str): The URL to verify, which should start with "https://".
+
+    Returns:
+        bool: True if the SSL certificate is valid or if the URL does not
+        start with "https://", False otherwise.
+    """
     if not url.startswith("https://"):
         return True
 
@@ -170,7 +205,21 @@ class SafeFireCrawlLoader(BaseLoader):
         self.params = params
 
     def lazy_load(self) -> Iterator[Document]:
-        """Load documents concurrently using FireCrawl."""
+        """Load documents concurrently using FireCrawl.
+
+        This method iterates over a list of web paths and attempts to load
+        documents from each URL using the FireCrawlLoader. If the loading
+        process encounters an error, it logs the exception and continues to the
+        next URL if the `continue_on_failure` flag is set. If not, it raises the
+        exception encountered.
+
+        Yields:
+            Document: An iterator that yields documents loaded from the
+            specified URLs.
+
+        Raises:
+            Exception: If an error occurs during the loading process and
+        """
         for url in self.web_paths:
             try:
                 self._safe_process_url_sync(url)
@@ -189,7 +238,19 @@ class SafeFireCrawlLoader(BaseLoader):
                 raise e
 
     async def alazy_load(self):
-        """Async version of lazy_load."""
+        """Asynchronously load documents from a list of web paths.
+
+        This method iterates over a list of URLs and processes each one using an
+        asynchronous loader. It handles exceptions that may occur during the
+        loading process, allowing for either continuation on failure or raising
+        the exception based on the configuration.
+
+        Yields:
+            Document: An asynchronously loaded document from the specified URL.
+
+        Raises:
+            Exception: If an error occurs during the loading process and
+        """
         for url in self.web_paths:
             try:
                 await self._safe_process_url(url)
@@ -212,7 +273,14 @@ class SafeFireCrawlLoader(BaseLoader):
         return verify_ssl_cert(url)
 
     async def _wait_for_rate_limit(self):
-        """Wait to respect the rate limit if specified."""
+        """Wait for the specified rate limit before making a request.
+
+        This function checks if a rate limit is set and if enough time has
+        passed since the last request. If the time since the last request is
+        less than the minimum interval required by the rate limit, it will pause
+        execution to ensure compliance with the rate limit. The last request
+        time is then updated to the current time.
+        """
         if self.requests_per_second and self.last_request_time:
             min_interval = timedelta(seconds=1.0 / self.requests_per_second)
             time_since_last = datetime.now() - self.last_request_time
@@ -221,7 +289,14 @@ class SafeFireCrawlLoader(BaseLoader):
         self.last_request_time = datetime.now()
 
     def _sync_wait_for_rate_limit(self):
-        """Synchronous version of rate limit wait."""
+        """Synchronously wait for the rate limit to be satisfied.
+
+        This method checks if the number of requests per second is defined and
+        if there was a previous request time. If the time since the last request
+        is less than the minimum interval allowed by the rate limit, it will
+        pause execution until the rate limit is satisfied. After waiting, it
+        updates the last request time.  Raises:     None
+        """
         if self.requests_per_second and self.last_request_time:
             min_interval = timedelta(seconds=1.0 / self.requests_per_second)
             time_since_last = datetime.now() - self.last_request_time
@@ -230,14 +305,44 @@ class SafeFireCrawlLoader(BaseLoader):
         self.last_request_time = datetime.now()
 
     async def _safe_process_url(self, url: str) -> bool:
-        """Perform safety checks before processing a URL."""
+        """Perform safety checks before processing a URL.
+
+        This function verifies the SSL certificate of the given URL if SSL
+        verification is enabled. If the SSL certificate verification fails, a
+        ValueError is raised. Additionally, it waits for the rate limit to
+        ensure that the processing adheres to any imposed limits.
+
+        Args:
+            url (str): The URL to be processed.
+
+        Returns:
+            bool: True if the URL passes all safety checks.
+
+        Raises:
+            ValueError: If SSL certificate verification fails for the given URL.
+        """
         if self.verify_ssl and not self._verify_ssl_cert(url):
             raise ValueError(f"SSL certificate verification failed for {url}")
         await self._wait_for_rate_limit()
         return True
 
     def _safe_process_url_sync(self, url: str) -> bool:
-        """Synchronous version of safety checks."""
+        """Perform synchronous safety checks on a given URL.
+
+        This method verifies the SSL certificate of the provided URL if SSL
+        verification is enabled. It also waits for the rate limit to be
+        satisfied before proceeding. If the SSL certificate verification fails,
+        a ValueError is raised.
+
+        Args:
+            url (str): The URL to be processed and checked for safety.
+
+        Returns:
+            bool: True if the safety checks are passed successfully.
+
+        Raises:
+            ValueError: If SSL certificate verification fails for the given URL.
+        """
         if self.verify_ssl and not self._verify_ssl_cert(url):
             raise ValueError(f"SSL certificate verification failed for {url}")
         self._sync_wait_for_rate_limit()
@@ -297,7 +402,24 @@ class SafePlaywrightURLLoader(PlaywrightURLLoader):
         self.trust_env = trust_env
 
     def lazy_load(self) -> Iterator[Document]:
-        """Safely load URLs synchronously with support for remote browser."""
+        """Safely load URLs synchronously with support for remote browser.
+
+        This method utilizes Playwright to load a list of URLs either through a
+        remote browser or a local browser, depending on the provided WebSocket
+        endpoint. It processes each URL, evaluates the page content, and yields
+        a Document object containing the page content and its metadata. If an
+        error occurs while loading a URL, it can either log the error and
+        continue to the next URL or raise the exception based on the
+        `continue_on_failure` attribute.
+
+        Yields:
+            Document: A Document object containing the page content and metadata
+            for each successfully loaded URL.
+
+        Raises:
+            ValueError: If `page.goto()` returns None for a URL.
+            Exception: If an error occurs while processing a URL and
+        """
         from playwright.sync_api import sync_playwright
 
         with sync_playwright() as p:
@@ -326,7 +448,23 @@ class SafePlaywrightURLLoader(PlaywrightURLLoader):
             browser.close()
 
     async def alazy_load(self) -> AsyncIterator[Document]:
-        """Safely load URLs asynchronously with support for remote browser."""
+        """Safely load URLs asynchronously with support for remote browser.
+
+        This method utilizes Playwright to load a list of URLs either through a
+        remote browser or a local browser, depending on the provided WebSocket
+        endpoint. It processes each URL, evaluates the page content, and yields
+        a Document object containing the page content and its metadata. If an
+        error occurs while processing a URL, it can either log the error and
+        continue to the next URL or raise the exception based on the
+        `continue_on_failure` attribute.
+
+        Yields:
+            AsyncIterator[Document]: An asynchronous iterator that yields
+            Document objects containing the page content and metadata.
+
+        Raises:
+            ValueError: If `page.goto()` returns None for a given URL.
+        """
         from playwright.async_api import async_playwright
 
         async with async_playwright() as p:
@@ -360,7 +498,14 @@ class SafePlaywrightURLLoader(PlaywrightURLLoader):
         return verify_ssl_cert(url)
 
     async def _wait_for_rate_limit(self):
-        """Wait to respect the rate limit if specified."""
+        """Wait for the specified rate limit before making a request.
+
+        This function checks if a rate limit is set and if enough time has
+        passed since the last request. If the time since the last request is
+        less than the minimum interval defined by the rate limit, it will pause
+        execution to ensure compliance with the rate limit. The last request
+        time is then updated to the current time.  Raises:     None
+        """
         if self.requests_per_second and self.last_request_time:
             min_interval = timedelta(seconds=1.0 / self.requests_per_second)
             time_since_last = datetime.now() - self.last_request_time
@@ -369,7 +514,14 @@ class SafePlaywrightURLLoader(PlaywrightURLLoader):
         self.last_request_time = datetime.now()
 
     def _sync_wait_for_rate_limit(self):
-        """Synchronous version of rate limit wait."""
+        """Synchronously wait for the rate limit to be respected.
+
+        This method checks if there is a defined rate limit (requests per
+        second) and the time of the last request. If the time since the last
+        request is less than the minimum interval allowed by the rate limit, it
+        will pause execution until the rate limit is satisfied. After waiting,
+        it updates the timestamp of the last request.  Raises:     None
+        """
         if self.requests_per_second and self.last_request_time:
             min_interval = timedelta(seconds=1.0 / self.requests_per_second)
             time_since_last = datetime.now() - self.last_request_time
@@ -378,14 +530,44 @@ class SafePlaywrightURLLoader(PlaywrightURLLoader):
         self.last_request_time = datetime.now()
 
     async def _safe_process_url(self, url: str) -> bool:
-        """Perform safety checks before processing a URL."""
+        """Perform safety checks before processing a URL.
+
+        This method verifies the SSL certificate of the provided URL if SSL
+        verification is enabled. If the SSL certificate is not valid, a
+        ValueError is raised. Additionally, it waits for the rate limit to be
+        satisfied before proceeding with the URL processing.
+
+        Args:
+            url (str): The URL to be processed.
+
+        Returns:
+            bool: True if the safety checks are passed and the URL can be processed.
+
+        Raises:
+            ValueError: If SSL certificate verification fails for the provided URL.
+        """
         if self.verify_ssl and not self._verify_ssl_cert(url):
             raise ValueError(f"SSL certificate verification failed for {url}")
         await self._wait_for_rate_limit()
         return True
 
     def _safe_process_url_sync(self, url: str) -> bool:
-        """Synchronous version of safety checks."""
+        """Perform synchronous safety checks on a given URL.
+
+        This method verifies the SSL certificate of the provided URL if SSL
+        verification is enabled. If the SSL certificate verification fails, a
+        ValueError is raised. Additionally, it ensures that the rate limit is
+        respected before proceeding.
+
+        Args:
+            url (str): The URL to be processed and checked for safety.
+
+        Returns:
+            bool: True if the safety checks are passed successfully.
+
+        Raises:
+            ValueError: If SSL certificate verification fails for the given URL.
+        """
         if self.verify_ssl and not self._verify_ssl_cert(url):
             raise ValueError(f"SSL certificate verification failed for {url}")
         self._sync_wait_for_rate_limit()
@@ -460,7 +642,17 @@ class SafeWebBaseLoader(WebBaseLoader):
         return self._unpack_fetch_results(results, urls, parser=parser)
 
     def lazy_load(self) -> Iterator[Document]:
-        """Lazy load text from the url(s) in web_path with error handling."""
+        """Lazy load text from the specified URLs with error handling.
+
+        This function iterates over a list of web paths, scraping each URL to
+        extract text content and associated metadata. If an error occurs during
+        the scraping process, it logs the error and continues to the next URL
+        without interrupting the loading process.
+
+        Yields:
+            Document: A Document object containing the scraped text and its metadata for each
+                URL.
+        """
         for path in self.web_paths:
             try:
                 soup = self._scrape(path, bs_kwargs=self.bs_kwargs)
@@ -507,6 +699,26 @@ def get_web_loader(
     requests_per_second: int = 2,
     trust_env: bool = False,
 ):
+    """Create a web loader for the specified URLs.
+
+    This function initializes a web loader based on the provided URLs and
+    configuration options. It validates the URLs, sets up the necessary
+    parameters for the web loader, and returns an instance of the
+    appropriate web loader class. The function supports both single URL
+    strings and sequences of URLs, and it allows customization of SSL
+    verification, request rate, and environment trust settings.
+
+    Args:
+        urls (Union[str, Sequence[str]]): A single URL or a list of URLs to be loaded.
+        verify_ssl (bool?): Flag to verify SSL certificates. Defaults to True.
+        requests_per_second (int?): The number of requests to be made per second. Defaults to 2.
+        trust_env (bool?): Flag to trust the environment variables for proxy settings. Defaults to
+            False.
+
+    Returns:
+        WebLoader: An instance of the web loader configured with the provided parameters.
+    """
+
     # Check if the URLs are valid
     safe_urls = safe_validate_urls([urls] if isinstance(urls, str) else urls)
 
