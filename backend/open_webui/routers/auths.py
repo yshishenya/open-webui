@@ -532,6 +532,28 @@ async def signup(request: Request, response: Response, form_data: SignupForm):
 
 @router.get("/signout")
 async def signout(request: Request, response: Response):
+    """Sign out a user by deleting authentication cookies and redirecting to
+    the OpenID provider.
+
+    This function handles the sign-out process for a user by deleting the
+    "token" and optionally the "oauth_id_token" cookies. If OAuth signup is
+    enabled, it attempts to retrieve the OpenID provider's logout URL and
+    redirects the user to that URL with the appropriate id token hint. If
+    any errors occur during this process, an HTTP exception is raised with
+    the relevant status code and detail.
+
+    Args:
+        request (Request): The HTTP request object containing user information and cookies.
+        response (Response): The HTTP response object used to modify cookies and return data.
+
+    Returns:
+        dict: A dictionary indicating the status of the sign-out operation.
+
+    Raises:
+        HTTPException: If there is an error fetching the OpenID configuration or during
+            the sign-out process.
+    """
+
     response.delete_cookie("token")
 
     if ENABLE_OAUTH_SIGNUP.value:
