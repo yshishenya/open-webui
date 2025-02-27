@@ -43,6 +43,15 @@ logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
 
 # Function to run the alembic migrations
 def run_migrations():
+    """Run the alembic migrations.
+
+    This function initializes the alembic configuration and executes the
+    migration commands to upgrade the database schema to the latest version.
+    It sets the script location for migrations dynamically based on the
+    predefined directory and logs the process. In case of any errors during
+    the migration process, it logs the exception details.
+    """
+
     log.info("Running migrations")
     try:
         from alembic import command
