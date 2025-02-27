@@ -60,6 +60,25 @@ class FolderTable:
     def insert_new_folder(
         self, user_id: str, name: str, parent_id: Optional[str] = None
     ) -> Optional[FolderModel]:
+        """Insert a new folder into the database.
+
+        This function creates a new folder with a unique ID and specified user
+        ID, name, and optional parent ID. It initializes the folder's creation
+        and update timestamps. The folder is then added to the database, and if
+        successful, the function returns a validated FolderModel instance
+        representing the newly created folder. If an error occurs during the
+        database operation, it logs the exception and returns None.
+
+        Args:
+            user_id (str): The ID of the user creating the folder.
+            name (str): The name of the folder to be created.
+            parent_id (Optional[str]): The ID of the parent folder, if any. Defaults to None.
+
+        Returns:
+            Optional[FolderModel]: A validated FolderModel instance of the newly created folder, or None if
+                the operation fails.
+        """
+
         with get_db() as db:
             id = str(uuid.uuid4())
             folder = FolderModel(

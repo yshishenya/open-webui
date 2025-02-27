@@ -96,6 +96,24 @@ class FeedbackTable:
     def insert_new_feedback(
         self, user_id: str, form_data: FeedbackForm
     ) -> Optional[FeedbackModel]:
+        """Insert new feedback into the database.
+
+        This function generates a new feedback entry using the provided user ID
+        and form data. It creates a unique identifier for the feedback,
+        populates the feedback model with the necessary data, and attempts to
+        insert it into the database. If successful, it returns the validated
+        feedback model. In case of any errors during the database operation, it
+        logs the exception and returns None.
+
+        Args:
+            user_id (str): The ID of the user providing the feedback.
+            form_data (FeedbackForm): The form data containing feedback details.
+
+        Returns:
+            Optional[FeedbackModel]: The validated feedback model if insertion is successful;
+            otherwise, None.
+        """
+
         with get_db() as db:
             id = str(uuid.uuid4())
             feedback = FeedbackModel(
