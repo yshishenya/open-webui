@@ -536,8 +536,26 @@ class ChatTable:
         skip: int = 0,
         limit: int = 60,
     ) -> list[ChatModel]:
-        """
-        Filters chats based on a search query using Python, allowing pagination using skip and limit.
+        """Retrieve chats filtered by user ID and search text with pagination.
+
+        This function allows users to filter their chats based on a search
+        query. It supports searching within chat titles and messages, as well as
+        filtering by tags. The function also includes pagination options through
+        the `skip` and `limit` parameters. If the search text is empty, it
+        retrieves the full list of chats for the specified user ID.
+
+        Args:
+            user_id (str): The ID of the user whose chats are to be retrieved.
+            search_text (str): The text to search for within the chat titles and messages.
+            include_archived (bool?): Whether to include archived chats. Defaults to False.
+            skip (int?): The number of records to skip for pagination. Defaults to 0.
+            limit (int?): The maximum number of records to return. Defaults to 60.
+
+        Returns:
+            list[ChatModel]: A list of ChatModel instances that match the search criteria.
+
+        Raises:
+            NotImplementedError: If the database dialect is not supported.
         """
         search_text = search_text.lower().strip()
 
@@ -731,6 +749,28 @@ class ChatTable:
     def get_chat_list_by_user_id_and_tag_name(
         self, user_id: str, tag_name: str, skip: int = 0, limit: int = 50
     ) -> list[ChatModel]:
+        """Retrieve a list of chat records filtered by user ID and tag name.
+
+        This function queries the database for chat records associated with a
+        specific user ID and filters the results based on a tag name. It
+        supports both SQLite and PostgreSQL databases, utilizing their
+        respective JSON querying capabilities to extract chats that contain the
+        specified tag in their metadata. The function also allows for pagination
+        through the `skip` and `limit` parameters.
+
+        Args:
+            user_id (str): The ID of the user whose chats are to be retrieved.
+            tag_name (str): The name of the tag used to filter the chats.
+            skip (int?): The number of records to skip for pagination. Defaults to 0.
+            limit (int?): The maximum number of records to return. Defaults to 50.
+
+        Returns:
+            list[ChatModel]: A list of ChatModel instances representing the filtered chat records.
+
+        Raises:
+            NotImplementedError: If the database dialect is not supported.
+        """
+
         with get_db() as db:
             query = db.query(Chat).filter_by(user_id=user_id)
             tag_id = tag_name.replace(" ", "_").lower()
@@ -783,6 +823,27 @@ class ChatTable:
             return None
 
     def count_chats_by_tag_name_and_user_id(self, tag_name: str, user_id: str) -> int:
+        """Count the number of chat records associated with a specific tag and
+        user.
+
+        This function queries the database to count the number of chat records
+        that match a given user ID and are not archived. It normalizes the tag
+        name by replacing spaces with underscores and converting it to
+        lowercase. The function supports both SQLite and PostgreSQL databases
+        for querying tags stored in a JSON field within the `meta` attribute of
+        the `Chat` model.
+
+        Args:
+            tag_name (str): The name of the tag to filter chat records by.
+            user_id (str): The ID of the user whose chat records are to be counted.
+
+        Returns:
+            int: The count of chat records that match the specified tag and user ID.
+
+        Raises:
+            NotImplementedError: If the database dialect is neither SQLite nor PostgreSQL.
+        """
+
         with get_db() as db:  # Assuming `get_db()` returns a session object
             query = db.query(Chat).filter_by(user_id=user_id, archived=False)
 
