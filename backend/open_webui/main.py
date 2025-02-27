@@ -396,6 +396,22 @@ https://github.com/open-webui/open-webui
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Manage the lifespan of the FastAPI application.
+
+    This function is responsible for initializing the application state when
+    the FastAPI app starts. It sets up logging, resets the configuration if
+    required, retrieves license data if a license key is present, and
+    initiates a periodic task for cleaning up usage data. The function
+    yields control back to the FastAPI framework after performing these
+    initializations.
+
+    Args:
+        app (FastAPI): The FastAPI application instance.
+
+    Yields:
+        None: This function yields control back to the FastAPI framework.
+    """
+
     start_logger()
     if RESET_CONFIG_ON_START:
         reset_config()
@@ -920,6 +936,25 @@ if audit_level != AuditLevel.NONE:
 
 @app.get("/api/models")
 async def get_models(request: Request, user=Depends(get_verified_user)):
+    """Retrieve a list of models accessible to a user.
+
+    This function fetches all models and filters them based on the user's
+    access rights. It first retrieves all models and removes any models that
+    are part of a filter pipeline. Then, it sorts the models according to a
+    predefined order list, if available. Finally, it filters out models that
+    the user does not have permission to access, returning only the models
+    the user is allowed to view.
+
+    Args:
+        request (Request): The HTTP request object containing user context.
+        user (Depends): The verified user object, defaulting to the result of
+            `get_verified_user`.
+
+    Returns:
+        dict: A dictionary containing a list of accessible models under the key
+            "data".
+    """
+
     def get_filtered_models(models, user):
         filtered_models = []
         for model in models:
@@ -972,6 +1007,20 @@ async def get_models(request: Request, user=Depends(get_verified_user)):
 
 @app.get("/api/models/base")
 async def get_base_models(request: Request, user=Depends(get_admin_user)):
+    """Retrieve base models for a given request.
+
+    This function fetches all base models associated with the provided
+    request and user. It utilizes the `get_all_base_models` function to
+    obtain the models and returns them in a structured format.
+
+    Args:
+        request (Request): The request object containing the necessary context.
+        user (Depends): The user dependency, defaulting to an admin user.
+
+    Returns:
+        dict: A dictionary containing the base models under the key "data".
+    """
+
     models = await get_all_base_models(request, user=user)
     return {"data": models}
 
@@ -982,6 +1031,29 @@ async def chat_completion(
     form_data: dict,
     user=Depends(get_verified_user),
 ):
+    """Handle chat completion requests and process chat payloads.
+
+    This function is responsible for managing chat completion requests by
+    verifying the user, checking model access, and processing the chat
+    payload. It retrieves the necessary model information based on the
+    provided form data and ensures that the user has the appropriate
+    permissions to access the specified model. The function also prepares
+    metadata for the chat session and invokes the appropriate chat
+    completion handler to generate a response.
+
+    Args:
+        request (Request): The request object containing application state and user context.
+        form_data (dict): A dictionary containing form data for processing the chat request.
+        user: The verified user object, obtained through dependency injection.
+
+    Returns:
+        Any: The processed chat response after handling the completion request.
+
+    Raises:
+        HTTPException: If there is an error processing the chat payload or if the model is not
+            found.
+    """
+
     if not request.app.state.MODELS:
         await get_all_models(request, user=user)
 
@@ -1126,6 +1198,28 @@ async def list_tasks_endpoint(user=Depends(get_verified_user)):
 
 @app.get("/api/config")
 async def get_app_config(request: Request):
+    """Get the application configuration based on the request.
+
+    This function retrieves the application configuration, including user
+    onboarding status, application name, version, and various feature flags.
+    It checks for a token in the request cookies to identify the user. If
+    the token is valid, it fetches user details; otherwise, it determines if
+    the application is in onboarding mode based on the number of users. The
+    returned configuration includes settings for authentication, integration
+    options, and other application features.
+
+    Args:
+        request (Request): The HTTP request object containing cookies.
+
+    Returns:
+        dict: A dictionary containing the application configuration,
+            including onboarding status, application name, version,
+            and feature flags.
+
+    Raises:
+        HTTPException: If the token is invalid or cannot be decoded.
+    """
+
     user = None
     if "token" in request.cookies:
         token = request.cookies.get("token")
