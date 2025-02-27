@@ -84,6 +84,25 @@ class FunctionsTable:
     def insert_new_function(
         self, user_id: str, type: str, form_data: FunctionForm
     ) -> Optional[FunctionModel]:
+        """Insert a new function into the database.
+
+        This method creates a new function entry using the provided user ID,
+        type, and form data. It constructs a FunctionModel instance with the
+        necessary attributes, including timestamps for creation and updates. The
+        function is then added to the database, and if successful, the validated
+        model of the newly created function is returned. If any error occurs
+        during the database operation, it logs the exception and returns None.
+
+        Args:
+            user_id (str): The ID of the user creating the function.
+            type (str): The type of the function being created.
+            form_data (FunctionForm): The form data containing the function's attributes.
+
+        Returns:
+            Optional[FunctionModel]: The validated model of the newly created function, or None if
+            the operation fails.
+        """
+
         function = FunctionModel(
             **{
                 **form_data.model_dump(),
@@ -165,6 +184,21 @@ class FunctionsTable:
             ]
 
     def get_function_valves_by_id(self, id: str) -> Optional[dict]:
+        """Retrieve the valves associated with a function by its ID.
+
+        This method queries the database for a function using the provided ID.
+        If the function is found, it returns its associated valves. If no valves
+        are found, it returns an empty dictionary. In case of any exceptions
+        during the database operation, it logs the error and returns None.
+
+        Args:
+            id (str): The unique identifier of the function.
+
+        Returns:
+            Optional[dict]: A dictionary of valves associated with the function,
+            or None if an error occurs during retrieval.
+        """
+
         with get_db() as db:
             try:
                 function = db.get(Function, id)
@@ -190,6 +224,24 @@ class FunctionsTable:
     def get_user_valves_by_id_and_user_id(
         self, id: str, user_id: str
     ) -> Optional[dict]:
+        """Retrieve user valve settings by valve ID and user ID.
+
+        This function fetches the valve settings for a specific user identified
+        by their user ID and a valve ID. It first retrieves the user object and
+        checks if the user has any settings related to functions and valves. If
+        these settings do not exist, it initializes them accordingly. Finally,
+        it returns the valve settings associated with the provided valve ID.
+
+        Args:
+            id (str): The ID of the valve to retrieve settings for.
+            user_id (str): The ID of the user whose valve settings are being retrieved.
+
+        Returns:
+            Optional[dict]: A dictionary containing the valve settings if found,
+            or an empty dictionary if no settings exist for the given valve ID.
+            Returns None if an error occurs during the retrieval process.
+        """
+
         try:
             user = Users.get_user_by_id(user_id)
             user_settings = user.settings.model_dump() if user.settings else {}
@@ -210,6 +262,25 @@ class FunctionsTable:
     def update_user_valves_by_id_and_user_id(
         self, id: str, user_id: str, valves: dict
     ) -> Optional[dict]:
+        """Update the valves settings for a user by their user ID and valve ID.
+
+        This function retrieves the user settings from the database using the
+        provided user ID. It checks if the user has existing "functions" and
+        "valves" settings, and if not, initializes them. The specified valves
+        are then updated in the user's settings, and the updated settings are
+        saved back to the database. If successful, the function returns the
+        updated valves settings.
+
+        Args:
+            id (str): The ID of the valve to be updated.
+            user_id (str): The ID of the user whose valve settings are to be updated.
+            valves (dict): A dictionary containing the new valve settings.
+
+        Returns:
+            Optional[dict]: The updated valve settings if the operation is successful,
+                or None if an error occurs during the update process.
+        """
+
         try:
             user = Users.get_user_by_id(user_id)
             user_settings = user.settings.model_dump() if user.settings else {}
