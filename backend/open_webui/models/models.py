@@ -146,6 +146,24 @@ class ModelsTable:
     def insert_new_model(
         self, form_data: ModelForm, user_id: str
     ) -> Optional[ModelModel]:
+        """Insert a new model into the database.
+
+        This function takes form data and a user ID to create a new model
+        instance. It populates the model with the provided data, including
+        timestamps for creation and updates. The function attempts to add the
+        model to the database and commits the transaction. If successful, it
+        returns a validated model instance; otherwise, it logs an exception and
+        returns None.
+
+        Args:
+            form_data (ModelForm): The form data containing model attributes.
+            user_id (str): The ID of the user creating the model.
+
+        Returns:
+            Optional[ModelModel]: The validated model instance if insertion is successful;
+                otherwise, None.
+        """
+
         model = ModelModel(
             **{
                 **form_data.model_dump(),
@@ -232,6 +250,25 @@ class ModelsTable:
                 return None
 
     def update_model_by_id(self, id: str, model: ModelForm) -> Optional[ModelModel]:
+        """Update a model instance in the database by its ID.
+
+        This function attempts to update a model instance in the database using
+        the provided ID and the data from the given model. It filters the
+        database query by the specified ID and updates only the fields present
+        in the model, excluding the ID itself. After committing the changes, it
+        retrieves the updated model instance and refreshes it to ensure that all
+        fields are up-to-date. The function returns a validated model instance
+        if the update is successful; otherwise, it logs an exception and returns
+        None.
+
+        Args:
+            id (str): The ID of the model instance to be updated.
+            model (ModelForm): An instance of ModelForm containing the new data for the model.
+
+        Returns:
+            Optional[ModelModel]: The updated model instance if successful, or None if an error occurs.
+        """
+
         try:
             with get_db() as db:
                 # update only the fields that are present in the model

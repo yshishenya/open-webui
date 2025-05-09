@@ -67,6 +67,25 @@ def get_function_module_by_id(request: Request, pipe_id: str):
 
 
 async def get_function_models(request):
+    """Retrieve models of functions categorized as pipes.
+
+    This function fetches all active functions of type "pipe" and checks if
+    each function is a manifold (i.e., it has sub-pipes). If a function is a
+    manifold, it attempts to retrieve its sub-pipes, handling both
+    synchronous and asynchronous cases. The resulting models are structured
+    in a dictionary format that includes details such as the function ID,
+    name, creation date, and ownership.
+
+    Args:
+        request: The request object containing necessary context for
+            retrieving function models.
+
+    Returns:
+        list: A list of dictionaries representing the models of the
+            functions categorized as pipes, including their
+            respective details.
+    """
+
     pipes = Functions.get_functions_by_type("pipe", active_only=True)
     pipe_models = []
 
