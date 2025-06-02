@@ -77,8 +77,17 @@ from pydub.utils import mediainfo
 
 
 def is_audio_conversion_required(file_path):
-    """
-    Check if the given audio file needs conversion to mp3.
+    """Checks if the given audio file needs conversion to MP3.
+    
+    This function determines whether an audio file should be converted to MP3 based
+    on its codec and format. It first checks if the file exists. Then, it retrieves
+    media information using `mediainfo`. If the file's codec is AAC/mp4a, it
+    recommends conversion. If the codec name is in the supported formats (FLAC,
+    M4A, MP3, MP4, MPEG, WAV, WEBM), no conversion is needed. Any exceptions during
+    the process result in an error log and return False.
+    
+    Args:
+        file_path (str): The path to the audio file to be checked.
     """
     SUPPORTED_FORMATS = {"flac", "m4a", "mp3", "mp4", "mpeg", "wav", "webm"}
 
