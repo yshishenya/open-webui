@@ -403,6 +403,7 @@ def get_embedding_function(
     embedding_batch_size,
     azure_api_version=None,
 ):
+    """Returns an embedding function based on the specified engine and model."""
     if embedding_engine == "":
         return lambda query, prefix=None, user=None: embedding_function.encode(
             query, **({"prompt": prefix} if prefix else {})
@@ -709,6 +710,28 @@ def generate_azure_openai_batch_embeddings(
     prefix: str = None,
     user: UserModel = None,
 ) -> Optional[list[list[float]]]:
+    """Generate Azure OpenAI batch embeddings.
+    
+    This function sends a batch of text inputs to an Azure OpenAI endpoint to
+    obtain their embeddings. It handles retries for rate limiting and logs debug
+    information about the request and response.
+    
+    Args:
+        model (str): The name of the deployment model.
+        texts (list[str]): A list of text strings to be embedded.
+        url (str): The base URL of the Azure OpenAI API.
+        key (str?): The API key for authentication. Defaults to an empty string.
+        version (str?): The API version to use. Defaults to an empty string.
+        prefix (str?): A prefix field to include in the request data if provided. Defaults to None.
+        user (UserModel?): User information to be included in headers if ENABLE_FORWARD_USER_INFO_HEADERS
+            is True and a user object is provided. Defaults to None.
+    
+    Returns:
+        Optional[list[list[float]]]: A list of embeddings as lists of floats, or None if an error occurs.
+    
+    Raises:
+        Exception: If the response does not contain the expected "data" field.
+    """
     try:
         log.debug(
             f"generate_azure_openai_batch_embeddings:deployment {model} batch size: {len(texts)}"
@@ -762,6 +785,26 @@ def generate_ollama_batch_embeddings(
     prefix: str = None,
     user: UserModel = None,
 ) -> Optional[list[list[float]]]:
+    """Generates embeddings for a batch of text inputs using the Ollama API.
+    
+    This function sends a POST request to the specified URL with the provided texts
+    and model. It includes optional headers for user information if enabled. The
+    function handles authentication via a bearer token and processes the response
+    to extract embeddings. If an error occurs during the process, it logs the
+    exception and returns None.
+    
+    Args:
+        model (str): The model to use for generating embeddings.
+        texts (list[str]): A list of text inputs to generate embeddings for.
+        url (str): The base URL of the Ollama API.
+        key (str?): The API key for authentication. Defaults to an empty string.
+        prefix (str?): An optional prefix field to include in the request. Defaults to None.
+        user (UserModel?): User information to forward with the request if headers are enabled. Defaults
+            to None.
+    
+    Returns:
+        Optional[list[list[float]]]: A list of embeddings or None if an error occurs.
+    """
     try:
         log.debug(
             f"generate_ollama_batch_embeddings:model {model} batch size: {len(texts)}"
@@ -807,6 +850,28 @@ def generate_embeddings(
     prefix: Union[str, None] = None,
     **kwargs,
 ):
+    """Generates embeddings for the given text using the specified engine and model.
+    
+    This function first retrieves optional parameters such as `url`, `key`, and
+    `user` from the `kwargs`. If a `prefix` is provided and
+    `RAG_EMBEDDING_PREFIX_FIELD_NAME` is not `None`, it prefixes each text element
+    with the given prefix. Depending on the specified engine (`ollama`, `openai`,
+    or `azure_openai`), it calls the corresponding batch embedding function. The
+    function returns a single embedding if the input text is a string, otherwise it
+    returns a list of embeddings.
+    
+    Args:
+        engine (str): The engine to use for generating embeddings ('ollama', 'openai',
+            'azure_openai').
+        model (str): The model to use for generating embeddings.
+        text (Union[str, list[str]]): The input text or list of texts to generate embeddings for.
+        prefix (Union[str, None]?): A prefix to add to each text element. Defaults to None.
+        **kwargs: Additional keyword arguments that may include 'url', 'key', 'user', and
+            'azure_api_version'.
+    
+    Returns:
+        Union[float, list[float]]: The generated embedding(s) as a float or a list of floats.
+    """
     url = kwargs.get("url", "")
     key = kwargs.get("key", "")
     user = kwargs.get("user")
