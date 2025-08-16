@@ -1265,6 +1265,19 @@ if audit_level != AuditLevel.NONE:
 async def get_models(
     request: Request, refresh: bool = False, user=Depends(get_verified_user)
 ):
+    """Retrieves and filters a list of models based on user access control.
+    
+    This function handles requests to the /api/models and /api/v1/models endpoints.
+    It fetches all models, processes their tags, sorts them according to a
+    predefined order, and filters out models that the user does not have access to.
+    The function supports refreshing model data and includes experimental
+    compatibility with the OpenAI API.
+    
+    Args:
+        request (Request): The incoming HTTP request object.
+        refresh (bool): A flag indicating whether to refresh the model data. Defaults to False.
+        user: The authenticated user object, obtained from dependency injection.
+    """
     def get_filtered_models(models, user):
         filtered_models = []
         for model in models:
@@ -1346,22 +1359,8 @@ async def get_base_models(request: Request, user=Depends(get_admin_user)):
 async def embeddings(
     request: Request, form_data: dict, user=Depends(get_verified_user)
 ):
-    """
-    OpenAI-compatible embeddings endpoint.
-
-    This handler:
-      - Performs user/model checks and dispatches to the correct backend.
-      - Supports OpenAI, Ollama, arena models, pipelines, and any compatible provider.
-
-    Args:
-        request (Request): Request context.
-        form_data (dict): OpenAI-like payload (e.g., {"model": "...", "input": [...]})
-        user (UserModel): Authenticated user.
-
-    Returns:
-        dict: OpenAI-compatible embeddings response.
-    """
     # Make sure models are loaded in app state
+    """Generates embeddings using OpenAI-compatible API."""
     if not request.app.state.MODELS:
         await get_all_models(request, user=user)
     # Use generic dispatcher in utils.embeddings
@@ -1375,6 +1374,20 @@ async def chat_completion(
     form_data: dict,
     user=Depends(get_verified_user),
 ):
+    """Handle chat completion requests.
+    
+    This endpoint processes chat completion requests, including model validation,
+    access control, and payload processing. It handles both direct and indirect
+    model usage, and manages metadata and error handling throughout the process.
+    
+    Args:
+        request (Request): The incoming HTTP request.
+        form_data (dict): Form data containing user inputs and parameters.
+        user (Depends(get_verified_user)): The authenticated user.
+    
+    Raises:
+        HTTPException: If model is not found, user lacks access, or processing fails.
+    """
     if not request.app.state.MODELS:
         await get_all_models(request, user=user)
 
