@@ -1042,6 +1042,23 @@ async def process_chat_payload(request, form_data, user, metadata, model):
 async def process_chat_response(
     request, response, form_data, user, metadata, model, events, tasks
 ):
+    """Handles the chat response by processing streaming data and executing necessary
+    tasks.
+    
+    Args:
+        request (Request): The incoming HTTP request object.
+        response (Response): The response object containing the streaming data.
+        user (User): The user associated with the request.
+        metadata (dict): Metadata related to the chat session.
+        form_data (dict): Form data sent with the request.
+        events (list): List of events to be processed during the response handling.
+        filter_functions (list): Functions to filter and process the incoming data.
+        extra_params (dict): Additional parameters for processing the data.
+    
+    Returns:
+        dict: A dictionary containing the status and task ID if a background task is created.
+            Otherwise, returns a StreamingResponse object with the processed data.
+    """
     async def background_tasks_handler():
         message_map = Chats.get_messages_by_chat_id(metadata["chat_id"])
         message = message_map.get(metadata["message_id"]) if message_map else None
