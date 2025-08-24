@@ -468,6 +468,15 @@ def load_url_image_data(url, headers=None):
 
 
 def upload_image(request, image_data, content_type, metadata, user):
+    """Uploads an image and returns its URL.
+    
+    Args:
+        request: The request object.
+        image_data: The binary data of the image.
+        content_type: The MIME type of the image.
+        metadata: Additional metadata for the image.
+        user: The user uploading the image.
+    """
     image_format = mimetypes.guess_extension(content_type)
     file = UploadFile(
         file=io.BytesIO(image_data),
