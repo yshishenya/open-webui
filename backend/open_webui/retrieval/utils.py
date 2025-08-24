@@ -950,6 +950,39 @@ class RerankCompressor(BaseDocumentCompressor):
         query: str,
         callbacks: Optional[Callbacks] = None,
     ) -> Sequence[Document]:
+        """Compress a list of documents based on a query and optional reranking.
+        
+        This function evaluates the relevance of each document in relation to the
+        provided query. It utilizes either a reranking function or computes cosine
+        similarity between the query and document embeddings. The documents are then
+        filtered and sorted based on their scores, with the top results returned. If no
+        valid scores are found, the original documents are returned.
+        
+        Args:
+            documents (Sequence[Document]): A sequence of Document objects to be compressed.
+            query (str): The query string used for evaluating document relevance.
+            callbacks (Optional[Callbacks]?): Optional callbacks for additional processing.
+        
+        Returns:
+            Sequence[Document]: A sequence of Document objects, potentially filtered and sorted by relevance.
+        """
+        """Compress a list of documents based on a query and optional reranking.
+        
+        This function evaluates the relevance of each document in relation to the
+        provided query. It can utilize a reranking function if available; otherwise, it
+        computes cosine similarity between the query and document embeddings. The
+        documents are then filtered based on a score threshold and sorted by their
+        relevance scores, returning the top N results with updated metadata.
+        
+        Args:
+            documents (Sequence[Document]): A sequence of Document objects to be compressed.
+            query (str): The query string used for evaluating document relevance.
+            callbacks (Optional[Callbacks]?): Optional callbacks for additional processing.
+        
+        Returns:
+            Sequence[Document]: A sequence of Document objects that are ranked based on their relevance to the
+                query.
+        """
         reranking = self.reranking_function is not None
 
         scores = None
