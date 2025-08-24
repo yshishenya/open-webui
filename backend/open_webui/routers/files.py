@@ -145,6 +145,7 @@ def upload_file(
     process: bool = Query(True),
     user=Depends(get_verified_user),
 ):
+    """Uploads a file and processes it in the background."""
     return upload_file_handler(request, file, metadata, process, user, background_tasks)
 
 
@@ -156,6 +157,29 @@ def upload_file_handler(
     user=Depends(get_verified_user),
     background_tasks: Optional[BackgroundTasks] = None,
 ):
+    """Handle the upload of a file and associated metadata.
+    
+    This function processes a file upload request, validates the file type against
+    allowed extensions,  and stores the file along with its metadata. If processing
+    is enabled, it may also schedule  background tasks to handle the uploaded file.
+    The function raises HTTP exceptions for various  error conditions, including
+    invalid metadata format and disallowed file types.
+    
+    Args:
+        request (Request): The HTTP request object.
+        file (UploadFile): The file to be uploaded.
+        metadata (Optional[dict | str]): Additional metadata for the file, can be a JSON string.
+        process (bool): Flag indicating whether to process the file in the background.
+        user: The verified user making the request.
+        background_tasks (Optional[BackgroundTasks]): Background tasks manager for scheduling tasks.
+    
+    Returns:
+        dict: A dictionary containing the status and file item details if successful.
+    
+    Raises:
+        HTTPException: If the metadata format is invalid, the file type is not allowed, or an error
+            occurs during the upload process.
+    """
     log.info(f"file.content_type: {file.content_type}")
 
     if isinstance(metadata, str):
