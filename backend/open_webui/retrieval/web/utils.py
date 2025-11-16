@@ -218,7 +218,15 @@ class SafeFireCrawlLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
         self.params = params or {}
 
     def lazy_load(self) -> Iterator[Document]:
-        """Load documents using FireCrawl batch_scrape."""
+        """Load documents using FireCrawl batch scrape.
+        
+        This function initiates a batch scrape of URLs using the FireCrawl  service. It
+        logs the start of the scraping process and attempts to  scrape the provided
+        web_paths. If the scrape is not completed  successfully, it raises a
+        RuntimeError. The function yields  Document objects containing the scraped
+        content and associated  metadata. Error handling is included to manage
+        exceptions based on  the continue_on_failure flag.
+        """
         log.debug(
             "Starting FireCrawl batch scrape for %d URLs, mode: %s, params: %s",
             len(self.web_paths),
@@ -259,7 +267,18 @@ class SafeFireCrawlLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
                 raise e
 
     async def alazy_load(self):
-        """Async version of lazy_load."""
+        """Async version of lazy_load.
+        
+        This function initiates a batch scrape using the FirecrawlApp for a list of
+        URLs  specified in self.web_paths. It logs the start of the scraping process
+        and handles  potential errors based on the self.continue_on_failure flag. The
+        results are yielded  as Document objects containing the scraped content and
+        associated metadata. If the  scraping does not complete successfully, a
+        RuntimeError is raised.
+        
+        Args:
+            self: The instance of the class containing the method.
+        """
         log.debug(
             "Starting FireCrawl batch scrape for %d URLs, mode: %s, params: %s",
             len(self.web_paths),
