@@ -1531,6 +1531,28 @@ async def process_chat_payload(request, form_data, user, metadata, model):
 async def process_chat_response(
     request, response, form_data, user, metadata, model, events, tasks
 ):
+    """Process a chat response asynchronously.
+    
+    This function handles the processing of chat responses, including managing
+    background tasks, generating follow-ups, titles, and tags based on the provided
+    metadata and user input. It interacts with various services to retrieve
+    messages, update chat information, and emit events for real-time updates. The
+    function also supports streaming responses and handles tool calls, ensuring
+    that the chat experience is dynamic and responsive.
+    
+    Args:
+        request: The HTTP request object.
+        response: The response object to be modified.
+        form_data: The form data containing user messages and other parameters.
+        user: The user object representing the current user.
+        metadata: Metadata related to the chat session, including chat and message IDs.
+        model: The model used for generating responses.
+        events: A list of events to be processed during the response.
+        tasks: A list of tasks to be executed during the processing.
+    
+    Returns:
+        The modified response object after processing.
+    """
     async def background_tasks_handler():
         message = None
         messages = []
@@ -1970,6 +1992,22 @@ async def process_chat_response(
 
         # Handle as a background task
         async def response_handler(response, events):
+            """Handle responses and events in an asynchronous chat environment.
+            
+            This function processes incoming responses and events, managing content blocks
+            and tool calls. It serializes content, handles reasoning and code interpreter
+            blocks, and emits events for chat completions. The function also manages
+            background tasks and saves messages to the database, ensuring that all
+            interactions are properly logged and handled.
+            
+            Args:
+                response (Response): The response object containing data to be processed.
+                events (list): A list of events to be handled during the response processing.
+            
+            
+            Raises:
+                Exception: If an error occurs during processing or event handling.
+            """
             def serialize_content_blocks(content_blocks, raw=False):
                 content = ""
 
