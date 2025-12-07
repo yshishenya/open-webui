@@ -22,6 +22,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # New columns to be added to channel_member table
+    """Add new columns to the channel_member and message tables."""
     op.add_column("channel_member", sa.Column("status", sa.Text(), nullable=True))
     op.add_column(
         "channel_member",
@@ -89,6 +90,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Remove specific columns from the channel_member and message tables."""
     op.drop_column("channel_member", "updated_at")
     op.drop_column("channel_member", "last_read_at")
 
