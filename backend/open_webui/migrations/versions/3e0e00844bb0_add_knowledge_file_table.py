@@ -25,6 +25,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    """Create the knowledge_file table and migrate data from knowledge.
+    
+    This function creates a new table named "knowledge_file" with various columns
+    and constraints. It then retrieves existing records from the "knowledge" table,
+    processes the JSON data in the user_ids column, and inserts relevant entries
+    into the "knowledge_file" table. Finally, it drops the "data" column from the
+    "knowledge" table to complete the migration process.
+    """
     op.create_table(
         "knowledge_file",
         sa.Column("id", sa.Text(), primary_key=True),

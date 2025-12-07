@@ -1521,6 +1521,27 @@ async def chat_completion(
     form_data: dict,
     user=Depends(get_verified_user),
 ):
+    """Handle chat completion requests and process chat interactions.
+    
+    This function manages the chat completion process by verifying the user's
+    access to the specified model,  gathering necessary metadata, and processing
+    the chat payload. It handles both direct model interactions  and standard chat
+    requests, ensuring that all relevant parameters are set and that any errors
+    during  processing are logged and managed appropriately.
+    
+    Args:
+        request (Request): The incoming request object.
+        form_data (dict): The data submitted with the request, including model and chat parameters.
+        user: The verified user making the request.
+    
+    Returns:
+        dict: A response indicating the status of the chat processing, including a task ID if
+            applicable.
+    
+    Raises:
+        HTTPException: If there are issues with model access, chat metadata processing, or other
+            errors.
+    """
     if not request.app.state.MODELS:
         await get_all_models(request, user=user)
 
@@ -1620,6 +1641,28 @@ async def chat_completion(
         )
 
     async def process_chat(request, form_data, user, metadata, model):
+        """Process chat requests and handle chat-related events.
+        
+        This asynchronous function processes incoming chat requests by first handling
+        the chat payload and then managing the chat completion response. It updates
+        chat messages in the database if applicable and emits events for task
+        cancellation or errors. The function also ensures proper cleanup of connected
+        clients in the metadata.
+        
+        Args:
+            request: The incoming request object.
+            form_data: The data submitted with the form.
+            user: The user associated with the chat.
+            metadata: Metadata related to the chat session.
+            model: The model used for chat completion.
+        
+        Returns:
+            The processed chat response.
+        
+        Raises:
+            asyncio.CancelledError: If the chat processing is cancelled.
+            Exception: For any other errors encountered during processing.
+        """
         try:
             form_data, metadata, events = await process_chat_payload(
                 request, form_data, user, metadata, model
@@ -1791,6 +1834,24 @@ async def list_tasks_by_chat_id_endpoint(
 
 @app.get("/api/config")
 async def get_app_config(request: Request):
+    """Retrieve the application configuration and user status.
+    
+    This asynchronous function processes the incoming request to extract the user's
+    authentication token from the headers or cookies. It decodes the token to
+    retrieve user information and checks the number of users to determine if
+    onboarding is required. The function then constructs a comprehensive
+    configuration response, including application features, user permissions, and
+    integration settings based on the user's role and the application's state.
+    
+    Args:
+        request (Request): The incoming HTTP request containing headers and cookies.
+    
+    Returns:
+        dict: A dictionary containing the application configuration and user status.
+    
+    Raises:
+        HTTPException: If the token is invalid or unauthorized.
+    """
     user = None
     token = None
 

@@ -21,6 +21,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # Ensure 'id' column in 'user' table is unique and primary key (ForeignKey constraint)
+    """Upgrade the database schema for user and oauth_session tables.
+    
+    This function ensures that the 'id' column in the 'user' table is unique and
+    set as the primary key.  It checks the current constraints and modifies them as
+    necessary. Additionally, it creates the  'oauth_session' table with appropriate
+    columns and constraints, including foreign key relationships  and indexes for
+    improved query performance.
+    """
     inspector = sa.inspect(op.get_bind())
     columns = inspector.get_columns("user")
 
