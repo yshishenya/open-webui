@@ -36,13 +36,13 @@
     <circle cx="100" cy="100" r="4" fill="#ffffff"/>
   </g>
 
-  <!-- Subtle brand mark -->
-  <text x="100" y="175"
+  <!-- Brand mark -->
+  <text x="100" y="185"
         font-family="system-ui, -apple-system, sans-serif"
-        font-size="16"
-        font-weight="600"
+        font-size="20"
+        font-weight="700"
         fill="#ffffff"
-        fill-opacity="0.7"
+        fill-opacity="0.95"
         text-anchor="middle"
-        letter-spacing="2">AIris</text>
+        letter-spacing="1.5">AIris</text>
 </svg>
