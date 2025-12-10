@@ -76,6 +76,7 @@ from open_webui.routers import (
     pipelines,
     tasks,
     auths,
+    billing,
     channels,
     chats,
     notes,
@@ -598,6 +599,30 @@ async def lifespan(app: FastAPI):
         limiter.total_tokens = THREAD_POOL_SIZE
 
     asyncio.create_task(periodic_usage_pool_cleanup())
+
+    # Initialize YooKassa billing client if configured
+    from open_webui.env import (
+        YOOKASSA_SHOP_ID,
+        YOOKASSA_SECRET_KEY,
+        YOOKASSA_WEBHOOK_SECRET,
+        YOOKASSA_API_URL,
+    )
+
+    if YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY:
+        from open_webui.utils.yookassa import YooKassaConfig, init_yookassa
+
+        yookassa_config = YooKassaConfig(
+            shop_id=YOOKASSA_SHOP_ID,
+            secret_key=YOOKASSA_SECRET_KEY,
+            webhook_secret=YOOKASSA_WEBHOOK_SECRET if YOOKASSA_WEBHOOK_SECRET else None,
+            api_url=YOOKASSA_API_URL,
+        )
+        init_yookassa(yookassa_config)
+        log.info("YooKassa billing client initialized")
+    else:
+        log.info(
+            "YooKassa billing not configured (set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY to enable)"
+        )
 
     if app.state.config.ENABLE_BASE_MODELS_CACHE:
         await get_all_models(
@@ -1378,6 +1403,7 @@ app.include_router(configs.router, prefix="/api/v1/configs", tags=["configs"])
 app.include_router(auths.router, prefix="/api/v1/auths", tags=["auths"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 
+app.include_router(billing.router, prefix="/api/v1/billing", tags=["billing"])
 
 app.include_router(channels.router, prefix="/api/v1/channels", tags=["channels"])
 app.include_router(chats.router, prefix="/api/v1/chats", tags=["chats"])
