@@ -46,6 +46,12 @@ from open_webui.utils.misc import (
     convert_logit_bias_input_to_json,
     stream_chunks_handler,
 )
+from open_webui.utils.billing_integration import (
+    check_and_enforce_quota,
+    track_non_streaming_response,
+    track_streaming_response,
+    estimate_tokens_from_messages,
+)
 
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.access_control import has_access
@@ -808,6 +814,10 @@ async def generate_chat_completion(
     payload = {**form_data}
     metadata = payload.pop("metadata", None)
 
+    # Extract billing context
+    chat_id = metadata.get("chat_id") if metadata else None
+    message_id = metadata.get("message_id") if metadata else None
+
     model_id = form_data.get("model")
     model_info = Models.get_model_by_id(model_id)
 
@@ -843,6 +853,21 @@ async def generate_chat_completion(
                 status_code=403,
                 detail="Model not found",
             )
+
+    # Billing: Check quota before making API request
+    try:
+        estimated_tokens = estimate_tokens_from_messages(payload.get("messages", []))
+        await check_and_enforce_quota(
+            user_id=user.id,
+            model_id=model_id,
+            estimated_input_tokens=estimated_tokens,
+        )
+    except HTTPException:
+        # Re-raise quota exceeded errors
+        raise
+    except Exception as e:
+        # Log but don't block if billing check fails
+        log.error(f"Billing quota check error: {e}")
 
     await get_all_models(request, user=user)
     model = request.app.state.OPENAI_MODELS.get(model_id)
@@ -938,8 +963,15 @@ async def generate_chat_completion(
         # Check if response is SSE
         if "text/event-stream" in r.headers.get("Content-Type", ""):
             streaming = True
+            # Wrap streaming response for usage tracking
             return StreamingResponse(
-                stream_chunks_handler(r.content),
+                track_streaming_response(
+                    stream_chunks_handler(r.content),
+                    user_id=user.id,
+                    model_id=model_id,
+                    chat_id=chat_id,
+                    message_id=message_id,
+                ),
                 status_code=r.status,
                 headers=dict(r.headers),
                 background=BackgroundTask(
@@ -958,6 +990,15 @@ async def generate_chat_completion(
                     return JSONResponse(status_code=r.status, content=response)
                 else:
                     return PlainTextResponse(status_code=r.status, content=response)
+
+            # Track usage for successful non-streaming response
+            response = await track_non_streaming_response(
+                response,
+                user_id=user.id,
+                model_id=model_id,
+                chat_id=chat_id,
+                message_id=message_id,
+            )
 
             return response
     except Exception as e:

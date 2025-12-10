@@ -54,6 +54,12 @@ from open_webui.utils.filter import (
     get_sorted_filter_ids,
     process_filter_functions,
 )
+from open_webui.utils.billing_integration import (
+    check_and_enforce_quota,
+    track_non_streaming_response,
+    track_streaming_response,
+    estimate_tokens_from_messages,
+)
 
 from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL, BYPASS_MODEL_ACCESS_CONTROL
 
@@ -195,6 +201,11 @@ async def generate_chat_completion(
 
     model = models[model_id]
 
+    # Extract billing context from metadata
+    metadata = form_data.get("metadata", {})
+    chat_id = metadata.get("chat_id") if metadata else None
+    message_id = metadata.get("message_id") if metadata else None
+
     if getattr(request.state, "direct", False):
         return await generate_direct_chat_completion(
             request, form_data, user=user, models=models
@@ -261,6 +272,21 @@ async def generate_chat_completion(
                 request, form_data, user=user, models=models
             )
         if model.get("owned_by") == "ollama":
+            # Billing: Check quota before Ollama request
+            try:
+                estimated_tokens = estimate_tokens_from_messages(form_data.get("messages", []))
+                await check_and_enforce_quota(
+                    user_id=user.id,
+                    model_id=model_id,
+                    estimated_input_tokens=estimated_tokens,
+                )
+            except Exception as e:
+                # Re-raise HTTPException for quota errors, log others
+                from fastapi import HTTPException
+                if isinstance(e, HTTPException):
+                    raise
+                log.error(f"Billing quota check error for Ollama: {e}")
+
             # Using /ollama/api/chat endpoint
             form_data = convert_payload_openai_to_ollama(form_data)
             response = await generate_ollama_chat_completion(
@@ -271,13 +297,28 @@ async def generate_chat_completion(
             )
             if form_data.get("stream"):
                 response.headers["content-type"] = "text/event-stream"
+                # Wrap streaming response for usage tracking
                 return StreamingResponse(
-                    convert_streaming_response_ollama_to_openai(response),
+                    track_streaming_response(
+                        convert_streaming_response_ollama_to_openai(response),
+                        user_id=user.id,
+                        model_id=model_id,
+                        chat_id=chat_id,
+                        message_id=message_id,
+                    ),
                     headers=dict(response.headers),
                     background=response.background,
                 )
             else:
-                return convert_response_ollama_to_openai(response)
+                # Track usage for non-streaming response
+                converted_response = convert_response_ollama_to_openai(response)
+                return await track_non_streaming_response(
+                    converted_response,
+                    user_id=user.id,
+                    model_id=model_id,
+                    chat_id=chat_id,
+                    message_id=message_id,
+                )
         else:
             return await generate_openai_chat_completion(
                 request=request,
