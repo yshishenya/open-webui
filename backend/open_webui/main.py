@@ -77,6 +77,7 @@ from open_webui.routers import (
     tasks,
     auths,
     billing,
+    admin_billing,
     channels,
     chats,
     notes,
@@ -109,6 +110,7 @@ from open_webui.models.functions import Functions
 from open_webui.models.models import Models
 from open_webui.models.users import UserModel, Users
 from open_webui.models.chats import Chats
+from open_webui.models.audit import AuditLog  # Register audit_log table
 
 from open_webui.config import (
     # Ollama
@@ -1404,6 +1406,7 @@ app.include_router(auths.router, prefix="/api/v1/auths", tags=["auths"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 
 app.include_router(billing.router, prefix="/api/v1/billing", tags=["billing"])
+app.include_router(admin_billing.router, prefix="/api/v1/admin/billing", tags=["admin", "billing"])
 
 app.include_router(channels.router, prefix="/api/v1/channels", tags=["channels"])
 app.include_router(chats.router, prefix="/api/v1/chats", tags=["chats"])

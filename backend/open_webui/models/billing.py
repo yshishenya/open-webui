@@ -313,14 +313,39 @@ class PlansTable:
             plan = db.query(Plan).filter(Plan.id == plan_id).first()
             return PlanModel.model_validate(plan) if plan else None
 
-    def create_plan(self, plan: PlanModel) -> PlanModel:
+    def create_plan(self, plan_data: dict) -> PlanModel:
         """Create new plan"""
         with get_db() as db:
-            result = Plan(**plan.model_dump())
+            result = Plan(**plan_data)
             db.add(result)
             db.commit()
             db.refresh(result)
             return PlanModel.model_validate(result)
+
+    def update_plan_by_id(self, plan_id: str, updates: dict) -> Optional[PlanModel]:
+        """Update plan by ID"""
+        with get_db() as db:
+            plan = db.query(Plan).filter(Plan.id == plan_id).first()
+            if not plan:
+                return None
+
+            for key, value in updates.items():
+                setattr(plan, key, value)
+
+            db.commit()
+            db.refresh(plan)
+            return PlanModel.model_validate(plan)
+
+    def delete_plan_by_id(self, plan_id: str) -> bool:
+        """Delete plan by ID"""
+        with get_db() as db:
+            plan = db.query(Plan).filter(Plan.id == plan_id).first()
+            if not plan:
+                return False
+
+            db.delete(plan)
+            db.commit()
+            return True
 
 
 class SubscriptionsTable:
@@ -371,6 +396,19 @@ class SubscriptionsTable:
             db.commit()
             db.refresh(subscription)
             return SubscriptionModel.model_validate(subscription)
+
+    def get_subscriptions_by_plan(
+        self, plan_id: str, status: Optional[str] = None
+    ) -> List[SubscriptionModel]:
+        """Get all subscriptions for a specific plan"""
+        with get_db() as db:
+            query = db.query(Subscription).filter(Subscription.plan_id == plan_id)
+
+            if status:
+                query = query.filter(Subscription.status == status)
+
+            subscriptions = query.order_by(Subscription.created_at.desc()).all()
+            return [SubscriptionModel.model_validate(sub) for sub in subscriptions]
 
 
 class UsageTable:
