@@ -114,17 +114,18 @@ def get_license_data(app, key):
                 f"License: retrieval issue: {getattr(res, 'text', 'unknown error')}"
             )
 
-    if key:
-        us = [
-            "https://api.openwebui.com",
-            "https://licenses.api.openwebui.com",
-        ]
-        try:
-            for u in us:
-                if handler(u):
-                    return True
-        except Exception as ex:
-            log.exception(f"License: Uncaught Exception: {ex}")
+    # Debranded: External license API calls removed
+    # if key:
+    #     us = [
+    #         "https://api.openwebui.com",
+    #         "https://licenses.api.openwebui.com",
+    #     ]
+    #     try:
+    #         for u in us:
+    #             if handler(u):
+    #                 return True
+    #     except Exception as ex:
+    #         log.exception(f"License: Uncaught Exception: {ex}")
 
     try:
         if LICENSE_BLOB:

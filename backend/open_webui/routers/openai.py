@@ -130,8 +130,8 @@ async def get_headers_and_cookies(
         "Content-Type": "application/json",
         **(
             {
-                "HTTP-Referer": "https://openwebui.com/",
-                "X-Title": "Open WebUI",
+                "HTTP-Referer": "https://airis.local/",
+                "X-Title": "AIris",
             }
             if "openrouter.ai" in url
             else {}

@@ -1,6 +1,6 @@
 [project]
-name = "open-webui"
-description = "Open WebUI"
+name = "airis"
+description = "AIris"
 authors = [
     { name = "Timothy Jaeryang Baek", email = "tim@openwebui.com" }
 ]
@@ -158,7 +158,7 @@ all = [
 ]
 
 [project.scripts]
-open-webui = "open_webui:app"
+airis = "open_webui:app"
 
 [build-system]
 requires = ["hatchling"]
