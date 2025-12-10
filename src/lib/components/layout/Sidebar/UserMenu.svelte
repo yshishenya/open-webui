@@ -24,6 +24,7 @@
 	import UserGroup from '$lib/components/icons/UserGroup.svelte';
 	import SignOut from '$lib/components/icons/SignOut.svelte';
 	import FaceSmile from '$lib/components/icons/FaceSmile.svelte';
+	import CreditCard from '$lib/components/icons/CreditCard.svelte';
 	import UserStatusModal from './UserStatusModal.svelte';
 	import Emoji from '$lib/components/common/Emoji.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
@@ -220,6 +221,24 @@
 					<Settings className="w-5 h-5" strokeWidth="1.5" />
 				</div>
 				<div class=" self-center truncate">{$i18n.t('Settings')}</div>
+			</DropdownMenu.Item>
+
+			<DropdownMenu.Item
+				as="a"
+				href="/billing/dashboard"
+				class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition select-none"
+				on:click={async () => {
+					show = false;
+					if ($mobile) {
+						await tick();
+						showSidebar.set(false);
+					}
+				}}
+			>
+				<div class=" self-center mr-3">
+					<CreditCard className="w-5 h-5" strokeWidth="1.5" />
+				</div>
+				<div class=" self-center truncate">{$i18n.t('Billing')}</div>
 			</DropdownMenu.Item>
 
 			<DropdownMenu.Item
