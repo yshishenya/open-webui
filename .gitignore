@@ -8,6 +8,8 @@ node_modules
 .env
 .env.*
 !.env.example
+postgres-data/
+backups/
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 # Byte-compiled / optimized / DLL files
@@ -310,3 +312,11 @@ dist
 cypress/videos
 cypress/screenshots
 .vscode/settings.json
+
+# Open WebUI local data and backups
+open-webui-data/
+sync-backup/
+*.tar.gz
+sync.log
+sync-quick.log
+backup.log
