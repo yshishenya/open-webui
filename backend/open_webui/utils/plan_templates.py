@@ -213,7 +213,7 @@ def get_promo_plans() -> List[Dict[str, Any]]:
             "display_order": 10,  # Show after main plans
             "created_at": now,
             "updated_at": now,
-            "metadata": {
+            "plan_extra_metadata": {
                 "promo": True,
                 "promo_code": "NEWYEAR2025",
                 "promo_ends": now + (90 * 24 * 60 * 60),  # 90 days

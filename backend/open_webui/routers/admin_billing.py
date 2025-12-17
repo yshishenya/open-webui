@@ -82,6 +82,15 @@ class PlanSubscriberModel(BaseModel):
     current_period_end: int
 
 
+class PaginatedSubscribersResponse(BaseModel):
+    """Paginated response for plan subscribers"""
+    items: List[PlanSubscriberModel]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
 ############################
 # Helper Functions
 ############################
@@ -236,7 +245,7 @@ async def create_plan(request: CreatePlanRequest, admin_user=Depends(get_admin_u
             entity_type="plan",
             entity_id=plan.id,
             description=f"Created plan '{plan.name}' ({plan.price} {plan.currency}/{plan.interval})",
-            metadata={"plan_data": plan_data},
+            audit_metadata={"plan_data": plan_data},
         )
 
         log.info(f"Admin {admin_user.email} created plan {plan.id}")
@@ -461,7 +470,7 @@ async def duplicate_plan(plan_id: str, admin_user=Depends(get_admin_user)):
             entity_type="plan",
             entity_id=new_plan.id,
             description=f"Duplicated plan '{source_plan.name}' to '{new_plan.name}'",
-            metadata={"source_plan_id": plan_id},
+            audit_metadata={"source_plan_id": plan_id},
         )
 
         log.info(f"Admin {admin_user.email} duplicated plan {plan_id} to {new_id}")
@@ -477,10 +486,23 @@ async def duplicate_plan(plan_id: str, admin_user=Depends(get_admin_user)):
         )
 
 
-@router.get("/plans/{plan_id}/subscribers", response_model=List[PlanSubscriberModel])
-async def get_plan_subscribers(plan_id: str, admin_user=Depends(get_admin_user)):
-    """Get all users subscribed to a plan"""
+@router.get("/plans/{plan_id}/subscribers", response_model=PaginatedSubscribersResponse)
+async def get_plan_subscribers(
+    plan_id: str,
+    page: int = 1,
+    page_size: int = 20,
+    admin_user=Depends(get_admin_user)
+):
+    """Get paginated users subscribed to a plan"""
     try:
+        # Validate pagination parameters
+        if page < 1:
+            page = 1
+        if page_size < 1:
+            page_size = 20
+        if page_size > 100:
+            page_size = 100  # Max page size to prevent abuse
+
         # Verify plan exists
         plan = Plans.get_plan_by_id(plan_id)
         if not plan:
@@ -491,13 +513,22 @@ async def get_plan_subscribers(plan_id: str, admin_user=Depends(get_admin_user))
 
         # Get all subscriptions
         subscriptions = Subscriptions.get_subscriptions_by_plan(plan_id)
+        total = len(subscriptions)
 
-        # Get user details
-        result = []
-        for sub in subscriptions:
+        # Calculate pagination
+        total_pages = (total + page_size - 1) // page_size if total > 0 else 1
+        start_idx = (page - 1) * page_size
+        end_idx = start_idx + page_size
+
+        # Slice subscriptions for current page
+        page_subscriptions = subscriptions[start_idx:end_idx]
+
+        # Get user details for current page
+        items = []
+        for sub in page_subscriptions:
             user = Users.get_user_by_id(sub.user_id)
             if user:
-                result.append(
+                items.append(
                     PlanSubscriberModel(
                         user_id=user.id,
                         email=user.email,
@@ -508,7 +539,13 @@ async def get_plan_subscribers(plan_id: str, admin_user=Depends(get_admin_user))
                     )
                 )
 
-        return result
+        return PaginatedSubscribersResponse(
+            items=items,
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+        )
 
     except HTTPException:
         raise

@@ -49,7 +49,7 @@ class AuditLog(Base):
     # Details
     description = Column(Text, nullable=True)
     changes = Column(JSON, nullable=True)  # {"price": {"old": 990, "new": 1490}}
-    metadata = Column(JSON, nullable=True)
+    audit_metadata = Column(JSON, nullable=True)
 
     # When
     created_at = Column(BigInteger, nullable=False)
@@ -69,7 +69,7 @@ class AuditLogModel(BaseModel):
     entity_id: str
     description: Optional[str] = None
     changes: Optional[dict] = None
-    metadata: Optional[dict] = None
+    audit_metadata: Optional[dict] = None
     created_at: int
 
     model_config = ConfigDict(from_attributes=True)
@@ -91,7 +91,7 @@ class AuditLogs:
         entity_id: str,
         description: Optional[str] = None,
         changes: Optional[dict] = None,
-        metadata: Optional[dict] = None,
+        audit_metadata: Optional[dict] = None,
     ) -> AuditLogModel:
         """Create an audit log entry"""
         import uuid
@@ -105,7 +105,7 @@ class AuditLogs:
                 entity_id=entity_id,
                 description=description,
                 changes=changes,
-                metadata=metadata,
+                audit_metadata=audit_metadata,
                 created_at=int(time.time()),
             )
             db.add(log)

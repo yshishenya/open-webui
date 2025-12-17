@@ -74,7 +74,7 @@ class Plan(Base):
     # Metadata
     is_active = Column(Boolean, default=True, nullable=False)
     display_order = Column(Integer, default=0, nullable=False)
-    metadata = Column(JSON, nullable=True)
+    plan_extra_metadata = Column(JSON, nullable=True)
 
     created_at = Column(BigInteger, nullable=False)
     updated_at = Column(BigInteger, nullable=False)
@@ -96,7 +96,7 @@ class PlanModel(BaseModel):
 
     is_active: bool = True
     display_order: int = 0
-    metadata: Optional[dict] = None
+    plan_extra_metadata: Optional[dict] = None
 
     created_at: int
     updated_at: int
@@ -134,7 +134,7 @@ class Subscription(Base):
     trial_end = Column(BigInteger, nullable=True)
 
     # Metadata
-    metadata = Column(JSON, nullable=True)
+    extra_metadata = Column(JSON, nullable=True)
 
     created_at = Column(BigInteger, nullable=False)
     updated_at = Column(BigInteger, nullable=False)
@@ -160,7 +160,7 @@ class SubscriptionModel(BaseModel):
     cancel_at_period_end: bool = False
     trial_end: Optional[int] = None
 
-    metadata: Optional[dict] = None
+    extra_metadata: Optional[dict] = None
 
     created_at: int
     updated_at: int
@@ -193,7 +193,7 @@ class Usage(Base):
     # Context
     model_id = Column(String, nullable=True)  # Which AI model was used
     chat_id = Column(String, nullable=True)  # Related chat
-    metadata = Column(JSON, nullable=True)  # Additional context
+    extra_metadata = Column(JSON, nullable=True)  # Additional context
 
     created_at = Column(BigInteger, nullable=False)
 
@@ -216,7 +216,7 @@ class UsageModel(BaseModel):
 
     model_id: Optional[str] = None
     chat_id: Optional[str] = None
-    metadata: Optional[dict] = None
+    extra_metadata: Optional[dict] = None
 
     created_at: int
 
@@ -254,7 +254,7 @@ class Transaction(Base):
     receipt_url = Column(Text, nullable=True)
 
     # Metadata
-    metadata = Column(JSON, nullable=True)
+    extra_metadata = Column(JSON, nullable=True)
 
     created_at = Column(BigInteger, nullable=False)
     updated_at = Column(BigInteger, nullable=False)
@@ -281,7 +281,7 @@ class TransactionModel(BaseModel):
 
     receipt_url: Optional[str] = None
 
-    metadata: Optional[dict] = None
+    extra_metadata: Optional[dict] = None
 
     created_at: int
     updated_at: int

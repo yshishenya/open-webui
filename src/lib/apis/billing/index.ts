@@ -10,10 +10,11 @@ export interface Plan {
 	price: number;
 	currency: string;
 	interval: string;
-	quotas?: Record<string, number>;
+	quotas?: Record<string, number | null>;
 	features?: string[];
 	is_active: boolean;
 	display_order: number;
+	plan_extra_metadata?: Record<string, any>;
 	created_at: number;
 	updated_at: number;
 }

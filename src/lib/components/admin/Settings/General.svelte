@@ -386,17 +386,7 @@
 									bind:value={adminConfig.API_KEYS_ALLOWED_ENDPOINTS}
 								/>
 
-								<div class="mt-2 text-xs text-gray-400 dark:text-gray-500">
-									<!-- #
-									<a
-										href="#"
-										target="_blank"
-										class=" text-gray-300 font-medium underline"
-									>
-										{$i18n.t('To learn more about available endpoints, visit our documentation.')}
-									</a>
 								</div>
-							</div>
 						{/if}
 					{/if}
 

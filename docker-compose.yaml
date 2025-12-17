@@ -1,12 +1,30 @@
 services:
-  ollama:
-    volumes:
-      - ollama:/root/.ollama
-    container_name: ollama
-    pull_policy: always
-    tty: true
+  # ollama:
+  #   volumes:
+  #     - ollama:/root/.ollama
+  #   container_name: ollama
+  #   pull_policy: always
+  #   tty: true
+  #   restart: unless-stopped
+  #   image: ollama/ollama:${OLLAMA_DOCKER_TAG-latest}
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: airis-postgres
     restart: unless-stopped
-    image: ollama/ollama:${OLLAMA_DOCKER_TAG-latest}
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB-airis}
+      - POSTGRES_USER=${POSTGRES_USER-airis}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD-airis_password}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - ${POSTGRES_PORT-5432}:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER-airis}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   airis:
     build:
@@ -17,12 +35,20 @@ services:
     volumes:
       - airis:/app/backend/data
     depends_on:
-      - ollama
+      postgres:
+        condition: service_healthy
     ports:
       - ${OPEN_WEBUI_PORT-3000}:8080
     environment:
-      - 'OLLAMA_BASE_URL=http://ollama:11434'
-      - 'WEBUI_SECRET_KEY='
+      - 'OLLAMA_BASE_URL=${OLLAMA_BASE_URL}'
+      - 'WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}'
+      - 'DATABASE_URL=postgresql://${POSTGRES_USER-airis}:${POSTGRES_PASSWORD-airis_password}@postgres:5432/${POSTGRES_DB-airis}'
+      # Billing configuration
+      - 'BILLING_ENABLED=${BILLING_ENABLED-true}'
+      - 'YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}'
+      - 'YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}'
+      - 'YOOKASSA_WEBHOOK_SECRET=${YOOKASSA_WEBHOOK_SECRET}'
+      - 'BILLING_WEBHOOK_URL=${BILLING_WEBHOOK_URL}'
     extra_hosts:
       - host.docker.internal:host-gateway
     restart: unless-stopped
@@ -30,3 +56,4 @@ services:
 volumes:
   ollama: {}
   airis: {}
+  postgres-data: {}

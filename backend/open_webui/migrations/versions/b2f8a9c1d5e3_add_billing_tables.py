@@ -1,7 +1,7 @@
 """Add billing tables
 
 Revision ID: b2f8a9c1d5e3
-Revises: 018012973d35
+Revises: 3e0e00844bb0
 Create Date: 2025-12-10 10:00:00.000000
 
 """
@@ -10,7 +10,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = "b2f8a9c1d5e3"
-down_revision = "018012973d35"
+down_revision = "3e0e00844bb0"
 branch_labels = None
 depends_on = None
 
@@ -31,7 +31,7 @@ def upgrade():
         sa.Column("features", sa.JSON(), nullable=True),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("display_order", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("metadata", sa.JSON(), nullable=True),
+        sa.Column("plan_extra_metadata", sa.JSON(), nullable=True),
         sa.Column("created_at", sa.BigInteger(), nullable=False),
         sa.Column("updated_at", sa.BigInteger(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
@@ -51,7 +51,7 @@ def upgrade():
         sa.Column("current_period_end", sa.BigInteger(), nullable=False),
         sa.Column("cancel_at_period_end", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column("trial_end", sa.BigInteger(), nullable=True),
-        sa.Column("metadata", sa.JSON(), nullable=True),
+        sa.Column("extra_metadata", sa.JSON(), nullable=True),
         sa.Column("created_at", sa.BigInteger(), nullable=False),
         sa.Column("updated_at", sa.BigInteger(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
@@ -77,7 +77,7 @@ def upgrade():
         sa.Column("period_end", sa.BigInteger(), nullable=False),
         sa.Column("model_id", sa.String(), nullable=True),
         sa.Column("chat_id", sa.String(), nullable=True),
-        sa.Column("metadata", sa.JSON(), nullable=True),
+        sa.Column("extra_metadata", sa.JSON(), nullable=True),
         sa.Column("created_at", sa.BigInteger(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("id"),
@@ -109,7 +109,7 @@ def upgrade():
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("description_ru", sa.Text(), nullable=True),
         sa.Column("receipt_url", sa.Text(), nullable=True),
-        sa.Column("metadata", sa.JSON(), nullable=True),
+        sa.Column("extra_metadata", sa.JSON(), nullable=True),
         sa.Column("created_at", sa.BigInteger(), nullable=False),
         sa.Column("updated_at", sa.BigInteger(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
@@ -129,9 +129,50 @@ def upgrade():
         ["yookassa_payment_id"]
     )
 
+    # Create billing_audit_log table
+    op.create_table(
+        "billing_audit_log",
+        sa.Column("id", sa.String(), nullable=False),
+        sa.Column("user_id", sa.String(), nullable=False),
+        sa.Column("action", sa.String(), nullable=False),
+        sa.Column("entity_type", sa.String(), nullable=False),
+        sa.Column("entity_id", sa.String(), nullable=False),
+        sa.Column("description", sa.Text(), nullable=True),
+        sa.Column("changes", sa.JSON(), nullable=True),
+        sa.Column("audit_metadata", sa.JSON(), nullable=True),
+        sa.Column("created_at", sa.BigInteger(), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+    # Create indexes for audit log queries
+    op.create_index(
+        "idx_audit_user",
+        "billing_audit_log",
+        ["user_id"]
+    )
+    op.create_index(
+        "idx_audit_entity",
+        "billing_audit_log",
+        ["entity_type", "entity_id"]
+    )
+    op.create_index(
+        "idx_audit_created",
+        "billing_audit_log",
+        ["created_at"]
+    )
+    op.create_index(
+        "idx_audit_action",
+        "billing_audit_log",
+        ["action"]
+    )
+
 
 def downgrade():
     # Drop indexes first
+    op.drop_index("idx_audit_action", table_name="billing_audit_log")
+    op.drop_index("idx_audit_created", table_name="billing_audit_log")
+    op.drop_index("idx_audit_entity", table_name="billing_audit_log")
+    op.drop_index("idx_audit_user", table_name="billing_audit_log")
     op.drop_index("idx_transaction_yookassa", table_name="billing_transaction")
     op.drop_index("idx_transaction_user", table_name="billing_transaction")
     op.drop_index("idx_usage_period", table_name="billing_usage")
@@ -139,6 +180,7 @@ def downgrade():
     op.drop_index("idx_subscription_user_status", table_name="billing_subscription")
 
     # Drop tables
+    op.drop_table("billing_audit_log")
     op.drop_table("billing_transaction")
     op.drop_table("billing_usage")
     op.drop_table("billing_subscription")
