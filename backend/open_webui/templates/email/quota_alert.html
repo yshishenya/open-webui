@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Предупреждение о квоте</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .email-wrapper {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #ffffff;
+            padding: 30px 40px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px;
+        }
+        .content h2 {
+            color: #333;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .content p {
+            color: #666;
+            font-size: 16px;
+            margin: 15px 0;
+        }
+        .warning-box {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .warning-box h3 {
+            margin: 0 0 10px 0;
+            color: #92400e;
+            font-size: 16px;
+        }
+        .warning-box p {
+            margin: 0;
+            color: #92400e;
+        }
+        .quota-meter {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .quota-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .quota-bar {
+            background-color: #e5e7eb;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+        }
+        .quota-fill {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            height: 100%;
+            border-radius: 10px;
+        }
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .button {
+            display: inline-block;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px 40px;
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="email-wrapper">
+            <div class="header">
+                <h1>Внимание: квота почти исчерпана</h1>
+            </div>
+
+            <div class="content">
+                <h2>Здравствуйте, {{ name }}!</h2>
+
+                <div class="warning-box">
+                    <h3>{{ quota_type }} израсходовано на {{ usage_percent }}%</h3>
+                    <p>Использовано {{ used }} из {{ limit }} {{ quota_unit }}</p>
+                </div>
+
+                <div class="quota-meter">
+                    <div class="quota-label">
+                        <span>Использование квоты</span>
+                        <span>{{ usage_percent }}%</span>
+                    </div>
+                    <div class="quota-bar">
+                        <div class="quota-fill" style="width: {{ usage_percent }}%"></div>
+                    </div>
+                </div>
+
+                <p>
+                    При достижении лимита ваш доступ к {{ quota_type }} будет временно ограничен до следующего периода или обновления тарифного плана.
+                </p>
+
+                <p>
+                    Чтобы продолжить работу без ограничений, рекомендуем перейти на расширенный тарифный план.
+                </p>
+
+                <div class="button-container">
+                    <a href="{{ upgrade_url }}" class="button">
+                        Увеличить лимиты
+                    </a>
+                </div>
+
+                <p style="font-size: 14px; color: #999;">
+                    Квоты обновляются {{ reset_period }}. Если у вас есть вопросы, свяжитесь с нашей службой поддержки.
+                </p>
+            </div>
+
+            <div class="footer">
+                <p>С уважением,<br>Команда Open WebUI</p>
+                <p style="margin-top: 15px;">
+                    Это автоматическое письмо, пожалуйста, не отвечайте на него.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

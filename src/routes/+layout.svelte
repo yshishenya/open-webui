@@ -757,10 +757,12 @@
 						await goto(`/auth?redirect=${encodedUrl}`);
 					}
 				} else {
-					// Don't redirect if we're already on the auth page
-					// Needed because we pass in tokens from OAuth logins via URL fragments
-					if ($page.url.pathname !== '/auth') {
-						await goto(`/auth?redirect=${encodedUrl}`);
+					// Don't redirect if we're on a public page
+					// Public pages: auth, welcome, pricing, about, contact, terms, privacy, features, error
+					const publicPaths = ['/auth', '/welcome', '/pricing', '/about', '/contact', '/terms', '/privacy', '/features', '/error', '/s/', '/watch'];
+					const isPublicPage = publicPaths.some(path => $page.url.pathname === path || $page.url.pathname.startsWith(path));
+					if (!isPublicPage) {
+						await goto(`/welcome?redirect=${encodedUrl}`);
 					}
 				}
 			}

@@ -549,6 +549,81 @@ FEISHU_REDIRECT_URI = PersistentConfig(
     os.environ.get("FEISHU_REDIRECT_URI", ""),
 )
 
+# VK OAuth Configuration
+VK_CLIENT_ID = PersistentConfig(
+    "VK_CLIENT_ID",
+    "oauth.vk.client_id",
+    os.environ.get("VK_CLIENT_ID", ""),
+)
+
+VK_CLIENT_SECRET = PersistentConfig(
+    "VK_CLIENT_SECRET",
+    "oauth.vk.client_secret",
+    os.environ.get("VK_CLIENT_SECRET", ""),
+)
+
+VK_OAUTH_SCOPE = PersistentConfig(
+    "VK_OAUTH_SCOPE",
+    "oauth.vk.scope",
+    os.environ.get("VK_OAUTH_SCOPE", "email"),
+)
+
+VK_REDIRECT_URI = PersistentConfig(
+    "VK_REDIRECT_URI",
+    "oauth.vk.redirect_uri",
+    os.environ.get("VK_REDIRECT_URI", ""),
+)
+
+VK_API_VERSION = PersistentConfig(
+    "VK_API_VERSION",
+    "oauth.vk.api_version",
+    os.environ.get("VK_API_VERSION", "5.131"),
+)
+
+# Yandex OAuth Configuration
+YANDEX_CLIENT_ID = PersistentConfig(
+    "YANDEX_CLIENT_ID",
+    "oauth.yandex.client_id",
+    os.environ.get("YANDEX_CLIENT_ID", ""),
+)
+
+YANDEX_CLIENT_SECRET = PersistentConfig(
+    "YANDEX_CLIENT_SECRET",
+    "oauth.yandex.client_secret",
+    os.environ.get("YANDEX_CLIENT_SECRET", ""),
+)
+
+YANDEX_OAUTH_SCOPE = PersistentConfig(
+    "YANDEX_OAUTH_SCOPE",
+    "oauth.yandex.scope",
+    os.environ.get("YANDEX_OAUTH_SCOPE", "login:email login:info login:avatar"),
+)
+
+YANDEX_REDIRECT_URI = PersistentConfig(
+    "YANDEX_REDIRECT_URI",
+    "oauth.yandex.redirect_uri",
+    os.environ.get("YANDEX_REDIRECT_URI", ""),
+)
+
+# Telegram OAuth Configuration  
+TELEGRAM_BOT_TOKEN = PersistentConfig(
+    "TELEGRAM_BOT_TOKEN",
+    "oauth.telegram.bot_token",
+    os.environ.get("TELEGRAM_BOT_TOKEN", ""),
+)
+
+TELEGRAM_BOT_NAME = PersistentConfig(
+    "TELEGRAM_BOT_NAME",
+    "oauth.telegram.bot_name",
+    os.environ.get("TELEGRAM_BOT_NAME", ""),
+)
+
+TELEGRAM_AUTH_ORIGIN = PersistentConfig(
+    "TELEGRAM_AUTH_ORIGIN",
+    "oauth.telegram.auth_origin",
+    os.environ.get("TELEGRAM_AUTH_ORIGIN", ""),
+)
+
 ENABLE_OAUTH_ROLE_MANAGEMENT = PersistentConfig(
     "ENABLE_OAUTH_ROLE_MANAGEMENT",
     "oauth.enable_role_mapping",
@@ -791,6 +866,71 @@ def load_oauth_providers():
             "sub_claim": "user_id",
         }
 
+    if VK_CLIENT_ID.value and VK_CLIENT_SECRET.value:
+
+        def vk_oauth_register(oauth: OAuth):
+            client = oauth.register(
+                name="vk",
+                client_id=VK_CLIENT_ID.value,
+                client_secret=VK_CLIENT_SECRET.value,
+                access_token_url="https://oauth.vk.com/access_token",
+                authorize_url="https://oauth.vk.com/authorize",
+                api_base_url="https://api.vk.com/method",
+                userinfo_endpoint="https://api.vk.com/method/users.get",
+                client_kwargs={
+                    "scope": VK_OAUTH_SCOPE.value,
+                    **({
+                        "timeout": int(OAUTH_TIMEOUT.value)
+                    } if OAUTH_TIMEOUT.value else {}),
+                },
+                redirect_uri=VK_REDIRECT_URI.value,
+            )
+            return client
+
+        OAUTH_PROVIDERS["vk"] = {
+            "redirect_uri": VK_REDIRECT_URI.value,
+            "register": vk_oauth_register,
+            "sub_claim": "id",
+            # VK ID SDK config (new)
+            "app_id": VK_CLIENT_ID.value,
+            "redirect_url": VK_REDIRECT_URI.value,
+        }
+
+    if YANDEX_CLIENT_ID.value and YANDEX_CLIENT_SECRET.value:
+
+        def yandex_oauth_register(oauth: OAuth):
+            client = oauth.register(
+                name="yandex",
+                client_id=YANDEX_CLIENT_ID.value,
+                client_secret=YANDEX_CLIENT_SECRET.value,
+                access_token_url="https://oauth.yandex.ru/token",
+                authorize_url="https://oauth.yandex.ru/authorize",
+                api_base_url="https://login.yandex.ru",
+                userinfo_endpoint="https://login.yandex.ru/info",
+                client_kwargs={
+                    "scope": YANDEX_OAUTH_SCOPE.value,
+                    **({
+                        "timeout": int(OAUTH_TIMEOUT.value)
+                    } if OAUTH_TIMEOUT.value else {}),
+                },
+                redirect_uri=YANDEX_REDIRECT_URI.value,
+            )
+            return client
+
+        OAUTH_PROVIDERS["yandex"] = {
+            "redirect_uri": YANDEX_REDIRECT_URI.value,
+            "register": yandex_oauth_register,
+        }
+
+    # Note: Telegram uses widget-based auth, not traditional OAuth
+    # Configuration stored for backend validation
+    if TELEGRAM_BOT_TOKEN.value and TELEGRAM_BOT_NAME.value:
+        OAUTH_PROVIDERS["telegram"] = {
+            "bot_token": TELEGRAM_BOT_TOKEN.value,
+            "bot_name": TELEGRAM_BOT_NAME.value,
+            "auth_origin": TELEGRAM_AUTH_ORIGIN.value,
+        }
+
     configured_providers = []
     if GOOGLE_CLIENT_ID.value:
         configured_providers.append("Google")
@@ -800,6 +940,12 @@ def load_oauth_providers():
         configured_providers.append("GitHub")
     if FEISHU_CLIENT_ID.value:
         configured_providers.append("Feishu")
+    if VK_CLIENT_ID.value:
+        configured_providers.append("VK")
+    if YANDEX_CLIENT_ID.value:
+        configured_providers.append("Yandex")
+    if TELEGRAM_BOT_TOKEN.value:
+        configured_providers.append("Telegram")
 
     if configured_providers and not OPENID_PROVIDER_URL.value:
         provider_list = ", ".join(configured_providers)

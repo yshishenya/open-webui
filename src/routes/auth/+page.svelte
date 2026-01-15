@@ -19,6 +19,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import OnBoarding from '$lib/components/OnBoarding.svelte';
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
+	import VKIDWidget from '$lib/components/auth/VKIDWidget.svelte';
 	import { redirect } from '@sveltejs/kit';
 
 	const i18n = getContext('i18n');
@@ -130,6 +131,59 @@
 
 	let onboarding = false;
 
+	// Telegram widget callback and setup
+	const setupTelegramAuth = () => {
+		if (typeof window !== 'undefined') {
+			// Setup callback handler
+			(window as any).onTelegramAuth = async (userData: any) => {
+				try {
+					const response = await fetch(`${WEBUI_BASE_URL}/api/v1/oauth/telegram/callback`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(userData)
+					});
+
+					const data = await response.json();
+
+					if (data.requires_email) {
+						// Store temp session and redirect to email collection
+						sessionStorage.setItem('telegram_temp_session', data.temp_session);
+						sessionStorage.setItem('telegram_name', data.name);
+						goto('/auth/telegram-complete');
+					} else if (data.token) {
+						// Login successful
+						localStorage.setItem('token', data.token);
+						const sessionUser = await getSessionUser(data.token);
+						await setSessionUser(sessionUser);
+					} else {
+						toast.error(data.detail || 'Telegram authentication failed');
+					}
+				} catch (error) {
+					console.error('Telegram auth error:', error);
+					toast.error('Telegram authentication failed');
+				}
+			};
+
+			// Inject Telegram widget script if bot is configured
+			const botName = $config?.oauth?.providers?.telegram?.bot_name;
+			if (botName) {
+				setTimeout(() => {
+					const container = document.getElementById('telegram-login-container');
+					if (container && !container.querySelector('iframe')) {
+						const script = document.createElement('script');
+						script.async = true;
+						script.src = 'https://telegram.org/js/telegram-widget.js?22';
+						script.setAttribute('data-telegram-login', botName);
+						script.setAttribute('data-size', 'large');
+						script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+						script.setAttribute('data-request-access', 'write');
+						container.appendChild(script);
+					}
+				}, 100);
+			}
+		}
+	};
+
 	async function setLogoImage() {
 		await tick();
 		const logo = document.getElementById('logo');
@@ -169,6 +223,7 @@
 		}
 
 		await oauthCallbackHandler();
+		setupTelegramAuth();
 		form = $page.url.searchParams.get('form');
 
 		loaded = true;
@@ -532,6 +587,49 @@
 										>
 											<span>{$i18n.t('Continue with {{provider}}', { provider: 'Feishu' })}</span>
 										</button>
+									{/if}
+									{#if $config?.oauth?.providers?.vk?.app_id}
+										<!-- VK ID SDK Widget -->
+										<div class="w-full">
+											<VKIDWidget
+												appId={$config?.oauth?.providers?.vk?.app_id}
+												redirectUrl={$config?.oauth?.providers?.vk?.redirect_url || ''}
+												scheme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
+												showAlternativeLogin={true}
+												oauthList={['ok_ru', 'mail_ru']}
+											/>
+										</div>
+									{:else if $config?.oauth?.providers?.vk}
+										<!-- Fallback: Legacy VK OAuth button -->
+										<button
+											class="flex justify-center items-center bg-[#0077FF] hover:bg-[#0066DD] text-white transition w-full rounded-full font-medium text-sm py-2.5"
+											on:click={() => {
+												window.location.href = `${WEBUI_BASE_URL}/api/v1/oauth/vk/login`;
+											}}
+										>
+											<svg class="size-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
+												<path d="M12.785 16.241s.288-.032.436-.194c.136-.149.132-.428.132-.428s-.02-1.304.587-1.496c.6-.19 1.37 1.26 2.184 1.817.616.42 1.083.328 1.083.328l2.178-.03s1.139-.071.599-.967c-.04-.083-.286-.602-1.471-1.703-1.24-1.151-1.074-.965.42-2.957.91-1.214 1.274-1.955 1.161-2.272-.108-.302-.777-.222-.777-.222l-2.452.015s-.182-.025-.316.056c-.131.079-.215.263-.215.263s-.386 1.027-.9 1.902c-1.082 1.843-1.515 1.941-1.692 1.826-.411-.267-.308-1.074-.308-1.647 0-1.791.272-2.537-.53-2.73-.267-.064-.463-.106-1.145-.113-.875-.009-1.616.003-2.034.208-.278.137-.493.442-.362.46.161.021.527.099.721.363.251.341.242 1.106.242 1.106s.145 2.109-.337 2.372c-.331.18-.785-.188-1.76-1.873-.499-.851-.876-1.792-.876-1.792s-.073-.178-.203-.273c-.157-.115-.376-.151-.376-.151l-2.329.015s-.35.01-.478.162c-.114.135-.009.413-.009.413s1.816 4.242 3.871 6.383c1.884 1.963 4.022 1.833 4.022 1.833h.971z"/>
+											</svg>
+											<span>{$i18n.t('Continue with {{provider}}', { provider: 'VK' })}</span>
+										</button>
+									{/if}
+									{#if $config?.oauth?.providers?.yandex}
+										<button
+											class="flex justify-center items-center bg-[#FC3F1D] hover:bg-[#E63600] text-white transition w-full rounded-full font-medium text-sm py-2.5"
+											on:click={() => {
+												window.location.href = `${WEBUI_BASE_URL}/api/v1/oauth/yandex/login`;
+											}}
+										>
+											<svg class="size-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
+												<path d="M2.04 12c0-5.523 4.476-10 10-10 5.522 0 10 4.477 10 10s-4.478 10-10 10c-5.524 0-10-4.477-10-10zm6.292 6h2.1v-6.22h.062l2.742 6.22h2.104V6.42h-2.1v6.22h-.062l-2.742-6.22h-2.104V18z"/>
+											</svg>
+											<span>{$i18n.t('Continue with {{provider}}', { provider: 'Yandex' })}</span>
+										</button>
+									{/if}
+									{#if $config?.oauth?.providers?.telegram?.bot_name}
+										<div class="flex justify-center pt-2" id="telegram-login-container">
+											<!-- Telegram widget will be injected here -->
+										</div>
 									{/if}
 								</div>
 							{/if}

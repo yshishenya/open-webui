@@ -43,6 +43,19 @@ services:
       - 'OLLAMA_BASE_URL=${OLLAMA_BASE_URL}'
       - 'WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}'
       - 'DATABASE_URL=postgresql://${POSTGRES_USER-airis}:${POSTGRES_PASSWORD-airis_password}@postgres:5432/${POSTGRES_DB-airis}'
+      # User registration settings
+      - 'DEFAULT_USER_ROLE=user'
+      # OAuth configuration
+      - 'ENABLE_OAUTH_SIGNUP=true'
+      - 'OAUTH_MERGE_ACCOUNTS_BY_EMAIL=true'
+      - 'VK_CLIENT_ID=${VK_CLIENT_ID:-}'
+      - 'VK_CLIENT_SECRET=${VK_CLIENT_SECRET:-}'
+      - 'VK_REDIRECT_URI=${VK_REDIRECT_URI:-http://localhost:3000/api/v1/oauth/vk/callback}'
+      - 'YANDEX_CLIENT_ID=${YANDEX_CLIENT_ID:-}'
+      - 'YANDEX_CLIENT_SECRET=${YANDEX_CLIENT_SECRET:-}'
+      - 'YANDEX_REDIRECT_URI=${YANDEX_REDIRECT_URI:-http://localhost:3000/api/v1/oauth/yandex/callback}'
+      - 'TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}'
+      - 'TELEGRAM_BOT_NAME=${TELEGRAM_BOT_NAME:-}'
       # Billing configuration
       - 'BILLING_ENABLED=${BILLING_ENABLED-true}'
       - 'YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}'

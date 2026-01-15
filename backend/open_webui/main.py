@@ -76,6 +76,7 @@ from open_webui.routers import (
     pipelines,
     tasks,
     auths,
+    oauth_russian,
     billing,
     admin_billing,
     channels,
@@ -1403,6 +1404,7 @@ app.include_router(retrieval.router, prefix="/api/v1/retrieval", tags=["retrieva
 app.include_router(configs.router, prefix="/api/v1/configs", tags=["configs"])
 
 app.include_router(auths.router, prefix="/api/v1/auths", tags=["auths"])
+app.include_router(oauth_russian.router, prefix="/api/v1", tags=["oauth", "russian"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 
 app.include_router(billing.router, prefix="/api/v1/billing", tags=["billing"])
@@ -1858,7 +1860,15 @@ async def get_app_config(request: Request):
         "default_locale": str(DEFAULT_LOCALE),
         "oauth": {
             "providers": {
-                name: config.get("name", name)
+                name: {
+                    "name": config.get("name", name),
+                    # VK ID SDK specific config
+                    **({"app_id": config.get("app_id"), "redirect_url": config.get("redirect_url")}
+                       if name == "vk" and config.get("app_id") else {}),
+                    # Telegram specific config
+                    **({"bot_name": config.get("bot_name")}
+                       if name == "telegram" and config.get("bot_name") else {}),
+                }
                 for name, config in OAUTH_PROVIDERS.items()
             }
         },
