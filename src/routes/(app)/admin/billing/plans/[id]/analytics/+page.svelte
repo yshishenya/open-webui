@@ -6,7 +6,8 @@
 
 	import { WEBUI_NAME, user } from '$lib/stores';
 	import { getPlan, getPlanSubscribers } from '$lib/apis/admin/billing';
-	import type { Plan, PlanSubscriber, PaginatedSubscribers } from '$lib/apis/admin/billing';
+	import type { Plan, PlanSubscriber } from '$lib/apis/admin/billing';
+	import { getStatusColor } from '$lib/utils/billing-formatters';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -140,21 +141,6 @@
 			month: 'short',
 			day: 'numeric'
 		});
-	};
-
-	const getStatusColor = (status: string): string => {
-		switch (status) {
-			case 'active':
-				return 'bg-green-500/20 text-green-700 dark:text-green-200';
-			case 'canceled':
-				return 'bg-red-500/20 text-red-700 dark:text-red-200';
-			case 'trialing':
-				return 'bg-blue-500/20 text-blue-700 dark:text-blue-200';
-			case 'past_due':
-				return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-200';
-			default:
-				return 'bg-gray-500/20 text-gray-700 dark:text-gray-200';
-		}
 	};
 
 	const getStatusLabel = (status: string): string => {

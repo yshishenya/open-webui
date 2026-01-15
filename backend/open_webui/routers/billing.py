@@ -4,6 +4,7 @@ Handles subscription plans, payments, usage, and webhooks
 """
 
 import logging
+import time
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 
@@ -69,11 +70,72 @@ class CheckQuotaRequest(BaseModel):
     amount: int = 1
 
 
+class ActivateFreePlanRequest(BaseModel):
+    plan_id: str
+
+
 class CheckQuotaResponse(BaseModel):
     allowed: bool
     current_usage: int
     quota_limit: Optional[int]
     remaining: Optional[int]
+
+
+############################
+# Public Plans Endpoint
+############################
+
+
+class PublicPlanResponse(BaseModel):
+    """Public plan information for unauthenticated users"""
+    id: str
+    name: str
+    name_ru: Optional[str] = None
+    description: Optional[str] = None
+    description_ru: Optional[str] = None
+    price: float
+    currency: str
+    interval: str
+    features: List[str] = []
+    quotas: Dict[str, int] = {}
+    display_order: int = 0
+
+
+@router.get("/plans/public", response_model=List[PublicPlanResponse])
+async def get_public_plans():
+    """
+    Get all active billing plans for public display.
+    No authentication required.
+
+    Получить все активные тарифные планы для публичного отображения.
+    Аутентификация не требуется.
+    """
+    try:
+        plans = billing_service.get_active_plans()
+        # Sort by display_order
+        plans = sorted(plans, key=lambda p: getattr(p, 'display_order', 0) or 0)
+        return [
+            PublicPlanResponse(
+                id=plan.id,
+                name=plan.name,
+                name_ru=getattr(plan, 'name_ru', None),
+                description=plan.description,
+                description_ru=getattr(plan, 'description_ru', None),
+                price=plan.price,
+                currency=plan.currency,
+                interval=plan.interval,
+                features=plan.features or [],
+                quotas=plan.quotas or {},
+                display_order=getattr(plan, 'display_order', 0) or 0,
+            )
+            for plan in plans
+        ]
+    except Exception as e:
+        log.exception(f"Error getting public plans: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get plans",
+        )
 
 
 ############################
@@ -172,6 +234,65 @@ async def cancel_my_subscription(
         )
 
     return updated
+
+
+@router.post("/subscription/resume", response_model=SubscriptionModel)
+async def resume_my_subscription(user=Depends(get_verified_user)):
+    """Resume current user's subscription if cancellation is scheduled"""
+    subscription = billing_service.get_user_subscription(user.id)
+    if not subscription:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No active subscription found",
+        )
+
+    if not subscription.cancel_at_period_end:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Subscription is not scheduled for cancellation",
+        )
+
+    if subscription.current_period_end <= int(time.time()):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Subscription already ended",
+        )
+
+    updated = billing_service.resume_subscription(subscription.id)
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to resume subscription",
+        )
+
+    return updated
+
+
+@router.post("/subscription/free", response_model=SubscriptionModel)
+async def activate_free_plan(
+    request: ActivateFreePlanRequest, user=Depends(get_verified_user)
+):
+    """Activate free subscription plan for current user"""
+    try:
+        subscription = billing_service.activate_free_plan(user.id, request.plan_id)
+        return subscription
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except RuntimeError as e:
+        log.error(f"Failed to activate free plan: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to activate free plan",
+        )
+    except Exception as e:
+        log.exception(f"Error activating free plan: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to activate free plan",
+        )
 
 
 ############################

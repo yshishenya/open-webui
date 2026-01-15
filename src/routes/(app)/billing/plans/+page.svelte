@@ -4,8 +4,14 @@
 	import { goto } from '$app/navigation';
 
 	import { WEBUI_NAME, user } from '$lib/stores';
-	import { getPlans, createPayment } from '$lib/apis/billing';
-	import type { Plan, PaymentResponse } from '$lib/apis/billing';
+	import {
+		getPlans,
+		createPayment,
+		getMySubscription,
+		resumeSubscription,
+		activateFreePlan
+	} from '$lib/apis/billing';
+	import type { Plan, PaymentResponse, Subscription } from '$lib/apis/billing';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -14,23 +20,47 @@
 
 	let loading = true;
 	let plans: Plan[] = [];
+	let subscription: Subscription | null = null;
 	let creatingPayment = false;
 	let selectedPlanId: string | null = null;
+	let resumingPlanId: string | null = null;
+	let activatingPlanId: string | null = null;
 
 	onMount(async () => {
-		await loadPlans();
+		await loadData();
 	});
 
-	const loadPlans = async () => {
-		loading = true;
+	const loadPlans = async (): Promise<Plan[]> => {
 		try {
 			const result = await getPlans(localStorage.token);
 			if (result) {
-				plans = result.sort((a, b) => a.display_order - b.display_order);
+				return result.sort((a, b) => a.display_order - b.display_order);
 			}
 		} catch (error) {
 			console.error('Failed to load plans:', error);
 			toast.error($i18n.t('Failed to load subscription plans'));
+		}
+		return [];
+	};
+
+	const loadSubscription = async (): Promise<Subscription | null> => {
+		try {
+			return await getMySubscription(localStorage.token);
+		} catch (error) {
+			console.error('Failed to load subscription:', error);
+			return null;
+		}
+	};
+
+	const loadData = async (): Promise<void> => {
+		loading = true;
+		try {
+			const [plansResult, subscriptionResult] = await Promise.all([
+				loadPlans(),
+				loadSubscription()
+			]);
+			plans = plansResult;
+			subscription = subscriptionResult;
 		} finally {
 			loading = false;
 		}
@@ -58,6 +88,57 @@
 			creatingPayment = false;
 			selectedPlanId = null;
 		}
+	};
+
+	const handleResumeSubscription = async (planId: string): Promise<void> => {
+		if (resumingPlanId) return;
+		resumingPlanId = planId;
+
+		try {
+			const result = await resumeSubscription(localStorage.token);
+			if (result) {
+				subscription = result;
+				toast.success($i18n.t('Subscription resumed successfully'));
+			} else {
+				toast.error($i18n.t('Failed to resume subscription'));
+			}
+		} catch (error) {
+			console.error('Failed to resume subscription:', error);
+			toast.error($i18n.t('Failed to resume subscription'));
+		} finally {
+			resumingPlanId = null;
+		}
+	};
+
+	const handleActivateFreePlan = async (planId: string): Promise<void> => {
+		if (activatingPlanId) return;
+		activatingPlanId = planId;
+
+		try {
+			const result = await activateFreePlan(localStorage.token, planId);
+			if (result) {
+				subscription = result;
+				toast.success($i18n.t('Free plan activated successfully'));
+			} else {
+				toast.error($i18n.t('Failed to activate free plan'));
+			}
+		} catch (error) {
+			console.error('Failed to activate free plan:', error);
+			toast.error($i18n.t('Failed to activate free plan'));
+		} finally {
+			activatingPlanId = null;
+		}
+	};
+
+	const isCurrentPlan = (planId: string): boolean => {
+		return (
+			subscription?.plan_id === planId &&
+			(subscription.status === 'active' || subscription.status === 'trialing')
+		);
+	};
+
+	const isCancelingCurrentPlan = (planId: string): boolean => {
+		return Boolean(subscription?.plan_id === planId && subscription?.cancel_at_period_end);
 	};
 
 	const formatPrice = (price: number, currency: string): string => {
@@ -202,13 +283,41 @@
 
 					<!-- Subscribe Button -->
 					<div class="mt-auto pt-3">
-						{#if plan.price === 0}
+						{#if isCurrentPlan(plan.id)}
 							<button
 								type="button"
-								disabled
-								class="w-full py-2 px-4 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-medium cursor-not-allowed"
+								on:click={() => handleResumeSubscription(plan.id)}
+								disabled={!isCancelingCurrentPlan(plan.id) || resumingPlanId !== null}
+								class="w-full py-2 px-4 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-medium disabled:cursor-not-allowed"
 							>
-								{$i18n.t('Current Plan')}
+								{#if isCancelingCurrentPlan(plan.id)}
+									{#if resumingPlanId === plan.id}
+										<div class="flex items-center justify-center gap-2">
+											<Spinner className="size-4" />
+											<span>{$i18n.t('Resuming')}...</span>
+										</div>
+									{:else}
+										{$i18n.t('Resume Subscription')}
+									{/if}
+								{:else}
+									{$i18n.t('Current Plan')}
+								{/if}
+							</button>
+						{:else if plan.price === 0}
+							<button
+								type="button"
+								on:click={() => handleActivateFreePlan(plan.id)}
+								disabled={activatingPlanId !== null}
+								class="w-full py-2 px-4 rounded-xl bg-black hover:bg-gray-900 disabled:bg-gray-400 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 font-medium transition disabled:cursor-not-allowed"
+							>
+								{#if activatingPlanId === plan.id}
+									<div class="flex items-center justify-center gap-2">
+										<Spinner className="size-4" />
+										<span>{$i18n.t('Activating')}...</span>
+									</div>
+								{:else}
+									{$i18n.t('Activate Free Plan')}
+								{/if}
 							</button>
 						{:else}
 							<button

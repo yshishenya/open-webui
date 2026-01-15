@@ -147,6 +147,11 @@ class AbstractPostgresTest(AbstractIntegrationTest):
         # truncate all tables
         tables = [
             "auth",
+            "billing_audit_log",
+            "billing_plan",
+            "billing_subscription",
+            "billing_transaction",
+            "billing_usage",
             "chat",
             "chatidtag",
             "document",

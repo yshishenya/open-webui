@@ -183,6 +183,91 @@ class BillingService:
 
         return updated
 
+    def resume_subscription(self, subscription_id: str) -> Optional[SubscriptionModel]:
+        """
+        Resume a subscription that was set to cancel at period end.
+
+        Args:
+            subscription_id: Subscription ID
+
+        Returns:
+            Updated subscription
+        """
+        updated = self.subscriptions.update_subscription(
+            subscription_id, {"cancel_at_period_end": False}
+        )
+
+        if updated:
+            log.info(f"Resumed subscription {subscription_id}")
+
+        return updated
+
+    def activate_free_plan(self, user_id: str, plan_id: str) -> SubscriptionModel:
+        """
+        Activate a free plan for a user without payment.
+
+        Args:
+            user_id: User ID
+            plan_id: Plan ID to activate
+
+        Returns:
+            Activated subscription
+
+        Raises:
+            ValueError: If plan not found, not free, or active subscription exists
+            RuntimeError: If subscription update fails
+        """
+        plan = self.get_plan(plan_id)
+        if not plan:
+            raise ValueError(f"Plan {plan_id} not found")
+
+        if plan.price != 0:
+            raise ValueError("Plan is not free")
+
+        now = int(time.time())
+        if plan.interval == "month":
+            period_end = now + (30 * 24 * 60 * 60)
+        elif plan.interval == "year":
+            period_end = now + (365 * 24 * 60 * 60)
+        else:
+            raise ValueError(f"Invalid interval: {plan.interval}")
+
+        existing = self.subscriptions.get_latest_subscription_by_user_id(user_id)
+        if existing:
+            is_active = (
+                existing.status in [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING]
+                and existing.current_period_end > now
+            )
+            if is_active and existing.plan_id != plan_id:
+                raise ValueError("Active subscription already exists")
+
+            if is_active:
+                if existing.cancel_at_period_end:
+                    updated = self.subscriptions.update_subscription(
+                        existing.id, {"cancel_at_period_end": False}
+                    )
+                    if not updated:
+                        raise RuntimeError("Failed to activate free plan")
+                    return updated
+                return existing
+
+            updates = {
+                "plan_id": plan_id,
+                "status": SubscriptionStatus.ACTIVE,
+                "current_period_start": now,
+                "current_period_end": period_end,
+                "cancel_at_period_end": False,
+                "trial_end": None,
+                "yookassa_payment_id": None,
+                "yookassa_subscription_id": None,
+            }
+            updated = self.subscriptions.update_subscription(existing.id, updates)
+            if not updated:
+                raise RuntimeError("Failed to activate free plan")
+            return updated
+
+        return self.create_subscription(user_id, plan_id)
+
     def renew_subscription(self, subscription_id: str) -> Optional[SubscriptionModel]:
         """
         Renew subscription for next period

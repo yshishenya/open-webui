@@ -11,7 +11,8 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from open_webui.models.billing import PlanModel, Plans, Subscriptions
+from open_webui.models.billing import PlanModel, Plans, Subscriptions, Usage, UsageMetric
+from sqlalchemy import func
 from open_webui.models.audit import AuditAction, AuditLogs
 from open_webui.utils.auth import get_admin_user
 from open_webui.models.users import Users
@@ -77,9 +78,19 @@ class PlanSubscriberModel(BaseModel):
     user_id: str
     email: str
     name: str
+    profile_image_url: Optional[str] = None
+    role: str = "user"
     subscription_status: str
     subscribed_at: int
+    current_period_start: int
     current_period_end: int
+    # Usage data
+    tokens_input_used: int = 0
+    tokens_input_limit: Optional[int] = None
+    tokens_output_used: int = 0
+    tokens_output_limit: Optional[int] = None
+    requests_used: int = 0
+    requests_limit: Optional[int] = None
 
 
 class PaginatedSubscribersResponse(BaseModel):
@@ -493,8 +504,10 @@ async def get_plan_subscribers(
     page_size: int = 20,
     admin_user=Depends(get_admin_user)
 ):
-    """Get paginated users subscribed to a plan"""
+    """Get paginated users subscribed to a plan with usage data"""
     try:
+        from open_webui.internal.db import get_db
+
         # Validate pagination parameters
         if page < 1:
             page = 1
@@ -511,6 +524,8 @@ async def get_plan_subscribers(
                 detail=f"Plan '{plan_id}' not found",
             )
 
+        quotas = plan.quotas or {}
+
         # Get all subscriptions
         subscriptions = Subscriptions.get_subscriptions_by_plan(plan_id)
         total = len(subscriptions)
@@ -523,21 +538,54 @@ async def get_plan_subscribers(
         # Slice subscriptions for current page
         page_subscriptions = subscriptions[start_idx:end_idx]
 
-        # Get user details for current page
+        # Get user details and usage for current page
         items = []
-        for sub in page_subscriptions:
-            user = Users.get_user_by_id(sub.user_id)
-            if user:
-                items.append(
-                    PlanSubscriberModel(
-                        user_id=user.id,
-                        email=user.email,
-                        name=user.name,
-                        subscription_status=sub.status,
-                        subscribed_at=sub.created_at,
-                        current_period_end=sub.current_period_end,
+        with get_db() as db:
+            for sub in page_subscriptions:
+                user = Users.get_user_by_id(sub.user_id)
+                if user:
+                    # Get usage for current period
+                    tokens_input_used = 0
+                    tokens_output_used = 0
+                    requests_used = 0
+
+                    usage_query = (
+                        db.query(Usage.metric, func.sum(Usage.amount).label('total'))
+                        .filter(
+                            Usage.user_id == user.id,
+                            Usage.created_at >= sub.current_period_start,
+                            Usage.created_at <= sub.current_period_end
+                        )
+                        .group_by(Usage.metric)
                     )
-                )
+
+                    for usage_row in usage_query.all():
+                        if usage_row.metric == UsageMetric.TOKENS_INPUT.value:
+                            tokens_input_used = int(usage_row.total or 0)
+                        elif usage_row.metric == UsageMetric.TOKENS_OUTPUT.value:
+                            tokens_output_used = int(usage_row.total or 0)
+                        elif usage_row.metric == UsageMetric.REQUESTS.value:
+                            requests_used = int(usage_row.total or 0)
+
+                    items.append(
+                        PlanSubscriberModel(
+                            user_id=user.id,
+                            email=user.email,
+                            name=user.name,
+                            profile_image_url=user.profile_image_url,
+                            role=user.role,
+                            subscription_status=sub.status,
+                            subscribed_at=sub.created_at,
+                            current_period_start=sub.current_period_start,
+                            current_period_end=sub.current_period_end,
+                            tokens_input_used=tokens_input_used,
+                            tokens_input_limit=quotas.get("tokens_input"),
+                            tokens_output_used=tokens_output_used,
+                            tokens_output_limit=quotas.get("tokens_output"),
+                            requests_used=requests_used,
+                            requests_limit=quotas.get("requests"),
+                        )
+                    )
 
         return PaginatedSubscribersResponse(
             items=items,
@@ -554,4 +602,204 @@ async def get_plan_subscribers(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get plan subscribers",
+        )
+
+
+@router.get("/users/{user_id}/subscription")
+async def get_user_subscription_info(
+    user_id: str,
+    admin_user=Depends(get_admin_user)
+):
+    """Get subscription info for a specific user with usage data"""
+    try:
+        from open_webui.internal.db import get_db
+
+        # Verify user exists
+        user = Users.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User '{user_id}' not found",
+            )
+
+        # Get user's subscription
+        subscription = Subscriptions.get_subscription_by_user_id(user_id)
+        if not subscription:
+            return {
+                "user_id": user_id,
+                "subscription": None,
+                "plan": None,
+                "usage": {}
+            }
+
+        # Get plan
+        plan = Plans.get_plan_by_id(subscription.plan_id)
+        quotas = plan.quotas if plan else {}
+
+        # Get usage data
+        usage = {}
+        with get_db() as db:
+            for metric in [UsageMetric.TOKENS_INPUT, UsageMetric.TOKENS_OUTPUT, UsageMetric.REQUESTS]:
+                total = (
+                    db.query(func.sum(Usage.amount))
+                    .filter(
+                        Usage.user_id == user_id,
+                        Usage.metric == metric.value,
+                        Usage.created_at >= subscription.current_period_start,
+                        Usage.created_at <= subscription.current_period_end
+                    )
+                    .scalar()
+                )
+                used = int(total or 0)
+                limit = quotas.get(metric.value) if quotas else None
+
+                usage[metric.value] = {
+                    "used": used,
+                    "limit": limit,
+                    "remaining": max(0, limit - used) if limit else None,
+                    "percentage": round((used / limit) * 100, 1) if limit and limit > 0 else None
+                }
+
+        return {
+            "user_id": user_id,
+            "subscription": subscription,
+            "plan": plan,
+            "usage": usage
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.exception(f"Error getting subscription for user {user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get user subscription",
+        )
+
+
+class ChangeUserPlanRequest(BaseModel):
+    """Request to change user's subscription plan"""
+    plan_id: str
+    reset_usage: bool = False  # Whether to reset usage counters
+
+
+@router.put("/users/{user_id}/subscription")
+async def change_user_subscription(
+    user_id: str,
+    request: ChangeUserPlanRequest,
+    admin_user=Depends(get_admin_user)
+):
+    """Change user's subscription plan (admin only)"""
+    try:
+        from open_webui.internal.db import get_db
+        from open_webui.models.billing import Subscription, SubscriptionStatus
+
+        # Verify user exists
+        user = Users.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User '{user_id}' not found",
+            )
+
+        # Verify new plan exists
+        new_plan = Plans.get_plan_by_id(request.plan_id)
+        if not new_plan:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Plan '{request.plan_id}' not found",
+            )
+
+        with get_db() as db:
+            # Get or create subscription
+            subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
+
+            current_time = int(time.time())
+
+            # Calculate period based on plan interval
+            interval_seconds = {
+                "day": 86400,
+                "week": 604800,
+                "month": 2592000,  # 30 days
+                "year": 31536000,  # 365 days
+            }
+            period_duration = interval_seconds.get(new_plan.interval, 2592000)
+
+            if subscription:
+                old_plan_id = subscription.plan_id
+
+                # Update existing subscription
+                subscription.plan_id = request.plan_id
+                subscription.status = SubscriptionStatus.ACTIVE.value
+                subscription.current_period_start = current_time
+                subscription.current_period_end = current_time + period_duration
+                subscription.updated_at = current_time
+
+                # Reset usage if requested
+                if request.reset_usage:
+                    from open_webui.models.billing import Usage
+                    db.query(Usage).filter(
+                        Usage.user_id == user_id,
+                        Usage.created_at >= subscription.current_period_start
+                    ).delete()
+
+                db.commit()
+                db.refresh(subscription)
+
+                log.info(f"Admin {admin_user.email} changed plan for user {user.email}: {old_plan_id} -> {request.plan_id}")
+
+                # Audit log
+                AuditLogs.insert_audit_log(
+                    admin_user.id,
+                    AuditAction.BILLING,
+                    f"Changed subscription plan for user {user.email} from {old_plan_id} to {request.plan_id}",
+                    {"user_id": user_id, "old_plan_id": old_plan_id, "new_plan_id": request.plan_id, "reset_usage": request.reset_usage}
+                )
+            else:
+                # Create new subscription
+                new_subscription = Subscription(
+                    id=str(uuid.uuid4()),
+                    user_id=user_id,
+                    plan_id=request.plan_id,
+                    status=SubscriptionStatus.ACTIVE.value,
+                    current_period_start=current_time,
+                    current_period_end=current_time + period_duration,
+                    created_at=current_time,
+                    updated_at=current_time,
+                )
+                db.add(new_subscription)
+                db.commit()
+                db.refresh(new_subscription)
+                subscription = new_subscription
+
+                log.info(f"Admin {admin_user.email} created subscription for user {user.email}: plan {request.plan_id}")
+
+                # Audit log
+                AuditLogs.insert_audit_log(
+                    admin_user.id,
+                    AuditAction.BILLING,
+                    f"Created subscription for user {user.email} with plan {request.plan_id}",
+                    {"user_id": user_id, "plan_id": request.plan_id}
+                )
+
+            return {
+                "success": True,
+                "subscription": {
+                    "id": subscription.id,
+                    "user_id": subscription.user_id,
+                    "plan_id": subscription.plan_id,
+                    "status": subscription.status,
+                    "current_period_start": subscription.current_period_start,
+                    "current_period_end": subscription.current_period_end,
+                },
+                "plan": new_plan
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.exception(f"Error changing subscription for user {user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to change user subscription",
         )

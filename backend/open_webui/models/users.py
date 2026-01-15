@@ -70,6 +70,9 @@ class User(Base):
 
     oauth = Column(JSON, nullable=True)
 
+    email_verified = Column(Boolean, nullable=True, default=False)
+    terms_accepted_at = Column(BigInteger, nullable=True)
+
     last_active_at = Column(BigInteger)
     updated_at = Column(BigInteger)
     created_at = Column(BigInteger)
@@ -101,6 +104,9 @@ class UserModel(BaseModel):
     settings: Optional[UserSettings] = None
 
     oauth: Optional[dict] = None
+
+    email_verified: Optional[bool] = False
+    terms_accepted_at: Optional[int] = None
 
     last_active_at: int  # timestamp in epoch
     updated_at: int  # timestamp in epoch

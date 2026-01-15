@@ -7,11 +7,19 @@
 	import { WEBUI_NAME, user } from '$lib/stores';
 	import { getPlan, updatePlan, getPlanSubscribers } from '$lib/apis/admin/billing';
 	import type { Plan, UpdatePlanRequest, PlanSubscriber } from '$lib/apis/admin/billing';
+	import {
+		formatCompactNumber,
+		getUsagePercentage,
+		getUsageColor,
+		getStatusColor,
+		formatQuotaValue
+	} from '$lib/utils/billing-formatters';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Badge from '$lib/components/common/Badge.svelte';
 	import ChevronLeft from '$lib/components/icons/ChevronLeft.svelte';
+	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 
@@ -218,9 +226,14 @@
 		}
 	};
 
-	const formatNumber = (value: number | null): string => {
-		if (value === null) return '∞';
-		return new Intl.NumberFormat($i18n.locale).format(value);
+	// Subscribers list state
+	let subscribersExpanded = false;
+
+	const formatDate = (timestamp: number): string => {
+		return new Date(timestamp * 1000).toLocaleDateString($i18n.locale, {
+			month: 'short',
+			day: 'numeric'
+		});
 	};
 </script>
 
@@ -383,7 +396,7 @@
 											<label class="block text-xs text-gray-500 mb-1">
 												{$i18n.t('Input Tokens')}
 												{#if hasActiveSubscribers && originalPlan?.quotas.tokens_input !== null}
-													<span class="text-gray-400">({$i18n.t('was')} {formatNumber(originalPlan.quotas.tokens_input)})</span>
+													<span class="text-gray-400">({$i18n.t('was')} {formatQuotaValue(originalPlan.quotas.tokens_input)})</span>
 												{/if}
 											</label>
 											<input
@@ -410,7 +423,7 @@
 											<label class="block text-xs text-gray-500 mb-1">
 												{$i18n.t('Output Tokens')}
 												{#if hasActiveSubscribers && originalPlan?.quotas.tokens_output !== null}
-													<span class="text-gray-400">({$i18n.t('was')} {formatNumber(originalPlan.quotas.tokens_output)})</span>
+													<span class="text-gray-400">({$i18n.t('was')} {formatQuotaValue(originalPlan.quotas.tokens_output)})</span>
 												{/if}
 											</label>
 											<input
@@ -437,7 +450,7 @@
 											<label class="block text-xs text-gray-500 mb-1">
 												{$i18n.t('Requests')}
 												{#if hasActiveSubscribers && originalPlan?.quotas.requests !== null}
-													<span class="text-gray-400">({$i18n.t('was')} {formatNumber(originalPlan.quotas.requests)})</span>
+													<span class="text-gray-400">({$i18n.t('was')} {formatQuotaValue(originalPlan.quotas.requests)})</span>
 												{/if}
 											</label>
 											<input
@@ -528,6 +541,113 @@
 								</div>
 							</div>
 
+							<!-- Subscribers List -->
+							{#if hasActiveSubscribers}
+								<div>
+									<button
+										type="button"
+										class="flex items-center gap-2 text-xs text-gray-500 mb-2 font-medium hover:text-gray-700 dark:hover:text-gray-300 transition"
+										on:click={() => subscribersExpanded = !subscribersExpanded}
+									>
+										<span class="transform transition-transform {subscribersExpanded ? 'rotate-0' : '-rotate-90'}">
+											<ChevronDown className="size-3.5" />
+										</span>
+										{$i18n.t('Subscribers')} ({subscribers.length})
+									</button>
+
+									{#if subscribersExpanded}
+										<div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+											<div class="max-h-64 overflow-y-auto">
+												<table class="w-full text-xs">
+													<thead class="bg-gray-50 dark:bg-gray-800 sticky top-0">
+														<tr>
+															<th class="text-left px-3 py-2 font-medium text-gray-600 dark:text-gray-400">{$i18n.t('User')}</th>
+															<th class="text-left px-3 py-2 font-medium text-gray-600 dark:text-gray-400">{$i18n.t('Status')}</th>
+															<th class="text-left px-3 py-2 font-medium text-gray-600 dark:text-gray-400">{$i18n.t('Input')}</th>
+															<th class="text-left px-3 py-2 font-medium text-gray-600 dark:text-gray-400">{$i18n.t('Output')}</th>
+															<th class="text-left px-3 py-2 font-medium text-gray-600 dark:text-gray-400">{$i18n.t('Requests')}</th>
+															<th class="text-left px-3 py-2 font-medium text-gray-600 dark:text-gray-400">{$i18n.t('Period')}</th>
+														</tr>
+													</thead>
+													<tbody>
+														{#each subscribers as subscriber (subscriber.user_id)}
+															<tr class="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+																<td class="px-3 py-2">
+																	<div class="flex items-center gap-2">
+																		<img
+																			src={subscriber.profile_image_url || '/user.png'}
+																			alt={subscriber.name}
+																			class="size-6 rounded-full object-cover"
+																		/>
+																		<div class="truncate max-w-24">
+																			<div class="font-medium truncate">{subscriber.name}</div>
+																			<div class="text-gray-400 truncate">{subscriber.email}</div>
+																		</div>
+																	</div>
+																</td>
+																<td class="px-3 py-2">
+																	<span class="px-1.5 py-0.5 rounded text-xs {getStatusColor(subscriber.subscription_status)}">
+																		{subscriber.subscription_status}
+																	</span>
+																</td>
+																<td class="px-3 py-2">
+																	{#if subscriber.tokens_input_limit}
+																		{@const pct = getUsagePercentage(subscriber.tokens_input_used, subscriber.tokens_input_limit)}
+																		<div class="space-y-0.5">
+																			<div class="text-gray-600 dark:text-gray-400">
+																				{formatCompactNumber(subscriber.tokens_input_used)}/{formatCompactNumber(subscriber.tokens_input_limit)}
+																			</div>
+																			<div class="w-16 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+																				<div class="h-full {getUsageColor(pct)}" style="width: {pct}%"></div>
+																			</div>
+																		</div>
+																	{:else}
+																		<span class="text-gray-400">{formatCompactNumber(subscriber.tokens_input_used)}</span>
+																	{/if}
+																</td>
+																<td class="px-3 py-2">
+																	{#if subscriber.tokens_output_limit}
+																		{@const pct = getUsagePercentage(subscriber.tokens_output_used, subscriber.tokens_output_limit)}
+																		<div class="space-y-0.5">
+																			<div class="text-gray-600 dark:text-gray-400">
+																				{formatCompactNumber(subscriber.tokens_output_used)}/{formatCompactNumber(subscriber.tokens_output_limit)}
+																			</div>
+																			<div class="w-16 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+																				<div class="h-full {getUsageColor(pct)}" style="width: {pct}%"></div>
+																			</div>
+																		</div>
+																	{:else}
+																		<span class="text-gray-400">{formatCompactNumber(subscriber.tokens_output_used)}</span>
+																	{/if}
+																</td>
+																<td class="px-3 py-2">
+																	{#if subscriber.requests_limit}
+																		{@const pct = getUsagePercentage(subscriber.requests_used, subscriber.requests_limit)}
+																		<div class="space-y-0.5">
+																			<div class="text-gray-600 dark:text-gray-400">
+																				{subscriber.requests_used}/{subscriber.requests_limit}
+																			</div>
+																			<div class="w-16 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+																				<div class="h-full {getUsageColor(pct)}" style="width: {pct}%"></div>
+																			</div>
+																		</div>
+																	{:else}
+																		<span class="text-gray-400">{subscriber.requests_used}</span>
+																	{/if}
+																</td>
+																<td class="px-3 py-2 text-gray-500">
+																	{formatDate(subscriber.current_period_end)}
+																</td>
+															</tr>
+														{/each}
+													</tbody>
+												</table>
+											</div>
+										</div>
+									{/if}
+								</div>
+							{/if}
+
 							<!-- Preview Card -->
 							<div>
 								<div class="text-xs text-gray-500 mb-2 font-medium">{$i18n.t('Preview')}</div>
@@ -549,9 +669,9 @@
 										</div>
 									</div>
 									<div class="flex gap-4 text-xs text-gray-500 border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-										<div>{$i18n.t('Input')}: <span class="font-medium">{formatNumber(formData.quotas?.tokens_input ?? null)}</span></div>
-										<div>{$i18n.t('Output')}: <span class="font-medium">{formatNumber(formData.quotas?.tokens_output ?? null)}</span></div>
-										<div>{$i18n.t('Requests')}: <span class="font-medium">{formatNumber(formData.quotas?.requests ?? null)}</span></div>
+										<div>{$i18n.t('Input')}: <span class="font-medium">{formatQuotaValue(formData.quotas?.tokens_input ?? null)}</span></div>
+										<div>{$i18n.t('Output')}: <span class="font-medium">{formatQuotaValue(formData.quotas?.tokens_output ?? null)}</span></div>
+										<div>{$i18n.t('Requests')}: <span class="font-medium">{formatQuotaValue(formData.quotas?.requests ?? null)}</span></div>
 									</div>
 									{#if formData.features && formData.features.length > 0}
 										<div class="flex flex-wrap gap-1 mt-2">

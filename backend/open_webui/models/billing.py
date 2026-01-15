@@ -347,6 +347,41 @@ class PlansTable:
             db.commit()
             return True
 
+    def get_free_plan(self) -> Optional[PlanModel]:
+        """Get the first active free plan (price = 0)"""
+        with get_db() as db:
+            plan = (
+                db.query(Plan)
+                .filter(Plan.is_active == True, Plan.price == 0)
+                .order_by(Plan.display_order)
+                .first()
+            )
+            return PlanModel.model_validate(plan) if plan else None
+
+
+class PlanSubscriberInfo(BaseModel):
+    """Extended subscriber info with user data and usage"""
+    subscription_id: str
+    user_id: str
+    user_name: str
+    user_email: str
+    user_role: str
+    user_profile_image_url: Optional[str] = None
+    plan_id: str
+    status: str
+    current_period_start: int
+    current_period_end: int
+    created_at: int
+    # Usage data
+    tokens_input_used: int = 0
+    tokens_input_limit: Optional[int] = None
+    tokens_output_used: int = 0
+    tokens_output_limit: Optional[int] = None
+    requests_used: int = 0
+    requests_limit: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
 
 class SubscriptionsTable:
     def __init__(self, db=None):
@@ -369,6 +404,19 @@ class SubscriptionsTable:
         """Get subscription by ID"""
         with get_db() as db:
             subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
+            return SubscriptionModel.model_validate(subscription) if subscription else None
+
+    def get_latest_subscription_by_user_id(
+        self, user_id: str
+    ) -> Optional[SubscriptionModel]:
+        """Get latest subscription for user regardless of status"""
+        with get_db() as db:
+            subscription = (
+                db.query(Subscription)
+                .filter(Subscription.user_id == user_id)
+                .order_by(Subscription.created_at.desc())
+                .first()
+            )
             return SubscriptionModel.model_validate(subscription) if subscription else None
 
     def create_subscription(self, subscription: SubscriptionModel) -> SubscriptionModel:
@@ -409,6 +457,151 @@ class SubscriptionsTable:
 
             subscriptions = query.order_by(Subscription.created_at.desc()).all()
             return [SubscriptionModel.model_validate(sub) for sub in subscriptions]
+
+    def get_plan_subscribers_with_usage(
+        self, plan_id: str, status: Optional[str] = None, skip: int = 0, limit: int = 50
+    ) -> dict:
+        """
+        Get all subscribers of a plan with their usage data.
+        Returns dict with 'subscribers' list and 'total' count.
+        """
+        from open_webui.models.users import User
+        from sqlalchemy import func
+
+        with get_db() as db:
+            # Get plan for quotas
+            plan = db.query(Plan).filter(Plan.id == plan_id).first()
+            if not plan:
+                return {"subscribers": [], "total": 0}
+
+            quotas = plan.quotas or {}
+
+            # Base query for subscriptions with user join
+            query = (
+                db.query(Subscription, User)
+                .join(User, Subscription.user_id == User.id)
+                .filter(Subscription.plan_id == plan_id)
+            )
+
+            if status:
+                query = query.filter(Subscription.status == status)
+            else:
+                # Default: only active subscriptions
+                query = query.filter(
+                    Subscription.status.in_([SubscriptionStatus.ACTIVE.value, SubscriptionStatus.TRIALING.value])
+                )
+
+            # Get total count
+            total = query.count()
+
+            # Apply pagination
+            results = query.order_by(Subscription.created_at.desc()).offset(skip).limit(limit).all()
+
+            subscribers = []
+            for sub, user in results:
+                # Get usage for current period
+                tokens_input_used = 0
+                tokens_output_used = 0
+                requests_used = 0
+
+                # Query usage for this user in current period
+                usage_query = (
+                    db.query(Usage.metric, func.sum(Usage.amount).label('total'))
+                    .filter(
+                        Usage.user_id == user.id,
+                        Usage.created_at >= sub.current_period_start,
+                        Usage.created_at <= sub.current_period_end
+                    )
+                    .group_by(Usage.metric)
+                )
+
+                for usage_row in usage_query.all():
+                    if usage_row.metric == UsageMetric.TOKENS_INPUT.value:
+                        tokens_input_used = int(usage_row.total or 0)
+                    elif usage_row.metric == UsageMetric.TOKENS_OUTPUT.value:
+                        tokens_output_used = int(usage_row.total or 0)
+                    elif usage_row.metric == UsageMetric.REQUESTS.value:
+                        requests_used = int(usage_row.total or 0)
+
+                subscriber_info = PlanSubscriberInfo(
+                    subscription_id=sub.id,
+                    user_id=user.id,
+                    user_name=user.name,
+                    user_email=user.email,
+                    user_role=user.role,
+                    user_profile_image_url=user.profile_image_url,
+                    plan_id=sub.plan_id,
+                    status=sub.status,
+                    current_period_start=sub.current_period_start,
+                    current_period_end=sub.current_period_end,
+                    created_at=sub.created_at,
+                    tokens_input_used=tokens_input_used,
+                    tokens_input_limit=quotas.get("tokens_input"),
+                    tokens_output_used=tokens_output_used,
+                    tokens_output_limit=quotas.get("tokens_output"),
+                    requests_used=requests_used,
+                    requests_limit=quotas.get("requests"),
+                )
+                subscribers.append(subscriber_info)
+
+            return {"subscribers": subscribers, "total": total}
+
+    def get_all_subscriptions_with_plans(
+        self, skip: int = 0, limit: int = 50
+    ) -> List[dict]:
+        """Get all active subscriptions with plan info for admin view"""
+        with get_db() as db:
+            results = (
+                db.query(Subscription, Plan)
+                .join(Plan, Subscription.plan_id == Plan.id)
+                .filter(Subscription.status.in_([SubscriptionStatus.ACTIVE.value, SubscriptionStatus.TRIALING.value]))
+                .order_by(Subscription.created_at.desc())
+                .offset(skip)
+                .limit(limit)
+                .all()
+            )
+
+            return [
+                {
+                    "subscription": SubscriptionModel.model_validate(sub),
+                    "plan": PlanModel.model_validate(plan)
+                }
+                for sub, plan in results
+            ]
+
+    def assign_free_plan_to_user(self, user_id: str) -> Optional[SubscriptionModel]:
+        """
+        Assign the default free plan to a new user.
+        Returns the created subscription or None if no free plan exists.
+        """
+        # Check if user already has a subscription
+        existing = self.get_subscription_by_user_id(user_id)
+        if existing:
+            return existing
+
+        # Get the free plan
+        free_plan = Plans.get_free_plan()
+        if not free_plan:
+            return None
+
+        # Create subscription
+        now = int(time.time())
+        # Free plan doesn't expire, set to 100 years from now
+        far_future = now + (100 * 365 * 24 * 60 * 60)
+
+        subscription = SubscriptionModel(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            plan_id=free_plan.id,
+            status=SubscriptionStatus.ACTIVE.value,
+            current_period_start=now,
+            current_period_end=far_future,
+            auto_renew=False,
+            created_at=now,
+            updated_at=now,
+        )
+
+        return self.create_subscription(subscription)
 
 
 class UsageTable:

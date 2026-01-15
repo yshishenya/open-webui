@@ -3,35 +3,44 @@
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 
-	import { WEBUI_NAME, user } from '$lib/stores';
-	import { getBillingInfo, cancelSubscription } from '$lib/apis/billing';
-	import type { BillingInfo, Subscription, Plan, Transaction, UsageInfo } from '$lib/apis/billing';
+	import { WEBUI_NAME } from '$lib/stores';
+	import { getBillingInfo, cancelSubscription, resumeSubscription } from '$lib/apis/billing';
+	import type { BillingInfo, UsageData } from '$lib/apis/billing';
+	import {
+		formatCompactNumber,
+		getUsagePercentage,
+		getUsageColor,
+		getStatusColor,
+		getQuotaLabel
+	} from '$lib/utils/billing-formatters';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
-	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 
 	const i18n = getContext('i18n');
 
 	let loading = true;
 	let billingInfo: BillingInfo | null = null;
+	let errorMessage: string | null = null;
 	let canceling = false;
+	let resuming = false;
 	let showCancelConfirm = false;
 
 	onMount(async () => {
 		await loadBillingInfo();
 	});
 
-	const loadBillingInfo = async () => {
+	const loadBillingInfo = async (): Promise<void> => {
 		loading = true;
+		errorMessage = null;
 		try {
 			const result = await getBillingInfo(localStorage.token);
-			if (result) {
-				billingInfo = result;
-			}
+			billingInfo = result;
 		} catch (error) {
 			console.error('Failed to load billing info:', error);
-			toast.error($i18n.t('Failed to load billing information'));
+			errorMessage = $i18n.t('Failed to load billing information');
+			billingInfo = null;
+			toast.error(errorMessage);
 		} finally {
 			loading = false;
 		}
@@ -57,6 +66,24 @@
 		}
 	};
 
+	const handleResumeSubscription = async (): Promise<void> => {
+		resuming = true;
+
+		try {
+			const result = await resumeSubscription(localStorage.token);
+			if (result) {
+				toast.success($i18n.t('Subscription resumed successfully'));
+				await loadBillingInfo();
+			} else {
+				toast.error($i18n.t('Failed to resume subscription'));
+			}
+		} catch (error) {
+			console.error('Failed to resume subscription:', error);
+			toast.error($i18n.t('Failed to resume subscription'));
+		} finally {
+			resuming = false;
+		}
+	};
 	const formatDate = (timestamp: number): string => {
 		return new Date(timestamp * 1000).toLocaleDateString($i18n.locale, {
 			year: 'numeric',
@@ -76,50 +103,28 @@
 	};
 
 	const formatPrice = (amount: number, currency: string): string => {
-		return new Intl.NumberFormat($i18n.locale, {
-			style: 'currency',
-			currency: currency
-		}).format(amount);
-	};
-
-	const formatQuota = (value: number): string => {
-		if (value >= 1000000) {
-			return `${(value / 1000000).toFixed(1)}M`;
-		} else if (value >= 1000) {
-			return `${(value / 1000).toFixed(0)}K`;
+		if (!currency) {
+			return amount.toString();
 		}
-		return value.toString();
+		try {
+			return new Intl.NumberFormat($i18n.locale, {
+				style: 'currency',
+				currency: currency
+			}).format(amount);
+		} catch (error) {
+			console.warn('Invalid currency code:', currency, error);
+			return `${amount} ${currency}`.trim();
+		}
 	};
 
-	const getUsagePercentage = (usage: UsageInfo): number => {
-		if (!usage.quota_limit) return 0;
-		return Math.min((usage.current_usage / usage.quota_limit) * 100, 100);
+	// Helper to get usage percentage from UsageData object
+	const getUsagePercent = (usage: UsageData): number => {
+		return getUsagePercentage(usage.current, usage.limit);
 	};
 
-	const getUsageColor = (percentage: number): string => {
-		if (percentage >= 90) return 'bg-red-500';
-		if (percentage >= 70) return 'bg-yellow-500';
-		return 'bg-green-500';
-	};
-
-	const getStatusBadgeClass = (status: string): string => {
-		const classes: Record<string, string> = {
-			active: 'bg-green-500/20 text-green-700 dark:text-green-200',
-			canceled: 'bg-red-500/20 text-red-700 dark:text-red-200',
-			pending: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-200',
-			succeeded: 'bg-green-500/20 text-green-700 dark:text-green-200',
-			failed: 'bg-red-500/20 text-red-700 dark:text-red-200'
-		};
-		return classes[status] || 'bg-gray-500/20 text-gray-700 dark:text-gray-200';
-	};
-
-	const getQuotaLabel = (key: string): string => {
-		const labels: Record<string, string> = {
-			tokens_input: $i18n.t('Input tokens'),
-			tokens_output: $i18n.t('Output tokens'),
-			requests: $i18n.t('Requests')
-		};
-		return labels[key] || key;
+	// Get quota label with i18n
+	const getLocalizedQuotaLabel = (key: string): string => {
+		return getQuotaLabel(key, (k) => $i18n.t(k));
 	};
 </script>
 
@@ -132,6 +137,19 @@
 {#if loading}
 	<div class="w-full h-full flex justify-center items-center">
 		<Spinner className="size-5" />
+	</div>
+{:else if errorMessage}
+	<div class="w-full">
+		<div class="flex flex-col items-center justify-center py-24 text-center">
+			<div class="text-gray-500 dark:text-gray-400 text-lg">{errorMessage}</div>
+			<button
+				type="button"
+				on:click={loadBillingInfo}
+				class="mt-4 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium"
+			>
+				{$i18n.t('Retry')}
+			</button>
+		</div>
 	</div>
 {:else if !billingInfo}
 	<div class="w-full">
@@ -174,7 +192,7 @@
 					{$i18n.t('Current Subscription')}
 				</h3>
 				{#if billingInfo.subscription}
-					<span class="px-1.5 py-0.5 text-xs font-medium rounded {getStatusBadgeClass(billingInfo.subscription.status)}">
+					<span class="px-1.5 py-0.5 text-xs font-medium rounded {getStatusColor(billingInfo.subscription.status)}">
 						{billingInfo.subscription.status.toUpperCase()}
 					</span>
 				{/if}
@@ -209,6 +227,23 @@
 							<div class="text-sm text-yellow-700 dark:text-yellow-300">
 								{$i18n.t('Your subscription will be canceled at the end of the current period')}
 							</div>
+						</div>
+						<div class="pt-1">
+							<button
+								type="button"
+								on:click={handleResumeSubscription}
+								disabled={resuming}
+								class="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-xl transition text-sm font-medium disabled:cursor-not-allowed"
+							>
+								{#if resuming}
+									<div class="flex items-center gap-2">
+										<Spinner className="size-4" />
+										<span>{$i18n.t('Resuming')}...</span>
+									</div>
+								{:else}
+									{$i18n.t('Resume Subscription')}
+								{/if}
+							</button>
 						</div>
 					{:else if billingInfo.subscription.status === 'active'}
 						<div class="pt-1">
@@ -258,26 +293,26 @@
 						<div>
 							<div class="flex items-center justify-between mb-1.5">
 								<span class="text-sm font-medium">
-									{getQuotaLabel(metric)}
+									{getLocalizedQuotaLabel(metric)}
 								</span>
 								<span class="text-sm text-gray-500">
-									{formatQuota(usage.current_usage)}
-									{#if usage.quota_limit}
-										/ {formatQuota(usage.quota_limit)}
+									{formatCompactNumber(usage.current)}
+									{#if usage.limit}
+										/ {formatCompactNumber(usage.limit)}
 									{/if}
 								</span>
 							</div>
-							{#if usage.quota_limit}
+							{#if usage.limit}
 								<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
 									<div
-										class="{getUsageColor(getUsagePercentage(usage))} h-1.5 rounded-full transition-all"
-										style="width: {getUsagePercentage(usage)}%"
+										class="{getUsageColor(getUsagePercent(usage))} h-1.5 rounded-full transition-all"
+										style="width: {getUsagePercent(usage)}%"
 									/>
 								</div>
 								<div class="text-xs text-gray-500 mt-1">
-									{getUsagePercentage(usage).toFixed(1)}% {$i18n.t('used')}
-									{#if usage.remaining !== undefined}
-										• {formatQuota(usage.remaining)} {$i18n.t('remaining')}
+									{getUsagePercent(usage).toFixed(1)}% {$i18n.t('used')}
+									{#if usage.limit}
+										• {formatCompactNumber(Math.max(0, usage.limit - usage.current))} {$i18n.t('remaining')}
 									{/if}
 								</div>
 							{/if}
@@ -313,7 +348,7 @@
 									<td class="px-4 py-2 text-sm">{transaction.description_ru || transaction.description || '-'}</td>
 									<td class="px-4 py-2 text-sm font-medium">{formatPrice(transaction.amount, transaction.currency)}</td>
 									<td class="px-4 py-2">
-										<span class="px-1.5 py-0.5 text-xs font-medium rounded {getStatusBadgeClass(transaction.status)}">
+										<span class="px-1.5 py-0.5 text-xs font-medium rounded {getStatusColor(transaction.status)}">
 											{transaction.status.toUpperCase()}
 										</span>
 									</td>
