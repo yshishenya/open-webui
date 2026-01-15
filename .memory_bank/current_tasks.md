@@ -6,6 +6,15 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG]** Free plan cancellation blocks re-subscribe
+  - Added free plan activation and resume flow in billing UI and API.
+
+- [x] **[BUG]** Billing dashboard shows infinite spinner and no content
+  - Added timeout/error state for billing info load with retry action and safer currency formatting.
+
+- [x] **[BUG]** Prevent duplicate email in Yandex OAuth when merge disabled
+  - Added duplicate-email guard aligned with signup/add routes; merges when enabled and blocks when disabled.
+
 - [x] **[BILLING-01]** Implement billing system with YooKassa integration
   - Created database models (Plan, Subscription, Usage, Transaction, AuditLog)
   - Implemented backend API (user billing + admin billing)
@@ -43,6 +52,12 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Add cost projections
   - **Owner**: TBD
   - **Target**: 2025-12-20
+
+- [ ] **[BILLING-05]** Plan B2C monetization (wallet + PAYG)
+  - Analyze current billing implementation versus target monetization design
+  - Produce implementation roadmap with open questions and migration steps
+  - **Owner**: TBD (current planning session)
+  - **Target**: 2025-12-18
 
 ### Medium Priority
 
