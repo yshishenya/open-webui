@@ -64,22 +64,29 @@ test.describe('Billing Lead Magnet', () => {
 		await page.route('**/api/v1/billing/balance', async (route) => {
 			await route.fulfill({ json: balanceResponse });
 		});
+		await page.route('**/api/v1/users/user/info', async (route) => {
+			await route.fulfill({ json: { billing_contact_email: '', billing_contact_phone: '' } });
+		});
+		await page.route('**/api/v1/billing/ledger*', async (route) => {
+			await route.fulfill({ json: [] });
+		});
 	});
 
-	test('dashboard shows lead magnet card', async ({ page }) => {
+	test('dashboard redirects to wallet and shows free limit', async ({ page }) => {
 		await page.goto('/billing/dashboard');
-		await page.waitForResponse('**/api/v1/billing/me');
+		await page.waitForURL(/\/billing\/balance/);
+		await page.waitForResponse('**/api/v1/billing/lead-magnet');
 
-		await expect(page.getByText('Lead magnet')).toBeVisible();
+		await expect(page.getByText('Free limit')).toBeVisible();
 		await expect(page.getByText('Next reset')).toBeVisible();
 		await expect(page.getByText('Input tokens')).toBeVisible();
 	});
 
-	test('balance shows lead magnet summary', async ({ page }) => {
+	test('wallet shows free limit summary', async ({ page }) => {
 		await page.goto('/billing/balance');
 		await page.waitForResponse('**/api/v1/billing/lead-magnet');
 
-		await expect(page.getByText('Lead magnet')).toBeVisible();
+		await expect(page.getByText('Free limit')).toBeVisible();
 		await expect(page.getByText('Next reset')).toBeVisible();
 		await expect(page.getByText('Output tokens')).toBeVisible();
 	});

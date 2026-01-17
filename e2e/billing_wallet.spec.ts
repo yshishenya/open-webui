@@ -56,6 +56,9 @@ test.describe('Billing Wallet', () => {
 		await page.route('**/api/v1/billing/balance', async (route) => {
 			await route.fulfill({ json: balanceResponse });
 		});
+		await page.route('**/api/v1/billing/lead-magnet', async (route) => {
+			await route.fulfill({ json: { enabled: false } });
+		});
 		await page.route('**/api/v1/billing/ledger*', async (route) => {
 			await route.fulfill({ json: ledgerResponse });
 		});
@@ -81,7 +84,7 @@ test.describe('Billing Wallet', () => {
 
 	test('user can update auto-topup settings', async ({ page }) => {
 		await page.goto('/billing/balance');
-		await expect(page.getByText('Wallet Balance')).toBeVisible();
+		await expect(page.getByText('Available now')).toBeVisible();
 
 		const autoTopupSection = page.getByText('Auto-topup').locator('xpath=../..');
 		await autoTopupSection.getByRole('switch').click();
@@ -112,7 +115,7 @@ test.describe('Billing Wallet', () => {
 		await page.goto('/billing/balance');
 		await page.waitForResponse('**/api/v1/billing/balance');
 
-		const topupSection = page.getByText('Top up').locator('xpath=../..');
+		const topupSection = page.locator('#topup-section');
 		const topupRequest = page.waitForRequest('**/api/v1/billing/topup');
 		await topupSection.locator('button').first().click();
 		await topupRequest;
@@ -123,16 +126,17 @@ test.describe('Billing Wallet', () => {
 	test('user can view ledger history', async ({ page }) => {
 		await page.goto('/billing/history');
 		await page.waitForResponse('**/api/v1/billing/ledger*');
-		await expect(page.getByText('Ledger')).toBeVisible();
+		await expect(page.getByText('Operations')).toBeVisible();
 		await expect(page.getByText('Top up')).toBeVisible();
 		await expect(page.getByText('Charge')).toBeVisible();
 	});
 
 	test('user can update billing settings', async ({ page }) => {
 		await page.goto('/billing/settings');
+		await page.waitForURL(/\/billing\/balance/);
 		await page.waitForResponse('**/api/v1/billing/balance');
 		await page.waitForResponse('**/api/v1/users/user/info');
-		await expect(page.getByText('Billing Settings')).toBeVisible();
+		await expect(page.getByText('Spend controls')).toBeVisible();
 
 		await page
 			.getByText('Max reply cost')
@@ -156,7 +160,8 @@ test.describe('Billing Wallet', () => {
 			.fill('+7 999 123-45-67');
 
 		const updateRequest = page.waitForRequest('**/api/v1/billing/settings');
-		await page.getByRole('button', { name: 'Save' }).click();
+		const preferencesSection = page.getByText('Spend controls').locator('xpath=..');
+		await preferencesSection.getByRole('button', { name: 'Save' }).click();
 		const request = await updateRequest;
 		const body = JSON.parse(request.postData() ?? '{}');
 
