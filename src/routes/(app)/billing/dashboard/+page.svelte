@@ -3,9 +3,9 @@
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 
-	import { WEBUI_NAME } from '$lib/stores';
+	import { WEBUI_NAME, config } from '$lib/stores';
 	import { getBillingInfo, cancelSubscription, resumeSubscription } from '$lib/apis/billing';
-	import type { BillingInfo, UsageData } from '$lib/apis/billing';
+	import type { BillingInfo, UsageData, LeadMagnetInfo } from '$lib/apis/billing';
 	import {
 		formatCompactNumber,
 		getUsagePercentage,
@@ -25,6 +25,9 @@
 	let canceling = false;
 	let resuming = false;
 	let showCancelConfirm = false;
+	let subscriptionsEnabled = true;
+
+	$: subscriptionsEnabled = $config?.features?.enable_billing_subscriptions ?? true;
 
 	onMount(async () => {
 		await loadBillingInfo();
@@ -92,6 +95,11 @@
 		});
 	};
 
+	const formatOptionalDate = (timestamp?: number | null): string => {
+		if (!timestamp) return $i18n.t('Not scheduled');
+		return formatDate(timestamp);
+	};
+
 	const formatDateTime = (timestamp: number): string => {
 		return new Date(timestamp * 1000).toLocaleString($i18n.locale, {
 			year: 'numeric',
@@ -126,6 +134,33 @@
 	const getLocalizedQuotaLabel = (key: string): string => {
 		return getQuotaLabel(key, (k) => $i18n.t(k));
 	};
+
+	type LeadMagnetMetric = {
+		key: string;
+		used: number;
+		limit: number;
+		remaining: number;
+		percentage: number;
+	};
+
+	const getLeadMagnetMetrics = (leadMagnet?: LeadMagnetInfo | null): LeadMagnetMetric[] => {
+		if (!leadMagnet) return [];
+		return Object.entries(leadMagnet.quotas ?? {})
+			.filter(([, limit]) => typeof limit === 'number' && limit > 0)
+			.map(([key, limit]) => {
+				const used = leadMagnet.usage?.[key] ?? 0;
+				const remaining = leadMagnet.remaining?.[key] ?? Math.max(0, limit - used);
+				return {
+					key,
+					used,
+					limit,
+					remaining,
+					percentage: getUsagePercentage(used, limit)
+				};
+			});
+	};
+
+	$: leadMagnetMetrics = getLeadMagnetMetrics(billingInfo?.lead_magnet ?? null);
 </script>
 
 <svelte:head>
@@ -157,13 +192,15 @@
 			<div class="text-gray-500 dark:text-gray-400 text-lg">
 				{$i18n.t('No billing information available')}
 			</div>
-			<button
-				type="button"
-				on:click={() => goto('/billing/plans')}
-				class="mt-4 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium"
-			>
-				{$i18n.t('View Plans')}
-			</button>
+			{#if subscriptionsEnabled}
+				<button
+					type="button"
+					on:click={() => goto('/billing/plans')}
+					class="mt-4 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium"
+				>
+					{$i18n.t('View Plans')}
+				</button>
+			{/if}
 		</div>
 	</div>
 {:else}
@@ -175,111 +212,167 @@
 					<div class="text-xl font-medium">{$i18n.t('Billing Dashboard')}</div>
 				</div>
 
-				<button
-					type="button"
-					on:click={() => goto('/billing/plans')}
-					class="px-2 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm"
-				>
-					{$i18n.t('View Plans')}
-				</button>
-			</div>
-		</div>
-
-		<!-- Subscription Card -->
-		<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4 mb-4">
-			<div class="flex items-start justify-between mb-3">
-				<h3 class="text-sm font-medium">
-					{$i18n.t('Current Subscription')}
-				</h3>
-				{#if billingInfo.subscription}
-					<span class="px-1.5 py-0.5 text-xs font-medium rounded {getStatusColor(billingInfo.subscription.status)}">
-						{billingInfo.subscription.status.toUpperCase()}
-					</span>
-				{/if}
-			</div>
-
-			{#if billingInfo.subscription && billingInfo.plan}
-				<div class="space-y-3">
-					<div>
-						<div class="text-lg font-semibold">
-							{billingInfo.plan.name_ru || billingInfo.plan.name}
-						</div>
-						{#if billingInfo.plan.description || billingInfo.plan.description_ru}
-							<div class="text-sm text-gray-500 mt-0.5">
-								{billingInfo.plan.description_ru || billingInfo.plan.description}
-							</div>
-						{/if}
-					</div>
-
-					<div class="grid grid-cols-2 gap-3 text-sm">
-						<div>
-							<span class="text-gray-500">{$i18n.t('Current period start')}:</span>
-							<div class="font-medium">{formatDate(billingInfo.subscription.current_period_start)}</div>
-						</div>
-						<div>
-							<span class="text-gray-500">{$i18n.t('Current period end')}:</span>
-							<div class="font-medium">{formatDate(billingInfo.subscription.current_period_end)}</div>
-						</div>
-					</div>
-
-					{#if billingInfo.subscription.cancel_at_period_end}
-						<div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
-							<div class="text-sm text-yellow-700 dark:text-yellow-300">
-								{$i18n.t('Your subscription will be canceled at the end of the current period')}
-							</div>
-						</div>
-						<div class="pt-1">
-							<button
-								type="button"
-								on:click={handleResumeSubscription}
-								disabled={resuming}
-								class="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-xl transition text-sm font-medium disabled:cursor-not-allowed"
-							>
-								{#if resuming}
-									<div class="flex items-center gap-2">
-										<Spinner className="size-4" />
-										<span>{$i18n.t('Resuming')}...</span>
-									</div>
-								{:else}
-									{$i18n.t('Resume Subscription')}
-								{/if}
-							</button>
-						</div>
-					{:else if billingInfo.subscription.status === 'active'}
-						<div class="pt-1">
-							<button
-								type="button"
-								on:click={() => (showCancelConfirm = true)}
-								disabled={canceling}
-								class="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-xl transition text-sm font-medium disabled:cursor-not-allowed"
-							>
-								{#if canceling}
-									<div class="flex items-center gap-2">
-										<Spinner className="size-4" />
-										<span>{$i18n.t('Canceling')}...</span>
-									</div>
-								{:else}
-									{$i18n.t('Cancel Subscription')}
-								{/if}
-							</button>
-						</div>
-					{/if}
-				</div>
-			{:else}
-				<div class="text-gray-500">
-					{$i18n.t('No active subscription')}
-				</div>
-				<div class="pt-3">
+				{#if subscriptionsEnabled}
 					<button
 						type="button"
 						on:click={() => goto('/billing/plans')}
-						class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium"
+						class="px-2 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm"
 					>
-						{$i18n.t('Browse Plans')}
+						{$i18n.t('View Plans')}
 					</button>
-				</div>
-			{/if}
+				{/if}
+			</div>
 		</div>
+
+		{#if billingInfo.lead_magnet?.enabled}
+			<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4 mb-4">
+				<div class="flex items-start justify-between mb-3">
+					<h3 class="text-sm font-medium">
+						{$i18n.t('Lead magnet')}
+					</h3>
+					<span
+						class="px-1.5 py-0.5 text-xs font-medium rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+					>
+						{$i18n.t('Free')}
+					</span>
+				</div>
+
+				<div class="text-xs text-gray-500 mb-3">
+					{$i18n.t('Next reset')}: {formatOptionalDate(billingInfo.lead_magnet.cycle_end)}
+				</div>
+
+				{#if leadMagnetMetrics.length > 0}
+					<div class="space-y-4">
+						{#each leadMagnetMetrics as metric}
+							<div>
+								<div class="flex items-center justify-between mb-1.5">
+									<span class="text-sm font-medium">
+										{getLocalizedQuotaLabel(metric.key)}
+									</span>
+									<span class="text-sm text-gray-500">
+										{formatCompactNumber(metric.used)} / {formatCompactNumber(metric.limit)}
+									</span>
+								</div>
+								<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+									<div
+										class="{getUsageColor(metric.percentage)} h-1.5 rounded-full transition-all"
+										style="width: {metric.percentage}%"
+									/>
+								</div>
+								<div class="text-xs text-gray-500 mt-1">
+									{metric.percentage.toFixed(1)}% {$i18n.t('used')} •
+									{formatCompactNumber(metric.remaining)} {$i18n.t('remaining')}
+								</div>
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<div class="text-sm text-gray-500">
+						{$i18n.t('No lead magnet limits configured')}
+					</div>
+				{/if}
+			</div>
+		{/if}
+
+		{#if subscriptionsEnabled}
+			<!-- Subscription Card -->
+			<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4 mb-4">
+				<div class="flex items-start justify-between mb-3">
+					<h3 class="text-sm font-medium">
+						{$i18n.t('Current Subscription')}
+					</h3>
+					{#if billingInfo.subscription}
+						<span class="px-1.5 py-0.5 text-xs font-medium rounded {getStatusColor(billingInfo.subscription.status)}">
+							{billingInfo.subscription.status.toUpperCase()}
+						</span>
+					{/if}
+				</div>
+
+				{#if billingInfo.subscription && billingInfo.plan}
+					<div class="space-y-3">
+						<div>
+							<div class="text-lg font-semibold">
+								{billingInfo.plan.name_ru || billingInfo.plan.name}
+							</div>
+							{#if billingInfo.plan.description || billingInfo.plan.description_ru}
+								<div class="text-sm text-gray-500 mt-0.5">
+									{billingInfo.plan.description_ru || billingInfo.plan.description}
+								</div>
+							{/if}
+						</div>
+
+						<div class="grid grid-cols-2 gap-3 text-sm">
+							<div>
+								<span class="text-gray-500">{$i18n.t('Current period start')}:</span>
+								<div class="font-medium">{formatDate(billingInfo.subscription.current_period_start)}</div>
+							</div>
+							<div>
+								<span class="text-gray-500">{$i18n.t('Current period end')}:</span>
+								<div class="font-medium">{formatDate(billingInfo.subscription.current_period_end)}</div>
+							</div>
+						</div>
+
+						{#if billingInfo.subscription.cancel_at_period_end}
+							<div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+								<div class="text-sm text-yellow-700 dark:text-yellow-300">
+									{$i18n.t('Your subscription will be canceled at the end of the current period')}
+								</div>
+							</div>
+							<div class="pt-1">
+								<button
+									type="button"
+									on:click={handleResumeSubscription}
+									disabled={resuming}
+									class="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-xl transition text-sm font-medium disabled:cursor-not-allowed"
+								>
+									{#if resuming}
+										<div class="flex items-center gap-2">
+											<Spinner className="size-4" />
+											<span>{$i18n.t('Resuming')}...</span>
+										</div>
+									{:else}
+										{$i18n.t('Resume Subscription')}
+									{/if}
+								</button>
+							</div>
+						{:else if billingInfo.subscription.status === 'active'}
+							<div class="pt-1">
+								<button
+									type="button"
+									on:click={() => (showCancelConfirm = true)}
+									disabled={canceling}
+									class="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-xl transition text-sm font-medium disabled:cursor-not-allowed"
+								>
+									{#if canceling}
+										<div class="flex items-center gap-2">
+											<Spinner className="size-4" />
+											<span>{$i18n.t('Canceling')}...</span>
+										</div>
+									{:else}
+										{$i18n.t('Cancel Subscription')}
+									{/if}
+								</button>
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<div class="text-gray-500">
+						{$i18n.t('No active subscription')}
+					</div>
+					{#if subscriptionsEnabled}
+						<div class="pt-3">
+							<button
+								type="button"
+								on:click={() => goto('/billing/plans')}
+								class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium"
+							>
+								{$i18n.t('Browse Plans')}
+							</button>
+						</div>
+					{/if}
+				{/if}
+			</div>
+		{/if}
 
 		<!-- Usage Card -->
 		{#if billingInfo.usage && Object.keys(billingInfo.usage).length > 0}

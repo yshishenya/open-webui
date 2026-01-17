@@ -9,8 +9,17 @@ export interface Plan {
 	description?: string;
 	description_ru?: string;
 	price: number;
+	price_kopeks?: number;
 	currency: string;
 	interval: string;
+	included_kopeks_per_period?: number;
+	discount_percent?: number;
+	model_tiers_allowed?: string[] | null;
+	images_per_period?: number | null;
+	tts_seconds_per_period?: number | null;
+	max_reply_cost_kopeks?: number | null;
+	daily_cap_kopeks?: number | null;
+	is_annual?: boolean;
 	quotas?: Record<string, number | null>;
 	features?: string[];
 	is_active: boolean;
@@ -18,6 +27,128 @@ export interface Plan {
 	plan_extra_metadata?: Record<string, unknown>;
 	created_at: number;
 	updated_at: number;
+}
+
+export interface PublicPlan {
+	id: string;
+	name: string;
+	name_ru?: string;
+	description?: string;
+	description_ru?: string;
+	price: number;
+	currency: string;
+	interval: string;
+	features?: string[];
+	quotas?: Record<string, number>;
+	display_order?: number;
+}
+
+export interface Balance {
+	balance_topup_kopeks: number;
+	balance_included_kopeks: number;
+	included_expires_at?: number | null;
+	max_reply_cost_kopeks?: number | null;
+	daily_cap_kopeks?: number | null;
+	daily_spent_kopeks: number;
+	auto_topup_enabled?: boolean;
+	auto_topup_threshold_kopeks?: number | null;
+	auto_topup_amount_kopeks?: number | null;
+	auto_topup_fail_count?: number;
+	auto_topup_last_failed_at?: number | null;
+	currency: string;
+}
+
+export interface LeadMagnetUsage {
+	tokens_input: number;
+	tokens_output: number;
+	images: number;
+	tts_seconds: number;
+	stt_seconds: number;
+}
+
+export interface LeadMagnetInfo {
+	enabled: boolean;
+	cycle_start: number | null;
+	cycle_end: number | null;
+	usage: LeadMagnetUsage;
+	quotas: LeadMagnetUsage;
+	remaining: LeadMagnetUsage;
+	config_version: number;
+}
+
+export interface LedgerEntry {
+	id: string;
+	user_id: string;
+	wallet_id: string;
+	currency: string;
+	type: string;
+	amount_kopeks: number;
+	charged_input_kopeks?: number | null;
+	charged_output_kopeks?: number | null;
+	balance_included_after: number;
+	balance_topup_after: number;
+	reference_id?: string | null;
+	reference_type?: string | null;
+	idempotency_key?: string | null;
+	hold_expires_at?: number | null;
+	expires_at?: number | null;
+	metadata_json?: Record<string, unknown> | null;
+	created_at: number;
+}
+
+export interface UsageEvent {
+	id: string;
+	user_id: string;
+	wallet_id: string;
+	plan_id?: string | null;
+	subscription_id?: string | null;
+	chat_id?: string | null;
+	message_id?: string | null;
+	request_id: string;
+	model_id: string;
+	modality: string;
+	provider?: string | null;
+	measured_units_json?: Record<string, unknown> | null;
+	prompt_tokens?: number | null;
+	completion_tokens?: number | null;
+	cost_raw_kopeks: number;
+	cost_raw_input_kopeks?: number | null;
+	cost_raw_output_kopeks?: number | null;
+	cost_charged_kopeks: number;
+	cost_charged_input_kopeks?: number | null;
+	cost_charged_output_kopeks?: number | null;
+	billing_source: string;
+	is_estimated: boolean;
+	estimate_reason?: string | null;
+	pricing_version?: string | null;
+	pricing_rate_card_id?: string | null;
+	pricing_rate_card_input_id?: string | null;
+	pricing_rate_card_output_id?: string | null;
+	wallet_snapshot_json?: Record<string, unknown> | null;
+	created_at: number;
+}
+
+export interface EstimateRequest {
+	model_id: string;
+	modality: string;
+	payload: Record<string, unknown>;
+	max_reply_cost_kopeks?: number | null;
+}
+
+export interface EstimateResponse {
+	min_kopeks: number;
+	max_kopeks: number;
+	min_input_kopeks?: number | null;
+	max_input_kopeks?: number | null;
+	min_output_kopeks?: number | null;
+	max_output_kopeks?: number | null;
+	is_allowed: boolean;
+	reason?: string | null;
+	pricing_rate_card_id?: string | null;
+	pricing_rate_card_input_id?: string | null;
+	pricing_rate_card_output_id?: string | null;
+	pricing_version?: string | null;
+	billing_source?: string | null;
 }
 
 export interface Subscription {
@@ -76,10 +207,17 @@ export interface BillingInfo {
 	plan?: Plan | null;
 	usage: Record<string, UsageData>;
 	transactions: Transaction[];
+	lead_magnet?: LeadMagnetInfo;
 }
 
 export interface PaymentResponse {
 	transaction_id: string;
+	payment_id: string;
+	confirmation_url: string;
+	status: string;
+}
+
+export interface TopupResponse {
 	payment_id: string;
 	confirmation_url: string;
 	status: string;
@@ -127,6 +265,25 @@ async function apiRequest<T>(
 	return response.json();
 }
 
+async function publicApiRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
+	const response = await fetch(url, {
+		...options,
+		headers: {
+			'Content-Type': 'application/json',
+			...options.headers
+		}
+	});
+
+	if (!response.ok) {
+		const errorData = await response.json().catch(() => ({}));
+		const errorMessage = errorData.detail || `Request failed with status ${response.status}`;
+		console.error(`API Error [${url}]:`, errorMessage);
+		throw errorMessage;
+	}
+
+	return response.json();
+}
+
 // ==================== Plans API ====================
 
 /**
@@ -139,6 +296,17 @@ export const getPlans = async (token: string): Promise<Plan[] | null> => {
 		return await apiRequest<Plan[]>(`${WEBUI_API_BASE_URL}/billing/plans`, token);
 	} catch (error) {
 		console.error('Failed to get plans:', error);
+		throw error;
+	}
+};
+
+export const getPlansPublic = async (): Promise<PublicPlan[] | null> => {
+	try {
+		return await publicApiRequest<PublicPlan[]>(
+			`${WEBUI_API_BASE_URL}/billing/plans/public`
+		);
+	} catch (error) {
+		console.error('Failed to get public plans:', error);
 		throw error;
 	}
 };
@@ -275,6 +443,25 @@ export const createPayment = async (
 	}
 };
 
+export const createTopup = async (
+	token: string,
+	amountKopeks: number,
+	returnUrl: string
+): Promise<TopupResponse | null> => {
+	try {
+		return await apiRequest<TopupResponse>(`${WEBUI_API_BASE_URL}/billing/topup`, token, {
+			method: 'POST',
+			body: JSON.stringify({
+				amount_kopeks: amountKopeks,
+				return_url: returnUrl
+			})
+		});
+	} catch (error) {
+		console.error('Failed to create topup:', error);
+		throw error;
+	}
+};
+
 /**
  * Get user's transaction history
  * @param token - Auth token
@@ -294,6 +481,117 @@ export const getTransactions = async (
 		);
 	} catch (error) {
 		console.error('Failed to get transactions:', error);
+		throw error;
+	}
+};
+
+export const getBalance = async (token: string): Promise<Balance | null> => {
+	try {
+		return await apiRequest<Balance>(`${WEBUI_API_BASE_URL}/billing/balance`, token);
+	} catch (error) {
+		console.error('Failed to get balance:', error);
+		throw error;
+	}
+};
+
+export const getLedger = async (
+	token: string,
+	limit: number = 50,
+	skip: number = 0
+): Promise<LedgerEntry[] | null> => {
+	try {
+		return await apiRequest<LedgerEntry[]>(
+			`${WEBUI_API_BASE_URL}/billing/ledger?limit=${limit}&skip=${skip}`,
+			token
+		);
+	} catch (error) {
+		console.error('Failed to get ledger:', error);
+		throw error;
+	}
+};
+
+export const getUsageEvents = async (
+	token: string,
+	limit: number = 50,
+	skip: number = 0,
+	billingSource?: string
+): Promise<UsageEvent[] | null> => {
+	try {
+		const params = new URLSearchParams({
+			limit: String(limit),
+			skip: String(skip)
+		});
+		if (billingSource) {
+			params.set('billing_source', billingSource);
+		}
+		return await apiRequest<UsageEvent[]>(
+			`${WEBUI_API_BASE_URL}/billing/usage-events?${params.toString()}`,
+			token
+		);
+	} catch (error) {
+		console.error('Failed to get usage events:', error);
+		throw error;
+	}
+};
+
+export const updateAutoTopup = async (
+	token: string,
+	payload: { enabled: boolean; threshold_kopeks?: number | null; amount_kopeks?: number | null }
+): Promise<{ status: string } | null> => {
+	try {
+		return await apiRequest<{ status: string }>(
+			`${WEBUI_API_BASE_URL}/billing/auto-topup`,
+			token,
+			{
+				method: 'POST',
+				body: JSON.stringify(payload)
+			}
+		);
+	} catch (error) {
+		console.error('Failed to update auto-topup:', error);
+		throw error;
+	}
+};
+
+export const updateBillingSettings = async (
+	token: string,
+	payload: {
+		max_reply_cost_kopeks?: number | null;
+		daily_cap_kopeks?: number | null;
+		billing_contact_email?: string | null;
+		billing_contact_phone?: string | null;
+	}
+): Promise<{ status: string } | null> => {
+	try {
+		return await apiRequest<{ status: string }>(
+			`${WEBUI_API_BASE_URL}/billing/settings`,
+			token,
+			{
+				method: 'POST',
+				body: JSON.stringify(payload)
+			}
+		);
+	} catch (error) {
+		console.error('Failed to update billing settings:', error);
+		throw error;
+	}
+};
+
+export const getEstimate = async (
+	token: string,
+	payload: EstimateRequest
+): Promise<EstimateResponse | null> => {
+	try {
+		return await apiRequest<EstimateResponse>(
+			`${WEBUI_API_BASE_URL}/billing/estimate`,
+			token,
+			{
+				method: 'POST',
+				body: JSON.stringify(payload)
+			}
+		);
+	} catch (error) {
+		console.error('Failed to get estimate:', error);
 		throw error;
 	}
 };
@@ -362,5 +660,17 @@ export const getBillingInfo = async (token: string): Promise<BillingInfo | null>
 		throw error;
 	} finally {
 		clearTimeout(timeoutId);
+	}
+};
+
+export const getLeadMagnetInfo = async (token: string): Promise<LeadMagnetInfo | null> => {
+	try {
+		return await apiRequest<LeadMagnetInfo>(
+			`${WEBUI_API_BASE_URL}/billing/lead-magnet`,
+			token
+		);
+	} catch (error) {
+		console.error('Failed to get lead magnet info:', error);
+		return null;
 	}
 };

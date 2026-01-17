@@ -95,7 +95,9 @@ export const getQuotaLabel = (
 		tokens_output: i18nFn('Output tokens'),
 		requests: i18nFn('Requests'),
 		images: i18nFn('Images'),
-		audio_minutes: i18nFn('Audio minutes')
+		audio_minutes: i18nFn('Audio minutes'),
+		tts_seconds: i18nFn('TTS seconds'),
+		stt_seconds: i18nFn('STT seconds')
 	};
 	return labels[metric] || metric.replace(/_/g, ' ');
 };

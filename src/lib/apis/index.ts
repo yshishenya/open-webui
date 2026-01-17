@@ -1668,6 +1668,7 @@ export interface ModelMeta {
 	description?: string;
 	capabilities?: object;
 	profile_image_url?: string;
+	lead_magnet?: boolean;
 }
 
 export interface ModelParams {}

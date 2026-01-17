@@ -1,90 +1,123 @@
 <script lang="ts">
+	import { onMount, onDestroy, getContext } from 'svelte';
 	import { PublicPageLayout } from '$lib/components/landing';
+	import { getPlansPublic } from '$lib/apis/billing';
+	import type { PublicPlan } from '$lib/apis/billing';
+	import { getQuotaLabel, formatQuotaValue } from '$lib/utils/billing-formatters';
+	import Spinner from '$lib/components/common/Spinner.svelte';
+	import { config } from '$lib/stores';
+
+	const i18n = getContext('i18n');
 
 	let billingPeriod: 'monthly' | 'annual' = 'monthly';
-	
-	const plans = [
-		{
-			name: 'Бесплатный',
-			nameEn: 'free',
-			description: 'Для начала работы с AI',
-			monthlyPrice: 0,
-			annualPrice: 0,
-			features: [
-				{ text: '10 запросов в день', included: true },
-				{ text: 'Базовые модели GPT-3.5', included: true },
-				{ text: 'История чатов 7 дней', included: true },
-				{ text: 'Стандартная скорость', included: true },
-				{ text: 'Email поддержка', included: true },
-				{ text: 'Продвинутые модели', included: false },
-				{ text: 'Приоритетная поддержка', included: false },
-				{ text: 'API доступ', included: false }
-			],
-			cta: 'Начать бесплатно',
-			popular: false
-		},
-		{
-			name: 'Профессиональный',
-			nameEn: 'pro',
-			description: 'Для активных пользователей',
-			monthlyPrice: 990,
-			annualPrice: 9900,
-			features: [
-				{ text: 'Безлимитные запросы', included: true },
-				{ text: 'Все модели (GPT-4, Claude, Llama)', included: true },
-				{ text: 'Полная история чатов', included: true },
-				{ text: 'Приоритетная скорость', included: true },
-				{ text: 'Приоритетная поддержка', included: true },
-				{ text: 'Продвинутые функции', included: true },
-				{ text: 'Экспорт данных', included: true },
-				{ text: 'API доступ (100k токенов/мес)', included: true }
-			],
-			cta: 'Выбрать план',
-			popular: true
-		},
-		{
-			name: 'Команда',
-			nameEn: 'team',
-			description: 'Для команд и организаций',
-			monthlyPrice: 4990,
-			annualPrice: 49900,
-			features: [
-				{ text: 'Все из Профессионального', included: true },
-				{ text: 'До 10 пользователей', included: true },
-				{ text: 'Корпоративные модели', included: true },
-				{ text: 'Управление командой', included: true },
-				{ text: 'Аналитика и отчеты', included: true },
-				{ text: 'Выделенная поддержка', included: true },
-				{ text: 'SLA 99.9%', included: true },
-				{ text: 'API доступ (1M токенов/мес)', included: true }
-			],
-			cta: 'Связаться с нами',
-			popular: false
+	let plans: PublicPlan[] = [];
+	let loading = true;
+	let errorMessage = '';
+	let didLoad = false;
+	let unsubscribeConfig: (() => void) | null = null;
+	let subscriptionsEnabled = true;
+
+	onMount(async () => {
+		unsubscribeConfig = config.subscribe((current) => {
+			if (!current || didLoad) return;
+			const enabled = current.features?.enable_billing_subscriptions ?? true;
+			if (!enabled) {
+				subscriptionsEnabled = false;
+				loading = false;
+				didLoad = true;
+				return;
+			}
+			subscriptionsEnabled = true;
+			didLoad = true;
+			loadPlans();
+		});
+	});
+
+	onDestroy(() => {
+		unsubscribeConfig?.();
+	});
+
+	const loadPlans = async (): Promise<void> => {
+		loading = true;
+		errorMessage = '';
+		try {
+			const result = await getPlansPublic();
+			plans = (result ?? []).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+		} catch (error) {
+			console.error('Failed to load public plans:', error);
+			errorMessage = $i18n.t('Failed to load subscription plans');
+		} finally {
+			loading = false;
 		}
-	];
-	
-	const getPrice = (plan: typeof plans[0]) => {
-		if (plan.monthlyPrice === 0) return 'Бесплатно';
-		const price = billingPeriod === 'monthly' ? plan.monthlyPrice : Math.round(plan.annualPrice / 12);
-		return `${price.toLocaleString('ru-RU')} ₽`;
 	};
-	
-	const getSavings = (plan: typeof plans[0]) => {
-		if (plan.monthlyPrice === 0) return null;
-		const monthlyCost = plan.monthlyPrice * 12;
-		const annualCost = plan.annualPrice;
-		const savings = monthlyCost - annualCost;
-		return savings;
+
+	$: monthlyPlans = plans.filter((plan) => plan.interval === 'month');
+	$: annualPlans = plans.filter((plan) => plan.interval === 'year');
+	$: annualAvailable = annualPlans.length > 0;
+	$: activePlans =
+		billingPeriod === 'annual' && annualAvailable
+			? annualPlans
+			: monthlyPlans.length > 0
+				? monthlyPlans
+				: plans;
+
+	const formatPrice = (plan: PublicPlan): string => {
+		if (plan.price === 0) return $i18n.t('Free');
+		try {
+			return new Intl.NumberFormat($i18n.locale, {
+				style: 'currency',
+				currency: plan.currency
+			}).format(plan.price);
+		} catch (error) {
+			console.warn('Invalid currency code:', plan.currency, error);
+			return `${plan.price} ${plan.currency}`.trim();
+		}
 	};
-	
-	const handleSelectPlan = (planName: string) => {
-		if (planName === 'free') {
+
+	const formatInterval = (interval: string): string => {
+		const intervals: Record<string, string> = {
+			month: $i18n.t('per month'),
+			year: $i18n.t('per year'),
+			week: $i18n.t('per week'),
+			day: $i18n.t('per day')
+		};
+		return intervals[interval] || interval;
+	};
+
+	const getPlanTitle = (plan: PublicPlan): string => {
+		return plan.name_ru || plan.name;
+	};
+
+	const getPlanDescription = (plan: PublicPlan): string => {
+		return plan.description_ru || plan.description || '';
+	};
+
+	const getPlanFeatures = (plan: PublicPlan): { text: string }[] => {
+		const items: { text: string }[] = [];
+		if (plan.quotas) {
+			for (const [key, value] of Object.entries(plan.quotas)) {
+				items.push({
+					text: `${getQuotaLabel(key, (k) => $i18n.t(k))}: ${formatQuotaValue(value)}`
+				});
+			}
+		}
+		if (plan.features) {
+			plan.features.forEach((feature) => items.push({ text: feature }));
+		}
+		return items;
+	};
+
+	const getPopularIndex = (list: PublicPlan[]): number => {
+		if (list.length < 3) return -1;
+		return Math.floor(list.length / 2);
+	};
+
+	const handleSelectPlan = (plan: PublicPlan) => {
+		if (plan.price === 0) {
 			window.location.href = '/';
-		} else if (planName === 'team') {
-			window.location.href = '/contact?plan=team';
-		} else {
-			window.location.href = '/auth?plan=' + planName;
+			return;
 		}
+		window.location.href = `/auth?plan=${plan.id}`;
 	};
 </script>
 
@@ -96,252 +129,186 @@
 	heroSubtitle="Выберите план, который подходит именно вам"
 >
 	<div class="container mx-auto px-4 py-16">
-
-		<!-- Billing Toggle -->
-		<div class="flex justify-center mb-12">
-			<div class="bg-white rounded-full p-1 shadow-md inline-flex">
-				<button
-					on:click={() => billingPeriod = 'monthly'}
-					class="px-6 py-2 rounded-full transition-all duration-200 {billingPeriod === 'monthly' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-gray-600 hover:text-gray-900'}"
-				>
-					Ежемесячно
-				</button>
-				<button
-					on:click={() => billingPeriod = 'annual'}
-					class="px-6 py-2 rounded-full transition-all duration-200 relative {billingPeriod === 'annual' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-gray-600 hover:text-gray-900'}"
-				>
-					Ежегодно
-					<span class="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">
-						-17%
-					</span>
-				</button>
+		{#if loading}
+			<div class="flex justify-center">
+				<Spinner className="size-5" />
 			</div>
-		</div>
+		{:else if !subscriptionsEnabled}
+			<div class="max-w-4xl mx-auto text-center">
+				<div class="bg-white rounded-2xl shadow-xl p-8">
+					<h3 class="text-2xl font-bold text-gray-900 mb-3">{$i18n.t('Wallet')}</h3>
+					<p class="text-gray-600 text-sm mb-6">
+						{$i18n.t('Pay-as-you-go via wallet balance.')}
+					</p>
 
-		<!-- Pricing Cards -->
-		<div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
-			{#each plans as plan}
-				<div class="relative">
-					{#if plan.popular}
-						<div class="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-							<span class="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg">
-								Популярный
-							</span>
+					<div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700 mb-6">
+						<div class="bg-gray-50 rounded-xl p-4">
+							{$i18n.t('No subscription needed')}
 						</div>
-					{/if}
-					
-					<div class="bg-white rounded-2xl shadow-xl p-8 h-full flex flex-col {plan.popular ? 'border-2 border-purple-200 transform scale-105' : ''}">
-						<!-- Plan Header -->
-						<div class="text-center mb-6">
-							<h3 class="text-2xl font-bold text-gray-900 mb-2">
-								{plan.name}
-							</h3>
-							<p class="text-gray-600 text-sm mb-4">
-								{plan.description}
-							</p>
-							<div class="mb-2">
-								<span class="text-4xl font-bold text-gray-900">
-									{getPrice(plan)}
-								</span>
-								{#if plan.monthlyPrice > 0}
-									<span class="text-gray-600">/месяц</span>
-								{/if}
-							</div>
-							{#if billingPeriod === 'annual' && getSavings(plan)}
-								<p class="text-sm text-green-600 font-medium">
-									Экономия {getSavings(plan).toLocaleString('ru-RU')} ₽/год
-								</p>
-							{/if}
+						<div class="bg-gray-50 rounded-xl p-4">
+							{$i18n.t('Top up when you want')}
 						</div>
-
-						<!-- Features List -->
-						<ul class="space-y-3 mb-8 flex-grow">
-							{#each plan.features as feature}
-								<li class="flex items-start gap-3">
-									{#if feature.included}
-										<svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-										</svg>
-									{:else}
-										<svg class="w-5 h-5 text-gray-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-										</svg>
-									{/if}
-									<span class="{feature.included ? 'text-gray-700' : 'text-gray-400'}">
-										{feature.text}
-									</span>
-								</li>
-							{/each}
-						</ul>
-
-						<!-- CTA Button -->
-						<button
-							on:click={() => handleSelectPlan(plan.nameEn)}
-							class="w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 {plan.popular ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}"
-						>
-							{plan.cta}
-						</button>
+						<div class="bg-gray-50 rounded-xl p-4">
+							{$i18n.t('Pay only for what you use')}
+						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
 
-		<!-- FAQ Section -->
+					<a
+						href="/auth"
+						class="inline-flex items-center justify-center px-6 py-2 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md"
+					>
+						{$i18n.t('Start free')}
+					</a>
+				</div>
+			</div>
+		{:else if errorMessage}
+			<div class="flex flex-col items-center justify-center py-24 text-center">
+				<div class="text-gray-500 text-lg">{errorMessage}</div>
+			</div>
+		{:else}
+			<div class="flex justify-center mb-12">
+				<div class="bg-white rounded-full p-1 shadow-md inline-flex">
+					<button
+						on:click={() => (billingPeriod = 'monthly')}
+						class="px-6 py-2 rounded-full transition-all duration-200 {billingPeriod === 'monthly'
+							? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
+							: 'text-gray-600 hover:text-gray-900'}"
+					>
+						Ежемесячно
+					</button>
+					<button
+						on:click={() => annualAvailable && (billingPeriod = 'annual')}
+						disabled={!annualAvailable}
+						class="px-6 py-2 rounded-full transition-all duration-200 relative {billingPeriod === 'annual'
+							? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
+							: 'text-gray-600 hover:text-gray-900'} {annualAvailable ? '' : 'opacity-50 cursor-not-allowed'}"
+					>
+						Ежегодно
+						{#if annualAvailable}
+							<span class="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">
+								-16%
+							</span>
+						{/if}
+					</button>
+				</div>
+			</div>
+
+			<div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
+				{#each activePlans as plan, index}
+					<div class="relative">
+						{#if index === getPopularIndex(activePlans)}
+							<div class="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+								<span class="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg">
+									Популярный
+								</span>
+							</div>
+						{/if}
+
+						<div class="bg-white rounded-2xl shadow-xl p-8 h-full flex flex-col {index === getPopularIndex(activePlans)
+							? 'border-2 border-purple-200 transform scale-105'
+							: ''}">
+							<div class="text-center mb-6">
+								<h3 class="text-2xl font-bold text-gray-900 mb-2">
+									{getPlanTitle(plan)}
+								</h3>
+								{#if getPlanDescription(plan)}
+									<p class="text-gray-600 text-sm mb-4">
+										{getPlanDescription(plan)}
+									</p>
+								{/if}
+								<div class="mb-2">
+									<span class="text-4xl font-bold text-gray-900">
+										{formatPrice(plan)}
+									</span>
+									{#if plan.price > 0}
+										<span class="text-gray-600">{formatInterval(plan.interval)}</span>
+									{/if}
+								</div>
+							</div>
+
+							<ul class="space-y-3 mb-8 flex-grow">
+								{#each getPlanFeatures(plan) as feature}
+									<li class="flex items-start gap-3">
+										<svg
+											class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M5 13l4 4L19 7"
+											></path>
+										</svg>
+										<span class="text-gray-700">{feature.text}</span>
+									</li>
+								{/each}
+							</ul>
+
+							<button
+								on:click={() => handleSelectPlan(plan)}
+								class="w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 {index === getPopularIndex(activePlans)
+									? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl'
+									: 'bg-gray-100 text-gray-900 hover:bg-gray-200'}"
+							>
+								{plan.price === 0 ? $i18n.t('Start for free') : $i18n.t('Choose plan')}
+							</button>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{/if}
+
 		<div class="max-w-3xl mx-auto">
 			<h2 class="text-3xl font-bold text-center text-gray-900 mb-8">
 				Часто задаваемые вопросы
 			</h2>
-			
 			<div class="space-y-4">
-				<!-- FAQ Item 1 -->
 				<details class="bg-white rounded-lg shadow-md p-6 group">
 					<summary class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center">
 						Можно ли изменить план позже?
-						<svg class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+						<svg
+							class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M19 9l-7 7-7-7"
+							></path>
 						</svg>
 					</summary>
 					<p class="mt-4 text-gray-600">
-						Да, вы можете в любой момент повысить или понизить свой план. При повышении разница будет пересчитана пропорционально. При понижении новый план вступит в силу со следующего расчетного периода.
+						Да, вы можете изменить свой план в любое время в личном кабинете.
 					</p>
 				</details>
 
-				<!-- FAQ Item 2 -->
 				<details class="bg-white rounded-lg shadow-md p-6 group">
 					<summary class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center">
-						Какие способы оплаты доступны?
-						<svg class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+						Как работает помесячная оплата?
+						<svg
+							class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M19 9l-7 7-7-7"
+							></path>
 						</svg>
 					</summary>
 					<p class="mt-4 text-gray-600">
-						Мы принимаем банковские карты (Visa, MasterCard, Мир), ЮMoney, QIWI и другие популярные способы оплаты через сервис YooKassa.
+						Помесячная оплата списывается автоматически каждый месяц с момента покупки.
 					</p>
 				</details>
-
-				<!-- FAQ Item 3 -->
-				<details class="bg-white rounded-lg shadow-md p-6 group">
-					<summary class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center">
-						Есть ли пробный период?
-						<svg class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-						</svg>
-					</summary>
-					<p class="mt-4 text-gray-600">
-						Бесплатный план доступен без ограничений по времени. Вы можете пользоваться им столько, сколько нужно, и перейти на платный план в любой момент.
-					</p>
-				</details>
-
-				<!-- FAQ Item 4 -->
-				<details class="bg-white rounded-lg shadow-md p-6 group">
-					<summary class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center">
-						Можно ли отменить подписку?
-						<svg class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-						</svg>
-					</summary>
-					<p class="mt-4 text-gray-600">
-						Да, вы можете отменить подписку в любой момент. После отмены вы сможете пользоваться платными функциями до конца оплаченного периода, после чего будете автоматически переведены на бесплатный план.
-					</p>
-				</details>
-
-				<!-- FAQ Item 5 -->
-				<details class="bg-white rounded-lg shadow-md p-6 group">
-					<summary class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center">
-						Нужна ли кредитная карта для бесплатного плана?
-						<svg class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-						</svg>
-					</summary>
-					<p class="mt-4 text-gray-600">
-						Нет, для бесплатного плана не требуется указывать данные карты. Просто зарегистрируйтесь и начните пользоваться сервисом.
-					</p>
-				</details>
-			</div>
-		</div>
-
-		<!-- Enterprise Section -->
-		<div class="mt-16 max-w-4xl mx-auto">
-			<div class="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-8 md:p-12 text-white text-center">
-				<h2 class="text-3xl font-bold mb-4">
-					Корпоративные решения
-				</h2>
-				<p class="text-lg mb-6 opacity-90 max-w-2xl mx-auto">
-					Нужно больше пользователей, особые требования к безопасности или индивидуальные настройки? 
-					Мы предложим решение для вашей компании.
-				</p>
-				<div class="flex flex-wrap justify-center gap-4">
-					<a
-						href="/contact?type=enterprise"
-						class="bg-white text-purple-600 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors shadow-lg inline-block"
-					>
-						Связаться с отделом продаж
-					</a>
-					<a
-						href="/features"
-						class="border-2 border-white text-white px-8 py-3 rounded-xl font-semibold hover:bg-white hover:text-purple-600 transition-colors inline-block"
-					>
-						Узнать больше
-					</a>
-				</div>
-			</div>
-		</div>
-
-		<!-- Comparison Table -->
-		<div class="mt-16">
-			<h2 class="text-3xl font-bold text-center text-gray-900 mb-8">
-				Сравнение планов
-			</h2>
-			
-			<div class="overflow-x-auto">
-				<table class="w-full bg-white rounded-lg shadow-md overflow-hidden">
-					<thead class="bg-gray-50">
-						<tr>
-							<th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Функция</th>
-							<th class="px-6 py-4 text-center text-sm font-semibold text-gray-900">Бесплатный</th>
-							<th class="px-6 py-4 text-center text-sm font-semibold text-gray-900 bg-purple-50">Профессиональный</th>
-							<th class="px-6 py-4 text-center text-sm font-semibold text-gray-900">Команда</th>
-						</tr>
-					</thead>
-					<tbody class="divide-y divide-gray-200">
-						<tr>
-							<td class="px-6 py-4 text-sm text-gray-900">Запросов в день</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-600">10</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-900 bg-purple-50 font-semibold">Безлимит</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-900 font-semibold">Безлимит</td>
-						</tr>
-						<tr>
-							<td class="px-6 py-4 text-sm text-gray-900">AI модели</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-600">GPT-3.5</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-900 bg-purple-50 font-semibold">Все модели</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-900 font-semibold">Все + корпоративные</td>
-						</tr>
-						<tr>
-							<td class="px-6 py-4 text-sm text-gray-900">История</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-600">7 дней</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-900 bg-purple-50 font-semibold">Полная</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-900 font-semibold">Полная</td>
-						</tr>
-						<tr>
-							<td class="px-6 py-4 text-sm text-gray-900">API доступ</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-400">—</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-900 bg-purple-50">100k токенов</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-900 font-semibold">1M токенов</td>
-						</tr>
-						<tr>
-							<td class="px-6 py-4 text-sm text-gray-900">Пользователей</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-600">1</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-900 bg-purple-50">1</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-900 font-semibold">До 10</td>
-						</tr>
-						<tr>
-							<td class="px-6 py-4 text-sm text-gray-900">Поддержка</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-600">Email</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-900 bg-purple-50">Приоритетная</td>
-							<td class="px-6 py-4 text-sm text-center text-gray-900 font-semibold">Выделенная</td>
-						</tr>
-					</tbody>
-				</table>
 			</div>
 		</div>
 	</div>

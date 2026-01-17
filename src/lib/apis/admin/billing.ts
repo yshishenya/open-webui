@@ -20,6 +20,82 @@ export interface Plan {
 	updated_at: number;
 }
 
+export interface RateCard {
+	id: string;
+	model_id: string;
+	model_tier?: string | null;
+	modality: string;
+	unit: string;
+	raw_cost_per_unit_kopeks: number;
+	platform_factor: number;
+	fixed_fee_kopeks: number;
+	min_charge_kopeks: number;
+	rounding_rules_json?: Record<string, unknown> | null;
+	version: string;
+	effective_from: number;
+	effective_to?: number | null;
+	provider?: string | null;
+	is_default: boolean;
+	is_active: boolean;
+}
+
+export interface RateCardListResponse {
+	items: RateCard[];
+	total: number;
+	page: number;
+	page_size: number;
+	total_pages: number;
+}
+
+export interface RateCardCreateRequest {
+	id?: string;
+	model_id: string;
+	model_tier?: string | null;
+	modality: string;
+	unit: string;
+	raw_cost_per_unit_kopeks?: number;
+	platform_factor?: number;
+	fixed_fee_kopeks?: number;
+	min_charge_kopeks?: number;
+	rounding_rules_json?: Record<string, unknown> | null;
+	version?: string;
+	effective_from?: number;
+	effective_to?: number | null;
+	provider?: string | null;
+	is_default?: boolean;
+	is_active?: boolean;
+}
+
+export interface RateCardUpdateRequest {
+	model_tier?: string | null;
+	raw_cost_per_unit_kopeks?: number;
+	platform_factor?: number;
+	fixed_fee_kopeks?: number;
+	min_charge_kopeks?: number;
+	rounding_rules_json?: Record<string, unknown> | null;
+	effective_to?: number | null;
+	provider?: string | null;
+	is_default?: boolean;
+	is_active?: boolean;
+}
+
+export interface RateCardSyncRequest {
+	model_ids?: string[];
+	modality_units?: { modality: string; unit: string }[];
+	version?: string;
+	effective_from?: number;
+	provider?: string | null;
+	model_tier?: string | null;
+	is_active?: boolean;
+	is_default?: boolean;
+}
+
+export interface RateCardSyncResponse {
+	created: number;
+	skipped: number;
+	model_ids: string[];
+}
+
 export interface PlanStats {
 	plan: Plan;
 	active_subscriptions: number;
@@ -124,6 +200,27 @@ export interface ChangeUserPlanResponse {
 		current_period_end: number;
 	};
 	plan: Plan;
+}
+
+export interface LeadMagnetQuotas {
+	tokens_input: number;
+	tokens_output: number;
+	images: number;
+	tts_seconds: number;
+	stt_seconds: number;
+}
+
+export interface LeadMagnetConfig {
+	enabled: boolean;
+	cycle_days: number;
+	quotas: LeadMagnetQuotas;
+	config_version: number;
+}
+
+export interface LeadMagnetConfigRequest {
+	enabled: boolean;
+	cycle_days: number;
+	quotas: LeadMagnetQuotas;
 }
 
 // ==================== Helper Functions ====================
@@ -243,6 +340,132 @@ export const deletePlan = async (token: string, planId: string): Promise<boolean
 		return result?.success || false;
 	} catch (error) {
 		console.error('Failed to delete plan:', error);
+		throw error;
+	}
+};
+
+// ==================== Rate Card API ====================
+
+export const listRateCards = async (
+	token: string,
+	params: {
+		model_id?: string;
+		modality?: string;
+		unit?: string;
+		version?: string;
+		provider?: string;
+		is_active?: boolean;
+		page?: number;
+		page_size?: number;
+	} = {}
+): Promise<RateCardListResponse> => {
+	try {
+		const searchParams = new URLSearchParams();
+		if (params.model_id) searchParams.set('model_id', params.model_id);
+		if (params.modality) searchParams.set('modality', params.modality);
+		if (params.unit) searchParams.set('unit', params.unit);
+		if (params.version) searchParams.set('version', params.version);
+		if (params.provider) searchParams.set('provider', params.provider);
+		if (typeof params.is_active === 'boolean') {
+			searchParams.set('is_active', String(params.is_active));
+		}
+		if (params.page) searchParams.set('page', String(params.page));
+		if (params.page_size) searchParams.set('page_size', String(params.page_size));
+
+		const query = searchParams.toString();
+		const url = query
+			? `${WEBUI_API_BASE_URL}/admin/billing/rate-card?${query}`
+			: `${WEBUI_API_BASE_URL}/admin/billing/rate-card`;
+		return await apiRequest<RateCardListResponse>(url, token);
+	} catch (error) {
+		console.error('Failed to load rate cards:', error);
+		throw error;
+	}
+};
+
+export const createRateCard = async (
+	token: string,
+	data: RateCardCreateRequest
+): Promise<RateCard> => {
+	try {
+		return await apiRequest<RateCard>(`${WEBUI_API_BASE_URL}/admin/billing/rate-card`, token, {
+			method: 'POST',
+			body: JSON.stringify(data)
+		});
+	} catch (error) {
+		console.error('Failed to create rate card:', error);
+		throw error;
+	}
+};
+
+export const updateRateCard = async (
+	token: string,
+	rateCardId: string,
+	data: RateCardUpdateRequest
+): Promise<RateCard> => {
+	try {
+		return await apiRequest<RateCard>(
+			`${WEBUI_API_BASE_URL}/admin/billing/rate-card/${rateCardId}`,
+			token,
+			{
+				method: 'PATCH',
+				body: JSON.stringify(data)
+			}
+		);
+	} catch (error) {
+		console.error('Failed to update rate card:', error);
+		throw error;
+	}
+};
+
+export const syncRateCards = async (
+	token: string,
+	data: RateCardSyncRequest
+): Promise<RateCardSyncResponse> => {
+	try {
+		return await apiRequest<RateCardSyncResponse>(
+			`${WEBUI_API_BASE_URL}/admin/billing/rate-card/sync-models`,
+			token,
+			{
+				method: 'POST',
+				body: JSON.stringify(data)
+			}
+		);
+	} catch (error) {
+		console.error('Failed to sync rate cards:', error);
+		throw error;
+	}
+};
+
+// ==================== Lead Magnet API ====================
+
+export const getLeadMagnetConfig = async (token: string): Promise<LeadMagnetConfig | null> => {
+	try {
+		return await apiRequest<LeadMagnetConfig>(
+			`${WEBUI_API_BASE_URL}/admin/billing/lead-magnet`,
+			token
+		);
+	} catch (error) {
+		console.error('Failed to load lead magnet config:', error);
+		throw error;
+	}
+};
+
+export const updateLeadMagnetConfig = async (
+	token: string,
+	data: LeadMagnetConfigRequest
+): Promise<LeadMagnetConfig | null> => {
+	try {
+		return await apiRequest<LeadMagnetConfig>(
+			`${WEBUI_API_BASE_URL}/admin/billing/lead-magnet`,
+			token,
+			{
+				method: 'POST',
+				body: JSON.stringify(data)
+			}
+		);
+	} catch (error) {
+		console.error('Failed to update lead magnet config:', error);
 		throw error;
 	}
 };

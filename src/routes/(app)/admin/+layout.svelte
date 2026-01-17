@@ -88,10 +88,24 @@
 						>
 
 						<a
-							class="min-w-fit p-1.5 {$page.url.pathname.includes('/admin/billing')
+							class="min-w-fit p-1.5 {$page.url.pathname.includes('/admin/billing/plans')
 								? ''
 								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
 							href="/admin/billing/plans">{$i18n.t('Billing Plans')}</a
+						>
+
+						<a
+							class="min-w-fit p-1.5 {$page.url.pathname.includes('/admin/billing/models')
+								? ''
+								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
+							href="/admin/billing/models">{$i18n.t('Model Pricing')}</a
+						>
+
+						<a
+							class="min-w-fit p-1.5 {$page.url.pathname.includes('/admin/billing/lead-magnet')
+								? ''
+								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
+							href="/admin/billing/lead-magnet">{$i18n.t('Lead magnet')}</a
 						>
 
 						<a

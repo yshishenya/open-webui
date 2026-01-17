@@ -11,11 +11,11 @@
 	import { copyToClipboard, sanitizeResponseContent } from '$lib/utils';
 	import ArrowUpTray from '$lib/components/icons/ArrowUpTray.svelte';
 	import Check from '$lib/components/icons/Check.svelte';
+	import Badge from '$lib/components/common/Badge.svelte';
 	import ModelItemMenu from './ModelItemMenu.svelte';
 	import EllipsisHorizontal from '$lib/components/icons/EllipsisHorizontal.svelte';
 	import { toast } from 'svelte-sonner';
 	import Tag from '$lib/components/icons/Tag.svelte';
-	import Label from '$lib/components/icons/Label.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -93,6 +93,14 @@
 			</div>
 
 			<div class=" shrink-0 flex items-center gap-2">
+				{#if item.model?.info?.meta?.lead_magnet}
+					<Tooltip content={$i18n.t('Lead magnet (free)')}>
+						<div class="translate-y-[1px]">
+							<Badge type="success" content={$i18n.t('Free')} />
+						</div>
+					</Tooltip>
+				{/if}
+
 				{#if item.model.owned_by === 'ollama'}
 					{#if (item.model.ollama?.details?.parameter_size ?? '') !== ''}
 						<div class="flex items-center translate-y-[0.5px]">

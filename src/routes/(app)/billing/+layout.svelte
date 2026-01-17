@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, getContext } from 'svelte';
-	import { WEBUI_NAME, showSidebar, user, mobile } from '$lib/stores';
+	import { WEBUI_NAME, showSidebar, user, mobile, config } from '$lib/stores';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -9,6 +9,9 @@
 	const i18n = getContext('i18n');
 
 	let loaded = false;
+	let subscriptionsEnabled = true;
+
+	$: subscriptionsEnabled = $config?.features?.enable_billing_subscriptions ?? true;
 
 	onMount(async () => {
 		if (!$user) {
@@ -68,12 +71,41 @@
 						</a>
 
 						<a
-							class="min-w-fit p-1.5 {$page.url.pathname === '/billing/plans'
+							class="min-w-fit p-1.5 {$page.url.pathname === '/billing/balance'
 								? ''
 								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
-							href="/billing/plans"
+							href="/billing/balance"
 						>
-							{$i18n.t('Plans')}
+							{$i18n.t('Balance')}
+						</a>
+
+						<a
+							class="min-w-fit p-1.5 {$page.url.pathname === '/billing/history'
+								? ''
+								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
+							href="/billing/history"
+						>
+							{$i18n.t('History')}
+						</a>
+
+						{#if subscriptionsEnabled}
+							<a
+								class="min-w-fit p-1.5 {$page.url.pathname === '/billing/plans'
+									? ''
+									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
+								href="/billing/plans"
+							>
+								{$i18n.t('Plans')}
+							</a>
+						{/if}
+
+						<a
+							class="min-w-fit p-1.5 {$page.url.pathname === '/billing/settings'
+								? ''
+								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
+							href="/billing/settings"
+						>
+							{$i18n.t('Settings')}
 						</a>
 					</div>
 				</div>

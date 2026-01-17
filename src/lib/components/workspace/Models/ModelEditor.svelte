@@ -16,6 +16,7 @@
 	import FiltersSelector from '$lib/components/workspace/Models/FiltersSelector.svelte';
 	import ActionsSelector from '$lib/components/workspace/Models/ActionsSelector.svelte';
 	import Capabilities from '$lib/components/workspace/Models/Capabilities.svelte';
+	import Checkbox from '$lib/components/common/Checkbox.svelte';
 	import Textarea from '$lib/components/common/Textarea.svelte';
 	import AccessControl from '../common/AccessControl.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -106,6 +107,7 @@
 
 	let actionIds = [];
 	let accessControl = {};
+	let leadMagnetEnabled = false;
 
 	const addUsage = (base_model_id) => {
 		const baseModel = $models.find((m) => m.id === base_model_id);
@@ -206,6 +208,12 @@
 			}
 		}
 
+		if (leadMagnetEnabled) {
+			info.meta.lead_magnet = true;
+		} else if (info.meta.lead_magnet) {
+			delete info.meta.lead_magnet;
+		}
+
 		info.params.system = system.trim() === '' ? null : system;
 		info.params.stop = params.stop ? params.stop.split(',').filter((s) => s.trim()) : null;
 		Object.keys(info.params).forEach((key) => {
@@ -288,6 +296,7 @@
 
 			capabilities = { ...capabilities, ...(model?.meta?.capabilities ?? {}) };
 			defaultFeatureIds = model?.meta?.defaultFeatureIds ?? [];
+			leadMagnetEnabled = model?.meta?.lead_magnet ?? false;
 
 			if ('access_control' in model) {
 				accessControl = model.access_control;
@@ -778,6 +787,33 @@
 							</div>
 						{/if}
 					{/if}
+
+					<hr class=" border-gray-100/30 dark:border-gray-850/30 my-2" />
+
+					<div class="my-2">
+						<div class="flex w-full justify-between">
+							<div class=" self-center text-xs font-medium text-gray-500">
+								{$i18n.t('Billing')}
+							</div>
+						</div>
+						<div class="flex items-center gap-2 mt-2">
+							<Checkbox
+								state={leadMagnetEnabled ? 'checked' : 'unchecked'}
+								on:change={(e) => {
+									leadMagnetEnabled = e.detail === 'checked';
+									if (leadMagnetEnabled) {
+										info.meta.lead_magnet = true;
+									} else if (info.meta.lead_magnet) {
+										delete info.meta.lead_magnet;
+									}
+								}}
+							/>
+							<div class="text-sm">{$i18n.t('Lead magnet (free)')}</div>
+						</div>
+						<div class="text-xs text-gray-500 mt-1">
+							{$i18n.t('Allow free usage via lead magnet quotas for this model')}
+						</div>
+					</div>
 
 					<hr class=" border-gray-100/30 dark:border-gray-850/30 my-2" />
 

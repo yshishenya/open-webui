@@ -264,6 +264,7 @@ type Config = {
 		enable_api_keys: boolean;
 		enable_signup: boolean;
 		enable_login_form: boolean;
+		enable_billing_subscriptions: boolean;
 		enable_web_search?: boolean;
 		enable_google_drive_integration: boolean;
 		enable_onedrive_integration: boolean;

@@ -46,6 +46,8 @@
 	import { deleteFileById } from '$lib/apis/files';
 	import { getSessionUser } from '$lib/apis/auths';
 	import { getTools } from '$lib/apis/tools';
+	import { getEstimate } from '$lib/apis/billing';
+	import type { EstimateResponse } from '$lib/apis/billing';
 
 	import { WEBUI_BASE_URL, WEBUI_API_BASE_URL, PASTED_TEXT_CHARACTER_LIMIT } from '$lib/constants';
 
@@ -101,6 +103,7 @@
 
 	export let prompt = '';
 	export let files = [];
+	export let params = {};
 
 	export let selectedToolIds = [];
 	export let selectedFilterIds = [];
@@ -118,6 +121,12 @@
 	let selectedValvesType = 'tool'; // 'tool' or 'function'
 	let selectedValvesItemId = null;
 	let integrationsMenuCloseOnOutsideClick = true;
+
+	let estimate: EstimateResponse | null = null;
+	let estimateReason: string | null = null;
+	let estimating = false;
+	let estimateTimer: ReturnType<typeof setTimeout> | null = null;
+	let estimateSequence = 0;
 
 	$: if (!showValvesModal) {
 		integrationsMenuCloseOnOutsideClick = true;
@@ -140,6 +149,202 @@
 		webSearchEnabled,
 		codeInterpreterEnabled
 	});
+
+	type EstimateMessage = {
+		role: string;
+		content: string;
+	};
+
+	const getActiveModelId = (): string | null => {
+		if (atSelectedModel?.id) return atSelectedModel.id;
+		if (selectedModels?.length > 0) return selectedModels[0];
+		return null;
+	};
+
+	const buildEstimateMessages = (): EstimateMessage[] => {
+		const messages: EstimateMessage[] = [];
+		const systemPrompt = params?.system ?? $settings?.system;
+		if (typeof systemPrompt === 'string' && systemPrompt.trim()) {
+			messages.push({ role: 'system', content: systemPrompt });
+		}
+
+		if (history?.currentId) {
+			const historyMessages = createMessagesList(history, history.currentId) ?? [];
+			historyMessages.forEach((message) => {
+				if (typeof message?.content === 'string' && message.content.trim()) {
+					messages.push({ role: message.role, content: message.content });
+				}
+			});
+		}
+
+		if (prompt.trim()) {
+			messages.push({ role: 'user', content: prompt });
+		}
+
+		return messages;
+	};
+
+	const shouldEstimate = (): boolean => {
+		if (!prompt.trim()) return false;
+		if (!localStorage?.token) return false;
+		if (!getActiveModelId()) return false;
+		if (files?.some((file) => file.type === 'image')) return false;
+		return true;
+	};
+
+	const scheduleEstimate = (): void => {
+		if (estimateTimer) {
+			clearTimeout(estimateTimer);
+		}
+		estimateTimer = setTimeout(runEstimate, 650);
+	};
+
+	const runEstimate = async (): Promise<void> => {
+		const modelId = getActiveModelId();
+		if (!modelId) return;
+
+		const historyMessages = history?.currentId
+			? createMessagesList(history, history.currentId) ?? []
+			: [];
+		const hasImages = historyMessages.some((message) =>
+			message?.files?.some((file) => file.type === 'image')
+		);
+		if (hasImages) {
+			estimate = null;
+			estimateReason = null;
+			return;
+		}
+
+		const currentSequence = (estimateSequence += 1);
+		estimating = true;
+
+		try {
+			const messages = buildEstimateMessages();
+			const maxTokens =
+				typeof params?.max_tokens === 'number'
+					? params.max_tokens
+					: typeof $settings?.params?.max_tokens === 'number'
+						? $settings.params.max_tokens
+						: undefined;
+
+			const payload: Record<string, unknown> = { messages };
+			if (typeof maxTokens === 'number') {
+				payload.max_tokens = maxTokens;
+			}
+
+			const result = await getEstimate(localStorage.token, {
+				model_id: modelId,
+				modality: 'text',
+				payload
+			});
+
+			if (currentSequence !== estimateSequence) return;
+			estimate = result;
+			estimateReason = result?.reason ?? null;
+		} catch (error) {
+			if (currentSequence !== estimateSequence) return;
+			estimate = null;
+			estimateReason = null;
+		} finally {
+			if (currentSequence === estimateSequence) {
+				estimating = false;
+			}
+		}
+	};
+
+	const ESTIMATE_CURRENCY = 'RUB';
+
+	const formatEstimateMoney = (kopeks: number): string => {
+		const amount = kopeks / 100;
+		try {
+			return new Intl.NumberFormat($i18n.locale, {
+				style: 'currency',
+				currency: ESTIMATE_CURRENCY
+			}).format(amount);
+		} catch (error) {
+			return `${amount.toFixed(2)} ${ESTIMATE_CURRENCY}`.trim();
+		}
+	};
+
+	const formatEstimateRange = (min: number, max: number): string => {
+		if (min === max) {
+			return formatEstimateMoney(max);
+		}
+		return `${formatEstimateMoney(min)} - ${formatEstimateMoney(max)}`;
+	};
+
+	const formatEstimate = (estimateValue: EstimateResponse): string => {
+		if (estimateValue.billing_source === 'lead_magnet') {
+			return $i18n.t('Free');
+		}
+		return `~${formatEstimateRange(estimateValue.min_kopeks, estimateValue.max_kopeks)}`;
+	};
+
+	const formatEstimateReason = (reason: string | null): string => {
+		const reasons: Record<string, string> = {
+			insufficient_funds: $i18n.t('Insufficient funds'),
+			max_reply_cost_exceeded: $i18n.t('Reply cost limit exceeded'),
+			rate_card_missing: $i18n.t('Pricing not available'),
+			unsupported_modality: $i18n.t('Estimate not available')
+		};
+		return reason ? reasons[reason] || reason : '';
+	};
+
+	const formatEstimateTooltip = (
+		estimateValue: EstimateResponse,
+		reason: string | null
+	): string => {
+		const lines: string[] = [];
+		if (estimateValue.billing_source === 'lead_magnet') {
+			lines.push($i18n.t('Lead magnet quota'));
+			return lines.join('<br/>');
+		}
+		const reasonText = formatEstimateReason(reason);
+		if (reasonText) {
+			lines.push(reasonText);
+		}
+
+		if (
+			typeof estimateValue.min_input_kopeks === 'number' &&
+			typeof estimateValue.max_input_kopeks === 'number'
+		) {
+			lines.push(
+				`${$i18n.t('Input tokens')}: ${formatEstimateRange(
+					estimateValue.min_input_kopeks,
+					estimateValue.max_input_kopeks
+				)}`
+			);
+		}
+
+		if (
+			typeof estimateValue.min_output_kopeks === 'number' &&
+			typeof estimateValue.max_output_kopeks === 'number'
+		) {
+			lines.push(
+				`${$i18n.t('Output tokens')}: ${formatEstimateRange(
+					estimateValue.min_output_kopeks,
+					estimateValue.max_output_kopeks
+				)}`
+			);
+		}
+
+		return lines.join('<br/>');
+	};
+
+	$: {
+		if (shouldEstimate()) {
+			scheduleEstimate();
+		} else {
+			estimate = null;
+			estimateReason = null;
+			estimateSequence += 1;
+			estimating = false;
+			if (estimateTimer) {
+				clearTimeout(estimateTimer);
+				estimateTimer = null;
+			}
+		}
+	}
 
 	const inputVariableHandler = async (text: string): Promise<string> => {
 		inputVariables = extractInputVariables(text);
@@ -917,6 +1122,9 @@
 
 	onDestroy(() => {
 		console.log('destroy');
+		if (estimateTimer) {
+			clearTimeout(estimateTimer);
+		}
 		window.removeEventListener('keydown', onKeyDown);
 		window.removeEventListener('keyup', onKeyUp);
 
@@ -1621,6 +1829,30 @@
 								</div>
 
 								<div class="self-end flex space-x-1 mr-1 shrink-0">
+									{#if estimate}
+										<div class="flex flex-col items-end mr-1">
+											<Tooltip content={formatEstimateTooltip(estimate, estimateReason)}>
+												<span
+													class="px-2 py-0.5 rounded-full text-xs font-medium {estimate.is_allowed
+														? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+														: 'bg-red-500/10 text-red-700 dark:text-red-300'}"
+												>
+													{formatEstimate(estimate)}
+												</span>
+											</Tooltip>
+											{#if !estimate.is_allowed && estimateReason === 'insufficient_funds'}
+												<a
+													href="/billing/balance"
+													class="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1"
+												>
+													{$i18n.t('Top up')}
+												</a>
+											{/if}
+										</div>
+									{:else if estimating}
+										<span class="text-xs text-gray-400 mr-1">{$i18n.t('Estimating')}</span>
+									{/if}
+
 									{#if (!history?.currentId || history.messages[history.currentId]?.done == true) && ($_user?.role === 'admin' || ($_user?.permissions?.chat?.stt ?? true))}
 										<!-- {$i18n.t('Record voice')} -->
 										<Tooltip content={$i18n.t('Dictate')}>

@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { onMount, getContext } from 'svelte';
+	import { onMount, onDestroy, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 
-	import { WEBUI_NAME, user } from '$lib/stores';
+	import { WEBUI_NAME, config } from '$lib/stores';
 	import {
 		getPlans,
 		createPayment,
@@ -25,9 +25,26 @@
 	let selectedPlanId: string | null = null;
 	let resumingPlanId: string | null = null;
 	let activatingPlanId: string | null = null;
+	let didLoad = false;
+	let unsubscribeConfig: (() => void) | null = null;
 
 	onMount(async () => {
-		await loadData();
+		unsubscribeConfig = config.subscribe((current) => {
+			if (!current || didLoad) return;
+			const enabled = current.features?.enable_billing_subscriptions ?? true;
+			if (!enabled) {
+				loading = false;
+				goto('/billing/dashboard');
+				didLoad = true;
+				return;
+			}
+			didLoad = true;
+			loadData();
+		});
+	});
+
+	onDestroy(() => {
+		unsubscribeConfig?.();
 	});
 
 	const loadPlans = async (): Promise<Plan[]> => {

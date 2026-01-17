@@ -1819,6 +1819,11 @@
 	const sendMessageSocket = async (model, _messages, _history, responseMessageId, _chatId) => {
 		const responseMessage = _history.messages[responseMessageId];
 		const userMessage = _history.messages[responseMessage.parentId];
+		const requestId = responseMessage.request_id ?? uuidv4();
+		responseMessage.request_id = requestId;
+		if (history?.messages?.[responseMessageId]) {
+			history.messages[responseMessageId].request_id = requestId;
+		}
 
 		const chatMessageFiles = _messages
 			.filter((message) => message.files)
@@ -1865,6 +1870,8 @@
 			$settings?.params?.stream_response ??
 			params?.stream_response ??
 			true;
+		const includeUsage =
+			model?.info?.meta?.capabilities?.usage ?? (model?.owned_by === 'openai');
 
 		let messages = [
 			params?.system || $settings.system
@@ -1958,6 +1965,11 @@
 
 				id: responseMessageId,
 				parent_id: userMessage?.id ?? null,
+				metadata: {
+					request_id: requestId,
+					chat_id: _chatId,
+					message_id: responseMessageId
+				},
 
 				background_tasks: {
 					...(!$temporaryChatEnabled &&
@@ -1974,7 +1986,7 @@
 					follow_up_generation: $settings?.autoFollowUps ?? true
 				},
 
-				...(stream && (model.info?.meta?.capabilities?.usage ?? false)
+				...(stream && includeUsage
 					? {
 							stream_options: {
 								include_usage: true
@@ -2516,6 +2528,7 @@
 									bind:imageGenerationEnabled
 									bind:codeInterpreterEnabled
 									bind:webSearchEnabled
+									bind:params
 									bind:atSelectedModel
 									bind:showCommands
 									toolServers={$toolServers}
