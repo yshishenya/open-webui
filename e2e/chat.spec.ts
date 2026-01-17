@@ -2,9 +2,49 @@ import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 test.use({ storageState: 'e2e/.auth/admin.json' });
 
+const getModelItems = async (page: Page) => {
+	let modelItems = page.getByTestId('model-item');
+	if ((await modelItems.count()) === 0) {
+		modelItems = page.locator('button[aria-roledescription="model-item"]');
+	}
+	return modelItems;
+};
+
+const getAssistantMessages = async (page: Page) => {
+	let assistantMessages = page.getByTestId('assistant-message');
+	if ((await assistantMessages.count()) === 0) {
+		assistantMessages = page.locator('.chat-assistant');
+	}
+	return assistantMessages;
+};
+
+const getUserMessages = async (page: Page) => {
+	let userMessages = page.getByTestId('user-message');
+	if ((await userMessages.count()) === 0) {
+		userMessages = page.locator('.chat-user');
+	}
+	return userMessages;
+};
+
+const getResponseModelNames = async (page: Page) => {
+	let modelNames = page.getByTestId('assistant-message-model');
+	if ((await modelNames.count()) === 0) {
+		modelNames = page.locator('#response-message-model-name');
+	}
+	return modelNames;
+};
+
+const getGenerateImageButton = async (page: Page) => {
+	let imageButton = page.getByTestId('generate-image-button');
+	if ((await imageButton.count()) === 0) {
+		imageButton = page.locator('[aria-label="Generate Image"]');
+	}
+	return imageButton;
+};
+
 const selectFirstModelOrSkip = async (page: Page) => {
 	await page.getByRole('button', { name: 'Select a model' }).click();
-	const modelItems = page.locator('button[aria-roledescription="model-item"]');
+	const modelItems = await getModelItems(page);
 	const emptyState = page.getByText('No results found');
 
 	await Promise.race([
@@ -20,7 +60,7 @@ const selectFirstModelOrSkip = async (page: Page) => {
 };
 
 const waitForChatResponseOrSkip = async (page: Page): Promise<void> => {
-	const assistantMessage = page.locator('.chat-assistant');
+	const assistantMessage = await getAssistantMessages(page);
 	const billingError = page.getByText(/insufficient_funds/i);
 
 	await Promise.race([
@@ -50,9 +90,11 @@ test.describe('Chat', () => {
 			.fill('Hi, what can you do? A single sentence only please.');
 		await page.locator('button[type="submit"]').click();
 
-		await expect(page.locator('.chat-user')).toBeVisible();
+		const userMessages = await getUserMessages(page);
+		await expect(userMessages.first()).toBeVisible();
 		await waitForChatResponseOrSkip(page);
-		await expect(page.locator('div[aria-label="Generation Info"]')).toBeVisible({
+		const modelNames = await getResponseModelNames(page);
+		await expect(modelNames.first()).toBeVisible({
 			timeout: 120_000
 		});
 	});
@@ -65,9 +107,11 @@ test.describe('Chat', () => {
 			.fill('Hi, what can you do? A single sentence only please.');
 		await page.locator('button[type="submit"]').click();
 
-		await expect(page.locator('.chat-user')).toBeVisible();
+		const userMessages = await getUserMessages(page);
+		await expect(userMessages.first()).toBeVisible();
 		await waitForChatResponseOrSkip(page);
-		await expect(page.locator('div[aria-label="Generation Info"]')).toBeVisible({
+		const modelNames = await getResponseModelNames(page);
+		await expect(modelNames.first()).toBeVisible({
 			timeout: 120_000
 		});
 
@@ -89,12 +133,14 @@ test.describe('Chat', () => {
 			.fill('Hi, what can you do? A single sentence only please.');
 		await page.locator('button[type="submit"]').click();
 
-		await expect(page.locator('.chat-user')).toBeVisible();
+		const userMessages = await getUserMessages(page);
+		await expect(userMessages.first()).toBeVisible();
 		await waitForChatResponseOrSkip(page);
-		await expect(page.locator('div[aria-label="Generation Info"]')).toBeVisible({
+		const modelNames = await getResponseModelNames(page);
+		await expect(modelNames.first()).toBeVisible({
 			timeout: 120_000
 		});
-		const imageButton = page.locator('[aria-label="Generate Image"]');
+		const imageButton = await getGenerateImageButton(page);
 		if ((await imageButton.count()) === 0) {
 			test.skip(true, 'Image generation is not available for this model');
 		}

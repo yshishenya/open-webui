@@ -6,6 +6,10 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[TEST]** Stabilize E2E selectors and frontend test discovery
+  - Added stable data-testid hooks for chat/user menu and model selection.
+  - Updated Playwright specs with fallbacks and fixed Vitest test include/exclude.
+
 - [x] **[BUG]** Free plan cancellation blocks re-subscribe
   - Added free plan activation and resume flow in billing UI and API.
 

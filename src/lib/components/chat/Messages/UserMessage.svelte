@@ -185,7 +185,7 @@
 			</div>
 		{/if}
 
-		<div class="chat-{message.role} w-full min-w-full markdown-prose">
+		<div class="chat-{message.role} w-full min-w-full markdown-prose" data-testid="user-message">
 			{#if edit !== true}
 				{#if message.files}
 					<div class="mb-1 w-full flex flex-col justify-end overflow-x-auto gap-1 flex-wrap">

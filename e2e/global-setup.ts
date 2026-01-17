@@ -26,7 +26,7 @@ const globalSetup = async (): Promise<void> => {
 	await page.locator('button[type="submit"]').click();
 
 	await page.waitForSelector(
-		'#chat-input, #chat-search, button[aria-label="User menu"], button[aria-label="Open User Profile Menu"]',
+		'#chat-input, [data-testid="user-menu-trigger"], button[aria-label="User menu"], button[aria-label="Open User Profile Menu"]',
 		{ timeout: 30_000 }
 	);
 

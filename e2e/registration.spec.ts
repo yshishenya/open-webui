@@ -1,13 +1,11 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { adminUser, ensureAdmin, loginAdmin } from './helpers/auth';
+import { adminUser, ensureAdmin, getUserMenuTrigger, loginAdmin } from './helpers/auth';
 
 const openUserMenu = async (page: Page): Promise<void> => {
-	const userMenuButton = page.locator(
-		'button[aria-label="User menu"], button[aria-label="Open User Profile Menu"]'
-	);
-	await expect(userMenuButton).toBeVisible();
-	await userMenuButton.click();
+	const userMenuButton = await getUserMenuTrigger(page);
+	await expect(userMenuButton.first()).toBeVisible();
+	await userMenuButton.first().click();
 };
 
 test.describe('Registration and Login', () => {
@@ -29,8 +27,10 @@ test.describe('Registration and Login', () => {
 		await page.locator('button[type="submit"]').click();
 
 		await page.waitForSelector(
-			'#chat-input, #chat-search, button[aria-label="User menu"], button[aria-label="Open User Profile Menu"]',
-			{ timeout: 15_000 }
+			'#chat-input, [data-testid="user-menu-trigger"], button[aria-label="User menu"], button[aria-label="Open User Profile Menu"]',
+			{
+				timeout: 15_000
+			}
 		);
 		await openUserMenu(page);
 		await expect(page.getByText(userName)).toBeVisible();

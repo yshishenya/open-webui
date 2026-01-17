@@ -634,7 +634,11 @@
 		<div class="flex-auto w-0 pl-1 relative">
 			<Name>
 				<Tooltip content={model?.name ?? message.model} placement="top-start">
-					<span id="response-message-model-name" class="line-clamp-1 text-black dark:text-white">
+					<span
+						id="response-message-model-name"
+						class="line-clamp-1 text-black dark:text-white"
+						data-testid="assistant-message-model"
+					>
 						{model?.name ?? message.model}
 					</span>
 				</Tooltip>
@@ -659,7 +663,10 @@
 			</Name>
 
 			<div>
-				<div class="chat-{message.role} w-full min-w-full markdown-prose">
+				<div
+					class="chat-{message.role} w-full min-w-full markdown-prose"
+					data-testid="assistant-message"
+				>
 					<div>
 						{#if model?.info?.meta?.capabilities?.status_updates ?? true}
 							<StatusHistory statusHistory={message?.statusHistory} />
@@ -1092,6 +1099,7 @@
 									<Tooltip content={$i18n.t('Generate Image')} placement="bottom">
 										<button
 											aria-label={$i18n.t('Generate Image')}
+											data-testid="generate-image-button"
 											class="{isLastMessage || ($settings?.highContrastMode ?? false)
 												? 'visible'
 												: 'invisible group-hover:visible'}  p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg dark:hover:text-white hover:text-black transition"

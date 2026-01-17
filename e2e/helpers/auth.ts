@@ -1,4 +1,4 @@
-import type { APIRequestContext, Page } from '@playwright/test';
+import type { APIRequestContext, Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
@@ -31,6 +31,15 @@ export const ensureAdmin = async (request: APIRequestContext): Promise<void> => 
 	await registerUser(request, adminUser);
 };
 
+export const getUserMenuTrigger = async (page: Page): Promise<Locator> => {
+	const testIdTrigger = page.getByTestId('user-menu-trigger');
+	if ((await testIdTrigger.count()) > 0) {
+		return testIdTrigger;
+	}
+
+	return page.getByRole('button', { name: /user menu|open user profile menu/i });
+};
+
 export const login = async (page: Page, email: string, password: string): Promise<void> => {
 	await page.addInitScript(() => {
 		window.localStorage.setItem('locale', 'en-US');
@@ -40,12 +49,8 @@ export const login = async (page: Page, email: string, password: string): Promis
 	await page.locator('input[autocomplete="email"]').fill(email);
 	await page.locator('input[type="password"]').fill(password);
 	await page.locator('button[type="submit"]').click();
-	await page.waitForSelector(
-		'#chat-input, #chat-search, button[aria-label="User menu"], button[aria-label="Open User Profile Menu"]',
-		{
-			timeout: 15_000
-		}
-	);
+	const userMenuButton = await getUserMenuTrigger(page);
+	await expect(userMenuButton.first()).toBeVisible({ timeout: 15_000 });
 
 	const changelogButton = page.getByRole('button', { name: "Okay, Let's Go!" });
 	if ((await changelogButton.count()) > 0) {

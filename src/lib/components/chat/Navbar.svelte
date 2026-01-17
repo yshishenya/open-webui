@@ -239,6 +239,7 @@
 						>
 							<div
 								class="select-none flex rounded-xl p-1.5 w-full hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+								data-testid="user-menu-trigger"
 							>
 								<div class=" self-center">
 									<span class="sr-only">{$i18n.t('User menu')}</span>
