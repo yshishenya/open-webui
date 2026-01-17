@@ -171,6 +171,8 @@
 - **Testing**:
   - pytest 7.4+
   - pytest-asyncio 0.21+ (async test support)
+  - moto 5.1+ (AWS mocks for storage tests)
+  - gcp-storage-emulator 2024.8+ (GCS emulator for storage tests)
   - pytest-cov 4.1+ (coverage reporting)
   - pytest-mock (mocking)
 - **Minimum Coverage**: 80%
@@ -179,7 +181,7 @@
 - **Linting**: ESLint 8.56.0 + @typescript-eslint
 - **Formatting**: Prettier 3.3.3
 - **Testing**: Vitest 1.6.1
-- **E2E Testing**: Cypress 13.15.0
+- **E2E Testing**: Playwright 1.57.0
 - **Type Checking**: svelte-check 4.0.0
 
 ### Pre-commit

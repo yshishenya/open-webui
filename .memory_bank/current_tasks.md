@@ -15,6 +15,9 @@ This file tracks active development tasks for the Airis project. Update this fil
 - [x] **[BUG]** Prevent duplicate email in Yandex OAuth when merge disabled
   - Added duplicate-email guard aligned with signup/add routes; merges when enabled and blocks when disabled.
 
+- [x] **[BUG]** Billing wallet endpoints returned 404 when wallet disabled
+  - Enabled wallet by default in `docker-compose.yaml`, `.env.example`, and `.env` (`ENABLE_BILLING_WALLET=true`).
+
 - [x] **[BILLING-01]** Implement billing system with YooKassa integration
   - Created database models (Plan, Subscription, Usage, Transaction, AuditLog)
   - Implemented backend API (user billing + admin billing)
@@ -27,6 +30,11 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Implemented logging in all admin endpoints
   - Added audit log viewer in admin panel
 
+- [x] **[BILLING-05]** Implement B2C monetization (wallet + PAYG)
+  - Wallet + rate card models, admin CRUD/sync, topup + webhook credit, hold/settle integration, guardrails + unit tests
+  - Frontend wallet UI + pricing + admin model pricing + auto-topup
+  - E2E: Playwright wallet tests + admin storage state; `npm run test:e2e` passes (chat tests skipped without models)
+
 - [x] **[DOCS-02]** Set up Memory Bank documentation structure
   - Created comprehensive project documentation
   - Documented tech stack, coding standards, patterns
@@ -38,13 +46,41 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ### High Priority
 
+- [x] **[BILLING-07]** Define PAYG default + lead magnet access logic
+  - Make PAYG the default billing mode without subscription
+  - Admin-configurable lead magnet: monthly quotas (tokens, images, TTS, STT) + cycle length (X days)
+  - Allowlist models flagged as “free/lead magnet” (only those use trial quotas)
+  - Define precedence between lead-magnet limits and paid wallet usage
+  - Spec saved: `.memory_bank/specs/payg_lead_magnet_policy.md`
+  - **Owner**: TBD
+  - **Target**: TBD
+
+- [ ] **[BILLING-08]** Implement PAYG default + lead magnet access
+  - Full audit of billing-related files and gaps vs policy
+  - Plan saved: `.memory_bank/specs/payg_lead_magnet_implementation_plan.md`
+  - Progress: lead magnet config/state + admin API + model flag + UI (dashboard/balance/estimate) + STT billing path
+  - Progress: chat preflight now evaluates lead magnet eligibility using the selected model ID even when the provider payload uses `base_model_id`
+  - Progress: lead magnet defaults enabled in local `.env`; `gemini-2.5-flash-lite` flagged as lead magnet in DB for validation
+  - Progress: billing history now fetches lead-magnet usage events (new `/billing/usage-events` endpoint + UI section)
+  - Tests added for lead magnet preflight/settle + billing lead magnet routes (/lead-magnet, /estimate) + Playwright lead magnet UI checks; pytest backend/open_webui/test/apps/webui/routers/test_billing_lead_magnet.py passes (3 tests, warnings only); e2e not run here
+  - **Owner**: Codex
+  - **Target**: TBD
+
 - [ ] **[BILLING-03]** Test billing system end-to-end
   - Test plan subscription flow
   - Test payment processing and webhooks
   - Test quota enforcement
   - Verify audit logging
+  - Progress: pytest bootstraps SQLite test DB when DATABASE_URL is unset; backend suite passes locally (122 tests); chat streaming now includes `stream_options.include_usage` for OpenAI models; image generation still disabled
   - **Owner**: TBD
   - **Target**: Week of 2025-12-16
+
+- [x] **[BILLING-06]** Split context vs generation billing costs (DB columns + UI)
+  - Added usage/ledger columns for input/output costs and rate card IDs
+  - Extended estimate response and billing UI breakdowns
+  - Updated billing integration tests (19 passed)
+  - **Owner**: TBD
+  - **Target**: 2025-12-22
 
 - [ ] **[BILLING-04]** Add usage analytics dashboard
   - Show usage trends over time
@@ -52,12 +88,6 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Add cost projections
   - **Owner**: TBD
   - **Target**: 2025-12-20
-
-- [ ] **[BILLING-05]** Plan B2C monetization (wallet + PAYG)
-  - Analyze current billing implementation versus target monetization design
-  - Produce implementation roadmap with open questions and migration steps
-  - **Owner**: TBD (current planning session)
-  - **Target**: 2025-12-18
 
 ### Medium Priority
 

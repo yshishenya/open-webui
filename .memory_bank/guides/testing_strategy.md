@@ -8,6 +8,8 @@ Our testing strategy follows the classic testing pyramid:
 2. **Integration Tests (20%)**: Testing interactions between modules
 3. **End-to-End Tests (10%)**: Testing complete user scenarios
 
+**E2E Tooling**: Playwright for UI-driven flows and critical user journeys.
+
 ## Unit Testing Requirements
 
 ### Coverage Goals

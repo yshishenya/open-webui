@@ -32,23 +32,58 @@
 
 ### 1) Схема данных и миграции (PostgreSQL/SQLite)
 - Добавить таблицы:
-  - `wallets(user_id, currency, balance_topup_kopeks, balance_included_kopeks, included_expires_at, max_reply_cost_kopeks, daily_cap_kopeks, daily_spent_kopeks, daily_reset_at, auto_topup_enabled, auto_topup_threshold_kopeks, auto_topup_amount_kopeks, created_at, updated_at)`.
-  - `pricing_rate_card(model_id, model_tier, modality, unit, raw_cost_per_unit_kopeks, platform_factor, fixed_fee_kopeks, min_charge_kopeks, rounding_rules_json, version, effective_from, effective_to, provider, is_default, is_active)`.
-  - `usage_events(id, user_id, chat_id, message_id, request_id, model_id, modality, provider, measured_units_json, cost_raw_kopeks, cost_charged_kopeks, is_estimated, estimate_reason, pricing_version, wallet_snapshot_json, created_at)`.
-  - `ledger_entries(id, user_id, type, amount_kopeks, balance_included_after, balance_topup_after, reference_id, reference_type, idempotency_key, hold_expires_at, metadata_json, created_at)`, type ∈ {hold, charge, refund, topup, subscription_credit, adjustment, release}.
-  - `payments(id, provider, status, kind, amount_kopeks, currency, idempotency_key, provider_payment_id, payment_method_id, status_details, metadata_json, raw_payload_json, user_id, subscription_id, created_at, updated_at)`.
+  - `wallets(id, user_id, currency, balance_topup_kopeks, balance_included_kopeks, included_expires_at, max_reply_cost_kopeks, daily_cap_kopeks, daily_spent_kopeks, daily_reset_at, auto_topup_enabled, auto_topup_threshold_kopeks, auto_topup_amount_kopeks, auto_topup_fail_count, auto_topup_last_failed_at, created_at, updated_at)`, уникальный ключ `(user_id, currency)`.
+  - `pricing_rate_card(id, model_id, model_tier, modality, unit, raw_cost_per_unit_kopeks, platform_factor, fixed_fee_kopeks, min_charge_kopeks, rounding_rules_json, version, effective_from, effective_to, provider, is_default, is_active)` + отдельная таблица версий `rate_card_version(id, version, effective_from, created_at)` или жёсткая ссылка на `pricing_rate_card.id` в usage.
+  - `usage_events(id, user_id, chat_id, message_id, request_id, model_id, modality, provider, measured_units_json, cost_raw_kopeks, cost_charged_kopeks, is_estimated, estimate_reason, pricing_version, pricing_rate_card_id, plan_id, subscription_id, wallet_id, wallet_snapshot_json, created_at)`.
+  - `ledger_entries(id, user_id, wallet_id, currency, type, amount_kopeks, balance_included_after, balance_topup_after, reference_id, reference_type, idempotency_key, hold_expires_at, expires_at, metadata_json, created_at)`, type ∈ {hold, charge, refund, topup, subscription_credit, adjustment, release}.
+  - `payments(id, provider, status, kind, amount_kopeks, currency, idempotency_key, provider_payment_id, payment_method_id, status_details, metadata_json, raw_payload_json, user_id, wallet_id, subscription_id, created_at, updated_at)`.
   - `promo_codes(code, bonus_kopeks, expires_at, usage_limit, per_user_limit, metadata_json)`.
 - Расширить существующие таблицы:
   - `plans`: `price_kopeks`, `included_kopeks_per_period`, `discount_percent`, `model_tiers_allowed` (json), квоты по модальностям (`images_per_period`, `tts_seconds_per_period`), `max_reply_cost_kopeks`, `daily_cap_kopeks`, `is_annual` флаг.
   - `subscriptions`: `auto_renew`, `last_payment_id`, `wallet_id`, `payment_method_id`, `next_plan_id`, `cancel_at_period_end` оставить.
   - `transactions`: оставить для совместимости UI, но постепенно заменить данными из `ledger_entries`/`payments`.
   - `user.info`: сохранить `billing_contact_email`/`billing_contact_phone` (для receipt).
-- Написать Alembic миграцию: создание новых таблиц, перенос price→kopeks (оставить `price` для UI, добавить `price_kopeks` как источник истины), бэкап старых значений, индексы по `user_id/status/created_at/model_id`, создание wallets для всех пользователей.
+- Написать Alembic миграцию: создание новых таблиц, перенос price→kopeks (оставить `price` для UI, добавить `price_kopeks` как источник истины), бэкап старых значений, индексы по `user_id/status/created_at/model_id`, создание wallets для всех пользователей. Новая схема — единственный источник данных (без dual-write), при необходимости временно отдаём read-only совместимые ответы.
+
+#### DDL/индексы (детализация для миграции)
+- `wallets`:
+  - `id` PK (uuid), `user_id` FK → users.id, `currency` (TEXT, default `BILLING_DEFAULT_CURRENCY`), unique (`user_id`,`currency`).
+  - Балансы: `balance_topup_kopeks` BIGINT NOT NULL DEFAULT 0, `balance_included_kopeks` BIGINT NOT NULL DEFAULT 0.
+  - Лимиты: `max_reply_cost_kopeks`, `daily_cap_kopeks`, `daily_spent_kopeks` (BIGINT, default 0), `daily_reset_at` (BIGINT).
+  - Auto-topup: `auto_topup_enabled` BOOL default false, `auto_topup_threshold_kopeks`, `auto_topup_amount_kopeks`, `auto_topup_fail_count` INT default 0, `auto_topup_last_failed_at` BIGINT.
+  - `included_expires_at`, `created_at`, `updated_at` BIGINT; индекс по `user_id`.
+- `pricing_rate_card`:
+  - PK `id` (uuid), поля из спецификации + `version` (TEXT) или FK `rate_card_version_id`.
+  - Uniq: (`model_id`,`modality`,`unit`,`version`,`effective_from`); индекс по (`is_active`,`effective_from`).
+  - Опциональная таблица `rate_card_version(id, version, effective_from, created_at)` с FK из rate_card.
+- `usage_events`:
+  - PK `id` (uuid); FK: `user_id`, `wallet_id`, `plan_id`, `subscription_id`, `pricing_rate_card_id`.
+  - Уникальность `request_id` (+`modality`) и индекс по (`user_id`,`created_at`).
+  - Стоимости: `cost_raw_kopeks`, `cost_charged_kopeks` BIGINT NOT NULL DEFAULT 0; `is_estimated` BOOL; `pricing_version` TEXT; `wallet_snapshot_json` JSON.
+- `ledger_entries`:
+  - PK `id` (uuid); FK: `user_id`, `wallet_id`; `currency` TEXT CHECK == wallet.
+  - `type` ENUM {hold, charge, refund, topup, subscription_credit, adjustment, release}.
+  - `amount_kopeks` BIGINT (знак означает приход/расход); `balance_included_after`, `balance_topup_after` BIGINT; `reference_id`, `reference_type`, `idempotency_key`.
+  - Уникальность `(reference_type, reference_id, type)` и/или `(idempotency_key)`; индексы по (`user_id`,`created_at`), (`wallet_id`,`type`).
+  - `hold_expires_at` для hold, `expires_at` для topup (TTL, по умолчанию 365 дней через конфиг).
+- `payments`:
+  - PK `id` (uuid); FK: `user_id`, `wallet_id`, `subscription_id`.
+  - Уникальный `provider_payment_id`; уникальный `idempotency_key`.
+  - `status` ENUM (pending/succeeded/failed/canceled), `kind` ENUM (topup/subscription/adjustment), суммы в копейках.
+  - Индексы по (`provider`,`provider_payment_id`), (`user_id`,`created_at`), (`status`,`created_at`).
+- `promo_codes`:
+  - PK `code`; `bonus_kopeks`, `expires_at`, `usage_limit`, `per_user_limit`, `metadata_json`; индекс по `expires_at`.
+- Расширения `plans`/`subscriptions`/`users`:
+  - `plans.price_kopeks` NOT NULL (source of truth), `price` оставляем как Decimal для UI.
+  - `plans.included_kopeks_per_period`, `discount_percent` (NUMERIC), `model_tiers_allowed` JSON, `images_per_period`, `tts_seconds_per_period`, `max_reply_cost_kopeks`, `daily_cap_kopeks`, `is_annual`.
+  - `subscriptions.auto_renew` BOOL default false, `wallet_id` FK, `payment_method_id`, `next_plan_id`, `last_payment_id`.
+  - `users.billing_contact_email/phone` (nullable) для receipt, индекс по email если нужен для валидации платежей.
 
 ### 2) Сервис ценообразования и биллинга (backend/utils)
 - Новый модуль `utils/pricing.py`: загрузка rate card, формула `(raw_cost × platform_factor × (1 - discount) + fixed_fee)`, поддержка модальностей text/image/tts, округление до копеек.
   - Правило округления: по умолчанию `ceil` до 1 копейки, минимум `min_charge_kopeks` из rate card.
   - Для локальных моделей допускаем `raw_cost_per_unit_kopeks = 0`, но можно задавать `fixed_fee_kopeks` за инфраструктуру.
+- Версионирование rate card: хранить явный `rate_card_version` (версия + `effective_from`) и ссылку `pricing_rate_card_id` в usage; обновление цен создаёт новую версию, не правим старые строки.
 - Новый сервис `wallet_service`: операции hold/settle/release, списание included→topup, idempotency по `reference_id`.
 - Расширить `BillingService`:
   - Расчёт estimate (min/max) до запроса с учётом max_tokens/limit пользователя.
@@ -126,7 +161,7 @@
 ### 9) Тестирование
 - Юнит-тесты: pricing (rounding/discount), hold/settle с недостатком средств, очередность списаний included→topup, промокоды.
 - Интеграционные: платежный webhook idempotency, auto-topup сценарий, отказ по лимиту/дневному лимиту, PAYG без подписки.
-- E2E (Cypress/Vitest): покупка top-up, оценка стоимости в чате, блокировка при нехватке баланса, отображение ledger/баланса.
+- E2E (Playwright/Vitest): покупка top-up, оценка стоимости в чате, блокировка при нехватке баланса, отображение ledger/баланса.
 
 ### 10) Миграции/роллаут
 - Миграция данных тарифов/подписок в копейки, создание годовых планов с -16%.
@@ -173,6 +208,7 @@
   - `max_estimate_kopeks` → hold (reduce available funds).
   - Если средств/квот нет → 402/429 с кодом ошибки.
   - Доступный баланс = included + topup - активные hold.
+- SQLite dev-режим: нет `SELECT ... FOR UPDATE`, поэтому используем IMMEDIATE транзакции/прикладные локи для исключения двойных hold в тестах.
 - Postflight:
   - Считаем фактическую стоимость.
   - Списываем фактическую сумму (`charge`), разницу возвращаем (`release`).
@@ -359,6 +395,7 @@
 - Автопополнение: успех/ошибка/N неудач → отключение.
 - Dunning: ошибка автоплатежа → grace period → ограничения → cancel.
 - Receipt: платеж без контакта → блок.
+- Auto-topup retries: хранить счётчик фейлов и `last_failed_at`, ограничивать попытки в сутки и отключать при превышении.
 
 ## Детализация: что и где менять в коде
 
@@ -387,6 +424,7 @@
 - `backend/open_webui/utils/plan_templates.py`
   - Новые поля для планов (included/discount/limits/annual).
   - Обязательный seed для `free` (price=0, ограниченные tiers/квоты).
+- Переходный режим: без dual-write; при необходимости краткосрочно отдаём read-only совместимые ответы в старом формате, но данные храним только в новой схеме.
 
 ### Frontend (Svelte/TypeScript)
 - `src/lib/apis/billing/index.ts`
@@ -415,6 +453,8 @@
 - `BILLING_HOLD_TTL_SECONDS=900`.
 - `BILLING_MAX_DAILY_SPEND_DEFAULT_KOPEKS` — дефолт для новых пользователей.
 - `BILLING_GRACE_PERIOD_DAYS=3`.
+- `BILLING_TOPUP_TTL_DAYS=365` — срок жизни top-up баланса.
+- `BILLING_TOPUP_PACKAGES_KOPEKS=19900,49900,99900,199900,499900`.
 - Фича-флаг для поэтапного включения: сначала только estimate, потом hold/settle.
 
 ## Стартовые значения (MVP, редактируются через админку)
@@ -498,3 +538,133 @@
 - На Этапе 1 тарификация embeddings/tools/files выключена (фича-флаг), включаем позже отдельным unit/fixed-fee.
 - YooKassa: реализуем сохранение payment_method для auto-renew/auto-topup при наличии поддержки, иначе fallback на ручные платежи + уведомления.
 - Top-up по умолчанию живёт 12 месяцев (параметризуем).
+
+## Чек-лист реализации (BILLING-05)
+- [x] Закрыть пробелы спецификации (кошелёк PK/FK, версионирование rate card, без dual-write, auto-topup fail tracking, SQLite locking).
+- [x] Финализировать DDL/индексы: wallets/ledger/usage_events/payments/pricing_rate_card/promo + расширения plans/subscriptions/users; явные FK, unique, expires_at для top-up.
+- [x] Alembic миграция: создать новые таблицы, добавить поля в существующие, перенести price→price_kopeks, создать кошельки всем пользователям, индексы; миграция хранит только новую схему (без dual-write).
+- [ ] Seed: базовые планы (Free, PAYG, Start/Plus/Pro + годовые) + rate card defaults сделаны; топап-пакеты заданы через ENV, остаётся договориться о финальных значениях.
+- [ ] Backend сервисы:
+  - [x] pricing.py (rounding/discount/versioning), wallet/ledger (hold/charge/release), admin rate card CRUD/sync.
+  - [x] billing_integration preflight/finalize (hold/settle + usage_events).
+  - [x] YooKassa top-up + payments/ledger integration + auto-topup flow.
+- [x] Пайплайны: текст/images/TTS hold/settle + usage_events интегрированы, лимиты max_reply_cost/daily_cap учтены.
+- [x] Frontend: API клиенты (balance/estimate/ledger/topup/settings), UI (balance/history/settings, чатовый estimate badge, admin model pricing, pricing page → plans/public), i18n строки.
+- [ ] Тесты: unit + router (pricing, wallet flows, promo; done: single-rate hold/settle image/TTS + OpenAI speech, preflight guardrails, release-on-error, wallet service, pricing unit, topup webhook idempotency/status, charge-exceeds-hold), integration (YK webhook idempotency, auto-topup, лимиты), E2E (top-up, estimate, блокировки), покрытие ≥80%.
+- [ ] Роллаут: последовательность включения фича-флагов (estimate → hold/settle → подписки), мониторинг, обратное отключение фичей при сбоях.
+
+## Backend дизайн (MVP PAYG + подготовка подписок)
+
+### Сервисы и модули
+- `utils/pricing.py`:
+  - Интерфейс: `get_rate_card(model_id, modality, unit, as_of)`; `estimate_cost(units, rate, plan_discount_percent) -> (min,max)`; `round_cost` по правилам rate card; поддержка `fixed_fee_kopeks`, `min_charge_kopeks`, `platform_factor`.
+  - Версионирование: возвращает `pricing_rate_card_id` и `version` для записи в `usage_events`.
+  - Поддерживаем модальности text/image/tts; units: `token_in`, `token_out`, `image_1024`, `tts_char|tts_sec`.
+- `utils/wallet.py` (или подмодуль в `utils/billing.py`):
+  - `hold(wallet_id, amount, reference_id/type, expires_at)` — уменьшает доступный баланс (included→topup), пишет ledger `hold`.
+  - `settle(wallet_id, hold_reference, actual_amount)` — пишет `charge` и `release` разницы; если actual > hold — отказ/доп. проверка.
+  - `release_hold(wallet_id, hold_reference)` — возврат hold.
+  - `apply_topup(wallet_id, amount, payment_id, expires_at)` — ledger `topup`, обновляет баланс.
+  - Все операции в транзакции с блокировкой строки кошелька; SQLite — IMMEDIATE транзакция.
+  - Idempotency: уникальные `(reference_type, reference_id, type)` и `idempotency_key`.
+- `utils/billing.py`:
+  - `get_user_billing_info` обновить под кошелёк/лимиты.
+  - Логика discount/included: списание included перед topup, применение `discount_percent` плана при settle.
+  - Промокоды: начисление бонуса в wallet (ledger `adjustment` или `promo` внутри metadata).
+- `utils/billing_integration.py`:
+  - `preflight_estimate_hold(user, request)` → estimate (pricing) + лимиты max_reply_cost/daily_cap + tiers; создаёт `request_id` if absent.
+  - `finalize_settle(user, request_id, usage)` → settle/charge, запись `usage_events`, `is_estimated` при отсутствии usage.
+  - Поддержка text/images/TTS; images — расчёт по размеру/кол-ву; TTS — chars/seconds.
+- `utils/yookassa.py`:
+  - Метод `create_topup_payment(amount_kopeks, return_url, metadata {kind:topup, wallet_id, user_id})`.
+  - Метод `create_subscription_payment` (для этапа 2).
+  - Хранение `payment_method_id` (если поддержано) для будущего auto-topup/renew.
+
+### API контракты (MVP PAYG)
+- Пользовательские:
+  - `GET /billing/balance` → `{ balance_topup_kopeks, balance_included_kopeks, included_expires_at, daily_cap_kopeks, daily_spent_kopeks, max_reply_cost_kopeks, currency }`.
+  - `POST /billing/estimate` → `{ min_kopeks, max_kopeks, is_allowed, reason?, pricing_rate_card_id, pricing_version }`.
+  - `POST /billing/topup` → `{ payment_id, confirmation_url }` (сумма из списка пакетов).
+  - `POST /billing/auto-topup` → toggle/update threshold/amount.
+  - `GET /billing/ledger` → пагинация/фильтры type/date; source `ledger_entries`.
+  - `POST /billing/settings` → update `max_reply_cost_kopeks`, `daily_cap_kopeks`, billing contacts.
+- Админ:
+  - `POST /admin/billing/rate-card` CRUD.
+  - `POST /admin/billing/rate-card/sync-models` — создать placeholders для непрайсованных моделей.
+  - `POST /admin/billing/plans` — расширенные поля (included/discount/tiers/quotas/annual).
+  - `POST /admin/billing/promo` CRUD.
+  - `GET /admin/billing/models/pricing` — таблица цен.
+
+### Платёжный поток (top-up)
+1) `POST /billing/topup` → создаём платеж (YooKassa) с metadata `{kind: "topup", wallet_id, user_id}`; валидируем контакт для receipt.
+2) Пользователь платит; webhook `payment.succeeded`:
+   - Idempotency по `provider_payment_id`.
+   - Находит wallet (по metadata) → ledger `topup` с `expires_at` (TTL 12 мес), обновляет баланс.
+3) Если webhook повторяется → нет двойного списания (idempotency).
+
+### Ограничения и лимиты
+- `max_reply_cost_kopeks` и `daily_cap_kopeks` читаем из `wallets` (пользовательские настройки или дефолты); проверяем в preflight.
+- Доступные модели: по `model_tiers_allowed` плана (или PAYG плана).
+- Недостаток средств/лимитов → 402/429 с кодом для UI апсейла.
+
+### Логи/метрики
+- Логируем `request_id`, `wallet_id`, `pricing_rate_card_id`, `is_estimated`.
+- Метрики: hold/denied, charge totals, topup totals, estimated_usage_count, webhook_errors.
+
+### Разграничение и безопасность
+- Все billing endpoints за аутентификацией; admin — только роль admin.
+- YooKassa webhooks — проверка подписи; без PII в логах.
+
+## Frontend план
+- API клиенты (`src/lib/apis/billing/index.ts`):
+  - Методы: `getBalance`, `getEstimate`, `getLedger`, `topup`, `updateAutoTopup`, `updateBillingSettings`, `getPlansPublic` (новые поля цены/лимитов), опционально `getModelPricingPublic`.
+  - Типы: `Balance`, `LedgerEntry`, `Estimate`, расширенный `Plan` (price_kopeks, included_kopeks, discount_percent, max_reply_cost_kopeks, daily_cap_kopeks, model_tiers_allowed, quotas по модальностям).
+- Пользовательский UI:
+  - `/billing` страницы: вкладки `balance` (кошелёк, auto-topup toggle, промокод поле), `history` (ledger с фильтрами), `settings` (лимиты max_reply_cost/daily_cap + контакты для receipt), обновлённый dashboard.
+  - `/pricing` публичная страница — берёт данные из `/billing/plans/public`, отображает Free/PAYG/Start/Plus/Pro + годовые (скидка -16%), без хардкодов цен.
+  - Чат (`routes/(app)/c/[id]`): генерировать `request_id`, отображать бейдж estimate `~X ₽` перед отправкой, блок/апсейл при 402/429 (недостаток средств/квот/лимитов).
+  - Показать лимиты/квоты по картинкам/TTS, если доступны в плане.
+- Админ UI:
+  - Раздел Model Pricing (`/admin/billing/models`): таблица с model_id, tier, modality, unit, price, status, effective_from, фильтр “Unpriced”.
+  - Расширение планов: редактирование included/discount/tiers/квоты по модальностям, годовые флаги.
+  - Промокоды: CRUD интерфейс.
+- i18n:
+  - Добавить строки для кошелька, авто-topup, лимитов, ошибок 402/429, estimate badge, ledger типов.
+- Фича-флаги/UX:
+  - Флаг `ENABLE_BILLING_WALLET` — включает UI кошелька/ledger/estimate.
+  - Блоки/апсейлы в чатах при нехватке средств/лимитов с кнопками “Пополнить”/“Выбрать план”.
+
+## Пайплайны (интеграция в OpenWebUI)
+- Текст (`routers/openai.py`):
+  - Preflight: `POST /billing/estimate` → проверка лимитов/tiers → `hold` через billing_integration; прокидываем лимит токенов из estimate.
+  - Финализация: получить usage (tokens); если нет usage — charge=estimate, `is_estimated=true`.
+  - Обработка отмен/таймаутов → `release_hold`.
+- Изображения (`routers/images.py`):
+  - Estimate по модели/размеру/количеству; hold перед запросом; settle по факту или по estimate при ошибке.
+- TTS/STT (соответствующие роуты):
+  - Estimate по символам/секундам; hold/settle аналогично.
+- Общие ошибки:
+  - Недостаток средств/лимита: 402 (insufficient_funds) / 429 (quota_exceeded) с reason для UI.
+  - Отсутствие usage: warning log `BILLING_ESTIMATE_ONLY`, `is_estimated=true`.
+
+## Тесты и роллаут
+- Unit:
+  - pricing: rounding/min_charge/fixed_fee/discount, выбор версии rate card.
+  - wallet/ledger: hold/settle/release, порядок списания included→topup, превышение hold, idempotency ключи.
+  - promo: начисление бонуса, лимиты per_user/usage_limit.
+  - лимиты: max_reply_cost/daily_cap расчёт доступного остатка.
+- Integration:
+  - YooKassa webhook idempotency (payment.succeeded повторно не удваивает баланс).
+  - Auto-topup: порог → платёж → зачисление; повторные фейлы → отключение.
+  - PAYG без подписки: успешный запрос при наличии топапа; отказ при 0 балансе; дневной лимит.
+  - Image/TTS сценарии с hold/settle и fallback на estimate при ошибке.
+- E2E (Playwright/Vitest):
+  - Покупка top-up пакета, отображение в балансе/ledger.
+  - Estimate badge в чате, блокировка при нехватке средств, кнопка “Пополнить”.
+  - Ledger фильтры, auto-topup toggle, обновление лимитов в settings.
+- Покрытие: ≥80% для нового кода (pytest + Vitest/Playwright по необходимости).
+- Роллаут/фича-флаги:
+  - ENV: `ENABLE_BILLING_WALLET`, `BILLING_RATE_CARD_VERSION`, `BILLING_HOLD_TTL_SECONDS`, `BILLING_MAX_DAILY_SPEND_DEFAULT_KOPEKS`.
+  - Этапность: включить `/billing/plans/public` + estimate (без hold), затем hold/settle для text/images/TTS, затем подписки/annual.
+  - Откат: флагом отключить hold/settle → вернуть только estimate, блокировать платные запросы, если критичные ошибки.
+  - Мониторинг: алерты на webhook errors, рост `usage.estimated`, рассинхрон ledger vs wallet, рост отказов 402/429.

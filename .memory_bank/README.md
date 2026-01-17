@@ -57,7 +57,7 @@ This Memory Bank is the central knowledge repository for the **Airis** project (
 - **[Testing Strategy](./guides/testing_strategy.md)**: Testing strategy
   - Unit tests with pytest (Python) and Vitest (TypeScript)
   - Integration tests
-  - E2E tests with Cypress
+  - E2E tests with Playwright
   - Minimum 80% code coverage
 
 ### 3. Processes and Tasks (Context "WHAT TO DO")
