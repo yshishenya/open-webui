@@ -230,6 +230,7 @@
 						<UserMenu
 							className="max-w-[240px]"
 							role={$user?.role}
+							profile={true}
 							help={true}
 							on:show={(e) => {
 								if (e.detail === 'archived-chat') {

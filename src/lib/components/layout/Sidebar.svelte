@@ -721,6 +721,7 @@
 						>
 							<div
 								class=" cursor-pointer flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition group"
+								data-testid="user-menu-trigger-profile"
 							>
 								<div class="self-center relative">
 									<img
@@ -1285,6 +1286,7 @@
 						>
 							<div
 								class=" flex items-center rounded-2xl py-2 px-1.5 w-full hover:bg-gray-100/50 dark:hover:bg-gray-900/50 transition"
+								data-testid="user-menu-trigger-profile"
 							>
 								<div class=" self-center mr-3 relative">
 									<img

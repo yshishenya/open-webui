@@ -32,6 +32,11 @@ export const ensureAdmin = async (request: APIRequestContext): Promise<void> => 
 };
 
 export const getUserMenuTrigger = async (page: Page): Promise<Locator> => {
+	const profileTrigger = page.getByTestId('user-menu-trigger-profile');
+	if ((await profileTrigger.count()) > 0) {
+		return profileTrigger;
+	}
+
 	const testIdTrigger = page.getByTestId('user-menu-trigger');
 	if ((await testIdTrigger.count()) > 0) {
 		return testIdTrigger;
