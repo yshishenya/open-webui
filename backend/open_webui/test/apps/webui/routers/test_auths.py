@@ -14,16 +14,18 @@ class TestAuths(AbstractPostgresTest):
         cls.auths = Auths
 
     def test_get_session_user(self):
-        with mock_webui_user():
-            response = self.fast_api_client.get(self.create_url(""))
+        with mock_webui_user() as token:
+            response = self.fast_api_client.get(
+                self.create_url(""),
+                headers={"Authorization": f"Bearer {token}"},
+            )
         assert response.status_code == 200
-        assert response.json() == {
-            "id": "1",
-            "name": "John Doe",
-            "email": "john.doe@openwebui.com",
-            "role": "user",
-            "profile_image_url": "/user.png",
-        }
+        payload = response.json()
+        assert payload["id"] == "1"
+        assert payload["name"] == "John Doe"
+        assert payload["email"] == "john.doe@openwebui.com"
+        assert payload["role"] == "user"
+        assert payload["profile_image_url"] == "/user.png"
 
     def test_update_profile(self):
         from open_webui.utils.auth import get_password_hash
@@ -64,12 +66,16 @@ class TestAuths(AbstractPostgresTest):
             )
         assert response.status_code == 200
 
+        from open_webui.utils.auth import verify_password
+
         old_auth = self.auths.authenticate_user(
-            "john.doe@openwebui.com", "old_password"
+            "john.doe@openwebui.com",
+            lambda pw: verify_password("old_password", pw),
         )
         assert old_auth is None
         new_auth = self.auths.authenticate_user(
-            "john.doe@openwebui.com", "new_password"
+            "john.doe@openwebui.com",
+            lambda pw: verify_password("new_password", pw),
         )
         assert new_auth is not None
 
@@ -162,6 +168,9 @@ class TestAuths(AbstractPostgresTest):
             profile_image_url="/user.png",
             role="admin",
         )
+        config = self.fast_api_client.app.state.config
+        config.ENABLE_API_KEYS = True
+        config.USER_PERMISSIONS["features"]["api_keys"] = True
         with mock_webui_user(id=user.id):
             response = self.fast_api_client.post(self.create_url("/api_key"))
         assert response.status_code == 200
@@ -177,13 +186,16 @@ class TestAuths(AbstractPostgresTest):
             profile_image_url="/user.png",
             role="admin",
         )
+        config = self.fast_api_client.app.state.config
+        config.ENABLE_API_KEYS = True
+        config.USER_PERMISSIONS["features"]["api_keys"] = True
         self.users.update_user_api_key_by_id(user.id, "abc")
         with mock_webui_user(id=user.id):
             response = self.fast_api_client.delete(self.create_url("/api_key"))
         assert response.status_code == 200
         assert response.json() == True
-        db_user = self.users.get_user_by_id(user.id)
-        assert db_user.api_key is None
+        api_key = self.users.get_user_api_key_by_id(user.id)
+        assert api_key is None
 
     def test_get_api_key(self):
         user = self.auths.insert_new_auth(

@@ -51,15 +51,22 @@ class TestUsers(AbstractPostgresTest):
         with mock_webui_user(id="3"):
             response = self.fast_api_client.get(self.create_url(""))
         assert response.status_code == 200
-        assert len(response.json()) == 2
-        data = response.json()
+        payload = response.json()
+        assert payload["total"] == 2
+        data = payload["users"]
         _assert_user(data, "1")
         _assert_user(data, "2")
 
         # update role
         with mock_webui_user(id="3"):
             response = self.fast_api_client.post(
-                self.create_url("/update/role"), json={"id": "2", "role": "admin"}
+                self.create_url("/2/update"),
+                json={
+                    "name": "user 2",
+                    "email": "user2@openwebui.com",
+                    "profile_image_url": "/user2.png",
+                    "role": "admin",
+                },
             )
         assert response.status_code == 200
         _assert_user([response.json()], "2", role="admin")
@@ -68,8 +75,9 @@ class TestUsers(AbstractPostgresTest):
         with mock_webui_user(id="3"):
             response = self.fast_api_client.get(self.create_url(""))
         assert response.status_code == 200
-        assert len(response.json()) == 2
-        data = response.json()
+        payload = response.json()
+        assert payload["total"] == 2
+        data = payload["users"]
         _assert_user(data, "1")
         _assert_user(data, "2", role="admin")
 
@@ -123,7 +131,9 @@ class TestUsers(AbstractPostgresTest):
         with mock_webui_user(id="1"):
             response = self.fast_api_client.get(self.create_url("/2"))
         assert response.status_code == 200
-        assert response.json() == {"name": "user 2", "profile_image_url": "/user2.png"}
+        data = response.json()
+        assert data["name"] == "user 2"
+        assert data["profile_image_url"] == "/user2.png"
 
         # Update user by id
         with mock_webui_user(id="1"):
@@ -133,6 +143,7 @@ class TestUsers(AbstractPostgresTest):
                     "name": "user 2 updated",
                     "email": "user2-updated@openwebui.com",
                     "profile_image_url": "/user2-updated.png",
+                    "role": "admin",
                 },
             )
         assert response.status_code == 200
@@ -141,8 +152,9 @@ class TestUsers(AbstractPostgresTest):
         with mock_webui_user(id="3"):
             response = self.fast_api_client.get(self.create_url(""))
         assert response.status_code == 200
-        assert len(response.json()) == 2
-        data = response.json()
+        payload = response.json()
+        assert payload["total"] == 2
+        data = payload["users"]
         _assert_user(data, "1")
         _assert_user(
             data,
@@ -162,6 +174,7 @@ class TestUsers(AbstractPostgresTest):
         with mock_webui_user(id="3"):
             response = self.fast_api_client.get(self.create_url(""))
         assert response.status_code == 200
-        assert len(response.json()) == 1
-        data = response.json()
+        payload = response.json()
+        assert payload["total"] == 1
+        data = payload["users"]
         _assert_user(data, "1")

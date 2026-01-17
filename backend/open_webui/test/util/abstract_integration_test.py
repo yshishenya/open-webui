@@ -69,6 +69,11 @@ class AbstractPostgresTest(AbstractIntegrationTest):
     @classmethod
     def setup_class(cls):
         super().setup_class()
+        existing_db_url = os.environ.get("DATABASE_URL")
+        if existing_db_url:
+            cls.fast_api_client = get_fast_api_client()
+            return
+
         try:
             env_vars_postgres = {
                 "POSTGRES_USER": "user",
@@ -136,7 +141,10 @@ class AbstractPostgresTest(AbstractIntegrationTest):
     @classmethod
     def teardown_class(cls) -> None:
         super().teardown_class()
-        cls.docker_client.containers.get(cls.DOCKER_CONTAINER_NAME).remove(force=True)
+        if getattr(cls, "docker_client", None):
+            cls.docker_client.containers.get(cls.DOCKER_CONTAINER_NAME).remove(
+                force=True
+            )
 
     def teardown_method(self):
         from open_webui.internal.db import Session
@@ -148,10 +156,17 @@ class AbstractPostgresTest(AbstractIntegrationTest):
         tables = [
             "auth",
             "billing_audit_log",
+            "billing_ledger_entry",
+            "billing_payment",
             "billing_plan",
+            "billing_pricing_rate_card",
+            "billing_promo_code",
             "billing_subscription",
             "billing_transaction",
             "billing_usage",
+            "billing_usage_event",
+            "billing_lead_magnet_state",
+            "billing_wallet",
             "chat",
             "chatidtag",
             "document",
@@ -161,6 +176,10 @@ class AbstractPostgresTest(AbstractIntegrationTest):
             "tag",
             '"user"',
         ]
+        dialect_name = Session.get_bind().dialect.name
         for table in tables:
-            Session.execute(text(f"TRUNCATE TABLE {table}"))
+            if dialect_name == "sqlite":
+                Session.execute(text(f"DELETE FROM {table}"))
+            else:
+                Session.execute(text(f"TRUNCATE TABLE {table}"))
         Session.commit()

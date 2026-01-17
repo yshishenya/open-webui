@@ -6,6 +6,9 @@ class TestPrompts(AbstractPostgresTest):
     BASE_PATH = "/api/v1/prompts"
 
     def test_prompts(self):
+        config = self.fast_api_client.app.state.config
+        config.USER_PERMISSIONS["workspace"]["prompts"] = True
+
         # Get all prompts
         with mock_webui_user(id="2"):
             response = self.fast_api_client.get(self.create_url("/"))
@@ -51,7 +54,7 @@ class TestPrompts(AbstractPostgresTest):
         assert data["user_id"] == "2"
 
         # Update prompt
-        with mock_webui_user(id="2"):
+        with mock_webui_user(id="3"):
             response = self.fast_api_client.post(
                 self.create_url("/command/my-command2/update"),
                 json={

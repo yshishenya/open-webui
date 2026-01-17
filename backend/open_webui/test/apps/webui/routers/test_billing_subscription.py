@@ -1,5 +1,7 @@
 import time
 
+from _pytest.monkeypatch import MonkeyPatch
+
 from test.util.abstract_integration_test import AbstractPostgresTest
 from test.util.mock_user import mock_webui_user
 
@@ -46,8 +48,11 @@ class TestBillingSubscription(AbstractPostgresTest):
             ).model_dump()
         )
 
-    def test_resume_subscription(self):
+    def test_resume_subscription(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.routers.billing as billing_router
         from open_webui.models.billing import SubscriptionModel, Subscriptions, SubscriptionStatus
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_SUBSCRIPTIONS", True)
 
         now = int(time.time())
         subscription = SubscriptionModel(
@@ -69,8 +74,13 @@ class TestBillingSubscription(AbstractPostgresTest):
         assert response.status_code == 200
         assert response.json()["cancel_at_period_end"] is False
 
-    def test_activate_free_plan_updates_canceled_subscription(self):
+    def test_activate_free_plan_updates_canceled_subscription(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
         from open_webui.models.billing import SubscriptionModel, Subscriptions, SubscriptionStatus
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_SUBSCRIPTIONS", True)
 
         now = int(time.time())
         subscription = SubscriptionModel(
@@ -96,8 +106,13 @@ class TestBillingSubscription(AbstractPostgresTest):
         assert response.json()["status"] == SubscriptionStatus.ACTIVE.value
         assert response.json()["cancel_at_period_end"] is False
 
-    def test_activate_free_plan_blocks_active_paid_subscription(self):
+    def test_activate_free_plan_blocks_active_paid_subscription(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
         from open_webui.models.billing import SubscriptionModel, Subscriptions, SubscriptionStatus
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_SUBSCRIPTIONS", True)
 
         now = int(time.time())
         subscription = SubscriptionModel(
