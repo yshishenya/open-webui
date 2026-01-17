@@ -28,20 +28,25 @@ def test_imports():
     provider.Storage
 
 
-def test_get_storage_provider():
+def test_get_storage_provider(monkeypatch):
     Storage = provider.get_storage_provider("local")
     assert isinstance(Storage, provider.LocalStorageProvider)
     Storage = provider.get_storage_provider("s3")
     assert isinstance(Storage, provider.S3StorageProvider)
     Storage = provider.get_storage_provider("gcs")
     assert isinstance(Storage, provider.GCSStorageProvider)
+    monkeypatch.setattr(
+        provider, "AZURE_STORAGE_ENDPOINT", "https://testaccount.blob.core.windows.net"
+    )
+    monkeypatch.setattr(provider, "AZURE_STORAGE_CONTAINER_NAME", "test-container")
+    monkeypatch.setattr(provider, "AZURE_STORAGE_KEY", "test-key")
     Storage = provider.get_storage_provider("azure")
     assert isinstance(Storage, provider.AzureStorageProvider)
     with pytest.raises(RuntimeError):
         provider.get_storage_provider("invalid")
 
 
-def test_class_instantiation():
+def test_class_instantiation(monkeypatch):
     with pytest.raises(TypeError):
         provider.StorageProvider()
     with pytest.raises(TypeError):
@@ -53,6 +58,11 @@ def test_class_instantiation():
     provider.LocalStorageProvider()
     provider.S3StorageProvider()
     provider.GCSStorageProvider()
+    monkeypatch.setattr(
+        provider, "AZURE_STORAGE_ENDPOINT", "https://testaccount.blob.core.windows.net"
+    )
+    monkeypatch.setattr(provider, "AZURE_STORAGE_CONTAINER_NAME", "test-container")
+    monkeypatch.setattr(provider, "AZURE_STORAGE_KEY", "test-key")
     provider.AzureStorageProvider()
 
 
@@ -66,13 +76,15 @@ class TestLocalStorageProvider:
 
     def test_upload_file(self, monkeypatch, tmp_path):
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
-        contents, file_path = self.Storage.upload_file(self.file_bytesio, self.filename)
+        contents, file_path = self.Storage.upload_file(
+            self.file_bytesio, self.filename, {}
+        )
         assert (upload_dir / self.filename).exists()
         assert (upload_dir / self.filename).read_bytes() == self.file_content
         assert contents == self.file_content
         assert file_path == str(upload_dir / self.filename)
         with pytest.raises(ValueError):
-            self.Storage.upload_file(self.file_bytesio_empty, self.filename)
+            self.Storage.upload_file(self.file_bytesio_empty, self.filename, {})
 
     def test_get_file(self, monkeypatch, tmp_path):
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
@@ -99,8 +111,7 @@ class TestLocalStorageProvider:
 
 @mock_aws
 class TestS3StorageProvider:
-
-    def __init__(self):
+    def setup_method(self, method: object) -> None:
         self.Storage = provider.S3StorageProvider()
         self.Storage.bucket_name = "my-bucket"
         self.s3_client = boto3.resource("s3", region_name="us-east-1")
@@ -108,16 +119,15 @@ class TestS3StorageProvider:
         self.filename = "test.txt"
         self.filename_extra = "test_exyta.txt"
         self.file_bytesio_empty = io.BytesIO()
-        super().__init__()
 
     def test_upload_file(self, monkeypatch, tmp_path):
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
         # S3 checks
         with pytest.raises(Exception):
-            self.Storage.upload_file(io.BytesIO(self.file_content), self.filename)
+            self.Storage.upload_file(io.BytesIO(self.file_content), self.filename, {})
         self.s3_client.create_bucket(Bucket=self.Storage.bucket_name)
         contents, s3_file_path = self.Storage.upload_file(
-            io.BytesIO(self.file_content), self.filename
+            io.BytesIO(self.file_content), self.filename, {}
         )
         object = self.s3_client.Object(self.Storage.bucket_name, self.filename)
         assert self.file_content == object.get()["Body"].read()
@@ -127,13 +137,13 @@ class TestS3StorageProvider:
         assert contents == self.file_content
         assert s3_file_path == "s3://" + self.Storage.bucket_name + "/" + self.filename
         with pytest.raises(ValueError):
-            self.Storage.upload_file(self.file_bytesio_empty, self.filename)
+            self.Storage.upload_file(self.file_bytesio_empty, self.filename, {})
 
     def test_get_file(self, monkeypatch, tmp_path):
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
         self.s3_client.create_bucket(Bucket=self.Storage.bucket_name)
         contents, s3_file_path = self.Storage.upload_file(
-            io.BytesIO(self.file_content), self.filename
+            io.BytesIO(self.file_content), self.filename, {}
         )
         file_path = self.Storage.get_file(s3_file_path)
         assert file_path == str(upload_dir / self.filename)
@@ -143,7 +153,7 @@ class TestS3StorageProvider:
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
         self.s3_client.create_bucket(Bucket=self.Storage.bucket_name)
         contents, s3_file_path = self.Storage.upload_file(
-            io.BytesIO(self.file_content), self.filename
+            io.BytesIO(self.file_content), self.filename, {}
         )
         assert (upload_dir / self.filename).exists()
         self.Storage.delete_file(s3_file_path)
@@ -158,12 +168,12 @@ class TestS3StorageProvider:
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
         # create 2 files
         self.s3_client.create_bucket(Bucket=self.Storage.bucket_name)
-        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename)
+        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename, {})
         object = self.s3_client.Object(self.Storage.bucket_name, self.filename)
         assert self.file_content == object.get()["Body"].read()
         assert (upload_dir / self.filename).exists()
         assert (upload_dir / self.filename).read_bytes() == self.file_content
-        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename_extra)
+        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename_extra, {})
         object = self.s3_client.Object(self.Storage.bucket_name, self.filename_extra)
         assert self.file_content == object.get()["Body"].read()
         assert (upload_dir / self.filename).exists()
@@ -228,9 +238,9 @@ class TestGCSStorageProvider:
         # catch error if bucket does not exist
         with pytest.raises(Exception):
             self.Storage.bucket = monkeypatch(self.Storage, "bucket", None)
-            self.Storage.upload_file(io.BytesIO(self.file_content), self.filename)
+            self.Storage.upload_file(io.BytesIO(self.file_content), self.filename, {})
         contents, gcs_file_path = self.Storage.upload_file(
-            io.BytesIO(self.file_content), self.filename
+            io.BytesIO(self.file_content), self.filename, {}
         )
         object = self.Storage.bucket.get_blob(self.filename)
         assert self.file_content == object.download_as_bytes()
@@ -241,12 +251,12 @@ class TestGCSStorageProvider:
         assert gcs_file_path == "gs://" + self.Storage.bucket_name + "/" + self.filename
         # test error if file is empty
         with pytest.raises(ValueError):
-            self.Storage.upload_file(self.file_bytesio_empty, self.filename)
+            self.Storage.upload_file(self.file_bytesio_empty, self.filename, {})
 
     def test_get_file(self, monkeypatch, tmp_path, setup):
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
         contents, gcs_file_path = self.Storage.upload_file(
-            io.BytesIO(self.file_content), self.filename
+            io.BytesIO(self.file_content), self.filename, {}
         )
         file_path = self.Storage.get_file(gcs_file_path)
         assert file_path == str(upload_dir / self.filename)
@@ -255,7 +265,7 @@ class TestGCSStorageProvider:
     def test_delete_file(self, monkeypatch, tmp_path, setup):
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
         contents, gcs_file_path = self.Storage.upload_file(
-            io.BytesIO(self.file_content), self.filename
+            io.BytesIO(self.file_content), self.filename, {}
         )
         # ensure that local directory has the uploaded file as well
         assert (upload_dir / self.filename).exists()
@@ -268,13 +278,13 @@ class TestGCSStorageProvider:
     def test_delete_all_files(self, monkeypatch, tmp_path, setup):
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
         # create 2 files
-        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename)
+        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename, {})
         object = self.Storage.bucket.get_blob(self.filename)
         assert (upload_dir / self.filename).exists()
         assert (upload_dir / self.filename).read_bytes() == self.file_content
         assert self.Storage.bucket.get_blob(self.filename).name == self.filename
         assert self.file_content == object.download_as_bytes()
-        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename_extra)
+        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename_extra, {})
         object = self.Storage.bucket.get_blob(self.filename_extra)
         assert (upload_dir / self.filename_extra).exists()
         assert (upload_dir / self.filename_extra).read_bytes() == self.file_content
@@ -292,11 +302,8 @@ class TestGCSStorageProvider:
 
 
 class TestAzureStorageProvider:
-    def __init__(self):
-        super().__init__()
-
-    @pytest.fixture(scope="class")
-    def setup_storage(self, monkeypatch):
+    @pytest.fixture(autouse=True)
+    def setup_storage(self, monkeypatch: pytest.MonkeyPatch) -> None:
         # Create mock Blob Service Client and related clients
         mock_blob_service_client = MagicMock()
         mock_container_client = MagicMock()
@@ -308,24 +315,16 @@ class TestAzureStorageProvider:
         )
         mock_container_client.get_blob_client.return_value = mock_blob_client
 
-        # Monkeypatch the Azure classes to return our mocks
         monkeypatch.setattr(
-            azure.storage.blob,
-            "BlobServiceClient",
-            lambda *args, **kwargs: mock_blob_service_client,
+            provider, "AZURE_STORAGE_ENDPOINT", "https://myaccount.blob.core.windows.net"
         )
+        monkeypatch.setattr(provider, "AZURE_STORAGE_CONTAINER_NAME", "my-container")
+        monkeypatch.setattr(provider, "AZURE_STORAGE_KEY", "test-key")
         monkeypatch.setattr(
-            azure.storage.blob,
-            "ContainerClient",
-            lambda *args, **kwargs: mock_container_client,
-        )
-        monkeypatch.setattr(
-            azure.storage.blob, "BlobClient", lambda *args, **kwargs: mock_blob_client
+            provider, "BlobServiceClient", lambda *args, **kwargs: mock_blob_service_client
         )
 
         self.Storage = provider.AzureStorageProvider()
-        self.Storage.endpoint = "https://myaccount.blob.core.windows.net"
-        self.Storage.container_name = "my-container"
         self.file_content = b"test content"
         self.filename = "test.txt"
         self.filename_extra = "test_extra.txt"
@@ -343,13 +342,12 @@ class TestAzureStorageProvider:
             "Container does not exist"
         )
         with pytest.raises(Exception):
-            self.Storage.upload_file(io.BytesIO(self.file_content), self.filename)
+            self.Storage.upload_file(io.BytesIO(self.file_content), self.filename, {})
 
         # Reset side effect and create container
         self.Storage.container_client.get_blob_client.side_effect = None
-        self.Storage.create_container()
         contents, azure_file_path = self.Storage.upload_file(
-            io.BytesIO(self.file_content), self.filename
+            io.BytesIO(self.file_content), self.filename, {}
         )
 
         # Assertions
@@ -366,14 +364,12 @@ class TestAzureStorageProvider:
         assert (upload_dir / self.filename).read_bytes() == self.file_content
 
         with pytest.raises(ValueError):
-            self.Storage.upload_file(self.file_bytesio_empty, self.filename)
+            self.Storage.upload_file(self.file_bytesio_empty, self.filename, {})
 
     def test_get_file(self, monkeypatch, tmp_path):
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
-        self.Storage.create_container()
-
         # Mock upload behavior
-        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename)
+        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename, {})
         # Mock blob download behavior
         self.Storage.container_client.get_blob_client().download_blob().readall.return_value = (
             self.file_content
@@ -388,10 +384,8 @@ class TestAzureStorageProvider:
 
     def test_delete_file(self, monkeypatch, tmp_path):
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
-        self.Storage.create_container()
-
         # Mock file upload
-        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename)
+        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename, {})
         # Mock deletion
         self.Storage.container_client.get_blob_client().delete_blob.return_value = None
 
@@ -403,29 +397,30 @@ class TestAzureStorageProvider:
 
     def test_delete_all_files(self, monkeypatch, tmp_path):
         upload_dir = mock_upload_dir(monkeypatch, tmp_path)
-        self.Storage.create_container()
-
         # Mock file uploads
-        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename)
-        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename_extra)
+        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename, {})
+        self.Storage.upload_file(io.BytesIO(self.file_content), self.filename_extra, {})
 
         # Mock listing and deletion behavior
+        blob_one = MagicMock()
+        blob_one.name = self.filename
+        blob_two = MagicMock()
+        blob_two.name = self.filename_extra
         self.Storage.container_client.list_blobs.return_value = [
-            {"name": self.filename},
-            {"name": self.filename_extra},
+            blob_one,
+            blob_two,
         ]
-        self.Storage.container_client.get_blob_client().delete_blob.return_value = None
+        self.Storage.container_client.delete_blob.return_value = None
 
         self.Storage.delete_all_files()
 
         self.Storage.container_client.list_blobs.assert_called_once()
-        self.Storage.container_client.get_blob_client().delete_blob.assert_any_call()
+        self.Storage.container_client.delete_blob.assert_any_call(self.filename)
+        self.Storage.container_client.delete_blob.assert_any_call(self.filename_extra)
         assert not (upload_dir / self.filename).exists()
         assert not (upload_dir / self.filename_extra).exists()
 
     def test_get_file_not_found(self, monkeypatch):
-        self.Storage.create_container()
-
         file_url = f"https://myaccount.blob.core.windows.net/{self.Storage.container_name}/{self.filename}"
         # Mock behavior to raise an error for missing blobs
         self.Storage.container_client.get_blob_client().download_blob.side_effect = (

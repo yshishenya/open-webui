@@ -29,6 +29,7 @@ from open_webui.config import (
 )
 from google.cloud import storage
 from google.cloud.exceptions import GoogleCloudError, NotFound
+from google.auth.credentials import AnonymousCredentials
 from open_webui.constants import ERROR_MESSAGES
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
@@ -226,10 +227,25 @@ class S3StorageProvider(StorageProvider):
 class GCSStorageProvider(StorageProvider):
     def __init__(self):
         self.bucket_name = GCS_BUCKET_NAME
+        self.gcs_client = None
+        self.bucket = None
+
+    def _ensure_client(self) -> None:
+        if self.gcs_client is not None and self.bucket is not None:
+            return
+
+        emulator_host = os.environ.get("STORAGE_EMULATOR_HOST")
 
         if GOOGLE_APPLICATION_CREDENTIALS_JSON:
             self.gcs_client = storage.Client.from_service_account_info(
                 info=json.loads(GOOGLE_APPLICATION_CREDENTIALS_JSON)
+            )
+        elif emulator_host:
+            project = os.environ.get("GOOGLE_CLOUD_PROJECT", "test-project")
+            self.gcs_client = storage.Client(
+                project=project,
+                credentials=AnonymousCredentials(),
+                client_options={"api_endpoint": emulator_host},
             )
         else:
             # if no credentials json is provided, credentials will be picked up from the environment
@@ -242,6 +258,7 @@ class GCSStorageProvider(StorageProvider):
         self, file: BinaryIO, filename: str, tags: Dict[str, str]
     ) -> Tuple[bytes, str]:
         """Handles uploading of the file to GCS storage."""
+        self._ensure_client()
         contents, file_path = LocalStorageProvider.upload_file(file, filename, tags)
         try:
             blob = self.bucket.blob(filename)
@@ -252,6 +269,7 @@ class GCSStorageProvider(StorageProvider):
 
     def get_file(self, file_path: str) -> str:
         """Handles downloading of the file from GCS storage."""
+        self._ensure_client()
         try:
             filename = file_path.removeprefix("gs://").split("/")[1]
             local_file_path = f"{UPLOAD_DIR}/{filename}"
@@ -264,6 +282,7 @@ class GCSStorageProvider(StorageProvider):
 
     def delete_file(self, file_path: str) -> None:
         """Handles deletion of the file from GCS storage."""
+        self._ensure_client()
         try:
             filename = file_path.removeprefix("gs://").split("/")[1]
             blob = self.bucket.get_blob(filename)
@@ -276,6 +295,7 @@ class GCSStorageProvider(StorageProvider):
 
     def delete_all_files(self) -> None:
         """Handles deletion of all files from GCS storage."""
+        self._ensure_client()
         try:
             blobs = self.bucket.list_blobs()
 
