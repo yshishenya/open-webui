@@ -6,6 +6,7 @@ import json
 import logging
 import mimetypes
 import re
+from decimal import Decimal
 from pathlib import Path
 from typing import Optional
 
@@ -17,6 +18,7 @@ from fastapi.responses import FileResponse
 from open_webui.config import CACHE_DIR
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import ENABLE_FORWARD_USER_INFO_HEADERS, SRC_LOG_LEVELS
+from open_webui.models.billing import UsageMetric
 from open_webui.routers.files import upload_file_handler, get_file_content_by_id
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.headers import include_user_info_headers
@@ -27,6 +29,12 @@ from open_webui.utils.images.comfyui import (
     comfyui_upload_image,
     comfyui_create_image,
     comfyui_edit_image,
+)
+from open_webui.utils.billing_integration import (
+    IMAGE_HOLD_REFERENCE,
+    preflight_single_rate_hold,
+    release_single_rate_hold,
+    settle_single_rate_usage,
 )
 from pydantic import BaseModel
 
@@ -536,6 +544,45 @@ async def image_generations(
 
     width, height = tuple(map(int, size.split("x")))
     model = get_image_model(request)
+    billing_model = model
+    if (
+        request.app.state.config.IMAGE_GENERATION_ENGINE in ["automatic1111", ""]
+        and form_data.model
+    ):
+        billing_model = form_data.model
+
+    billing_width = width
+    billing_height = height
+    if form_data.size == "auto" or request.app.state.config.IMAGE_SIZE == "auto":
+        billing_width = 1024
+        billing_height = 1024
+
+    requested_count = form_data.n
+    requested_units = (
+        Decimal(requested_count)
+        * Decimal(billing_width * billing_height)
+        / Decimal(1024 * 1024)
+    )
+
+    billing_context = None
+    try:
+        billing_context = await preflight_single_rate_hold(
+            user_id=user.id,
+            model_id=billing_model,
+            modality="image",
+            unit="image_1024",
+            units=requested_units,
+            reference_type=IMAGE_HOLD_REFERENCE,
+            lead_magnet_requirements={"images": int(requested_count)},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.exception(f"Billing preflight error: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Billing system temporarily unavailable",
+        )
 
     r = None
     try:
@@ -595,6 +642,33 @@ async def image_generations(
 
                 url = upload_image(request, image_data, content_type, data, user)
                 images.append({"url": url})
+            actual_count = len(images)
+            actual_units = (
+                Decimal(actual_count)
+                * Decimal(billing_width * billing_height)
+                / Decimal(1024 * 1024)
+            )
+            measured_units = {
+                "operation": "generate",
+                "requested_count": requested_count,
+                "count": actual_count,
+                "width": billing_width,
+                "height": billing_height,
+                "unit": "image_1024",
+                "units": float(actual_units),
+            }
+            try:
+                await settle_single_rate_usage(
+                    billing_context=billing_context,
+                    measured_units=measured_units,
+                    units=actual_units,
+                    usage_metric=UsageMetric.IMAGES,
+                    usage_amount=actual_count,
+                    provider=request.app.state.config.IMAGE_GENERATION_ENGINE,
+                    reference_type=IMAGE_HOLD_REFERENCE,
+                )
+            except Exception as e:
+                log.error(f"Billing settle error: {e}")
             return images
 
         elif request.app.state.config.IMAGE_GENERATION_ENGINE == "gemini":
@@ -657,6 +731,33 @@ async def image_generations(
                             )
                             images.append({"url": url})
 
+            actual_count = len(images)
+            actual_units = (
+                Decimal(actual_count)
+                * Decimal(billing_width * billing_height)
+                / Decimal(1024 * 1024)
+            )
+            measured_units = {
+                "operation": "generate",
+                "requested_count": requested_count,
+                "count": actual_count,
+                "width": billing_width,
+                "height": billing_height,
+                "unit": "image_1024",
+                "units": float(actual_units),
+            }
+            try:
+                await settle_single_rate_usage(
+                    billing_context=billing_context,
+                    measured_units=measured_units,
+                    units=actual_units,
+                    usage_metric=UsageMetric.IMAGES,
+                    usage_amount=actual_count,
+                    provider=request.app.state.config.IMAGE_GENERATION_ENGINE,
+                    reference_type=IMAGE_HOLD_REFERENCE,
+                )
+            except Exception as e:
+                log.error(f"Billing settle error: {e}")
             return images
 
         elif request.app.state.config.IMAGE_GENERATION_ENGINE == "comfyui":
@@ -711,6 +812,33 @@ async def image_generations(
                     user,
                 )
                 images.append({"url": url})
+            actual_count = len(images)
+            actual_units = (
+                Decimal(actual_count)
+                * Decimal(billing_width * billing_height)
+                / Decimal(1024 * 1024)
+            )
+            measured_units = {
+                "operation": "generate",
+                "requested_count": requested_count,
+                "count": actual_count,
+                "width": billing_width,
+                "height": billing_height,
+                "unit": "image_1024",
+                "units": float(actual_units),
+            }
+            try:
+                await settle_single_rate_usage(
+                    billing_context=billing_context,
+                    measured_units=measured_units,
+                    units=actual_units,
+                    usage_metric=UsageMetric.IMAGES,
+                    usage_amount=actual_count,
+                    provider=request.app.state.config.IMAGE_GENERATION_ENGINE,
+                    reference_type=IMAGE_HOLD_REFERENCE,
+                )
+            except Exception as e:
+                log.error(f"Billing settle error: {e}")
             return images
         elif (
             request.app.state.config.IMAGE_GENERATION_ENGINE == "automatic1111"
@@ -758,8 +886,39 @@ async def image_generations(
                     user,
                 )
                 images.append({"url": url})
+            actual_count = len(images)
+            actual_units = (
+                Decimal(actual_count)
+                * Decimal(billing_width * billing_height)
+                / Decimal(1024 * 1024)
+            )
+            measured_units = {
+                "operation": "generate",
+                "requested_count": requested_count,
+                "count": actual_count,
+                "width": billing_width,
+                "height": billing_height,
+                "unit": "image_1024",
+                "units": float(actual_units),
+            }
+            try:
+                await settle_single_rate_usage(
+                    billing_context=billing_context,
+                    measured_units=measured_units,
+                    units=actual_units,
+                    usage_metric=UsageMetric.IMAGES,
+                    usage_amount=actual_count,
+                    provider=request.app.state.config.IMAGE_GENERATION_ENGINE,
+                    reference_type=IMAGE_HOLD_REFERENCE,
+                )
+            except Exception as e:
+                log.error(f"Billing settle error: {e}")
             return images
     except Exception as e:
+        await release_single_rate_hold(
+            billing_context,
+            reference_type=IMAGE_HOLD_REFERENCE,
+        )
         error = e
         if r != None:
             data = r.json()
@@ -801,6 +960,38 @@ async def image_edits(
         if form_data.model is None
         else form_data.model
     )
+    billing_width = width or 1024
+    billing_height = height or 1024
+    if form_data.size == "auto" or request.app.state.config.IMAGE_EDIT_SIZE == "auto":
+        billing_width = 1024
+        billing_height = 1024
+
+    requested_count = form_data.n if form_data.n is not None else 1
+    requested_units = (
+        Decimal(requested_count)
+        * Decimal(billing_width * billing_height)
+        / Decimal(1024 * 1024)
+    )
+
+    billing_context = None
+    try:
+        billing_context = await preflight_single_rate_hold(
+            user_id=user.id,
+            model_id=model,
+            modality="image",
+            unit="image_1024",
+            units=requested_units,
+            reference_type=IMAGE_HOLD_REFERENCE,
+            lead_magnet_requirements={"images": int(requested_count)},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.exception(f"Billing preflight error: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Billing system temporarily unavailable",
+        )
 
     try:
 
@@ -834,6 +1025,10 @@ async def image_edits(
         elif isinstance(form_data.image, list):
             form_data.image = [await load_url_image(img) for img in form_data.image]
     except Exception as e:
+        await release_single_rate_hold(
+            billing_context,
+            reference_type=IMAGE_HOLD_REFERENCE,
+        )
         raise HTTPException(status_code=400, detail=ERROR_MESSAGES.DEFAULT(e))
 
     def get_image_file_item(base64_string, param_name="image"):
@@ -904,6 +1099,33 @@ async def image_edits(
 
                 url = upload_image(request, image_data, content_type, data, user)
                 images.append({"url": url})
+            actual_count = len(images)
+            actual_units = (
+                Decimal(actual_count)
+                * Decimal(billing_width * billing_height)
+                / Decimal(1024 * 1024)
+            )
+            measured_units = {
+                "operation": "edit",
+                "requested_count": requested_count,
+                "count": actual_count,
+                "width": billing_width,
+                "height": billing_height,
+                "unit": "image_1024",
+                "units": float(actual_units),
+            }
+            try:
+                await settle_single_rate_usage(
+                    billing_context=billing_context,
+                    measured_units=measured_units,
+                    units=actual_units,
+                    usage_metric=UsageMetric.IMAGES,
+                    usage_amount=actual_count,
+                    provider=request.app.state.config.IMAGE_EDIT_ENGINE,
+                    reference_type=IMAGE_HOLD_REFERENCE,
+                )
+            except Exception as e:
+                log.error(f"Billing settle error: {e}")
             return images
 
         elif request.app.state.config.IMAGE_EDIT_ENGINE == "gemini":
@@ -960,6 +1182,33 @@ async def image_edits(
                         )
                         images.append({"url": url})
 
+            actual_count = len(images)
+            actual_units = (
+                Decimal(actual_count)
+                * Decimal(billing_width * billing_height)
+                / Decimal(1024 * 1024)
+            )
+            measured_units = {
+                "operation": "edit",
+                "requested_count": requested_count,
+                "count": actual_count,
+                "width": billing_width,
+                "height": billing_height,
+                "unit": "image_1024",
+                "units": float(actual_units),
+            }
+            try:
+                await settle_single_rate_usage(
+                    billing_context=billing_context,
+                    measured_units=measured_units,
+                    units=actual_units,
+                    usage_metric=UsageMetric.IMAGES,
+                    usage_amount=actual_count,
+                    provider=request.app.state.config.IMAGE_EDIT_ENGINE,
+                    reference_type=IMAGE_HOLD_REFERENCE,
+                )
+            except Exception as e:
+                log.error(f"Billing settle error: {e}")
             return images
 
         elif request.app.state.config.IMAGE_EDIT_ENGINE == "comfyui":
@@ -1042,8 +1291,39 @@ async def image_edits(
                 )
                 images.append({"url": url})
 
+            actual_count = len(images)
+            actual_units = (
+                Decimal(actual_count)
+                * Decimal(billing_width * billing_height)
+                / Decimal(1024 * 1024)
+            )
+            measured_units = {
+                "operation": "edit",
+                "requested_count": requested_count,
+                "count": actual_count,
+                "width": billing_width,
+                "height": billing_height,
+                "unit": "image_1024",
+                "units": float(actual_units),
+            }
+            try:
+                await settle_single_rate_usage(
+                    billing_context=billing_context,
+                    measured_units=measured_units,
+                    units=actual_units,
+                    usage_metric=UsageMetric.IMAGES,
+                    usage_amount=actual_count,
+                    provider=request.app.state.config.IMAGE_EDIT_ENGINE,
+                    reference_type=IMAGE_HOLD_REFERENCE,
+                )
+            except Exception as e:
+                log.error(f"Billing settle error: {e}")
             return images
     except Exception as e:
+        await release_single_rate_hold(
+            billing_context,
+            reference_type=IMAGE_HOLD_REFERENCE,
+        )
         error = e
         if r != None:
             data = r.text

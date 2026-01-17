@@ -1719,6 +1719,52 @@ ENABLE_USER_WEBHOOKS = PersistentConfig(
     os.environ.get("ENABLE_USER_WEBHOOKS", "True").lower() == "true",
 )
 
+# Billing lead magnet config
+DEFAULT_LEAD_MAGNET_QUOTAS = {
+    "tokens_input": 0,
+    "tokens_output": 0,
+    "images": 0,
+    "tts_seconds": 0,
+    "stt_seconds": 0,
+}
+
+lead_magnet_quotas_value = DEFAULT_LEAD_MAGNET_QUOTAS.copy()
+lead_magnet_quotas_env = os.environ.get("LEAD_MAGNET_QUOTAS")
+if lead_magnet_quotas_env:
+    try:
+        parsed_quotas = json.loads(lead_magnet_quotas_env)
+        if isinstance(parsed_quotas, dict):
+            for key in DEFAULT_LEAD_MAGNET_QUOTAS:
+                value = parsed_quotas.get(key)
+                if isinstance(value, int):
+                    lead_magnet_quotas_value[key] = value
+    except json.JSONDecodeError:
+        log.warning("Invalid LEAD_MAGNET_QUOTAS JSON, using defaults")
+
+LEAD_MAGNET_ENABLED = PersistentConfig(
+    "LEAD_MAGNET_ENABLED",
+    "billing.lead_magnet.enabled",
+    os.environ.get("LEAD_MAGNET_ENABLED", "False").lower() == "true",
+)
+
+LEAD_MAGNET_CYCLE_DAYS = PersistentConfig(
+    "LEAD_MAGNET_CYCLE_DAYS",
+    "billing.lead_magnet.cycle_days",
+    int(os.environ.get("LEAD_MAGNET_CYCLE_DAYS", "30")),
+)
+
+LEAD_MAGNET_QUOTAS = PersistentConfig(
+    "LEAD_MAGNET_QUOTAS",
+    "billing.lead_magnet.quotas",
+    lead_magnet_quotas_value,
+)
+
+LEAD_MAGNET_CONFIG_VERSION = PersistentConfig(
+    "LEAD_MAGNET_CONFIG_VERSION",
+    "billing.lead_magnet.config_version",
+    0,
+)
+
 # FastAPI / AnyIO settings
 THREAD_POOL_SIZE = os.getenv("THREAD_POOL_SIZE", None)
 

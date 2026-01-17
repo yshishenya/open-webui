@@ -1,10 +1,13 @@
+import asyncio
 import hashlib
 import json
 import logging
+import math
 import os
 import uuid
 import html
 import base64
+from decimal import Decimal
 from functools import lru_cache
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
@@ -52,6 +55,14 @@ from open_webui.env import (
     DEVICE_TYPE,
     ENABLE_FORWARD_USER_INFO_HEADERS,
 )
+from open_webui.utils.billing_integration import (
+    STT_HOLD_REFERENCE,
+    TTS_HOLD_REFERENCE,
+    preflight_single_rate_hold,
+    release_single_rate_hold,
+    settle_single_rate_usage,
+)
+from open_webui.utils.lead_magnet import estimate_tts_seconds
 
 
 router = APIRouter()
@@ -339,16 +350,72 @@ async def speech(request: Request, user=Depends(get_verified_user)):
     file_path = SPEECH_CACHE_DIR.joinpath(f"{name}.mp3")
     file_body_path = SPEECH_CACHE_DIR.joinpath(f"{name}.json")
 
-    # Check if the file already exists in the cache
-    if file_path.is_file():
-        return FileResponse(file_path)
-
     payload = None
     try:
         payload = json.loads(body.decode("utf-8"))
     except Exception as e:
         log.exception(e)
         raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    input_text_value = payload.get("input")
+    if not isinstance(input_text_value, str):
+        alternate_value = payload.get("text")
+        if isinstance(alternate_value, str):
+            input_text_value = alternate_value
+        else:
+            raise HTTPException(status_code=400, detail="Invalid input text")
+
+    char_count = len(input_text_value)
+    billing_units = Decimal(char_count)
+    lead_magnet_seconds = estimate_tts_seconds(char_count)
+    billing_model = (
+        payload.get("model")
+        if isinstance(payload.get("model"), str) and payload.get("model")
+        else request.app.state.config.TTS_MODEL
+    )
+    if not billing_model:
+        billing_model = request.app.state.config.TTS_ENGINE
+
+    billing_context = None
+    try:
+        billing_context = await preflight_single_rate_hold(
+            user_id=user.id,
+            model_id=billing_model,
+            modality="tts",
+            unit="tts_char",
+            units=billing_units,
+            reference_type=TTS_HOLD_REFERENCE,
+            lead_magnet_requirements={"tts_seconds": lead_magnet_seconds},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.exception(f"Billing preflight error: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Billing system temporarily unavailable",
+        )
+
+    # Check if the file already exists in the cache
+    if file_path.is_file():
+        measured_units = {
+            "char_count": char_count,
+            "unit": "tts_char",
+            "units": int(char_count),
+            "cached": True,
+            "tts_seconds": lead_magnet_seconds,
+        }
+        try:
+            await settle_single_rate_usage(
+                billing_context=billing_context,
+                measured_units=measured_units,
+                units=billing_units,
+                provider=request.app.state.config.TTS_ENGINE,
+                reference_type=TTS_HOLD_REFERENCE,
+            )
+        except Exception as e:
+            log.error(f"Billing settle error: {e}")
+        return FileResponse(file_path)
 
     r = None
     if request.app.state.config.TTS_ENGINE == "openai":
@@ -386,10 +453,31 @@ async def speech(request: Request, user=Depends(get_verified_user)):
                 async with aiofiles.open(file_body_path, "w") as f:
                     await f.write(json.dumps(payload))
 
+            measured_units = {
+                "char_count": char_count,
+                "unit": "tts_char",
+                "units": int(char_count),
+                "cached": False,
+                "tts_seconds": lead_magnet_seconds,
+            }
+            try:
+                await settle_single_rate_usage(
+                    billing_context=billing_context,
+                    measured_units=measured_units,
+                    units=billing_units,
+                    provider=request.app.state.config.TTS_ENGINE,
+                    reference_type=TTS_HOLD_REFERENCE,
+                )
+            except Exception as e:
+                log.error(f"Billing settle error: {e}")
             return FileResponse(file_path)
 
         except Exception as e:
             log.exception(e)
+            await release_single_rate_hold(
+                billing_context,
+                reference_type=TTS_HOLD_REFERENCE,
+            )
             detail = None
 
             status_code = 500
@@ -446,10 +534,31 @@ async def speech(request: Request, user=Depends(get_verified_user)):
                     async with aiofiles.open(file_body_path, "w") as f:
                         await f.write(json.dumps(payload))
 
+            measured_units = {
+                "char_count": char_count,
+                "unit": "tts_char",
+                "units": int(char_count),
+                "cached": False,
+                "tts_seconds": lead_magnet_seconds,
+            }
+            try:
+                await settle_single_rate_usage(
+                    billing_context=billing_context,
+                    measured_units=measured_units,
+                    units=billing_units,
+                    provider=request.app.state.config.TTS_ENGINE,
+                    reference_type=TTS_HOLD_REFERENCE,
+                )
+            except Exception as e:
+                log.error(f"Billing settle error: {e}")
             return FileResponse(file_path)
 
         except Exception as e:
             log.exception(e)
+            await release_single_rate_hold(
+                billing_context,
+                reference_type=TTS_HOLD_REFERENCE,
+            )
             detail = None
 
             try:
@@ -505,10 +614,31 @@ async def speech(request: Request, user=Depends(get_verified_user)):
                     async with aiofiles.open(file_body_path, "w") as f:
                         await f.write(json.dumps(payload))
 
+                    measured_units = {
+                        "char_count": char_count,
+                        "unit": "tts_char",
+                        "units": int(char_count),
+                        "cached": False,
+                        "tts_seconds": lead_magnet_seconds,
+                    }
+                    try:
+                        await settle_single_rate_usage(
+                            billing_context=billing_context,
+                            measured_units=measured_units,
+                            units=billing_units,
+                            provider=request.app.state.config.TTS_ENGINE,
+                            reference_type=TTS_HOLD_REFERENCE,
+                        )
+                    except Exception as e:
+                        log.error(f"Billing settle error: {e}")
                     return FileResponse(file_path)
 
         except Exception as e:
             log.exception(e)
+            await release_single_rate_hold(
+                billing_context,
+                reference_type=TTS_HOLD_REFERENCE,
+            )
             detail = None
 
             try:
@@ -1101,6 +1231,26 @@ def compress_audio(file_path):
         return file_path
 
 
+def estimate_stt_seconds(file_path: str) -> int:
+    try:
+        info = mediainfo(file_path)
+        duration_value = info.get("duration") if isinstance(info, dict) else None
+        if duration_value:
+            return max(1, int(math.ceil(float(duration_value))))
+    except Exception as e:
+        log.warning(f"Failed to read audio duration metadata: {e}")
+
+    try:
+        audio = AudioSegment.from_file(file_path)
+        duration_ms = len(audio)
+        if duration_ms <= 0:
+            return 0
+        return max(1, int(math.ceil(duration_ms / 1000)))
+    except Exception as e:
+        log.warning(f"Failed to estimate audio duration: {e}")
+        return 0
+
+
 def split_audio(file_path, max_bytes, format="mp3", bitrate="32k"):
     """
     Splits audio into chunks not exceeding max_bytes.
@@ -1152,6 +1302,7 @@ def transcription(
     user=Depends(get_verified_user),
 ):
     log.info(f"file.content_type: {file.content_type}")
+    billing_context = None
 
     stt_supported_content_types = getattr(
         request.app.state.config, "STT_SUPPORTED_CONTENT_TYPES", []
@@ -1185,6 +1336,38 @@ def transcription(
         with open(file_path, "wb") as f:
             f.write(contents)
 
+        stt_seconds = estimate_stt_seconds(file_path)
+        if stt_seconds <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=ERROR_MESSAGES.FILE_NOT_SUPPORTED,
+            )
+
+        billing_model = request.app.state.config.STT_MODEL
+        if not billing_model:
+            billing_model = request.app.state.config.STT_ENGINE
+
+        try:
+            billing_context = asyncio.run(
+                preflight_single_rate_hold(
+                    user_id=user.id,
+                    model_id=billing_model,
+                    modality="stt",
+                    unit="stt_second",
+                    units=Decimal(stt_seconds),
+                    reference_type=STT_HOLD_REFERENCE,
+                    lead_magnet_requirements={"stt_seconds": stt_seconds},
+                )
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            log.exception(f"Billing preflight error: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Billing system temporarily unavailable",
+            )
+
         try:
             metadata = None
 
@@ -1193,6 +1376,24 @@ def transcription(
 
             result = transcribe(request, file_path, metadata, user)
 
+            measured_units = {
+                "stt_seconds": stt_seconds,
+                "unit": "stt_second",
+                "units": float(stt_seconds),
+            }
+            try:
+                asyncio.run(
+                    settle_single_rate_usage(
+                        billing_context=billing_context,
+                        measured_units=measured_units,
+                        units=Decimal(stt_seconds),
+                        provider=request.app.state.config.STT_ENGINE,
+                        reference_type=STT_HOLD_REFERENCE,
+                    )
+                )
+            except Exception as e:
+                log.error(f"Billing settle error: {e}")
+
             return {
                 **result,
                 "filename": os.path.basename(file_path),
@@ -1200,14 +1401,46 @@ def transcription(
 
         except Exception as e:
             log.exception(e)
+            try:
+                asyncio.run(
+                    release_single_rate_hold(
+                        billing_context=billing_context,
+                        reference_type=STT_HOLD_REFERENCE,
+                    )
+                )
+            except Exception as release_error:
+                log.error(f"Failed to release billing hold: {release_error}")
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=ERROR_MESSAGES.DEFAULT(e),
             )
 
+    except HTTPException:
+        if billing_context:
+            try:
+                asyncio.run(
+                    release_single_rate_hold(
+                        billing_context=billing_context,
+                        reference_type=STT_HOLD_REFERENCE,
+                    )
+                )
+            except Exception as release_error:
+                log.error(f"Failed to release billing hold: {release_error}")
+        raise
     except Exception as e:
         log.exception(e)
+
+        if billing_context:
+            try:
+                asyncio.run(
+                    release_single_rate_hold(
+                        billing_context=billing_context,
+                        reference_type=STT_HOLD_REFERENCE,
+                    )
+                )
+            except Exception as release_error:
+                log.error(f"Failed to release billing hold: {release_error}")
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

@@ -886,6 +886,38 @@ EXTERNAL_PWA_MANIFEST_URL = os.environ.get("EXTERNAL_PWA_MANIFEST_URL")
 # BILLING / YOOKASSA OPTIONS
 ####################################
 
+def _parse_int_list(value: str) -> list[int]:
+    items: list[int] = []
+    for part in value.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            items.append(int(part))
+        except ValueError:
+            continue
+    return items
+
+
+ENABLE_BILLING_WALLET = os.environ.get("ENABLE_BILLING_WALLET", "False").lower() == "true"
+ENABLE_BILLING_SUBSCRIPTIONS = (
+    os.environ.get("ENABLE_BILLING_SUBSCRIPTIONS", "False").lower() == "true"
+)
+BILLING_DEFAULT_CURRENCY = os.environ.get("BILLING_DEFAULT_CURRENCY", "RUB")
+BILLING_RATE_CARD_VERSION = os.environ.get("BILLING_RATE_CARD_VERSION", "2025-01")
+BILLING_HOLD_TTL_SECONDS = int(os.environ.get("BILLING_HOLD_TTL_SECONDS", "900"))
+BILLING_MAX_DAILY_SPEND_DEFAULT_KOPEKS = int(
+    os.environ.get("BILLING_MAX_DAILY_SPEND_DEFAULT_KOPEKS", "0")
+)
+BILLING_GRACE_PERIOD_DAYS = int(os.environ.get("BILLING_GRACE_PERIOD_DAYS", "3"))
+BILLING_TOPUP_TTL_DAYS = int(os.environ.get("BILLING_TOPUP_TTL_DAYS", "365"))
+BILLING_TOPUP_PACKAGES_KOPEKS = _parse_int_list(
+    os.environ.get(
+        "BILLING_TOPUP_PACKAGES_KOPEKS",
+        "19900,49900,99900,199900,499900",
+    )
+)
+
 YOOKASSA_SHOP_ID = os.environ.get("YOOKASSA_SHOP_ID", "")
 YOOKASSA_SECRET_KEY = os.environ.get("YOOKASSA_SECRET_KEY", "")
 YOOKASSA_WEBHOOK_SECRET = os.environ.get("YOOKASSA_WEBHOOK_SECRET", "")

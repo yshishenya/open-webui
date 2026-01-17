@@ -17,7 +17,6 @@ from pydantic import BaseModel, EmailStr, Field
 
 from open_webui.models.users import Users
 from open_webui.models.auths import Auths
-from open_webui.models.billing import Subscriptions
 from open_webui.config import (
     VK_CLIENT_ID,
     VK_CLIENT_SECRET,
@@ -277,16 +276,6 @@ async def vkid_callback(
                 "email_verified": True,
                 "terms_accepted_at": int(time.time())
             })
-
-            # Assign free plan to new user
-            try:
-                subscription = Subscriptions.assign_free_plan_to_user(user.id)
-                if subscription:
-                    log.info(f"Assigned free plan to user {user.id}")
-                else:
-                    log.warning(f"No free plan available for user {user.id}")
-            except Exception as e:
-                log.error(f"Failed to assign free plan to user {user.id}: {e}")
 
             if email_service.is_configured():
                 try:

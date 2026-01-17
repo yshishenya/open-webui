@@ -79,6 +79,8 @@ from open_webui.routers import (
     oauth_russian,
     billing,
     admin_billing,
+    admin_billing_rate_card,
+    admin_billing_lead_magnet,
     channels,
     chats,
     notes,
@@ -363,6 +365,10 @@ from open_webui.config import (
     ENABLE_COMMUNITY_SHARING,
     ENABLE_MESSAGE_RATING,
     ENABLE_USER_WEBHOOKS,
+    LEAD_MAGNET_ENABLED,
+    LEAD_MAGNET_CYCLE_DAYS,
+    LEAD_MAGNET_QUOTAS,
+    LEAD_MAGNET_CONFIG_VERSION,
     ENABLE_EVALUATION_ARENA_MODELS,
     BYPASS_ADMIN_ACCESS_CONTROL,
     USER_PERMISSIONS,
@@ -471,6 +477,7 @@ from open_webui.env import (
     BYPASS_MODEL_ACCESS_CONTROL,
     RESET_CONFIG_ON_START,
     ENABLE_VERSION_UPDATE_CHECK,
+    ENABLE_BILLING_SUBSCRIPTIONS,
     ENABLE_OTEL,
     EXTERNAL_PWA_MANIFEST_URL,
     AIOHTTP_CLIENT_SESSION_SSL,
@@ -626,6 +633,19 @@ async def lifespan(app: FastAPI):
         log.info(
             "YooKassa billing not configured (set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY to enable)"
         )
+
+    try:
+        from open_webui.utils.billing_seed import seed_default_billing_if_missing
+
+        created = await anyio.to_thread.run_sync(seed_default_billing_if_missing)
+        if created.get("plans") or created.get("rate_cards"):
+            log.info(
+                "Seeded billing defaults: plans=%s rate_cards=%s",
+                created.get("plans", 0),
+                created.get("rate_cards", 0),
+            )
+    except Exception as e:
+        log.error(f"Failed to seed default billing defaults: {e}")
 
     if app.state.config.ENABLE_BASE_MODELS_CACHE:
         await get_all_models(
@@ -803,6 +823,17 @@ app.state.config.ENABLE_NOTES = ENABLE_NOTES
 app.state.config.ENABLE_COMMUNITY_SHARING = ENABLE_COMMUNITY_SHARING
 app.state.config.ENABLE_MESSAGE_RATING = ENABLE_MESSAGE_RATING
 app.state.config.ENABLE_USER_WEBHOOKS = ENABLE_USER_WEBHOOKS
+
+########################################
+#
+# BILLING
+#
+########################################
+
+app.state.config.LEAD_MAGNET_ENABLED = LEAD_MAGNET_ENABLED
+app.state.config.LEAD_MAGNET_CYCLE_DAYS = LEAD_MAGNET_CYCLE_DAYS
+app.state.config.LEAD_MAGNET_QUOTAS = LEAD_MAGNET_QUOTAS
+app.state.config.LEAD_MAGNET_CONFIG_VERSION = LEAD_MAGNET_CONFIG_VERSION
 
 app.state.config.ENABLE_EVALUATION_ARENA_MODELS = ENABLE_EVALUATION_ARENA_MODELS
 app.state.config.EVALUATION_ARENA_MODELS = EVALUATION_ARENA_MODELS
@@ -1409,6 +1440,16 @@ app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 
 app.include_router(billing.router, prefix="/api/v1/billing", tags=["billing"])
 app.include_router(admin_billing.router, prefix="/api/v1/admin/billing", tags=["admin", "billing"])
+app.include_router(
+    admin_billing_rate_card.router,
+    prefix="/api/v1/admin/billing",
+    tags=["admin", "billing"],
+)
+app.include_router(
+    admin_billing_lead_magnet.router,
+    prefix="/api/v1/admin/billing",
+    tags=["admin", "billing"],
+)
 
 app.include_router(channels.router, prefix="/api/v1/channels", tags=["channels"])
 app.include_router(chats.router, prefix="/api/v1/chats", tags=["chats"])
@@ -1882,6 +1923,7 @@ async def get_app_config(request: Request):
             "enable_login_form": app.state.config.ENABLE_LOGIN_FORM,
             "enable_websocket": ENABLE_WEBSOCKET_SUPPORT,
             "enable_version_update_check": ENABLE_VERSION_UPDATE_CHECK,
+            "enable_billing_subscriptions": ENABLE_BILLING_SUBSCRIPTIONS,
             **(
                 {
                     "enable_direct_connections": app.state.config.ENABLE_DIRECT_CONNECTIONS,

@@ -2,6 +2,8 @@ import asyncio
 import hashlib
 import json
 import logging
+import uuid
+from decimal import Decimal
 from typing import Optional
 
 import aiohttp
@@ -48,10 +50,17 @@ from open_webui.utils.misc import (
 )
 from open_webui.utils.billing_integration import (
     check_and_enforce_quota,
+    preflight_estimate_hold,
+    preflight_single_rate_hold,
+    release_billing_hold,
+    release_single_rate_hold,
+    settle_single_rate_usage,
+    TTS_HOLD_REFERENCE,
     track_non_streaming_response,
     track_streaming_response,
     estimate_tokens_from_messages,
 )
+from open_webui.utils.lead_magnet import estimate_tts_seconds
 
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.access_control import has_access
@@ -289,8 +298,69 @@ async def speech(request: Request, user=Depends(get_verified_user)):
         file_path = SPEECH_CACHE_DIR.joinpath(f"{name}.mp3")
         file_body_path = SPEECH_CACHE_DIR.joinpath(f"{name}.json")
 
+        payload = None
+        try:
+            payload = json.loads(body.decode("utf-8"))
+        except Exception as e:
+            log.exception(e)
+            raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+        input_text_value = payload.get("input")
+        if not isinstance(input_text_value, str):
+            alternate_value = payload.get("text")
+            if isinstance(alternate_value, str):
+                input_text_value = alternate_value
+            else:
+                raise HTTPException(status_code=400, detail="Invalid input text")
+
+        char_count = len(input_text_value)
+        billing_units = Decimal(char_count)
+        lead_magnet_seconds = estimate_tts_seconds(char_count)
+        billing_model = (
+            payload.get("model")
+            if isinstance(payload.get("model"), str) and payload.get("model")
+            else "tts-1"
+        )
+
+        billing_context = None
+        try:
+            billing_context = await preflight_single_rate_hold(
+                user_id=user.id,
+                model_id=billing_model,
+                modality="tts",
+                unit="tts_char",
+                units=billing_units,
+                reference_type=TTS_HOLD_REFERENCE,
+                lead_magnet_requirements={"tts_seconds": lead_magnet_seconds},
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            log.exception(f"Billing preflight error: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="Billing system temporarily unavailable",
+            )
+
         # Check if the file already exists in the cache
         if file_path.is_file():
+            measured_units = {
+                "char_count": char_count,
+                "unit": "tts_char",
+                "units": int(char_count),
+                "cached": True,
+                "tts_seconds": lead_magnet_seconds,
+            }
+            try:
+                await settle_single_rate_usage(
+                    billing_context=billing_context,
+                    measured_units=measured_units,
+                    units=billing_units,
+                    provider="openai",
+                    reference_type=TTS_HOLD_REFERENCE,
+                )
+            except Exception as e:
+                log.error(f"Billing settle error: {e}")
             return FileResponse(file_path)
 
         url = request.app.state.config.OPENAI_API_BASE_URLS[idx]
@@ -322,13 +392,35 @@ async def speech(request: Request, user=Depends(get_verified_user)):
                     f.write(chunk)
 
             with open(file_body_path, "w") as f:
-                json.dump(json.loads(body.decode("utf-8")), f)
+                json.dump(payload, f)
+
+            measured_units = {
+                "char_count": char_count,
+                "unit": "tts_char",
+                "units": int(char_count),
+                "cached": False,
+                "tts_seconds": lead_magnet_seconds,
+            }
+            try:
+                await settle_single_rate_usage(
+                    billing_context=billing_context,
+                    measured_units=measured_units,
+                    units=billing_units,
+                    provider="openai",
+                    reference_type=TTS_HOLD_REFERENCE,
+                )
+            except Exception as e:
+                log.error(f"Billing settle error: {e}")
 
             # Return the saved file
             return FileResponse(file_path)
 
         except Exception as e:
             log.exception(e)
+            await release_single_rate_hold(
+                billing_context,
+                reference_type=TTS_HOLD_REFERENCE,
+            )
 
             detail = None
             if r is not None:
@@ -812,13 +904,26 @@ async def generate_chat_completion(
     idx = 0
 
     payload = {**form_data}
-    metadata = payload.pop("metadata", None)
+    metadata_value = payload.pop("metadata", None)
+    metadata = metadata_value if isinstance(metadata_value, dict) else {}
 
     # Extract billing context
-    chat_id = metadata.get("chat_id") if metadata else None
-    message_id = metadata.get("message_id") if metadata else None
+    chat_id = metadata.get("chat_id")
+    message_id = metadata.get("message_id")
+    request_id_value = metadata.get("request_id")
+    if not isinstance(request_id_value, str) or not request_id_value:
+        request_id_value = str(uuid.uuid4())
+    metadata["request_id"] = request_id_value
+
+    max_reply_cost_value = metadata.get("max_reply_cost_kopeks")
+    max_reply_cost_kopeks = (
+        int(max_reply_cost_value)
+        if isinstance(max_reply_cost_value, int)
+        else None
+    )
 
     model_id = form_data.get("model")
+    lead_magnet_model_id = model_id
     model_info = Models.get_model_by_id(model_id)
 
     # Check model info and override the payload
@@ -854,6 +959,8 @@ async def generate_chat_completion(
                 detail="Model not found",
             )
 
+    billing_context = None
+
     # Billing: Check quota before making API request
     try:
         estimated_tokens = estimate_tokens_from_messages(payload.get("messages", []))
@@ -868,6 +975,24 @@ async def generate_chat_completion(
     except Exception as e:
         # Log but don't block if billing check fails
         log.error(f"Billing quota check error: {e}")
+
+    try:
+        billing_context = await preflight_estimate_hold(
+            user_id=user.id,
+            model_id=model_id,
+            payload=payload,
+            request_id=request_id_value,
+            max_reply_cost_kopeks=max_reply_cost_kopeks,
+            lead_magnet_model_id=lead_magnet_model_id,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.exception(f"Billing preflight error: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Billing system temporarily unavailable",
+        )
 
     await get_all_models(request, user=user)
     model = request.app.state.OPENAI_MODELS.get(model_id)
@@ -960,6 +1085,18 @@ async def generate_chat_completion(
             ssl=AIOHTTP_CLIENT_SESSION_SSL,
         )
 
+        if r.status >= 400:
+            try:
+                response = await r.json()
+            except Exception as e:
+                log.error(e)
+                response = await r.text()
+
+            await release_billing_hold(billing_context)
+            if isinstance(response, (dict, list)):
+                return JSONResponse(status_code=r.status, content=response)
+            return PlainTextResponse(status_code=r.status, content=response)
+
         # Check if response is SSE
         if "text/event-stream" in r.headers.get("Content-Type", ""):
             streaming = True
@@ -971,6 +1108,7 @@ async def generate_chat_completion(
                     model_id=model_id,
                     chat_id=chat_id,
                     message_id=message_id,
+                    billing_context=billing_context,
                 ),
                 status_code=r.status,
                 headers=dict(r.headers),
@@ -978,31 +1116,29 @@ async def generate_chat_completion(
                     cleanup_response, response=r, session=session
                 ),
             )
-        else:
-            try:
-                response = await r.json()
-            except Exception as e:
-                log.error(e)
-                response = await r.text()
+        try:
+            response = await r.json()
+        except Exception as e:
+            log.error(e)
+            response = await r.text()
 
-            if r.status >= 400:
-                if isinstance(response, (dict, list)):
-                    return JSONResponse(status_code=r.status, content=response)
-                else:
-                    return PlainTextResponse(status_code=r.status, content=response)
-
-            # Track usage for successful non-streaming response
-            response = await track_non_streaming_response(
-                response,
-                user_id=user.id,
-                model_id=model_id,
-                chat_id=chat_id,
-                message_id=message_id,
-            )
-
+        if not isinstance(response, dict):
             return response
+
+        # Track usage for successful non-streaming response
+        response = await track_non_streaming_response(
+            response,
+            user_id=user.id,
+            model_id=model_id,
+            chat_id=chat_id,
+            message_id=message_id,
+            billing_context=billing_context,
+        )
+
+        return response
     except Exception as e:
         log.exception(e)
+        await release_billing_hold(billing_context)
 
         raise HTTPException(
             status_code=r.status if r else 500,
