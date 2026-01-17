@@ -62,21 +62,14 @@
 						class="flex gap-1 scrollbar-none overflow-x-auto w-fit text-center text-sm font-medium rounded-full bg-transparent py-1 touch-auto pointer-events-auto"
 					>
 						<a
-							class="min-w-fit p-1.5 {$page.url.pathname === '/billing/dashboard'
-								? ''
-								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
-							href="/billing/dashboard"
-						>
-							{$i18n.t('Dashboard')}
-						</a>
-
-						<a
-							class="min-w-fit p-1.5 {$page.url.pathname === '/billing/balance'
+							class="min-w-fit p-1.5 {$page.url.pathname === '/billing/balance' ||
+							$page.url.pathname === '/billing/dashboard' ||
+							$page.url.pathname === '/billing/settings'
 								? ''
 								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
 							href="/billing/balance"
 						>
-							{$i18n.t('Balance')}
+							{$i18n.t('Wallet')}
 						</a>
 
 						<a
@@ -99,14 +92,6 @@
 							</a>
 						{/if}
 
-						<a
-							class="min-w-fit p-1.5 {$page.url.pathname === '/billing/settings'
-								? ''
-								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
-							href="/billing/settings"
-						>
-							{$i18n.t('Settings')}
-						</a>
 					</div>
 				</div>
 			</div>

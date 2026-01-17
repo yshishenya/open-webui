@@ -21,7 +21,8 @@
 	let usageEntries: UsageEvent[] = [];
 	let usageErrorMessage: string | null = null;
 	let usageHasMore = true;
-	$: historyErrorMessage = errorMessage ?? usageErrorMessage;
+	type HistoryTab = 'operations' | 'usage';
+	let activeTab: HistoryTab = 'operations';
 
 	onMount(async () => {
 		await Promise.all([loadLedger(), loadUsageEvents()]);
@@ -143,9 +144,9 @@
 
 	const formatUsageTitle = (entry: UsageEvent): string => {
 		if (entry.billing_source === 'lead_magnet') {
-			return $i18n.t('Lead magnet');
+			return $i18n.t('Free usage');
 		}
-		return $i18n.t('Usage history');
+		return $i18n.t('Usage');
 	};
 
 	const formatUsageAmount = (entry: UsageEvent): string => {
@@ -189,38 +190,59 @@
 	<div class="w-full h-full flex justify-center items-center">
 		<Spinner className="size-5" />
 	</div>
-{:else if historyErrorMessage && entries.length === 0 && usageEntries.length === 0}
-	<div class="w-full">
-		<div class="flex flex-col items-center justify-center py-24 text-center">
-			<div class="text-gray-500 dark:text-gray-400 text-lg">{historyErrorMessage}</div>
-			<button
-				type="button"
-				on:click={() => loadLedger()}
-				class="mt-4 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium"
-			>
-				{$i18n.t('Retry')}
-			</button>
-		</div>
-	</div>
-{:else if entries.length === 0 && usageEntries.length === 0}
-	<div class="w-full">
-		<div class="flex flex-col items-center justify-center py-24 text-center">
-			<div class="text-gray-500 dark:text-gray-400 text-lg">
-				{$i18n.t('No ledger entries')}
-			</div>
-		</div>
-	</div>
 {:else}
 	<div class="w-full">
-		{#if entries.length > 0}
-			<div class="flex flex-col gap-1 px-1 mt-1.5 mb-2">
-				<div class="flex justify-between items-center mb-1 w-full">
-					<div class="flex items-center gap-2">
-						<div class="text-xl font-medium">{$i18n.t('Ledger')}</div>
-					</div>
+		<div class="flex flex-col gap-1 px-1 mt-1.5 mb-3">
+			<div class="flex justify-between items-center mb-1 w-full">
+				<div class="flex items-center gap-2">
+					<div class="text-xl font-medium">{$i18n.t('History')}</div>
 				</div>
 			</div>
+			<div class="flex flex-wrap gap-2">
+				<button
+					type="button"
+					on:click={() => (activeTab = 'operations')}
+					class="px-3 py-1.5 rounded-full text-sm font-medium transition {activeTab === 'operations'
+						? 'bg-black text-white dark:bg-white dark:text-black'
+						: 'border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}"
+				>
+					{$i18n.t('Operations')}
+				</button>
+				<button
+					type="button"
+					on:click={() => (activeTab = 'usage')}
+					class="px-3 py-1.5 rounded-full text-sm font-medium transition {activeTab === 'usage'
+						? 'bg-black text-white dark:bg-white dark:text-black'
+						: 'border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}"
+				>
+					{$i18n.t('Free usage')}
+				</button>
+			</div>
+		</div>
 
+		{#if activeTab === 'operations'}
+			{#if loading && entries.length === 0}
+				<div class="w-full h-full flex justify-center items-center py-24">
+					<Spinner className="size-5" />
+				</div>
+			{:else if errorMessage && entries.length === 0}
+				<div class="flex flex-col items-center justify-center py-24 text-center">
+					<div class="text-gray-500 dark:text-gray-400 text-lg">{errorMessage}</div>
+					<button
+						type="button"
+						on:click={() => loadLedger()}
+						class="mt-4 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium"
+					>
+						{$i18n.t('Retry')}
+					</button>
+				</div>
+			{:else if entries.length === 0}
+				<div class="flex flex-col items-center justify-center py-24 text-center">
+					<div class="text-gray-500 dark:text-gray-400 text-lg">
+						{$i18n.t('No operations yet')}
+					</div>
+				</div>
+			{:else}
 				<div class="space-y-2">
 					{#each entries as entry}
 						{@const entryAmount = getEntryAmount(entry)}
@@ -267,70 +289,84 @@
 					{/each}
 				</div>
 
-			{#if hasMore}
-				<div class="flex justify-center mt-4">
-					<button
-						type="button"
-						on:click={() => loadLedger(true)}
-						disabled={loadingMore}
-						class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
-					>
-						{loadingMore ? $i18n.t('Loading') : $i18n.t('Load more')}
-					</button>
-				</div>
+				{#if hasMore}
+					<div class="flex justify-center mt-4">
+						<button
+							type="button"
+							on:click={() => loadLedger(true)}
+							disabled={loadingMore}
+							class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
+						>
+							{loadingMore ? $i18n.t('Loading') : $i18n.t('Load more')}
+						</button>
+					</div>
+				{/if}
 			{/if}
-		{/if}
-
-		{#if usageEntries.length > 0}
-			<div class="flex flex-col gap-1 px-1 mt-8 mb-2">
-				<div class="flex justify-between items-center mb-1 w-full">
-					<div class="flex items-center gap-2">
-						<div class="text-xl font-medium">{$i18n.t('Usage history')}</div>
-					</div>
+		{:else}
+			{#if usageLoading && usageEntries.length === 0}
+				<div class="w-full h-full flex justify-center items-center py-24">
+					<Spinner className="size-5" />
 				</div>
-			</div>
-
-			<div class="space-y-2">
-				{#each usageEntries as entry}
-					{@const metrics = getUsageMetrics(entry)}
-					<div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4">
-						<div class="flex flex-col gap-2">
-							<div class="flex items-center justify-between">
-								<div class="text-sm font-medium">{formatUsageTitle(entry)}</div>
-								<div class="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-									{formatUsageAmount(entry)}
-								</div>
-							</div>
-							<div class="flex flex-wrap gap-2 text-xs text-gray-500">
-								<span>{formatDateTime(entry.created_at)}</span>
-								<span>•</span>
-								<span class="font-mono">{entry.model_id}</span>
-								<span>•</span>
-								<span>{entry.modality}</span>
-							</div>
-							{#if metrics.length > 0}
-								<div class="flex flex-wrap gap-3 text-xs text-gray-500">
-									{#each metrics as metric}
-										<span>{metric}</span>
-									{/each}
-								</div>
-							{/if}
-						</div>
-					</div>
-				{/each}
-			</div>
-
-			{#if usageHasMore}
-				<div class="flex justify-center mt-4">
+			{:else if usageErrorMessage && usageEntries.length === 0}
+				<div class="flex flex-col items-center justify-center py-24 text-center">
+					<div class="text-gray-500 dark:text-gray-400 text-lg">{usageErrorMessage}</div>
 					<button
 						type="button"
-						on:click={() => loadUsageEvents(true)}
-						disabled={usageLoadingMore}
-						class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
+						on:click={() => loadUsageEvents()}
+						class="mt-4 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium"
 					>
-						{usageLoadingMore ? $i18n.t('Loading') : $i18n.t('Load more')}
+						{$i18n.t('Retry')}
 					</button>
 				</div>
+			{:else if usageEntries.length === 0}
+				<div class="flex flex-col items-center justify-center py-24 text-center">
+					<div class="text-gray-500 dark:text-gray-400 text-lg">
+						{$i18n.t('No free usage yet')}
+					</div>
+				</div>
+			{:else}
+				<div class="space-y-2">
+					{#each usageEntries as entry}
+						{@const metrics = getUsageMetrics(entry)}
+						<div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4">
+							<div class="flex flex-col gap-2">
+								<div class="flex items-center justify-between">
+									<div class="text-sm font-medium">{formatUsageTitle(entry)}</div>
+									<div class="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+										{formatUsageAmount(entry)}
+									</div>
+								</div>
+								<div class="flex flex-wrap gap-2 text-xs text-gray-500">
+									<span>{formatDateTime(entry.created_at)}</span>
+									<span>•</span>
+									<span class="font-mono">{entry.model_id}</span>
+									<span>•</span>
+									<span>{entry.modality}</span>
+								</div>
+								{#if metrics.length > 0}
+									<div class="flex flex-wrap gap-3 text-xs text-gray-500">
+										{#each metrics as metric}
+											<span>{metric}</span>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						</div>
+					{/each}
+				</div>
+
+				{#if usageHasMore}
+					<div class="flex justify-center mt-4">
+						<button
+							type="button"
+							on:click={() => loadUsageEvents(true)}
+							disabled={usageLoadingMore}
+							class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
+						>
+							{usageLoadingMore ? $i18n.t('Loading') : $i18n.t('Load more')}
+						</button>
+					</div>
+				{/if}
 			{/if}
 		{/if}
 	</div>
