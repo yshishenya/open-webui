@@ -93,6 +93,19 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Owner**: TBD
   - **Target**: 2025-12-20
 
+- [x] **[UI-02]** Simplify billing UX (wallet-first for B2C)
+  - Merge wallet balance, limits, and billing contacts into one screen
+  - Reduce billing navigation to Wallet + History (+ Plans when enabled)
+  - Simplify history view for non-technical users
+  - **Owner**: Codex
+  - **Target**: TBD
+
+- [x] **[BUG]** Show user name in header menu for registration flow
+  - Enable profile header in chat/channel user menu dropdown to display name
+  - Fixes registration E2E expectation on user name visibility
+  - **Owner**: Codex
+  - **Target**: TBD
+
 ### Medium Priority
 
 - [ ] **[FEATURE-01]** Improve AI model switching UX
