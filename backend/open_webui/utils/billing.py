@@ -6,34 +6,62 @@ Handles subscriptions, quotas, usage tracking, and payment processing
 import time
 import uuid
 import logging
-from typing import Optional, Dict, Any, List
+from dataclasses import dataclass
+from typing import Optional, Dict, List
 from decimal import Decimal
-from datetime import datetime, timedelta
 
 from open_webui.models.billing import (
     Plans,
     Subscriptions,
     UsageTracking,
     Transactions,
+    Payments,
     PlanModel,
+    PaymentKind,
+    PaymentModel,
+    PaymentStatus,
     SubscriptionModel,
     UsageModel,
     TransactionModel,
     SubscriptionStatus,
     TransactionStatus,
     UsageMetric,
+    WalletModel,
+    Wallets,
 )
-from open_webui.utils.yookassa import YooKassaClient, get_yookassa_client
-from open_webui.env import SRC_LOG_LEVELS
+from open_webui.utils.yookassa import get_yookassa_client
+from open_webui.env import (
+    BILLING_DEFAULT_CURRENCY,
+    BILLING_TOPUP_PACKAGES_KOPEKS,
+    BILLING_TOPUP_TTL_DAYS,
+    SRC_LOG_LEVELS,
+)
+from open_webui.models.billing_wallet import JsonDict
+from open_webui.utils.wallet import wallet_service
+from open_webui.utils.lead_magnet import (
+    calculate_remaining,
+    get_lead_magnet_config,
+    get_lead_magnet_state,
+)
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS.get("BILLING", logging.INFO))
+
+AUTO_TOPUP_MAX_FAILURES = 3
 
 
 class QuotaExceededError(Exception):
     """Raised when user exceeds their quota"""
 
     pass
+
+
+@dataclass(frozen=True)
+class AutoTopupResult:
+    attempted: bool
+    status: str
+    payment_id: Optional[str] = None
+    message: Optional[str] = None
 
 
 class BillingService:
@@ -44,6 +72,8 @@ class BillingService:
         self.subscriptions = Subscriptions
         self.usage_tracking = UsageTracking
         self.transactions = Transactions
+        self.payments = Payments
+        self.wallets = Wallets
 
     # ==================== Plan Management ====================
 
@@ -316,7 +346,7 @@ class BillingService:
         amount: int,
         model_id: Optional[str] = None,
         chat_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[Dict[str, object]] = None,
     ) -> UsageModel:
         """
         Track user usage
@@ -461,7 +491,7 @@ class BillingService:
         user_id: str,
         plan_id: str,
         return_url: str,
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, object]:
         """
         Create payment for subscription
 
@@ -530,8 +560,282 @@ class BillingService:
             "status": payment["status"],
         }
 
+    async def create_topup_payment(
+        self,
+        user_id: str,
+        wallet_id: str,
+        amount_kopeks: int,
+        return_url: str,
+    ) -> Dict[str, object]:
+        """
+        Create topup payment for wallet.
+
+        Args:
+            user_id: User ID
+            wallet_id: Wallet ID
+            amount_kopeks: Amount in kopeks
+            return_url: URL to redirect after payment
+
+        Returns:
+            Payment data with confirmation URL
+        """
+        if amount_kopeks <= 0:
+            raise ValueError("Topup amount must be positive")
+        if (
+            BILLING_TOPUP_PACKAGES_KOPEKS
+            and amount_kopeks not in BILLING_TOPUP_PACKAGES_KOPEKS
+        ):
+            raise ValueError("Invalid topup amount")
+
+        save_payment_method = None
+        wallet = self.wallets.get_wallet_by_id(wallet_id)
+        if wallet and wallet.auto_topup_enabled:
+            save_payment_method = True
+
+        yookassa = get_yookassa_client()
+        if not yookassa:
+            raise RuntimeError("YooKassa client not initialized")
+
+        amount_rub = (Decimal(amount_kopeks) / Decimal(100)).quantize(Decimal("0.01"))
+        metadata: JsonDict = {
+            "kind": PaymentKind.TOPUP.value,
+            "user_id": user_id,
+            "wallet_id": wallet_id,
+            "amount_kopeks": amount_kopeks,
+        }
+
+        payment = await yookassa.create_payment(
+            amount=amount_rub,
+            currency=BILLING_DEFAULT_CURRENCY,
+            description=f"Top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}",
+            return_url=return_url,
+            metadata=metadata,
+            save_payment_method=save_payment_method,
+        )
+
+        now = int(time.time())
+        payment_method_id = None
+        payment_method = payment.get("payment_method")
+        if isinstance(payment_method, dict):
+            payment_method_id = payment_method.get("id")
+
+        payment_record = PaymentModel(
+            id=str(uuid.uuid4()),
+            provider="yookassa",
+            status=PaymentStatus.PENDING.value,
+            kind=PaymentKind.TOPUP.value,
+            amount_kopeks=amount_kopeks,
+            currency=BILLING_DEFAULT_CURRENCY,
+            idempotency_key=str(uuid.uuid4()),
+            provider_payment_id=payment.get("id"),
+            payment_method_id=payment_method_id,
+            status_details={"yookassa_status": payment.get("status")},
+            metadata_json=metadata,
+            raw_payload_json=self._sanitize_payment_payload(payment),
+            user_id=user_id,
+            wallet_id=wallet_id,
+            subscription_id=None,
+            created_at=now,
+            updated_at=now,
+        )
+        self.payments.create_payment(payment_record)
+
+        return {
+            "payment_id": payment["id"],
+            "confirmation_url": payment["confirmation"]["confirmation_url"],
+            "status": payment["status"],
+        }
+
+    def _is_auto_topup_metadata(self, metadata: Optional[JsonDict]) -> bool:
+        if not metadata:
+            return False
+        auto_topup_value = metadata.get("auto_topup")
+        if isinstance(auto_topup_value, bool):
+            return auto_topup_value
+        if isinstance(auto_topup_value, str):
+            return auto_topup_value.lower() == "true"
+        if isinstance(auto_topup_value, int):
+            return auto_topup_value == 1
+        return False
+
+    def _has_pending_topup(self, wallet_id: str) -> bool:
+        pending = self.payments.list_payments_by_wallet(
+            wallet_id=wallet_id,
+            status=PaymentStatus.PENDING.value,
+            kind=PaymentKind.TOPUP.value,
+            limit=5,
+        )
+        return len(pending) > 0
+
+    def _get_latest_payment_method_id(self, wallet_id: str) -> Optional[str]:
+        payment = self.payments.get_latest_payment_with_method(
+            wallet_id=wallet_id,
+            status=PaymentStatus.SUCCEEDED.value,
+            kind=PaymentKind.TOPUP.value,
+        )
+        if not payment:
+            return None
+        return payment.payment_method_id
+
+    def _record_auto_topup_failure(
+        self, wallet_id: str, fail_count: int
+    ) -> Optional[WalletModel]:
+        now = int(time.time())
+        next_count = fail_count + 1
+        updates: Dict[str, object] = {
+            "auto_topup_fail_count": next_count,
+            "auto_topup_last_failed_at": now,
+        }
+        if next_count >= AUTO_TOPUP_MAX_FAILURES:
+            updates["auto_topup_enabled"] = False
+        return self.wallets.update_wallet(wallet_id, updates)
+
+    def _reset_auto_topup_failures(self, wallet_id: str) -> Optional[WalletModel]:
+        return self.wallets.update_wallet(
+            wallet_id,
+            {
+                "auto_topup_fail_count": 0,
+                "auto_topup_last_failed_at": None,
+            },
+        )
+
+    async def create_auto_topup_payment(
+        self,
+        user_id: str,
+        wallet_id: str,
+        amount_kopeks: int,
+        payment_method_id: str,
+        reason: str,
+    ) -> Dict[str, object]:
+        """Create an auto-topup payment using a saved payment method."""
+        if amount_kopeks <= 0:
+            raise ValueError("Topup amount must be positive")
+        if (
+            BILLING_TOPUP_PACKAGES_KOPEKS
+            and amount_kopeks not in BILLING_TOPUP_PACKAGES_KOPEKS
+        ):
+            raise ValueError("Invalid topup amount")
+
+        yookassa = get_yookassa_client()
+        if not yookassa:
+            raise RuntimeError("YooKassa client not initialized")
+
+        amount_rub = (Decimal(amount_kopeks) / Decimal(100)).quantize(Decimal("0.01"))
+        metadata: JsonDict = {
+            "kind": PaymentKind.TOPUP.value,
+            "user_id": user_id,
+            "wallet_id": wallet_id,
+            "amount_kopeks": amount_kopeks,
+            "auto_topup": True,
+            "auto_topup_reason": reason,
+        }
+
+        payment = await yookassa.create_payment(
+            amount=amount_rub,
+            currency=BILLING_DEFAULT_CURRENCY,
+            description=f"Auto top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}",
+            metadata=metadata,
+            payment_method_id=payment_method_id,
+        )
+
+        now = int(time.time())
+        resolved_method_id = payment_method_id
+        payment_method = payment.get("payment_method")
+        if isinstance(payment_method, dict) and payment_method.get("id"):
+            resolved_method_id = str(payment_method.get("id"))
+
+        payment_record = PaymentModel(
+            id=str(uuid.uuid4()),
+            provider="yookassa",
+            status=PaymentStatus.PENDING.value,
+            kind=PaymentKind.TOPUP.value,
+            amount_kopeks=amount_kopeks,
+            currency=BILLING_DEFAULT_CURRENCY,
+            idempotency_key=str(uuid.uuid4()),
+            provider_payment_id=payment.get("id"),
+            payment_method_id=resolved_method_id,
+            status_details={"yookassa_status": payment.get("status")},
+            metadata_json=metadata,
+            raw_payload_json=self._sanitize_payment_payload(payment),
+            user_id=user_id,
+            wallet_id=wallet_id,
+            subscription_id=None,
+            created_at=now,
+            updated_at=now,
+        )
+        self.payments.create_payment(payment_record)
+
+        return {
+            "payment_id": payment.get("id"),
+            "status": payment.get("status"),
+        }
+
+    async def maybe_trigger_auto_topup(
+        self,
+        user_id: str,
+        wallet_id: str,
+        available_kopeks: int,
+        required_kopeks: int,
+        reason: str,
+    ) -> AutoTopupResult:
+        """Attempt auto-topup when balance drops below threshold."""
+        wallet = self.wallets.get_wallet_by_id(wallet_id)
+        if not wallet:
+            return AutoTopupResult(attempted=False, status="wallet_missing")
+
+        if not wallet.auto_topup_enabled:
+            return AutoTopupResult(attempted=False, status="disabled")
+
+        threshold = wallet.auto_topup_threshold_kopeks
+        amount = wallet.auto_topup_amount_kopeks
+        if threshold is None or amount is None:
+            return AutoTopupResult(attempted=False, status="missing_config")
+
+        if available_kopeks > threshold and available_kopeks >= required_kopeks:
+            return AutoTopupResult(attempted=False, status="above_threshold")
+
+        if wallet.auto_topup_fail_count >= AUTO_TOPUP_MAX_FAILURES:
+            self.wallets.update_wallet(wallet_id, {"auto_topup_enabled": False})
+            return AutoTopupResult(attempted=False, status="fail_limit")
+
+        if self._has_pending_topup(wallet_id):
+            return AutoTopupResult(attempted=False, status="pending")
+
+        if (
+            BILLING_TOPUP_PACKAGES_KOPEKS
+            and amount not in BILLING_TOPUP_PACKAGES_KOPEKS
+        ):
+            return AutoTopupResult(attempted=False, status="invalid_amount")
+
+        payment_method_id = self._get_latest_payment_method_id(wallet_id)
+        if not payment_method_id:
+            return AutoTopupResult(attempted=True, status="missing_payment_method")
+
+        try:
+            payment_data = await self.create_auto_topup_payment(
+                user_id=user_id,
+                wallet_id=wallet_id,
+                amount_kopeks=amount,
+                payment_method_id=payment_method_id,
+                reason=reason,
+            )
+        except Exception as e:
+            self._record_auto_topup_failure(wallet_id, wallet.auto_topup_fail_count)
+            return AutoTopupResult(
+                attempted=True,
+                status="failed",
+                message=str(e),
+            )
+
+        payment_id = payment_data.get("payment_id")
+        return AutoTopupResult(
+            attempted=True,
+            status="created",
+            payment_id=str(payment_id) if payment_id else None,
+        )
+
     async def process_payment_webhook(
-        self, webhook_data: Dict[str, Any]
+        self, webhook_data: Dict[str, object]
     ) -> Optional[SubscriptionModel]:
         """
         Process payment webhook from YooKassa
@@ -544,9 +848,15 @@ class BillingService:
         """
         event_type = webhook_data.get("event_type")
         payment_id = webhook_data.get("payment_id")
-        metadata = webhook_data.get("metadata", {})
+        metadata_value = webhook_data.get("metadata", {})
+        metadata = metadata_value if isinstance(metadata_value, dict) else {}
 
         log.info(f"Processing webhook: {event_type} for payment {payment_id}")
+
+        kind = metadata.get("kind")
+        if kind == PaymentKind.TOPUP.value:
+            self._process_topup_webhook(event_type, payment_id, webhook_data)
+            return None
 
         # Find transaction
         transaction_id = metadata.get("transaction_id")
@@ -607,9 +917,174 @@ class BillingService:
 
         return None
 
+    def _process_topup_webhook(
+        self,
+        event_type: Optional[str],
+        payment_id: Optional[str],
+        webhook_data: Dict[str, object],
+    ) -> None:
+        metadata = webhook_data.get("metadata", {})
+        metadata_dict = metadata if isinstance(metadata, dict) else {}
+        is_auto_topup = self._is_auto_topup_metadata(metadata_dict)
+        if not payment_id:
+            log.error("Topup webhook missing payment_id")
+            return
+
+        amount_kopeks = self._extract_amount_kopeks(
+            metadata_dict, webhook_data.get("amount")
+        )
+        wallet_id = metadata_dict.get("wallet_id")
+        user_id = metadata_dict.get("user_id")
+
+        payment = self.payments.get_payment_by_provider_id(payment_id)
+        if payment and not is_auto_topup:
+            is_auto_topup = self._is_auto_topup_metadata(payment.metadata_json)
+        if not payment and amount_kopeks and wallet_id and user_id:
+            now = int(time.time())
+            payment_record = PaymentModel(
+                id=str(uuid.uuid4()),
+                provider="yookassa",
+                status=PaymentStatus.PENDING.value,
+                kind=PaymentKind.TOPUP.value,
+                amount_kopeks=amount_kopeks,
+                currency=webhook_data.get("currency") or BILLING_DEFAULT_CURRENCY,
+                idempotency_key=str(uuid.uuid4()),
+                provider_payment_id=payment_id,
+                payment_method_id=None,
+                status_details={"yookassa_status": webhook_data.get("status")},
+                metadata_json=metadata_dict,
+                raw_payload_json=self._sanitize_webhook_payload(webhook_data),
+                user_id=user_id,
+                wallet_id=wallet_id,
+                subscription_id=None,
+                created_at=now,
+                updated_at=now,
+            )
+            payment = self.payments.create_payment(payment_record)
+
+        if not payment:
+            log.error(f"Topup payment record not found for {payment_id}")
+            return
+
+        if not wallet_id:
+            wallet_id = payment.wallet_id
+
+        if event_type == "payment.succeeded":
+            if not amount_kopeks:
+                log.error(f"Topup webhook missing amount for {payment_id}")
+                return
+            if not wallet_id:
+                log.error(f"Topup webhook missing wallet_id for {payment_id}")
+                return
+
+            expires_at = None
+            if BILLING_TOPUP_TTL_DAYS > 0:
+                expires_at = int(time.time()) + (BILLING_TOPUP_TTL_DAYS * 86400)
+
+            try:
+                wallet_service.apply_topup(
+                    wallet_id=wallet_id,
+                    amount_kopeks=amount_kopeks,
+                    reference_id=payment_id,
+                    reference_type="payment",
+                    idempotency_key=payment.id,
+                    expires_at=expires_at,
+                    metadata={
+                        "provider": "yookassa",
+                        "payment_id": payment_id,
+                    },
+                )
+            except Exception as e:
+                log.exception(f"Failed to apply topup for payment {payment_id}: {e}")
+                return
+
+            if is_auto_topup:
+                self._reset_auto_topup_failures(wallet_id)
+
+            self.payments.update_payment_by_provider_id(
+                payment_id,
+                {
+                    "status": PaymentStatus.SUCCEEDED.value,
+                    "status_details": {"yookassa_status": webhook_data.get("status")},
+                    "raw_payload_json": self._sanitize_webhook_payload(webhook_data),
+                },
+            )
+            return
+
+        if event_type == "payment.canceled":
+            self.payments.update_payment_by_provider_id(
+                payment_id,
+                {
+                    "status": PaymentStatus.CANCELED.value,
+                    "status_details": {"yookassa_status": webhook_data.get("status")},
+                    "raw_payload_json": self._sanitize_webhook_payload(webhook_data),
+                },
+            )
+            if is_auto_topup and wallet_id:
+                wallet = self.wallets.get_wallet_by_id(wallet_id)
+                if wallet:
+                    self._record_auto_topup_failure(
+                        wallet_id, wallet.auto_topup_fail_count
+                    )
+            return
+
+        if event_type == "payment.waiting_for_capture":
+            self.payments.update_payment_by_provider_id(
+                payment_id,
+                {
+                    "status": PaymentStatus.PENDING.value,
+                    "status_details": {"yookassa_status": webhook_data.get("status")},
+                    "raw_payload_json": self._sanitize_webhook_payload(webhook_data),
+                },
+            )
+
+    def _extract_amount_kopeks(
+        self, metadata: Dict[str, object], amount_value: Optional[str]
+    ) -> Optional[int]:
+        if metadata.get("amount_kopeks") is not None:
+            try:
+                return int(metadata.get("amount_kopeks"))
+            except (TypeError, ValueError):
+                return None
+        if not amount_value:
+            return None
+        try:
+            return int((Decimal(str(amount_value)) * Decimal(100)).to_integral_value())
+        except Exception:
+            return None
+
+    def _sanitize_payment_payload(self, payment: Dict[str, object]) -> JsonDict:
+        confirmation = payment.get("confirmation")
+        sanitized_confirmation: Optional[JsonDict] = None
+        if isinstance(confirmation, dict):
+            sanitized_confirmation = {
+                "type": confirmation.get("type"),
+                "confirmation_url": confirmation.get("confirmation_url"),
+            }
+
+        return {
+            "id": payment.get("id"),
+            "status": payment.get("status"),
+            "amount": payment.get("amount"),
+            "currency": payment.get("amount", {}).get("currency")
+            if isinstance(payment.get("amount"), dict)
+            else None,
+            "confirmation": sanitized_confirmation,
+        }
+
+    def _sanitize_webhook_payload(self, webhook_data: Dict[str, object]) -> JsonDict:
+        return {
+            "event_type": webhook_data.get("event_type"),
+            "payment_id": webhook_data.get("payment_id"),
+            "status": webhook_data.get("status"),
+            "amount": webhook_data.get("amount"),
+            "currency": webhook_data.get("currency"),
+            "metadata": webhook_data.get("metadata"),
+        }
+
     # ==================== Utility Methods ====================
 
-    def get_user_billing_info(self, user_id: str) -> Dict[str, Any]:
+    def get_user_billing_info(self, user_id: str) -> Dict[str, object]:
         """
         Get complete billing information for user
 
@@ -635,6 +1110,48 @@ class BillingService:
                     ),
                 }
 
+        lead_magnet_config = get_lead_magnet_config()
+        lead_magnet_state = (
+            get_lead_magnet_state(user_id) if lead_magnet_config.enabled else None
+        )
+
+        if lead_magnet_state:
+            lead_magnet_usage = {
+                "tokens_input": lead_magnet_state.tokens_input_used,
+                "tokens_output": lead_magnet_state.tokens_output_used,
+                "images": lead_magnet_state.images_used,
+                "tts_seconds": lead_magnet_state.tts_seconds_used,
+                "stt_seconds": lead_magnet_state.stt_seconds_used,
+            }
+            lead_magnet_remaining = calculate_remaining(
+                lead_magnet_state, lead_magnet_config.quotas
+            )
+            lead_magnet = {
+                "enabled": True,
+                "cycle_start": lead_magnet_state.cycle_start,
+                "cycle_end": lead_magnet_state.cycle_end,
+                "usage": lead_magnet_usage,
+                "quotas": lead_magnet_config.quotas,
+                "remaining": lead_magnet_remaining,
+                "config_version": lead_magnet_config.config_version,
+            }
+        else:
+            lead_magnet = {
+                "enabled": lead_magnet_config.enabled,
+                "cycle_start": None,
+                "cycle_end": None,
+                "usage": {
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "images": 0,
+                    "tts_seconds": 0,
+                    "stt_seconds": 0,
+                },
+                "quotas": lead_magnet_config.quotas,
+                "remaining": lead_magnet_config.quotas,
+                "config_version": lead_magnet_config.config_version,
+            }
+
         # Get recent transactions
         transactions = self.transactions.get_transactions_by_user(user_id, limit=10)
 
@@ -643,6 +1160,7 @@ class BillingService:
             "plan": plan.model_dump() if plan else None,
             "usage": usage,
             "transactions": [tx.model_dump() for tx in transactions],
+            "lead_magnet": lead_magnet,
         }
 
 

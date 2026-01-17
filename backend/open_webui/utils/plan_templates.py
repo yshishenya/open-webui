@@ -1,304 +1,301 @@
 """
 Plan templates for billing system
-Provides default plans based on market research
+Provides default plans for B2C monetization
 """
 
 import time
-from typing import List, Dict, Any
+from typing import Dict, List
+
+PlanSeed = Dict[str, object]
 
 
-def get_default_plans() -> List[Dict[str, Any]]:
-    """
-    Get default subscription plans
-
-    Plans are based on market research (2025):
-    - ChatGPT Plus: ~2000₽/месяц
-    - GPTunnel: pay-as-you-go
-    - SYNTX AI: токенная система
-
-    Our competitive advantage:
-    - Free tier (vs ChatGPT)
-    - Flexible pricing (vs ChatGPT)
-    - All models in one place
-    """
-
+def get_default_plans() -> List[PlanSeed]:
+    """Get default subscription plans for Stage 1/2 rollout."""
     now = int(time.time())
 
     return [
-        # FREE - Entry tier for onboarding
+        # FREE - Entry tier for onboarding (active)
         {
             "id": "free",
             "name": "Free",
             "name_ru": "Бесплатный",
-            "description": "Perfect for trying out AI models",
-            "description_ru": "Идеально для знакомства с AI моделями",
+            "description": "Start with AI and basic models",
+            "description_ru": "Для старта и базовых моделей",
             "price": 0.0,
+            "price_kopeks": 0,
             "currency": "RUB",
             "interval": "month",
+            "included_kopeks_per_period": 0,
+            "discount_percent": 0,
+            "model_tiers_allowed": ["Economy"],
+            "images_per_period": 2,
+            "tts_seconds_per_period": 300,
+            "max_reply_cost_kopeks": 2000,
+            "daily_cap_kopeks": 5000,
+            "is_annual": False,
             "quotas": {
-                "tokens_input": 100000,    # 100K input tokens
-                "tokens_output": 50000,    # 50K output tokens
-                "requests": 500,           # 500 requests
+                "tokens_input": 100000,
+                "tokens_output": 50000,
+                "requests": 200,
             },
             "features": [
-                "GPT 5 Nano",
-                "GPT OSS 20B",
-                "DeepSeek V3.2",
-                "Qwen 3 8B",
-                "Базовая поддержка",
+                "Economy models",
+                "Basic support",
             ],
             "is_active": True,
             "display_order": 0,
             "created_at": now,
             "updated_at": now,
         },
-
-        # STARTER - For students and hobbyists
+        # PAYG - wallet only (active)
         {
-            "id": "starter",
-            "name": "Starter",
-            "name_ru": "Старт",
-            "description": "For students and hobbyists exploring AI",
-            "description_ru": "Для студентов и любителей AI",
-            "price": 490.0,
+            "id": "payg",
+            "name": "PAYG",
+            "name_ru": "PAYG",
+            "description": "Pay as you go via wallet top-ups",
+            "description_ru": "Оплата по факту через кошелёк",
+            "price": 0.0,
+            "price_kopeks": 0,
             "currency": "RUB",
             "interval": "month",
-            "quotas": {
-                "tokens_input": 1000000,   # 1M input tokens
-                "tokens_output": 500000,   # 500K output tokens
-                "requests": 5000,          # 5000 requests
-            },
+            "included_kopeks_per_period": 0,
+            "discount_percent": 0,
+            "model_tiers_allowed": ["Economy", "Standard"],
+            "images_per_period": None,
+            "tts_seconds_per_period": None,
+            "max_reply_cost_kopeks": None,
+            "daily_cap_kopeks": None,
+            "is_annual": False,
+            "quotas": None,
             "features": [
-                "Все модели Free",
-                "GPT 5 Mini",
-                "Gemini 2.5 Flash",
-                "Claude Haiku 4.5",
-                "Mistral Small",
-                "LLaMA-3.1 (8b)",
-                "Приоритетная поддержка",
+                "Top-up wallet",
+                "No subscription required",
             ],
             "is_active": True,
             "display_order": 1,
             "created_at": now,
             "updated_at": now,
         },
-
-        # PRO - For professionals and small businesses
+        # START - Subscription (inactive in Stage 1)
         {
-            "id": "pro",
-            "name": "Pro",
-            "name_ru": "Профессиональный",
-            "description": "Advanced features and higher quotas",
-            "description_ru": "Расширенные возможности и увеличенные квоты",
-            "price": 1490.0,
+            "id": "start",
+            "name": "Start",
+            "name_ru": "Старт",
+            "description": "Included balance + 10% discount",
+            "description_ru": "Включённый баланс + скидка 10%",
+            "price": 299.0,
+            "price_kopeks": 29900,
             "currency": "RUB",
             "interval": "month",
-            "quotas": {
-                "tokens_input": 5000000,   # 5M input tokens
-                "tokens_output": 2000000,  # 2M output tokens
-                "requests": 20000,         # 20000 requests
-            },
+            "included_kopeks_per_period": 30000,
+            "discount_percent": 10,
+            "model_tiers_allowed": ["Economy", "Standard"],
+            "images_per_period": 20,
+            "tts_seconds_per_period": 1800,
+            "max_reply_cost_kopeks": 5000,
+            "daily_cap_kopeks": 30000,
+            "is_annual": False,
+            "quotas": None,
             "features": [
-                "Все модели Starter",
-                "GPT-4o",
-                "GPT-4o Mini",
-                "Claude 4.5 Sonnet",
-                "Gemini 2.5 Pro",
-                "o4-mini",
-                "Mistral Large",
-                "Qwen 3 Max",
-                "Приоритетная обработка",
-                "Email поддержка",
+                "Included balance",
+                "Standard models",
             ],
-            "is_active": True,
+            "is_active": False,
             "display_order": 2,
             "created_at": now,
             "updated_at": now,
         },
-
-        # BUSINESS - For companies and power users
+        # PLUS - Subscription (inactive in Stage 1)
         {
-            "id": "business",
-            "name": "Business",
-            "name_ru": "Бизнес",
-            "description": "For companies and power users",
-            "description_ru": "Для компаний и профессионалов",
-            "price": 4990.0,
+            "id": "plus",
+            "name": "Plus",
+            "name_ru": "Плюс",
+            "description": "Bigger included balance + 20% discount",
+            "description_ru": "Больше included + скидка 20%",
+            "price": 599.0,
+            "price_kopeks": 59900,
             "currency": "RUB",
             "interval": "month",
-            "quotas": {
-                "tokens_input": 20000000,  # 20M input tokens
-                "tokens_output": 10000000, # 10M output tokens
-                "requests": 100000,        # 100000 requests
-            },
+            "included_kopeks_per_period": 70000,
+            "discount_percent": 20,
+            "model_tiers_allowed": ["Economy", "Standard", "Premium"],
+            "images_per_period": 60,
+            "tts_seconds_per_period": 7200,
+            "max_reply_cost_kopeks": 10000,
+            "daily_cap_kopeks": 70000,
+            "is_annual": False,
+            "quotas": None,
             "features": [
-                "Все модели Pro",
-                "GPT-5.1",
-                "o1",
-                "o3",
-                "Claude 4.5 Opus",
-                "Claude Opus-4.1",
-                "Gemini 3 Pro Preview",
-                "xAI Grok 4",
-                "DeepSeek R1",
-                "Приоритетная обработка",
-                "API доступ",
-                "Выделенная поддержка",
-                "SLA 99.9%",
+                "Included balance",
+                "Premium models",
             ],
-            "is_active": True,
+            "is_active": False,
             "display_order": 3,
             "created_at": now,
             "updated_at": now,
         },
-
-        # UNLIMITED - For enterprises (optional, can be created later)
+        # PRO - Subscription (inactive in Stage 1)
         {
-            "id": "unlimited",
-            "name": "Unlimited",
-            "name_ru": "Безлимит",
-            "description": "Unlimited access to all models",
-            "description_ru": "Безлимитный доступ ко всем моделям",
-            "price": 14990.0,
+            "id": "pro",
+            "name": "Pro",
+            "name_ru": "Профессиональный",
+            "description": "Maximum included balance + 30% discount",
+            "description_ru": "Максимум included + скидка 30%",
+            "price": 1690.0,
+            "price_kopeks": 169000,
             "currency": "RUB",
             "interval": "month",
-            "quotas": None,  # Unlimited
+            "included_kopeks_per_period": 220000,
+            "discount_percent": 30,
+            "model_tiers_allowed": ["All"],
+            "images_per_period": 200,
+            "tts_seconds_per_period": 21600,
+            "max_reply_cost_kopeks": 20000,
+            "daily_cap_kopeks": 200000,
+            "is_annual": False,
+            "quotas": None,
             "features": [
-                "ВСЕ модели",
-                "Безлимитные запросы",
-                "Безлимитные токены",
-                "API доступ",
-                "Приоритетная обработка",
-                "Выделенная поддержка 24/7",
-                "SLA 99.95%",
-                "Custom интеграции",
+                "Included balance",
+                "All model tiers",
             ],
-            "is_active": False,  # Inactive by default, can be enabled later
+            "is_active": False,
             "display_order": 4,
             "created_at": now,
             "updated_at": now,
         },
-    ]
-
-
-def get_promo_plans() -> List[Dict[str, Any]]:
-    """
-    Get promotional/seasonal plans
-    These can be activated during special events
-    """
-    now = int(time.time())
-
-    return [
-        # NEW YEAR PROMO - Example promotional plan
+        # Annual plans (inactive in Stage 1)
         {
-            "id": "newyear_2025",
-            "name": "New Year 2025",
-            "name_ru": "Новый Год 2025",
-            "description": "Special New Year offer - 50% off Pro plan",
-            "description_ru": "Специальное новогоднее предложение - 50% скидка на Pro",
-            "price": 745.0,  # 50% off Pro (1490/2)
-            "currency": "RUB",
-            "interval": "month",
-            "quotas": {
-                "tokens_input": 5000000,
-                "tokens_output": 2000000,
-                "requests": 20000,
-            },
-            "features": [
-                "Все возможности Pro плана",
-                "Скидка 50%",
-                "Действует 3 месяца",
-            ],
-            "is_active": False,  # Activate during promo period
-            "display_order": 10,  # Show after main plans
-            "created_at": now,
-            "updated_at": now,
-            "plan_extra_metadata": {
-                "promo": True,
-                "promo_code": "NEWYEAR2025",
-                "promo_ends": now + (90 * 24 * 60 * 60),  # 90 days
-            },
-        },
-    ]
-
-
-def get_annual_plans() -> List[Dict[str, Any]]:
-    """
-    Get annual versions of main plans (20% discount)
-    """
-    now = int(time.time())
-
-    return [
-        {
-            "id": "starter_annual",
-            "name": "Starter Annual",
-            "name_ru": "Старт (Годовой)",
-            "description": "Starter plan billed annually - save 20%",
-            "description_ru": "План Старт с годовой оплатой - экономия 20%",
-            "price": 4704.0,  # 490 * 12 * 0.8 = 4704
+            "id": "start_annual",
+            "name": "Start Annual",
+            "name_ru": "Старт (годовой)",
+            "description": "Annual plan with 16% discount",
+            "description_ru": "Годовой план со скидкой 16%",
+            "price": 3013.92,
+            "price_kopeks": 301392,
             "currency": "RUB",
             "interval": "year",
-            "quotas": {
-                "tokens_input": 1000000,
-                "tokens_output": 500000,
-                "requests": 5000,
-            },
+            "included_kopeks_per_period": 360000,
+            "discount_percent": 10,
+            "model_tiers_allowed": ["Economy", "Standard"],
+            "images_per_period": 20,
+            "tts_seconds_per_period": 1800,
+            "max_reply_cost_kopeks": 5000,
+            "daily_cap_kopeks": 30000,
+            "is_annual": True,
+            "quotas": None,
             "features": [
-                "Все возможности Starter",
-                "Скидка 20% при годовой оплате",
-                "2 месяца бесплатно",
+                "Included balance",
+                "Annual billing",
             ],
-            "is_active": True,
-            "display_order": 5,
+            "is_active": False,
+            "display_order": 10,
+            "created_at": now,
+            "updated_at": now,
+        },
+        {
+            "id": "plus_annual",
+            "name": "Plus Annual",
+            "name_ru": "Плюс (годовой)",
+            "description": "Annual plan with 16% discount",
+            "description_ru": "Годовой план со скидкой 16%",
+            "price": 6047.28,
+            "price_kopeks": 604728,
+            "currency": "RUB",
+            "interval": "year",
+            "included_kopeks_per_period": 840000,
+            "discount_percent": 20,
+            "model_tiers_allowed": ["Economy", "Standard", "Premium"],
+            "images_per_period": 60,
+            "tts_seconds_per_period": 7200,
+            "max_reply_cost_kopeks": 10000,
+            "daily_cap_kopeks": 70000,
+            "is_annual": True,
+            "quotas": None,
+            "features": [
+                "Included balance",
+                "Annual billing",
+            ],
+            "is_active": False,
+            "display_order": 11,
             "created_at": now,
             "updated_at": now,
         },
         {
             "id": "pro_annual",
             "name": "Pro Annual",
-            "name_ru": "Профессиональный (Годовой)",
-            "description": "Pro plan billed annually - save 20%",
-            "description_ru": "План Профессиональный с годовой оплатой - экономия 20%",
-            "price": 14304.0,  # 1490 * 12 * 0.8 = 14304
+            "name_ru": "Профи (годовой)",
+            "description": "Annual plan with 16% discount",
+            "description_ru": "Годовой план со скидкой 16%",
+            "price": 17047.2,
+            "price_kopeks": 1704720,
             "currency": "RUB",
             "interval": "year",
-            "quotas": {
-                "tokens_input": 5000000,
-                "tokens_output": 2000000,
-                "requests": 20000,
-            },
+            "included_kopeks_per_period": 2640000,
+            "discount_percent": 30,
+            "model_tiers_allowed": ["All"],
+            "images_per_period": 200,
+            "tts_seconds_per_period": 21600,
+            "max_reply_cost_kopeks": 20000,
+            "daily_cap_kopeks": 200000,
+            "is_annual": True,
+            "quotas": None,
             "features": [
-                "Все возможности Pro",
-                "Скидка 20% при годовой оплате",
-                "2 месяца бесплатно",
+                "Included balance",
+                "Annual billing",
             ],
-            "is_active": True,
-            "display_order": 6,
+            "is_active": False,
+            "display_order": 12,
             "created_at": now,
             "updated_at": now,
         },
+    ]
+
+
+def get_promo_plans() -> List[PlanSeed]:
+    """Get promotional/seasonal plans."""
+    now = int(time.time())
+
+    return [
         {
-            "id": "business_annual",
-            "name": "Business Annual",
-            "name_ru": "Бизнес (Годовой)",
-            "description": "Business plan billed annually - save 20%",
-            "description_ru": "План Бизнес с годовой оплатой - экономия 20%",
-            "price": 47904.0,  # 4990 * 12 * 0.8 = 47904
+            "id": "newyear_2025",
+            "name": "New Year 2025",
+            "name_ru": "Новый Год 2025",
+            "description": "Special New Year offer - 50% off Pro",
+            "description_ru": "Новогодняя скидка 50% на Pro",
+            "price": 845.0,
+            "price_kopeks": 84500,
             "currency": "RUB",
-            "interval": "year",
-            "quotas": {
-                "tokens_input": 20000000,
-                "tokens_output": 10000000,
-                "requests": 100000,
-            },
+            "interval": "month",
+            "included_kopeks_per_period": 220000,
+            "discount_percent": 30,
+            "model_tiers_allowed": ["All"],
+            "images_per_period": 200,
+            "tts_seconds_per_period": 21600,
+            "max_reply_cost_kopeks": 20000,
+            "daily_cap_kopeks": 200000,
+            "is_annual": False,
+            "quotas": None,
             "features": [
-                "Все возможности Business",
-                "Скидка 20% при годовой оплате",
-                "2 месяца бесплатно",
+                "All model tiers",
+                "Limited time offer",
             ],
-            "is_active": True,
-            "display_order": 7,
+            "is_active": False,
+            "display_order": 100,
             "created_at": now,
             "updated_at": now,
+            "plan_extra_metadata": {
+                "promo": True,
+                "promo_code": "NEWYEAR2025",
+                "promo_ends": now + (90 * 24 * 60 * 60),
+            },
         },
+    ]
+
+
+def get_annual_plans() -> List[PlanSeed]:
+    """Get annual versions of main plans (16% discount)."""
+    return [
+        plan
+        for plan in get_default_plans()
+        if isinstance(plan.get("is_annual"), bool) and plan.get("is_annual")
     ]

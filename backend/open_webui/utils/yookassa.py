@@ -91,6 +91,8 @@ class YooKassaClient:
         return_url: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         capture: bool = True,
+        payment_method_id: Optional[str] = None,
+        save_payment_method: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
         Create a payment
@@ -102,6 +104,8 @@ class YooKassaClient:
             return_url: URL to redirect user after payment
             metadata: Additional metadata (user_id, plan_id, etc.)
             capture: Auto-capture payment (True) or manual (False)
+            payment_method_id: Saved payment method ID for auto payments
+            save_payment_method: Save payment method for future payments
 
         Returns:
             Payment object with confirmation URL
@@ -113,16 +117,22 @@ class YooKassaClient:
                 "value": str(amount),
                 "currency": currency,
             },
-            "confirmation": {
-                "type": "redirect",
-                "return_url": return_url or "https://example.com/payment/success",
-            },
             "capture": capture,
             "description": description,
         }
 
+        if return_url:
+            payment_data["confirmation"] = {
+                "type": "redirect",
+                "return_url": return_url,
+            }
+
         if metadata:
             payment_data["metadata"] = metadata
+        if payment_method_id:
+            payment_data["payment_method_id"] = payment_method_id
+        if save_payment_method is not None:
+            payment_data["save_payment_method"] = save_payment_method
 
         response = await self._request(
             "POST",
