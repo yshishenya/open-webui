@@ -51,7 +51,7 @@ import json
 router = APIRouter()
 
 log = logging.getLogger(__name__)
-log.setLevel(SRC_LOG_LEVELS["MAIN"])
+log.setLevel(SRC_LOG_LEVELS.get("MAIN", logging.INFO))
 
 # Redis client for state management
 redis_client = get_redis_client()

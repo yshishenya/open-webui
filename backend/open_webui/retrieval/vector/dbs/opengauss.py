@@ -76,7 +76,7 @@ VECTOR_LENGTH = OPENGAUSS_INITIALIZE_MAX_VECTOR_LENGTH
 Base = declarative_base()
 
 log = logging.getLogger(__name__)
-log.setLevel(SRC_LOG_LEVELS["RAG"])
+log.setLevel(SRC_LOG_LEVELS.get("RAG", logging.INFO))
 
 
 class DocumentChunk(Base):

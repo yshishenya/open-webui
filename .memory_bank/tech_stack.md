@@ -42,6 +42,7 @@
 
 ### Python
 - **Pydantic 2.12.5**: Runtime data validation and settings management
+- **email-validator 2.2.0**: Email validation for `EmailStr`
 - **Pydantic Settings 2.0**: Environment variables management
 
 ### TypeScript

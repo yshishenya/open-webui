@@ -17,7 +17,6 @@ from fastapi.responses import FileResponse
 
 from open_webui.config import CACHE_DIR
 from open_webui.constants import ERROR_MESSAGES
-<<<<<<< HEAD
 from open_webui.env import ENABLE_FORWARD_USER_INFO_HEADERS, SRC_LOG_LEVELS
 from open_webui.models.billing import UsageMetric
 from open_webui.models.chats import Chats
