@@ -8,7 +8,7 @@
 	title="Политика конфиденциальности"
 	description="Политика конфиденциальности AIris. Узнайте, как мы собираем, используем и защищаем ваши данные."
 >
-	<div class="container mx-auto px-4 py-16">
+	<div class="container mx-auto px-4 pt-12 pb-16">
 		<div class="max-w-4xl mx-auto">
 			<!-- Header -->
 			<div class="text-center mb-12">
@@ -21,7 +21,7 @@
 			</div>
 
 			<!-- Content -->
-			<div class="bg-white rounded-2xl shadow-xl p-8 md:p-12 space-y-8">
+			<div class="bg-white rounded-2xl border border-gray-200/70 shadow-sm p-8 md:p-12 space-y-8">
 				<!-- Introduction -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">1. Введение</h2>
@@ -143,7 +143,7 @@
 						</ul>
 						<p class="pt-4">
 							Для реализации своих прав обратитесь к нам по адресу
-							<a href="mailto:privacy@openwebui.ru" class="text-purple-600 hover:underline">privacy@openwebui.ru</a>.
+							<a href="mailto:privacy@openwebui.ru" class="text-gray-900 font-medium hover:underline">privacy@openwebui.ru</a>.
 						</p>
 					</div>
 				</section>
@@ -190,17 +190,17 @@
 						По вопросам, связанным с защитой персональных данных:
 					</p>
 					<ul class="mt-4 text-gray-600 space-y-2">
-						<li>Email: <a href="mailto:privacy@openwebui.ru" class="text-purple-600 hover:underline">privacy@openwebui.ru</a></li>
-						<li>Форма обратной связи: <a href="/contact" class="text-purple-600 hover:underline">страница контактов</a></li>
+						<li>Email: <a href="mailto:privacy@openwebui.ru" class="text-gray-900 font-medium hover:underline">privacy@openwebui.ru</a></li>
+						<li>Форма обратной связи: <a href="/contact" class="text-gray-900 font-medium hover:underline">страница контактов</a></li>
 					</ul>
 				</section>
 
 				<!-- Navigation -->
 				<div class="pt-8 border-t border-gray-200 flex flex-wrap gap-4">
-					<a href="/terms" class="text-purple-600 hover:text-purple-700 font-medium">
+					<a href="/terms" class="text-gray-900 font-medium hover:underline">
 						Условия использования
 					</a>
-					<a href="/contact" class="text-purple-600 hover:text-purple-700 font-medium">
+					<a href="/contact" class="text-gray-900 font-medium hover:underline">
 						Связаться с нами
 					</a>
 				</div>

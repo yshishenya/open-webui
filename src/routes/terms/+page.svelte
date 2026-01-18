@@ -8,7 +8,7 @@
 	title="Условия использования"
 	description="Условия использования сервиса AIris. Ознакомьтесь с правилами и ограничениями."
 >
-	<div class="container mx-auto px-4 py-16">
+	<div class="container mx-auto px-4 pt-12 pb-16">
 		<div class="max-w-4xl mx-auto">
 			<!-- Header -->
 			<div class="text-center mb-12">
@@ -21,7 +21,7 @@
 			</div>
 
 			<!-- Content -->
-			<div class="bg-white rounded-2xl shadow-xl p-8 md:p-12 space-y-8">
+			<div class="bg-white rounded-2xl border border-gray-200/70 shadow-sm p-8 md:p-12 space-y-8">
 				<!-- Introduction -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">1. Общие положения</h2>
@@ -96,7 +96,7 @@
 					<div class="space-y-4 text-gray-600 leading-relaxed">
 						<p>
 							5.1. Платные функции Сервиса предоставляются на условиях подписки.
-							Актуальные тарифы указаны на странице <a href="/pricing" class="text-purple-600 hover:underline">тарифов</a>.
+							Актуальные тарифы указаны на странице <a href="/pricing" class="text-gray-900 font-medium hover:underline">тарифов</a>.
 						</p>
 						<p>
 							5.2. Оплата производится автоматически в начале каждого расчетного периода.
@@ -171,17 +171,17 @@
 						По вопросам, связанным с настоящими Условиями, вы можете связаться с нами:
 					</p>
 					<ul class="mt-4 text-gray-600 space-y-2">
-						<li>Email: <a href="mailto:legal@openwebui.ru" class="text-purple-600 hover:underline">legal@openwebui.ru</a></li>
-						<li>Форма обратной связи: <a href="/contact" class="text-purple-600 hover:underline">страница контактов</a></li>
+						<li>Email: <a href="mailto:legal@openwebui.ru" class="text-gray-900 font-medium hover:underline">legal@openwebui.ru</a></li>
+						<li>Форма обратной связи: <a href="/contact" class="text-gray-900 font-medium hover:underline">страница контактов</a></li>
 					</ul>
 				</section>
 
 				<!-- Navigation -->
 				<div class="pt-8 border-t border-gray-200 flex flex-wrap gap-4">
-					<a href="/privacy" class="text-purple-600 hover:text-purple-700 font-medium">
+					<a href="/privacy" class="text-gray-900 font-medium hover:underline">
 						Политика конфиденциальности
 					</a>
-					<a href="/contact" class="text-purple-600 hover:text-purple-700 font-medium">
+					<a href="/contact" class="text-gray-900 font-medium hover:underline">
 						Связаться с нами
 					</a>
 				</div>

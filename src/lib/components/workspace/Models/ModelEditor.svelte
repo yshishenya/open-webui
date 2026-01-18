@@ -214,6 +214,7 @@
 			info.meta.lead_magnet = true;
 		} else if (info.meta.lead_magnet) {
 			delete info.meta.lead_magnet;
+		}
 		if (tts.voice !== '') {
 			if (!info.meta.tts) info.meta.tts = {};
 			info.meta.tts.voice = tts.voice;

@@ -20,15 +20,15 @@
 	}
 </script>
 
-<nav class="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
+<nav class="bg-white/80 backdrop-blur-md border-b border-gray-200/70 sticky top-0 z-50">
 	<div class="container mx-auto px-4">
 		<div class="flex items-center justify-between h-16">
 			<!-- Logo -->
 			<a href="/welcome" class="flex items-center gap-2">
-				<div class="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-500 rounded-lg flex items-center justify-center">
-					<span class="text-white font-bold text-lg">A</span>
+				<div class="w-9 h-9 bg-white rounded-lg border border-gray-200 shadow-sm flex items-center justify-center">
+					<span class="text-gray-900 font-semibold text-sm">A</span>
 				</div>
-				<span class="font-bold text-xl text-gray-800">AIris</span>
+				<span class="font-semibold text-lg text-gray-900 tracking-tight">AIris</span>
 			</a>
 
 			<!-- Desktop Navigation -->
@@ -36,9 +36,9 @@
 				{#each navLinks as link}
 					<a
 						href={link.href}
-						class="text-sm font-medium transition-colors {isActive(link.href)
-							? 'text-purple-600'
-							: 'text-gray-600 hover:text-purple-600'}"
+						class="text-sm font-medium transition-colors border-b-2 border-transparent pb-1 {isActive(link.href)
+							? 'text-gray-900 border-gray-900'
+							: 'text-gray-500 hover:text-gray-900'}"
 					>
 						{link.label}
 					</a>
@@ -49,13 +49,13 @@
 			<div class="hidden md:flex items-center gap-4">
 				<a
 					href="/auth"
-					class="text-sm font-medium text-gray-600 hover:text-purple-600 transition-colors"
+					class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
 				>
 					Войти
 				</a>
 				<a
-					href="/welcome"
-					class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
+					href="/auth"
+					class="px-4 py-2 bg-black hover:bg-gray-900 text-white text-sm font-medium rounded-full transition-colors"
 				>
 					Начать бесплатно
 				</a>
@@ -63,7 +63,7 @@
 
 			<!-- Mobile Menu Button -->
 			<button
-				class="md:hidden p-2 text-gray-600 hover:text-purple-600"
+				class="md:hidden p-2 text-gray-600 hover:text-gray-900"
 				on:click={() => (mobileMenuOpen = !mobileMenuOpen)}
 				aria-label="Toggle menu"
 			>
@@ -81,20 +81,20 @@
 
 		<!-- Mobile Menu -->
 		{#if mobileMenuOpen}
-			<div class="md:hidden py-4 border-t border-gray-100">
+			<div class="md:hidden py-4 border-t border-gray-200/70">
 				<div class="flex flex-col gap-4">
 					{#each navLinks as link}
 						<a
 							href={link.href}
 							class="text-sm font-medium px-2 py-1 {isActive(link.href)
-								? 'text-purple-600'
+								? 'text-gray-900'
 								: 'text-gray-600'}"
 							on:click={() => (mobileMenuOpen = false)}
 						>
 							{link.label}
 						</a>
 					{/each}
-					<div class="flex flex-col gap-2 pt-4 border-t border-gray-100">
+					<div class="flex flex-col gap-2 pt-4 border-t border-gray-200/70">
 						<a
 							href="/auth"
 							class="text-sm font-medium text-gray-600 px-2 py-1"
@@ -102,8 +102,8 @@
 							Войти
 						</a>
 						<a
-							href="/welcome"
-							class="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg text-center"
+							href="/auth"
+							class="px-4 py-2 bg-black text-white text-sm font-medium rounded-full text-center"
 						>
 							Начать бесплатно
 						</a>

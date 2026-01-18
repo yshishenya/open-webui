@@ -6,6 +6,26 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[UI-03]** Refresh public pages design for AIris brand alignment
+  - Updated /welcome, /about, /features, /pricing, /contact, /terms, /privacy
+  - Replaced emoji visuals with iconography and product imagery
+  - Aligned typography, CTA styles, and neutral palette with in-app UI
+
+- [x] **[BUG]** Fix container crash when SRC_LOG_LEVELS missing keys
+  - Defaulted OAuth and OpenGauss log levels to INFO when SRC_LOG_LEVELS lacks MAIN/RAG
+
+- [x] **[BUG]** Fix container crash on missing email-validator
+  - Added `email-validator` dependency required by Pydantic `EmailStr`
+
+- [x] **[BUG]** Restore container boot after upstream merge
+  - Removed leftover conflict marker in images router and added Alembic merge migration
+
+- [x] **[BUG]** Restore page scrolling after splash screen
+  - Scoped `overflow-y: hidden` to the splash state and remove it after load
+
+- [x] **[LEGAL-01]** Add requisites for YooKassa verification
+  - Added IP requisites (ИНН/ОГРНИП) to public footer for visibility on all public pages
+
 - [x] **[TEST]** Stabilize E2E selectors and frontend test discovery
   - Added stable data-testid hooks for chat/user menu and model selection.
   - Updated Playwright specs with fallbacks and fixed Vitest test include/exclude.

@@ -17,6 +17,9 @@
 	let unsubscribeConfig: (() => void) | null = null;
 	let subscriptionsEnabled = true;
 
+	const heroImage =
+		'https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1400&q=80';
+
 	onMount(async () => {
 		unsubscribeConfig = config.subscribe((current) => {
 			if (!current || didLoad) return;
@@ -125,37 +128,40 @@
 	title="Тарифы"
 	description="Выберите подходящий тариф AIris. От бесплатного доступа до корпоративных решений."
 	showHero={true}
-	heroTitle="Тарифы и цены"
-	heroSubtitle="Выберите план, который подходит именно вам"
+	heroTitle="Тарифы и оплата"
+	heroSubtitle="Прозрачные планы и оплата по факту использования"
+	heroEyebrow="Тарифы"
+	heroImage={heroImage}
+	heroImageAlt="Оплата и финансы"
 >
-	<div class="container mx-auto px-4 py-16">
+	<div class="container mx-auto px-4 pt-4 pb-16">
 		{#if loading}
 			<div class="flex justify-center">
 				<Spinner className="size-5" />
 			</div>
 		{:else if !subscriptionsEnabled}
 			<div class="max-w-4xl mx-auto text-center">
-				<div class="bg-white rounded-2xl shadow-xl p-8">
-					<h3 class="text-2xl font-bold text-gray-900 mb-3">{$i18n.t('Wallet')}</h3>
+				<div class="bg-white rounded-2xl border border-gray-200/70 p-8 shadow-sm">
+					<h3 class="text-2xl font-semibold text-gray-900 mb-3">{$i18n.t('Wallet')}</h3>
 					<p class="text-gray-600 text-sm mb-6">
 						{$i18n.t('Pay-as-you-go via wallet balance.')}
 					</p>
 
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700 mb-6">
-						<div class="bg-gray-50 rounded-xl p-4">
+						<div class="bg-gray-50 rounded-xl border border-gray-200/70 p-4">
 							{$i18n.t('No subscription needed')}
 						</div>
-						<div class="bg-gray-50 rounded-xl p-4">
+						<div class="bg-gray-50 rounded-xl border border-gray-200/70 p-4">
 							{$i18n.t('Top up when you want')}
 						</div>
-						<div class="bg-gray-50 rounded-xl p-4">
+						<div class="bg-gray-50 rounded-xl border border-gray-200/70 p-4">
 							{$i18n.t('Pay only for what you use')}
 						</div>
 					</div>
 
 					<a
 						href="/auth"
-						class="inline-flex items-center justify-center px-6 py-2 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md"
+						class="inline-flex items-center justify-center px-6 py-2 rounded-full bg-black text-white shadow-sm"
 					>
 						{$i18n.t('Start free')}
 					</a>
@@ -167,11 +173,11 @@
 			</div>
 		{:else}
 			<div class="flex justify-center mb-12">
-				<div class="bg-white rounded-full p-1 shadow-md inline-flex">
+				<div class="bg-white/90 rounded-full p-1 border border-gray-200/70 shadow-sm inline-flex">
 					<button
 						on:click={() => (billingPeriod = 'monthly')}
 						class="px-6 py-2 rounded-full transition-all duration-200 {billingPeriod === 'monthly'
-							? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
+							? 'bg-black text-white'
 							: 'text-gray-600 hover:text-gray-900'}"
 					>
 						Ежемесячно
@@ -180,12 +186,12 @@
 						on:click={() => annualAvailable && (billingPeriod = 'annual')}
 						disabled={!annualAvailable}
 						class="px-6 py-2 rounded-full transition-all duration-200 relative {billingPeriod === 'annual'
-							? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
+							? 'bg-black text-white'
 							: 'text-gray-600 hover:text-gray-900'} {annualAvailable ? '' : 'opacity-50 cursor-not-allowed'}"
 					>
 						Ежегодно
 						{#if annualAvailable}
-							<span class="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">
+							<span class="absolute -top-2 -right-2 bg-gray-900 text-white text-xs px-2 py-0.5 rounded-full">
 								-16%
 							</span>
 						{/if}
@@ -198,17 +204,17 @@
 					<div class="relative">
 						{#if index === getPopularIndex(activePlans)}
 							<div class="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-								<span class="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg">
+								<span class="bg-black text-white px-4 py-1 rounded-full text-sm font-semibold shadow-sm">
 									Популярный
 								</span>
 							</div>
 						{/if}
 
-						<div class="bg-white rounded-2xl shadow-xl p-8 h-full flex flex-col {index === getPopularIndex(activePlans)
-							? 'border-2 border-purple-200 transform scale-105'
+						<div class="bg-white rounded-2xl border border-gray-200/70 p-8 h-full flex flex-col shadow-sm {index === getPopularIndex(activePlans)
+							? 'ring-1 ring-gray-900/10'
 							: ''}">
 							<div class="text-center mb-6">
-								<h3 class="text-2xl font-bold text-gray-900 mb-2">
+								<h3 class="text-2xl font-semibold text-gray-900 mb-2">
 									{getPlanTitle(plan)}
 								</h3>
 								{#if getPlanDescription(plan)}
@@ -217,7 +223,7 @@
 									</p>
 								{/if}
 								<div class="mb-2">
-									<span class="text-4xl font-bold text-gray-900">
+									<span class="text-4xl font-semibold text-gray-900">
 										{formatPrice(plan)}
 									</span>
 									{#if plan.price > 0}
@@ -229,28 +235,16 @@
 							<ul class="space-y-3 mb-8 flex-grow">
 								{#each getPlanFeatures(plan) as feature}
 									<li class="flex items-start gap-3">
-										<svg
-											class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M5 13l4 4L19 7"
-											></path>
-										</svg>
-										<span class="text-gray-700">{feature.text}</span>
+										<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+										<span class="text-gray-700 text-sm">{feature.text}</span>
 									</li>
 								{/each}
 							</ul>
 
 							<button
 								on:click={() => handleSelectPlan(plan)}
-								class="w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 {index === getPopularIndex(activePlans)
-									? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl'
+								class="w-full py-3 px-6 rounded-full font-semibold transition-colors {index === getPopularIndex(activePlans)
+									? 'bg-black text-white hover:bg-gray-900'
 									: 'bg-gray-100 text-gray-900 hover:bg-gray-200'}"
 							>
 								{plan.price === 0 ? $i18n.t('Start for free') : $i18n.t('Choose plan')}
@@ -262,11 +256,11 @@
 		{/if}
 
 		<div class="max-w-3xl mx-auto">
-			<h2 class="text-3xl font-bold text-center text-gray-900 mb-8">
+			<h2 class="text-2xl md:text-3xl font-semibold text-center text-gray-900 mb-8">
 				Часто задаваемые вопросы
 			</h2>
 			<div class="space-y-4">
-				<details class="bg-white rounded-lg shadow-md p-6 group">
+				<details class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm group">
 					<summary class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center">
 						Можно ли изменить план позже?
 						<svg
@@ -288,7 +282,7 @@
 					</p>
 				</details>
 
-				<details class="bg-white rounded-lg shadow-md p-6 group">
+				<details class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm group">
 					<summary class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center">
 						Как работает помесячная оплата?
 						<svg

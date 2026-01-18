@@ -822,6 +822,7 @@
 			await loadingProgress.set(100);
 
 			document.getElementById('splash-screen')?.remove();
+			document.documentElement.classList.remove('splash');
 
 			const audio = new Audio(`/audio/greeting.mp3`);
 			const playAudio = () => {
@@ -834,6 +835,7 @@
 			loaded = true;
 		} else {
 			document.getElementById('splash-screen')?.remove();
+			document.documentElement.classList.remove('splash');
 			loaded = true;
 		}
 
