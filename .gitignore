@@ -318,3 +318,6 @@ cypress/screenshots
 
 # AI SWE Memory Bank - Don't ignore the structure, only volatile files
 # .memory_bank/current_tasks.md  # Uncomment if tasks are personal
+
+# Local docker client config (do not commit)
+.docker/
