@@ -6,7 +6,7 @@ from test.util.abstract_integration_test import AbstractPostgresTest
 
 class TestWalletService(AbstractPostgresTest):
     def test_hold_settle_release_included_and_topup(self) -> None:
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import LedgerEntry, Wallets
         from open_webui.utils.wallet import wallet_service
 
@@ -71,7 +71,7 @@ class TestWalletService(AbstractPostgresTest):
         assert updated_wallet is not None
         assert updated_wallet.balance_topup_kopeks == 800
 
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
 
         hold_entries = (
             Session.query(LedgerEntry)
@@ -130,7 +130,7 @@ class TestWalletService(AbstractPostgresTest):
         assert refreshed.daily_reset_at > now
 
     def test_release_hold_restores_balance(self) -> None:
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import LedgerEntry, Wallets
         from open_webui.utils.wallet import wallet_service
 
@@ -165,7 +165,7 @@ class TestWalletService(AbstractPostgresTest):
         assert release_entry is not None
 
     def test_apply_topup_idempotency_and_expires_at(self) -> None:
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import LedgerEntry, Wallets
         from open_webui.utils.wallet import wallet_service
 

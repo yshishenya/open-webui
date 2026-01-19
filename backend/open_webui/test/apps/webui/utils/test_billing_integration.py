@@ -124,7 +124,7 @@ class TestBillingIntegration(AbstractPostgresTest):
 
         assert billing_context is not None
 
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
 
         hold_entry = (
             Session.query(LedgerEntry)
@@ -184,7 +184,7 @@ class TestBillingIntegration(AbstractPostgresTest):
     @pytest.mark.asyncio
     async def test_settle_billing_usage_marks_estimated(self, monkeypatch):
         from open_webui.models.billing import UsageEvent, Wallets
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
         from open_webui.utils.billing_integration import (
             preflight_estimate_hold,
             settle_billing_usage,
@@ -433,7 +433,7 @@ class TestBillingIntegration(AbstractPostgresTest):
 
     @pytest.mark.asyncio
     async def test_release_billing_hold_restores_balance(self, monkeypatch):
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import LedgerEntry, Wallets
         from open_webui.utils.billing_integration import (
             preflight_estimate_hold,
@@ -517,7 +517,7 @@ class TestBillingIntegration(AbstractPostgresTest):
 
         assert billing_context is not None
 
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
 
         hold_entry = (
             Session.query(LedgerEntry)
@@ -589,7 +589,7 @@ class TestBillingIntegration(AbstractPostgresTest):
 
         assert billing_context is not None
 
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
 
         hold_entry = (
             Session.query(LedgerEntry)
@@ -634,7 +634,7 @@ class TestBillingIntegration(AbstractPostgresTest):
 
     @pytest.mark.asyncio
     async def test_text_settle_charge_exceeds_hold_marks_estimated(self, monkeypatch):
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import UsageEvent, Wallets
         from open_webui.utils.billing_integration import (
             preflight_estimate_hold,
@@ -695,7 +695,7 @@ class TestBillingIntegration(AbstractPostgresTest):
     async def test_single_rate_settle_charge_exceeds_hold_marks_estimated(
         self, monkeypatch
     ):
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import UsageEvent, Wallets
         from open_webui.utils.billing_integration import (
             preflight_single_rate_hold,
@@ -956,7 +956,7 @@ class TestBillingIntegration(AbstractPostgresTest):
 
         assert billing_context is not None
 
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
 
         hold_entry = (
             Session.query(LedgerEntry)

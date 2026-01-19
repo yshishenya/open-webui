@@ -12,10 +12,16 @@ import re
 
 from urllib.parse import quote
 from huggingface_hub import snapshot_download
-from langchain_classic.retrievers import (
-    ContextualCompressionRetriever,
-    EnsembleRetriever,
-)
+try:
+    from langchain_classic.retrievers import (
+        ContextualCompressionRetriever,
+        EnsembleRetriever,
+    )
+except ModuleNotFoundError:
+    from langchain.retrievers import (
+        ContextualCompressionRetriever,
+        EnsembleRetriever,
+    )
 from langchain_community.retrievers import BM25Retriever
 from langchain_core.documents import Document
 

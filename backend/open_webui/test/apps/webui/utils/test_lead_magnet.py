@@ -101,7 +101,7 @@ class TestLeadMagnetBilling(AbstractPostgresTest):
 
     @pytest.mark.asyncio
     async def test_lead_magnet_text_skips_wallet_hold(self, monkeypatch):
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import BillingSource, LeadMagnetStates, UsageEvent
         from open_webui.models.billing import LedgerEntry, Wallets
         from open_webui.utils.billing_integration import (
@@ -181,7 +181,7 @@ class TestLeadMagnetBilling(AbstractPostgresTest):
 
     @pytest.mark.asyncio
     async def test_lead_magnet_falls_back_to_payg(self, monkeypatch):
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import BillingSource, LedgerEntry, Wallets
         from open_webui.utils.billing_integration import preflight_estimate_hold
         from open_webui.utils.wallet import wallet_service

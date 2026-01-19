@@ -48,7 +48,7 @@ class TestUsers(AbstractPostgresTest):
 
     def test_users(self):
         # Get all users
-        with mock_webui_user(id="3"):
+        with mock_webui_user(id="1"):
             response = self.fast_api_client.get(self.create_url(""))
         assert response.status_code == 200
         payload = response.json()
@@ -58,7 +58,7 @@ class TestUsers(AbstractPostgresTest):
         _assert_user(data, "2")
 
         # update role
-        with mock_webui_user(id="3"):
+        with mock_webui_user(id="1"):
             response = self.fast_api_client.post(
                 self.create_url("/2/update"),
                 json={
@@ -72,7 +72,7 @@ class TestUsers(AbstractPostgresTest):
         _assert_user([response.json()], "2", role="admin")
 
         # Get all users
-        with mock_webui_user(id="3"):
+        with mock_webui_user(id="1"):
             response = self.fast_api_client.get(self.create_url(""))
         assert response.status_code == 200
         payload = response.json()
@@ -149,7 +149,7 @@ class TestUsers(AbstractPostgresTest):
         assert response.status_code == 200
 
         # Get all users
-        with mock_webui_user(id="3"):
+        with mock_webui_user(id="1"):
             response = self.fast_api_client.get(self.create_url(""))
         assert response.status_code == 200
         payload = response.json()
@@ -171,7 +171,7 @@ class TestUsers(AbstractPostgresTest):
         assert response.status_code == 200
 
         # Get all users
-        with mock_webui_user(id="3"):
+        with mock_webui_user(id="1"):
             response = self.fast_api_client.get(self.create_url(""))
         assert response.status_code == 200
         payload = response.json()

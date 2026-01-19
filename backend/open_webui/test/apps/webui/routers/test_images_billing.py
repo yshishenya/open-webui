@@ -39,8 +39,12 @@ class TestImagesBilling(AbstractPostgresTest):
 
         RateCards.create_rate_card(rate_card.model_dump())
 
+        config = self.fast_api_client.app.state.config
+        config.ENABLE_IMAGE_GENERATION = True
+        config.USER_PERMISSIONS["features"]["image_generation"] = True
+
     def test_image_generation_billing(self, monkeypatch: MonkeyPatch) -> None:
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import LedgerEntry, RateCards, UsageEvent, Wallets
         from open_webui.utils.pricing import PricingService
         from open_webui.utils.wallet import wallet_service
@@ -132,7 +136,7 @@ class TestImagesBilling(AbstractPostgresTest):
         assert usage_event.cost_charged_kopeks == expected_charge
 
     def test_image_generation_error_releases_hold(self, monkeypatch: MonkeyPatch) -> None:
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import LedgerEntry, Wallets
         from open_webui.utils.wallet import wallet_service
         import open_webui.routers.images as images_router

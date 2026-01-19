@@ -25,6 +25,7 @@ from open_webui.models.billing import (
     TransactionModel,
     UsageMetric,
     Wallets,
+    RateCards,
 )
 from open_webui.utils.auth import get_verified_user, get_admin_user
 from open_webui.utils.billing import billing_service, QuotaExceededError
@@ -56,6 +57,37 @@ def _require_subscriptions_enabled() -> None:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Billing subscriptions are disabled",
         )
+
+
+def _normalize_public_lead_magnet_quotas(raw: Dict[str, object]) -> Dict[str, int]:
+    defaults: Dict[str, int] = {
+        "tokens_input": 0,
+        "tokens_output": 0,
+        "images": 0,
+        "tts_seconds": 0,
+        "stt_seconds": 0,
+    }
+    for key, value in raw.items():
+        if key in defaults and isinstance(value, int):
+            defaults[key] = value
+    return defaults
+
+
+def _latest_rate_cards_for_model(
+    model_id: str, as_of: Optional[int] = None
+) -> Dict[tuple[str, str], object]:
+    entries = RateCards.list_rate_cards(model_id=model_id, is_active=True, limit=200)
+    now = as_of or int(time.time())
+    latest: Dict[tuple[str, str], object] = {}
+    for entry in entries:
+        if entry.effective_from > now:
+            continue
+        if entry.effective_to is not None and entry.effective_to < now:
+            continue
+        key = (entry.modality, entry.unit)
+        if key not in latest:
+            latest[key] = entry
+    return latest
 
 
 ############################
@@ -118,6 +150,39 @@ class CheckQuotaResponse(BaseModel):
     current_usage: int
     quota_limit: Optional[int]
     remaining: Optional[int]
+
+
+class PublicLeadMagnetQuotas(BaseModel):
+    tokens_input: int = 0
+    tokens_output: int = 0
+    images: int = 0
+    tts_seconds: int = 0
+    stt_seconds: int = 0
+
+
+class PublicLeadMagnetResponse(BaseModel):
+    enabled: bool
+    cycle_days: int
+    quotas: PublicLeadMagnetQuotas
+    config_version: int
+
+
+class PublicRateCardUnit(BaseModel):
+    modality: str
+    unit: str
+    per_unit: int
+    price_kopeks: int
+    min_charge_kopeks: int
+
+
+class PublicRateCardModel(BaseModel):
+    model_id: str
+    rates: List[PublicRateCardUnit]
+
+
+class PublicRateCardResponse(BaseModel):
+    currency: str
+    models: List[PublicRateCardModel]
 
 
 class BalanceResponse(BaseModel):
@@ -1023,6 +1088,69 @@ async def get_lead_magnet_info(user=Depends(get_verified_user)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get lead magnet info",
         )
+
+
+@router.get("/public/lead-magnet", response_model=PublicLeadMagnetResponse)
+async def get_public_lead_magnet_config(request: Request) -> PublicLeadMagnetResponse:
+    """Expose lead magnet configuration for public pages."""
+    config = request.app.state.config
+    quotas = _normalize_public_lead_magnet_quotas(config.LEAD_MAGNET_QUOTAS or {})
+    return PublicLeadMagnetResponse(
+        enabled=bool(config.LEAD_MAGNET_ENABLED),
+        cycle_days=int(config.LEAD_MAGNET_CYCLE_DAYS),
+        quotas=PublicLeadMagnetQuotas(**quotas),
+        config_version=int(config.LEAD_MAGNET_CONFIG_VERSION),
+    )
+
+
+@router.get("/public/rate-cards", response_model=PublicRateCardResponse)
+async def get_public_rate_cards() -> PublicRateCardResponse:
+    """Expose PAYG rate cards for selected public models."""
+    now = int(time.time())
+    public_models = [
+        "gpt-5.2",
+        "gemini/gemini-3-pro-preview",
+    ]
+    display_units = {
+        ("text", "token_in"): 1000,
+        ("text", "token_out"): 1000,
+        ("image", "image_1024"): 1,
+        ("tts", "tts_char"): 1000,
+        ("stt", "stt_second"): 60,
+    }
+
+    models: List[PublicRateCardModel] = []
+    for model_id in public_models:
+        latest = _latest_rate_cards_for_model(model_id, as_of=now)
+        rates: List[PublicRateCardUnit] = []
+
+        for (modality, unit), per_unit in display_units.items():
+            entry = latest.get((modality, unit))
+            if not entry:
+                continue
+            pricing_units = Decimal(per_unit)
+            if modality == "text" and unit in {"token_in", "token_out"}:
+                pricing_units = Decimal(1)
+            price = pricing_service.calculate_cost_kopeks(
+                pricing_units, entry, 0
+            )
+            rates.append(
+                PublicRateCardUnit(
+                    modality=modality,
+                    unit=unit,
+                    per_unit=per_unit,
+                    price_kopeks=price,
+                    min_charge_kopeks=entry.min_charge_kopeks,
+                )
+            )
+
+        if rates:
+            models.append(PublicRateCardModel(model_id=model_id, rates=rates))
+
+    return PublicRateCardResponse(
+        currency=BILLING_DEFAULT_CURRENCY,
+        models=models,
+    )
 
 
 ############################

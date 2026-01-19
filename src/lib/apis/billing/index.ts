@@ -76,6 +76,31 @@ export interface LeadMagnetInfo {
 	config_version: number;
 }
 
+export interface PublicLeadMagnetConfig {
+	enabled: boolean;
+	cycle_days: number;
+	quotas: LeadMagnetUsage;
+	config_version: number;
+}
+
+export interface PublicRateCardUnit {
+	modality: string;
+	unit: string;
+	per_unit: number;
+	price_kopeks: number;
+	min_charge_kopeks: number;
+}
+
+export interface PublicRateCardModel {
+	model_id: string;
+	rates: PublicRateCardUnit[];
+}
+
+export interface PublicRateCardResponse {
+	currency: string;
+	models: PublicRateCardModel[];
+}
+
 export interface LedgerEntry {
 	id: string;
 	user_id: string;
@@ -671,6 +696,28 @@ export const getLeadMagnetInfo = async (token: string): Promise<LeadMagnetInfo |
 		);
 	} catch (error) {
 		console.error('Failed to get lead magnet info:', error);
+		return null;
+	}
+};
+
+export const getPublicLeadMagnetConfig = async (): Promise<PublicLeadMagnetConfig | null> => {
+	try {
+		return await publicApiRequest<PublicLeadMagnetConfig>(
+			`${WEBUI_API_BASE_URL}/billing/public/lead-magnet`,
+		);
+	} catch (error) {
+		console.error('Failed to get public lead magnet config:', error);
+		return null;
+	}
+};
+
+export const getPublicRateCards = async (): Promise<PublicRateCardResponse | null> => {
+	try {
+		return await publicApiRequest<PublicRateCardResponse>(
+			`${WEBUI_API_BASE_URL}/billing/public/rate-cards`,
+		);
+	} catch (error) {
+		console.error('Failed to get public rate cards:', error);
 		return null;
 	}
 };

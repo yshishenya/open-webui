@@ -54,7 +54,7 @@ class TestOpenAISpeechBilling(AbstractPostgresTest):
         RateCards.create_rate_card(rate_card.model_dump())
 
     def test_openai_speech_billing(self, monkeypatch: MonkeyPatch) -> None:
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import LedgerEntry, RateCards, UsageEvent, Wallets
         from open_webui.utils.pricing import PricingService
         from open_webui.utils.wallet import wallet_service
@@ -130,7 +130,7 @@ class TestOpenAISpeechBilling(AbstractPostgresTest):
         assert usage_event.cost_charged_kopeks == expected_charge
 
     def test_openai_speech_error_releases_hold(self, monkeypatch: MonkeyPatch) -> None:
-        from open_webui.internal.db import Session
+        from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import LedgerEntry, Wallets
         from open_webui.utils.wallet import wallet_service
         import open_webui.routers.openai as openai_router
