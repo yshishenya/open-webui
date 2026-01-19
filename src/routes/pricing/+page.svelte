@@ -1,309 +1,338 @@
 <script lang="ts">
-	import { onMount, onDestroy, getContext } from 'svelte';
+	import { onMount, getContext } from 'svelte';
 	import { PublicPageLayout } from '$lib/components/landing';
-	import { getPlansPublic } from '$lib/apis/billing';
-	import type { PublicPlan } from '$lib/apis/billing';
-	import { getQuotaLabel, formatQuotaValue } from '$lib/utils/billing-formatters';
+	import {
+		getPublicLeadMagnetConfig,
+		getPublicRateCards
+	} from '$lib/apis/billing';
+	import type {
+		PublicLeadMagnetConfig,
+		PublicRateCardResponse,
+		PublicRateCardUnit
+	} from '$lib/apis/billing';
+	import { formatCompactNumber } from '$lib/utils/billing-formatters';
 	import Spinner from '$lib/components/common/Spinner.svelte';
-	import { config } from '$lib/stores';
 
 	const i18n = getContext('i18n');
 
-	let billingPeriod: 'monthly' | 'annual' = 'monthly';
-	let plans: PublicPlan[] = [];
 	let loading = true;
 	let errorMessage = '';
-	let didLoad = false;
-	let unsubscribeConfig: (() => void) | null = null;
-	let subscriptionsEnabled = true;
+	let leadMagnetConfig: PublicLeadMagnetConfig | null = null;
+	let rateCards: PublicRateCardResponse | null = null;
 
-	const heroImage =
-		'https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1400&q=80';
+	const modelLabels: Record<string, string> = {
+		'gpt-5.2': 'GPT-5.2',
+		'gemini/gemini-3-pro-preview': 'Gemini 3'
+	};
 
 	onMount(async () => {
-		unsubscribeConfig = config.subscribe((current) => {
-			if (!current || didLoad) return;
-			const enabled = current.features?.enable_billing_subscriptions ?? true;
-			if (!enabled) {
-				subscriptionsEnabled = false;
-				loading = false;
-				didLoad = true;
-				return;
-			}
-			subscriptionsEnabled = true;
-			didLoad = true;
-			loadPlans();
-		});
-	});
-
-	onDestroy(() => {
-		unsubscribeConfig?.();
-	});
-
-	const loadPlans = async (): Promise<void> => {
 		loading = true;
 		errorMessage = '';
 		try {
-			const result = await getPlansPublic();
-			plans = (result ?? []).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+			const [rateCardsResult, leadMagnetResult] = await Promise.all([
+				getPublicRateCards(),
+				getPublicLeadMagnetConfig()
+			]);
+			rateCards = rateCardsResult;
+			leadMagnetConfig = leadMagnetResult;
+			if (!rateCardsResult) {
+				errorMessage = $i18n.t('Failed to load pricing');
+			}
 		} catch (error) {
-			console.error('Failed to load public plans:', error);
-			errorMessage = $i18n.t('Failed to load subscription plans');
+			console.error('Failed to load public pricing:', error);
+			errorMessage = $i18n.t('Failed to load pricing');
 		} finally {
 			loading = false;
 		}
-	};
+	});
 
-	$: monthlyPlans = plans.filter((plan) => plan.interval === 'month');
-	$: annualPlans = plans.filter((plan) => plan.interval === 'year');
-	$: annualAvailable = annualPlans.length > 0;
-	$: activePlans =
-		billingPeriod === 'annual' && annualAvailable
-			? annualPlans
-			: monthlyPlans.length > 0
-				? monthlyPlans
-				: plans;
-
-	const formatPrice = (plan: PublicPlan): string => {
-		if (plan.price === 0) return $i18n.t('Free');
+	const formatMoney = (kopeks: number, currency: string): string => {
+		const amount = kopeks / 100;
 		try {
 			return new Intl.NumberFormat($i18n.locale, {
 				style: 'currency',
-				currency: plan.currency
-			}).format(plan.price);
+				currency
+			}).format(amount);
 		} catch (error) {
-			console.warn('Invalid currency code:', plan.currency, error);
-			return `${plan.price} ${plan.currency}`.trim();
+			return `${amount.toFixed(2)} ${currency}`.trim();
 		}
 	};
 
-	const formatInterval = (interval: string): string => {
-		const intervals: Record<string, string> = {
-			month: $i18n.t('per month'),
-			year: $i18n.t('per year'),
-			week: $i18n.t('per week'),
-			day: $i18n.t('per day')
-		};
-		return intervals[interval] || interval;
+	const formatRateLabel = (rate: PublicRateCardUnit): string => {
+		if (rate.modality === 'text' && rate.unit === 'token_in') return 'Текст: ввод (1000 токенов)';
+		if (rate.modality === 'text' && rate.unit === 'token_out') return 'Текст: вывод (1000 токенов)';
+		if (rate.modality === 'image') return 'Изображение (1024px)';
+		if (rate.modality === 'tts') return 'Озвучка (1000 символов)';
+		if (rate.modality === 'stt') return 'Распознавание (1 минута)';
+		return `${rate.modality} / ${rate.unit}`;
 	};
 
-	const getPlanTitle = (plan: PublicPlan): string => {
-		return plan.name_ru || plan.name;
+	const formatLeadMagnetItems = (config: PublicLeadMagnetConfig | null) => {
+		if (!config?.enabled) return [];
+		const quotas = config.quotas;
+		return [
+			{ label: 'Токены (ввод)', value: quotas.tokens_input },
+			{ label: 'Токены (вывод)', value: quotas.tokens_output },
+			{ label: 'Изображения', value: quotas.images },
+			{ label: 'TTS (сек)', value: quotas.tts_seconds },
+			{ label: 'STT (сек)', value: quotas.stt_seconds }
+		].filter((item) => item.value > 0);
 	};
 
-	const getPlanDescription = (plan: PublicPlan): string => {
-		return plan.description_ru || plan.description || '';
+	const findRate = (modelId: string, modality: PublicRateCardUnit['modality'], unit: PublicRateCardUnit['unit']) => {
+		const model = rateCards?.models?.find((item) => item.model_id === modelId);
+		return model?.rates?.find((rate) => rate.modality === modality && rate.unit === unit) ?? null;
 	};
 
-	const getPlanFeatures = (plan: PublicPlan): { text: string }[] => {
-		const items: { text: string }[] = [];
-		if (plan.quotas) {
-			for (const [key, value] of Object.entries(plan.quotas)) {
-				items.push({
-					text: `${getQuotaLabel(key, (k) => $i18n.t(k))}: ${formatQuotaValue(value)}`
-				});
-			}
-		}
-		if (plan.features) {
-			plan.features.forEach((feature) => items.push({ text: feature }));
-		}
-		return items;
+	const estimateTextCost = (tokensIn: number, tokensOut: number) => {
+		if (!rateCards?.currency) return null;
+		const firstModel = rateCards.models?.[0]?.model_id;
+		if (!firstModel) return null;
+		const inRate = findRate(firstModel, 'text', 'token_in');
+		const outRate = findRate(firstModel, 'text', 'token_out');
+		if (!inRate || !outRate) return null;
+		const costKopeks = (tokensIn / 1000) * inRate.price_kopeks + (tokensOut / 1000) * outRate.price_kopeks;
+		return formatMoney(costKopeks, rateCards.currency ?? 'RUB');
 	};
 
-	const getPopularIndex = (list: PublicPlan[]): number => {
-		if (list.length < 3) return -1;
-		return Math.floor(list.length / 2);
+	const estimateImageCost = () => {
+		if (!rateCards?.currency) return null;
+		const firstModel = rateCards.models?.[0]?.model_id;
+		if (!firstModel) return null;
+		const rate =
+			findRate(firstModel, 'image', 'image_1024') ??
+			rateCards.models?.[0]?.rates?.find((entry) => entry.modality === 'image') ??
+			null;
+		if (!rate) return null;
+		return formatMoney(rate.price_kopeks, rateCards.currency ?? 'RUB');
 	};
 
-	const handleSelectPlan = (plan: PublicPlan) => {
-		if (plan.price === 0) {
-			window.location.href = '/';
-			return;
-		}
-		window.location.href = `/auth?plan=${plan.id}`;
-	};
+	$: leadMagnetItems = formatLeadMagnetItems(leadMagnetConfig);
+	$: example10 = estimateTextCost(800, 800);
+	$: example50 = estimateTextCost(4000, 4000);
+	$: exampleImage = estimateImageCost();
 </script>
 
 <PublicPageLayout
 	title="Тарифы"
-	description="Выберите подходящий тариф AIris. От бесплатного доступа до корпоративных решений."
-	showHero={true}
-	heroTitle="Тарифы и оплата"
-	heroSubtitle="Прозрачные планы и оплата по факту использования"
-	heroEyebrow="Тарифы"
-	heroImage={heroImage}
-	heroImageAlt="Оплата и финансы"
+	description="PAYG‑оплата в AIris: прозрачные цены по фактическому использованию и бесплатный старт."
+	showHero={false}
 >
-	<div class="container mx-auto px-4 pt-4 pb-16">
+	<section class="container mx-auto px-4 pt-12 pb-12">
+		<div class="relative">
+			<div class="absolute -top-20 -right-32 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
+			<div class="absolute -left-20 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
+			<div class="grid lg:grid-cols-[1.05fr_0.95fr] gap-14 items-center">
+				<div class="space-y-6">
+					<span class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gray-600">
+						Тарифы
+					</span>
+					<h1 class="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.05]">
+						PAYG‑оплата без подписок
+					</h1>
+					<p class="text-lg md:text-xl text-gray-600 max-w-xl">
+						Платите только за фактическое использование.
+					</p>
+					<div class="flex flex-wrap gap-3">
+						<a
+							href="/auth"
+							class="bg-black text-white px-6 py-3 rounded-full font-semibold hover:bg-gray-900 transition-colors"
+						>
+							Начать бесплатно
+						</a>
+						<a
+							href="/auth"
+							class="px-6 py-3 rounded-full border border-gray-300 text-gray-700 font-semibold hover:border-gray-400 hover:text-gray-900 transition-colors"
+						>
+							Пополнить баланс
+						</a>
+					</div>
+					<div class="flex flex-wrap gap-3">
+						{#each ['Стоимость видна до отправки', 'Оплата только за фактические запросы', 'Прозрачные списания'] as item}
+							<div class="rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-xs font-semibold text-gray-700">
+								{item}
+							</div>
+						{/each}
+					</div>
+				</div>
+
+				<div class="rounded-[32px] border border-gray-200/70 bg-white/90 p-6 shadow-sm">
+					<h3 class="text-xl font-semibold text-gray-900 mb-4">Как работает PAYG</h3>
+					<ul class="space-y-3 text-sm text-gray-700">
+						<li class="flex items-start gap-2">
+							<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+							Раздельный расчет по входным и выходным токенам
+						</li>
+						<li class="flex items-start gap-2">
+							<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+							Фиксированные ставки на изображения и аудио
+						</li>
+						<li class="flex items-start gap-2">
+							<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+							История списаний в личном кабинете
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="container mx-auto px-4 pb-12">
 		{#if loading}
 			<div class="flex justify-center">
 				<Spinner className="size-5" />
-			</div>
-		{:else if !subscriptionsEnabled}
-			<div class="max-w-4xl mx-auto text-center">
-				<div class="bg-white rounded-2xl border border-gray-200/70 p-8 shadow-sm">
-					<h3 class="text-2xl font-semibold text-gray-900 mb-3">{$i18n.t('Wallet')}</h3>
-					<p class="text-gray-600 text-sm mb-6">
-						{$i18n.t('Pay-as-you-go via wallet balance.')}
-					</p>
-
-					<div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700 mb-6">
-						<div class="bg-gray-50 rounded-xl border border-gray-200/70 p-4">
-							{$i18n.t('No subscription needed')}
-						</div>
-						<div class="bg-gray-50 rounded-xl border border-gray-200/70 p-4">
-							{$i18n.t('Top up when you want')}
-						</div>
-						<div class="bg-gray-50 rounded-xl border border-gray-200/70 p-4">
-							{$i18n.t('Pay only for what you use')}
-						</div>
-					</div>
-
-					<a
-						href="/auth"
-						class="inline-flex items-center justify-center px-6 py-2 rounded-full bg-black text-white shadow-sm"
-					>
-						{$i18n.t('Start free')}
-					</a>
-				</div>
 			</div>
 		{:else if errorMessage}
 			<div class="flex flex-col items-center justify-center py-24 text-center">
 				<div class="text-gray-500 text-lg">{errorMessage}</div>
 			</div>
 		{:else}
-			<div class="flex justify-center mb-12">
-				<div class="bg-white/90 rounded-full p-1 border border-gray-200/70 shadow-sm inline-flex">
-					<button
-						on:click={() => (billingPeriod = 'monthly')}
-						class="px-6 py-2 rounded-full transition-all duration-200 {billingPeriod === 'monthly'
-							? 'bg-black text-white'
-							: 'text-gray-600 hover:text-gray-900'}"
-					>
-						Ежемесячно
-					</button>
-					<button
-						on:click={() => annualAvailable && (billingPeriod = 'annual')}
-						disabled={!annualAvailable}
-						class="px-6 py-2 rounded-full transition-all duration-200 relative {billingPeriod === 'annual'
-							? 'bg-black text-white'
-							: 'text-gray-600 hover:text-gray-900'} {annualAvailable ? '' : 'opacity-50 cursor-not-allowed'}"
-					>
-						Ежегодно
-						{#if annualAvailable}
-							<span class="absolute -top-2 -right-2 bg-gray-900 text-white text-xs px-2 py-0.5 rounded-full">
-								-16%
-							</span>
-						{/if}
-					</button>
-				</div>
+			<div class="rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
+				<h2 class="text-2xl md:text-3xl font-semibold text-gray-900 text-center mb-10">
+					Реальные ставки PAYG
+				</h2>
+				{#if rateCards?.models?.length}
+					<div class="grid md:grid-cols-2 gap-6">
+						{#each rateCards.models as model}
+							<div class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm">
+								<div class="text-sm font-semibold text-gray-900 mb-4">
+									{modelLabels[model.model_id] ?? model.model_id}
+								</div>
+								<ul class="space-y-3 text-sm text-gray-700">
+									{#each model.rates as rate}
+										<li class="flex items-center justify-between gap-4">
+											<span>{formatRateLabel(rate)}</span>
+											<span class="font-semibold text-gray-900">
+												{formatMoney(rate.price_kopeks, rateCards?.currency ?? 'RUB')}
+											</span>
+										</li>
+									{/each}
+								</ul>
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<div class="text-center text-sm text-gray-500">
+						Тарифы будут доступны после настройки rate card.
+					</div>
+				{/if}
 			</div>
 
-			<div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
-				{#each activePlans as plan, index}
-					<div class="relative">
-						{#if index === getPopularIndex(activePlans)}
-							<div class="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-								<span class="bg-black text-white px-4 py-1 rounded-full text-sm font-semibold shadow-sm">
-									Популярный
-								</span>
+			<div class="mt-12 rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
+				<h2 class="text-2xl font-semibold text-gray-900 mb-4">
+					Бесплатный старт на выбранных моделях
+				</h2>
+				<p class="text-gray-600 mb-6">
+					Часть моделей доступна бесплатно в пределах лимитов, которые обновляются каждые
+					{leadMagnetConfig?.cycle_days ?? 30} дней.
+				</p>
+				{#if leadMagnetItems.length}
+					<div class="grid gap-3 sm:grid-cols-3 text-sm text-gray-700">
+						{#each leadMagnetItems as item}
+							<div class="rounded-xl border border-gray-200/70 bg-gray-50 px-4 py-3">
+								{item.label}: {formatCompactNumber(item.value)}
 							</div>
-						{/if}
+						{/each}
+					</div>
+				{:else}
+					<div class="text-sm text-gray-500">
+						Лимиты будут отображаться после настройки квот администратора.
+					</div>
+				{/if}
+			</div>
 
-						<div class="bg-white rounded-2xl border border-gray-200/70 p-8 h-full flex flex-col shadow-sm {index === getPopularIndex(activePlans)
-							? 'ring-1 ring-gray-900/10'
-							: ''}">
-							<div class="text-center mb-6">
-								<h3 class="text-2xl font-semibold text-gray-900 mb-2">
-									{getPlanTitle(plan)}
-								</h3>
-								{#if getPlanDescription(plan)}
-									<p class="text-gray-600 text-sm mb-4">
-										{getPlanDescription(plan)}
-									</p>
-								{/if}
-								<div class="mb-2">
-									<span class="text-4xl font-semibold text-gray-900">
-										{formatPrice(plan)}
-									</span>
-									{#if plan.price > 0}
-										<span class="text-gray-600">{formatInterval(plan.interval)}</span>
-									{/if}
-								</div>
-							</div>
-
-							<ul class="space-y-3 mb-8 flex-grow">
-								{#each getPlanFeatures(plan) as feature}
-									<li class="flex items-start gap-3">
-										<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
-										<span class="text-gray-700 text-sm">{feature.text}</span>
-									</li>
-								{/each}
-							</ul>
-
-							<button
-								on:click={() => handleSelectPlan(plan)}
-								class="w-full py-3 px-6 rounded-full font-semibold transition-colors {index === getPopularIndex(activePlans)
-									? 'bg-black text-white hover:bg-gray-900'
-									: 'bg-gray-100 text-gray-900 hover:bg-gray-200'}"
-							>
-								{plan.price === 0 ? $i18n.t('Start for free') : $i18n.t('Choose plan')}
-							</button>
+			<div class="mt-12 rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
+				<h2 class="text-2xl md:text-3xl font-semibold text-gray-900 text-center mb-8">
+					Пример расходов
+				</h2>
+				<div class="grid md:grid-cols-3 gap-6 text-sm text-gray-700">
+					<div class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm">
+						<h3 class="text-lg font-semibold text-gray-900 mb-2">10 сообщений в день</h3>
+						<p class="text-gray-600 mb-4">Текстовые запросы средней длины.</p>
+						<div class="text-xl font-semibold text-gray-900">
+							{example10 ?? '—'}
 						</div>
 					</div>
-				{/each}
+					<div class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm">
+						<h3 class="text-lg font-semibold text-gray-900 mb-2">50 сообщений в день</h3>
+						<p class="text-gray-600 mb-4">Активная работа с текстом.</p>
+						<div class="text-xl font-semibold text-gray-900">
+							{example50 ?? '—'}
+						</div>
+					</div>
+					<div class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm">
+						<h3 class="text-lg font-semibold text-gray-900 mb-2">1 изображение</h3>
+						<p class="text-gray-600 mb-4">Генерация визуала 1024px.</p>
+						<div class="text-xl font-semibold text-gray-900">
+							{exampleImage ?? '—'}
+						</div>
+					</div>
+				</div>
+				<p class="mt-6 text-xs text-gray-500 text-center">
+					Примеры ориентировочные и рассчитываются по актуальным ставкам.
+				</p>
 			</div>
 		{/if}
+	</section>
 
-		<div class="max-w-3xl mx-auto">
+	<section class="container mx-auto px-4 pb-16">
+		<div class="rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
 			<h2 class="text-2xl md:text-3xl font-semibold text-center text-gray-900 mb-8">
 				Часто задаваемые вопросы
 			</h2>
-			<div class="space-y-4">
+			<div class="max-w-3xl mx-auto space-y-4">
 				<details class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm group">
 					<summary class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center">
-						Можно ли изменить план позже?
+						Как считается стоимость в PAYG?
 						<svg
 							class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
 						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M19 9l-7 7-7-7"
-							></path>
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
 						</svg>
 					</summary>
 					<p class="mt-4 text-gray-600">
-						Да, вы можете изменить свой план в любое время в личном кабинете.
+						Списание зависит от модели и объема: токены считаются отдельно для ввода и вывода,
+						а изображения и аудио — по фиксированным ставкам.
 					</p>
 				</details>
 
 				<details class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm group">
 					<summary class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center">
-						Как работает помесячная оплата?
+						Есть ли бесплатный доступ?
 						<svg
 							class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
 						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M19 9l-7 7-7-7"
-							></path>
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
 						</svg>
 					</summary>
 					<p class="mt-4 text-gray-600">
-						Помесячная оплата списывается автоматически каждый месяц с момента покупки.
+						Да, часть моделей доступна бесплатно в пределах лимитов лид‑магнита.
+					</p>
+				</details>
+
+				<details class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm group">
+					<summary class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center">
+						Как пополнить баланс?
+						<svg
+							class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+						</svg>
+					</summary>
+					<p class="mt-4 text-gray-600">
+						Войдите в аккаунт, откройте баланс и выберите удобную сумму пополнения.
 					</p>
 				</details>
 			</div>
 		</div>
-	</div>
+	</section>
 </PublicPageLayout>

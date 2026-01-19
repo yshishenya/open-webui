@@ -1,39 +1,66 @@
 <script lang="ts">
 	import { PublicPageLayout } from '$lib/components/landing';
 
-	const lastUpdated = '1 января 2025';
+	const lastUpdated = '19 января 2026';
 </script>
 
 <PublicPageLayout
 	title="Политика конфиденциальности"
 	description="Политика конфиденциальности AIris. Узнайте, как мы собираем, используем и защищаем ваши данные."
+	showHero={false}
 >
-	<div class="container mx-auto px-4 pt-12 pb-16">
-		<div class="max-w-4xl mx-auto">
-			<!-- Header -->
-			<div class="text-center mb-12">
-				<h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+	<section class="container mx-auto px-4 pt-12 pb-12">
+		<div class="relative">
+			<div class="absolute -top-20 -right-32 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
+			<div class="absolute -left-20 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
+			<div class="space-y-6">
+				<span class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gray-600">
+					Документы
+				</span>
+				<h1 class="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.05]">
 					Политика конфиденциальности
 				</h1>
-				<p class="text-gray-600">
-					Последнее обновление: {lastUpdated}
+				<p class="text-lg md:text-xl text-gray-600 max-w-3xl">
+					Рассказываем, какие данные мы собираем, зачем это нужно и как их защищаем.
 				</p>
+				<p class="text-sm text-gray-500">Последнее обновление: {lastUpdated}</p>
 			</div>
+		</div>
+	</section>
 
-			<!-- Content -->
+	<section class="container mx-auto px-4 pb-12">
+		<div class="rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
+			<h2 class="text-2xl font-semibold text-gray-900 mb-4">Коротко</h2>
+			<ul class="space-y-3 text-sm text-gray-700">
+				<li class="flex items-start gap-2">
+					<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+					Собираем только данные, необходимые для работы сервиса.
+				</li>
+				<li class="flex items-start gap-2">
+					<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+					Передаем данные только партнёрам, которые обеспечивают работу сервиса.
+				</li>
+				<li class="flex items-start gap-2">
+					<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+					Вы можете запросить доступ, исправление или удаление данных.
+				</li>
+			</ul>
+		</div>
+	</section>
+
+	<section class="container mx-auto px-4 pb-16">
+		<div class="max-w-4xl mx-auto">
 			<div class="bg-white rounded-2xl border border-gray-200/70 shadow-sm p-8 md:p-12 space-y-8">
-				<!-- Introduction -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">1. Введение</h2>
 					<p class="text-gray-600 leading-relaxed">
-						ООО "Open WebUI" (далее - "Компания", "мы") уважает вашу конфиденциальность и обязуется
+						ИП Шишеня Ян Александрович (далее - "Компания", "мы") уважает вашу конфиденциальность и обязуется
 						защищать ваши персональные данные. Настоящая Политика конфиденциальности описывает,
 						как мы собираем, используем и защищаем информацию, которую вы предоставляете при
-						использовании сервиса Open WebUI.
+						использовании сервиса AIris.
 					</p>
 				</section>
 
-				<!-- Data Collection -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">2. Какие данные мы собираем</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
@@ -42,7 +69,7 @@
 							<li>Имя и email при регистрации</li>
 							<li>Данные профиля (аватар, настройки)</li>
 							<li>Содержание ваших чатов с AI-моделями</li>
-							<li>Платежная информация при оформлении подписки</li>
+							<li>Платежная информация при пополнении баланса</li>
 							<li>Сообщения в службу поддержки</li>
 						</ul>
 
@@ -56,7 +83,6 @@
 					</div>
 				</section>
 
-				<!-- Data Usage -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">3. Как мы используем ваши данные</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
@@ -64,7 +90,7 @@
 						<ul class="list-disc pl-6 space-y-2">
 							<li>Предоставления и улучшения сервиса</li>
 							<li>Персонализации вашего опыта</li>
-							<li>Обработки платежей и управления подпиской</li>
+							<li>Обработки платежей и управления балансом</li>
 							<li>Отправки важных уведомлений о сервисе</li>
 							<li>Технической поддержки и ответов на обращения</li>
 							<li>Анализа использования и улучшения функций</li>
@@ -74,7 +100,6 @@
 					</div>
 				</section>
 
-				<!-- Data Sharing -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">4. Передача данных третьим лицам</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
@@ -93,7 +118,6 @@
 					</div>
 				</section>
 
-				<!-- Data Protection -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">5. Защита данных</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
@@ -109,7 +133,6 @@
 					</div>
 				</section>
 
-				<!-- Data Retention -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">6. Хранение данных</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
@@ -118,7 +141,7 @@
 							предоставления услуг или выполнения законодательных требований.
 						</p>
 						<p>
-							6.2. История чатов хранится в соответствии с вашим тарифным планом.
+							6.2. История чатов хранится в соответствии с настройками вашего аккаунта.
 						</p>
 						<p>
 							6.3. После удаления аккаунта ваши данные удаляются в течение 30 дней,
@@ -127,7 +150,6 @@
 					</div>
 				</section>
 
-				<!-- User Rights -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">7. Ваши права</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
@@ -143,12 +165,11 @@
 						</ul>
 						<p class="pt-4">
 							Для реализации своих прав обратитесь к нам по адресу
-							<a href="mailto:privacy@openwebui.ru" class="text-gray-900 font-medium hover:underline">privacy@openwebui.ru</a>.
+							<a href="mailto:support@airis.you" class="text-gray-900 font-medium hover:underline">support@airis.you</a>.
 						</p>
 					</div>
 				</section>
 
-				<!-- Cookies -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">8. Файлы cookie</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
@@ -164,7 +185,6 @@
 					</div>
 				</section>
 
-				<!-- Children -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">9. Защита детей</h2>
 					<p class="text-gray-600 leading-relaxed">
@@ -174,7 +194,6 @@
 					</p>
 				</section>
 
-				<!-- Changes -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">10. Изменения политики</h2>
 					<p class="text-gray-600 leading-relaxed">
@@ -183,19 +202,17 @@
 					</p>
 				</section>
 
-				<!-- Contact -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">11. Контактная информация</h2>
 					<p class="text-gray-600 leading-relaxed">
 						По вопросам, связанным с защитой персональных данных:
 					</p>
 					<ul class="mt-4 text-gray-600 space-y-2">
-						<li>Email: <a href="mailto:privacy@openwebui.ru" class="text-gray-900 font-medium hover:underline">privacy@openwebui.ru</a></li>
+						<li>Email: <a href="mailto:support@airis.you" class="text-gray-900 font-medium hover:underline">support@airis.you</a></li>
 						<li>Форма обратной связи: <a href="/contact" class="text-gray-900 font-medium hover:underline">страница контактов</a></li>
 					</ul>
 				</section>
 
-				<!-- Navigation -->
 				<div class="pt-8 border-t border-gray-200 flex flex-wrap gap-4">
 					<a href="/terms" class="text-gray-900 font-medium hover:underline">
 						Условия использования
@@ -206,5 +223,5 @@
 				</div>
 			</div>
 		</div>
-	</div>
+	</section>
 </PublicPageLayout>

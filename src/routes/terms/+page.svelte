@@ -1,38 +1,65 @@
 <script lang="ts">
 	import { PublicPageLayout } from '$lib/components/landing';
 
-	const lastUpdated = '1 января 2025';
+	const lastUpdated = '19 января 2026';
 </script>
 
 <PublicPageLayout
 	title="Условия использования"
 	description="Условия использования сервиса AIris. Ознакомьтесь с правилами и ограничениями."
+	showHero={false}
 >
-	<div class="container mx-auto px-4 pt-12 pb-16">
-		<div class="max-w-4xl mx-auto">
-			<!-- Header -->
-			<div class="text-center mb-12">
-				<h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+	<section class="container mx-auto px-4 pt-12 pb-12">
+		<div class="relative">
+			<div class="absolute -top-20 -right-32 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
+			<div class="absolute -left-20 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
+			<div class="space-y-6">
+				<span class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gray-600">
+					Документы
+				</span>
+				<h1 class="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.05]">
 					Условия использования
 				</h1>
-				<p class="text-gray-600">
-					Последнее обновление: {lastUpdated}
+				<p class="text-lg md:text-xl text-gray-600 max-w-3xl">
+					Правила работы с сервисом AIris, оплата и ответственность сторон.
 				</p>
+				<p class="text-sm text-gray-500">Последнее обновление: {lastUpdated}</p>
 			</div>
+		</div>
+	</section>
 
-			<!-- Content -->
+	<section class="container mx-auto px-4 pb-12">
+		<div class="rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
+			<h2 class="text-2xl font-semibold text-gray-900 mb-4">Коротко</h2>
+			<ul class="space-y-3 text-sm text-gray-700">
+				<li class="flex items-start gap-2">
+					<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+					Сервис предоставляется на условиях PAYG — оплата по фактическому использованию.
+				</li>
+				<li class="flex items-start gap-2">
+					<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+					Вы отвечаете за корректность применения результатов работы AI‑моделей.
+				</li>
+				<li class="flex items-start gap-2">
+					<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+					Мы можем обновлять условия с предварительным уведомлением.
+				</li>
+			</ul>
+		</div>
+	</section>
+
+	<section class="container mx-auto px-4 pb-16">
+		<div class="max-w-4xl mx-auto">
 			<div class="bg-white rounded-2xl border border-gray-200/70 shadow-sm p-8 md:p-12 space-y-8">
-				<!-- Introduction -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">1. Общие положения</h2>
 					<p class="text-gray-600 leading-relaxed">
-						Настоящие Условия использования (далее - "Условия") регулируют использование сервиса Open WebUI
-						(далее - "Сервис"), предоставляемого ООО "Open WebUI" (далее - "Компания").
+						Настоящие Условия использования (далее - "Условия") регулируют использование сервиса AIris
+						(далее - "Сервис"), предоставляемого ИП Шишеня Ян Александрович (далее - "Компания").
 						Используя Сервис, вы соглашаетесь с настоящими Условиями.
 					</p>
 				</section>
 
-				<!-- Registration -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">2. Регистрация и аккаунт</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
@@ -55,7 +82,6 @@
 					</div>
 				</section>
 
-				<!-- Usage Rules -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">3. Правила использования</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
@@ -71,7 +97,6 @@
 					</div>
 				</section>
 
-				<!-- AI Usage -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">4. Использование AI-функций</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
@@ -90,20 +115,19 @@
 					</div>
 				</section>
 
-				<!-- Payment -->
 				<section>
-					<h2 class="text-2xl font-bold text-gray-900 mb-4">5. Оплата и подписка</h2>
+					<h2 class="text-2xl font-bold text-gray-900 mb-4">5. Оплата (PAYG)</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
 						<p>
-							5.1. Платные функции Сервиса предоставляются на условиях подписки.
-							Актуальные тарифы указаны на странице <a href="/pricing" class="text-gray-900 font-medium hover:underline">тарифов</a>.
+							5.1. Платные функции Сервиса предоставляются на условиях PAYG — оплата по фактическому
+							использованию. Актуальные тарифы указаны на странице
+							<a href="/pricing" class="text-gray-900 font-medium hover:underline">тарифов</a>.
 						</p>
 						<p>
-							5.2. Оплата производится автоматически в начале каждого расчетного периода.
+							5.2. Списание происходит автоматически при использовании функций Сервиса.
 						</p>
 						<p>
-							5.3. Вы можете отменить подписку в любой момент. Доступ к платным функциям
-							сохраняется до конца оплаченного периода.
+							5.3. Вы можете пополнять баланс в любое время и контролировать лимиты расходов.
 						</p>
 						<p>
 							5.4. Возврат средств осуществляется в соответствии с законодательством РФ
@@ -112,7 +136,6 @@
 					</div>
 				</section>
 
-				<!-- Intellectual Property -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">6. Интеллектуальная собственность</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
@@ -130,7 +153,6 @@
 					</div>
 				</section>
 
-				<!-- Limitation of Liability -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">7. Ограничение ответственности</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
@@ -149,7 +171,6 @@
 					</div>
 				</section>
 
-				<!-- Changes -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">8. Изменение условий</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
@@ -164,19 +185,17 @@
 					</div>
 				</section>
 
-				<!-- Contact -->
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">9. Контактная информация</h2>
 					<p class="text-gray-600 leading-relaxed">
 						По вопросам, связанным с настоящими Условиями, вы можете связаться с нами:
 					</p>
 					<ul class="mt-4 text-gray-600 space-y-2">
-						<li>Email: <a href="mailto:legal@openwebui.ru" class="text-gray-900 font-medium hover:underline">legal@openwebui.ru</a></li>
+						<li>Email: <a href="mailto:support@airis.you" class="text-gray-900 font-medium hover:underline">support@airis.you</a></li>
 						<li>Форма обратной связи: <a href="/contact" class="text-gray-900 font-medium hover:underline">страница контактов</a></li>
 					</ul>
 				</section>
 
-				<!-- Navigation -->
 				<div class="pt-8 border-t border-gray-200 flex flex-wrap gap-4">
 					<a href="/privacy" class="text-gray-900 font-medium hover:underline">
 						Политика конфиденциальности
@@ -187,5 +206,5 @@
 				</div>
 			</div>
 		</div>
-	</div>
+	</section>
 </PublicPageLayout>

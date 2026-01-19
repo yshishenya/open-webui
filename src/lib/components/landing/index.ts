@@ -8,3 +8,4 @@ export { default as CTASection } from './CTASection.svelte';
 export { default as FooterLinks } from './FooterLinks.svelte';
 export { default as NavHeader } from './NavHeader.svelte';
 export { default as PublicPageLayout } from './PublicPageLayout.svelte';
+export { default as WelcomePhaseOneSections } from './WelcomePhaseOneSections.svelte';
