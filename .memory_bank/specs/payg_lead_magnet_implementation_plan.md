@@ -1,8 +1,8 @@
 # План реализации PAYG + Lead Magnet
 
 Источник требований: `.memory_bank/specs/payg_lead_magnet_policy.md`  
-Статус: draft  
-Дата: 2025-12-11
+Статус: in progress (core flow implemented)  
+Дата: 2026-01-19
 
 ## 0) Принятые решения
 - Политика превышения квоты: hard gate по max-оценке. Если remaining < max_estimate → сразу PAYG.
@@ -142,61 +142,61 @@ Allowlist = все модели с этим флагом.
 - [x] Определить место UI для lead magnet настроек (admin billing).
 
 ### Этап 1: БД и модели
-- [ ] Добавить таблицу `billing_lead_magnet_state` + модели (SQLAlchemy + Pydantic).
-- [ ] Добавить `billing_source` в `billing_usage_event` (модель + миграция).
-- [ ] Расширить `UsageMetric` (tts_seconds, stt_seconds) либо вести отдельные метрики в lead magnet.
-- [ ] Миграция Alembic (create table + alter usage_event).
+- [x] Добавить таблицу `billing_lead_magnet_state` + модели (SQLAlchemy + Pydantic).
+- [x] Добавить `billing_source` в `billing_usage_event` (модель + миграция).
+- [x] Вести tts/stt метрики в lead magnet state (отдельно от UsageMetric).
+- [x] Миграция Alembic (create table + alter usage_event).
 
 ### Этап 2: Конфиг lead magnet
-- [ ] Добавить `PersistentConfig` ключи в `backend/open_webui/config.py`.
-- [ ] Добавить API endpoints для admin: GET/POST lead magnet config.
-- [ ] Логика “recalculate cycles” при изменении конфигов.
+- [x] Добавить `PersistentConfig` ключи в `backend/open_webui/config.py`.
+- [x] Добавить API endpoints для admin: GET/POST lead magnet config.
+- [x] Логика “recalculate cycles” при изменении конфигов.
 
 ### Этап 3: Backend бизнес-логика
-- [ ] Новый `utils/lead_magnet.py` (state load/init, reset, consume, remaining).
-- [ ] Изменить `billing_integration.py`:
-  - [ ] Добавить `BillingSource` enum.
-  - [ ] В `preflight_estimate_hold`/`preflight_single_rate_hold` — определить lead magnet и создать “free” контекст.
-  - [ ] В `settle_*` — если lead magnet, записать usage_event с `billing_source=lead_magnet`, cost_charged=0 и инкрементить lead magnet usage.
-  - [ ] Добавить fallback к PAYG при отсутствии квот.
-- [ ] В `billing.py`:
-  - [ ] `get_user_billing_info` возвращает lead magnet блок + wallet.
-  - [ ] `check_quota`/`enforce_quota` учитывают lead magnet (или вынос в отдельную проверку).
-- [ ] В `routers/billing.py`:
-  - [ ] Новые эндпоинты `/billing/lead-magnet` (status/usage/reset info).
-  - [ ] `/estimate` возвращает billing_source + free/paid.
-  - [ ] `/me` расширить lead magnet секцией.
-  - [ ] `/subscription/free` убрать/скрыть (или legacy флаг).
-- [ ] В `routers/oauth_russian.py`: убрать назначение free плана при регистрации.
+- [x] Новый `utils/lead_magnet.py` (state load/init, reset, consume, remaining).
+- [x] Изменить `billing_integration.py`:
+  - [x] Добавить `BillingSource` enum.
+  - [x] В `preflight_estimate_hold`/`preflight_single_rate_hold` — определить lead magnet и создать “free” контекст.
+  - [x] В `settle_*` — если lead magnet, записать usage_event с `billing_source=lead_magnet`, cost_charged=0 и инкрементить lead magnet usage.
+  - [x] Добавить fallback к PAYG при отсутствии квот.
+- [x] В `billing.py`:
+  - [x] `get_user_billing_info` возвращает lead magnet блок + wallet.
+  - [x] `check_quota`/`enforce_quota` учитывают lead magnet (или вынос в отдельную проверку).
+- [x] В `routers/billing.py`:
+  - [x] Новые эндпоинты `/billing/lead-magnet` (status/usage/reset info).
+  - [x] `/estimate` возвращает billing_source + free/paid.
+  - [x] `/me` расширить lead magnet секцией.
+  - [x] `/subscription/free` убрать/скрыть (или legacy флаг).
+- [x] В `routers/oauth_russian.py`: убрать назначение free плана при регистрации.
 
 ### Этап 4: Интеграция в пайплайны
-- [ ] `routers/openai.py`: заменить текущий `check_and_enforce_quota` на lead magnet aware вариант.
-- [ ] `routers/images.py`: lead magnet path для images.
-- [ ] `routers/audio.py`: lead magnet path для TTS + добавить STT тарификацию (если требуется).
+- [x] `routers/openai.py`: заменить текущий `check_and_enforce_quota` на lead magnet aware вариант.
+- [x] `routers/images.py`: lead magnet path для images.
+- [x] `routers/audio.py`: lead magnet path для TTS + добавить STT тарификацию.
 
 ### Этап 5: UI/UX
-- [ ] Новый блок Lead Magnet в `billing/dashboard` (оставшийся лимит, прогресс, reset).
-- [ ] Обновить `billing/plans`:
-  - [ ] Либо скрыть страницу полностью (перенаправить на dashboard),
-  - [ ] Либо оставить только “кошелёк” + подписки (без PAYG/free).
-- [ ] `billing/balance` — добавить мини-блок lead magnet (remaining + reset).
-- [ ] `pricing` — заменить PAYG plan на “Кошелёк” блок с понятным описанием.
-- [ ] `MessageInput` — поддержать “free/lead_magnet” в estimate badge + tooltip.
-- [ ] `ModelSelector` — бейдж “Lead magnet (free)” для флагнутых моделей.
-- [ ] Admin UI:
-  - [ ] Форма lead magnet config (квоты, цикл).
-  - [ ] ModelEditor: чекбокс “Lead magnet (free)” (meta).
+- [x] Новый блок Lead Magnet в `billing/dashboard` (оставшийся лимит, прогресс, reset).
+- [x] Обновить `billing/plans`:
+  - [x] Страница редиректит на dashboard, если подписки выключены.
+  - [x] Подписки остаются как legacy-флоу, PAYG скрыт.
+- [x] `billing/balance` — добавить блок lead magnet (remaining + reset).
+- [x] `pricing` — заменить PAYG plan на “Кошелёк” блок с понятным описанием.
+- [x] `MessageInput` — поддержать “free/lead_magnet” в estimate badge + tooltip.
+- [x] `ModelSelector` — бейдж “Lead magnet (free)” для флагнутых моделей.
+- [x] Admin UI:
+  - [x] Форма lead magnet config (квоты, цикл).
+  - [x] ModelEditor: чекбокс “Lead magnet (free)” (meta).
 - [ ] i18n строки для новых UI текстов (ru/en).
 
 ### Этап 6: Тесты
-- [ ] Unit: lead magnet state (init, reset, consume, recalc).
-- [ ] Integration: lead magnet free-path, fallback PAYG, cycle reset.
-- [ ] Router tests: `/billing/lead-magnet`, `/billing/estimate` с billing_source.
-- [ ] UI (Playwright): отображение lead magnet + wallet, model badge.
+- [x] Unit: lead magnet state (init, reset, consume, recalc).
+- [x] Integration: lead magnet free-path, fallback PAYG, cycle reset.
+- [x] Router tests: `/billing/lead-magnet`, `/billing/estimate` с billing_source.
+- [x] UI (Playwright): отображение lead magnet + wallet, model badge.
 
 ### Этап 7: Роллаут
-- [ ] Включить lead magnet по умолчанию, проверить поведение на новых/старых пользователях.
-- [ ] Мониторинг: число lead_magnet vs payg, ошибки reset/recalc.
+- [x] Включить lead magnet по умолчанию в локальном окружении, проверить поведение.
+- [ ] Мониторинг: число lead_magnet vs payg, ошибки reset/recalc (production).
 
 ## 5) Открытые вопросы
 - Нужна ли отдельная аналитика по lead magnet usage в админке (отчёт/таблица)?

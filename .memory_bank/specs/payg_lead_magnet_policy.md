@@ -1,6 +1,19 @@
 # PAYG Default + Lead Magnet Policy
 
-Status: approved requirements (no implementation yet)
+Status: core flow implemented (2026-01-19); remaining items tracked below
+
+## Implementation Status (2026-01-19)
+Implemented:
+- Persistent lead magnet config (enabled, cycle_days, quotas) + admin endpoints/UI
+- Lead magnet state table + billing_source tagging
+- Lead magnet eligibility, quota checks, PAYG fallback in chat/images/audio
+- Public lead magnet endpoint for marketing pages
+- UI: lead magnet block in billing dashboard + model badge + estimate “Free”
+
+Pending:
+- Soft conversion nudges at 70%/90% usage
+- Starter top-up offer flow
+- Dedicated lead magnet analytics/insights view
 
 ## Goals
 - PAYG is the default billing mode for all users (no subscription on signup).

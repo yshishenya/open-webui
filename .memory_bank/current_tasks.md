@@ -6,6 +6,62 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[I18N-01]** Add lead magnet UI strings (en-US, ru-RU)
+  - Added translations for lead magnet labels, quotas, and admin config messages
+
+- [x] **[DOCS-11]** Sync Memory Bank status with current implementation
+  - Updated landing conversion plan gaps + phase status
+  - Updated PAYG lead magnet policy + implementation plan progress
+
+- [x] **[DOCS-09]** Update landing plan + block-by-block wording
+  - Aligned plan with PAYG-only messaging, dynamic lead magnet quotas, and 2026 design direction
+  - Added copy per block for /welcome, /features, /pricing, /about, /contact, /privacy, /terms
+
+- [x] **[DOCS-10]** Create 2026 public pages plan (per-page wording + imagery)
+  - Added `.memory_bank/specs/public_pages_2026_plan.md` with step-by-step blocks and copy
+  - Included imagery guidance and execution order
+
+- [x] **[UI-04]** Apply 2026 /welcome copy + dynamic free quotas
+  - Updated hero copy and benefit chips per 2026 plan
+  - Added use-case block and PAYG/free-start wording updates
+  - Wired lead-magnet quotas from public settings into /welcome
+
+- [x] **[UI-05]** Strong 2026 redesign pass for /welcome
+  - Rebuilt hero layout with deeper visual hierarchy and layered light fields
+  - Wrapped sections into card-like “bands” for scan-friendly structure
+
+- [x] **[UI-06]** Strong 2026 redesign pass for /features
+  - Rebuilt hero with stacked product collage and clearer CTA emphasis
+  - Simplified blocks into card bands: models, capabilities, use-cases, reasons, final CTA
+
+- [x] **[UI-07]** Strong 2026 redesign pass for /pricing
+  - Rebuilt hero and PAYG explanation with 2026 visual bands
+  - Added dynamic lead-magnet quotas and example cost block
+
+- [x] **[UI-08]** Strong 2026 redesign pass for /about
+  - Rebuilt hero with product collage and concise mission/values blocks
+  - Removed stats and kept CTA-focused layout
+
+- [x] **[UI-09]** Strong 2026 redesign pass for /contact
+  - Rebuilt hero and support cards with 2026 visual bands
+  - Simplified support path and preserved minimal form UX
+
+- [x] **[UI-10]** Strong 2026 redesign pass for /privacy and /terms
+  - Added summary blocks and 2026 hero layout for legal pages
+  - Updated payment language to PAYG and refreshed dates
+
+- [x] **[BUG]** Fix public rate card accuracy
+  - Filtered public rate cards by effective date window
+  - Corrected token pricing scale (per 1k) and image unit lookup for examples
+
+- [x] **[LANDING-01]** Close Phase 1 conversion updates on /welcome
+  - Added problem/solution block, capability grid, segment use cases, pricing preview, and FAQ
+  - Split large sections into `WelcomePhaseOneSections` to keep file size within standards
+
+- [x] **[DOCS-08]** Document landing conversion plan from expert reviews
+  - Added `.memory_bank/specs/landing_conversion_plan.md` with phased roadmap and open questions
+  - Updated plan with lead-magnet behavior, PAYG pricing data needs, and owner inputs
+
 - [x] **[UI-03]** Refresh public pages design for AIris brand alignment
   - Updated /welcome, /about, /features, /pricing, /contact, /terms, /privacy
   - Replaced emoji visuals with iconography and product imagery
@@ -25,6 +81,20 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 - [x] **[LEGAL-01]** Add requisites for YooKassa verification
   - Added IP requisites (ИНН/ОГРНИП) to public footer for visibility on all public pages
+
+- [x] **[BUG]** Stabilize backend test fixtures for billing flows
+  - Use scoped SQLAlchemy session in billing-related tests
+  - Enable image generation flag in image billing tests
+  - Avoid extra admin user inflation in users router tests
+
+- [x] **[UX]** Simplify /welcome content density
+  - Removed redundant blocks and entry flow section from /welcome
+  - Kept concise hero, steps, capabilities, PAYG + free start, and FAQ
+  - Replaced hero image with real product screenshot and added framed presentation
+
+- [x] **[UX]** Add /welcome hero visual variants for review
+  - Added Spotlight stage and Stacked tilt screenshot treatments in hero
+  - Stacked variants are shown sequentially on the same page for selection
 
 - [x] **[TEST]** Stabilize E2E selectors and frontend test discovery
   - Added stable data-testid hooks for chat/user menu and model selection.
@@ -245,6 +315,6 @@ _No blocked tasks currently_
 
 ---
 
-**Last Updated**: 2025-12-11
+**Last Updated**: 2026-01-19
 **Project Version**: 0.6.41
 **Active Contributors**: 1 (maintainer)
