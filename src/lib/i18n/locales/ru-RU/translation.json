@@ -1929,5 +1929,20 @@
 	"View all activity": "Вся история",
 	"No recent activity": "Пока нет операций",
 	"No operations yet": "Пока нет операций",
-	"No free usage yet": "Пока нет бесплатного использования"
+	"No free usage yet": "Пока нет бесплатного использования",
+	"Lead magnet": "Лид-магнит",
+	"Lead magnet (free)": "Лид-магнит (бесплатно)",
+	"Lead magnet quota": "Квота лид-магнита",
+	"Lead magnet configuration saved": "Настройки лид-магнита сохранены",
+	"No lead magnet limits configured": "Квоты лид-магнита не настроены",
+	"Configure free access quotas for models marked as lead magnet.": "Настройте бесплатные квоты для моделей, отмеченных как лид-магнит.",
+	"Allow free usage via lead magnet quotas for this model": "Разрешить бесплатное использование по квотам лид-магнита для этой модели",
+	"Cycle days": "Дни цикла",
+	"Cycle days must be at least 1": "Дней цикла должно быть не меньше 1",
+	"Config version": "Версия конфигурации",
+	"Next reset": "Следующий сброс",
+	"Free": "Бесплатно",
+	"used": "использовано",
+	"remaining": "осталось",
+	"{label} must be a non-negative integer": "{label} должно быть неотрицательным целым"
 }

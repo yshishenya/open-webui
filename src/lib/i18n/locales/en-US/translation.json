@@ -1927,5 +1927,20 @@
 	"View all activity": "",
 	"No recent activity": "",
 	"No operations yet": "",
-	"No free usage yet": ""
+	"No free usage yet": "",
+	"Lead magnet": "",
+	"Lead magnet (free)": "",
+	"Lead magnet quota": "",
+	"Lead magnet configuration saved": "",
+	"No lead magnet limits configured": "",
+	"Configure free access quotas for models marked as lead magnet.": "",
+	"Allow free usage via lead magnet quotas for this model": "",
+	"Cycle days": "",
+	"Cycle days must be at least 1": "",
+	"Config version": "",
+	"Next reset": "",
+	"Free": "",
+	"used": "",
+	"remaining": "",
+	"{label} must be a non-negative integer": ""
 }
