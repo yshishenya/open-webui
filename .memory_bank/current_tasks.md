@@ -11,6 +11,7 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Added scripts/deploy_prod.sh for build/push/pull/up via SSH
   - Added .env.deploy to store deploy variables (ignored by git)
   - Added docs/DEPLOY_PROD.md with production deploy steps
+  - Added optional prod git pull and post-deploy status output
 
 - [x] **[I18N-01]** Add lead magnet UI strings (en-US, ru-RU)
   - Added translations for lead magnet labels, quotas, and admin config messages

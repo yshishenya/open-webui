@@ -35,6 +35,8 @@ PROD_HOST=airis-prod
 PROD_PATH=/opt/projects/open-webui
 IMAGE_REPO=yshishenya/yshishenya
 # PROD_SSH_PORT=22
+# PROD_GIT_PULL=1
+# POST_DEPLOY_STATUS=1
 ```
 
 ## Deploy
@@ -52,8 +54,10 @@ scripts/deploy_prod.sh v0.6.41
 What the script does:
 1) `docker build` on dev
 2) `docker push` to Docker Hub
-3) `docker compose pull` on prod
-4) `docker compose up -d --remove-orphans --no-build` on prod
+3) `git pull --ff-only` on prod (optional, `PROD_GIT_PULL=1`)
+4) `docker compose pull` on prod
+5) `docker compose up -d --remove-orphans --no-build` on prod
+6) `docker compose ps` on prod (optional, `POST_DEPLOY_STATUS=1`)
 
 ## Rollback
 
