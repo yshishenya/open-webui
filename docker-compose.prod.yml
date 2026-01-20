@@ -1,0 +1,3 @@
+services:
+  airis:
+    image: ${WEBUI_IMAGE-yshishenya/yshishenya}:${WEBUI_DOCKER_TAG-latest}
