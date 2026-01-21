@@ -88,7 +88,6 @@ export interface PublicRateCardUnit {
 	unit: string;
 	per_unit: number;
 	price_kopeks: number;
-	min_charge_kopeks: number;
 }
 
 export interface PublicRateCardModel {

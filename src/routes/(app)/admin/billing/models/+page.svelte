@@ -51,9 +51,8 @@
 	let formModality = '';
 	let formUnit = '';
 	let formRawCost = '0';
-	let formPlatformFactor = '1.0';
-	let formFixedFee = '0';
-	let formMinCharge = '0';
+	let formRawCostIn = '0';
+	let formRawCostOut = '0';
 	let formEffectiveFrom = '';
 	let formEffectiveTo = '';
 	let formIsActive = true;
@@ -79,6 +78,12 @@
 		if (!hint) return unit;
 		return `${unit} — ${hint}`;
 	};
+
+	let isTextModality = false;
+	let isTextCreate = false;
+
+	$: isTextModality = formModality.trim().toLowerCase() === 'text';
+	$: isTextCreate = formMode === 'create' && isTextModality;
 
 	onMount(async () => {
 		if ($user?.role !== 'admin') {
@@ -169,9 +174,8 @@
 		formModality = 'text';
 		formUnit = 'token_in';
 		formRawCost = '0';
-		formPlatformFactor = '1.0';
-		formFixedFee = '0';
-		formMinCharge = '0';
+		formRawCostIn = '0';
+		formRawCostOut = '0';
 		formEffectiveFrom = '';
 		formEffectiveTo = '';
 		formIsActive = true;
@@ -189,9 +193,8 @@
 		formModality = entry.modality || 'text';
 		formUnit = entry.unit;
 		formRawCost = String(entry.raw_cost_per_unit_kopeks ?? 0);
-		formPlatformFactor = String(entry.platform_factor ?? 1);
-		formFixedFee = String(entry.fixed_fee_kopeks ?? 0);
-		formMinCharge = String(entry.min_charge_kopeks ?? 0);
+		formRawCostIn = formRawCost;
+		formRawCostOut = formRawCost;
 		formEffectiveFrom = String(entry.effective_from ?? '');
 		formEffectiveTo = entry.effective_to ? String(entry.effective_to) : '';
 		formIsActive = entry.is_active;
@@ -216,19 +219,6 @@
 		return parsed;
 	};
 
-	const parseRequiredFloat = (value: string, label: string): number | null => {
-		if (!value.trim()) {
-			toast.error($i18n.t('{label} is required', { label }));
-			return null;
-		}
-		const parsed = Number.parseFloat(value);
-		if (Number.isNaN(parsed) || parsed < 0) {
-			toast.error($i18n.t('Invalid value for {label}', { label }));
-			return null;
-		}
-		return parsed;
-	};
-
 	const parseOptionalInt = (value: string, label: string): number | undefined | null => {
 		if (!value.trim()) return undefined;
 		const parsed = Number.parseInt(value, 10);
@@ -239,27 +229,43 @@
 		return parsed;
 	};
 
-	const buildCreatePayload = (): RateCardCreateRequest | null => {
+	const buildCreatePayloads = (): RateCardCreateRequest[] | null => {
 		const modelId = formModelId.trim();
 		const modality = formModality.trim();
-		const unit = formUnit.trim();
 
-		if (!modelId || !modality || !unit) {
-			toast.error($i18n.t('Model ID, modality, and unit are required'));
+		if (!modelId) {
+			toast.error($i18n.t('{label} is required', { label: $i18n.t('Model ID') }));
+			return null;
+		}
+		if (!modality) {
+			toast.error($i18n.t('{label} is required', { label: $i18n.t('Modality') }));
 			return null;
 		}
 
-		const rawCost = parseRequiredInt(formRawCost, $i18n.t('Raw cost'));
-		const platformFactor = parseRequiredFloat(formPlatformFactor, $i18n.t('Platform factor'));
-		const fixedFee = parseRequiredInt(formFixedFee, $i18n.t('Fixed fee'));
-		const minCharge = parseRequiredInt(formMinCharge, $i18n.t('Min charge'));
-		if (
-			rawCost === null ||
-			platformFactor === null ||
-			fixedFee === null ||
-			minCharge === null
-		) {
+		const isText = isTextModality;
+
+		let unit = formUnit.trim();
+		if (!isText && !unit) {
+			toast.error($i18n.t('{label} is required', { label: $i18n.t('Unit') }));
 			return null;
+		}
+
+		let rawCost: number | null = null;
+		let rawCostIn: number | null = null;
+		let rawCostOut: number | null = null;
+
+		if (isText) {
+			rawCostIn = parseRequiredInt(formRawCostIn, getUnitLabel('text', 'token_in'));
+			rawCostOut = parseRequiredInt(formRawCostOut, getUnitLabel('text', 'token_out'));
+			if (rawCostIn === null || rawCostOut === null) {
+				return null;
+			}
+			unit = 'token_in';
+		} else {
+			rawCost = parseRequiredInt(formRawCost, $i18n.t('Raw cost'));
+			if (rawCost === null) {
+				return null;
+			}
 		}
 
 		const effectiveFrom = parseOptionalInt(formEffectiveFrom, $i18n.t('Effective from'));
@@ -267,31 +273,41 @@
 		const effectiveTo = parseOptionalInt(formEffectiveTo, $i18n.t('Effective to'));
 		if (effectiveTo === null) return null;
 
-		return {
+		const basePayload = {
 			model_id: modelId,
 			modality,
-			unit,
-			raw_cost_per_unit_kopeks: rawCost,
-			platform_factor: platformFactor,
-			fixed_fee_kopeks: fixedFee,
-			min_charge_kopeks: minCharge,
 			effective_from: effectiveFrom,
 			effective_to: effectiveTo,
 			is_active: formIsActive
-		};
+		} satisfies Omit<RateCardCreateRequest, 'unit' | 'raw_cost_per_unit_kopeks'>;
+
+		if (isText) {
+			return [
+				{
+					...basePayload,
+					unit: 'token_in',
+					raw_cost_per_unit_kopeks: rawCostIn ?? 0
+				},
+				{
+					...basePayload,
+					unit: 'token_out',
+					raw_cost_per_unit_kopeks: rawCostOut ?? 0
+				}
+			];
+		}
+
+		return [
+			{
+				...basePayload,
+				unit,
+				raw_cost_per_unit_kopeks: rawCost ?? 0
+			}
+		];
 	};
 
 	const buildUpdatePayload = (): RateCardUpdateRequest | null => {
 		const rawCost = parseRequiredInt(formRawCost, $i18n.t('Raw cost'));
-		const platformFactor = parseRequiredFloat(formPlatformFactor, $i18n.t('Platform factor'));
-		const fixedFee = parseRequiredInt(formFixedFee, $i18n.t('Fixed fee'));
-		const minCharge = parseRequiredInt(formMinCharge, $i18n.t('Min charge'));
-		if (
-			rawCost === null ||
-			platformFactor === null ||
-			fixedFee === null ||
-			minCharge === null
-		) {
+		if (rawCost === null) {
 			return null;
 		}
 
@@ -306,9 +322,6 @@
 
 		return {
 			raw_cost_per_unit_kopeks: rawCost,
-			platform_factor: platformFactor,
-			fixed_fee_kopeks: fixedFee,
-			min_charge_kopeks: minCharge,
 			effective_to: effectiveTo,
 			is_active: formIsActive
 		};
@@ -318,29 +331,41 @@
 		if (saving) return;
 		if (formMode === 'edit' && !editingId) return;
 
-		const payload =
-			formMode === 'create' ? buildCreatePayload() : buildUpdatePayload();
+		if (formMode === 'create') {
+			const payloads = buildCreatePayloads();
+			if (!payloads) return;
+
+			saving = true;
+			try {
+				for (const payload of payloads) {
+					await createRateCard(localStorage.token, payload);
+				}
+				toast.success($i18n.t('Rate card created'));
+				showForm = false;
+				resetForm();
+				await loadRateCards();
+			} catch (error) {
+				console.error('Failed to save rate card:', error);
+				toast.error($i18n.t('Failed to create rate card'));
+			} finally {
+				saving = false;
+			}
+			return;
+		}
+
+		const payload = buildUpdatePayload();
 		if (!payload) return;
 
 		saving = true;
 		try {
-			if (formMode === 'create') {
-				await createRateCard(localStorage.token, payload as RateCardCreateRequest);
-				toast.success($i18n.t('Rate card created'));
-			} else {
-				await updateRateCard(localStorage.token, editingId as string, payload);
-				toast.success($i18n.t('Rate card updated'));
-			}
+			await updateRateCard(localStorage.token, editingId as string, payload);
+			toast.success($i18n.t('Rate card updated'));
 			showForm = false;
 			resetForm();
 			await loadRateCards();
 		} catch (error) {
 			console.error('Failed to save rate card:', error);
-			toast.error(
-				formMode === 'create'
-					? $i18n.t('Failed to create rate card')
-					: $i18n.t('Failed to update rate card')
-			);
+			toast.error($i18n.t('Failed to update rate card'));
 		} finally {
 			saving = false;
 		}
@@ -481,7 +506,11 @@
 					</label>
 					<label class="flex flex-col gap-1">
 						<span class="text-xs text-gray-500">{$i18n.t('Unit')}</span>
-						{#if allowedUnits.length > 1}
+						{#if isTextCreate}
+							<div class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent text-sm text-gray-700 dark:text-gray-200">
+								token_in / token_out
+							</div>
+						{:else if allowedUnits.length > 1}
 							<select
 								bind:value={formUnit}
 								disabled={formMode === 'edit'}
@@ -498,52 +527,55 @@
 						{/if}
 					</label>
 
-					<label class="flex flex-col gap-1">
-						<span class="text-xs text-gray-500">{$i18n.t('Raw cost')}</span>
-						<input
-							type="text"
-							inputmode="numeric"
-							bind:value={formRawCost}
-							placeholder="0"
-							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-						/>
-						<span class="text-[11px] text-gray-400">{$i18n.t('Kopeks per unit')}</span>
-						{#if getRawCostHint(formModality, formUnit)}
-							<span class="text-[11px] text-gray-400">{getRawCostHint(formModality, formUnit)}</span>
-						{/if}
-					</label>
-					<label class="flex flex-col gap-1">
-						<span class="text-xs text-gray-500">{$i18n.t('Platform factor')}</span>
-						<input
-							type="text"
-							inputmode="decimal"
-							bind:value={formPlatformFactor}
-							placeholder="1.0"
-							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-						/>
-					</label>
-					<label class="flex flex-col gap-1">
-						<span class="text-xs text-gray-500">{$i18n.t('Fixed fee')}</span>
-						<input
-							type="text"
-							inputmode="numeric"
-							bind:value={formFixedFee}
-							placeholder="0"
-							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-						/>
-						<span class="text-[11px] text-gray-400">{$i18n.t('Kopeks')}</span>
-					</label>
-					<label class="flex flex-col gap-1">
-						<span class="text-xs text-gray-500">{$i18n.t('Min charge')}</span>
-						<input
-							type="text"
-							inputmode="numeric"
-							bind:value={formMinCharge}
-							placeholder="0"
-							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-						/>
-						<span class="text-[11px] text-gray-400">{$i18n.t('Kopeks')}</span>
-					</label>
+					{#if isTextCreate}
+						<label class="flex flex-col gap-1">
+							<span class="text-xs text-gray-500">
+								{getUnitLabel('text', 'token_in')}
+							</span>
+							<input
+								type="text"
+								inputmode="numeric"
+								bind:value={formRawCostIn}
+								placeholder="0"
+								class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
+							/>
+							<span class="text-[11px] text-gray-400">
+								{$i18n.t('Kopeks per unit')}
+							</span>
+						</label>
+						<label class="flex flex-col gap-1">
+							<span class="text-xs text-gray-500">
+								{getUnitLabel('text', 'token_out')}
+							</span>
+							<input
+								type="text"
+								inputmode="numeric"
+								bind:value={formRawCostOut}
+								placeholder="0"
+								class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
+							/>
+							<span class="text-[11px] text-gray-400">
+								{$i18n.t('Kopeks per unit')}
+							</span>
+						</label>
+					{:else}
+						<label class="flex flex-col gap-1">
+							<span class="text-xs text-gray-500">{$i18n.t('Raw cost')}</span>
+							<input
+								type="text"
+								inputmode="numeric"
+								bind:value={formRawCost}
+								placeholder="0"
+								class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
+							/>
+							<span class="text-[11px] text-gray-400">{$i18n.t('Kopeks per unit')}</span>
+							{#if getRawCostHint(formModality, formUnit)}
+								<span class="text-[11px] text-gray-400">
+									{getRawCostHint(formModality, formUnit)}
+								</span>
+							{/if}
+						</label>
+					{/if}
 					<label class="flex flex-col gap-1">
 						<span class="text-xs text-gray-500">{$i18n.t('Effective from')}</span>
 						<input
@@ -670,9 +702,6 @@
 								<th class="text-left px-4 py-2 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Modality')}</th>
 								<th class="text-left px-4 py-2 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Unit')}</th>
 								<th class="text-left px-4 py-2 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Raw cost')}</th>
-								<th class="text-left px-4 py-2 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Platform factor')}</th>
-								<th class="text-left px-4 py-2 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Fixed fee')}</th>
-								<th class="text-left px-4 py-2 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Min charge')}</th>
 								<th class="text-left px-4 py-2 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Version')}</th>
 								<th class="text-left px-4 py-2 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Effective')}</th>
 								<th class="text-left px-4 py-2 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Provider')}</th>
@@ -691,9 +720,6 @@
 									<td class="px-4 py-2">{entry.modality}</td>
 									<td class="px-4 py-2">{entry.unit}</td>
 									<td class="px-4 py-2">{formatMoney(entry.raw_cost_per_unit_kopeks)}</td>
-									<td class="px-4 py-2">{entry.platform_factor.toFixed(2)}x</td>
-									<td class="px-4 py-2">{formatMoney(entry.fixed_fee_kopeks)}</td>
-									<td class="px-4 py-2">{formatMoney(entry.min_charge_kopeks)}</td>
 									<td class="px-4 py-2">{entry.version}</td>
 									<td class="px-4 py-2">
 										<div>{formatDate(entry.effective_from)}</div>

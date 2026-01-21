@@ -172,7 +172,6 @@ class PublicRateCardUnit(BaseModel):
     unit: str
     per_unit: int
     price_kopeks: int
-    min_charge_kopeks: int
 
 
 class PublicRateCardModel(BaseModel):
@@ -1140,7 +1139,6 @@ async def get_public_rate_cards() -> PublicRateCardResponse:
                     unit=unit,
                     per_unit=per_unit,
                     price_kopeks=price,
-                    min_charge_kopeks=entry.min_charge_kopeks,
                 )
             )
 

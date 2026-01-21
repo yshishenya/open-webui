@@ -27,10 +27,6 @@ export interface RateCard {
 	modality: string;
 	unit: string;
 	raw_cost_per_unit_kopeks: number;
-	platform_factor: number;
-	fixed_fee_kopeks: number;
-	min_charge_kopeks: number;
-	rounding_rules_json?: Record<string, unknown> | null;
 	version: string;
 	effective_from: number;
 	effective_to?: number | null;
@@ -54,10 +50,6 @@ export interface RateCardCreateRequest {
 	modality: string;
 	unit: string;
 	raw_cost_per_unit_kopeks?: number;
-	platform_factor?: number;
-	fixed_fee_kopeks?: number;
-	min_charge_kopeks?: number;
-	rounding_rules_json?: Record<string, unknown> | null;
 	version?: string;
 	effective_from?: number;
 	effective_to?: number | null;
@@ -69,10 +61,6 @@ export interface RateCardCreateRequest {
 export interface RateCardUpdateRequest {
 	model_tier?: string | null;
 	raw_cost_per_unit_kopeks?: number;
-	platform_factor?: number;
-	fixed_fee_kopeks?: number;
-	min_charge_kopeks?: number;
-	rounding_rules_json?: Record<string, unknown> | null;
 	effective_to?: number | null;
 	provider?: string | null;
 	is_default?: boolean;

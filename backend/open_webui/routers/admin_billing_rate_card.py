@@ -14,7 +14,6 @@ from pydantic import BaseModel, Field
 
 from open_webui.env import BILLING_RATE_CARD_VERSION, ENABLE_BILLING_WALLET, SRC_LOG_LEVELS
 from open_webui.models.billing import PricingRateCardModel, RateCards
-from open_webui.models.billing_wallet import JsonDict
 from open_webui.models.models import Models
 from open_webui.utils.auth import get_admin_user
 from open_webui.utils.rate_card_templates import build_rate_cards_for_model
@@ -37,10 +36,6 @@ class RateCardCreateRequest(BaseModel):
     modality: str = Field(..., min_length=1)
     unit: str = Field(..., min_length=1)
     raw_cost_per_unit_kopeks: int = Field(0, ge=0)
-    platform_factor: float = Field(1.0, ge=0)
-    fixed_fee_kopeks: int = Field(0, ge=0)
-    min_charge_kopeks: int = Field(0, ge=0)
-    rounding_rules_json: Optional[JsonDict] = None
     version: Optional[str] = None
     effective_from: Optional[int] = None
     effective_to: Optional[int] = None
@@ -52,10 +47,6 @@ class RateCardCreateRequest(BaseModel):
 class RateCardUpdateRequest(BaseModel):
     model_tier: Optional[str] = None
     raw_cost_per_unit_kopeks: Optional[int] = Field(None, ge=0)
-    platform_factor: Optional[float] = Field(None, ge=0)
-    fixed_fee_kopeks: Optional[int] = Field(None, ge=0)
-    min_charge_kopeks: Optional[int] = Field(None, ge=0)
-    rounding_rules_json: Optional[JsonDict] = None
     effective_to: Optional[int] = None
     provider: Optional[str] = None
     is_default: Optional[bool] = None
@@ -206,10 +197,6 @@ async def create_rate_card(
         "modality": request.modality,
         "unit": request.unit,
         "raw_cost_per_unit_kopeks": request.raw_cost_per_unit_kopeks,
-        "platform_factor": request.platform_factor,
-        "fixed_fee_kopeks": request.fixed_fee_kopeks,
-        "min_charge_kopeks": request.min_charge_kopeks,
-        "rounding_rules_json": request.rounding_rules_json,
         "version": version,
         "effective_from": effective_from,
         "effective_to": request.effective_to,

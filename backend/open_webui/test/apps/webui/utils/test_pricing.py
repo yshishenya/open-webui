@@ -6,21 +6,16 @@ from open_webui.utils.pricing import PricingService
 
 def _rate_card(
     raw_cost: int,
-    platform_factor: float = 1.0,
-    fixed_fee: int = 0,
-    min_charge: int = 0,
+    modality: str = "text",
+    unit: str = "token_in",
 ) -> PricingRateCardModel:
     return PricingRateCardModel(
         id="rate_test",
         model_id="model",
         model_tier=None,
-        modality="text",
-        unit="token_in",
+        modality=modality,
+        unit=unit,
         raw_cost_per_unit_kopeks=raw_cost,
-        platform_factor=platform_factor,
-        fixed_fee_kopeks=fixed_fee,
-        min_charge_kopeks=min_charge,
-        rounding_rules_json=None,
         version="2025-01",
         effective_from=0,
         effective_to=None,
@@ -30,33 +25,25 @@ def _rate_card(
     )
 
 
-def test_calculate_cost_kopeks_min_charge_and_rounding() -> None:
+def test_calculate_cost_kopeks_rounds_up() -> None:
     service = PricingService()
-    rate = _rate_card(raw_cost=1, platform_factor=1.0, fixed_fee=0, min_charge=5)
+    rate = _rate_card(raw_cost=100, modality="image", unit="image_1024")
 
     cost = service.calculate_cost_kopeks(Decimal("1.1"), rate, 0)
-    assert cost == 5
+    assert cost == 110
 
 
-def test_calculate_cost_kopeks_fixed_fee_and_discount() -> None:
+def test_calculate_cost_kopeks_discount_applied() -> None:
     service = PricingService()
-    rate = _rate_card(raw_cost=100, platform_factor=1.0, fixed_fee=50, min_charge=0)
+    rate = _rate_card(raw_cost=100, modality="image", unit="image_1024")
 
     cost = service.calculate_cost_kopeks(Decimal(1), rate, 20)
-    assert cost == 130
-
-
-def test_calculate_cost_kopeks_platform_factor() -> None:
-    service = PricingService()
-    rate = _rate_card(raw_cost=100, platform_factor=1.25, fixed_fee=0, min_charge=0)
-
-    cost = service.calculate_cost_kopeks(Decimal(2), rate, 0)
-    assert cost == 250
+    assert cost == 80
 
 
 def test_calculate_cost_kopeks_zero_units() -> None:
     service = PricingService()
-    rate = _rate_card(raw_cost=100, platform_factor=1.0, fixed_fee=0, min_charge=0)
+    rate = _rate_card(raw_cost=100)
 
     cost = service.calculate_cost_kopeks(Decimal(0), rate, 0)
     assert cost == 0
@@ -64,7 +51,7 @@ def test_calculate_cost_kopeks_zero_units() -> None:
 
 def test_calculate_cost_range_uses_min_max() -> None:
     service = PricingService()
-    rate = _rate_card(raw_cost=100, platform_factor=1.0, fixed_fee=0, min_charge=0)
+    rate = _rate_card(raw_cost=100)
 
     min_cost, max_cost = service.calculate_cost_range(
         Decimal("0.5"), Decimal("1.5"), rate, 0

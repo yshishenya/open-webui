@@ -6,6 +6,18 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[UI-11]** Replace app + landing logo with SVG
+  - Swapped brand mark to SVG asset and updated app + landing logo usages
+
+- [x] **[BILLING-10]** Simplify pricing for all modalities (remove factors)
+  - Removed platform factor / fixed fee / min charge / rounding rules from rate cards
+  - Pricing now uses raw per-unit cost (text uses per 1k tokens)
+  - Added migration + updated admin UI and tests
+
+- [x] **[BILLING-09]** Simplify text token pricing (per-1k) + paired input/output entry
+  - Store token price as kopeks per 1k tokens and use input+output sum
+  - Admin UI captures both token_in and token_out together to avoid partial rate cards
+
 - [x] **[UI-20]** Clarify unit labels and raw cost meaning
   - Unit options now include “price per ...” hints; raw cost label clarified
 
@@ -175,7 +187,6 @@ This file tracks active development tasks for the Airis project. Update this fil
 ## In Progress
 
 ### High Priority
-
 - [x] **[BILLING-07]** Define PAYG default + lead magnet access logic
   - Make PAYG the default billing mode without subscription
   - Admin-configurable lead magnet: monthly quotas (tokens, images, TTS, STT) + cycle length (X days)

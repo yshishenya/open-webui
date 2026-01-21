@@ -11,7 +11,6 @@ from sqlalchemy import (
     Index,
     Integer,
     JSON,
-    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -143,10 +142,6 @@ class PricingRateCard(Base):
     unit = Column(String, nullable=False)
 
     raw_cost_per_unit_kopeks = Column(BigInteger, nullable=False, default=0)
-    platform_factor = Column(Numeric(10, 4), nullable=False, default=1)
-    fixed_fee_kopeks = Column(BigInteger, nullable=False, default=0)
-    min_charge_kopeks = Column(BigInteger, nullable=False, default=0)
-    rounding_rules_json = Column(JSON, nullable=True)
 
     version = Column(String, nullable=False)
     effective_from = Column(BigInteger, nullable=False)
@@ -167,10 +162,6 @@ class PricingRateCardModel(BaseModel):
     modality: str
     unit: str
     raw_cost_per_unit_kopeks: int
-    platform_factor: float
-    fixed_fee_kopeks: int
-    min_charge_kopeks: int
-    rounding_rules_json: Optional[JsonDict] = None
     version: str
     effective_from: int
     effective_to: Optional[int] = None

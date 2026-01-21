@@ -32,15 +32,8 @@ class PricingService:
 
         discount_factor = Decimal(100 - max(discount_percent, 0)) / Decimal(100)
         raw = Decimal(rate.raw_cost_per_unit_kopeks) * units
-        factor = Decimal(str(rate.platform_factor))
-        fixed_fee = Decimal(rate.fixed_fee_kopeks)
-
-        amount = (raw * factor * discount_factor) + fixed_fee
-        rounded = int(amount.to_integral_value(rounding=ROUND_CEILING))
-
-        if rounded < rate.min_charge_kopeks:
-            return rate.min_charge_kopeks
-        return rounded
+        amount = raw * discount_factor
+        return int(amount.to_integral_value(rounding=ROUND_CEILING))
 
     def calculate_cost_range(
         self,
