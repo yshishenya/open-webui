@@ -6,6 +6,9 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[ASSETS]** Sync static/static logo assets with new favicon
+  - Regenerated favicon/manifest/splash PNGs and ICOs from the new SVG
+
 - [x] **[MAINT]** Clean up pytest warnings (SQLAlchemy/Alembic/Pydantic/deps)
   - Updated deprecated APIs and added targeted pytest warning filters
 
