@@ -1,6 +1,16 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
+const appMockPath = fileURLToPath(new URL('./tests/mocks/app', import.meta.url));
+const libPath = fileURLToPath(new URL('./src/lib', import.meta.url));
+
 export default defineConfig({
+	resolve: {
+		alias: {
+			$app: appMockPath,
+			$lib: libPath
+		}
+	},
 	test: {
 		include: [
 			'src/**/*.{test,spec}.{js,ts,tsx}',
