@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { WEBUI_BASE_URL } from '$lib/constants';
+
 	export let currentPath: string = '';
 
 	interface NavLink {
@@ -25,8 +27,15 @@
 		<div class="flex items-center justify-between h-16">
 			<!-- Logo -->
 			<a href="/welcome" class="flex items-center gap-2">
-				<div class="w-9 h-9 bg-white rounded-lg border border-gray-200 shadow-sm flex items-center justify-center">
-					<span class="text-gray-900 font-semibold text-sm">A</span>
+				<div
+					class="w-9 h-9 bg-white rounded-lg border border-gray-200 shadow-sm flex items-center justify-center"
+				>
+					<img
+						src="{WEBUI_BASE_URL}/static/favicon.svg"
+						class="w-7 h-7"
+						alt="AIris logo"
+						draggable="false"
+					/>
 				</div>
 				<span class="font-semibold text-lg text-gray-900 tracking-tight">AIris</span>
 			</a>
