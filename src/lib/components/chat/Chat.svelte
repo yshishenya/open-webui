@@ -1051,15 +1051,45 @@
 			showControls.set(true);
 		}
 
+		const applyPromptText = async (text: string) => {
+			for (let attempt = 0; attempt < 5 && !messageInput; attempt += 1) {
+				await tick();
+			}
+			messageInput?.setText(text);
+		};
+
 		if ($page.url.searchParams.get('q')) {
 			const q = $page.url.searchParams.get('q') ?? '';
-			messageInput?.setText(q);
+			await applyPromptText(q);
 
 			if (q) {
 				if (($page.url.searchParams.get('submit') ?? 'true') === 'true') {
 					await tick();
 					submitPrompt(q);
 				}
+			}
+			sessionStorage.removeItem('welcome_preset_prompt');
+		} else {
+			const storedPreset = sessionStorage.getItem('welcome_preset_prompt');
+			if (storedPreset) {
+				try {
+					const parsed = JSON.parse(storedPreset) as {
+						prompt?: string;
+						source?: string;
+						createdAt?: number;
+					};
+					const presetPrompt = parsed.prompt ?? '';
+					const presetSource = parsed.source ?? '';
+					const presetAgeMs = parsed.createdAt ? Date.now() - parsed.createdAt : Number.POSITIVE_INFINITY;
+					const PRESET_TTL_MS = 10 * 60 * 1000;
+
+					if (presetPrompt && presetSource === 'welcome_hero_preset' && presetAgeMs <= PRESET_TTL_MS) {
+						await applyPromptText(presetPrompt);
+					}
+				} catch (e) {
+					console.warn('Failed to load preset prompt:', e);
+				}
+				sessionStorage.removeItem('welcome_preset_prompt');
 			}
 		}
 
