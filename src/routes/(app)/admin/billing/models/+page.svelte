@@ -48,20 +48,37 @@
 	let actionInProgress = false;
 
 	let formModelId = '';
-	let formModelTier = '';
 	let formModality = '';
 	let formUnit = '';
 	let formRawCost = '0';
 	let formPlatformFactor = '1.0';
 	let formFixedFee = '0';
 	let formMinCharge = '0';
-	let formRoundingRules = '';
-	let formVersion = '';
 	let formEffectiveFrom = '';
 	let formEffectiveTo = '';
-	let formProvider = '';
-	let formIsDefault = false;
 	let formIsActive = true;
+
+	const MODALITY_UNITS: Record<string, string[]> = {
+		text: ['token_in', 'token_out'],
+		image: ['image_1024'],
+		tts: ['tts_char'],
+		stt: ['stt_second']
+	};
+
+	const getRawCostHint = (modality: string, unit: string): string => {
+		if (modality === 'text') return $i18n.t('Raw cost hint (text)');
+		if (modality === 'image') return $i18n.t('Raw cost hint (image)');
+		if (modality === 'tts') return $i18n.t('Raw cost hint (tts)');
+		if (modality === 'stt') return $i18n.t('Raw cost hint (stt)');
+		if (unit) return unit;
+		return '';
+	};
+
+	const getUnitLabel = (modality: string, unit: string): string => {
+		const hint = getRawCostHint(modality, unit);
+		if (!hint) return unit;
+		return `${unit} — ${hint}`;
+	};
 
 	onMount(async () => {
 		if ($user?.role !== 'admin') {
@@ -149,19 +166,14 @@
 		formMode = 'create';
 		editingId = null;
 		formModelId = '';
-		formModelTier = '';
-		formModality = '';
-		formUnit = '';
+		formModality = 'text';
+		formUnit = 'token_in';
 		formRawCost = '0';
 		formPlatformFactor = '1.0';
 		formFixedFee = '0';
 		formMinCharge = '0';
-		formRoundingRules = '';
-		formVersion = '';
 		formEffectiveFrom = '';
 		formEffectiveTo = '';
-		formProvider = '';
-		formIsDefault = false;
 		formIsActive = true;
 	};
 
@@ -174,24 +186,22 @@
 		formMode = 'edit';
 		editingId = entry.id;
 		formModelId = entry.model_id;
-		formModelTier = entry.model_tier ?? '';
-		formModality = entry.modality;
+		formModality = entry.modality || 'text';
 		formUnit = entry.unit;
 		formRawCost = String(entry.raw_cost_per_unit_kopeks ?? 0);
 		formPlatformFactor = String(entry.platform_factor ?? 1);
 		formFixedFee = String(entry.fixed_fee_kopeks ?? 0);
 		formMinCharge = String(entry.min_charge_kopeks ?? 0);
-		formRoundingRules = entry.rounding_rules_json
-			? JSON.stringify(entry.rounding_rules_json, null, 2)
-			: '';
-		formVersion = entry.version;
 		formEffectiveFrom = String(entry.effective_from ?? '');
 		formEffectiveTo = entry.effective_to ? String(entry.effective_to) : '';
-		formProvider = entry.provider ?? '';
-		formIsDefault = entry.is_default;
 		formIsActive = entry.is_active;
 		showForm = true;
 	};
+
+	$: allowedUnits = MODALITY_UNITS[formModality] ?? [];
+	$: if (allowedUnits.length > 0 && !allowedUnits.includes(formUnit)) {
+		formUnit = allowedUnits[0];
+	}
 
 	const parseRequiredInt = (value: string, label: string): number | null => {
 		if (!value.trim()) {
@@ -229,29 +239,6 @@
 		return parsed;
 	};
 
-	type RoundingRulesParseResult =
-		| { ok: true; value: Record<string, unknown> | null | undefined }
-		| { ok: false };
-
-	const parseRoundingRules = (): RoundingRulesParseResult => {
-		const trimmed = formRoundingRules.trim();
-		if (!trimmed) return { ok: true, value: undefined };
-		try {
-			const parsed = JSON.parse(trimmed) as unknown;
-			if (parsed === null) {
-				return { ok: true, value: null };
-			}
-			if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-				toast.error($i18n.t('Rounding rules must be a JSON object'));
-				return { ok: false };
-			}
-			return { ok: true, value: parsed as Record<string, unknown> };
-		} catch (error) {
-			toast.error($i18n.t('Invalid JSON in rounding rules'));
-			return { ok: false };
-		}
-	};
-
 	const buildCreatePayload = (): RateCardCreateRequest | null => {
 		const modelId = formModelId.trim();
 		const modality = formModality.trim();
@@ -280,25 +267,16 @@
 		const effectiveTo = parseOptionalInt(formEffectiveTo, $i18n.t('Effective to'));
 		if (effectiveTo === null) return null;
 
-		const roundingRulesResult = parseRoundingRules();
-		if (!roundingRulesResult.ok) return null;
-		const roundingRules = roundingRulesResult.value;
-
 		return {
 			model_id: modelId,
-			model_tier: formModelTier.trim() ? formModelTier.trim() : undefined,
 			modality,
 			unit,
 			raw_cost_per_unit_kopeks: rawCost,
 			platform_factor: platformFactor,
 			fixed_fee_kopeks: fixedFee,
 			min_charge_kopeks: minCharge,
-			rounding_rules_json: roundingRules,
-			version: formVersion.trim() ? formVersion.trim() : undefined,
 			effective_from: effectiveFrom,
 			effective_to: effectiveTo,
-			provider: formProvider.trim() ? formProvider.trim() : undefined,
-			is_default: formIsDefault,
 			is_active: formIsActive
 		};
 	};
@@ -326,20 +304,12 @@
 			effectiveTo = parsed;
 		}
 
-		const roundingRulesResult = parseRoundingRules();
-		if (!roundingRulesResult.ok) return null;
-		const roundingRules = roundingRulesResult.value;
-
 		return {
-			model_tier: formModelTier.trim() ? formModelTier.trim() : null,
 			raw_cost_per_unit_kopeks: rawCost,
 			platform_factor: platformFactor,
 			fixed_fee_kopeks: fixedFee,
 			min_charge_kopeks: minCharge,
-			rounding_rules_json: roundingRules,
 			effective_to: effectiveTo,
-			provider: formProvider.trim() ? formProvider.trim() : null,
-			is_default: formIsDefault,
 			is_active: formIsActive
 		};
 	};
@@ -496,74 +466,36 @@
 						/>
 					</label>
 					<label class="flex flex-col gap-1">
-						<span class="text-xs text-gray-500">{$i18n.t('Model tier')}</span>
-						<input
-							type="text"
-							bind:value={formModelTier}
-							placeholder="Standard"
-							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-						/>
-					</label>
-					<label class="flex flex-col gap-1">
 						<span class="text-xs text-gray-500">{$i18n.t('Modality')}</span>
-						<input
-							type="text"
+						<select
 							bind:value={formModality}
 							disabled={formMode === 'edit'}
-							placeholder="text"
 							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent disabled:opacity-60"
-						/>
+						>
+							<option value="" disabled>{$i18n.t('Select modality')}</option>
+							<option value="text">text</option>
+							<option value="image">image</option>
+							<option value="tts">tts</option>
+							<option value="stt">stt</option>
+						</select>
 					</label>
 					<label class="flex flex-col gap-1">
 						<span class="text-xs text-gray-500">{$i18n.t('Unit')}</span>
-						<input
-							type="text"
-							bind:value={formUnit}
-							disabled={formMode === 'edit'}
-							placeholder="token_in"
-							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent disabled:opacity-60"
-						/>
-					</label>
-
-					<label class="flex flex-col gap-1">
-						<span class="text-xs text-gray-500">{$i18n.t('Version')}</span>
-						<input
-							type="text"
-							bind:value={formVersion}
-							disabled={formMode === 'edit'}
-							placeholder="2025-01"
-							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent disabled:opacity-60"
-						/>
-					</label>
-					<label class="flex flex-col gap-1">
-						<span class="text-xs text-gray-500">{$i18n.t('Provider')}</span>
-						<input
-							type="text"
-							bind:value={formProvider}
-							placeholder="openai"
-							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-						/>
-					</label>
-					<label class="flex flex-col gap-1">
-						<span class="text-xs text-gray-500">{$i18n.t('Effective from')}</span>
-						<input
-							type="text"
-							inputmode="numeric"
-							bind:value={formEffectiveFrom}
-							disabled={formMode === 'edit'}
-							placeholder="Unix timestamp"
-							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent disabled:opacity-60"
-						/>
-					</label>
-					<label class="flex flex-col gap-1">
-						<span class="text-xs text-gray-500">{$i18n.t('Effective to')}</span>
-						<input
-							type="text"
-							inputmode="numeric"
-							bind:value={formEffectiveTo}
-							placeholder="Unix timestamp"
-							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-						/>
+						{#if allowedUnits.length > 1}
+							<select
+								bind:value={formUnit}
+								disabled={formMode === 'edit'}
+								class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent disabled:opacity-60"
+							>
+								{#each allowedUnits as unit}
+									<option value={unit}>{getUnitLabel(formModality, unit)}</option>
+								{/each}
+							</select>
+						{:else}
+							<div class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent text-sm text-gray-700 dark:text-gray-200">
+								{allowedUnits[0] ? getUnitLabel(formModality, allowedUnits[0]) : '—'}
+							</div>
+						{/if}
 					</label>
 
 					<label class="flex flex-col gap-1">
@@ -576,6 +508,9 @@
 							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 						/>
 						<span class="text-[11px] text-gray-400">{$i18n.t('Kopeks per unit')}</span>
+						{#if getRawCostHint(formModality, formUnit)}
+							<span class="text-[11px] text-gray-400">{getRawCostHint(formModality, formUnit)}</span>
+						{/if}
 					</label>
 					<label class="flex flex-col gap-1">
 						<span class="text-xs text-gray-500">{$i18n.t('Platform factor')}</span>
@@ -583,7 +518,7 @@
 							type="text"
 							inputmode="decimal"
 							bind:value={formPlatformFactor}
-							placeholder="1.3"
+							placeholder="1.0"
 							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 						/>
 					</label>
@@ -609,38 +544,42 @@
 						/>
 						<span class="text-[11px] text-gray-400">{$i18n.t('Kopeks')}</span>
 					</label>
-				</div>
-
-				<div class="mt-3 grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-3 items-start">
-					<label class="flex flex-col gap-1 text-sm">
-						<span class="text-xs text-gray-500">{$i18n.t('Rounding rules (JSON)')}</span>
-						<textarea
-							rows="3"
-							bind:value={formRoundingRules}
-							placeholder={'{"rounding": "ceil"}'}
-							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent text-xs"
+					<label class="flex flex-col gap-1">
+						<span class="text-xs text-gray-500">{$i18n.t('Effective from')}</span>
+						<input
+							type="text"
+							inputmode="numeric"
+							bind:value={formEffectiveFrom}
+							disabled={formMode === 'edit'}
+							placeholder="Unix timestamp"
+							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent disabled:opacity-60"
 						/>
 					</label>
-					<div class="flex items-center gap-3 mt-6">
-						<label class="flex items-center gap-2 text-xs text-gray-500">
-							<Switch state={formIsDefault} on:change={(e) => (formIsDefault = e.detail)} />
-							{$i18n.t('Default pricing')}
-						</label>
-						<label class="flex items-center gap-2 text-xs text-gray-500">
-							<Switch state={formIsActive} on:change={(e) => (formIsActive = e.detail)} />
-							{$i18n.t('Active')}
-						</label>
-					</div>
-					<div class="flex justify-end items-center mt-6">
-						<button
-							type="button"
-							on:click={handleSave}
-							disabled={saving}
-							class="px-3.5 py-1.5 text-sm font-medium bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full disabled:opacity-50"
-						>
-							{saving ? $i18n.t('Saving') : $i18n.t('Save')}
-						</button>
-					</div>
+					<label class="flex flex-col gap-1">
+						<span class="text-xs text-gray-500">{$i18n.t('Effective to')}</span>
+						<input
+							type="text"
+							inputmode="numeric"
+							bind:value={formEffectiveTo}
+							placeholder="Unix timestamp"
+							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
+						/>
+					</label>
+				</div>
+
+				<div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+					<label class="flex items-center gap-2 text-xs text-gray-500">
+						<Switch state={formIsActive} on:change={(e) => (formIsActive = e.detail)} />
+						{$i18n.t('Active')}
+					</label>
+					<button
+						type="button"
+						on:click={handleSave}
+						disabled={saving}
+						class="px-3.5 py-1.5 text-sm font-medium bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full disabled:opacity-50"
+					>
+						{saving ? $i18n.t('Saving') : $i18n.t('Save')}
+					</button>
 				</div>
 			</div>
 		{/if}

@@ -128,7 +128,7 @@
 			hold: $i18n.t('Hold'),
 			charge: $i18n.t('Charge'),
 			refund: $i18n.t('Refund'),
-			topup: $i18n.t('Top up'),
+			topup: $i18n.t('Top-up'),
 			subscription_credit: $i18n.t('Subscription credit'),
 			adjustment: $i18n.t('Adjustment'),
 			release: $i18n.t('Release')

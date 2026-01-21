@@ -171,6 +171,10 @@
 							<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
 							История списаний в личном кабинете
 						</li>
+						<li class="flex items-start gap-2">
+							<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+							Фиксированные суммы пополнения: 1 000 ₽, 1 500 ₽, 5 000 ₽, 10 000 ₽.
+						</li>
 					</ul>
 				</div>
 			</div>

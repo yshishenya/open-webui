@@ -6,6 +6,35 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[UI-20]** Clarify unit labels and raw cost meaning
+  - Unit options now include “price per ...” hints; raw cost label clarified
+
+- [x] **[UI-19]** Show unit as fixed value and add raw cost hints
+  - Unit shows as fixed value for single-unit modalities; raw cost now shows per-unit hint
+
+- [x] **[UI-18]** Add unit hints by modality in rate card form
+  - Unit dropdown now explains tts/stt/image/text units
+
+- [x] **[UI-17]** Adjust rate card unit by modality
+  - Unit now auto-limits to valid options per modality (text/image/tts/stt)
+
+- [x] **[UI-16]** Replace modality input with select
+  - Modality field now uses a dropdown with text/image/tts/stt
+
+- [x] **[UI-15]** Remove unused rate card fields from form
+  - Hid informational fields (model tier, provider, version, rounding rules, default flag)
+  - Kept only pricing + effective period inputs
+
+- [x] **[UI-13]** Rename top-up wording to Russian
+  - Replaced top-up labels in wallet/history/chat UI with Russian equivalents
+
+- [x] **[UI-12]** Show fixed top-up amounts on /pricing
+  - Added fixed top-up amounts in PAYG explainer block (1 000 / 1 500 / 5 000 / 10 000 ₽)
+
+- [x] **[UI-11]** Add fixed top-up amounts on wallet + landing
+  - Updated wallet top-up packages to 1 000, 1 500, 5 000, 10 000 ₽
+  - Added fixed top-up amounts callout on the /welcome landing
+
 - [x] **[DEPLOY-01]** Add Docker Hub deploy script (dev -> prod)
   - Added docker-compose.prod.yml to override image on prod
   - Added scripts/deploy_prod.sh for build/push/pull/up via SSH

@@ -167,6 +167,9 @@
 					<div class="rounded-xl border border-gray-200/70 bg-gray-50 px-4 py-3">
 						История списаний доступна в личном кабинете
 					</div>
+					<div class="rounded-xl border border-gray-200/70 bg-gray-50 px-4 py-3">
+						Фиксированные суммы пополнения: 1 000 ₽, 1 500 ₽, 5 000 ₽, 10 000 ₽.
+					</div>
 				</div>
 				<a
 					href="/auth"

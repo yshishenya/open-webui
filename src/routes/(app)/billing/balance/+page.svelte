@@ -20,7 +20,7 @@
 
 	const i18n = getContext('i18n');
 
-	const DEFAULT_TOPUP_PACKAGES_KOPEKS = [19900, 49900, 99900, 199900, 499900];
+	const DEFAULT_TOPUP_PACKAGES_KOPEKS = [100000, 150000, 500000, 1000000];
 	const RECENT_LEDGER_LIMIT = 5;
 
 	let loading = true;
@@ -272,7 +272,7 @@
 			hold: $i18n.t('Hold'),
 			charge: $i18n.t('Charge'),
 			refund: $i18n.t('Refund'),
-			topup: $i18n.t('Top up'),
+			topup: $i18n.t('Top-up'),
 			subscription_credit: $i18n.t('Subscription credit'),
 			adjustment: $i18n.t('Adjustment'),
 			release: $i18n.t('Release')
@@ -430,7 +430,7 @@
 					id="topup-section"
 				>
 					<div class="flex items-center justify-between mb-3">
-						<div class="text-sm font-medium">{$i18n.t('Top up')}</div>
+						<div class="text-sm font-medium">{$i18n.t('Top-up')}</div>
 					</div>
 					<div class="flex flex-wrap gap-2">
 						{#each DEFAULT_TOPUP_PACKAGES_KOPEKS as amount}
