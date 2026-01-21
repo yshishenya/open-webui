@@ -6,6 +6,21 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG]** Polish /welcome layout for examples + how callout
+  - Prevent study badge from wrapping in examples cards
+  - Stack the how-callout CTA under text for cleaner line breaks
+
+- [x] **[BUG]** Fix /welcome landing follow-up issues after review
+  - Hide audio examples/features when audio quotas are zero
+  - Add tab a11y wiring (aria-controls/tabpanel) + reuse shared navigation helpers
+  - Add Vitest coverage for welcome navigation helpers
+  - Tests: `npm run test:frontend -- --run`
+
+- [x] **[UI-22]** Обновить блоки /welcome после hero по новому ТЗ
+  - Добавлены примеры с табами и пресетами + мобильный \"Показать ещё\"
+  - Переписаны секции how/features/usecases/pricing/faq + финальный CTA
+  - Добавлены якоря, единые формулировки оплаты и sticky CTA на mobile
+
 - [x] **[BUG]** Stabilize welcome hero CTA + preset prefill after auth
   - Prevent decorative hero layers from intercepting CTA clicks
   - Ensure preset text applies after input mounts during auth redirect
