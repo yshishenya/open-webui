@@ -6,6 +6,14 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG]** Stabilize welcome hero CTA + preset prefill after auth
+  - Prevent decorative hero layers from intercepting CTA clicks
+  - Ensure preset text applies after input mounts during auth redirect
+  - Tests: `pytest`, `npm run test:frontend`, `npm run test:e2e`
+
+- [x] **[TOOLS-01]** Create general code review skill
+  - Added reusable code review skill with checklist references and templates
+
 - [x] **[ASSETS]** Sync static/static logo assets with new favicon
   - Regenerated favicon/manifest/splash PNGs and ICOs from the new SVG
 
@@ -199,6 +207,12 @@ This file tracks active development tasks for the Airis project. Update this fil
 ## In Progress
 
 ### High Priority
+- [x] **[UI-21]** Обновить hero + header /welcome по новому ТЗ
+  - Новый hero с CTA, trust chips и быстрыми пресетами
+  - Обновить header (mobile CTA + burger + трекинг событий)
+  - Обновить hero визуал под сценарий текст + изображения
+  - **Owner**: Codex
+  - **Target**: 2026-01-21
 - [x] **[BILLING-07]** Define PAYG default + lead magnet access logic
   - Make PAYG the default billing mode without subscription
   - Admin-configurable lead magnet: monthly quotas (tokens, images, TTS, STT) + cycle length (X days)

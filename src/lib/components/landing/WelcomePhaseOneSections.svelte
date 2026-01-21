@@ -99,7 +99,7 @@
 	</div>
 </section>
 
-<section class="mt-20">
+<section class="mt-20 scroll-mt-24" id="examples">
 	<div class="rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
 		<div class="flex flex-col gap-3 max-w-2xl">
 			<h2 class="text-2xl md:text-3xl font-semibold text-gray-900">

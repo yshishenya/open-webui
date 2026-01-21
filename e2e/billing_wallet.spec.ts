@@ -127,8 +127,8 @@ test.describe('Billing Wallet', () => {
 		await page.goto('/billing/history');
 		await page.waitForResponse('**/api/v1/billing/ledger*');
 		await expect(page.getByText('Operations')).toBeVisible();
-		await expect(page.getByText('Top up')).toBeVisible();
-		await expect(page.getByText('Charge')).toBeVisible();
+		await expect(page.getByText('Top-up', { exact: true })).toBeVisible();
+		await expect(page.getByText('Charge', { exact: true })).toBeVisible();
 	});
 
 	test('user can update billing settings', async ({ page }) => {

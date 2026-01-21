@@ -5,6 +5,7 @@
 	import { user } from '$lib/stores';
 	import { getPublicLeadMagnetConfig } from '$lib/apis/billing';
 	import type { PublicLeadMagnetConfig } from '$lib/apis/billing';
+	import { trackEvent } from '$lib/utils/analytics';
 	import {
 		WelcomePhaseOneSections,
 		CTASection,
@@ -75,12 +76,117 @@
 		};
 	}
 
-	const heroImage = '/landing/airis-chat.png';
+	const heroImage = '/landing/airis-hero.webp';
+	const heroImage2x = '/landing/airis-hero@2x.webp';
+	const heroImageFallback = '/landing/airis-hero.png';
+	const heroImageFallback2x = '/landing/airis-hero@2x.png';
+	const heroImageWidth = 1200;
+	const heroImageHeight = 697;
 
-	const modelHighlights = [
-		{ name: 'GPT-5.2', provider: 'OpenAI', status: 'available' },
-		{ name: 'Gemini 3', provider: 'Google', status: 'available' }
+	const trustChips = [
+		'Без VPN',
+		'Оплата в ₽',
+		'Без подписки',
+		'Платите только за использование',
+		'Бесплатный старт'
 	];
+
+	const presets = [
+		{
+			id: 'social_post',
+			label: 'Пост для соцсетей',
+			prompt:
+				'Напиши пост для соцсетей на тему: {тема}. Стиль: дружелюбно и по делу. Дай 3 варианта + короткий заголовок + 5 хэштегов.'
+		},
+		{
+			id: 'resume',
+			label: 'Резюме',
+			prompt:
+				'Составь резюме по фактам: {опыт/навыки/достижения}. Структура: Заголовок, О себе, Опыт, Навыки, Достижения. Тон: уверенно, без воды.'
+		},
+		{
+			id: 'email_reply',
+			label: 'Ответ на письмо',
+			prompt:
+				'Помоги ответить на письмо. Контекст: {кто пишет/о чём}. Цель ответа: {цель}. Тон: {вежливо/делово/дружелюбно}. Текст письма: {вставьте письмо}.'
+		},
+		{
+			id: 'image',
+			label: 'Сгенерировать картинку',
+			prompt:
+				'Сгенерируй изображение: {описание сцены}. Стиль: {стиль}. Формат: квадрат. Сделай 4 варианта.'
+		}
+	];
+
+	const buildChatUrl = (source: string, params: Record<string, string> = {}): string => {
+		const searchParams = new URLSearchParams({ src: source, ...params });
+		return `/?${searchParams.toString()}`;
+	};
+
+	const buildSignupUrl = (source: string, params: Record<string, string> = {}): string => {
+		const redirectTarget = buildChatUrl(source, params);
+		const searchParams = new URLSearchParams({ redirect: redirectTarget, src: source });
+
+		if (params.preset) {
+			searchParams.set('preset', params.preset);
+		}
+
+		return `/signup?${searchParams.toString()}`;
+	};
+
+	const handleHeroPrimaryClick = (event: MouseEvent) => {
+		event.preventDefault();
+		trackEvent('welcome_hero_primary_click');
+
+		const target = buildChatUrl('welcome_hero_primary');
+		if ($user) {
+			goto(target);
+			return;
+		}
+
+		goto(buildSignupUrl('welcome_hero_primary'));
+	};
+
+	const handleExamplesClick = (event: MouseEvent) => {
+		event.preventDefault();
+		trackEvent('welcome_hero_examples_click');
+		document.getElementById('examples')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	};
+
+	const handlePresetClick = (preset: { id: string; prompt: string }) => {
+		trackEvent('welcome_hero_preset_click', { preset: preset.id });
+
+		const target = buildChatUrl('welcome_hero_preset', {
+			preset: preset.id,
+			q: preset.prompt,
+			submit: 'false'
+		});
+
+		if ($user) {
+			goto(target);
+			return;
+		}
+
+		if (typeof window !== 'undefined') {
+			sessionStorage.setItem(
+				'welcome_preset_prompt',
+				JSON.stringify({
+					preset: preset.id,
+					prompt: preset.prompt,
+					source: 'welcome_hero_preset',
+					createdAt: Date.now()
+				})
+			);
+		}
+
+		goto(
+			buildSignupUrl('welcome_hero_preset', {
+				preset: preset.id,
+				q: preset.prompt,
+				submit: 'false'
+			})
+		);
+	};
 </script>
 
 <svelte:head>
@@ -93,61 +199,65 @@
 	<!-- Navigation Header -->
 	<NavHeader currentPath="/welcome" />
 
-	<div class="container mx-auto px-4 pt-12 pb-16">
-		<div class="relative">
-			<div class="absolute -top-24 -right-32 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
-			<div class="absolute -left-16 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
-			<div class="grid lg:grid-cols-[1.05fr_0.95fr] gap-14 items-center motion-safe:animate-[fade-up_0.7s_ease]">
-				<div class="space-y-8">
-					<div class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gray-600">
-						GPT-5.2 и Gemini 3 в одном интерфейсе
+	<div class="mx-auto max-w-[1200px] px-4 pt-12 md:pt-16 pb-10 md:pb-14">
+		<div class="relative isolate">
+			<div aria-hidden="true" class="pointer-events-none -z-10 absolute inset-0">
+				<div class="absolute -top-24 -right-32 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
+				<div class="absolute -left-16 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
+			</div>
+			<div class="relative z-10 grid lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-14 items-center motion-safe:animate-[fade-up_0.7s_ease]">
+				<div class="space-y-6">
+					<div class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-600">
+						Без VPN • Оплата в ₽ • Бесплатный старт
 					</div>
-					<h1 class="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.05]">
-						Все ведущие AI‑модели в одном окне
+					<h1 class="text-[32px] md:text-[40px] xl:text-[48px] font-bold tracking-tight text-gray-900 leading-[1.08]">
+						Тексты и изображения за минуты — в одном чате
 					</h1>
-					<p class="text-lg md:text-xl text-gray-600 max-w-xl">
-						Без VPN, с оплатой в рублях и бесплатным стартом.
-					</p>
-					<p class="text-base text-gray-600 max-w-xl">
-						Пишите, анализируйте и создавайте контент быстрее в одном чате.
+					<p class="text-[15px] md:text-[16px] font-medium leading-[1.5] text-gray-600 max-w-xl">
+						Посты, письма, резюме, объявления и картинки — быстро и просто. Начните
+						бесплатно без карты. Когда понадобится больше — пополняете баланс, и списания
+						идут только за использование. Никаких подписок и ежемесячных платежей.
 					</p>
 
-					<div class="flex flex-wrap gap-3">
+					<div class="flex flex-col sm:flex-row gap-3">
 						<a
-							href="/auth"
-							class="bg-black text-white px-6 py-3 rounded-full font-semibold hover:bg-gray-900 transition-colors"
+							href="/signup?src=welcome_hero_primary"
+							class="inline-flex items-center justify-center h-11 md:h-10 px-6 rounded-full bg-black text-white text-sm font-semibold hover:bg-gray-900 transition-colors w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
+							on:click={handleHeroPrimaryClick}
 						>
 							Начать бесплатно
 						</a>
 						<a
-							href="/features"
-							class="px-6 py-3 rounded-full border border-gray-300 text-gray-700 font-semibold hover:border-gray-400 hover:text-gray-900 transition-colors"
+							href="#examples"
+							class="inline-flex items-center justify-center h-11 md:h-10 px-6 rounded-full border border-gray-300 text-gray-700 text-sm font-semibold hover:border-gray-400 hover:text-gray-900 transition-colors w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
+							on:click={handleExamplesClick}
 						>
-							Смотреть возможности
+							Посмотреть примеры
 						</a>
 					</div>
 
-					<div class="flex flex-wrap gap-3">
-						{#each ['Без VPN', 'PAYG без подписок', 'Оплата в рублях', 'Бесплатный старт'] as item}
-							<div class="rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-xs font-semibold text-gray-700">
+					<div class="text-[12px] font-medium text-gray-500">Без карты • Без подписки</div>
+
+					<div class="flex flex-wrap gap-2">
+						{#each trustChips as item}
+							<div class="rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-700">
 								{item}
 							</div>
 						{/each}
 					</div>
 
-					<div class="flex flex-wrap gap-3">
-						{#each modelHighlights as model}
-							<div class="flex items-center gap-2 rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-xs font-semibold text-gray-700">
-								<span>{model.name}</span>
-								<span class="text-[0.65rem] font-medium text-gray-500">{model.provider}</span>
-							</div>
-						{/each}
-					</div>
-
-					<div class="rounded-2xl border border-gray-200/70 bg-white/90 p-4 text-sm text-gray-700">
-						<div class="font-semibold text-gray-900">Можно начать бесплатно</div>
-						<div class="mt-2 text-xs text-gray-500">
-							Стартуйте без карты и оцените сервис на бесплатных лимитах.
+					<div class="space-y-3">
+						<div class="text-xs font-semibold text-gray-600">Попробовать задачу:</div>
+						<div class="flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible pb-1">
+							{#each presets as preset}
+								<button
+									type="button"
+									class="shrink-0 rounded-full border border-gray-200 bg-white/90 px-4 py-2 text-[12px] font-medium text-gray-700 hover:border-gray-300 hover:text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
+									on:click={() => handlePresetClick(preset)}
+								>
+									{preset.label}
+								</button>
+							{/each}
 						</div>
 					</div>
 				</div>
@@ -156,12 +266,20 @@
 					<div class="relative rounded-[32px] border border-white/10 bg-[#0b0d12] px-4 pb-6 pt-5 shadow-[0_40px_80px_rgba(15,23,42,0.25)]">
 						<div class="absolute inset-0 rounded-[32px] bg-[radial-gradient(70%_60%_at_50%_0%,rgba(255,255,255,0.08),rgba(0,0,0,0))]"></div>
 						<div class="relative z-10 rounded-[26px] bg-[#0f1218] p-2 ring-1 ring-white/10">
-							<img
-								src={heroImage}
-								alt="Интерфейс AIris"
-								class="w-full rounded-[20px] border border-white/5 object-cover"
-								loading="lazy"
-							/>
+							<picture>
+								<source type="image/webp" srcset={`${heroImage} 1x, ${heroImage2x} 2x`} />
+								<img
+									src={heroImageFallback}
+									srcset={`${heroImageFallback} 1x, ${heroImageFallback2x} 2x`}
+									alt="Интерфейс Airis: чат для создания текстов и изображений"
+									class="w-full rounded-[20px] border border-white/5 object-cover"
+									loading="eager"
+									decoding="async"
+									fetchpriority="high"
+									width={heroImageWidth}
+									height={heroImageHeight}
+								/>
+							</picture>
 						</div>
 						<div class="absolute right-6 bottom-6 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-xs font-semibold text-white">
 							Интерфейс AIris
