@@ -6,6 +6,15 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[MAINT]** Clean up pytest warnings (SQLAlchemy/Alembic/Pydantic/deps)
+  - Updated deprecated APIs and added targeted pytest warning filters
+
+- [x] **[BUG]** Merge Alembic heads to unblock migrations in tests
+  - Added merge migration for ab12cd34ef56 + c9b7a1d4e2f3
+
+- [x] **[BUG]** Replace favicon PNG assets with SVG-converted logo
+  - Regenerated favicon PNGs from SVG and aligned model defaults to `/static/favicon.png`
+
 - [x] **[UI-11]** Replace app + landing logo with SVG
   - Swapped brand mark to SVG asset and updated app + landing logo usages
 

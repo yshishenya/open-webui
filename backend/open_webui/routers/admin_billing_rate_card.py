@@ -172,7 +172,7 @@ async def create_rate_card(
     effective_from = request.effective_from or int(time.time())
     if request.effective_to and request.effective_to < effective_from:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="effective_to must be >= effective_from",
         )
 
@@ -242,7 +242,7 @@ async def update_rate_card(
         effective_to = int(updates["effective_to"])
         if effective_to < existing.effective_from:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="effective_to must be >= effective_from",
             )
 

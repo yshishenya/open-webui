@@ -429,7 +429,7 @@ async def preflight_estimate_hold(
     )
     if not rate_in or not rate_out:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"error": "rate_card_missing"},
         )
 
@@ -634,7 +634,7 @@ async def preflight_single_rate_hold(
     )
     if not rate_card:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"error": "rate_card_missing"},
         )
 

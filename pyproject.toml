@@ -202,6 +202,21 @@ check-hidden = true
 # ignore-regex = ''
 ignore-words-list = 'ans'
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:datetime\\.datetime\\.utcnow\\(\\) is deprecated:DeprecationWarning:peewee",
+    "ignore:.*audioop.*is deprecated.*:DeprecationWarning:pydub\\.utils",
+    "ignore:Couldn't find ffmpeg or avconv.*:RuntimeWarning:pydub\\.utils",
+    "ignore:tagMap is deprecated.*:DeprecationWarning:pyasn1\\.codec\\.ber\\.encoder",
+    "ignore:typeMap is deprecated.*:DeprecationWarning:pyasn1\\.codec\\.ber\\.encoder",
+    "ignore:pkg_resources is deprecated as an API.*:UserWarning:pkg_resources",
+    "ignore:Deprecated call to `pkg_resources\\.declare_namespace\\(.*:DeprecationWarning:pkg_resources",
+    "ignore:pkg_resources is deprecated as an API.*:UserWarning:fs",
+    "ignore:Deprecated call to `pkg_resources\\.declare_namespace\\('fs'\\).*:DeprecationWarning:fs",
+    "ignore:Deprecated call to `pkg_resources\\.declare_namespace\\('fs\\.opener'\\).*:DeprecationWarning:fs\\.opener",
+    "ignore:.*joblib will operate in serial mode.*:UserWarning:joblib\\._multiprocessing_helpers",
+]
+
 [dependency-groups]
 dev = [
     "pytest-asyncio>=1.0.0",
