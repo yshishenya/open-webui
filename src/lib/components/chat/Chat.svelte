@@ -1082,8 +1082,9 @@
 					const presetSource = parsed.source ?? '';
 					const presetAgeMs = parsed.createdAt ? Date.now() - parsed.createdAt : Number.POSITIVE_INFINITY;
 					const PRESET_TTL_MS = 10 * 60 * 1000;
+					const isWelcomeSource = presetSource.startsWith('welcome_');
 
-					if (presetPrompt && presetSource === 'welcome_hero_preset' && presetAgeMs <= PRESET_TTL_MS) {
+					if (presetPrompt && isWelcomeSource && presetAgeMs <= PRESET_TTL_MS) {
 						await applyPromptText(presetPrompt);
 					}
 				} catch (e) {

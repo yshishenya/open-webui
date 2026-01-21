@@ -6,6 +6,7 @@
 	import { getPublicLeadMagnetConfig } from '$lib/apis/billing';
 	import type { PublicLeadMagnetConfig } from '$lib/apis/billing';
 	import { trackEvent } from '$lib/utils/analytics';
+	import { buildSignupUrl, openCta, openPreset } from '$lib/components/landing/welcomeNavigation';
 	import {
 		WelcomePhaseOneSections,
 		CTASection,
@@ -43,10 +44,6 @@
 	$: if (typeof window !== 'undefined' && localStorage.getItem('token') && !loaded && shouldAutoRedirect) {
 		goto(redirectUrl);
 	}
-
-	const handleVKLogin = () => {
-		window.location.href = '/api/v1/oauth/vk/login';
-	};
 
 	// Telegram widget callback
 	if (typeof window !== 'undefined') {
@@ -86,8 +83,8 @@
 	const trustChips = [
 		'Без VPN',
 		'Оплата в ₽',
-		'Без подписки',
-		'Платите только за использование',
+		'Без подписки и ежемесячных платежей',
+		'Списания идут только за использование',
 		'Бесплатный старт'
 	];
 
@@ -118,33 +115,13 @@
 		}
 	];
 
-	const buildChatUrl = (source: string, params: Record<string, string> = {}): string => {
-		const searchParams = new URLSearchParams({ src: source, ...params });
-		return `/?${searchParams.toString()}`;
-	};
-
-	const buildSignupUrl = (source: string, params: Record<string, string> = {}): string => {
-		const redirectTarget = buildChatUrl(source, params);
-		const searchParams = new URLSearchParams({ redirect: redirectTarget, src: source });
-
-		if (params.preset) {
-			searchParams.set('preset', params.preset);
-		}
-
-		return `/signup?${searchParams.toString()}`;
-	};
+	const heroPrimaryHref = buildSignupUrl('welcome_hero_primary');
+	const finalCtaHref = buildSignupUrl('welcome_final_cta');
 
 	const handleHeroPrimaryClick = (event: MouseEvent) => {
 		event.preventDefault();
 		trackEvent('welcome_hero_primary_click');
-
-		const target = buildChatUrl('welcome_hero_primary');
-		if ($user) {
-			goto(target);
-			return;
-		}
-
-		goto(buildSignupUrl('welcome_hero_primary'));
+		openCta('welcome_hero_primary');
 	};
 
 	const handleExamplesClick = (event: MouseEvent) => {
@@ -155,37 +132,13 @@
 
 	const handlePresetClick = (preset: { id: string; prompt: string }) => {
 		trackEvent('welcome_hero_preset_click', { preset: preset.id });
+		openPreset('welcome_hero_preset', preset.id, preset.prompt);
+	};
 
-		const target = buildChatUrl('welcome_hero_preset', {
-			preset: preset.id,
-			q: preset.prompt,
-			submit: 'false'
-		});
-
-		if ($user) {
-			goto(target);
-			return;
-		}
-
-		if (typeof window !== 'undefined') {
-			sessionStorage.setItem(
-				'welcome_preset_prompt',
-				JSON.stringify({
-					preset: preset.id,
-					prompt: preset.prompt,
-					source: 'welcome_hero_preset',
-					createdAt: Date.now()
-				})
-			);
-		}
-
-		goto(
-			buildSignupUrl('welcome_hero_preset', {
-				preset: preset.id,
-				q: preset.prompt,
-				submit: 'false'
-			})
-		);
+	const handleFinalCtaClick = (event: MouseEvent) => {
+		event.preventDefault();
+		trackEvent('welcome_final_cta_click');
+		openCta('welcome_final_cta');
 	};
 </script>
 
@@ -195,115 +148,143 @@
 </svelte:head>
 
 {#if loaded}
-<div class="min-h-screen bg-[radial-gradient(1200px_600px_at_15%_-10%,rgba(0,0,0,0.05),transparent),radial-gradient(900px_500px_at_90%_0%,rgba(0,0,0,0.04),transparent),linear-gradient(180deg,#f7f7f8_0%,#ffffff_70%)] text-gray-900 font-primary">
+<div class="min-h-screen bg-white text-gray-900 font-primary">
 	<!-- Navigation Header -->
 	<NavHeader currentPath="/welcome" />
 
-	<div class="mx-auto max-w-[1200px] px-4 pt-12 md:pt-16 pb-10 md:pb-14">
-		<div class="relative isolate">
-			<div aria-hidden="true" class="pointer-events-none -z-10 absolute inset-0">
-				<div class="absolute -top-24 -right-32 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
-				<div class="absolute -left-16 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
-			</div>
-			<div class="relative z-10 grid lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-14 items-center motion-safe:animate-[fade-up_0.7s_ease]">
-				<div class="space-y-6">
-					<div class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-600">
-						Без VPN • Оплата в ₽ • Бесплатный старт
-					</div>
-					<h1 class="text-[32px] md:text-[40px] xl:text-[48px] font-bold tracking-tight text-gray-900 leading-[1.08]">
-						Тексты и изображения за минуты — в одном чате
-					</h1>
-					<p class="text-[15px] md:text-[16px] font-medium leading-[1.5] text-gray-600 max-w-xl">
-						Посты, письма, резюме, объявления и картинки — быстро и просто. Начните
-						бесплатно без карты. Когда понадобится больше — пополняете баланс, и списания
-						идут только за использование. Никаких подписок и ежемесячных платежей.
-					</p>
+	<section class="relative overflow-hidden bg-[radial-gradient(1200px_600px_at_15%_-10%,rgba(0,0,0,0.05),transparent),radial-gradient(900px_500px_at_90%_0%,rgba(0,0,0,0.04),transparent),linear-gradient(180deg,#f7f7f8_0%,#ffffff_70%)]">
+		<div class="mx-auto max-w-[1200px] px-4 pt-12 md:pt-16 pb-10 md:pb-14">
+			<div class="relative isolate">
+				<div aria-hidden="true" class="pointer-events-none -z-10 absolute inset-0">
+					<div class="absolute -top-24 -right-32 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
+					<div class="absolute -left-16 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
+				</div>
+				<div class="relative z-10 grid lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-14 items-center motion-safe:animate-[fade-up_0.7s_ease]">
+					<div class="space-y-6">
+						<div class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-600">
+							Без VPN • Оплата в ₽ • Бесплатный старт
+						</div>
+						<h1 class="text-[32px] md:text-[40px] xl:text-[48px] font-bold tracking-tight text-gray-900 leading-[1.08]">
+							Тексты и изображения за минуты — в одном чате
+						</h1>
+						<p class="text-[15px] md:text-[16px] font-medium leading-[1.5] text-gray-600 max-w-xl">
+							Посты, письма, резюме, объявления и картинки — быстро и просто. Начните
+							бесплатно без карты. Когда понадобится больше — пополняете баланс, и списания
+							идут только за использование. Никаких подписок и ежемесячных платежей.
+						</p>
 
-					<div class="flex flex-col sm:flex-row gap-3">
-						<a
-							href="/signup?src=welcome_hero_primary"
-							class="inline-flex items-center justify-center h-11 md:h-10 px-6 rounded-full bg-black text-white text-sm font-semibold hover:bg-gray-900 transition-colors w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
-							on:click={handleHeroPrimaryClick}
-						>
-							Начать бесплатно
-						</a>
-						<a
-							href="#examples"
-							class="inline-flex items-center justify-center h-11 md:h-10 px-6 rounded-full border border-gray-300 text-gray-700 text-sm font-semibold hover:border-gray-400 hover:text-gray-900 transition-colors w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
-							on:click={handleExamplesClick}
-						>
-							Посмотреть примеры
-						</a>
-					</div>
+						<div class="flex flex-col sm:flex-row gap-3">
+							<a
+								href={heroPrimaryHref}
+								class="inline-flex items-center justify-center h-11 md:h-10 px-6 rounded-full bg-black text-white text-sm font-semibold hover:bg-gray-900 transition-colors w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
+								on:click={handleHeroPrimaryClick}
+							>
+								Начать бесплатно
+							</a>
+							<a
+								href="#examples"
+								class="inline-flex items-center justify-center h-11 md:h-10 px-6 rounded-full border border-gray-300 text-gray-700 text-sm font-semibold hover:border-gray-400 hover:text-gray-900 transition-colors w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
+								on:click={handleExamplesClick}
+							>
+								Посмотреть примеры
+							</a>
+						</div>
 
-					<div class="text-[12px] font-medium text-gray-500">Без карты • Без подписки</div>
+						<div class="text-[12px] font-medium text-gray-500">Без карты • Без подписки и ежемесячных платежей</div>
 
-					<div class="flex flex-wrap gap-2">
-						{#each trustChips as item}
-							<div class="rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-700">
-								{item}
-							</div>
-						{/each}
-					</div>
-
-					<div class="space-y-3">
-						<div class="text-xs font-semibold text-gray-600">Попробовать задачу:</div>
-						<div class="flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible pb-1">
-							{#each presets as preset}
-								<button
-									type="button"
-									class="shrink-0 rounded-full border border-gray-200 bg-white/90 px-4 py-2 text-[12px] font-medium text-gray-700 hover:border-gray-300 hover:text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
-									on:click={() => handlePresetClick(preset)}
-								>
-									{preset.label}
-								</button>
+						<div class="flex flex-wrap gap-2">
+							{#each trustChips as item}
+								<div class="rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-700">
+									{item}
+								</div>
 							{/each}
 						</div>
-					</div>
-				</div>
 
-				<div class="relative">
-					<div class="relative rounded-[32px] border border-white/10 bg-[#0b0d12] px-4 pb-6 pt-5 shadow-[0_40px_80px_rgba(15,23,42,0.25)]">
-						<div class="absolute inset-0 rounded-[32px] bg-[radial-gradient(70%_60%_at_50%_0%,rgba(255,255,255,0.08),rgba(0,0,0,0))]"></div>
-						<div class="relative z-10 rounded-[26px] bg-[#0f1218] p-2 ring-1 ring-white/10">
-							<picture>
-								<source type="image/webp" srcset={`${heroImage} 1x, ${heroImage2x} 2x`} />
-								<img
-									src={heroImageFallback}
-									srcset={`${heroImageFallback} 1x, ${heroImageFallback2x} 2x`}
-									alt="Интерфейс Airis: чат для создания текстов и изображений"
-									class="w-full rounded-[20px] border border-white/5 object-cover"
-									loading="eager"
-									decoding="async"
-									fetchpriority="high"
-									width={heroImageWidth}
-									height={heroImageHeight}
-								/>
-							</picture>
+						<div class="space-y-3">
+							<div class="text-xs font-semibold text-gray-600">Попробовать задачу:</div>
+							<div class="flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible pb-1">
+								{#each presets as preset}
+									<button
+										type="button"
+										class="shrink-0 rounded-full border border-gray-200 bg-white/90 px-4 py-2 text-[12px] font-medium text-gray-700 hover:border-gray-300 hover:text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
+										on:click={() => handlePresetClick(preset)}
+									>
+										{preset.label}
+									</button>
+								{/each}
+							</div>
 						</div>
-						<div class="absolute right-6 bottom-6 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-xs font-semibold text-white">
-							Интерфейс AIris
+					</div>
+
+					<div class="relative">
+						<div class="relative rounded-[32px] border border-white/10 bg-[#0b0d12] px-4 pb-6 pt-5 shadow-[0_40px_80px_rgba(15,23,42,0.25)]">
+							<div class="absolute inset-0 rounded-[32px] bg-[radial-gradient(70%_60%_at_50%_0%,rgba(255,255,255,0.08),rgba(0,0,0,0))]"></div>
+							<div class="relative z-10 rounded-[26px] bg-[#0f1218] p-2 ring-1 ring-white/10">
+								<picture>
+									<source type="image/webp" srcset={`${heroImage} 1x, ${heroImage2x} 2x`} />
+									<img
+										src={heroImageFallback}
+										srcset={`${heroImageFallback} 1x, ${heroImageFallback2x} 2x`}
+										alt="Интерфейс Airis: чат для создания текстов и изображений"
+										class="w-full rounded-[20px] border border-white/5 object-cover"
+										loading="eager"
+										decoding="async"
+										fetchpriority="high"
+										width={heroImageWidth}
+										height={heroImageHeight}
+									/>
+								</picture>
+							</div>
+							<div class="absolute right-6 bottom-6 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-xs font-semibold text-white">
+								Интерфейс AIris
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
+	</section>
 
-		<WelcomePhaseOneSections {leadMagnetConfig} />
+	<WelcomePhaseOneSections {leadMagnetConfig} />
 
-		<section class="mt-16">
-			<CTASection onClick={handleVKLogin} />
-		</section>
+	<section id="cta" class="welcome-section welcome-section--cta">
+		<div class="mx-auto max-w-[1200px] px-4">
+			<CTASection
+				title="Готовы попробовать Airis?"
+				description="Начните бесплатно без карты. Без VPN, оплата в ₽. Без подписки и ежемесячных платежей — списания идут только за использование."
+				buttonText="Начать бесплатно"
+				buttonHref={finalCtaHref}
+				tone="dark"
+				onClick={handleFinalCtaClick}
+			/>
+		</div>
+	</section>
 
-		<footer class="mt-16">
+	<footer class="welcome-footer">
+		<div class="mx-auto max-w-[1200px] px-4 pb-24 md:pb-16">
 			<FooterLinks />
-		</footer>
-	</div>
+		</div>
+	</footer>
 </div>
 {/if}
 
 <style>
 	:global(body) {
 		overflow-x: hidden;
+	}
+
+	:global(section[id]) {
+		scroll-margin-top: 88px;
+	}
+
+	@media (max-width: 767px) {
+		:global(section[id]) {
+			scroll-margin-top: 72px;
+		}
+	}
+
+	:global(.welcome-section.welcome-section--cta) {
+		padding-block: 64px;
+		background: #0b0d12;
 	}
 </style>

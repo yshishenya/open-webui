@@ -4,15 +4,28 @@
 	export let buttonText: string = 'Начать бесплатно';
 	export let buttonHref: string = '/api/v1/oauth/vk/login';
 	export let onClick: (() => void) | null = null;
+	export let tone: 'light' | 'dark' = 'light';
+
+	$: containerClass =
+		tone === 'dark'
+			? 'bg-[#0b0d12] border border-white/10 text-white'
+			: 'bg-white border border-gray-200/70 text-gray-900';
+
+	$: titleClass = tone === 'dark' ? 'text-white' : 'text-gray-900';
+	$: descriptionClass = tone === 'dark' ? 'text-white/70' : 'text-gray-600';
+	$: buttonClass =
+		tone === 'dark'
+			? 'bg-white text-gray-900 hover:bg-gray-100'
+			: 'bg-black text-white hover:bg-gray-900';
 </script>
 
-<div class="bg-white rounded-2xl border border-gray-200/70 p-8 md:p-12 shadow-sm">
+<div class={`rounded-2xl p-8 md:p-12 shadow-sm ${containerClass}`}>
 	<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 		<div>
-			<h2 class="text-2xl md:text-3xl font-semibold text-gray-900 mb-3">
+			<h2 class={`text-2xl md:text-3xl font-semibold mb-3 ${titleClass}`}>
 				{title}
 			</h2>
-			<p class="text-base md:text-lg text-gray-600 max-w-2xl">
+			<p class={`text-base md:text-lg max-w-2xl ${descriptionClass}`}>
 				{description}
 			</p>
 		</div>
@@ -20,14 +33,14 @@
 			{#if onClick}
 				<button
 					on:click={onClick}
-					class="bg-black text-white px-8 py-3 rounded-full font-semibold hover:bg-gray-900 transition-colors"
+					class={`px-8 py-3 rounded-full font-semibold transition-colors ${buttonClass}`}
 				>
 					{buttonText}
 				</button>
 			{:else}
 				<a
 					href={buttonHref}
-					class="bg-black text-white px-8 py-3 rounded-full font-semibold hover:bg-gray-900 transition-colors inline-block"
+					class={`px-8 py-3 rounded-full font-semibold transition-colors inline-block ${buttonClass}`}
 				>
 					{buttonText}
 				</a>
