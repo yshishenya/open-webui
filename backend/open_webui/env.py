@@ -941,6 +941,15 @@ def _parse_int_list(value: str) -> list[int]:
     return items
 
 
+def _parse_str_list(value: str) -> list[str]:
+    items: list[str] = []
+    for part in value.split(","):
+        part = part.strip()
+        if part:
+            items.append(part)
+    return items
+
+
 ENABLE_BILLING_WALLET = os.environ.get("ENABLE_BILLING_WALLET", "False").lower() == "true"
 ENABLE_BILLING_SUBSCRIPTIONS = (
     os.environ.get("ENABLE_BILLING_SUBSCRIPTIONS", "False").lower() == "true"
@@ -956,8 +965,24 @@ BILLING_TOPUP_TTL_DAYS = int(os.environ.get("BILLING_TOPUP_TTL_DAYS", "365"))
 BILLING_TOPUP_PACKAGES_KOPEKS = _parse_int_list(
     os.environ.get(
         "BILLING_TOPUP_PACKAGES_KOPEKS",
-        "19900,49900,99900,199900,499900",
+        "100000,150000,500000,1000000",
     )
+)
+
+PUBLIC_PRICING_POPULAR_MODELS = _parse_str_list(
+    os.environ.get("PUBLIC_PRICING_POPULAR_MODELS", "")
+)
+PUBLIC_PRICING_RECOMMENDED_TEXT_MODEL = os.environ.get(
+    "PUBLIC_PRICING_RECOMMENDED_TEXT_MODEL", ""
+)
+PUBLIC_PRICING_RECOMMENDED_IMAGE_MODEL = os.environ.get(
+    "PUBLIC_PRICING_RECOMMENDED_IMAGE_MODEL", ""
+)
+PUBLIC_PRICING_RECOMMENDED_AUDIO_MODEL = os.environ.get(
+    "PUBLIC_PRICING_RECOMMENDED_AUDIO_MODEL", ""
+)
+PUBLIC_PRICING_RATE_CARD_MODEL_LIMIT = int(
+    os.environ.get("PUBLIC_PRICING_RATE_CARD_MODEL_LIMIT", "50")
 )
 
 YOOKASSA_SHOP_ID = os.environ.get("YOOKASSA_SHOP_ID", "")

@@ -5,11 +5,12 @@ Handles subscription plans, payments, usage, and webhooks
 
 import logging
 import time
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional, Dict, List
 from pydantic import BaseModel
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Response
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 
@@ -41,8 +42,14 @@ from open_webui.env import (
     ENABLE_BILLING_SUBSCRIPTIONS,
     BILLING_DEFAULT_CURRENCY,
     BILLING_TOPUP_PACKAGES_KOPEKS,
+    PUBLIC_PRICING_POPULAR_MODELS,
+    PUBLIC_PRICING_RECOMMENDED_TEXT_MODEL,
+    PUBLIC_PRICING_RECOMMENDED_IMAGE_MODEL,
+    PUBLIC_PRICING_RECOMMENDED_AUDIO_MODEL,
+    PUBLIC_PRICING_RATE_CARD_MODEL_LIMIT,
 )
 from open_webui.models.users import Users
+from open_webui.models.models import Models
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS.get("BILLING", logging.INFO))
@@ -71,23 +78,6 @@ def _normalize_public_lead_magnet_quotas(raw: Dict[str, object]) -> Dict[str, in
         if key in defaults and isinstance(value, int):
             defaults[key] = value
     return defaults
-
-
-def _latest_rate_cards_for_model(
-    model_id: str, as_of: Optional[int] = None
-) -> Dict[tuple[str, str], object]:
-    entries = RateCards.list_rate_cards(model_id=model_id, is_active=True, limit=200)
-    now = as_of or int(time.time())
-    latest: Dict[tuple[str, str], object] = {}
-    for entry in entries:
-        if entry.effective_from > now:
-            continue
-        if entry.effective_to is not None and entry.effective_to < now:
-            continue
-        key = (entry.modality, entry.unit)
-        if key not in latest:
-            latest[key] = entry
-    return latest
 
 
 ############################
@@ -167,21 +157,47 @@ class PublicLeadMagnetResponse(BaseModel):
     config_version: int
 
 
-class PublicRateCardUnit(BaseModel):
-    modality: str
-    unit: str
-    per_unit: int
-    price_kopeks: int
+class PublicRateCardRates(BaseModel):
+    text_in_1000_tokens: Optional[int] = None
+    text_out_1000_tokens: Optional[int] = None
+    image_1024: Optional[int] = None
+    tts_1000_chars: Optional[int] = None
+    stt_minute: Optional[int] = None
 
 
 class PublicRateCardModel(BaseModel):
-    model_id: str
-    rates: List[PublicRateCardUnit]
+    id: str
+    display_name: str
+    provider: Optional[str] = None
+    capabilities: List[str]
+    rates: PublicRateCardRates
 
 
 class PublicRateCardResponse(BaseModel):
     currency: str
+    updated_at: str
     models: List[PublicRateCardModel]
+
+
+class PublicPricingFreeLimits(BaseModel):
+    text_in: int
+    text_out: int
+    images: int
+    tts_minutes: int
+    stt_minutes: int
+
+
+class PublicPricingRecommendedModels(BaseModel):
+    text: Optional[str] = None
+    image: Optional[str] = None
+    audio: Optional[str] = None
+
+
+class PublicPricingConfigResponse(BaseModel):
+    topup_amounts_rub: List[int]
+    free_limits: PublicPricingFreeLimits
+    popular_model_ids: List[str]
+    recommended_model_ids: PublicPricingRecommendedModels
 
 
 class BalanceResponse(BaseModel):
@@ -1102,51 +1118,153 @@ async def get_public_lead_magnet_config(request: Request) -> PublicLeadMagnetRes
     )
 
 
+@router.get("/public/pricing-config", response_model=PublicPricingConfigResponse)
+async def get_public_pricing_config(request: Request) -> PublicPricingConfigResponse:
+    """Expose pricing config for public pages (topups, free limits, popular/recommended)."""
+    config = request.app.state.config
+    quotas = _normalize_public_lead_magnet_quotas(config.LEAD_MAGNET_QUOTAS or {})
+
+    topup_amounts_rub = sorted(
+        {
+            int(amount / 100)
+            for amount in BILLING_TOPUP_PACKAGES_KOPEKS
+            if isinstance(amount, int) and amount > 0
+        }
+    )
+
+    def _nullable(value: str) -> Optional[str]:
+        cleaned = value.strip()
+        return cleaned if cleaned else None
+
+    return PublicPricingConfigResponse(
+        topup_amounts_rub=topup_amounts_rub,
+        free_limits=PublicPricingFreeLimits(
+            text_in=quotas["tokens_input"],
+            text_out=quotas["tokens_output"],
+            images=quotas["images"],
+            tts_minutes=int(quotas["tts_seconds"] / 60) if quotas["tts_seconds"] > 0 else 0,
+            stt_minutes=int(quotas["stt_seconds"] / 60) if quotas["stt_seconds"] > 0 else 0,
+        ),
+        popular_model_ids=PUBLIC_PRICING_POPULAR_MODELS,
+        recommended_model_ids=PublicPricingRecommendedModels(
+            text=_nullable(PUBLIC_PRICING_RECOMMENDED_TEXT_MODEL),
+            image=_nullable(PUBLIC_PRICING_RECOMMENDED_IMAGE_MODEL),
+            audio=_nullable(PUBLIC_PRICING_RECOMMENDED_AUDIO_MODEL),
+        ),
+    )
+
+
 @router.get("/public/rate-cards", response_model=PublicRateCardResponse)
-async def get_public_rate_cards() -> PublicRateCardResponse:
-    """Expose PAYG rate cards for selected public models."""
+async def get_public_rate_cards(
+    response: Response, currency: Optional[str] = None
+) -> PublicRateCardResponse:
+    """Expose rate cards for public pricing tables."""
     now = int(time.time())
-    public_models = [
-        "gpt-5.2",
-        "gemini/gemini-3-pro-preview",
-    ]
+    response.headers["Cache-Control"] = "public, max-age=600"
+    if currency and currency != BILLING_DEFAULT_CURRENCY:
+        log.warning(f"Requested unsupported currency {currency}, using default.")
+
     display_units = {
-        ("text", "token_in"): 1000,
-        ("text", "token_out"): 1000,
-        ("image", "image_1024"): 1,
-        ("tts", "tts_char"): 1000,
-        ("stt", "stt_second"): 60,
+        ("text", "token_in"): ("text_in_1000_tokens", 1000),
+        ("text", "token_out"): ("text_out_1000_tokens", 1000),
+        ("image", "image_1024"): ("image_1024", 1),
+        ("tts", "tts_char"): ("tts_1000_chars", 1000),
+        ("stt", "stt_second"): ("stt_minute", 60),
     }
 
-    models: List[PublicRateCardModel] = []
-    for model_id in public_models:
-        latest = _latest_rate_cards_for_model(model_id, as_of=now)
-        rates: List[PublicRateCardUnit] = []
+    model_limit = min(max(PUBLIC_PRICING_RATE_CARD_MODEL_LIMIT, 1), 50)
+    base_models = Models.get_base_models()
+    active_models = [model for model in base_models if model.is_active]
+    active_models.sort(key=lambda model: (model.name or model.id).lower())
+    active_model_ids = [model.id for model in active_models]
 
-        for (modality, unit), per_unit in display_units.items():
-            entry = latest.get((modality, unit))
-            if not entry:
+    rate_cards = RateCards.list_rate_cards_by_model_ids(
+        active_model_ids,
+        is_active=True,
+    )
+
+    latest_by_model: Dict[str, Dict[tuple[str, str], object]] = {}
+    for entry in rate_cards:
+        if entry.effective_from > now:
+            continue
+        if entry.effective_to is not None and entry.effective_to < now:
+            continue
+        model_latest = latest_by_model.setdefault(entry.model_id, {})
+        key = (entry.modality, entry.unit)
+        if key not in model_latest:
+            model_latest[key] = entry
+
+    models: List[PublicRateCardModel] = []
+    updated_at_ts: Optional[int] = None
+
+    for model in active_models:
+        latest = latest_by_model.get(model.id, {})
+        if not latest:
+            continue
+
+        rates_payload: Dict[str, Optional[int]] = {
+            "text_in_1000_tokens": None,
+            "text_out_1000_tokens": None,
+            "image_1024": None,
+            "tts_1000_chars": None,
+            "stt_minute": None,
+        }
+        capabilities = set()
+        provider: Optional[str] = None
+        model_updated_at: Optional[int] = None
+
+        for (modality, unit), entry in latest.items():
+            mapping = display_units.get((modality, unit))
+            if not mapping:
                 continue
+            field_name, per_unit = mapping
             pricing_units = Decimal(per_unit)
             if modality == "text" and unit in {"token_in", "token_out"}:
                 pricing_units = Decimal(1)
-            price = pricing_service.calculate_cost_kopeks(
-                pricing_units, entry, 0
-            )
-            rates.append(
-                PublicRateCardUnit(
-                    modality=modality,
-                    unit=unit,
-                    per_unit=per_unit,
-                    price_kopeks=price,
-                )
-            )
+            price = pricing_service.calculate_cost_kopeks(pricing_units, entry, 0)
+            rates_payload[field_name] = price
 
-        if rates:
-            models.append(PublicRateCardModel(model_id=model_id, rates=rates))
+            if modality == "text":
+                capabilities.add("text")
+            elif modality == "image":
+                capabilities.add("image")
+            elif modality in {"tts", "stt"}:
+                capabilities.add("audio")
+
+            if provider is None and entry.provider:
+                provider = entry.provider
+            if model_updated_at is None or entry.effective_from > model_updated_at:
+                model_updated_at = entry.effective_from
+
+        if all(value is None for value in rates_payload.values()):
+            continue
+
+        if model_updated_at is not None:
+            if updated_at_ts is None or model_updated_at > updated_at_ts:
+                updated_at_ts = model_updated_at
+
+        models.append(
+            PublicRateCardModel(
+                id=model.id,
+                display_name=model.name or model.id,
+                provider=provider,
+                capabilities=sorted(capabilities),
+                rates=PublicRateCardRates(**rates_payload),
+            )
+        )
+
+        if len(models) >= model_limit:
+            break
+
+    updated_at_value = datetime.fromtimestamp(
+        updated_at_ts or now, tz=timezone.utc
+    ).isoformat()
+    if updated_at_value.endswith("+00:00"):
+        updated_at_value = updated_at_value.replace("+00:00", "Z")
 
     return PublicRateCardResponse(
         currency=BILLING_DEFAULT_CURRENCY,
+        updated_at=updated_at_value,
         models=models,
     )
 

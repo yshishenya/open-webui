@@ -402,6 +402,36 @@ class RateCardsTable:
             )
             return [PricingRateCardModel.model_validate(entry) for entry in entries]
 
+    def list_rate_cards_by_model_ids(
+        self,
+        model_ids: List[str],
+        is_active: Optional[bool] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
+    ) -> List[PricingRateCardModel]:
+        """List rate cards for a set of model IDs."""
+        if not model_ids:
+            return []
+        with get_db() as db:
+            query = db.query(PricingRateCard).filter(
+                PricingRateCard.model_id.in_(model_ids)
+            )
+            if is_active is not None:
+                query = query.filter(PricingRateCard.is_active == is_active)
+
+            query = query.order_by(
+                PricingRateCard.model_id.asc(),
+                PricingRateCard.modality.asc(),
+                PricingRateCard.unit.asc(),
+                PricingRateCard.effective_from.desc(),
+            )
+            if offset:
+                query = query.offset(offset)
+            if limit is not None:
+                query = query.limit(limit)
+            entries = query.all()
+            return [PricingRateCardModel.model_validate(entry) for entry in entries]
+
     def count_rate_cards(
         self,
         model_id: Optional[str] = None,
