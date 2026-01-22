@@ -6,6 +6,20 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[UI-24]** Перепроверить шрифты и типографику /pricing
+  - Уточнены размеры микрокопии и межстрочные интервалы в hero/CTA
+  - Добавлены табличные цифры для цен и сумм пополнения
+  - Усилен акцент на суммах пополнения: лейбл 12px, чипы 15px на mobile
+
+- [x] **[UI-25]** Fix estimator preset multiplier mismatch
+  - Добавлен вариант 1.2x в dropdown, чтобы пресеты совпадали с выбором
+
+- [x] **[UI-23]** Пересобрать /pricing по новому ТЗ + динамический Rate Card
+  - Новый порядок секций, обновлённые тексты и CTA-логика
+  - Rate Card из бэка (3–50 моделей) + updatedAt на UI
+  - Конфиг для сумм пополнения, популярных/рекомендованных моделей
+  - Фоллбеки и события аналитики по ТЗ
+
 - [x] **[BUG]** Polish /welcome layout for examples + how callout
   - Prevent study badge from wrapping in examples cards
   - Stack the how-callout CTA under text for cleaner line breaks
