@@ -1,0 +1,56 @@
+{
+  "uncertainty": { "min": 0.85, "max": 1.2 },
+  "text": {
+    "enabled": true,
+    "buckets": {
+      "short": { "label": "Короткие", "tokens": 80 },
+      "medium": { "label": "Средние", "tokens": 200 },
+      "long": { "label": "Длинные", "tokens": 600 }
+    },
+    "replyMultipliers": [
+      { "label": "как запрос", "value": 1 },
+      { "label": "в 1.2 раза длиннее", "value": 1.2 },
+      { "label": "в 1.5 раза длиннее", "value": 1.5 },
+      { "label": "в 2 раза длиннее", "value": 2 }
+    ],
+    "presets": [
+      {
+        "id": "messages_10",
+        "label": "10 сообщений в день",
+        "description": "Короткие запросы и ответы",
+        "messagesPerDay": 10,
+        "bucket": "short",
+        "replyMultiplier": 1
+      },
+      {
+        "id": "messages_50",
+        "label": "50 сообщений в день",
+        "description": "Активная работа с текстом",
+        "messagesPerDay": 50,
+        "bucket": "medium",
+        "replyMultiplier": 1.2
+      }
+    ],
+    "default": { "messagesPerDay": 10, "bucket": "short", "replyMultiplier": 1 }
+  },
+  "image": {
+    "enabled": true,
+    "presets": [
+      {
+        "id": "image_single",
+        "label": "1 изображение (1024px)",
+        "description": "Генерация 1024px",
+        "count": 1
+      }
+    ],
+    "default": { "count": 1 }
+  },
+  "audio": {
+    "enabled": true,
+    "modes": [
+      { "id": "tts", "label": "Озвучка" },
+      { "id": "stt", "label": "Распознавание" }
+    ],
+    "default": { "mode": "tts", "chars": 2000, "minutes": 10 }
+  }
+}

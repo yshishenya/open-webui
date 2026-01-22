@@ -1,154 +1,277 @@
 <script lang="ts">
-	import { onMount, getContext } from 'svelte';
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { PublicPageLayout } from '$lib/components/landing';
+	import SectionHeader from '$lib/components/landing/SectionHeader.svelte';
+	import Estimator from '$lib/components/pricing/Estimator.svelte';
+	import RatesTable from '$lib/components/pricing/RatesTable.svelte';
+	import TopUpAmountsInline from '$lib/components/pricing/TopUpAmountsInline.svelte';
+	import FaqAccordion from '$lib/components/pricing/FaqAccordion.svelte';
+	import pricingEstimatorConfig from '$lib/data/pricing-estimator.json';
+	import { trackEvent } from '$lib/utils/analytics';
+	import { user } from '$lib/stores';
 	import {
 		getPublicLeadMagnetConfig,
+		getPublicPricingConfig,
 		getPublicRateCards
 	} from '$lib/apis/billing';
 	import type {
 		PublicLeadMagnetConfig,
-		PublicRateCardResponse,
-		PublicRateCardUnit
+		PublicPricingConfig,
+		PublicRateCardResponse
 	} from '$lib/apis/billing';
-	import { formatCompactNumber } from '$lib/utils/billing-formatters';
-	import Spinner from '$lib/components/common/Spinner.svelte';
+	import type { PricingEstimatorConfig } from '$lib/components/pricing/Estimator.svelte';
+	import type { FaqItem } from '$lib/components/pricing/FaqAccordion.svelte';
 
-	const i18n = getContext('i18n');
+	const estimatorConfig = pricingEstimatorConfig as PricingEstimatorConfig;
 
-	let loading = true;
-	let errorMessage = '';
+	let rateCard: PublicRateCardResponse | null = null;
 	let leadMagnetConfig: PublicLeadMagnetConfig | null = null;
-	let rateCards: PublicRateCardResponse | null = null;
+	let pricingConfig: PublicPricingConfig | null = null;
+	let loadingRates = true;
+	let ratesError: string | null = null;
 
-	const modelLabels: Record<string, string> = {
-		'gpt-5.2': 'GPT-5.2',
-		'gemini/gemini-3-pro-preview': 'Gemini 3'
+	const formatNumber = (value: number): string => {
+		try {
+			return new Intl.NumberFormat('ru-RU').format(value);
+		} catch (error) {
+			return value.toString();
+		}
+	};
+
+	const buildChatTarget = (source: string): string => `/?src=${source}`;
+
+	const buildBalanceTarget = (source: string): string => `/billing/balance?src=${source}`;
+
+	const buildSignupTarget = (source: string, redirectTarget: string): string => {
+		const params = new URLSearchParams({ redirect: redirectTarget, src: source });
+		return `/signup?${params.toString()}`;
+	};
+
+	const buildAuthTarget = (source: string, redirectTarget: string): string => {
+		const params = new URLSearchParams({ redirect: redirectTarget, src: source });
+		return `/auth?${params.toString()}`;
+	};
+
+	const handleHeroPrimary = (event: MouseEvent): void => {
+		event.preventDefault();
+		trackEvent('pricing_hero_primary_click');
+		if ($user) {
+			goto(buildBalanceTarget('pricing_hero_primary'));
+			return;
+		}
+		goto(buildSignupTarget('pricing_hero_primary', buildChatTarget('pricing_hero_primary')));
+	};
+
+	const handleHeroSecondary = (event: MouseEvent): void => {
+		event.preventDefault();
+		trackEvent('pricing_hero_secondary_click');
+		if ($user) {
+			goto(buildChatTarget('pricing_hero_secondary'));
+			return;
+		}
+		goto(buildAuthTarget('pricing_hero_secondary', buildBalanceTarget('pricing_hero_secondary')));
+	};
+
+	const handleFinalCta = (event: MouseEvent): void => {
+		event.preventDefault();
+		trackEvent('pricing_final_cta_click');
+		if ($user) {
+			goto(buildBalanceTarget('pricing_final_cta'));
+			return;
+		}
+		goto(buildSignupTarget('pricing_final_cta', buildChatTarget('pricing_final_cta')));
+	};
+
+	const handleEstimatorPrimary = (): void => {
+		if ($user) {
+			goto(buildBalanceTarget('pricing_estimator_primary'));
+			return;
+		}
+		goto(buildSignupTarget('pricing_estimator_primary', buildChatTarget('pricing_estimator_primary')));
+	};
+
+	const handleFreeStartCta = (event: MouseEvent): void => {
+		event.preventDefault();
+		if ($user) {
+			goto(buildChatTarget('pricing_free_start'));
+			return;
+		}
+		goto(buildSignupTarget('pricing_free_start', buildChatTarget('pricing_free_start')));
+	};
+
+	const scrollToCalculation = (): void => {
+		const target = document.getElementById('calculation');
+		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	};
+
+	const buildFreeLimits = (
+		config: PublicPricingConfig | null,
+		leadMagnet: PublicLeadMagnetConfig | null
+	): {
+		text_in: number;
+		text_out: number;
+		images: number;
+		tts_minutes: number;
+		stt_minutes: number;
+	} | null => {
+		if (config?.free_limits) return config.free_limits;
+		if (!leadMagnet?.quotas) return null;
+		return {
+			text_in: leadMagnet.quotas.tokens_input,
+			text_out: leadMagnet.quotas.tokens_output,
+			images: leadMagnet.quotas.images,
+			tts_minutes: Math.floor(leadMagnet.quotas.tts_seconds / 60),
+			stt_minutes: Math.floor(leadMagnet.quotas.stt_seconds / 60)
+		};
 	};
 
 	onMount(async () => {
-		loading = true;
-		errorMessage = '';
+		loadingRates = true;
+		ratesError = null;
 		try {
-			const [rateCardsResult, leadMagnetResult] = await Promise.all([
+			const [rateCardResult, leadMagnetResult, pricingConfigResult] = await Promise.all([
 				getPublicRateCards(),
-				getPublicLeadMagnetConfig()
+				getPublicLeadMagnetConfig(),
+				getPublicPricingConfig()
 			]);
-			rateCards = rateCardsResult;
+			rateCard = rateCardResult;
 			leadMagnetConfig = leadMagnetResult;
-			if (!rateCardsResult) {
-				errorMessage = $i18n.t('Failed to load pricing');
+			pricingConfig = pricingConfigResult;
+			if (!rateCardResult) {
+				ratesError = 'Ставки временно недоступны. Попробуйте обновить страницу.';
 			}
 		} catch (error) {
-			console.error('Failed to load public pricing:', error);
-			errorMessage = $i18n.t('Failed to load pricing');
+			console.error('Failed to load pricing data:', error);
+			ratesError = 'Ставки временно недоступны. Попробуйте обновить страницу.';
 		} finally {
-			loading = false;
+			loadingRates = false;
 		}
 	});
 
-	const formatMoney = (kopeks: number, currency: string): string => {
-		const amount = kopeks / 100;
-		try {
-			return new Intl.NumberFormat($i18n.locale, {
-				style: 'currency',
-				currency
-			}).format(amount);
-		} catch (error) {
-			return `${amount.toFixed(2)} ${currency}`.trim();
+	$: topupAmounts = pricingConfig?.topup_amounts_rub ?? [];
+	$: hasTopupAmounts = topupAmounts.length > 0;
+
+	$: popularModelIds = pricingConfig?.popular_model_ids ?? [];
+	$: recommendedModelIdByType = pricingConfig?.recommended_model_ids ?? {};
+	$: cycleDays = leadMagnetConfig?.cycle_days ?? 30;
+	$: freeLimits = buildFreeLimits(pricingConfig, leadMagnetConfig);
+
+	$: freeLimitItems = freeLimits
+		? [
+				{ label: 'Текст (ваши сообщения)', value: freeLimits.text_in, suffix: '' },
+				{ label: 'Текст (ответы)', value: freeLimits.text_out, suffix: '' },
+				{ label: 'Изображения', value: freeLimits.images, suffix: '' },
+				{ label: 'Озвучка текста', value: freeLimits.tts_minutes, suffix: ' мин' },
+				{ label: 'Распознавание речи', value: freeLimits.stt_minutes, suffix: ' мин' }
+			].filter((item) => item.value > 0)
+		: [];
+
+	const faqItems: FaqItem[] = [
+		{
+			id: 'subscription',
+			question: 'Это подписка?',
+			answer: 'Нет, подписки нет. Вы пополняете баланс, и списания происходят только за использование.',
+			open: true
+		},
+		{
+			id: 'usage',
+			question: 'Как работает оплата по использованию?',
+			answer:
+				'Вы пополняете баланс, а списания идут только за использование текстов, изображений и аудио.'
+		},
+		{
+			id: 'topup',
+			question: 'Какие суммы пополнения доступны?',
+			answer: 'Доступны фиксированные суммы пополнения.',
+			includeTopups: true
+		},
+		{
+			id: 'free',
+			question: 'Есть ли бесплатный доступ?',
+			answer: 'Да, можно начать бесплатно без карты в пределах лимитов.'
+		},
+		{
+			id: 'balance',
+			question: 'Что будет, если баланс закончится?',
+			answer:
+				'Вы сможете пополнить баланс и продолжить работу. История списаний доступна в личном кабинете.'
+		},
+		{
+			id: 'history',
+			question: 'Где смотреть историю списаний?',
+			answer: 'История списаний отображается в личном кабинете.'
+		},
+		{
+			id: 'vpn',
+			question: 'Нужен ли VPN?',
+			answer: 'Нет, сервис работает без VPN.'
+		},
+		{
+			id: 'io',
+			question: 'Что значит “ввод/ответ” в ставках?',
+			answer: 'Ввод — это ваш запрос, ответ — текст модели. Стоимость зависит от объёма каждого.'
 		}
-	};
-
-	const formatRateLabel = (rate: PublicRateCardUnit): string => {
-		if (rate.modality === 'text' && rate.unit === 'token_in') return 'Текст: ввод (1000 токенов)';
-		if (rate.modality === 'text' && rate.unit === 'token_out') return 'Текст: вывод (1000 токенов)';
-		if (rate.modality === 'image') return 'Изображение (1024px)';
-		if (rate.modality === 'tts') return 'Озвучка (1000 символов)';
-		if (rate.modality === 'stt') return 'Распознавание (1 минута)';
-		return `${rate.modality} / ${rate.unit}`;
-	};
-
-	const formatLeadMagnetItems = (config: PublicLeadMagnetConfig | null) => {
-		if (!config?.enabled) return [];
-		const quotas = config.quotas;
-		return [
-			{ label: 'Токены (ввод)', value: quotas.tokens_input },
-			{ label: 'Токены (вывод)', value: quotas.tokens_output },
-			{ label: 'Изображения', value: quotas.images },
-			{ label: 'TTS (сек)', value: quotas.tts_seconds },
-			{ label: 'STT (сек)', value: quotas.stt_seconds }
-		].filter((item) => item.value > 0);
-	};
-
-	const findRate = (modelId: string, modality: PublicRateCardUnit['modality'], unit: PublicRateCardUnit['unit']) => {
-		const model = rateCards?.models?.find((item) => item.model_id === modelId);
-		return model?.rates?.find((rate) => rate.modality === modality && rate.unit === unit) ?? null;
-	};
-
-	const estimateTextCost = (tokensIn: number, tokensOut: number) => {
-		if (!rateCards?.currency) return null;
-		const firstModel = rateCards.models?.[0]?.model_id;
-		if (!firstModel) return null;
-		const inRate = findRate(firstModel, 'text', 'token_in');
-		const outRate = findRate(firstModel, 'text', 'token_out');
-		if (!inRate || !outRate) return null;
-		const costKopeks = (tokensIn / 1000) * inRate.price_kopeks + (tokensOut / 1000) * outRate.price_kopeks;
-		return formatMoney(costKopeks, rateCards.currency ?? 'RUB');
-	};
-
-	const estimateImageCost = () => {
-		if (!rateCards?.currency) return null;
-		const firstModel = rateCards.models?.[0]?.model_id;
-		if (!firstModel) return null;
-		const rate =
-			findRate(firstModel, 'image', 'image_1024') ??
-			rateCards.models?.[0]?.rates?.find((entry) => entry.modality === 'image') ??
-			null;
-		if (!rate) return null;
-		return formatMoney(rate.price_kopeks, rateCards.currency ?? 'RUB');
-	};
-
-	$: leadMagnetItems = formatLeadMagnetItems(leadMagnetConfig);
-	$: example10 = estimateTextCost(800, 800);
-	$: example50 = estimateTextCost(4000, 4000);
-	$: exampleImage = estimateImageCost();
+	];
 </script>
 
 <PublicPageLayout
 	title="Тарифы"
-	description="PAYG‑оплата в AIris: прозрачные цены по фактическому использованию и бесплатный старт."
+	description="Прозрачные тарифы AIris: пополнение баланса, списания только за использование и бесплатный старт."
 	showHero={false}
 >
-	<section class="container mx-auto px-4 pt-12 pb-12">
-		<div class="relative">
-			<div class="absolute -top-20 -right-32 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
-			<div class="absolute -left-20 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
-			<div class="grid lg:grid-cols-[1.05fr_0.95fr] gap-14 items-center">
+	<section class="relative overflow-hidden">
+		<div class="absolute -top-20 -right-32 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
+		<div class="absolute -left-20 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
+		<div class="container mx-auto px-4 pt-14 pb-16 relative">
+			<div class="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] items-center">
 				<div class="space-y-6">
 					<span class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gray-600">
-						Тарифы
+						ТАРИФЫ
 					</span>
 					<h1 class="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.05]">
-						PAYG‑оплата без подписок
+						Оплата по использованию — без подписки
 					</h1>
-					<p class="text-lg md:text-xl text-gray-600 max-w-xl">
-						Платите только за фактическое использование.
+					<p class="text-lg md:text-xl text-gray-600 max-w-xl leading-relaxed">
+						Пополняете баланс и пользуетесь текстами, изображениями и аудио. Списания происходят
+						только когда вы используете сервис. Без подписки и ежемесячных платежей.
 					</p>
 					<div class="flex flex-wrap gap-3">
 						<a
-							href="/auth"
+							href={$user ? '/billing/balance' : '/signup'}
 							class="bg-black text-white px-6 py-3 rounded-full font-semibold hover:bg-gray-900 transition-colors"
+							on:click={handleHeroPrimary}
 						>
-							Начать бесплатно
+							{$user ? 'Пополнить баланс' : 'Начать бесплатно'}
 						</a>
 						<a
-							href="/auth"
+							href={$user ? '/' : '/auth'}
 							class="px-6 py-3 rounded-full border border-gray-300 text-gray-700 font-semibold hover:border-gray-400 hover:text-gray-900 transition-colors"
+							on:click={handleHeroSecondary}
 						>
-							Пополнить баланс
+							{$user ? 'Перейти в чат' : 'Пополнить баланс'}
 						</a>
 					</div>
-					<div class="flex flex-wrap gap-3">
-						{#each ['Стоимость видна до отправки', 'Оплата только за фактические запросы', 'Прозрачные списания'] as item}
+					<div class="space-y-2">
+						{#if hasTopupAmounts}
+							<TopUpAmountsInline amountsRub={topupAmounts} variant="inline" trackId="hero" />
+						{:else}
+							<div class="text-xs text-gray-500">Суммы пополнения временно недоступны.</div>
+						{/if}
+						{#if !$user}
+							<div class="text-[12px] font-medium text-gray-500">
+								Начать можно бесплатно — без карты.
+							</div>
+						{/if}
+					</div>
+					<div class="flex flex-wrap gap-2">
+						{#each [
+							'Без VPN',
+							'Оплата в ₽',
+							'Без подписки и ежемесячных платежей',
+							'Списания только за использование',
+							'История списаний в личном кабинете'
+						] as item}
 							<div class="rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-xs font-semibold text-gray-700">
 								{item}
 							</div>
@@ -156,186 +279,180 @@
 					</div>
 				</div>
 
-				<div class="rounded-[32px] border border-gray-200/70 bg-white/90 p-6 shadow-sm">
-					<h3 class="text-xl font-semibold text-gray-900 mb-4">Как работает PAYG</h3>
+				<div class="rounded-[32px] border border-gray-200/70 bg-white/90 p-6 shadow-sm space-y-4">
+					<h3 class="text-xl font-semibold text-gray-900">Как устроена оплата</h3>
 					<ul class="space-y-3 text-sm text-gray-700">
 						<li class="flex items-start gap-2">
 							<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
-							Раздельный расчет по входным и выходным токенам
+							Пополняете баланс
 						</li>
 						<li class="flex items-start gap-2">
 							<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
-							Фиксированные ставки на изображения и аудио
+							Пользуетесь — списания только за использование
 						</li>
 						<li class="flex items-start gap-2">
 							<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
-							История списаний в личном кабинете
-						</li>
-						<li class="flex items-start gap-2">
-							<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
-							Фиксированные суммы пополнения: 1 000 ₽, 1 500 ₽, 5 000 ₽, 10 000 ₽.
+							Смотрите остаток и историю списаний в личном кабинете
 						</li>
 					</ul>
+					<p class="text-xs text-gray-500">
+						Текст зависит от объёма запроса и ответа. Изображения и аудио — по фиксированным
+						ставкам.
+					</p>
+					{#if hasTopupAmounts}
+						<TopUpAmountsInline
+							amountsRub={topupAmounts}
+							variant="block"
+							label="Пополнение фиксированными суммами"
+						/>
+					{:else}
+						<p class="text-xs text-gray-500">
+							Суммы пополнения временно недоступны.
+						</p>
+					{/if}
 				</div>
 			</div>
 		</div>
 	</section>
 
-	<section class="container mx-auto px-4 pb-12">
-		{#if loading}
-			<div class="flex justify-center">
-				<Spinner className="size-5" />
+	<section class="bg-[#f7f7f8] py-16">
+		<div class="mx-auto max-w-[1200px] px-4">
+			<SectionHeader
+				id="estimator"
+				title="Сколько это примерно стоит"
+				subtitle="Ниже — ориентиры. Сумма зависит от объёма запросов и выбранной модели."
+			/>
+			<div class="mt-8">
+				<Estimator
+					config={estimatorConfig}
+					rateCard={rateCard}
+					recommendedModelIdByType={recommendedModelIdByType}
+					loading={loadingRates}
+					error={ratesError ? 'Оценка временно недоступна. Попробуйте обновить страницу.' : null}
+					primaryLabel={$user ? 'Пополнить баланс' : 'Начать бесплатно'}
+					onPrimaryAction={handleEstimatorPrimary}
+					onScrollToCalculation={scrollToCalculation}
+				/>
 			</div>
-		{:else if errorMessage}
-			<div class="flex flex-col items-center justify-center py-24 text-center">
-				<div class="text-gray-500 text-lg">{errorMessage}</div>
-			</div>
-		{:else}
-			<div class="rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
-				<h2 class="text-2xl md:text-3xl font-semibold text-gray-900 text-center mb-10">
-					Реальные ставки PAYG
-				</h2>
-				{#if rateCards?.models?.length}
-					<div class="grid md:grid-cols-2 gap-6">
-						{#each rateCards.models as model}
-							<div class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm">
-								<div class="text-sm font-semibold text-gray-900 mb-4">
-									{modelLabels[model.model_id] ?? model.model_id}
-								</div>
-								<ul class="space-y-3 text-sm text-gray-700">
-									{#each model.rates as rate}
-										<li class="flex items-center justify-between gap-4">
-											<span>{formatRateLabel(rate)}</span>
-											<span class="font-semibold text-gray-900">
-												{formatMoney(rate.price_kopeks, rateCards?.currency ?? 'RUB')}
-											</span>
-										</li>
-									{/each}
-								</ul>
-							</div>
-						{/each}
-					</div>
-				{:else}
-					<div class="text-center text-sm text-gray-500">
-						Тарифы будут доступны после настройки rate card.
-					</div>
-				{/if}
-			</div>
-
-			<div class="mt-12 rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
-				<h2 class="text-2xl font-semibold text-gray-900 mb-4">
-					Бесплатный старт на выбранных моделях
-				</h2>
-				<p class="text-gray-600 mb-6">
-					Часть моделей доступна бесплатно в пределах лимитов, которые обновляются каждые
-					{leadMagnetConfig?.cycle_days ?? 30} дней.
-				</p>
-				{#if leadMagnetItems.length}
-					<div class="grid gap-3 sm:grid-cols-3 text-sm text-gray-700">
-						{#each leadMagnetItems as item}
-							<div class="rounded-xl border border-gray-200/70 bg-gray-50 px-4 py-3">
-								{item.label}: {formatCompactNumber(item.value)}
-							</div>
-						{/each}
-					</div>
-				{:else}
-					<div class="text-sm text-gray-500">
-						Лимиты будут отображаться после настройки квот администратора.
-					</div>
-				{/if}
-			</div>
-
-			<div class="mt-12 rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
-				<h2 class="text-2xl md:text-3xl font-semibold text-gray-900 text-center mb-8">
-					Пример расходов
-				</h2>
-				<div class="grid md:grid-cols-3 gap-6 text-sm text-gray-700">
-					<div class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm">
-						<h3 class="text-lg font-semibold text-gray-900 mb-2">10 сообщений в день</h3>
-						<p class="text-gray-600 mb-4">Текстовые запросы средней длины.</p>
-						<div class="text-xl font-semibold text-gray-900">
-							{example10 ?? '—'}
-						</div>
-					</div>
-					<div class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm">
-						<h3 class="text-lg font-semibold text-gray-900 mb-2">50 сообщений в день</h3>
-						<p class="text-gray-600 mb-4">Активная работа с текстом.</p>
-						<div class="text-xl font-semibold text-gray-900">
-							{example50 ?? '—'}
-						</div>
-					</div>
-					<div class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm">
-						<h3 class="text-lg font-semibold text-gray-900 mb-2">1 изображение</h3>
-						<p class="text-gray-600 mb-4">Генерация визуала 1024px.</p>
-						<div class="text-xl font-semibold text-gray-900">
-							{exampleImage ?? '—'}
-						</div>
-					</div>
-				</div>
-				<p class="mt-6 text-xs text-gray-500 text-center">
-					Примеры ориентировочные и рассчитываются по актуальным ставкам.
-				</p>
-			</div>
-		{/if}
+		</div>
 	</section>
 
-	<section class="container mx-auto px-4 pb-16">
-		<div class="rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
-			<h2 class="text-2xl md:text-3xl font-semibold text-center text-gray-900 mb-8">
-				Часто задаваемые вопросы
-			</h2>
-			<div class="max-w-3xl mx-auto space-y-4">
-				<details class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm group">
-					<summary class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center">
-						Как считается стоимость в PAYG?
-						<svg
-							class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-						</svg>
-					</summary>
-					<p class="mt-4 text-gray-600">
-						Списание зависит от модели и объема: токены считаются отдельно для ввода и вывода,
-						а изображения и аудио — по фиксированным ставкам.
-					</p>
-				</details>
+	<section class="py-16">
+		<div class="mx-auto max-w-[1200px] px-4">
+			<SectionHeader
+				id="free"
+				title="Бесплатный старт"
+				subtitle={`Можно начать бесплатно без карты. Лимиты обновляются каждые ${cycleDays} дней.`}
+			/>
+			{#if freeLimitItems.length}
+				<div class="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm text-gray-700">
+					{#each freeLimitItems as item}
+						<div class="rounded-xl border border-gray-200/70 bg-gray-50 px-4 py-3">
+							{item.label}: {formatNumber(item.value)}{item.suffix}
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p class="mt-6 text-sm text-gray-500">
+					Лимиты будут отображаться после настройки квот администратора.
+				</p>
+			{/if}
+			<div class="mt-6">
+				<a
+					href={$user ? '/' : '/signup'}
+					class="inline-flex items-center justify-center rounded-full bg-black px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-900"
+					on:click={handleFreeStartCta}
+				>
+					Начать бесплатно
+				</a>
+			</div>
+		</div>
+	</section>
 
-				<details class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm group">
-					<summary class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center">
-						Есть ли бесплатный доступ?
-						<svg
-							class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-						</svg>
-					</summary>
-					<p class="mt-4 text-gray-600">
-						Да, часть моделей доступна бесплатно в пределах лимитов лид‑магнита.
-					</p>
-				</details>
+	<section class="bg-[#f7f7f8] py-16">
+		<div class="mx-auto max-w-[1200px] px-4">
+			<SectionHeader
+				id="rates"
+				title="Ставки по моделям"
+				subtitle="Если не хотите разбираться — используйте рекомендованный режим в чате. Если нужно точнее — выберите модель здесь."
+			/>
+			<div class="mt-8">
+				<RatesTable
+					models={rateCard?.models ?? []}
+					currency={rateCard?.currency ?? 'RUB'}
+					updatedAt={rateCard?.updated_at ?? null}
+					popularModelIds={popularModelIds}
+					defaultView="popular"
+					loading={loadingRates}
+					error={ratesError}
+				/>
+			</div>
+		</div>
+	</section>
 
-				<details class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm group">
-					<summary class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center">
-						Как пополнить баланс?
-						<svg
-							class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-						</svg>
-					</summary>
-					<p class="mt-4 text-gray-600">
-						Войдите в аккаунт, откройте баланс и выберите удобную сумму пополнения.
-					</p>
-				</details>
+	<section class="py-16">
+		<div class="mx-auto max-w-[1200px] px-4">
+			<SectionHeader
+				id="calculation"
+				title="Как считается стоимость"
+				subtitle="Коротко: за что списывается и где это посмотреть."
+			/>
+			<div class="mt-8 grid gap-4 text-sm text-gray-700">
+				<div class="rounded-xl border border-gray-200/70 bg-white px-4 py-3">
+					Текст: учитывается объём запроса и ответа.
+				</div>
+				<div class="rounded-xl border border-gray-200/70 bg-white px-4 py-3">
+					Изображения: по фиксированной ставке (может зависеть от размера и модели).
+				</div>
+				<div class="rounded-xl border border-gray-200/70 bg-white px-4 py-3">
+					Аудио: по длительности или объёму.
+				</div>
+				<div class="rounded-xl border border-gray-200/70 bg-white px-4 py-3">
+					Где смотреть: история списаний в личном кабинете.
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="py-16">
+		<div class="mx-auto max-w-[1200px] px-4">
+			<SectionHeader id="faq" title="Часто задаваемые вопросы" />
+			<div class="mt-8 max-w-3xl">
+				<FaqAccordion items={faqItems} topUpAmounts={topupAmounts} />
+			</div>
+		</div>
+	</section>
+
+	<section id="cta" class="bg-gray-900 py-16">
+		<div class="mx-auto max-w-[1200px] px-4 text-white">
+			<div class="rounded-[32px] border border-white/10 bg-white/5 p-8 md:p-10">
+				<h2 class="text-3xl md:text-4xl font-semibold">Готовы начать?</h2>
+				<p class="mt-3 text-base md:text-lg text-gray-200 leading-relaxed max-w-2xl">
+					Начните бесплатно без карты. Без подписки и ежемесячных платежей — списания только за
+					использование.
+				</p>
+				<div class="mt-6 flex flex-wrap gap-3 items-center">
+					<a
+						href={$user ? '/billing/balance' : '/signup'}
+						class="inline-flex items-center justify-center rounded-full bg-white text-gray-900 px-6 py-2 text-sm font-semibold hover:bg-gray-100 transition-colors"
+						on:click={handleFinalCta}
+					>
+						{$user ? 'Пополнить баланс' : 'Начать бесплатно'}
+					</a>
+					{#if hasTopupAmounts}
+						<TopUpAmountsInline
+							amountsRub={topupAmounts}
+							variant="inline"
+							trackId="cta"
+							label="Суммы пополнения"
+							tone="dark"
+						/>
+					{:else}
+						<span class="text-xs font-medium text-gray-300">
+							Суммы пополнения временно недоступны.
+						</span>
+					{/if}
+				</div>
 			</div>
 		</div>
 	</section>

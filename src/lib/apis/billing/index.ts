@@ -83,21 +83,47 @@ export interface PublicLeadMagnetConfig {
 	config_version: number;
 }
 
-export interface PublicRateCardUnit {
-	modality: string;
-	unit: string;
-	per_unit: number;
-	price_kopeks: number;
+export interface PublicRateCardRates {
+	text_in_1000_tokens: number | null;
+	text_out_1000_tokens: number | null;
+	image_1024: number | null;
+	tts_1000_chars: number | null;
+	stt_minute: number | null;
 }
 
 export interface PublicRateCardModel {
-	model_id: string;
-	rates: PublicRateCardUnit[];
+	id: string;
+	display_name: string;
+	provider?: string | null;
+	capabilities: string[];
+	rates: PublicRateCardRates;
 }
 
 export interface PublicRateCardResponse {
 	currency: string;
+	updated_at: string;
 	models: PublicRateCardModel[];
+}
+
+export interface PublicPricingFreeLimits {
+	text_in: number;
+	text_out: number;
+	images: number;
+	tts_minutes: number;
+	stt_minutes: number;
+}
+
+export interface PublicPricingRecommendedModels {
+	text?: string | null;
+	image?: string | null;
+	audio?: string | null;
+}
+
+export interface PublicPricingConfig {
+	topup_amounts_rub: number[];
+	free_limits: PublicPricingFreeLimits;
+	popular_model_ids: string[];
+	recommended_model_ids: PublicPricingRecommendedModels;
 }
 
 export interface LedgerEntry {
@@ -706,6 +732,17 @@ export const getPublicLeadMagnetConfig = async (): Promise<PublicLeadMagnetConfi
 		);
 	} catch (error) {
 		console.error('Failed to get public lead magnet config:', error);
+		return null;
+	}
+};
+
+export const getPublicPricingConfig = async (): Promise<PublicPricingConfig | null> => {
+	try {
+		return await publicApiRequest<PublicPricingConfig>(
+			`${WEBUI_API_BASE_URL}/billing/public/pricing-config`,
+		);
+	} catch (error) {
+		console.error('Failed to get public pricing config:', error);
 		return null;
 	}
 };
