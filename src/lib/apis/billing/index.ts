@@ -178,29 +178,6 @@ export interface UsageEvent {
 	created_at: number;
 }
 
-export interface EstimateRequest {
-	model_id: string;
-	modality: string;
-	payload: Record<string, unknown>;
-	max_reply_cost_kopeks?: number | null;
-}
-
-export interface EstimateResponse {
-	min_kopeks: number;
-	max_kopeks: number;
-	min_input_kopeks?: number | null;
-	max_input_kopeks?: number | null;
-	min_output_kopeks?: number | null;
-	max_output_kopeks?: number | null;
-	is_allowed: boolean;
-	reason?: string | null;
-	pricing_rate_card_id?: string | null;
-	pricing_rate_card_input_id?: string | null;
-	pricing_rate_card_output_id?: string | null;
-	pricing_version?: string | null;
-	billing_source?: string | null;
-}
-
 export interface Subscription {
 	id: string;
 	user_id: string;
@@ -623,25 +600,6 @@ export const updateBillingSettings = async (
 		);
 	} catch (error) {
 		console.error('Failed to update billing settings:', error);
-		throw error;
-	}
-};
-
-export const getEstimate = async (
-	token: string,
-	payload: EstimateRequest
-): Promise<EstimateResponse | null> => {
-	try {
-		return await apiRequest<EstimateResponse>(
-			`${WEBUI_API_BASE_URL}/billing/estimate`,
-			token,
-			{
-				method: 'POST',
-				body: JSON.stringify(payload)
-			}
-		);
-	} catch (error) {
-		console.error('Failed to get estimate:', error);
 		throw error;
 	}
 };

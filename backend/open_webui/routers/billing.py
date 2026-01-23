@@ -30,7 +30,6 @@ from open_webui.models.billing import (
 )
 from open_webui.utils.auth import get_verified_user, get_admin_user
 from open_webui.utils.billing import billing_service, QuotaExceededError
-from open_webui.utils.billing_integration import estimate_tokens_from_messages
 from open_webui.utils.lead_magnet import evaluate_lead_magnet
 from open_webui.utils.pricing import PricingService
 from open_webui.utils.wallet import wallet_service, WalletError
@@ -213,29 +212,6 @@ class BalanceResponse(BaseModel):
     auto_topup_fail_count: int = 0
     auto_topup_last_failed_at: Optional[int] = None
     currency: str
-
-
-class EstimateRequest(BaseModel):
-    model_id: str
-    modality: str
-    payload: Dict[str, object]
-    max_reply_cost_kopeks: Optional[int] = None
-
-
-class EstimateResponse(BaseModel):
-    min_kopeks: int
-    max_kopeks: int
-    min_input_kopeks: Optional[int] = None
-    max_input_kopeks: Optional[int] = None
-    min_output_kopeks: Optional[int] = None
-    max_output_kopeks: Optional[int] = None
-    is_allowed: bool
-    reason: Optional[str] = None
-    billing_source: Optional[str] = None
-    pricing_rate_card_id: Optional[str] = None
-    pricing_rate_card_input_id: Optional[str] = None
-    pricing_rate_card_output_id: Optional[str] = None
-    pricing_version: Optional[str] = None
 
 
 class AutoTopupRequest(BaseModel):
@@ -515,157 +491,6 @@ async def update_billing_settings(
         Users.update_user_by_id(user.id, {"info": info})
 
     return {"status": "ok"}
-
-
-@router.post("/estimate", response_model=EstimateResponse)
-async def estimate_cost(
-    request: EstimateRequest,
-    user=Depends(get_verified_user),
-):
-    """Estimate request cost based on rate card and user plan."""
-    if not ENABLE_BILLING_WALLET:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Billing wallet is disabled",
-        )
-
-    now = int(time.time())
-    wallet = wallet_service.get_or_create_wallet(user.id, BILLING_DEFAULT_CURRENCY)
-    subscription = billing_service.get_user_subscription(user.id)
-    plan = billing_service.get_plan(subscription.plan_id) if subscription else None
-    discount_percent = plan.discount_percent if plan else 0
-
-    if request.modality != "text":
-        return EstimateResponse(
-            min_kopeks=0,
-            max_kopeks=0,
-            is_allowed=False,
-            reason="unsupported_modality",
-        )
-
-    messages = request.payload.get("messages", [])
-    max_tokens = request.payload.get("max_tokens")
-    if max_tokens is None:
-        max_tokens = request.payload.get("max_completion_tokens")
-    max_tokens = int(max_tokens) if isinstance(max_tokens, int) else 0
-
-    prompt_tokens = estimate_tokens_from_messages(messages)
-    min_output_tokens = 1 if max_tokens > 0 else 0
-    max_output_tokens = max_tokens
-
-    rate_in = pricing_service.get_rate_card(
-        request.model_id, "text", "token_in", now
-    )
-    rate_out = pricing_service.get_rate_card(
-        request.model_id, "text", "token_out", now
-    )
-    if not rate_in or not rate_out:
-        return EstimateResponse(
-            min_kopeks=0,
-            max_kopeks=0,
-            is_allowed=False,
-            reason="rate_card_missing",
-        )
-
-    unit_in = Decimal(prompt_tokens) / Decimal(1000)
-    unit_out_min = Decimal(min_output_tokens) / Decimal(1000)
-    unit_out_max = Decimal(max_output_tokens) / Decimal(1000)
-
-    min_input_cost = pricing_service.calculate_cost_kopeks(
-        unit_in, rate_in, discount_percent
-    )
-    max_input_cost = min_input_cost
-    min_output_cost = pricing_service.calculate_cost_kopeks(
-        unit_out_min, rate_out, discount_percent
-    )
-    max_output_cost = pricing_service.calculate_cost_kopeks(
-        unit_out_max, rate_out, discount_percent
-    )
-    min_cost = min_input_cost + min_output_cost
-    max_cost = max_input_cost + max_output_cost
-
-    lead_magnet_decision = None
-    try:
-        lead_magnet_decision = await run_in_threadpool(
-            evaluate_lead_magnet,
-            user.id,
-            request.model_id,
-            {
-                "tokens_input": prompt_tokens,
-                "tokens_output": max_output_tokens,
-            },
-            now,
-        )
-    except Exception as e:
-        log.warning(f"Lead magnet evaluation failed: {e}")
-
-    if lead_magnet_decision and lead_magnet_decision.allowed:
-        return EstimateResponse(
-            min_kopeks=0,
-            max_kopeks=0,
-            min_input_kopeks=0,
-            max_input_kopeks=0,
-            min_output_kopeks=0,
-            max_output_kopeks=0,
-            is_allowed=True,
-            billing_source=BillingSource.LEAD_MAGNET.value,
-            pricing_rate_card_id=rate_in.id,
-            pricing_rate_card_input_id=rate_in.id,
-            pricing_rate_card_output_id=rate_out.id,
-            pricing_version=rate_in.version,
-        )
-
-    available = wallet.balance_included_kopeks + wallet.balance_topup_kopeks
-    max_reply_cap = request.max_reply_cost_kopeks or wallet.max_reply_cost_kopeks
-
-    if max_reply_cap is not None and max_cost > max_reply_cap:
-        return EstimateResponse(
-            min_kopeks=min_cost,
-            max_kopeks=max_cost,
-            min_input_kopeks=min_input_cost,
-            max_input_kopeks=max_input_cost,
-            min_output_kopeks=min_output_cost,
-            max_output_kopeks=max_output_cost,
-            is_allowed=False,
-            reason="max_reply_cost_exceeded",
-            billing_source=BillingSource.PAYG.value,
-            pricing_rate_card_id=rate_in.id,
-            pricing_rate_card_input_id=rate_in.id,
-            pricing_rate_card_output_id=rate_out.id,
-            pricing_version=rate_in.version,
-        )
-
-    if available < max_cost:
-        return EstimateResponse(
-            min_kopeks=min_cost,
-            max_kopeks=max_cost,
-            min_input_kopeks=min_input_cost,
-            max_input_kopeks=max_input_cost,
-            min_output_kopeks=min_output_cost,
-            max_output_kopeks=max_output_cost,
-            is_allowed=False,
-            reason="insufficient_funds",
-            billing_source=BillingSource.PAYG.value,
-            pricing_rate_card_id=rate_in.id,
-            pricing_rate_card_input_id=rate_in.id,
-            pricing_rate_card_output_id=rate_out.id,
-            pricing_version=rate_in.version,
-        )
-
-    return EstimateResponse(
-        min_kopeks=min_cost,
-        max_kopeks=max_cost,
-        min_input_kopeks=min_input_cost,
-        max_input_kopeks=max_input_cost,
-        min_output_kopeks=min_output_cost,
-        max_output_kopeks=max_output_cost,
-        is_allowed=True,
-        billing_source=BillingSource.PAYG.value,
-        pricing_rate_card_id=rate_in.id,
-        pricing_rate_card_input_id=rate_in.id,
-        pricing_rate_card_output_id=rate_out.id,
-        pricing_version=rate_in.version,
-    )
 
 
 ############################

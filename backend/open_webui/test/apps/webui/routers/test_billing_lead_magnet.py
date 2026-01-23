@@ -119,43 +119,6 @@ class TestBillingLeadMagnetRoutes(AbstractPostgresTest):
         assert payload["remaining"]["tokens_output"] == quotas["tokens_output"]
         assert payload["config_version"] == 3
 
-    def test_estimate_uses_lead_magnet(self, monkeypatch: MonkeyPatch) -> None:
-        from open_webui.models.billing import BillingSource
-        import open_webui.routers.billing as billing_router
-
-        monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
-        self._configure_lead_magnet(
-            monkeypatch,
-            enabled=True,
-            quotas={
-                "tokens_input": 10000,
-                "tokens_output": 10000,
-                "images": 0,
-                "tts_seconds": 0,
-                "stt_seconds": 0,
-            },
-            config_version=2,
-        )
-
-        payload = {
-            "model_id": self.model_id,
-            "modality": "text",
-            "payload": {
-                "messages": [{"role": "user", "content": "hello"}],
-                "max_tokens": 10,
-            },
-        }
-
-        with mock_webui_user(id="1"):
-            response = self.fast_api_client.post(self.create_url("/estimate"), json=payload)
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["billing_source"] == BillingSource.LEAD_MAGNET.value
-        assert data["is_allowed"] is True
-        assert data["min_kopeks"] == 0
-        assert data["max_kopeks"] == 0
-
     def test_usage_events_filters_lead_magnet(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import BillingSource, UsageEventModel, UsageEvents
         from open_webui.utils.wallet import wallet_service

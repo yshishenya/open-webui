@@ -345,6 +345,13 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Owner**: Codex
   - **Target**: TBD
 
+- [ ] **[BILLING-12]** Remove chat estimate UI and endpoint
+  - Spec: `.memory_bank/specs/remove_chat_estimate_plan.md`
+  - Remove UI estimate in chat input and `/billing/estimate` endpoint
+  - Keep server-side preflight/hold to prevent overdraft
+  - **Owner**: TBD
+  - **Target**: TBD
+
 - [ ] **[BILLING-03]** Test billing system end-to-end
 
   - Test plan subscription flow
@@ -441,6 +448,11 @@ This file tracks active development tasks for the Airis project. Update this fil
 - **[TECH-05]** Set up error tracking (Sentry)
 - **[TECH-06]** Database query optimization
 - **[TECH-07]** Add rate limiting per endpoint
+- **[TECH-08]** Align frontend dependencies and verify installs
+  - Upgrade mismatched TipTap packages (bubble-menu v2 -> v3)
+  - Run `npm install` and `npm run test:frontend`
+  - **Owner**: TBD
+  - **Target**: TBD
 
 ### Documentation
 
