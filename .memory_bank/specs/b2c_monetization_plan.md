@@ -380,12 +380,11 @@
   - Несоответствие ledger vs wallet.
   - Резкий рост refund/chargeback.
 
-## Детализация: онбординг и free plan
-- При регистрации: создать `wallets` и назначить free plan (или бонусный стартовый баланс).
-- Free plan: ограничение по моделям (Economy), лимиты по tokens/requests/images/tts, `max_reply_cost_kopeks` и `daily_cap_kopeks`.
+## Детализация: онбординг и free access
+- При регистрации: создать `wallets` и активировать lead magnet (без free plan).
+- Lead magnet: модель‑allowlist + квоты на tokens/requests/images/tts по циклу.
 - Для “гостя” без подписки: разрешать PAYG при наличии topup, иначе блок и апсейл.
-- Рекомендуется завести отдельный план `payg` (price=0, included=0, discount=0) для управления tiers без подписки.
- - Free plan полностью управляется из админки (поля/лимиты/tiers/активность).
+- Привилегированный доступ выдаётся админом через планы с quotas = null (безлимит).
 
 ## Детализация: тестовая матрица
 - PAYG: успешное пополнение → списание → история ledger.

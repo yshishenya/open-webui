@@ -417,31 +417,6 @@ export const resumeSubscription = async (token: string): Promise<Subscription | 
 	}
 };
 
-/**
- * Activate a free subscription plan
- * @param token - Auth token
- * @param planId - Free plan ID
- * @returns Activated subscription or null
- */
-export const activateFreePlan = async (
-	token: string,
-	planId: string
-): Promise<Subscription | null> => {
-	try {
-		return await apiRequest<Subscription>(
-			`${WEBUI_API_BASE_URL}/billing/subscription/free`,
-			token,
-			{
-				method: 'POST',
-				body: JSON.stringify({ plan_id: planId })
-			}
-		);
-	} catch (error) {
-		console.error('Failed to activate free plan:', error);
-		throw error;
-	}
-};
-
 // ==================== Payment API ====================
 
 /**

@@ -268,7 +268,7 @@ OAUTH_MERGE_ACCOUNTS_BY_EMAIL=true
 **1.8 Registration Enhancement** (Priority: MEDIUM)
 - [ ] Plan selection during signup
 - [ ] Terms acceptance requirement
-- [ ] Free plan auto-assignment
+- [ ] Free plan auto-assignment (removed 2026-01-23; lead magnet only)
 - [ ] Welcome email trigger
 - [ ] Enhanced form validation
 

@@ -12,6 +12,7 @@
 	let subscriptionsEnabled = true;
 
 	$: subscriptionsEnabled = $config?.features?.enable_billing_subscriptions ?? true;
+	$: isAdmin = $user?.role === 'admin';
 
 	onMount(async () => {
 		if (!$user) {
@@ -81,7 +82,7 @@
 							{$i18n.t('History')}
 						</a>
 
-						{#if subscriptionsEnabled}
+						{#if subscriptionsEnabled && isAdmin}
 							<a
 								class="min-w-fit p-1.5 {$page.url.pathname === '/billing/plans'
 									? ''

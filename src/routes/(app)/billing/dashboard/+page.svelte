@@ -3,7 +3,7 @@
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 
-	import { WEBUI_NAME, config } from '$lib/stores';
+	import { WEBUI_NAME, config, user } from '$lib/stores';
 	import { getBillingInfo, cancelSubscription, resumeSubscription } from '$lib/apis/billing';
 	import type { BillingInfo, UsageData, LeadMagnetInfo } from '$lib/apis/billing';
 	import {
@@ -28,6 +28,8 @@
 	let subscriptionsEnabled = true;
 
 	$: subscriptionsEnabled = $config?.features?.enable_billing_subscriptions ?? true;
+	$: isAdmin = $user?.role === 'admin';
+	$: hasUnlimitedPlan = Boolean(billingInfo?.plan && billingInfo.plan.quotas === null && isAdmin);
 
 	onMount(async () => {
 		await loadBillingInfo();
@@ -192,7 +194,7 @@
 			<div class="text-gray-500 dark:text-gray-400 text-lg">
 				{$i18n.t('No billing information available')}
 			</div>
-			{#if subscriptionsEnabled}
+			{#if subscriptionsEnabled && isAdmin}
 				<button
 					type="button"
 					on:click={() => goto('/billing/plans')}
@@ -210,9 +212,14 @@
 			<div class="flex justify-between items-center mb-1 w-full">
 				<div class="flex items-center gap-2">
 					<div class="text-xl font-medium">{$i18n.t('Billing Dashboard')}</div>
+					{#if hasUnlimitedPlan}
+						<span class="px-1.5 py-0.5 text-xs font-medium rounded bg-sky-500/10 text-sky-700 dark:text-sky-300">
+							{$i18n.t('Безлимит')}
+						</span>
+					{/if}
 				</div>
 
-				{#if subscriptionsEnabled}
+				{#if subscriptionsEnabled && isAdmin}
 					<button
 						type="button"
 						on:click={() => goto('/billing/plans')}
@@ -359,17 +366,6 @@
 					<div class="text-gray-500">
 						{$i18n.t('No active subscription')}
 					</div>
-					{#if subscriptionsEnabled}
-						<div class="pt-3">
-							<button
-								type="button"
-								on:click={() => goto('/billing/plans')}
-								class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium"
-							>
-								{$i18n.t('Browse Plans')}
-							</button>
-						</div>
-					{/if}
 				{/if}
 			</div>
 		{/if}

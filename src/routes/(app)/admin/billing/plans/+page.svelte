@@ -32,15 +32,23 @@
 	let actionInProgress = false;
 	let query = '';
 	let shiftKey = false;
+	let showUnlimitedOnly = false;
+
+	const isUnlimitedPlan = (plan: PlanStats['plan']): boolean => {
+		if (plan.quotas === null || plan.quotas === undefined) return true;
+		return Object.values(plan.quotas).every((value) => value === null);
+	};
 
 	$: if (plansWithStats && query !== undefined) {
-		filteredPlans = plansWithStats.filter(
-			(p) =>
+		filteredPlans = plansWithStats.filter((p) => {
+			const matchesQuery =
 				query === '' ||
 				p.plan.name.toLowerCase().includes(query.toLowerCase()) ||
 				(p.plan.name_ru?.toLowerCase().includes(query.toLowerCase()) ?? false) ||
-				p.plan.id.toLowerCase().includes(query.toLowerCase())
-		);
+				p.plan.id.toLowerCase().includes(query.toLowerCase());
+			const matchesUnlimited = !showUnlimitedOnly || isUnlimitedPlan(p.plan);
+			return matchesQuery && matchesUnlimited;
+		});
 	}
 
 	onMount(async () => {
@@ -146,7 +154,6 @@
 	};
 
 	const formatPrice = (price: number, currency: string): string => {
-		if (price === 0) return $i18n.t('Free');
 		return new Intl.NumberFormat($i18n.locale, {
 			style: 'currency',
 			currency: currency,
@@ -198,15 +205,24 @@
 						</div>
 					</div>
 
-					<div class="flex w-full justify-end gap-1.5">
-						<button
-							class="px-2 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
-							on:click={() => goto('/admin/billing/plans/new')}
-						>
-							<Plus className="size-3" strokeWidth="2.5" />
-							<div class="hidden md:block md:ml-1 text-xs">{$i18n.t('New Plan')}</div>
-						</button>
-					</div>
+						<div class="flex w-full justify-end gap-1.5">
+							<button
+								class="px-2 py-1.5 rounded-xl bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-200 transition font-medium text-sm flex items-center"
+								on:click={() => {
+									showUnlimitedOnly = !showUnlimitedOnly;
+								}}
+							>
+								{$i18n.t('Безлимит')}
+							</button>
+							<button
+								class="px-2 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
+								on:click={() => goto('/admin/billing/plans/new')}
+							>
+								<Plus className="size-3" strokeWidth="2.5" />
+								<div class="hidden md:block md:ml-1 text-xs">{$i18n.t('New Plan')}</div>
+							</button>
+						</div>
+
 				</div>
 			</div>
 		</div>

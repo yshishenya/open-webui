@@ -265,8 +265,7 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Updated Playwright specs with fallbacks and fixed Vitest test include/exclude.
 
 - [x] **[BUG]** Free plan cancellation blocks re-subscribe
-
-  - Added free plan activation and resume flow in billing UI and API.
+  - Added free plan activation and resume flow in billing UI and API. (legacy, removed 2026-01-23)
 
 - [x] **[BUG]** Billing dashboard shows infinite spinner and no content
 
@@ -342,6 +341,7 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Progress: lead magnet defaults enabled in local `.env`; `gemini-2.5-flash-lite` flagged as lead magnet in DB for validation
   - Progress: billing history now fetches lead-magnet usage events (new `/billing/usage-events` endpoint + UI section)
   - Tests added for lead magnet preflight/settle + billing lead magnet routes (/lead-magnet, /estimate) + Playwright lead magnet UI checks; pytest backend/open_webui/test/apps/webui/routers/test_billing_lead_magnet.py passes (3 tests, warnings only); e2e not run here
+  - Related plan: `.memory_bank/specs/billing_unlimited_plan_admin_flow.md`
   - **Owner**: Codex
   - **Target**: TBD
 

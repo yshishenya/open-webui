@@ -120,28 +120,6 @@ curl -X POST "http://localhost:3000/api/v1/billing/plans" \
 import time
 from open_webui.models.billing import PlanModel, Plans
 
-# Free план
-free_plan = PlanModel(
-    id="free",
-    name="Free",
-    name_ru="Бесплатный",
-    description="Basic access to AI models",
-    description_ru="Базовый доступ к AI моделям",
-    price=0.0,
-    currency="RUB",
-    interval="month",
-    quotas={
-        "tokens_input": 100000,
-        "tokens_output": 50000,
-        "requests": 1000,
-    },
-    features=["gpt35_access"],
-    is_active=True,
-    display_order=0,
-    created_at=int(time.time()),
-    updated_at=int(time.time()),
-)
-
 # Pro план
 pro_plan = PlanModel(
     id="pro",
@@ -165,9 +143,8 @@ pro_plan = PlanModel(
 )
 
 # Сохранение
-Plans.create_plan(free_plan)
 Plans.create_plan(pro_plan)
-print("Планы созданы!")
+print("План создан!")
 ```
 
 ## 4. API Endpoints
@@ -175,7 +152,7 @@ print("Планы созданы!")
 ### Для пользователей
 
 ```bash
-# Получить список планов
+# Получить список планов (admin-only UI)
 GET /api/v1/billing/plans
 
 # Получить свою подписку

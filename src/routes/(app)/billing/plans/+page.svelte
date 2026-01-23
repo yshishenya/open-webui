@@ -3,13 +3,12 @@
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 
-	import { WEBUI_NAME, config } from '$lib/stores';
+	import { WEBUI_NAME, config, user } from '$lib/stores';
 	import {
 		getPlans,
 		createPayment,
 		getMySubscription,
-		resumeSubscription,
-		activateFreePlan
+		resumeSubscription
 	} from '$lib/apis/billing';
 	import type { Plan, PaymentResponse, Subscription } from '$lib/apis/billing';
 
@@ -24,7 +23,6 @@
 	let creatingPayment = false;
 	let selectedPlanId: string | null = null;
 	let resumingPlanId: string | null = null;
-	let activatingPlanId: string | null = null;
 	let didLoad = false;
 	let unsubscribeConfig: (() => void) | null = null;
 
@@ -32,7 +30,7 @@
 		unsubscribeConfig = config.subscribe((current) => {
 			if (!current || didLoad) return;
 			const enabled = current.features?.enable_billing_subscriptions ?? true;
-			if (!enabled) {
+			if (!enabled || $user?.role !== 'admin') {
 				loading = false;
 				goto('/billing/dashboard');
 				didLoad = true;
@@ -127,25 +125,6 @@
 		}
 	};
 
-	const handleActivateFreePlan = async (planId: string): Promise<void> => {
-		if (activatingPlanId) return;
-		activatingPlanId = planId;
-
-		try {
-			const result = await activateFreePlan(localStorage.token, planId);
-			if (result) {
-				subscription = result;
-				toast.success($i18n.t('Free plan activated successfully'));
-			} else {
-				toast.error($i18n.t('Failed to activate free plan'));
-			}
-		} catch (error) {
-			console.error('Failed to activate free plan:', error);
-			toast.error($i18n.t('Failed to activate free plan'));
-		} finally {
-			activatingPlanId = null;
-		}
-	};
 
 	const isCurrentPlan = (planId: string): boolean => {
 		return (
@@ -159,9 +138,6 @@
 	};
 
 	const formatPrice = (price: number, currency: string): string => {
-		if (price === 0) {
-			return $i18n.t('Free');
-		}
 		return new Intl.NumberFormat($i18n.locale, {
 			style: 'currency',
 			currency: currency
@@ -225,9 +201,10 @@
 					<div class="text-xl font-medium">{$i18n.t('Subscription Plans')}</div>
 				</div>
 			</div>
-			<div class="text-sm text-gray-500">
-				{$i18n.t('Choose a plan that fits your needs')}
-			</div>
+		<div class="text-sm text-gray-500">
+			{$i18n.t('Plans are managed by administrators')}
+		</div>
+
 		</div>
 
 		<!-- Plans Grid -->
@@ -318,22 +295,6 @@
 									{/if}
 								{:else}
 									{$i18n.t('Current Plan')}
-								{/if}
-							</button>
-						{:else if plan.price === 0}
-							<button
-								type="button"
-								on:click={() => handleActivateFreePlan(plan.id)}
-								disabled={activatingPlanId !== null}
-								class="w-full py-2 px-4 rounded-xl bg-black hover:bg-gray-900 disabled:bg-gray-400 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 font-medium transition disabled:cursor-not-allowed"
-							>
-								{#if activatingPlanId === plan.id}
-									<div class="flex items-center justify-center gap-2">
-										<Spinner className="size-4" />
-										<span>{$i18n.t('Activating')}...</span>
-									</div>
-								{:else}
-									{$i18n.t('Activate Free Plan')}
 								{/if}
 							</button>
 						{:else}

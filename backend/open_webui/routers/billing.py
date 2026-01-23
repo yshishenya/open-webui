@@ -130,10 +130,6 @@ class CheckQuotaRequest(BaseModel):
     amount: int = 1
 
 
-class ActivateFreePlanRequest(BaseModel):
-    plan_id: str
-
-
 class CheckQuotaResponse(BaseModel):
     allowed: bool
     current_usage: int
@@ -499,8 +495,8 @@ async def update_billing_settings(
 
 
 @router.get("/plans", response_model=List[PlanModel])
-async def get_plans(user=Depends(get_verified_user)):
-    """Get all active subscription plans"""
+async def get_plans(user=Depends(get_admin_user)):
+    """Get all active subscription plans (admin only)"""
     _require_subscriptions_enabled()
     try:
         plans = billing_service.get_active_plans()
@@ -627,34 +623,6 @@ async def resume_my_subscription(user=Depends(get_verified_user)):
         )
 
     return updated
-
-
-@router.post("/subscription/free", response_model=SubscriptionModel)
-async def activate_free_plan(
-    request: ActivateFreePlanRequest, user=Depends(get_verified_user)
-):
-    """Activate free subscription plan for current user"""
-    _require_subscriptions_enabled()
-    try:
-        subscription = billing_service.activate_free_plan(user.id, request.plan_id)
-        return subscription
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
-    except RuntimeError as e:
-        log.error(f"Failed to activate free plan: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to activate free plan",
-        )
-    except Exception as e:
-        log.exception(f"Error activating free plan: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to activate free plan",
-        )
 
 
 ############################

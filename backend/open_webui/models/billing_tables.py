@@ -75,18 +75,6 @@ class PlansTable:
             db.commit()
             return True
 
-    def get_free_plan(self) -> Optional[PlanModel]:
-        """Get the first active free plan (price = 0)"""
-        with get_db() as db:
-            plan = (
-                db.query(Plan)
-                .filter(Plan.is_active == True, Plan.price == 0)
-                .order_by(Plan.display_order)
-                .first()
-            )
-            return PlanModel.model_validate(plan) if plan else None
-
-
 class SubscriptionsTable:
     def __init__(self, db=None):
         self.db = db
@@ -295,41 +283,6 @@ class SubscriptionsTable:
                 }
                 for sub, plan in results
             ]
-
-    def assign_free_plan_to_user(self, user_id: str) -> Optional[SubscriptionModel]:
-        """
-        Assign the default free plan to a new user.
-        Returns the created subscription or None if no free plan exists.
-        """
-        # Check if user already has a subscription
-        existing = self.get_subscription_by_user_id(user_id)
-        if existing:
-            return existing
-
-        # Get the free plan
-        free_plan = Plans.get_free_plan()
-        if not free_plan:
-            return None
-
-        # Create subscription
-        now = int(time.time())
-        # Free plan doesn't expire, set to 100 years from now
-        far_future = now + (100 * 365 * 24 * 60 * 60)
-
-        subscription = SubscriptionModel(
-            id=str(uuid.uuid4()),
-            user_id=user_id,
-            plan_id=free_plan.id,
-            status=SubscriptionStatus.ACTIVE.value,
-            current_period_start=now,
-            current_period_end=far_future,
-            auto_renew=False,
-            created_at=now,
-            updated_at=now,
-        )
-
-        return self.create_subscription(subscription)
-
 
 class UsageTable:
     def __init__(self, db=None):
