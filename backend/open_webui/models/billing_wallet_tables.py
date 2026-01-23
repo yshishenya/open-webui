@@ -362,6 +362,46 @@ class RateCardsTable:
             db.refresh(entry)
             return PricingRateCardModel.model_validate(entry)
 
+    def delete_rate_card(self, rate_card_id: str) -> bool:
+        """Delete rate card entry by ID."""
+        with get_db() as db:
+            entry = (
+                db.query(PricingRateCard)
+                .filter(PricingRateCard.id == rate_card_id)
+                .first()
+            )
+            if not entry:
+                return False
+            db.delete(entry)
+            db.commit()
+            return True
+
+    def delete_rate_cards_by_ids(self, rate_card_ids: List[str]) -> int:
+        """Delete rate card entries by IDs."""
+        if not rate_card_ids:
+            return 0
+        with get_db() as db:
+            deleted = (
+                db.query(PricingRateCard)
+                .filter(PricingRateCard.id.in_(rate_card_ids))
+                .delete(synchronize_session=False)
+            )
+            db.commit()
+            return int(deleted or 0)
+
+    def delete_rate_cards_by_model_ids(self, model_ids: List[str]) -> int:
+        """Delete rate card entries by model IDs."""
+        if not model_ids:
+            return 0
+        with get_db() as db:
+            deleted = (
+                db.query(PricingRateCard)
+                .filter(PricingRateCard.model_id.in_(model_ids))
+                .delete(synchronize_session=False)
+            )
+            db.commit()
+            return int(deleted or 0)
+
     def list_rate_cards(
         self,
         model_id: Optional[str] = None,

@@ -53,6 +53,18 @@ class RateCardUpdateRequest(BaseModel):
     is_active: Optional[bool] = None
 
 
+class RateCardBulkDeleteRequest(BaseModel):
+    rate_card_ids: List[str] = Field(default_factory=list)
+
+
+class RateCardDeleteModelsRequest(BaseModel):
+    model_ids: List[str] = Field(default_factory=list)
+
+
+class RateCardDeleteResponse(BaseModel):
+    deleted: int
+
+
 class RateCardListResponse(BaseModel):
     items: List[PricingRateCardModel]
     total: int
@@ -263,6 +275,85 @@ async def update_rate_card(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update rate card",
+        )
+
+
+@router.delete("/rate-card/{rate_card_id}", response_model=bool)
+async def delete_rate_card(rate_card_id: str, admin_user=Depends(get_admin_user)):
+    """Delete a rate card entry."""
+    ensure_wallet_enabled()
+
+    try:
+        deleted = await run_in_threadpool(RateCards.delete_rate_card, rate_card_id)
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Rate card entry not found",
+            )
+        return deleted
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.exception(f"Error deleting rate card: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete rate card",
+        )
+
+
+@router.post("/rate-card/bulk-delete", response_model=RateCardDeleteResponse)
+async def bulk_delete_rate_cards(
+    request: RateCardBulkDeleteRequest, admin_user=Depends(get_admin_user)
+):
+    """Delete multiple rate card entries by ID."""
+    ensure_wallet_enabled()
+
+    rate_card_ids = [rate_card_id.strip() for rate_card_id in request.rate_card_ids]
+    rate_card_ids = [rate_card_id for rate_card_id in rate_card_ids if rate_card_id]
+    if not rate_card_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="rate_card_ids is required",
+        )
+
+    try:
+        deleted = await run_in_threadpool(
+            RateCards.delete_rate_cards_by_ids, rate_card_ids
+        )
+        return RateCardDeleteResponse(deleted=deleted)
+    except Exception as e:
+        log.exception(f"Error deleting rate cards: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete rate cards",
+        )
+
+
+@router.post("/rate-card/delete-models", response_model=RateCardDeleteResponse)
+async def delete_rate_cards_by_model_ids(
+    request: RateCardDeleteModelsRequest, admin_user=Depends(get_admin_user)
+):
+    """Delete rate card entries for one or more models."""
+    ensure_wallet_enabled()
+
+    model_ids = [model_id.strip() for model_id in request.model_ids]
+    model_ids = [model_id for model_id in model_ids if model_id]
+    if not model_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="model_ids is required",
+        )
+
+    try:
+        deleted = await run_in_threadpool(
+            RateCards.delete_rate_cards_by_model_ids, model_ids
+        )
+        return RateCardDeleteResponse(deleted=deleted)
+    except Exception as e:
+        log.exception(f"Error deleting model rate cards: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete rate cards",
         )
 
 

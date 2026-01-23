@@ -7,6 +7,7 @@
 	import type { PublicLeadMagnetConfig } from '$lib/apis/billing';
 	import { trackEvent } from '$lib/utils/analytics';
 	import { buildSignupUrl, openCta, openPreset } from '$lib/components/landing/welcomeNavigation';
+	import { presetsById } from '$lib/data/features';
 	import {
 		WelcomePhaseOneSections,
 		CTASection,
@@ -88,32 +89,14 @@
 		'Бесплатный старт'
 	];
 
-	const presets = [
-		{
-			id: 'social_post',
-			label: 'Пост для соцсетей',
-			prompt:
-				'Напиши пост для соцсетей на тему: {тема}. Стиль: дружелюбно и по делу. Дай 3 варианта + короткий заголовок + 5 хэштегов.'
-		},
-		{
-			id: 'resume',
-			label: 'Резюме',
-			prompt:
-				'Составь резюме по фактам: {опыт/навыки/достижения}. Структура: Заголовок, О себе, Опыт, Навыки, Достижения. Тон: уверенно, без воды.'
-		},
-		{
-			id: 'email_reply',
-			label: 'Ответ на письмо',
-			prompt:
-				'Помоги ответить на письмо. Контекст: {кто пишет/о чём}. Цель ответа: {цель}. Тон: {вежливо/делово/дружелюбно}. Текст письма: {вставьте письмо}.'
-		},
-		{
-			id: 'image',
-			label: 'Сгенерировать картинку',
-			prompt:
-				'Сгенерируй изображение: {описание сцены}. Стиль: {стиль}. Формат: квадрат. Сделай 4 варианта.'
-		}
-	];
+	const presetIds = ['social_post', 'resume', 'email_reply', 'image_generate'];
+	const presets = presetIds
+		.map((id) => ({
+			id,
+			label: presetsById[id]?.title ?? id,
+			prompt: presetsById[id]?.prompt ?? ''
+		}))
+		.filter((preset) => preset.prompt);
 
 	const heroPrimaryHref = buildSignupUrl('welcome_hero_primary');
 	const finalCtaHref = buildSignupUrl('welcome_final_cta');

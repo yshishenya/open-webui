@@ -1,3 +1,5 @@
+import { presetsById } from '$lib/data/features';
+
 export type ExampleCard = {
 	title: string;
 	result: string;
@@ -48,7 +50,13 @@ export type FaqItem = {
 	open?: boolean;
 };
 
-export const exampleTabs: ExampleTab[] = [
+const applyPresetPrompt = <T extends { preset: string; prompt: string }>(item: T): T => {
+	const presetPrompt = presetsById[item.preset]?.prompt;
+	if (!presetPrompt) return item;
+	return { ...item, prompt: presetPrompt };
+};
+
+const exampleTabsBase: ExampleTab[] = [
 	{
 		id: 'texts',
 		label: 'Тексты',
@@ -261,6 +269,10 @@ export const exampleTabs: ExampleTab[] = [
 		]
 	}
 ];
+export const exampleTabs: ExampleTab[] = exampleTabsBase.map((tab) => ({
+	...tab,
+	cards: tab.cards.map(applyPresetPrompt)
+}));
 
 export const steps: Step[] = [
 	{
@@ -279,7 +291,7 @@ export const steps: Step[] = [
 	}
 ];
 
-export const features: FeatureCard[] = [
+const featuresBase: FeatureCard[] = [
 	{
 		id: 'texts',
 		title: 'Тексты',
@@ -316,8 +328,9 @@ export const features: FeatureCard[] = [
 			'Помоги разобраться с задачей: {описание}. Объясни шаги и предложи решение.'
 	}
 ];
+export const features: FeatureCard[] = featuresBase.map(applyPresetPrompt);
 
-export const useCases: UseCase[] = [
+const useCasesBase: UseCase[] = [
 	{
 		id: 'study',
 		title: 'Учёба',
@@ -395,6 +408,11 @@ export const useCases: UseCase[] = [
 		ctaPrompt: 'Предложи 10 идей и вариантов текста на тему: {тема}. Дай разные стили.'
 	}
 ];
+export const useCases: UseCase[] = useCasesBase.map((useCase) => ({
+	...useCase,
+	items: useCase.items.map(applyPresetPrompt),
+	ctaPrompt: presetsById[useCase.ctaPreset]?.prompt ?? useCase.ctaPrompt
+}));
 
 export const faqItems: FaqItem[] = [
 	{

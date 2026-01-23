@@ -1,241 +1,468 @@
 <script lang="ts">
-	import { PublicPageLayout } from '$lib/components/landing';
+	import { onMount } from 'svelte';
+	import { user } from '$lib/stores';
+	import { trackEvent } from '$lib/utils/analytics';
+	import { getPublicLeadMagnetConfig, getPublicRateCards } from '$lib/apis/billing';
+	import type { PublicLeadMagnetConfig, PublicRateCardResponse } from '$lib/apis/billing';
+	import { CTASection, PublicPageLayout } from '$lib/components/landing';
+	import SectionHeader from '$lib/components/landing/SectionHeader.svelte';
+	import FeaturesPresetGrid from '$lib/components/landing/FeaturesPresetGrid.svelte';
+	import FeaturesTabs from '$lib/components/landing/FeaturesTabs.svelte';
+	import FeaturesModelsSection from '$lib/components/landing/FeaturesModelsSection.svelte';
+	import FeaturesFaqSection from '$lib/components/landing/FeaturesFaqSection.svelte';
+	import FeaturesStickyCta from '$lib/components/landing/FeaturesStickyCta.svelte';
+	import { featurePageConfig, featurePresetsById } from '$lib/data/features';
+	import type { FeaturePreset } from '$lib/data/features';
+	import type { FeatureFaqItem } from '$lib/components/landing/FeaturesFaqSection.svelte';
+	import { buildChatUrl, buildSignupUrl, openCta, openPreset } from '$lib/components/landing/welcomeNavigation';
 
-	const heroImage = '/landing/airis-chat.png';
+	const heroImage = '/landing/airis-hero.webp';
+	const heroImage2x = '/landing/airis-hero@2x.webp';
+	const heroImageFallback = '/landing/airis-hero.png';
+	const heroImageFallback2x = '/landing/airis-hero@2x.png';
+	const heroImageWidth = 1200;
+	const heroImageHeight = 697;
 
-	const modelHighlights = [
-		{ name: 'GPT-5.2', provider: 'OpenAI' },
-		{ name: 'Gemini 3', provider: 'Google' }
-	];
+	let rateCard: PublicRateCardResponse | null = null;
+	let leadMagnetConfig: PublicLeadMagnetConfig | null = null;
+	let modelsLoading = true;
+	let modelsError: string | null = null;
 
-	const capabilities = [
+	const resolveAudioEnabled = (
+		config: PublicLeadMagnetConfig | null,
+		rateCardData: PublicRateCardResponse | null
+	): boolean => {
+		if (config) {
+			const { tts_seconds, stt_seconds } = config.quotas;
+			return tts_seconds > 0 || stt_seconds > 0;
+		}
+		return rateCardData?.models?.some((model) => model.capabilities.includes('audio')) ?? true;
+	};
+
+	onMount(async () => {
+		modelsLoading = true;
+		modelsError = null;
+		try {
+			const [rateCardResult, leadMagnetResult] = await Promise.all([
+				getPublicRateCards(),
+				getPublicLeadMagnetConfig()
+			]);
+			rateCard = rateCardResult;
+			leadMagnetConfig = leadMagnetResult;
+			if (!rateCardResult) {
+				modelsError = 'Не удалось загрузить список моделей.';
+			}
+		} catch (error) {
+			console.error('Failed to load models catalog:', error);
+			modelsError = 'Не удалось загрузить список моделей.';
+		} finally {
+			modelsLoading = false;
+		}
+	});
+
+	$: audioEnabled = resolveAudioEnabled(leadMagnetConfig, rateCard);
+
+	$: examplePresets = featurePageConfig.examples.presetIds
+		.map((presetId) => featurePresetsById[presetId])
+		.filter(Boolean) as FeaturePreset[];
+
+	$: visiblePresets = audioEnabled
+		? examplePresets
+		: examplePresets.filter((preset) => preset.category !== 'audio');
+
+	$: visibleCategories = audioEnabled
+		? featurePageConfig.examples.categories
+		: featurePageConfig.examples.categories.filter((category) => category.id !== 'audio');
+
+	$: visibleTabs = audioEnabled
+		? featurePageConfig.featureTabs.tabs
+		: featurePageConfig.featureTabs.tabs.filter((tab) => tab.id !== 'audio');
+
+	$: modelBadges =
+		rateCard?.models.map((model) => ({
+			id: model.id,
+			displayName: model.display_name,
+			provider: model.provider,
+			capabilities: model.capabilities
+		})) ?? [];
+
+	$: heroPrimaryLabel = $user
+		? featurePageConfig.hero.primaryCtaLabelAuthed
+		: featurePageConfig.hero.primaryCtaLabelGuest;
+
+	$: heroPrimaryHref = $user
+		? buildChatUrl('features_hero_primary')
+		: buildSignupUrl('features_hero_primary');
+
+	$: howCtaHref = $user
+		? buildChatUrl('features_how_cta')
+		: buildSignupUrl('features_how_cta');
+
+	$: finalCtaLabel = $user
+		? featurePageConfig.hero.primaryCtaLabelAuthed
+		: featurePageConfig.hero.primaryCtaLabelGuest;
+
+	const handleHeroPrimaryClick = (event: MouseEvent) => {
+		event.preventDefault();
+		trackEvent('features_hero_primary_click');
+		openCta('features_hero_primary');
+	};
+
+	const handleHeroExamplesClick = (event: MouseEvent) => {
+		event.preventDefault();
+		trackEvent('features_hero_examples_click');
+		document.getElementById('examples')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	};
+
+	const handleTryPreset = (presetId: string, src: string) => {
+		const preset = featurePresetsById[presetId];
+		if (!preset) return;
+		openPreset(src, presetId, preset.prompt);
+	};
+
+	const handleHowCtaClick = (event: MouseEvent) => {
+		event.preventDefault();
+		openCta('features_how_cta');
+	};
+
+	const handlePricingLinkClick = () => {
+		trackEvent('features_pricing_link_click');
+	};
+
+	const handleFinalCtaClick = (event: MouseEvent) => {
+		event.preventDefault();
+		trackEvent('features_final_cta_click');
+		openCta('features_final_cta');
+	};
+
+	const faqItems: FeatureFaqItem[] = [
 		{
-			title: 'Мульти‑модели',
-			description: 'Выбирайте оптимальную модель под скорость, качество и стоимость.'
+			id: 'overview',
+			question: 'Что можно делать в Airis?',
+			answer:
+				'Тексты, изображения, аудио и помощь с задачами. Вы пишете запрос своими словами, а Airis помогает получить результат.'
 		},
 		{
-			title: 'Контекстные диалоги',
-			description: 'История чатов и результаты остаются под рукой.'
+			id: 'vpn',
+			question: 'Нужен ли VPN?',
+			answer: 'Нет, Airis работает без VPN.'
 		},
 		{
-			title: 'Файлы и заметки',
-			description: 'Сохраняйте материалы и возвращайтесь к ним в любое время.'
+			id: 'free_start',
+			question: 'Можно ли начать бесплатно?',
+			answer: 'Да, можно начать бесплатно без карты и проверить основные сценарии.'
 		},
 		{
-			title: 'Приватность',
-			description: 'Управляйте доступами и настройками приватности.'
+			id: 'subscription',
+			question: 'Это подписка?',
+			answer:
+				'Нет. Без подписки и ежемесячных платежей. Пополняете баланс, списания только за использование. История списаний в кабинете.',
+			open: true
 		},
 		{
-			title: 'Русский интерфейс',
-			description: 'Понятный UX и оплата в рублях без VPN.'
+			id: 'blank_prompt',
+			question: 'Как начать, если я не знаю, что писать?',
+			answer: 'Выберите готовую задачу — мы подставим запрос в чат. Можно сразу отправить или отредактировать.'
 		},
 		{
-			title: 'API и интеграции',
-			description: 'Подключайте AIris к своим процессам и инструментам.'
+			id: 'images',
+			question: 'Можно ли генерировать изображения?',
+			answer: 'Да, по описанию можно генерировать изображения и получать несколько вариантов.'
+		},
+		{
+			id: 'audio',
+			question: 'Есть ли аудио (распознавание/озвучка)?',
+			answer: 'Да, доступно распознавание речи и озвучка текста.'
+		},
+		{
+			id: 'models',
+			question: 'Как выбрать модель?',
+			answer: 'Можно не выбирать: просто пишите задачу. Если хотите — выберите модель вручную.'
 		}
 	];
 
-	const useCases = [
-		{
-			title: 'Учёба',
-			items: ['Конспекты и объяснения', 'Подготовка и практика', 'Быстрые ответы']
-		},
-		{
-			title: 'Работа',
-			items: ['Презентации и письма', 'Анализ и отчёты', 'Планы и идеи']
-		},
-		{
-			title: 'Творчество',
-			items: ['Идеи и тексты', 'Визуальные концепты', 'Сценарии и брифы']
-		}
-	];
-
-	const highlights = [
-		{
-			title: 'PAYG без подписок',
-			description: 'Платите только за фактическое использование и контролируйте лимиты.'
-		},
-		{
-			title: 'Без VPN',
-			description: 'Полный доступ к моделям работает из России без дополнительных настроек.'
-		},
-		{
-			title: 'Оплата в рублях',
-			description: 'Удобное пополнение баланса и прозрачные списания.'
-		}
-	];
+	$: visibleFaqItems = audioEnabled
+		? faqItems
+		: faqItems.filter((item) => item.id !== 'audio');
 </script>
 
 <PublicPageLayout
 	title="Возможности"
-	description="Возможности AIris: мульти‑модели, контекстные диалоги, русский интерфейс и PAYG‑оплата."
+	description="Возможности Airis: тексты, изображения, аудио и данные в одном чате, без VPN и без подписки."
 	showHero={false}
 >
-	<section class="container mx-auto px-4 pt-12 pb-12">
-		<div class="relative">
-			<div class="absolute -top-20 -right-32 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
-			<div class="absolute -left-20 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
-			<div class="grid lg:grid-cols-[1.05fr_0.95fr] gap-14 items-center">
-				<div class="space-y-6">
-					<span class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gray-600">
-						Возможности
-					</span>
-					<h1 class="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.05]">
-						Все ключевые возможности AIris
-					</h1>
-					<p class="text-lg md:text-xl text-gray-600 max-w-xl">
-						Тексты, изображения, аудио и код — в одном интерфейсе
-					</p>
-					<div class="flex flex-wrap gap-3">
-						<a
-							href="/auth"
-							class="bg-black text-white px-6 py-3 rounded-full font-semibold hover:bg-gray-900 transition-colors"
-						>
-							Начать бесплатно
-						</a>
-						<a
-							href="/pricing"
-							class="px-6 py-3 rounded-full border border-gray-300 text-gray-700 font-semibold hover:border-gray-400 hover:text-gray-900 transition-colors"
-						>
-							Посмотреть тарифы
-						</a>
-					</div>
-					<div class="flex flex-wrap gap-3">
-						{#each ['Тексты', 'Изображения', 'Аудио', 'Код'] as item}
-							<div class="rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-xs font-semibold text-gray-700">
-								{item}
-							</div>
-						{/each}
-					</div>
+	<section class="relative overflow-hidden bg-[radial-gradient(1200px_600px_at_15%_-10%,rgba(0,0,0,0.05),transparent),radial-gradient(900px_500px_at_90%_0%,rgba(0,0,0,0.04),transparent),linear-gradient(180deg,#f7f7f8_0%,#ffffff_70%)]">
+		<div class="mx-auto max-w-[1200px] px-4 pt-12 md:pt-16 pb-12 md:pb-16">
+			<div class="relative isolate">
+				<div aria-hidden="true" class="pointer-events-none -z-10 absolute inset-0">
+					<div class="absolute -top-24 -right-32 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
+					<div class="absolute -left-16 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
 				</div>
-
-				<div class="relative">
-					<div class="relative h-[360px] overflow-hidden rounded-[32px] border border-white/10 bg-[#0b0d12] px-4 pb-6 pt-6 shadow-[0_40px_80px_rgba(15,23,42,0.25)] sm:h-[420px]">
-						<div class="absolute inset-0 bg-[radial-gradient(70%_60%_at_50%_0%,rgba(255,255,255,0.08),rgba(0,0,0,0))]"></div>
-						<div class="absolute -left-2 top-10 w-[78%] max-w-[520px] -rotate-[10deg] rounded-[26px] border border-white/10 bg-[#0f1218]/80 p-2 shadow-[0_30px_70px_rgba(0,0,0,0.5)]">
-							<img
-								src={heroImage}
-								alt="Интерфейс AIris"
-								class="h-full w-full rounded-[20px] border border-white/5 object-cover"
-								loading="lazy"
-							/>
+				<div class="relative z-10 grid lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-14 items-center motion-safe:animate-[fade-up_0.7s_ease]">
+					<div class="space-y-6">
+						<span class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-600">
+							{featurePageConfig.hero.eyebrow}
+						</span>
+						<h1 class="text-[32px] md:text-[40px] xl:text-[48px] font-bold tracking-tight text-gray-900 leading-[1.08]">
+							{featurePageConfig.hero.title}
+						</h1>
+						<p class="text-[15px] md:text-[16px] font-medium leading-[1.5] text-gray-600 max-w-xl">
+							{featurePageConfig.hero.lead}
+						</p>
+						<div class="flex flex-col sm:flex-row gap-3">
+							<a
+								href={heroPrimaryHref}
+								class="inline-flex items-center justify-center h-11 md:h-10 px-6 rounded-full bg-black text-white text-sm font-semibold hover:bg-gray-900 transition-colors w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
+								on:click={handleHeroPrimaryClick}
+							>
+								{heroPrimaryLabel}
+							</a>
+							<a
+								href={featurePageConfig.hero.secondaryCtaAnchor}
+								class="inline-flex items-center justify-center h-11 md:h-10 px-6 rounded-full border border-gray-300 text-gray-700 text-sm font-semibold hover:border-gray-400 hover:text-gray-900 transition-colors w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
+								on:click={handleHeroExamplesClick}
+							>
+								{featurePageConfig.hero.secondaryCtaLabel}
+							</a>
 						</div>
-						<div class="absolute right-8 top-14 w-[78%] max-w-[540px] rotate-[4deg] rounded-[26px] border border-white/10 bg-[#0f1218]/90 p-2 shadow-[0_35px_80px_rgba(0,0,0,0.55)]">
-							<img
-								src={heroImage}
-								alt="Интерфейс AIris"
-								class="h-full w-full rounded-[20px] border border-white/5 object-cover"
-								loading="lazy"
-							/>
+						<div class="text-[12px] font-medium text-gray-500">
+							{featurePageConfig.hero.microcopy}
 						</div>
-						<div class="absolute left-1/2 top-[52%] w-[78%] max-w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-[28px] border border-white/15 bg-[#0f1218] p-2 shadow-[0_40px_90px_rgba(0,0,0,0.6)]">
-							<img
-								src={heroImage}
-								alt="Интерфейс AIris"
-								class="h-full w-full rounded-[22px] border border-white/10 object-cover"
-								loading="lazy"
-							/>
-						</div>
-						<div class="absolute right-6 bottom-6 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-xs font-semibold text-white">
-							Интерфейс AIris
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</section>
-
-	<section class="container mx-auto px-4 pb-12">
-		<div class="rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
-			<h2 class="text-2xl md:text-3xl font-semibold text-gray-900 text-center mb-6">
-				Подключенные модели
-			</h2>
-			<div class="flex flex-wrap justify-center gap-3">
-				{#each modelHighlights as model}
-					<div class="flex items-center gap-2 rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-xs font-semibold text-gray-700">
-						<span>{model.name}</span>
-						<span class="text-[0.65rem] font-medium text-gray-500">{model.provider}</span>
-					</div>
-				{/each}
-			</div>
-			<p class="text-center text-sm text-gray-600 mt-4">
-				Мы обновляем список моделей и добавляем новые версии по мере выхода.
-			</p>
-		</div>
-	</section>
-
-	<section class="container mx-auto px-4 pb-12">
-		<div class="rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
-			<h2 class="text-2xl md:text-3xl font-semibold text-gray-900 text-center mb-10">
-				Что можно делать в AIris
-			</h2>
-			<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-				{#each capabilities as capability}
-					<div class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm">
-						<h3 class="text-lg font-semibold text-gray-900 mb-2">{capability.title}</h3>
-						<p class="text-sm text-gray-600 leading-relaxed">{capability.description}</p>
-					</div>
-				{/each}
-			</div>
-		</div>
-	</section>
-
-	<section class="container mx-auto px-4 pb-12">
-		<div class="rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
-			<h2 class="text-2xl md:text-3xl font-semibold text-gray-900 text-center mb-10">
-				Сценарии использования
-			</h2>
-			<div class="grid md:grid-cols-3 gap-6">
-				{#each useCases as useCase}
-					<div class="bg-white rounded-2xl border border-gray-200/70 p-6 text-center shadow-sm">
-						<h3 class="text-lg font-semibold text-gray-900 mb-3">{useCase.title}</h3>
-						<ul class="space-y-2 text-sm text-gray-600">
-							{#each useCase.items as item}
-								<li>{item}</li>
+						<div class="flex flex-wrap gap-2">
+							{#each featurePageConfig.hero.chips as chip}
+								<div class="rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-700">
+									{chip}
+								</div>
 							{/each}
-						</ul>
+						</div>
 					</div>
-				{/each}
+					<div class="relative">
+						<div class="relative rounded-[32px] border border-white/10 bg-[#0b0d12] px-4 pb-6 pt-5 shadow-[0_40px_80px_rgba(15,23,42,0.25)]">
+							<div class="absolute inset-0 rounded-[32px] bg-[radial-gradient(70%_60%_at_50%_0%,rgba(255,255,255,0.08),rgba(0,0,0,0))]"></div>
+							<div class="relative z-10 rounded-[26px] bg-[#0f1218] p-2 ring-1 ring-white/10">
+								<picture>
+									<source type="image/webp" srcset={`${heroImage} 1x, ${heroImage2x} 2x`} />
+									<img
+										src={heroImageFallback}
+										srcset={`${heroImageFallback} 1x, ${heroImageFallback2x} 2x`}
+										alt="Интерфейс Airis: пример чата"
+										class="w-full rounded-[20px] border border-white/5 object-cover"
+										loading="eager"
+										decoding="async"
+										fetchpriority="high"
+										width={heroImageWidth}
+										height={heroImageHeight}
+									/>
+								</picture>
+							</div>
+							<div class="absolute right-6 bottom-6 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-xs font-semibold text-white">
+								Интерфейс Airis
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
 	</section>
 
-	<section class="container mx-auto px-4 pb-12">
-		<div class="rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm">
-			<h2 class="text-2xl md:text-3xl font-semibold text-gray-900 text-center mb-10">
-				Почему AIris
-			</h2>
-			<div class="grid md:grid-cols-3 gap-6">
-				{#each highlights as item}
-					<div class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm">
-						<h3 class="text-lg font-semibold text-gray-900 mb-2">{item.title}</h3>
-						<p class="text-sm text-gray-600 leading-relaxed">{item.description}</p>
-					</div>
-				{/each}
-			</div>
-		</div>
-	</section>
+	<section id="examples" class="features-section features-section--soft">
+		<div class="mx-auto max-w-[1200px] px-4">
+			<SectionHeader
+				title={featurePageConfig.examples.title}
+				subtitle={featurePageConfig.examples.subtitle}
+			/>
 
-	<section class="container mx-auto px-4 pb-16">
-		<div class="rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm text-center">
-			<h2 class="text-2xl md:text-3xl font-semibold text-gray-900 mb-3">Готовы попробовать?</h2>
-			<p class="text-gray-600 mb-6">
-				Начните бесплатно и получите доступ к лучшим моделям в одном месте.
+			<div class="mt-8">
+				<FeaturesPresetGrid
+					presets={visiblePresets}
+					categories={visibleCategories}
+					source="features_examples"
+					onTryPreset={handleTryPreset}
+				/>
+			</div>
+
+			<p class="mt-6 text-xs font-medium text-gray-500">
+				Можно начать бесплатно без карты.
 			</p>
-			<div class="flex flex-wrap justify-center gap-4">
+		</div>
+	</section>
+
+	<section id="capabilities" class="features-section">
+		<div class="mx-auto max-w-[1200px] px-4">
+			<SectionHeader
+				title={featurePageConfig.featureTabs.title}
+				subtitle={featurePageConfig.featureTabs.subtitle}
+			/>
+
+			<div class="mt-8">
+				<FeaturesTabs tabs={visibleTabs} presetsById={featurePresetsById} onTryPreset={handleTryPreset} />
+			</div>
+		</div>
+	</section>
+
+	<section id="how" class="features-section features-section--soft">
+		<div class="mx-auto max-w-[1200px] px-4">
+			<SectionHeader
+				title={featurePageConfig.how.title}
+				subtitle={featurePageConfig.how.subtitle}
+			/>
+
+			<div class="mt-8 grid gap-6 md:grid-cols-3">
+				{#each featurePageConfig.how.steps as step, index}
+					<div class="features-card features-card--flat p-6">
+						<div class="text-3xl font-semibold text-gray-900 mb-3">0{index + 1}</div>
+						<h3 class="text-lg font-semibold text-gray-900 mb-2">{step.title}</h3>
+						<p class="text-sm text-gray-600 leading-relaxed">{step.text}</p>
+					</div>
+				{/each}
+			</div>
+
+			<div class="mt-8 features-card features-card--flat flex flex-col gap-4 p-6">
+				<p class="text-sm text-gray-700">{featurePageConfig.how.callout}</p>
 				<a
-					href="/auth"
-					class="bg-black text-white px-6 py-3 rounded-full font-semibold hover:bg-gray-900 transition-colors"
+					href={howCtaHref}
+					class="inline-flex items-center justify-center rounded-full bg-black px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-900 self-start"
+					on:click={handleHowCtaClick}
 				>
 					Начать бесплатно
 				</a>
+			</div>
+		</div>
+	</section>
+
+	<section id="models" class="features-section">
+		<div class="mx-auto max-w-[1200px] px-4">
+			<SectionHeader title={featurePageConfig.models.title} subtitle={featurePageConfig.models.subtitle} />
+
+			<div class="mt-8">
+				<FeaturesModelsSection
+					models={modelBadges}
+					maxVisible={featurePageConfig.models.maxVisible}
+					loading={modelsLoading}
+					error={modelsError}
+				/>
+			</div>
+		</div>
+	</section>
+
+	<section id="control" class="features-section features-section--soft">
+		<div class="mx-auto max-w-[1200px] px-4">
+			<SectionHeader title={featurePageConfig.control.title} />
+
+			<div class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+				{#each featurePageConfig.control.cards as card}
+					<div class="features-card features-card--soft p-6">
+						<h3 class="text-base font-semibold text-gray-900">{card.title}</h3>
+						<p class="mt-2 text-sm text-gray-600">{card.text}</p>
+					</div>
+				{/each}
+			</div>
+
+			<div class="mt-6">
 				<a
-					href="/pricing"
-					class="px-6 py-3 rounded-full border border-gray-300 text-gray-700 font-semibold hover:border-gray-400 hover:text-gray-900 transition-colors"
+					href={featurePageConfig.control.pricingLinkHref}
+					class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-gray-900"
+					on:click={handlePricingLinkClick}
 				>
-					Посмотреть тарифы
+					{featurePageConfig.control.pricingLinkLabel}
+					<span aria-hidden="true">→</span>
 				</a>
 			</div>
 		</div>
 	</section>
+
+	<section id="faq" class="features-section">
+		<div class="mx-auto max-w-[1200px] px-4">
+			<SectionHeader title="Часто задаваемые вопросы" />
+
+			<div class="mt-8 max-w-3xl">
+				<FeaturesFaqSection items={visibleFaqItems} />
+			</div>
+		</div>
+	</section>
+
+	<section id="cta" class="features-section features-section--cta">
+		<div class="mx-auto max-w-[1200px] px-4">
+			<CTASection
+				title="Готовы попробовать?"
+				description="Начните бесплатно без карты. Без VPN. Без подписки — списания только за использование."
+				buttonText={finalCtaLabel}
+				onClick={handleFinalCtaClick}
+				tone="dark"
+			/>
+		</div>
+	</section>
+
+	<FeaturesStickyCta labelGuest={featurePageConfig.hero.primaryCtaLabelGuest} labelAuthed={featurePageConfig.hero.primaryCtaLabelAuthed} />
 </PublicPageLayout>
+
+<style>
+	:global(:root) {
+		--features-section-y-desktop: 88px;
+		--features-section-y-tablet: 72px;
+		--features-section-y-mobile: 56px;
+		--features-bg-soft: #f7f7f8;
+		--features-border: #e7e7ea;
+		--features-shadow-sm: 0 12px 24px rgba(15, 23, 42, 0.08);
+		--features-shadow-md: 0 16px 32px rgba(15, 23, 42, 0.12);
+	}
+
+	:global(.features-section) {
+		padding-block: var(--features-section-y-desktop);
+	}
+
+	:global(.features-section--soft) {
+		background: var(--features-bg-soft);
+	}
+
+	:global(.features-section--cta) {
+		padding-block: 64px;
+		background: #0b0d12;
+	}
+
+	:global(.features-card) {
+		background: #ffffff;
+		border: 1px solid var(--features-border);
+		border-radius: 16px;
+		transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+	}
+
+	:global(.features-card--soft) {
+		box-shadow: var(--features-shadow-sm);
+	}
+
+	:global(.features-card--flat) {
+		box-shadow: none;
+	}
+
+	:global(.features-card--clickable) {
+		cursor: pointer;
+	}
+
+	@media (hover: hover) {
+		:global(.features-card--clickable:hover) {
+			transform: translateY(-2px);
+			box-shadow: var(--features-shadow-md);
+		}
+	}
+
+	:global(section[id]) {
+		scroll-margin-top: 88px;
+	}
+
+	@media (max-width: 1023px) {
+		:global(.features-section) {
+			padding-block: var(--features-section-y-tablet);
+		}
+	}
+
+	@media (max-width: 767px) {
+		:global(.features-section) {
+			padding-block: var(--features-section-y-mobile);
+		}
+
+		:global(section[id]) {
+			scroll-margin-top: 72px;
+		}
+	}
+</style>

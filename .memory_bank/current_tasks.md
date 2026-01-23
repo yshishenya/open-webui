@@ -6,97 +6,140 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BILLING-13][FEATURE]** Redesign rate card create UI for multi-model + multi-modality pricing
+
+  - Added model picker with search + multi-select
+  - Added modality cards with unit checkboxes and per-unit pricing
+  - Added entry count preview in create form
+
+- [x] **[BILLING-12][FEATURE]** Improve admin rate card table grouping
+
+  - Grouped rows by model with expand/collapse
+  - Added model-level selection and delete action
+  - Preserved entry-level edit/delete + toggles
+
+- [x] **[BILLING-11]** Add admin rate card deletion (single + bulk)
+
+  - API: delete single entry + bulk delete by model/entry
+  - Admin UI: selection + confirmation to avoid accidental deletes
+  - Tests for delete endpoints
+
 - [x] **[UI-24]** Перепроверить шрифты и типографику /pricing
+
   - Уточнены размеры микрокопии и межстрочные интервалы в hero/CTA
   - Добавлены табличные цифры для цен и сумм пополнения
   - Усилен акцент на суммах пополнения: лейбл 12px, чипы 15px на mobile
 
 - [x] **[UI-25]** Fix estimator preset multiplier mismatch
+
   - Добавлен вариант 1.2x в dropdown, чтобы пресеты совпадали с выбором
 
 - [x] **[UI-23]** Пересобрать /pricing по новому ТЗ + динамический Rate Card
+
   - Новый порядок секций, обновлённые тексты и CTA-логика
   - Rate Card из бэка (3–50 моделей) + updatedAt на UI
   - Конфиг для сумм пополнения, популярных/рекомендованных моделей
   - Фоллбеки и события аналитики по ТЗ
 
 - [x] **[BUG]** Polish /welcome layout for examples + how callout
+
   - Prevent study badge from wrapping in examples cards
   - Stack the how-callout CTA under text for cleaner line breaks
 
 - [x] **[BUG]** Fix /welcome landing follow-up issues after review
+
   - Hide audio examples/features when audio quotas are zero
   - Add tab a11y wiring (aria-controls/tabpanel) + reuse shared navigation helpers
   - Add Vitest coverage for welcome navigation helpers
   - Tests: `npm run test:frontend -- --run`
 
 - [x] **[UI-22]** Обновить блоки /welcome после hero по новому ТЗ
+
   - Добавлены примеры с табами и пресетами + мобильный \"Показать ещё\"
   - Переписаны секции how/features/usecases/pricing/faq + финальный CTA
   - Добавлены якоря, единые формулировки оплаты и sticky CTA на mobile
 
 - [x] **[BUG]** Stabilize welcome hero CTA + preset prefill after auth
+
   - Prevent decorative hero layers from intercepting CTA clicks
   - Ensure preset text applies after input mounts during auth redirect
   - Tests: `pytest`, `npm run test:frontend`, `npm run test:e2e`
 
 - [x] **[TOOLS-01]** Create general code review skill
+
   - Added reusable code review skill with checklist references and templates
 
 - [x] **[ASSETS]** Sync static/static logo assets with new favicon
+
   - Regenerated favicon/manifest/splash PNGs and ICOs from the new SVG
 
 - [x] **[MAINT]** Clean up pytest warnings (SQLAlchemy/Alembic/Pydantic/deps)
+
   - Updated deprecated APIs and added targeted pytest warning filters
 
 - [x] **[BUG]** Merge Alembic heads to unblock migrations in tests
+
   - Added merge migration for ab12cd34ef56 + c9b7a1d4e2f3
 
 - [x] **[BUG]** Replace favicon PNG assets with SVG-converted logo
+
   - Regenerated favicon PNGs from SVG and aligned model defaults to `/static/favicon.png`
 
 - [x] **[UI-11]** Replace app + landing logo with SVG
+
   - Swapped brand mark to SVG asset and updated app + landing logo usages
 
 - [x] **[BILLING-10]** Simplify pricing for all modalities (remove factors)
+
   - Removed platform factor / fixed fee / min charge / rounding rules from rate cards
   - Pricing now uses raw per-unit cost (text uses per 1k tokens)
   - Added migration + updated admin UI and tests
 
 - [x] **[BILLING-09]** Simplify text token pricing (per-1k) + paired input/output entry
+
   - Store token price as kopeks per 1k tokens and use input+output sum
   - Admin UI captures both token_in and token_out together to avoid partial rate cards
 
 - [x] **[UI-20]** Clarify unit labels and raw cost meaning
+
   - Unit options now include “price per ...” hints; raw cost label clarified
 
 - [x] **[UI-19]** Show unit as fixed value and add raw cost hints
+
   - Unit shows as fixed value for single-unit modalities; raw cost now shows per-unit hint
 
 - [x] **[UI-18]** Add unit hints by modality in rate card form
+
   - Unit dropdown now explains tts/stt/image/text units
 
 - [x] **[UI-17]** Adjust rate card unit by modality
+
   - Unit now auto-limits to valid options per modality (text/image/tts/stt)
 
 - [x] **[UI-16]** Replace modality input with select
+
   - Modality field now uses a dropdown with text/image/tts/stt
 
 - [x] **[UI-15]** Remove unused rate card fields from form
+
   - Hid informational fields (model tier, provider, version, rounding rules, default flag)
   - Kept only pricing + effective period inputs
 
 - [x] **[UI-13]** Rename top-up wording to Russian
+
   - Replaced top-up labels in wallet/history/chat UI with Russian equivalents
 
 - [x] **[UI-12]** Show fixed top-up amounts on /pricing
+
   - Added fixed top-up amounts in PAYG explainer block (1 000 / 1 500 / 5 000 / 10 000 ₽)
 
 - [x] **[UI-11]** Add fixed top-up amounts on wallet + landing
+
   - Updated wallet top-up packages to 1 000, 1 500, 5 000, 10 000 ₽
   - Added fixed top-up amounts callout on the /welcome landing
 
 - [x] **[DEPLOY-01]** Add Docker Hub deploy script (dev -> prod)
+
   - Added docker-compose.prod.yml to override image on prod
   - Added scripts/deploy_prod.sh for build/push/pull/up via SSH
   - Added .env.deploy to store deploy variables (ignored by git)
@@ -104,112 +147,141 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Added optional prod git pull and post-deploy status output
 
 - [x] **[I18N-01]** Add lead magnet UI strings (en-US, ru-RU)
+
   - Added translations for lead magnet labels, quotas, and admin config messages
 
 - [x] **[DOCS-11]** Sync Memory Bank status with current implementation
+
   - Updated landing conversion plan gaps + phase status
   - Updated PAYG lead magnet policy + implementation plan progress
 
 - [x] **[DOCS-09]** Update landing plan + block-by-block wording
+
   - Aligned plan with PAYG-only messaging, dynamic lead magnet quotas, and 2026 design direction
   - Added copy per block for /welcome, /features, /pricing, /about, /contact, /privacy, /terms
 
 - [x] **[DOCS-10]** Create 2026 public pages plan (per-page wording + imagery)
+
   - Added `.memory_bank/specs/public_pages_2026_plan.md` with step-by-step blocks and copy
   - Included imagery guidance and execution order
 
 - [x] **[UI-04]** Apply 2026 /welcome copy + dynamic free quotas
+
   - Updated hero copy and benefit chips per 2026 plan
   - Added use-case block and PAYG/free-start wording updates
   - Wired lead-magnet quotas from public settings into /welcome
 
 - [x] **[UI-05]** Strong 2026 redesign pass for /welcome
+
   - Rebuilt hero layout with deeper visual hierarchy and layered light fields
   - Wrapped sections into card-like “bands” for scan-friendly structure
 
 - [x] **[UI-06]** Strong 2026 redesign pass for /features
+
   - Rebuilt hero with stacked product collage and clearer CTA emphasis
   - Simplified blocks into card bands: models, capabilities, use-cases, reasons, final CTA
 
 - [x] **[UI-07]** Strong 2026 redesign pass for /pricing
+
   - Rebuilt hero and PAYG explanation with 2026 visual bands
   - Added dynamic lead-magnet quotas and example cost block
 
 - [x] **[UI-08]** Strong 2026 redesign pass for /about
+
   - Rebuilt hero with product collage and concise mission/values blocks
   - Removed stats and kept CTA-focused layout
 
 - [x] **[UI-09]** Strong 2026 redesign pass for /contact
+
   - Rebuilt hero and support cards with 2026 visual bands
   - Simplified support path and preserved minimal form UX
 
 - [x] **[UI-10]** Strong 2026 redesign pass for /privacy and /terms
+
   - Added summary blocks and 2026 hero layout for legal pages
   - Updated payment language to PAYG and refreshed dates
 
 - [x] **[BUG]** Fix public rate card accuracy
+
   - Filtered public rate cards by effective date window
   - Corrected token pricing scale (per 1k) and image unit lookup for examples
 
 - [x] **[LANDING-01]** Close Phase 1 conversion updates on /welcome
+
   - Added problem/solution block, capability grid, segment use cases, pricing preview, and FAQ
   - Split large sections into `WelcomePhaseOneSections` to keep file size within standards
 
 - [x] **[DOCS-08]** Document landing conversion plan from expert reviews
+
   - Added `.memory_bank/specs/landing_conversion_plan.md` with phased roadmap and open questions
   - Updated plan with lead-magnet behavior, PAYG pricing data needs, and owner inputs
 
 - [x] **[UI-03]** Refresh public pages design for AIris brand alignment
+
   - Updated /welcome, /about, /features, /pricing, /contact, /terms, /privacy
   - Replaced emoji visuals with iconography and product imagery
   - Aligned typography, CTA styles, and neutral palette with in-app UI
 
 - [x] **[BUG]** Fix container crash when SRC_LOG_LEVELS missing keys
+
   - Defaulted OAuth and OpenGauss log levels to INFO when SRC_LOG_LEVELS lacks MAIN/RAG
 
 - [x] **[BUG]** Fix container crash on missing email-validator
+
   - Added `email-validator` dependency required by Pydantic `EmailStr`
 
 - [x] **[BUG]** Restore container boot after upstream merge
+
   - Removed leftover conflict marker in images router and added Alembic merge migration
 
 - [x] **[BUG]** Restore page scrolling after splash screen
+
   - Scoped `overflow-y: hidden` to the splash state and remove it after load
 
 - [x] **[LEGAL-01]** Add requisites for YooKassa verification
+
   - Added IP requisites (ИНН/ОГРНИП) to public footer for visibility on all public pages
 
 - [x] **[BUG]** Stabilize backend test fixtures for billing flows
+
   - Use scoped SQLAlchemy session in billing-related tests
   - Enable image generation flag in image billing tests
   - Avoid extra admin user inflation in users router tests
 
 - [x] **[UX]** Simplify /welcome content density
+
   - Removed redundant blocks and entry flow section from /welcome
   - Kept concise hero, steps, capabilities, PAYG + free start, and FAQ
   - Replaced hero image with real product screenshot and added framed presentation
 
 - [x] **[UX]** Add /welcome hero visual variants for review
+
   - Added Spotlight stage and Stacked tilt screenshot treatments in hero
   - Stacked variants are shown sequentially on the same page for selection
 
 - [x] **[TEST]** Stabilize E2E selectors and frontend test discovery
+
   - Added stable data-testid hooks for chat/user menu and model selection.
   - Updated Playwright specs with fallbacks and fixed Vitest test include/exclude.
 
 - [x] **[BUG]** Free plan cancellation blocks re-subscribe
+
   - Added free plan activation and resume flow in billing UI and API.
 
 - [x] **[BUG]** Billing dashboard shows infinite spinner and no content
+
   - Added timeout/error state for billing info load with retry action and safer currency formatting.
 
 - [x] **[BUG]** Prevent duplicate email in Yandex OAuth when merge disabled
+
   - Added duplicate-email guard aligned with signup/add routes; merges when enabled and blocks when disabled.
 
 - [x] **[BUG]** Billing wallet endpoints returned 404 when wallet disabled
+
   - Enabled wallet by default in `docker-compose.yaml`, `.env.example`, and `.env` (`ENABLE_BILLING_WALLET=true`).
 
 - [x] **[BILLING-01]** Implement billing system with YooKassa integration
+
   - Created database models (Plan, Subscription, Usage, Transaction, AuditLog)
   - Implemented backend API (user billing + admin billing)
   - Built frontend UI (plans catalog, dashboard, admin panel)
@@ -217,11 +289,13 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Integrated payment webhooks
 
 - [x] **[BILLING-02]** Add audit logging for admin actions
+
   - Created AuditLog model with action enums
   - Implemented logging in all admin endpoints
   - Added audit log viewer in admin panel
 
 - [x] **[BILLING-05]** Implement B2C monetization (wallet + PAYG)
+
   - Wallet + rate card models, admin CRUD/sync, topup + webhook credit, hold/settle integration, guardrails + unit tests
   - Frontend wallet UI + pricing + admin model pricing + auto-topup
   - E2E: Playwright wallet tests + admin storage state; `npm run test:e2e` passes (chat tests skipped without models)
@@ -236,13 +310,21 @@ This file tracks active development tasks for the Airis project. Update this fil
 ## In Progress
 
 ### High Priority
+
 - [x] **[UI-21]** Обновить hero + header /welcome по новому ТЗ
   - Новый hero с CTA, trust chips и быстрыми пресетами
   - Обновить header (mobile CTA + burger + трекинг событий)
   - Обновить hero визуал под сценарий текст + изображения
   - **Owner**: Codex
   - **Target**: 2026-01-21
+- [x] **[UI-26]** Обновить /features по новому ТЗ (возможности)
+  - Новый порядок секций, CTA-логика и тексты
+  - Пресеты, табы, модели и FAQ по спецификации
+  - Динамический список моделей из публичного Rate Card
+  - **Owner**: Codex
+  - **Target**: 2026-01-22
 - [x] **[BILLING-07]** Define PAYG default + lead magnet access logic
+
   - Make PAYG the default billing mode without subscription
   - Admin-configurable lead magnet: monthly quotas (tokens, images, TTS, STT) + cycle length (X days)
   - Allowlist models flagged as “free/lead magnet” (only those use trial quotas)
@@ -252,6 +334,7 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Target**: TBD
 
 - [ ] **[BILLING-08]** Implement PAYG default + lead magnet access
+
   - Full audit of billing-related files and gaps vs policy
   - Plan saved: `.memory_bank/specs/payg_lead_magnet_implementation_plan.md`
   - Progress: lead magnet config/state + admin API + model flag + UI (dashboard/balance/estimate) + STT billing path
@@ -263,6 +346,7 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Target**: TBD
 
 - [ ] **[BILLING-03]** Test billing system end-to-end
+
   - Test plan subscription flow
   - Test payment processing and webhooks
   - Test quota enforcement
@@ -272,6 +356,7 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Target**: Week of 2025-12-16
 
 - [x] **[BILLING-06]** Split context vs generation billing costs (DB columns + UI)
+
   - Added usage/ledger columns for input/output costs and rate card IDs
   - Extended estimate response and billing UI breakdowns
   - Updated billing integration tests (19 passed)
@@ -279,6 +364,7 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Target**: 2025-12-22
 
 - [ ] **[BILLING-04]** Add usage analytics dashboard
+
   - Show usage trends over time
   - Display quota utilization charts
   - Add cost projections
@@ -286,6 +372,7 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Target**: 2025-12-20
 
 - [x] **[UI-02]** Simplify billing UX (wallet-first for B2C)
+
   - Merge wallet balance, limits, and billing contacts into one screen
   - Reduce billing navigation to Wallet + History (+ Plans when enabled)
   - Simplify history view for non-technical users
@@ -301,6 +388,7 @@ This file tracks active development tasks for the Airis project. Update this fil
 ### Medium Priority
 
 - [ ] **[FEATURE-01]** Improve AI model switching UX
+
   - Add model comparison UI
   - Show model capabilities and pricing
   - Implement model recommendations
@@ -317,6 +405,7 @@ This file tracks active development tasks for the Airis project. Update this fil
 ### Low Priority
 
 - [ ] **[DOCS-03]** Add API documentation for billing endpoints
+
   - Document all billing API endpoints
   - Add request/response examples
   - Create integration guide
@@ -335,6 +424,7 @@ This file tracks active development tasks for the Airis project. Update this fil
 ## Backlog
 
 ### Features
+
 - **[FEATURE-03]** Multi-user workspaces with shared billing
 - **[FEATURE-04]** API platform for third-party integrations
 - **[FEATURE-05]** AI agents with multi-step reasoning
@@ -343,6 +433,7 @@ This file tracks active development tasks for the Airis project. Update this fil
 - **[FEATURE-08]** Mobile apps (iOS/Android)
 
 ### Technical Improvements
+
 - **[TECH-01]** Add comprehensive test suite (backend + frontend)
 - **[TECH-02]** Set up CI/CD pipeline
 - **[TECH-03]** Implement caching strategy with Redis
@@ -352,6 +443,7 @@ This file tracks active development tasks for the Airis project. Update this fil
 - **[TECH-07]** Add rate limiting per endpoint
 
 ### Documentation
+
 - **[DOCS-04]** User guide for billing features
 - **[DOCS-05]** Developer onboarding guide
 - **[DOCS-06]** Deployment guide (Docker/Kubernetes)
@@ -368,17 +460,20 @@ _No blocked tasks currently_
 ## Task Workflow
 
 ### Status Definitions
+
 - **To Do**: Task defined but not yet started
 - **In Progress**: Actively being worked on
 - **Blocked**: Waiting on external dependency or decision
 - **Done**: Completed and merged to main branch
 
 ### Priority Levels
+
 - **High**: Critical for current release or blocking other work
 - **Medium**: Important but not urgent
 - **Low**: Nice to have, can be deferred
 
 ### Task Format
+
 ```
 - [ ] **[CATEGORY-ID]** Task title
   - Description point 1
@@ -392,13 +487,16 @@ _No blocked tasks currently_
 ## Notes
 
 ### Recent Architectural Decisions
+
 1. **Billing System Architecture** (2025-12-10)
+
    - Chose YooKassa for Russian market support
    - Implemented quota enforcement at middleware level
    - Used Peewee ORM for consistency with existing codebase
    - Added comprehensive audit logging for compliance
 
 2. **Frontend Framework** (2025-12-10)
+
    - Using Svelte 5 with SvelteKit 2
    - Tailwind CSS 4 for styling
    - TypeScript for type safety
@@ -410,6 +508,7 @@ _No blocked tasks currently_
    - Quota tracking per provider and model
 
 ### Upcoming Decisions Needed
+
 - [ ] Choose monitoring/observability solution
 - [ ] Define testing strategy and coverage targets
 - [ ] Plan mobile app architecture

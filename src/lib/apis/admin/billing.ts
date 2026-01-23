@@ -67,6 +67,18 @@ export interface RateCardUpdateRequest {
 	is_active?: boolean;
 }
 
+export interface RateCardBulkDeleteRequest {
+	rate_card_ids: string[];
+}
+
+export interface RateCardDeleteModelsRequest {
+	model_ids: string[];
+}
+
+export interface RateCardDeleteResponse {
+	deleted: number;
+}
+
 export interface RateCardSyncRequest {
 	model_ids?: string[];
 	modality_units?: { modality: string; unit: string }[];
@@ -402,6 +414,59 @@ export const updateRateCard = async (
 		);
 	} catch (error) {
 		console.error('Failed to update rate card:', error);
+		throw error;
+	}
+};
+
+export const deleteRateCard = async (token: string, rateCardId: string): Promise<boolean> => {
+	try {
+		return await apiRequest<boolean>(
+			`${WEBUI_API_BASE_URL}/admin/billing/rate-card/${rateCardId}`,
+			token,
+			{
+				method: 'DELETE'
+			}
+		);
+	} catch (error) {
+		console.error('Failed to delete rate card:', error);
+		throw error;
+	}
+};
+
+export const bulkDeleteRateCards = async (
+	token: string,
+	data: RateCardBulkDeleteRequest
+): Promise<RateCardDeleteResponse> => {
+	try {
+		return await apiRequest<RateCardDeleteResponse>(
+			`${WEBUI_API_BASE_URL}/admin/billing/rate-card/bulk-delete`,
+			token,
+			{
+				method: 'POST',
+				body: JSON.stringify(data)
+			}
+		);
+	} catch (error) {
+		console.error('Failed to delete rate cards:', error);
+		throw error;
+	}
+};
+
+export const deleteRateCardsByModel = async (
+	token: string,
+	data: RateCardDeleteModelsRequest
+): Promise<RateCardDeleteResponse> => {
+	try {
+		return await apiRequest<RateCardDeleteResponse>(
+			`${WEBUI_API_BASE_URL}/admin/billing/rate-card/delete-models`,
+			token,
+			{
+				method: 'POST',
+				body: JSON.stringify(data)
+			}
+		);
+	} catch (error) {
+		console.error('Failed to delete model rate cards:', error);
 		throw error;
 	}
 };
