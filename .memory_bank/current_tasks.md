@@ -6,6 +6,11 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG]** Fix rate card model save validation
+
+  - Prevent save from aborting on valid effective-to or cost updates
+  - Ensure form validation blocks only when input is invalid
+
 - [x] **[BILLING-13][FEATURE]** Redesign rate card create UI for multi-model + multi-modality pricing
 
   - Added model picker with search + multi-select

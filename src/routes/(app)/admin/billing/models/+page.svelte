@@ -403,14 +403,16 @@
 		value: string,
 		label: string,
 		emptyAsNull: boolean
-	): number | null | undefined => {
-		if (!value.trim()) return emptyAsNull ? null : undefined;
+	): { value: number | null | undefined; isValid: boolean } => {
+		if (!value.trim()) {
+			return { value: emptyAsNull ? null : undefined, isValid: true };
+		}
 		const parsed = Number.parseInt(value, 10);
 		if (Number.isNaN(parsed) || parsed < 0) {
 			toast.error($i18n.t('Invalid value for {label}', { label }));
-			return null;
+			return { value: null, isValid: false };
 		}
-		return parsed;
+		return { value: parsed, isValid: true };
 	};
 
 	const calculatePreviewCounts = (): PreviewCounts => {
@@ -439,31 +441,32 @@
 	const handleSave = async () => {
 		if (saving || !selectedModel) return;
 
-		const effectiveFromValue =
+		const effectiveFromParsed =
 			formMode === 'add'
 				? parseOptionalInt(modalEffectiveFrom, $i18n.t('Effective from'), false)
-				: undefined;
-		if (effectiveFromValue === null) return;
-		const effectiveFromCandidate = formMode === 'edit' ? baseEffectiveFrom : effectiveFromValue;
+				: { value: undefined, isValid: true };
+		if (!effectiveFromParsed.isValid) return;
+		const effectiveFromCandidate =
+			formMode === 'edit' ? baseEffectiveFrom : effectiveFromParsed.value;
 		if (formMode === 'add' && effectiveFromCandidate === undefined) {
 			toast.error($i18n.t('Effective from is required'));
 			return;
 		}
 
-		const effectiveToValue = parseOptionalInt(
+		const effectiveToParsed = parseOptionalInt(
 			modalEffectiveTo,
 			$i18n.t('Effective to'),
 			formMode === 'edit'
 		);
-		if (effectiveToValue === null) return;
+		if (!effectiveToParsed.isValid) return;
 
 		const updateRequests: Array<{ id: string; data: RateCardUpdateRequest }> = [];
 		const createRequests: RateCardCreateRequest[] = [];
-		const baseEffectiveTo = effectiveToDirty ? effectiveToValue : effectiveToDefault;
-		const effectiveToPayload =
-			baseEffectiveTo === undefined ? undefined : baseEffectiveTo;
+		const baseEffectiveTo = effectiveToDirty ? effectiveToParsed.value : effectiveToDefault;
+		const effectiveToPayload = baseEffectiveTo === undefined ? undefined : baseEffectiveTo;
 		const defaultEffectiveFrom = effectiveFromCandidate;
 		const shouldUpdateEffectiveTo = effectiveToDirty;
+		let hasValidationError = false;
 
 		(Object.keys(modalState) as ModalityKey[]).forEach((modality) => {
 			const modalityState = modalState[modality];
@@ -474,7 +477,10 @@
 						: unitState.cost;
 				if (modalityState.enabled) {
 					const cost = parseRequiredInt(costValue, getUnitLabel(modality, unitState.unit));
-					if (cost === null) return;
+					if (cost === null) {
+						hasValidationError = true;
+						return;
+					}
 					if (unitState.exists) {
 						updateRequests.push({
 							id: unitState.id as string,
@@ -508,6 +514,8 @@
 				}
 			});
 		});
+
+		if (hasValidationError) return;
 
 		const duplicates = createRequests.filter((request) => {
 			if (typeof request.effective_from !== 'number') return false;
