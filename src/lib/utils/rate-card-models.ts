@@ -2,10 +2,18 @@ import type { RateCard } from '$lib/apis/admin/billing';
 
 export type ModelStatus = 'new' | 'configured';
 
+export type ModelMeta = {
+	lead_magnet?: boolean;
+};
+
 export type ModelOption = {
 	id: string;
 	name?: string | null;
 	is_active?: boolean | null;
+	base_model_id?: string | null;
+	meta?: ModelMeta | null;
+	params?: Record<string, unknown> | null;
+	access_control?: Record<string, unknown> | null;
 };
 
 export type ModelRow = ModelOption & { status: ModelStatus };

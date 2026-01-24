@@ -4,7 +4,7 @@
 	import { toast } from 'svelte-sonner';
 
 	import { WEBUI_NAME, user } from '$lib/stores';
-	import { getBaseModels } from '$lib/apis/models';
+	import { getBaseModels, updateModelById } from '$lib/apis/models';
 	import { createRateCard, listRateCards, updateRateCard } from '$lib/apis/admin/billing';
 	import type {
 		RateCard,
@@ -83,6 +83,7 @@
 	let effectiveToDefault: number | null | undefined = undefined;
 	let effectiveToDirty = false;
 	let baseEffectiveFrom: number | null = null;
+	let leadMagnetEnabled = false;
 	let saving = false;
 
 
@@ -155,7 +156,11 @@
 			.map((model: ModelOption) => ({
 				id: model.id,
 				name: model.name,
-				is_active: model.is_active
+				is_active: model.is_active,
+				base_model_id: model.base_model_id,
+				meta: model.meta,
+				params: model.params,
+				access_control: model.access_control
 			}))
 			.sort((a: ModelOption, b: ModelOption) => (a.name ?? a.id).localeCompare(b.name ?? b.id));
 	};
@@ -247,11 +252,16 @@
 		effectiveToDefault = undefined;
 		effectiveToDirty = false;
 		baseEffectiveFrom = null;
+		leadMagnetEnabled = false;
 	};
 
 	const initializeModalState = (modelId: string) => {
 		resetModalState();
-		if (formMode === 'add') return;
+		if (formMode === 'add') {
+			leadMagnetEnabled = selectedModel?.meta?.lead_magnet ?? false;
+			return;
+		}
+		leadMagnetEnabled = selectedModel?.meta?.lead_magnet ?? false;
 		const entries = rateCards.filter((entry) => entry.model_id === modelId);
 		if (entries.length === 0) return;
 
@@ -462,6 +472,8 @@
 
 		const updateRequests: Array<{ id: string; data: RateCardUpdateRequest }> = [];
 		const createRequests: RateCardCreateRequest[] = [];
+		const leadMagnetChanged =
+			Boolean(selectedModel.meta?.lead_magnet) !== Boolean(leadMagnetEnabled);
 		const baseEffectiveTo = effectiveToDirty ? effectiveToParsed.value : effectiveToDefault;
 		const effectiveToPayload = baseEffectiveTo === undefined ? undefined : baseEffectiveTo;
 		const defaultEffectiveFrom = effectiveFromCandidate;
@@ -533,13 +545,33 @@
 			return;
 		}
 
-		if (createRequests.length === 0 && updateRequests.length === 0) {
+		if (createRequests.length === 0 && updateRequests.length === 0 && !leadMagnetChanged) {
 			toast.error($i18n.t('No changes to save'));
 			return;
 		}
 
 		saving = true;
 		try {
+			if (leadMagnetChanged) {
+				const nextMeta = { ...(selectedModel.meta ?? {}) };
+				if (leadMagnetEnabled) {
+					nextMeta.lead_magnet = true;
+				} else {
+					delete nextMeta.lead_magnet;
+				}
+				const updatedModel = await updateModelById(localStorage.token, selectedModel.id, {
+					id: selectedModel.id,
+					name: selectedModel.name ?? selectedModel.id,
+					base_model_id: selectedModel.base_model_id ?? null,
+					params: selectedModel.params ?? {},
+					access_control: selectedModel.access_control ?? null,
+					is_active: selectedModel.is_active ?? true,
+					meta: nextMeta
+				});
+				if (!updatedModel) {
+					throw new Error('Failed to update model');
+				}
+			}
 			for (const request of createRequests) {
 				await createRateCard(localStorage.token, request);
 			}
@@ -552,6 +584,7 @@
 			closeModal();
 			await loadData();
 		} catch (error) {
+
 			const message = error instanceof Error ? error.message : String(error);
 			if (message.includes('already exists')) {
 				toast.error($i18n.t('Rate card already exists. Refreshing list.'));
@@ -675,6 +708,11 @@
 								>
 									{$i18n.t(STATUS_LABELS[model.status])}
 								</span>
+								{#if model.meta?.lead_magnet}
+									<span class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-sky-500/15 text-sky-700 dark:text-sky-300">
+										{$i18n.t('Lead magnet')}
+									</span>
+								{/if}
 								<button
 									on:click={() => openModal(model)}
 									class="px-3 py-1.5 rounded-xl text-sm font-medium bg-black text-white dark:bg-white dark:text-black transition"
@@ -707,6 +745,23 @@
 				>
 					<XMark className="size-5" />
 				</button>
+			</div>
+
+			<div class="flex items-center justify-between gap-3 mb-4">
+				<div>
+					<div class="text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">
+						{$i18n.t('Lead magnet')}
+					</div>
+					<div class="text-[11px] text-gray-400">
+						{$i18n.t('Allow free usage via lead magnet quotas for this model')}
+					</div>
+				</div>
+				<Switch
+					state={leadMagnetEnabled}
+					on:change={(event: CustomEvent<boolean>) => {
+						leadMagnetEnabled = event.detail;
+					}}
+				/>
 			</div>
 
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
