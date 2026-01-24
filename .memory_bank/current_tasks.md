@@ -322,6 +322,12 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Динамический список моделей из публичного Rate Card
   - **Owner**: Codex
   - **Target**: 2026-01-22
+- [x] **[BILLING-14][FEATURE]** Single-flow rate card editor per model
+  - Единый список моделей со статусом и действием Add/Edit
+  - Модальные карточки модальностей с сохранением истории (is_active=false)
+  - Добавлены утилиты для статусов моделей и индекса rate cards + тесты
+  - **Owner**: Codex
+  - **Target**: 2026-01-23
 - [x] **[BILLING-07]** Define PAYG default + lead magnet access logic
 
   - Make PAYG the default billing mode without subscription
