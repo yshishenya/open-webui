@@ -59,6 +59,8 @@ describe('rate-card-models', () => {
 
 		expect(rows.map((row) => row.id)).toEqual(['model-a', 'model-b']);
 		expect(rows.find((row) => row.id === 'model-a')?.status).toBe('new');
+		expect(rows.find((row) => row.id === 'model-a')?.modalities).toEqual([]);
 		expect(rows.find((row) => row.id === 'model-b')?.status).toBe('configured');
+		expect(rows.find((row) => row.id === 'model-b')?.modalities).toEqual(['text']);
 	});
 });

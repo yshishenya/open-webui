@@ -14,11 +14,17 @@
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
+	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
+	import ChatBubble from '$lib/components/icons/ChatBubble.svelte';
+	import PhotoSolid from '$lib/components/icons/PhotoSolid.svelte';
+	import SoundHigh from '$lib/components/icons/SoundHigh.svelte';
+	import MicSolid from '$lib/components/icons/MicSolid.svelte';
 	import {
 		buildLatestRateCardIndex,
 		buildModelRows,
 		getRateCardKey,
+		type ModalityKey,
 		type ModelOption,
 		type ModelRow
 	} from '$lib/utils/rate-card-models';
@@ -27,7 +33,6 @@
 
 	type FormMode = 'add' | 'edit';
 	type StatusFilter = 'all' | 'new' | 'configured';
-	type ModalityKey = 'text' | 'image' | 'tts' | 'stt';
 
 	type UnitState = {
 		unit: string;
@@ -95,6 +100,42 @@
 	const STATUS_STYLES: Record<ModelRow['status'], string> = {
 		new: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
 		configured: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+	};
+
+	const MODALITY_ORDER: ModalityKey[] = ['text', 'image', 'tts', 'stt'];
+
+	type ModalityDetail = {
+		label: string;
+		description: string;
+		icon: typeof ChatBubble;
+		tone: string;
+	};
+
+	const MODALITY_DETAILS: Record<ModalityKey, ModalityDetail> = {
+		text: {
+			label: 'Text',
+			description: 'Text input/output tokens (per 1k)',
+			icon: ChatBubble,
+			tone: 'bg-slate-100 text-slate-700 dark:bg-slate-800/70 dark:text-slate-200'
+		},
+		image: {
+			label: 'Image',
+			description: 'Image generation (per image)',
+			icon: PhotoSolid,
+			tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
+		},
+		tts: {
+			label: 'TTS',
+			description: 'Text-to-speech (per 1k chars)',
+			icon: SoundHigh,
+			tone: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-200'
+		},
+		stt: {
+			label: 'STT',
+			description: 'Speech-to-text (per minute)',
+			icon: MicSolid,
+			tone: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200'
+		}
 	};
 
 	function buildDefaultModalState(): ModalState {
@@ -228,6 +269,35 @@
 		const hint = getRawCostHint(modality, unit);
 		if (!hint) return unit;
 		return `${unit} — ${hint}`;
+	};
+
+	const getModalityLabel = (modality: ModalityKey): string => {
+		return $i18n.t(MODALITY_DETAILS[modality].label);
+	};
+
+	const getModalityDescription = (modality: ModalityKey): string => {
+		return $i18n.t(MODALITY_DETAILS[modality].description);
+	};
+
+	const getModalityTone = (modality: ModalityKey): string => MODALITY_DETAILS[modality].tone;
+
+	const getModalityIcon = (modality: ModalityKey): typeof ChatBubble => {
+		return MODALITY_DETAILS[modality].icon;
+	};
+
+	const getModalityTooltipContent = (modalities: ModalityKey[]): string => {
+		if (modalities.length === 0) return $i18n.t('No modalities configured');
+		const lines = modalities.map((modality) => {
+			return `${getModalityLabel(modality)} — ${getModalityDescription(modality)}`;
+		});
+		return lines.join('<br />');
+	};
+
+	const getModalityTooltipSummary = (modalities: ModalityKey[]): string => {
+		if (modalities.length === 0) return $i18n.t('No modalities configured');
+		return $i18n.t('Modalities: {list}', {
+			list: modalities.map((modality) => getModalityLabel(modality)).join(', ')
+		});
 	};
 
 	const openModal = (model: ModelRow) => {
@@ -689,40 +759,77 @@
 					</div>
 				</div>
 			{:else}
-				<div class="divide-y divide-gray-100 dark:divide-gray-800">
-					{#each filteredModelRows as model}
-						<div class="flex flex-col md:flex-row md:items-center gap-3 px-4 py-3">
-							<div class="flex-1">
-								<div class="flex flex-col">
-									<span class="text-sm font-medium">
-										{getModelDisplayName(model)}
-									</span>
-									<span class="text-xs text-gray-400">{model.id}</span>
+						<div class="divide-y divide-gray-100 dark:divide-gray-800">
+							{#each filteredModelRows as model}
+								<div class="flex flex-col md:flex-row md:items-center gap-3 px-4 py-3">
+									<div class="flex-1">
+										<div class="flex flex-col">
+											<span class="text-sm font-medium">
+												{getModelDisplayName(model)}
+											</span>
+											<div class="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+												<span>{model.id}</span>
+												<span class="text-gray-300">•</span>
+												<Tooltip
+													content={getModalityTooltipContent(model.modalities)}
+													placement="top-start"
+													tippyOptions={{
+														maxWidth: 280,
+														appendTo: () => document.body
+													}}
+												>
+													<div
+														class="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400"
+														aria-label={getModalityTooltipSummary(model.modalities)}
+													>
+														{#if model.modalities.length === 0}
+															<span class="text-[11px] text-gray-400">
+																{$i18n.t('No modalities')}
+															</span>
+														{:else}
+															{#each MODALITY_ORDER as modality}
+																{#if model.modalities.includes(modality)}
+																	{@const Icon = getModalityIcon(modality)}
+																	<span
+																		class={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${
+																			getModalityTone(modality)
+																		}`}
+																	>
+																		<Icon className="size-3" />
+																		<span>{getModalityLabel(modality)}</span>
+																	</span>
+																{/if}
+															{/each}
+														{/if}
+													</div>
+												</Tooltip>
+											</div>
+										</div>
+									</div>
+									<div class="flex items-center gap-2">
+										<span
+											class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+												STATUS_STYLES[model.status]
+											}`}
+										>
+											{$i18n.t(STATUS_LABELS[model.status])}
+										</span>
+										{#if model.meta?.lead_magnet}
+											<span class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-sky-500/15 text-sky-700 dark:text-sky-300">
+												{$i18n.t('Lead magnet')}
+											</span>
+										{/if}
+										<button
+											on:click={() => openModal(model)}
+											class="px-3 py-1.5 rounded-xl text-sm font-medium bg-black text-white dark:bg-white dark:text-black transition"
+										>
+											{$i18n.t(model.status === 'configured' ? 'Edit' : 'Add')}
+										</button>
+									</div>
 								</div>
-							</div>
-							<div class="flex items-center gap-2">
-								<span
-									class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
-										STATUS_STYLES[model.status]
-									}`}
-								>
-									{$i18n.t(STATUS_LABELS[model.status])}
-								</span>
-								{#if model.meta?.lead_magnet}
-									<span class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-sky-500/15 text-sky-700 dark:text-sky-300">
-										{$i18n.t('Lead magnet')}
-									</span>
-								{/if}
-								<button
-									on:click={() => openModal(model)}
-									class="px-3 py-1.5 rounded-xl text-sm font-medium bg-black text-white dark:bg-white dark:text-black transition"
-								>
-									{$i18n.t(model.status === 'configured' ? 'Edit' : 'Add')}
-								</button>
-							</div>
+							{/each}
 						</div>
-					{/each}
-				</div>
+
 			{/if}
 		</div>
 	</div>

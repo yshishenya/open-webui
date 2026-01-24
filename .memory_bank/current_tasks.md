@@ -6,6 +6,11 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[UI-27]** Show modalities badges in admin model pricing list
+
+  - Added icon + label chips with tooltip explanations per modality
+  - Keeps list compact with consistent admin styling
+
 - [x] **[BUG]** Fix rate card model save validation
 
   - Prevent save from aborting on valid effective-to or cost updates

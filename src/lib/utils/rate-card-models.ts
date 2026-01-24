@@ -2,6 +2,8 @@ import type { RateCard } from '$lib/apis/admin/billing';
 
 export type ModelStatus = 'new' | 'configured';
 
+export type ModalityKey = 'text' | 'image' | 'tts' | 'stt';
+
 export type ModelMeta = {
 	lead_magnet?: boolean;
 };
@@ -16,7 +18,10 @@ export type ModelOption = {
 	access_control?: Record<string, unknown> | null;
 };
 
-export type ModelRow = ModelOption & { status: ModelStatus };
+export type ModelRow = ModelOption & {
+	status: ModelStatus;
+	modalities: ModalityKey[];
+};
 
 export const getRateCardKey = (modality: string, unit: string): string => {
 	return `${modality}:${unit}`;
@@ -46,10 +51,27 @@ export const buildLatestRateCardIndex = (
 
 export const buildModelRows = (models: ModelOption[], rateCards: RateCard[]): ModelRow[] => {
 	const existingModelIds = new Set(rateCards.map((entry) => entry.model_id));
+	const modelModalities = new Map<string, Set<ModalityKey>>();
+
+	rateCards.forEach((entry) => {
+		if (!entry.is_active) return;
+		const modality = entry.modality as ModalityKey;
+		if (!['text', 'image', 'tts', 'stt'].includes(modality)) return;
+		const entrySet = modelModalities.get(entry.model_id) ?? new Set<ModalityKey>();
+		entrySet.add(modality);
+		modelModalities.set(entry.model_id, entrySet);
+	});
+
 	return models
-		.map((model) => ({
-			...model,
-			status: existingModelIds.has(model.id) ? 'configured' : 'new'
-		}))
+		.map((model) => {
+			const modalities = Array.from(modelModalities.get(model.id) ?? new Set<ModalityKey>());
+			const orderedModalities = ['text', 'image', 'tts', 'stt']
+				.filter((modality) => modalities.includes(modality as ModalityKey)) as ModalityKey[];
+			return {
+				...model,
+				status: existingModelIds.has(model.id) ? 'configured' : 'new',
+				modalities: orderedModalities
+			};
+		})
 		.sort((a, b) => (a.name ?? a.id).localeCompare(b.name ?? b.id));
 };
