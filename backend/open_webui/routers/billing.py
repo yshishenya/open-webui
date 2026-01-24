@@ -967,7 +967,15 @@ async def get_public_rate_cards(
 
     model_limit = min(max(PUBLIC_PRICING_RATE_CARD_MODEL_LIMIT, 1), 50)
     base_models = Models.get_base_models()
-    active_models = [model for model in base_models if model.is_active]
+    active_models = []
+    for model in base_models:
+        if not model.is_active:
+            continue
+        if model.access_control is not None:
+            continue
+        if model.meta and getattr(model.meta, "hidden", False):
+            continue
+        active_models.append(model)
     active_models.sort(key=lambda model: (model.name or model.id).lower())
     active_model_ids = [model.id for model in active_models]
 

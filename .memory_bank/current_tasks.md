@@ -315,6 +315,19 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ### High Priority
 
+- [x] **[SPEC]** Model management lifecycle + pricing visibility flow
+  - Document business rules, states, and acceptance criteria
+  - Map code touchpoints and estimate effort
+  - **Owner**: Codex
+  - **Target**: 2026-01-24
+
+- [ ] **[MODEL-01]** Align model visibility + pricing flow
+  - Public pricing respects model access/hidden/active flags
+  - Modality disabled errors handled explicitly
+  - Cascade deactivate rate cards on model delete
+  - **Owner**: Codex
+  - **Target**: 2026-01-26
+
 - [x] **[UI-21]** Обновить hero + header /welcome по новому ТЗ
   - Новый hero с CTA, trust chips и быстрыми пресетами
   - Обновить header (mobile CTA + burger + трекинг событий)

@@ -15,6 +15,7 @@ from open_webui.models.models import (
     ModelAccessResponse,
     Models,
 )
+from open_webui.models.billing import RateCards
 
 from pydantic import BaseModel
 from open_webui.constants import ERROR_MESSAGES
@@ -480,6 +481,7 @@ async def delete_model_by_id(
             detail=ERROR_MESSAGES.UNAUTHORIZED,
         )
 
+    RateCards.deactivate_rate_cards_by_model_ids([form_data.id])
     result = Models.delete_model_by_id(form_data.id, db=db)
     return result
 

@@ -17,6 +17,8 @@ class TestBillingPublicPricing(AbstractPostgresTest):
         now = int(time.time())
         self.text_model_id = "pricing-public-text"
         self.audio_model_id = "pricing-public-audio"
+        self.hidden_model_id = "pricing-hidden"
+        self.private_model_id = "pricing-private"
 
         Models.insert_new_model(
             ModelForm(
@@ -39,6 +41,32 @@ class TestBillingPublicPricing(AbstractPostgresTest):
                 meta=ModelMeta(),
                 params=ModelParams(),
                 access_control=None,
+                is_active=True,
+            ),
+            user_id="admin",
+        )
+
+        Models.insert_new_model(
+            ModelForm(
+                id=self.hidden_model_id,
+                name="Pricing Hidden",
+                base_model_id=None,
+                meta=ModelMeta(hidden=True),
+                params=ModelParams(),
+                access_control=None,
+                is_active=True,
+            ),
+            user_id="admin",
+        )
+
+        Models.insert_new_model(
+            ModelForm(
+                id=self.private_model_id,
+                name="Pricing Private",
+                base_model_id=None,
+                meta=ModelMeta(),
+                params=ModelParams(),
+                access_control={},
                 is_active=True,
             ),
             user_id="admin",
@@ -125,6 +153,38 @@ class TestBillingPublicPricing(AbstractPostgresTest):
                 is_active=True,
             ).model_dump()
         )
+        RateCards.create_rate_card(
+            PricingRateCardModel(
+                id=str(uuid.uuid4()),
+                model_id=self.hidden_model_id,
+                model_tier=None,
+                modality="text",
+                unit="token_in",
+                raw_cost_per_unit_kopeks=100,
+                version="2025-01",
+                effective_from=now,
+                effective_to=None,
+                provider="Hidden",
+                is_default=True,
+                is_active=True,
+            ).model_dump()
+        )
+        RateCards.create_rate_card(
+            PricingRateCardModel(
+                id=str(uuid.uuid4()),
+                model_id=self.private_model_id,
+                model_tier=None,
+                modality="text",
+                unit="token_in",
+                raw_cost_per_unit_kopeks=100,
+                version="2025-01",
+                effective_from=now,
+                effective_to=None,
+                provider="Private",
+                is_default=True,
+                is_active=True,
+            ).model_dump()
+        )
 
     def test_public_rate_cards_payload(self) -> None:
         response = self.fast_api_client.get(self.create_url("/public/rate-cards"))
@@ -138,6 +198,8 @@ class TestBillingPublicPricing(AbstractPostgresTest):
         model_ids = {model["id"] for model in payload["models"]}
         assert self.text_model_id in model_ids
         assert self.audio_model_id in model_ids
+        assert self.hidden_model_id not in model_ids
+        assert self.private_model_id not in model_ids
 
         text_model = next(
             model for model in payload["models"] if model["id"] == self.text_model_id

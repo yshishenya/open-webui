@@ -430,7 +430,7 @@ async def preflight_estimate_hold(
     if not rate_in or not rate_out:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={"error": "rate_card_missing"},
+            detail={"error": "modality_disabled"},
         )
 
     min_cost = _calculate_cost_kopeks(
@@ -635,7 +635,7 @@ async def preflight_single_rate_hold(
     if not rate_card:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={"error": "rate_card_missing"},
+            detail={"error": "modality_disabled"},
         )
 
     cost = pricing_service.calculate_cost_kopeks(

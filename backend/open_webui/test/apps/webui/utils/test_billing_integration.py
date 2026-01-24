@@ -260,7 +260,8 @@ class TestBillingIntegration(AbstractPostgresTest):
             )
 
         assert exc.value.status_code == 422
-
+        assert exc.value.detail == {"error": "modality_disabled"}
+ 
     @pytest.mark.asyncio
     async def test_text_preflight_insufficient_funds(self, monkeypatch):
         from fastapi import HTTPException
@@ -770,7 +771,8 @@ class TestBillingIntegration(AbstractPostgresTest):
             )
 
         assert exc.value.status_code == 422
-
+        assert exc.value.detail == {"error": "modality_disabled"}
+ 
     @pytest.mark.asyncio
     async def test_single_rate_hold_insufficient_funds(self, monkeypatch):
         from fastapi import HTTPException

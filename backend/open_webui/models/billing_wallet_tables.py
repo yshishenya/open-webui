@@ -402,6 +402,19 @@ class RateCardsTable:
             db.commit()
             return int(deleted or 0)
 
+    def deactivate_rate_cards_by_model_ids(self, model_ids: List[str]) -> int:
+        """Deactivate rate card entries by model IDs."""
+        if not model_ids:
+            return 0
+        with get_db() as db:
+            updated = (
+                db.query(PricingRateCard)
+                .filter(PricingRateCard.model_id.in_(model_ids))
+                .update({"is_active": False}, synchronize_session=False)
+            )
+            db.commit()
+            return int(updated or 0)
+
     def list_rate_cards(
         self,
         model_id: Optional[str] = None,
