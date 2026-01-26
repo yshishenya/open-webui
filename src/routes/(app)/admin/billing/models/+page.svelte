@@ -355,27 +355,27 @@
 		});
 	};
 
-	const sortModelRows = (rows: ModelRow[]): ModelRow[] => {
-		const direction = sortDirection === 'asc' ? 1 : -1;
+	const sortModelRows = (rows: ModelRow[], key: SortKey, direction: SortDirection): ModelRow[] => {
+		const multiplier = direction === 'asc' ? 1 : -1;
 		return [...rows].sort((a, b) => {
 			const nameA = getModelDisplayName(a);
 			const nameB = getModelDisplayName(b);
 
-			if (sortKey === 'status') {
+			if (key === 'status') {
 				const statusDelta = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
-				if (statusDelta !== 0) return statusDelta * direction;
-				return compareStrings(nameA, nameB) * direction;
+				if (statusDelta !== 0) return statusDelta * multiplier;
+				return compareStrings(nameA, nameB) * multiplier;
 			}
 
-			if (sortKey === 'lead') {
+			if (key === 'lead') {
 				const leadA = a.meta?.lead_magnet ? 'enabled' : 'disabled';
 				const leadB = b.meta?.lead_magnet ? 'enabled' : 'disabled';
 				const leadDelta = LEAD_ORDER[leadA] - LEAD_ORDER[leadB];
-				if (leadDelta !== 0) return leadDelta * direction;
-				return compareStrings(nameA, nameB) * direction;
+				if (leadDelta !== 0) return leadDelta * multiplier;
+				return compareStrings(nameA, nameB) * multiplier;
 			}
 
-			return compareStrings(nameA, nameB) * direction;
+			return compareStrings(nameA, nameB) * multiplier;
 		});
 	};
 
@@ -720,7 +720,9 @@
 				model.id.toLowerCase().includes(needle);
 			const matchesStatus = statusFilter === 'all' ? true : model.status === statusFilter;
 			return matchesSearch && matchesStatus;
-		})
+		}),
+		sortKey,
+		sortDirection
 	);
 
 	$: previewCounts = calculatePreviewCounts();
