@@ -544,12 +544,12 @@
 
 	const parseRequiredInt = (value: string, label: string): number | null => {
 		if (!value.trim()) {
-			toast.error($i18n.t('{label} is required', { label }));
+			toast.error($i18n.t('{{label}} is required', { label }));
 			return null;
 		}
 		const parsed = Number.parseInt(value, 10);
 		if (Number.isNaN(parsed) || parsed < 0) {
-			toast.error($i18n.t('Invalid value for {label}', { label }));
+			toast.error($i18n.t('Invalid value for {{label}}', { label }));
 			return null;
 		}
 		return parsed;
