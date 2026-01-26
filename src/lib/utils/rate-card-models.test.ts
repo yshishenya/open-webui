@@ -62,4 +62,22 @@ describe('rate-card-models', () => {
 		expect(rows.find((row) => row.id === 'model-b')?.status).toBe('configured');
 		expect(rows.find((row) => row.id === 'model-b')?.modalities).toEqual(['text']);
 	});
+
+	it('buildModelRows filters inactive modalities and orders them', () => {
+		const models = [{ id: 'model-a', name: 'Alpha' }];
+		const entries = [
+			buildRateCard({ model_id: 'model-a', modality: 'image', unit: 'image_1024' }),
+			buildRateCard({ model_id: 'model-a', modality: 'text', unit: 'token_in' }),
+			buildRateCard({
+				model_id: 'model-a',
+				modality: 'stt',
+				unit: 'stt_second',
+				is_active: false
+			})
+		];
+
+		const rows = buildModelRows(models, entries);
+
+		expect(rows[0]?.modalities).toEqual(['text', 'image']);
+	});
 });

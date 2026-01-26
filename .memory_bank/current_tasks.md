@@ -6,10 +6,11 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
-- [x] **[UI-27]** Show modalities badges in admin model pricing list
+- [x] **[UI-27]** Convert admin model pricing list to responsive table
 
-  - Added icon + label chips with tooltip explanations per modality
-  - Keeps list compact with consistent admin styling
+  - Desktop table with sortable headers + mobile card layout
+  - Modalities shown as icon-only pills with tooltips
+  - Added i18n strings and tests for modality ordering
 
 - [x] **[BUG]** Fix rate card model save validation
 

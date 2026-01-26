@@ -20,6 +20,11 @@
 	import PhotoSolid from '$lib/components/icons/PhotoSolid.svelte';
 	import SoundHigh from '$lib/components/icons/SoundHigh.svelte';
 	import MicSolid from '$lib/components/icons/MicSolid.svelte';
+	import ChevronUpDown from '$lib/components/icons/ChevronUpDown.svelte';
+	import ChevronUp from '$lib/components/icons/ChevronUp.svelte';
+	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
+	import Plus from '$lib/components/icons/Plus.svelte';
+	import PencilSquare from '$lib/components/icons/PencilSquare.svelte';
 	import {
 		buildLatestRateCardIndex,
 		buildModelRows,
@@ -29,7 +34,10 @@
 		type ModelRow
 	} from '$lib/utils/rate-card-models';
 
-	const i18n = getContext('i18n');
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
+
+	const i18n: Writable<i18nType> = getContext('i18n');
 
 	type FormMode = 'add' | 'edit';
 	type StatusFilter = 'all' | 'new' | 'configured';
@@ -74,6 +82,8 @@
 
 	let searchValue = '';
 	let statusFilter: StatusFilter = 'all';
+	let sortKey: SortKey = 'model';
+	let sortDirection: SortDirection = 'asc';
 
 	let showModal = false;
 	let formMode: FormMode = 'add';
@@ -82,7 +92,6 @@
 	let linkTextPrices = true;
 	let leadMagnetEnabled = false;
 	let saving = false;
-
 
 	const STATUS_LABELS: Record<ModelRow['status'], string> = {
 		new: 'New',
@@ -94,11 +103,24 @@
 		configured: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
 	};
 
+	type SortKey = 'model' | 'status' | 'lead';
+	type SortDirection = 'asc' | 'desc';
+
+	const STATUS_ORDER: Record<ModelRow['status'], number> = {
+		configured: 0,
+		new: 1
+	};
+
+	const LEAD_ORDER: Record<'enabled' | 'disabled', number> = {
+		enabled: 0,
+		disabled: 1
+	};
+
 	const MODALITY_ORDER: ModalityKey[] = ['text', 'image', 'tts', 'stt'];
 
 	type ModalityDetail = {
 		label: string;
-		description: string;
+		shortDescription: string;
 		icon: typeof ChatBubble;
 		tone: string;
 	};
@@ -106,25 +128,25 @@
 	const MODALITY_DETAILS: Record<ModalityKey, ModalityDetail> = {
 		text: {
 			label: 'Text',
-			description: 'Text input/output tokens (per 1k)',
+			shortDescription: 'Tokens · in/out (per 1k)',
 			icon: ChatBubble,
 			tone: 'bg-slate-100 text-slate-700 dark:bg-slate-800/70 dark:text-slate-200'
 		},
 		image: {
 			label: 'Image',
-			description: 'Image generation (per image)',
+			shortDescription: 'Images · per image',
 			icon: PhotoSolid,
 			tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
 		},
 		tts: {
 			label: 'TTS',
-			description: 'Text-to-speech (per 1k chars)',
+			shortDescription: 'Speech · per 1k chars',
 			icon: SoundHigh,
 			tone: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-200'
 		},
 		stt: {
 			label: 'STT',
-			description: 'Speech-to-text (per minute)',
+			shortDescription: 'Speech · per minute',
 			icon: MicSolid,
 			tone: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200'
 		}
@@ -236,7 +258,6 @@
 			: $i18n.t('Редактирование и добавление модальностей');
 	};
 
-
 	const getRawCostHint = (modality: string, unit: string): string => {
 		if (modality === 'text') return $i18n.t('Raw cost hint (text)');
 		if (modality === 'image') return $i18n.t('Raw cost hint (image)');
@@ -256,28 +277,95 @@
 		return $i18n.t(MODALITY_DETAILS[modality].label);
 	};
 
-	const getModalityDescription = (modality: ModalityKey): string => {
-		return $i18n.t(MODALITY_DETAILS[modality].description);
-	};
-
 	const getModalityTone = (modality: ModalityKey): string => MODALITY_DETAILS[modality].tone;
 
 	const getModalityIcon = (modality: ModalityKey): typeof ChatBubble => {
 		return MODALITY_DETAILS[modality].icon;
 	};
 
-	const getModalityTooltipContent = (modalities: ModalityKey[]): string => {
-		if (modalities.length === 0) return $i18n.t('No modalities configured');
-		const lines = modalities.map((modality) => {
-			return `${getModalityLabel(modality)} — ${getModalityDescription(modality)}`;
-		});
-		return lines.join('<br />');
-	};
-
 	const getModalityTooltipSummary = (modalities: ModalityKey[]): string => {
 		if (modalities.length === 0) return $i18n.t('No modalities configured');
 		return $i18n.t('Modalities: {list}', {
 			list: modalities.map((modality) => getModalityLabel(modality)).join(', ')
+		});
+	};
+
+	const getSortLabel = (key: SortKey): string => {
+		if (key === 'model') return $i18n.t('Model');
+		if (key === 'lead') return $i18n.t('Lead magnet');
+		return $i18n.t('Status');
+	};
+
+	const getModalityShortDescription = (modality: ModalityKey): string => {
+		return $i18n.t(MODALITY_DETAILS[modality].shortDescription);
+	};
+
+	const getSwitchDetail = (event: Event): boolean => {
+		return Boolean((event as Event & { detail?: unknown }).detail);
+	};
+
+	type InputLikeEvent = Event & {
+		currentTarget: EventTarget & { checked?: boolean; value?: string };
+	};
+
+	const getInputChecked = (event: Event): boolean => {
+		return Boolean((event as InputLikeEvent).currentTarget.checked);
+	};
+
+	const getInputValue = (event: Event): string => {
+		return String((event as InputLikeEvent).currentTarget.value ?? '');
+	};
+
+	const getModalityTooltipContent = (modalities: ModalityKey[]): string => {
+		if (modalities.length === 0) return $i18n.t('No modalities configured');
+		const lines = modalities.map((modality) => {
+			return `${getModalityLabel(modality)} — ${getModalityShortDescription(modality)}`;
+		});
+		return lines.join('<br />');
+	};
+
+	const compareStrings = (left: string, right: string): number => {
+		return left.localeCompare(right, undefined, { sensitivity: 'base' });
+	};
+
+	const toggleSort = (nextKey: SortKey) => {
+		if (sortKey === nextKey) {
+			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+			return;
+		}
+		sortKey = nextKey;
+		sortDirection = 'asc';
+	};
+
+	const getSortButtonLabel = (key: SortKey): string => {
+		if (sortKey !== key) return $i18n.t('Sort by {label}', { label: getSortLabel(key) });
+		return $i18n.t('Sort by {label} ({direction})', {
+			label: getSortLabel(key),
+			direction: sortDirection === 'asc' ? $i18n.t('Ascending') : $i18n.t('Descending')
+		});
+	};
+
+	const sortModelRows = (rows: ModelRow[]): ModelRow[] => {
+		const direction = sortDirection === 'asc' ? 1 : -1;
+		return [...rows].sort((a, b) => {
+			const nameA = getModelDisplayName(a);
+			const nameB = getModelDisplayName(b);
+
+			if (sortKey === 'status') {
+				const statusDelta = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+				if (statusDelta !== 0) return statusDelta * direction;
+				return compareStrings(nameA, nameB) * direction;
+			}
+
+			if (sortKey === 'lead') {
+				const leadA = a.meta?.lead_magnet ? 'enabled' : 'disabled';
+				const leadB = b.meta?.lead_magnet ? 'enabled' : 'disabled';
+				const leadDelta = LEAD_ORDER[leadA] - LEAD_ORDER[leadB];
+				if (leadDelta !== 0) return leadDelta * direction;
+				return compareStrings(nameA, nameB) * direction;
+			}
+
+			return compareStrings(nameA, nameB) * direction;
 		});
 	};
 
@@ -325,16 +413,18 @@
 				if (!entry) return;
 				hasEntry = true;
 				hasActive = hasActive || entry.is_active;
-					nextState[modality].units[unit] = {
-						unit,
-						cost: String(entry.raw_cost_per_unit_kopeks ?? 0),
-						exists: true,
-						id: entry.id,
-						isActive: entry.is_active
-					};
+				nextState[modality].units[unit] = {
+					unit,
+					cost: String(entry.raw_cost_per_unit_kopeks ?? 0),
+					exists: true,
+					id: entry.id,
+					isActive: entry.is_active
+				};
 
-				if (modality === 'text' && unit === 'token_in') tokenInCost = nextState[modality].units[unit].cost;
-				if (modality === 'text' && unit === 'token_out') tokenOutCost = nextState[modality].units[unit].cost;
+				if (modality === 'text' && unit === 'token_in')
+					tokenInCost = nextState[modality].units[unit].cost;
+				if (modality === 'text' && unit === 'token_out')
+					tokenOutCost = nextState[modality].units[unit].cost;
 			});
 			nextState[modality].enabled = hasEntry ? hasActive : false;
 			if (modality === 'text') {
@@ -348,9 +438,7 @@
 		if (textHasEntries && !textEnabled) {
 			modalState.text.enabled = false;
 		}
-
 	};
-
 
 	const updateTextPriceLink = (nextState: boolean) => {
 		linkTextPrices = nextState;
@@ -430,7 +518,6 @@
 		return parsed;
 	};
 
-
 	const calculatePreviewCounts = (): PreviewCounts => {
 		let create = 0;
 		let update = 0;
@@ -456,12 +543,12 @@
 
 	const handleSave = async () => {
 		if (saving || !selectedModel) return;
+		const activeModel = selectedModel;
 
 		const updateRequests: Array<{ id: string; data: RateCardUpdateRequest }> = [];
 		const createRequests: RateCardCreateRequest[] = [];
 		const deactivatedKeys = new Set<string>();
-		const leadMagnetChanged =
-			Boolean(selectedModel.meta?.lead_magnet) !== Boolean(leadMagnetEnabled);
+		const leadMagnetChanged = Boolean(activeModel.meta?.lead_magnet) !== Boolean(leadMagnetEnabled);
 		let hasValidationError = false;
 
 		(Object.keys(modalState) as ModalityKey[]).forEach((modality) => {
@@ -488,7 +575,7 @@
 							return;
 						}
 						createRequests.push({
-							model_id: selectedModel.id,
+							model_id: activeModel.id,
 							modality,
 							unit: unitState.unit,
 							raw_cost_per_unit_kopeks: cost,
@@ -500,13 +587,11 @@
 								is_active: false
 							}
 						});
-						deactivatedKeys.add(
-							buildRateCardKey(selectedModel.id, modality, unitState.unit)
-						);
+						deactivatedKeys.add(buildRateCardKey(activeModel.id, modality, unitState.unit));
 						return;
 					}
 					createRequests.push({
-						model_id: selectedModel.id,
+						model_id: activeModel.id,
 						modality,
 						unit: unitState.unit,
 						raw_cost_per_unit_kopeks: cost,
@@ -570,13 +655,10 @@
 			for (const request of updateRequests) {
 				await updateRateCard(localStorage.token, request.id, request.data);
 			}
-			toast.success(
-				$i18n.t(formMode === 'add' ? 'Rate card created' : 'Rate card updated')
-			);
+			toast.success($i18n.t(formMode === 'add' ? 'Rate card created' : 'Rate card updated'));
 			closeModal();
 			await loadData();
 		} catch (error) {
-
 			const message = error instanceof Error ? error.message : String(error);
 			if (message.includes('already exists')) {
 				toast.error($i18n.t('Rate card already exists. Refreshing list.'));
@@ -592,15 +674,17 @@
 		}
 	};
 
-	$: filteredModelRows = modelRows.filter((model) => {
-		const needle = searchValue.trim().toLowerCase();
-		const matchesSearch =
-			!needle || getModelDisplayName(model).toLowerCase().includes(needle) || model.id
-				.toLowerCase()
-				.includes(needle);
-		const matchesStatus = statusFilter === 'all' ? true : model.status === statusFilter;
-		return matchesSearch && matchesStatus;
-	});
+	$: filteredModelRows = sortModelRows(
+		modelRows.filter((model) => {
+			const needle = searchValue.trim().toLowerCase();
+			const matchesSearch =
+				!needle ||
+				getModelDisplayName(model).toLowerCase().includes(needle) ||
+				model.id.toLowerCase().includes(needle);
+			const matchesStatus = statusFilter === 'all' ? true : model.status === statusFilter;
+			return matchesSearch && matchesStatus;
+		})
+	);
 
 	$: previewCounts = calculatePreviewCounts();
 </script>
@@ -665,7 +749,9 @@
 			</div>
 		</div>
 
-		<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 overflow-hidden">
+		<div
+			class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 overflow-hidden"
+		>
 			{#if loading}
 				<div class="w-full h-full flex justify-center items-center py-16">
 					<Spinner className="size-5" />
@@ -681,54 +767,127 @@
 					</div>
 				</div>
 			{:else}
-						<div class="divide-y divide-gray-100 dark:divide-gray-800">
+				<div class="hidden md:block">
+					<table class="w-full border-separate border-spacing-0">
+						<thead class="bg-gray-50/70 dark:bg-gray-900/60 sticky top-0 z-10">
+							<tr class="text-[11px] uppercase tracking-wide text-gray-500">
+								<th class="px-4 py-2 text-left font-semibold">
+									<button
+										type="button"
+										on:click={() => toggleSort('model')}
+										class={`inline-flex items-center gap-1.5 transition ${
+											sortKey === 'model'
+												? 'text-gray-700 dark:text-gray-100'
+												: 'text-gray-500 dark:text-gray-400'
+										}`}
+										aria-label={getSortButtonLabel('model')}
+										title={getSortButtonLabel('model')}
+									>
+										{$i18n.t('Model')}
+										{#if sortKey === 'model'}
+											{#if sortDirection === 'asc'}
+												<ChevronUp className="size-3.5" />
+											{:else}
+												<ChevronDown className="size-3.5" />
+											{/if}
+										{:else}
+											<ChevronUpDown className="size-3.5" />
+										{/if}
+									</button>
+								</th>
+								<th class="px-4 py-2 text-left font-semibold">{$i18n.t('Modalities')}</th>
+								<th class="px-4 py-2 text-left font-semibold">
+									<button
+										type="button"
+										on:click={() => toggleSort('status')}
+										class={`inline-flex items-center gap-1.5 transition ${
+											sortKey === 'status'
+												? 'text-gray-700 dark:text-gray-100'
+												: 'text-gray-500 dark:text-gray-400'
+										}`}
+										aria-label={getSortButtonLabel('status')}
+										title={getSortButtonLabel('status')}
+									>
+										{$i18n.t('Status')}
+										{#if sortKey === 'status'}
+											{#if sortDirection === 'asc'}
+												<ChevronUp className="size-3.5" />
+											{:else}
+												<ChevronDown className="size-3.5" />
+											{/if}
+										{:else}
+											<ChevronUpDown className="size-3.5" />
+										{/if}
+									</button>
+								</th>
+								<th class="px-4 py-2 text-left font-semibold">
+									<button
+										type="button"
+										on:click={() => toggleSort('lead')}
+										class={`inline-flex items-center gap-1.5 transition ${
+											sortKey === 'lead'
+												? 'text-gray-700 dark:text-gray-100'
+												: 'text-gray-500 dark:text-gray-400'
+										}`}
+										aria-label={getSortButtonLabel('lead')}
+										title={getSortButtonLabel('lead')}
+									>
+										{$i18n.t('Lead magnet')}
+										{#if sortKey === 'lead'}
+											{#if sortDirection === 'asc'}
+												<ChevronUp className="size-3.5" />
+											{:else}
+												<ChevronDown className="size-3.5" />
+											{/if}
+										{:else}
+											<ChevronUpDown className="size-3.5" />
+										{/if}
+									</button>
+								</th>
+								<th class="px-4 py-2 text-right font-semibold">{$i18n.t('Actions')}</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-100 dark:divide-gray-800">
 							{#each filteredModelRows as model}
-								<div class="flex flex-col md:flex-row md:items-center gap-3 px-4 py-3">
-									<div class="flex-1">
+								<tr class="hover:bg-black/5 dark:hover:bg-white/5">
+									<td class="px-4 py-3">
 										<div class="flex flex-col">
-											<span class="text-sm font-medium">
+											<span class="text-sm font-medium line-clamp-1">
 												{getModelDisplayName(model)}
 											</span>
-											<div class="flex flex-wrap items-center gap-2 text-xs text-gray-400">
-												<span>{model.id}</span>
-												<span class="text-gray-300">•</span>
-												<Tooltip
-													content={getModalityTooltipContent(model.modalities)}
-													placement="top-start"
-													tippyOptions={{
-														maxWidth: 280,
-														appendTo: () => document.body
-													}}
-												>
-													<div
-														class="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400"
-														aria-label={getModalityTooltipSummary(model.modalities)}
-													>
-														{#if model.modalities.length === 0}
-															<span class="text-[11px] text-gray-400">
-																{$i18n.t('No modalities')}
-															</span>
-														{:else}
-															{#each MODALITY_ORDER as modality}
-																{#if model.modalities.includes(modality)}
-																	{@const Icon = getModalityIcon(modality)}
-																	<span
-																		class={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${
-																			getModalityTone(modality)
-																		}`}
-																	>
-																		<Icon className="size-3" />
-																		<span>{getModalityLabel(modality)}</span>
-																	</span>
-																{/if}
-															{/each}
-														{/if}
-													</div>
-												</Tooltip>
-											</div>
+											<span class="text-xs text-gray-400 line-clamp-1">{model.id}</span>
 										</div>
-									</div>
-									<div class="flex items-center gap-2">
+									</td>
+									<td class="px-4 py-3">
+										<Tooltip
+											content={getModalityTooltipContent(model.modalities)}
+											placement="top-start"
+											tippyOptions={{ maxWidth: 260, appendTo: () => document.body }}
+										>
+											<div
+												class="flex flex-wrap items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400"
+												aria-label={getModalityTooltipSummary(model.modalities)}
+											>
+												{#if model.modalities.length === 0}
+													<span class="text-[11px] text-gray-400">—</span>
+												{:else}
+													{#each MODALITY_ORDER as modality}
+														{#if model.modalities.includes(modality)}
+															{@const Icon = getModalityIcon(modality)}
+															<span
+																class={`inline-flex items-center justify-center rounded-full px-2 py-1 font-medium ${getModalityTone(
+																	modality
+																)}`}
+															>
+																<Icon className="size-3" />
+															</span>
+														{/if}
+													{/each}
+												{/if}
+											</div>
+										</Tooltip>
+									</td>
+									<td class="px-4 py-3">
 										<span
 											class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
 												STATUS_STYLES[model.status]
@@ -736,22 +895,105 @@
 										>
 											{$i18n.t(STATUS_LABELS[model.status])}
 										</span>
+									</td>
+									<td class="px-4 py-3">
 										{#if model.meta?.lead_magnet}
-											<span class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-sky-500/15 text-sky-700 dark:text-sky-300">
+											<span
+												class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-sky-500/15 text-sky-700 dark:text-sky-300"
+											>
 												{$i18n.t('Lead magnet')}
 											</span>
+										{:else}
+											<span class="text-[11px] text-gray-400">—</span>
 										{/if}
-										<button
-											on:click={() => openModal(model)}
-											class="px-3 py-1.5 rounded-xl text-sm font-medium bg-black text-white dark:bg-white dark:text-black transition"
-										>
-											{$i18n.t(model.status === 'configured' ? 'Edit' : 'Add')}
-										</button>
-									</div>
-								</div>
+									</td>
+									<td class="px-4 py-3 text-right">
+										<Tooltip content={$i18n.t(model.status === 'configured' ? 'Edit' : 'Add')}>
+											<button
+												on:click={() => openModal(model)}
+												class="inline-flex items-center justify-center rounded-xl p-2 text-gray-700 hover:bg-black/5 dark:text-gray-200 dark:hover:bg-white/10 transition"
+											>
+												{#if model.status === 'configured'}
+													<PencilSquare className="size-4" />
+												{:else}
+													<Plus className="size-4" />
+												{/if}
+											</button>
+										</Tooltip>
+									</td>
+								</tr>
 							{/each}
+						</tbody>
+					</table>
+				</div>
+				<div class="grid gap-3 md:hidden px-3 py-3">
+					{#each filteredModelRows as model}
+						<div class="rounded-2xl border border-gray-100/60 dark:border-gray-800/70 p-4">
+							<div class="flex items-start justify-between gap-3">
+								<div class="min-w-0">
+									<div class="text-sm font-medium line-clamp-1">
+										{getModelDisplayName(model)}
+									</div>
+									<div class="text-xs text-gray-400 line-clamp-1">{model.id}</div>
+								</div>
+								<Tooltip content={$i18n.t(model.status === 'configured' ? 'Edit' : 'Add')}>
+									<button
+										on:click={() => openModal(model)}
+										class="inline-flex items-center justify-center rounded-xl p-2 text-gray-700 hover:bg-black/5 dark:text-gray-200 dark:hover:bg-white/10 transition"
+									>
+										{#if model.status === 'configured'}
+											<PencilSquare className="size-4" />
+										{:else}
+											<Plus className="size-4" />
+										{/if}
+									</button>
+								</Tooltip>
+							</div>
+							<div
+								class="mt-3 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400"
+							>
+								<Tooltip
+									content={getModalityTooltipContent(model.modalities)}
+									placement="top-start"
+									tippyOptions={{ maxWidth: 260, appendTo: () => document.body }}
+								>
+									<div class="flex flex-wrap items-center gap-1.5">
+										{#if model.modalities.length === 0}
+											<span class="text-[11px] text-gray-400">—</span>
+										{:else}
+											{#each MODALITY_ORDER as modality}
+												{#if model.modalities.includes(modality)}
+													{@const Icon = getModalityIcon(modality)}
+													<span
+														class={`inline-flex items-center justify-center rounded-full px-2 py-1 font-medium ${getModalityTone(
+															modality
+														)}`}
+													>
+														<Icon className="size-3" />
+													</span>
+												{/if}
+											{/each}
+										{/if}
+									</div>
+								</Tooltip>
+							</div>
+							<div class="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
+								<span class={`px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[model.status]}`}>
+									{$i18n.t(STATUS_LABELS[model.status])}
+								</span>
+								{#if model.meta?.lead_magnet}
+									<span
+										class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-sky-500/15 text-sky-700 dark:text-sky-300"
+									>
+										{$i18n.t('Lead magnet')}
+									</span>
+								{:else}
+									<span class="text-[11px] text-gray-400">—</span>
+								{/if}
+							</div>
 						</div>
-
+					{/each}
+				</div>
 			{/if}
 		</div>
 	</div>
@@ -787,15 +1029,14 @@
 				</div>
 				<Switch
 					state={leadMagnetEnabled}
-					on:change={(event: CustomEvent<boolean>) => {
-						leadMagnetEnabled = event.detail;
+					on:change={(event) => {
+						leadMagnetEnabled = getSwitchDetail(event);
 					}}
 				/>
 			</div>
 
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
-				{#each Object.keys(modalState) as modality}
-					{@const modalityKey = modality as ModalityKey}
+				{#each MODALITY_ORDER as modalityKey}
 					{@const modalityState = modalState[modalityKey]}
 					<div class="rounded-2xl border border-gray-200 dark:border-gray-800 p-4">
 						<div class="flex items-start justify-between gap-3 mb-3">
@@ -809,7 +1050,7 @@
 							</div>
 							<Switch
 								state={modalityState.enabled}
-								on:change={(event: CustomEvent<boolean>) => toggleModality(modalityKey, event.detail)}
+								on:change={(event) => toggleModality(modalityKey, getSwitchDetail(event))}
 							/>
 						</div>
 
@@ -818,8 +1059,9 @@
 								<input
 									type="checkbox"
 									checked={linkTextPrices}
-									on:change={(event: Event) =>
-										updateTextPriceLink((event.currentTarget as HTMLInputElement).checked)}
+									on:change={(event) => {
+										updateTextPriceLink(getInputChecked(event));
+									}}
 									class="rounded"
 								/>
 								{$i18n.t('Link token prices')}
@@ -841,12 +1083,9 @@
 										type="text"
 										inputmode="numeric"
 										value={unitState.cost}
-										on:input={(event: Event) =>
-											updateUnitCost(
-												modalityKey,
-												unitState.unit,
-												(event.currentTarget as HTMLInputElement).value
-											)}
+										on:input={(event) => {
+											updateUnitCost(modalityKey, unitState.unit, getInputValue(event));
+										}}
 										placeholder="0"
 										disabled={!modalityState.enabled ||
 											(linkTextPrices && modalityKey === 'text' && unitState.unit === 'token_out')}
@@ -858,7 +1097,6 @@
 					</div>
 				{/each}
 			</div>
-
 
 			<div class="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
 				<div class="text-xs text-gray-500">
