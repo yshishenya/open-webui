@@ -364,6 +364,20 @@ async def _maybe_trigger_auto_topup(
         return None
 
 
+def _parse_non_negative_int(value: object) -> int:
+    if isinstance(value, bool):
+        return 0
+    if isinstance(value, int):
+        return max(value, 0)
+    if isinstance(value, float):
+        return max(int(value), 0)
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.isdigit():
+            return int(stripped)
+    return 0
+
+
 async def preflight_estimate_hold(
     user_id: str,
     model_id: str,
@@ -380,13 +394,14 @@ async def preflight_estimate_hold(
     request_id_value = request_id or str(uuid.uuid4())
 
     messages_value = payload.get("messages", [])
-    messages = messages_value if isinstance(messages_value, list) else []
+    raw_messages = messages_value if isinstance(messages_value, list) else []
+    messages = [message for message in raw_messages if isinstance(message, dict)]
 
     max_tokens_value = payload.get("max_tokens")
     if max_tokens_value is None:
         max_tokens_value = payload.get("max_completion_tokens")
 
-    max_tokens = int(max_tokens_value) if isinstance(max_tokens_value, int) else 0
+    max_tokens = _parse_non_negative_int(max_tokens_value)
     estimated_prompt_tokens = estimate_tokens_from_messages(messages)
     min_output_tokens = 1 if max_tokens > 0 else 0
     max_output_tokens = max_tokens
@@ -422,10 +437,10 @@ async def preflight_estimate_hold(
     )
 
     rate_in = await run_in_threadpool(
-        pricing_service.get_rate_card, model_id, "text", "token_in", now
+        pricing_service.get_rate_card, model_id, "text", "token_in"
     )
     rate_out = await run_in_threadpool(
-        pricing_service.get_rate_card, model_id, "text", "token_out", now
+        pricing_service.get_rate_card, model_id, "text", "token_out"
     )
     if not rate_in or not rate_out:
         raise HTTPException(
@@ -488,16 +503,6 @@ async def preflight_estimate_hold(
 
     available = wallet.balance_included_kopeks + wallet.balance_topup_kopeks
 
-    auto_topup_result: Optional[AutoTopupResult] = None
-    if wallet.auto_topup_enabled:
-        auto_topup_result = await _maybe_trigger_auto_topup(
-            user_id=user_id,
-            wallet_id=wallet.id,
-            available_kopeks=available,
-            required_kopeks=max_cost,
-            reason="text_preflight",
-        )
-
     if effective_max_reply is not None and max_cost > effective_max_reply:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
@@ -511,6 +516,16 @@ async def preflight_estimate_hold(
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={"error": "daily_cap_exceeded"},
+        )
+
+    auto_topup_result: Optional[AutoTopupResult] = None
+    if wallet.auto_topup_enabled:
+        auto_topup_result = await _maybe_trigger_auto_topup(
+            user_id=user_id,
+            wallet_id=wallet.id,
+            available_kopeks=available,
+            required_kopeks=max_cost,
+            reason="text_preflight",
         )
 
     if available < max_cost:
@@ -630,7 +645,7 @@ async def preflight_single_rate_hold(
     )
 
     rate_card = await run_in_threadpool(
-        pricing_service.get_rate_card, model_id, modality, unit, now
+        pricing_service.get_rate_card, model_id, modality, unit
     )
     if not rate_card:
         raise HTTPException(
@@ -672,17 +687,8 @@ async def preflight_single_rate_hold(
             hold_amount_kopeks=0,
             hold_expires_at=None,
         )
-    available = wallet.balance_included_kopeks + wallet.balance_topup_kopeks
 
-    auto_topup_result: Optional[AutoTopupResult] = None
-    if wallet.auto_topup_enabled:
-        auto_topup_result = await _maybe_trigger_auto_topup(
-            user_id=user_id,
-            wallet_id=wallet.id,
-            available_kopeks=available,
-            required_kopeks=cost,
-            reason=f"{modality}_preflight",
-        )
+    available = wallet.balance_included_kopeks + wallet.balance_topup_kopeks
 
     if effective_max_reply is not None and cost > effective_max_reply:
         raise HTTPException(
@@ -697,6 +703,16 @@ async def preflight_single_rate_hold(
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={"error": "daily_cap_exceeded"},
+        )
+
+    auto_topup_result: Optional[AutoTopupResult] = None
+    if wallet.auto_topup_enabled:
+        auto_topup_result = await _maybe_trigger_auto_topup(
+            user_id=user_id,
+            wallet_id=wallet.id,
+            available_kopeks=available,
+            required_kopeks=cost,
+            reason=f"{modality}_preflight",
         )
 
     if available < cost:
@@ -1231,8 +1247,9 @@ async def track_streaming_response(
 
 def estimate_tokens_from_messages(messages: list) -> int:
     """
-    Rough estimation of token count from messages
-    This is a very rough approximation: ~4 chars = 1 token
+    Rough estimation of token count from messages.
+
+    This is a very rough approximation: ~4 chars = 1 token.
 
     Args:
         messages: List of message dicts
@@ -1251,9 +1268,11 @@ def estimate_tokens_from_messages(messages: list) -> int:
                 if isinstance(item, dict) and item.get("type") == "text":
                     total_chars += len(item.get("text", ""))
 
+    if total_chars <= 0:
+        return 0
+
     # Rough approximation: 4 characters ≈ 1 token
-    estimated_tokens = total_chars // 4
-    return max(estimated_tokens, 1)
+    return max(total_chars // 4, 1)
 
 
 def is_billing_enabled(user_id: str) -> bool:

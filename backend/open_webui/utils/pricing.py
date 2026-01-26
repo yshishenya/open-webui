@@ -15,10 +15,10 @@ class PricingService:
         self.rate_cards = RateCards
 
     def get_rate_card(
-        self, model_id: str, modality: str, unit: str, as_of: int
+        self, model_id: str, modality: str, unit: str
     ) -> Optional[PricingRateCardModel]:
         """Fetch active rate card for model/modality/unit."""
-        return self.rate_cards.get_active_rate_card(model_id, modality, unit, as_of)
+        return self.rate_cards.get_active_rate_card(model_id, modality, unit)
 
     def calculate_cost_kopeks(
         self,

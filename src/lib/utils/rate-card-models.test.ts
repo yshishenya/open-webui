@@ -10,8 +10,7 @@ const buildRateCard = (overrides: Partial<RateCard>): RateCard => ({
 	unit: 'token_in',
 	raw_cost_per_unit_kopeks: 10,
 	version: 'v1',
-	effective_from: 100,
-	effective_to: null,
+	created_at: 100,
 	provider: null,
 	model_tier: null,
 	is_default: false,
@@ -24,10 +23,10 @@ describe('rate-card-models', () => {
 		expect(getRateCardKey('text', 'token_in')).toBe('text:token_in');
 	});
 
-	it('buildLatestRateCardIndex keeps latest effective_from', () => {
+	it('buildLatestRateCardIndex keeps latest created_at', () => {
 		const entries = [
-			buildRateCard({ id: 'rate_old', effective_from: 100, raw_cost_per_unit_kopeks: 5 }),
-			buildRateCard({ id: 'rate_new', effective_from: 200, raw_cost_per_unit_kopeks: 8 })
+			buildRateCard({ id: 'rate_old', created_at: 100, raw_cost_per_unit_kopeks: 5 }),
+			buildRateCard({ id: 'rate_new', created_at: 200, raw_cost_per_unit_kopeks: 8 })
 		];
 
 		const index = buildLatestRateCardIndex(entries);
@@ -39,8 +38,8 @@ describe('rate-card-models', () => {
 
 	it('buildLatestRateCardIndex prefers active entries', () => {
 		const entries = [
-			buildRateCard({ id: 'rate_inactive', effective_from: 200, is_active: false }),
-			buildRateCard({ id: 'rate_active', effective_from: 100, is_active: true })
+			buildRateCard({ id: 'rate_inactive', created_at: 200, is_active: false }),
+			buildRateCard({ id: 'rate_active', created_at: 100, is_active: true })
 		];
 
 		const index = buildLatestRateCardIndex(entries);

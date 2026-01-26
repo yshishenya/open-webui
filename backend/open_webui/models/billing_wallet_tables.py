@@ -307,7 +307,7 @@ class RateCardsTable:
                     PricingRateCard.unit == unit,
                     PricingRateCard.version == version,
                 )
-                .order_by(PricingRateCard.effective_from.desc())
+                .order_by(PricingRateCard.created_at.desc())
                 .first()
             )
             return PricingRateCardModel.model_validate(entry) if entry else None
@@ -318,9 +318,9 @@ class RateCardsTable:
         modality: str,
         unit: str,
         version: str,
-        effective_from: int,
+        created_at: int,
     ) -> Optional[PricingRateCardModel]:
-        """Get rate card entry by unique version+effective_from tuple."""
+        """Get rate card entry by unique version+created_at tuple."""
         with get_db() as db:
             entry = (
                 db.query(PricingRateCard)
@@ -329,7 +329,7 @@ class RateCardsTable:
                     PricingRateCard.modality == modality,
                     PricingRateCard.unit == unit,
                     PricingRateCard.version == version,
-                    PricingRateCard.effective_from == effective_from,
+                    PricingRateCard.created_at == created_at,
                 )
                 .first()
             )
@@ -447,8 +447,9 @@ class RateCardsTable:
                     PricingRateCard.model_id.asc(),
                     PricingRateCard.modality.asc(),
                     PricingRateCard.unit.asc(),
-                    PricingRateCard.effective_from.desc(),
+                    PricingRateCard.created_at.desc(),
                 )
+
                 .offset(offset)
                 .limit(limit)
                 .all()
@@ -476,7 +477,7 @@ class RateCardsTable:
                 PricingRateCard.model_id.asc(),
                 PricingRateCard.modality.asc(),
                 PricingRateCard.unit.asc(),
-                PricingRateCard.effective_from.desc(),
+                PricingRateCard.created_at.desc(),
             )
             if offset:
                 query = query.offset(offset)
@@ -512,9 +513,9 @@ class RateCardsTable:
             return query.count()
 
     def get_active_rate_card(
-        self, model_id: str, modality: str, unit: str, as_of: int
+        self, model_id: str, modality: str, unit: str
     ) -> Optional[PricingRateCardModel]:
-        """Get active rate card entry for model/modality/unit at timestamp."""
+        """Get latest active rate card entry for model/modality/unit."""
         with get_db() as db:
             query = (
                 db.query(PricingRateCard)
@@ -523,15 +524,8 @@ class RateCardsTable:
                     PricingRateCard.modality == modality,
                     PricingRateCard.unit == unit,
                     PricingRateCard.is_active == True,
-                    PricingRateCard.effective_from <= as_of,
                 )
-                .filter(
-                    sa.or_(
-                        PricingRateCard.effective_to == None,
-                        PricingRateCard.effective_to >= as_of,
-                    )
-                )
-                .order_by(PricingRateCard.effective_from.desc())
+                .order_by(PricingRateCard.created_at.desc())
             )
             entry = query.first()
             return PricingRateCardModel.model_validate(entry) if entry else None

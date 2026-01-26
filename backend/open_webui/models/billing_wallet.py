@@ -130,7 +130,7 @@ class PricingRateCard(Base):
             "modality",
             "unit",
             "version",
-            "effective_from",
+            "created_at",
             name="uq_rate_card_version",
         ),
     )
@@ -144,15 +144,14 @@ class PricingRateCard(Base):
     raw_cost_per_unit_kopeks = Column(BigInteger, nullable=False, default=0)
 
     version = Column(String, nullable=False)
-    effective_from = Column(BigInteger, nullable=False)
-    effective_to = Column(BigInteger, nullable=True)
+    created_at = Column(BigInteger, nullable=False)
 
     provider = Column(String, nullable=True)
     is_default = Column(Boolean, nullable=False, default=False)
     is_active = Column(Boolean, nullable=False, default=True)
 
 
-Index("idx_rate_card_active", PricingRateCard.is_active, PricingRateCard.effective_from)
+Index("idx_rate_card_active", PricingRateCard.is_active, PricingRateCard.created_at)
 
 
 class PricingRateCardModel(BaseModel):
@@ -163,8 +162,7 @@ class PricingRateCardModel(BaseModel):
     unit: str
     raw_cost_per_unit_kopeks: int
     version: str
-    effective_from: int
-    effective_to: Optional[int] = None
+    created_at: int
     provider: Optional[str] = None
     is_default: bool = False
     is_active: bool = True

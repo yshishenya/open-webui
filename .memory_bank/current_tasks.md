@@ -333,6 +333,12 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Owner**: Codex
   - **Target**: 2026-01-26
 
+- [ ] **[BILLING-15][REFACTOR]** Remove effective from/to from rate cards
+  - Add created_at for ordering and keep immutable price history
+  - Update admin/public pricing logic and rate card editor flow
+  - **Owner**: Codex
+  - **Target**: 2026-01-25
+
 - [x] **[UI-21]** Обновить hero + header /welcome по новому ТЗ
   - Новый hero с CTA, trust chips и быстрыми пресетами
   - Обновить header (mobile CTA + burger + трекинг событий)

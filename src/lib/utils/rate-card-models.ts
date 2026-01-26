@@ -40,7 +40,7 @@ export const buildLatestRateCardIndex = (
 		} else if (entry.is_active && !existing.is_active) {
 			modelEntries[key] = entry;
 		} else if (entry.is_active === existing.is_active) {
-			if (entry.effective_from >= existing.effective_from) {
+			if (entry.created_at >= existing.created_at) {
 				modelEntries[key] = entry;
 			}
 		}

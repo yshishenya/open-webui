@@ -39,13 +39,13 @@ def build_rate_cards_for_model(
     model_tier: Optional[str] = None,
     provider: Optional[str] = None,
     version: Optional[str] = None,
-    effective_from: Optional[int] = None,
+    created_at: Optional[int] = None,
     is_active: bool = True,
     is_default: bool = True,
     allowed_units: Optional[Sequence[ModalityUnit]] = None,
 ) -> List[RateCardTemplate]:
     """Build rate card entries for a model based on default templates."""
-    now = effective_from or int(time.time())
+    now = created_at or int(time.time())
     version_value = version or BILLING_RATE_CARD_VERSION
     allowed = set(allowed_units) if allowed_units else None
 
@@ -67,8 +67,7 @@ def build_rate_cards_for_model(
                 "unit": unit,
                 "raw_cost_per_unit_kopeks": int(template.get("raw_cost_per_unit_kopeks", 0)),
                 "version": version_value,
-                "effective_from": now,
-                "effective_to": None,
+                "created_at": now,
                 "provider": provider,
                 "is_default": is_default,
                 "is_active": is_active,

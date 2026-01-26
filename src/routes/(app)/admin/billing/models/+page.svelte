@@ -40,8 +40,6 @@
 		exists: boolean;
 		id?: string;
 		isActive?: boolean;
-		effectiveFrom?: number;
-		effectiveTo?: number | null;
 	};
 
 	type ModalityState = {
@@ -82,12 +80,6 @@
 	let selectedModel: ModelRow | null = null;
 	let modalState: ModalState = buildDefaultModalState();
 	let linkTextPrices = true;
-	let modalEffectiveFrom = '';
-	let modalEffectiveTo = '';
-	let effectiveFromDisplay = '';
-	let effectiveToDefault: number | null | undefined = undefined;
-	let effectiveToDirty = false;
-	let baseEffectiveFrom: number | null = null;
 	let leadMagnetEnabled = false;
 	let saving = false;
 
@@ -157,13 +149,8 @@
 		return state;
 	}
 
-	const buildRateCardEffectiveKey = (
-		modelId: string,
-		modality: string,
-		unit: string,
-		effectiveFrom: number
-	): string => {
-		return `${modelId}:${modality}:${unit}:${effectiveFrom}`;
+	const buildRateCardKey = (modelId: string, modality: string, unit: string): string => {
+		return `${modelId}:${modality}:${unit}`;
 	};
 
 	const getModelDisplayName = (model: ModelOption): string => model.name ?? model.id;
@@ -232,14 +219,8 @@
 	const buildRateCardKeyIndex = (entries: RateCard[]): Set<string> => {
 		const keys = new Set<string>();
 		for (const entry of entries) {
-			keys.add(
-				buildRateCardEffectiveKey(
-					entry.model_id,
-					entry.modality,
-					entry.unit,
-					entry.effective_from
-				)
-			);
+			if (!entry.is_active) continue;
+			keys.add(buildRateCardKey(entry.model_id, entry.modality, entry.unit));
 		}
 		return keys;
 	};
@@ -316,12 +297,6 @@
 	const resetModalState = () => {
 		modalState = buildDefaultModalState();
 		linkTextPrices = true;
-		modalEffectiveFrom = '';
-		modalEffectiveTo = '';
-		effectiveFromDisplay = '';
-		effectiveToDefault = undefined;
-		effectiveToDirty = false;
-		baseEffectiveFrom = null;
 		leadMagnetEnabled = false;
 	};
 
@@ -350,15 +325,14 @@
 				if (!entry) return;
 				hasEntry = true;
 				hasActive = hasActive || entry.is_active;
-				nextState[modality].units[unit] = {
-					unit,
-					cost: String(entry.raw_cost_per_unit_kopeks ?? 0),
-					exists: true,
-					id: entry.id,
-					isActive: entry.is_active,
-					effectiveFrom: entry.effective_from,
-					effectiveTo: entry.effective_to ?? null
-				};
+					nextState[modality].units[unit] = {
+						unit,
+						cost: String(entry.raw_cost_per_unit_kopeks ?? 0),
+						exists: true,
+						id: entry.id,
+						isActive: entry.is_active
+					};
+
 				if (modality === 'text' && unit === 'token_in') tokenInCost = nextState[modality].units[unit].cost;
 				if (modality === 'text' && unit === 'token_out') tokenOutCost = nextState[modality].units[unit].cost;
 			});
@@ -375,31 +349,8 @@
 			modalState.text.enabled = false;
 		}
 
-		const effectiveFrom = getCommonNumber(entries.map((entry) => entry.effective_from));
-		effectiveFromDisplay =
-			effectiveFrom === null || effectiveFrom === undefined ? $i18n.t('Varies') : String(effectiveFrom);
-		modalEffectiveFrom = effectiveFrom === null || effectiveFrom === undefined ? '' : String(effectiveFrom);
-
-		const effectiveTo = getCommonNumber(entries.map((entry) => entry.effective_to ?? null));
-		effectiveToDefault = effectiveTo === undefined ? undefined : effectiveTo;
-		effectiveToDirty = false;
-		modalEffectiveTo = effectiveTo === null || effectiveTo === undefined ? '' : String(effectiveTo);
-
-		baseEffectiveFrom = effectiveFrom ?? getLatestEffectiveFrom(entries);
 	};
 
-	const getLatestEffectiveFrom = (entries: RateCard[]): number | null => {
-		const values = entries.map((entry) => entry.effective_from ?? 0);
-		if (values.length === 0) return null;
-		return Math.max(...values);
-	};
-
-	const getCommonNumber = (values: Array<number | null | undefined>): number | null | undefined => {
-		const normalized = values.map((value) => (value === undefined ? null : value));
-		const unique = Array.from(new Set(normalized));
-		if (unique.length === 1) return unique[0];
-		return null;
-	};
 
 	const updateTextPriceLink = (nextState: boolean) => {
 		linkTextPrices = nextState;
@@ -479,21 +430,6 @@
 		return parsed;
 	};
 
-	const parseOptionalInt = (
-		value: string,
-		label: string,
-		emptyAsNull: boolean
-	): { value: number | null | undefined; isValid: boolean } => {
-		if (!value.trim()) {
-			return { value: emptyAsNull ? null : undefined, isValid: true };
-		}
-		const parsed = Number.parseInt(value, 10);
-		if (Number.isNaN(parsed) || parsed < 0) {
-			toast.error($i18n.t('Invalid value for {label}', { label }));
-			return { value: null, isValid: false };
-		}
-		return { value: parsed, isValid: true };
-	};
 
 	const calculatePreviewCounts = (): PreviewCounts => {
 		let create = 0;
@@ -521,33 +457,11 @@
 	const handleSave = async () => {
 		if (saving || !selectedModel) return;
 
-		const effectiveFromParsed =
-			formMode === 'add'
-				? parseOptionalInt(modalEffectiveFrom, $i18n.t('Effective from'), false)
-				: { value: undefined, isValid: true };
-		if (!effectiveFromParsed.isValid) return;
-		const effectiveFromCandidate =
-			formMode === 'edit' ? baseEffectiveFrom : effectiveFromParsed.value;
-		if (formMode === 'add' && effectiveFromCandidate === undefined) {
-			toast.error($i18n.t('Effective from is required'));
-			return;
-		}
-
-		const effectiveToParsed = parseOptionalInt(
-			modalEffectiveTo,
-			$i18n.t('Effective to'),
-			formMode === 'edit'
-		);
-		if (!effectiveToParsed.isValid) return;
-
 		const updateRequests: Array<{ id: string; data: RateCardUpdateRequest }> = [];
 		const createRequests: RateCardCreateRequest[] = [];
+		const deactivatedKeys = new Set<string>();
 		const leadMagnetChanged =
 			Boolean(selectedModel.meta?.lead_magnet) !== Boolean(leadMagnetEnabled);
-		const baseEffectiveTo = effectiveToDirty ? effectiveToParsed.value : effectiveToDefault;
-		const effectiveToPayload = baseEffectiveTo === undefined ? undefined : baseEffectiveTo;
-		const defaultEffectiveFrom = effectiveFromCandidate;
-		const shouldUpdateEffectiveTo = effectiveToDirty;
 		let hasValidationError = false;
 
 		(Object.keys(modalState) as ModalityKey[]).forEach((modality) => {
@@ -564,14 +478,31 @@
 						return;
 					}
 					if (unitState.exists) {
+						if (cost === Number.parseInt(unitState.cost, 10)) {
+							updateRequests.push({
+								id: unitState.id as string,
+								data: {
+									is_active: true
+								}
+							});
+							return;
+						}
+						createRequests.push({
+							model_id: selectedModel.id,
+							modality,
+							unit: unitState.unit,
+							raw_cost_per_unit_kopeks: cost,
+							is_active: true
+						});
 						updateRequests.push({
 							id: unitState.id as string,
 							data: {
-								raw_cost_per_unit_kopeks: cost,
-								...(shouldUpdateEffectiveTo ? { effective_to: effectiveToPayload } : {}),
-								is_active: true
+								is_active: false
 							}
 						});
+						deactivatedKeys.add(
+							buildRateCardKey(selectedModel.id, modality, unitState.unit)
+						);
 						return;
 					}
 					createRequests.push({
@@ -579,8 +510,6 @@
 						modality,
 						unit: unitState.unit,
 						raw_cost_per_unit_kopeks: cost,
-						effective_from: defaultEffectiveFrom ?? undefined,
-						effective_to: effectiveToPayload,
 						is_active: true
 					});
 					return;
@@ -589,8 +518,7 @@
 					updateRequests.push({
 						id: unitState.id as string,
 						data: {
-							is_active: false,
-							...(shouldUpdateEffectiveTo ? { effective_to: effectiveToPayload } : {})
+							is_active: false
 						}
 					});
 				}
@@ -600,14 +528,8 @@
 		if (hasValidationError) return;
 
 		const duplicates = createRequests.filter((request) => {
-			if (typeof request.effective_from !== 'number') return false;
-			const key = buildRateCardEffectiveKey(
-				request.model_id,
-				request.modality,
-				request.unit,
-				request.effective_from
-			);
-			return rateCardKeyIndex.has(key);
+			const key = buildRateCardKey(request.model_id, request.modality, request.unit);
+			return rateCardKeyIndex.has(key) && !deactivatedKeys.has(key);
 		});
 		if (duplicates.length > 0) {
 			toast.error($i18n.t('Rate card already exists. Refreshing list.'));
@@ -937,36 +859,6 @@
 				{/each}
 			</div>
 
-			<div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-				<label class="flex flex-col gap-1">
-					<span class="text-xs text-gray-500">{$i18n.t('Effective from')}</span>
-					<input
-						type="text"
-						inputmode="numeric"
-						value={formMode === 'edit' ? effectiveFromDisplay : modalEffectiveFrom}
-						placeholder={$i18n.t('Unix timestamp')}
-						disabled={formMode === 'edit'}
-						on:input={(event: Event) => {
-							if (formMode === 'edit') return;
-							modalEffectiveFrom = (event.currentTarget as HTMLInputElement).value;
-						}}
-						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent disabled:opacity-60"
-					/>
-				</label>
-				<label class="flex flex-col gap-1">
-					<span class="text-xs text-gray-500">{$i18n.t('Effective to')}</span>
-					<input
-						type="text"
-						inputmode="numeric"
-						bind:value={modalEffectiveTo}
-						placeholder={$i18n.t('Unix timestamp')}
-						on:input={() => {
-							effectiveToDirty = true;
-						}}
-						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-					/>
-				</label>
-			</div>
 
 			<div class="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
 				<div class="text-xs text-gray-500">

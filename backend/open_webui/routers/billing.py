@@ -952,7 +952,6 @@ async def get_public_rate_cards(
     response: Response, currency: Optional[str] = None
 ) -> PublicRateCardResponse:
     """Expose rate cards for public pricing tables."""
-    now = int(time.time())
     response.headers["Cache-Control"] = "public, max-age=600"
     if currency and currency != BILLING_DEFAULT_CURRENCY:
         log.warning(f"Requested unsupported currency {currency}, using default.")
@@ -986,10 +985,6 @@ async def get_public_rate_cards(
 
     latest_by_model: Dict[str, Dict[tuple[str, str], object]] = {}
     for entry in rate_cards:
-        if entry.effective_from > now:
-            continue
-        if entry.effective_to is not None and entry.effective_to < now:
-            continue
         model_latest = latest_by_model.setdefault(entry.model_id, {})
         key = (entry.modality, entry.unit)
         if key not in model_latest:
@@ -1034,8 +1029,8 @@ async def get_public_rate_cards(
 
             if provider is None and entry.provider:
                 provider = entry.provider
-            if model_updated_at is None or entry.effective_from > model_updated_at:
-                model_updated_at = entry.effective_from
+            if model_updated_at is None or entry.created_at > model_updated_at:
+                model_updated_at = entry.created_at
 
         if all(value is None for value in rates_payload.values()):
             continue
@@ -1058,7 +1053,7 @@ async def get_public_rate_cards(
             break
 
     updated_at_value = datetime.fromtimestamp(
-        updated_at_ts or now, tz=timezone.utc
+        updated_at_ts or int(time.time()), tz=timezone.utc
     ).isoformat()
     if updated_at_value.endswith("+00:00"):
         updated_at_value = updated_at_value.replace("+00:00", "Z")

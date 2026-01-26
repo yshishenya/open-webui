@@ -1,5 +1,7 @@
 from typing import Dict, List
 
+import time
+
 from open_webui.models.billing import Plans, RateCards
 from open_webui.models.models import Models
 from open_webui.utils.plan_templates import get_default_plans, get_promo_plans
@@ -33,7 +35,7 @@ def seed_default_rate_cards_if_missing() -> int:
         return 0
 
     for model in models:
-        templates = build_rate_cards_for_model(model.id)
+        templates = build_rate_cards_for_model(model.id, created_at=int(time.time()))
         for template in templates:
             model_id = str(template.get("model_id", ""))
             modality = str(template.get("modality", ""))

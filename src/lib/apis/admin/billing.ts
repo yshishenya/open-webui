@@ -28,8 +28,7 @@ export interface RateCard {
 	unit: string;
 	raw_cost_per_unit_kopeks: number;
 	version: string;
-	effective_from: number;
-	effective_to?: number | null;
+	created_at: number;
 	provider?: string | null;
 	is_default: boolean;
 	is_active: boolean;
@@ -51,8 +50,6 @@ export interface RateCardCreateRequest {
 	unit: string;
 	raw_cost_per_unit_kopeks?: number;
 	version?: string;
-	effective_from?: number;
-	effective_to?: number | null;
 	provider?: string | null;
 	is_default?: boolean;
 	is_active?: boolean;
@@ -61,7 +58,6 @@ export interface RateCardCreateRequest {
 export interface RateCardUpdateRequest {
 	model_tier?: string | null;
 	raw_cost_per_unit_kopeks?: number;
-	effective_to?: number | null;
 	provider?: string | null;
 	is_default?: boolean;
 	is_active?: boolean;
@@ -83,7 +79,6 @@ export interface RateCardSyncRequest {
 	model_ids?: string[];
 	modality_units?: { modality: string; unit: string }[];
 	version?: string;
-	effective_from?: number;
 	provider?: string | null;
 	model_tier?: string | null;
 	is_active?: boolean;

@@ -23,8 +23,7 @@ class TestBillingIntegration(AbstractPostgresTest):
             unit="token_in",
             raw_cost_per_unit_kopeks=100,
             version="2025-01",
-            effective_from=now,
-            effective_to=None,
+            created_at=now,
             provider=None,
             is_default=True,
             is_active=True,
@@ -37,8 +36,7 @@ class TestBillingIntegration(AbstractPostgresTest):
             unit="token_out",
             raw_cost_per_unit_kopeks=200,
             version="2025-01",
-            effective_from=now,
-            effective_to=None,
+            created_at=now,
             provider=None,
             is_default=True,
             is_active=True,
@@ -51,8 +49,7 @@ class TestBillingIntegration(AbstractPostgresTest):
             unit="image_1024",
             raw_cost_per_unit_kopeks=500,
             version="2025-01",
-            effective_from=now,
-            effective_to=None,
+            created_at=now,
             provider=None,
             is_default=True,
             is_active=True,
@@ -65,8 +62,7 @@ class TestBillingIntegration(AbstractPostgresTest):
             unit="tts_char",
             raw_cost_per_unit_kopeks=2,
             version="2025-01",
-            effective_from=now,
-            effective_to=None,
+            created_at=now,
             provider=None,
             is_default=True,
             is_active=True,
@@ -232,6 +228,14 @@ class TestBillingIntegration(AbstractPostgresTest):
         updated_wallet = Wallets.get_wallet_by_id(wallet.id)
         assert updated_wallet is not None
         assert updated_wallet.balance_topup_kopeks == 10000 - expected_charge
+
+    @pytest.mark.asyncio
+    async def test_estimate_tokens_from_messages_empty_returns_zero(self):
+        from open_webui.utils.billing_integration import estimate_tokens_from_messages
+
+        assert estimate_tokens_from_messages([]) == 0
+        assert estimate_tokens_from_messages([{"role": "user"}]) == 0
+        assert estimate_tokens_from_messages([{"role": "user", "content": ""}]) == 0
 
     @pytest.mark.asyncio
     async def test_text_preflight_missing_rate_card(self, monkeypatch):
@@ -871,7 +875,28 @@ class TestBillingIntegration(AbstractPostgresTest):
                 "daily_cap_kopeks": 100,
                 "daily_spent_kopeks": 90,
                 "daily_reset_at": now + 3600,
+                "auto_topup_enabled": True,
             },
+        )
+
+        called = {"count": 0}
+
+        async def fake_auto_topup(
+            user_id: str,
+            wallet_id: str,
+            available_kopeks: int,
+            required_kopeks: int,
+            reason: str,
+        ):
+            called["count"] += 1
+            raise AssertionError(
+                "auto_topup should not be triggered when daily cap is exceeded"
+            )
+
+        import open_webui.utils.billing_integration as billing_integration
+
+        monkeypatch.setattr(
+            billing_integration, "_maybe_trigger_auto_topup", fake_auto_topup
         )
 
         with pytest.raises(HTTPException) as exc:
@@ -883,6 +908,7 @@ class TestBillingIntegration(AbstractPostgresTest):
                 units=Decimal(1),
             )
 
+        assert called["count"] == 0
         assert exc.value.status_code == 429
 
     @pytest.mark.asyncio
@@ -903,6 +929,26 @@ class TestBillingIntegration(AbstractPostgresTest):
             {"balance_topup_kopeks": 10000, "max_reply_cost_kopeks": 10},
         )
 
+        called = {"count": 0}
+
+        async def fake_auto_topup(
+            user_id: str,
+            wallet_id: str,
+            available_kopeks: int,
+            required_kopeks: int,
+            reason: str,
+        ):
+            called["count"] += 1
+            raise AssertionError(
+                "auto_topup should not be triggered when max reply cost is exceeded"
+            )
+
+        import open_webui.utils.billing_integration as billing_integration
+
+        monkeypatch.setattr(
+            billing_integration, "_maybe_trigger_auto_topup", fake_auto_topup
+        )
+
         with pytest.raises(HTTPException) as exc:
             await preflight_single_rate_hold(
                 user_id="1",
@@ -912,7 +958,76 @@ class TestBillingIntegration(AbstractPostgresTest):
                 units=Decimal(10),
             )
 
+        assert called["count"] == 0
         assert exc.value.status_code == 402
+
+    @pytest.mark.asyncio
+    async def test_single_rate_hold_populates_subscription_id_without_plan(self, monkeypatch):
+
+        from open_webui.models.billing import SubscriptionModel
+        from open_webui.utils.billing_integration import preflight_single_rate_hold
+
+        monkeypatch.setattr(
+            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
+        )
+
+        import open_webui.utils.billing_integration as billing_integration
+
+        now = int(time.time())
+
+        def fake_get_user_subscription(user_id: str) -> SubscriptionModel:
+            return SubscriptionModel(
+                id=str(uuid.uuid4()),
+                user_id=user_id,
+                plan_id="missing-plan",
+                status="active",
+                yookassa_payment_id=None,
+                yookassa_subscription_id=None,
+                current_period_start=now,
+                current_period_end=now + 3600,
+                cancel_at_period_end=False,
+                auto_renew=False,
+                trial_end=None,
+                last_payment_id=None,
+                wallet_id=None,
+                payment_method_id=None,
+                next_plan_id=None,
+                extra_metadata=None,
+                created_at=now,
+                updated_at=now,
+            )
+
+        def fake_get_plan(plan_id: str) -> None:
+            return None
+
+        from open_webui.utils.wallet import wallet_service
+
+        wallet = wallet_service.get_or_create_wallet("1", "RUB")
+        from open_webui.models.billing import Wallets
+
+        Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 10000})
+
+        monkeypatch.setattr(
+            billing_integration.billing_service,
+            "get_user_subscription",
+            fake_get_user_subscription,
+        )
+        monkeypatch.setattr(
+            billing_integration.billing_service, "get_plan", fake_get_plan
+        )
+
+        billing_context = await preflight_single_rate_hold(
+            user_id="1",
+            model_id=self.model_id,
+            modality="image",
+            unit="image_1024",
+            units=Decimal(1),
+            request_id="sub_without_plan",
+        )
+
+        assert billing_context is not None
+        assert billing_context.wallet_id == wallet.id
+        assert billing_context.subscription_id is not None
 
     @pytest.mark.asyncio
     async def test_single_rate_release_hold_restores_balance(self, monkeypatch):

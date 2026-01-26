@@ -37,8 +37,6 @@ class RateCardCreateRequest(BaseModel):
     unit: str = Field(..., min_length=1)
     raw_cost_per_unit_kopeks: int = Field(0, ge=0)
     version: Optional[str] = None
-    effective_from: Optional[int] = None
-    effective_to: Optional[int] = None
     provider: Optional[str] = None
     is_default: bool = False
     is_active: bool = True
@@ -47,7 +45,6 @@ class RateCardCreateRequest(BaseModel):
 class RateCardUpdateRequest(BaseModel):
     model_tier: Optional[str] = None
     raw_cost_per_unit_kopeks: Optional[int] = Field(None, ge=0)
-    effective_to: Optional[int] = None
     provider: Optional[str] = None
     is_default: Optional[bool] = None
     is_active: Optional[bool] = None
@@ -77,7 +74,6 @@ class RateCardSyncRequest(BaseModel):
     model_ids: Optional[List[str]] = None
     modality_units: Optional[List[ModalityUnitRequest]] = None
     version: Optional[str] = None
-    effective_from: Optional[int] = None
     provider: Optional[str] = None
     model_tier: Optional[str] = None
     is_active: bool = True
@@ -181,12 +177,7 @@ async def create_rate_card(
     ensure_wallet_enabled()
 
     version = request.version or BILLING_RATE_CARD_VERSION
-    effective_from = request.effective_from or int(time.time())
-    if request.effective_to and request.effective_to < effective_from:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="effective_to must be >= effective_from",
-        )
+    created_at = int(time.time())
 
     existing = await run_in_threadpool(
         RateCards.get_rate_card_by_unique,
@@ -194,12 +185,12 @@ async def create_rate_card(
         request.modality,
         request.unit,
         version,
-        effective_from,
+        created_at,
     )
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Rate card entry already exists for this effective date",
+            detail="Rate card entry already exists for this timestamp",
         )
 
     entry_data = {
@@ -210,8 +201,7 @@ async def create_rate_card(
         "unit": request.unit,
         "raw_cost_per_unit_kopeks": request.raw_cost_per_unit_kopeks,
         "version": version,
-        "effective_from": effective_from,
-        "effective_to": request.effective_to,
+        "created_at": created_at,
         "provider": request.provider,
         "is_default": request.is_default,
         "is_active": request.is_active,
@@ -250,15 +240,29 @@ async def update_rate_card(
             detail="Rate card entry not found",
         )
 
-    if updates.get("effective_to") is not None:
-        effective_to = int(updates["effective_to"])
-        if effective_to < existing.effective_from:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail="effective_to must be >= effective_from",
-            )
+    created_at = int(time.time())
 
     try:
+        if "raw_cost_per_unit_kopeks" in updates:
+            entry_data = {
+                "id": str(uuid.uuid4()),
+                "model_id": existing.model_id,
+                "model_tier": updates.get("model_tier", existing.model_tier),
+                "modality": existing.modality,
+                "unit": existing.unit,
+                "raw_cost_per_unit_kopeks": updates["raw_cost_per_unit_kopeks"],
+                "version": existing.version,
+                "created_at": created_at,
+                "provider": updates.get("provider", existing.provider),
+                "is_default": updates.get("is_default", existing.is_default),
+                "is_active": updates.get("is_active", True),
+            }
+            created = await run_in_threadpool(RateCards.create_rate_card, entry_data)
+            await run_in_threadpool(
+                RateCards.update_rate_card, rate_card_id, {"is_active": False}
+            )
+            return created
+
         updated = await run_in_threadpool(
             RateCards.update_rate_card, rate_card_id, updates
         )
@@ -365,7 +369,7 @@ async def sync_rate_cards_for_models(
     ensure_wallet_enabled()
 
     version = request.version or BILLING_RATE_CARD_VERSION
-    effective_from = request.effective_from or int(time.time())
+    created_at = int(time.time())
     allowed_units = None
     if request.modality_units:
         allowed_units = [
@@ -384,7 +388,7 @@ async def sync_rate_cards_for_models(
             model_ids,
             allowed_units,
             version,
-            effective_from,
+            created_at,
             request.provider,
             request.model_tier,
             request.is_active,
@@ -404,12 +408,13 @@ def _sync_rate_cards_for_models(
     model_ids: List[str],
     allowed_units: Optional[List[tuple[str, str]]],
     version: str,
-    effective_from: int,
+    created_at: int,
     provider: Optional[str],
     model_tier: Optional[str],
     is_active: bool,
     is_default: bool,
 ) -> tuple[int, int]:
+
     created = 0
     skipped = 0
     for model_id in model_ids:
@@ -418,7 +423,7 @@ def _sync_rate_cards_for_models(
             model_tier=model_tier,
             provider=provider,
             version=version,
-            effective_from=effective_from,
+            created_at=created_at,
             is_active=is_active,
             is_default=is_default,
             allowed_units=allowed_units,
