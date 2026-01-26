@@ -5,7 +5,12 @@
 
 	import { WEBUI_NAME, user } from '$lib/stores';
 	import { getBaseModels, updateModelById } from '$lib/apis/models';
-	import { createRateCard, listRateCards, updateRateCard } from '$lib/apis/admin/billing';
+	import {
+		createRateCard,
+		deleteRateCardsByModel,
+		listRateCards,
+		updateRateCard
+	} from '$lib/apis/admin/billing';
 	import type {
 		RateCard,
 		RateCardCreateRequest,
@@ -15,6 +20,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
+	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import ChatBubble from '$lib/components/icons/ChatBubble.svelte';
 	import PhotoSolid from '$lib/components/icons/PhotoSolid.svelte';
@@ -25,6 +31,7 @@
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import PencilSquare from '$lib/components/icons/PencilSquare.svelte';
+	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 	import {
 		buildLatestRateCardIndex,
 		buildModelRows,
@@ -92,6 +99,9 @@
 	let linkTextPrices = true;
 	let leadMagnetEnabled = false;
 	let saving = false;
+
+	let selectedModelIds = new Set<string>();
+	let showDeleteModelsConfirm = false;
 
 	const STATUS_LABELS: Record<ModelRow['status'], string> = {
 		new: 'New',
@@ -380,6 +390,33 @@
 		showModal = false;
 		selectedModel = null;
 		resetModalState();
+	};
+
+	const handleDeleteSelectedModels = async () => {
+		if (saving) return;
+		const modelIds = Array.from(selectedModelIds);
+		if (modelIds.length === 0) return;
+
+		saving = true;
+		try {
+			const result = await deleteRateCardsByModel(localStorage.token, {
+				model_ids: modelIds
+			});
+			toast.success(
+				$i18n.t('Deleted rate cards for {count} models', {
+					count: modelIds.length
+				})
+			);
+			selectedModelIds = new Set();
+			showDeleteModelsConfirm = false;
+			await loadData();
+			return result;
+		} catch (error) {
+			console.error('Failed to delete model rate cards:', error);
+			toast.error($i18n.t('Failed to delete rate cards'));
+		} finally {
+			saving = false;
+		}
 	};
 
 	const resetModalState = () => {
@@ -712,6 +749,14 @@
 	</div>
 {:else}
 	<div class="px-4.5 w-full">
+		<ConfirmDialog
+			bind:show={showDeleteModelsConfirm}
+			title={$i18n.t('Delete model pricing?')}
+			message={$i18n.t('This will permanently delete all rate cards for {count} models.', {
+				count: selectedModelIds.size
+			})}
+			on:confirm={handleDeleteSelectedModels}
+		/>
 		<div class="flex flex-col gap-1 px-1 mt-2.5 mb-4">
 			<div class="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
 				<div class="flex items-center text-xl font-medium gap-2">
@@ -746,6 +791,21 @@
 					<option value="new">{$i18n.t('New')}</option>
 					<option value="configured">{$i18n.t('Configured')}</option>
 				</select>
+
+				{#if selectedModelIds.size > 0}
+					<button
+						type="button"
+						on:click={() => (showDeleteModelsConfirm = true)}
+						class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition"
+						aria-label={$i18n.t('Delete models')}
+						title={$i18n.t('Delete models')}
+					>
+						<GarbageBin className="size-4" />
+						<span class="whitespace-nowrap">
+							{$i18n.t('Delete models')} ({selectedModelIds.size})
+						</span>
+					</button>
+				{/if}
 			</div>
 		</div>
 
@@ -771,6 +831,9 @@
 					<table class="w-full border-separate border-spacing-0">
 						<thead class="bg-gray-50/70 dark:bg-gray-900/60 sticky top-0 z-10">
 							<tr class="text-[11px] uppercase tracking-wide text-gray-500">
+								<th class="px-4 py-2 text-left font-semibold w-10">
+									<span class="sr-only">{$i18n.t('Select')}</span>
+								</th>
 								<th class="px-4 py-2 text-left font-semibold">
 									<button
 										type="button"
@@ -851,6 +914,22 @@
 							{#each filteredModelRows as model}
 								<tr class="hover:bg-black/5 dark:hover:bg-white/5">
 									<td class="px-4 py-3">
+										<input
+											type="checkbox"
+											class="rounded"
+											checked={selectedModelIds.has(model.id)}
+											on:change={(event) => {
+												const checked = getInputChecked(event);
+												if (checked) {
+													selectedModelIds.add(model.id);
+												} else {
+													selectedModelIds.delete(model.id);
+												}
+												selectedModelIds = new Set(selectedModelIds);
+											}}
+										/>
+									</td>
+									<td class="px-4 py-3">
 										<div class="flex flex-col">
 											<span class="text-sm font-medium line-clamp-1">
 												{getModelDisplayName(model)}
@@ -929,6 +1008,23 @@
 				<div class="grid gap-3 md:hidden px-3 py-3">
 					{#each filteredModelRows as model}
 						<div class="rounded-2xl border border-gray-100/60 dark:border-gray-800/70 p-4">
+							<label class="flex items-center gap-2 text-xs text-gray-500 mb-3">
+								<input
+									type="checkbox"
+									class="rounded"
+									checked={selectedModelIds.has(model.id)}
+									on:change={(event) => {
+										const checked = getInputChecked(event);
+										if (checked) {
+											selectedModelIds.add(model.id);
+										} else {
+											selectedModelIds.delete(model.id);
+										}
+										selectedModelIds = new Set(selectedModelIds);
+									}}
+								/>
+								{$i18n.t('Select')}
+							</label>
 							<div class="flex items-start justify-between gap-3">
 								<div class="min-w-0">
 									<div class="text-sm font-medium line-clamp-1">

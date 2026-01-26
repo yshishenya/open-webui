@@ -276,6 +276,7 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Updated Playwright specs with fallbacks and fixed Vitest test include/exclude.
 
 - [x] **[BUG]** Free plan cancellation blocks re-subscribe
+
   - Added free plan activation and resume flow in billing UI and API. (legacy, removed 2026-01-23)
 
 - [x] **[BUG]** Billing dashboard shows infinite spinner and no content
@@ -322,12 +323,14 @@ This file tracks active development tasks for the Airis project. Update this fil
 ### High Priority
 
 - [x] **[SPEC]** Model management lifecycle + pricing visibility flow
+
   - Document business rules, states, and acceptance criteria
   - Map code touchpoints and estimate effort
   - **Owner**: Codex
   - **Target**: 2026-01-24
 
 - [ ] **[MODEL-01]** Align model visibility + pricing flow
+
   - Public pricing respects model access/hidden/active flags
   - Modality disabled errors handled explicitly
   - Cascade deactivate rate cards on model delete
@@ -335,8 +338,11 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Target**: 2026-01-26
 
 - [ ] **[BILLING-15][REFACTOR]** Remove effective from/to from rate cards
+
   - Add created_at for ordering and keep immutable price history
   - Update admin/public pricing logic and rate card editor flow
+  - Progress: fix Postgres Alembic migration to safely backfill created_at
+  - Progress: restore bulk delete for model pricing list in admin UI
   - **Owner**: Codex
   - **Target**: 2026-01-25
 
@@ -382,6 +388,7 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Target**: TBD
 
 - [ ] **[BILLING-12]** Remove chat estimate UI and endpoint
+
   - Spec: `.memory_bank/specs/remove_chat_estimate_plan.md`
   - Remove UI estimate in chat input and `/billing/estimate` endpoint
   - Keep server-side preflight/hold to prevent overdraft
