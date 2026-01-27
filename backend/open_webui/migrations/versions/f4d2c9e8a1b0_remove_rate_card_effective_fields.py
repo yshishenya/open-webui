@@ -55,27 +55,28 @@ def upgrade():
             "uq_rate_card_version",
             ["model_id", "modality", "unit", "version", "created_at"],
         )
-        batch_op.create_index("idx_rate_card_active", ["is_active", "created_at"], unique=False)
+        batch_op.create_index(
+            "idx_rate_card_active", ["is_active", "created_at"], unique=False
+        )
         batch_op.create_index("idx_rate_card_model", ["model_id"], unique=False)
 
 
 def downgrade():
-    # 1) Add effective_* columns back.
-    with op.batch_alter_table("billing_pricing_rate_card", schema=None) as batch_op:
-        batch_op.add_column(sa.Column("effective_from", sa.BigInteger(), nullable=True))
-        batch_op.add_column(sa.Column("effective_to", sa.BigInteger(), nullable=True))
-
-    # 2) Backfill effective_from from created_at.
-    op.execute(sa.text("UPDATE billing_pricing_rate_card SET effective_from = created_at"))
-
-    # 3) Restore old constraints/indexes and drop created_at.
+    # 1) Drop new indexes/constraint.
     with op.batch_alter_table("billing_pricing_rate_card", schema=None) as batch_op:
         batch_op.drop_index("idx_rate_card_active")
         batch_op.drop_index("idx_rate_card_model")
         batch_op.drop_constraint("uq_rate_card_version", type_="unique")
 
-        batch_op.alter_column("effective_from", nullable=False)
+    # 2) Re-add effective_* columns and backfill effective_from.
+    with op.batch_alter_table("billing_pricing_rate_card", schema=None) as batch_op:
+        batch_op.add_column(sa.Column("effective_from", sa.BigInteger(), nullable=False))
+        batch_op.add_column(sa.Column("effective_to", sa.BigInteger(), nullable=True))
 
+    op.execute(sa.text("UPDATE billing_pricing_rate_card SET effective_from = created_at"))
+
+    # 3) Restore old constraint/indexes and drop created_at.
+    with op.batch_alter_table("billing_pricing_rate_card", schema=None) as batch_op:
         batch_op.create_unique_constraint(
             "uq_rate_card_version",
             ["model_id", "modality", "unit", "version", "effective_from"],
@@ -84,5 +85,4 @@ def downgrade():
             "idx_rate_card_active", ["is_active", "effective_from"], unique=False
         )
         batch_op.create_index("idx_rate_card_model", ["model_id"], unique=False)
-
         batch_op.drop_column("created_at")

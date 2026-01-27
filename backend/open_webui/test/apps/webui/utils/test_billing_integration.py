@@ -294,6 +294,22 @@ class TestBillingIntegration(AbstractPostgresTest):
 
         assert exc.value.status_code == 402
 
+    def test_parse_non_negative_int_edge_cases(self):
+        from open_webui.utils.billing_integration import _parse_non_negative_int
+
+        assert _parse_non_negative_int(True) == 0
+        assert _parse_non_negative_int(False) == 0
+        assert _parse_non_negative_int(-5) == 0
+        assert _parse_non_negative_int(0) == 0
+        assert _parse_non_negative_int(12) == 12
+        assert _parse_non_negative_int(12.9) == 12
+        assert _parse_non_negative_int(-1.2) == 0
+        assert _parse_non_negative_int(" 123 ") == 123
+        assert _parse_non_negative_int("001") == 1
+        assert _parse_non_negative_int("12.3") == 0
+        assert _parse_non_negative_int("abc") == 0
+        assert _parse_non_negative_int(None) == 0
+
     @pytest.mark.asyncio
     async def test_text_preflight_insufficient_funds_includes_auto_topup(
         self, monkeypatch
@@ -305,6 +321,8 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.wallet import wallet_service
         import open_webui.utils.billing_integration as billing_integration
 
+        called = {"count": 0, "user_id": None, "wallet_id": None, "available": None, "required": None, "reason": None}
+
         async def fake_auto_topup(
             user_id: str,
             wallet_id: str,
@@ -312,6 +330,12 @@ class TestBillingIntegration(AbstractPostgresTest):
             required_kopeks: int,
             reason: str,
         ) -> AutoTopupResult:
+            called["count"] += 1
+            called["user_id"] = user_id
+            called["wallet_id"] = wallet_id
+            called["available"] = available_kopeks
+            called["required"] = required_kopeks
+            called["reason"] = reason
             return AutoTopupResult(
                 attempted=True,
                 status="created",
@@ -348,9 +372,18 @@ class TestBillingIntegration(AbstractPostgresTest):
             )
 
         assert exc.value.status_code == 402
-        assert exc.value.detail["error"] == "insufficient_funds"
-        assert exc.value.detail["auto_topup_status"] == "created"
-        assert exc.value.detail["auto_topup_payment_id"] == "pay_auto"
+        detail = exc.value.detail
+        assert isinstance(detail, dict)
+        assert detail["error"] == "insufficient_funds"
+        assert detail["auto_topup_status"] == "created"
+        assert detail["auto_topup_payment_id"] == "pay_auto"
+
+        assert called["count"] == 1
+        assert called["user_id"] == "1"
+        assert called["wallet_id"] == wallet.id
+        assert called["available"] == 0
+        assert called["required"] is not None
+        assert called["reason"] == "text_preflight"
 
     @pytest.mark.asyncio
     async def test_text_preflight_daily_cap_exceeded(self, monkeypatch):

@@ -8,6 +8,7 @@
 	import {
 		createRateCard,
 		deleteRateCardsByModel,
+		deactivateRateCardsByModel,
 		listRateCards,
 		updateRateCard
 	} from '$lib/apis/admin/billing';
@@ -102,7 +103,9 @@
 	let saving = false;
 
 	let selectedModelIds = new Set<string>();
+	let showDeactivateModelsConfirm = false;
 	let showDeleteModelsConfirm = false;
+	let deleteModelsInput = '';
 
 	const STATUS_LABELS: Record<ModelRow['status'], string> = {
 		new: 'New',
@@ -356,27 +359,27 @@
 		});
 	};
 
-	const sortModelRows = (rows: ModelRow[], key: SortKey, direction: SortDirection): ModelRow[] => {
-		const multiplier = direction === 'asc' ? 1 : -1;
+	const sortModelRows = (rows: ModelRow[]): ModelRow[] => {
+		const direction = sortDirection === 'asc' ? 1 : -1;
 		return [...rows].sort((a, b) => {
 			const nameA = getModelDisplayName(a);
 			const nameB = getModelDisplayName(b);
 
-			if (key === 'status') {
+			if (sortKey === 'status') {
 				const statusDelta = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
-				if (statusDelta !== 0) return statusDelta * multiplier;
-				return compareStrings(nameA, nameB) * multiplier;
+				if (statusDelta !== 0) return statusDelta * direction;
+				return compareStrings(nameA, nameB) * direction;
 			}
 
-			if (key === 'lead') {
+			if (sortKey === 'lead') {
 				const leadA = a.meta?.lead_magnet ? 'enabled' : 'disabled';
 				const leadB = b.meta?.lead_magnet ? 'enabled' : 'disabled';
 				const leadDelta = LEAD_ORDER[leadA] - LEAD_ORDER[leadB];
-				if (leadDelta !== 0) return leadDelta * multiplier;
-				return compareStrings(nameA, nameB) * multiplier;
+				if (leadDelta !== 0) return leadDelta * direction;
+				return compareStrings(nameA, nameB) * direction;
 			}
 
-			return compareStrings(nameA, nameB) * multiplier;
+			return compareStrings(nameA, nameB) * direction;
 		});
 	};
 
@@ -393,10 +396,41 @@
 		resetModalState();
 	};
 
+	const handleDeactivateSelectedModels = async () => {
+		if (saving) return;
+		const modelIds = Array.from(selectedModelIds);
+		if (modelIds.length === 0) return;
+
+		saving = true;
+		try {
+			const result = await deactivateRateCardsByModel(localStorage.token, {
+				model_ids: modelIds
+			});
+			toast.success(
+				$i18n.t('Deactivated rate cards for {count} models', {
+					count: modelIds.length
+				})
+			);
+			selectedModelIds = new Set();
+			showDeactivateModelsConfirm = false;
+			await loadData();
+			return result;
+		} catch (error) {
+			console.error('Failed to deactivate model rate cards:', error);
+			toast.error($i18n.t('Failed to deactivate rate cards'));
+		} finally {
+			saving = false;
+		}
+	};
+
 	const handleDeleteSelectedModels = async () => {
 		if (saving) return;
 		const modelIds = Array.from(selectedModelIds);
 		if (modelIds.length === 0) return;
+		if (deleteModelsInput.trim().toUpperCase() !== 'DELETE') {
+			toast.error($i18n.t('Type DELETE to confirm.'));
+			return;
+		}
 
 		saving = true;
 		try {
@@ -410,6 +444,7 @@
 			);
 			selectedModelIds = new Set();
 			showDeleteModelsConfirm = false;
+			deleteModelsInput = '';
 			await loadData();
 			return result;
 		} catch (error) {
@@ -461,10 +496,12 @@
 					};
 
 
-				if (modality === 'text' && unit === 'token_in')
+				if (modality === 'text' && unit === 'token_in') {
 					tokenInCost = nextState[modality].units[unit].cost;
-				if (modality === 'text' && unit === 'token_out')
+				}
+				if (modality === 'text' && unit === 'token_out') {
 					tokenOutCost = nextState[modality].units[unit].cost;
+				}
 			});
 			nextState[modality].enabled = hasEntry ? hasActive : false;
 			if (modality === 'text') {
@@ -724,9 +761,7 @@
 				model.id.toLowerCase().includes(needle);
 			const matchesStatus = statusFilter === 'all' ? true : model.status === statusFilter;
 			return matchesSearch && matchesStatus;
-		}),
-		sortKey,
-		sortDirection
+		})
 	);
 
 	$: previewCounts = calculatePreviewCounts();
@@ -756,11 +791,23 @@
 {:else}
 	<div class="px-4.5 w-full">
 		<ConfirmDialog
-			bind:show={showDeleteModelsConfirm}
-			title={$i18n.t('Delete model pricing?')}
-			message={$i18n.t('This will permanently delete all rate cards for {count} models.', {
+			bind:show={showDeactivateModelsConfirm}
+			title={$i18n.t('Deactivate model pricing?')}
+			message={$i18n.t('This will deactivate all rate cards for {count} models.', {
 				count: selectedModelIds.size
 			})}
+			on:confirm={handleDeactivateSelectedModels}
+		/>
+		<ConfirmDialog
+			bind:show={showDeleteModelsConfirm}
+			title={$i18n.t('Delete model pricing?')}
+			message={`${$i18n.t('This will permanently delete all rate cards for {count} models.', {
+				count: selectedModelIds.size
+			})}\n\n${$i18n.t('Type DELETE to confirm.')}`}
+			input
+			inputPlaceholder={$i18n.t('Type DELETE')}
+			bind:inputValue={deleteModelsInput}
+			confirmLabel={$i18n.t('Delete')}
 			on:confirm={handleDeleteSelectedModels}
 		/>
 		<div class="flex flex-col gap-1 px-1 mt-2.5 mb-4">
@@ -799,18 +846,31 @@
 				</select>
 
 				{#if selectedModelIds.size > 0}
-					<button
-						type="button"
-						on:click={() => (showDeleteModelsConfirm = true)}
-						class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition"
-						aria-label={$i18n.t('Delete models')}
-						title={$i18n.t('Delete models')}
-					>
-						<GarbageBin className="size-4" />
-						<span class="whitespace-nowrap">
-							{$i18n.t('Delete models')} ({selectedModelIds.size})
-						</span>
-					</button>
+					<div class="flex flex-wrap items-center gap-2">
+						<button
+							type="button"
+							on:click={() => (showDeactivateModelsConfirm = true)}
+							class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition"
+							aria-label={$i18n.t('Deactivate models')}
+							title={$i18n.t('Deactivate models')}
+						>
+							<span class="whitespace-nowrap">
+								{$i18n.t('Deactivate models')} ({selectedModelIds.size})
+							</span>
+						</button>
+						<button
+							type="button"
+							on:click={() => (showDeleteModelsConfirm = true)}
+							class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition"
+							aria-label={$i18n.t('Delete models')}
+							title={$i18n.t('Delete models')}
+						>
+							<GarbageBin className="size-4" />
+							<span class="whitespace-nowrap">
+								{$i18n.t('Delete models')} ({selectedModelIds.size})
+							</span>
+						</button>
+					</div>
 				{/if}
 			</div>
 		</div>
@@ -974,9 +1034,7 @@
 									</td>
 									<td class="px-4 py-3">
 										<span
-											class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
-												STATUS_STYLES[model.status]
-											}`}
+											class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[model.status]}`}
 										>
 											{$i18n.t(STATUS_LABELS[model.status])}
 										</span>
@@ -1177,9 +1235,7 @@
 										<div class="text-xs font-medium">
 											{getUnitLabel(modalityKey, unitState.unit)}
 										</div>
-										<div class="text-[11px] text-gray-400">
-											{$i18n.t('Kopeks per unit')}
-										</div>
+										<div class="text-[11px] text-gray-400">{$i18n.t('Kopeks per unit')}</div>
 									</div>
 									<input
 										type="text"

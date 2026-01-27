@@ -62,6 +62,10 @@ class RateCardDeleteResponse(BaseModel):
     deleted: int
 
 
+class RateCardDeactivateResponse(BaseModel):
+    deactivated: int
+
+
 class RateCardListResponse(BaseModel):
     items: List[PricingRateCardModel]
     total: int
@@ -358,6 +362,34 @@ async def delete_rate_cards_by_model_ids(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete rate cards",
+        )
+
+
+@router.post("/rate-card/deactivate-models", response_model=RateCardDeactivateResponse)
+async def deactivate_rate_cards_by_model_ids(
+    request: RateCardDeleteModelsRequest, admin_user=Depends(get_admin_user)
+):
+    """Deactivate rate card entries for one or more models."""
+    ensure_wallet_enabled()
+
+    model_ids = [model_id.strip() for model_id in request.model_ids]
+    model_ids = [model_id for model_id in model_ids if model_id]
+    if not model_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="model_ids is required",
+        )
+
+    try:
+        deactivated = await run_in_threadpool(
+            RateCards.deactivate_rate_cards_by_model_ids, model_ids
+        )
+        return RateCardDeactivateResponse(deactivated=deactivated)
+    except Exception as e:
+        log.exception(f"Error deactivating model rate cards: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to deactivate rate cards",
         )
 
 

@@ -7,6 +7,7 @@ This file tracks active development tasks for the Airis project. Update this fil
 ## Recently Completed (Last 7 Days)
 
 - [x] **[BUG]** Admin model pricing resets to 0 after save
+
   - Fixed rate card editor to compare against original saved cost
   - Prevents price edits from being treated as no-op in the UI
 
@@ -15,6 +16,11 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Desktop table with sortable headers + mobile card layout
   - Modalities shown as icon-only pills with tooltips
   - Added i18n strings and tests for modality ordering
+
+- [x] **[UI-27]** Show modalities badges in admin model pricing list
+
+  - Added icon + label chips with tooltip explanations per modality
+  - Keeps list compact with consistent admin styling
 
 - [x] **[BUG]** Fix rate card model save validation
 
@@ -342,6 +348,7 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Target**: 2026-01-26
 
 - [x] **[BUG]** Admin model pricing resets to 0 after save
+
   - Fixed rate card editor to compare against original saved cost
   - Prevents price edits from being treated as no-op in the UI
   - **Owner**: OpenCode

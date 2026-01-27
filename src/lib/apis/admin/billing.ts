@@ -75,6 +75,10 @@ export interface RateCardDeleteResponse {
 	deleted: number;
 }
 
+export interface RateCardDeactivateResponse {
+	deactivated: number;
+}
+
 export interface RateCardSyncRequest {
 	model_ids?: string[];
 	modality_units?: { modality: string; unit: string }[];
@@ -462,6 +466,25 @@ export const deleteRateCardsByModel = async (
 		);
 	} catch (error) {
 		console.error('Failed to delete model rate cards:', error);
+		throw error;
+	}
+};
+
+export const deactivateRateCardsByModel = async (
+	token: string,
+	data: RateCardDeleteModelsRequest
+): Promise<RateCardDeactivateResponse> => {
+	try {
+		return await apiRequest<RateCardDeactivateResponse>(
+			`${WEBUI_API_BASE_URL}/admin/billing/rate-card/deactivate-models`,
+			token,
+			{
+				method: 'POST',
+				body: JSON.stringify(data)
+			}
+		);
+	} catch (error) {
+		console.error('Failed to deactivate model rate cards:', error);
 		throw error;
 	}
 };
