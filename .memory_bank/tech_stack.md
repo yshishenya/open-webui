@@ -130,7 +130,7 @@
 
 ### Core UI
 - **Component Library**: bits-ui 0.21.15 (headless components)
-- **Rich Text Editor**: TipTap 3.0.7 (ProseMirror-based)
+- **Rich Text Editor**: TipTap 3.17.1 (ProseMirror-based)
   - Extensions: tables, code blocks, images, YouTube, mentions, file handling
 - **Code Editor**: CodeMirror 6.0.1
   - Languages: JavaScript, Python, Elixir, HCL
@@ -144,7 +144,8 @@
 - **Notifications**: svelte-sonner 0.3.19
 - **Tooltips**: tippy.js 6.3.7
 - **Zoom/Pan**: panzoom 9.4.3
-- **Flow Charts**: @xyflow/svelte 0.1.19
+- **Flow Charts**: @xyflow/svelte 1.5.0
+- **Confetti**: svelte-confetti 2.3.2
 
 ### Document Processing
 - **PDF**:

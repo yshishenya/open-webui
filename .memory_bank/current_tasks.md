@@ -6,6 +6,10 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG]** Admin model pricing resets to 0 after save
+  - Fixed rate card editor to compare against original saved cost
+  - Prevents price edits from being treated as no-op in the UI
+
 - [x] **[UI-27]** Convert admin model pricing list to responsive table
 
   - Desktop table with sortable headers + mobile card layout
@@ -336,6 +340,12 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Cascade deactivate rate cards on model delete
   - **Owner**: Codex
   - **Target**: 2026-01-26
+
+- [x] **[BUG]** Admin model pricing resets to 0 after save
+  - Fixed rate card editor to compare against original saved cost
+  - Prevents price edits from being treated as no-op in the UI
+  - **Owner**: OpenCode
+  - **Target**: 2026-01-27
 
 - [ ] **[BILLING-15][REFACTOR]** Remove effective from/to from rate cards
 

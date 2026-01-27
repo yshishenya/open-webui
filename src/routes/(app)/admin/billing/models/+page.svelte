@@ -52,6 +52,7 @@
 	type UnitState = {
 		unit: string;
 		cost: string;
+		originalCost?: number | null;
 		exists: boolean;
 		id?: string;
 		isActive?: boolean;
@@ -450,13 +451,15 @@
 				if (!entry) return;
 				hasEntry = true;
 				hasActive = hasActive || entry.is_active;
-				nextState[modality].units[unit] = {
-					unit,
-					cost: String(entry.raw_cost_per_unit_kopeks ?? 0),
-					exists: true,
-					id: entry.id,
-					isActive: entry.is_active
-				};
+					nextState[modality].units[unit] = {
+						unit,
+						cost: String(entry.raw_cost_per_unit_kopeks ?? 0),
+						originalCost: entry.raw_cost_per_unit_kopeks ?? null,
+						exists: true,
+						id: entry.id,
+						isActive: entry.is_active
+					};
+
 
 				if (modality === 'text' && unit === 'token_in')
 					tokenInCost = nextState[modality].units[unit].cost;
@@ -602,7 +605,8 @@
 						return;
 					}
 					if (unitState.exists) {
-						if (cost === Number.parseInt(unitState.cost, 10)) {
+						const previousCost = unitState.originalCost ?? Number.parseInt(unitState.cost, 10);
+						if (cost === previousCost) {
 							updateRequests.push({
 								id: unitState.id as string,
 								data: {
