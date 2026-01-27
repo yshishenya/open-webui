@@ -6,9 +6,19 @@ Manage model pricing entries and sync defaults.
 import logging
 import time
 import uuid
-from typing import List, Optional
+from typing import Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Response,
+    UploadFile,
+    status,
+)
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
@@ -17,6 +27,14 @@ from open_webui.models.billing import PricingRateCardModel, RateCards
 from open_webui.models.models import Models
 from open_webui.utils.auth import get_admin_user
 from open_webui.utils.rate_card_templates import build_rate_cards_for_model
+from open_webui.utils.rate_card_xlsx import (
+    XlsxExportMode,
+    XlsxImportMode,
+    build_export_workbook,
+    compute_import_plan,
+    parse_import_workbook,
+    parse_scope_model_ids,
+)
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS.get("BILLING", logging.INFO))
@@ -90,11 +108,115 @@ class RateCardSyncResponse(BaseModel):
     model_ids: List[str]
 
 
+class RateCardXlsxImportSummary(BaseModel):
+    rows_total: int
+    rows_valid: int
+    rows_invalid: int
+    creates: int
+    updates_via_create: int
+    deactivations: int
+    noops: int
+    skipped_unknown_model: int
+    skipped_out_of_scope: int
+
+
+class RateCardXlsxImportWarning(BaseModel):
+    row_number: int
+    code: str
+    message: str
+    model_id: Optional[str] = None
+
+
+class RateCardXlsxImportError(BaseModel):
+    code: str
+    message: str
+    row_number: Optional[int] = None
+    column: Optional[str] = None
+
+
+class RateCardXlsxImportPreviewResponse(BaseModel):
+    summary: RateCardXlsxImportSummary
+    warnings: List[RateCardXlsxImportWarning] = Field(default_factory=list)
+    errors: List[RateCardXlsxImportError] = Field(default_factory=list)
+    actions_preview: List[dict] = Field(default_factory=list)
+
+
+class RateCardXlsxImportApplyResponse(BaseModel):
+    summary: RateCardXlsxImportSummary
+    warnings: List[RateCardXlsxImportWarning] = Field(default_factory=list)
+
+
 def ensure_wallet_enabled() -> None:
     if not ENABLE_BILLING_WALLET:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Billing wallet is disabled",
+        )
+
+
+@router.get("/rate-card/export-xlsx")
+async def export_rate_cards_xlsx(
+    model_ids: List[str] = Query(default_factory=list),
+    mode: XlsxExportMode = XlsxExportMode.ACTIVE_ONLY,
+    admin_user=Depends(get_admin_user),
+):
+    """Export rate cards to XLSX.
+
+    Always exports for current BILLING_RATE_CARD_VERSION.
+    """
+
+    ensure_wallet_enabled()
+
+    clean_model_ids = [model_id.strip() for model_id in model_ids if model_id.strip()]
+    if not clean_model_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="model_ids is required",
+        )
+
+    try:
+        base_models = await run_in_threadpool(Models.get_base_models)
+        model_names: Dict[str, str] = {
+            model.id: (model.name or model.id) for model in base_models
+        }
+
+        entries = await run_in_threadpool(
+            RateCards.list_rate_cards_by_model_ids,
+            clean_model_ids,
+            True,
+            None,
+            0,
+        )
+        entries = [
+            entry
+            for entry in entries
+            if entry.version == BILLING_RATE_CARD_VERSION and entry.is_active
+        ]
+
+        content = await run_in_threadpool(
+            build_export_workbook,
+            mode=mode,
+            model_ids=clean_model_ids,
+            model_names=model_names,
+            active_entries=entries,
+        )
+
+        return Response(
+            content=content,
+            media_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+            headers={
+                "Content-Disposition": "attachment; filename=rate-cards.xlsx",
+            },
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.exception(f"Error exporting rate cards XLSX: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to export rate cards",
         )
 
 
@@ -434,6 +556,263 @@ async def sync_rate_cards_for_models(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to sync rate cards",
         )
+
+
+@router.post("/rate-card/import-xlsx/preview", response_model=RateCardXlsxImportPreviewResponse)
+
+async def import_rate_cards_xlsx_preview(
+    file: UploadFile = File(...),
+    mode: XlsxImportMode = Form(XlsxImportMode.PATCH),
+    scope_model_ids: str = Form(...),
+    admin_user=Depends(get_admin_user),
+):
+    ensure_wallet_enabled()
+
+    parsed_scope, scope_error = parse_scope_model_ids(scope_model_ids)
+    if scope_error or parsed_scope is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=scope_error or "scope_model_ids is required",
+        )
+
+    try:
+        file_bytes = await file.read()
+    except Exception as e:
+        log.exception(f"Error reading XLSX file: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to read XLSX file",
+        )
+
+    rows, parse_errors = await run_in_threadpool(parse_import_workbook, file_bytes)
+    if parse_errors:
+        return RateCardXlsxImportPreviewResponse(
+            summary=RateCardXlsxImportSummary(
+                rows_total=0,
+                rows_valid=0,
+                rows_invalid=len(parse_errors),
+                creates=0,
+                updates_via_create=0,
+                deactivations=0,
+                noops=0,
+                skipped_unknown_model=0,
+                skipped_out_of_scope=0,
+            ),
+            warnings=[],
+            errors=[RateCardXlsxImportError(**err.__dict__) for err in parse_errors],
+            actions_preview=[],
+        )
+
+    known_models = await run_in_threadpool(Models.get_base_models)
+    known_model_ids = {model.id for model in known_models}
+
+    active_entries = await run_in_threadpool(
+        RateCards.list_rate_cards_by_model_ids,
+        parsed_scope or [],
+        True,
+        None,
+        0,
+    )
+    active_entries = [
+        entry
+        for entry in active_entries
+        if entry.version == BILLING_RATE_CARD_VERSION and entry.is_active
+    ]
+
+    summary, warnings, plan_errors, actions = await run_in_threadpool(
+        compute_import_plan,
+        rows=rows,
+        import_mode=mode,
+        scope_model_ids=parsed_scope or [],
+        known_model_ids=known_model_ids,
+        current_active_entries=active_entries,
+        base_errors=parse_errors,
+    )
+
+    preview_actions = [action.__dict__ for action in actions[:200]]
+
+    return RateCardXlsxImportPreviewResponse(
+        summary=RateCardXlsxImportSummary(**summary.__dict__),
+        warnings=[RateCardXlsxImportWarning(**w.__dict__) for w in warnings],
+        errors=[RateCardXlsxImportError(**e.__dict__) for e in plan_errors],
+        actions_preview=preview_actions,
+    )
+
+
+@router.post("/rate-card/import-xlsx/apply", response_model=RateCardXlsxImportApplyResponse)
+async def import_rate_cards_xlsx_apply(
+    file: UploadFile = File(...),
+    mode: XlsxImportMode = Form(XlsxImportMode.PATCH),
+    scope_model_ids: str = Form(...),
+    admin_user=Depends(get_admin_user),
+):
+    ensure_wallet_enabled()
+
+    parsed_scope, scope_error = parse_scope_model_ids(scope_model_ids)
+    if scope_error or parsed_scope is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=scope_error or "scope_model_ids is required",
+        )
+
+    try:
+        file_bytes = await file.read()
+    except Exception as e:
+        log.exception(f"Error reading XLSX file: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to read XLSX file",
+        )
+
+    rows, parse_errors = await run_in_threadpool(parse_import_workbook, file_bytes)
+    if parse_errors:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid XLSX template",
+        )
+
+    known_models = await run_in_threadpool(Models.get_base_models)
+    known_model_ids = {model.id for model in known_models}
+
+    active_entries = await run_in_threadpool(
+        RateCards.list_rate_cards_by_model_ids,
+        parsed_scope or [],
+        True,
+        None,
+        0,
+    )
+    active_entries = [
+        entry
+        for entry in active_entries
+        if entry.version == BILLING_RATE_CARD_VERSION and entry.is_active
+    ]
+
+    summary, warnings, plan_errors, actions = await run_in_threadpool(
+        compute_import_plan,
+        rows=rows,
+        import_mode=mode,
+        scope_model_ids=parsed_scope or [],
+        known_model_ids=known_model_ids,
+        current_active_entries=active_entries,
+        base_errors=(),
+    )
+
+    if plan_errors:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="XLSX contains validation errors",
+        )
+
+    now = int(time.time())
+
+    def _next_created_at(model_id: str, modality: str, unit: str) -> int:
+        created_at = now
+        while RateCards.get_rate_card_by_unique(
+            model_id,
+            modality,
+            unit,
+            BILLING_RATE_CARD_VERSION,
+            created_at,
+        ):
+            created_at += 1
+        return created_at
+
+    for action in actions:
+        key = f"{action.model_id}:{action.modality}:{action.unit}"
+        existing_active = next(
+            (
+                entry
+                for entry in active_entries
+                if f"{entry.model_id}:{entry.modality}:{entry.unit}" == key
+            ),
+            None,
+        )
+
+        if action.action == "create":
+            entry_data = {
+                "id": str(uuid.uuid4()),
+                "model_id": action.model_id,
+                "model_tier": (
+                    action.model_tier
+                    if action.model_tier is not None
+                    else (existing_active.model_tier if existing_active else None)
+                ),
+                "modality": action.modality,
+                "unit": action.unit,
+                "raw_cost_per_unit_kopeks": int(action.desired_price or 0),
+                "version": BILLING_RATE_CARD_VERSION,
+                "created_at": _next_created_at(action.model_id, action.modality, action.unit),
+                "provider": (
+                    action.provider
+                    if action.provider is not None
+                    else (existing_active.provider if existing_active else None)
+                ),
+                "is_default": (
+                    bool(action.is_default)
+                    if action.is_default is not None
+                    else (bool(existing_active.is_default) if existing_active else False)
+                ),
+                "is_active": True,
+            }
+            await run_in_threadpool(RateCards.create_rate_card, entry_data)
+
+        elif action.action == "update_via_create":
+            entry_data = {
+                "id": str(uuid.uuid4()),
+                "model_id": action.model_id,
+                "model_tier": (
+                    action.model_tier
+                    if action.model_tier is not None
+                    else (existing_active.model_tier if existing_active else None)
+                ),
+                "modality": action.modality,
+                "unit": action.unit,
+                "raw_cost_per_unit_kopeks": int(action.desired_price or 0),
+                "version": BILLING_RATE_CARD_VERSION,
+                "created_at": _next_created_at(action.model_id, action.modality, action.unit),
+                "provider": (
+                    action.provider
+                    if action.provider is not None
+                    else (existing_active.provider if existing_active else None)
+                ),
+                "is_default": (
+                    bool(action.is_default)
+                    if action.is_default is not None
+                    else (bool(existing_active.is_default) if existing_active else False)
+                ),
+                "is_active": True,
+            }
+            created = await run_in_threadpool(RateCards.create_rate_card, entry_data)
+            if existing_active:
+                await run_in_threadpool(
+                    RateCards.update_rate_card,
+                    existing_active.id,
+                    {"is_active": False},
+                )
+                active_entries = [
+                    entry
+                    for entry in active_entries
+                    if entry.id != existing_active.id
+                ]
+            active_entries.append(created)
+
+        elif action.action == "deactivate":
+            if existing_active:
+                await run_in_threadpool(
+                    RateCards.update_rate_card,
+                    existing_active.id,
+                    {"is_active": False},
+                )
+                active_entries = [
+                    entry
+                    for entry in active_entries
+                    if entry.id != existing_active.id
+                ]
+
+    return RateCardXlsxImportApplyResponse(
+        summary=RateCardXlsxImportSummary(**summary.__dict__),
+        warnings=[RateCardXlsxImportWarning(**w.__dict__) for w in warnings],
+    )
 
 
 def _sync_rate_cards_for_models(

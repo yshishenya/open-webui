@@ -7,6 +7,8 @@ import pkgutil
 from typing import Mapping, Optional
 from urllib.parse import urlencode
 
+QueryParams = Mapping[str, str | list[str]]
+
 from fastapi.testclient import TestClient
 
 from open_webui.internal.db import Base, engine
@@ -42,7 +44,7 @@ class AbstractPostgresTest:
         Base.metadata.create_all(bind=engine)
 
     def create_url(
-        self, path: str, query_params: Optional[Mapping[str, str]] = None
+        self, path: str, query_params: Optional[QueryParams] = None
     ) -> str:
         base = self.BASE_PATH.rstrip("/")
         tail = path.lstrip("/")
@@ -57,6 +59,6 @@ class AbstractPostgresTest:
             url = ""
 
         if query_params:
-            url = f"{url}?{urlencode(query_params)}"
+            url = f"{url}?{urlencode(query_params, doseq=True)}"
 
         return url
