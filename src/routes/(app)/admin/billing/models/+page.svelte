@@ -583,11 +583,16 @@
 	};
 
 	const parseRequiredInt = (value: string, label: string): number | null => {
-		if (!value.trim()) {
+		const trimmed = value.trim();
+		if (!trimmed) {
 			toast.error($i18n.t('{{label}} is required', { label }));
 			return null;
 		}
-		const parsed = Number.parseInt(value, 10);
+		if (!/^[0-9]+$/.test(trimmed)) {
+			toast.error($i18n.t('Invalid value for {{label}}', { label }));
+			return null;
+		}
+		const parsed = Number.parseInt(trimmed, 10);
 		if (Number.isNaN(parsed) || parsed < 0) {
 			toast.error($i18n.t('Invalid value for {{label}}', { label }));
 			return null;
