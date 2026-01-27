@@ -9,72 +9,76 @@
 - Constraints/assumptions:
   - Only “actual/current” pricing version is supported: always use backend `BILLING_RATE_CARD_VERSION`.
   - Only latest active prices are exported/imported (no history import).
-  - Unit whitelist is enforced (`token_in`, `token_out`, `image_1024`, `tts_char`, `stt_second`).
-  - Price is stored as integer kopeks; during import allow `150` and `150.0` but reject `150.5`.
+  - Strict unit whitelist enforced (`token_in`, `token_out`, `image_1024`, `tts_char`, `stt_second`).
+  - Price stored as integer kopeks; import accepts integers and floats with `.0` (e.g., `150.0`) but rejects non-integer floats (e.g., `150.5`).
   - No audit logging required for this feature.
-  - Add RU i18n strings for new UI.
+  - RU i18n strings must be added for new UI.
 
 ## Context / Problem
-- Why: Current admin pricing UI requires per-model manual editing. Bulk update across many models is slow and error-prone.
+- Why: Current admin pricing UI requires per-model manual editing. Bulk updates across many models are slow and error-prone.
 - Current pain:
-  - No standard offline format for pricing change review.
-  - No mass import pipeline that preserves rate-card history (create new entry + deactivate old).
+  - No standard offline format for pricing review/approval.
+  - No mass import pipeline that preserves rate-card history semantics (create new entry + deactivate old).
 
 ## Goals / Non-goals
 Goals:
-- Export current active rate-card prices to `.xlsx`.
+- Export current active rate-card prices to `.xlsx` for selected models (with UI “Select all” to select all visible models).
 - Import `.xlsx` with a preview step (dry-run) and a separate apply step.
 - Preserve pricing history semantics:
   - If price changes: create a new active entry and deactivate the previous active entry.
   - If price unchanged: no-op.
-- Safety-first default scope: apply import only to selected models; allow “select all” in UI.
-- Allow optional “Full sync (deactivate missing)” mode, but do not affect models absent in the file.
-- Provide clear RU UI copy and validation feedback.
+- Safety-first default scope: apply import only to explicitly selected models.
+- Allow optional “Full sync (deactivate missing units)” mode, but do not affect selected models that are absent in the file.
+- Provide RU UI copy and clear validation feedback.
 
 Non-goals:
 - Import/export historical rows (`created_at` timeline).
 - Manage/rotate `version` via XLS.
-- Add audit logs, metrics, or background jobs.
+- Add audit logs, metrics, or background/background processing.
 - Change billing calculation logic.
 
 ## Behavior (AS-IS → TO-BE)
 AS-IS:
 - Admin manages pricing per model in `src/routes/(app)/admin/billing/models/+page.svelte`.
-- Backend rate-card endpoints exist in `backend/open_webui/routers/admin_billing_rate_card.py`:
-  - List/create/update/delete/deactivate.
+- Backend rate-card endpoints exist in `backend/open_webui/routers/admin_billing_rate_card.py`.
 - Changing price uses history semantics (new row + deactivate old).
 
 TO-BE:
-- Add two new admin features in Model Pricing page:
+- Add two new admin features on Model Pricing page:
   - Export current prices to `.xlsx`.
   - Import `.xlsx` with Preview + Apply.
-- Import and export always operate on the current `BILLING_RATE_CARD_VERSION` only.
+- Import and export always operate on current `BILLING_RATE_CARD_VERSION` only.
 
 Edge cases / failures:
-- XLS contains rows for unknown `model_id`:
+- XLS contains rows for unknown `model_id` (model does not exist in system):
   - Preview shows warnings for those rows.
   - Apply skips those rows (does not fail the whole import).
+- XLS contains rows for existing `model_id` that is NOT included in `scope_model_ids` (i.e. not selected in UI):
+  - Preview shows warnings for those rows.
+  - Apply skips those rows.
 - XLS contains invalid modality/unit/price:
   - Preview returns errors; Apply is blocked until fixed.
-- XLS contains duplicate keys (same `model_id+modality+unit` more than once):
+- XLS contains duplicate keys (same `model_id+modality+unit` more than once, after normalization):
   - Preview returns error listing row numbers; Apply blocked.
-- XLS missing required columns/sheet:
+- XLS missing required sheet/columns:
   - Preview returns error “Invalid template”.
 
 Concurrency/idempotency:
 - Import is not strictly idempotent because price changes create new rows.
 - Safe idempotency rule:
   - If a row’s desired state already matches DB (same active price and active status), action = no-op.
-  - Apply should not blindly create duplicates.
+  - Apply must not create a new entry when the currently active price already equals the desired price.
 
 ## Decisions (and why)
 - Two-step import (Preview then Apply): prevents surprises and makes bulk operations safe.
 - XLS without `version`: avoids accidentally modifying old/non-active pricing version.
 - Price parsing accepts `150.0` as 150: Excel frequently stores integers as floats.
 - Strict unit whitelist: prevents importing unrecognized units that billing doesn’t use.
+- Scope is explicit list of selected models (with “select all visible” in UI) to prevent accidental global updates.
 - Full sync mode is optional and limited:
   - Deactivates missing units only for models that are present in XLS.
-  - Does not touch models absent from XLS (prevents accidental wipe).
+  - Does not touch selected models absent in XLS (prevents accidental wipe).
+- Empty values for optional fields do not clear stored values: an empty cell/empty string means “not provided”.
 
 Alternatives rejected:
 - CSV: poorer UX for non-technical admins and more fragile with locales.
@@ -84,8 +88,8 @@ Alternatives rejected:
 
 Flow/components:
 - Page: `src/routes/(app)/admin/billing/models/+page.svelte` (Model Pricing).
-- Add selection UX improvement:
-  - “Select all” checkbox in table header selects all currently visible (filtered) model rows.
+- Selection UX:
+  - Add “Select all” checkbox in table header to select all currently visible (filtered) model rows.
   - Keep existing per-row checkboxes.
 - Add two actions near Refresh:
   - `Export XLSX`
@@ -94,36 +98,40 @@ Flow/components:
 Export flow:
 1. Admin selects models (or uses Select all).
 2. Click `Export XLSX`.
-3. UI calls backend export endpoint (selected model ids), receives an `.xlsx` file download.
+3. UI calls backend export endpoint with selected model ids.
+4. Browser downloads `.xlsx`.
 
 Import flow (two-stage):
 1. Admin selects models (or uses Select all).
 2. Click `Import XLSX`.
 3. In modal:
-   - upload `.xlsx`
-   - choose mode:
-     - Default: “Patch (only rows in file)”
-     - Optional: “Full sync (deactivate missing units)”
+   - Upload `.xlsx`.
+   - Choose mode:
+     - Default: `patch` (“only rows in file”).
+     - Optional: `full_sync` (“deactivate missing units”).
 4. Click `Preview`.
-5. Preview results show:
+5. Preview shows:
    - counts: create/update-via-create/deactivate/no-op
-   - warnings (unknown model ids)
-   - errors (template/validation/duplicates)
+   - warnings:
+     - unknown `model_id` in file
+     - `model_id` exists but not in selection scope
+   - errors: template/validation/duplicates
 6. If no errors, click `Apply import`.
 7. On success, show RU toast and auto-refresh list.
 
 XLSX template:
-- One sheet: `RateCards`.
+- Sheet name: `RateCards`.
 - Header row required.
-- Columns (order not strict, header names strict):
+- Column names are strict; column order is not.
+- Columns:
   - Required:
     - `model_id` (string)
     - `modality` (string: `text|image|tts|stt`)
     - `unit` (string: strict whitelist, see below)
-    - `raw_cost_per_unit_kopeks` (number: integer or float with .0)
+    - `raw_cost_per_unit_kopeks` (number: integer or float with `.0`)
   - Optional:
     - `is_active` (TRUE/FALSE/1/0/yes/no; default TRUE)
-    - `provider` (string; optional but supported)
+    - `provider` (string; optional)
     - `model_tier` (string; optional)
     - `is_default` (TRUE/FALSE; optional; default false)
     - `model_name` (string; ignored)
@@ -136,9 +144,10 @@ Strict whitelist:
   - `tts`: `tts_char`
   - `stt`: `stt_second`
 
-Import semantics (per XLS row), for the current `BILLING_RATE_CARD_VERSION`:
+Import semantics (per XLS row), for current `BILLING_RATE_CARD_VERSION`:
 - Key: `(model_id, modality, unit)` (version is implicitly current).
 - Normalize:
+  - Trim strings.
   - `modality` lowercased.
   - `unit` lowercased.
   - `raw_cost_per_unit_kopeks`:
@@ -148,26 +157,29 @@ Import semantics (per XLS row), for the current `BILLING_RATE_CARD_VERSION`:
   - `is_active` default TRUE.
 - If `model_id` unknown:
   - Preview warning; Apply skips.
+- If `model_id` exists but not in `scope_model_ids`:
+  - Preview warning; Apply skips.
 - If `is_active = TRUE`:
   - If no current active entry exists for key: create new active entry.
   - If current active entry exists:
     - if price matches: no-op.
-    - if price differs: create new active entry (with new `id` and `created_at=now`) and deactivate previous active entry.
+    - if price differs: create new active entry (new `id`, `created_at=now`) and deactivate previous active entry.
 - If `is_active = FALSE`:
   - If active entry exists: deactivate it.
   - Else: no-op.
 
 Field handling for new entries (user chose “B” option):
-- `provider`, `model_tier`, `is_default` are taken from XLS columns if present.
-- If those columns are missing in a row:
+- `provider`, `model_tier`, `is_default` are taken from XLS columns if present and non-empty.
+- Empty cell / empty string means “not provided” (do not clear stored values).
+- If these fields are not provided for a row:
   - If there is an existing active entry for the key, copy them from it.
   - Else default: `provider=null`, `model_tier=null`, `is_default=false`.
 
 Full sync (Deactivate missing units) mode:
 - Only affects models that have at least one valid row in XLS.
-- For each such model, for each allowed `(modality, unit)` pair:
-  - If pair is NOT present in XLS for that model, then deactivate current active entry for that pair (if any).
-- Models selected in UI but absent in XLS: ignored (no changes), per user decision.
+- For each such model, for each allowed `(modality, unit)` pair from the strict whitelist (all 5 supported units across all modalities):
+  - If pair is NOT present in XLS for that model, then deactivate the current active entry for that pair (if any).
+- Models selected in UI but absent in XLS: ignored (no changes).
 
 Contracts (if any): API / events + examples
 
@@ -180,38 +192,53 @@ New endpoints (in `backend/open_webui/routers/admin_billing_rate_card.py`):
 - `GET /api/v1/admin/billing/rate-card/export-xlsx`
 - Auth: admin (`Depends(get_admin_user)`), must respect existing wallet enable guard (`ensure_wallet_enabled`).
 - Query params:
-  - `model_ids`: repeated query param or comma-separated string (choose one implementation; document in code and tests)
-  - `only_active`: bool, always true in MVP (can be omitted)
+  - `model_ids`: repeated query param.
+    - Example: `/rate-card/export-xlsx?model_ids=<id1>&model_ids=<id2>`
+- Response:
+  - `200` with XLSX bytes
+  - `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+  - `Content-Disposition: attachment; filename=rate-cards-<YYYY-MM-DD>-<HHmm>-selected.xlsx` (exact naming is an implementation detail; must include `.xlsx`)
 - Behavior:
-  - fetch latest active entries for current `BILLING_RATE_CARD_VERSION` and selected models
-  - generate `.xlsx` and return as attachment with content type `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+  - fetch active entries for current `BILLING_RATE_CARD_VERSION` and selected models
+  - reduce to exactly one “latest active” row per key `(model_id, modality, unit)` by taking max(`created_at`) among active rows
+  - generate `.xlsx`
 
 2) Import Preview
 - `POST /api/v1/admin/billing/rate-card/import-xlsx/preview`
 - Multipart form:
   - `file`: UploadFile
   - `mode`: string enum: `patch` | `full_sync`
-  - `scope_model_ids`: JSON array or comma-separated list of model_ids (must be provided; derived from UI selection)
+  - `scope_model_ids`: JSON string containing an array of model IDs (must be provided; derived from UI selection)
+    - Example: `scope_model_ids='["<id1>","<id2>"]'`
 - Response JSON: `RateCardXlsxImportPreviewResponse`
-  - `summary`: counts
-  - `warnings`: list
-  - `errors`: list
-  - `actions`: optional list of planned actions (bounded; include first N for UI)
+  - `summary`:
+    - `rows_total`
+    - `rows_valid`
+    - `rows_invalid`
+    - `creates`
+    - `updates_via_create`
+    - `deactivations`
+    - `noops`
+  - `warnings`: list of `{ row_number, code, message, model_id? }`
+  - `errors`: list of `{ row_number?, column?, code, message }`
+  - `actions_preview`: optional list of first N planned actions for UI display (bounded)
 
 3) Import Apply
 - `POST /api/v1/admin/billing/rate-card/import-xlsx/apply`
 - Same multipart fields as preview.
 - Behavior:
-  - re-parse XLS and compute actions (no server-side state between preview/apply)
+  - re-parse XLS and compute plan (no server-side state between preview/apply)
   - if errors → 400 with details
-  - apply actions in order:
-    - create new entries
-    - deactivate old entries
-  - return `RateCardXlsxImportApplyResponse` with counts + warnings.
+  - apply actions:
+    - For update-via-create: create new active entry then deactivate the previous active entry (matching existing UI semantics).
+    - For deactivate: update existing active entry `is_active=false`.
+  - return `RateCardXlsxImportApplyResponse`:
+    - `summary` counts (same fields as preview)
+    - `warnings`
 
 Notes:
-- XLS parsing and workbook generation uses `openpyxl` (already in backend requirements).
-- Because openpyxl is sync, wrap heavy work in `run_in_threadpool`.
+- XLS parsing and workbook generation uses `openpyxl`.
+- `openpyxl` is sync; heavy work must run via `run_in_threadpool`.
 
 Data (if any): schema + migrations + compatibility
 - N/A: no schema changes.
@@ -219,12 +246,12 @@ Data (if any): schema + migrations + compatibility
 Security/validation/logging rules:
 - Only admin can import/export.
 - Validate file extension and content type best-effort (`.xlsx`).
-- Enforce maximum rows (recommendation: 10_000) to avoid memory issues; return error if exceeded.
-- Log server-side summary (info) and validation failures (warning/error) using `logging` (no `print`).
+- Enforce maximum row limit (10_000) to avoid memory issues; error if exceeded.
+- Log server-side summary (info) and validation failures (warning/error) using `logging`.
 
 ## Implementation Plan (ordered checklist)
 1. Backend: add XLS helpers
-   - Create utility module (recommendation): `backend/open_webui/utils/rate_card_xlsx.py`
+   - Create utility module: `backend/open_webui/utils/rate_card_xlsx.py`
    - Functions:
      - `build_export_workbook(entries, models_by_id) -> bytes`
      - `parse_import_workbook(file_bytes) -> ParsedRows`
@@ -265,25 +292,31 @@ Strict order:
 ## Testing / Acceptance
 Tests: unit / integration / e2e (as needed)
 - Backend (pytest):
-  - Export endpoint returns `200` and correct content type for selected model(s).
-  - Preview returns errors on invalid template, invalid unit/modality, duplicates.
-  - Preview returns warning (not error) for unknown model_id.
+  - Export:
+    - returns `200`
+    - correct content type
+    - workbook has sheet `RateCards` with required columns
+    - contains only latest active row per `(model_id, modality, unit)`
+  - Preview:
+    - errors on invalid template, invalid unit/modality, duplicates
+    - warning (not error) for unknown model_id
+    - warning (not error) for model_id not in scope
   - Apply:
-    - price change creates a new active entry and deactivates old.
-    - unchanged price produces no-op.
-    - `is_active=false` deactivates active entry.
-    - float `150.0` accepted; `150.5` rejected.
+    - price change creates a new active entry and deactivates old
+    - unchanged price produces no-op
+    - `is_active=false` deactivates active entry
+    - float `150.0` accepted; `150.5` rejected
   - Full sync:
-    - deactivates missing units only for models present in file.
-    - does not touch models absent in file even if selected.
-- Frontend: manual verification (no automated tests required for MVP).
+    - deactivates missing units only for models present in file
+    - does not touch models absent in file even if selected
+- Frontend: manual verification.
 
 Acceptance criteria (DoD):
 - [ ] Admin can select one or many models and export current rate-card prices to `.xlsx`.
 - [ ] Exported `.xlsx` contains required columns and only latest active prices for current `BILLING_RATE_CARD_VERSION`.
 - [ ] Admin can import `.xlsx` and see Preview with counts, warnings, and errors.
 - [ ] Apply is blocked when Preview contains any errors.
-- [ ] Unknown model ids in XLS show as warnings and are skipped on Apply.
+- [ ] Unknown model ids and model ids outside selection scope appear as warnings and are skipped on Apply.
 - [ ] Import preserves history: changing price creates new row and deactivates old row.
 - [ ] Import supports explicit deactivation via `is_active=false`.
 - [ ] Full sync mode deactivates missing units only for models present in the file.
@@ -293,7 +326,7 @@ Acceptance criteria (DoD):
 ## Rollout / Rollback (if prod)
 Rollout:
 - Standard deployment (backend + frontend).
-- Feature is admin-only; no user-facing billing changes unless admin applies import.
+- Feature is admin-only; no user-facing changes unless admin applies import.
 
 Rollback:
 - Revert new endpoints and UI actions.
@@ -313,7 +346,7 @@ Risks:
 - Full sync mode is dangerous; ensure UI copy clearly communicates risk.
 
 Open questions:
-- N/A (requirements confirmed).
+- N/A.
 
 ## Quick start
 1. Start files/modules:
