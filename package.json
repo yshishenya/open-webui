@@ -10,6 +10,8 @@
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"check:rate-card": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.check.json",
+		"check:rate-card:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.check.json --watch",
 		"lint": "npm run lint:frontend ; npm run lint:types ; npm run lint:backend",
 		"lint:frontend": "eslint . --fix",
 		"lint:types": "npm run check",

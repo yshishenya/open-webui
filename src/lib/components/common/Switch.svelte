@@ -2,7 +2,9 @@
 	import { Switch } from 'bits-ui';
 
 	import { createEventDispatcher, tick, getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
 	import { settings } from '$lib/stores';
+	import type { i18n as i18nType } from 'i18next';
 
 	import Tooltip from './Tooltip.svelte';
 	export let state = true;
@@ -10,7 +12,7 @@
 	export let ariaLabelledbyId = '';
 	export let tooltip = false;
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<i18nType>>('i18n');
 	const dispatch = createEventDispatcher();
 </script>
 

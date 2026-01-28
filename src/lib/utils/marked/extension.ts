@@ -77,7 +77,7 @@ function detailsRenderer(token: any) {
 }
 
 // Extension wrapper function
-function detailsExtension() {
+function detailsExtension(_options: Record<string, unknown> = {}) {
 	return {
 		name: 'details',
 		level: 'block',
@@ -87,7 +87,7 @@ function detailsExtension() {
 	};
 }
 
-export default function (options = {}) {
+export default function (options: Record<string, unknown> = {}) {
 	return {
 		extensions: [detailsExtension(options)]
 	};

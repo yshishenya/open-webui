@@ -68,9 +68,10 @@ export const buildModelRows = (models: ModelOption[], rateCards: RateCard[]): Mo
 			const orderedModalities = ['text', 'image', 'tts', 'stt'].filter((modality) =>
 				modalities.includes(modality as ModalityKey)
 			) as ModalityKey[];
+			const status: ModelStatus = existingModelIds.has(model.id) ? 'configured' : 'new';
 			return {
 				...model,
-				status: existingModelIds.has(model.id) ? 'configured' : 'new',
+				status,
 				modalities: orderedModalities
 			};
 		})

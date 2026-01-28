@@ -1,0 +1,17 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noImplicitAny": false,
+		"suppressImplicitAnyIndexErrors": true,
+		"strictNullChecks": false
+	},
+	"include": [
+		".svelte-kit/ambient.d.ts",
+		".svelte-kit/non-ambient.d.ts",
+		".svelte-kit/types/**/$types.d.ts",
+		"src/app.d.ts",
+		"src/lib/apis/admin/billing.ts",
+		"src/lib/utils/rate-card-models.ts",
+		"src/routes/(app)/admin/billing/models/+page.svelte"
+	]
+}

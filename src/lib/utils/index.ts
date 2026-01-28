@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import sha256 from 'js-sha256';
+import { sha256 } from 'js-sha256';
 import { WEBUI_BASE_URL } from '$lib/constants';
 
 import dayjs from 'dayjs';
@@ -616,7 +616,7 @@ export const calculateSHA256 = async (file) => {
 
 	try {
 		// Wait for the FileReader to finish reading the file
-		const buffer = await readFile;
+		const buffer = (await readFile) as ArrayBuffer;
 
 		// Convert the ArrayBuffer to a Uint8Array
 		const uint8Array = new Uint8Array(buffer);
@@ -657,7 +657,7 @@ export const getUserPosition = async (raw = false) => {
 	}
 
 	// Extract the latitude and longitude from the position
-	const { latitude, longitude } = position.coords;
+	const { latitude, longitude } = (position as GeolocationPosition).coords;
 
 	if (raw) {
 		return { latitude, longitude };
@@ -865,7 +865,7 @@ export const processDetails = (content) => {
 	if (matches) {
 		for (const match of matches) {
 			const attributesRegex = /(\w+)="([^"]*)"/g;
-			const attributes = {};
+			const attributes: Record<string, string> = {};
 			let attributeMatch;
 			while ((attributeMatch = attributesRegex.exec(match)) !== null) {
 				attributes[attributeMatch[1]] = attributeMatch[2];
@@ -1215,7 +1215,7 @@ function resolveSchema(schemaRef, components, resolvedSchemas = new Set()) {
 	}
 
 	if (schemaRef.type) {
-		const schemaObj = { type: schemaRef.type };
+		const schemaObj: any = { type: schemaRef.type };
 
 		if (schemaRef.description) {
 			schemaObj.description = schemaRef.description;
@@ -1501,7 +1501,7 @@ export const extractContentFromFile = async (file: File) => {
 
 	// Uses pdfjs to extract text from PDF
 	async function extractPdfText(file: File) {
-		const pdfjsLib = await ensurePDFjsLoaded();
+		const pdfjsLib = (await ensurePDFjsLoaded()) as any;
 		const arrayBuffer = await file.arrayBuffer();
 		const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 		let allText = '';

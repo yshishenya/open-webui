@@ -41,15 +41,16 @@ export const loadGoogleDriveApi = () => {
 			const script = document.createElement('script');
 			script.src = 'https://apis.google.com/js/api.js';
 			script.onload = () => {
-				gapi.load('picker', () => {
+				(window as any).gapi?.load('picker', () => {
 					pickerApiLoaded = true;
 					resolve(true);
 				});
 			};
+
 			script.onerror = reject;
 			document.body.appendChild(script);
 		} else {
-			gapi.load('picker', () => {
+			(window as any).gapi?.load('picker', () => {
 				pickerApiLoaded = true;
 				resolve(true);
 			});

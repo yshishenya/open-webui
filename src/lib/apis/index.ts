@@ -4,7 +4,7 @@ import { getOpenAIModelsDirect } from './openai';
 
 export const getModels = async (
 	token: string = '',
-	connections: object | null = null,
+	connections: Record<string, any> | null = null,
 	base: boolean = false,
 	refresh: boolean = false
 ) => {
@@ -42,7 +42,7 @@ export const getModels = async (
 	let models = res?.data ?? [];
 
 	if (connections && !base) {
-		let localModels = [];
+		let localModels: any[] = [];
 
 		if (connections) {
 			const OPENAI_API_BASE_URLS = connections.OPENAI_API_BASE_URLS;
@@ -63,7 +63,7 @@ export const getModels = async (
 						if (modelIds.length > 0) {
 							const modelList = {
 								object: 'list',
-								data: modelIds.map((modelId) => ({
+								data: modelIds.map((modelId: any) => ({
 									id: modelId,
 									name: modelId,
 									owned_by: 'openai',
@@ -115,7 +115,7 @@ export const getModels = async (
 				const apiConfig = OPENAI_API_CONFIGS[idx.toString()] ?? {};
 
 				let models = Array.isArray(response) ? response : (response?.data ?? []);
-				models = models.map((model) => ({ ...model, openai: { id: model.id }, urlIdx: idx }));
+				models = models.map((model: any) => ({ ...model, openai: { id: model.id }, urlIdx: idx }));
 
 				const prefixId = apiConfig.prefix_id;
 				if (prefixId) {
@@ -144,9 +144,9 @@ export const getModels = async (
 		);
 
 		// Remove duplicates
-		const modelsMap = {};
-		for (const model of models) {
-			modelsMap[model.id] = model;
+		const modelsMap: Record<string, any> = {};
+		for (const model of models as any[]) {
+			modelsMap[(model as any).id] = model;
 		}
 
 		models = Object.values(modelsMap);
@@ -338,7 +338,7 @@ export const getToolServerData = async (token: string, url: string) => {
 	return res;
 };
 
-export const getToolServersData = async (servers: object[]) => {
+export const getToolServersData = async (servers: any[]) => {
 	return (
 		await Promise.all(
 			servers
@@ -512,7 +512,7 @@ export const executeToolServer = async (
 		}
 
 		// make a clone of res and extract headers
-		const responseHeaders = {};
+		const responseHeaders: Record<string, string> = {};
 		res.headers.forEach((value, key) => {
 			responseHeaders[key] = value;
 		});

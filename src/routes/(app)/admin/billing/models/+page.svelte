@@ -51,10 +51,10 @@
 		type ModelRow
 	} from '$lib/utils/rate-card-models';
 
-	import type { Writable } from 'svelte/store';
+	import type { Readable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 
-	const i18n: Writable<i18nType> = getContext('i18n');
+	const i18n = getContext<Readable<i18nType>>('i18n');
 
 	type FormMode = 'add' | 'edit';
 	type StatusFilter = 'all' | 'new' | 'configured';
