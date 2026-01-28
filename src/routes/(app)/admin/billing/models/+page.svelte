@@ -6,16 +6,23 @@
 	import { WEBUI_NAME, user } from '$lib/stores';
 	import { getBaseModels, updateModelById } from '$lib/apis/models';
 	import {
+		applyRateCardsXlsxImport,
 		createRateCard,
 		deleteRateCardsByModel,
 		deactivateRateCardsByModel,
+		exportRateCardsXlsx,
 		listRateCards,
+		previewRateCardsXlsxImport,
 		updateRateCard
 	} from '$lib/apis/admin/billing';
 	import type {
 		RateCard,
 		RateCardCreateRequest,
-		RateCardUpdateRequest
+		RateCardUpdateRequest,
+		RateCardXlsxExportMode,
+		RateCardXlsxImportApplyResponse,
+		RateCardXlsxImportMode,
+		RateCardXlsxImportPreviewResponse
 	} from '$lib/apis/admin/billing';
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -33,6 +40,8 @@
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import PencilSquare from '$lib/components/icons/PencilSquare.svelte';
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
+	import ArrowDownTray from '$lib/components/icons/ArrowDownTray.svelte';
+	import ArrowUpTray from '$lib/components/icons/ArrowUpTray.svelte';
 	import {
 		buildLatestRateCardIndex,
 		buildModelRows,
@@ -106,6 +115,20 @@
 	let showDeactivateModelsConfirm = false;
 	let showDeleteModelsConfirm = false;
 	let deleteModelsInput = '';
+
+	let showExportModal = false;
+	let exporting = false;
+	let exportMode: RateCardXlsxExportMode = 'active_only';
+
+	let showImportModal = false;
+	let importing = false;
+	let importMode: RateCardXlsxImportMode = 'patch';
+	let importFile: File | null = null;
+	let importPreview: RateCardXlsxImportPreviewResponse | null = null;
+	let importPreviewLoading = false;
+	let importPreviewError: string | null = null;
+
+	let selectAllVisibleCheckbox: HTMLInputElement | null = null;
 
 	const STATUS_LABELS: Record<ModelRow['status'], string> = {
 		new: 'New',
@@ -420,6 +443,115 @@
 			toast.error($i18n.t('Failed to deactivate rate cards'));
 		} finally {
 			saving = false;
+		}
+	};
+
+	const saveBlob = (blob: Blob, filename: string) => {
+		const url = window.URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = filename;
+		document.body.appendChild(a);
+		a.click();
+		window.URL.revokeObjectURL(url);
+		a.remove();
+	};
+
+	const handleExportSelectedModels = async () => {
+		if (exporting) return;
+		const modelIds = Array.from(selectedModelIds);
+		if (modelIds.length === 0) {
+			toast.error($i18n.t('Select at least one model'));
+			return;
+		}
+
+		exporting = true;
+		try {
+			const blob = await exportRateCardsXlsx(localStorage.token, {
+				model_ids: modelIds,
+				mode: exportMode
+			});
+			saveBlob(blob, `rate-cards-${exportMode}.xlsx`);
+			showExportModal = false;
+		} catch (error) {
+			console.error('Failed to export rate cards XLSX:', error);
+			toast.error($i18n.t('Failed to export XLSX'));
+		} finally {
+			exporting = false;
+		}
+	};
+
+	const handlePreviewImport = async () => {
+		if (importPreviewLoading) return;
+		const modelIds = Array.from(selectedModelIds);
+		if (modelIds.length === 0) {
+			toast.error($i18n.t('Select at least one model'));
+			return;
+		}
+		if (!importFile) {
+			toast.error($i18n.t('Choose a file'));
+			return;
+		}
+
+		importPreviewLoading = true;
+		importPreviewError = null;
+		importPreview = null;
+		try {
+			importPreview = await previewRateCardsXlsxImport(localStorage.token, {
+				file: importFile,
+				mode: importMode,
+				scope_model_ids: modelIds
+			});
+		} catch (error) {
+			console.error('Failed to preview rate card XLSX import:', error);
+			importPreviewError = $i18n.t('Failed to preview import');
+		} finally {
+			importPreviewLoading = false;
+		}
+	};
+
+	const handleApplyImport = async () => {
+		if (importing) return;
+		const modelIds = Array.from(selectedModelIds);
+		if (modelIds.length === 0) {
+			toast.error($i18n.t('Select at least one model'));
+			return;
+		}
+		if (!importFile) {
+			toast.error($i18n.t('Choose a file'));
+			return;
+		}
+
+		importing = true;
+		try {
+			const result: RateCardXlsxImportApplyResponse = await applyRateCardsXlsxImport(
+				localStorage.token,
+				{
+					file: importFile,
+					mode: importMode,
+					scope_model_ids: modelIds
+				}
+			);
+
+			toast.success(
+				$i18n.t(
+					'Import applied: {creates} creates, {updates} updates, {deactivations} deactivations',
+					{
+						creates: result.summary.creates,
+						updates: result.summary.updates_via_create,
+						deactivations: result.summary.deactivations
+					}
+				)
+			);
+			showImportModal = false;
+			importFile = null;
+			importPreview = null;
+			await loadData();
+		} catch (error) {
+			console.error('Failed to apply rate card XLSX import:', error);
+			toast.error($i18n.t('Failed to apply import'));
+		} finally {
+			importing = false;
 		}
 	};
 
@@ -769,6 +901,14 @@
 	);
 
 	$: previewCounts = calculatePreviewCounts();
+	$: visibleModelIds = filteredModelRows.map((model) => model.id);
+	$: allVisibleSelected =
+		visibleModelIds.length > 0 && visibleModelIds.every((modelId) => selectedModelIds.has(modelId));
+	$: someVisibleSelected =
+		visibleModelIds.some((modelId) => selectedModelIds.has(modelId)) && !allVisibleSelected;
+	$: if (selectAllVisibleCheckbox) {
+		selectAllVisibleCheckbox.indeterminate = someVisibleSelected;
+	}
 </script>
 
 <svelte:head>
@@ -814,6 +954,108 @@
 			confirmLabel={$i18n.t('Delete')}
 			on:confirm={handleDeleteSelectedModels}
 		/>
+
+		<ConfirmDialog
+			bind:show={showExportModal}
+			title={$i18n.t('Export rate cards to XLSX')}
+			message={$i18n.t('Export selected models to XLSX. Choose template mode before downloading.')}
+			confirmLabel={exporting ? $i18n.t('Exporting...') : $i18n.t('Export')}
+			cancelLabel={$i18n.t('Cancel')}
+			on:confirm={handleExportSelectedModels}
+		>
+			<div class="flex flex-col gap-2">
+				<label for="rate-card-export-mode" class="text-sm font-medium"
+					>{$i18n.t('Export mode')}</label
+				>
+				<select
+					id="rate-card-export-mode"
+					bind:value={exportMode}
+					class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent text-sm"
+				>
+					<option value="active_only">{$i18n.t('Active only')}</option>
+					<option value="all_units_template">{$i18n.t('All units template')}</option>
+				</select>
+			</div>
+		</ConfirmDialog>
+
+		<ConfirmDialog
+			bind:show={showImportModal}
+			title={$i18n.t('Import rate cards from XLSX')}
+			message={$i18n.t('Upload an XLSX file, preview changes, then apply.')}
+			confirmLabel={importing ? $i18n.t('Applying...') : $i18n.t('Apply import')}
+			cancelLabel={$i18n.t('Close')}
+			on:confirm={handleApplyImport}
+		>
+			<div class="flex flex-col gap-3">
+				<div class="flex flex-col gap-2">
+					<label for="rate-card-import-mode" class="text-sm font-medium"
+						>{$i18n.t('Import mode')}</label
+					>
+					<select
+						id="rate-card-import-mode"
+						bind:value={importMode}
+						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent text-sm"
+					>
+						<option value="patch">{$i18n.t('Patch (only update provided rows)')}</option>
+						<option value="full_sync">{$i18n.t('Full sync (deactivate missing units)')}</option>
+					</select>
+				</div>
+
+				<div class="flex flex-col gap-2">
+					<label for="rate-card-import-file" class="text-sm font-medium"
+						>{$i18n.t('XLSX file')}</label
+					>
+					<input
+						id="rate-card-import-file"
+						type="file"
+						accept=".xlsx"
+						on:change={(event) => {
+							const files = event.currentTarget.files;
+							importFile = files && files.length > 0 ? files[0] : null;
+							importPreview = null;
+							importPreviewError = null;
+						}}
+						class="text-sm"
+					/>
+				</div>
+
+				<div class="flex items-center gap-2">
+					<button
+						type="button"
+						on:click={handlePreviewImport}
+						disabled={importPreviewLoading || !importFile}
+						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition disabled:opacity-50"
+					>
+						{importPreviewLoading ? $i18n.t('Previewing...') : $i18n.t('Preview import')}
+					</button>
+					{#if importPreviewError}
+						<span class="text-sm text-red-600 dark:text-red-400">{importPreviewError}</span>
+					{/if}
+				</div>
+
+				{#if importPreview}
+					<div class="rounded-xl border border-gray-200 dark:border-gray-800 p-3 text-sm">
+						<div class="font-medium mb-2">{$i18n.t('Preview summary')}</div>
+						<div class="text-gray-600 dark:text-gray-300">
+							{$i18n.t('Creates: {count}', { count: importPreview.summary.creates })}
+							· {$i18n.t('Updates: {count}', { count: importPreview.summary.updates_via_create })}
+							· {$i18n.t('Deactivations: {count}', { count: importPreview.summary.deactivations })}
+							· {$i18n.t('Invalid rows: {count}', { count: importPreview.summary.rows_invalid })}
+						</div>
+						{#if importPreview.warnings?.length}
+							<div class="mt-2 text-amber-700 dark:text-amber-300">
+								{$i18n.t('Warnings: {count}', { count: importPreview.warnings.length })}
+							</div>
+						{/if}
+						{#if importPreview.errors?.length}
+							<div class="mt-2 text-red-700 dark:text-red-300">
+								{$i18n.t('Errors: {count}', { count: importPreview.errors.length })}
+							</div>
+						{/if}
+					</div>
+				{/if}
+			</div>
+		</ConfirmDialog>
 		<div class="flex flex-col gap-1 px-1 mt-2.5 mb-4">
 			<div class="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
 				<div class="flex items-center text-xl font-medium gap-2">
@@ -851,6 +1093,34 @@
 
 				{#if selectedModelIds.size > 0}
 					<div class="flex flex-wrap items-center gap-2">
+						<button
+							type="button"
+							on:click={() => (showExportModal = true)}
+							class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-800 text-white text-sm font-medium transition"
+							aria-label={$i18n.t('Export XLSX')}
+							title={$i18n.t('Export XLSX')}
+						>
+							<ArrowDownTray className="size-4" />
+							<span class="whitespace-nowrap">
+								{$i18n.t('Export XLSX')} ({selectedModelIds.size})
+							</span>
+						</button>
+						<button
+							type="button"
+							on:click={() => {
+								showImportModal = true;
+								importPreview = null;
+								importPreviewError = null;
+							}}
+							class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium transition"
+							aria-label={$i18n.t('Import XLSX')}
+							title={$i18n.t('Import XLSX')}
+						>
+							<ArrowUpTray className="size-4" />
+							<span class="whitespace-nowrap">
+								{$i18n.t('Import XLSX')} ({selectedModelIds.size})
+							</span>
+						</button>
 						<button
 							type="button"
 							on:click={() => (showDeactivateModelsConfirm = true)}
@@ -902,8 +1172,28 @@
 						<thead class="bg-gray-50/70 dark:bg-gray-900/60 sticky top-0 z-10">
 							<tr class="text-[11px] uppercase tracking-wide text-gray-500">
 								<th class="px-4 py-2 text-left font-semibold w-10">
+									<input
+										bind:this={selectAllVisibleCheckbox}
+										type="checkbox"
+										class="rounded"
+										checked={allVisibleSelected}
+										on:change={(event) => {
+											const checked = getInputChecked(event);
+											if (checked) {
+												for (const modelId of visibleModelIds) {
+													selectedModelIds.add(modelId);
+												}
+											} else {
+												for (const modelId of visibleModelIds) {
+													selectedModelIds.delete(modelId);
+												}
+											}
+											selectedModelIds = new Set(selectedModelIds);
+										}}
+									/>
 									<span class="sr-only">{$i18n.t('Select')}</span>
 								</th>
+
 								<th class="px-4 py-2 text-left font-semibold">
 									<button
 										type="button"

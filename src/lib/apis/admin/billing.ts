@@ -232,13 +232,17 @@ export interface LeadMagnetConfigRequest {
  * @returns Response data or throws error
  */
 async function apiRequest<T>(url: string, token: string, options: RequestInit = {}): Promise<T> {
+	const headers = new Headers(options.headers);
+	if (!headers.has('Authorization')) {
+		headers.set('Authorization', `Bearer ${token}`);
+	}
+	if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+		headers.set('Content-Type', 'application/json');
+	}
+
 	const response = await fetch(url, {
 		...options,
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`,
-			...options.headers
-		}
+		headers
 	});
 
 	if (!response.ok) {
@@ -249,6 +253,27 @@ async function apiRequest<T>(url: string, token: string, options: RequestInit = 
 	}
 
 	return response.json();
+}
+
+async function apiRequestBlob(url: string, token: string, options: RequestInit = {}): Promise<Blob> {
+	const headers = new Headers(options.headers);
+	if (!headers.has('Authorization')) {
+		headers.set('Authorization', `Bearer ${token}`);
+	}
+
+	const response = await fetch(url, {
+		...options,
+		headers
+	});
+
+	if (!response.ok) {
+		const errorData = await response.json().catch(() => ({}));
+		const errorMessage = errorData.detail || `Request failed with status ${response.status}`;
+		console.error(`API Error [${url}]:`, errorMessage);
+		throw errorMessage;
+	}
+
+	return response.blob();
 }
 
 // ==================== Plans API ====================
@@ -344,6 +369,47 @@ export const deletePlan = async (token: string, planId: string): Promise<boolean
 };
 
 // ==================== Rate Card API ====================
+
+export type RateCardXlsxExportMode = 'active_only' | 'all_units_template';
+export type RateCardXlsxImportMode = 'patch' | 'full_sync';
+
+export interface RateCardXlsxImportSummary {
+	rows_total: number;
+	rows_valid: number;
+	rows_invalid: number;
+	creates: number;
+	updates_via_create: number;
+	deactivations: number;
+	noops: number;
+	skipped_unknown_model: number;
+	skipped_out_of_scope: number;
+}
+
+export interface RateCardXlsxImportWarning {
+	row_number: number;
+	code: string;
+	message: string;
+	model_id?: string | null;
+}
+
+export interface RateCardXlsxImportError {
+	code: string;
+	message: string;
+	row_number?: number | null;
+	column?: string | null;
+}
+
+export interface RateCardXlsxImportPreviewResponse {
+	summary: RateCardXlsxImportSummary;
+	warnings: RateCardXlsxImportWarning[];
+	errors: RateCardXlsxImportError[];
+	actions_preview: Record<string, unknown>[];
+}
+
+export interface RateCardXlsxImportApplyResponse {
+	summary: RateCardXlsxImportSummary;
+	warnings: RateCardXlsxImportWarning[];
+}
 
 export const listRateCards = async (
 	token: string,
@@ -506,6 +572,69 @@ export const syncRateCards = async (
 		console.error('Failed to sync rate cards:', error);
 		throw error;
 	}
+};
+
+export const exportRateCardsXlsx = async (
+	token: string,
+	params: {
+		model_ids: string[];
+		mode: RateCardXlsxExportMode;
+	}
+): Promise<Blob> => {
+	const searchParams = new URLSearchParams();
+	for (const modelId of params.model_ids) {
+		searchParams.append('model_ids', modelId);
+	}
+	searchParams.set('mode', params.mode);
+
+	const url = `${WEBUI_API_BASE_URL}/admin/billing/rate-card/export-xlsx?${searchParams.toString()}`;
+	return apiRequestBlob(url, token, { method: 'GET' });
+};
+
+export const previewRateCardsXlsxImport = async (
+	token: string,
+	params: {
+		file: File;
+		mode: RateCardXlsxImportMode;
+		scope_model_ids: string[];
+	}
+): Promise<RateCardXlsxImportPreviewResponse> => {
+	const formData = new FormData();
+	formData.append('file', params.file);
+	formData.append('mode', params.mode);
+	formData.append('scope_model_ids', JSON.stringify(params.scope_model_ids));
+
+	return apiRequest<RateCardXlsxImportPreviewResponse>(
+		`${WEBUI_API_BASE_URL}/admin/billing/rate-card/import-xlsx/preview`,
+		token,
+		{
+			method: 'POST',
+			body: formData
+		}
+	);
+};
+
+export const applyRateCardsXlsxImport = async (
+	token: string,
+	params: {
+		file: File;
+		mode: RateCardXlsxImportMode;
+		scope_model_ids: string[];
+	}
+): Promise<RateCardXlsxImportApplyResponse> => {
+	const formData = new FormData();
+	formData.append('file', params.file);
+	formData.append('mode', params.mode);
+	formData.append('scope_model_ids', JSON.stringify(params.scope_model_ids));
+
+	return apiRequest<RateCardXlsxImportApplyResponse>(
+		`${WEBUI_API_BASE_URL}/admin/billing/rate-card/import-xlsx/apply`,
+		token,
+		{
+			method: 'POST',
+			body: formData
+		}
+	);
 };
 
 // ==================== Lead Magnet API ====================
