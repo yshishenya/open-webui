@@ -52,6 +52,8 @@
 	"Full sync (deactivate missing units)": "",
 	"XLSX file": "",
 	"Choose a file": "",
+	"Preview import first": "",
+	"Fix import errors before applying": "",
 	"Preview import": "",
 	"Previewing...": "",
 	"Failed to preview import": "",

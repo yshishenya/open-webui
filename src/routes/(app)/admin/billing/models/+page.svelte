@@ -20,10 +20,14 @@
 		RateCardCreateRequest,
 		RateCardUpdateRequest,
 		RateCardXlsxExportMode,
-		RateCardXlsxImportApplyResponse,
 		RateCardXlsxImportMode,
 		RateCardXlsxImportPreviewResponse
 	} from '$lib/apis/admin/billing';
+
+	type RateCardXlsxImportApplyPayload = Pick<
+		RateCardXlsxImportPreviewResponse,
+		'summary' | 'warnings' | 'errors'
+	>; // Apply error body matches Preview shape
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
@@ -521,17 +525,22 @@
 			toast.error($i18n.t('Choose a file'));
 			return;
 		}
+		if (!importPreview) {
+			toast.error($i18n.t('Preview import first'));
+			return;
+		}
+		if (importPreview.errors?.length) {
+			toast.error($i18n.t('Fix import errors before applying'));
+			return;
+		}
 
 		importing = true;
 		try {
-			const result: RateCardXlsxImportApplyResponse = await applyRateCardsXlsxImport(
-				localStorage.token,
-				{
-					file: importFile,
-					mode: importMode,
-					scope_model_ids: modelIds
-				}
-			);
+			const result = await applyRateCardsXlsxImport(localStorage.token, {
+				file: importFile,
+				mode: importMode,
+				scope_model_ids: modelIds
+			});
 
 			toast.success(
 				$i18n.t(
@@ -543,11 +552,31 @@
 					}
 				)
 			);
+
 			showImportModal = false;
 			importFile = null;
 			importPreview = null;
 			await loadData();
 		} catch (error) {
+			// If backend returns 400 with a structured body, surface it in UI.
+			const maybePayload =
+				error && typeof error === 'object' ? (error as { data?: unknown }).data : null;
+			const payload =
+				maybePayload && typeof maybePayload === 'object'
+					? (maybePayload as Partial<RateCardXlsxImportApplyPayload>)
+					: null;
+
+			if (payload?.errors?.length && payload.summary) {
+				importPreview = {
+					summary: payload.summary,
+					warnings: payload.warnings ?? [],
+					errors: payload.errors,
+					actions_preview: []
+				};
+				toast.error($i18n.t('Fix import errors before applying'));
+				return;
+			}
+
 			console.error('Failed to apply rate card XLSX import:', error);
 			toast.error($i18n.t('Failed to apply import'));
 		} finally {
@@ -983,6 +1012,7 @@
 			title={$i18n.t('Import rate cards from XLSX')}
 			message={$i18n.t('Upload an XLSX file, preview changes, then apply.')}
 			confirmLabel={importing ? $i18n.t('Applying...') : $i18n.t('Apply import')}
+			confirmDisabled={!importFile || !importPreview || Boolean(importPreview?.errors?.length)}
 			cancelLabel={$i18n.t('Close')}
 			on:confirm={handleApplyImport}
 		>
@@ -1046,10 +1076,37 @@
 							<div class="mt-2 text-amber-700 dark:text-amber-300">
 								{$i18n.t('Warnings: {count}', { count: importPreview.warnings.length })}
 							</div>
+							<div
+								class="mt-2 max-h-40 overflow-y-auto rounded-lg border border-amber-200/60 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/20"
+							>
+								{#each importPreview.warnings.slice(0, 50) as warning (warning.row_number + warning.code)}
+									<div
+										class="px-2.5 py-1.5 border-b border-amber-200/50 dark:border-amber-900/30 last:border-b-0"
+									>
+										<span class="font-medium"># {warning.row_number}</span>
+										<span class="ml-2">{warning.message}</span>
+									</div>
+								{/each}
+							</div>
 						{/if}
 						{#if importPreview.errors?.length}
 							<div class="mt-2 text-red-700 dark:text-red-300">
 								{$i18n.t('Errors: {count}', { count: importPreview.errors.length })}
+							</div>
+							<div
+								class="mt-2 max-h-40 overflow-y-auto rounded-lg border border-red-200/60 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/20"
+							>
+								{#each importPreview.errors.slice(0, 50) as err (String(err.row_number ?? '') + err.code + String(err.column ?? ''))}
+									<div
+										class="px-2.5 py-1.5 border-b border-red-200/50 dark:border-red-900/30 last:border-b-0"
+									>
+										<span class="font-medium"># {err.row_number ?? '—'}</span>
+										{#if err.column}
+											<span class="ml-2 text-red-700/80 dark:text-red-200/80">[{err.column}]</span>
+										{/if}
+										<span class="ml-2">{err.message}</span>
+									</div>
+								{/each}
 							</div>
 						{/if}
 					</div>

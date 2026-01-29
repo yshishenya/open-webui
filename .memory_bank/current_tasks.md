@@ -365,7 +365,10 @@ This file tracks active development tasks for the Airis project. Update this fil
 - [x] **[BILLING-16][FEATURE]** Rate card XLSX import/export (admin)
 
   - Backend: export workbook + import preview/apply endpoints with validation
+  - Backend: Apply returns 400 with structured errors (matches Preview)
   - Frontend: bulk export/import flows in admin model pricing page (EN/RU)
+  - Frontend: preserve structured Apply error payloads on 400
+  - Tests: backend XLSX suite updated (incl. non-integer float rejection)
   - **Owner**: OpenCode
   - **Target**: 2026-01-28
 

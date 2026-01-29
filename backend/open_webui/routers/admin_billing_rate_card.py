@@ -20,6 +20,7 @@ from fastapi import (
     status,
 )
 from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from open_webui.env import BILLING_RATE_CARD_VERSION, ENABLE_BILLING_WALLET, SRC_LOG_LEVELS
@@ -144,6 +145,7 @@ class RateCardXlsxImportPreviewResponse(BaseModel):
 class RateCardXlsxImportApplyResponse(BaseModel):
     summary: RateCardXlsxImportSummary
     warnings: List[RateCardXlsxImportWarning] = Field(default_factory=list)
+    errors: List[RateCardXlsxImportError] = Field(default_factory=list)
 
 
 def ensure_wallet_enabled() -> None:
@@ -666,10 +668,23 @@ async def import_rate_cards_xlsx_apply(
 
     rows, parse_errors = await run_in_threadpool(parse_import_workbook, file_bytes)
     if parse_errors:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid XLSX template",
+        # Spec: Apply returns 400 with the same structured error shape as preview.
+        payload = RateCardXlsxImportApplyResponse(
+            summary=RateCardXlsxImportSummary(
+                rows_total=0,
+                rows_valid=0,
+                rows_invalid=len(parse_errors),
+                creates=0,
+                updates_via_create=0,
+                deactivations=0,
+                noops=0,
+                skipped_unknown_model=0,
+                skipped_out_of_scope=0,
+            ),
+            warnings=[],
+            errors=[RateCardXlsxImportError(**err.__dict__) for err in parse_errors],
         )
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=payload.model_dump())
 
     known_models = await run_in_threadpool(Models.get_base_models)
     known_model_ids = {model.id for model in known_models}
@@ -698,10 +713,13 @@ async def import_rate_cards_xlsx_apply(
     )
 
     if plan_errors:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="XLSX contains validation errors",
+        # Spec: Apply returns 400 with the same structured error shape as preview.
+        payload = RateCardXlsxImportApplyResponse(
+            summary=RateCardXlsxImportSummary(**summary.__dict__),
+            warnings=[RateCardXlsxImportWarning(**w.__dict__) for w in warnings],
+            errors=[RateCardXlsxImportError(**e.__dict__) for e in plan_errors],
         )
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=payload.model_dump())
 
     now = int(time.time())
 
@@ -812,6 +830,7 @@ async def import_rate_cards_xlsx_apply(
     return RateCardXlsxImportApplyResponse(
         summary=RateCardXlsxImportSummary(**summary.__dict__),
         warnings=[RateCardXlsxImportWarning(**w.__dict__) for w in warnings],
+        errors=[],
     )
 
 

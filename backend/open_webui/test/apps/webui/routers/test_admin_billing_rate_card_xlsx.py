@@ -259,6 +259,8 @@ class TestAdminBillingRateCardXlsx(AbstractPostgresTest):
             )
 
         assert response.status_code == 200
+        payload = response.json()
+        assert payload.get("errors") == []
 
         # Old should now be inactive.
         old = RateCards.get_rate_card_by_id(self.rate_a_token_in_id)
@@ -310,6 +312,83 @@ class TestAdminBillingRateCardXlsx(AbstractPostgresTest):
         errors = payload.get("errors", [])
         assert any(e.get("code") == "missing_price" for e in errors)
 
+    def test_import_apply_returns_400_with_structured_errors(self, monkeypatch) -> None:
+        from open_webui.routers import admin_billing_rate_card
+        from open_webui.utils.rate_card_xlsx import dump_scope_model_ids
+
+        monkeypatch.setattr(admin_billing_rate_card, "ENABLE_BILLING_WALLET", True)
+        monkeypatch.setattr(admin_billing_rate_card, "BILLING_RATE_CARD_VERSION", "2025-01")
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        assert ws is not None
+        ws.title = "RateCards"
+        ws.append(["model_id", "modality", "unit", "is_active", "raw_cost_per_unit_kopeks"])
+        # Invalid: active row but missing price.
+        ws.append([self.model_a, "text", "token_in", True, ""])
+
+        buf = io.BytesIO()
+        wb.save(buf)
+
+        with mock_webui_user(role="admin"):
+            response = self.fast_api_client.post(
+                self.create_url("/rate-card/import-xlsx/apply"),
+                files={
+                    "file": (
+                        "rate-cards.xlsx",
+                        buf.getvalue(),
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    )
+                },
+                data={
+                    "mode": "patch",
+                    "scope_model_ids": dump_scope_model_ids([self.model_a]),
+                },
+            )
+
+        assert response.status_code == 400
+        payload = response.json()
+        errors = payload.get("errors", [])
+        assert any(e.get("code") == "missing_price" for e in errors)
+
+    def test_import_preview_rejects_non_integer_float_price(self, monkeypatch) -> None:
+        from open_webui.routers import admin_billing_rate_card
+        from open_webui.utils.rate_card_xlsx import dump_scope_model_ids
+
+        monkeypatch.setattr(admin_billing_rate_card, "ENABLE_BILLING_WALLET", True)
+        monkeypatch.setattr(admin_billing_rate_card, "BILLING_RATE_CARD_VERSION", "2025-01")
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        assert ws is not None
+        ws.title = "RateCards"
+        ws.append(["model_id", "modality", "unit", "is_active", "raw_cost_per_unit_kopeks"])
+        ws.append([self.model_a, "text", "token_in", True, 150.5])
+
+        buf = io.BytesIO()
+        wb.save(buf)
+
+        with mock_webui_user(role="admin"):
+            response = self.fast_api_client.post(
+                self.create_url("/rate-card/import-xlsx/preview"),
+                files={
+                    "file": (
+                        "rate-cards.xlsx",
+                        buf.getvalue(),
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    )
+                },
+                data={
+                    "mode": "patch",
+                    "scope_model_ids": dump_scope_model_ids([self.model_a]),
+                },
+            )
+
+        assert response.status_code == 200
+        payload = response.json()
+        errors = payload.get("errors", [])
+        assert any(e.get("code") == "invalid_price" for e in errors)
+
     def test_import_apply_full_sync_deactivates_missing_units(self, monkeypatch) -> None:
         from open_webui.models.billing import RateCards
         from open_webui.routers import admin_billing_rate_card
@@ -349,4 +428,6 @@ class TestAdminBillingRateCardXlsx(AbstractPostgresTest):
             )
 
         assert response.status_code == 200
+        payload = response.json()
+        assert payload.get("errors") == []
         assert RateCards.get_active_rate_card(self.model_a, "text", "token_out") is None

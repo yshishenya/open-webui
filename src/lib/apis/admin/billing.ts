@@ -231,6 +231,18 @@ export interface LeadMagnetConfigRequest {
  * @param options - Fetch options
  * @returns Response data or throws error
  */
+class ApiRequestError extends Error {
+	status: number;
+	data: unknown;
+
+	constructor(message: string, status: number, data: unknown) {
+		super(message);
+		this.name = 'ApiRequestError';
+		this.status = status;
+		this.data = data;
+	}
+}
+
 async function apiRequest<T>(url: string, token: string, options: RequestInit = {}): Promise<T> {
 	const headers = new Headers(options.headers);
 	if (!headers.has('Authorization')) {
@@ -247,15 +259,21 @@ async function apiRequest<T>(url: string, token: string, options: RequestInit = 
 
 	if (!response.ok) {
 		const errorData = await response.json().catch(() => ({}));
-		const errorMessage = errorData.detail || `Request failed with status ${response.status}`;
+		const detail = (errorData as { detail?: unknown } | null)?.detail;
+		const errorMessage =
+			typeof detail === 'string' ? detail : `Request failed with status ${response.status}`;
 		console.error(`API Error [${url}]:`, errorMessage);
-		throw errorMessage;
+		throw new ApiRequestError(errorMessage, response.status, errorData);
 	}
 
 	return response.json();
 }
 
-async function apiRequestBlob(url: string, token: string, options: RequestInit = {}): Promise<Blob> {
+async function apiRequestBlob(
+	url: string,
+	token: string,
+	options: RequestInit = {}
+): Promise<Blob> {
 	const headers = new Headers(options.headers);
 	if (!headers.has('Authorization')) {
 		headers.set('Authorization', `Bearer ${token}`);
@@ -409,6 +427,7 @@ export interface RateCardXlsxImportPreviewResponse {
 export interface RateCardXlsxImportApplyResponse {
 	summary: RateCardXlsxImportSummary;
 	warnings: RateCardXlsxImportWarning[];
+	errors: RateCardXlsxImportError[];
 }
 
 export const listRateCards = async (

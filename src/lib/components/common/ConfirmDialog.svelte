@@ -20,6 +20,7 @@
 	export let confirmLabel = $i18n.t('Confirm');
 
 	export let onConfirm = () => {};
+	export let confirmDisabled = false;
 
 	export let input = false;
 	export let inputPlaceholder = '';
@@ -152,7 +153,8 @@
 						{cancelLabel}
 					</button>
 					<button
-						class="text-sm bg-gray-900 hover:bg-gray-850 text-gray-100 dark:bg-gray-100 dark:hover:bg-white dark:text-gray-800 font-medium w-full py-2 rounded-3xl transition"
+						class="text-sm bg-gray-900 hover:bg-gray-850 text-gray-100 dark:bg-gray-100 dark:hover:bg-white dark:text-gray-800 font-medium w-full py-2 rounded-3xl transition disabled:opacity-50 disabled:cursor-not-allowed"
+						disabled={confirmDisabled}
 						on:click={() => {
 							confirmHandler();
 						}}

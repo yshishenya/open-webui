@@ -53,6 +53,8 @@
 	"Full sync (deactivate missing units)": "Full sync (деактивировать отсутствующие юниты)",
 	"XLSX file": "Файл XLSX",
 	"Choose a file": "Выберите файл",
+	"Preview import first": "Сначала выполните превью импорта",
+	"Fix import errors before applying": "Исправьте ошибки импорта перед применением",
 	"Preview import": "Превью импорта",
 	"Previewing...": "Подготовка превью...",
 	"Failed to preview import": "Не удалось подготовить превью импорта",
