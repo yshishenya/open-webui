@@ -42,7 +42,12 @@
 	});
 
 	// Also check for token in localStorage (for page refresh scenarios)
-	$: if (typeof window !== 'undefined' && localStorage.getItem('token') && !loaded && shouldAutoRedirect) {
+	$: if (
+		typeof window !== 'undefined' &&
+		localStorage.getItem('token') &&
+		!loaded &&
+		shouldAutoRedirect
+	) {
 		goto(redirectUrl);
 	}
 
@@ -127,128 +132,155 @@
 
 <svelte:head>
 	<title>AIris - Интеллектуальный AI-ассистент для работы</title>
-	<meta name="description" content="Мощный AI-ассистент с поддержкой русского языка. Работайте с GPT-5.2, Gemini и другими моделями в одном месте." />
+	<meta
+		name="description"
+		content="Мощный AI-ассистент с поддержкой русского языка. Работайте с GPT-5.2, Gemini и другими моделями в одном месте."
+	/>
 </svelte:head>
 
 {#if loaded}
-<div class="min-h-screen bg-white text-gray-900 font-primary">
-	<!-- Navigation Header -->
-	<NavHeader currentPath="/welcome" />
+	<div class="min-h-screen bg-white text-gray-900 font-primary">
+		<!-- Navigation Header -->
+		<NavHeader currentPath="/welcome" />
 
-	<section class="relative overflow-hidden bg-[radial-gradient(1200px_600px_at_15%_-10%,rgba(0,0,0,0.05),transparent),radial-gradient(900px_500px_at_90%_0%,rgba(0,0,0,0.04),transparent),linear-gradient(180deg,#f7f7f8_0%,#ffffff_70%)]">
-		<div class="mx-auto max-w-[1200px] px-4 pt-12 md:pt-16 pb-10 md:pb-14">
-			<div class="relative isolate">
-				<div aria-hidden="true" class="pointer-events-none -z-10 absolute inset-0">
-					<div class="absolute -top-24 -right-32 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
-					<div class="absolute -left-16 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
-				</div>
-				<div class="relative z-10 grid lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-14 items-center motion-safe:animate-[fade-up_0.7s_ease]">
-					<div class="space-y-6">
-						<div class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-600">
-							Без VPN • Оплата в ₽ • Бесплатный старт
-						</div>
-						<h1 class="text-[32px] md:text-[40px] xl:text-[48px] font-bold tracking-tight text-gray-900 leading-[1.08]">
-							Тексты и изображения за минуты — в одном чате
-						</h1>
-						<p class="text-[15px] md:text-[16px] font-medium leading-[1.5] text-gray-600 max-w-xl">
-							Посты, письма, резюме, объявления и картинки — быстро и просто. Начните
-							бесплатно без карты. Когда понадобится больше — пополняете баланс, и списания
-							идут только за использование. Никаких подписок и ежемесячных платежей.
-						</p>
-
-						<div class="flex flex-col sm:flex-row gap-3">
-							<a
-								href={heroPrimaryHref}
-								class="inline-flex items-center justify-center h-11 md:h-10 px-6 rounded-full bg-black text-white text-sm font-semibold hover:bg-gray-900 transition-colors w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
-								on:click={handleHeroPrimaryClick}
+		<section
+			class="relative overflow-hidden bg-[radial-gradient(1200px_600px_at_15%_-10%,rgba(0,0,0,0.05),transparent),radial-gradient(900px_500px_at_90%_0%,rgba(0,0,0,0.04),transparent),linear-gradient(180deg,#f7f7f8_0%,#ffffff_70%)]"
+		>
+			<div class="mx-auto max-w-[1200px] px-4 pt-12 md:pt-16 pb-10 md:pb-14">
+				<div class="relative isolate">
+					<div aria-hidden="true" class="pointer-events-none -z-10 absolute inset-0">
+						<div
+							class="absolute -top-24 -right-32 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"
+						></div>
+						<div
+							class="absolute -left-16 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"
+						></div>
+					</div>
+					<div
+						class="relative z-10 grid lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-14 items-center motion-safe:animate-[fade-up_0.7s_ease]"
+					>
+						<div class="space-y-6">
+							<div
+								class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-600"
 							>
-								Начать бесплатно
-							</a>
-							<a
-								href="#examples"
-								class="inline-flex items-center justify-center h-11 md:h-10 px-6 rounded-full border border-gray-300 text-gray-700 text-sm font-semibold hover:border-gray-400 hover:text-gray-900 transition-colors w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
-								on:click={handleExamplesClick}
+								Без VPN • Оплата в ₽ • Бесплатный старт
+							</div>
+							<h1
+								class="text-[32px] md:text-[40px] xl:text-[48px] font-bold tracking-tight text-gray-900 leading-[1.08]"
 							>
-								Посмотреть примеры
-							</a>
-						</div>
+								Тексты и изображения за минуты — в одном чате
+							</h1>
+							<p
+								class="text-[15px] md:text-[16px] font-medium leading-[1.5] text-gray-600 max-w-xl"
+							>
+								Посты, письма, резюме, объявления и картинки — быстро и просто. Начните бесплатно
+								без карты. Когда понадобится больше — пополняете баланс, и списания идут только за
+								использование. Никаких подписок и ежемесячных платежей.
+							</p>
 
-						<div class="text-[12px] font-medium text-gray-500">Без карты • Без подписки и ежемесячных платежей</div>
+							<div class="flex flex-col sm:flex-row gap-3">
+								<a
+									href={heroPrimaryHref}
+									class="inline-flex items-center justify-center h-11 md:h-10 px-6 rounded-full bg-black text-white text-sm font-semibold hover:bg-gray-900 transition-colors w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
+									on:click={handleHeroPrimaryClick}
+								>
+									Начать бесплатно
+								</a>
+								<a
+									href="#examples"
+									class="inline-flex items-center justify-center h-11 md:h-10 px-6 rounded-full border border-gray-300 text-gray-700 text-sm font-semibold hover:border-gray-400 hover:text-gray-900 transition-colors w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
+									on:click={handleExamplesClick}
+								>
+									Посмотреть примеры
+								</a>
+							</div>
 
-						<div class="flex flex-wrap gap-2">
-							{#each trustChips as item}
-								<div class="rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-700">
-									{item}
-								</div>
-							{/each}
-						</div>
+							<div class="text-[12px] font-medium text-gray-500">
+								Без карты • Без подписки и ежемесячных платежей
+							</div>
 
-						<div class="space-y-3">
-							<div class="text-xs font-semibold text-gray-600">Попробовать задачу:</div>
-							<div class="flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible pb-1">
-								{#each presets as preset}
-									<button
-										type="button"
-										class="shrink-0 rounded-full border border-gray-200 bg-white/90 px-4 py-2 text-[12px] font-medium text-gray-700 hover:border-gray-300 hover:text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
-										on:click={() => handlePresetClick(preset)}
+							<div class="flex flex-wrap gap-2">
+								{#each trustChips as item}
+									<div
+										class="rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-700"
 									>
-										{preset.label}
-									</button>
+										{item}
+									</div>
 								{/each}
 							</div>
-						</div>
-					</div>
 
-					<div class="relative">
-						<div class="relative rounded-[32px] border border-white/10 bg-[#0b0d12] px-4 pb-6 pt-5 shadow-[0_40px_80px_rgba(15,23,42,0.25)]">
-							<div class="absolute inset-0 rounded-[32px] bg-[radial-gradient(70%_60%_at_50%_0%,rgba(255,255,255,0.08),rgba(0,0,0,0))]"></div>
-							<div class="relative z-10 rounded-[26px] bg-[#0f1218] p-2 ring-1 ring-white/10">
-								<picture>
-									<source type="image/webp" srcset={`${heroImage} 1x, ${heroImage2x} 2x`} />
-									<img
-										src={heroImageFallback}
-										srcset={`${heroImageFallback} 1x, ${heroImageFallback2x} 2x`}
-										alt="Интерфейс Airis: чат для создания текстов и изображений"
-										class="w-full rounded-[20px] border border-white/5 object-cover"
-										loading="eager"
-										decoding="async"
-										fetchpriority="high"
-										width={heroImageWidth}
-										height={heroImageHeight}
-									/>
-								</picture>
+							<div class="space-y-3">
+								<div class="text-xs font-semibold text-gray-600">Попробовать задачу:</div>
+								<div class="flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible pb-1">
+									{#each presets as preset}
+										<button
+											type="button"
+											class="shrink-0 rounded-full border border-gray-200 bg-white/90 px-4 py-2 text-[12px] font-medium text-gray-700 hover:border-gray-300 hover:text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
+											on:click={() => handlePresetClick(preset)}
+										>
+											{preset.label}
+										</button>
+									{/each}
+								</div>
 							</div>
-							<div class="absolute right-6 bottom-6 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-xs font-semibold text-white">
-								Интерфейс AIris
+						</div>
+
+						<div class="relative">
+							<div
+								class="relative rounded-[32px] border border-white/10 bg-[#0b0d12] px-4 pb-6 pt-5 shadow-[0_40px_80px_rgba(15,23,42,0.25)]"
+							>
+								<div
+									class="absolute inset-0 rounded-[32px] bg-[radial-gradient(70%_60%_at_50%_0%,rgba(255,255,255,0.08),rgba(0,0,0,0))]"
+								></div>
+								<div class="relative z-10 rounded-[26px] bg-[#0f1218] p-2 ring-1 ring-white/10">
+									<picture>
+										<source type="image/webp" srcset={`${heroImage} 1x, ${heroImage2x} 2x`} />
+										<img
+											src={heroImageFallback}
+											srcset={`${heroImageFallback} 1x, ${heroImageFallback2x} 2x`}
+											alt="Интерфейс Airis: чат для создания текстов и изображений"
+											class="w-full rounded-[20px] border border-white/5 object-cover"
+											loading="eager"
+											decoding="async"
+											fetchpriority="high"
+											width={heroImageWidth}
+											height={heroImageHeight}
+										/>
+									</picture>
+								</div>
+								<div
+									class="absolute right-6 bottom-6 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-xs font-semibold text-white"
+								>
+									Интерфейс AIris
+								</div>
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
-		</div>
-	</section>
+		</section>
 
-	<WelcomePhaseOneSections {leadMagnetConfig} />
+		<WelcomePhaseOneSections {leadMagnetConfig} />
 
-	<section id="cta" class="welcome-section welcome-section--cta">
-		<div class="mx-auto max-w-[1200px] px-4">
-			<CTASection
-				title="Готовы попробовать Airis?"
-				description="Начните бесплатно без карты. Без VPN, оплата в ₽. Без подписки и ежемесячных платежей — списания идут только за использование."
-				buttonText="Начать бесплатно"
-				buttonHref={finalCtaHref}
-				tone="dark"
-				onClick={handleFinalCtaClick}
-			/>
-		</div>
-	</section>
+		<section id="cta" class="welcome-section welcome-section--cta">
+			<div class="mx-auto max-w-[1200px] px-4">
+				<CTASection
+					title="Готовы попробовать Airis?"
+					description="Начните бесплатно без карты. Без VPN, оплата в ₽. Без подписки и ежемесячных платежей — списания идут только за использование."
+					buttonText="Начать бесплатно"
+					buttonHref={finalCtaHref}
+					tone="dark"
+					onClick={handleFinalCtaClick}
+				/>
+			</div>
+		</section>
 
-	<footer class="welcome-footer">
-		<div class="mx-auto max-w-[1200px] px-4 pb-24 md:pb-16">
-			<FooterLinks />
-		</div>
-	</footer>
-</div>
+		<footer class="welcome-footer">
+			<div class="mx-auto max-w-[1200px] px-4 pb-24 md:pb-16">
+				<FooterLinks />
+			</div>
+		</footer>
+	</div>
 {/if}
 
 <style>

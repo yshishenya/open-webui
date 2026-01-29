@@ -20,6 +20,7 @@ python3 -m alembic upgrade head
 ```
 
 This will create:
+
 - `email_verification_token` table
 - `password_reset_token` table
 - Add `email_verified` and `terms_accepted_at` columns to `user` table
@@ -116,6 +117,7 @@ REDIS_URL=redis://localhost:6379/0
 ### Option B: Use Alternative SMTP (Gmail, Mailgun, etc.)
 
 For Gmail (development only):
+
 ```bash
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
@@ -125,6 +127,7 @@ SMTP_USE_TLS=true
 ```
 
 For Mailgun:
+
 ```bash
 SMTP_HOST=smtp.mailgun.org
 SMTP_PORT=587
@@ -183,49 +186,51 @@ npm run dev
 Frontend implementation needed. The widget should:
 
 ```html
-<script async src="https://telegram.org/js/telegram-widget.js?22"
-        data-telegram-login="YOUR_BOT_NAME"
-        data-size="large"
-        data-onauth="onTelegramAuth(user)"
-        data-request-access="write">
-</script>
+<script
+	async
+	src="https://telegram.org/js/telegram-widget.js?22"
+	data-telegram-login="YOUR_BOT_NAME"
+	data-size="large"
+	data-onauth="onTelegramAuth(user)"
+	data-request-access="write"
+></script>
 
 <script>
-function onTelegramAuth(user) {
-  // Send to backend
-  fetch('/api/v1/oauth/telegram/callback', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(user)
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.requires_email) {
-      // Show email collection form
-      showEmailForm(data.temp_session);
-    } else {
-      // Login successful
-      setAuthToken(data.token);
-    }
-  });
-}
+	function onTelegramAuth(user) {
+		// Send to backend
+		fetch('/api/v1/oauth/telegram/callback', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(user)
+		})
+			.then((res) => res.json())
+			.then((data) => {
+				if (data.requires_email) {
+					// Show email collection form
+					showEmailForm(data.temp_session);
+				} else {
+					// Login successful
+					setAuthToken(data.token);
+				}
+			});
+	}
 
-function submitEmail(tempSession, email, termsAccepted) {
-  fetch('/api/v1/oauth/telegram/complete-profile', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      temp_session: tempSession,
-      email: email,
-      terms_accepted: termsAccepted
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
-    setAuthToken(data.token);
-    // Check email for verification link
-  });
-}
+	function submitEmail(tempSession, email, termsAccepted) {
+		fetch('/api/v1/oauth/telegram/complete-profile', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				temp_session: tempSession,
+				email: email,
+				terms_accepted: termsAccepted
+			})
+		})
+			.then((res) => res.json())
+			.then((data) => {
+				setAuthToken(data.token);
+				// Check email for verification link
+			});
+	}
 </script>
 ```
 
@@ -267,6 +272,7 @@ SELECT id, email, name, oauth FROM "user" WHERE oauth IS NOT NULL;
 ## 8. Check Logs
 
 Look for log entries confirming:
+
 - Email sent successfully
 - OAuth callback received
 - State token validated
@@ -303,6 +309,7 @@ done
 ### Issue: Email not sending
 
 **Solution**:
+
 - Check SMTP credentials in `.env`
 - Verify SMTP server is reachable
 - Check backend logs for SMTP errors
@@ -311,6 +318,7 @@ done
 ### Issue: OAuth redirect not working
 
 **Solution**:
+
 - Verify redirect URI matches exactly in OAuth provider settings
 - Check that `VK_REDIRECT_URI` / `YANDEX_REDIRECT_URI` / `TELEGRAM_AUTH_ORIGIN` are correct
 - Ensure no trailing slashes in URLs
@@ -318,6 +326,7 @@ done
 ### Issue: State token validation failed
 
 **Solution**:
+
 - Ensure Redis is running
 - Check `REDIS_URL` in `.env`
 - Verify Redis connection in backend logs
@@ -325,6 +334,7 @@ done
 ### Issue: Telegram signature verification failed
 
 **Solution**:
+
 - Verify `TELEGRAM_BOT_TOKEN` is correct
 - Check that auth_date is recent (within 24 hours)
 - Ensure all Telegram data is passed correctly
@@ -332,6 +342,7 @@ done
 ### Issue: Migration fails
 
 **Solution**:
+
 ```bash
 # Reset migration (development only!)
 python3 -m alembic downgrade -1
@@ -372,6 +383,7 @@ Key metrics to monitor:
 ## Next Steps
 
 Once Phase 1 is fully tested and deployed:
+
 - Implement Phase 2: Public landing page
 - Add OAuth buttons to frontend
 - Implement YooKassa payment integration
@@ -383,6 +395,7 @@ Once Phase 1 is fully tested and deployed:
 **Need Help?**
 
 Check the logs in `.qoder/` directory for detailed implementation notes:
+
 - `PHASE1_COMPLETION_SUMMARY.md` - Full implementation details
 - `implementation-summary.md` - Earlier progress report
 - `RUSSIAN_OAUTH_SETUP.md` - OAuth provider setup guide

@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -27,10 +28,13 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document provides comprehensive data model documentation for the Knowledge ORM model in open-webui. It explains the entity structure, access control semantics, and how the model integrates with the retrieval system and file management for Retrieval-Augmented Generation (RAG). It also covers common operations such as knowledge base discovery, access validation, listing user-owned knowledge bases, and managing content ingestion.
 
 ## Project Structure
+
 The Knowledge model resides in the backend models layer and is exposed via FastAPI routers. It integrates with:
+
 - Access control utilities for permission checks
 - Retrieval vector database clients for indexing and querying
 - File management for ingestion and metadata
@@ -66,6 +70,7 @@ KR --> SP
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L36-L115)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L120)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L124-L151)
@@ -75,10 +80,12 @@ KR --> SP
 - [provider.py](file://backend/open_webui/storage/provider.py#L1-L120)
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L36-L115)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L120)
 
 ## Core Components
+
 - Knowledge entity: Represents a knowledge base with identifiers, ownership, metadata, access control, and timestamps.
 - KnowledgeFile join entity: Links knowledge bases to files.
 - KnowledgeTable service: Provides CRUD and access-control-aware operations.
@@ -88,6 +95,7 @@ KR --> SP
 - File and storage integration: Manages ingestion and persistence.
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L36-L115)
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L138-L371)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L200)
@@ -98,7 +106,9 @@ KR --> SP
 - [provider.py](file://backend/open_webui/storage/provider.py#L1-L120)
 
 ## Architecture Overview
+
 The Knowledge model underpins RAG by:
+
 - Storing knowledge base metadata and access control
 - Associating files via KnowledgeFile
 - Triggering ingestion into the vector database when files are added
@@ -125,6 +135,7 @@ Router-->>Client : KnowledgeFilesResponse
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L276-L341)
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L256-L282)
 - [retrieval.py](file://backend/open_webui/retrieval/utils.py#L135-L187)
@@ -133,6 +144,7 @@ Router-->>Client : KnowledgeFilesResponse
 ## Detailed Component Analysis
 
 ### Knowledge Entity and Access Control Semantics
+
 - Fields:
   - id: unique identifier for the knowledge base
   - user_id: owner identifier
@@ -189,15 +201,19 @@ KnowledgeFile "1" <-- "many" File : "contains"
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L36-L115)
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L84-L115)
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L36-L115)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L124-L151)
 
 ### Access Control Validation Workflow
+
 Access validation follows a strict precedence:
+
 - Owner always has write access
 - Group membership is derived and checked against access_control
 - Public vs private modes are enforced by has_access()
@@ -214,14 +230,17 @@ CheckPerms --> |No| Deny["Deny access"]
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L189-L210)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L124-L151)
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L189-L210)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L124-L151)
 
 ### KnowledgeFile Join and File Management
+
 - KnowledgeFile links knowledge bases to files with timestamps and ownership
 - Operations:
   - Add file to knowledge base
@@ -244,16 +263,19 @@ Router-->>Router : return KnowledgeFilesResponse
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L276-L341)
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L256-L282)
 - [retrieval.py](file://backend/open_webui/retrieval/utils.py#L135-L187)
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L84-L115)
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L235-L313)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L276-L341)
 
 ### Retrieval Integration and Indexing
+
 - Vector database client selection is configured centrally
 - Retrieval utilities query and enrich results from the vector database
 - Knowledge base ID serves as the collection name for vector operations
@@ -274,16 +296,19 @@ Router-->>Router : return success
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L124-L179)
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
 - [retrieval.py](file://backend/open_webui/retrieval/utils.py#L135-L187)
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L124-L179)
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
 - [retrieval.py](file://backend/open_webui/retrieval/utils.py#L135-L187)
 
 ### Migration History and Legacy Data
+
 - Initial knowledge table included a data column for raw content
 - Later migration removed the data column and introduced a dedicated KnowledgeFile join table
 - Legacy document data was migrated into knowledge records with meta indicating legacy/document flags
@@ -296,14 +321,17 @@ C --> D["Migrate legacy document rows to knowledge"]
 ```
 
 **Diagram sources**
+
 - [6a39f3d8e55c_add_knowledge_table.py](file://backend/open_webui/migrations/versions/6a39f3d8e55c_add_knowledge_table.py#L21-L77)
 - [3e0e00844bb0_add_knowledge_file_table.py](file://backend/open_webui/migrations/versions/3e0e00844bb0_add_knowledge_file_table.py#L112-L160)
 
 **Section sources**
+
 - [6a39f3d8e55c_add_knowledge_table.py](file://backend/open_webui/migrations/versions/6a39f3d8e55c_add_knowledge_table.py#L21-L77)
 - [3e0e00844bb0_add_knowledge_file_table.py](file://backend/open_webui/migrations/versions/3e0e00844bb0_add_knowledge_file_table.py#L112-L160)
 
 ## Dependency Analysis
+
 - Knowledge depends on:
   - Users (via user_id)
   - Groups (for group-based permissions)
@@ -324,6 +352,7 @@ Files --> Storage["Storage Provider"]
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L36-L115)
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L189-L210)
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
@@ -331,6 +360,7 @@ Files --> Storage["Storage Provider"]
 - [provider.py](file://backend/open_webui/storage/provider.py#L1-L120)
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L36-L115)
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L189-L210)
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
@@ -338,6 +368,7 @@ Files --> Storage["Storage Provider"]
 - [provider.py](file://backend/open_webui/storage/provider.py#L1-L120)
 
 ## Performance Considerations
+
 - Access control checks involve group membership resolution; cache group memberships at the router layer if needed.
 - Vector indexing is I/O bound; batch operations reduce overhead.
 - Large knowledge bases benefit from efficient filtering and pagination in routers.
@@ -346,7 +377,9 @@ Files --> Storage["Storage Provider"]
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 Common issues and resolutions:
+
 - Unauthorized access:
   - Ensure user has appropriate read/write permissions or is the owner.
   - Verify access_control mode and group membership.
@@ -358,12 +391,14 @@ Common issues and resolutions:
   - If embedding processing was bypassed, manual cleanup of orphaned collections may be required.
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L182-L211)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L276-L341)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L405-L483)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L485-L546)
 
 ## Conclusion
+
 The Knowledge model provides a robust foundation for RAG by encapsulating knowledge base metadata, access control, and file associations. Its integration with retrieval and storage enables scalable content ingestion and querying. Proper use of access control ensures secure sharing while maintaining flexibility for public, private, and group-scoped knowledge bases.
 
 [No sources needed since this section summarizes without analyzing specific files]
@@ -371,6 +406,7 @@ The Knowledge model provides a robust foundation for RAG by encapsulating knowle
 ## Appendices
 
 ### Common Operations and Examples
+
 - Knowledge base discovery:
   - GET /knowledge: lists knowledge bases with read access
   - GET /knowledge/list: lists knowledge bases with write access
@@ -386,6 +422,7 @@ The Knowledge model provides a robust foundation for RAG by encapsulating knowle
   - Optionally remove the underlying file and its collection
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L39-L76)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L182-L211)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L276-L341)
@@ -393,10 +430,12 @@ The Knowledge model provides a robust foundation for RAG by encapsulating knowle
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L485-L546)
 
 ### Access Control Modes Reference
+
 - None: public read access for users with the "user" role
 - {} (empty object): private access restricted to the owner
 - Custom permissions: specify group_ids and user_ids for read and write
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L46-L62)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L124-L151)

@@ -9,6 +9,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [OAuth2 Flow Implementation](#oauth2-flow-implementation)
 3. [Common Configuration Issues](#common-configuration-issues)
@@ -18,9 +19,11 @@
 7. [Error Handling and Recovery](#error-handling-and-recovery)
 
 ## Introduction
+
 This document provides comprehensive guidance on OAuth integration errors in open-webui, focusing on the implementation of OAuth2 flows for Google, GitHub, and Microsoft providers. The system supports authorization code exchange, token refresh, and user profile retrieval through a robust OAuth framework. The documentation covers common misconfigurations, provider-specific behaviors, debugging techniques, and configuration management for OAuth settings in environment variables and database storage.
 
 **Section sources**
+
 - [oauth.py](file://backend/open_webui/utils/oauth.py#L1-L1581)
 - [auths.py](file://backend/open_webui/routers/auths.py#L1-L1185)
 
@@ -48,6 +51,7 @@ Frontend->>User : Display Authenticated Interface
 ```
 
 **Diagram sources**
+
 - [oauth.py](file://backend/open_webui/utils/oauth.py#L1263-L1581)
 - [auths.py](file://backend/open_webui/routers/auths.py#L753-L829)
 
@@ -79,25 +83,30 @@ R --> S[Redirect to Application]
 ```
 
 **Diagram sources**
+
 - [oauth.py](file://backend/open_webui/utils/oauth.py#L718-L804)
 - [auths.py](file://backend/open_webui/routers/auths.py#L507-L632)
 
 ## Common Configuration Issues
 
 ### Redirect URI Mismatch
+
 One of the most common OAuth integration errors is incorrect redirect URI configuration. The redirect URI must exactly match what is registered with the OAuth provider. In open-webui, the redirect URI is constructed dynamically based on the application's base URL and the provider-specific endpoint.
 
 For Google OAuth, the redirect URI should be:
+
 ```
 https://your-domain.com/oauth/callback/google
 ```
 
 For Microsoft OAuth:
+
 ```
 https://your-domain.com/oauth/callback/microsoft
 ```
 
 For GitHub OAuth:
+
 ```
 https://your-domain.com/oauth/callback/github
 ```
@@ -105,6 +114,7 @@ https://your-domain.com/oauth/callback/github
 The system automatically generates these URIs, but they can be overridden using environment variables like `GOOGLE_REDIRECT_URI`, `MICROSOFT_REDIRECT_URI`, and `GITHUB_CLIENT_REDIRECT_URI`.
 
 ### Client Secret and ID Errors
+
 Misconfigured client secrets or IDs will prevent successful authentication. These values must be correctly set in the environment variables:
 
 - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` for Google
@@ -114,6 +124,7 @@ Misconfigured client secrets or IDs will prevent successful authentication. Thes
 The system validates these credentials during the OAuth client registration process and logs appropriate error messages if they are missing or invalid.
 
 ### Scope Permission Issues
+
 Insufficient scope permissions can lead to incomplete user profile retrieval or API access failures. The default scopes for each provider are:
 
 - **Google**: `openid email profile` (configurable via `GOOGLE_OAUTH_SCOPE`)
@@ -123,12 +134,14 @@ Insufficient scope permissions can lead to incomplete user profile retrieval or 
 If additional API access is required, these scopes should be expanded accordingly. For example, to access GitHub repositories, add `repo` scope.
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L632-L829)
 - [oauth.py](file://backend/open_webui/utils/oauth.py#L300-L302)
 
 ## Provider-Specific Quirks
 
 ### Google OAuth
+
 Google's OAuth implementation has several specific characteristics:
 
 1. **Token Revocation**: When a user revokes access through their Google account settings, subsequent token refresh attempts will fail with an "invalid_grant" error. The system automatically detects this condition and removes the invalid OAuth session.
@@ -141,6 +154,7 @@ Google's OAuth implementation has several specific characteristics:
    ```
 
 ### GitHub OAuth
+
 GitHub presents unique challenges in its OAuth implementation:
 
 1. **SSO Requirements**: For organizations with SSO (Single Sign-On) enabled, users must authorize the application through their organization's SSO provider. This requires additional handling as the standard OAuth flow may redirect to an SSO consent screen.
@@ -173,13 +187,16 @@ Backend->>Backend : Complete User Authentication
 ```
 
 **Diagram sources**
+
 - [oauth.py](file://backend/open_webui/utils/oauth.py#L1342-L1380)
 - [auths.py](file://backend/open_webui/routers/auths.py#L219-L299)
 
 ### Microsoft OAuth
+
 Microsoft's OAuth implementation has several distinctive features:
 
 1. **Tenant-Specific Configuration**: Microsoft OAuth requires a tenant ID, which is used to construct the OpenID Connect configuration URL:
+
    ```
    https://login.microsoftonline.com/{tenant-id}/v2.0/.well-known/openid-configuration?appid={client-id}
    ```
@@ -189,12 +206,14 @@ Microsoft's OAuth implementation has several distinctive features:
 3. **Picture URL**: Microsoft provides a direct endpoint for retrieving user profile pictures, which is configured via `MICROSOFT_CLIENT_PICTURE_URL`.
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L660-L687)
 - [oauth.py](file://backend/open_webui/utils/oauth.py#L1418-L1433)
 
 ## Debugging OAuth Integration
 
 ### Tracing OAuth Handshakes
+
 To debug OAuth handshake issues, enable detailed logging by setting the appropriate log level in the environment. The OAuth module uses structured logging to track each step of the authentication process:
 
 1. **Authorization Request**: Logs the redirect to the provider's authorization endpoint
@@ -204,11 +223,13 @@ To debug OAuth handshake issues, enable detailed logging by setting the appropri
 5. **Session Creation**: Logs the creation of the OAuth session in the database
 
 Common error patterns to look for:
+
 - `Missing state parameter`: Indicates a potential CSRF attack or session expiration
 - `Invalid_grant`: Typically means the authorization code has already been used or expired
 - `Unauthorized`: Usually indicates incorrect client credentials
 
 ### Inspecting Callback Payloads
+
 When debugging callback issues, it's essential to inspect the actual payloads being exchanged. The system provides error handling that captures and sanitizes error messages for user display while logging the full details for debugging:
 
 ```python
@@ -230,6 +251,7 @@ def _build_oauth_callback_error_message(e: Exception) -> str:
 This function ensures that users receive meaningful error messages without exposing sensitive system information.
 
 ### Handling Provider API Rate Limits
+
 OAuth providers implement rate limiting to prevent abuse. The open-webui system handles these limits through:
 
 1. **Retry Logic**: For transient errors, the system may implement exponential backoff retries
@@ -239,12 +261,14 @@ OAuth providers implement rate limiting to prevent abuse. The open-webui system 
 When a rate limit is encountered, the provider typically returns a 429 status code or includes rate limit information in the response headers. The application should gracefully handle these conditions by informing the user and suggesting they try again later.
 
 **Section sources**
+
 - [oauth.py](file://backend/open_webui/utils/oauth.py#L167-L195)
 - [oauth.py](file://backend/open_webui/utils/oauth.py#L552-L597)
 
 ## Configuration Management
 
 ### Environment Variables
+
 OAuth configuration is primarily managed through environment variables, which are loaded at application startup:
 
 ```mermaid
@@ -266,12 +290,14 @@ end
 ```
 
 **Diagram sources**
+
 - [config.py](file://backend/open_webui/config.py#L632-L829)
 - [env.py](file://backend/open_webui/env.py)
 
 These variables are used to configure the OAuth providers during application initialization. The `load_oauth_providers()` function in `config.py` checks for the presence of required variables and registers each provider accordingly.
 
 ### Database Storage
+
 OAuth sessions are securely stored in the database with encryption:
 
 ```mermaid
@@ -298,6 +324,7 @@ OAUTH_SESSION ||--o{ USERS : "user_id"
 ```
 
 **Diagram sources**
+
 - [oauth_sessions.py](file://backend/open_webui/models/oauth_sessions.py#L25-L43)
 - [users.py](file://backend/open_webui/models/users.py)
 
@@ -318,5 +345,6 @@ The system implements comprehensive error handling for OAuth integration issues:
 The error handling framework converts various exception types into user-friendly messages while preserving the underlying details for debugging purposes. This balance ensures a good user experience without compromising security or debuggability.
 
 **Section sources**
+
 - [oauth.py](file://backend/open_webui/utils/oauth.py#L1507-L1522)
 - [oauth_sessions.py](file://backend/open_webui/models/oauth_sessions.py#L108-L144)

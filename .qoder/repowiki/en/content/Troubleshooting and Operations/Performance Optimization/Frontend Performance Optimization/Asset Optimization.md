@@ -17,6 +17,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Vite Configuration for Build Performance](#vite-configuration-for-build-performance)
 2. [Code Splitting and Route Optimization](#code-splitting-and-route-optimization)
 3. [CSS Delivery and Tailwind CSS Optimization](#css-delivery-and-tailwind-css-optimization)
@@ -36,6 +37,7 @@ For production builds, the configuration enables source maps (`build.sourcemap: 
 The development scripts in `package.json` include specific commands for development (`dev` and `dev:5050`) that first fetch Pyodide assets before starting the Vite development server, ensuring all dependencies are available for optimal startup performance.
 
 **Section sources**
+
 - [vite.config.ts](file://vite.config.ts#L1-L33)
 - [package.json](file://package.json#L6-L8)
 
@@ -50,6 +52,7 @@ The `+layout.svelte` file serves as a shared layout component that is loaded onc
 Dynamic imports are used strategically within components to lazy-load heavy functionality only when needed. For example, the `FullHeightIframe.svelte` component uses dynamic imports to load Alpine.js only when the content contains Alpine directives, preventing unnecessary loading of this library for most use cases.
 
 **Section sources**
+
 - [src/routes/+layout.svelte](file://src/routes/+layout.svelte#L1-L800)
 - [package.json](file://package.json#L5-L11)
 
@@ -64,6 +67,7 @@ The `app.css` file serves as the global stylesheet, importing the Tailwind base 
 The `tailwind.css` file imports the Tailwind directives and includes compatibility styles for Tailwind CSS v4, ensuring consistent border colors across elements. It also defines custom component styles for form elements, scrollbars, and interactive states, using Tailwind's `@apply` directive to maintain consistency with the design system.
 
 **Section sources**
+
 - [tailwind.config.js](file://tailwind.config.js#L1-L47)
 - [src/app.css](file://src/app.css#L1-L800)
 - [src/tailwind.css](file://src/tailwind.css#L1-L75)
@@ -79,6 +83,7 @@ Image optimization is handled through utility functions in `src/lib/utils/index.
 For user-generated content, the application uses dynamic image loading and caching strategies. The `generateInitialsImage` function creates placeholder images with user initials when profile images are not available, using canvas rendering to generate consistent visual identifiers. This function also includes fingerprint detection to identify potential evasion techniques and fall back to default images when necessary.
 
 **Section sources**
+
 - [static/themes/rosepine.css](file://static/themes/rosepine.css#L1-L132)
 - [static/themes/rosepine-dawn.css](file://static/themes/rosepine-dawn.css#L1-L133)
 - [src/lib/utils/index.ts](file://src/lib/utils/index.ts#L273-L354)
@@ -96,6 +101,7 @@ Lifecycle management is handled properly with `onMount` and `onDestroy` hooks th
 This design pattern ensures that loading animations and AI processing indicators are only active when visible to the user, conserving CPU resources and battery life, particularly important for mobile devices and long-running AI operations.
 
 **Section sources**
+
 - [src/lib/components/common/Loader.svelte](file://src/lib/components/common/Loader.svelte#L1-L48)
 
 ## Font Loading and Icon Optimization
@@ -111,6 +117,7 @@ Icons are implemented as SVG components, which are more efficient than raster im
 For dynamic content that may include external resources, the `FullHeightIframe.svelte` component implements on-demand loading of Alpine.js when Alpine directives are detected in the content. This prevents unnecessary loading of the Alpine.js library for content that doesn't require it, optimizing both initial load time and runtime performance.
 
 **Section sources**
+
 - [src/app.css](file://src/app.css#L3-L31)
 - [src/lib/components/common/FullHeightIframe.svelte](file://src/lib/components/common/FullHeightIframe.svelte#L46-L96)
 
@@ -127,6 +134,7 @@ Theme switching is managed through JavaScript that adds or removes theme classes
 The CSS architecture separates theme variables from component styles, with base colors defined as CSS variables that can be overridden by theme files. This modular approach makes it easy to add new themes by simply creating a new CSS file with the appropriate overrides, without modifying the core application code.
 
 **Section sources**
+
 - [static/themes/rosepine.css](file://static/themes/rosepine.css#L1-L132)
 - [static/themes/rosepine-dawn.css](file://static/themes/rosepine-dawn.css#L1-L133)
 - [src/app.css](file://src/app.css#L33-L36)

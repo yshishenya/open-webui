@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [WebSocket Event Processing Pipeline](#websocket-event-processing-pipeline)
 3. [Message Transformation and Enrichment](#message-transformation-and-enrichment)
@@ -23,6 +24,7 @@
 8. [Conclusion](#conclusion)
 
 ## Introduction
+
 The open-webui application implements a sophisticated data transformation and enrichment process for WebSocket events, enabling real-time communication with enhanced context and metadata. This document details the pipeline from raw message data to enriched broadcast format, focusing on how chat messages are enhanced with sources, how user presence information is enriched, and how tool execution results are integrated. The system leverages WebSocket technology with Redis for distributed state management, ensuring low-latency communication across multiple instances.
 
 ## WebSocket Event Processing Pipeline
@@ -41,10 +43,12 @@ G --> H[Broadcast]
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L351)
 - [+layout.svelte](file://src/routes/+layout.svelte#L97-L106)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L351)
 - [+layout.svelte](file://src/routes/+layout.svelte#L97-L106)
 
@@ -65,10 +69,12 @@ F --> G[Broadcast Ready]
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L723-L803)
 - [chats.py](file://backend/open_webui/models/chats.py#L304-L309)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L723-L803)
 - [chats.py](file://backend/open_webui/models/chats.py#L304-L309)
 
@@ -88,10 +94,12 @@ E --> F[Client Display]
 ```
 
 **Diagram sources**
+
 - [middleware.py](file://backend/open_webui/utils/middleware.py#L461-L486)
 - [Citations.svelte](file://src/lib/components/chat/Messages/Citations.svelte#L53-L171)
 
 **Section sources**
+
 - [middleware.py](file://backend/open_webui/utils/middleware.py#L461-L486)
 - [Citations.svelte](file://src/lib/components/chat/Messages/Citations.svelte#L53-L171)
 
@@ -116,10 +124,12 @@ Server->>ClientA : ydoc : awareness : update
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L448-L681)
 - [Collaboration.ts](file://src/lib/components/common/RichTextInput/Collaboration.ts#L87-L256)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L448-L681)
 - [Collaboration.ts](file://src/lib/components/common/RichTextInput/Collaboration.ts#L87-L256)
 
@@ -140,10 +150,12 @@ F --> H[Improved Responsiveness]
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L122-L148)
 - [utils.py](file://backend/open_webui/socket/utils.py#L49-L117)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L122-L148)
 - [utils.py](file://backend/open_webui/socket/utils.py#L49-L117)
 
@@ -171,12 +183,15 @@ Backend->>Frontend : done event
 ```
 
 **Diagram sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L447-L475)
 - [chat.py](file://backend/open_webui/utils/chat.py#L86-L127)
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L447-L475)
 - [chat.py](file://backend/open_webui/utils/chat.py#L86-L127)
 
 ## Conclusion
+
 The data transformation and enrichment process in open-webui demonstrates a sophisticated approach to real-time communication with contextual enhancement. By leveraging WebSocket technology, Redis for distributed state management, and Yjs for real-time collaboration, the system provides a responsive and feature-rich user experience. The pipeline effectively transforms raw message data into enriched content with sources, citations, and metadata, while implementing performance optimizations to minimize latency. This architecture enables seamless integration of tool execution results, collaborative editing, and real-time updates across multiple clients.

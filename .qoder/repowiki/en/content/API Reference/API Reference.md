@@ -14,6 +14,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Authentication](#authentication)
 3. [API Endpoints](#api-endpoints)
@@ -31,6 +32,7 @@
 9. [Rate Limiting](#rate-limiting)
 
 ## Introduction
+
 The open-webui application provides a comprehensive RESTful API for interacting with its core functionality, including user authentication, chat management, model configuration, file handling, and user management. This documentation details all available API endpoints, organized by their respective router modules.
 
 The API is built using FastAPI and follows RESTful principles. It supports both cookie-based authentication (for web interface) and token-based authentication (for programmatic access). The API also provides WebSocket endpoints for real-time interactions, particularly for chat streaming and collaborative editing.
@@ -38,14 +40,17 @@ The API is built using FastAPI and follows RESTful principles. It supports both 
 All API endpoints are versioned through the application's release cycle, with backward compatibility maintained for stable features. The API is accessible at the `/api` prefix, with specific endpoints organized under various router modules.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L656-L800)
 
 ## Authentication
+
 The open-webui API supports multiple authentication methods including JWT tokens, API keys, and OAuth2. The primary authentication mechanism is JWT-based, where users receive a token upon successful login that must be included in subsequent requests.
 
 Authentication can be performed via the `/api/auths/signin` endpoint with user credentials, or through OAuth2 providers configured in the system. The API also supports API key authentication for programmatic access, which can be enabled or restricted based on endpoint permissions.
 
 For requests requiring authentication, the token should be included in the `Authorization` header as a Bearer token:
+
 ```
 Authorization: Bearer <your_token>
 ```
@@ -55,15 +60,18 @@ Alternatively, the token can be provided as a cookie named `token`.
 The API supports various OAuth2 providers including Google, Microsoft, GitHub, and custom OIDC providers. OAuth2 configuration is managed through environment variables and can be dynamically registered.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L106-L751)
 - [config.py](file://backend/open_webui/config.py#L289-L632)
 
 ## API Endpoints
 
 ### Auths
+
 The auths module handles user authentication, session management, and user registration.
 
 #### Get Session User
+
 Retrieves information about the currently authenticated user.
 
 - **HTTP Method**: GET
@@ -75,6 +83,7 @@ Retrieves information about the currently authenticated user.
   - 401: Unauthorized (invalid or expired token)
 
 #### Update Profile
+
 Updates the profile information of the authenticated user.
 
 - **HTTP Method**: POST
@@ -87,6 +96,7 @@ Updates the profile information of the authenticated user.
   - 400: Invalid request or credentials
 
 #### Update Password
+
 Updates the password of the authenticated user.
 
 - **HTTP Method**: POST
@@ -99,6 +109,7 @@ Updates the password of the authenticated user.
   - 400: Invalid password or credentials
 
 #### LDAP Authentication
+
 Authenticates a user via LDAP.
 
 - **HTTP Method**: POST
@@ -111,6 +122,7 @@ Authenticates a user via LDAP.
   - 400: Authentication failed
 
 #### Sign In
+
 Authenticates a user with email and password.
 
 - **HTTP Method**: POST
@@ -124,6 +136,7 @@ Authenticates a user with email and password.
   - 429: Rate limit exceeded
 
 #### Sign Up
+
 Creates a new user account.
 
 - **HTTP Method**: POST
@@ -137,6 +150,7 @@ Creates a new user account.
   - 403: Signups disabled
 
 #### Sign Out
+
 Ends the current user session.
 
 - **HTTP Method**: GET
@@ -146,12 +160,15 @@ Ends the current user session.
   - 200: Signed out successfully
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L106-L800)
 
 ### Chats
+
 The chats module manages chat conversations, including creation, retrieval, updating, and deletion of chat sessions.
 
 #### Get Chat List
+
 Retrieves a list of chat sessions for the authenticated user.
 
 - **HTTP Method**: GET
@@ -167,6 +184,7 @@ Retrieves a list of chat sessions for the authenticated user.
   - 400: Bad request
 
 #### Delete All Chats
+
 Deletes all chat sessions for the authenticated user.
 
 - **HTTP Method**: DELETE
@@ -178,6 +196,7 @@ Deletes all chat sessions for the authenticated user.
   - 401: Unauthorized
 
 #### Get User Chat List
+
 Retrieves chat sessions for a specific user (admin only).
 
 - **HTTP Method**: GET
@@ -196,6 +215,7 @@ Retrieves chat sessions for a specific user (admin only).
   - 401: Unauthorized
 
 #### Create New Chat
+
 Creates a new chat session.
 
 - **HTTP Method**: POST
@@ -208,6 +228,7 @@ Creates a new chat session.
   - 400: Bad request
 
 #### Import Chats
+
 Imports chat sessions from a backup.
 
 - **HTTP Method**: POST
@@ -220,6 +241,7 @@ Imports chat sessions from a backup.
   - 400: Bad request
 
 #### Search User Chats
+
 Searches chat sessions by content.
 
 - **HTTP Method**: GET
@@ -234,6 +256,7 @@ Searches chat sessions by content.
   - 400: Bad request
 
 #### Get Chats by Folder ID
+
 Retrieves chat sessions within a specific folder.
 
 - **HTTP Method**: GET
@@ -247,6 +270,7 @@ Retrieves chat sessions within a specific folder.
   - 400: Bad request
 
 #### Get Pinned Chats
+
 Retrieves pinned chat sessions.
 
 - **HTTP Method**: GET
@@ -258,6 +282,7 @@ Retrieves pinned chat sessions.
   - 400: Bad request
 
 #### Get All Chats
+
 Retrieves all chat sessions for the user.
 
 - **HTTP Method**: GET
@@ -269,6 +294,7 @@ Retrieves all chat sessions for the user.
   - 400: Bad request
 
 #### Get Archived Chats
+
 Retrieves archived chat sessions.
 
 - **HTTP Method**: GET
@@ -280,6 +306,7 @@ Retrieves archived chat sessions.
   - 400: Bad request
 
 #### Get All Tags
+
 Retrieves all tags associated with the user's chats.
 
 - **HTTP Method**: GET
@@ -291,6 +318,7 @@ Retrieves all tags associated with the user's chats.
   - 400: Bad request
 
 #### Get All Chats in Database
+
 Retrieves all chat sessions in the database (admin only).
 
 - **HTTP Method**: GET
@@ -302,6 +330,7 @@ Retrieves all chat sessions in the database (admin only).
   - 401: Unauthorized
 
 #### Get Archived Chat List
+
 Retrieves a list of archived chat sessions.
 
 - **HTTP Method**: GET
@@ -318,6 +347,7 @@ Retrieves a list of archived chat sessions.
   - 400: Bad request
 
 #### Archive All Chats
+
 Archives all chat sessions for the user.
 
 - **HTTP Method**: POST
@@ -329,6 +359,7 @@ Archives all chat sessions for the user.
   - 400: Bad request
 
 #### Unarchive All Chats
+
 Unarchives all archived chat sessions.
 
 - **HTTP Method**: POST
@@ -340,6 +371,7 @@ Unarchives all archived chat sessions.
   - 400: Bad request
 
 #### Get Shared Chat by ID
+
 Retrieves a shared chat session.
 
 - **HTTP Method**: GET
@@ -354,6 +386,7 @@ Retrieves a shared chat session.
   - 404: Not found
 
 #### Get Chats by Tags
+
 Retrieves chat sessions by tag name.
 
 - **HTTP Method**: POST
@@ -366,6 +399,7 @@ Retrieves chat sessions by tag name.
   - 400: Bad request
 
 #### Get Chat by ID
+
 Retrieves a specific chat session.
 
 - **HTTP Method**: GET
@@ -380,6 +414,7 @@ Retrieves a specific chat session.
   - 404: Not found
 
 #### Update Chat by ID
+
 Updates a specific chat session.
 
 - **HTTP Method**: POST
@@ -395,6 +430,7 @@ Updates a specific chat session.
   - 404: Not found
 
 #### Update Chat Message by ID
+
 Updates a specific message within a chat.
 
 - **HTTP Method**: POST
@@ -411,6 +447,7 @@ Updates a specific message within a chat.
   - 404: Not found
 
 #### Send Chat Message Event by ID
+
 Sends an event for a specific chat message.
 
 - **HTTP Method**: POST
@@ -427,6 +464,7 @@ Sends an event for a specific chat message.
   - 404: Not found
 
 #### Delete Chat by ID
+
 Deletes a specific chat session.
 
 - **HTTP Method**: DELETE
@@ -441,6 +479,7 @@ Deletes a specific chat session.
   - 404: Not found
 
 #### Get Pinned Status by ID
+
 Retrieves the pinned status of a chat.
 
 - **HTTP Method**: GET
@@ -455,6 +494,7 @@ Retrieves the pinned status of a chat.
   - 404: Not found
 
 #### Pin Chat by ID
+
 Toggles the pinned status of a chat.
 
 - **HTTP Method**: POST
@@ -469,6 +509,7 @@ Toggles the pinned status of a chat.
   - 404: Not found
 
 #### Clone Chat
+
 Creates a clone of an existing chat.
 
 - **HTTP Method**: POST
@@ -484,6 +525,7 @@ Creates a clone of an existing chat.
   - 404: Not found
 
 #### Clone Shared Chat by ID
+
 Creates a clone of a shared chat.
 
 - **HTTP Method**: POST
@@ -498,6 +540,7 @@ Creates a clone of a shared chat.
   - 404: Not found
 
 #### Archive Chat
+
 Toggles the archived status of a chat.
 
 - **HTTP Method**: POST
@@ -512,6 +555,7 @@ Toggles the archived status of a chat.
   - 404: Not found
 
 #### Share Chat by ID
+
 Creates a shareable link for a chat.
 
 - **HTTP Method**: POST
@@ -526,12 +570,15 @@ Creates a shareable link for a chat.
   - 404: Not found
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L38-L797)
 
 ### Models
+
 The models module manages AI models available in the system, including creation, retrieval, updating, and deletion.
 
 #### Get Models
+
 Retrieves a list of available models.
 
 - **HTTP Method**: GET
@@ -550,6 +597,7 @@ Retrieves a list of available models.
   - 400: Bad request
 
 #### Get Base Models
+
 Retrieves the base models available in the system.
 
 - **HTTP Method**: GET
@@ -561,6 +609,7 @@ Retrieves the base models available in the system.
   - 401: Unauthorized
 
 #### Get Model Tags
+
 Retrieves all tags associated with models.
 
 - **HTTP Method**: GET
@@ -572,6 +621,7 @@ Retrieves all tags associated with models.
   - 400: Bad request
 
 #### Create New Model
+
 Creates a new model configuration.
 
 - **HTTP Method**: POST
@@ -586,6 +636,7 @@ Creates a new model configuration.
   - 409: Model ID already taken
 
 #### Export Models
+
 Exports model configurations.
 
 - **HTTP Method**: GET
@@ -597,6 +648,7 @@ Exports model configurations.
   - 401: Unauthorized
 
 #### Import Models
+
 Imports model configurations.
 
 - **HTTP Method**: POST
@@ -610,6 +662,7 @@ Imports model configurations.
   - 401: Unauthorized
 
 #### Sync Models
+
 Synchronizes model configurations.
 
 - **HTTP Method**: POST
@@ -622,6 +675,7 @@ Synchronizes model configurations.
   - 401: Unauthorized
 
 #### Get Model by ID
+
 Retrieves a specific model by ID.
 
 - **HTTP Method**: GET
@@ -636,6 +690,7 @@ Retrieves a specific model by ID.
   - 404: Not found
 
 #### Get Model Profile Image
+
 Retrieves the profile image for a model.
 
 - **HTTP Method**: GET
@@ -650,6 +705,7 @@ Retrieves the profile image for a model.
   - 404: Not found
 
 #### Toggle Model by ID
+
 Toggles the active status of a model.
 
 - **HTTP Method**: POST
@@ -665,6 +721,7 @@ Toggles the active status of a model.
   - 404: Not found
 
 #### Update Model by ID
+
 Updates a specific model configuration.
 
 - **HTTP Method**: POST
@@ -679,6 +736,7 @@ Updates a specific model configuration.
   - 404: Not found
 
 #### Delete Model by ID
+
 Deletes a specific model configuration.
 
 - **HTTP Method**: POST
@@ -693,6 +751,7 @@ Deletes a specific model configuration.
   - 404: Not found
 
 #### Delete All Models
+
 Deletes all model configurations (admin only).
 
 - **HTTP Method**: DELETE
@@ -704,12 +763,15 @@ Deletes all model configurations (admin only).
   - 401: Unauthorized
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/routers/models.py#L51-L418)
 
 ### Files
+
 The files module manages file uploads, retrieval, and processing within the system.
 
 #### Upload File
+
 Uploads a new file to the system.
 
 - **HTTP Method**: POST
@@ -727,6 +789,7 @@ Uploads a new file to the system.
   - 415: Unsupported media type
 
 #### List Files
+
 Retrieves a list of files.
 
 - **HTTP Method**: GET
@@ -739,6 +802,7 @@ Retrieves a list of files.
   - 200: Files retrieved successfully
 
 #### Search Files
+
 Searches for files by filename pattern.
 
 - **HTTP Method**: GET
@@ -753,6 +817,7 @@ Searches for files by filename pattern.
   - 404: No files found
 
 #### Delete All Files
+
 Deletes all files (admin only).
 
 - **HTTP Method**: DELETE
@@ -765,6 +830,7 @@ Deletes all files (admin only).
   - 401: Unauthorized
 
 #### Get File by ID
+
 Retrieves information about a specific file.
 
 - **HTTP Method**: GET
@@ -778,6 +844,7 @@ Retrieves information about a specific file.
   - 404: Not found
 
 #### Get File Process Status
+
 Retrieves the processing status of a file.
 
 - **HTTP Method**: GET
@@ -793,6 +860,7 @@ Retrieves the processing status of a file.
   - 404: Not found
 
 #### Get File Data Content by ID
+
 Retrieves the processed content of a file.
 
 - **HTTP Method**: GET
@@ -806,6 +874,7 @@ Retrieves the processed content of a file.
   - 404: Not found
 
 #### Update File Data Content by ID
+
 Updates the processed content of a file.
 
 - **HTTP Method**: POST
@@ -820,6 +889,7 @@ Updates the processed content of a file.
   - 404: Not found
 
 #### Get File Content by ID
+
 Retrieves the original file content.
 
 - **HTTP Method**: GET
@@ -835,6 +905,7 @@ Retrieves the original file content.
   - 404: Not found
 
 #### Get HTML File Content by ID
+
 Retrieves HTML file content (admin only).
 
 - **HTTP Method**: GET
@@ -848,6 +919,7 @@ Retrieves HTML file content (admin only).
   - 404: Not found
 
 #### Delete File by ID
+
 Deletes a specific file.
 
 - **HTTP Method**: DELETE
@@ -861,12 +933,15 @@ Deletes a specific file.
   - 404: Not found
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L152-L761)
 
 ### Users
+
 The users module manages user accounts, permissions, and settings.
 
 #### Get Users
+
 Retrieves a list of users (admin only).
 
 - **HTTP Method**: GET
@@ -882,6 +957,7 @@ Retrieves a list of users (admin only).
   - 200: Users retrieved successfully
 
 #### Get All Users
+
 Retrieves all users (admin only).
 
 - **HTTP Method**: GET
@@ -892,6 +968,7 @@ Retrieves all users (admin only).
   - 200: All users retrieved
 
 #### Search Users
+
 Searches for users.
 
 - **HTTP Method**: GET
@@ -907,6 +984,7 @@ Searches for users.
   - 200: Users found successfully
 
 #### Get User Groups
+
 Retrieves groups for the authenticated user.
 
 - **HTTP Method**: GET
@@ -917,6 +995,7 @@ Retrieves groups for the authenticated user.
   - 200: Groups retrieved successfully
 
 #### Get User Permissions
+
 Retrieves permissions for the authenticated user.
 
 - **HTTP Method**: GET
@@ -927,6 +1006,7 @@ Retrieves permissions for the authenticated user.
   - 200: Permissions retrieved successfully
 
 #### Get Default User Permissions
+
 Retrieves default user permissions (admin only).
 
 - **HTTP Method**: GET
@@ -937,6 +1017,7 @@ Retrieves default user permissions (admin only).
   - 200: Default permissions retrieved
 
 #### Update Default User Permissions
+
 Updates default user permissions (admin only).
 
 - **HTTP Method**: POST
@@ -948,6 +1029,7 @@ Updates default user permissions (admin only).
   - 200: Permissions updated successfully
 
 #### Get User Settings by Session User
+
 Retrieves settings for the authenticated user.
 
 - **HTTP Method**: GET
@@ -959,6 +1041,7 @@ Retrieves settings for the authenticated user.
   - 400: Bad request
 
 #### Update User Settings by Session User
+
 Updates settings for the authenticated user.
 
 - **HTTP Method**: POST
@@ -971,6 +1054,7 @@ Updates settings for the authenticated user.
   - 400: Bad request
 
 #### Get User Status by Session User
+
 Retrieves status for the authenticated user.
 
 - **HTTP Method**: GET
@@ -982,6 +1066,7 @@ Retrieves status for the authenticated user.
   - 400: Bad request
 
 #### Update User Status by Session User
+
 Updates status for the authenticated user.
 
 - **HTTP Method**: POST
@@ -994,6 +1079,7 @@ Updates status for the authenticated user.
   - 400: Bad request
 
 #### Get User Info by Session User
+
 Retrieves additional info for the authenticated user.
 
 - **HTTP Method**: GET
@@ -1005,6 +1091,7 @@ Retrieves additional info for the authenticated user.
   - 400: Bad request
 
 #### Update User Info by Session User
+
 Updates additional info for the authenticated user.
 
 - **HTTP Method**: POST
@@ -1017,6 +1104,7 @@ Updates additional info for the authenticated user.
   - 400: Bad request
 
 #### Get User by ID
+
 Retrieves information about a specific user.
 
 - **HTTP Method**: GET
@@ -1030,6 +1118,7 @@ Retrieves information about a specific user.
   - 400: Bad request
 
 #### Get User OAuth Sessions by ID
+
 Retrieves OAuth sessions for a user (admin only).
 
 - **HTTP Method**: GET
@@ -1043,6 +1132,7 @@ Retrieves OAuth sessions for a user (admin only).
   - 400: Bad request
 
 #### Get User Profile Image by ID
+
 Retrieves the profile image for a user.
 
 - **HTTP Method**: GET
@@ -1057,6 +1147,7 @@ Retrieves the profile image for a user.
   - 400: Bad request
 
 #### Get User Active Status by ID
+
 Retrieves the active status of a user.
 
 - **HTTP Method**: GET
@@ -1069,6 +1160,7 @@ Retrieves the active status of a user.
   - 200: Active status retrieved
 
 #### Update User by ID
+
 Updates information for a specific user.
 
 - **HTTP Method**: POST
@@ -1084,6 +1176,7 @@ Updates information for a specific user.
   - 403: Action prohibited
 
 #### Delete User by ID
+
 Deletes a specific user.
 
 - **HTTP Method**: DELETE
@@ -1098,6 +1191,7 @@ Deletes a specific user.
   - 500: Internal server error
 
 #### Get User Groups by ID
+
 Retrieves groups for a specific user (admin only).
 
 - **HTTP Method**: GET
@@ -1110,12 +1204,15 @@ Retrieves groups for a specific user (admin only).
   - 200: Groups retrieved successfully
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/routers/users.py#L57-L621)
 
 ### Utilities
+
 The utilities module provides various helper endpoints for formatting, execution, and conversion.
 
 #### Get Gravatar
+
 Retrieves a Gravatar URL for an email address.
 
 - **HTTP Method**: GET
@@ -1128,6 +1225,7 @@ Retrieves a Gravatar URL for an email address.
   - 200: Gravatar URL retrieved
 
 #### Format Code
+
 Formats code using the Black formatter.
 
 - **HTTP Method**: POST
@@ -1140,6 +1238,7 @@ Formats code using the Black formatter.
   - 400: Bad request
 
 #### Execute Code
+
 Executes code in a Jupyter environment.
 
 - **HTTP Method**: POST
@@ -1152,6 +1251,7 @@ Executes code in a Jupyter environment.
   - 400: Bad request or engine not supported
 
 #### Convert Markdown to HTML
+
 Converts Markdown text to HTML.
 
 - **HTTP Method**: POST
@@ -1163,6 +1263,7 @@ Converts Markdown text to HTML.
   - 200: Conversion successful
 
 #### Generate PDF from Chat
+
 Generates a PDF document from chat content.
 
 - **HTTP Method**: POST
@@ -1175,6 +1276,7 @@ Generates a PDF document from chat content.
   - 400: Bad request
 
 #### Download Database
+
 Downloads the database file (admin only).
 
 - **HTTP Method**: GET
@@ -1187,26 +1289,31 @@ Downloads the database file (admin only).
   - 400: Database not SQLite
 
 **Section sources**
+
 - [utils.py](file://backend/open_webui/routers/utils.py#L26-L127)
 
 ## WebSocket API
+
 The open-webui application provides a WebSocket API for real-time interactions, particularly for chat streaming, collaborative editing, and presence tracking.
 
 ### Connection
+
 WebSocket connections are established at the `/ws/socket.io` endpoint using Socket.IO protocol. Clients must authenticate by providing a token in the authentication data when connecting.
 
 ```javascript
 const socket = io('http://localhost:8080/ws', {
-  auth: {
-    token: 'your-jwt-token'
-  }
+	auth: {
+		token: 'your-jwt-token'
+	}
 });
 ```
 
 ### Events
+
 The WebSocket API supports several events for real-time communication:
 
 #### Usage
+
 Tracks model usage by clients.
 
 - **Event Name**: `usage`
@@ -1214,6 +1321,7 @@ Tracks model usage by clients.
 - **Purpose**: Records when a client is using a specific model
 
 #### User Join
+
 Notifies when a user joins the system.
 
 - **Event Name**: `user-join`
@@ -1221,6 +1329,7 @@ Notifies when a user joins the system.
 - **Purpose**: Establishes user session and joins appropriate rooms
 
 #### Heartbeat
+
 Maintains user activity status.
 
 - **Event Name**: `heartbeat`
@@ -1228,6 +1337,7 @@ Maintains user activity status.
 - **Purpose**: Updates user's last active timestamp
 
 #### Join Channels
+
 Joins user to their channels.
 
 - **Event Name**: `join-channels`
@@ -1235,6 +1345,7 @@ Joins user to their channels.
 - **Purpose**: Subscribes user to channel events
 
 #### Join Note
+
 Joins user to a collaborative note.
 
 - **Event Name**: `join-note`
@@ -1242,6 +1353,7 @@ Joins user to a collaborative note.
 - **Purpose**: Enables real-time collaboration on notes
 
 #### Channel Events
+
 Handles real-time events in channels.
 
 - **Event Name**: `events:channel`
@@ -1251,6 +1363,7 @@ Handles real-time events in channels.
   - `last_read_at`: User has read messages
 
 #### Yjs Document Events
+
 Supports real-time collaborative editing using Yjs.
 
 - **Event Names**:
@@ -1262,6 +1375,7 @@ Supports real-time collaborative editing using Yjs.
 - **Purpose**: Enables collaborative editing of notes and other documents
 
 #### Events
+
 General event broadcasting.
 
 - **Event Name**: `events`
@@ -1269,6 +1383,7 @@ General event broadcasting.
 - **Purpose**: Sends various event types (status, message, replace, embeds, files, source, citation)
 
 ### Event Emitter
+
 The server uses an event emitter pattern to send real-time updates to clients. This is particularly used during chat completion to stream responses and update message status.
 
 ```python
@@ -1286,14 +1401,17 @@ await event_emitter({
 ```
 
 **Section sources**
+
 - [socket/main.py](file://backend/open_webui/socket/main.py#L288-L800)
 
 ## API Versioning and Compatibility
+
 The open-webui API does not use explicit versioning in the URL path. Instead, versioning is managed through the application's release cycle and backward compatibility is maintained for stable endpoints.
 
 API changes are introduced in new releases with backward compatibility maintained for existing functionality. Breaking changes are minimized and when necessary, are introduced with appropriate deprecation notices.
 
 The API follows semantic versioning principles, where:
+
 - Major version changes may include breaking changes
 - Minor version changes include new features while maintaining backward compatibility
 - Patch version changes include bug fixes and minor improvements
@@ -1301,12 +1419,15 @@ The API follows semantic versioning principles, where:
 Clients should monitor the application's release notes for information about API changes and deprecations.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L656-L800)
 
 ## Security
+
 The open-webui API implements several security measures to protect user data and system integrity.
 
 ### Authentication Methods
+
 The API supports multiple authentication methods:
 
 - **JWT Tokens**: Primary authentication method, with configurable expiration
@@ -1316,26 +1437,33 @@ The API supports multiple authentication methods:
 - **Trusted Headers**: For integration with reverse proxies
 
 ### Input Validation
+
 All API endpoints perform thorough input validation to prevent injection attacks and ensure data integrity. Request bodies are validated against Pydantic models, and query parameters are sanitized.
 
 ### Rate Limiting
+
 The API implements rate limiting to prevent abuse. The signin endpoint is limited to 5 attempts every 3 minutes. Additional rate limiting can be configured through the system settings.
 
 ### CORS
+
 Cross-Origin Resource Sharing (CORS) is configurable through the `CORS_ALLOW_ORIGIN` setting. By default, the API allows requests from the same origin as the web interface.
 
 ### Security Headers
+
 The API includes security headers to protect against common web vulnerabilities, including XSS, clickjacking, and MIME type sniffing.
 
 ### Data Encryption
+
 Sensitive data such as passwords are hashed using bcrypt. API keys and OAuth tokens are stored securely. The system supports HTTPS for encrypted communication.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L86-L88)
 - [main.py](file://backend/open_webui/main.py#L42-L51)
 - [config.py](file://backend/open_webui/config.py#L289-L632)
 
 ## OpenAPI/Swagger Documentation
+
 The open-webui application provides OpenAPI/Swagger documentation at the `/docs` endpoint when running in development mode (ENV=dev). This interactive documentation allows users to explore the API, view request/response schemas, and test endpoints directly from the browser.
 
 The OpenAPI specification is automatically generated by FastAPI and includes detailed information about all endpoints, parameters, request/response models, and authentication requirements.
@@ -1345,19 +1473,23 @@ To access the documentation, navigate to `http://your-instance/docs` in your bro
 The OpenAPI schema is also available in JSON format at `/openapi.json`.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L656-L662)
 
 ## Error Handling
+
 The API uses standard HTTP status codes to indicate the result of requests. All error responses follow a consistent format.
 
 ### Error Response Format
+
 ```json
 {
-  "detail": "Error message describing the issue"
+	"detail": "Error message describing the issue"
 }
 ```
 
 ### Common Status Codes
+
 - **200 OK**: Request successful
 - **201 Created**: Resource created successfully
 - **400 Bad Request**: Invalid request parameters or body
@@ -1368,7 +1500,9 @@ The API uses standard HTTP status codes to indicate the result of requests. All 
 - **500 Internal Server Error**: Server error
 
 ### Specific Error Messages
+
 The API defines specific error messages for common scenarios:
+
 - `INVALID_TOKEN`: Authentication token is invalid or expired
 - `INVALID_CRED`: Invalid credentials
 - `EMAIL_TAKEN`: Email address is already in use
@@ -1379,13 +1513,16 @@ The API defines specific error messages for common scenarios:
 Error messages are defined in the `constants.py` file and are consistent across the application.
 
 **Section sources**
+
 - [constants.py](file://backend/open_webui/constants.py)
 - [auths.py](file://backend/open_webui/routers/auths.py#L30-L31)
 
 ## Rate Limiting
+
 The open-webui API implements rate limiting to prevent abuse and ensure system stability.
 
 ### Signin Rate Limiting
+
 The signin endpoint is protected by rate limiting to prevent brute force attacks. Users are limited to 5 login attempts every 3 minutes. Exceeding this limit results in a 429 Too Many Requests response.
 
 ```python
@@ -1395,13 +1532,16 @@ signin_rate_limiter = RateLimiter(
 ```
 
 ### Configuration
+
 Rate limiting is implemented using Redis for distributed rate tracking. The rate limiter configuration can be customized through environment variables and system settings.
 
 ### Custom Rate Limits
+
 Additional rate limiting can be implemented for specific endpoints by adding rate limiter instances and decorating the appropriate route handlers.
 
 The rate limiting system helps protect the application from denial-of-service attacks and ensures fair usage of system resources.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L86-L88)
 - [utils/rate_limit.py](file://backend/open_webui/utils/rate_limit.py)

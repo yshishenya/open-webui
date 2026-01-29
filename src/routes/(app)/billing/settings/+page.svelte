@@ -134,7 +134,9 @@
 			</div>
 		</div>
 
-		<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4 mb-4">
+		<div
+			class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4 mb-4"
+		>
 			<div class="text-sm font-medium mb-3">{$i18n.t('Limits')}</div>
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 				<label class="flex flex-col gap-1 text-sm">
@@ -170,7 +172,9 @@
 			</div>
 		</div>
 
-		<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4">
+		<div
+			class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+		>
 			<div class="text-sm font-medium mb-3">{$i18n.t('Billing contacts')}</div>
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 				<label class="flex flex-col gap-1 text-sm">

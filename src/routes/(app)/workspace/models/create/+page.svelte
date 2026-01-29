@@ -69,9 +69,7 @@
 					'https://www.openwebui.com',
 					'http://localhost:9999',
 					'http://localhost:5173'
-				].includes(
-					event.origin
-				)
+				].includes(event.origin)
 			) {
 				return;
 			}

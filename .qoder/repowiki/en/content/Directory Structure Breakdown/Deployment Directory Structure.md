@@ -21,6 +21,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Kubernetes Deployment Structure](#kubernetes-deployment-structure)
 3. [Docker Image Build Process](#docker-image-build-process)
@@ -30,6 +31,7 @@
 7. [Conclusion](#conclusion)
 
 ## Introduction
+
 The open-webui project provides a comprehensive set of deployment configurations for various environments, from local development to production-grade Kubernetes clusters. This document details the deployment directory structure, focusing on the Kubernetes manifests, Docker build process, and docker-compose configurations that enable flexible deployment across different infrastructure types. The deployment system is designed to support multiple scenarios including GPU acceleration, API-only deployments, and observability integration.
 
 ## Kubernetes Deployment Structure
@@ -59,10 +61,12 @@ GPU --> OllamaStatefulSetGPU[ollama-statefulset-gpu.yaml]
 ```
 
 **Diagram sources**
+
 - [kubernetes/manifest/base/kustomization.yaml](file://kubernetes/manifest/base/kustomization.yaml)
 - [kubernetes/manifest/gpu/kustomization.yaml](file://kubernetes/manifest/gpu/kustomization.yaml)
 
 **Section sources**
+
 - [kubernetes/manifest/base/kustomization.yaml](file://kubernetes/manifest/base/kustomization.yaml)
 - [kubernetes/manifest/gpu/kustomization.yaml](file://kubernetes/manifest/gpu/kustomization.yaml)
 
@@ -71,6 +75,7 @@ GPU --> OllamaStatefulSetGPU[ollama-statefulset-gpu.yaml]
 The base Kubernetes manifests define several critical resources for the open-webui application. The deployment includes a PostgreSQL database, the open-webui frontend/backend service, and the Ollama AI model server, each with appropriate resource specifications and networking configurations.
 
 #### WebUI Deployment Configuration
+
 The webui-deployment.yaml file defines the deployment for the open-webui application, specifying resource requests and limits for CPU and memory. The deployment mounts persistent storage for application data and configures environment variables for service discovery.
 
 ```mermaid
@@ -122,18 +127,21 @@ WebUIDeployment --> WebUIPVC : "uses"
 ```
 
 **Diagram sources**
+
 - [kubernetes/manifest/base/webui-deployment.yaml](file://kubernetes/manifest/base/webui-deployment.yaml)
 - [kubernetes/manifest/base/webui-service.yaml](file://kubernetes/manifest/base/webui-service.yaml)
 - [kubernetes/manifest/base/webui-ingress.yaml](file://kubernetes/manifest/base/webui-ingress.yaml)
 - [kubernetes/manifest/base/webui-pvc.yaml](file://kubernetes/manifest/base/webui-pvc.yaml)
 
 **Section sources**
+
 - [kubernetes/manifest/base/webui-deployment.yaml](file://kubernetes/manifest/base/webui-deployment.yaml)
 - [kubernetes/manifest/base/webui-service.yaml](file://kubernetes/manifest/base/webui-service.yaml)
 - [kubernetes/manifest/base/webui-ingress.yaml](file://kubernetes/manifest/base/webui-ingress.yaml)
 - [kubernetes/manifest/base/webui-pvc.yaml](file://kubernetes/manifest/base/webui-pvc.yaml)
 
 #### Ollama StatefulSet Configuration
+
 The Ollama service is deployed as a StatefulSet to ensure stable network identifiers and persistent storage for model data. The base configuration specifies substantial resource requests and limits to accommodate the memory requirements of large language models.
 
 ```mermaid
@@ -177,14 +185,17 @@ OllamaStatefulSet --> OllamaVolumeClaim : "uses"
 ```
 
 **Diagram sources**
+
 - [kubernetes/manifest/base/ollama-statefulset.yaml](file://kubernetes/manifest/base/ollama-statefulset.yaml)
 - [kubernetes/manifest/base/ollama-service.yaml](file://kubernetes/manifest/base/ollama-service.yaml)
 
 **Section sources**
+
 - [kubernetes/manifest/base/ollama-statefulset.yaml](file://kubernetes/manifest/base/ollama-statefulset.yaml)
 - [kubernetes/manifest/base/ollama-service.yaml](file://kubernetes/manifest/base/ollama-service.yaml)
 
 #### GPU Configuration Overlay
+
 The GPU configuration overlay modifies the base Ollama StatefulSet to enable GPU acceleration. This is achieved through a strategic patch that adds GPU resource limits to the container specification, allowing the Ollama service to leverage GPU hardware for improved inference performance.
 
 ```mermaid
@@ -208,10 +219,12 @@ KustomizationGPU --> BaseConfiguration : "extends"
 ```
 
 **Diagram sources**
+
 - [kubernetes/manifest/gpu/ollama-statefulset-gpu.yaml](file://kubernetes/manifest/gpu/ollama-statefulset-gpu.yaml)
 - [kubernetes/manifest/gpu/kustomization.yaml](file://kubernetes/manifest/gpu/kustomization.yaml)
 
 **Section sources**
+
 - [kubernetes/manifest/gpu/ollama-statefulset-gpu.yaml](file://kubernetes/manifest/gpu/ollama-statefulset-gpu.yaml)
 - [kubernetes/manifest/gpu/kustomization.yaml](file://kubernetes/manifest/gpu/kustomization.yaml)
 
@@ -241,12 +254,15 @@ CMD --> End([Docker Image Created])
 ```
 
 **Diagram sources**
+
 - [Dockerfile](file://Dockerfile)
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile)
 
 ### Build Configuration Options
+
 The Docker build process supports several configuration options through build arguments that control the features included in the final image:
 
 - **USE_CUDA**: Enables CUDA support for GPU acceleration
@@ -283,12 +299,15 @@ style Ollama stroke-dasharray: 5 5
 ```
 
 **Diagram sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml)
 
 **Section sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml)
 
 ### Service Configuration Details
+
 The docker-compose configuration defines three primary services with specific configurations:
 
 - **PostgreSQL**: A persistent database service with volume mounting for data persistence and health checking to ensure readiness before the webui service starts
@@ -302,6 +321,7 @@ The configuration uses environment variables with default values to provide flex
 The open-webui project provides specialized docker-compose configuration files for different deployment scenarios, enabling users to easily enable specific features by including additional configuration files.
 
 ### GPU Acceleration Configuration
+
 The docker-compose.gpu.yaml file enables GPU support for the Ollama service by configuring Docker's resource reservation system to allocate GPU devices to the container.
 
 ```mermaid
@@ -318,14 +338,17 @@ OllamaService->>OllamaService : Initialize with GPU support
 ```
 
 **Diagram sources**
+
 - [docker-compose.gpu.yaml](file://docker-compose.gpu.yaml)
 
 **Section sources**
+
 - [docker-compose.gpu.yaml](file://docker-compose.gpu.yaml)
 
 This configuration uses Docker's deploy.resources.reservations.devices feature to request GPU access, with configurable parameters for the GPU driver and count through environment variables.
 
 ### API-Only Deployment Configuration
+
 The docker-compose.api.yaml file exposes the Ollama API externally by mapping the service port to the host machine, enabling external applications to access the AI model server directly.
 
 ```mermaid
@@ -339,12 +362,15 @@ Host --> Client
 ```
 
 **Diagram sources**
+
 - [docker-compose.api.yaml](file://docker-compose.api.yaml)
 
 **Section sources**
+
 - [docker-compose.api.yaml](file://docker-compose.api.yaml)
 
 ### OpenTelemetry Integration Configuration
+
 The docker-compose.otel.yaml file configures observability integration with OpenTelemetry, enabling distributed tracing and metrics collection for monitoring application performance.
 
 ```mermaid
@@ -360,14 +386,17 @@ style Storage fill:#ff9,stroke:#333
 ```
 
 **Diagram sources**
+
 - [docker-compose.otel.yaml](file://docker-compose.otel.yaml)
 
 **Section sources**
+
 - [docker-compose.otel.yaml](file://docker-compose.otel.yaml)
 
 This configuration sets environment variables to enable OpenTelemetry instrumentation and specifies the endpoint for exporting telemetry data to the Grafana collector.
 
 ### Unified Deployment Script
+
 The run-compose.sh script provides a unified interface for managing deployments with various configuration options, automatically detecting GPU hardware and constructing the appropriate docker-compose command.
 
 ```mermaid
@@ -396,6 +425,7 @@ Execute --> End([Deployment Complete])
 ```
 
 **Section sources**
+
 - [run-compose.sh](file://run-compose.sh)
 
 ## Deployment Best Practices and Scaling Considerations
@@ -403,6 +433,7 @@ Execute --> End([Deployment Complete])
 When deploying open-webui in production environments, several best practices should be followed to ensure reliability, performance, and security.
 
 ### Resource Allocation Guidelines
+
 Proper resource allocation is critical for the stable operation of the open-webui application, particularly for the Ollama service which requires substantial memory for loading large language models:
 
 - **WebUI Service**: Minimum 500m CPU and 500Mi memory, with recommended limits of 1000m CPU and 1Gi memory
@@ -410,6 +441,7 @@ Proper resource allocation is critical for the stable operation of the open-webu
 - **PostgreSQL**: Adequate storage allocation based on expected data volume, with regular backups and monitoring
 
 ### High Availability and Scaling
+
 For production deployments requiring high availability, consider the following scaling strategies:
 
 - Increase the replica count in the webui-deployment.yaml for horizontal scaling of the frontend/backend service
@@ -418,6 +450,7 @@ For production deployments requiring high availability, consider the following s
 - Configure persistent storage with appropriate backup and disaster recovery procedures
 
 ### Security Considerations
+
 Security best practices for open-webui deployments include:
 
 - Using the USE_PERMISSION_HARDENING build option for OpenShift or other security-conscious environments
@@ -426,6 +459,7 @@ Security best practices for open-webui deployments include:
 - Regularly updating container images to incorporate security patches
 
 ### Monitoring and Observability
+
 Effective monitoring is essential for maintaining system health and performance:
 
 - Enable OpenTelemetry integration using the docker-compose.otel.yaml configuration
@@ -434,4 +468,5 @@ Effective monitoring is essential for maintaining system health and performance:
 - Track application performance metrics such as request latency and error rates
 
 ## Conclusion
+
 The open-webui project provides a comprehensive and flexible deployment system that supports various infrastructure types and deployment scenarios. The Kubernetes manifests offer a production-ready configuration with proper resource management and persistent storage, while the docker-compose configurations enable easy local development and testing. The modular design of the deployment system, with base configurations and specialized overlays, allows for easy customization to meet specific requirements. By following the documented best practices for resource allocation, scaling, and security, users can deploy open-webui in environments ranging from local development setups to production-grade clusters with confidence in system stability and performance.

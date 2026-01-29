@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Authentication](#authentication)
 3. [Request and Response Formats](#request-and-response-formats)
@@ -39,6 +40,7 @@ The Chat REST API provides comprehensive endpoints for managing chat sessions wi
 The chat system is tightly integrated with the models subsystem, allowing users to specify which AI model to use for each conversation. Chat state is persisted in the database with support for rich metadata, including model configuration, user preferences, and conversation history. Each chat contains a complete history of messages with support for various content types and metadata.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L1-L942)
 
 ## Authentication
@@ -54,6 +56,7 @@ The API enforces role-based access control, where different operations require s
 Some endpoints have specific permission requirements that can be configured in the system settings. For example, sharing chats or deleting chats may require explicit permissions beyond basic authentication.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L25)
 - [constants.py](file://backend/open_webui/constants.py#L19-L75)
 
@@ -64,6 +67,7 @@ Some endpoints have specific permission requirements that can be configured in t
 The API uses Pydantic models for request validation and response serialization. Key models include:
 
 #### ChatModel
+
 The `ChatModel` represents the core chat data structure stored in the database.
 
 ```python
@@ -82,6 +86,7 @@ class ChatModel(BaseModel):
 ```
 
 #### ChatForm
+
 The `ChatForm` is used for creating and updating chats.
 
 ```python
@@ -91,6 +96,7 @@ class ChatForm(BaseModel):
 ```
 
 #### ChatResponse
+
 The `ChatResponse` is the standard response format for chat endpoints.
 
 ```python
@@ -109,6 +115,7 @@ class ChatResponse(BaseModel):
 ```
 
 #### ChatTitleIdResponse
+
 The `ChatTitleIdResponse` is used for list endpoints that return minimal chat information.
 
 ```python
@@ -122,6 +129,7 @@ class ChatTitleIdResponse(BaseModel):
 The `chat` field in these models contains the complete conversation history and configuration in a structured JSON format, including message history, model settings, and UI preferences.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L59-L127)
 
 ## Chat Management Endpoints
@@ -133,45 +141,51 @@ Creates a new chat session with the specified configuration.
 **Endpoint**: `POST /api/chats/new`
 
 **Request Body**:
+
 ```json
 {
-  "chat": {
-    "title": "My New Chat",
-    "model": "gpt-4",
-    "params": {
-      "temperature": 0.7,
-      "max_tokens": 1000
-    },
-    "history": {
-      "messages": []
-    }
-  },
-  "folder_id": "optional-folder-id"
+	"chat": {
+		"title": "My New Chat",
+		"model": "gpt-4",
+		"params": {
+			"temperature": 0.7,
+			"max_tokens": 1000
+		},
+		"history": {
+			"messages": []
+		}
+	},
+	"folder_id": "optional-folder-id"
 }
 ```
 
 **Response**:
+
 ```json
 {
-  "id": "chat-123",
-  "user_id": "user-456",
-  "title": "My New Chat",
-  "chat": { /* complete chat object */ },
-  "created_at": 1703123456,
-  "updated_at": 1703123456,
-  "pinned": false,
-  "archived": false,
-  "meta": {},
-  "folder_id": null
+	"id": "chat-123",
+	"user_id": "user-456",
+	"title": "My New Chat",
+	"chat": {
+		/* complete chat object */
+	},
+	"created_at": 1703123456,
+	"updated_at": 1703123456,
+	"pinned": false,
+	"archived": false,
+	"meta": {},
+	"folder_id": null
 }
 ```
 
 **Status Codes**:
+
 - `200 OK`: Chat created successfully
 - `400 Bad Request`: Invalid request data
 - `401 Unauthorized`: Authentication failed
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L133-L143)
 
 ### Get Chat List
@@ -181,31 +195,34 @@ Retrieves a list of chats for the authenticated user with optional pagination.
 **Endpoint**: `GET /api/chats/` or `GET /api/chats/list`
 
 **Query Parameters**:
+
 - `page` (optional): Page number for pagination (default: no pagination)
 - `include_pinned` (optional): Include pinned chats in results (default: false)
 - `include_folders` (optional): Include chats in folders (default: false)
 
 **Response**:
+
 ```json
 [
-  {
-    "id": "chat-123",
-    "title": "My New Chat",
-    "updated_at": 1703123456,
-    "created_at": 1703123456
-  },
-  {
-    "id": "chat-456",
-    "title": "Another Chat",
-    "updated_at": 1703123000,
-    "created_at": 1703123000
-  }
+	{
+		"id": "chat-123",
+		"title": "My New Chat",
+		"updated_at": 1703123456,
+		"created_at": 1703123456
+	},
+	{
+		"id": "chat-456",
+		"title": "Another Chat",
+		"updated_at": 1703123000,
+		"created_at": 1703123000
+	}
 ]
 ```
 
 When no page parameter is provided, all chats are returned. When page is specified, results are paginated with 60 items per page.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L38-L66)
 
 ### Get Chat by ID
@@ -215,17 +232,20 @@ Retrieves a specific chat by its ID.
 **Endpoint**: `GET /api/chats/{id}`
 
 **Path Parameters**:
+
 - `id`: The unique identifier of the chat
 
 **Response**:
 Returns a `ChatResponse` object with the complete chat data.
 
 **Status Codes**:
+
 - `200 OK`: Chat found and returned
 - `401 Unauthorized`: Chat not found or access denied
 - `404 Not Found`: Chat does not exist
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L427-L438)
 
 ### Update Chat
@@ -235,19 +255,21 @@ Updates an existing chat's configuration and metadata.
 **Endpoint**: `POST /api/chats/{id}`
 
 **Path Parameters**:
+
 - `id`: The unique identifier of the chat to update
 
 **Request Body**:
+
 ```json
 {
-  "chat": {
-    "title": "Updated Chat Title",
-    "model": "gpt-3.5-turbo",
-    "params": {
-      "temperature": 0.5
-    }
-  },
-  "folder_id": "new-folder-id"
+	"chat": {
+		"title": "Updated Chat Title",
+		"model": "gpt-3.5-turbo",
+		"params": {
+			"temperature": 0.5
+		}
+	},
+	"folder_id": "new-folder-id"
 }
 ```
 
@@ -257,6 +279,7 @@ The update operation performs a shallow merge of the provided chat object with t
 Returns the updated `ChatResponse` object.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L445-L459)
 
 ### Delete Chat
@@ -266,9 +289,11 @@ Deletes a chat by its ID.
 **Endpoint**: `DELETE /api/chats/{id}`
 
 **Path Parameters**:
+
 - `id`: The unique identifier of the chat to delete
 
 **Response**:
+
 ```json
 true
 ```
@@ -276,11 +301,13 @@ true
 Returns a boolean indicating success or failure of the deletion operation.
 
 **Permissions**:
+
 - Regular users can delete their own chats
 - Administrators can delete any chat
 - Users require explicit "chat.delete" permission if not an admin
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L567-L594)
 
 ## Chat Metadata Operations
@@ -292,6 +319,7 @@ Toggles the pinned status of a chat, which affects its visibility in the chat li
 **Endpoint**: `POST /api/chats/{id}/pin`
 
 **Path Parameters**:
+
 - `id`: The unique identifier of the chat
 
 **Response**:
@@ -300,6 +328,7 @@ Returns the updated `ChatResponse` object with the new pinned status.
 Pinned chats are typically displayed at the top of the chat list for quick access.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L617-L627)
 
 ### Archive/Unarchive Chat
@@ -307,10 +336,12 @@ Pinned chats are typically displayed at the top of the chat list for quick acces
 Moves a chat to the archive or restores it from the archive.
 
 **Endpoints**:
+
 - Archive: `POST /api/chats/{id}/archive`
 - Unarchive: `POST /api/chats/{id}/unarchive` (via archive toggle)
 
 **Path Parameters**:
+
 - `id`: The unique identifier of the chat
 
 **Response**:
@@ -319,6 +350,7 @@ Returns the updated `ChatResponse` object with the new archived status.
 Archived chats are removed from the main chat list but can be accessed through the archived chats view. Archiving a chat also removes its folder association.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L733-L757)
 
 ### Share Chat
@@ -328,17 +360,20 @@ Creates a shared version of a chat that can be accessed by others via a share li
 **Endpoint**: `POST /api/chats/{id}/share`
 
 **Path Parameters**:
+
 - `id`: The unique identifier of the chat to share
 
 **Response**:
 Returns the `ChatResponse` object with the `share_id` field populated.
 
 **Permissions**:
+
 - Users require "chat.share" permission
 - Administrators can share any chat
 - Shared chats are accessible via the `/api/chats/share/{share_id}` endpoint
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L764-L795)
 
 ## Chat Organization
@@ -350,9 +385,10 @@ Organizes chats into folders for better management.
 **Endpoint**: `POST /api/chats/{id}/folder`
 
 **Request Body**:
+
 ```json
 {
-  "folder_id": "folder-123"
+	"folder_id": "folder-123"
 }
 ```
 
@@ -362,6 +398,7 @@ Setting `folder_id` to null removes the chat from any folder.
 Returns the updated `ChatResponse` object with the new folder association.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L830-L844)
 
 ### Tag Operations
@@ -369,21 +406,24 @@ Returns the updated `ChatResponse` object with the new folder association.
 Manages tags associated with a chat for categorization and filtering.
 
 **Endpoints**:
+
 - Get tags: `GET /api/chats/{id}/tags`
 - Add tag: `POST /api/chats/{id}/tags`
 - Delete tag: `DELETE /api/chats/{id}/tags`
 - Delete all tags: `DELETE /api/chats/{id}/tags/all`
 
 **Request Body (for add/delete)**:
+
 ```json
 {
-  "name": "project-x"
+	"name": "project-x"
 }
 ```
 
 Tags are stored in the chat's `meta` field and automatically cleaned up when no chats reference them.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L851-L942)
 
 ## Search and Filtering
@@ -395,6 +435,7 @@ The API provides several endpoints for searching and filtering chats:
 **Endpoint**: `GET /api/chats/search`
 
 **Query Parameters**:
+
 - `text`: Search text which can include filters like `tag:python` or `pinned:true`
 
 **Response**:
@@ -405,11 +446,12 @@ Returns a list of `ChatTitleIdResponse` objects matching the search criteria.
 **Endpoint**: `POST /api/chats/tags`
 
 **Request Body**:
+
 ```json
 {
-  "name": "python",
-  "skip": 0,
-  "limit": 50
+	"name": "python",
+	"skip": 0,
+	"limit": 50
 }
 ```
 
@@ -422,6 +464,7 @@ Returns chats that have the specified tag.
 Returns all chats within the specified folder, including subfolders.
 
 The search functionality supports various filters:
+
 - `tag:tag_name` - filter by tag
 - `folder:folder_name` - filter by folder
 - `pinned:true/false` - filter by pinned status
@@ -429,6 +472,7 @@ The search functionality supports various filters:
 - `shared:true/false` - filter by sharing status
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L167-L193)
 - [chats.py](file://backend/open_webui/routers/chats.py#L409-L420)
 
@@ -437,56 +481,67 @@ The search functionality supports various filters:
 The API returns standardized error responses for various failure scenarios:
 
 ### Unauthorized Access
+
 ```json
 {
-  "detail": "You do not have permission to access this resource. Please contact your administrator for assistance."
+	"detail": "You do not have permission to access this resource. Please contact your administrator for assistance."
 }
 ```
+
 **Status Code**: `401 Unauthorized`
 
 Occurs when a user tries to access a chat they don't own or lacks required permissions.
 
 ### Invalid Chat ID
+
 ```json
 {
-  "detail": "We could not find what you're looking for :/"
+	"detail": "We could not find what you're looking for :/"
 }
 ```
+
 **Status Code**: `401 Unauthorized`
 
 Returned when the specified chat ID does not exist or is not accessible to the user.
 
 ### Rate Limiting
+
 ```json
 {
-  "detail": "API rate limit exceeded"
+	"detail": "API rate limit exceeded"
 }
 ```
+
 **Status Code**: `429 Too Many Requests`
 
 Triggered when a user exceeds the allowed number of requests in a given time period.
 
 ### Validation Errors
+
 ```json
 {
-  "detail": "[ERROR: validation error message]"
+	"detail": "[ERROR: validation error message]"
 }
 ```
+
 **Status Code**: `400 Bad Request`
 
 Returned for malformed requests or invalid data.
 
 ### Server Errors
+
 ```json
 {
-  "detail": "Something went wrong :/"
+	"detail": "Something went wrong :/"
 }
 ```
+
 **Status Code**: `500 Internal Server Error`
 
 Indicates an unexpected server-side error.
 
 **Section sources**
+
 - [constants.py](file://backend/open_webui/constants.py#L19-L75)
 
 ## Integration with Models and Messages
@@ -539,6 +594,7 @@ __table_args__ = (
 These indexes ensure fast retrieval of chats by user, folder, pinned status, and update time.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L26-L56)
 - [models.py](file://backend/open_webui/models/models.py#L55-L105)
 - [messages.py](file://backend/open_webui/models/messages.py#L41-L63)
@@ -548,6 +604,7 @@ These indexes ensure fast retrieval of chats by user, folder, pinned status, and
 ### Creating a Chat with a Specific Model
 
 Using curl:
+
 ```bash
 curl -X POST "http://localhost:8080/api/chats/new" \
   -H "Authorization: Bearer your-jwt-token" \
@@ -568,27 +625,28 @@ curl -X POST "http://localhost:8080/api/chats/new" \
 ```
 
 Using JavaScript fetch:
+
 ```javascript
 fetch('/api/chats/new', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer your-jwt-token',
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    chat: {
-      title: 'Python Help',
-      model: 'gpt-4',
-      params: {
-        temperature: 0.5,
-        max_tokens: 2000
-      },
-      history: { messages: [] }
-    }
-  })
+	method: 'POST',
+	headers: {
+		Authorization: 'Bearer your-jwt-token',
+		'Content-Type': 'application/json'
+	},
+	body: JSON.stringify({
+		chat: {
+			title: 'Python Help',
+			model: 'gpt-4',
+			params: {
+				temperature: 0.5,
+				max_tokens: 2000
+			},
+			history: { messages: [] }
+		}
+	})
 })
-.then(response => response.json())
-.then(data => console.log(data));
+	.then((response) => response.json())
+	.then((data) => console.log(data));
 ```
 
 ### Retrieving the Last 10 Chats

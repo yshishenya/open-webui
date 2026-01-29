@@ -70,12 +70,9 @@ export type FeaturePageConfig = {
 export const featurePageConfig = featuresPage as FeaturePageConfig;
 export const featurePresets = presetsData as FeaturePreset[];
 
-export const presetsById = featurePresets.reduce<Record<string, FeaturePreset>>(
-	(acc, preset) => {
-		acc[preset.id] = preset;
-		return acc;
-	},
-	{}
-);
+export const presetsById = featurePresets.reduce<Record<string, FeaturePreset>>((acc, preset) => {
+	acc[preset.id] = preset;
+	return acc;
+}, {});
 
 export const featurePresetsById = presetsById;

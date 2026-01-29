@@ -10,6 +10,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Model Entity Structure](#model-entity-structure)
 3. [Parameter Customization](#parameter-customization)
@@ -44,9 +45,11 @@ bigint created_at
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L55-L104)
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L33-L123)
 
 ## Parameter Customization
@@ -94,10 +97,12 @@ class ModelParams {
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L34-L36)
 - [misc.py](file://backend/open_webui/utils/misc.py#L431-L453)
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L34-L36)
 - [misc.py](file://backend/open_webui/utils/misc.py#L431-L474)
 
@@ -146,10 +151,12 @@ ModelMeta --> Capabilities : "contains"
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L39-L52)
 - [ModelEditor.svelte](file://src/lib/components/workspace/Models/ModelEditor.svelte#L95-L104)
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L39-L52)
 - [ModelEditor.svelte](file://src/lib/components/workspace/Models/ModelEditor.svelte#L74-L207)
 
@@ -175,10 +182,12 @@ Note over Backend,Database : Model creation workflow
 ```
 
 **Diagram sources**
+
 - [ModelEditor.svelte](file://src/lib/components/workspace/Models/ModelEditor.svelte#L123-L221)
 - [models.py](file://backend/open_webui/routers/models.py#L130-L166)
 
 **Section sources**
+
 - [ModelEditor.svelte](file://src/lib/components/workspace/Models/ModelEditor.svelte#L1-L844)
 - [models.py](file://backend/open_webui/routers/models.py#L130-L166)
 - [index.ts](file://src/lib/apis/models/index.ts#L152-L179)
@@ -198,6 +207,7 @@ The model configuration system implements comprehensive validation to ensure dat
 ### Error Conditions
 
 Common error conditions include:
+
 - **MODEL_ID_TAKEN**: Attempting to create a model with an existing ID
 - **MODEL_ID_TOO_LONG**: Model ID exceeds maximum length
 - **UNAUTHORIZED**: User lacks required permissions
@@ -225,10 +235,12 @@ Success --> End
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/routers/models.py#L144-L155)
 - [models.py](file://backend/open_webui/routers/models.py#L365-L380)
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/routers/models.py#L144-L166)
 - [models.py](file://backend/open_webui/routers/models.py#L365-L383)
 
@@ -243,12 +255,14 @@ When configuring models with complex parameter sets, several performance conside
 - **Serialization costs**: Converting between JSON and Python objects has computational costs
 
 The system is designed to handle these considerations through:
+
 - Efficient database indexing on frequently queried fields
 - Caching of frequently accessed model configurations
 - Streamlined validation processes
 - Proper database schema design with appropriate field types
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L74-L80)
 - [models.py](file://backend/open_webui/routers/models.py#L268-L352)
 
@@ -259,21 +273,25 @@ This section addresses common configuration issues and provides guidance for res
 ### Common Configuration Issues
 
 **Invalid Parameter Formats**
+
 - Ensure numeric parameters (temperature, top_p) are valid numbers
 - Verify array parameters (stop sequences) are properly formatted
 - Check that boolean parameters use correct true/false values
 
 **Missing Required Fields**
+
 - Always provide both ID and name when creating a model
 - Ensure the base_model_id is valid if specified
 - Include required capabilities for the intended use case
 
 **Permission Errors**
+
 - Verify user has appropriate role (admin) or permissions
 - Check access control settings for the model
 - Ensure the user has write access to modify existing models
 
 **Integration Issues**
+
 - Confirm API endpoints are properly configured
 - Verify authentication tokens are valid
 - Check network connectivity between frontend and backend
@@ -281,6 +299,7 @@ This section addresses common configuration issues and provides guidance for res
 The system provides descriptive error messages to help identify and resolve configuration issues. When encountering problems, review the specific error message and validate that all configuration parameters meet the required specifications.
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/routers/models.py#L136-L142)
 - [models.py](file://backend/open_webui/routers/models.py#L372-L380)
 - [models.py](file://backend/open_webui/models/models.py#L143-L151)

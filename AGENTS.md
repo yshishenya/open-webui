@@ -22,111 +22,65 @@
 
 ### Key Project Features:
 
-#### 1. python Architecture
-- Using **python** with full type annotations
-- **Framework**: 
-- **Asynchronous architecture**: all I/O operations via async/await
-- Command and callback query handlers in `bot/` module (or main application logic)
+#### 1. Backend Architecture
 
-#### 2. AI/LLM Integration (if applicable)
-- **OpenAI API (GPT-4)** for analysis and report generation
-- **LangChain** for orchestrating AI agents
-- All LLM calls must be wrapped in retry mechanisms
-- Use structured outputs for parsing LLM responses
+- Backend: **Python** (3.11-3.12)
+- **Framework**: FastAPI
+- Async-first: I/O via async/await where applicable
+- Routers live in `backend/open_webui/routers/`; services/helpers in `backend/open_webui/utils/`
+
+#### 2. AI/LLM Integration
+
+- Multi-provider support (OpenAI/Anthropic/Google/Ollama)
+- Prefer provider clients already used in the repo
+- Wrap unstable external calls with retries/timeouts where appropriate
 
 #### 3. Async/Await Patterns
+
 **CRITICALLY IMPORTANT:**
-- All I/O operations (HTTP requests, database queries, file operations) MUST be asynchronous
+
+- All I/O operations (HTTP requests, database queries) MUST be asynchronous
 - Use `async def` and `await` for all functions with I/O
 - For HTTP requests use **httpx**, NOT requests
-- For database queries use async drivers (asyncpg for PostgreSQL)
 - **FORBIDDEN** to block event loop with synchronous calls
 
 Correct approach example:
+
 ```python
 import httpx
-from typing import Dict, Any
 
-async def fetch_company_data(company_id: str) -> Dict[str, Any]:
-    """Asynchronously load company data."""
+async def fetch_data(url: str) -> dict[str, object]:
+    """Asynchronously fetch JSON payload."""
     async with httpx.AsyncClient() as client:
-        response = await client.get(f"https://api.example.com/companies/{company_id}")
+        response = await client.get(url, timeout=10.0)
         response.raise_for_status()
         return response.json()
 ```
 
 #### 4. External API Integrations
-All external integrations must:
-- Be located in `integrations/` module
-- Have clear interface (Pydantic models for request/response)
+
+- Prefer existing provider clients and patterns already used in the repo
+- Centralize non-trivial integrations in `backend/open_webui/utils/`
 - Include error handling according to `.memory_bank/patterns/error_handling.md`
-- Use retry mechanisms for unstable APIs
-- Have fallback strategies when service is unavailable
-- Log all requests for debugging
-
-Integration structure example:
-```python
-# integrations/company_registry.py
-from typing import Optional
-from pydantic import BaseModel
-import httpx
-
-class CompanyInfo(BaseModel):
-    """Company data model."""
-    name: str
-    inn: str
-    registration_date: str
-    status: str
-
-class CompanyRegistryClient:
-    """Client for working with company registry."""
-
-    def __init__(self, api_key: str):
-        self.api_key = api_key
-        self.base_url = "https://api.example.com"
-
-    async def get_company(self, inn: str) -> Optional[CompanyInfo]:
-        """Get company information by INN."""
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.base_url}/companies/{inn}",
-                headers={"Authorization": f"Bearer {self.api_key}"}
-            )
-            if response.status_code == 404:
-                return None
-            response.raise_for_status()
-            return CompanyInfo(**response.json())
-```
+- Never log secrets; log context (request id/user id) where available
 
 #### 5. Application-Specific Patterns
+
 **When working with the application:**
-- Use handlers for commands (`/start`, `/help`, `/check`) if applicable
-- Use callback_query handlers for inline buttons (Telegram bots)
-- Use FSM (Finite State Machine) for complex dialogs if applicable
-- Handle errors gracefully - always send understandable message to user
-- Use typing indicators (`send_chat_action`) for long operations if applicable
-- Limit message size (Telegram limit: 4096 characters) if applicable
 
-Handler example:
-```python
-from aiogram import Router, types
-from aiogram.filters import Command
-
-router = Router()
-
-@router.message(Command("check"))
-async def handle_check_command(message: types.Message) -> None:
-    """Handler for /check command to start verification."""
-    await message.answer("Sending verification request...")
-    # Processing logic
-```
+- Use FastAPI routers for API endpoints (see `backend/open_webui/routers/`)
+- Prefer service/helper functions in `backend/open_webui/utils/` for business logic
+- Handle errors gracefully: return user-safe `HTTPException` details; log the real error
+- Keep feature flags and config in environment variables (see `.env.example`, `backend/open_webui/env.py`)
+- Avoid blocking the event loop; use async I/O where available
 
 #### 6. Data Processing & Storage
-- **PostgreSQL** for storing structured data (companies, reports, users)
-- **Redis** for caching and task queues
-- All database models must be in `data/models.py`
+
+- **PostgreSQL** for production data; SQLite used in dev/tests where configured
+- **Redis** for caching/sessions and other features
+- Billing and other persistence models are under `backend/open_webui/models/`
 - Use migrations (Alembic) for database schema changes
-- Data validation via Pydantic before saving
+- Data validation via Pydantic models in routers/services
 
 ---
 
@@ -135,6 +89,7 @@ async def handle_check_command(message: types.Message) -> None:
 **IMPORTANT**: You not only read from Memory Bank, but also **update it**.
 
 When performing tasks you MUST:
+
 - Update status in `.memory_bank/current_tasks.md` (To Do → In Progress → Done)
 - Create/update documentation in `.memory_bank/guides/` when implementing new subsystems
 - Update `.memory_bank/tech_stack.md` when adding new dependencies
@@ -148,25 +103,31 @@ When performing tasks you MUST:
 Before starting any task, determine its type and choose the corresponding workflow:
 
 ### 1. New Feature
+
 **When to use**: Adding new capability to the bot
 **Workflow**: `.memory_bank/workflows/new_feature.md`
 **Examples**:
+
 - Adding new bot command
 - Integration with new external API
 - Creating new report type
 
 ### 2. Bug Fix
+
 **When to use**: Something doesn't work as expected
 **Workflow**: `.memory_bank/workflows/bug_fix.md`
 **Examples**:
+
 - Bot doesn't respond to command
 - Error in data processing
 - Incorrect logic in existing function
 
 ### 3. Code Review
+
 **When to use**: Quality check before merge
 **Workflow**: `.memory_bank/workflows/code_review.md`
 **What to check**:
+
 - Compliance with coding standards
 - Correct async/await usage
 - Error handling
@@ -195,14 +156,17 @@ Before starting any task, determine its type and choose the corresponding workfl
 Before writing code ALWAYS check:
 
 1. **Tech Stack** (`.memory_bank/tech_stack.md`):
+
    - Which libraries are allowed for this task?
    - Which practices are forbidden?
 
 2. **Existing Components**:
+
    - Does this functionality already exist?
    - Which modules can be reused?
 
 3. **Patterns** (`.memory_bank/patterns/`):
+
    - How to properly handle errors in this project?
    - Which API standards to use?
 
@@ -231,157 +195,46 @@ If you feel context was lost or compressed:
 
 ## Type Safety Requirements
 
-All functions MUST have complete type hints:
-
-```python
-from typing import Dict, List, Optional, Any
-from pydantic import BaseModel
-
-# CORRECT
-async def process_company(
-    company_id: str,
-    include_details: bool = False
-) -> Dict[str, Any]:
-    """Process company data."""
-    ...
-
-# INCORRECT (missing type hints)
-async def process_company(company_id, include_details=False):
-    ...
-```
+- All new/modified functions must have type hints.
+- Avoid `Any` unless there is a strong reason.
 
 ---
 
 ## Testing Requirements
 
-For each new function you MUST:
-1. Write unit tests in `tests/`
-2. Use `pytest` and `pytest-asyncio`
-3. Minimum 80% code coverage
-4. Test edge cases and error handling
-
-Test example:
-```python
-import pytest
-from unittest.mock import AsyncMock
-
-@pytest.mark.asyncio
-async def test_fetch_company_data():
-    """Test fetching company data."""
-    # Arrange
-    company_id = "test_123"
-
-    # Act
-    result = await fetch_company_data(company_id)
-
-    # Assert
-    assert result is not None
-    assert "name" in result
-```
+- Backend tests: `pytest`
+- Frontend tests: `npm run test:frontend`
+- E2E tests when relevant: `npm run test:e2e`
 
 ---
 
 ## Error Handling Requirements
 
-All external calls must have error handling:
-
-```python
-import logging
-from typing import Optional
-
-logger = logging.getLogger(__name__)
-
-async def safe_api_call(url: str) -> Optional[dict]:
-    """Safe external API call."""
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, timeout=10.0)
-            response.raise_for_status()
-            return response.json()
-    except httpx.HTTPError as e:
-        logger.error(f"HTTP error calling {url}: {e}")
-        return None
-    except Exception as e:
-        logger.exception(f"Unexpected error calling {url}: {e}")
-        return None
-```
+- Wrap external calls with timeouts and explicit error handling.
+- Return user-safe `HTTPException` details; log the real error.
 
 ---
 
 ## Logging Standards
 
-- Use `logging` module, NOT `print()`
-- Logging levels:
-  - `DEBUG`: Detailed information for debugging
-  - `INFO`: General information about operation
-  - `WARNING`: Warnings (something wrong but works)
-  - `ERROR`: Errors (functionality broken)
-  - `CRITICAL`: Critical errors (system cannot work)
-- Always include context in log messages
-
-```python
-logger.info(f"Processing company {company_id}, user {user_id}")
-logger.error(f"Failed to fetch data for {company_id}: {error}")
-```
+- Prefer standard `logging` (it is routed into Loguru via `backend/open_webui/utils/logger.py`).
+- Never log secrets.
 
 ---
 
 ## Environment Configuration
 
-All configuration parameters must be in `.env` file:
-
-```python
-from pydantic_settings import BaseSettings
-
-class Settings(BaseSettings):
-    """Application settings."""
-    telegram_bot_token: str
-    openai_api_key: str
-    database_url: str
-    redis_url: str
-
-    class Config:
-        env_file = ".env"
-
-settings = Settings()
-```
-
-**NEVER** commit `.env` file to git!
+- All configuration is via environment variables (see `.env.example`, `backend/open_webui/env.py`).
+- Never commit `.env`.
 
 ---
 
 ## Git Workflow
 
-1. **Branch Naming**:
-   - `feature/add-company-search` - new feature
-   - `bugfix/fix-telegram-handler` - bug fix
-   - `docs/update-readme` - documentation
-
-2. **Commit Messages** (Conventional Commits):
-   - `feat: add company search endpoint`
-   - `fix: handle timeout in API calls`
-   - `docs: update API documentation`
-   - `refactor: simplify error handling`
-   - `test: add tests for company service`
-
-3. **Before Committing**:
-   - Run tests: `pytest`
-   - Check formatting: `black .`
-   - Check types: `mypy .`
-   - Check linting: `ruff check .`
-
----
-
-## Performance Considerations
-
-1. **Use connection pooling** for database and HTTP clients
-2. **Cache** frequent requests in Redis
-3. **Use batch operations** where possible
-4. **Limit concurrent requests** to external APIs
-5. **Use indices** in database queries
-
----
-
-**Remember**: Memory Bank is the single source of truth. Trust it more than your assumptions.
+- Branch naming: `feature/...`, `bugfix/...`, `docs/...`
+- Before committing:
+  - Backend: `pytest`, `black .`
+  - Frontend: `npm run test:frontend`, `npm run check`, `npm run lint:frontend`
+  - Optional combined: `npm run lint`
 
 **Main Principle**: If unsure - ask the user or re-read documentation in Memory Bank.

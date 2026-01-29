@@ -86,12 +86,10 @@
 	const submitHandler = async () => {
 		if (!selectedUser?.id) return;
 
-		const res = await updateUserById(localStorage.token, selectedUser.id, _user).catch(
-			(error) => {
-				toast.error(`${error}`);
-				return null;
-			}
-		);
+		const res = await updateUserById(localStorage.token, selectedUser.id, _user).catch((error) => {
+			toast.error(`${error}`);
+			return null;
+		});
 
 		if (res) {
 			dispatch('save');
@@ -277,7 +275,9 @@
 												<option value="">{$i18n.t('No plan')}</option>
 												{#each availablePlans as plan}
 													<option value={plan.id}>
-														{plan.name_ru || plan.name}{plan.price > 0 ? ` (${plan.price} ${plan.currency})` : ''}
+														{plan.name_ru || plan.name}{plan.price > 0
+															? ` (${plan.price} ${plan.currency})`
+															: ''}
 													</option>
 												{/each}
 											</select>
@@ -287,9 +287,17 @@
 											<div class="text-xs text-gray-400 mt-1">{$i18n.t('Loading...')}</div>
 										{:else if userSubscription?.subscription}
 											<div class="text-xs text-gray-500 mt-1">
-												{$i18n.t('Status')}: <span class="{userSubscription.subscription.status === 'active' ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}">{userSubscription.subscription.status}</span>
+												{$i18n.t('Status')}:
+												<span
+													class={userSubscription.subscription.status === 'active'
+														? 'text-green-600 dark:text-green-400'
+														: 'text-gray-500'}>{userSubscription.subscription.status}</span
+												>
 												{#if userSubscription.subscription.current_period_end}
-													· {$i18n.t('until')} {dayjs(userSubscription.subscription.current_period_end * 1000).format('LL')}
+													· {$i18n.t('until')}
+													{dayjs(userSubscription.subscription.current_period_end * 1000).format(
+														'LL'
+													)}
 												{/if}
 											</div>
 											<!-- Usage -->
@@ -299,11 +307,24 @@
 														{#if data.limit}
 															<div class="text-xs">
 																<div class="flex justify-between mb-0.5">
-																	<span class="text-gray-600 dark:text-gray-400">{metric.replace('_', ' ')}</span>
-																	<span>{formatCompactNumber(data.used)} / {formatCompactNumber(data.limit)}</span>
+																	<span class="text-gray-600 dark:text-gray-400"
+																		>{metric.replace('_', ' ')}</span
+																	>
+																	<span
+																		>{formatCompactNumber(data.used)} / {formatCompactNumber(
+																			data.limit
+																		)}</span
+																	>
 																</div>
-																<div class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-																	<div class="h-full {getUsageColor(data.percentage || 0)} transition-all" style="width: {Math.min(100, data.percentage || 0)}%"></div>
+																<div
+																	class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
+																>
+																	<div
+																		class="h-full {getUsageColor(
+																			data.percentage || 0
+																		)} transition-all"
+																		style="width: {Math.min(100, data.percentage || 0)}%"
+																	></div>
 																</div>
 															</div>
 														{/if}

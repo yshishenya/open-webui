@@ -78,10 +78,18 @@
 			<div>
 				{#if presetsById[activeTab.examplePresetId]}
 					<FeaturesExamplePanel
-						prompt={presetsById[activeTab.examplePresetId].promptPreview ?? presetsById[activeTab.examplePresetId].prompt}
-						resultPreview={presetsById[activeTab.examplePresetId].resultPreview ?? presetsById[activeTab.examplePresetId].result}
+						prompt={presetsById[activeTab.examplePresetId].promptPreview ??
+							presetsById[activeTab.examplePresetId].prompt}
+						resultPreview={presetsById[activeTab.examplePresetId].resultPreview ??
+							presetsById[activeTab.examplePresetId].result}
 						tryPresetId={activeTab.examplePresetId}
-						variant={activeTab.id === 'image' ? 'image' : activeTab.id === 'audio' ? 'audio' : activeTab.id === 'data' ? 'data' : 'text'}
+						variant={activeTab.id === 'image'
+							? 'image'
+							: activeTab.id === 'audio'
+								? 'audio'
+								: activeTab.id === 'data'
+									? 'data'
+									: 'text'}
 						onTry={(presetId) => handleTryPreset(activeTab, presetsById[presetId])}
 					/>
 				{:else}

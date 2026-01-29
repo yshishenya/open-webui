@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -24,9 +25,11 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document describes the Model Management system responsible for AI model configuration and organization. It covers how models are created, updated, and deleted through the API, how model metadata is structured (including parameters, access control, and tagging), and how model activation/deactivation works. It also explains admin-level model management, practical examples for custom model configuration, and the data model relationships to users and groups. Finally, it addresses common permission-related issues and provides performance guidance for model loading and discovery.
 
 ## Project Structure
+
 The Model Management system spans backend models, routers, utilities, and frontend APIs:
 
 - Backend models define the schema and persistence logic for models.
@@ -56,6 +59,7 @@ M --> I010
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/models/models.py](file://backend/open_webui/models/models.py#L55-L123)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L1-L120)
 - [backend/open_webui/utils/models.py](file://backend/open_webui/utils/models.py#L82-L120)
@@ -65,29 +69,34 @@ M --> I010
 - [src/lib/apis/models/index.ts](file://src/lib/apis/models/index.ts#L1-L120)
 
 **Section sources**
+
 - [backend/open_webui/models/models.py](file://backend/open_webui/models/models.py#L55-L123)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L1-L120)
 - [backend/open_webui/utils/models.py](file://backend/open_webui/utils/models.py#L82-L120)
 - [src/lib/apis/models/index.ts](file://src/lib/apis/models/index.ts#L1-L120)
 
 ## Core Components
+
 - Model schema and persistence: defines the model table, Pydantic models for forms and responses, and DAO methods for CRUD and search.
 - Router endpoints: expose list, create, update, delete, toggle, export/import, and tag discovery.
 - Model discovery and filtering: merges base provider models with custom models, applies access control, and caches results.
 - Access control utilities: evaluate read/write permissions for users and groups.
 
 Key responsibilities:
+
 - Store model identity, ownership, base model linkage, human-friendly name, parameters, metadata, access control, and timestamps.
 - Enforce permissions for read/write operations and admin-only actions.
 - Provide model discovery and filtering for UI and downstream services.
 
 **Section sources**
+
 - [backend/open_webui/models/models.py](file://backend/open_webui/models/models.py#L55-L123)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L120-L210)
 - [backend/open_webui/utils/models.py](file://backend/open_webui/utils/models.py#L341-L402)
 - [backend/open_webui/utils/access_control.py](file://backend/open_webui/utils/access_control.py#L124-L175)
 
 ## Architecture Overview
+
 The system integrates frontend API calls with backend routers, models, and utilities. Access control is enforced at both router and utility layers. Model discovery aggregates base provider models and custom models, applying access control and filtering.
 
 ```mermaid
@@ -115,6 +124,7 @@ API-->>FE : "200 OK"
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L51-L120)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L129-L166)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L355-L384)
@@ -124,7 +134,9 @@ API-->>FE : "200 OK"
 ## Detailed Component Analysis
 
 ### Data Model and Metadata Structure
+
 The model entity stores:
+
 - Identity: id, base_model_id, name
 - Ownership and lifecycle: user_id, created_at, updated_at
 - Behavior: is_active
@@ -132,6 +144,7 @@ The model entity stores:
 - Access control: access_control (JSON)
 
 Metadata structure supports:
+
 - Profile image URL
 - Description
 - Capabilities
@@ -166,13 +179,16 @@ MODEL ||--o{ GROUP : "shared via access_control"
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/models/models.py](file://backend/open_webui/models/models.py#L55-L123)
 
 **Section sources**
+
 - [backend/open_webui/models/models.py](file://backend/open_webui/models/models.py#L33-L53)
 - [backend/open_webui/models/models.py](file://backend/open_webui/models/models.py#L55-L123)
 
 ### API Operations: Creation, Update, Deletion, Activation/Deactivation
+
 - Create model: POST /models/create validates ID uniqueness and length, checks permissions, and persists the model.
 - Update model: POST /models/model/update requires write access or ownership/admin role.
 - Delete model: POST /models/model/delete requires write access or ownership/admin role.
@@ -206,11 +222,13 @@ API-->>FE : "200 OK"
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L129-L166)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L355-L411)
 - [backend/open_webui/models/models.py](file://backend/open_webui/models/models.py#L379-L404)
 
 **Section sources**
+
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L51-L120)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L129-L166)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L264-L322)
@@ -218,6 +236,7 @@ API-->>FE : "200 OK"
 - [backend/open_webui/models/models.py](file://backend/open_webui/models/models.py#L153-L205)
 
 ### Access Control and Admin Management
+
 - Access control rules:
   - None: public read access for users with role "user".
   - {}: private access restricted to owner.
@@ -247,16 +266,19 @@ Authorized --> |No| Deny["Deny"] --> End
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/utils/access_control.py](file://backend/open_webui/utils/access_control.py#L124-L175)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L264-L322)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L355-L411)
 
 **Section sources**
+
 - [backend/open_webui/utils/access_control.py](file://backend/open_webui/utils/access_control.py#L124-L175)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L81-L120)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L129-L166)
 
 ### Model Discovery and Filtering
+
 - Base models are fetched from OpenAI and Ollama providers and function modules.
 - Custom models are merged into the base list:
   - If base_model_id is None, treat as a base override and update name/info.
@@ -291,11 +313,13 @@ SVC-->>Caller : "models"
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/utils/models.py](file://backend/open_webui/utils/models.py#L62-L120)
 - [backend/open_webui/utils/models.py](file://backend/open_webui/utils/models.py#L151-L244)
 - [backend/open_webui/utils/models.py](file://backend/open_webui/utils/models.py#L341-L402)
 
 **Section sources**
+
 - [backend/open_webui/utils/models.py](file://backend/open_webui/utils/models.py#L62-L120)
 - [backend/open_webui/utils/models.py](file://backend/open_webui/utils/models.py#L151-L244)
 - [backend/open_webui/utils/models.py](file://backend/open_webui/utils/models.py#L341-L402)
@@ -303,18 +327,22 @@ SVC-->>Caller : "models"
 ### Practical Examples
 
 - Create a custom model configuration:
+
   - Use POST /models/create with a ModelForm payload containing id, base_model_id, name, meta, params, access_control, and is_active.
   - Example path: [POST /models/create](file://backend/open_webui/routers/models.py#L129-L166)
 
 - Update model parameters:
+
   - Use POST /models/model/update with a ModelForm payload including id and updated fields.
   - Example path: [POST /models/model/update](file://backend/open_webui/routers/models.py#L355-L384)
 
 - Manage model visibility:
+
   - Toggle activation via POST /models/model/toggle.
   - Example path: [POST /models/model/toggle](file://backend/open_webui/routers/models.py#L325-L353)
 
 - List and filter models:
+
   - GET /models/list with query, view_option, tag, order_by, direction, page.
   - Example path: [GET /models/list](file://backend/open_webui/routers/models.py#L51-L89)
 
@@ -324,20 +352,24 @@ SVC-->>Caller : "models"
   - Example paths: [POST /models/import](file://backend/open_webui/routers/models.py#L198-L241), [GET /models/export](file://backend/open_webui/routers/models.py#L173-L187)
 
 **Section sources**
+
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L51-L120)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L129-L166)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L173-L241)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L325-L384)
 
 ### Data Model Evolution
+
 - Initial model table migration adds id, user_id, base_model_id, name, meta, params, created_at, updated_at.
 - Migration from modelfiles to models transforms legacy modelfiles into the new model schema, preserving descriptions, images, suggestions, categories, and Ollama modelfile content.
 
 **Section sources**
+
 - [backend/open_webui/internal/migrations/009_add_models.py](file://backend/open_webui/internal/migrations/009_add_models.py#L40-L56)
 - [backend/open_webui/internal/migrations/010_migrate_modelfiles_to_models.py](file://backend/open_webui/internal/migrations/010_migrate_modelfiles_to_models.py#L48-L82)
 
 ## Dependency Analysis
+
 - Router depends on Models DAO for persistence and access_control for permission checks.
 - Model discovery utility depends on provider routers (OpenAI/Ollama), function modules, and Models DAO.
 - Frontend API bindings call router endpoints.
@@ -352,6 +384,7 @@ U --> AC
 ```
 
 **Diagram sources**
+
 - [src/lib/apis/models/index.ts](file://src/lib/apis/models/index.ts#L1-L120)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L1-L120)
 - [backend/open_webui/models/models.py](file://backend/open_webui/models/models.py#L153-L205)
@@ -359,6 +392,7 @@ U --> AC
 - [backend/open_webui/utils/models.py](file://backend/open_webui/utils/models.py#L82-L120)
 
 **Section sources**
+
 - [src/lib/apis/models/index.ts](file://src/lib/apis/models/index.ts#L1-L120)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L1-L120)
 - [backend/open_webui/models/models.py](file://backend/open_webui/models/models.py#L153-L205)
@@ -366,6 +400,7 @@ U --> AC
 - [backend/open_webui/utils/models.py](file://backend/open_webui/utils/models.py#L82-L120)
 
 ## Performance Considerations
+
 - Model caching:
   - Base models and merged models are cached in RedisDict or memory to reduce repeated provider calls and DB reads.
   - Example path: [get_all_models caching](file://backend/open_webui/utils/models.py#L332-L338)
@@ -379,7 +414,9 @@ U --> AC
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 Common issues and resolutions:
+
 - Permission errors when accessing models:
   - Ensure the user has write access or owns the model; admin role may bypass depending on configuration.
   - Verify access_control rules include the user or group IDs.
@@ -395,11 +432,13 @@ Common issues and resolutions:
   - Example path: [Tag search](file://backend/open_webui/models/models.py#L300-L306)
 
 **Section sources**
+
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L264-L322)
 - [backend/open_webui/utils/access_control.py](file://backend/open_webui/utils/access_control.py#L124-L175)
 - [backend/open_webui/models/models.py](file://backend/open_webui/models/models.py#L300-L306)
 
 ## Conclusion
+
 The Model Management system provides a robust foundation for organizing AI models with flexible metadata, strong access control, and efficient discovery. It supports admin-level operations, user-driven customization, and integration with provider ecosystems. By leveraging caching, careful permission enforcement, and scalable tag handling, the system can accommodate growing model catalogs while maintaining performance and security.
 
 [No sources needed since this section summarizes without analyzing specific files]
@@ -407,6 +446,7 @@ The Model Management system provides a robust foundation for organizing AI model
 ## Appendices
 
 ### API Reference Summary
+
 - GET /models/list: List models with filters and pagination.
 - GET /models/base: Admin-only base models.
 - GET /models/tags: Aggregate tags from model metadata.
@@ -421,6 +461,7 @@ The Model Management system provides a robust foundation for organizing AI model
 - DELETE /models/delete/all: Admin-only delete all.
 
 **Section sources**
+
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L51-L120)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L129-L166)
 - [backend/open_webui/routers/models.py](file://backend/open_webui/routers/models.py#L173-L241)

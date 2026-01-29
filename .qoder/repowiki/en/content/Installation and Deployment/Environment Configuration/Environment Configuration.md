@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Database Configuration](#database-configuration)
 3. [Security Configuration](#security-configuration)
@@ -23,15 +24,19 @@
 9. [Troubleshooting](#troubleshooting)
 
 ## Introduction
+
 This document provides comprehensive guidance on configuring the Open WebUI environment. It covers all available environment variables, their purposes, and how they impact application behavior. The configuration is primarily managed through the `.env.example` file, which serves as a template for setting up the application in various environments. This guide categorizes variables by functionality, details critical configuration options, and provides examples for different deployment scenarios.
 
 **Section sources**
+
 - [.env.example](file://.env.example)
 
 ## Database Configuration
+
 The database configuration in Open WebUI supports multiple database types and offers various connection parameters for optimal performance and reliability.
 
 ### Connection Parameters
+
 The database connection is configured through several environment variables that define the database type, credentials, and connection details:
 
 - **DATABASE_URL**: The complete database connection URL. For SQLite, it defaults to `sqlite:///{DATA_DIR}/webui.db`. For PostgreSQL, it should be in the format `postgresql://user:password@host:port/database`.
@@ -45,6 +50,7 @@ The database connection is configured through several environment variables that
 When all database variables (type, user, password, host, port, name) are provided, the DATABASE_URL is automatically constructed from these components.
 
 ### Connection Pooling
+
 Open WebUI provides configuration options for database connection pooling to optimize performance:
 
 - **DATABASE_POOL_SIZE**: Maximum number of connections in the pool. Defaults to None (unlimited).
@@ -53,12 +59,14 @@ Open WebUI provides configuration options for database connection pooling to opt
 - **DATABASE_POOL_RECYCLE**: Time in seconds after which connections are recycled. Defaults to 3600 seconds (1 hour).
 
 ### SQLite-Specific Options
+
 For SQLite databases, additional configuration is available:
 
 - **DATABASE_ENABLE_SQLITE_WAL**: Enables SQLite Write-Ahead Logging for better concurrency. Set to "true" to enable.
 - **DATABASE_USER_ACTIVE_STATUS_UPDATE_INTERVAL**: Interval in seconds for updating user active status. Defaults to None (no updates).
 
 ### Example Configuration
+
 ```env
 # PostgreSQL configuration
 DATABASE_TYPE=postgresql
@@ -76,12 +84,15 @@ DATABASE_POOL_RECYCLE=1800
 ```
 
 **Section sources**
+
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L280-L352)
 
 ## Security Configuration
+
 Open WebUI provides comprehensive security configuration options to protect the application and user data.
 
 ### Authentication and Authorization
+
 The security configuration includes settings for authentication, session management, and access control:
 
 - **WEBUI_AUTH**: Enables or disables authentication. Set to "true" to require user authentication.
@@ -92,6 +103,7 @@ The security configuration includes settings for authentication, session managem
 - **API_KEYS_ALLOWED_ENDPOINTS**: Semicolon-separated list of endpoints accessible with API keys.
 
 ### Session and Cookie Security
+
 Session management settings ensure secure user sessions:
 
 - **WEBUI_SESSION_COOKIE_SAME_SITE**: SameSite attribute for session cookies. Options: "lax", "strict", or "none".
@@ -100,6 +112,7 @@ Session management settings ensure secure user sessions:
 - **WEBUI_AUTH_COOKIE_SECURE**: Requires HTTPS for authentication cookies.
 
 ### OAuth Configuration
+
 Open WebUI supports OAuth integration with various providers:
 
 - **ENABLE_OAUTH_SIGNUP**: Allows user registration through OAuth providers.
@@ -111,20 +124,24 @@ Open WebUI supports OAuth integration with various providers:
 - **OPENID_PROVIDER_URL**: URL of the OpenID provider.
 
 ### Security Headers and CORS
+
 Additional security settings include:
 
-- **CORS_ALLOW_ORIGIN**: Origins allowed for Cross-Origin Resource Sharing. Use "*" for development, specific domains for production.
-- **FORWARDED_ALLOW_IPS**: IPs allowed to set forwarded headers. Use "*" for development.
+- **CORS_ALLOW_ORIGIN**: Origins allowed for Cross-Origin Resource Sharing. Use "\*" for development, specific domains for production.
+- **FORWARDED_ALLOW_IPS**: IPs allowed to set forwarded headers. Use "\*" for development.
 - **ENABLE_COMPRESSION_MIDDLEWARE**: Enables response compression to reduce bandwidth usage.
 
 **Section sources**
+
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L414-L520)
 - [backend/open_webui/config.py](file://backend/open_webui/config.py#L290-L629)
 
 ## AI Services Configuration
+
 The AI services configuration allows integration with various AI models and providers.
 
 ### Ollama Configuration
+
 Ollama is the primary AI backend for Open WebUI:
 
 - **OLLAMA_BASE_URL**: URL of the Ollama server. Defaults to `http://localhost:11434`.
@@ -133,6 +150,7 @@ Ollama is the primary AI backend for Open WebUI:
 - **DEVICE_TYPE**: Automatically determined device type (cpu, cuda, mps) based on system capabilities.
 
 ### OpenAI Configuration
+
 Open WebUI can also integrate with OpenAI services:
 
 - **OPENAI_API_BASE_URL**: Base URL for OpenAI API. Leave empty to use the official OpenAI API.
@@ -140,6 +158,7 @@ Open WebUI can also integrate with OpenAI services:
 - **ENABLE_OPENAI_API**: Enables the OpenAI API integration when set to "true".
 
 ### Other AI Services
+
 Additional AI service configurations include:
 
 - **GEMINI_API_KEY**: API key for Google Gemini service.
@@ -147,6 +166,7 @@ Additional AI service configurations include:
 - **AUTOMATIC1111_BASE_URL**: URL for AUTOMATIC1111 (Stable Diffusion) service.
 
 ### API Timeout Configuration
+
 Timeout settings for AI service requests:
 
 - **AIOHTTP_CLIENT_TIMEOUT**: Global timeout for HTTP requests to AI services in seconds.
@@ -154,32 +174,38 @@ Timeout settings for AI service requests:
 - **AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER_DATA**: Timeout for tool server data requests.
 
 **Section sources**
+
 - [.env.example](file://.env.example)
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L43-L69)
 - [backend/open_webui/config.py](file://backend/open_webui/config.py#L993-L1004)
 
 ## Billing Configuration
+
 Open WebUI includes a comprehensive billing system with support for YooKassa integration.
 
 ### Billing System Overview
-The billing system manages user subscriptions, quotas, and payments:
 
-- **BILLING_ENABLED**: Enables the billing system when set to "true".
-- **ENABLE_BILLING**: Persistent configuration to enable billing features.
-- **BILLING_MODEL_QUOTA_ENABLED**: Enables model-specific quotas.
-- **BILLING_DEFAULT_QUOTA_LIMIT**: Default quota limit for users without a subscription.
+Billing behavior is controlled via feature flags (wallet / subscriptions / lead magnet):
+
+- **ENABLE_BILLING_WALLET**: Enables PAYG wallet + rate card charging.
+- **ENABLE_BILLING_SUBSCRIPTIONS**: Enables subscription plans and subscription UI/API.
+- **LEAD_MAGNET_ENABLED**: Enables free lead-magnet quotas for allowlisted models.
+
+Note: older templates may mention `BILLING_ENABLED`, `ENABLE_BILLING`, and `BILLING_MODEL_QUOTA_ENABLED`, but Airis uses `ENABLE_BILLING_WALLET` / `ENABLE_BILLING_SUBSCRIPTIONS` / `LEAD_MAGNET_ENABLED`. Prefer removing legacy variables rather than adding them to your `.env`.
 
 ### YooKassa Integration
+
 YooKassa (formerly Yandex.Money) is supported as a payment gateway:
 
 - **YOOKASSA_SHOP_ID**: Merchant ID provided by YooKassa.
 - **YOOKASSA_SECRET_KEY**: Secret key for API authentication.
 - **YOOKASSA_WEBHOOK_SECRET**: Secret for verifying webhook signatures.
-- **BILLING_WEBHOOK_URL**: URL where YooKassa webhooks are received.
+- Webhook endpoint: configure YooKassa to POST to `https://<your-domain>/api/v1/billing/webhook/yookassa`.
 
 The YooKassa integration supports various payment methods including credit cards, bank transfers, and digital wallets. Webhooks are used to receive payment status updates, including successful payments, pending captures, and cancellations.
 
 ### Subscription and Quota Management
+
 The billing system tracks usage and enforces quotas:
 
 - **BILLING_SUBSCRIPTION_CHECK_INTERVAL**: Interval in seconds for checking subscription status.
@@ -187,26 +213,31 @@ The billing system tracks usage and enforces quotas:
 - **BILLING_QUOTA_CHECK_ENABLED**: Enables quota enforcement for API requests.
 
 ### Environment Variables in docker-compose.yaml
+
 The docker-compose.yaml file includes specific billing-related environment variables:
 
 ```yaml
 environment:
-  - 'BILLING_ENABLED=${BILLING_ENABLED-true}'
+  - 'ENABLE_BILLING_WALLET=${ENABLE_BILLING_WALLET-true}'
+  - 'ENABLE_BILLING_SUBSCRIPTIONS=${ENABLE_BILLING_SUBSCRIPTIONS-false}'
+  - 'LEAD_MAGNET_ENABLED=${LEAD_MAGNET_ENABLED-false}'
   - 'YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}'
   - 'YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}'
   - 'YOOKASSA_WEBHOOK_SECRET=${YOOKASSA_WEBHOOK_SECRET}'
-  - 'BILLING_WEBHOOK_URL=${BILLING_WEBHOOK_URL}'
 ```
 
 **Section sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L47-L51)
 - [backend/open_webui/utils/yookassa.py](file://backend/open_webui/utils/yookassa.py)
 - [backend/open_webui/utils/billing_integration.py](file://backend/open_webui/utils/billing_integration.py)
 
 ## RAG System Configuration
+
 The Retrieval-Augmented Generation (RAG) system in Open WebUI provides advanced document retrieval and processing capabilities.
 
 ### Embedding Models
+
 The RAG system supports multiple embedding models and configuration options:
 
 - **RAG_EMBEDDING_ENGINE**: Specifies the embedding engine to use. Options include "sentence_transformers", "openai", "ollama", and "azure_openai".
@@ -216,6 +247,7 @@ The RAG system supports multiple embedding models and configuration options:
 - **RAG_EMBEDDING_QUERY_PREFIX**: Text prefix added to queries before embedding.
 
 ### Reranking Models
+
 Reranking improves the quality of retrieved documents:
 
 - **RAG_RERANKING_ENGINE**: Specifies the reranking engine. Options include "sentence_transformers", "external", and "colbert".
@@ -224,6 +256,7 @@ Reranking improves the quality of retrieved documents:
 - **RAG_EXTERNAL_RERANKER_API_KEY**: API key for external reranking services.
 
 ### Vector Database Configuration
+
 The RAG system supports various vector databases:
 
 - **RAG_VECTOR_DB**: Type of vector database to use (e.g., "chroma", "qdrant", "weaviate").
@@ -231,6 +264,7 @@ The RAG system supports various vector databases:
 - **RAG_VECTOR_DB_COLLECTION**: Name of the collection in the vector database.
 
 ### Advanced RAG Options
+
 Additional configuration options for fine-tuning RAG behavior:
 
 - **RAG_TOP_K**: Number of documents to retrieve for each query.
@@ -239,6 +273,7 @@ Additional configuration options for fine-tuning RAG behavior:
 - **ENABLE_RAG_HYBRID_SEARCH**: Enables hybrid search combining vector and keyword search.
 
 ### API Configuration
+
 The RAG system can be configured through API endpoints:
 
 - **RAG_OPENAI_API_BASE_URL**: Base URL for OpenAI API when used for embeddings.
@@ -247,13 +282,16 @@ The RAG system can be configured through API endpoints:
 - **RAG_OLLAMA_API_KEY**: API key for Ollama services.
 
 **Section sources**
+
 - [backend/open_webui/routers/retrieval.py](file://backend/open_webui/routers/retrieval.py#L132-L952)
 - [backend/open_webui/main.py](file://backend/open_webui/main.py#L1033-L1073)
 
 ## Deployment Scenarios
+
 This section provides environment configuration examples for different deployment scenarios.
 
 ### Development Environment
+
 For local development, use the following configuration:
 
 ```env
@@ -287,6 +325,7 @@ DO_NOT_TRACK=true
 ```
 
 ### Production Environment
+
 For production deployment, use a more secure configuration:
 
 ```env
@@ -326,6 +365,7 @@ DO_NOT_TRACK=false
 ```
 
 ### GPU-Enabled Environment
+
 For deployments with GPU acceleration:
 
 ```env
@@ -355,6 +395,7 @@ AIOHTTP_CLIENT_TIMEOUT=600
 ```
 
 ### Docker Compose Configuration
+
 The docker-compose.yaml file provides a complete example of environment configuration:
 
 ```yaml
@@ -381,24 +422,28 @@ services:
       - 'OLLAMA_BASE_URL=${OLLAMA_BASE_URL}'
       - 'WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}'
       - 'DATABASE_URL=postgresql://${POSTGRES_USER-airis}:${POSTGRES_PASSWORD-airis_password}@postgres:5432/${POSTGRES_DB-airis}'
-      - 'BILLING_ENABLED=${BILLING_ENABLED-true}'
+      - 'ENABLE_BILLING_WALLET=${ENABLE_BILLING_WALLET-true}'
+      - 'ENABLE_BILLING_SUBSCRIPTIONS=${ENABLE_BILLING_SUBSCRIPTIONS-false}'
+      - 'LEAD_MAGNET_ENABLED=${LEAD_MAGNET_ENABLED-false}'
       - 'YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}'
       - 'YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}'
       - 'YOOKASSA_WEBHOOK_SECRET=${YOOKASSA_WEBHOOK_SECRET}'
-      - 'BILLING_WEBHOOK_URL=${BILLING_WEBHOOK_URL}'
     extra_hosts:
       - host.docker.internal:host-gateway
 ```
 
 **Section sources**
+
 - [.env.example](file://.env.example)
 - [docker-compose.yaml](file://docker-compose.yaml)
 - [docker-compose.gpu.yaml](file://docker-compose.gpu.yaml)
 
 ## Security Considerations
+
 Proper security configuration is critical for protecting Open WebUI and user data.
 
 ### Sensitive Configuration Data
+
 Handle sensitive configuration data with care:
 
 - **Never commit secrets to version control**: Keep .env files out of git repositories using .gitignore.
@@ -407,6 +452,7 @@ Handle sensitive configuration data with care:
 - **Use strong, random keys**: Generate cryptographically secure random keys for WEBUI_SECRET_KEY.
 
 ### Secure Secret Key Management
+
 The WEBUI_SECRET_KEY is particularly important:
 
 - **Minimum length**: Use at least 32 characters.
@@ -415,6 +461,7 @@ The WEBUI_SECRET_KEY is particularly important:
 - **Rotation**: Have a plan for rotating the secret key without disrupting user sessions.
 
 ### Production Security Best Practices
+
 Implement these security measures in production:
 
 - **Use HTTPS**: Always serve Open WebUI over HTTPS in production.
@@ -424,6 +471,7 @@ Implement these security measures in production:
 - **Monitor logs**: Regularly review application logs for suspicious activity.
 
 ### OAuth Security
+
 When using OAuth integration:
 
 - **Use HTTPS for redirect URIs**: OAuth redirect URIs should use HTTPS.
@@ -432,6 +480,7 @@ When using OAuth integration:
 - **Verify signatures**: Validate JWT signatures for OAuth tokens.
 
 ### Database Security
+
 Secure database connections:
 
 - **Use strong passwords**: Ensure database passwords are complex and unique.
@@ -440,21 +489,26 @@ Secure database connections:
 - **Regular backups**: Implement regular database backups with secure storage.
 
 **Section sources**
+
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L455-L482)
-- [backend/open_webui/__init__.py](file://backend/open_webui/__init__.py#L38-L47)
+- [backend/open_webui/**init**.py](file://backend/open_webui/__init__.py#L38-L47)
 
 ## Troubleshooting
+
 This section addresses common configuration issues and their solutions.
 
 ### Connection Failures
+
 Common connection issues and solutions:
 
-- **Ollama connection errors**: 
+- **Ollama connection errors**:
+
   - Verify OLLAMA_BASE_URL is correct and accessible.
   - In Docker deployments, use `--network=host` or ensure proper network configuration.
   - Check that Ollama is running and listening on the specified port.
 
 - **Database connection errors**:
+
   - Verify database credentials and connection parameters.
   - Ensure the database server is running and accessible.
   - Check firewall settings that might block the connection.
@@ -465,9 +519,11 @@ Common connection issues and solutions:
   - Check authentication credentials if Redis requires a password.
 
 ### Authentication Errors
+
 Common authentication issues:
 
 - **Invalid JWT tokens**:
+
   - Ensure WEBUI_SECRET_KEY is consistent across all instances.
   - Check JWT_EXPIRES_IN setting if tokens expire too quickly.
   - Verify clock synchronization between servers.
@@ -478,14 +534,17 @@ Common authentication issues:
   - Check that the OAuth provider is accessible.
 
 ### Model Loading Problems
+
 Issues with AI model loading:
 
 - **Model not found**:
+
   - Verify the model name is correct and available in Ollama.
   - Check that Ollama has internet access to download models.
   - Ensure sufficient disk space for model storage.
 
 - **GPU acceleration issues**:
+
   - Verify CUDA drivers are properly installed.
   - Check that the GPU is accessible to the container.
   - Ensure USE_CUDA_DOCKER is set to "true".
@@ -496,14 +555,17 @@ Issues with AI model loading:
   - Ensure sufficient memory for loading embedding models.
 
 ### Performance Issues
+
 Addressing performance problems:
 
 - **Slow responses**:
+
   - Increase AIOHTTP_CLIENT_TIMEOUT for slow AI services.
   - Optimize database performance with proper indexing.
   - Consider scaling up hardware resources.
 
 - **High memory usage**:
+
   - Reduce RAG_EMBEDDING_BATCH_SIZE.
   - Monitor and optimize vector database memory usage.
   - Consider using smaller embedding models.
@@ -514,5 +576,6 @@ Addressing performance problems:
   - Optimize AI model performance.
 
 **Section sources**
+
 - [TROUBLESHOOTING.md](file://TROUBLESHOOTING.md)
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L664-L672)

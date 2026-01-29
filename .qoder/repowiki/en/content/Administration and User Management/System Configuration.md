@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Configuration Architecture](#configuration-architecture)
 3. [System Settings Management](#system-settings-management)
@@ -27,6 +28,7 @@
 The Open WebUI system configuration framework provides comprehensive control over application behavior, interface customization, AI provider connections, and knowledge management. This document details the implementation of system-wide settings management, focusing on the configuration system's architecture, persistence mechanisms, and integration points. The configuration system supports both environment variable overrides and persistent database storage, enabling flexible deployment across different environments while maintaining user preferences and system defaults.
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L1-L800)
 - [env.py](file://backend/open_webui/env.py#L1-L800)
 
@@ -62,10 +64,12 @@ Config : "config" table in database
 ```
 
 **Diagram sources**
+
 - [config.py](file://backend/open_webui/config.py#L165-L223)
 - [ca81bd47c050_add_config_table.py](file://backend/open_webui/migrations/versions/ca81bd47c050_add_config_table.py#L20-L37)
 
 The configuration system follows a specific initialization sequence:
+
 1. Environment variables are loaded from the `.env` file and system environment
 2. Configuration values are defined as `PersistentConfig` instances with default values
 3. The system checks for legacy `config.json` and migrates it to the database
@@ -75,6 +79,7 @@ The configuration system follows a specific initialization sequence:
 This architecture ensures that configuration changes are properly propagated throughout the system while maintaining backward compatibility and supporting environment-specific overrides.
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L107-L125)
 - [env.py](file://backend/open_webui/env.py#L18-L250)
 
@@ -99,6 +104,7 @@ H --> I[Client Receives Updates]
 ```
 
 **Diagram sources**
+
 - [configs.py](file://backend/open_webui/routers/configs.py#L38-L539)
 - [main.py](file://backend/open_webui/main.py#L844-L878)
 
@@ -116,6 +122,7 @@ The relationship between system settings and user preferences is managed through
 This override behavior ensures that users can personalize their experience while maintaining system-wide consistency. The configuration system also supports model ordering through the `MODEL_ORDER_LIST` setting, which allows administrators to control the display order of available models in the interface.
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L1113-L1121)
 - [configs.py](file://backend/open_webui/routers/configs.py#L464-L491)
 
@@ -144,6 +151,7 @@ API-->>Admin : Configuration updated
 ```
 
 **Diagram sources**
+
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L278-L305)
 - [config.py](file://backend/open_webui/config.py#L978-L987)
 
@@ -156,6 +164,7 @@ OpenAI integration is managed through the `ENABLE_OPENAI_API`, `OPENAI_API_KEY`,
 The configuration system also supports direct connections to AI providers, controlled by the `ENABLE_DIRECT_CONNECTIONS` setting, which can improve performance by bypassing intermediate routing when appropriate.
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L993-L1004)
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L1312-L1333)
 
@@ -205,10 +214,12 @@ RETRIEVAL_CONFIG ||--o{ CHUNKING_CONFIG : "uses"
 ```
 
 **Diagram sources**
+
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L612-L686)
 - [main.py](file://backend/open_webui/main.py#L858-L878)
 
 Key retrieval parameters include:
+
 - `TOP_K`: Number of documents to retrieve for each query
 - `TOP_K_RERANKER`: Number of documents to rerank
 - `RELEVANCE_THRESHOLD`: Minimum relevance score for retrieved documents
@@ -218,6 +229,7 @@ Key retrieval parameters include:
 The system also supports hybrid search with BM25 weighting, allowing for more accurate results by combining semantic search with traditional keyword-based retrieval.
 
 **Section sources**
+
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L254-L253)
 - [config.py](file://backend/open_webui/config.py#L2582-L2628)
 
@@ -246,12 +258,13 @@ The system automatically migrates legacy `config.json` files to the database dur
 The configuration system supports environment variable overrides through the `PersistentConfig` class, which checks for environment variables during initialization. This allows for flexible deployment configurations without modifying the database. The system follows a specific precedence order:
 
 1. Database values (most specific)
-2. Environment variables 
+2. Environment variables
 3. Hard-coded defaults (least specific)
 
 This hierarchy ensures that environment-specific configurations can be applied without affecting the base configuration, while still allowing for persistent changes through the admin interface.
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L108-L112)
 - [env.py](file://backend/open_webui/env.py#L272-L308)
 
@@ -262,12 +275,14 @@ This section provides guidance for common configuration issues and performance o
 ### Common Configuration Issues
 
 **Misconfigured Services**: When AI provider services are not responding, verify the following:
+
 - Check that the API base URLs are correctly configured and accessible
 - Verify API keys are valid and have appropriate permissions
 - Ensure network connectivity between Open WebUI and the AI service
 - Check firewall rules and proxy configurations
 
 **Configuration Persistence Problems**: If configuration changes are not persisting:
+
 - Verify database connectivity and permissions
 - Check that the `ENABLE_PERSISTENT_CONFIG` environment variable is set to `true`
 - Ensure the `config` table exists and is writable
@@ -286,6 +301,7 @@ For large-scale deployments, consider the following optimization strategies:
 The system also supports configuration of thread pool size through the `THREAD_POOL_SIZE` setting, which can be tuned based on available CPU resources and expected concurrent load.
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L350-L364)
 - [env.py](file://backend/open_webui/env.py#L310-L349)
 

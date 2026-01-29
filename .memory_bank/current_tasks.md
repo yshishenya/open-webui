@@ -385,7 +385,7 @@ This file tracks active development tasks for the Airis project. Update this fil
 
   - Make PAYG the default billing mode without subscription
   - Admin-configurable lead magnet: monthly quotas (tokens, images, TTS, STT) + cycle length (X days)
-  - Allowlist models flagged as “free/lead magnet” (only those use trial quotas)
+  - Allowlist models flagged as “free/lead magnet” (only those use lead-magnet quotas)
   - Define precedence between lead-magnet limits and paid wallet usage
   - Spec saved: `.memory_bank/specs/payg_lead_magnet_policy.md`
   - **Owner**: TBD
@@ -398,7 +398,7 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Progress: lead magnet config/state + admin API + model flag + UI (dashboard/balance/estimate) + STT billing path
   - Progress: chat preflight now evaluates lead magnet eligibility using the selected model ID even when the provider payload uses `base_model_id`
   - Progress: lead magnet defaults enabled in local `.env`; `gemini-2.5-flash-lite` flagged as lead magnet in DB for validation
-  - Progress: billing history now fetches lead-magnet usage events (new `/billing/usage-events` endpoint + UI section)
+  - Progress: billing history now fetches lead-magnet usage events (new `/api/v1/billing/usage-events` endpoint + UI section)
   - Tests added for lead magnet preflight/settle + billing lead magnet routes (/lead-magnet, /estimate) + Playwright lead magnet UI checks; pytest backend/open_webui/test/apps/webui/routers/test_billing_lead_magnet.py passes (3 tests, warnings only); e2e not run here
   - Related plan: `.memory_bank/specs/billing_unlimited_plan_admin_flow.md`
   - **Owner**: Codex
@@ -407,7 +407,7 @@ This file tracks active development tasks for the Airis project. Update this fil
 - [ ] **[BILLING-12]** Remove chat estimate UI and endpoint
 
   - Spec: `.memory_bank/specs/remove_chat_estimate_plan.md`
-  - Remove UI estimate in chat input and `/billing/estimate` endpoint
+  - Remove UI estimate in chat input and `/api/v1/billing/estimate` endpoint
   - Keep server-side preflight/hold to prevent overdraft
   - **Owner**: TBD
   - **Target**: TBD
@@ -472,6 +472,19 @@ This file tracks active development tasks for the Airis project. Update this fil
 ### Low Priority
 
 - [ ] **[DOCS-03]** Add API documentation for billing endpoints
+
+- [x] **[DOCS-13]** Finish docs consistency sweep (billing wording)
+
+  - Remove remaining legacy "trial" wording and replace with lead-magnet "free start" where applicable
+  - Keep subscriptions as optional / feature-flagged; keep docs PAYG-first by default
+  - **Owner**: OpenCode
+  - **Target**: 2026-01-27
+
+- [x] **[DOCS-12]** Align Airis docs with current implementation
+
+  - Updated Memory Bank docs (stack/commands/patterns/workflows) to match repo state
+  - Updated billing and B2C docs to reflect wallet/PAYG + lead magnet + implemented email flows
+  - Updated `.qoder/repowiki` env/billing docs to use the correct Airis feature flags
 
   - Document all billing API endpoints
   - Add request/response examples

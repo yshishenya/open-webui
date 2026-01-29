@@ -14,6 +14,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [WebSocket Connection Lifecycle](#websocket-connection-lifecycle)
 3. [Event Types and Payload Structure](#event-types-and-payload-structure)
@@ -25,6 +26,7 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 The real-time message streaming functionality in the Chat System enables instant communication between users through WebSocket-based updates. This system allows for immediate message delivery, typing indicators, and other collaborative features without requiring page refreshes. The implementation leverages Socket.IO for bidirectional communication between the server and clients, with Redis support for horizontal scaling in distributed environments. This document provides a comprehensive analysis of the real-time messaging system, covering the connection lifecycle, event types, data payloads, frontend integration, and performance considerations.
 
 ## WebSocket Connection Lifecycle
@@ -53,11 +55,13 @@ Server->>Redis : Clean up user-related data
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L302-L317)
 - [main.py](file://backend/open_webui/socket/main.py#L684-L693)
 - [env.py](file://backend/open_webui/env.py#L645-L662)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L302-L317)
 - [main.py](file://backend/open_webui/socket/main.py#L684-L693)
 - [env.py](file://backend/open_webui/env.py#L645-L662)
@@ -67,6 +71,7 @@ Server->>Redis : Clean up user-related data
 The real-time messaging system uses a standardized event payload structure for all message-related events. The primary event type is "events:channel" which is used for broadcasting message updates to all connected clients in the same channel.
 
 The event payload follows a consistent structure with the following key components:
+
 - **channel_id**: The unique identifier of the channel where the event occurred
 - **message_id**: The unique identifier of the message involved in the event
 - **data**: A nested object containing the event type and associated data
@@ -105,11 +110,13 @@ EVENT_PAYLOAD ||--o{ CHANNEL : contains
 The "data" object contains a "type" field that specifies the nature of the event, with different types for message creation, updates, deletions, reactions, and typing indicators. This standardized structure allows the frontend to handle different event types consistently while providing the necessary information for UI updates.
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L413-L447)
 - [channels.py](file://backend/open_webui/routers/channels.py#L1023-L1039)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L115-L180)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L413-L447)
 - [channels.py](file://backend/open_webui/routers/channels.py#L1023-L1039)
 
@@ -152,11 +159,13 @@ ClientB->>ClientB : Remove message from UI
 When a new message is created, the server emits an event with the type "message" in the data object. The payload includes the complete message data, including content, metadata, and user information. For message updates, the event type is "message:update", and for deletions, it's "message:delete". This consistent pattern allows the frontend to handle all message lifecycle events with a single event handler.
 
 **Diagram sources**
+
 - [channels.py](file://backend/open_webui/routers/channels.py#L1023-L1039)
 - [channels.py](file://backend/open_webui/routers/channels.py#L1321-L1339)
 - [messages.py](file://backend/open_webui/models/messages.py#L451-L459)
 
 **Section sources**
+
 - [channels.py](file://backend/open_webui/routers/channels.py#L1023-L1039)
 - [channels.py](file://backend/open_webui/routers/channels.py#L1321-L1339)
 - [messages.py](file://backend/open_webui/models/messages.py#L451-L459)
@@ -193,11 +202,13 @@ P --> Q[Clean up resources]
 The event handler in Channel.svelte processes different event types by checking the "type" field in the event data. For new messages, it adds the message to the beginning of the messages array while removing any temporary message with the same temp_id. For message updates, it finds the existing message by ID and replaces it with the updated data. For deletions, it filters out the message with the matching ID. The component also handles typing indicators by maintaining a list of users who are currently typing and updating this list based on "typing" events.
 
 **Diagram sources**
+
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L115-L180)
 - [Messages.svelte](file://src/lib/components/channel/Messages.svelte#L126-L248)
 - [+layout.svelte](file://src/routes/+layout.svelte#L97-L155)
 
 **Section sources**
+
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L115-L180)
 - [Messages.svelte](file://src/lib/components/channel/Messages.svelte#L126-L248)
 
@@ -239,11 +250,13 @@ UserManager --> ChannelManager : uses
 The room management system is implemented in the socket/main.py file, where users are automatically added to their personal room (user:{id}) and all channel rooms they belong to when they connect. The "join-channels" event handler ensures that users are added to all their channels when they join. The system also handles the "last_read_at" event, which updates the user's last read timestamp in the database and resets the unread message count in the UI.
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L318-L381)
 - [main.py](file://backend/open_webui/socket/main.py#L57-L87)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L57-L77)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L318-L381)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L57-L77)
 
@@ -273,11 +286,13 @@ K --> L[Update UI with complete message history]
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L354-L359)
 - [+layout.svelte](file://src/routes/+layout.svelte#L131-L137)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L101-L103)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L354-L359)
 - [+layout.svelte](file://src/routes/+layout.svelte#L131-L137)
 
@@ -337,11 +352,13 @@ For large channel memberships, the broadcast operation could become a performanc
 The implementation also includes a periodic cleanup process for the usage pool, which removes expired connections to prevent memory leaks. This is particularly important in long-running applications with many concurrent users.
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L64-L87)
 - [env.py](file://backend/open_webui/env.py#L618-L677)
 - [main.py](file://backend/open_webui/socket/main.py#L167-L216)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L64-L87)
 - [env.py](file://backend/open_webui/env.py#L618-L677)
 

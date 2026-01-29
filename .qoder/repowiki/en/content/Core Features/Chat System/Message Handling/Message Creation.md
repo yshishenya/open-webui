@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [MessageForm Model Structure and Validation](#messageform-model-structure-and-validation)
 3. [Frontend Message Input Component](#frontend-message-input-component)
@@ -23,9 +24,11 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 The message creation sub-feature in the Chat System enables users to send messages within channels, supporting both direct messages and group conversations. This documentation details the complete flow from the frontend MessageInput component through to the backend API endpoint, database insertion, and real-time broadcasting via WebSocket. The system supports rich text input, file attachments, message threading through reply_to_id and parent_id fields, and real-time collaboration features. The implementation follows a robust architecture with proper validation, error handling, and performance optimization for database operations.
 
 ## MessageForm Model Structure and Validation
+
 The MessageForm model defines the structure for creating new messages with both required and optional fields. The model is implemented using Pydantic and includes comprehensive validation rules to ensure data integrity.
 
 ```mermaid
@@ -50,13 +53,16 @@ Optional fields :
 end
 ```
 
-**Diagram sources** 
+**Diagram sources**
+
 - [messages.py](file://backend/open_webui/models/messages.py#L92-L99)
 
 **Section sources**
+
 - [messages.py](file://backend/open_webui/models/messages.py#L92-L99)
 
 ## Frontend Message Input Component
+
 The MessageInput component provides the user interface for creating and sending messages. It handles user input, file attachments, and form submission while managing the user experience with features like typing indicators and drag-and-drop file uploads.
 
 ```mermaid
@@ -78,13 +84,16 @@ MessageInput->>User : Prevents submission
 end
 ```
 
-**Diagram sources** 
+**Diagram sources**
+
 - [MessageInput.svelte](file://src/lib/components/channel/MessageInput.svelte#L542-L564)
 
 **Section sources**
+
 - [MessageInput.svelte](file://src/lib/components/channel/MessageInput.svelte#L1-L1110)
 
 ## Backend Message Creation Endpoint
+
 The backend exposes a POST endpoint for creating new messages, which handles authentication, authorization, and message processing. The endpoint validates user permissions based on channel type and access control settings before creating the message.
 
 ```mermaid
@@ -110,13 +119,16 @@ API-->>Client : Return 403 Forbidden
 end
 ```
 
-**Diagram sources** 
+**Diagram sources**
+
 - [channels.py](file://backend/open_webui/routers/channels.py#L1070-L1096)
 
 **Section sources**
+
 - [channels.py](file://backend/open_webui/routers/channels.py#L987-L1096)
 
 ## Database Insertion and MessageTable Implementation
+
 The MessageTable class handles the database operations for message creation, including generating unique IDs, setting timestamps, and establishing relationships between messages through reply and threading mechanisms.
 
 ```mermaid
@@ -136,13 +148,16 @@ style Start fill:#f9f,stroke:#333
 style End fill:#bbf,stroke:#333
 ```
 
-**Diagram sources** 
+**Diagram sources**
+
 - [messages.py](file://backend/open_webui/models/messages.py#L126-L157)
 
 **Section sources**
+
 - [messages.py](file://backend/open_webui/models/messages.py#L126-L157)
 
 ## WebSocket Broadcasting and Real-time Updates
+
 After a message is created, the system uses WebSocket to broadcast the new message to all channel members in real-time through the 'events:channel' event, enabling immediate visibility of new messages without requiring page refreshes.
 
 ```mermaid
@@ -161,18 +176,22 @@ end
 Note right of WebSocket : Event data includes : <br/>- channel_id<br/>- message_id<br/>- message content<br/>- sender information<br/>- channel context
 ```
 
-**Diagram sources** 
+**Diagram sources**
+
 - [channels.py](file://backend/open_webui/routers/channels.py#L1023-L1039)
 - [main.py](file://backend/open_webui/socket/main.py#L256-L270)
 
 **Section sources**
+
 - [channels.py](file://backend/open_webui/routers/channels.py#L1023-L1060)
 - [main.py](file://backend/open_webui/socket/main.py#L256-L270)
 
 ## Common Issues and Error Handling
+
 The message creation system implements comprehensive error handling for common issues such as empty content, permission validation, and data integrity problems. The system validates input at multiple levels to ensure robust operation.
 
 ### Input Validation
+
 The system validates message content before processing, rejecting empty messages and handling edge cases:
 
 ```mermaid
@@ -191,6 +210,7 @@ J --> K[Save to database]
 ```
 
 ### Permission Validation
+
 The system implements role-based access control for message creation:
 
 ```mermaid
@@ -206,13 +226,16 @@ E --> H[Message created successfully]
 ```
 
 **Section sources**
+
 - [channels.py](file://backend/open_webui/routers/channels.py#L993-L1011)
 - [MessageInput.svelte](file://src/lib/components/channel/MessageInput.svelte#L543-L545)
 
 ## Performance Considerations
+
 The message creation system includes several performance optimizations, particularly around database operations and indexing strategies to ensure efficient querying of messages.
 
 ### Database Indexing
+
 The system implements strategic database indexes on frequently queried fields to optimize message retrieval performance:
 
 ```mermaid
@@ -250,16 +273,19 @@ Indexes on:
 end
 ```
 
-**Diagram sources** 
+**Diagram sources**
+
 - [018012973d35_add_indexes.py](file://backend/open_webui/migrations/versions/018012973d35_add_indexes.py#L18-L24)
 - [3781e22d8b01_update_message_table.py](file://backend/open_webui/migrations/versions/3781e22d8b01_update_message_table.py#L29-L33)
 
 The database schema includes optimized indexing on key fields such as channel_id and created_at to ensure fast retrieval of messages in chronological order. The Message table is designed with appropriate data types and constraints to maintain data integrity while supporting efficient queries. Timestamps are stored in nanosecond precision (BigInteger) to ensure accurate ordering of messages, even with high-frequency message creation. The system also uses batch operations where appropriate and leverages connection pooling to minimize database connection overhead.
 
 **Section sources**
+
 - [018012973d35_add_indexes.py](file://backend/open_webui/migrations/versions/018012973d35_add_indexes.py#L18-L24)
 - [3781e22d8b01_update_message_table.py](file://backend/open_webui/migrations/versions/3781e22d8b01_update_message_table.py#L29-L33)
 - [messages.py](file://backend/open_webui/models/messages.py#L41-L62)
 
 ## Conclusion
+
 The message creation sub-feature in the Chat System provides a robust, real-time messaging capability with comprehensive support for message content, threading, and file attachments. The implementation follows a clean separation of concerns between frontend and backend components, with well-defined data models and validation rules. The system ensures data integrity through proper database constraints and indexing while providing real-time updates through WebSocket broadcasting. Security is maintained through thorough permission validation at both the channel and message levels. Performance is optimized through strategic database indexing and efficient query patterns, ensuring responsive message creation and retrieval even with large volumes of data. The architecture supports future enhancements such as message editing, deletion, and advanced threading features.

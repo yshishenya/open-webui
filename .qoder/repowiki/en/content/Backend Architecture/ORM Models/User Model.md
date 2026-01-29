@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Entity Structure and Fields](#entity-structure-and-fields)
 3. [Primary Key and Constraints](#primary-key-and-constraints)
@@ -31,6 +32,7 @@
 The User model in open-webui serves as the central entity for user management, authentication, and profile information storage. This comprehensive data model supports a wide range of functionality including user authentication, profile management, presence tracking, and preference storage. The model has evolved through multiple migrations to support additional features while maintaining backward compatibility. It forms the foundation for user-related operations across the application, connecting to various other models through foreign key relationships.
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L45-L719)
 
 ## Entity Structure and Fields
@@ -62,6 +64,7 @@ The User model contains a comprehensive set of fields that support authenticatio
 The model also includes related entities such as ApiKey, which stores API key information linked to users through the user_id foreign key.
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L48-L75)
 
 ## Primary Key and Constraints
@@ -76,6 +79,7 @@ The User model implements a robust constraint system to ensure data integrity:
 The primary key is implemented as a String field with a unique constraint, allowing for flexible ID generation strategies (such as UUIDs) while ensuring referential integrity across the database.
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L48)
 - [b10670c03dd5_update_user_table.py](file://backend/open_webui/migrations/versions/b10670c03dd5_update_user_table.py#L137-L145)
 
@@ -90,12 +94,14 @@ The User model employs a variety of data types to accommodate different kinds of
 - **JSON**: Used for flexible storage in `info`, `settings`, and `oauth` fields
 
 Regarding nullable properties:
+
 - **Non-nullable fields**: `id`, `email`, `role`, `name`, `profile_image_url`, `last_active_at`, `updated_at`, and `created_at` are required
 - **Nullable fields**: `username`, `bio`, `gender`, `date_of_birth`, `timezone`, `presence_state`, `status_emoji`, `status_message`, `status_expires_at`, `info`, `settings`, and `oauth` can be null
 
 This design ensures essential user information is always present while allowing flexibility for optional profile data and preferences.
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L48-L75)
 
 ## Relationships with Other Models
@@ -103,7 +109,9 @@ This design ensures essential user information is always present while allowing 
 The User model serves as the central entity in a network of relationships with other models through the `user_id` foreign key pattern:
 
 ### Chats Model Relationship
+
 The User model has a one-to-many relationship with the Chats model, where each user can have multiple chat records. The Chats model contains a `user_id` field that references the User's `id`, enabling:
+
 - Retrieval of all chats belonging to a specific user
 - User-specific chat organization and filtering
 - Access control based on user ownership
@@ -150,11 +158,14 @@ string folder_id
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L45-L75)
 - [chats.py](file://backend/open_webui/models/chats.py#L26-L43)
 
 ### Files Model Relationship
+
 The User model has a one-to-many relationship with the Files model, where each user can have multiple file records. The Files model contains a `user_id` field that references the User's `id`, enabling:
+
 - User-specific file storage and organization
 - Access control for file operations
 - File ownership tracking
@@ -200,11 +211,14 @@ bigint updated_at
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L45-L75)
 - [files.py](file://backend/open_webui/models/files.py#L18-L34)
 
 ### Models Model Relationship
+
 The User model has a one-to-many relationship with the Models model, where each user can have multiple model records. The Models model contains a `user_id` field that references the User's `id`, enabling:
+
 - User-specific model configuration and management
 - Ownership tracking for custom models
 - Access control for model operations
@@ -250,6 +264,7 @@ bigint created_at
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L45-L75)
 - [models.py](file://backend/open_webui/models/models.py#L55-L105)
 
@@ -258,7 +273,9 @@ bigint created_at
 The User model implements comprehensive data lifecycle management through timestamp fields and automated updates:
 
 ### Creation Process
+
 When a new user is created, the system automatically sets three timestamp fields:
+
 - **created_at**: Set to the current Unix timestamp when the user record is first created
 - **updated_at**: Set to the current Unix timestamp during creation
 - **last_active_at**: Set to the current Unix timestamp when the user first logs in
@@ -266,7 +283,9 @@ When a new user is created, the system automatically sets three timestamp fields
 The `insert_new_user` method in the `UsersTable` class handles user creation, initializing these timestamps and setting default values for other fields.
 
 ### Update Process
+
 The `updated_at` field is updated whenever any user information is modified. This includes:
+
 - Profile updates (name, bio, profile image, etc.)
 - Role changes
 - Status updates
@@ -276,7 +295,9 @@ The `updated_at` field is updated whenever any user information is modified. Thi
 The system provides specific methods for updating different aspects of the user record, such as `update_user_by_id`, `update_user_role_by_id`, and `update_user_settings_by_id`, all of which update the `updated_at` timestamp.
 
 ### Last Active Tracking
+
 The `last_active_at` field is crucial for presence detection and user activity monitoring:
+
 - Updated when the user interacts with the system
 - Used to determine if a user is currently active
 - Powers the "last seen" functionality in the UI
@@ -299,10 +320,12 @@ SaveChanges --> EndUpdate([Profile Updated])
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L73-L75)
 - [users.py](file://backend/open_webui/models/users.py#L551-L563)
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L73-L75)
 - [users.py](file://backend/open_webui/models/users.py#L551-L563)
 
@@ -311,27 +334,35 @@ SaveChanges --> EndUpdate([Profile Updated])
 The User model leverages JSON fields for flexible storage of structured data that may vary between users or evolve over time:
 
 ### info Field
+
 The `info` field stores additional user information in JSON format. This flexible structure allows for:
+
 - Storing arbitrary user metadata without requiring database schema changes
 - Supporting future extensions to user data without migrations
 - Accommodating user-specific information that doesn't fit predefined fields
 
 ### settings Field
+
 The `settings` field stores user preferences and configuration options. The `UserSettings` Pydantic model defines the structure:
+
 - **ui**: Nested object for UI-related settings
 - **Additional properties**: The model allows extra fields through `model_config = ConfigDict(extra="allow")`
 
 This design enables users to customize their experience with various interface preferences and application settings.
 
 ### oauth Field
+
 The `oauth` field stores authentication information from OAuth providers in a structured JSON format:
+
 ```json
 {
-  "google": { "sub": "123" },
-  "github": { "sub": "abc" }
+	"google": { "sub": "123" },
+	"github": { "sub": "abc" }
 }
 ```
+
 This structure supports:
+
 - Multiple OAuth providers for a single user
 - Secure storage of provider-specific identifiers
 - Flexible authentication methods
@@ -372,10 +403,12 @@ bigint user_id FK
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L68-L71)
 - [users.py](file://backend/open_webui/models/users.py#L565-L595)
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L68-L71)
 - [users.py](file://backend/open_webui/models/users.py#L565-L595)
 
@@ -384,7 +417,9 @@ bigint user_id FK
 The User model's indexing strategy has evolved through migrations to optimize query performance:
 
 ### Migration History
+
 The database schema has undergone several migrations that affect indexing:
+
 - **001_initial_schema.py**: Initial schema with basic user fields
 - **011_add_user_settings.py**: Added the `settings` field
 - **017_add_user_oauth_sub.py**: Added OAuth support
@@ -392,7 +427,9 @@ The database schema has undergone several migrations that affect indexing:
 - **b10670c03dd5_update_user_table.py**: Comprehensive update adding presence state, status fields, and converting text fields to JSON
 
 ### Query Optimization
+
 While explicit indexes on the User table are not visible in the provided code, the query patterns suggest optimization for:
+
 - User lookups by ID (`get_user_by_id`)
 - User lookups by email (`get_user_by_email`)
 - User lookups by API key (`get_user_by_api_key`)
@@ -400,6 +437,7 @@ While explicit indexes on the User table are not visible in the provided code, t
 - User searches with filtering and pagination (`get_users`)
 
 The `get_users` method implements sophisticated filtering capabilities including:
+
 - Text search on name and email
 - Filtering by channel membership
 - Filtering by group membership
@@ -409,6 +447,7 @@ The `get_users` method implements sophisticated filtering capabilities including
 These query patterns indicate that appropriate indexes would be beneficial on fields frequently used in WHERE clauses and ORDER BY operations.
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L270-L453)
 - [3af16a1c9fb6_update_user_table.py](file://backend/open_webui/migrations/versions/3af16a1c9fb6_update_user_table.py)
 - [b10670c03dd5_update_user_table.py](file://backend/open_webui/migrations/versions/b10670c03dd5_update_user_table.py)
@@ -418,6 +457,7 @@ These query patterns indicate that appropriate indexes would be beneficial on fi
 The User model supports a variety of common database queries through its `UsersTable` class methods:
 
 ### User Retrieval Queries
+
 ```python
 # Get user by ID
 def get_user_by_id(self, id: str) -> Optional[UserModel]:
@@ -444,6 +484,7 @@ def get_user_by_api_key(self, api_key: str) -> Optional[UserModel]:
 ```
 
 ### User Search and Filtering
+
 ```python
 # Get users with filtering options
 def get_users(
@@ -454,7 +495,7 @@ def get_users(
 ) -> dict:
     with get_db() as db:
         query = db.query(User)
-        
+
         # Text search
         if filter and filter.get("query"):
             query = query.filter(
@@ -463,17 +504,17 @@ def get_users(
                     User.email.ilike(f"%{filter['query']}%"),
                 )
             )
-            
+
         # Filter by roles
         if filter and filter.get("roles"):
             include_roles = [role for role in roles if not role.startswith("!")]
             exclude_roles = [role[1:] for role in roles if role.startswith("!")]
-            
+
             if include_roles:
                 query = query.filter(User.role.in_(include_roles))
             if exclude_roles:
                 query = query.filter(~User.role.in_(exclude_roles))
-                
+
         # Ordering
         if order_by == "last_active_at":
             if direction == "asc":
@@ -483,6 +524,7 @@ def get_users(
 ```
 
 ### User Update Operations
+
 ```python
 # Update user settings
 def update_user_settings_by_id(self, id: str, updated: dict) -> Optional[UserModel]:
@@ -492,7 +534,7 @@ def update_user_settings_by_id(self, id: str, updated: dict) -> Optional[UserMod
             if user_settings is None:
                 user_settings = {}
             user_settings.update(updated)
-            
+
             db.query(User).filter_by(id=id).update({"settings": user_settings})
             db.commit()
             user = db.query(User).filter_by(id=id).first()
@@ -516,6 +558,7 @@ def update_last_active_by_id(self, id: str) -> Optional[UserModel]:
 ```
 
 ### User Management Queries
+
 ```python
 # Check if user is active
 def is_user_active(self, user_id: str) -> bool:
@@ -539,6 +582,7 @@ def get_active_user_count(self) -> int:
 These queries demonstrate the comprehensive API provided by the UsersTable class for interacting with user data, covering creation, retrieval, updating, and deletion operations with appropriate error handling and database transaction management.
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L270-L716)
 
 ## Conclusion
@@ -546,6 +590,7 @@ These queries demonstrate the comprehensive API provided by the UsersTable class
 The User model in open-webui represents a comprehensive and well-designed data structure that serves as the foundation for user management in the application. It effectively balances data integrity with flexibility through a combination of strongly-typed fields and JSON storage for variable data. The model supports essential functionality including authentication, profile management, presence tracking, and preference storage.
 
 Key strengths of the model include:
+
 - Comprehensive field coverage for user information and preferences
 - Robust data lifecycle management with creation, update, and activity tracking
 - Flexible JSON fields for extensible data storage
@@ -555,6 +600,7 @@ Key strengths of the model include:
 The model has evolved through a series of migrations that demonstrate thoughtful design progression, from initial implementation to the addition of advanced features like OAuth authentication, presence state, and detailed user settings. The use of Pydantic models for data validation and the SQLAlchemy ORM for database operations ensures type safety and maintainability.
 
 For future development, potential improvements could include:
+
 - Explicit indexing on frequently queried fields to enhance performance
 - Enhanced validation for JSON field structures
 - Additional audit fields for security and compliance
@@ -563,6 +609,7 @@ For future development, potential improvements could include:
 Overall, the User model provides a solid foundation for user management in open-webui, supporting current functionality while allowing for future expansion.
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L45-L719)
 - [db.py](file://backend/open_webui/internal/db.py)
 - [migrations](file://backend/open_webui/migrations/versions/)

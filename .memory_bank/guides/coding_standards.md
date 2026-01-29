@@ -1,6 +1,7 @@
 # Coding Standards
 
 ## General Principles
+
 - Code readability over cleverness
 - Self-documenting code with minimal but meaningful comments
 - Follow DRY (Don't Repeat Yourself)
@@ -16,22 +17,26 @@
 ### Naming Conventions
 
 #### Variables and Functions
+
 - Use descriptive names: `get_user_subscription()` not `getSub()`
 - Snake_case for variables and functions: `user_id`, `fetch_plans()`
 - Boolean variables: `is_active`, `has_permission`, `can_access`
 - Constants: `UPPER_SNAKE_CASE`: `MAX_RETRIES`, `API_TIMEOUT`
 
 #### Classes
+
 - PascalCase for class names: `BillingService`, `YooKassaClient`
 - Private methods start with underscore: `_internal_method()`
 - Dunder methods for special Python methods: `__init__()`, `__str__()`
 
 #### Files and Directories
+
 - Modules: `snake_case.py`: `billing.py`, `admin_billing.py`
 - Packages: lowercase, no underscores if possible: `routers/`, `models/`
 - Tests: `test_module_name.py`: `test_billing.py`
 
 ### Type Hints (MANDATORY)
+
 All functions, methods, and variables must have type hints:
 
 ```python
@@ -52,6 +57,7 @@ subscription: Optional[Subscription] = None
 ```
 
 ### Docstrings (Google Style)
+
 ```python
 async def create_payment(
     user_id: str,
@@ -80,12 +86,13 @@ async def create_payment(
 ```
 
 ### FastAPI Router Structure
+
 ```python
 from fastapi import APIRouter, Depends, HTTPException
 from open_webui.utils.auth import get_verified_user, get_admin_user
 from open_webui.models.users import Users
 
-router = APIRouter(prefix="/api/billing", tags=["billing"])
+router = APIRouter(prefix="/api/v1/billing", tags=["billing"])
 
 @router.get("/plans")
 async def get_plans(user=Depends(get_verified_user)):
@@ -108,6 +115,7 @@ async def create_subscription(
 ```
 
 ### Pydantic Models for Request/Response
+
 ```python
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -141,6 +149,7 @@ class PlanResponse(BaseModel):
 ```
 
 ### Async/Await Best Practices
+
 ```python
 # Good - async for all I/O operations
 async def fetch_payment_status(payment_id: str) -> Dict[str, Any]:
@@ -156,6 +165,7 @@ async def fetch_payment_status_bad(payment_id: str) -> Dict[str, Any]:
 ```
 
 ### Database Access Patterns
+
 ```python
 # Using Peewee models (singleton pattern in project)
 from open_webui.models.billing import Plans, Subscriptions
@@ -181,6 +191,7 @@ Subscriptions.update_subscription_by_id(
 ```
 
 ### Error Handling in FastAPI
+
 ```python
 from fastapi import HTTPException
 from loguru import logger
@@ -214,6 +225,7 @@ async def create_payment(request: CreatePaymentRequest, user=Depends(get_verifie
 ```
 
 ### Logging Standards
+
 ```python
 from loguru import logger
 
@@ -236,23 +248,28 @@ logger.error("Payment failed", user_id=user.id, error=str(e), exc_info=True)
 ### Naming Conventions
 
 #### Variables and Functions
+
 - camelCase for variables and functions: `userId`, `fetchPlans()`
 - Boolean variables: `isActive`, `hasPermission`, `canAccess`
 - Constants: `UPPER_SNAKE_CASE` or `SCREAMING_SNAKE_CASE`: `API_BASE_URL`, `MAX_RETRIES`
 
 #### Interfaces and Types
+
 - PascalCase: `Plan`, `Subscription`, `BillingInfo`
 - Prefix interfaces with `I` only if ambiguous: `IConfig` (rare)
 
 #### Components
+
 - PascalCase for Svelte components: `PlanCard.svelte`, `BillingDashboard.svelte`
 
 #### Files and Directories
+
 - Routes: `+page.svelte`, `+layout.svelte`, `+server.ts`
 - Components: `PascalCase.svelte`
 - Utilities: `camelCase.ts`: `billing.ts`, `formatters.ts`
 
 ### TypeScript Type Safety
+
 ```typescript
 // Define interfaces for all data structures
 export interface Plan {
@@ -279,10 +296,10 @@ export interface Subscription {
 // Type all function parameters and return values
 export const getPlans = async (token: string): Promise<Plan[] | null> => {
 	try {
-		const res = await fetch(`${API_BASE_URL}/api/billing/plans`, {
+		const res = await fetch(`${API_BASE_URL}/api/v1/billing/plans`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${token}`,
+				Authorization: `Bearer ${token}`,
 				'Content-Type': 'application/json'
 			}
 		});
@@ -291,7 +308,7 @@ export const getPlans = async (token: string): Promise<Plan[] | null> => {
 			throw new Error(`HTTP ${res.status}: ${await res.text()}`);
 		}
 
-		return await res.json() as Plan[];
+		return (await res.json()) as Plan[];
 	} catch (error) {
 		console.error('Error fetching plans:', error);
 		return null;
@@ -300,6 +317,7 @@ export const getPlans = async (token: string): Promise<Plan[] | null> => {
 ```
 
 ### Svelte Component Structure
+
 ```svelte
 <script lang="ts">
 	// Imports first
@@ -330,7 +348,7 @@ export const getPlans = async (token: string): Promise<Plan[] | null> => {
 		error = null;
 
 		try {
-			const response = await fetch('/api/billing/plans');
+			const response = await fetch('/api/v1/billing/plans');
 			if (!response.ok) throw new Error('Failed to load plans');
 			plans = await response.json();
 		} catch (e) {
@@ -354,10 +372,7 @@ export const getPlans = async (token: string): Promise<Plan[] | null> => {
 {:else}
 	<div class="plans-grid">
 		{#each activePlans as plan (plan.id)}
-			<button
-				class="plan-card"
-				on:click={() => handleSelectPlan(plan)}
-			>
+			<button class="plan-card" on:click={() => handleSelectPlan(plan)}>
 				<h3>{plan.name}</h3>
 				<p class="price">{plan.price} {plan.currency}</p>
 			</button>
@@ -386,6 +401,7 @@ export const getPlans = async (token: string): Promise<Plan[] | null> => {
 ```
 
 ### API Client Patterns
+
 ```typescript
 // src/lib/apis/billing/index.ts
 
@@ -407,7 +423,7 @@ async function apiCall<T>(
 		const res = await fetch(`${API_BASE_URL}${endpoint}`, {
 			...options,
 			headers: {
-				'Authorization': `Bearer ${token}`,
+				Authorization: `Bearer ${token}`,
 				'Content-Type': 'application/json',
 				...options.headers
 			}
@@ -418,7 +434,7 @@ async function apiCall<T>(
 			throw new Error(`HTTP ${res.status}: ${text}`);
 		}
 
-		const data = await res.json() as T;
+		const data = (await res.json()) as T;
 		return { data, error: null };
 	} catch (error) {
 		console.error(`API call failed [${endpoint}]:`, error);
@@ -431,7 +447,7 @@ async function apiCall<T>(
 
 // Specific API methods
 export const getPlans = async (token: string): Promise<Plan[] | null> => {
-	const { data } = await apiCall<Plan[]>('/api/billing/plans', token);
+	const { data } = await apiCall<Plan[]>('/api/v1/billing/plans', token);
 	return data;
 };
 
@@ -439,19 +455,16 @@ export const createPayment = async (
 	token: string,
 	request: CreatePaymentRequest
 ): Promise<CreatePaymentResponse | null> => {
-	const { data } = await apiCall<CreatePaymentResponse>(
-		'/api/billing/payment',
-		token,
-		{
-			method: 'POST',
-			body: JSON.stringify(request)
-		}
-	);
+	const { data } = await apiCall<CreatePaymentResponse>('/api/v1/billing/payment', token, {
+		method: 'POST',
+		body: JSON.stringify(request)
+	});
 	return data;
 };
 ```
 
 ### Svelte Stores
+
 ```typescript
 // src/lib/stores/billing.ts
 import { writable, derived } from 'svelte/store';
@@ -466,16 +479,14 @@ export const hasActiveSubscription = derived(
 	($subscription) => $subscription?.status === 'active'
 );
 
-export const currentPlan = derived(
-	[subscription, plans],
-	([$subscription, $plans]) => {
-		if (!$subscription) return null;
-		return $plans.find((p) => p.id === $subscription.plan_id) || null;
-	}
-);
+export const currentPlan = derived([subscription, plans], ([$subscription, $plans]) => {
+	if (!$subscription) return null;
+	return $plans.find((p) => p.id === $subscription.plan_id) || null;
+});
 ```
 
 ### Error Handling in Frontend
+
 ```typescript
 // Use try-catch with specific error messages
 async function handlePayment(planId: string) {
@@ -505,12 +516,11 @@ async function handlePayment(planId: string) {
 ```
 
 ### Tailwind CSS Standards
+
 ```svelte
 <!-- Use Tailwind utility classes, avoid inline styles -->
 <div class="flex flex-col gap-4 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-	<h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-		Billing Plans
-	</h2>
+	<h2 class="text-xl font-semibold text-gray-900 dark:text-white">Billing Plans</h2>
 
 	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 		{#each plans as plan}
@@ -534,10 +544,12 @@ async function handlePayment(planId: string) {
 ## Code Organization
 
 ### File Structure Limits
+
 - Maximum file length: 500 lines. If longer — split into modules
 - Maximum function length: 50 lines. If longer — decompose
 
 ### Function Responsibility
+
 One function = one responsibility (Single Responsibility Principle)
 
 ```python
@@ -566,6 +578,7 @@ async def get_user_data_and_check_quota(user_id: str) -> Dict:
 ## Comments and Documentation
 
 ### When to Comment
+
 ```python
 # Good - explaining WHY, not WHAT
 def calculate_proration(old_price: float, new_price: float, days_left: int) -> float:
@@ -580,6 +593,7 @@ def add_numbers(a: int, b: int) -> int:
 ```
 
 ### TODO Comments
+
 ```python
 # TODO(username): Add caching for frequently requested plans
 # FIXME(username): Race condition when processing concurrent subscriptions
@@ -591,11 +605,13 @@ def add_numbers(a: int, b: int) -> int:
 ## Formatting
 
 ### Python
+
 - Maximum line length: 100 characters
 - Use Black formatter (configured in project)
 - Configure in `pyproject.toml` or run: `black .`
 
 ### TypeScript
+
 - Maximum line length: 100 characters
 - Use Prettier (configured in project)
 - Configure in `.prettierrc` or run: `npm run format`
@@ -603,6 +619,7 @@ def add_numbers(a: int, b: int) -> int:
 ### Imports Organization
 
 #### Python
+
 ```python
 # Standard library imports
 import asyncio
@@ -620,6 +637,7 @@ from open_webui.utils.auth import get_verified_user
 ```
 
 #### TypeScript
+
 ```typescript
 // Svelte imports
 import { onMount } from 'svelte';
@@ -640,6 +658,7 @@ import { formatCurrency } from '$lib/utils/formatters';
 ## Testing Considerations
 
 ### Write Testable Code
+
 ```python
 # Good - easy to test (dependency injection)
 async def fetch_payment_data(client: httpx.AsyncClient, payment_id: str):
@@ -654,6 +673,7 @@ async def fetch_payment_data_bad(payment_id: str):
 ```
 
 ### Dependency Injection in FastAPI
+
 ```python
 # Dependencies are explicit and easily mockable
 from fastapi import Depends
@@ -675,22 +695,19 @@ async def create_subscription(
 ## Security Best Practices
 
 ### Never Store Secrets in Code
+
 ```python
 # Good - from environment variables
-from pydantic_settings import BaseSettings
+import os
 
-class Settings(BaseSettings):
-    yookassa_shop_id: str
-    yookassa_secret_key: str
-    database_url: str
-
-    class Config:
-        env_file = '.env'
-
-settings = Settings()
+# Good - from environment variables (this repo uses env parsing in backend/open_webui/env.py)
+YOOKASSA_SHOP_ID = os.environ.get("YOOKASSA_SHOP_ID", "")
+YOOKASSA_SECRET_KEY = os.environ.get("YOOKASSA_SECRET_KEY", "")
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
 ```
 
 ### Input Validation
+
 ```python
 # Always validate user input with Pydantic
 from pydantic import BaseModel, Field, validator
@@ -708,6 +725,7 @@ class CreatePlanRequest(BaseModel):
 ```
 
 ### SQL Injection Prevention
+
 ```python
 # Good - use ORM or parameterized queries
 subscription = Subscriptions.get_subscription_by_user_id(user_id)
@@ -717,6 +735,7 @@ query = f"SELECT * FROM subscriptions WHERE user_id = '{user_id}'"
 ```
 
 ### XSS Prevention (Frontend)
+
 ```typescript
 // Use DOMPurify for user-generated HTML
 import DOMPurify from 'dompurify';
@@ -729,6 +748,7 @@ const sanitizedHTML = DOMPurify.sanitize(userInput);
 ## Code Review Checklist
 
 ### Python Backend
+
 - [ ] All functions have type hints
 - [ ] Public functions have docstrings
 - [ ] FastAPI dependencies used correctly
@@ -739,6 +759,7 @@ const sanitizedHTML = DOMPurify.sanitize(userInput);
 - [ ] Code formatted with Black
 
 ### TypeScript Frontend
+
 - [ ] All functions have TypeScript types
 - [ ] Interfaces defined for all data structures
 - [ ] API calls handle errors gracefully
@@ -748,6 +769,7 @@ const sanitizedHTML = DOMPurify.sanitize(userInput);
 - [ ] Svelte component structure followed
 
 ### General
+
 - [ ] No overly long functions (>50 lines)
 - [ ] No overly long files (>500 lines)
 - [ ] Tests written for new functionality
@@ -759,6 +781,7 @@ const sanitizedHTML = DOMPurify.sanitize(userInput);
 ## Project-Specific Patterns
 
 ### Billing System
+
 ```python
 # Always use BillingService for business logic
 from open_webui.utils.billing import BillingService
@@ -780,6 +803,7 @@ await billing_service.track_usage(
 ```
 
 ### Audit Logging (Admin Actions)
+
 ```python
 from open_webui.models.audit import AuditLog, AuditAction
 
@@ -795,6 +819,7 @@ AuditLog.log_action(
 ```
 
 ### WebSocket Events
+
 ```python
 from open_webui.socket.main import get_event_emitter
 

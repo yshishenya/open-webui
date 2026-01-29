@@ -49,9 +49,7 @@
 
 <div
 	bind:this={container}
-	class={variant === 'inline'
-		? 'flex flex-wrap items-center gap-2'
-		: 'flex flex-col gap-2'}
+	class={variant === 'inline' ? 'flex flex-wrap items-center gap-2' : 'flex flex-col gap-2'}
 >
 	<span
 		class={`${labelSizeClass()} font-semibold uppercase tracking-[0.2em] ${

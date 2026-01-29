@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Connection Establishment Process](#connection-establishment-process)
 3. [Message Framing and Event Types](#message-framing-and-event-types)
@@ -23,13 +24,16 @@
 10. [Conclusion](#conclusion)
 
 ## Introduction
+
 The WebSocket-based chat message streaming system in Open WebUI enables real-time, token-by-token delivery of AI model responses to provide an interactive user experience. This documentation details the architecture, implementation, and integration points of the streaming system, focusing on the WebSocket layer, message protocols, and data flow between components.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L1-L839)
 - [utils.py](file://backend/open_webui/socket/utils.py#L1-L224)
 
 ## Connection Establishment Process
+
 The WebSocket connection establishment process begins with client authentication via JWT tokens. When a client connects to the WebSocket endpoint, it includes an authentication token in the connection request. The server validates this token using the `decode_token` function and retrieves the user information. Upon successful authentication, the server adds the session to the user's room (`user:{user_id}`) and initializes session tracking in the `SESSION_POOL` dictionary.
 
 The system supports both direct and indirect connection modes, with configuration options for Redis-based session management. When Redis is enabled as the WebSocket manager, the system uses `AsyncRedisManager` to handle distributed session state across multiple instances. The connection configuration includes customizable ping intervals and timeouts to maintain connection health.
@@ -51,14 +55,17 @@ Server-->>Client : Connection established
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L316)
 - [utils.py](file://backend/open_webui/socket/utils.py#L49-L118)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L316)
 - [utils.py](file://backend/open_webui/socket/utils.py#L49-L118)
 
 ## Message Framing and Event Types
+
 The streaming system implements a comprehensive event-driven architecture with multiple event types for different stages of message processing. The primary event types include:
 
 - **message_start**: Emitted when a new message generation begins
@@ -90,14 +97,17 @@ HandleError --> End
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L695-L800)
 - [chats.py](file://backend/open_webui/routers/chats.py#L494-L515)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L695-L800)
 - [chats.py](file://backend/open_webui/routers/chats.py#L494-L515)
 
 ## Streaming Protocol for AI Model Responses
+
 The streaming protocol facilitates real-time token-by-token response delivery from AI models through a queue-based architecture. When a chat completion request is made with the `stream` parameter set to true, the system creates an asyncio.Queue to buffer response chunks. A message listener is registered on a unique channel (`{user_id}:{session_id}:{request_id}`) to receive streaming data from the model processing pipeline.
 
 The event generator function continuously polls the queue for new messages, yielding them as Server-Sent Events (SSE) with the `text/event-stream` media type. Each chunk is formatted with the `data:` prefix and double newline termination, following the SSE specification. The streaming continues until a `done` flag is received, at which point the connection is closed.
@@ -123,13 +133,16 @@ API-->>Client : Stream complete
 ```
 
 **Diagram sources**
+
 - [chat.py](file://backend/open_webui/utils/chat.py#L91-L149)
 - [main.py](file://backend/open_webui/main.py#L1651-L1674)
 
 **Section sources**
+
 - [chat.py](file://backend/open_webui/utils/chat.py#L91-L149)
 
 ## Data Structure of Streaming Messages
+
 Streaming messages follow a consistent JSON structure with standardized fields for metadata and content. The core data structure includes:
 
 - **chat_id**: Unique identifier for the chat session
@@ -172,22 +185,27 @@ STREAMING_MESSAGE }o--|| USER : "created by"
 ```
 
 **Diagram sources**
+
 - [chat.py](file://backend/open_webui/utils/chat.py#L731-L797)
 - [chats.py](file://backend/open_webui/routers/chats.py#L464-L493)
 
 **Section sources**
+
 - [chat.py](file://backend/open_webui/utils/chat.py#L731-L797)
 
 ## Frontend Implementation Examples
+
 The frontend implementation establishes WebSocket connections and handles streaming responses using Socket.IO client libraries. JavaScript code examples demonstrate how to connect to the WebSocket server, authenticate with tokens, and process incoming message events.
 
 For establishing connections:
+
 ```javascript
 // Example code structure (path only)
 // src/routes/+layout.svelte
 ```
 
 For handling streaming responses:
+
 ```javascript
 // Example code structure (path only)
 // src/lib/components/chat/Messages.svelte
@@ -196,10 +214,12 @@ For handling streaming responses:
 The frontend components subscribe to specific event channels and update the UI in real-time as new tokens arrive. The system implements proper cleanup mechanisms to remove event listeners when components are destroyed, preventing memory leaks.
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L447-L475)
 - [Messages.svelte](file://src/lib/components/chat/Messages.svelte#L1-L465)
 
 ## Error Handling
+
 The system implements comprehensive error handling for various failure scenarios including connection timeouts, model generation errors, and authentication failures. When errors occur, the system emits structured error events with detailed information that the frontend can use to provide user feedback.
 
 Connection timeouts are managed through configurable ping intervals and timeouts, with the server automatically cleaning up stale connections. Authentication failures are handled during the connection phase, rejecting unauthorized clients before establishing sessions. Model generation errors are propagated through the event system, allowing the frontend to display appropriate error messages.
@@ -221,13 +241,16 @@ NotifyUser --> End([Error Handled])
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/main.py#L1688-L1716)
 - [main.py](file://backend/open_webui/socket/main.py#L684-L693)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L1688-L1716)
 
 ## Integration with Chat Persistence System
+
 The streaming system is tightly integrated with the chat persistence layer, ensuring that streamed messages are saved to the database upon completion. During the streaming process, the system incrementally updates the message content in the database, concatenating new chunks as they arrive.
 
 When a message is complete, the final content is committed to the database along with metadata such as token counts and generation statistics. The system uses transactional updates to ensure data consistency, with error handling that rolls back incomplete operations if failures occur.
@@ -252,13 +275,16 @@ WebSocket-->>Frontend : Stream complete
 ```
 
 **Diagram sources**
+
 - [chat.py](file://backend/open_webui/utils/chat.py#L731-L797)
 - [chats.py](file://backend/open_webui/routers/chats.py#L464-L515)
 
 **Section sources**
+
 - [chat.py](file://backend/open_webui/utils/chat.py#L731-L797)
 
 ## Performance Considerations
+
 The system implements several performance optimizations for maintaining long-lived WebSocket connections. Heartbeat mechanisms with configurable intervals ensure connection health, while Redis-based session management enables horizontal scaling across multiple server instances.
 
 Reconnection strategies include exponential backoff algorithms to prevent server overload during network disruptions. The system also implements connection pooling and resource cleanup mechanisms to prevent memory leaks and ensure efficient resource utilization.
@@ -266,8 +292,10 @@ Reconnection strategies include exponential backoff algorithms to prevent server
 For high-traffic scenarios, the Redis-based architecture allows for distributed load balancing, with session state shared across all instances. The system monitors connection metrics and usage patterns to identify potential bottlenecks and optimize performance.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L167-L217)
 - [main.py](file://backend/open_webui/socket/main.py#L354-L359)
 
 ## Conclusion
+
 The WebSocket-based chat message streaming system in Open WebUI provides a robust foundation for real-time AI interactions. By leveraging Socket.IO for reliable connections, implementing efficient streaming protocols, and integrating with persistent storage, the system delivers a responsive and scalable chat experience. The architecture balances performance, reliability, and maintainability, making it suitable for production deployments with high concurrency requirements.

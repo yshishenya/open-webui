@@ -10,6 +10,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Redis Configuration Environment Variables](#redis-configuration-environment-variables)
 3. [Redis Connection Initialization](#redis-connection-initialization)
@@ -20,12 +21,15 @@
 8. [Conclusion](#conclusion)
 
 ## Introduction
+
 The open-webui application utilizes Redis as a critical component for session management, task coordination, and real-time features. This document details the initialization and configuration of Redis connections as implemented in the application, focusing on the `main.py` file and related components. The system supports various Redis deployment topologies including standalone, cluster, and sentinel modes, providing flexibility for different deployment scenarios. The implementation leverages environment variables for configuration, allowing for easy adaptation to different environments without code changes.
 
 ## Redis Configuration Environment Variables
+
 The open-webui application uses several environment variables to configure Redis connections, supporting different deployment topologies and providing flexibility for various deployment scenarios.
 
 ### Core Redis Configuration
+
 The primary environment variables for Redis configuration include:
 
 - **REDIS_URL**: Specifies the connection URL for Redis in the format `redis://[:password@]host:port/db`. This is the fundamental configuration parameter for connecting to Redis.
@@ -33,6 +37,7 @@ The primary environment variables for Redis configuration include:
 - **REDIS_KEY_PREFIX**: A string prefix applied to all Redis keys used by the application, allowing for namespace isolation when multiple applications share the same Redis instance.
 
 ### Sentinel Configuration
+
 For high-availability deployments using Redis Sentinel, the following environment variables are available:
 
 - **REDIS_SENTINEL_HOSTS**: A comma-separated list of Redis Sentinel hostnames or IP addresses.
@@ -40,6 +45,7 @@ For high-availability deployments using Redis Sentinel, the following environmen
 - **REDIS_SENTINEL_MAX_RETRY_COUNT**: The maximum number of retry attempts for Redis operations during failover scenarios (default: 2).
 
 ### WebSocket-Specific Redis Configuration
+
 The application also provides separate Redis configuration for WebSocket functionality:
 
 - **WEBSOCKET_REDIS_URL**: Redis URL specifically for WebSocket connections (defaults to REDIS_URL if not specified).
@@ -49,13 +55,16 @@ The application also provides separate Redis configuration for WebSocket functio
 These environment variables allow administrators to configure Redis connections appropriately for their deployment topology, whether using standalone Redis, Redis Cluster for horizontal scaling, or Redis Sentinel for high availability.
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L378-L394)
 - [main.py](file://backend/open_webui/main.py#L444-L450)
 
 ## Redis Connection Initialization
+
 The Redis connection initialization process in open-webui is implemented through the `get_redis_connection` utility function, which handles different Redis deployment topologies and provides connection caching for efficiency.
 
 ### get_redis_connection Utility Function
+
 The `get_redis_connection` function is the central component for establishing Redis connections. It accepts several parameters:
 
 - **redis_url**: The Redis connection URL
@@ -67,6 +76,7 @@ The `get_redis_connection` function is the central component for establishing Re
 The function implements connection caching using an in-memory dictionary `_CONNECTION_CACHE` to avoid creating duplicate connections. The cache key is a tuple of the connection parameters, ensuring that connections with identical configurations are reused.
 
 ### Handling Different Redis Topologies
+
 The function intelligently handles three different Redis deployment scenarios:
 
 **Standalone Redis**: When no sentinel hosts are specified and cluster mode is disabled, the function creates a direct connection to the Redis server using `Redis.from_url()` for synchronous operations or `redis.from_url()` for asynchronous operations.
@@ -98,16 +108,20 @@ ReturnConnection --> End([Connection established])
 ```
 
 **Diagram sources **
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L132-L209)
 
 **Section sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L132-L209)
 - [main.py](file://backend/open_webui/main.py#L585-L592)
 
 ## Session Management with Redis
+
 The open-webui application implements session management using Redis as the backend store, leveraging the starsessions library for secure and efficient session handling.
 
 ### RedisStore Configuration
+
 The application uses the `RedisStore` class from the starsessions library to store session data in Redis. The store is configured with the following parameters:
 
 - **url**: The Redis connection URL from the REDIS_URL environment variable
@@ -116,6 +130,7 @@ The application uses the `RedisStore` class from the starsessions library to sto
 The prefix ensures that session keys are isolated from other application data in Redis, following the pattern `{REDIS_KEY_PREFIX}:session:` when a prefix is specified, or simply "session:" when no prefix is configured.
 
 ### Session Middleware Setup
+
 The session management is implemented through FastAPI middleware. When `ENABLE_STAR_SESSIONS_MIDDLEWARE` is enabled in the environment, the application configures the session middleware as follows:
 
 1. Adds the `SessionAutoloadMiddleware` to automatically load session data
@@ -152,16 +167,20 @@ SessionMiddleware --> SessionAutoloadMiddleware : "alternative"
 ```
 
 **Diagram sources **
+
 - [main.py](file://backend/open_webui/main.py#L2090-L2114)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L2090-L2114)
 - [redis.py](file://backend/open_webui/utils/redis.py#L58-L59)
 
 ## Task Coordination with Redis
+
 The open-webui application implements a distributed task coordination system using Redis for managing background tasks across multiple application instances.
 
 ### Redis Task Command Listener
+
 The core of the task coordination system is the `redis_task_command_listener` function, which runs as an asynchronous task during application lifespan. This listener:
 
 1. Subscribes to a Redis pub/sub channel (`{REDIS_KEY_PREFIX}:tasks:commands`)
@@ -171,6 +190,7 @@ The core of the task coordination system is the `redis_task_command_listener` fu
 The listener enables distributed task management, allowing any instance in a cluster to send a command to stop a specific task, which will be received and processed by all instances. This ensures consistent task state across the application cluster.
 
 ### Task Management Functions
+
 The system provides several functions for task management:
 
 - **create_task**: Creates a new asyncio task and registers it in both local memory and Redis
@@ -179,6 +199,7 @@ The system provides several functions for task management:
 - **list_task_ids_by_item_id**: Lists tasks associated with a specific item ID
 
 Tasks are stored in Redis using two data structures:
+
 - A hash map (`{REDIS_KEY_PREFIX}:tasks`) mapping task IDs to item IDs
 - A set (`{REDIS_KEY_PREFIX}:tasks:item:{item_id}`) containing all task IDs associated with a specific item
 
@@ -199,17 +220,21 @@ Redis-->>InstanceB : Task no longer exists
 ```
 
 **Diagram sources **
+
 - [tasks.py](file://backend/open_webui/tasks.py#L27-L44)
 - [main.py](file://backend/open_webui/main.py#L595-L597)
 
 **Section sources**
+
 - [tasks.py](file://backend/open_webui/tasks.py#L27-L187)
 - [main.py](file://backend/open_webui/main.py#L514-L520)
 
 ## Redis in WebSockets and Real-time Features
+
 Redis plays a crucial role in the WebSocket implementation of open-webui, enabling real-time collaboration features and distributed state management.
 
 ### WebSocket Manager Configuration
+
 When `WEBSOCKET_MANAGER` is set to "redis", the application configures Socket.IO to use Redis as the message broker, enabling horizontal scaling across multiple application instances. The configuration includes:
 
 - **AsyncRedisManager**: Creates a Redis-based client manager for Socket.IO
@@ -217,6 +242,7 @@ When `WEBSOCKET_MANAGER` is set to "redis", the application configures Socket.IO
 - **Connection options**: Configurable through the WEBSOCKET_REDIS_OPTIONS environment variable
 
 ### Distributed State Management
+
 The application uses Redis to maintain distributed state for real-time features:
 
 - **MODELS**: A Redis-backed dictionary that tracks which models are currently in use
@@ -226,6 +252,7 @@ The application uses Redis to maintain distributed state for real-time features:
 These Redis dictionaries are implemented using the `RedisDict` class, which provides a dictionary-like interface backed by Redis hash maps. This allows multiple application instances to share state and coordinate user activity.
 
 ### Real-time Collaboration
+
 For collaborative editing features, the application uses Redis to store Yjs document updates and user presence information:
 
 - **Document updates**: Stored in Redis lists with keys following the pattern `{REDIS_KEY_PREFIX}:ydoc:documents:{document_id}:updates`
@@ -234,13 +261,16 @@ For collaborative editing features, the application uses Redis to store Yjs docu
 This implementation enables real-time collaboration across multiple instances, with Redis serving as the single source of truth for document state and user presence.
 
 **Section sources**
+
 - [socket/main.py](file://backend/open_webui/socket/main.py#L64-L140)
 - [socket/utils.py](file://backend/open_webui/socket/utils.py#L49-L118)
 
 ## Best Practices for Production Deployments
+
 When deploying open-webui in production environments, several best practices should be followed to ensure reliable and secure Redis operations.
 
 ### Connection Pooling and Resource Management
+
 The application's Redis implementation includes built-in connection caching through the `_CONNECTION_CACHE` dictionary, which prevents the creation of duplicate connections. For production deployments:
 
 - Ensure adequate connection limits on the Redis server to accommodate all application instances
@@ -248,6 +278,7 @@ The application's Redis implementation includes built-in connection caching thro
 - Consider using connection pooling at the infrastructure level for additional efficiency
 
 ### Error Handling and Resilience
+
 The implementation includes several resilience features:
 
 - **Sentinel retry logic**: The `SentinelRedisProxy` class includes retry logic for operations that fail during failover events
@@ -257,6 +288,7 @@ The implementation includes several resilience features:
 For production deployments, monitor Redis connectivity and implement alerting for connection failures or high latency.
 
 ### Security Considerations
+
 Key security practices include:
 
 - **Secure Redis URLs**: Ensure Redis URLs include authentication credentials when required
@@ -265,6 +297,7 @@ Key security practices include:
 - **Key prefixing**: Use the REDIS_KEY_PREFIX to isolate open-webui data from other applications sharing the same Redis instance
 
 ### Performance Optimization
+
 To optimize Redis performance:
 
 - **Monitor memory usage**: Redis is memory-bound, so monitor usage and plan for adequate resources
@@ -273,6 +306,7 @@ To optimize Redis performance:
 - **Consider Redis Cluster**: For high-traffic deployments, consider Redis Cluster to distribute load across multiple nodes
 
 ### High Availability Configuration
+
 For mission-critical deployments:
 
 - **Use Redis Sentinel**: Configure Redis Sentinel for automatic failover and high availability
@@ -281,9 +315,11 @@ For mission-critical deployments:
 - **Monitoring**: Implement comprehensive monitoring of Redis metrics including memory usage, connection count, and command latency
 
 **Section sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L22-L101)
 - [env.py](file://backend/open_webui/env.py#L378-L394)
 - [socket/utils.py](file://backend/open_webui/socket/utils.py#L9-L47)
 
 ## Conclusion
+
 The Redis initialization and configuration in open-webui provides a robust foundation for session management, task coordination, and real-time features. The implementation supports multiple Redis deployment topologies, including standalone, cluster, and sentinel modes, allowing for flexibility in different deployment scenarios. The use of environment variables for configuration enables easy adaptation to various environments without code changes. The system implements connection caching for efficiency and includes comprehensive error handling for resilience. For production deployments, following the recommended best practices for connection management, security, and performance optimization will ensure reliable operation of the application.

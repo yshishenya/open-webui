@@ -65,8 +65,9 @@ export const buildModelRows = (models: ModelOption[], rateCards: RateCard[]): Mo
 	return models
 		.map((model) => {
 			const modalities = Array.from(modelModalities.get(model.id) ?? new Set<ModalityKey>());
-			const orderedModalities = ['text', 'image', 'tts', 'stt']
-				.filter((modality) => modalities.includes(modality as ModalityKey)) as ModalityKey[];
+			const orderedModalities = ['text', 'image', 'tts', 'stt'].filter((modality) =>
+				modalities.includes(modality as ModalityKey)
+			) as ModalityKey[];
 			return {
 				...model,
 				status: existingModelIds.has(model.id) ? 'configured' : 'new',

@@ -31,4 +31,5 @@ Load `references/code-review-process.md` and apply the relevant sections; skip n
 ## Resources
 
 ### references/
+
 `references/code-review-process.md` contains the full checklist and comment templates.

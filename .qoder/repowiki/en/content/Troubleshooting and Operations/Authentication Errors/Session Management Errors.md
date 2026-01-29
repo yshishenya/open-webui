@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Session Creation and Authentication Flows](#session-creation-and-authentication-flows)
 3. [Session Persistence and Storage Mechanisms](#session-persistence-and-storage-mechanisms)
@@ -22,6 +23,7 @@
 8. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides a comprehensive analysis of session management errors in Open WebUI, focusing on the FastAPI backend implementation. It covers the complete session lifecycle including creation, persistence, and expiration mechanisms. The documentation details common issues such as session cookie misconfiguration, Redis storage failures, and authentication token validation problems. By examining the auth router's login/logout flows and session middleware, this guide offers insights into how session data is serialized and stored, including user context and authentication state. The document also provides debugging steps for tracing session lifecycle, inspecting cookie attributes, and diagnosing session fixation or hijacking vulnerabilities, along with configuration options for session timeout, secure flags, and cross-origin behavior.
 
 ## Session Creation and Authentication Flows
@@ -33,6 +35,7 @@ The authentication process begins with credential validation, where the system v
 For OAuth-based authentication, the system implements a more complex flow that involves external identity providers. When a user authenticates via OAuth, the system creates an OAuth session record in the database, storing the access token, refresh token, and ID token in an encrypted format. This encrypted token data is stored in the `oauth_session` table with a unique session ID that is also set as a cookie (`oauth_session_id`) to maintain the OAuth session state.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L507-L632)
 - [auth.py](file://backend/open_webui/utils/auth.py#L194-L205)
 - [main.py](file://backend/open_webui/main.py#L665-L670)
@@ -62,6 +65,7 @@ J --> |No| L[Require Re-authentication]
 ```
 
 **Diagram sources**
+
 - [oauth_sessions.py](file://backend/open_webui/models/oauth_sessions.py#L24-L43)
 - [auth.py](file://backend/open_webui/utils/auth.py#L231-L251)
 - [redis.py](file://backend/open_webui/utils/redis.py#L117-L138)
@@ -109,6 +113,7 @@ AuthRouter->>Client : Clear cookies
 ```
 
 **Diagram sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L194-L242)
 - [auths.py](file://backend/open_webui/routers/auths.py#L753-L779)
 - [redis.py](file://backend/open_webui/utils/redis.py#L117-L138)
@@ -126,6 +131,7 @@ Token validation problems are another category of common issues, often related t
 OAuth-specific issues include token refresh failures and provider configuration errors. When an OAuth access token expires, the system attempts to use the refresh token to obtain a new access token, but this process can fail if the refresh token has been revoked by the provider or if the provider's token endpoint is unavailable. Additionally, incorrect configuration of OAuth provider endpoints (authorization, token, userinfo) can prevent successful authentication.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L121-L125)
 - [auth.py](file://backend/open_webui/utils/auth.py#L216-L228)
 - [env.py](file://backend/open_webui/env.py#L462-L478)
@@ -144,6 +150,7 @@ For OAuth session security, the system provides the OAUTH_SESSION_TOKEN_ENCRYPTI
 Additional security configurations include REDIS_KEY_PREFIX, which allows multiple Open WebUI instances to share a Redis server by namespace isolation, and REDIS_SENTINEL_MAX_RETRY_COUNT, which controls the number of retry attempts for Redis operations during failover scenarios. These settings help ensure session reliability and security in distributed environments.
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L455-L478)
 - [auth.py](file://backend/open_webui/utils/auth.py#L51-L52)
 - [oauth_sessions.py](file://backend/open_webui/models/oauth_sessions.py#L72-L87)
@@ -161,6 +168,7 @@ When investigating OAuth session issues, examine the encrypted token storage in 
 For CSRF protection issues, review the OAuth state parameter flow in the authentication logs. The system should generate a random state parameter for each OAuth login attempt and validate it during the callback. Missing or mismatched state parameters indicate potential CSRF protection bypasses. Additionally, verify that the session middleware is properly configured and that the session cookies are being set with appropriate SameSite attributes.
 
 Common debugging steps include:
+
 1. Verify environment variable configuration for session-related settings
 2. Check browser developer tools for cookie attributes and network requests
 3. Examine server logs for authentication and session messages
@@ -170,10 +178,12 @@ Common debugging steps include:
 7. Enable verbose logging for authentication components
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L111-L140)
 - [auth.py](file://backend/open_webui/utils/auth.py#L272-L367)
 - [middleware.py](file://backend/open_webui/utils/middleware.py#L22-L25)
 - [redis.py](file://backend/open_webui/utils/redis.py#L117-L138)
 
 ## Conclusion
+
 The session management system in Open WebUI provides a robust foundation for user authentication and session persistence, combining JWT-based tokens with encrypted OAuth session storage and Redis-backed token revocation. The system offers comprehensive configuration options for session security, allowing administrators to tailor the authentication experience to their specific security requirements and deployment environments. By understanding the session creation, persistence, and expiration mechanisms, as well as common issues and debugging techniques, administrators can effectively manage user sessions and maintain the security of their Open WebUI deployment. The modular design of the authentication system, with clear separation between token management, session storage, and security controls, enables flexible configuration and reliable operation in various deployment scenarios.

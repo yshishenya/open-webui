@@ -88,16 +88,8 @@ test.describe('Billing Wallet', () => {
 
 		const autoTopupSection = page.getByText('Auto-topup').locator('xpath=../..');
 		await autoTopupSection.getByRole('switch').click();
-		await autoTopupSection
-			.getByText('Threshold')
-			.locator('xpath=..')
-			.locator('input')
-			.fill('50');
-		await autoTopupSection
-			.getByText('Amount')
-			.locator('xpath=..')
-			.locator('input')
-			.fill('199');
+		await autoTopupSection.getByText('Threshold').locator('xpath=..').locator('input').fill('50');
+		await autoTopupSection.getByText('Amount').locator('xpath=..').locator('input').fill('199');
 
 		const updateRequest = page.waitForRequest('**/api/v1/billing/auto-topup');
 		await autoTopupSection.getByRole('button', { name: 'Save' }).click();
@@ -138,26 +130,10 @@ test.describe('Billing Wallet', () => {
 		await page.waitForResponse('**/api/v1/users/user/info');
 		await expect(page.getByText('Spend controls')).toBeVisible();
 
-		await page
-			.getByText('Max reply cost')
-			.locator('xpath=..')
-			.locator('input')
-			.fill('125');
-		await page
-			.getByText('Daily cap')
-			.locator('xpath=..')
-			.locator('input')
-			.fill('250');
-		await page
-			.getByText('Email')
-			.locator('xpath=..')
-			.locator('input')
-			.fill('ops@example.com');
-		await page
-			.getByText('Phone')
-			.locator('xpath=..')
-			.locator('input')
-			.fill('+7 999 123-45-67');
+		await page.getByText('Max reply cost').locator('xpath=..').locator('input').fill('125');
+		await page.getByText('Daily cap').locator('xpath=..').locator('input').fill('250');
+		await page.getByText('Email').locator('xpath=..').locator('input').fill('ops@example.com');
+		await page.getByText('Phone').locator('xpath=..').locator('input').fill('+7 999 123-45-67');
 
 		const updateRequest = page.waitForRequest('**/api/v1/billing/settings');
 		const preferencesSection = page.getByText('Spend controls').locator('xpath=..');

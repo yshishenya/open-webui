@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Query Optimization Strategies](#query-optimization-strategies)
 3. [Eager Loading Techniques](#eager-loading-techniques)
@@ -21,6 +22,7 @@
 8. [Best Practices](#best-practices)
 
 ## Introduction
+
 This document provides comprehensive guidance on query optimization in the open-webui application. It covers efficient SQLAlchemy query patterns, N+1 problem prevention, filtering strategies, pagination, and performance optimization techniques. The focus is on practical implementation patterns used throughout the codebase to ensure optimal database performance.
 
 ## Query Optimization Strategies
@@ -34,6 +36,7 @@ The application uses SQLAlchemy as its ORM layer, with careful attention to quer
 - **Query Caching**: While not explicitly implemented in the codebase, the architecture supports caching at the application level for frequently accessed data.
 
 **Section sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L1-L165)
 - [chats.py](file://backend/open_webui/models/chats.py#L22-L56)
 
@@ -58,6 +61,7 @@ I --> J[N+1 Problem]
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L319-L438)
 - [chats.py](file://backend/open_webui/models/chats.py#L504-L533)
 
@@ -91,6 +95,7 @@ USER ||--o{ TAG : "has"
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L278-L287)
 - [chats.py](file://backend/open_webui/models/chats.py#L504-L533)
 
@@ -113,6 +118,7 @@ I --> J[N Queries]
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L622-L630)
 - [tags.py](file://backend/open_webui/models/tags.py#L93-L99)
 
@@ -140,10 +146,12 @@ QueryOptimizer --> QueryResult : "returns"
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L504-L533)
 - [users.py](file://backend/open_webui/models/users.py#L319-L438)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L504-L533)
 - [users.py](file://backend/open_webui/models/users.py#L319-L438)
 - [tags.py](file://backend/open_webui/models/tags.py#L93-L99)
@@ -173,6 +181,7 @@ G --> H[Return Results]
 ```
 
 **Diagram sources**
+
 - [filter.py](file://backend/open_webui/utils/filter.py#L25-L57)
 
 ### Optimized Query Patterns
@@ -203,10 +212,12 @@ FilterService --> FilterableModel : "uses"
 ```
 
 **Diagram sources**
+
 - [filter.py](file://backend/open_webui/utils/filter.py#L15-L137)
 - [chats.py](file://backend/open_webui/models/chats.py#L504-L533)
 
 **Section sources**
+
 - [filter.py](file://backend/open_webui/utils/filter.py#L15-L137)
 - [chats.py](file://backend/open_webui/models/chats.py#L504-L533)
 
@@ -235,6 +246,7 @@ K --> L[Poor Performance]
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L504-L533)
 - [users.py](file://backend/open_webui/models/users.py#L324-L448)
 
@@ -264,10 +276,12 @@ PaginationService --> BatchService : "cooperates with"
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L217-L229)
 - [users.py](file://backend/open_webui/models/users.py#L238-L268)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L217-L229)
 - [users.py](file://backend/open_webui/models/users.py#L238-L268)
 
@@ -303,6 +317,7 @@ API-->>Client : Response 3
 ```
 
 **Diagram sources**
+
 - [retrieval/utils.py](file://backend/open_webui/retrieval/utils.py#L411-L852)
 - [chats.py](file://backend/open_webui/models/chats.py#L167-L190)
 
@@ -326,10 +341,12 @@ G --> |No| I[Consider Eager Loading]
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L504-L533)
 - [users.py](file://backend/open_webui/models/users.py#L319-L438)
 
 **Section sources**
+
 - [retrieval/utils.py](file://backend/open_webui/retrieval/utils.py#L411-L852)
 - [chats.py](file://backend/open_webui/models/chats.py#L167-L190)
 
@@ -369,10 +386,12 @@ I --> J[Improved Performance]
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L504-L533)
 - [users.py](file://backend/open_webui/models/users.py#L319-L438)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L504-L533)
 - [users.py](file://backend/open_webui/models/users.py#L319-L438)
 
@@ -401,6 +420,7 @@ The most effective query patterns observed in the codebase include:
 These patterns ensure optimal performance while maintaining code readability and maintainability.
 
 **Section sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L1-L165)
 - [chats.py](file://backend/open_webui/models/chats.py#L1-L1175)
 - [users.py](file://backend/open_webui/models/users.py#L1-L719)

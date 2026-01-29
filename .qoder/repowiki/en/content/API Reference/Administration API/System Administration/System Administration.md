@@ -14,6 +14,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [System Configuration Management](#system-configuration-management)
 3. [User Management](#user-management)
@@ -26,6 +27,7 @@
 10. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive API documentation for system administration endpoints in the Open WebUI platform. It covers analytics retrieval, user management, system configuration, and billing plan administration. The documentation details HTTP methods, request/response schemas, authentication requirements, data models, and practical examples for admin-only routes. It also addresses security considerations such as role-based access control, audit logging, and protection of sensitive system information.
 
 ## System Configuration Management
@@ -33,6 +35,7 @@ This document provides comprehensive API documentation for system administration
 The system configuration management endpoints allow administrators to manage various aspects of the application's configuration, including connections, tool servers, code execution settings, default models, prompt suggestions, and banners.
 
 ### Connections Configuration
+
 Administrators can retrieve and update the connections configuration, which controls direct connections and base models caching.
 
 ```mermaid
@@ -42,9 +45,11 @@ C[POST /api/v1/config/connections] --> D[Update ENABLE_DIRECT_CONNECTIONS<br/>an
 ```
 
 **Diagram sources**
+
 - [configs.py](file://backend/open_webui/routers/configs.py#L68-L97)
 
 ### Tool Servers Configuration
+
 Administrators can manage tool server connections, including OpenAPI and MCP (Model Control Protocol) servers.
 
 ```mermaid
@@ -55,9 +60,11 @@ E[POST /api/v1/config/tool_servers/verify] --> F[Verify tool server connection]
 ```
 
 **Diagram sources**
+
 - [configs.py](file://backend/open_webui/routers/configs.py#L142-L215)
 
 ### Code Execution Configuration
+
 Administrators can configure code execution settings, including enabling/disabling code execution and interpreter features, and setting up Jupyter server connections.
 
 ```mermaid
@@ -67,9 +74,11 @@ C[POST /api/v1/config/code_execution] --> D[Update code execution settings]
 ```
 
 **Diagram sources**
+
 - [configs.py](file://backend/open_webui/routers/configs.py#L355-L458)
 
 ### Default Models and Suggestions
+
 Administrators can manage default models, pinned models, model order, and prompt suggestions.
 
 ```mermaid
@@ -80,9 +89,11 @@ E[POST /api/v1/config/suggestions] --> F[Update DEFAULT_PROMPT_SUGGESTIONS]
 ```
 
 **Diagram sources**
+
 - [configs.py](file://backend/open_webui/routers/configs.py#L464-L510)
 
 ### Banners Configuration
+
 Administrators can manage banners displayed in the application.
 
 ```mermaid
@@ -92,9 +103,11 @@ C[POST /api/v1/config/banners] --> D[Update BANNERS]
 ```
 
 **Diagram sources**
+
 - [configs.py](file://backend/open_webui/routers/configs.py#L518-L538)
 
 **Section sources**
+
 - [configs.py](file://backend/open_webui/routers/configs.py#L38-L538)
 
 ## User Management
@@ -102,6 +115,7 @@ C[POST /api/v1/config/banners] --> D[Update BANNERS]
 The user management endpoints provide comprehensive functionality for administrators to manage user accounts, roles, and permissions.
 
 ### User Retrieval
+
 Administrators can retrieve user information, including all users, users by search query, and specific user details.
 
 ```mermaid
@@ -113,9 +127,11 @@ G[GET /api/v1/users/{user_id}] --> H[Return specific user details]
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/routers/users.py#L57-L428)
 
 ### User Update and Deletion
+
 Administrators can update user information and delete user accounts.
 
 ```mermaid
@@ -125,9 +141,11 @@ C[DELETE /api/v1/users/{user_id}] --> D[Delete user account]
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/routers/users.py#L496-L610)
 
 ### User Permissions
+
 Administrators can manage default user permissions for workspace, sharing, chat, and features.
 
 ```mermaid
@@ -137,9 +155,11 @@ C[POST /api/v1/users/default/permissions] --> D[Update default user permissions]
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/routers/users.py#L228-L251)
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/routers/users.py#L57-L620)
 
 ## Billing Plan Administration
@@ -147,6 +167,7 @@ C[POST /api/v1/users/default/permissions] --> D[Update default user permissions]
 The billing plan administration endpoints allow administrators to manage subscription plans, including creating, reading, updating, deleting, and duplicating plans, as well as retrieving plan statistics and subscribers.
 
 ### Plan CRUD Operations
+
 Administrators can perform CRUD operations on billing plans.
 
 ```mermaid
@@ -161,9 +182,11 @@ M[POST /api/v1/admin/billing/plans/{plan_id}/duplicate] --> N[Duplicate plan]
 ```
 
 **Diagram sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L159-L487)
 
 ### Plan Subscribers
+
 Administrators can retrieve paginated lists of users subscribed to a specific plan.
 
 ```mermaid
@@ -172,9 +195,11 @@ A[GET /api/v1/admin/billing/plans/{plan_id}/subscribers] --> B[Return paginated 
 ```
 
 **Diagram sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L489-L557)
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L159-L557)
 
 ## Security and Access Control
@@ -182,6 +207,7 @@ A[GET /api/v1/admin/billing/plans/{plan_id}/subscribers] --> B[Return paginated 
 The system implements robust security and access control mechanisms to protect administrative endpoints and ensure only authorized users can perform sensitive operations.
 
 ### Role-Based Access Control
+
 Access to administrative endpoints is controlled through role-based access control. Only users with the "admin" role can access these endpoints.
 
 ```mermaid
@@ -193,9 +219,11 @@ B --> |pending| D[Deny Access]
 ```
 
 **Diagram sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L412-L418)
 
 ### Permission Management
+
 The system uses a hierarchical permission model where permissions are defined at the group level and inherited by users.
 
 ```mermaid
@@ -215,9 +243,11 @@ USER ||--o{ GROUP : "member of"
 ```
 
 **Diagram sources**
+
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L28-L68)
 
 **Section sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L412-L418)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L28-L68)
 
@@ -226,6 +256,7 @@ USER ||--o{ GROUP : "member of"
 The system implements comprehensive audit logging to track administrative actions and ensure accountability.
 
 ### Audit Log Model
+
 The audit log model captures detailed information about administrative actions, including the user who performed the action, the action type, the affected entity, and any changes made.
 
 ```mermaid
@@ -245,9 +276,11 @@ USER ||--o{ AUDIT_LOG : "performed"
 ```
 
 **Diagram sources**
+
 - [audit.py](file://backend/open_webui/models/audit.py#L34-L73)
 
 ### Audit Log Endpoints
+
 Administrators can retrieve audit logs with various filters to monitor system activity.
 
 ```mermaid
@@ -256,6 +289,7 @@ A[GET /api/v1/admin/billing/audit/logs] --> B[Return audit logs with filters<br/
 ```
 
 **Section sources**
+
 - [audit.py](file://backend/open_webui/models/audit.py#L83-L136)
 
 ## Rate Limiting
@@ -263,6 +297,7 @@ A[GET /api/v1/admin/billing/audit/logs] --> B[Return audit logs with filters<br/
 The system implements rate limiting to protect against abuse and ensure fair usage of administrative endpoints.
 
 ### Rate Limiter Implementation
+
 The rate limiter uses a rolling window strategy with Redis for distributed rate limiting and an in-memory fallback when Redis is not available.
 
 ```mermaid
@@ -279,9 +314,11 @@ G --> |Yes| I[Deny Request]
 ```
 
 **Diagram sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L6-L140)
 
 **Section sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L6-L140)
 
 ## Integration with Frontend Components
@@ -289,6 +326,7 @@ G --> |Yes| I[Deny Request]
 The administrative API endpoints are integrated with frontend components to provide a seamless user experience for system administrators.
 
 ### Frontend-Backend Interaction
+
 The frontend components communicate with the backend API endpoints to retrieve and update system configuration, manage users, and administer billing plans.
 
 ```mermaid
@@ -315,6 +353,7 @@ Backend-->>Frontend : Return updated user
 ```
 
 **Section sources**
+
 - [configs.py](file://backend/open_webui/routers/configs.py)
 - [users.py](file://backend/open_webui/routers/users.py)
 
@@ -323,6 +362,7 @@ Backend-->>Frontend : Return updated user
 The system implements comprehensive error handling to provide meaningful feedback to administrators and ensure system stability.
 
 ### Error Response Schema
+
 Error responses follow a consistent schema to provide detailed information about the error.
 
 ```mermaid
@@ -335,9 +375,11 @@ class ErrorResponse {
 ```
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py)
 - [configs.py](file://backend/open_webui/routers/configs.py)
 - [users.py](file://backend/open_webui/routers/users.py)
 
 ## Conclusion
+
 This documentation provides a comprehensive overview of the system administration endpoints in the Open WebUI platform. It covers configuration management, user management, billing plan administration, security and access control, audit logging, rate limiting, integration with frontend components, and error handling. The API endpoints are designed to be secure, reliable, and easy to use, providing administrators with the tools they need to effectively manage the system.

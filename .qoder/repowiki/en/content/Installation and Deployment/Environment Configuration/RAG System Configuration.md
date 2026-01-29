@@ -16,6 +16,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Core RAG Configuration](#core-rag-configuration)
 3. [Vector Database Configuration](#vector-database-configuration)
@@ -26,6 +27,7 @@
 8. [Troubleshooting Guide](#troubleshooting-guide)
 
 ## Introduction
+
 The Retrieval-Augmented Generation (RAG) system in Open WebUI provides a comprehensive framework for enhancing AI responses with external knowledge sources. This documentation covers the complete configuration of the RAG system, including environment variables, vector database settings, document loaders, web search integrations, and model configurations. The system enables users to augment AI responses with information from various sources, including local documents, web search results, and external knowledge bases.
 
 ## Core RAG Configuration
@@ -56,6 +58,7 @@ The retrieval process is controlled by several key parameters that determine how
 - **ENABLE_RAG_HYBRID_SEARCH**: When enabled, combines BM25 keyword search with vector search for improved retrieval accuracy
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L2582-L2799)
 
 ## Vector Database Configuration
@@ -110,11 +113,13 @@ I --> I3[PGVECTOR_USE_HALFVEC]
 ```
 
 **Diagram sources**
+
 - [config.py](file://backend/open_webui/config.py#L2115-L2299)
 - [type.py](file://backend/open_webui/retrieval/vector/type.py#L1-L14)
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L78)
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L2115-L2299)
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L78)
 - [type.py](file://backend/open_webui/retrieval/vector/type.py#L1-L14)
@@ -154,6 +159,7 @@ Document loading is configured through environment variables that specify the lo
 The document loading process follows a priority order based on the configured engine and file type. For example, when using the "datalab_marker" engine, supported file types are processed through the Datalab Marker API, while other files fall back to default loaders.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/retrieval/loaders/main.py#L1-L398)
 
 ## Web Search Integration
@@ -228,12 +234,14 @@ System-->>User : Return response with cited sources
 ```
 
 **Diagram sources**
+
 - [tavily.py](file://backend/open_webui/retrieval/web/tavily.py#L1-L52)
 - [serpapi.py](file://backend/open_webui/retrieval/web/serpapi.py#L1-L51)
 - [external.py](file://backend/open_webui/retrieval/web/external.py#L1-L63)
 - [config.py](file://backend/open_webui/config.py#L2999-L3051)
 
 **Section sources**
+
 - [tavily.py](file://backend/open_webui/retrieval/web/tavily.py#L1-L52)
 - [serpapi.py](file://backend/open_webui/retrieval/web/serpapi.py#L1-L51)
 - [external.py](file://backend/open_webui/retrieval/web/external.py#L1-L63)
@@ -296,11 +304,13 @@ E --> E3[RAG_EXTERNAL_RERANKER_API_KEY]
 ```
 
 **Diagram sources**
+
 - [config.py](file://backend/open_webui/config.py#L2683-L2756)
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L132-L196)
 - [utils.py](file://backend/open_webui/retrieval/utils.py#L777-L800)
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L2683-L2756)
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L132-L196)
 - [utils.py](file://backend/open_webui/retrieval/utils.py#L777-L800)
@@ -376,6 +386,7 @@ This section addresses common issues encountered when configuring and using the 
 **Issue**: Documents fail to index or appear in search results.
 
 **Solutions**:
+
 1. Verify the document format is supported by checking the file extension against the supported types
 2. Check the CONTENT_EXTRACTION_ENGINE setting and ensure the required service is available
 3. For Tika extraction, verify the TIKA_SERVER_URL is correct and accessible
@@ -383,6 +394,7 @@ This section addresses common issues encountered when configuring and using the 
 5. Check logs for specific error messages related to document loading
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/retrieval/loaders/main.py#L1-L398)
 
 ### Retrieval Accuracy Problems
@@ -390,6 +402,7 @@ This section addresses common issues encountered when configuring and using the 
 **Issue**: Retrieved documents are not relevant to the query.
 
 **Solutions**:
+
 1. Adjust the RAG_RELEVANCE_THRESHOLD to filter out low-quality results
 2. Tune the CHUNK_SIZE and CHUNK_OVERLAP parameters for better context preservation
 3. Experiment with different embedding models (e.g., e5-large-v2 for better semantic understanding)
@@ -397,6 +410,7 @@ This section addresses common issues encountered when configuring and using the 
 5. Adjust the HYBRID_BM25_WEIGHT to balance between keyword and vector search
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L2582-L2799)
 - [utils.py](file://backend/open_webui/retrieval/utils.py#L207-L314)
 
@@ -405,6 +419,7 @@ This section addresses common issues encountered when configuring and using the 
 **Issue**: Unable to connect to the vector database.
 
 **Solutions**:
+
 1. Verify the VECTOR_DB environment variable matches a supported database type
 2. Check database-specific connection parameters (e.g., QDRANT_URI, WEAVIATE_HTTP_HOST)
 3. Ensure the database service is running and accessible from the application
@@ -412,6 +427,7 @@ This section addresses common issues encountered when configuring and using the 
 5. Check network connectivity and firewall settings
 
 For Qdrant:
+
 ```env
 QDRANT_URI=http://localhost:6333
 QDRANT_API_KEY=your_api_key
@@ -419,6 +435,7 @@ QDRANT_PREFER_GRPC=false
 ```
 
 For Weaviate:
+
 ```env
 WEAVIATE_HTTP_HOST=localhost
 WEAVIATE_HTTP_PORT=8080
@@ -426,6 +443,7 @@ WEAVIATE_API_KEY=your_api_key
 ```
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L2161-L2178)
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L78)
 
@@ -434,6 +452,7 @@ WEAVIATE_API_KEY=your_api_key
 **Issue**: Web search results are not returned or limited.
 
 **Solutions**:
+
 1. Verify the appropriate API key is set (e.g., TAVILY_API_KEY, SERPAPI_API_KEY)
 2. Check that the web search provider is enabled in the configuration
 3. Verify the API key has sufficient quota or is not rate-limited
@@ -441,6 +460,7 @@ WEAVIATE_API_KEY=your_api_key
 5. Review the WEB_SEARCH_DOMAIN_FILTER_LIST to ensure it's not overly restrictive
 
 **Section sources**
+
 - [tavily.py](file://backend/open_webui/retrieval/web/tavily.py#L1-L52)
 - [serpapi.py](file://backend/open_webui/retrieval/web/serpapi.py#L1-L51)
 - [config.py](file://backend/open_webui/config.py#L2999-L3051)

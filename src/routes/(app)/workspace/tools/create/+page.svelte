@@ -53,12 +53,7 @@
 
 	onMount(() => {
 		window.addEventListener('message', async (event) => {
-			if (
-				!['#', '#', 'http://localhost:9999'].includes(
-					event.origin
-				)
-			)
-				return;
+			if (!['#', '#', 'http://localhost:9999'].includes(event.origin)) return;
 
 			tool = JSON.parse(event.data);
 			console.log(tool);

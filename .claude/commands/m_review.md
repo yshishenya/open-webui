@@ -9,6 +9,7 @@ You received the command /m_review. This means you need to conduct a code review
 Code for review: $ARGUMENTS.
 
 Execute the following procedure:
+
 1.  Carefully study `.memory_bank/workflows/code_review.md`.
 2.  Check the code against all checklist items.
 3.  For each violation or issue found:

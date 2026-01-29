@@ -18,6 +18,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Reverse Proxy Configuration with Nginx](#reverse-proxy-configuration-with-nginx)
 3. [Systemd Service Configuration](#systemd-service-configuration)
@@ -33,6 +34,7 @@
 This document provides comprehensive guidance for configuring open-webui in a production environment. The focus is on establishing a secure, reliable, and high-performance deployment. Key areas covered include setting up a reverse proxy with Nginx for SSL termination and static asset serving, creating systemd service files for robust process management, implementing critical security measures, configuring environment variables, setting up monitoring and logging, optimizing performance, and establishing backup procedures. The configuration is based on the open-webui application structure and its integration with Ollama, as detailed in the provided codebase and documentation.
 
 **Section sources**
+
 - [README.md](file://README.md)
 - [INSTALLATION.md](file://INSTALLATION.md)
 
@@ -101,6 +103,7 @@ server {
 This configuration redirects HTTP traffic to HTTPS, sets up SSL with strong ciphers, adds important security headers, and proxies all requests to the open-webui backend. The `Upgrade` and `Connection` headers are crucial for enabling WebSocket support.
 
 **Section sources**
+
 - [TROUBLESHOOTING.md](file://TROUBLESHOOTING.md)
 - [docs/apache.md](file://docs/apache.md)
 
@@ -137,14 +140,16 @@ WantedBy=multi-user.target
 ```
 
 Key points in this configuration:
--   **User/Group**: The service runs under a dedicated `openwebui` user for security.
--   **Environment**: Critical environment variables are set within the service file. The `WEBUI_SECRET_KEY` is essential for session security.
--   **ExecStart**: Uses `uvicorn` to start the FastAPI application. The `--forwarded-allow-ips '*'` flag is necessary when running behind a reverse proxy.
--   **Restart**: The `Restart=always` directive ensures the service is automatically restarted after a crash or system reboot. `RestartSec=10` adds a 10-second delay before restarting.
+
+- **User/Group**: The service runs under a dedicated `openwebui` user for security.
+- **Environment**: Critical environment variables are set within the service file. The `WEBUI_SECRET_KEY` is essential for session security.
+- **ExecStart**: Uses `uvicorn` to start the FastAPI application. The `--forwarded-allow-ips '*'` flag is necessary when running behind a reverse proxy.
+- **Restart**: The `Restart=always` directive ensures the service is automatically restarted after a crash or system reboot. `RestartSec=10` adds a 10-second delay before restarting.
 
 After creating the service file, run `sudo systemctl daemon-reload` to reload the systemd configuration, then `sudo systemctl enable open-webui` to enable it at boot, and `sudo systemctl start open-webui` to start the service.
 
 **Section sources**
+
 - [backend/start.sh](file://backend/start.sh)
 - [.env.example](file://.env.example)
 
@@ -155,9 +160,11 @@ Securing an open-webui production deployment involves multiple layers, from netw
 ### HTTPS and Let's Encrypt
 
 Using HTTPS is non-negotiable for production. The most common way to obtain free SSL certificates is through Let's Encrypt using Certbot. After setting up the Nginx configuration, you can obtain and install a certificate with a command like:
+
 ```bash
 sudo certbot --nginx -d your-domain.com
 ```
+
 This command will automatically configure Nginx to use the obtained certificate and set up automatic renewal.
 
 ### Rate Limiting
@@ -187,6 +194,7 @@ Nginx access logs are crucial for monitoring and troubleshooting. The default lo
 The application itself also generates logs. The `GLOBAL_LOG_LEVEL` and `SRC_LOG_LEVELS` environment variables in `env.py` control the verbosity of the application logs, which are essential for debugging issues.
 
 **Section sources**
+
 - [TROUBLESHOOTING.md](file://TROUBLESHOOTING.md)
 - [backend/open_webui/env.py](file://backend/open_webui/env.py)
 
@@ -205,6 +213,7 @@ The most critical sensitive variable is `WEBUI_SECRET_KEY`. This key is used to 
 Other sensitive variables include `DATABASE_URL` (if using a remote database with credentials), `OPENAI_API_KEY`, and any other API keys used by the application. These should also be managed securely and not hardcoded in configuration files.
 
 **Section sources**
+
 - [.env.example](file://.env.example)
 - [backend/open_webui/env.py](file://backend/open_webui/env.py)
 
@@ -234,6 +243,7 @@ The application uses Python's `logging` module. The log level is controlled by t
 Logs are output to stdout by default, which is captured by systemd's journal. You can view these logs with `sudo journalctl -u open-webui.service -f`. For more persistent logging, you can configure the application to write to a file by modifying the logging configuration in the code, though this is not the default behavior.
 
 **Section sources**
+
 - [backend/open_webui/main.py](file://backend/open_webui/main.py)
 - [backend/open_webui/env.py](file://backend/open_webui/env.py)
 
@@ -254,6 +264,7 @@ For database connections, the application uses SQLAlchemy. The `DATABASE_POOL_SI
 The Kubernetes deployment configuration in `webui-deployment.yaml` shows resource requests and limits for CPU and memory. When running outside of Kubernetes, ensure the host system has sufficient resources. The `UVICORN_WORKERS` environment variable controls the number of Uvicorn worker processes. Setting this to the number of CPU cores can improve performance under load.
 
 **Section sources**
+
 - [kubernetes/manifest/base/webui-deployment.yaml](file://kubernetes/manifest/base/webui-deployment.yaml)
 - [backend/open_webui/env.py](file://backend/open_webui/env.py)
 
@@ -278,11 +289,13 @@ tar -czf $BACKUP_DIR/backup_$DATE.tar.gz -C backend/data .
 ### Disaster Recovery
 
 The disaster recovery plan should include:
+
 1.  **Documentation**: Clear, up-to-date documentation of the entire deployment process.
 2.  **Backup Restoration**: A tested procedure for restoring the application from backups, including restoring the database and data directory.
 3.  **Infrastructure as Code**: Using tools like Docker Compose or Kubernetes manifests (as provided in the `kubernetes/` directory) ensures that the infrastructure can be quickly rebuilt.
 
 **Section sources**
+
 - [kubernetes/manifest/base/webui-deployment.yaml](file://kubernetes/manifest/base/webui-deployment.yaml)
 - [backend/open_webui/env.py](file://backend/open_webui/env.py)
 

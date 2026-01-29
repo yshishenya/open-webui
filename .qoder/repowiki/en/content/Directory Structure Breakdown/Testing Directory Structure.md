@@ -17,6 +17,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Frontend Testing with Cypress](#frontend-testing-with-cypress)
 2. [Backend Testing Infrastructure](#backend-testing-infrastructure)
 3. [Cypress Test Structure and Examples](#cypress-test-structure-and-examples)
@@ -34,6 +35,7 @@ The Cypress testing suite is specifically designed to test key user journeys inc
 The tests are written in TypeScript, providing type safety and better developer experience. They leverage Cypress's rich API for DOM manipulation, assertion, and test control, allowing for reliable and maintainable test code. The framework's ability to automatically wait for elements and assertions helps create resilient tests that are less prone to flakiness.
 
 **Section sources**
+
 - [cypress/e2e/chat.cy.ts](file://cypress/e2e/chat.cy.ts#L1-L107)
 - [cypress/e2e/documents.cy.ts](file://cypress/e2e/documents.cy.ts#L1-L3)
 - [cypress/e2e/registration.cy.ts](file://cypress/e2e/registration.cy.ts#L1-L53)
@@ -49,6 +51,7 @@ The backend tests are built on the pytest framework, leveraging its powerful fix
 The test infrastructure includes specialized utilities for mocking user authentication and managing test state. The `mock_user.py` module provides context managers that override FastAPI dependency injection to simulate authenticated users with customizable attributes, allowing tests to validate role-based access control and user-specific functionality without requiring actual authentication flows.
 
 **Section sources**
+
 - [backend/open_webui/test/util/abstract_integration_test.py](file://backend/open_webui/test/util/abstract_integration_test.py#L1-L162)
 - [backend/open_webui/test/util/mock_user.py](file://backend/open_webui/test/util/mock_user.py#L1-L46)
 - [backend/open_webui/test/apps/webui/routers/test_auths.py](file://backend/open_webui/test/apps/webui/routers/test_auths.py#L1-L201)
@@ -75,11 +78,13 @@ VerifyGenerationInfo --> End([Test Complete])
 ```
 
 **Diagram sources**
+
 - [cypress/e2e/chat.cy.ts](file://cypress/e2e/chat.cy.ts#L1-L107)
 
 The `registration.cy.ts` file demonstrates testing of user registration and login flows. It includes tests that verify the ability to register a new user (who is initially in a pending state) and to log in with the admin user. These tests validate form interactions, state transitions, and UI feedback messages, ensuring that the authentication system works correctly from the user's perspective.
 
 **Section sources**
+
 - [cypress/e2e/chat.cy.ts](file://cypress/e2e/chat.cy.ts#L1-L107)
 - [cypress/e2e/registration.cy.ts](file://cypress/e2e/registration.cy.ts#L1-L53)
 
@@ -151,6 +156,7 @@ AbstractPostgresTest <|-- TestChats
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/test/util/abstract_integration_test.py](file://backend/open_webui/test/util/abstract_integration_test.py#L1-L162)
 - [backend/open_webui/test/apps/webui/routers/test_auths.py](file://backend/open_webui/test/apps/webui/routers/test_auths.py#L1-L201)
 - [backend/open_webui/test/apps/webui/routers/test_chats.py](file://backend/open_webui/test/apps/webui/routers/test_chats.py#L1-L237)
@@ -158,6 +164,7 @@ AbstractPostgresTest <|-- TestChats
 The test suite also includes specialized tests for infrastructure components, such as the Redis integration tests in `test_redis.py`. These tests verify the reliability of the Redis connection under various conditions, including failover scenarios and connection errors, ensuring that the application can handle real-world infrastructure challenges.
 
 **Section sources**
+
 - [backend/open_webui/test/apps/webui/routers/test_auths.py](file://backend/open_webui/test/apps/webui/routers/test_auths.py#L1-L201)
 - [backend/open_webui/test/apps/webui/routers/test_chats.py](file://backend/open_webui/test/apps/webui/routers/test_chats.py#L1-L237)
 - [backend/open_webui/test/apps/webui/routers/test_models.py](file://backend/open_webui/test/apps/webui/routers/test_models.py#L1-L62)
@@ -196,6 +203,7 @@ Cypress->>Test : Assertion passed
 ```
 
 **Diagram sources**
+
 - [cypress/e2e/chat.cy.ts](file://cypress/e2e/chat.cy.ts#L1-L107)
 - [cypress/support/e2e.ts](file://cypress/support/e2e.ts#L1-L79)
 
@@ -204,6 +212,7 @@ In the backend tests, the assertion pattern is based on verifying HTTP response 
 The backend tests also include assertions on database state, ensuring that operations like user creation, chat creation, and profile updates correctly modify the underlying data. After performing an API operation, the tests query the database directly to verify that the expected changes have been persisted, providing a comprehensive validation of both the API behavior and data integrity.
 
 **Section sources**
+
 - [cypress/e2e/chat.cy.ts](file://cypress/e2e/chat.cy.ts#L1-L107)
 - [cypress/support/e2e.ts](file://cypress/support/e2e.ts#L1-L79)
 - [backend/open_webui/test/apps/webui/routers/test_auths.py](file://backend/open_webui/test/apps/webui/routers/test_auths.py#L1-L201)
@@ -218,6 +227,7 @@ The backend test suite is structured to be easily executable in containerized en
 The test files are organized in a way that allows for selective execution, enabling CI/CD pipelines to run specific test suites based on the changes in a pull request. For example, changes to frontend components could trigger only the Cypress tests, while changes to API endpoints could trigger the relevant backend test files. This selective execution helps reduce CI/CD pipeline duration while maintaining comprehensive test coverage.
 
 **Section sources**
+
 - [cypress.config.ts](file://cypress.config.ts#L1-L9)
 - [backend/open_webui/test/util/abstract_integration_test.py](file://backend/open_webui/test/util/abstract_integration_test.py#L1-L162)
 
@@ -234,6 +244,7 @@ Another potential pitfall is test flakiness, particularly in end-to-end tests th
 Strategies for maintaining reliable test coverage include regular test refactoring to keep tests aligned with application changes, monitoring test execution times to identify slow tests, and using code coverage tools to identify untested code paths. The project could benefit from implementing code coverage reporting to ensure that new features are adequately tested and to identify areas that need additional test coverage.
 
 **Section sources**
+
 - [cypress/e2e/chat.cy.ts](file://cypress/e2e/chat.cy.ts#L1-L107)
 - [backend/open_webui/test/apps/webui/routers/test_auths.py](file://backend/open_webui/test/apps/webui/routers/test_auths.py#L1-L201)
 - [backend/open_webui/test/util/abstract_integration_test.py](file://backend/open_webui/test/util/abstract_integration_test.py#L1-L162)

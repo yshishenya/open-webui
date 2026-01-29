@@ -16,6 +16,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [HTTPS Enforcement](#https-enforcement)
 3. [Secure Cookie Settings](#secure-cookie-settings)
@@ -31,14 +32,17 @@
 13. [Security Audits](#security-audits)
 
 ## Introduction
+
 This document provides comprehensive security configuration guidance for production deployments of open-webui. It covers critical security aspects including HTTPS enforcement, secure cookie settings, HTTP security headers, environment variable management, rate limiting, logging practices, authentication token security, session management, and protection against common OWASP vulnerabilities. The document also analyzes the security implications of deployment scripts and provides recommendations for firewall rules, intrusion detection, and regular security audits to ensure a robust security posture for open-webui deployments.
 
 ## HTTPS Enforcement
+
 open-webui enforces HTTPS through multiple configuration options and security headers. The system uses the HSTS (HTTP Strict Transport Security) header to ensure all communications occur over encrypted connections. This is configured through the `HSTS` environment variable, which sets the `Strict-Transport-Security` header with a default value of `max-age=31536000;includeSubDomains` if not properly formatted. The system validates the HSTS header format using a regular expression pattern that ensures only valid configurations are applied.
 
 For production deployments, HTTPS should be enforced at the reverse proxy level (such as Nginx) in addition to the application-level configuration. The Dockerfile and deployment scripts are designed to work with HTTPS termination at the proxy level, allowing the application to focus on implementing proper security headers and secure communication practices.
 
 When deploying open-webui in production, ensure that your reverse proxy is configured to:
+
 - Terminate SSL/TLS connections with strong cipher suites
 - Redirect all HTTP traffic to HTTPS
 - Implement proper certificate management with automated renewal
@@ -47,10 +51,12 @@ When deploying open-webui in production, ensure that your reverse proxy is confi
 The application's security middleware automatically applies the HSTS header when configured, providing an additional layer of protection against downgrade attacks and ensuring that browsers will only connect via HTTPS for the specified duration.
 
 **Section sources**
+
 - [backend/open_webui/utils/security_headers.py](file://backend/open_webui/utils/security_headers.py#L62-L68)
 - [Dockerfile](file://Dockerfile#L70-L71)
 
 ## Secure Cookie Settings
+
 open-webui implements secure cookie settings through configurable environment variables that control cookie behavior for both session and authentication cookies. The system provides separate configuration options for session cookies and authentication cookies, allowing for fine-grained control over cookie security attributes.
 
 The `WEBUI_SESSION_COOKIE_SECURE` environment variable controls whether session cookies are marked as secure, restricting them to HTTPS connections only. By default, this is set to `false`, but for production deployments, it should be explicitly set to `true` to ensure cookies are only transmitted over encrypted connections.
@@ -58,6 +64,7 @@ The `WEBUI_SESSION_COOKIE_SECURE` environment variable controls whether session 
 Similarly, the `WEBUI_AUTH_COOKIE_SECURE` environment variable controls the secure flag for authentication cookies, with a default fallback to the session cookie setting. Both cookies also support the `SameSite` attribute, configurable via `WEBUI_SESSION_COOKIE_SAME_SITE` and `WEBUI_AUTH_COOKIE_SAME_SITE`, with a default value of `lax` which provides a good balance between security and usability.
 
 For maximum security in production environments, configure the following settings:
+
 - Set `WEBUI_SESSION_COOKIE_SECURE` to `true`
 - Set `WEBUI_AUTH_COOKIE_SECURE` to `true`
 - Use `Strict` for `SameSite` policy if your application flow allows it
@@ -79,13 +86,16 @@ H --> |None| K[Allow with Secure Flag]
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L462-L478)
 - [backend/open_webui/utils/security_headers.py](file://backend/open_webui/utils/security_headers.py#L59)
 
 ## HTTP Security Headers
+
 open-webui implements a comprehensive set of HTTP security headers through its `SecurityHeadersMiddleware` class, which automatically applies security headers based on environment variable configuration. The system supports multiple security headers that protect against common web vulnerabilities.
 
 The security headers are configured through specific environment variables:
+
 - `CACHE_CONTROL`: Controls browser and intermediary caching behavior
 - `HSTS`: Enforces HTTPS connections with configurable max-age and options
 - `PERMISSIONS_POLICY`: Restricts browser features and APIs
@@ -119,13 +129,16 @@ SecurityHeadersMiddleware --> HeaderSetters : uses
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/utils/security_headers.py](file://backend/open_webui/utils/security_headers.py#L9-L134)
 - [backend/open_webui/main.py](file://backend/open_webui/main.py#L511)
 
 ## Environment Variable Security
+
 open-webui uses environment variables extensively for configuration, with particular attention to security-sensitive settings. The `.env.example` file provides a template for environment configuration, highlighting critical security variables that should be properly set in production.
 
 Key security-related environment variables include:
+
 - `WEBUI_SECRET_KEY`: The primary secret key for JWT token generation and session management. This must be set to a strong, random value in production.
 - `ENABLE_API_KEYS`: Controls whether API key authentication is enabled.
 - `CORS_ALLOW_ORIGIN`: Configures cross-origin resource sharing, which should be restricted to specific domains in production rather than using wildcard (`*`).
@@ -134,6 +147,7 @@ Key security-related environment variables include:
 The system implements validation for security headers and automatically applies sensible defaults when configurations are invalid. For example, the `HSTS` header defaults to `max-age=31536000;includeSubDomains` if not properly formatted, and `X-Frame-Options` defaults to `DENY` for maximum protection against clickjacking.
 
 When configuring environment variables for production:
+
 - Never commit `.env` files to version control
 - Use strong, randomly generated values for secret keys
 - Restrict CORS origins to specific domains rather than using wildcards
@@ -143,14 +157,17 @@ When configuring environment variables for production:
 The Dockerfile also defines default environment variables for security settings, including `SCARF_NO_ANALYTICS=true`, `DO_NOT_TRACK=true`, and empty values for API keys and secret keys, emphasizing the need for proper configuration in production environments.
 
 **Section sources**
+
 - [.env.example](file://.env.example#L1-L22)
 - [Dockerfile](file://Dockerfile#L74-L78)
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L455-L461)
 
 ## Rate Limiting Strategies
+
 open-webui implements rate limiting through a `RateLimiter` class that provides protection against abuse and denial-of-service attacks. The rate limiter uses a rolling window strategy and can operate with Redis for distributed rate limiting or fall back to in-memory storage when Redis is not available.
 
 The rate limiting system is designed to be flexible and resilient:
+
 - It supports both Redis and in-memory storage, with automatic fallback to memory if Redis is unavailable
 - Uses a bucket-based approach with configurable window and bucket sizes
 - Implements graceful degradation when Redis fails
@@ -159,6 +176,7 @@ The rate limiting system is designed to be flexible and resilient:
 The rate limiter divides the time window into smaller buckets to provide more granular control over request rates. This rolling window approach prevents burst attacks at window boundaries. The system calculates the total number of requests across all relevant buckets to determine if the rate limit has been exceeded.
 
 For production deployments, rate limiting should be implemented at multiple levels:
+
 - Application-level rate limiting using the built-in `RateLimiter`
 - Reverse proxy-level rate limiting (e.g., Nginx) for additional protection
 - Network-level rate limiting through firewalls or cloud security services
@@ -196,13 +214,16 @@ end
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/utils/rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L6-L140)
 - [backend/open_webui/main.py](file://backend/open_webui/main.py#L585-L592)
 
 ## Access Logging and Log Rotation
+
 open-webui provides comprehensive access logging capabilities with configurable log rotation to maintain audit trails while managing disk space. The system supports audit logging with multiple configuration options for log file management and content.
 
 Key logging configuration variables include:
+
 - `AUDIT_LOGS_FILE_PATH`: Specifies the path for the audit log file, defaulting to `DATA_DIR/audit.log`
 - `AUDIT_LOG_FILE_ROTATION_SIZE`: Sets the maximum size of a log file before rotation, defaulting to "10MB"
 - `AUDIT_LOG_LEVEL`: Controls the level of detail in audit logs, with options for metadata, request, or request/response logging
@@ -211,6 +232,7 @@ Key logging configuration variables include:
 The system implements log rotation based on file size, automatically creating new log files when the current file reaches the specified size limit. This prevents log files from growing indefinitely and consuming excessive disk space. The rotated log files can be archived, compressed, or removed according to your organization's retention policies.
 
 For production deployments, implement the following logging best practices:
+
 - Store logs on a separate volume from application data to prevent disk exhaustion
 - Implement automated log rotation and retention policies
 - Forward logs to a centralized logging system for analysis and long-term storage
@@ -220,13 +242,16 @@ For production deployments, implement the following logging best practices:
 The audit logging system can capture various levels of detail, from basic metadata to full request and response bodies (limited by `MAX_BODY_LOG_SIZE`). For security-sensitive environments, consider enabling detailed logging while ensuring proper protection of sensitive information in log entries.
 
 **Section sources**
+
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L776-L798)
 - [backend/open_webui/main.py](file://backend/open_webui/main.py#L62)
 
 ## Authentication Token Security
+
 open-webui implements robust authentication token security using JWT (JSON Web Tokens) with configurable expiration and revocation mechanisms. The system uses the `WEBUI_SECRET_KEY` as the signing key for JWT tokens, which must be kept confidential and set to a strong, random value in production.
 
 Key token security features include:
+
 - Configurable token expiration through `JWT_EXPIRES_IN`, with a default of "4w" (4 weeks)
 - Automatic token revocation through Redis storage of revoked tokens
 - JWT ID (jti) claims for unique token identification and revocation tracking
@@ -237,12 +262,14 @@ The system warns when `JWT_EXPIRES_IN` is set to "-1" (infinite expiration), hig
 Token revocation is implemented using Redis to store revoked token identifiers with an expiration time matching the token's remaining lifetime. This allows efficient checking of token validity without requiring a database lookup for each request. When Redis is not available, the system falls back to stateless JWT validation, which means revoked tokens remain valid until they naturally expire.
 
 Additional security measures include:
+
 - API key authentication with `sk-` prefix detection
 - Password hashing using bcrypt with automatic salt generation
 - Password validation with configurable complexity requirements
 - Protection against timing attacks in signature verification
 
 For enhanced security, consider implementing:
+
 - Shorter token expiration times with refresh token mechanisms
 - Regular rotation of the `WEBUI_SECRET_KEY`
 - Additional token binding to client characteristics
@@ -277,13 +304,16 @@ end
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/utils/auth.py](file://backend/open_webui/utils/auth.py#L194-L252)
 - [backend/open_webui/config.py](file://backend/open_webui/config.py#L314-L322)
 
 ## Session Management
+
 open-webui implements secure session management through JWT-based authentication with configurable session properties and automatic user activity tracking. The system uses the `WEBUI_SECRET_KEY` for session token signing and provides options for controlling session cookie attributes.
 
 Key session management features include:
+
 - Configurable session cookie security attributes (secure, SameSite)
 - Automatic update of user's last active timestamp on each authenticated request
 - Support for API key authentication as an alternative to session cookies
@@ -292,11 +322,13 @@ Key session management features include:
 The system automatically updates a user's last active timestamp when they make authenticated requests, using background tasks to prevent blocking the main request flow. This allows for monitoring user activity and implementing idle timeout policies if needed.
 
 Session cookies are configured with security-focused defaults:
+
 - `SameSite` policy set to "lax" by default, preventing CSRF attacks while allowing necessary cross-site requests
 - Option to set `Secure` flag to ensure cookies are only transmitted over HTTPS
 - Configurable through environment variables for both session and authentication cookies
 
 For production deployments, ensure proper session management by:
+
 - Setting appropriate session expiration times
 - Implementing session invalidation on password changes or suspicious activity
 - Monitoring for concurrent sessions from multiple locations
@@ -305,13 +337,16 @@ For production deployments, ensure proper session management by:
 The system also supports OAuth integration with configurable session management, including options for ID token cookies and client information encryption using the `WEBUI_SECRET_KEY` or dedicated encryption keys.
 
 **Section sources**
+
 - [backend/open_webui/utils/auth.py](file://backend/open_webui/utils/auth.py#L345-L349)
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L462-L478)
 
 ## OWASP Vulnerability Protection
+
 open-webui implements multiple protections against common OWASP vulnerabilities through its security middleware, input validation, and secure configuration defaults. The system addresses several top OWASP risks with specific countermeasures.
 
 For OWASP Top 10 2021 protections:
+
 - **A01:2021-Broken Access Control**: Implemented through role-based access control, permission checks, and model access control bypass configuration
 - **A02:2021-Cryptographic Failures**: Addressed with secure password hashing (bcrypt), JWT token security, and HTTPS enforcement
 - **A03:2021-Injection**: Mitigated through proper input validation, parameterized database queries, and secure deserialization practices
@@ -322,6 +357,7 @@ For OWASP Top 10 2021 protections:
 - **A10:2021-Server-Side Request Forgery (SSRF)**: Prevented through URL validation, restricted network access, and proxy configuration
 
 Specific protections include:
+
 - Content Security Policy to mitigate XSS attacks
 - X-Frame-Options to prevent clickjacking
 - X-Content-Type-Options to prevent MIME sniffing
@@ -330,6 +366,7 @@ Specific protections include:
 - Secure session management with configurable expiration
 
 The system also includes protections against specific vulnerabilities:
+
 - CSRF protection through SameSite cookie attributes and potential token-based mechanisms
 - Clickjacking prevention via X-Frame-Options header
 - Information disclosure prevention through error handling and security headers
@@ -366,14 +403,17 @@ I --> X[Network restrictions]
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/utils/security_headers.py](file://backend/open_webui/utils/security_headers.py#L40-L50)
 - [backend/open_webui/utils/auth.py](file://backend/open_webui/utils/auth.py#L163-L165)
 - [backend/open_webui/utils/rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L6-L140)
 
 ## Script Security Analysis
+
 The open-webui repository includes several scripts that handle deployment and setup operations, each with specific security considerations. The `run.sh` and `setup.sh` scripts implement various security practices to ensure secure deployment and configuration.
 
 The `run.sh` script handles containerized deployment with the following security characteristics:
+
 - Builds a Docker image with a specified name and tag
 - Stops and removes any existing container with the same name before starting a new one
 - Runs the container with host networking access (`--add-host=host.docker.internal:host-gateway`)
@@ -382,12 +422,14 @@ The `run.sh` script handles containerized deployment with the following security
 - Prunes unused Docker images after deployment
 
 Security considerations for `run.sh`:
+
 - The script uses a named volume for data persistence, which helps protect data from container lifecycle events
 - Automatic container restart ensures service availability but should be combined with proper monitoring
 - Host networking access should be carefully considered in multi-tenant environments
 - Image pruning helps reduce disk usage but should be balanced with rollback requirements
 
 The `setup.sh` script implements a comprehensive setup process for AI software engineering methodology with several security features:
+
 - Validates the presence of a git repository before proceeding
 - Handles existing configuration with backup and overwrite options
 - Downloads template files from a trusted GitHub repository
@@ -396,6 +438,7 @@ The `setup.sh` script implements a comprehensive setup process for AI software e
 - Creates a git commit with detailed change information
 
 Security aspects of `setup.sh`:
+
 - Input validation for project configuration
 - Secure handling of existing configurations with backup creation
 - Download of templates from a verified source (GitHub)
@@ -403,6 +446,7 @@ Security aspects of `setup.sh`:
 - Creation of .gitignore entries for sensitive files like `.env`
 
 Both scripts follow security best practices by:
+
 - Using descriptive variable names
 - Implementing error handling with `set -e`
 - Providing clear user feedback with colored output
@@ -410,6 +454,7 @@ Both scripts follow security best practices by:
 - Creating backups of existing configurations
 
 For production use, consider enhancing these scripts with:
+
 - Additional input validation and sanitization
 - More granular control over container security settings
 - Integration with secret management systems
@@ -417,13 +462,16 @@ For production use, consider enhancing these scripts with:
 - Detailed logging of deployment activities for audit purposes
 
 **Section sources**
+
 - [run.sh](file://run.sh#L1-L20)
 - [setup.sh](file://setup.sh#L1-L277)
 
 ## Firewall and Intrusion Detection
+
 For production deployments of open-webui, implementing robust firewall rules and intrusion detection systems is essential to protect against network-based attacks and unauthorized access. While the application implements various security controls, network-level protections provide an additional layer of defense.
 
 Recommended firewall rules:
+
 - Allow inbound traffic only on necessary ports (typically 443 for HTTPS)
 - Block direct access to the application container port (8080) from external networks
 - Restrict access to the Ollama API endpoint to only the open-webui backend
@@ -431,12 +479,14 @@ Recommended firewall rules:
 - Use network segmentation to isolate the application from other systems
 
 Specific firewall configuration should include:
+
 - Rate limiting at the network level to prevent brute force attacks
 - Blocking known malicious IP addresses and ranges
 - Restricting access to administrative interfaces to specific IP ranges
 - Monitoring for unusual connection patterns or port scanning activities
 
 For intrusion detection, consider implementing:
+
 - Network-based intrusion detection systems (NIDS) to monitor traffic for attack patterns
 - Host-based intrusion detection systems (HIDS) to monitor system calls and file integrity
 - Log analysis tools to detect suspicious authentication attempts or access patterns
@@ -444,6 +494,7 @@ For intrusion detection, consider implementing:
 - Behavioral analysis to identify anomalous user or system behavior
 
 Integration with security information and event management (SIEM) systems can provide centralized monitoring and alerting. Configure alerts for:
+
 - Multiple failed authentication attempts
 - Unusual access times or locations
 - High request rates from single sources
@@ -451,6 +502,7 @@ Integration with security information and event management (SIEM) systems can pr
 - Changes to user roles or permissions
 
 Additionally, consider implementing web application firewall (WAF) rules to protect against common web attacks such as:
+
 - SQL injection attempts
 - Cross-site scripting (XSS) payloads
 - Path traversal attempts
@@ -460,9 +512,11 @@ Additionally, consider implementing web application firewall (WAF) rules to prot
 Regularly review firewall and intrusion detection logs to identify potential threats and adjust rules as needed based on evolving threat intelligence.
 
 ## Security Audits
+
 Regular security audits are critical for maintaining the security posture of open-webui production deployments. A comprehensive audit program should include both automated scanning and manual review processes to identify and address potential vulnerabilities.
 
 Key components of a security audit program:
+
 - **Configuration Review**: Regularly audit environment variables, security headers, and application settings to ensure they align with security policies
 - **Dependency Scanning**: Use tools to identify vulnerable dependencies in both Python and JavaScript components
 - **Static Code Analysis**: Perform automated code reviews to detect security anti-patterns and vulnerabilities
@@ -471,12 +525,14 @@ Key components of a security audit program:
 - **Logging and Monitoring Audit**: Ensure audit logs are comprehensive, protected, and regularly reviewed
 
 Recommended audit frequency:
+
 - Automated scans: Continuous or daily
 - Configuration reviews: Weekly or after significant changes
 - Penetration testing: Quarterly or after major releases
 - Comprehensive security assessments: Annually
 
 Specific areas to audit in open-webui deployments:
+
 - Verify that `WEBUI_SECRET_KEY` is set to a strong, random value and rotated periodically
 - Confirm that HTTPS is properly enforced with valid certificates
 - Check that security headers (HSTS, CSP, X-Frame-Options) are correctly configured

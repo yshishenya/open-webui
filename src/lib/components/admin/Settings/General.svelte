@@ -194,11 +194,7 @@
 								</div>
 							</div>
 
-							<a
-								class="flex-shrink-0 text-xs font-medium underline"
-								href="#"
-								target="_blank"
-							>
+							<a class="flex-shrink-0 text-xs font-medium underline" href="#" target="_blank">
 								{$i18n.t('Documentation')}
 							</a>
 						</div>
@@ -237,11 +233,7 @@
 								</div>
 
 								{#if $config?.license_metadata}
-									<a
-										href="#"
-										target="_blank"
-										class="text-gray-500 mt-0.5"
-									>
+									<a href="#" target="_blank" class="text-gray-500 mt-0.5">
 										<span class=" capitalize text-black dark:text-white"
 											>{$config?.license_metadata?.type}
 											license</span
@@ -261,11 +253,7 @@
 										</div>
 									{/if}
 								{:else}
-									<a
-										class=" text-xs hover:underline"
-										href="#"
-										target="_blank"
-									>
+									<a class=" text-xs hover:underline" href="#" target="_blank">
 										<span class="text-gray-500">
 											{$i18n.t(
 												'Upgrade to a licensed plan for enhanced capabilities, including custom theming and branding, and dedicated support.'
@@ -402,8 +390,7 @@
 									placeholder={`e.g.) /api/v1/messages, /api/v1/channels`}
 									bind:value={adminConfig.API_KEYS_ALLOWED_ENDPOINTS}
 								/>
-
-								</div>
+							</div>
 						{/if}
 					{/if}
 
@@ -436,10 +423,7 @@
 									<div>
 										<span class=" font-medium">{$i18n.t('Warning')}:</span>
 										<span
-											><a
-												href="#"
-												target="_blank"
-												class=" underline"
+											><a href="#" target="_blank" class=" underline"
 												>{$i18n.t('No expiration can pose security risks.')}
 											</a></span
 										>

@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -27,9 +28,11 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document provides comprehensive API documentation for the authentication endpoints exposed by the backend authentication router. It covers user registration, login, logout, password updates, LDAP authentication, and OAuth integration. It also documents authentication mechanisms (JWT and session cookies), request/response schemas, error handling, rate limiting, and security considerations such as token expiration and refresh mechanisms.
 
 ## Project Structure
+
 The authentication API is implemented in the FastAPI router module and integrates with models, utilities, and frontend API bindings.
 
 ```mermaid
@@ -60,6 +63,7 @@ R --> E
 ```
 
 **Diagram sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L1-L120)
 - [auths.py (models)](file://backend/open_webui/models/auths.py#L1-L120)
 - [auth.py](file://backend/open_webui/utils/auth.py#L160-L260)
@@ -72,6 +76,7 @@ R --> E
 - [index.ts](file://src/lib/apis/auths/index.ts#L1-L120)
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L1-L120)
 - [auths.py (models)](file://backend/open_webui/models/auths.py#L1-L120)
 - [auth.py](file://backend/open_webui/utils/auth.py#L160-L260)
@@ -84,6 +89,7 @@ R --> E
 - [index.ts](file://src/lib/apis/auths/index.ts#L1-L120)
 
 ## Core Components
+
 - Authentication router: Implements endpoints for session retrieval, profile/password updates, LDAP, sign-in/sign-up, sign-out, admin configuration, and API key management.
 - Models: Define request/response schemas for authentication forms and responses.
 - Utilities: JWT creation/verification, token invalidation, API key generation, and user guards.
@@ -91,6 +97,7 @@ R --> E
 - Frontend API client: TypeScript wrappers for authentication endpoints.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L100-L220)
 - [auths.py (models)](file://backend/open_webui/models/auths.py#L40-L120)
 - [auth.py](file://backend/open_webui/utils/auth.py#L190-L260)
@@ -99,6 +106,7 @@ R --> E
 - [index.ts](file://src/lib/apis/auths/index.ts#L80-L120)
 
 ## Architecture Overview
+
 The authentication flow integrates JWT-based session tokens and optional session cookies. On successful authentication, the server sets a secure, HTTP-only cookie named “token” and returns a JSON response containing the token and user metadata. Logout invalidates the token and clears cookies, and may trigger provider logout via OpenID Connect endpoints.
 
 ```mermaid
@@ -120,6 +128,7 @@ Note over Client,Cookie : Subsequent requests include Authorization : Bearer or 
 ```
 
 **Diagram sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L507-L632)
 - [auth.py](file://backend/open_webui/utils/auth.py#L194-L214)
 - [auth.py](file://backend/open_webui/utils/auth.py#L231-L252)
@@ -127,6 +136,7 @@ Note over Client,Cookie : Subsequent requests include Authorization : Bearer or 
 ## Detailed Component Analysis
 
 ### Endpoints Overview
+
 - GET /auths/: Retrieve current session user and set token cookie
 - POST /auths/signin: Authenticate via password
 - POST /auths/signup: Register a new user
@@ -139,22 +149,26 @@ Note over Client,Cookie : Subsequent requests include Authorization : Bearer or 
 - DELETE /auths/api_key: Delete API key
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L100-L184)
 - [auths.py](file://backend/open_webui/routers/auths.py#L507-L751)
 - [auths.py](file://backend/open_webui/routers/auths.py#L832-L887)
 - [auths.py](file://backend/open_webui/routers/auths.py#L1147-L1185)
 
 ### GET /auths/
+
 - Purpose: Return current session user info and set token cookie.
 - Authentication: Requires either Authorization Bearer or cookie “token”.
 - Response: SessionUserResponse with token, token_type, expires_at, user profile, permissions.
 - Cookies: Sets “token” with httponly, secure, samesite policy.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L100-L162)
 - [auth.py](file://backend/open_webui/utils/auth.py#L272-L368)
 
 ### POST /auths/signin
+
 - Purpose: Authenticate a user with email and password.
 - Request body: SigninForm {email, password}.
 - Response: SessionUserResponse with token and user info.
@@ -166,11 +180,13 @@ Note over Client,Cookie : Subsequent requests include Authorization : Bearer or 
 - Errors: Invalid credentials, rate limit exceeded, forbidden when password auth is disabled.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L507-L632)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L1-L80)
 - [auth.py](file://backend/open_webui/utils/auth.py#L168-L191)
 
 ### POST /auths/signup
+
 - Purpose: Register a new user.
 - Request body: SignupForm {name, email, password, profile_image_url}.
 - Response: SessionUserResponse with token and user info.
@@ -183,10 +199,12 @@ Note over Client,Cookie : Subsequent requests include Authorization : Bearer or 
 - Errors: Access prohibited when signup is disabled, email taken, invalid email format.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L639-L751)
 - [auths.py (models)](file://backend/open_webui/models/auths.py#L72-L81)
 
 ### POST /auths/ldap
+
 - Purpose: Authenticate via LDAP.
 - Request body: LdapForm {user, password}.
 - Response: SessionUserResponse with token and user info.
@@ -199,19 +217,23 @@ Note over Client,Cookie : Subsequent requests include Authorization : Bearer or 
 - Errors: LDAP disabled, TLS configuration error, bind failure, user not found, internal errors.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L218-L499)
 
 ### POST /auths/update/profile
+
 - Purpose: Update user profile fields.
 - Request body: UpdateProfileForm (mapped from frontend).
 - Response: UserProfileImageResponse.
 - Errors: Invalid credentials or default error.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L169-L184)
 - [auths.py (models)](file://backend/open_webui/models/auths.py#L1-L30)
 
 ### POST /auths/update/password
+
 - Purpose: Change current user’s password.
 - Request body: UpdatePasswordForm {password, new_password}.
 - Response: Boolean success.
@@ -222,10 +244,12 @@ Note over Client,Cookie : Subsequent requests include Authorization : Bearer or 
 - Errors: Action prohibited when trusted header mode is enabled, incorrect password, invalid credentials.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L191-L213)
 - [auth.py](file://backend/open_webui/utils/auth.py#L168-L191)
 
 ### GET /auths/signout
+
 - Purpose: Logout the current user.
 - Behavior:
   - Invalidates JWT by storing its jti in Redis.
@@ -234,10 +258,12 @@ Note over Client,Cookie : Subsequent requests include Authorization : Bearer or 
 - Errors: Internal error if provider logout fails.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L753-L829)
 - [auth.py](file://backend/open_webui/utils/auth.py#L231-L252)
 
 ### API Key Endpoints
+
 - POST /auths/api_key: Create API key for current user.
 - GET /auths/api_key: Retrieve API key for current user.
 - DELETE /auths/api_key: Delete API key for current user.
@@ -246,10 +272,12 @@ Note over Client,Cookie : Subsequent requests include Authorization : Bearer or 
   - API key format starts with “sk-”.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L1147-L1185)
 - [auth.py](file://backend/open_webui/utils/auth.py#L257-L260)
 
 ### OAuth Integration
+
 - OAuth client manager supports dynamic client registration and token refresh.
 - Sessions are stored encrypted in the database with indexes for performance.
 - Token refresh is performed automatically when nearing expiry.
@@ -274,15 +302,18 @@ OAuthMgr-->>FE : Redirect to app with success or error
 ```
 
 **Diagram sources**
+
 - [oauth.py](file://backend/open_webui/utils/oauth.py#L718-L800)
 - [oauth_sessions.py](file://backend/open_webui/models/oauth_sessions.py#L108-L139)
 
 **Section sources**
+
 - [oauth.py](file://backend/open_webui/utils/oauth.py#L280-L400)
 - [oauth.py](file://backend/open_webui/utils/oauth.py#L718-L800)
 - [oauth_sessions.py](file://backend/open_webui/models/oauth_sessions.py#L1-L80)
 
 ## Dependency Analysis
+
 - Router depends on models for request/response schemas, utilities for JWT and guards, rate limiter for sign-in throttling, and OAuth manager for provider flows.
 - Frontend API client depends on the backend endpoints and uses Authorization Bearer headers and cookie credentials.
 
@@ -300,6 +331,7 @@ R --> E["env.py"]
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/apis/auths/index.ts#L80-L120)
 - [auths.py](file://backend/open_webui/routers/auths.py#L100-L220)
 - [auths.py (models)](file://backend/open_webui/models/auths.py#L40-L120)
@@ -312,6 +344,7 @@ R --> E["env.py"]
 - [env.py](file://backend/open_webui/env.py#L1-L120)
 
 **Section sources**
+
 - [index.ts](file://src/lib/apis/auths/index.ts#L80-L120)
 - [auths.py](file://backend/open_webui/routers/auths.py#L100-L220)
 - [auth.py](file://backend/open_webui/utils/auth.py#L190-L260)
@@ -323,6 +356,7 @@ R --> E["env.py"]
 - [env.py](file://backend/open_webui/env.py#L1-L120)
 
 ## Performance Considerations
+
 - JWT token creation and verification are lightweight; ensure SECRET_KEY is strong and consistent across instances.
 - Redis-backed rate limiting provides efficient sliding window counters; fallback to memory storage occurs if Redis is unavailable.
 - OAuth token refresh uses provider metadata endpoints; caching provider configuration reduces latency.
@@ -331,7 +365,9 @@ R --> E["env.py"]
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 Common issues and resolutions:
+
 - Invalid token or unauthorized: Ensure Authorization Bearer header is present or “token” cookie is set. Verify token expiration and revocation.
 - Rate limit exceeded on sign-in: Wait for the configured window to reset or reduce login attempts.
 - LDAP authentication failures: Verify LDAP server configuration, TLS settings, and bind credentials.
@@ -339,12 +375,14 @@ Common issues and resolutions:
 - API key not found: Ensure API key creation succeeded and the user has the required permissions.
 
 **Section sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L272-L368)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L46-L95)
 - [oauth.py](file://backend/open_webui/utils/oauth.py#L167-L196)
 - [auths.py](file://backend/open_webui/routers/auths.py#L1147-L1185)
 
 ## Conclusion
+
 The authentication API provides robust endpoints for password-based, LDAP, and OAuth-based authentication, with JWT and cookie-based session management. It includes built-in rate limiting, token invalidation, and OAuth session persistence. The frontend client exposes convenient TypeScript wrappers for all endpoints.
 
 [No sources needed since this section summarizes without analyzing specific files]
@@ -354,26 +392,32 @@ The authentication API provides robust endpoints for password-based, LDAP, and O
 ### Request/Response Schemas
 
 - SigninForm
+
   - Fields: email, password
   - Used by: POST /auths/signin
 
 - SignupForm
+
   - Fields: name, email, password, profile_image_url
   - Used by: POST /auths/signup
 
 - LdapForm
+
   - Fields: user, password
   - Used by: POST /auths/ldap
 
 - UpdatePasswordForm
+
   - Fields: password, new_password
   - Used by: POST /auths/update/password
 
 - UpdateProfileForm
+
   - Fields: profile fields mapped from frontend
   - Used by: POST /auths/update/profile
 
 - SessionUserResponse
+
   - Fields: token, token_type, expires_at, id, email, name, role, profile_image_url, permissions
   - Returned by: GET /auths/, POST /auths/signin, POST /auths/signup, POST /auths/ldap
 
@@ -382,6 +426,7 @@ The authentication API provides robust endpoints for password-based, LDAP, and O
   - Used by: API key endpoints
 
 **Section sources**
+
 - [auths.py (models)](file://backend/open_webui/models/auths.py#L40-L120)
 - [auths.py](file://backend/open_webui/routers/auths.py#L100-L162)
 - [auths.py](file://backend/open_webui/routers/auths.py#L507-L632)
@@ -390,36 +435,43 @@ The authentication API provides robust endpoints for password-based, LDAP, and O
 - [auths.py](file://backend/open_webui/routers/auths.py#L1147-L1185)
 
 ### Authentication Mechanisms
+
 - JWT: HS256 signed tokens with exp claim and jti for revocation.
 - Session cookies: “token” cookie with httponly, secure, and samesite attributes.
 - API keys: “sk-” prefixed keys for programmatic access.
 
 **Section sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L194-L214)
 - [auth.py](file://backend/open_webui/utils/auth.py#L231-L252)
 - [auth.py](file://backend/open_webui/utils/auth.py#L257-L260)
 - [auths.py](file://backend/open_webui/routers/auths.py#L100-L162)
 
 ### Rate Limiting and Account Lockout
+
 - Sign-in endpoint uses a rolling-window rate limiter with configurable limit and window.
 - No explicit account lockout policy is implemented in the router; consider integrating account lockout at the application layer if required.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L568-L572)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L1-L80)
 
 ### Security Considerations
+
 - CSRF protection: Not implemented in the provided code; consider adding CSRF tokens for browser-based flows.
 - Token expiration: Controlled by JWT_EXPIRES_IN; ensure consistent configuration across instances.
 - Refresh mechanisms: Implemented for OAuth tokens; JWTs are short-lived and should be refreshed via re-authentication or API key usage.
 - Cookie security: httponly, secure, and samesite attributes are set; ensure HTTPS is enforced in production.
 
 **Section sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L194-L214)
 - [auths.py](file://backend/open_webui/routers/auths.py#L100-L162)
 - [oauth.py](file://backend/open_webui/utils/oauth.py#L552-L717)
 
 ### curl Examples
+
 - Get session user
   - curl -H "Authorization: Bearer <TOKEN>" -c cookies.txt https://your-host/api/auths/
 - Sign in
@@ -436,6 +488,7 @@ The authentication API provides robust endpoints for password-based, LDAP, and O
 [No sources needed since this section provides general guidance]
 
 ### TypeScript Examples (frontend API client)
+
 - Get session user
   - getSessionUser(token)
 - User sign in
@@ -450,6 +503,7 @@ The authentication API provides robust endpoints for password-based, LDAP, and O
   - userSignOut()
 
 **Section sources**
+
 - [index.ts](file://src/lib/apis/auths/index.ts#L85-L120)
 - [index.ts](file://src/lib/apis/auths/index.ts#L257-L325)
 - [index.ts](file://src/lib/apis/auths/index.ts#L396-L424)

@@ -88,7 +88,9 @@
 			goto(buildBalanceTarget('pricing_estimator_primary'));
 			return;
 		}
-		goto(buildSignupTarget('pricing_estimator_primary', buildChatTarget('pricing_estimator_primary')));
+		goto(
+			buildSignupTarget('pricing_estimator_primary', buildChatTarget('pricing_estimator_primary'))
+		);
 	};
 
 	const handleFreeStartCta = (event: MouseEvent): void => {
@@ -171,7 +173,8 @@
 		{
 			id: 'subscription',
 			question: 'Это подписка?',
-			answer: 'Нет, подписки нет. Вы пополняете баланс, и списания происходят только за использование.',
+			answer:
+				'Нет, подписки нет. Вы пополняете баланс, и списания происходят только за использование.',
 			open: true
 		},
 		{
@@ -221,15 +224,23 @@
 	showHero={false}
 >
 	<section class="relative overflow-hidden">
-		<div class="absolute -top-20 -right-32 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
-		<div class="absolute -left-20 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
+		<div
+			class="absolute -top-20 -right-32 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"
+		></div>
+		<div
+			class="absolute -left-20 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"
+		></div>
 		<div class="container mx-auto px-4 pt-14 pb-16 relative">
 			<div class="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] items-center">
 				<div class="space-y-6">
-					<span class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gray-600">
+					<span
+						class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gray-600"
+					>
 						ТАРИФЫ
 					</span>
-					<h1 class="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.05]">
+					<h1
+						class="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.05]"
+					>
 						Оплата по использованию — без подписки
 					</h1>
 					<p class="text-lg md:text-xl text-gray-600 max-w-xl leading-relaxed">
@@ -265,14 +276,10 @@
 						{/if}
 					</div>
 					<div class="flex flex-wrap gap-2">
-						{#each [
-							'Без VPN',
-							'Оплата в ₽',
-							'Без подписки и ежемесячных платежей',
-							'Списания только за использование',
-							'История списаний в личном кабинете'
-						] as item}
-							<div class="rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-xs font-semibold text-gray-700">
+						{#each ['Без VPN', 'Оплата в ₽', 'Без подписки и ежемесячных платежей', 'Списания только за использование', 'История списаний в личном кабинете'] as item}
+							<div
+								class="rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-xs font-semibold text-gray-700"
+							>
 								{item}
 							</div>
 						{/each}
@@ -306,9 +313,7 @@
 							label="Пополнение фиксированными суммами"
 						/>
 					{:else}
-						<p class="text-xs text-gray-500">
-							Суммы пополнения временно недоступны.
-						</p>
+						<p class="text-xs text-gray-500">Суммы пополнения временно недоступны.</p>
 					{/if}
 				</div>
 			</div>
@@ -325,8 +330,8 @@
 			<div class="mt-8">
 				<Estimator
 					config={estimatorConfig}
-					rateCard={rateCard}
-					recommendedModelIdByType={recommendedModelIdByType}
+					{rateCard}
+					{recommendedModelIdByType}
 					loading={loadingRates}
 					error={ratesError ? 'Оценка временно недоступна. Попробуйте обновить страницу.' : null}
 					primaryLabel={$user ? 'Пополнить баланс' : 'Начать бесплатно'}
@@ -381,7 +386,7 @@
 					models={rateCard?.models ?? []}
 					currency={rateCard?.currency ?? 'RUB'}
 					updatedAt={rateCard?.updated_at ?? null}
-					popularModelIds={popularModelIds}
+					{popularModelIds}
 					defaultView="popular"
 					loading={loadingRates}
 					error={ratesError}

@@ -57,7 +57,6 @@ services:
       - 'TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}'
       - 'TELEGRAM_BOT_NAME=${TELEGRAM_BOT_NAME:-}'
       # Billing configuration
-      - 'BILLING_ENABLED=${BILLING_ENABLED-true}'
       - 'ENABLE_BILLING_WALLET=${ENABLE_BILLING_WALLET-true}'
       - 'ENABLE_BILLING_SUBSCRIPTIONS=${ENABLE_BILLING_SUBSCRIPTIONS-false}'
       - 'LEAD_MAGNET_ENABLED=${LEAD_MAGNET_ENABLED-false}'
@@ -66,7 +65,6 @@ services:
       - 'YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}'
       - 'YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}'
       - 'YOOKASSA_WEBHOOK_SECRET=${YOOKASSA_WEBHOOK_SECRET}'
-      - 'BILLING_WEBHOOK_URL=${BILLING_WEBHOOK_URL}'
     extra_hosts:
       - host.docker.internal:host-gateway
     restart: unless-stopped

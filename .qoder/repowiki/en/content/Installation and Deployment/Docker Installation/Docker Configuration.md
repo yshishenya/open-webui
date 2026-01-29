@@ -16,6 +16,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Core Service Definitions](#core-service-definitions)
 3. [Specialized Compose Files](#specialized-compose-files)
@@ -31,6 +32,7 @@
 The open-webui project utilizes a modular Docker Compose configuration system that enables flexible deployment options for different environments and requirements. The architecture centers around three primary services: the webui interface, PostgreSQL database, and optional Ollama inference server. This documentation provides comprehensive guidance on the service definitions, specialized configuration files, network setup, and extension mechanisms that allow users to customize their deployments for various use cases including GPU acceleration, external API access, and persistent data storage.
 
 **Section sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L1-L60)
 - [README.md](file://README.md#L1-L27)
 
@@ -61,9 +63,11 @@ style Ollama fill:#669966,stroke:#333
 ```
 
 **Diagram sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L11-L59)
 
 **Section sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L11-L59)
 - [Dockerfile](file://Dockerfile#L25-L192)
 
@@ -92,6 +96,7 @@ GPU --> Capabilities
 ```
 
 **Diagram sources**
+
 - [docker-compose.gpu.yaml](file://docker-compose.gpu.yaml#L1-L12)
 
 ### External API Configuration
@@ -115,6 +120,7 @@ The `docker-compose.otel.yaml` file configures OpenTelemetry integration with Gr
 The `docker-compose.a1111-test.yaml` file sets up a stable-diffusion-webui container for integration testing image generation capabilities. It configures the webui service to connect to this container for image generation functionality.
 
 **Section sources**
+
 - [docker-compose.gpu.yaml](file://docker-compose.gpu.yaml#L1-L12)
 - [docker-compose.api.yaml](file://docker-compose.api.yaml#L1-L6)
 - [docker-compose.data.yaml](file://docker-compose.data.yaml#L1-L5)
@@ -148,10 +154,12 @@ style Ollama fill:#669966,stroke:#333
 ```
 
 **Diagram sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L29-L40)
 - [docker-compose.api.yaml](file://docker-compose.api.yaml#L4-L5)
 
 **Section sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L29-L40)
 - [docker-compose.api.yaml](file://docker-compose.api.yaml#L4-L5)
 
@@ -183,10 +191,12 @@ Note right of Docker : Proper startup sequencing<br>prevents race conditions
 ```
 
 **Diagram sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L23-L27)
 - [Dockerfile](file://Dockerfile#L172)
 
 **Section sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L23-L27)
 - [Dockerfile](file://Dockerfile#L172)
 
@@ -197,6 +207,7 @@ The open-webui project employs Docker Compose's multiple file merging capabiliti
 The `run-compose.sh` script automates this extension mechanism, providing a user-friendly interface for enabling various features. The script detects GPU hardware, sets appropriate environment variables, and constructs the docker compose command with the necessary configuration files based on user options.
 
 Key extension parameters include:
+
 - `--enable-gpu[count=COUNT]`: Enables GPU support with specified count
 - `--enable-api[port=PORT]`: Exposes Ollama API on specified port
 - `--webui[port=PORT]`: Sets web interface port
@@ -235,9 +246,11 @@ Command --> Execute["Execute docker compose"]
 ```
 
 **Diagram sources**
+
 - [run-compose.sh](file://run-compose.sh#L1-L251)
 
 **Section sources**
+
 - [run-compose.sh](file://run-compose.sh#L1-L251)
 - [docker-compose.gpu.yaml](file://docker-compose.gpu.yaml#L1-L12)
 - [docker-compose.api.yaml](file://docker-compose.api.yaml#L1-L6)
@@ -264,6 +277,7 @@ For effective management of multiple deployment environments, the following best
 8. **Monitoring Integration**: Enable observability features in staging and production environments using the `docker-compose.otel.yaml` configuration.
 
 **Section sources**
+
 - [.env.example](file://.env.example)
 - [run-compose.sh](file://run-compose.sh#L13-L49)
 - [docker-compose.otel.yaml](file://docker-compose.otel.yaml#L1-L36)
@@ -285,6 +299,7 @@ When creating custom deployments, Docker Compose's configuration merging rules s
 6. **Validation and Testing**: Always validate merged configurations using `docker compose config` before deployment to ensure the expected configuration is produced.
 
 Example of a custom deployment command combining multiple features:
+
 ```bash
 ./run-compose.sh --enable-gpu[count=all] --enable-api[port=11434] --webui[port=3000] --data[folder=./ollama-data] --build
 ```
@@ -292,6 +307,7 @@ Example of a custom deployment command combining multiple features:
 This command would merge the base configuration with GPU, API exposure, data persistence, and rebuild options.
 
 **Section sources**
+
 - [run-compose.sh](file://run-compose.sh#L165-L202)
 - [docker-compose.yaml](file://docker-compose.yaml#L1-L60)
 

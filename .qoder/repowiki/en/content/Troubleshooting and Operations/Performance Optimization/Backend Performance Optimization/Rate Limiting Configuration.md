@@ -10,6 +10,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -22,10 +23,13 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document explains the rate limiting system in Open WebUI. It focuses on the RateLimiter class that implements a sliding window algorithm using Redis with an in-memory fallback. It also documents how rate limiting is applied to critical endpoints (notably authentication) via middleware integration, configuration options for Redis and rate limits, and operational guidance for tuning and graceful degradation.
 
 ## Project Structure
+
 The rate limiting implementation spans three main areas:
+
 - A general-purpose RateLimiter utility that uses Redis with a rolling window and falls back to memory.
 - Redis connection helpers that support standalone, sentinel, and cluster modes.
 - Authentication router integration that applies rate limiting to sign-in requests.
@@ -50,6 +54,7 @@ AUTH --> CONST
 ```
 
 **Diagram sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L1-L140)
 - [redis.py](file://backend/open_webui/utils/redis.py#L117-L231)
 - [auths.py](file://backend/open_webui/routers/auths.py#L86-L90)
@@ -57,6 +62,7 @@ AUTH --> CONST
 - [constants.py](file://backend/open_webui/constants.py#L70-L76)
 
 **Section sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L1-L140)
 - [redis.py](file://backend/open_webui/utils/redis.py#L117-L231)
 - [auths.py](file://backend/open_webui/routers/auths.py#L86-L90)
@@ -64,21 +70,25 @@ AUTH --> CONST
 - [constants.py](file://backend/open_webui/constants.py#L70-L76)
 
 ## Core Components
+
 - RateLimiter: Implements a sliding window using fixed-size buckets stored per-key. Uses Redis when available; otherwise falls back to an in-memory dictionary keyed by bucket indices.
 - Redis client helpers: Provides a unified way to obtain a Redis client supporting standalone, sentinel, and cluster topologies, with connection caching and retry logic for sentinel.
 - Authentication integration: Creates a RateLimiter instance and checks it before processing sign-in requests.
 
 Key behaviors:
+
 - Rolling window via bucketing: The window is divided into equal-sized buckets. The current bucket is derived from the current time and bucket size. The limiter sums counts across the current and previous N buckets.
 - Redis primary, memory fallback: When Redis is available, increment and aggregate counts via Redis; on exceptions, fall back to memory. When Redis is unavailable, operate purely in-memory.
 - Graceful degradation: If Redis is unreachable, the limiter continues operating with in-memory state, preserving fairness within a single process.
 
 **Section sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L1-L140)
 - [redis.py](file://backend/open_webui/utils/redis.py#L117-L231)
 - [auths.py](file://backend/open_webui/routers/auths.py#L86-L90)
 
 ## Architecture Overview
+
 The rate limiting pipeline integrates with the FastAPI application via router-level checks. The authentication endpoint constructs a RateLimiter with Redis-backed storage and enforces limits before attempting authentication.
 
 ```mermaid
@@ -109,6 +119,7 @@ end
 ```
 
 **Diagram sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L507-L572)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L46-L103)
 - [redis.py](file://backend/open_webui/utils/redis.py#L117-L231)
@@ -116,13 +127,16 @@ end
 ## Detailed Component Analysis
 
 ### RateLimiter Class
+
 The RateLimiter implements a sliding window using fixed-size buckets. It supports:
+
 - Configurable limit and window size.
 - Adjustable bucket size to trade precision vs. memory usage.
 - Global enable/disable flag.
 - Redis primary with in-memory fallback.
 
 Implementation highlights:
+
 - Bucket key construction uses a prefix from environment plus a normalized key and bucket index.
 - Current bucket computed from current time divided by bucket size.
 - Redis path increments a per-bucket counter and sets TTL to slightly exceed window to avoid race conditions.
@@ -153,13 +167,17 @@ class RateLimiter {
 ```
 
 **Diagram sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L1-L140)
 
 **Section sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L1-L140)
 
 ### Redis Client Helpers
+
 The Redis helpers provide:
+
 - Standalone Redis via URL.
 - Sentinel-based HA with automatic fail-over and retry.
 - Cluster mode support.
@@ -167,6 +185,7 @@ The Redis helpers provide:
 - Async and sync variants.
 
 Key configuration:
+
 - REDIS_URL, REDIS_CLUSTER, REDIS_KEY_PREFIX.
 - REDIS_SENTINEL_HOSTS, REDIS_SENTINEL_PORT, REDIS_SENTINEL_MAX_RETRY_COUNT.
 
@@ -184,16 +203,20 @@ Cache --> Return["Return client"]
 ```
 
 **Diagram sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L117-L231)
 
 **Section sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L117-L231)
 - [env.py](file://backend/open_webui/env.py#L376-L395)
 
 ### Authentication Router Integration
+
 The authentication router creates a RateLimiter instance and checks it before processing sign-in requests. The limiter is configured with a specific limit and window suitable for brute-force protection.
 
 Behavior:
+
 - Constructs a RateLimiter bound to Redis via get_redis_client().
 - Checks is_limited on the email (normalized) before attempting authentication.
 - Raises HTTP 429 Too Many Requests with a standardized message when exceeded.
@@ -217,16 +240,19 @@ end
 ```
 
 **Diagram sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L86-L90)
 - [auths.py](file://backend/open_webui/routers/auths.py#L507-L572)
 - [constants.py](file://backend/open_webui/constants.py#L70-L76)
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L86-L90)
 - [auths.py](file://backend/open_webui/routers/auths.py#L507-L572)
 - [constants.py](file://backend/open_webui/constants.py#L70-L76)
 
 ### Sliding Window Algorithm and Exception Handling
+
 - Sliding window: The window is split into N equal buckets. The current bucket is derived from time. The limiter sums counts across the current and previous N buckets.
 - Redis operations: INCR increments the current bucket; MGET aggregates counts across the window; EXPIRE ensures buckets expire after the window plus one bucket duration.
 - Exception handling: Redis failures trigger fallback to in-memory counters. Memory path mirrors Redis logic and cleans up expired buckets.
@@ -249,12 +275,15 @@ NotLimited --> Exit(["bool"])
 ```
 
 **Diagram sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L46-L103)
 
 **Section sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L46-L103)
 
 ## Dependency Analysis
+
 - RateLimiter depends on:
   - Redis client (via get_redis_client) for distributed counters.
   - Environment variables for Redis configuration and key prefix.
@@ -271,6 +300,7 @@ CONST["constants.py<br/>RATE_LIMIT_EXCEEDED"] --> AUTH
 ```
 
 **Diagram sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L1-L140)
 - [redis.py](file://backend/open_webui/utils/redis.py#L117-L231)
 - [auths.py](file://backend/open_webui/routers/auths.py#L507-L572)
@@ -278,6 +308,7 @@ CONST["constants.py<br/>RATE_LIMIT_EXCEEDED"] --> AUTH
 - [constants.py](file://backend/open_webui/constants.py#L70-L76)
 
 **Section sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L1-L140)
 - [redis.py](file://backend/open_webui/utils/redis.py#L117-L231)
 - [auths.py](file://backend/open_webui/routers/auths.py#L507-L572)
@@ -285,6 +316,7 @@ CONST["constants.py<br/>RATE_LIMIT_EXCEEDED"] --> AUTH
 - [constants.py](file://backend/open_webui/constants.py#L70-L76)
 
 ## Performance Considerations
+
 - Bucket granularity: Smaller bucket_size increases precision but increases Redis memory and network overhead due to more keys accessed per check.
 - Window size: Larger windows smooth out bursts but increase the time-to-detection of spikes.
 - Redis vs. memory: Redis provides cross-instance fairness and persistence across restarts; memory is faster but only protects within a single process.
@@ -294,7 +326,9 @@ CONST["constants.py<br/>RATE_LIMIT_EXCEEDED"] --> AUTH
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 Common issues and resolutions:
+
 - Redis connectivity problems:
   - Symptom: Frequent fallback to memory or intermittent 429 responses.
   - Resolution: Verify REDIS_URL, REDIS_CLUSTER, REDIS_SENTINEL_HOSTS, REDIS_SENTINEL_PORT, REDIS_SENTINEL_MAX_RETRY_COUNT. Ensure network access and credentials are correct.
@@ -309,10 +343,12 @@ Common issues and resolutions:
   - Monitoring: Watch for fallback exceptions in logs; consider enabling Redis sentinel and retry settings to improve resilience.
 
 **Section sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L117-L231)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L46-L103)
 
 ## Conclusion
+
 Open WebUI’s rate limiting system centers on a flexible, Redis-backed sliding window with a robust in-memory fallback. The authentication router integrates this mechanism to protect against brute-force attacks. Proper configuration of Redis settings and careful tuning of bucket size and window enables balanced protection and performance across diverse deployment scenarios.
 
 [No sources needed since this section summarizes without analyzing specific files]
@@ -320,6 +356,7 @@ Open WebUI’s rate limiting system centers on a flexible, Redis-backed sliding 
 ## Appendices
 
 ### Configuration Options
+
 - Redis connectivity and topology:
   - REDIS_URL: Redis server URL (supports standalone and sentinel URLs).
   - REDIS_CLUSTER: Enable cluster mode.
@@ -332,10 +369,12 @@ Open WebUI’s rate limiting system centers on a flexible, Redis-backed sliding 
   - The authentication router constructs a RateLimiter with a specific limit and window for sign-in attempts.
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L376-L395)
 - [auths.py](file://backend/open_webui/routers/auths.py#L86-L90)
 
 ### Tuning Recommendations by Deployment Scenario
+
 - Single-instance development:
   - Use small bucket_size and moderate window for responsiveness.
   - Consider disabling Redis to rely on memory fallback for simplicity.

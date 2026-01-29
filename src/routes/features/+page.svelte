@@ -14,7 +14,12 @@
 	import { featurePageConfig, featurePresetsById } from '$lib/data/features';
 	import type { FeaturePreset } from '$lib/data/features';
 	import type { FeatureFaqItem } from '$lib/components/landing/FeaturesFaqSection.svelte';
-	import { buildChatUrl, buildSignupUrl, openCta, openPreset } from '$lib/components/landing/welcomeNavigation';
+	import {
+		buildChatUrl,
+		buildSignupUrl,
+		openCta,
+		openPreset
+	} from '$lib/components/landing/welcomeNavigation';
 
 	const heroImage = '/landing/airis-hero.webp';
 	const heroImage2x = '/landing/airis-hero@2x.webp';
@@ -94,9 +99,7 @@
 		? buildChatUrl('features_hero_primary')
 		: buildSignupUrl('features_hero_primary');
 
-	$: howCtaHref = $user
-		? buildChatUrl('features_how_cta')
-		: buildSignupUrl('features_how_cta');
+	$: howCtaHref = $user ? buildChatUrl('features_how_cta') : buildSignupUrl('features_how_cta');
 
 	$: finalCtaLabel = $user
 		? featurePageConfig.hero.primaryCtaLabelAuthed
@@ -162,7 +165,8 @@
 		{
 			id: 'blank_prompt',
 			question: 'Как начать, если я не знаю, что писать?',
-			answer: 'Выберите готовую задачу — мы подставим запрос в чат. Можно сразу отправить или отредактировать.'
+			answer:
+				'Выберите готовую задачу — мы подставим запрос в чат. Можно сразу отправить или отредактировать.'
 		},
 		{
 			id: 'images',
@@ -181,9 +185,7 @@
 		}
 	];
 
-	$: visibleFaqItems = audioEnabled
-		? faqItems
-		: faqItems.filter((item) => item.id !== 'audio');
+	$: visibleFaqItems = audioEnabled ? faqItems : faqItems.filter((item) => item.id !== 'audio');
 </script>
 
 <PublicPageLayout
@@ -191,19 +193,31 @@
 	description="Возможности Airis: тексты, изображения, аудио и данные в одном чате, без VPN и без подписки."
 	showHero={false}
 >
-	<section class="relative overflow-hidden bg-[radial-gradient(1200px_600px_at_15%_-10%,rgba(0,0,0,0.05),transparent),radial-gradient(900px_500px_at_90%_0%,rgba(0,0,0,0.04),transparent),linear-gradient(180deg,#f7f7f8_0%,#ffffff_70%)]">
+	<section
+		class="relative overflow-hidden bg-[radial-gradient(1200px_600px_at_15%_-10%,rgba(0,0,0,0.05),transparent),radial-gradient(900px_500px_at_90%_0%,rgba(0,0,0,0.04),transparent),linear-gradient(180deg,#f7f7f8_0%,#ffffff_70%)]"
+	>
 		<div class="mx-auto max-w-[1200px] px-4 pt-12 md:pt-16 pb-12 md:pb-16">
 			<div class="relative isolate">
 				<div aria-hidden="true" class="pointer-events-none -z-10 absolute inset-0">
-					<div class="absolute -top-24 -right-32 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
-					<div class="absolute -left-16 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
+					<div
+						class="absolute -top-24 -right-32 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"
+					></div>
+					<div
+						class="absolute -left-16 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"
+					></div>
 				</div>
-				<div class="relative z-10 grid lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-14 items-center motion-safe:animate-[fade-up_0.7s_ease]">
+				<div
+					class="relative z-10 grid lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-14 items-center motion-safe:animate-[fade-up_0.7s_ease]"
+				>
 					<div class="space-y-6">
-						<span class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-600">
+						<span
+							class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-600"
+						>
 							{featurePageConfig.hero.eyebrow}
 						</span>
-						<h1 class="text-[32px] md:text-[40px] xl:text-[48px] font-bold tracking-tight text-gray-900 leading-[1.08]">
+						<h1
+							class="text-[32px] md:text-[40px] xl:text-[48px] font-bold tracking-tight text-gray-900 leading-[1.08]"
+						>
 							{featurePageConfig.hero.title}
 						</h1>
 						<p class="text-[15px] md:text-[16px] font-medium leading-[1.5] text-gray-600 max-w-xl">
@@ -230,15 +244,21 @@
 						</div>
 						<div class="flex flex-wrap gap-2">
 							{#each featurePageConfig.hero.chips as chip}
-								<div class="rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-700">
+								<div
+									class="rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[12px] font-medium text-gray-700"
+								>
 									{chip}
 								</div>
 							{/each}
 						</div>
 					</div>
 					<div class="relative">
-						<div class="relative rounded-[32px] border border-white/10 bg-[#0b0d12] px-4 pb-6 pt-5 shadow-[0_40px_80px_rgba(15,23,42,0.25)]">
-							<div class="absolute inset-0 rounded-[32px] bg-[radial-gradient(70%_60%_at_50%_0%,rgba(255,255,255,0.08),rgba(0,0,0,0))]"></div>
+						<div
+							class="relative rounded-[32px] border border-white/10 bg-[#0b0d12] px-4 pb-6 pt-5 shadow-[0_40px_80px_rgba(15,23,42,0.25)]"
+						>
+							<div
+								class="absolute inset-0 rounded-[32px] bg-[radial-gradient(70%_60%_at_50%_0%,rgba(255,255,255,0.08),rgba(0,0,0,0))]"
+							></div>
 							<div class="relative z-10 rounded-[26px] bg-[#0f1218] p-2 ring-1 ring-white/10">
 								<picture>
 									<source type="image/webp" srcset={`${heroImage} 1x, ${heroImage2x} 2x`} />
@@ -255,7 +275,9 @@
 									/>
 								</picture>
 							</div>
-							<div class="absolute right-6 bottom-6 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-xs font-semibold text-white">
+							<div
+								class="absolute right-6 bottom-6 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-xs font-semibold text-white"
+							>
 								Интерфейс Airis
 							</div>
 						</div>
@@ -281,9 +303,7 @@
 				/>
 			</div>
 
-			<p class="mt-6 text-xs font-medium text-gray-500">
-				Можно начать бесплатно без карты.
-			</p>
+			<p class="mt-6 text-xs font-medium text-gray-500">Можно начать бесплатно без карты.</p>
 		</div>
 	</section>
 
@@ -295,7 +315,11 @@
 			/>
 
 			<div class="mt-8">
-				<FeaturesTabs tabs={visibleTabs} presetsById={featurePresetsById} onTryPreset={handleTryPreset} />
+				<FeaturesTabs
+					tabs={visibleTabs}
+					presetsById={featurePresetsById}
+					onTryPreset={handleTryPreset}
+				/>
 			</div>
 		</div>
 	</section>
@@ -332,7 +356,10 @@
 
 	<section id="models" class="features-section">
 		<div class="mx-auto max-w-[1200px] px-4">
-			<SectionHeader title={featurePageConfig.models.title} subtitle={featurePageConfig.models.subtitle} />
+			<SectionHeader
+				title={featurePageConfig.models.title}
+				subtitle={featurePageConfig.models.subtitle}
+			/>
 
 			<div class="mt-8">
 				<FeaturesModelsSection
@@ -393,7 +420,10 @@
 		</div>
 	</section>
 
-	<FeaturesStickyCta labelGuest={featurePageConfig.hero.primaryCtaLabelGuest} labelAuthed={featurePageConfig.hero.primaryCtaLabelAuthed} />
+	<FeaturesStickyCta
+		labelGuest={featurePageConfig.hero.primaryCtaLabelGuest}
+		labelAuthed={featurePageConfig.hero.primaryCtaLabelAuthed}
+	/>
 </PublicPageLayout>
 
 <style>
@@ -424,7 +454,10 @@
 		background: #ffffff;
 		border: 1px solid var(--features-border);
 		border-radius: 16px;
-		transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+		transition:
+			transform 0.18s ease,
+			box-shadow 0.18s ease,
+			border-color 0.18s ease;
 	}
 
 	:global(.features-card--soft) {

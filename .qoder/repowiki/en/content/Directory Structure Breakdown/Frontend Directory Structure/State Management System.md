@@ -10,6 +10,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Svelte Stores Overview](#svelte-stores-overview)
 3. [Main Store Structure](#main-store-structure)
@@ -24,6 +25,7 @@
 The open-webui frontend implements a comprehensive state management system using Svelte stores to manage application-wide state across components. This system provides a centralized approach for managing global state such as user authentication, theme preferences, UI controls, and application data. The state management architecture is designed to facilitate real-time updates across components while maintaining a clean separation between local component state and global application state.
 
 **Section sources**
+
 - [index.ts](file://src/lib/stores/index.ts)
 
 ## Svelte Stores Overview
@@ -35,6 +37,7 @@ Svelte stores provide a simple yet powerful mechanism for state management, allo
 The implementation uses TypeScript to provide type safety for all store values, with interfaces defined for complex state objects such as user sessions, settings, and application configuration. This type-safe approach helps prevent runtime errors and improves developer experience through better tooling support.
 
 **Section sources**
+
 - [index.ts](file://src/lib/stores/index.ts)
 
 ## Main Store Structure
@@ -106,9 +109,11 @@ Config --> Features
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L1-L302)
 
 **Section sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L1-L302)
 
 ## Global State Management
@@ -143,10 +148,12 @@ Component->>Component : Re-render with new data
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L1-L302)
 - [Sidebar.svelte](file://src/lib/components/layout/Sidebar.svelte#L5-L29)
 
 **Section sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L1-L302)
 - [Sidebar.svelte](file://src/lib/components/layout/Sidebar.svelte#L5-L29)
 
@@ -160,28 +167,28 @@ Components import and subscribe to stores as needed, typically at the top of the
 
 ```typescript
 import {
-    user,
-    chats,
-    settings,
-    showSettings,
-    chatId,
-    tags,
-    folders as _folders,
-    showSidebar,
-    showSearch,
-    mobile,
-    showArchivedChats,
-    pinnedChats,
-    scrollPaginationEnabled,
-    currentChatPage,
-    temporaryChatEnabled,
-    channels,
-    socket,
-    config,
-    isApp,
-    models,
-    selectedFolder,
-    WEBUI_NAME
+	user,
+	chats,
+	settings,
+	showSettings,
+	chatId,
+	tags,
+	folders as _folders,
+	showSidebar,
+	showSearch,
+	mobile,
+	showArchivedChats,
+	pinnedChats,
+	scrollPaginationEnabled,
+	currentChatPage,
+	temporaryChatEnabled,
+	channels,
+	socket,
+	config,
+	isApp,
+	models,
+	selectedFolder,
+	WEBUI_NAME
 } from '$lib/stores';
 ```
 
@@ -223,11 +230,13 @@ style L fill:#bbf,stroke:#333,stroke-width:2px
 ```
 
 **Diagram sources**
+
 - [Sidebar.svelte](file://src/lib/components/layout/Sidebar.svelte#L5-L29)
 - [ChatControls.svelte](file://src/lib/components/chat/ChatControls.svelte#L8-L14)
 - [Controls.svelte](file://src/lib/components/chat/Controls/Controls.svelte#L12)
 
 **Section sources**
+
 - [Sidebar.svelte](file://src/lib/components/layout/Sidebar.svelte#L5-L29)
 - [ChatControls.svelte](file://src/lib/components/chat/ChatControls.svelte#L8-L14)
 - [Controls.svelte](file://src/lib/components/chat/Controls/Controls.svelte#L12)
@@ -247,32 +256,33 @@ The Sidebar component demonstrates the initialization pattern, where it fetches 
 
 ```typescript
 const initChatList = async () => {
-    currentChatPage.set(1);
-    allChatsLoaded = false;
-    scrollPaginationEnabled.set(false);
-    
-    await Promise.all([
-        (async () => {
-            const _tags = await getAllTags(localStorage.token);
-            tags.set(_tags);
-        })(),
-        (async () => {
-            const _pinnedChats = await getPinnedChatList(localStorage.token);
-            pinnedChats.set(_pinnedChats);
-        })(),
-        (async () => {
-            const _chats = await getChatList(localStorage.token, $currentChatPage);
-            await chats.set(_chats);
-        })()
-    ]);
-    
-    scrollPaginationEnabled.set(true);
+	currentChatPage.set(1);
+	allChatsLoaded = false;
+	scrollPaginationEnabled.set(false);
+
+	await Promise.all([
+		(async () => {
+			const _tags = await getAllTags(localStorage.token);
+			tags.set(_tags);
+		})(),
+		(async () => {
+			const _pinnedChats = await getPinnedChatList(localStorage.token);
+			pinnedChats.set(_pinnedChats);
+		})(),
+		(async () => {
+			const _chats = await getChatList(localStorage.token, $currentChatPage);
+			await chats.set(_chats);
+		})()
+	]);
+
+	scrollPaginationEnabled.set(true);
 };
 ```
 
 This approach ensures that the global stores always reflect the current state of the backend data, providing a consistent user experience across the application.
 
 **Section sources**
+
 - [Sidebar.svelte](file://src/lib/components/layout/Sidebar.svelte#L193-L221)
 
 ## Best Practices and Memory Management
@@ -290,31 +300,32 @@ The Sidebar component demonstrates proper subscription cleanup by storing unsubs
 ```typescript
 let unsubscribers = [];
 onMount(async () => {
-    unsubscribers = [
-        mobile.subscribe((value) => {
-            // subscription logic
-        }),
-        showSidebar.subscribe(async (value) => {
-            // subscription logic
-        })
-    ];
+	unsubscribers = [
+		mobile.subscribe((value) => {
+			// subscription logic
+		}),
+		showSidebar.subscribe(async (value) => {
+			// subscription logic
+		})
+	];
 });
 
 onDestroy(() => {
-    if (unsubscribers && unsubscribers.length > 0) {
-        unsubscribers.forEach((unsubscriber) => {
-            if (unsubscriber) {
-                unsubscriber();
-            }
-        });
-    }
-    // Additional cleanup logic
+	if (unsubscribers && unsubscribers.length > 0) {
+		unsubscribers.forEach((unsubscriber) => {
+			if (unsubscriber) {
+				unsubscriber();
+			}
+		});
+	}
+	// Additional cleanup logic
 });
 ```
 
 These practices ensure that the application maintains good performance characteristics and avoids common pitfalls associated with state management in single-page applications.
 
 **Section sources**
+
 - [Sidebar.svelte](file://src/lib/components/layout/Sidebar.svelte#L368-L449)
 
 ## Conclusion

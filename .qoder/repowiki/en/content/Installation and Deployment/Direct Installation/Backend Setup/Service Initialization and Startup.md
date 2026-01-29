@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Service Initialization and Startup](#service-initialization-and-startup)
 2. [FastAPI Application Initialization](#fastapi-application-initialization)
 3. [Middleware Configuration](#middleware-configuration)
@@ -33,6 +34,7 @@ The application initialization also includes the setup of various state variable
 The lifespan event handler, defined with the `@asynccontextmanager` decorator, is responsible for initializing resources when the application starts and cleaning them up when the application shuts down. This includes setting up Redis connections, initializing task listeners, configuring thread pool sizes, and pre-loading model caches when enabled.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L656-L662)
 - [config.py](file://backend/open_webui/config.py#L224-L284)
 - [main.py](file://backend/open_webui/main.py#L569-L655)
@@ -60,6 +62,7 @@ The middleware stack includes:
 The middleware configuration is highly configurable through environment variables, allowing administrators to enable or disable specific middleware components based on their deployment requirements and security policies.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L1249-L1349)
 - [security_headers.py](file://backend/open_webui/utils/security_headers.py#L1-L134)
 - [main.py](file://backend/open_webui/main.py#L42-L50)
@@ -83,6 +86,7 @@ The router mounting process also includes special handlers for OAuth integration
 Static file serving is also configured through router-like mounting, with the `/static` path serving static assets and the root path (`/`) serving the frontend application when the build directory is available.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L70-L98)
 - [main.py](file://backend/open_webui/main.py#L2312-L2348)
 - [main.py](file://backend/open_webui/main.py#L2300-L2310)
@@ -108,6 +112,7 @@ Key features of the WebSocket implementation include:
 The WebSocket server can use Redis as a message broker for distributed deployments, allowing multiple backend instances to share WebSocket connections and state. This is configured through the `WEBSOCKET_MANAGER` environment variable, with options for Redis-based or in-memory management.
 
 **Section sources**
+
 - [socket/main.py](file://backend/open_webui/socket/main.py#L1-L839)
 - [main.py](file://backend/open_webui/main.py#L63-L69)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L107-L159)
@@ -141,6 +146,7 @@ The production environment is configured through the `start.sh` script, which pr
 The production startup script is designed to be flexible, accepting additional arguments to override default Uvicorn configurations. It also handles environment-specific configurations, such as generating admin users for Hugging Face Spaces deployments.
 
 **Section sources**
+
 - [dev.sh](file://backend/dev.sh#L1-L4)
 - [start.sh](file://backend/start.sh#L1-L87)
 - [main.py](file://backend/open_webui/main.py#L552-L565)
@@ -157,13 +163,14 @@ Key Uvicorn configuration parameters include:
 
 3. **Port Configuration**: The listening port is controlled by the `PORT` environment variable, defaulting to 8080 if not specified.
 
-4. **Forwarded Allow IPs**: The `--forwarded-allow-ips '*'` parameter allows the server to properly handle X-Forwarded-* headers from reverse proxies, essential for deployments behind load balancers or proxy servers.
+4. **Forwarded Allow IPs**: The `--forwarded-allow-ips '*'` parameter allows the server to properly handle X-Forwarded-\* headers from reverse proxies, essential for deployments behind load balancers or proxy servers.
 
 5. **Reload Mode**: In development, the `--reload` flag enables auto-reloading of the server when code changes are detected.
 
 The Uvicorn configuration is integrated with the application's startup scripts, with `dev.sh` using a single worker with reload enabled, while `start.sh` supports multiple workers for production use. The number of workers can be overridden by passing arguments to the startup script.
 
 **Section sources**
+
 - [dev.sh](file://backend/dev.sh#L3)
 - [start.sh](file://backend/start.sh#L23-L24)
 - [start.sh](file://backend/start.sh#L73-L87)
@@ -193,6 +200,7 @@ Key environment variable categories include:
 The application loads environment variables from a `.env` file if present, with default values provided for required variables. This configuration system allows for easy customization of the application for different deployment scenarios, from local development to cloud production environments.
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L1-L200)
 - [config.py](file://backend/open_webui/config.py#L18-L34)
 - [main.py](file://backend/open_webui/main.py#L440-L477)
@@ -244,6 +252,7 @@ The application runs database migrations on startup. Issues can occur if:
 The migration system is designed to be idempotent, allowing repeated execution without causing issues.
 
 **Section sources**
+
 - [start.sh](file://backend/start.sh#L17-L36)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L58-L117)
 - [main.py](file://backend/open_webui/main.py#L585-L592)
@@ -278,6 +287,7 @@ Log levels can be configured globally with `GLOBAL_LOG_LEVEL` or per-component w
 ### Startup Verification
 
 During startup, the application logs key events including:
+
 - Successful initialization of Redis connections
 - Database migration status
 - Loading of external dependencies
@@ -286,6 +296,7 @@ During startup, the application logs key events including:
 These logs provide immediate feedback on the startup process and help identify any initialization issues.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L2300-L2310)
 - [env.py](file://backend/open_webui/env.py#L75-L114)
 - [main.py](file://backend/open_webui/main.py#L532-L535)

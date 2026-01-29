@@ -119,7 +119,10 @@
 		background: #ffffff;
 		border: 1px solid var(--border);
 		border-radius: 16px;
-		transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+		transition:
+			transform 0.18s ease,
+			box-shadow 0.18s ease,
+			border-color 0.18s ease;
 	}
 
 	:global(.welcome-card--soft) {

@@ -14,6 +14,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Prerequisites](#prerequisites)
 3. [System Dependencies](#system-dependencies)
@@ -31,6 +32,7 @@
 This guide provides comprehensive instructions for installing open-webui directly on a Linux system without containerization. The installation process covers all necessary components including system dependencies, Python environment setup, frontend compilation, database configuration, and production deployment. The guide is designed to help users set up a fully functional open-webui instance with proper configuration for both development and production environments.
 
 **Section sources**
+
 - [README.md](file://README.md#L1-L27)
 - [INSTALLATION.md](file://INSTALLATION.md#L1-L36)
 
@@ -49,6 +51,7 @@ Before beginning the installation process, ensure your system meets the followin
 The open-webui application consists of a Python-based backend using FastAPI and a Svelte-based frontend. The backend requires Python 3.11 specifically, as indicated by the package.json file which specifies compatibility with Node.js versions 18.13.0 through 22.x.x.
 
 **Section sources**
+
 - [package.json](file://package.json#L147-L150)
 - [backend/requirements.txt](file://backend/requirements.txt#L1-L153)
 
@@ -92,6 +95,7 @@ sudo apt install -y libsm6 libxext6 libxrender-dev libglib2.0-0 \
 These system dependencies support various features in the application, including image processing, video handling, and proper rendering of graphical elements.
 
 **Section sources**
+
 - [backend/requirements.txt](file://backend/requirements.txt#L80-L85)
 - [backend/requirements.txt](file://backend/requirements.txt#L82-L83)
 
@@ -103,7 +107,7 @@ Create an isolated Python environment to prevent dependency conflicts and ensure
 
 ```bash
 # Navigate to the project directory
-cd 
+cd
 
 # Create a virtual environment
 python3.11 -m venv venv
@@ -123,6 +127,7 @@ pip install -r backend/requirements.txt
 ```
 
 The requirements.txt file contains all necessary Python packages for the backend, including:
+
 - FastAPI (0.123.0) for the web framework
 - Uvicorn (0.37.0) as the ASGI server
 - SQLAlchemy (2.0.38) for database operations
@@ -132,6 +137,7 @@ The requirements.txt file contains all necessary Python packages for the backend
 For a minimal installation, you can use requirements-min.txt instead, which contains only the essential packages needed to run the backend.
 
 **Section sources**
+
 - [backend/requirements.txt](file://backend/requirements.txt#L1-L153)
 - [backend/requirements-min.txt](file://backend/requirements-min.txt#L1-L52)
 
@@ -164,6 +170,7 @@ The build process uses Vite as the build tool, which is specified in the package
 ### Frontend Configuration
 
 The frontend build process is configured in several files:
+
 - vite.config.ts: Vite configuration
 - svelte.config.js: Svelte-specific settings
 - tailwind.config.js: Styling configuration
@@ -171,6 +178,7 @@ The frontend build process is configured in several files:
 The build process also handles the preparation of Pyodide, a Python implementation for WebAssembly, which is used for certain frontend functionalities.
 
 **Section sources**
+
 - [package.json](file://package.json#L1-L152)
 - [vite.config.ts](file://vite.config.ts)
 - [svelte.config.js](file://svelte.config.js)
@@ -214,6 +222,7 @@ GRANT ALL PRIVILEGES ON DATABASE openwebui TO openwebui_user;
 Update the application configuration to use the PostgreSQL database by setting the appropriate environment variables in your configuration.
 
 **Section sources**
+
 - [backend/open_webui/config.py](file://backend/open_webui/config.py#L19-L34)
 - [backend/requirements.txt](file://backend/requirements.txt#L111-L113)
 
@@ -255,6 +264,7 @@ ANONYMIZED_TELEMETRY=false
 Additional configuration options can be found in the .env.example file and the config.py file, which contains extensive configuration settings for various aspects of the application.
 
 **Section sources**
+
 - [.env.example](file://.env.example#L1-L22)
 - [backend/open_webui/config.py](file://backend/open_webui/config.py#L113-L800)
 
@@ -274,6 +284,7 @@ cd backend
 ```
 
 The start.sh script handles various initialization tasks including:
+
 - Installing Playwright browsers if needed
 - Generating secret keys
 - Starting the Ollama service if configured
@@ -302,6 +313,7 @@ http://localhost:8080
 ```
 
 **Section sources**
+
 - [run.sh](file://run.sh#L1-L20)
 - [backend/start.sh](file://backend/start.sh#L1-L87)
 - [backend/dev.sh](file://backend/dev.sh#L1-L4)
@@ -322,14 +334,14 @@ Create a configuration file in /etc/nginx/sites-available/open-webui:
 server {
     listen 80;
     server_name your-domain.com;
-    
+
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         # WebSocket support
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -387,6 +399,7 @@ sudo systemctl start open-webui
 ```
 
 **Section sources**
+
 - [backend/start.sh](file://backend/start.sh#L72-L87)
 - [backend/open_webui/main.py](file://backend/open_webui/main.py#L656-L662)
 
@@ -417,7 +430,7 @@ For permission-related issues:
 
 ```bash
 # Ensure proper ownership of the project directory
-sudo chown -R $USER:$USER 
+sudo chown -R $USER:$USER
 
 # If using systemd, ensure the service user has proper permissions
 sudo usermod -a -G your-group your-user
@@ -445,6 +458,7 @@ alembic upgrade head
 The application automatically runs migrations on startup, but manual execution may be necessary in some cases.
 
 **Section sources**
+
 - [backend/start.sh](file://backend/start.sh#L53-L67)
 - [backend/open_webui/config.py](file://backend/open_webui/config.py#L52-L68)
 
@@ -458,7 +472,7 @@ To update the application to the latest version:
 
 ```bash
 # Navigate to the project directory
-cd 
+cd
 
 # Pull the latest changes
 git pull origin main
@@ -498,7 +512,7 @@ Monitor the application logs to identify and resolve issues:
 sudo journalctl -u open-webui -f
 
 # Check disk space usage
-df -h 
+df -h
 
 # Monitor memory usage
 htop
@@ -507,5 +521,6 @@ htop
 Regular updates and monitoring will help maintain a stable and secure open-webui installation.
 
 **Section sources**
+
 - [backend/open_webui/main.py](file://backend/open_webui/main.py#L574-L575)
 - [backend/open_webui/config.py](file://backend/open_webui/config.py#L107-L111)

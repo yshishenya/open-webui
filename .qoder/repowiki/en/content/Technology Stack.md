@@ -24,6 +24,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Backend Framework](#backend-framework)
 2. [Frontend Framework](#frontend-framework)
 3. [Supporting Technologies](#supporting-technologies)
@@ -42,6 +43,7 @@ FastAPI's dependency injection system is extensively used throughout the applica
 The backend architecture follows a clean separation of concerns, with distinct layers for routing, business logic, data models, and database operations. The application leverages SQLAlchemy as its ORM (Object-Relational Mapper) for database interactions, providing a powerful and flexible interface for working with the PostgreSQL database. Alembic is used for database migrations, ensuring schema changes are managed systematically across deployments.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L1-L800)
 - [config.py](file://backend/open_webui/config.py#L100-L899)
 - [chats.py](file://backend/open_webui/routers/chats.py#L50-L849)
@@ -55,6 +57,7 @@ Svelte's component-based architecture is evident throughout the application, wit
 The frontend implements a sophisticated real-time communication system using Socket.IO, establishing a persistent connection between the client and server for instant updates. This enables features like live chat updates, real-time notifications, and collaborative editing. The application also integrates Pyodide, allowing Python code execution directly in the browser through WebAssembly, which facilitates advanced functionality like code interpretation and data analysis without server round-trips.
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L1-L800)
 - [index.ts](file://src/lib/apis/index.ts#L1-L800)
 - [constants.ts](file://src/lib/constants.ts#L1-L104)
@@ -68,6 +71,7 @@ PostgreSQL is used as the primary relational database, storing user data, chat h
 For real-time communication, the application uses Socket.IO with support for both WebSocket and HTTP long-polling transports, ensuring compatibility across different network environments. The application implements a sophisticated event system that allows the backend to push updates to specific users or groups of users, enabling features like chat notifications, typing indicators, and collaborative document editing. The application also integrates with various external services for document processing, including Google Drive, OneDrive, and specialized document intelligence services.
 
 **Section sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L1-L231)
 - [db.py](file://backend/open_webui/internal/db.py#L1-L165)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L50-L839)
@@ -82,6 +86,7 @@ The application provides extensive Docker configuration options through build ar
 For orchestration, the application provides multiple docker-compose configurations tailored to different use cases, including GPU support, API-only deployments, and monitoring integration. The primary `docker-compose.yaml` file defines a production-ready configuration with PostgreSQL for persistent storage and proper service dependencies. The application also includes Kubernetes manifests in the `kubernetes/` directory, providing both base and GPU-optimized configurations for container orchestration at scale. The Kubernetes deployment includes Helm chart documentation, indicating support for advanced deployment patterns and configuration management.
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L1-L192)
 - [docker-compose.yaml](file://docker-compose.yaml#L1-L60)
 - [start.sh](file://backend/start.sh#L1-L87)
@@ -95,6 +100,7 @@ For frontend development and build processes, the application leverages Vite as 
 The frontend build process incorporates Tailwind CSS for utility-first styling, with a custom configuration that extends the default color palette and typography settings. The application also uses PostCSS with Tailwind CSS plugins for container queries and typography, enabling responsive design patterns and consistent text styling. The build process generates source maps for debugging and includes optimization for production builds, with conditional removal of console logging statements based on the environment.
 
 **Section sources**
+
 - [cypress.config.ts](file://cypress.config.ts#L1-L9)
 - [package.json](file://package.json#L1-L152)
 - [vite.config.ts](file://vite.config.ts#L1-L33)
@@ -110,6 +116,7 @@ The application includes built-in support for various deployment scenarios, incl
 For production deployments, the application provides configuration options for security hardening, including session security settings, content security policies, and permission hardening for OpenShift environments. The application supports external monitoring through OpenTelemetry instrumentation, enabling integration with observability platforms for tracing, metrics, and logging. The deployment infrastructure also includes support for billing integration with YooKassa, indicating readiness for commercial deployments with subscription management.
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L1-L192)
 - [docker-compose.yaml](file://docker-compose.yaml#L1-L60)
 - [start.sh](file://backend/start.sh#L1-L87)
@@ -125,6 +132,7 @@ Another critical integration is the use of Redis for rate limiting API endpoints
 The application also showcases advanced integration between the frontend and AI services through the direct connections feature. When enabled, the frontend can route requests directly to external AI providers like OpenAI, bypassing the backend for certain operations. This is implemented in the `+layout.svelte` file, where the `chatEventHandler` function handles direct chat completions by making requests to the configured AI provider endpoints. This integration reduces latency and server load while maintaining the same user experience.
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L1-L800)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L1-L140)
 - [chats.py](file://backend/open_webui/routers/chats.py#L50-L849)
@@ -139,6 +147,7 @@ For the frontend, dependencies are managed through `package.json`, which specifi
 The application implements a version update check feature, with configuration options to enable or disable automatic version checks. The frontend build process includes version embedding, with the application version and build hash injected into the build output, facilitating version tracking and debugging. The application also supports configuration through environment variables with sensible defaults, allowing for easy upgrades without requiring changes to configuration files. The migration system, using Alembic for database schema changes and a custom migration system for configuration data, ensures backward compatibility during upgrades.
 
 **Section sources**
+
 - [requirements.txt](file://backend/requirements.txt#L1-L153)
 - [package.json](file://package.json#L1-L152)
 - [Dockerfile](file://Dockerfile#L1-L192)

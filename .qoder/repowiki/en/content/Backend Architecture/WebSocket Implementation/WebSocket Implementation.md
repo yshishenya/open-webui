@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [WebSocket Server Architecture](#websocket-server-architecture)
 3. [Connection Protocol and Authentication](#connection-protocol-and-authentication)
@@ -24,9 +25,11 @@
 11. [Debugging Approaches](#debugging-approaches)
 
 ## Introduction
+
 The open-webui application implements a comprehensive WebSocket system using Socket.IO for real-time communication between clients and the server. This documentation details the WebSocket implementation, covering the connection protocol, message formats, event types, and real-time interaction patterns. The system integrates Socket.IO with FastAPI to handle client connections, authentication, and event broadcasting, enabling features like chat messaging, model status updates, and collaborative document editing.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L1-L103)
 
 ## WebSocket Server Architecture
@@ -50,12 +53,14 @@ Redis --> Yjs
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L64-L103)
 - [env.py](file://backend/open_webui/env.py#L618-L677)
 
 The WebSocket server architecture in open-webui is built on Socket.IO integrated with FastAPI. The server can operate in two modes: standalone or with Redis as a message broker for horizontal scaling. When Redis is configured as the manager (WEBSOCKET_MANAGER="redis"), the system uses Redis to synchronize state across multiple server instances, enabling the application to scale horizontally. The server configuration includes customizable ping intervals and timeouts, with default values of 25 seconds for ping interval and 20 seconds for ping timeout.
 
 The architecture includes several key components:
+
 - **Socket.IO Server**: Handles WebSocket connections and event broadcasting
 - **Redis**: Used for distributed state management when configured
 - **Yjs Document Manager**: Manages collaborative document editing with real-time synchronization
@@ -63,6 +68,7 @@ The architecture includes several key components:
 - **Usage Pool**: Monitors model usage across connections
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L64-L140)
 - [env.py](file://backend/open_webui/env.py#L618-L677)
 
@@ -89,12 +95,14 @@ end
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L317)
 - [main.py](file://backend/open_webui/socket/main.py#L318-L351)
 
 The WebSocket connection protocol in open-webui begins with client authentication using JWT tokens. When a client attempts to connect, it sends an authentication object containing a token. The server decodes this token to verify the user's identity and retrieves the corresponding user information from the database. Upon successful authentication, the server stores the user's information in the SESSION_POOL and assigns the client to a user-specific room (user:{user.id}) for targeted message broadcasting.
 
 The connection process includes several security measures:
+
 - Token validation using the decode_token function
 - User existence verification in the database
 - Selective field exclusion when storing user data (excluding sensitive information like date_of_birth and bio)
@@ -103,6 +111,7 @@ The connection process includes several security measures:
 The system also supports a "user-join" event that clients can emit after establishing a connection, which triggers additional room joining for all channels the user has access to, ensuring proper access control and presence awareness.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L351)
 - [main.py](file://backend/open_webui/socket/main.py#L361-L381)
 
@@ -144,6 +153,7 @@ Event <|-- UsageEvent
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L288-L301)
 - [main.py](file://backend/open_webui/socket/main.py#L354-L359)
 - [main.py](file://backend/open_webui/socket/main.py#L413-L447)
@@ -157,6 +167,7 @@ The open-webui WebSocket implementation supports several event types, each with 
 **heartbeat**: Sent by clients every 30 seconds to maintain connection and update user activity status. The server responds by updating the user's last_active_at timestamp in the database.
 
 **events**: Used for chat message streaming and status updates. Payload includes chat_id, message_id, and event data with various types:
+
 - status: Updates to message processing status
 - message: Streaming chat response content
 - replace: Complete replacement of message content
@@ -165,6 +176,7 @@ The open-webui WebSocket implementation supports several event types, each with 
 - source/citation: Source references for generated content
 
 **events:channel**: Handles channel-specific interactions including:
+
 - typing: Indicates when a user is typing in a channel
 - last_read_at: Updates the user's read position in a channel
 
@@ -183,6 +195,7 @@ The system implements Yjs for real-time collaborative editing with the following
 **ydoc:document:leave**: Signals that a user has left a document, triggering cleanup if no other users remain.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L288-L301)
 - [main.py](file://backend/open_webui/socket/main.py#L354-L359)
 - [main.py](file://backend/open_webui/socket/main.py#L413-L447)
@@ -209,6 +222,7 @@ N --> O[Broadcast user status changes]
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L695-L838)
 - [main.py](file://backend/open_webui/socket/main.py#L413-L447)
 - [main.py](file://backend/open_webui/socket/main.py#L448-L662)
@@ -222,6 +236,7 @@ The system implements a sophisticated document collaboration model using Yjs, wh
 User presence and activity are tracked through periodic heartbeat events and connection/disconnection handlers, allowing the system to maintain accurate user status information across the application.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L695-L838)
 - [main.py](file://backend/open_webui/socket/main.py#L413-L447)
 - [main.py](file://backend/open_webui/socket/main.py#L448-L662)
@@ -246,6 +261,7 @@ Svelte->>Svelte : Subscribe to event handlers
 ```
 
 **Diagram sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L97-L177)
 - [index.ts](file://src/lib/stores/index.ts#L28-L31)
 
@@ -264,6 +280,7 @@ Key aspects of the client implementation:
 **State Management**: Svelte stores are used to manage WebSocket state, including the socket connection, active user IDs, and usage pool information, enabling reactive updates across the application.
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L97-L177)
 - [index.ts](file://src/lib/stores/index.ts#L28-L31)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L246-L247)
@@ -298,6 +315,7 @@ end note
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L684-L693)
 - [+layout.svelte](file://src/routes/+layout.svelte#L156-L177)
 
@@ -306,6 +324,7 @@ The connection lifecycle management in open-webui follows a robust pattern desig
 When a client connects, it goes through the Connecting state where it authenticates with a JWT token and joins appropriate rooms based on the user's permissions. Once connected, the client enters the Connected state and establishes a heartbeat interval that sends a 'heartbeat' event every 30 seconds to maintain the connection and update the user's last active timestamp.
 
 The system implements comprehensive disconnection handling:
+
 - The server removes the user from SESSION_POOL when a disconnect event is received
 - The Yjs document manager removes the user from all documents they were editing
 - Client-side cleanup occurs through the disconnect event handler
@@ -315,6 +334,7 @@ For connection recovery, Socket.IO's built-in reconnection mechanism is used wit
 The server also implements periodic cleanup of the usage pool, removing connections that have not sent updates within the TIMEOUT_DURATION (3 seconds), which helps maintain accurate model usage tracking.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L684-L693)
 - [+layout.svelte](file://src/routes/+layout.svelte#L132-L137)
 - [main.py](file://backend/open_webui/socket/main.py#L167-L216)
@@ -348,6 +368,7 @@ end
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L448-L662)
 - [utils.py](file://backend/open_webui/socket/utils.py#L120-L224)
 
@@ -366,6 +387,7 @@ The data synchronization process works as follows:
 The Yjs implementation is integrated with Redis for persistent storage of document updates, allowing the system to maintain document state across server restarts and enabling horizontal scaling with multiple server instances.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L448-L662)
 - [utils.py](file://backend/open_webui/socket/utils.py#L120-L224)
 
@@ -396,6 +418,7 @@ M --> U[Clean up disconnected clients]
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L584-L626)
 - [main.py](file://backend/open_webui/socket/main.py#L167-L216)
 
@@ -414,6 +437,7 @@ The WebSocket implementation in open-webui incorporates several performance opti
 **Client-side Optimization**: The Svelte implementation uses stores to manage WebSocket state efficiently, minimizing unnecessary re-renders and ensuring reactive updates only when needed.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L584-L626)
 - [main.py](file://backend/open_webui/socket/main.py#L167-L216)
 - [env.py](file://backend/open_webui/env.py#L651-L661)
@@ -445,6 +469,7 @@ style Database fill:#ccf,stroke:#333
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L64-L87)
 - [env.py](file://backend/open_webui/env.py#L618-L642)
 
@@ -463,6 +488,7 @@ The open-webui WebSocket implementation supports several scaling strategies to a
 The scaling configuration is controlled through environment variables that allow deployment-specific tuning of Redis connections, lock timeouts, and cluster settings to match the infrastructure requirements.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L64-L87)
 - [env.py](file://backend/open_webui/env.py#L618-L642)
 
@@ -493,6 +519,7 @@ M --> U[Monitor broadcast channels]
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L54-L56)
 - [env.py](file://backend/open_webui/env.py#L75-L111)
 
@@ -511,6 +538,7 @@ The open-webui WebSocket implementation includes several debugging approaches to
 **Configuration Testing**: The system's behavior can be adjusted through environment variables for testing different scenarios, such as disabling WebSocket support (ENABLE_WEBSOCKET_SUPPORT=false) to test fallback to polling, or configuring different Redis connection settings for staging environments.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L54-L56)
 - [env.py](file://backend/open_webui/env.py#L75-L111)
 - [main.py](file://backend/open_webui/socket/main.py#L268-L269)

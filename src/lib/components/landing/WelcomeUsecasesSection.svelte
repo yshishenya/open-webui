@@ -68,7 +68,9 @@
 		color: #4b5563;
 		font-size: 14px;
 		font-weight: 500;
-		transition: border-color 0.18s ease, color 0.18s ease;
+		transition:
+			border-color 0.18s ease,
+			color 0.18s ease;
 	}
 
 	.usecase-item:hover {

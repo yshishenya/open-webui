@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Chat Model Implementation](#chat-model-implementation)
 3. [Archive/Unarchive Endpoints](#archiveunarchive-endpoints)
@@ -22,6 +23,7 @@
 9. [Common Issues and Considerations](#common-issues-and-considerations)
 
 ## Introduction
+
 The chat archiving functionality in Open WebUI provides users with a systematic way to manage their conversation history by moving chats to an archived state. This feature enables users to declutter their active chat interface while preserving conversation history for future reference. The implementation centers around the `archived` boolean field in the Chat model, which defaults to `False` for new chats. When a chat is archived, it is removed from folders and regular view but remains accessible through dedicated endpoints and UI components. This documentation details the technical implementation, API endpoints, database optimizations, and user interface components that support the chat archiving lifecycle.
 
 ## Chat Model Implementation
@@ -49,9 +51,11 @@ Chat : +folder_id set to null when archived
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L26-L56)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L26-L75)
 
 ## Archive/Unarchive Endpoints
@@ -77,10 +81,12 @@ Router-->>Client : ChatResponse with archived=True
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L733-L757)
 - [chats.py](file://backend/open_webui/models/chats.py#L473-L483)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L733-L757)
 - [chats.py](file://backend/open_webui/models/chats.py#L473-L483)
 
@@ -103,9 +109,11 @@ SaveChanges --> End([Return updated chat])
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L473-L483)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L473-L483)
 
 ## Bulk Archiving Operations
@@ -131,10 +139,12 @@ UI2 --> UnarchiveAll
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L354-L367)
 - [chats.py](file://backend/open_webui/models/chats.py#L486-L493)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L354-L367)
 - [chats.py](file://backend/open_webui/models/chats.py#L486-L493)
 
@@ -158,10 +168,12 @@ API-->>Client : List of archived chats
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L314-L347)
 - [chats.py](file://backend/open_webui/models/chats.py#L495-L534)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L314-L347)
 - [chats.py](file://backend/open_webui/models/chats.py#L495-L534)
 
@@ -187,9 +199,11 @@ style D fill:#bbf,stroke:#333
 ```
 
 **Diagram sources**
+
 - [ArchivedChatsModal.svelte](file://src/lib/components/layout/ArchivedChatsModal.svelte#L1-L189)
 
 **Section sources**
+
 - [ArchivedChatsModal.svelte](file://src/lib/components/layout/ArchivedChatsModal.svelte#L1-L189)
 
 ## Database Indexing Strategy
@@ -219,10 +233,12 @@ INDEX "updated_at_user_id_idx" on CHAT(updated_at, user_id)
 ```
 
 **Diagram sources**
+
 - [018012973d35_add_indexes.py](file://backend/open_webui/migrations/versions/018012973d35_add_indexes.py#L18-L24)
 - [chats.py](file://backend/open_webui/models/chats.py#L44-L56)
 
 **Section sources**
+
 - [018012973d35_add_indexes.py](file://backend/open_webui/migrations/versions/018012973d35_add_indexes.py#L18-L24)
 - [chats.py](file://backend/open_webui/models/chats.py#L44-L56)
 
@@ -233,5 +249,6 @@ Several common issues and considerations arise with the chat archiving functiona
 Another consideration is the impact on chat organization. Since archiving removes chats from folders, users may need to reorganize their chats after unarchiving them. The system preserves the original folder assignment, but users must manually reassign chats to folders after restoration. This design choice balances automatic cleanup with the preservation of organizational context.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L473-L483)
 - [ArchivedChatsModal.svelte](file://src/lib/components/layout/ArchivedChatsModal.svelte#L1-L189)

@@ -14,6 +14,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [WebSocket Implementation](#websocket-implementation)
 3. [Connection Lifecycle](#connection-lifecycle)
@@ -26,17 +27,20 @@
 10. [Conclusion](#conclusion)
 
 ## Introduction
+
 WebSocket connectivity in open-webui enables real-time communication between clients and the server for features like chat streaming, presence indicators, collaborative editing, and live updates. This document provides comprehensive guidance on diagnosing and resolving WebSocket connectivity issues, understanding the Socket.IO implementation, and configuring the system for optimal performance.
 
 The WebSocket implementation uses Socket.IO with support for both WebSocket and HTTP long-polling transports, with Redis for distributed session management in clustered environments. The system handles connection establishment, message transmission, and disconnection events with proper authentication and authorization.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L1-L839)
 - [main.py](file://backend/open_webui/main.py#L1-L2352)
 
 ## WebSocket Implementation
 
 ### Socket.IO Configuration
+
 The open-webui WebSocket implementation uses Socket.IO with configurable transport options and Redis-based session management. The server is configured in `socket/main.py` with support for both standalone and distributed deployments.
 
 ```mermaid
@@ -54,10 +58,12 @@ H --> K[Real-time Collaboration]
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L64-L99)
 - [utils.py](file://backend/open_webui/socket/utils.py#L120-L224)
 
 ### Transport Configuration
+
 The WebSocket server supports multiple transport methods with configurable options:
 
 - **WebSocket**: Primary transport for real-time communication
@@ -68,12 +74,14 @@ The WebSocket server supports multiple transport methods with configurable optio
 The server is configured to prefer WebSocket transport when available, with polling as a fallback mechanism for environments where WebSocket connections are blocked.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L79-L81)
 - [env.py](file://backend/open_webui/env.py#L613-L615)
 
 ## Connection Lifecycle
 
 ### Connection Establishment
+
 The connection lifecycle begins with the client establishing a WebSocket connection to the server. The process involves several stages:
 
 1. **Client connection**: The client connects to the WebSocket endpoint
@@ -100,10 +108,12 @@ end
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L317)
 - [main.py](file://backend/open_webui/socket/main.py#L318-L351)
 
 ### Connection Events
+
 The system implements several connection-related events:
 
 - **connect**: Triggered when a client connects
@@ -114,10 +124,12 @@ The system implements several connection-related events:
 The `user-join` event is particularly important as it handles authentication and room joining for the user's channels and notes.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L351)
 - [main.py](file://backend/open_webui/socket/main.py#L318-L351)
 
 ### Disconnection Handling
+
 When a client disconnects, the system performs cleanup operations:
 
 ```mermaid
@@ -132,11 +144,13 @@ B --> |No| F[Log unknown session]
 The disconnection handler removes the user session from the session pool and cleans up any Yjs document associations. This ensures proper resource cleanup and presence indicator updates.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L684-L693)
 
 ## Event Handling and Message Formats
 
 ### Event Naming Conventions
+
 The system uses a consistent event naming convention with namespaces and prefixes:
 
 - **events**: General events for chat updates
@@ -148,23 +162,25 @@ The system uses a consistent event naming convention with namespaces and prefixe
 The naming convention follows the pattern `namespace:event` or `namespace:subnamespace:event` for better organization and filtering.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L288-L299)
 - [main.py](file://backend/open_webui/socket/main.py#L413-L447)
 
 ### Message Formats
+
 Events follow a standardized message format with consistent structure:
 
 ```json
 {
-  "event": "events",
-  "data": {
-    "chat_id": "string",
-    "message_id": "string",
-    "data": {
-      "type": "string",
-      "data": {}
-    }
-  }
+	"event": "events",
+	"data": {
+		"chat_id": "string",
+		"message_id": "string",
+		"data": {
+			"type": "string",
+			"data": {}
+		}
+	}
 }
 ```
 
@@ -172,27 +188,29 @@ For channel events, the format includes additional context:
 
 ```json
 {
-  "event": "events:channel",
-  "data": {
-    "channel_id": "string",
-    "message_id": "string",
-    "data": {
-      "type": "typing|last_read_at",
-      "data": {}
-    },
-    "user": {
-      "id": "string",
-      "name": "string"
-    }
-  }
+	"event": "events:channel",
+	"data": {
+		"channel_id": "string",
+		"message_id": "string",
+		"data": {
+			"type": "typing|last_read_at",
+			"data": {}
+		},
+		"user": {
+			"id": "string",
+			"name": "string"
+		}
+	}
 }
 ```
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L701-L710)
 - [main.py](file://backend/open_webui/socket/main.py#L434-L443)
 
 ### Event Emission Patterns
+
 The system uses several patterns for event emission:
 
 - **Room-based broadcasting**: Events sent to specific rooms
@@ -210,11 +228,13 @@ D --> E[Handle emission errors]
 ```
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L256-L269)
 
 ## Troubleshooting Connection Issues
 
 ### Connection Establishment Failures
+
 Common causes of connection establishment failures include:
 
 - **Authentication issues**: Invalid or missing tokens
@@ -243,10 +263,12 @@ H --> |No| J[Server Configuration]
 ```
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L317)
 - [env.py](file://backend/open_webui/env.py#L613-L615)
 
 ### Message Transmission Problems
+
 Issues with message transmission can occur due to:
 
 - **Channel naming conflicts**: Incorrect channel names
@@ -264,9 +286,11 @@ except Exception as e:
 ```
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L268-L269)
 
 ### Disconnection Issues
+
 Unexpected disconnections can be caused by:
 
 - **Timeout settings**: Ping interval and timeout values
@@ -290,12 +314,14 @@ Note over Server,Client : If pong not received within 20 seconds, connection clo
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L354-L359)
 - [main.py](file://backend/open_webui/socket/main.py#L84-L85)
 
 ## Proxy and Load Balancer Configuration
 
 ### SSL/TLS Termination
+
 When using SSL/TLS termination at the proxy level, ensure proper configuration:
 
 - **WebSocket upgrade headers**: Proxy must handle WebSocket upgrade requests
@@ -318,10 +344,12 @@ location /ws/socket.io/ {
 ```
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L77-L78)
 - [env.py](file://backend/open_webui/env.py#L61-L62)
 
 ### Load Balancer Settings
+
 For load-balanced deployments, configure:
 
 - **Session affinity**: Sticky sessions to maintain WebSocket connections
@@ -342,10 +370,12 @@ E --> F[Shared Session State]
 ```
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L64-L75)
 - [env.py](file://backend/open_webui/env.py#L618-L634)
 
 ### Proxy Configuration Issues
+
 Common proxy-related issues include:
 
 - **Missing upgrade headers**: WebSocket handshake fails
@@ -361,12 +391,14 @@ To troubleshoot proxy issues:
 4. Validate SSL certificates if using HTTPS/WSS
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L219-L222)
 - [env.py](file://backend/open_webui/env.py#L651-L661)
 
 ## Real-time Features
 
 ### Real-time Chat Updates
+
 The system implements real-time chat updates through streaming responses:
 
 ```mermaid
@@ -389,10 +421,12 @@ Server->>Client : {done : true}
 The streaming implementation uses Server-Sent Events (SSE) format with proper chunking and error handling.
 
 **Section sources**
+
 - [chat.py](file://backend/open_webui/utils/chat.py#L91-L149)
 - [index.ts](file://src/lib/apis/streaming/index.ts#L43-L93)
 
 ### Presence Indicators
+
 Presence indicators are implemented through:
 
 - **Heartbeat events**: Regular client-to-server pings
@@ -410,10 +444,12 @@ async def heartbeat(sid, data):
 ```
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L354-L359)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L57-L64)
 
 ### Collaborative Editing
+
 Collaborative editing uses Yjs for real-time document synchronization:
 
 ```mermaid
@@ -437,12 +473,14 @@ Server->>Client2 : Broadcast update
 The Yjs document manager handles document state persistence and user presence.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L448-L652)
 - [utils.py](file://backend/open_webui/socket/utils.py#L120-L224)
 
 ## Error Handling
 
 ### Connection Error Handling
+
 The system implements comprehensive error handling for WebSocket connections:
 
 - **Connection errors**: Handled with connect_error event
@@ -453,23 +491,25 @@ Client-side reconnection handling:
 
 ```javascript
 _socket.on('connect_error', (err) => {
-    console.log('connect_error', err);
+	console.log('connect_error', err);
 });
 
 _socket.on('reconnect_attempt', (attempt) => {
-    console.log('reconnect_attempt', attempt);
+	console.log('reconnect_attempt', attempt);
 });
 
 _socket.on('reconnect_failed', () => {
-    console.log('reconnect_failed');
+	console.log('reconnect_failed');
 });
 ```
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L684-L693)
 - [index.ts](file://src/lib/stores/index.ts#L28-L29)
 
 ### Message Error Handling
+
 Message transmission includes error handling:
 
 ```python
@@ -484,9 +524,11 @@ async def emit_to_users(event: str, data: dict, user_ids: list[str]):
 The system logs emission failures but continues processing other users to prevent cascading failures.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L268-L269)
 
 ### Timeout and Keep-alive
+
 The system uses configurable timeout settings:
 
 - **Ping interval**: How often server pings clients (default: 25 seconds)
@@ -501,57 +543,64 @@ WEBSOCKET_SERVER_PING_TIMEOUT=20
 ```
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L651-L661)
 - [main.py](file://backend/open_webui/socket/main.py#L84-L85)
 
 ## Configuration Options
 
 ### WebSocket Configuration
+
 The system provides extensive configuration options through environment variables:
 
-| Environment Variable | Default | Description |
-|----------------------|--------|-------------|
-| ENABLE_WEBSOCKET_SUPPORT | True | Enable WebSocket transport |
-| WEBSOCKET_MANAGER | "" | Manager type (redis or empty for memory) |
-| WEBSOCKET_REDIS_URL | REDIS_URL | Redis URL for WebSocket manager |
-| WEBSOCKET_REDIS_CLUSTER | REDIS_CLUSTER | Redis cluster mode |
-| WEBSOCKET_SENTINEL_HOSTS | "" | Redis Sentinel hosts |
-| WEBSOCKET_SENTINEL_PORT | "26379" | Redis Sentinel port |
-| WEBSOCKET_SERVER_PING_TIMEOUT | "20" | Server ping timeout in seconds |
-| WEBSOCKET_SERVER_PING_INTERVAL | "25" | Server ping interval in seconds |
-| WEBSOCKET_SERVER_LOGGING | False | Enable Socket.IO server logging |
+| Environment Variable           | Default       | Description                              |
+| ------------------------------ | ------------- | ---------------------------------------- |
+| ENABLE_WEBSOCKET_SUPPORT       | True          | Enable WebSocket transport               |
+| WEBSOCKET_MANAGER              | ""            | Manager type (redis or empty for memory) |
+| WEBSOCKET_REDIS_URL            | REDIS_URL     | Redis URL for WebSocket manager          |
+| WEBSOCKET_REDIS_CLUSTER        | REDIS_CLUSTER | Redis cluster mode                       |
+| WEBSOCKET_SENTINEL_HOSTS       | ""            | Redis Sentinel hosts                     |
+| WEBSOCKET_SENTINEL_PORT        | "26379"       | Redis Sentinel port                      |
+| WEBSOCKET_SERVER_PING_TIMEOUT  | "20"          | Server ping timeout in seconds           |
+| WEBSOCKET_SERVER_PING_INTERVAL | "25"          | Server ping interval in seconds          |
+| WEBSOCKET_SERVER_LOGGING       | False         | Enable Socket.IO server logging          |
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L613-L661)
 - [main.py](file://backend/open_webui/socket/main.py#L64-L99)
 
 ### Client Configuration
+
 Client-side WebSocket configuration is handled in the frontend:
 
 ```javascript
 const setupSocket = async (enableWebsocket) => {
-    const _socket = io(`${WEBUI_BASE_URL}` || undefined, {
-        reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        randomizationFactor: 0.5,
-        path: '/ws/socket.io',
-        transports: enableWebsocket ? ['websocket'] : ['polling', 'websocket'],
-        auth: { token: localStorage.token }
-    });
+	const _socket = io(`${WEBUI_BASE_URL}` || undefined, {
+		reconnection: true,
+		reconnectionDelay: 1000,
+		reconnectionDelayMax: 5000,
+		randomizationFactor: 0.5,
+		path: '/ws/socket.io',
+		transports: enableWebsocket ? ['websocket'] : ['polling', 'websocket'],
+		auth: { token: localStorage.token }
+	});
 };
 ```
 
 The client respects the server's WebSocket enablement setting and falls back to polling if necessary.
 
 **Section sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L28-L29)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L97-L106)
 
 ## Conclusion
+
 WebSocket connectivity in open-webui provides a robust foundation for real-time features including chat streaming, presence indicators, and collaborative editing. The Socket.IO implementation with Redis support enables scalable deployments with proper session management.
 
 Key considerations for maintaining reliable WebSocket connectivity include:
+
 - Proper proxy and load balancer configuration
 - Appropriate timeout settings
 - Correct SSL/TLS termination
@@ -561,6 +610,7 @@ Key considerations for maintaining reliable WebSocket connectivity include:
 By following the configuration guidelines and troubleshooting steps outlined in this document, administrators can ensure optimal WebSocket performance and reliability in their open-webui deployments.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L1-L839)
 - [env.py](file://backend/open_webui/env.py#L613-L661)
 - [main.py](file://backend/open_webui/main.py#L1-L2352)

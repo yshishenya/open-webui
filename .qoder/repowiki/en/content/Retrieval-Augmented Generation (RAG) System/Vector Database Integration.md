@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Architecture Overview](#architecture-overview)
 3. [Vector Database Abstraction](#vector-database-abstraction)
@@ -33,6 +34,7 @@ The Vector Database Integration in the RAG system provides a flexible and extens
 The system implements a factory pattern to instantiate the appropriate vector database client based on configuration, with support for Chroma, Qdrant, Pinecone, PGVector, Weaviate, Milvus, Elasticsearch, OpenSearch, Oracle23ai, and S3Vector. This modular design allows users to select the most appropriate vector database for their deployment requirements, from lightweight local solutions to scalable cloud-based services.
 
 **Section sources**
+
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
 - [main.py](file://backend/open_webui/retrieval/vector/main.py#L1-L87)
 
@@ -84,6 +86,7 @@ VectorDBBase <|-- S3VectorClient
 ```
 
 **Diagram sources **
+
 - [main.py](file://backend/open_webui/retrieval/vector/main.py#L23-L87)
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L10-L79)
 - [type.py](file://backend/open_webui/retrieval/vector/type.py#L4-L15)
@@ -132,6 +135,7 @@ GetResult <|-- SearchResult
 ```
 
 **Diagram sources **
+
 - [main.py](file://backend/open_webui/retrieval/vector/main.py#L6-L87)
 
 ## Factory Pattern Implementation
@@ -160,6 +164,7 @@ Client-->>App : Return results
 ```
 
 **Diagram sources **
+
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L10-L79)
 
 ## Supported Vector Databases
@@ -195,6 +200,7 @@ K --> U[S3 Storage]
 ```
 
 **Diagram sources **
+
 - [type.py](file://backend/open_webui/retrieval/vector/type.py#L4-L15)
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L17-L75)
 
@@ -209,6 +215,7 @@ PGVector offers comprehensive configuration including database URL, vector dimen
 The system validates critical configuration parameters at startup, raising exceptions for invalid settings. For example, PGVector validates that the vector dimension does not exceed limits without enabling half-precision vectors, and Pinecone requires both API key and environment to be set for cloud deployments.
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L2114-L2309)
 
 ## Multitenancy Support
@@ -248,6 +255,7 @@ MilvusClient --> VectorDBBase : "extends"
 ```
 
 **Diagram sources **
+
 - [qdrant_multitenancy.py](file://backend/open_webui/retrieval/vector/dbs/qdrant_multitenancy.py#L48-L200)
 - [milvus_multitenancy.py](file://backend/open_webui/retrieval/vector/dbs/milvus_multitenancy.py#L37-L200)
 
@@ -285,6 +293,7 @@ HandleResult --> End([Return result])
 ```
 
 **Diagram sources **
+
 - [main.py](file://backend/open_webui/retrieval/vector/main.py#L45-L85)
 - [chroma.py](file://backend/open_webui/retrieval/vector/dbs/chroma.py#L140-L198)
 - [pgvector.py](file://backend/open_webui/retrieval/vector/dbs/pgvector.py#L306-L683)
@@ -300,6 +309,7 @@ Connection pooling is implemented for PGVector when using a separate database UR
 Query optimization is achieved through appropriate indexing and filtering. The multitenancy implementations use tenant ID or resource ID fields as filters to ensure data isolation while maintaining performance. Metadata fields used for filtering are indexed to speed up query operations. The system also includes batch processing for insert operations to reduce the number of database round-trips.
 
 **Section sources**
+
 - [pgvector.py](file://backend/open_webui/retrieval/vector/dbs/pgvector.py#L169-L256)
 - [config.py](file://backend/open_webui/config.py#L2268-L2299)
 
@@ -316,5 +326,6 @@ For organizations already invested in specific technology ecosystems, the choice
 When selecting a database, consider factors such as data volume, query latency requirements, budget constraints, and operational complexity. Local solutions like Chroma and PGVector have lower operational overhead but may require more manual optimization at scale. Cloud-based solutions typically have higher costs but provide better scalability and reliability with less operational burden.
 
 **Section sources**
+
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
 - [config.py](file://backend/open_webui/config.py#L2114-L2309)

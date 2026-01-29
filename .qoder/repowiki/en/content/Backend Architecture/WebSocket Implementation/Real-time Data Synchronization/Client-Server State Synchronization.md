@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [WebSocket Integration with Svelte Stores](#websocket-integration-with-svelte-stores)
 3. [Data Flow from Database to Frontend](#data-flow-from-database-to-frontend)
@@ -22,9 +23,11 @@
 8. [Conclusion](#conclusion)
 
 ## Introduction
+
 The open-webui application implements a sophisticated client-server state synchronization mechanism that ensures consistent application state across multiple clients. This system leverages WebSocket communication, Svelte stores, and Yjs for real-time collaboration, creating a seamless user experience. The architecture is designed to maintain data consistency, handle user-specific state, and provide real-time updates across all connected clients while ensuring data isolation between users.
 
 **Section sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L1-L302)
 - [main.py](file://backend/open_webui/socket/main.py#L1-L839)
 
@@ -57,10 +60,12 @@ Client->>Client : update stores with user data
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L351)
 - [index.ts](file://src/lib/stores/index.ts#L28-L31)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L351)
 - [index.ts](file://src/lib/stores/index.ts#L28-L31)
 
@@ -84,6 +89,7 @@ G --> H[UI Re-render]
 ```
 
 The transformation process includes several key steps:
+
 1. Database operations create or modify ORM entities
 2. Changes are committed to the database
 3. Event emitters are called to notify connected clients
@@ -96,10 +102,12 @@ The transformation process includes several key steps:
 This flow ensures that all clients receive consistent data and that the UI remains synchronized with the backend state.
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L58-L200)
 - [chats.py](file://backend/open_webui/routers/chats.py#L133-L142)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L58-L200)
 - [chats.py](file://backend/open_webui/routers/chats.py#L133-L142)
 
@@ -119,12 +127,12 @@ The client then compares these values with the current values stored in the Svel
 
 ```javascript
 if (
-    ($WEBUI_VERSION !== null && version !== $WEBUI_VERSION) ||
-    ($WEBUI_DEPLOYMENT_ID !== null && deploymentId !== $WEBUI_DEPLOYMENT_ID)
+	($WEBUI_VERSION !== null && version !== $WEBUI_VERSION) ||
+	($WEBUI_DEPLOYMENT_ID !== null && deploymentId !== $WEBUI_DEPLOYMENT_ID)
 ) {
-    await unregisterServiceWorkers();
-    location.href = location.href;
-    return;
+	await unregisterServiceWorkers();
+	location.href = location.href;
+	return;
 }
 ```
 
@@ -147,10 +155,12 @@ Client->>Client : store current version and deployment ID
 ```
 
 **Diagram sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L77-L81)
 - [+layout.svelte](file://src/routes/+layout.svelte#L121-L127)
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L77-L127)
 
 ## User-Specific State Synchronization
@@ -205,10 +215,12 @@ G --> H[UI Reflects User State]
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L315-L316)
 - [main.py](file://backend/open_webui/socket/main.py#L358-L359)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L315-L359)
 
 ## Real-time Collaboration with Yjs
@@ -248,7 +260,7 @@ async def yjs_document_update(sid, data):
         document_id=document_id,
         update=data["update"],
     )
-    
+
     # Broadcast update to all other users in the document
     await sio.emit(
         "ydoc:document:update",
@@ -298,10 +310,12 @@ Server->>UserA : ydoc : document : update
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L448-L523)
 - [main.py](file://backend/open_webui/socket/main.py#L585-L629)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L448-L629)
 
 ## Network Resilience and Reconnection
@@ -312,10 +326,10 @@ Socket.IO provides built-in reconnection capabilities with configurable paramete
 
 ```javascript
 const _socket = io(`${WEBUI_BASE_URL}`, {
-    reconnection: true,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    randomizationFactor: 0.5,
+	reconnection: true,
+	reconnectionDelay: 1000,
+	reconnectionDelayMax: 5000,
+	randomizationFactor: 0.5
 });
 ```
 
@@ -355,10 +369,10 @@ const bc = new BroadcastChannel('active-tab-channel');
 document.addEventListener('visibilitychange', handleVisibilityChange);
 
 const handleVisibilityChange = () => {
-    if (document.visibilityState === 'visible') {
-        isLastActiveTab.set(true);
-        bc.postMessage('active');
-    }
+	if (document.visibilityState === 'visible') {
+		isLastActiveTab.set(true);
+		bc.postMessage('active');
+	}
 };
 ```
 
@@ -378,17 +392,21 @@ H --> |Yes| I[Show Offline Mode]
 ```
 
 **Diagram sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L97-L176)
 - [main.py](file://backend/open_webui/socket/main.py#L167-L216)
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L97-L176)
 - [main.py](file://backend/open_webui/socket/main.py#L167-L216)
 
 ## Conclusion
+
 The client-server state synchronization mechanism in open-webui represents a sophisticated implementation of real-time web application architecture. By combining WebSocket communication, Svelte stores, and Yjs for collaborative editing, the system provides a seamless user experience with consistent state across multiple clients.
 
 Key aspects of this implementation include:
+
 - Real-time synchronization through WebSocket connections integrated with Svelte stores
 - Efficient data flow from database changes to frontend updates via JSON serialization
 - Automatic version checking and client refresh to ensure users run the latest version

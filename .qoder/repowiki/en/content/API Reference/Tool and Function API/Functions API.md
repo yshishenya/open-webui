@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [API Endpoints](#api-endpoints)
 3. [Function Schema](#function-schema)
@@ -31,6 +32,7 @@ The Functions API provides a comprehensive system for managing custom Python fun
 The API supports four primary endpoints for managing functions: GET /api/functions, POST /api/functions, PUT /api/functions/{id}, and DELETE /api/functions/{id}. These endpoints allow for full CRUD operations on functions, with appropriate authentication and authorization controls. Functions can be used for various purposes including filtering input/output, performing actions, or serving as pipes in the processing pipeline.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/routers/functions.py#L1-L546)
 
 ## API Endpoints
@@ -76,6 +78,7 @@ style W fill:#bbf,stroke:#333,stroke-width:1px
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/routers/functions.py#L41-L366)
 
 ### GET /api/functions
@@ -86,7 +89,7 @@ Retrieves a list of all active functions. This endpoint is accessible to verifie
 - **Path**: /api/functions
 - **Authentication**: Required (verified user)
 - **Response**: Array of FunctionResponse objects
-- **Status Codes**: 
+- **Status Codes**:
   - 200: Success
   - 401: Unauthorized
 
@@ -145,6 +148,7 @@ The API also provides several additional endpoints for specialized operations:
 - **GET /api/functions/id/{id}**: Retrieves a specific function by ID (admin only)
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/routers/functions.py#L41-L366)
 - [index.ts](file://src/lib/apis/functions/index.ts#L1-L521)
 
@@ -177,6 +181,7 @@ FUNCTION ||--o{ USERS : "user_id"
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L19-L35)
 - [015_add_functions.py](file://backend/open_webui/internal/migrations/015_add_functions.py#L41-L56)
 - [018_add_function_is_global.py](file://backend/open_webui/internal/migrations/018_add_function_is_global.py#L40-L43)
@@ -216,6 +221,7 @@ The FunctionMeta model contains additional metadata:
 The manifest is extracted from triple-quoted comments at the beginning of the function code and can include properties like "icon_url", "requirements", and other custom metadata.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L19-L105)
 
 ## Function Types and Execution
@@ -268,44 +274,51 @@ Action <|-- UserValves : "optional"
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/utils/plugin.py#L149-L157)
 - [functions.py](file://backend/open_webui/functions.py#L159-L354)
 
 ### Function Types
 
 #### Pipe Functions
+
 Pipe functions are used to process chat completions and generate responses. They implement a `pipe` method that takes a body parameter containing the chat request and returns a response. Pipe functions can return strings, generators, or streaming responses.
 
 #### Filter Functions
+
 Filter functions are used to modify input and output data at various stages of processing. They can implement one or more of the following methods:
+
 - **inlet**: Processes incoming requests before they are handled
 - **outlet**: Processes outgoing responses before they are returned
 - **stream**: Processes streaming events as they occur
 
 #### Action Functions
+
 Action functions perform specific operations or tasks. They implement an `action` method that can be invoked to perform a specific function within the application.
 
 ### Execution Context
 
 When a function is executed, it receives a rich context that includes:
+
 - **body**: The main request or event data
-- **__event_emitter__**: Function to emit events during processing
-- **__event_call__**: Function to make event calls
-- **__chat_id__**: ID of the current chat
-- **__session_id__**: ID of the current session
-- **__message_id__**: ID of the current message
-- **__task__**: Current task information
-- **__task_body__**: Body of the current task
-- **__files__**: Files associated with the request
-- **__user__**: User information and valves
-- **__metadata__**: Additional metadata
-- **__oauth_token__**: OAuth token for external API access
-- **__request__**: The original HTTP request object
-- **__tools__**: Available tools for the function to use
-- **__model__**: Model information
-- **__messages__**: Chat messages
+- \***\*event_emitter\*\***: Function to emit events during processing
+- \***\*event_call\*\***: Function to make event calls
+- \***\*chat_id\*\***: ID of the current chat
+- \***\*session_id\*\***: ID of the current session
+- \***\*message_id\*\***: ID of the current message
+- \***\*task\*\***: Current task information
+- \***\*task_body\*\***: Body of the current task
+- \***\*files\*\***: Files associated with the request
+- \***\*user\*\***: User information and valves
+- \***\*metadata\*\***: Additional metadata
+- \***\*oauth_token\*\***: OAuth token for external API access
+- \***\*request\*\***: The original HTTP request object
+- \***\*tools\*\***: Available tools for the function to use
+- \***\*model\*\***: Model information
+- \***\*messages\*\***: Chat messages
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L159-L354)
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L149-L157)
 
@@ -347,12 +360,14 @@ style P fill:#bbf,stroke:#333,stroke-width:1px
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L106-L393)
 - [functions.py](file://backend/open_webui/routers/functions.py#L183-L233)
 
 ### Database Schema
 
 The function table in the database has the following structure:
+
 - **id**: Primary key, unique identifier
 - **user_id**: Foreign key to the user who created the function
 - **name**: Display name
@@ -370,18 +385,21 @@ An index is created on the is_global field to optimize queries for global functi
 ### Migration History
 
 The database schema has evolved through migrations:
+
 - **015_add_functions.py**: Initial creation of the function table with basic fields
 - **018_add_function_is_global.py**: Addition of the is_global field to support global functions
 
 ### In-Memory Caching
 
 For performance optimization, functions are cached in memory when loaded. The system maintains two caches:
+
 - **FUNCTIONS**: Cache of loaded function modules
 - **FUNCTION_CONTENTS**: Cache of function content to detect changes
 
 When a function is accessed, the system first checks if the content has changed since the last load. If unchanged, the cached module is returned. Otherwise, the function is reloaded and the cache is updated.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L19-L396)
 - [015_add_functions.py](file://backend/open_webui/internal/migrations/015_add_functions.py#L37-L62)
 - [018_add_function_is_global.py](file://backend/open_webui/internal/migrations/018_add_function_is_global.py#L37-L50)
@@ -417,6 +435,7 @@ API-->>Client : Return response
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/routers/functions.py#L183-L233)
 - [functions.py](file://backend/open_webui/functions.py#L159-L354)
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L118-L264)
@@ -449,6 +468,7 @@ When a function is invoked, typically as part of a chat completion request, the 
 The system supports manifold functions, which are functions that can expose multiple sub-functions. A manifold function can define a `pipes` attribute that contains a list of sub-function definitions. When registered, each sub-function is exposed as a separate model, allowing for multiple entry points from a single code base.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/routers/functions.py#L183-L233)
 - [functions.py](file://backend/open_webui/functions.py#L81-L156)
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L118-L264)
@@ -484,6 +504,7 @@ style L fill:#bbf,stroke:#333,stroke-width:1px
 ```
 
 **Diagram sources**
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L118-L264)
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L267-L313)
 
@@ -508,6 +529,7 @@ icon_url: https://example.com/icon.png
 ```
 
 The dependency installation process:
+
 1. Extract requirements from frontmatter
 2. Install packages using pip with configured options
 3. Handle installation errors gracefully
@@ -518,11 +540,13 @@ All dependencies for active functions are installed when the application starts,
 ### Resource Limits
 
 While the code doesn't explicitly show resource limits, the architecture supports the potential for:
+
 - **Time limits**: Functions could be configured with execution time limits
 - **Memory limits**: Execution environment could restrict memory usage
 - **Rate limiting**: Function invocation could be rate-limited based on user roles
 
 **Section sources**
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L118-L313)
 
 ## Error Handling
@@ -577,6 +601,7 @@ style X fill:#6f6,stroke:#333,stroke-width:1px
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/routers/functions.py#L183-L347)
 - [functions.py](file://backend/open_webui/functions.py#L340-L345)
 
@@ -585,18 +610,21 @@ style X fill:#6f6,stroke:#333,stroke-width:1px
 The system handles several types of errors:
 
 #### Syntax Errors
+
 - Invalid function ID (non-alphanumeric characters)
 - Malformed Python code
 - Missing required classes (Pipe, Filter, Action)
 - Invalid frontmatter format
 
 #### Runtime Exceptions
+
 - Exceptions raised during function execution
 - Import errors for required modules
 - Dependency installation failures
 - External API call failures
 
 #### Configuration Errors
+
 - Invalid valve configurations
 - Missing required parameters
 - Access control violations
@@ -615,6 +643,7 @@ The API returns standardized error responses with appropriate HTTP status codes:
 Error responses include descriptive messages to help users diagnose and fix issues. For example, when a function fails to load due to a syntax error, the response includes details about the specific error.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/routers/functions.py#L183-L347)
 - [functions.py](file://backend/open_webui/functions.py#L340-L345)
 
@@ -649,6 +678,7 @@ USER_FUNCTIONS ||--o{ FUNCTION : "is_global=false"
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L19-L35)
 - [018_add_function_is_global.py](file://backend/open_webui/internal/migrations/018_add_function_is_global.py#L40-L43)
 
@@ -664,6 +694,7 @@ The migration `018_add_function_is_global.py` added this field to support global
 ### Access Control
 
 Access to functions is controlled through:
+
 - **User ID**: Functions are associated with the user who created them
 - **Global Flag**: Determines if a function is available system-wide
 - **Active Status**: Functions can be deactivated without deletion
@@ -672,11 +703,13 @@ Access to functions is controlled through:
 ### Function Updates
 
 The system does not implement explicit versioning for functions. Instead, updating a function replaces the existing implementation. This approach:
+
 - Simplifies the model by avoiding version complexity
 - Ensures that references to a function ID always use the latest implementation
 - Requires careful consideration when updating shared functions
 
 When a function is updated, the system:
+
 1. Validates the new content
 2. Updates the database record
 3. Refreshes the in-memory cache
@@ -685,6 +718,7 @@ When a function is updated, the system:
 This means that any references to the function by ID will automatically use the updated implementation.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L19-L35)
 - [018_add_function_is_global.py](file://backend/open_webui/internal/migrations/018_add_function_is_global.py#L37-L50)
 
@@ -717,12 +751,14 @@ style K fill:#bbf,stroke:#333,stroke-width:1px
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L159-L354)
 - [functions.py](file://backend/open_webui/routers/functions.py#L41-L43)
 
 ### Model Exposure
 
 Functions are exposed as models through the `get_function_models` function, which:
+
 1. Retrieves all active pipe functions
 2. For each function, creates a model entry with:
    - ID: Function ID (or sub-function ID for manifolds)
@@ -736,6 +772,7 @@ Functions are exposed as models through the `get_function_models` function, whic
 ### Function Selection
 
 During chat processing, when a request specifies a function-based model:
+
 1. The system extracts the function ID from the model name
 2. Loads the corresponding function module
 3. Prepares the execution context with request data and user information
@@ -745,12 +782,14 @@ During chat processing, when a request specifies a function-based model:
 ### Valve Integration
 
 Functions can define `Valves` and `UserValves` classes for configuration:
+
 - **Valves**: System-level configuration controlled by administrators
 - **UserValves**: User-specific configuration that individual users can customize
 
 When a function is executed, the appropriate valves are applied based on the user context, allowing for both system-wide and personalized configuration.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L81-L156)
 
 ## Frontend Integration
@@ -781,6 +820,7 @@ API-->>Frontend : Promise<boolean>
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/apis/functions/index.ts#L3-L521)
 - [functions.py](file://backend/open_webui/routers/functions.py#L41-L366)
 
@@ -808,6 +848,7 @@ The frontend implements the following functions for interacting with the Functio
 ### Error Handling
 
 The frontend client implements robust error handling:
+
 - Catches API errors and extracts error details
 - Logs errors to the console for debugging
 - Throws descriptive error messages for user feedback
@@ -816,4 +857,5 @@ The frontend client implements robust error handling:
 The client uses the Bearer token authentication scheme, passing the user's token in the Authorization header for all requests.
 
 **Section sources**
+
 - [index.ts](file://src/lib/apis/functions/index.ts#L3-L521)

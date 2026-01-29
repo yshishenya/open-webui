@@ -14,6 +14,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Folder Model Implementation](#folder-model-implementation)
 3. [Chat Model Integration](#chat-model-integration)
@@ -24,6 +25,7 @@
 8. [Common Issues and Edge Cases](#common-issues-and-edge-cases)
 
 ## Introduction
+
 The chat folders sub-feature provides a hierarchical organization system for chats, enabling users to create nested folder structures to better manage their conversations. This documentation details the implementation of this feature, focusing on the folder_id field in the Chat model, the Folder model relationship, CRUD operations through the folders router, frontend components for drag-and-drop organization, and database optimizations. The system supports nested folder structures with proper access control and referential integrity.
 
 ## Folder Model Implementation
@@ -73,9 +75,11 @@ FolderTable --> FolderUpdateForm : "accepts"
 ```
 
 **Diagram sources**
+
 - [folders.py](file://backend/open_webui/models/folders.py#L24-L48)
 
 **Section sources**
+
 - [folders.py](file://backend/open_webui/models/folders.py#L1-L367)
 
 ## Chat Model Integration
@@ -121,9 +125,11 @@ Folder "1" --> "0..*" Chat : "contains"
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L26-L42)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L1-L1175)
 
 ## Folder CRUD Operations
@@ -163,10 +169,12 @@ FoldersRouter-->>Frontend : 200 OK
 ```
 
 **Diagram sources**
+
 - [folders.py](file://backend/open_webui/routers/folders.py#L48-L328)
 - [folders.py](file://backend/open_webui/models/folders.py#L86-L367)
 
 **Section sources**
+
 - [folders.py](file://backend/open_webui/routers/folders.py#L1-L328)
 
 ## Frontend Components
@@ -198,10 +206,12 @@ R --> V[DELETE /folders/{id}]
 ```
 
 **Diagram sources**
+
 - [Folder.svelte](file://src/lib/components/common/Folder.svelte#L1-L203)
 - [index.ts](file://src/lib/apis/folders/index.ts#L1-L275)
 
 **Section sources**
+
 - [Folder.svelte](file://src/lib/components/common/Folder.svelte#L1-L203)
 - [index.ts](file://src/lib/apis/folders/index.ts#L1-L275)
 - [Sidebar.svelte](file://src/lib/components/layout/Sidebar.svelte#L1-L1319)
@@ -242,26 +252,29 @@ FOLDER ||--o{ CHAT : "contains"
 ```
 
 **Diagram sources**
+
 - [c69f45358db4_add_folder_table.py](file://backend/open_webui/migrations/versions/c69f45358db4_add_folder_table.py#L1-L50)
 - [chats.py](file://backend/open_webui/models/chats.py#L26-L56)
 
 The database includes several indexes to optimize folder-based queries:
 
-| Index Name | Table | Columns | Purpose |
-|------------|-------|---------|---------|
-| folder_id_idx | chat | folder_id | Optimizes queries filtering by folder_id |
-| user_id_pinned_idx | chat | user_id, pinned | Optimizes queries for pinned chats by user |
-| user_id_archived_idx | chat | user_id, archived | Optimizes queries for archived chats by user |
-| updated_at_user_id_idx | chat | updated_at, user_id | Optimizes queries ordering by updated_at |
-| folder_id_user_id_idx | chat | folder_id, user_id | Optimizes queries filtering by folder_id and user_id |
+| Index Name             | Table | Columns             | Purpose                                              |
+| ---------------------- | ----- | ------------------- | ---------------------------------------------------- |
+| folder_id_idx          | chat  | folder_id           | Optimizes queries filtering by folder_id             |
+| user_id_pinned_idx     | chat  | user_id, pinned     | Optimizes queries for pinned chats by user           |
+| user_id_archived_idx   | chat  | user_id, archived   | Optimizes queries for archived chats by user         |
+| updated_at_user_id_idx | chat  | updated_at, user_id | Optimizes queries ordering by updated_at             |
+| folder_id_user_id_idx  | chat  | folder_id, user_id  | Optimizes queries filtering by folder_id and user_id |
 
 **Section sources**
+
 - [c69f45358db4_add_folder_table.py](file://backend/open_webui/migrations/versions/c69f45358db4_add_folder_table.py#L1-L50)
 - [018012973d35_add_indexes.py](file://backend/open_webui/migrations/versions/018012973d35_add_indexes.py#L1-L47)
 
 ## Practical Examples
 
 ### Creating Nested Folder Structures
+
 To create a nested folder structure, users can create parent folders and then create child folders within them. The system automatically handles the parent-child relationship through the parent_id field.
 
 ```mermaid
@@ -275,6 +288,7 @@ F --> G[Set parent_id to "Work"]
 ```
 
 ### Moving Chats Between Folders
+
 Chats can be moved between folders through the updateChatFolderIdById function, which updates the folder_id field in the Chat model.
 
 ```mermaid
@@ -292,6 +306,7 @@ Frontend-->>User : Chat moved successfully
 ```
 
 ### Displaying Folder Hierarchies in Sidebar
+
 The sidebar component recursively renders folder hierarchies, maintaining expand/collapse state in localStorage for user preference persistence.
 
 ```mermaid
@@ -308,12 +323,14 @@ E --> |No| J[End]
 ```
 
 **Section sources**
+
 - [Sidebar.svelte](file://src/lib/components/layout/Sidebar.svelte#L1-L1319)
 - [chats.py](file://backend/open_webui/routers/chats.py#L201-L213)
 
 ## Common Issues and Edge Cases
 
 ### Maintaining Referential Integrity When Deleting Folders
+
 When deleting folders, the system must handle referential integrity by either deleting or reassigning chats within the folder. The delete_folder_by_id_and_user_id method recursively deletes all child folders and provides options for handling contained chats.
 
 ```mermaid
@@ -328,6 +345,7 @@ F --> G[Update UI]
 ```
 
 ### Handling Edge Cases in Nested Folder Displays
+
 The system handles several edge cases in nested folder displays, including circular references, missing parent folders, and permission issues.
 
 ```mermaid
@@ -345,11 +363,13 @@ I --> |Yes| K[Display folder]
 ```
 
 The system includes validation to prevent common issues:
+
 - Folder name uniqueness within the same parent
 - Prevention of circular folder references
 - Validation of folder ownership before operations
 - Proper cleanup of database references when folders are deleted
 
 **Section sources**
+
 - [folders.py](file://backend/open_webui/models/folders.py#L281-L311)
 - [folders.py](file://backend/open_webui/routers/folders.py#L275-L328)

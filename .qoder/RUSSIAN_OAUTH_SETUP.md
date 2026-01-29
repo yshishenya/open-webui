@@ -17,12 +17,14 @@ This guide will help you set up VK, Yandex, and Telegram OAuth for the Russian m
 ### VK (ВКонтакте)
 
 1. **Create Application:**
+
    - Go to: https://vk.com/apps?act=manage
    - Click "Create Application"
    - Choose "Standalone application"
    - Fill in application name and details
 
 2. **Configure Settings:**
+
    - Navigate to "Settings" section
    - Add **Redirect URI**: `https://yourdomain.com/api/v1/oauth/vk/callback`
    - Enable "Access to email" permission
@@ -35,11 +37,13 @@ This guide will help you set up VK, Yandex, and Telegram OAuth for the Russian m
 ### Yandex
 
 1. **Register Application:**
+
    - Go to: https://oauth.yandex.ru/
    - Click "Register new application"
    - Fill in application name
 
 2. **Configure Permissions:**
+
    - Select platform: **Web services**
    - Add **Callback URI**: `https://yourdomain.com/api/v1/oauth/yandex/callback`
    - Select scopes:
@@ -60,8 +64,8 @@ This guide will help you set up VK, Yandex, and Telegram OAuth for the Russian m
    - Follow prompts:
      - Choose bot name (e.g., "My Service Auth Bot")
      - Choose username (e.g., "myservice_auth_bot")
-   
 2. **Configure Domain:**
+
    - Send command to BotFather: `/setdomain`
    - Select your bot from the list
    - Enter your domain: `yourdomain.com`
@@ -102,6 +106,7 @@ OAUTH_MERGE_ACCOUNTS_BY_EMAIL=true
 ```
 
 **Important Notes:**
+
 - Replace `yourdomain.com` with your actual domain
 - Replace placeholder credentials with real values from Step 1
 - Ensure `ENABLE_OAUTH_SIGNUP=true` to enable OAuth functionality
@@ -117,6 +122,7 @@ alembic upgrade head
 ```
 
 This creates:
+
 - `email_verification_token` table
 - `password_reset_token` table
 - Adds `email_verified` and `terms_accepted_at` columns to user table
@@ -158,34 +164,34 @@ python backend/open_webui/main.py
 Add widget to your auth page:
 
 ```html
-<script 
-  async 
-  src="https://telegram.org/js/telegram-widget.js?22" 
-  data-telegram-login="your_bot_username" 
-  data-size="large" 
-  data-onauth="onTelegramAuth(user)" 
-  data-request-access="write">
-</script>
+<script
+	async
+	src="https://telegram.org/js/telegram-widget.js?22"
+	data-telegram-login="your_bot_username"
+	data-size="large"
+	data-onauth="onTelegramAuth(user)"
+	data-request-access="write"
+></script>
 
 <script>
-  function onTelegramAuth(user) {
-    fetch('/api/v1/oauth/telegram/callback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(user)
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.requires_email) {
-        // Show email collection form
-        showEmailForm(data.temp_session);
-      } else {
-        // User already has account, set token
-        setToken(data.token);
-        window.location.href = '/home';
-      }
-    });
-  }
+	function onTelegramAuth(user) {
+		fetch('/api/v1/oauth/telegram/callback', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(user)
+		})
+			.then((res) => res.json())
+			.then((data) => {
+				if (data.requires_email) {
+					// Show email collection form
+					showEmailForm(data.temp_session);
+				} else {
+					// User already has account, set token
+					setToken(data.token);
+					window.location.href = '/home';
+				}
+			});
+	}
 </script>
 ```
 
@@ -196,47 +202,56 @@ Add widget to your auth page:
 ### VK OAuth
 
 **Issue:** "Invalid redirect_uri"
+
 - **Solution:** Ensure Redirect URI in VK app settings exactly matches: `https://yourdomain.com/api/v1/oauth/vk/callback`
 - Check for trailing slashes (should not have one)
 - Ensure HTTPS is used
 
 **Issue:** "Email not provided"
+
 - **Solution:** Enable "Access to email" permission in VK app settings
 - User must grant email permission during authorization
 
 ### Yandex OAuth
 
 **Issue:** "Invalid client_id or client_secret"
+
 - **Solution:** Double-check credentials in `.env` file
 - Ensure no extra spaces or newlines
 
 **Issue:** "Callback URL mismatch"
+
 - **Solution:** Verify callback URL in Yandex app exactly matches environment variable
 
 ### Telegram OAuth
 
 **Issue:** "Invalid hash"
+
 - **Solution:** Ensure `TELEGRAM_BOT_TOKEN` is correct
 - Check that widget is using correct bot username
 - Verify `data-telegram-login` matches `TELEGRAM_BOT_NAME`
 
 **Issue:** "Domain not set"
+
 - **Solution:** Use `/setdomain` command in BotFather
 - Domain must match your application's domain (no protocol, no port)
 
 ### General Issues
 
 **Issue:** "OAuth signup is disabled"
+
 - **Solution:** Set `ENABLE_OAUTH_SIGNUP=true` in `.env`
 
 **Issue:** "State token invalid"
-- **Solution:** 
+
+- **Solution:**
   - Ensure Redis is running
   - Check Redis connection in application logs
   - State tokens expire in 5 minutes
 
 **Issue:** "CSRF attack detected"
-- **Solution:** 
+
+- **Solution:**
   - Clear browser cookies
   - Ensure system time is correct (for Redis expiration)
   - Try incognito/private browsing mode
@@ -263,20 +278,21 @@ Add OAuth buttons to your auth page:
 ```html
 <!-- VK Button -->
 <a href="/api/v1/oauth/vk/login" class="btn btn-vk">
-  <svg><!-- VK icon --></svg>
-  <span>Войти через ВКонтакте</span>
+	<svg><!-- VK icon --></svg>
+	<span>Войти через ВКонтакте</span>
 </a>
 
 <!-- Yandex Button -->
 <a href="/api/v1/oauth/yandex/login" class="btn btn-yandex">
-  <svg><!-- Yandex icon --></svg>
-  <span>Войти через Яндекс</span>
+	<svg><!-- Yandex icon --></svg>
+	<span>Войти через Яндекс</span>
 </a>
 
 <!-- Telegram Widget (see Test section above) -->
 ```
 
 **Styling Recommendations:**
+
 - VK brand color: `#0077FF` (blue)
 - Yandex brand color: `#FC3F1D` (red)
 - Telegram brand color: `#0088CC` (blue)
@@ -290,17 +306,21 @@ Add OAuth buttons to your auth page:
 After OAuth is working:
 
 1. **Implement Email Verification:**
+
    - Configure Postal SMTP
    - Create email templates
    - Send verification emails to Telegram users
 
 2. **Add Landing Page:**
+
    - Show OAuth buttons prominently
    - Russian language interface
    - Mobile-responsive design
 
 3. **Configure Billing:**
-   - Assign free plan to new OAuth users
+
+   - Ensure PAYG wallet is enabled (`ENABLE_BILLING_WALLET=true`)
+   - Optionally enable lead magnet quotas (`LEAD_MAGNET_ENABLED=true`) for “free start”
    - YooKassa integration (already exists)
 
 4. **Monitor Usage:**
@@ -313,11 +333,13 @@ After OAuth is working:
 ## Support
 
 **OAuth Provider Documentation:**
+
 - VK API: https://dev.vk.com/ru/api/oauth/overview
 - Yandex OAuth: https://yandex.ru/dev/id/doc/ru/
 - Telegram Login Widget: https://core.telegram.org/widgets/login
 
 **Implementation Details:**
+
 - See: `.qoder/implementation-summary.md`
 - Code: `backend/open_webui/routers/oauth_russian.py`
 - Config: `backend/open_webui/config.py`

@@ -16,6 +16,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Migration Architecture](#migration-architecture)
 3. [Internal vs Main Migrations](#internal-vs-main-migrations)
@@ -32,6 +33,7 @@
 14. [Common Issues and Solutions](#common-issues-and-solutions)
 
 ## Introduction
+
 Open WebUI employs a comprehensive database migration system to manage schema evolution across different database backends. The system supports both internal migrations for core functionality and main migrations for feature development, using different migration frameworks tailored to specific needs. This documentation details the architecture, implementation, and operational procedures for managing database schema changes in Open WebUI, covering versioning strategies, migration generation, execution workflows, and troubleshooting common issues.
 
 ## Migration Architecture
@@ -53,11 +55,13 @@ style G fill:#bbf,stroke:#333
 ```
 
 **Diagram sources**
+
 - [env.py](file://backend/open_webui/migrations/env.py)
 - [alembic.ini](file://backend/open_webui/alembic.ini)
 - [util.py](file://backend/open_webui/migrations/util.py)
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/migrations/env.py#L1-L109)
 - [alembic.ini](file://backend/open_webui/alembic.ini#L1-L115)
 
@@ -65,11 +69,12 @@ style G fill:#bbf,stroke:#333
 
 Open WebUI implements a dual migration system with distinct approaches for internal and main migrations. The internal migrations directory contains Peewee-based migrations primarily for SQLite databases, while the main migrations directory uses Alembic for broader database compatibility.
 
-The internal migration system, located at `internal/migrations/`, utilizes Peewee Migrate to handle schema changes for the core application. These migrations are numbered sequentially (001_, 002_, etc.) and are designed to support SQLite-specific features and constraints. In contrast, the main migration system in `migrations/versions/` uses Alembic with UUID-based revision identifiers, providing more robust dependency tracking and cross-database compatibility.
+The internal migration system, located at `internal/migrations/`, utilizes Peewee Migrate to handle schema changes for the core application. These migrations are numbered sequentially (001*, 002*, etc.) and are designed to support SQLite-specific features and constraints. In contrast, the main migration system in `migrations/versions/` uses Alembic with UUID-based revision identifiers, providing more robust dependency tracking and cross-database compatibility.
 
 This dual approach allows Open WebUI to maintain backward compatibility while supporting advanced database features. The internal migrations focus on fundamental schema changes and data model evolution, while main migrations handle feature-specific additions like billing, feedback, and knowledge management systems.
 
 **Section sources**
+
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py#L1-L255)
 - [af906e964978_add_feedback_table.py](file://backend/open_webui/migrations/versions/af906e964978_add_feedback_table.py#L1-L52)
 
@@ -104,22 +109,25 @@ style InternalMigrationScript fill : #bbf,stroke : #333
 ```
 
 **Diagram sources**
+
 - [af906e964978_add_feedback_table.py](file://backend/open_webui/migrations/versions/af906e964978_add_feedback_table.py#L1-L52)
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py#L1-L255)
 
 **Section sources**
+
 - [af906e964978_add_feedback_table.py](file://backend/open_webui/migrations/versions/af906e964978_add_feedback_table.py#L1-L52)
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py#L1-L255)
 
 ## Schema Versioning and Dependencies
 
-Open WebUI employs two distinct versioning schemes for its migration systems. The internal migration system uses sequential numeric prefixes (001_, 002_, etc.) that reflect the order of migration application. In contrast, the main Alembic-based system uses UUID-style revision identifiers (e.g., af906e964978) that provide globally unique migration identifiers and enable sophisticated dependency tracking.
+Open WebUI employs two distinct versioning schemes for its migration systems. The internal migration system uses sequential numeric prefixes (001*, 002*, etc.) that reflect the order of migration application. In contrast, the main Alembic-based system uses UUID-style revision identifiers (e.g., af906e964978) that provide globally unique migration identifiers and enable sophisticated dependency tracking.
 
 Each Alembic migration explicitly declares its predecessor through the `down_revision` attribute, creating a directed acyclic graph of migration dependencies. This approach ensures that migrations are applied in the correct order and enables selective rollback operations. For example, the feedback table migration (af906e964978) specifies c29facfe716b as its `down_revision`, indicating it must be applied after that revision.
 
 The system also supports branching migrations through the `branch_labels` attribute, though Open WebUI currently uses a linear migration history. The `depends_on` field allows specifying dependencies across migration branches, providing flexibility for complex schema evolution scenarios. This versioning approach prevents migration conflicts and ensures database schema consistency across different deployment environments.
 
 **Section sources**
+
 - [af906e964978_add_feedback_table.py](file://backend/open_webui/migrations/versions/af906e964978_add_feedback_table.py#L1-L52)
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L1-L188)
 
@@ -152,10 +160,12 @@ style F fill:#f9f,stroke:#333
 ```
 
 **Diagram sources**
+
 - [af906e964978_add_feedback_table.py](file://backend/open_webui/migrations/versions/af906e964978_add_feedback_table.py#L1-L52)
 - [3781e22d8b01_update_message_table.py](file://backend/open_webui/migrations/versions/3781e22d8b01_update_message_table.py#L1-L71)
 
 **Section sources**
+
 - [af906e964978_add_feedback_table.py](file://backend/open_webui/migrations/versions/af906e964978_add_feedback_table.py#L1-L52)
 - [3781e22d8b01_update_message_table.py](file://backend/open_webui/migrations/versions/3781e22d8b01_update_message_table.py#L1-L71)
 
@@ -168,6 +178,7 @@ The process involves creating the target table, defining source and target table
 Data type migrations also require transformation logic. The chat table migration converts a text field containing JSON strings to a native JSON column type. This involves renaming the existing column, adding a new JSON column, parsing and converting the data, and finally dropping the old column. The downgrade operation reverses this process by serializing JSON data back to text format.
 
 **Section sources**
+
 - [6a39f3d8e55c_add_knowledge_table.py](file://backend/open_webui/migrations/versions/6a39f3d8e55c_add_knowledge_table.py#L1-L81)
 - [242a2047eae0_update_chat_table.py](file://backend/open_webui/migrations/versions/242a2047eae0_update_chat_table.py#L1-L108)
 
@@ -189,9 +200,11 @@ style I fill:#0f0,stroke:#333
 ```
 
 **Diagram sources**
+
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L1-L188)
 
 **Section sources**
+
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L1-L188)
 
 ## Generating New Migrations
@@ -203,6 +216,7 @@ The Alembic configuration in `alembic.ini` specifies the migration script locati
 For internal migrations, developers manually create Python files with sequential numbering and implement the migrate and rollback functions using Peewee Migrate operations. The system supports both automated schema generation and manual SQL operations, providing flexibility for different migration scenarios.
 
 **Section sources**
+
 - [README](file://backend/open_webui/migrations/README#L1-L5)
 - [env.py](file://backend/open_webui/migrations/env.py#L1-L109)
 - [alembic.ini](file://backend/open_webui/alembic.ini#L1-L115)
@@ -234,10 +248,12 @@ end
 ```
 
 **Diagram sources**
+
 - [env.py](file://backend/open_webui/migrations/env.py#L1-L109)
 - [af906e964978_add_feedback_table.py](file://backend/open_webui/migrations/versions/af906e964978_add_feedback_table.py#L1-L52)
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/migrations/env.py#L1-L109)
 - [af906e964978_add_feedback_table.py](file://backend/open_webui/migrations/versions/af906e964978_add_feedback_table.py#L1-L52)
 
@@ -250,6 +266,7 @@ For table creation migrations, the downgrade function drops the created tables. 
 The system also handles data migration rollbacks by preserving the original data during upgrades. For example, when converting the chat column from text to JSON, the original text column is temporarily renamed rather than immediately dropped, allowing the downgrade to restore the original data format. This approach ensures data integrity during rollback operations.
 
 **Section sources**
+
 - [af906e964978_add_feedback_table.py](file://backend/open_webui/migrations/versions/af906e964978_add_feedback_table.py#L1-L52)
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L1-L188)
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py#L1-L255)
@@ -263,6 +280,7 @@ The util.py file provides helper functions like get_revision_id() that generate 
 In cases where migration conflicts occur, the recommended approach is to create a new migration that combines the changes from conflicting migrations, updating the dependency chain accordingly. This maintains a clean migration history and prevents schema divergence between environments.
 
 **Section sources**
+
 - [util.py](file://backend/open_webui/migrations/util.py#L1-L16)
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L1-L188)
 
@@ -275,6 +293,7 @@ The env.py file contains logic to handle different database backends, including 
 Regular synchronization practices include verifying the migration history, checking for unapplied migrations, and ensuring that the database schema matches the expected state. The Alembic history command can be used to review the migration timeline and verify that all expected migrations have been applied.
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/migrations/env.py#L1-L109)
 - [util.py](file://backend/open_webui/migrations/util.py#L1-L16)
 
@@ -299,9 +318,11 @@ style A fill:#f9f,stroke:#333
 ```
 
 **Diagram sources**
+
 - [242a2047eae0_update_chat_table.py](file://backend/open_webui/migrations/versions/242a2047eae0_update_chat_table.py#L1-L108)
 - [6a39f3d8e55c_add_knowledge_table.py](file://backend/open_webui/migrations/versions/6a39f3d8e55c_add_knowledge_table.py#L1-L81)
 
 **Section sources**
+
 - [242a2047eae0_update_chat_table.py](file://backend/open_webui/migrations/versions/242a2047eae0_update_chat_table.py#L1-L108)
 - [6a39f3d8e55c_add_knowledge_table.py](file://backend/open_webui/migrations/versions/6a39f3d8e55c_add_knowledge_table.py#L1-L81)

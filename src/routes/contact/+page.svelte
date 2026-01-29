@@ -59,14 +59,22 @@
 >
 	<section class="container mx-auto px-4 pt-12 pb-12">
 		<div class="relative">
-			<div class="absolute -top-20 -right-32 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
-			<div class="absolute -left-20 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
+			<div
+				class="absolute -top-20 -right-32 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"
+			></div>
+			<div
+				class="absolute -left-20 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"
+			></div>
 			<div class="grid lg:grid-cols-[1.05fr_0.95fr] gap-14 items-center">
 				<div class="space-y-6">
-					<span class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gray-600">
+					<span
+						class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gray-600"
+					>
 						Контакты
 					</span>
-					<h1 class="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.05]">
+					<h1
+						class="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.05]"
+					>
 						Свяжитесь с нами
 					</h1>
 					<p class="text-lg md:text-xl text-gray-600 max-w-xl">
@@ -114,9 +122,21 @@
 			<div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
 				<div class="space-y-6">
 					<div class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm">
-						<div class="w-11 h-11 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center mb-4">
-							<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+						<div
+							class="w-11 h-11 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center mb-4"
+						>
+							<svg
+								class="w-5 h-5 text-gray-700"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+								></path>
 							</svg>
 						</div>
 						<h3 class="font-semibold text-gray-900 mb-2">Email</h3>
@@ -126,9 +146,21 @@
 					</div>
 
 					<div class="bg-white rounded-2xl border border-gray-200/70 p-6 shadow-sm">
-						<div class="w-11 h-11 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center mb-4">
-							<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+						<div
+							class="w-11 h-11 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center mb-4"
+						>
+							<svg
+								class="w-5 h-5 text-gray-700"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+								></path>
 							</svg>
 						</div>
 						<h3 class="font-semibold text-gray-900 mb-2">Время ответа</h3>
@@ -143,9 +175,21 @@
 					<div class="bg-white rounded-2xl border border-gray-200/70 p-8 shadow-sm">
 						{#if submitStatus === 'success'}
 							<div class="text-center py-12">
-								<div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-									<svg class="w-10 h-10 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+								<div
+									class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6"
+								>
+									<svg
+										class="w-10 h-10 text-gray-700"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										></path>
 									</svg>
 								</div>
 								<h3 class="text-2xl font-semibold text-gray-900 mb-2">Сообщение отправлено</h3>
@@ -237,7 +281,8 @@
 								{#if submitStatus === 'error'}
 									<div class="bg-red-50 border border-red-200 rounded-lg p-4">
 										<p class="text-red-600 text-sm">
-											Произошла ошибка при отправке. Пожалуйста, попробуйте еще раз или напишите нам на email.
+											Произошла ошибка при отправке. Пожалуйста, попробуйте еще раз или напишите нам
+											на email.
 										</p>
 									</div>
 								{/if}
@@ -248,9 +293,25 @@
 									class="w-full bg-black text-white py-3 px-6 rounded-xl font-semibold hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 								>
 									{#if isSubmitting}
-										<svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+										<svg
+											class="animate-spin h-5 w-5"
+											xmlns="http://www.w3.org/2000/svg"
+											fill="none"
+											viewBox="0 0 24 24"
+										>
+											<circle
+												class="opacity-25"
+												cx="12"
+												cy="12"
+												r="10"
+												stroke="currentColor"
+												stroke-width="4"
+											></circle>
+											<path
+												class="opacity-75"
+												fill="currentColor"
+												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+											></path>
 										</svg>
 										Отправка...
 									{:else}

@@ -47,7 +47,9 @@
 	{:else}
 		<div class="flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible">
 			{#each visibleModels as model}
-				<div class="rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 whitespace-nowrap">
+				<div
+					class="rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 whitespace-nowrap"
+				>
 					<span>{model.displayName}</span>
 					{#if model.provider}
 						<span class="ml-2 text-[0.65rem] font-medium text-gray-500">{model.provider}</span>
@@ -67,7 +69,5 @@
 		</button>
 	{/if}
 
-	<p class="text-xs text-gray-500">
-		Список моделей может меняться. Актуально — в приложении.
-	</p>
+	<p class="text-xs text-gray-500">Список моделей может меняться. Актуально — в приложении.</p>
 </div>

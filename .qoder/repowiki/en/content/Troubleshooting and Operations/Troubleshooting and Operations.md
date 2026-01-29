@@ -17,6 +17,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Common Installation and Configuration Issues](#common-installation-and-configuration-issues)
 2. [Runtime Problems and Connectivity Issues](#runtime-problems-and-connectivity-issues)
 3. [Logging System and Log Interpretation](#logging-system-and-log-interpretation)
@@ -37,6 +38,7 @@ For configuration issues, ensure that the OLLAMA_BASE_URL environment variable i
 Another common configuration issue relates to database setup. The system automatically migrates from Ollama-WebUI to open-webui by renaming `ollama.db` to `webui.db` if the file exists in the data directory. For PostgreSQL configuration, ensure the database URL is properly formatted in the docker-compose.yaml file with the correct credentials and connection details.
 
 **Section sources**
+
 - [TROUBLESHOOTING.md](file://TROUBLESHOOTING.md#L1-L37)
 - [docker-compose.yaml](file://docker-compose.yaml#L1-L60)
 - [env.py](file://backend/open_webui/env.py#L272-L278)
@@ -50,6 +52,7 @@ A common runtime issue is slow responses from Ollama, which by default has a 5-m
 For general connectivity problems, ensure that the Ollama version is up-to-date and verify the Ollama URL format. Network issues can also occur when using Redis for session management or caching. The system supports Redis Sentinel for high availability, with configurable retry counts (REDIS_SENTINEL_MAX_RETRY_COUNT) for fail-over scenarios.
 
 **Section sources**
+
 - [TROUBLESHOOTING.md](file://TROUBLESHOOTING.md#L5-L37)
 - [env.py](file://backend/open_webui/env.py#L664-L673)
 - [redis.py](file://backend/open_webui/utils/redis.py#L22-L102)
@@ -78,11 +81,13 @@ OTel --> Ready[Logging System Ready]
 ```
 
 **Diagram sources**
+
 - [logger.py](file://backend/open_webui/utils/logger.py#L23-L42)
 - [logger.py](file://backend/open_webui/utils/logger.py#L87-L113)
 - [logger.py](file://backend/open_webui/utils/logger.py#L116-L163)
 
 **Section sources**
+
 - [logger.py](file://backend/open_webui/utils/logger.py#L1-L163)
 
 ## Telemetry and Monitoring Capabilities
@@ -115,11 +120,13 @@ B --> |http.server.duration| N[Histogram]
 ```
 
 **Diagram sources**
+
 - [setup.py](file://backend/open_webui/utils/telemetry/setup.py#L1-L59)
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L1-L204)
 - [logs.py](file://backend/open_webui/utils/telemetry/logs.py#L1-L54)
 
 **Section sources**
+
 - [setup.py](file://backend/open_webui/utils/telemetry/setup.py#L1-L59)
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L1-L204)
 - [logs.py](file://backend/open_webui/utils/telemetry/logs.py#L1-L54)
@@ -135,6 +142,7 @@ When diagnosing performance problems, check the database connection pool configu
 For authentication failures, verify the JWT expiration settings (JWT_EXPIRES_IN) and ensure that the WEBUI_SECRET_KEY is properly configured. The system also supports trusted email and name headers for proxy-based authentication scenarios.
 
 **Section sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L43-L139)
 - [env.py](file://backend/open_webui/env.py#L312-L348)
 - [config.py](file://backend/open_webui/config.py#L314-L322)
@@ -153,6 +161,7 @@ For Redis-based systems, the connection status can be monitored through the Redi
 Additionally, the system's logging configuration includes filters to exclude health check endpoints from access logs, suggesting the presence of health check endpoints that should not generate log noise.
 
 **Section sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L23-L28)
 - [redis.py](file://backend/open_webui/utils/redis.py#L22-L102)
 - [logger.py](file://backend/open_webui/utils/logger.py#L39-L41)
@@ -170,6 +179,7 @@ For encrypted SQLite databases using SQLCipher, ensure that the DATABASE_PASSWOR
 Database performance can be tuned through connection pool settings, including pool size, maximum overflow, timeout, and recycle time. These settings help manage database connections efficiently, particularly in high-traffic scenarios.
 
 **Section sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L1-L165)
 - [env.py](file://backend/open_webui/env.py#L280-L352)
 - [config.py](file://backend/open_webui/config.py#L52-L68)
@@ -181,11 +191,12 @@ Cache issues in open-webui primarily involve Redis configuration and usage. The 
 
 Common cache problems include connection failures, which can be diagnosed by checking the REDIS_URL environment variable and ensuring the Redis server is accessible. For Redis Sentinel configurations, verify that REDIS_SENTINEL_HOSTS and REDIS_SENTINEL_PORT are correctly set, and that the sentinel service names match the configured values.
 
-The system implements connection caching to improve performance, with connections stored in a global _CONNECTION_CACHE dictionary. This prevents the overhead of establishing new connections for each request. The get_redis_connection function handles different Redis configurations, including Sentinel and cluster modes, and provides retry logic for fail-over scenarios.
+The system implements connection caching to improve performance, with connections stored in a global \_CONNECTION_CACHE dictionary. This prevents the overhead of establishing new connections for each request. The get_redis_connection function handles different Redis configurations, including Sentinel and cluster modes, and provides retry logic for fail-over scenarios.
 
 Cache-related performance issues can often be addressed by tuning Redis configuration parameters or by ensuring proper network connectivity between the open-webui instance and the Redis server. The system also supports Redis over SSL/TLS when configured with appropriate URLs.
 
 **Section sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L1-L231)
 - [env.py](file://backend/open_webui/env.py#L379-L395)
 - [main.py](file://backend/open_webui/main.py#L585-L597)
@@ -203,6 +214,7 @@ Use Redis for session storage and caching in production environments to support 
 Regularly update the system to the latest version to benefit from security patches and performance improvements. Monitor system resources and scale horizontally by adding additional instances behind a load balancer when needed.
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L455-L465)
 - [docker-compose.yaml](file://docker-compose.yaml#L1-L60)
 - [setup.py](file://backend/open_webui/utils/telemetry/setup.py#L1-L59)
@@ -214,7 +226,7 @@ To optimize the performance of open-webui, several techniques can be applied at 
 
 Enable caching strategies where appropriate. The system supports model caching through the ENABLE_BASE_MODELS_CACHE configuration option, which can significantly reduce latency for model listing operations. For deployments with multiple instances, ensure that caching is coordinated through a shared Redis instance.
 
-Optimize the OpenTelemetry configuration by adjusting the metrics export interval (_EXPORT_INTERVAL_MILLIS) to balance between monitoring granularity and system overhead. Consider disabling certain telemetry components in high-performance scenarios where monitoring overhead is a concern.
+Optimize the OpenTelemetry configuration by adjusting the metrics export interval (\_EXPORT_INTERVAL_MILLIS) to balance between monitoring granularity and system overhead. Consider disabling certain telemetry components in high-performance scenarios where monitoring overhead is a concern.
 
 For file operations, configure appropriate values for file size limits and processing parameters. The system provides configuration options for file compression, image processing, and document extraction that can be tuned based on performance requirements and available resources.
 
@@ -223,6 +235,7 @@ Adjust the thread pool size for FastAPI/AnyIO operations through the THREAD_POOL
 Finally, consider the deployment architecture. Use the host network mode in Docker when possible to reduce network overhead, and ensure that the Ollama server is running on hardware with adequate GPU resources for optimal inference performance.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L130-L131)
 - [config.py](file://backend/open_webui/config.py#L547-L555)
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L50-L51)

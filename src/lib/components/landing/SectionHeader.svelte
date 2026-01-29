@@ -6,9 +6,7 @@
 	export let align: 'left' | 'center' = 'left';
 
 	const alignClass = (): string =>
-		align === 'center'
-			? 'items-center text-center'
-			: 'items-start text-left';
+		align === 'center' ? 'items-center text-center' : 'items-start text-left';
 </script>
 
 <div

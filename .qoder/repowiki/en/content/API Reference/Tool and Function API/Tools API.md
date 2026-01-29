@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [RESTful Endpoints](#restful-endpoints)
 3. [Tool Manifest Structure](#tool-manifest-structure)
@@ -23,18 +24,22 @@
 10. [Conclusion](#conclusion)
 
 ## Introduction
+
 The Tools API provides a comprehensive interface for integrating external services and systems into the Open WebUI platform. This API enables the listing, configuration, and execution of tools that can be dynamically discovered and utilized by AI models. The system supports both local Python-based tools and external OpenAPI/MCP tool servers, offering a flexible architecture for extending functionality.
 
 The API follows RESTful principles and provides endpoints for managing tools, their configurations, and execution. Tools can be created from GitHub repositories or direct URLs, and they support parameter validation through JSON Schema. The system also includes robust security features including access control, rate limiting, and permission scopes.
 
 **Section sources**
+
 - [tools.py](file://backend/open_webui/routers/tools.py#L1-L648)
 - [tools.py](file://backend/open_webui/models/tools.py#L1-L275)
 
 ## RESTful Endpoints
+
 The Tools API provides several endpoints for managing tools and their configurations:
 
 ### GET /api/tools
+
 Retrieves a list of all available tools, including both local tools and external tool servers. The response includes tool metadata such as name, description, and access control information.
 
 ```mermaid
@@ -52,9 +57,11 @@ H --> I[Response]
 ```
 
 **Diagram sources**
+
 - [tools.py](file://backend/open_webui/routers/tools.py#L55-L152)
 
 ### POST /api/tools/execute
+
 Executes a specified tool with the provided parameters. This endpoint validates the parameters against the tool's schema before execution and returns the tool's response.
 
 ```mermaid
@@ -70,9 +77,11 @@ H --> I[Return Result]
 ```
 
 **Diagram sources**
+
 - [middleware.py](file://backend/open_webui/utils/middleware.py#L398-L424)
 
 ### Other Endpoints
+
 - **GET /api/tools/list**: Returns a list of tools accessible to the user
 - **POST /api/tools/create**: Creates a new tool from provided code
 - **GET /api/tools/id/{id}**: Retrieves details of a specific tool
@@ -82,60 +91,68 @@ H --> I[Return Result]
 - **POST /api/tools/id/{id}/valves/update**: Updates tool configuration valves
 
 **Section sources**
+
 - [tools.py](file://backend/open_webui/routers/tools.py#L55-L648)
 
 ## Tool Manifest Structure
+
 The tool manifest defines the structure and capabilities of a tool, including its name, description, parameters, and endpoint specifications.
 
 ### Core Properties
+
 The tool manifest includes the following core properties:
 
-| Property | Type | Description |
-|--------|------|-------------|
-| name | string | The unique identifier for the tool |
-| description | string | A brief description of the tool's purpose |
-| parameters | object | JSON Schema defining the tool's input parameters |
-| endpoint | string | The API endpoint for tool execution |
+| Property    | Type   | Description                                      |
+| ----------- | ------ | ------------------------------------------------ |
+| name        | string | The unique identifier for the tool               |
+| description | string | A brief description of the tool's purpose        |
+| parameters  | object | JSON Schema defining the tool's input parameters |
+| endpoint    | string | The API endpoint for tool execution              |
 
 ### Parameters Schema
+
 Tools use JSON Schema to define their parameters, ensuring type safety and validation. The schema supports various data types and validation rules:
 
 ```json
 {
-  "type": "object",
-  "properties": {
-    "query": {
-      "type": "string",
-      "description": "Search query text"
-    },
-    "max_results": {
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 100,
-      "default": 10
-    },
-    "include_images": {
-      "type": "boolean",
-      "default": false
-    }
-  },
-  "required": ["query"]
+	"type": "object",
+	"properties": {
+		"query": {
+			"type": "string",
+			"description": "Search query text"
+		},
+		"max_results": {
+			"type": "integer",
+			"minimum": 1,
+			"maximum": 100,
+			"default": 10
+		},
+		"include_images": {
+			"type": "boolean",
+			"default": false
+		}
+	},
+	"required": ["query"]
 }
 ```
 
 The parameters schema is automatically generated from the tool's Python function signatures and docstrings using Pydantic models.
 
 ### Endpoint Specifications
+
 Each tool defines its endpoint specifications, including HTTP method, URL pattern, and authentication requirements. For OpenAPI-based tools, the specifications are derived from the OpenAPI document.
 
 **Section sources**
+
 - [tools.py](file://backend/open_webui/models/tools.py#L56-L98)
 - [tools.py](file://backend/open_webui/utils/tools.py#L380-L419)
 
 ## Tool Registration and Discovery
+
 The system supports dynamic tool registration and discovery through multiple mechanisms.
 
 ### Local Tool Registration
+
 Local tools are registered by creating a new tool entry in the database. The tool code is stored in the database, and the tool is loaded into memory when needed.
 
 ```mermaid
@@ -153,26 +170,29 @@ API-->>Client : Tool created
 ```
 
 **Diagram sources**
+
 - [tools.py](file://backend/open_webui/routers/tools.py#L270-L333)
 
 ### External Tool Server Discovery
+
 External tool servers are discovered through configuration entries that specify the server URL and authentication details. The system periodically fetches the OpenAPI specification from these servers and converts it into tool definitions.
 
 ```python
 async def get_tool_servers(request: Request):
     # Fetch from Redis cache if available
     tool_servers = await get_tool_servers_from_cache()
-    
+
     if not tool_servers:
         # Fetch from configured tool server connections
         tool_servers = await set_tool_servers(request)
-    
+
     return tool_servers
 ```
 
 The discovery process handles different authentication methods including bearer tokens, OAuth 2.1, and session-based authentication.
 
 ### Dynamic Manifest Loading
+
 Tools are dynamically loaded when they are first accessed. The system uses a caching mechanism to store loaded tool modules for performance:
 
 ```python
@@ -187,13 +207,16 @@ def get_tool_module(request, tool_id, load_from_db=True):
 When a tool is loaded, its functions are converted to OpenAI-compatible function specifications using Pydantic models.
 
 **Section sources**
+
 - [tools.py](file://backend/open_webui/routers/tools.py#L42-L47)
 - [tools.py](file://backend/open_webui/utils/tools.py#L438-L448)
 
 ## Execution Workflow
+
 The tool execution workflow involves several steps from chat trigger to LLM response formatting.
 
 ### Trigger from Chat
+
 Tool calls are triggered from chat messages when the LLM determines that a tool should be used to fulfill the user's request.
 
 ```mermaid
@@ -212,9 +235,11 @@ LLM-->>User : Answer with tool result
 ```
 
 **Diagram sources**
+
 - [middleware.py](file://backend/open_webui/utils/middleware.py#L398-L424)
 
 ### Parameter Validation
+
 Before execution, tool parameters are validated against the tool's schema:
 
 ```python
@@ -230,6 +255,7 @@ tool_function_params = {
 This ensures that only valid parameters are passed to the tool, preventing injection attacks and invalid inputs.
 
 ### Isolated Execution Context
+
 Tools are executed in isolated contexts to prevent interference between different tool executions:
 
 ```python
@@ -243,7 +269,7 @@ async def execute_tool_server(
 ):
     # Execute in isolated aiohttp session
     async with aiohttp.ClientSession(
-        trust_env=True, 
+        trust_env=True,
         timeout=aiohttp.ClientTimeout(total=AIOHTTP_CLIENT_TIMEOUT)
     ) as session:
         # Execute the tool call
@@ -251,6 +277,7 @@ async def execute_tool_server(
 ```
 
 ### Response Formatting
+
 Tool responses are formatted consistently for consumption by the LLM:
 
 ```python
@@ -263,13 +290,16 @@ def process_tool_result(request, tool_function_name, tool_result, tool_type, dir
 The formatted response includes the tool result, any generated files, and metadata for citation purposes.
 
 **Section sources**
+
 - [middleware.py](file://backend/open_webui/utils/middleware.py#L398-L424)
 - [tools.py](file://backend/open_webui/utils/tools.py#L736-L861)
 
 ## Security Considerations
+
 The Tools API implements several security measures to protect against common vulnerabilities.
 
 ### Input Sanitization
+
 All tool inputs are validated against JSON Schema definitions to prevent injection attacks and ensure data integrity:
 
 ```python
@@ -285,9 +315,11 @@ tool_function_params = {
 This prevents unauthorized parameters from being passed to tools.
 
 ### Rate Limiting
+
 The system implements rate limiting to prevent abuse of tool endpoints. While the specific implementation details are not visible in the provided code, the architecture supports rate limiting through configuration.
 
 ### Permission Scopes
+
 Tools support fine-grained permission scopes through access control lists:
 
 ```python
@@ -303,6 +335,7 @@ class Tool(Base):
 Access control can be defined at the group or user level, allowing for flexible sharing policies.
 
 ### Authentication Mechanisms
+
 The API supports multiple authentication mechanisms:
 
 - **Bearer Tokens**: Standard token-based authentication
@@ -311,13 +344,16 @@ The API supports multiple authentication mechanisms:
 - **System OAuth**: For internal system integrations
 
 **Section sources**
+
 - [tools.py](file://backend/open_webui/models/tools.py#L35-L50)
 - [tools.py](file://backend/open_webui/routers/tools.py#L98-L137)
 
 ## Error Handling
+
 The system implements comprehensive error handling for various failure scenarios.
 
 ### Timeout Handling
+
 Tool executions are subject to timeout limits to prevent hanging requests:
 
 ```python
@@ -336,6 +372,7 @@ async def execute_tool_server(
 ```
 
 ### Invalid Parameters
+
 When invalid parameters are provided, the system returns appropriate error responses:
 
 ```python
@@ -347,6 +384,7 @@ if not form_data.id.isidentifier():
 ```
 
 ### Service Unavailability
+
 When external services are unavailable, the system gracefully handles the error:
 
 ```python
@@ -364,13 +402,16 @@ async def get_tool_server_data(url: str, headers: Optional[dict]) -> Dict[str, A
 The error responses include descriptive messages to help with debugging while avoiding exposure of sensitive information.
 
 **Section sources**
+
 - [tools.py](file://backend/open_webui/utils/tools.py#L590-L634)
 - [tools.py](file://backend/open_webui/routers/tools.py#L200-L241)
 
 ## WebSocket Integration
+
 The system supports WebSocket integration for real-time communication and long-running tool executions.
 
 ### Connection Establishment
+
 WebSocket connections are established through the socket.io framework:
 
 ```python
@@ -387,6 +428,7 @@ async def connect(sid, environ, auth):
 ```
 
 ### Real-Time Updates
+
 The system uses WebSockets to provide real-time updates during tool execution:
 
 ```python
@@ -402,6 +444,7 @@ async def emit_to_users(event: str, data: dict, user_ids: list[str]):
 ```
 
 ### Long-Running Executions
+
 For long-running tool executions, the WebSocket connection allows for progress updates and cancellation:
 
 ```python
@@ -417,13 +460,16 @@ async def update_tools_valves_by_id(
 The WebSocket integration enables real-time collaboration and monitoring of tool executions.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L316)
 - [main.py](file://backend/open_webui/socket/main.py#L256-L270)
 
 ## Real-World Examples
+
 The system includes several real-world examples of tool integrations.
 
 ### Web Search Integrations
+
 The platform supports web search integrations with services like Tavily and SerpAPI:
 
 ```python
@@ -433,10 +479,10 @@ async def chat_web_search_handler(
 ):
     # Generate search queries based on user message
     queries = await generate_queries(request, form_data, user)
-    
+
     # Execute web search with the generated queries
     results = await process_web_search(request, SearchForm(queries=queries), user)
-    
+
     # Return results for LLM processing
     return form_data
 ```
@@ -444,6 +490,7 @@ async def chat_web_search_handler(
 These integrations allow the AI to search the web for up-to-date information when responding to user queries.
 
 ### Document Processing Services
+
 The system supports document processing services for handling various file types:
 
 ```python
@@ -456,6 +503,7 @@ if hasattr(module, "file_handler") and module.file_handler:
 Document processing tools can extract text, analyze content, and generate summaries from uploaded files.
 
 ### Code Execution
+
 The platform includes code execution capabilities for running Python code:
 
 ```python
@@ -469,10 +517,12 @@ async def execute_python_code(code: str, variables: dict = None):
 This allows for dynamic code execution in response to user requests, with appropriate security sandboxing.
 
 **Section sources**
+
 - [tools.py](file://backend/open_webui/utils/tools.py#L556-L712)
 - [tools.py](file://backend/open_webui/routers/tools.py#L197-L241)
 
 ## Conclusion
+
 The Tools API provides a robust framework for integrating external services and systems into the Open WebUI platform. By supporting both local Python tools and external OpenAPI/MCP tool servers, the API offers flexibility for various integration scenarios. The system's architecture emphasizes security, with comprehensive input validation, access control, and error handling.
 
 The dynamic manifest loading and discovery mechanism allows for seamless integration of new tools without requiring platform restarts. The execution workflow ensures that tool calls are properly validated and executed in isolated contexts, maintaining system stability.
@@ -482,6 +532,7 @@ WebSocket integration enables real-time communication and monitoring of long-run
 Overall, the Tools API provides a powerful foundation for extending the capabilities of the Open WebUI platform through external service integration.
 
 **Section sources**
+
 - [tools.py](file://backend/open_webui/routers/tools.py#L1-L648)
 - [tools.py](file://backend/open_webui/models/tools.py#L1-L275)
 - [tools.py](file://backend/open_webui/utils/tools.py#L1-L861)

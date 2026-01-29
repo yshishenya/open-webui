@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Two-Tier Migration Architecture](#two-tier-migration-architecture)
 3. [Internal Migrations (Peewee)](#internal-migrations-peewee)
@@ -52,10 +53,12 @@ I --> J[Migration Directory: migrations/versions]
 ```
 
 **Diagram sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L55-L80)
 - [env.py](file://backend/open_webui/migrations/env.py#L58-L109)
 
 **Section sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L55-L80)
 - [env.py](file://backend/open_webui/migrations/env.py#L58-L109)
 
@@ -91,10 +94,12 @@ click R "backend/open_webui/internal/migrations/018_add_function_is_global.py" "
 ```
 
 **Diagram sources**
+
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py)
 - [018_add_function_is_global.py](file://backend/open_webui/internal/migrations/018_add_function_is_global.py)
 
 **Section sources**
+
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py)
 - [018_add_function_is_global.py](file://backend/open_webui/internal/migrations/018_add_function_is_global.py)
 
@@ -122,11 +127,13 @@ Note over CLI,Env : Alembic migration workflow
 ```
 
 **Diagram sources**
+
 - [env.py](file://backend/open_webui/migrations/env.py)
 - [alembic.ini](file://backend/open_webui/alembic.ini)
 - [7e5b5dc7342b_init.py](file://backend/open_webui/migrations/versions/7e5b5dc7342b_init.py)
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/migrations/env.py)
 - [alembic.ini](file://backend/open_webui/alembic.ini)
 - [7e5b5dc7342b_init.py](file://backend/open_webui/migrations/versions/7e5b5dc7342b_init.py)
@@ -154,10 +161,12 @@ click G "backend/open_webui/migrations/versions/" "Production"
 ```
 
 **Diagram sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L55-L80)
 - [env.py](file://backend/open_webui/migrations/env.py#L58-L109)
 
 **Section sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L55-L80)
 - [env.py](file://backend/open_webui/migrations/env.py#L58-L109)
 
@@ -195,10 +204,12 @@ end
 ```
 
 **Diagram sources**
+
 - [db.py](file://backend/open_webui/internal/db.py)
 - [wrappers.py](file://backend/open_webui/internal/wrappers.py)
 
 **Section sources**
+
 - [db.py](file://backend/open_webui/internal/db.py)
 - [wrappers.py](file://backend/open_webui/internal/wrappers.py)
 
@@ -225,11 +236,13 @@ click G "backend/open_webui/migrations/versions/242a2047eae0_update_chat_table.p
 ```
 
 **Diagram sources**
+
 - [002_add_local_sharing.py](file://backend/open_webui/internal/migrations/002_add_local_sharing.py)
 - [3af16a1c9fb6_update_user_table.py](file://backend/open_webui/migrations/versions/3af16a1c9fb6_update_user_table.py)
 - [242a2047eae0_update_chat_table.py](file://backend/open_webui/migrations/versions/242a2047eae0_update_chat_table.py)
 
 **Section sources**
+
 - [002_add_local_sharing.py](file://backend/open_webui/internal/migrations/002_add_local_sharing.py)
 - [3af16a1c9fb6_update_user_table.py](file://backend/open_webui/migrations/versions/3af16a1c9fb6_update_user_table.py)
 - [242a2047eae0_update_chat_table.py](file://backend/open_webui/migrations/versions/242a2047eae0_update_chat_table.py)
@@ -241,6 +254,7 @@ The migration strategy for multi-instance deployments in open-webui requires car
 The recommended strategy involves taking all instances offline except one, applying the migrations using the remaining instance, and then bringing the other instances back online. This ensures that the database schema is updated atomically and that all instances connect to a consistent database state. For high-availability deployments, the system supports rolling updates where instances are updated sequentially, with each instance verifying the database schema before starting. The migration system's support for both upgrade and downgrade operations enables safe rollback if issues are detected after deployment. Additionally, the use of environment variables for database configuration allows different instances to connect to the same database backend, ensuring schema consistency across the deployment.
 
 **Section sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L55-L80)
 - [env.py](file://backend/open_webui/migrations/env.py#L58-L109)
 
@@ -251,6 +265,7 @@ Rollback procedures in the open-webui migration system are designed to safely re
 For Alembic migrations, the downgrade function serves the same purpose, providing a reverse operation for every upgrade. The system follows the principle of atomic migrations, where each migration script contains both forward and backward operations, allowing the database to be restored to its previous state if needed. The rollback process is typically initiated through the Alembic command-line interface, which can downgrade to a specific revision or revert the last migration. In multi-instance deployments, rollback procedures must be coordinated across all instances to ensure consistency. The system also includes safety checks, such as verifying database connections before and after migration operations, to prevent data corruption during rollback.
 
 **Section sources**
+
 - [018_add_function_is_global.py](file://backend/open_webui/internal/migrations/018_add_function_is_global.py)
 - [env.py](file://backend/open_webui/migrations/env.py#L58-L109)
 
@@ -261,6 +276,7 @@ Version compatibility in the open-webui migration system is maintained through c
 The migration system handles database-specific compatibility issues, such as differences between SQLite and PostgreSQL, through conditional logic in migration scripts. For example, the initial schema migration includes separate implementations for SQLite and external databases to accommodate their different capabilities. The system also manages compatibility with encrypted databases (SQLCipher) by requiring the DATABASE_PASSWORD environment variable and using appropriate connection parameters. Version compatibility is further ensured through comprehensive testing of migrations on different database backends and through the use of environment variables to configure database-specific settings. This approach allows the application to maintain compatibility across different deployment environments while supporting ongoing schema evolution.
 
 **Section sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L55-L80)
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py)
 - [env.py](file://backend/open_webui/migrations/env.py#L58-L109)
@@ -272,6 +288,7 @@ Best practices for writing migrations in the open-webui system emphasize safety,
 Data migrations should follow a safe pattern of creating new columns, migrating data, and then removing old columns, rather than attempting in-place modifications that could result in data loss. Migrations should include comprehensive error handling and validation, such as checking database connections before and after migration operations. The system also recommends thorough testing of migrations on different database backends and in different deployment scenarios before applying them to production. Additionally, migrations should be well-documented with clear comments explaining the purpose of each change and any potential impacts on application functionality.
 
 **Section sources**
+
 - [util.py](file://backend/open_webui/migrations/util.py)
 - [018_add_function_is_global.py](file://backend/open_webui/internal/migrations/018_add_function_is_global.py)
 - [242a2047eae0_update_chat_table.py](file://backend/open_webui/migrations/versions/242a2047eae0_update_chat_table.py)

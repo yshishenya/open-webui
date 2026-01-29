@@ -11,13 +11,21 @@
 >
 	<section class="container mx-auto px-4 pt-12 pb-12">
 		<div class="relative">
-			<div class="absolute -top-20 -right-32 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"></div>
-			<div class="absolute -left-20 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"></div>
+			<div
+				class="absolute -top-20 -right-32 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"
+			></div>
+			<div
+				class="absolute -left-20 top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.08),transparent_70%)]"
+			></div>
 			<div class="space-y-6">
-				<span class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gray-600">
+				<span
+					class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gray-600"
+				>
 					Документы
 				</span>
-				<h1 class="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.05]">
+				<h1
+					class="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.05]"
+				>
 					Политика конфиденциальности
 				</h1>
 				<p class="text-lg md:text-xl text-gray-600 max-w-3xl">
@@ -54,10 +62,10 @@
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">1. Введение</h2>
 					<p class="text-gray-600 leading-relaxed">
-						ИП Шишеня Ян Александрович (далее - "Компания", "мы") уважает вашу конфиденциальность и обязуется
-						защищать ваши персональные данные. Настоящая Политика конфиденциальности описывает,
-						как мы собираем, используем и защищаем информацию, которую вы предоставляете при
-						использовании сервиса AIris.
+						ИП Шишеня Ян Александрович (далее - "Компания", "мы") уважает вашу конфиденциальность и
+						обязуется защищать ваши персональные данные. Настоящая Политика конфиденциальности
+						описывает, как мы собираем, используем и защищаем информацию, которую вы предоставляете
+						при использовании сервиса AIris.
 					</p>
 				</section>
 
@@ -140,12 +148,10 @@
 							6.1. Мы храним ваши персональные данные до тех пор, пока это необходимо для
 							предоставления услуг или выполнения законодательных требований.
 						</p>
+						<p>6.2. История чатов хранится в соответствии с настройками вашего аккаунта.</p>
 						<p>
-							6.2. История чатов хранится в соответствии с настройками вашего аккаунта.
-						</p>
-						<p>
-							6.3. После удаления аккаунта ваши данные удаляются в течение 30 дней,
-							за исключением данных, которые мы обязаны хранить по закону.
+							6.3. После удаления аккаунта ваши данные удаляются в течение 30 дней, за исключением
+							данных, которые мы обязаны хранить по закону.
 						</p>
 					</div>
 				</section>
@@ -165,7 +171,9 @@
 						</ul>
 						<p class="pt-4">
 							Для реализации своих прав обратитесь к нам по адресу
-							<a href="mailto:support@airis.you" class="text-gray-900 font-medium hover:underline">support@airis.you</a>.
+							<a href="mailto:support@airis.you" class="text-gray-900 font-medium hover:underline"
+								>support@airis.you</a
+							>.
 						</p>
 					</div>
 				</section>
@@ -180,7 +188,8 @@
 							<li><strong>Маркетинговые</strong> - для персонализации рекламы (можно отключить)</li>
 						</ul>
 						<p class="pt-4">
-							8.2. Вы можете управлять настройками cookies в своем браузере или в настройках аккаунта.
+							8.2. Вы можете управлять настройками cookies в своем браузере или в настройках
+							аккаунта.
 						</p>
 					</div>
 				</section>
@@ -197,8 +206,8 @@
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">10. Изменения политики</h2>
 					<p class="text-gray-600 leading-relaxed">
-						Мы можем обновлять настоящую Политику. Об изменениях мы уведомим вас по email
-						или через уведомление в сервисе не менее чем за 30 дней до вступления изменений в силу.
+						Мы можем обновлять настоящую Политику. Об изменениях мы уведомим вас по email или через
+						уведомление в сервисе не менее чем за 30 дней до вступления изменений в силу.
 					</p>
 				</section>
 
@@ -208,8 +217,18 @@
 						По вопросам, связанным с защитой персональных данных:
 					</p>
 					<ul class="mt-4 text-gray-600 space-y-2">
-						<li>Email: <a href="mailto:support@airis.you" class="text-gray-900 font-medium hover:underline">support@airis.you</a></li>
-						<li>Форма обратной связи: <a href="/contact" class="text-gray-900 font-medium hover:underline">страница контактов</a></li>
+						<li>
+							Email: <a
+								href="mailto:support@airis.you"
+								class="text-gray-900 font-medium hover:underline">support@airis.you</a
+							>
+						</li>
+						<li>
+							Форма обратной связи: <a
+								href="/contact"
+								class="text-gray-900 font-medium hover:underline">страница контактов</a
+							>
+						</li>
 					</ul>
 				</section>
 

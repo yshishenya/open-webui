@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Rate Limiting System](#rate-limiting-system)
 3. [Middleware Pipeline](#middleware-pipeline)
@@ -26,6 +27,7 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive guidance on backend performance optimization for the open-webui application. It covers critical aspects including rate limiting, middleware pipeline configuration, API response optimization, JWT management, concurrency settings, and performance monitoring. The document focuses on the implementation details of the RateLimiter class, which uses Redis with a fallback to in-memory storage, and explains how to configure and tune this system for optimal performance. Additionally, it addresses best practices for scaling the FastAPI backend under high load conditions and provides insights into the telemetry metrics collection system used for performance analysis.
 
 ## Rate Limiting System
@@ -67,10 +69,12 @@ RateLimiter --> Redis : "uses when available"
 ```
 
 **Diagram sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L6-L140)
 - [redis.py](file://backend/open_webui/utils/redis.py#L1-L231)
 
 **Section sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L1-L140)
 - [auths.py](file://backend/open_webui/routers/auths.py#L85-L88)
 - [main.py](file://backend/open_webui/main.py#L585-L592)
@@ -82,6 +86,7 @@ The application implements a comprehensive middleware pipeline that processes re
 The middleware architecture follows a layered approach where each middleware component focuses on a specific responsibility. The pipeline begins with CORS handling, followed by session management, security headers, and custom business logic middleware. The order of middleware execution is crucial for proper functionality, with authentication and rate limiting components positioned early in the pipeline to reject unauthorized or abusive requests before they consume significant resources.
 
 Key middleware components include:
+
 - **CompressMiddleware**: Handles response compression to reduce bandwidth usage
 - **SecurityHeadersMiddleware**: Adds security-related HTTP headers to responses
 - **APIKeyRestrictionMiddleware**: Enforces API key access restrictions based on configuration
@@ -111,11 +116,13 @@ end
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/main.py#L1249-L1387)
 - [middleware.py](file://backend/open_webui/utils/middleware.py#L1-L800)
 - [security_headers.py](file://backend/open_webui/utils/security_headers.py)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L1249-L1387)
 - [middleware.py](file://backend/open_webui/utils/middleware.py#L1-L800)
 
@@ -130,12 +137,14 @@ For streaming responses, the application uses FastAPI's StreamingResponse class 
 The application also optimizes JSON responses by using Pydantic models for serialization, which provides both type safety and performance benefits. Response models are carefully designed to include only necessary fields, reducing payload sizes and improving parsing performance on the client side.
 
 Additional optimizations include:
+
 - Caching of frequently accessed data
 - Efficient database query patterns
 - Asynchronous processing of non-critical operations
 - Connection pooling for database and external service calls
 
 **Section sources**
+
 - [middleware.py](file://backend/open_webui/utils/middleware.py#L1-L800)
 - [main.py](file://backend/open_webui/main.py#L1249-L1387)
 - [response.py](file://backend/open_webui/utils/response.py)
@@ -173,11 +182,13 @@ AuthServer-->>Client : Signout complete
 ```
 
 **Diagram sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L194-L242)
 - [auths.py](file://backend/open_webui/routers/auths.py#L589-L592)
 - [config.py](file://backend/open_webui/config.py#L314-L316)
 
 **Section sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L194-L242)
 - [auths.py](file://backend/open_webui/routers/auths.py#L589-L592)
 - [config.py](file://backend/open_webui/config.py#L314-L369)
@@ -192,6 +203,7 @@ The thread pool size is configurable through the THREAD_POOL_SIZE environment va
 For asynchronous operations, the application uses AnyIO as the backend for FastAPI, which provides efficient coroutine scheduling. The thread pool configuration affects both synchronous and asynchronous code paths, as async code may still need to run synchronous functions in threads.
 
 The concurrency model also considers the nature of different operations:
+
 - CPU-intensive tasks are limited to prevent overwhelming the processor
 - I/O-bound operations can utilize more threads since they spend time waiting for external resources
 - Background tasks are managed separately to avoid impacting request response times
@@ -199,6 +211,7 @@ The concurrency model also considers the nature of different operations:
 Proper tuning of concurrency settings requires monitoring system resources and adjusting based on observed performance. Under-provisioning can lead to poor responsiveness during peak loads, while over-provisioning can cause excessive context switching and memory usage.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L599-L602)
 - [config.py](file://backend/open_webui/config.py#L130-L131)
 - [env.py](file://backend/open_webui/env.py#L129-L131)
@@ -210,12 +223,14 @@ The application includes a comprehensive telemetry system for performance monito
 When OpenTelemetry (OTEL) is enabled, the application exports metrics and traces to an external collector. The metrics collected include HTTP server request counts and duration histograms, with attributes for HTTP method, route, and status code. These metrics enable detailed analysis of API performance across different endpoints and response types.
 
 The telemetry system is configured through environment variables that control:
+
 - Service name for identification in monitoring systems
 - OTLP endpoint for exporting data
 - Authentication credentials for secure transmission
 - Exporter type (gRPC or HTTP)
 
 Key metrics collected by the system:
+
 - **http.server.requests**: Counter of HTTP requests, useful for monitoring traffic patterns
 - **http.server.duration**: Histogram of request processing times, essential for identifying slow endpoints
 - **webui.users.total**: Gauge of total registered users
@@ -223,6 +238,7 @@ Key metrics collected by the system:
 - **webui.users.active.today**: Gauge of users active during the current day
 
 The system also instruments various components including:
+
 - FastAPI application
 - SQLAlchemy database operations
 - Redis commands
@@ -257,12 +273,14 @@ style K fill:#69f,stroke:#333
 ```
 
 **Diagram sources**
+
 - [setup.py](file://backend/open_webui/utils/telemetry/setup.py#L1-L32)
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L1-L179)
 - [instrumentors.py](file://backend/open_webui/utils/telemetry/instrumentors.py#L1-L203)
 - [main.py](file://backend/open_webui/main.py#L691-L694)
 
 **Section sources**
+
 - [setup.py](file://backend/open_webui/utils/telemetry/setup.py#L1-L32)
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L1-L179)
 - [instrumentors.py](file://backend/open_webui/utils/telemetry/instrumentors.py#L1-L203)
@@ -273,18 +291,21 @@ style K fill:#69f,stroke:#333
 To effectively scale the FastAPI backend under high load, several best practices should be followed. These practices address both vertical scaling (increasing resources on a single server) and horizontal scaling (adding more servers).
 
 For vertical scaling, optimize resource allocation by:
+
 - Adjusting the thread pool size based on CPU core count and workload characteristics
 - Ensuring sufficient memory is available for the application and its dependencies
 - Using Redis for distributed rate limiting and session storage
 - Configuring appropriate connection pool sizes for database and external services
 
 For horizontal scaling, implement:
+
 - Load balancing across multiple application instances
 - Shared Redis instance for rate limiting and session data
 - Shared database with appropriate connection pooling
 - External storage for file uploads and other shared resources
 
 Additional scaling considerations:
+
 - **Caching strategy**: Implement multi-level caching using Redis for frequently accessed data
 - **Database optimization**: Use connection pooling, optimize queries, and consider read replicas for high-read workloads
 - **Static file serving**: Offload static file serving to a CDN or dedicated web server
@@ -294,12 +315,14 @@ Additional scaling considerations:
 When deploying in containerized environments, ensure proper resource limits and requests are configured to prevent resource contention. Use health checks to ensure load balancers route traffic only to healthy instances.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L585-L592)
 - [redis.py](file://backend/open_webui/utils/redis.py#L1-L231)
 - [config.py](file://backend/open_webui/config.py)
 - [env.py](file://backend/open_webui/env.py)
 
 ## Conclusion
+
 The open-webui application provides a comprehensive set of performance optimization features that can be configured to meet various deployment requirements. The rate limiting system, built around the RateLimiter class with Redis fallback, effectively protects against abuse while maintaining availability. The middleware pipeline efficiently handles cross-cutting concerns, and the telemetry system provides valuable insights for performance analysis.
 
 By properly configuring JWT expiration, concurrency settings, and leveraging the telemetry capabilities, administrators can optimize the application for their specific use cases. Following the scaling best practices outlined in this document will help ensure reliable performance even under high load conditions. Regular monitoring and adjustment of these settings based on actual usage patterns will further enhance the application's performance and user experience.

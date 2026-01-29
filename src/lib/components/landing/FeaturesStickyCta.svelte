@@ -63,11 +63,7 @@
 		>
 			×
 		</button>
-		<a
-			href={ctaHref}
-			class="features-sticky-button"
-			on:click={handleStickyCtaClick}
-		>
+		<a href={ctaHref} class="features-sticky-button" on:click={handleStickyCtaClick}>
 			{$user ? labelAuthed : labelGuest}
 		</a>
 	</div>

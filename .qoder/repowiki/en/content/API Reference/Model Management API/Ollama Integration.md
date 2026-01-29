@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -24,9 +25,11 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document describes the Ollama integration within Open WebUI, focusing on how the backend proxies requests to Ollama services and exposes a unified API for model management. It covers endpoints for listing, pulling, deleting, and creating models, as well as streaming downloads and uploads. It also explains request/response transformations between Open WebUI’s configuration and Ollama’s native API, parameter mapping, connection management, authentication, error handling, and security considerations.
 
 ## Project Structure
+
 The Ollama integration spans backend routing, utilities for payload transformation, configuration and environment settings, and frontend API bindings.
 
 ```mermaid
@@ -51,6 +54,7 @@ R --> K
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/routers/ollama.py](file://backend/open_webui/routers/ollama.py#L1-L1806)
 - [backend/open_webui/utils/payload.py](file://backend/open_webui/utils/payload.py#L1-L392)
 - [backend/open_webui/utils/misc.py](file://backend/open_webui/utils/misc.py#L428-L474)
@@ -60,16 +64,19 @@ R --> K
 - [src/lib/apis/ollama/index.ts](file://src/lib/apis/ollama/index.ts#L1-L562)
 
 **Section sources**
+
 - [backend/open_webui/routers/ollama.py](file://backend/open_webui/routers/ollama.py#L1-L1806)
 - [src/lib/apis/ollama/index.ts](file://src/lib/apis/ollama/index.ts#L1-L562)
 
 ## Core Components
+
 - Backend Ollama router: Provides endpoints for model listing, pulling, pushing, deleting, creating, showing, and streaming downloads/uploads. Also exposes OpenAI-compatible endpoints and version checks.
 - Payload utilities: Transform Open WebUI model parameters into Ollama-compatible bodies and handle OpenAI-to-Ollama conversions.
 - Configuration and environment: Manage base URLs, API keys, timeouts, SSL settings, and access control toggles.
 - Frontend API bindings: JavaScript module that calls backend endpoints for UI interactions.
 
 Key responsibilities:
+
 - Proxy requests to Ollama instances with authentication and user info forwarding.
 - Normalize model lists across multiple Ollama backends.
 - Map Open WebUI model parameters to Ollama execution parameters.
@@ -77,6 +84,7 @@ Key responsibilities:
 - Enforce access control and admin-only operations where appropriate.
 
 **Section sources**
+
 - [backend/open_webui/routers/ollama.py](file://backend/open_webui/routers/ollama.py#L213-L1806)
 - [backend/open_webui/utils/payload.py](file://backend/open_webui/utils/payload.py#L1-L392)
 - [backend/open_webui/config.py](file://backend/open_webui/config.py#L912-L1004)
@@ -84,7 +92,9 @@ Key responsibilities:
 - [src/lib/apis/ollama/index.ts](file://src/lib/apis/ollama/index.ts#L1-L562)
 
 ## Architecture Overview
+
 The integration uses a FastAPI router to expose endpoints that either:
+
 - Fetch model lists from multiple Ollama backends and merge them.
 - Forward requests to a selected Ollama backend with optional authentication and user info headers.
 - Stream downloads and uploads with progress events.
@@ -110,6 +120,7 @@ API-->>FE : Streamed progress
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/routers/ollama.py](file://backend/open_webui/routers/ollama.py#L308-L551)
 - [backend/open_webui/utils/payload.py](file://backend/open_webui/utils/payload.py#L123-L203)
 - [backend/open_webui/config.py](file://backend/open_webui/config.py#L912-L1004)
@@ -118,6 +129,7 @@ API-->>FE : Streamed progress
 ## Detailed Component Analysis
 
 ### Backend Router: Endpoints and Behavior
+
 - Status and verification
   - GET/HEAD “/”: Returns health status.
   - POST “/verify”: Verifies connectivity to a given Ollama URL and returns version info.
@@ -148,12 +160,15 @@ API-->>FE : Streamed progress
   - POST “/models/upload”: Streams a local file upload, computes SHA256, uploads to Ollama blobs, and creates a model.
 
 Access control:
+
 - Many endpoints require verified or admin users. Filtering logic ensures users can only access models they own or have access to.
 
 **Section sources**
+
 - [backend/open_webui/routers/ollama.py](file://backend/open_webui/routers/ollama.py#L213-L1806)
 
 ### Request/Response Transformation and Parameter Mapping
+
 - OpenAI-to-Ollama mapping:
   - Converts OpenAI payload fields to Ollama equivalents, including message normalization, tool calls, and response format handling.
   - Remaps max_tokens to num_predict and moves system prompt into the payload root for Ollama.
@@ -177,13 +192,16 @@ Root --> Done(["Forward to Ollama"])
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/utils/payload.py](file://backend/open_webui/utils/payload.py#L123-L203)
 - [backend/open_webui/utils/payload.py](file://backend/open_webui/utils/payload.py#L279-L363)
 
 **Section sources**
+
 - [backend/open_webui/utils/payload.py](file://backend/open_webui/utils/payload.py#L1-L392)
 
 ### Connection Management, Authentication, and Headers
+
 - Base URLs and API configs:
   - Multiple Ollama backends can be configured via environment variables and persisted configuration.
   - Per-backend API keys and flags (enable/disable) are supported.
@@ -196,22 +214,26 @@ Root --> Done(["Forward to Ollama"])
   - User-visible model lists are filtered by ownership or access control policies.
 
 **Section sources**
+
 - [backend/open_webui/config.py](file://backend/open_webui/config.py#L912-L1004)
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L664-L711)
 - [backend/open_webui/routers/ollama.py](file://backend/open_webui/routers/ollama.py#L278-L551)
 
 ### Error Handling and Network Scenarios
+
 - HTTP exceptions are raised with detailed messages when Ollama returns non-200 responses.
 - Parsing errors for JSON responses are caught and surfaced as structured details.
 - Timeout and SSL configuration help mitigate network latency and TLS issues.
 - Version mismatch detection compares numeric segments of version strings to select the lowest version across backends.
 
 **Section sources**
+
 - [backend/open_webui/routers/ollama.py](file://backend/open_webui/routers/ollama.py#L81-L194)
 - [backend/open_webui/routers/ollama.py](file://backend/open_webui/routers/ollama.py#L554-L625)
 - [backend/open_webui/constants.py](file://backend/open_webui/constants.py#L1-L127)
 
 ### Frontend API Bindings
+
 - The frontend module exposes functions to:
   - Verify Ollama connection and fetch configuration.
   - Update Ollama configuration.
@@ -221,9 +243,11 @@ Root --> Done(["Forward to Ollama"])
 - These functions wrap backend endpoints and surface errors with user-friendly messages.
 
 **Section sources**
+
 - [src/lib/apis/ollama/index.ts](file://src/lib/apis/ollama/index.ts#L1-L562)
 
 ### Model Tags and Custom Parameters
+
 - Tags and prefixes:
   - Tags can be attached to models discovered from backends; prefixes can be applied to normalize model IDs across clusters.
 - Custom parameters:
@@ -232,11 +256,13 @@ Root --> Done(["Forward to Ollama"])
   - Utilities extract base model, template, and stop sequences from modelfile text for model configuration.
 
 **Section sources**
+
 - [backend/open_webui/routers/ollama.py](file://backend/open_webui/routers/ollama.py#L308-L551)
 - [backend/open_webui/utils/payload.py](file://backend/open_webui/utils/payload.py#L123-L203)
 - [backend/open_webui/utils/misc.py](file://backend/open_webui/utils/misc.py#L428-L474)
 
 ## Dependency Analysis
+
 ```mermaid
 graph LR
 FE["Frontend API (index.ts)"] --> R["Ollama Router"]
@@ -248,6 +274,7 @@ R --> ERR["Constants"]
 ```
 
 **Diagram sources**
+
 - [src/lib/apis/ollama/index.ts](file://src/lib/apis/ollama/index.ts#L1-L562)
 - [backend/open_webui/routers/ollama.py](file://backend/open_webui/routers/ollama.py#L1-L1806)
 - [backend/open_webui/utils/payload.py](file://backend/open_webui/utils/payload.py#L1-L392)
@@ -257,6 +284,7 @@ R --> ERR["Constants"]
 - [backend/open_webui/constants.py](file://backend/open_webui/constants.py#L1-L127)
 
 **Section sources**
+
 - [backend/open_webui/routers/ollama.py](file://backend/open_webui/routers/ollama.py#L1-L1806)
 - [backend/open_webui/utils/payload.py](file://backend/open_webui/utils/payload.py#L1-L392)
 - [backend/open_webui/utils/misc.py](file://backend/open_webui/utils/misc.py#L428-L474)
@@ -265,6 +293,7 @@ R --> ERR["Constants"]
 - [backend/open_webui/constants.py](file://backend/open_webui/constants.py#L1-L127)
 
 ## Performance Considerations
+
 - Parallel model fetching: The router aggregates model lists concurrently across multiple backends to reduce latency.
 - Streaming downloads and uploads: Progress is streamed to the client, enabling responsive UI updates during long transfers.
 - Caching: Model lists are cached with a TTL controlled by environment configuration to balance freshness and performance.
@@ -273,7 +302,9 @@ R --> ERR["Constants"]
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 Common issues and resolutions:
+
 - Service unavailability:
   - Use “/verify” to check connectivity and version. If unavailable, adjust base URLs or credentials.
 - Permission denied:
@@ -286,11 +317,13 @@ Common issues and resolutions:
   - Increase AIOHTTP client timeouts and ensure SSL settings match the deployment environment.
 
 **Section sources**
+
 - [backend/open_webui/routers/ollama.py](file://backend/open_webui/routers/ollama.py#L213-L277)
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L664-L711)
 - [backend/open_webui/constants.py](file://backend/open_webui/constants.py#L1-L127)
 
 ## Conclusion
+
 The Ollama integration provides a robust, configurable, and secure bridge between Open WebUI and Ollama. It supports multi-backend model management, parameter mapping, streaming operations, and access control. Proper configuration of base URLs, API keys, and timeouts enables reliable operation across diverse environments.
 
 [No sources needed since this section summarizes without analyzing specific files]
@@ -298,6 +331,7 @@ The Ollama integration provides a robust, configurable, and secure bridge betwee
 ## Appendices
 
 ### API Endpoints Summary
+
 - Health and verification
   - GET/HEAD “/”
   - POST “/verify”
@@ -328,14 +362,17 @@ The Ollama integration provides a robust, configurable, and secure bridge betwee
   - POST “/models/upload”
 
 **Section sources**
+
 - [backend/open_webui/routers/ollama.py](file://backend/open_webui/routers/ollama.py#L213-L1806)
 
 ### Security Considerations
+
 - Admin-only operations: Model lifecycle endpoints require admin privileges.
 - Access control: User-visible model lists are filtered by ownership or access control policies.
 - User info forwarding: Optional forwarding of user identity headers to backends for auditing.
 - TLS and timeouts: Configure SSL and timeouts appropriately for your deployment.
 
 **Section sources**
+
 - [backend/open_webui/routers/ollama.py](file://backend/open_webui/routers/ollama.py#L278-L551)
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L210-L222)

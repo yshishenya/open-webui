@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Task Lifecycle Overview](#task-lifecycle-overview)
 3. [Task Creation and Registration](#task-creation-and-registration)
@@ -29,6 +30,7 @@ The Task Management and Lifecycle system in open-webui provides a robust framewo
 The system leverages Redis for both persistent task state tracking and real-time command distribution via pub/sub channels. This dual approach ensures that tasks are properly tracked even during instance restarts while allowing immediate command propagation across all instances in a cluster.
 
 **Section sources**
+
 - [tasks.py](file://backend/open_webui/tasks.py#L1-L187)
 - [main.py](file://backend/open_webui/main.py#L514-L655)
 
@@ -58,6 +60,7 @@ Remove --> End([Task Lifecycle Complete])
 ```
 
 **Diagram sources**
+
 - [tasks.py](file://backend/open_webui/tasks.py#L97-L119)
 - [tasks.py](file://backend/open_webui/tasks.py#L81-L95)
 
@@ -66,6 +69,7 @@ Remove --> End([Task Lifecycle Complete])
 Task creation in open-webui is handled through the `create_task` function, which serves as the primary entry point for registering new background operations. This function accepts a coroutine to execute and an optional item ID to associate with the task, enabling grouped task management.
 
 The task creation process involves several critical steps:
+
 1. Generation of a unique UUID for the task identifier
 2. Creation of an asyncio task from the provided coroutine
 3. Registration of a cleanup callback that executes when the task completes
@@ -79,24 +83,25 @@ The system uses a done callback pattern to ensure automatic cleanup upon task co
 async def create_task(redis, coroutine, id=None):
     task_id = str(uuid4())
     task = asyncio.create_task(coroutine)
-    
+
     task.add_done_callback(
         lambda t: asyncio.create_task(cleanup_task(redis, task_id, id))
     )
     tasks[task_id] = task
-    
+
     if item_tasks.get(id):
         item_tasks[id].append(task_id)
     else:
         item_tasks[id] = [task_id]
-    
+
     if redis:
         await redis_save_task(redis, task_id, id)
-    
+
     return task_id, task
 ```
 
 **Section sources**
+
 - [tasks.py](file://backend/open_webui/tasks.py#L97-L119)
 
 ## Redis Task Command Listener
@@ -129,6 +134,7 @@ end
 ```
 
 **Diagram sources**
+
 - [tasks.py](file://backend/open_webui/tasks.py#L27-L43)
 - [env.py](file://backend/open_webui/env.py#L382-L382)
 
@@ -176,6 +182,7 @@ TaskManager --> RedisStorage : "uses"
 ```
 
 **Diagram sources**
+
 - [tasks.py](file://backend/open_webui/tasks.py#L17-L24)
 - [tasks.py](file://backend/open_webui/tasks.py#L51-L66)
 
@@ -186,6 +193,7 @@ The task cancellation mechanism in open-webui implements a graceful shutdown pro
 When Redis is configured, the `stop_task` function publishes a "stop" command to the Redis pub/sub channel. This ensures that all instances in a cluster receive the cancellation request simultaneously. The function then returns immediately with a confirmation that the stop signal was sent, without waiting for actual task termination.
 
 When Redis is not available, the system performs local cancellation by:
+
 1. Removing the task from the global tasks dictionary
 2. Requesting cancellation via the asyncio task's cancel() method
 3. Awaiting the task to handle the cancellation exception
@@ -211,6 +219,7 @@ ReturnSuccess --> End
 ```
 
 **Diagram sources**
+
 - [tasks.py](file://backend/open_webui/tasks.py#L140-L170)
 - [tasks.py](file://backend/open_webui/tasks.py#L173-L186)
 
@@ -251,6 +260,7 @@ TasksRouter-->>Client : Return title generation result
 ```
 
 **Diagram sources**
+
 - [routers/tasks.py](file://backend/open_webui/routers/tasks.py#L166-L247)
 - [tasks.py](file://backend/open_webui/tasks.py#L97-L119)
 
@@ -259,25 +269,33 @@ TasksRouter-->>Client : Return title generation result
 The task management system addresses several common issues that arise in distributed background task processing environments.
 
 ### Task Leakage
+
 Task leakage can occur if cleanup callbacks fail to execute or if exceptions prevent proper cleanup. The system mitigates this through:
+
 - Using asyncio task done callbacks that are guaranteed to execute
 - Storing task state in Redis for persistence across restarts
 - Implementing the `redis_cleanup_task` function to remove stale entries
 
 ### Zombie Processes
+
 Zombie processes are prevented by:
+
 - Proper exception handling in task coroutines
 - Using asyncio cancellation mechanisms rather than forceful termination
 - Implementing timeout mechanisms in the underlying operations
 
 ### Race Conditions
+
 Race conditions during task termination are minimized by:
+
 - Using Redis atomic operations (pipelines) for state updates
 - Implementing the pub/sub pattern for distributed commands
 - Designing idempotent operations where possible
 
 ### Cross-Instance Consistency
+
 The system ensures consistency across instances by:
+
 - Using Redis as the source of truth for task state
 - Propagating commands via pub/sub to all instances simultaneously
 - Implementing retry logic for Redis operations in the SentinelRedisProxy
@@ -300,6 +318,7 @@ Issue4 --> Mitigation12[Retry logic for Redis operations]
 ```
 
 **Diagram sources**
+
 - [tasks.py](file://backend/open_webui/tasks.py#L81-L95)
 - [utils/redis.py](file://backend/open_webui/utils/redis.py#L22-L101)
 
@@ -308,24 +327,28 @@ Issue4 --> Mitigation12[Retry logic for Redis operations]
 When implementing new background tasks within the open-webui system, several best practices should be followed to ensure reliability, maintainability, and proper integration with the existing architecture.
 
 ### Task Design Principles
+
 1. **Idempotency**: Design tasks to be idempotent where possible, allowing safe retry of operations
 2. **Progressive Enhancement**: Implement features as optional enhancements that degrade gracefully when disabled
 3. **Resource Management**: Properly manage resources and ensure cleanup in all execution paths
 4. **Error Handling**: Implement comprehensive error handling with appropriate logging
 
 ### Integration Patterns
+
 1. **Configuration-Driven**: Use the configuration system to enable/disable features
 2. **Template-Based**: Leverage the prompt template system for consistent formatting
 3. **Model Agnostic**: Support both local and external models through the task model selection
 4. **Metadata Enrichment**: Include appropriate metadata in task payloads for monitoring and debugging
 
 ### Performance Considerations
+
 1. **Batching**: Where appropriate, batch operations to reduce overhead
 2. **Caching**: Implement caching for expensive operations when possible
 3. **Rate Limiting**: Consider rate limiting for external API calls
 4. **Timeouts**: Implement appropriate timeouts to prevent hanging operations
 
 ### Security Considerations
+
 1. **Input Validation**: Validate all inputs before processing
 2. **Authentication**: Ensure proper authentication and authorization checks
 3. **Rate Limiting**: Implement rate limiting to prevent abuse
@@ -344,6 +367,7 @@ Deploy --> End([Task Successfully Implemented])
 ```
 
 **Diagram sources**
+
 - [routers/tasks.py](file://backend/open_webui/routers/tasks.py#L166-L753)
 - [tasks.py](file://backend/open_webui/tasks.py#L97-L119)
 
@@ -352,6 +376,7 @@ Deploy --> End([Task Successfully Implemented])
 The Task Management and Lifecycle system in open-webui provides a comprehensive framework for handling background operations in a distributed environment. By leveraging Redis for both state persistence and real-time command distribution, the system ensures consistent task management across multiple application instances.
 
 Key strengths of the system include:
+
 - Robust task lifecycle management with automatic cleanup
 - Distributed coordination through Redis pub/sub
 - Flexible configuration system for enabling/disabling features
@@ -363,6 +388,7 @@ The system effectively addresses common challenges in background task processing
 For developers implementing new background tasks, following the established patterns and best practices ensures seamless integration with the existing system while maintaining the reliability and performance characteristics that users expect.
 
 **Section sources**
+
 - [tasks.py](file://backend/open_webui/tasks.py#L1-L187)
 - [routers/tasks.py](file://backend/open_webui/routers/tasks.py#L1-L753)
 - [main.py](file://backend/open_webui/main.py#L514-L655)

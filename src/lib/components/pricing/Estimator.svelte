@@ -38,7 +38,11 @@
 
 	export let config: PricingEstimatorConfig;
 	export let rateCard: PublicRateCardResponse | null = null;
-	export let recommendedModelIdByType: { text?: string | null; image?: string | null; audio?: string | null } = {};
+	export let recommendedModelIdByType: {
+		text?: string | null;
+		image?: string | null;
+		audio?: string | null;
+	} = {};
 	export let loading: boolean = false;
 	export let error: string | null = null;
 	export let primaryLabel: string = 'Начать бесплатно';
@@ -120,15 +124,13 @@
 		activeTab = availableTabs[0].id as 'text' | 'image' | 'audio';
 	}
 
-	$: audioModesAvailable = (
-		audioModel
-			? config.audio.modes.filter((mode) => {
+	$: audioModesAvailable = audioModel
+		? config.audio.modes.filter((mode) => {
 				if (mode.id === 'tts') return audioModel.rates.tts_1000_chars !== null;
 				if (mode.id === 'stt') return audioModel.rates.stt_minute !== null;
 				return false;
 			})
-			: []
-	);
+		: [];
 
 	$: if (audioModesAvailable.length && !audioModesAvailable.find((mode) => mode.id === audioMode)) {
 		audioMode = audioModesAvailable[0].id;
@@ -215,11 +217,7 @@
 
 	$: exampleTextPresets = config.text.presets.map((preset) => ({
 		...preset,
-		estimate: computeTextEstimate(
-			preset.messagesPerDay,
-			preset.bucket,
-			preset.replyMultiplier
-		)
+		estimate: computeTextEstimate(preset.messagesPerDay, preset.bucket, preset.replyMultiplier)
 	}));
 
 	$: exampleImagePresets = config.image.presets.map((preset) => ({
@@ -288,8 +286,8 @@
 	{/if}
 
 	<p class="text-xs text-gray-500">
-		Оценка. Реальная сумма зависит от содержания запросов и выбранной модели. Итоговые
-		списания видны в истории.
+		Оценка. Реальная сумма зависит от содержания запросов и выбранной модели. Итоговые списания
+		видны в истории.
 	</p>
 
 	<div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -356,9 +354,7 @@
 								<select
 									value={textReplyMultiplier}
 									on:change={(event) => {
-										textReplyMultiplier = Number(
-											(event.currentTarget as HTMLSelectElement).value
-										);
+										textReplyMultiplier = Number((event.currentTarget as HTMLSelectElement).value);
 										scheduleEstimatorChange();
 									}}
 									class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"

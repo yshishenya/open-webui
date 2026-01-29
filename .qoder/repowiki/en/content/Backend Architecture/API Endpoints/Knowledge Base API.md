@@ -14,6 +14,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -26,7 +27,9 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document provides API documentation for the Knowledge Base endpoints in open-webui. It covers:
+
 - Creating, retrieving, updating, and deleting knowledge bases
 - Adding, updating, and removing documents from knowledge bases
 - File ingestion and text extraction workflows
@@ -35,6 +38,7 @@ This document provides API documentation for the Knowledge Base endpoints in ope
 - How knowledge bases integrate with the Retrieval-Augmented Generation (RAG) system and chat endpoints to provide context-aware responses
 
 ## Project Structure
+
 The Knowledge Base API is implemented in the backend router and backed by SQLAlchemy models. It integrates with the retrieval pipeline and vector database abstraction.
 
 ```mermaid
@@ -62,6 +66,7 @@ CF --> V
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L662)
 - [models/knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 - [retrieval/vector/factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
@@ -72,6 +77,7 @@ CF --> V
 - [index.ts (retrieval)](file://src/lib/apis/retrieval/index.ts#L63-L200)
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L662)
 - [models/knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 - [retrieval/vector/factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
@@ -82,6 +88,7 @@ CF --> V
 - [index.ts (retrieval)](file://src/lib/apis/retrieval/index.ts#L63-L200)
 
 ## Core Components
+
 - Knowledge Base Router: Implements CRUD and document management endpoints for knowledge bases.
 - Knowledge Models: SQLAlchemy ORM and Pydantic models for knowledge base records and relationships.
 - Vector DB Abstraction: Factory selects the configured vector database client.
@@ -90,6 +97,7 @@ CF --> V
 - Frontend APIs: Client-side wrappers for knowledge base and retrieval configuration.
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L662)
 - [models/knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 - [retrieval/vector/factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
@@ -97,7 +105,9 @@ CF --> V
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L1-L200)
 
 ## Architecture Overview
+
 The Knowledge Base API orchestrates:
+
 - Access control checks against knowledge base ownership and shared permissions
 - File ingestion and embedding updates via the retrieval pipeline
 - Vector database operations for search and reset
@@ -122,6 +132,7 @@ API-->>Client : "KnowledgeFilesResponse with files"
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L84-L117)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L276-L341)
 - [models/knowledge.py](file://backend/open_webui/models/knowledge.py#L132-L164)
@@ -131,6 +142,7 @@ API-->>Client : "KnowledgeFilesResponse with files"
 ## Detailed Component Analysis
 
 ### Knowledge Base Endpoints
+
 - GET /knowledge/
   - Description: Retrieve knowledge bases with read access for the current user.
   - Response: Array of KnowledgeUserResponse with embedded file metadata.
@@ -159,6 +171,7 @@ API-->>Client : "KnowledgeFilesResponse with files"
   - Response: Boolean success indicator.
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L43-L76)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L84-L117)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L191-L211)
@@ -168,6 +181,7 @@ API-->>Client : "KnowledgeFilesResponse with files"
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L124-L179)
 
 ### Document Management Endpoints
+
 - POST /knowledge/{id}/file/add
   - Description: Add a processed file to a knowledge base and index it into the vector DB.
   - Request body: { file_id: string }
@@ -186,12 +200,14 @@ API-->>Client : "KnowledgeFilesResponse with files"
   - Response: KnowledgeFilesResponse with warnings if any failures.
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L276-L341)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L343-L403)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L410-L483)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L587-L662)
 
 ### Data Models and Access Control
+
 - Knowledge (SQLAlchemy)
   - Fields: id, user_id, name, description, meta, access_control, created_at, updated_at
   - Access control semantics: None (public), {} (private), or structured read/write rules.
@@ -203,11 +219,13 @@ API-->>Client : "KnowledgeFilesResponse with files"
   - Methods: insert_new_knowledge, get_knowledge_bases, get_knowledge_by_id, add/remove file relations, reset, update, delete.
 
 **Section sources**
+
 - [models/knowledge.py](file://backend/open_webui/models/knowledge.py#L36-L115)
 - [models/knowledge.py](file://backend/open_webui/models/knowledge.py#L120-L164)
 - [models/knowledge.py](file://backend/open_webui/models/knowledge.py#L165-L371)
 
 ### File Ingestion and Text Extraction Workflow
+
 - Files are processed via retrieval pipeline:
   - Extract text content and compute a content hash
   - Store enriched content and metadata
@@ -229,6 +247,7 @@ Cleanup --> Done
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L312-L341)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L375-L403)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L445-L472)
@@ -236,12 +255,14 @@ Cleanup --> Done
 - [retrieval/vector/factory.py](file://backend/open_webui/retrieval/vector/factory.py#L78-L79)
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L312-L341)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L375-L403)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L445-L472)
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L1566-L1600)
 
 ### Knowledge Base Configuration, Embeddings, and Vector Database
+
 - Vector Database Selection
   - The vector DB client is selected by configuration and exposed globally.
 - Retrieval Configuration
@@ -275,15 +296,18 @@ Config --> VectorFactory : "selects"
 ```
 
 **Diagram sources**
+
 - [retrieval/vector/factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
 - [config.py](file://backend/open_webui/config.py#L2108-L2140)
 
 **Section sources**
+
 - [retrieval/vector/factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
 - [config.py](file://backend/open_webui/config.py#L2108-L2140)
 - [retrieval/utils.py](file://backend/open_webui/retrieval/utils.py#L135-L167)
 
 ### Integration with RAG and Chat Endpoints
+
 - RAG Template and Context Injection
   - Chat middleware injects retrieved context into the model prompt using a configurable template.
 - Knowledge Base Context
@@ -307,15 +331,18 @@ Chat-->>Chat : "Inject into template and stream response"
 ```
 
 **Diagram sources**
+
 - [retrieval/utils.py](file://backend/open_webui/retrieval/utils.py#L1073-L1103)
 - [retrieval/utils.py](file://backend/open_webui/retrieval/utils.py#L135-L167)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L512-L537)
 
 **Section sources**
+
 - [retrieval/utils.py](file://backend/open_webui/retrieval/utils.py#L1073-L1103)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L512-L537)
 
 ## Dependency Analysis
+
 - Router-to-Model Coupling
   - Knowledge router depends on KnowledgeTable for persistence and on Files for file metadata.
 - Vector DB Coupling
@@ -334,6 +361,7 @@ FER["src/lib/apis/retrieval/index.ts"] --> RET
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L662)
 - [models/knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 - [retrieval/vector/factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
@@ -343,6 +371,7 @@ FER["src/lib/apis/retrieval/index.ts"] --> RET
 - [index.ts (retrieval)](file://src/lib/apis/retrieval/index.ts#L63-L200)
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L662)
 - [models/knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 - [retrieval/vector/factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
@@ -352,6 +381,7 @@ FER["src/lib/apis/retrieval/index.ts"] --> RET
 - [index.ts (retrieval)](file://src/lib/apis/retrieval/index.ts#L63-L200)
 
 ## Performance Considerations
+
 - Batch Operations
   - Prefer batch add endpoints for multiple files to reduce overhead.
 - Vector DB Limits
@@ -364,6 +394,7 @@ FER["src/lib/apis/retrieval/index.ts"] --> RET
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - Unauthorized Access
   - Ensure the user has appropriate permissions or is the owner/admin.
 - File Not Processed
@@ -374,11 +405,13 @@ FER["src/lib/apis/retrieval/index.ts"] --> RET
   - Deleting a knowledge base updates model configurations that reference it; confirm model updates succeeded.
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L284-L341)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L445-L472)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L512-L537)
 
 ## Conclusion
+
 The Knowledge Base API provides a robust foundation for managing knowledge bases, integrating file ingestion, and enabling RAG-powered chat experiences. By leveraging the vector database abstraction and retrieval utilities, applications can scale knowledge-driven capabilities while maintaining strong access control and operational flexibility.
 
 [No sources needed since this section summarizes without analyzing specific files]
@@ -390,11 +423,13 @@ The Knowledge Base API provides a robust foundation for managing knowledge bases
 - Authentication
   - All endpoints require a valid bearer token.
 - Permissions
+
   - Read access: any user with read access or admin
   - Write access: owner, users with write access, or admin
   - Admin-only: reindex, delete knowledge base
 
 - Endpoints
+
   - GET /knowledge/
     - Response: Array of KnowledgeUserResponse
   - GET /knowledge/list
@@ -415,6 +450,7 @@ The Knowledge Base API provides a robust foundation for managing knowledge bases
     - Response: Boolean
 
 - Document Management
+
   - POST /knowledge/{id}/file/add
     - Body: { file_id: string }
     - Response: KnowledgeFilesResponse
@@ -429,24 +465,26 @@ The Knowledge Base API provides a robust foundation for managing knowledge bases
     - Response: KnowledgeFilesResponse (may include warnings)
 
 - Request Payload Examples
+
   - Create Knowledge Base
     - {
       "name": "Project Docs",
       "description": "Internal documentation",
       "access_control": null
-    }
+      }
   - Update Knowledge Base
     - {
       "name": "Updated Name",
       "description": "Updated Description",
       "access_control": {}
-    }
+      }
   - Add File
     - {
       "file_id": "uuid-of-processed-file"
-    }
+      }
 
 - Response Examples
+
   - KnowledgeResponse
     - {
       "id": "uuid",
@@ -457,7 +495,7 @@ The Knowledge Base API provides a robust foundation for managing knowledge bases
       "access_control": null,
       "created_at": 1710000000,
       "updated_at": 1710000000
-    }
+      }
   - KnowledgeFilesResponse
     - Same as KnowledgeResponse plus:
       "files": [FileMetadataResponse...]
@@ -468,6 +506,7 @@ The Knowledge Base API provides a robust foundation for managing knowledge bases
   - Query settings endpoints: GET /retrieval/query/settings, POST /retrieval/query/settings/update
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L43-L76)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L84-L117)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L191-L211)

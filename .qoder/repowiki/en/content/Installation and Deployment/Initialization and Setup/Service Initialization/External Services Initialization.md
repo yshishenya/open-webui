@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [YooKassa Billing Client Initialization](#yookassa-billing-client-initialization)
 3. [External AI Model Endpoint Integration](#external-ai-model-endpoint-integration)
@@ -21,9 +22,11 @@
 7. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive guidance on the initialization of external service clients during application startup in open-webui, with a focus on the main.py implementation. The system integrates various external services including payment processing, AI model endpoints, authentication providers, and web search engines. The initialization process is designed to be secure, configurable, and resilient, with proper error handling and health monitoring. The configuration follows a hierarchical pattern where environment variables are loaded, validated, and then used to initialize service clients that are stored in the application state for global access throughout the application lifecycle.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L1-L100)
 
 ## YooKassa Billing Client Initialization
@@ -55,11 +58,13 @@ App->>App : Continue startup process
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/main.py#L605-L627)
 - [yookassa.py](file://backend/open_webui/utils/yookassa.py#L22-L36)
 - [env.py](file://backend/open_webui/env.py#L889-L892)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L605-L627)
 - [yookassa.py](file://backend/open_webui/utils/yookassa.py#L22-L355)
 - [env.py](file://backend/open_webui/env.py#L889-L892)
@@ -107,6 +112,7 @@ ToolsRouter --> App : uses configuration
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/main.py#L704-L730)
 - [config.py](file://backend/open_webui/config.py#L117-L132)
 - [ollama.py](file://backend/open_webui/routers/ollama.py)
@@ -114,6 +120,7 @@ ToolsRouter --> App : uses configuration
 - [tools.py](file://backend/open_webui/routers/tools.py)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L704-L730)
 - [config.py](file://backend/open_webui/config.py#L117-L132)
 - [ollama.py](file://backend/open_webui/routers/ollama.py)
@@ -158,11 +165,13 @@ InitializeManager --> Complete["OAuth configuration complete"]
 ```
 
 **Diagram sources**
+
 - [config.py](file://backend/open_webui/config.py#L632-L793)
 - [main.py](file://backend/open_webui/main.py#L665-L670)
 - [oauth.py](file://backend/open_webui/utils/oauth.py)
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L632-L793)
 - [main.py](file://backend/open_webui/main.py#L665-L670)
 - [oauth.py](file://backend/open_webui/utils/oauth.py)
@@ -223,11 +232,13 @@ style AppConfig fill:#f9f,stroke:#333,stroke-width:2px
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/main.py#L944-L996)
 - [config.py](file://backend/open_webui/config.py#L287-L326)
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L944-L996)
 - [config.py](file://backend/open_webui/config.py#L287-L326)
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py)
@@ -277,6 +288,7 @@ Implementation --> utils/
 ```
 
 **Diagram sources**
+
 - [env.py](file://backend/open_webui/env.py)
 - [config.py](file://backend/open_webui/config.py)
 - [main.py](file://backend/open_webui/main.py)
@@ -284,6 +296,7 @@ Implementation --> utils/
 - [retrieval/vector/dbs/oracle23ai.py](file://backend/open_webui/retrieval/vector/dbs/oracle23ai.py)
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py)
 - [config.py](file://backend/open_webui/config.py)
 - [main.py](file://backend/open_webui/main.py)
@@ -291,4 +304,5 @@ Implementation --> utils/
 - [retrieval/vector/dbs/oracle23ai.py](file://backend/open_webui/retrieval/vector/dbs/oracle23ai.py)
 
 ## Conclusion
+
 The external services initialization in open-webui demonstrates a well-structured approach to integrating multiple third-party services while maintaining security, flexibility, and reliability. The system uses a configuration-driven model where environment variables control the initialization of services such as YooKassa billing, AI model endpoints, OAuth providers, and web search engines. Each service is initialized conditionally based on the presence of required credentials, with comprehensive logging to aid in troubleshooting. The architecture separates configuration from implementation, storing service clients in the application state for global access while following security best practices for credential management. This design allows for easy configuration and deployment in various environments, from development to production, while providing the extensibility needed to support additional services in the future.

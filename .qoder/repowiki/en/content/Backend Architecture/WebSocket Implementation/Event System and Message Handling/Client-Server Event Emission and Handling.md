@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [WebSocket Architecture Overview](#websocket-architecture-overview)
 3. [Server-Side Event Emission](#server-side-event-emission)
@@ -24,6 +25,7 @@
 7. [Conclusion](#conclusion)
 
 ## Introduction
+
 The open-webui WebSocket system provides real-time communication between clients and servers through a robust event-driven architecture. This documentation details the complete event emission and handling process, covering both client and server implementations. The system uses Socket.IO for WebSocket communication, enabling bidirectional event exchange for chat interactions, collaborative editing, presence tracking, and other real-time features. The architecture supports both direct message emission and broadcast to specific rooms, ensuring efficient and targeted communication.
 
 ## WebSocket Architecture Overview
@@ -52,10 +54,12 @@ style Server fill:#bbf,stroke:#333
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L1-L839)
 - [+layout.svelte](file://src/routes/+layout.svelte#L88-L742)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L1-L839)
 - [+layout.svelte](file://src/routes/+layout.svelte#L88-L742)
 
@@ -92,10 +96,12 @@ Server->>Client : Broadcast to all channel participants
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L302-L351)
 - [main.py](file://backend/open_webui/socket/main.py#L413-L447)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L288-L838)
 
 ## Client-Side Event Emission
@@ -109,6 +115,7 @@ Key client-side event emission patterns include:
 1. **Connection initialization**: When the application loads, the client establishes a WebSocket connection and emits a `user-join` event with authentication credentials to register the user session.
 
 2. **User interaction events**: Various user actions trigger specific events:
+
    - Typing indicators emit `events:channel` with `type: 'typing'`
    - Message submissions emit chat completion requests
    - Document editing emits Yjs document updates
@@ -136,10 +143,12 @@ end
 ```
 
 **Diagram sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L150-L152)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L224-L233)
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L88-L742)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L57-L387)
 
@@ -193,10 +202,12 @@ G --> |Update message list| H
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L413-L447)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L183-L214)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L413-L447)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L183-L214)
 
@@ -249,12 +260,15 @@ style J fill:#fcc,stroke:#333
 ```
 
 **Diagram sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L157-L163)
 - [main.py](file://backend/open_webui/socket/main.py#L684-L693)
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L109-L176)
 - [main.py](file://backend/open_webui/socket/main.py#L684-L693)
 
 ## Conclusion
+
 The open-webui WebSocket system provides a robust foundation for real-time communication between clients and servers. By leveraging Socket.IO's event-driven architecture, the system enables efficient bidirectional communication for chat interactions, collaborative editing, and presence tracking. The implementation follows best practices for event emission, with clear patterns for server-side broadcasting and client-side event triggering. The comprehensive error handling and reconnection logic ensure reliable operation even under challenging network conditions. This architecture supports the application's core functionality while providing a responsive and interactive user experience.

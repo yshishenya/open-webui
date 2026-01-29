@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Knowledge Base Architecture](#knowledge-base-architecture)
 3. [UI Interactions for Knowledge Base Management](#ui-interactions-for-knowledge-base-management)
@@ -30,6 +31,7 @@
 This document provides a comprehensive guide to knowledge base creation and management within the Open WebUI system. It covers the complete workflow from UI interactions to backend processing, database storage, and integration with the Retrieval-Augmented Generation (RAG) system. The knowledge base functionality enables users to organize, store, and retrieve information efficiently, supporting both file uploads and direct text input. This system is designed to facilitate collaborative knowledge management with robust access control mechanisms and seamless integration with AI models for enhanced information retrieval.
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 - [Knowledge.svelte](file://src/lib/components/workspace/Knowledge.svelte#L1-L292)
 
@@ -54,6 +56,7 @@ I[User Management] --> B
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 - [Knowledge.svelte](file://src/lib/components/workspace/Knowledge.svelte#L1-L292)
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
@@ -65,6 +68,7 @@ The user interface for knowledge base management is implemented using Svelte com
 When creating a new knowledge base, users interact with the `CreateKnowledgeBase.svelte` component, which presents a form with fields for the knowledge base name, description, and access control settings. The form includes real-time validation and feedback to guide users through the creation process.
 
 For managing existing knowledge bases, the `KnowledgeBase.svelte` component provides a comprehensive interface with multiple features:
+
 - A file management section that displays all files associated with the knowledge base
 - Search functionality to quickly locate specific files
 - Options to add files via upload or directory synchronization
@@ -90,6 +94,7 @@ L --> M[Add, Edit, or Remove Files]
 ```
 
 **Diagram sources**
+
 - [Knowledge.svelte](file://src/lib/components/workspace/Knowledge.svelte#L1-L292)
 - [CreateKnowledgeBase.svelte](file://src/lib/components/workspace/Knowledge/CreateKnowledgeBase.svelte#L1-L144)
 - [KnowledgeBase.svelte](file://src/lib/components/workspace/Knowledge/KnowledgeBase.svelte#L1-L800)
@@ -99,6 +104,7 @@ L --> M[Add, Edit, or Remove Files]
 The backend API for knowledge base management is implemented as a FastAPI router with endpoints for all CRUD operations and additional management functions. The API follows RESTful principles with clear endpoint naming and HTTP method usage.
 
 The main endpoints include:
+
 - `GET /knowledge/` - Retrieves all knowledge bases with read access for the authenticated user
 - `POST /knowledge/create` - Creates a new knowledge base
 - `GET /knowledge/{id}` - Retrieves a specific knowledge base by ID
@@ -129,6 +135,7 @@ API-->>Client : Return Knowledge Base
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L662)
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 
@@ -178,6 +185,7 @@ FILE ||--o{ KNOWLEDGE_FILE : referenced_in
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 - [6a39f3d8e55c_add_knowledge_table.py](file://backend/open_webui/migrations/versions/6a39f3d8e55c_add_knowledge_table.py#L1-L81)
 - [3e0e00844bb0_add_knowledge_file_table.py](file://backend/open_webui/migrations/versions/3e0e00844bb0_add_knowledge_file_table.py#L1-L170)
@@ -187,6 +195,7 @@ FILE ||--o{ KNOWLEDGE_FILE : referenced_in
 The knowledge base system implements a flexible access control mechanism that allows for fine-grained permissions management. The access control settings are stored as JSON in the `access_control` field of the knowledge table and can be configured to support various sharing scenarios.
 
 The access control model supports three main configurations:
+
 - **Public access** (access_control = null): Available to all users with the "user" role
 - **Private access** (access_control = {}): Restricted exclusively to the owner
 - **Custom permissions**: Specific access control for reading and writing, with options to specify group or user-level restrictions
@@ -213,6 +222,7 @@ F --> |No| I
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L662)
 - [access_control.py](file://backend/open_webui/utils/access_control.py)
@@ -245,6 +255,7 @@ K --> |No| E
 ```
 
 **Diagram sources**
+
 - [KnowledgeBase.svelte](file://src/lib/components/workspace/Knowledge/KnowledgeBase.svelte#L1-L800)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L662)
 - [files.py](file://backend/open_webui/models/files.py)
@@ -275,6 +286,7 @@ K --> D
 ```
 
 **Diagram sources**
+
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
 - [utils.py](file://backend/open_webui/retrieval/utils.py#L1-L800)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L662)
@@ -312,6 +324,7 @@ E --> Q[Reindex Knowledge Base]
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L662)
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 - [utils.py](file://backend/open_webui/retrieval/utils.py#L1-L800)
@@ -349,6 +362,7 @@ F --> Q[Error Handling]
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L662)
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
@@ -362,6 +376,7 @@ The integration with the RAG system enhances the value of stored knowledge by ma
 Understanding the architecture, workflows, and potential issues described in this document enables users and administrators to maximize the effectiveness of the knowledge base system. By following best practices for performance optimization and troubleshooting common issues, organizations can build and maintain knowledge collections that significantly enhance their AI capabilities.
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L1-L662)
 - [Knowledge.svelte](file://src/lib/components/workspace/Knowledge.svelte#L1-L292)

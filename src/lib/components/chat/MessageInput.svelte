@@ -134,7 +134,6 @@
 	let selectedValvesItemId = null;
 	let integrationsMenuCloseOnOutsideClick = true;
 
-
 	$: if (!showValvesModal) {
 		integrationsMenuCloseOnOutsideClick = true;
 	}
@@ -156,7 +155,6 @@
 		webSearchEnabled,
 		codeInterpreterEnabled
 	});
-
 
 	const inputVariableHandler = async (text: string): Promise<string> => {
 		inputVariables = extractInputVariables(text);
@@ -1682,15 +1680,14 @@
 													<div class="hidden group-hover:block">
 														<XMark className="size-4" strokeWidth="1.75" />
 													</div>
-																				</button>
-																				</Tooltip>
-																			{/if}
-																	</div>
-																</div>
+												</button>
+											</Tooltip>
+										{/if}
+									</div>
+								</div>
 
-																<div class="self-end flex space-x-1 mr-1 shrink-0 gap-[0.5px]">
-																	{#if (!history?.currentId || history.messages[history.currentId]?.done == true) && ($_user?.role === 'admin' || ($_user?.permissions?.chat?.stt ?? true))}
-
+								<div class="self-end flex space-x-1 mr-1 shrink-0 gap-[0.5px]">
+									{#if (!history?.currentId || history.messages[history.currentId]?.done == true) && ($_user?.role === 'admin' || ($_user?.permissions?.chat?.stt ?? true))}
 										<!-- {$i18n.t('Record voice')} -->
 										<Tooltip content={$i18n.t('Dictate')}>
 											<button

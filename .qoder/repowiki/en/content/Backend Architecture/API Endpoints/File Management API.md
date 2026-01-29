@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -24,10 +25,13 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document describes the File Management API endpoints in open-webui, focusing on uploading, retrieving, updating, and deleting files. It explains multipart form data requirements, file type validation, storage mechanisms, metadata retrieval, content extraction, and integration with the knowledge base and RAG pipeline. It also covers access controls, sharing permissions, and retention policies.
 
 ## Project Structure
+
 The File Management API is implemented in the backend under the routers and models packages. Key components:
+
 - Router endpoints for file operations
 - Models for file schema and responses
 - Retrieval pipeline for content extraction and vector indexing
@@ -61,6 +65,7 @@ KM --> AC
 ```
 
 **Diagram sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L1-L761)
 - [files_model.py](file://backend/open_webui/models/files.py#L1-L290)
 - [retrieval_router.py](file://backend/open_webui/routers/retrieval.py#L1445-L1599)
@@ -69,10 +74,12 @@ KM --> AC
 - [access_control_utils.py](file://backend/open_webui/utils/access_control.py#L124-L175)
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L1-L761)
 - [files_model.py](file://backend/open_webui/models/files.py#L1-L290)
 
 ## Core Components
+
 - File router: Implements upload, list/search, get by id, content retrieval, update content, process status, and delete.
 - File model: Defines schema, forms, and response models for file metadata and data.
 - Retrieval router: Processes files into text chunks, embeds them, and stores vectors for RAG.
@@ -81,6 +88,7 @@ KM --> AC
 - Utilities: Handles audio transcription and base64 uploads for images/audio.
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L1-L761)
 - [files_model.py](file://backend/open_webui/models/files.py#L1-L290)
 - [retrieval_router.py](file://backend/open_webui/routers/retrieval.py#L1445-L1599)
@@ -88,6 +96,7 @@ KM --> AC
 - [access_control_utils.py](file://backend/open_webui/utils/access_control.py#L124-L175)
 
 ## Architecture Overview
+
 The File Management API integrates with the retrieval pipeline and storage providers. On upload, files are validated, stored, and optionally processed asynchronously. Processed content is embedded and indexed for RAG. Access control ensures only authorized users can access files. Deletion removes records, content, and vectors.
 
 ```mermaid
@@ -114,6 +123,7 @@ Files-->>Client : FileModelResponse
 ```
 
 **Diagram sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L152-L271)
 - [storage_provider.py](file://backend/open_webui/storage/provider.py#L63-L106)
 - [retrieval_router.py](file://backend/open_webui/routers/retrieval.py#L1445-L1599)
@@ -122,6 +132,7 @@ Files-->>Client : FileModelResponse
 ## Detailed Component Analysis
 
 ### Upload File
+
 - Endpoint: POST /api/files
 - Authentication: Requires verified user.
 - Multipart form data:
@@ -142,6 +153,7 @@ Files-->>Client : FileModelResponse
   - Returns FileModelResponse with id, filename, meta, timestamps, and status if pending.
 
 Success example response shape:
+
 - id: string
 - user_id: string
 - filename: string
@@ -151,16 +163,19 @@ Success example response shape:
 - updated_at: integer (epoch)
 
 Notes:
+
 - If process=false, returns immediately with pending status until manual processing.
 - Background processing uses FastAPI BackgroundTasks.
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L152-L271)
 - [storage_provider.py](file://backend/open_webui/storage/provider.py#L63-L106)
 - [retrieval_router.py](file://backend/open_webui/routers/retrieval.py#L1445-L1599)
 - [files_model.py](file://backend/open_webui/models/files.py#L60-L105)
 
 ### List Files
+
 - Endpoint: GET /api/files
 - Query parameters:
   - content: boolean (default true) to include content in responses
@@ -168,28 +183,34 @@ Notes:
   - Admin sees all files; others see their own files.
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L294-L306)
 
 ### Search Files
+
 - Endpoint: GET /api/files/search
 - Query parameters:
-  - filename: pattern with wildcards (e.g., "*.txt")
+  - filename: pattern with wildcards (e.g., "\*.txt")
   - content: boolean (default true)
 - Access:
   - Admin sees all files; others see their own files.
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L314-L348)
 
 ### Get File By Id
+
 - Endpoint: GET /api/files/{id}
 - Access:
   - Owner, admin, or user with read access via knowledge base access control.
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L383-L404)
 
 ### Get File Process Status
+
 - Endpoint: GET /api/files/{id}/process/status
 - Query parameters:
   - stream: boolean (default false) to receive SSE events
@@ -197,20 +218,25 @@ Notes:
   - Owner, admin, or user with read access.
 
 Status values:
+
 - pending, completed, failed
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L406-L461)
 
 ### Get File Data Content By Id
+
 - Endpoint: GET /api/files/{id}/data/content
 - Access:
   - Owner, admin, or user with read access.
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L468-L489)
 
 ### Update File Data Content By Id
+
 - Endpoint: POST /api/files/{id}/data/content/update
 - Body: JSON with content field
 - Access:
@@ -219,10 +245,12 @@ Status values:
   - Re-processes file content and updates vector collection.
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L500-L534)
 - [retrieval_router.py](file://backend/open_webui/routers/retrieval.py#L1445-L1599)
 
 ### Get File Content By Id
+
 - Endpoint: GET /api/files/{id}/content
 - Query parameters:
   - attachment: boolean (default false) to force attachment disposition
@@ -233,17 +261,21 @@ Status values:
   - For PDFs, sets inline display and forces application/pdf media type.
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L541-L609)
 
 ### Get HTML Content By Id
+
 - Endpoint: GET /api/files/{id}/content/html
 - Access:
   - Admin required for this endpoint.
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L611-L658)
 
 ### Get File Content By Id (alternative path)
+
 - Endpoint: GET /api/files/{id}/content/{file_name}
 - Access:
   - Owner, admin, or user with read access.
@@ -251,9 +283,11 @@ Status values:
   - Returns FileResponse or streams text/plain if path not present.
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L660-L714)
 
 ### Delete File By Id
+
 - Endpoint: DELETE /api/files/{id}
 - Access:
   - Owner, admin, or user with write access.
@@ -261,9 +295,11 @@ Status values:
   - Deletes record, file content, and associated vector collection.
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L722-L761)
 
 ### Delete All Files
+
 - Endpoint: DELETE /api/files/all
 - Access:
   - Admin required.
@@ -271,9 +307,11 @@ Status values:
   - Deletes all records, content, and resets vector collections.
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L356-L375)
 
 ### File Upload Flow (Multipart/Form-Data)
+
 ```mermaid
 flowchart TD
 Start(["Upload Request"]) --> Parse["Parse multipart/form-data"]
@@ -292,11 +330,13 @@ UpdateStatus --> Done
 ```
 
 **Diagram sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L173-L271)
 - [storage_provider.py](file://backend/open_webui/storage/provider.py#L63-L106)
 - [files_model.py](file://backend/open_webui/models/files.py#L107-L170)
 
 ## Dependency Analysis
+
 - File router depends on:
   - Storage provider for file IO
   - Retrieval router for content extraction and embedding
@@ -323,6 +363,7 @@ KM["knowledge_model.py"] --> AC
 ```
 
 **Diagram sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L1-L761)
 - [storage_provider.py](file://backend/open_webui/storage/provider.py#L1-L377)
 - [files_model.py](file://backend/open_webui/models/files.py#L1-L290)
@@ -331,6 +372,7 @@ KM["knowledge_model.py"] --> AC
 - [access_control_utils.py](file://backend/open_webui/utils/access_control.py#L124-L175)
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L1-L761)
 - [storage_provider.py](file://backend/open_webui/storage/provider.py#L1-L377)
 - [retrieval_router.py](file://backend/open_webui/routers/retrieval.py#L1445-L1599)
@@ -339,6 +381,7 @@ KM["knowledge_model.py"] --> AC
 - [access_control_utils.py](file://backend/open_webui/utils/access_control.py#L124-L175)
 
 ## Performance Considerations
+
 - Asynchronous processing: Use process_in_background=true to avoid blocking uploads.
 - Large files: Consider external loaders and cloud storage for scalability.
 - Vector indexing: Embedding and indexing can be CPU/memory intensive; batch operations where possible.
@@ -347,7 +390,9 @@ KM["knowledge_model.py"] --> AC
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 Common issues and resolutions:
+
 - File type not allowed:
   - Cause: Extension not in ALLOWED_FILE_EXTENSIONS.
   - Resolution: Configure allowed extensions or upload a supported type.
@@ -365,9 +410,11 @@ Common issues and resolutions:
   - Resolution: Verify credentials and bucket/container settings; check local disk space.
 
 **Section sources**
+
 - [files.py](file://backend/open_webui/routers/files.py#L383-L404)
 - [files.py](file://backend/open_webui/routers/files.py#L406-L461)
 - [constants.py](file://backend/open_webui/constants.py#L19-L127)
 
 ## Conclusion
+
 The File Management API provides robust endpoints for uploading, processing, retrieving, and deleting files. It integrates with storage providers and the retrieval pipeline to support RAG workflows. Access control ensures secure sharing across users and groups, while metadata and content extraction enable downstream applications. Proper configuration of allowed extensions, loaders, and storage backends is essential for reliable operation.

@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Functions System](#functions-system)
 3. [Tools Framework](#tools-framework)
@@ -23,13 +24,16 @@
 6. [Security Considerations](#security-considerations)
 
 ## Introduction
+
 The open-webui platform provides a robust extensibility system that allows users to enhance the application's capabilities through custom functions and tools. This system enables code execution, API integrations, and additional functionality through a well-defined plugin architecture. The extensibility framework is designed to be both powerful and secure, allowing developers to create custom extensions while maintaining system integrity.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L1-L354)
 - [tools.py](file://backend/open_webui/utils/tools.py#L1-L800)
 
 ## Functions System
+
 The functions system in open-webui allows for the creation of custom Python functions that can be integrated into the application workflow. Functions are implemented as Python classes with specific interfaces that define their behavior. The system supports three main types of functions:
 
 - **Pipe**: Custom pipelines that can work with external or internal models
@@ -83,14 +87,17 @@ FunctionModel --> FunctionMeta : "contains"
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L19-L72)
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L1-L396)
 - [functions.py](file://backend/open_webui/functions.py#L1-L354)
 - [FunctionEditor.svelte](file://src/lib/components/admin/Functions/FunctionEditor.svelte#L1-L432)
 
 ## Tools Framework
+
 The tools framework provides a function calling system that enables integration with external services and APIs. Tools are implemented as Python classes containing multiple methods that can be called by the application. Each tool method can be exposed as a callable function with proper type hints and docstrings that are automatically converted to OpenAI function specifications.
 
 The tools system supports both local tools and external tool servers. External tool servers can be connected via OpenAPI specifications, allowing automatic discovery and integration of API endpoints. The framework handles authentication, parameter validation, and response processing for tool calls.
@@ -139,14 +146,17 @@ ToolModel --> ToolMeta : "contains"
 ```
 
 **Diagram sources**
+
 - [tools.py](file://backend/open_webui/models/tools.py#L24-L72)
 
 **Section sources**
+
 - [tools.py](file://backend/open_webui/models/tools.py#L1-L275)
 - [tools.py](file://backend/open_webui/utils/tools.py#L1-L800)
 - [ToolkitEditor.svelte](file://src/lib/components/workspace/Tools/ToolkitEditor.svelte#L1-L354)
 
 ## Plugin Architecture
+
 The plugin architecture in open-webui is built around dynamic module loading and caching. When a function or tool is executed, the system loads the corresponding Python code, executes it in a secure environment, and caches the result for performance optimization. The architecture includes several key components:
 
 - **Module Loading**: Functions and tools are loaded from the database and compiled into Python modules
@@ -184,16 +194,19 @@ Frontend-->>User : Display Result
 ```
 
 **Diagram sources**
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L1-L313)
 - [functions.py](file://backend/open_webui/functions.py#L1-L354)
 - [tools.py](file://backend/open_webui/utils/tools.py#L1-L800)
 
 **Section sources**
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L1-L313)
 - [functions.py](file://backend/open_webui/functions.py#L1-L354)
 - [tools.py](file://backend/open_webui/utils/tools.py#L1-L800)
 
 ## Development Workflow
+
 The development workflow for creating extensions in open-webui involves several steps:
 
 1. **Creation**: Use the admin interface to create a new function or tool, providing a name, ID, and description
@@ -207,11 +220,13 @@ The system provides code editors with syntax highlighting and formatting capabil
 For code execution, the system supports integration with Jupyter notebooks through the code interpreter module, allowing for execution of Python code in a secure environment. This enables complex data processing and analysis capabilities within the application.
 
 **Section sources**
+
 - [FunctionEditor.svelte](file://src/lib/components/admin/Functions/FunctionEditor.svelte#L1-L432)
 - [ToolkitEditor.svelte](file://src/lib/components/workspace/Tools/ToolkitEditor.svelte#L1-L354)
 - [code_interpreter.py](file://backend/open_webui/utils/code_interpreter.py#L1-L211)
 
 ## Security Considerations
+
 The extensibility system in open-webui includes several security measures to protect against potential risks:
 
 - **Code Execution Warnings**: Clear warnings are displayed when creating functions or tools, emphasizing the risks of arbitrary code execution
@@ -231,6 +246,7 @@ When implementing extensions, developers should follow security best practices:
 The system requires administrative privileges to create or modify functions and tools, ensuring that only trusted users can introduce new code into the application. Users are strongly advised to only install extensions from trusted sources to prevent security vulnerabilities.
 
 **Section sources**
+
 - [FunctionEditor.svelte](file://src/lib/components/admin/Functions/FunctionEditor.svelte#L1-L432)
 - [ToolkitEditor.svelte](file://src/lib/components/workspace/Tools/ToolkitEditor.svelte#L1-L354)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L1-L175)

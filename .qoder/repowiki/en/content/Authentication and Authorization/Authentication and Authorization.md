@@ -14,6 +14,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Authentication System](#authentication-system)
 3. [User Model](#user-model)
@@ -25,9 +26,11 @@
 9. [Troubleshooting Guide](#troubleshooting-guide)
 
 ## Introduction
+
 The open-webui authentication and authorization system provides a comprehensive security framework supporting multiple authentication methods, role-based access control, and secure session management. This document details the implementation of local accounts, OAuth providers (Google, Microsoft, GitHub), and API keys, along with the user model, session management, authorization framework, and security measures. The system is designed to be flexible and secure, allowing administrators to configure authentication methods and integrate custom OAuth providers while maintaining robust security practices.
 
 ## Authentication System
+
 The open-webui authentication system supports multiple methods including local accounts, OAuth providers, and API keys. The system is designed to be flexible and secure, allowing users to authenticate through various methods while maintaining robust security practices.
 
 Local account authentication is implemented through email and password credentials, with password hashing using bcrypt for security. The system supports OAuth authentication with Google, Microsoft, and GitHub providers, allowing users to sign in with their existing accounts from these services. Additionally, API key authentication is available for programmatic access to the system.
@@ -49,19 +52,23 @@ E --> K[External Auth Systems]
 ```
 
 **Diagram sources**
+
 - [routers/auths.py](file://backend/open_webui/routers/auths.py#L507-L632)
 - [utils/auth.py](file://backend/open_webui/utils/auth.py#L272-L419)
 - [config.py](file://backend/open_webui/config.py#L289-L322)
 
 **Section sources**
+
 - [routers/auths.py](file://backend/open_webui/routers/auths.py#L507-L632)
 - [utils/auth.py](file://backend/open_webui/utils/auth.py#L272-L419)
 - [config.py](file://backend/open_webui/config.py#L289-L322)
 
 ## User Model
+
 The user model in open-webui defines the structure and attributes of user accounts, storing essential information for authentication, authorization, and user management. The model includes fields for authentication data, user profile information, and metadata for system operations.
 
 The User model contains the following key fields:
+
 - **id**: Unique identifier for the user
 - **email**: User's email address, used for authentication and identification
 - **username**: Optional username for display purposes
@@ -115,13 +122,16 @@ UserModel --> UserSettings : "contains"
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L45-L118)
 - [users.py](file://backend/open_webui/models/users.py#L78-L117)
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L45-L118)
 
 ## Session Management
+
 The session management system in open-webui handles user sessions through JWT tokens and API keys, providing secure authentication and authorization for both web and programmatic access. The system implements token-based authentication with expiration and revocation capabilities to enhance security.
 
 User sessions are managed through JWT tokens stored in HTTP-only cookies, preventing cross-site scripting (XSS) attacks. The tokens contain a unique identifier (jti) that allows for token revocation and validation against a blacklist stored in Redis. When a user authenticates successfully, a JWT token is generated with an expiration time based on the JWT_EXPIRES_IN configuration.
@@ -148,15 +158,18 @@ end
 ```
 
 **Diagram sources**
+
 - [utils/auth.py](file://backend/open_webui/utils/auth.py#L194-L252)
 - [routers/auths.py](file://backend/open_webui/routers/auths.py#L106-L162)
 - [utils/auth.py](file://backend/open_webui/utils/auth.py#L272-L367)
 
 **Section sources**
+
 - [utils/auth.py](file://backend/open_webui/utils/auth.py#L194-L252)
 - [routers/auths.py](file://backend/open_webui/routers/auths.py#L106-L162)
 
 ## Authorization Framework
+
 The authorization framework in open-webui implements role-based access control (RBAC) with support for user groups and granular permissions. The system determines user access rights based on their role, group membership, and specific permissions assigned to those groups.
 
 Users can have one of three roles: admin, user, or pending. Admin users have full access to all system features, while regular users have access based on their group permissions. Pending users are newly created accounts that require administrative approval before gaining full access.
@@ -184,14 +197,17 @@ F --> Q[Limited Permissions]
 ```
 
 **Diagram sources**
+
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L28-L175)
 - [users.py](file://backend/open_webui/models/users.py#L51-L52)
 - [groups.py](file://backend/open_webui/models/groups.py)
 
 **Section sources**
+
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L28-L175)
 
 ## Security Measures
+
 The open-webui system implements multiple security measures to protect user data and prevent unauthorized access. These measures include password hashing, JWT token management, CSRF protection, and secure session handling.
 
 Password security is ensured through bcrypt hashing with a maximum password length of 72 bytes. The system validates passwords against configurable requirements, including minimum length, character complexity, and pattern matching. Passwords are never stored in plain text and are hashed before storage in the database.
@@ -219,16 +235,19 @@ E --> Q[Secure Storage]
 ```
 
 **Diagram sources**
+
 - [auth.py](file://backend/open_webui/models/auths.py#L19-L26)
 - [utils/auth.py](file://backend/open_webui/utils/auth.py#L163-L192)
 - [routers/auths.py](file://backend/open_webui/routers/auths.py#L128-L139)
 - [utils/auth.py](file://backend/open_webui/utils/auth.py#L208-L213)
 
 **Section sources**
+
 - [auth.py](file://backend/open_webui/models/auths.py#L19-L26)
 - [utils/auth.py](file://backend/open_webui/utils/auth.py#L163-L192)
 
 ## Authentication Flows
+
 The open-webui system implements several authentication flows for different credential types, including local accounts, OAuth providers, and API keys. Each flow follows a secure process to authenticate users and establish sessions.
 
 For local account authentication, users provide their email and password through a sign-in form. The system verifies the credentials against the hashed password in the database and creates a JWT token upon successful authentication. The token is stored in an HTTP-only cookie for subsequent requests.
@@ -260,15 +279,18 @@ Client->>User : Redirect to Application
 API key authentication is used for programmatic access to the system. Clients include the API key in the Authorization header of their requests. The system validates the key against the database, checks the user's permissions, and processes the request if authorized. API keys can be created, viewed, and deleted through the user interface or API.
 
 **Diagram sources**
+
 - [routers/auths.py](file://backend/open_webui/routers/auths.py#L507-L632)
 - [routers/auths.py](file://backend/open_webui/routers/auths.py#L218-L499)
 - [utils/auth.py](file://backend/open_webui/utils/auth.py#L370-L400)
 
 **Section sources**
+
 - [routers/auths.py](file://backend/open_webui/routers/auths.py#L507-L632)
 - [routers/auths.py](file://backend/open_webui/routers/auths.py#L218-L499)
 
 ## Configuration Options
+
 The open-webui authentication system provides extensive configuration options through environment variables and persistent settings. These options allow administrators to customize the authentication behavior, enable or disable specific methods, and integrate custom OAuth providers.
 
 Authentication methods can be enabled or disabled through configuration settings. Local password authentication can be controlled with the ENABLE_PASSWORD_AUTH environment variable. OAuth providers (Google, Microsoft, GitHub) can be configured with their respective client IDs and secrets. The system also supports custom OpenID Connect providers through generic OAuth configuration.
@@ -295,15 +317,18 @@ E --> R[Initial Admin Signup]
 ```
 
 **Diagram sources**
+
 - [config.py](file://backend/open_webui/config.py#L289-L629)
 - [env.py](file://backend/open_webui/env.py#L414-L487)
 - [config.py](file://backend/open_webui/config.py#L331-L335)
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L289-L629)
 - [env.py](file://backend/open_webui/env.py#L414-L487)
 
 ## Troubleshooting Guide
+
 Common authentication issues in open-webui typically relate to configuration errors, network connectivity problems, or incorrect credentials. This section provides guidance for diagnosing and resolving these issues.
 
 For OAuth authentication failures, verify that the client ID and secret are correctly configured for the selected provider. Ensure that the redirect URI matches the one registered with the OAuth provider. Check network connectivity to the OAuth provider's endpoints, as firewall rules or network restrictions may prevent token exchange.
@@ -313,6 +338,7 @@ When users cannot sign in with local accounts, verify that the email and passwor
 For API key issues, confirm that API key functionality is enabled in the configuration. Verify that the user has permission to use API keys, as this may be restricted to admin users or specific roles. Check that the API key is included in the Authorization header with the correct format (Bearer <api_key>).
 
 **Section sources**
+
 - [routers/auths.py](file://backend/open_webui/routers/auths.py#L507-L632)
 - [utils/auth.py](file://backend/open_webui/utils/auth.py#L272-L419)
 - [constants.py](file://backend/open_webui/constants.py#L19-L110)

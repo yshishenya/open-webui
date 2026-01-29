@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Core Architecture](#core-architecture)
 3. [Valve Configuration Models](#valve-configuration-models)
@@ -31,6 +32,7 @@ The Valves Configuration System in Open WebUI provides a flexible mechanism for 
 The system is built around two primary Pydantic models: Valves and UserValves. Admin-configured valves (Valves) are stored in the database and apply globally, while user-configured valves (UserValves) are stored in user settings and apply only to individual users. This dual-layer approach provides both centralized control and personalized configuration options.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L28-L29)
 - [tools.py](file://backend/open_webui/models/tools.py#L33)
 - [016_add_valves_and_is_active.py](file://backend/open_webui/internal/migrations/016_add_valves_and_is_active.py#L40-L42)
@@ -40,6 +42,7 @@ The system is built around two primary Pydantic models: Valves and UserValves. A
 The Valves Configuration System follows a modular architecture that integrates with the existing functions and tools infrastructure. At its core, the system relies on Pydantic models defined within function and tool modules to provide type-safe configuration with validation. These models are dynamically loaded and instantiated based on database-stored values.
 
 The architecture consists of three main components:
+
 1. Database storage for valve configurations
 2. Runtime loading and instantiation of valve models
 3. API endpoints for configuration management
@@ -62,11 +65,13 @@ J --> K[Runtime Configuration Access]
 ```
 
 **Diagram sources**
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L118-L157)
 - [tools.py](file://backend/open_webui/utils/tools.py#L258-L265)
 - [functions.py](file://backend/open_webui/models/functions.py#L267-L286)
 
 **Section sources**
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L118-L157)
 - [tools.py](file://backend/open_webui/utils/tools.py#L258-L265)
 
@@ -113,12 +118,14 @@ Tool --> UserValves : uses
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L102-L104)
 - [tools.py](file://backend/open_webui/models/tools.py#L109-L111)
 - [functions.py](file://backend/open_webui/models/functions.py#L267-L275)
 - [tools.py](file://backend/open_webui/models/tools.py#L184-L189)
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L102-L104)
 - [tools.py](file://backend/open_webui/models/tools.py#L109-L111)
 
@@ -149,12 +156,14 @@ I --> K
 ```
 
 **Diagram sources**
+
 - [tools.py](file://backend/open_webui/routers/tools.py#L524-L532)
 - [functions.py](file://backend/open_webui/routers/functions.py#L308-L315)
 - [tools.py](file://backend/open_webui/models/tools.py#L224-L247)
 - [functions.py](file://backend/open_webui/models/functions.py#L331-L347)
 
 **Section sources**
+
 - [tools.py](file://backend/open_webui/routers/tools.py#L524-L532)
 - [functions.py](file://backend/open_webui/routers/functions.py#L308-L315)
 
@@ -164,7 +173,7 @@ The runtime configuration implementation in the Valves System centers around the
 
 The load_function_module_by_id function in plugin.py is responsible for loading function modules and extracting valve configurations. It creates a dynamic module from the function content, executes it in the module's namespace, and returns the Tools class along with frontmatter. During this process, it checks for the presence of Valves and UserValves classes and handles them appropriately.
 
-The get_tools function in tools.py implements the runtime configuration logic for tools. It retrieves the tool valves from the database using get_tool_valves_by_id and instantiates the Valves model if present. Similarly, it retrieves user valves using get_user_valves_by_id_and_user_id and instantiates the UserValves model. These instantiated models are then made available to the tool functions through the __user__ parameter.
+The get_tools function in tools.py implements the runtime configuration logic for tools. It retrieves the tool valves from the database using get_tool_valves_by_id and instantiates the Valves model if present. Similarly, it retrieves user valves using get_user_valves_by_id_and_user_id and instantiates the UserValves model. These instantiated models are then made available to the tool functions through the **user** parameter.
 
 ```mermaid
 sequenceDiagram
@@ -186,11 +195,13 @@ Module->>Client : Execute with Configurations
 ```
 
 **Diagram sources**
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L118-L157)
 - [tools.py](file://backend/open_webui/utils/tools.py#L258-L265)
 - [tools.py](file://backend/open_webui/models/tools.py#L184-L189)
 
 **Section sources**
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L118-L157)
 - [tools.py](file://backend/open_webui/utils/tools.py#L258-L265)
 
@@ -216,11 +227,13 @@ H --> I
 ```
 
 **Diagram sources**
+
 - [tools.py](file://backend/open_webui/routers/tools.py#L461-L558)
 - [tools.py](file://backend/open_webui/routers/tools.py#L566-L637)
 - [functions.py](file://backend/open_webui/routers/functions.py#L247-L354)
 
 **Section sources**
+
 - [tools.py](file://backend/open_webui/routers/tools.py#L461-L558)
 - [functions.py](file://backend/open_webui/routers/functions.py#L247-L354)
 
@@ -249,11 +262,13 @@ J --> L[Configuration Updated]
 ```
 
 **Diagram sources**
+
 - [Valves.svelte](file://src/lib/components/common/Valves.svelte#L43-L185)
 - [ValvesModal.svelte](file://src/lib/components/workspace/common/ValvesModal.svelte#L143-L206)
 - [index.ts](file://src/lib/apis/tools/index.ts#L327-L456)
 
 **Section sources**
+
 - [Valves.svelte](file://src/lib/components/common/Valves.svelte#L43-L185)
 - [ValvesModal.svelte](file://src/lib/components/workspace/common/ValvesModal.svelte#L143-L206)
 
@@ -287,12 +302,14 @@ K --> M
 ```
 
 **Diagram sources**
+
 - [tools.py](file://backend/open_webui/routers/tools.py#L524-L532)
 - [functions.py](file://backend/open_webui/routers/functions.py#L308-L315)
 - [tools.py](file://backend/open_webui/models/tools.py#L204-L247)
 - [functions.py](file://backend/open_webui/models/functions.py#L313-L347)
 
 **Section sources**
+
 - [tools.py](file://backend/open_webui/routers/tools.py#L524-L532)
 - [functions.py](file://backend/open_webui/routers/functions.py#L308-L315)
 
@@ -323,11 +340,13 @@ D --> M[Rollout to All Users]
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L102-L104)
 - [tools.py](file://backend/open_webui/models/tools.py#L109-L111)
 - [Valves.svelte](file://src/lib/components/common/Valves.svelte#L64-L77)
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L102-L104)
 - [tools.py](file://backend/open_webui/models/tools.py#L109-L111)
 
@@ -358,11 +377,13 @@ D --> M[Validate Data Flow]
 ```
 
 **Diagram sources**
+
 - [tools.py](file://backend/open_webui/routers/tools.py#L553-L558)
 - [functions.py](file://backend/open_webui/routers/functions.py#L348-L353)
 - [tools.py](file://backend/open_webui/models/tools.py#L204-L247)
 - [functions.py](file://backend/open_webui/models/functions.py#L313-L347)
 
 **Section sources**
+
 - [tools.py](file://backend/open_webui/routers/tools.py#L553-L558)
 - [functions.py](file://backend/open_webui/routers/functions.py#L348-L353)

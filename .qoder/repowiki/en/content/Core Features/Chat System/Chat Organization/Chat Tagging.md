@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Metadata Organization with Meta JSON Field](#metadata-organization-with-meta-json-field)
 3. [Tag Normalization Process](#tag-normalization-process)
@@ -22,6 +23,7 @@
 8. [Conclusion](#conclusion)
 
 ## Introduction
+
 The chat tagging system in Open WebUI provides a robust mechanism for organizing and retrieving chat conversations through metadata. This system leverages a flexible JSON-based approach to store tags, enabling users to categorize their chats efficiently. The implementation supports multiple database backends while maintaining consistent functionality across different environments. This document details the architecture, implementation, and usage patterns of the chat tagging system, focusing on how metadata is organized, how tags are normalized, and how queries are executed across different database systems.
 
 ## Metadata Organization with Meta JSON Field
@@ -62,10 +64,12 @@ TAG }o--|| USER : "belongs to"
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L26-L56)
 - [tags.py](file://backend/open_webui/models/tags.py#L20-L30)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L26-L56)
 - [tags.py](file://backend/open_webui/models/tags.py#L20-L30)
 
@@ -74,6 +78,7 @@ TAG }o--|| USER : "belongs to"
 The tag normalization process is a critical component of the chat tagging system, ensuring consistent tag handling across the application. When a tag is created or referenced, the system automatically converts the tag name to lowercase and replaces spaces with underscores. This normalization occurs in multiple locations throughout the codebase, maintaining consistency regardless of how tags are added.
 
 The normalization function `name.replace(" ", "_").lower()` is applied whenever a tag ID is generated from a tag name. This occurs in several key operations:
+
 - When creating a new tag through the `insert_new_tag` method
 - When retrieving a tag by name and user ID
 - When adding a tag to a chat
@@ -84,6 +89,7 @@ This consistent normalization prevents issues that could arise from case sensiti
 The system also includes validation to prevent the creation of a tag named "none" (in any case variation), which is reserved as a special value in the application's logic. This prevents potential conflicts with UI elements or filtering operations that might use "none" as a default or placeholder value.
 
 **Section sources**
+
 - [tags.py](file://backend/open_webui/models/tags.py#L57)
 - [tags.py](file://backend/open_webui/models/tags.py#L76)
 - [chats.py](file://backend/open_webui/models/chats.py#L875)
@@ -128,11 +134,13 @@ API-->>Frontend : Return chats with "project" tag
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L977-L994)
 - [chats.py](file://backend/open_webui/models/chats.py#L1030-L1049)
 - [chats.py](file://backend/open_webui/routers/chats.py#L409-L419)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L977-L994)
 - [chats.py](file://backend/open_webui/models/chats.py#L1030-L1049)
 
@@ -171,11 +179,13 @@ R --> S[Display Results]
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L1000-L1021)
 - [chats.py](file://backend/open_webui/models/chats.py#L725-L774)
 - [chats.py](file://backend/open_webui/routers/chats.py#L868-L890)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L1000-L1021)
 - [chats.py](file://backend/open_webui/models/chats.py#L725-L774)
 - [routers/chats.py](file://backend/open_webui/routers/chats.py#L868-L890)
@@ -224,11 +234,13 @@ API --> Tags : "returns"
 ```
 
 **Diagram sources**
+
 - [TagChatModal.svelte](file://src/lib/components/chat/TagChatModal.svelte)
 - [Tags.svelte](file://src/lib/components/chat/Tags.svelte)
 - [chats.ts](file://src/lib/apis/chats/index.ts)
 
 **Section sources**
+
 - [TagChatModal.svelte](file://src/lib/components/chat/TagChatModal.svelte)
 - [Tags.svelte](file://src/lib/components/chat/Tags.svelte)
 
@@ -251,11 +263,13 @@ Another consideration is the potential for tag proliferation, where users create
 The system also handles edge cases such as tag names containing special characters, null bytes, or Unicode characters by normalizing them to a consistent format. This prevents issues that could arise from encoding differences or special character handling in different parts of the system.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L44-L56)
 - [chats.py](file://backend/open_webui/models/chats.py#L1051-L1057)
 - [chats.py](file://backend/open_webui/models/chats.py#L130-L142)
 
 ## Conclusion
+
 The chat tagging system in Open WebUI provides a comprehensive solution for organizing conversations through metadata. By leveraging the `meta` JSON field in the Chat model, the system offers flexible storage of tags as an array while maintaining data integrity through a separate tag registry. The tag normalization process ensures consistent handling of tag names across the application, converting them to lowercase and replacing spaces with underscores to prevent duplication.
 
 The implementation demonstrates thoughtful consideration of database compatibility, with specific query logic for both SQLite and PostgreSQL that leverages their native JSON capabilities. This approach allows for efficient tag searching while maintaining a consistent API across different database backends. The frontend components provide an intuitive interface for tag management, with autocomplete and visual feedback that enhance the user experience.

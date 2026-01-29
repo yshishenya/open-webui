@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [WebSocket Communication Architecture](#websocket-communication-architecture)
 3. [Event Emitter Pattern Implementation](#event-emitter-pattern-implementation)
@@ -27,6 +28,7 @@
 10. [Conclusion](#conclusion)
 
 ## Introduction
+
 The open-webui real-time data synchronization system enables immediate updates across clients for features like chat messages, model status changes, and collaborative editing. This documentation explains the architecture and implementation of the WebSocket-based communication system that powers real-time interactions in the application. The system uses a combination of Socket.IO for WebSocket communication, Yjs for collaborative editing, and Svelte stores for state management to provide a seamless real-time experience for concurrent users.
 
 ## WebSocket Communication Architecture
@@ -48,6 +50,7 @@ SocketServer --> |Emit| Frontend[Frontend UI]
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/main.py#L63-L66)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L76-L87)
 
@@ -61,6 +64,7 @@ The WebSocket server handles various events for different features:
 When a client connects to the WebSocket server, it authenticates using a token and joins relevant rooms based on the user's channels and documents. This room-based architecture allows efficient broadcasting of messages to specific groups of users without sending data to irrelevant clients.
 
 **Section sources**
+
 - [socket/main.py](file://backend/open_webui/socket/main.py#L303-L317)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L345-L351)
 
@@ -85,6 +89,7 @@ SocketServer->>Backend : Update database if needed
 ```
 
 **Diagram sources**
+
 - [socket/main.py](file://backend/open_webui/socket/main.py#L695-L812)
 - [+layout.svelte](file://src/routes/+layout.svelte#L411-L452)
 
@@ -105,6 +110,7 @@ Key aspects of the event emitter implementation:
 The event emitter pattern enables various backend services to notify the frontend of changes without being tightly coupled to the WebSocket implementation. For example, when a chat completion is generated, the service can use the event emitter to send streaming responses to the client in real-time.
 
 **Section sources**
+
 - [socket/main.py](file://backend/open_webui/socket/main.py#L695-L812)
 - [main.py](file://backend/open_webui/main.py#L67)
 - [+layout.svelte](file://src/routes/+layout.svelte#L411-L452)
@@ -153,6 +159,7 @@ Collaboration --> YDocManager : "communicates via"
 ```
 
 **Diagram sources**
+
 - [Collaboration.ts](file://src/lib/components/common/RichTextInput/Collaboration.ts#L57-L256)
 - [socket/utils.py](file://backend/open_webui/socket/utils.py#L120-L224)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L161-L164)
@@ -172,6 +179,7 @@ The collaborative editing system works as follows:
 The Yjs-based system automatically handles conflict resolution, ensuring that concurrent edits by multiple users are merged correctly without data loss. The operational transformation algorithm used by Yjs guarantees that all clients eventually converge to the same state, regardless of the order in which updates are received.
 
 **Section sources**
+
 - [Collaboration.ts](file://src/lib/components/common/RichTextInput/Collaboration.ts#L87-L256)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L448-L662)
 - [socket/utils.py](file://backend/open_webui/socket/utils.py#L120-L224)
@@ -214,6 +222,7 @@ Socket --> ChatComponent : "receives events"
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L1-L302)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L57-L246)
 - [+layout.svelte](file://src/routes/+layout.svelte#L683-L697)
@@ -233,6 +242,7 @@ The integration between the WebSocket layer and Svelte stores works as follows:
 The stores also manage application state that persists across sessions, such as user preferences, theme settings, and UI state (e.g., sidebar visibility). This state is synchronized between the frontend and backend through WebSocket events and API calls.
 
 **Section sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L1-L302)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L57-L246)
 - [+layout.svelte](file://src/routes/+layout.svelte#L683-L697)
@@ -265,6 +275,7 @@ R --> F
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L167-L190)
 - [channels.py](file://backend/open_webui/models/channels.py#L126-L157)
 - [notes.py](file://backend/open_webui/models/notes.py#L126-L157)
@@ -295,6 +306,7 @@ For streaming responses (such as chat completions), the flow is slightly differe
 This architecture ensures that all clients receive updates in real-time, providing a consistent view of the data across all connected devices.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L167-L190)
 - [channels.py](file://backend/open_webui/models/channels.py#L126-L157)
 - [notes.py](file://backend/open_webui/models/notes.py#L126-L157)
@@ -327,6 +339,7 @@ Note over Server : Prevents overwriting with stale data
 ```
 
 **Diagram sources**
+
 - [socket/utils.py](file://backend/open_webui/socket/utils.py#L9-L47)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L142-L151)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L585-L626)
@@ -350,6 +363,7 @@ The system employs the following strategies to ensure data consistency:
 These mechanisms work together to ensure that the system remains consistent and reliable even under high concurrency, providing a seamless collaborative experience for users.
 
 **Section sources**
+
 - [socket/utils.py](file://backend/open_webui/socket/utils.py#L9-L47)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L142-L151)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L585-L626)
@@ -381,6 +395,7 @@ S --> T[Process data]
 ```
 
 **Diagram sources**
+
 - [socket/main.py](file://backend/open_webui/socket/main.py#L585-L626)
 - [Collaboration.ts](file://src/lib/components/common/RichTextInput/Collaboration.ts#L185-L202)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L600-L616)
@@ -392,6 +407,7 @@ The system employs the following performance optimization techniques:
 2. **Debounced operations**: Operations that don't require immediate persistence, such as document saving, are debounced to prevent excessive database writes. The 500ms debounce delay for document saves ensures that only the final state is persisted after a period of inactivity.
 
 3. **Payload optimization**: The system minimizes payload size by:
+
    - Using binary formats (Uint8Array) for Yjs updates instead of JSON
    - Transmitting only changed data rather than entire objects
    - Using numeric codes for event types instead of strings when possible
@@ -409,6 +425,7 @@ The system employs the following performance optimization techniques:
 These optimizations ensure that the system can handle real-time updates efficiently, even with multiple concurrent users and high-frequency interactions.
 
 **Section sources**
+
 - [socket/main.py](file://backend/open_webui/socket/main.py#L585-L626)
 - [Collaboration.ts](file://src/lib/components/common/RichTextInput/Collaboration.ts#L185-L202)
 
@@ -442,6 +459,7 @@ end
 ```
 
 **Diagram sources**
+
 - [socket/main.py](file://backend/open_webui/socket/main.py#L64-L75)
 - [env.py](file://backend/open_webui/env.py#L618-L662)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L107-L116)
@@ -453,6 +471,7 @@ The connection management system includes the following components:
 2. **Sentinel support**: The system supports Redis Sentinel for high availability. The `WEBSOCKET_SENTINEL_HOSTS` and `WEBSOCKET_SENTINEL_PORT` environment variables configure the connection to a Redis Sentinel cluster, which automatically handles failover and master election.
 
 3. **Connection pooling**: The system maintains pools of active connections:
+
    - `SESSION_POOL`: Tracks user sessions and their associated information
    - `USAGE_POOL`: Monitors model usage and connection status
    - Document-specific pools for collaborative editing sessions
@@ -460,6 +479,7 @@ The connection management system includes the following components:
 4. **Periodic cleanup**: A background task (`periodic_usage_pool_cleanup`) runs periodically to clean up expired connections and unused resources. This prevents memory leaks and ensures efficient resource utilization.
 
 5. **Connection lifecycle management**: The system properly handles connection events:
+
    - `connect`: Authenticates the user and joins appropriate rooms
    - `disconnect`: Cleans up user sessions and notifies other users
    - `reconnect`: Restores the user's state when they reconnect
@@ -476,14 +496,17 @@ The connection management system includes the following components:
 These scaling and management features ensure that the system can handle large numbers of concurrent users while maintaining performance and reliability.
 
 **Section sources**
+
 - [socket/main.py](file://backend/open_webui/socket/main.py#L64-L75)
 - [env.py](file://backend/open_webui/env.py#L618-L662)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L107-L116)
 
 ## Conclusion
+
 The real-time data synchronization system in open-webui provides a robust foundation for immediate updates across clients for features like chat messages, model status changes, and collaborative editing. By leveraging WebSocket communication through Socket.IO, the system enables bidirectional, low-latency messaging between the server and clients.
 
 The architecture combines several key components:
+
 - **WebSocket communication** for real-time, bidirectional messaging
 - **Event emitter pattern** for decoupled communication between system components
 - **Yjs-based collaborative editing** for conflict-free real-time collaboration

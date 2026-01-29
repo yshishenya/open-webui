@@ -92,7 +92,6 @@
 								{$i18n.t('Plans')}
 							</a>
 						{/if}
-
 					</div>
 				</div>
 			</div>

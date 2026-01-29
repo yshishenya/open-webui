@@ -1,6 +1,7 @@
 # Technology Stack
 
 ## Project Overview
+
 **Airis** - a private fork of Open WebUI, a full-featured web interface for Large Language Models (LLMs) with integrated billing system and multi-provider AI support.
 
 ---
@@ -8,12 +9,14 @@
 ## Core Stack
 
 ### Backend
-- **Language**: Python 3.11+
-- **Web Framework**: FastAPI 0.123.0 (async-first, high-performance API framework)
-- **Server**: Uvicorn 0.37.0 with uvloop (ASGI server)
+
+- **Language**: Python 3.11-3.12
+- **Web Framework**: FastAPI 0.128.0 (async-first, high-performance API framework)
+- **Server**: Uvicorn 0.40.0 (ASGI server)
 - **Async Runtime**: asyncio with async/await patterns
 
 ### Frontend
+
 - **Framework**: SvelteKit 2.5.27 (meta-framework for Svelte)
 - **Language**: TypeScript 5.5.4
 - **UI Library**: Svelte 5.0.0 (reactive UI framework)
@@ -22,14 +25,16 @@
 - **Node**: 18.13.0 - 22.x.x (required range)
 
 ### Database
+
 - **Default**: SQLite (embedded, for development)
 - **Production**: PostgreSQL 16-alpine
 - **ORM**:
-  - SQLAlchemy 2.0.38 (primary, with async support)
+  - SQLAlchemy 2.0.45 (primary)
   - Peewee 3.18.3 (legacy, for backward compatibility)
 - **Migrations**: Alembic 1.17.2
 
 ### Caching & Sessions
+
 - **Redis**: In-memory data store
   - Session management (starsessions[redis] 2.2.1)
   - Caching (aiocache)
@@ -41,11 +46,13 @@
 ## Data Validation & Serialization
 
 ### Python
+
 - **Pydantic 2.12.5**: Runtime data validation and settings management
 - **email-validator 2.2.0**: Email validation for `EmailStr`
-- **Pydantic Settings 2.0**: Environment variables management
+- Environment variables parsed in `backend/open_webui/env.py` (no Pydantic Settings in this repo)
 
 ### TypeScript
+
 - Native TypeScript interfaces for type safety
 - Zod validation (implicitly via form validation)
 
@@ -54,8 +61,9 @@
 ## Authentication & Security
 
 ### Auth Stack
+
 - **JWT**: PyJWT 2.10.1 with crypto support
-- **OAuth/OIDC**: Authlib 1.6.5
+- **OAuth/OIDC**: Authlib 1.6.6
 - **JWT Legacy**: python-jose 3.5.0
 - **Password Hashing**:
   - bcrypt 5.0.0
@@ -69,13 +77,15 @@
 ## HTTP & WebSocket
 
 ### Backend
+
 - **HTTP Client**: httpx 0.28.1 (async, with http2, socks, brotli, zstd support)
-- **Async HTTP**: aiohttp 3.12.15
+- **Async HTTP**: aiohttp 3.13.2
 - **Sync HTTP**: requests 2.32.5 (fallback)
-- **WebSocket**: python-socketio 5.15.0 (real-time communication)
+- **WebSocket**: python-socketio 5.16.0 (real-time communication)
 - **Compression**: starlette-compress 1.6.1
 
 ### Frontend
+
 - **WebSocket**: socket.io-client 4.2.0
 - **HTTP**: Native fetch API (async/await)
 
@@ -84,23 +94,25 @@
 ## AI/ML Integrations
 
 ### LLM Providers
+
 - **OpenAI**: openai (GPT-4, GPT-3.5, embeddings)
 - **Anthropic**: anthropic (Claude models)
 - **Google AI**:
-  - google-genai 1.52.0
-  - google-generativeai 0.8.5
+  - google-genai 1.56.0
 - **Ollama**: Direct integration via HTTP API
-- **LangChain**: langchain 0.3.27 + langchain-community 0.3.29
+- **LangChain**: langchain 1.2.0 + langchain-community 0.4.1
 
 ### ML Libraries
+
 - **Tokenization**: tiktoken (OpenAI tokenizer)
 - **Embeddings**:
-  - sentence-transformers 5.1.2
+  - sentence-transformers 5.2.0
   - transformers 4.57.3
-- **Vector Search**: pgvector 0.4.1 (PostgreSQL extension)
-- **Model Context Protocol**: mcp 1.22.0
+- **Vector Search**: pgvector 0.4.2 (PostgreSQL extension)
+- **Model Context Protocol**: mcp 1.25.0
 
 ### On-Device AI (Frontend)
+
 - **Transformers.js**: @huggingface/transformers 3.0.0 (browser inference)
 - **MediaPipe**: @mediapipe/tasks-vision 0.10.17 (vision tasks)
 - **Pyodide**: pyodide 0.28.2 + @pyscript/core 0.4.32 (Python in browser)
@@ -110,6 +122,7 @@
 ## Payment & Billing
 
 ### Payment Gateway
+
 - **Provider**: YooKassa (Russian payment aggregator)
 - **Integration**: Custom async client (utils/yookassa.py)
 - **Features**:
@@ -119,6 +132,7 @@
   - Multi-currency support (default: RUB)
 
 ### Billing System
+
 - **Models**: Plan, Subscription, Usage, Transaction, AuditLog
 - **Quotas**: Tokens (input/output), requests, images, audio minutes
 - **Enforcement**: Middleware-based quota checks
@@ -129,6 +143,7 @@
 ## Frontend UI Components
 
 ### Core UI
+
 - **Component Library**: bits-ui 0.21.15 (headless components)
 - **Rich Text Editor**: TipTap 3.17.1 (ProseMirror-based)
   - Extensions: tables, code blocks, images, YouTube, mentions, file handling
@@ -148,6 +163,7 @@
 - **Confetti**: svelte-confetti 2.3.2
 
 ### Document Processing
+
 - **PDF**:
   - Frontend: pdfjs-dist 5.4.149 (viewer)
   - Backend: Generate with jsPDF or server-side tools
@@ -157,6 +173,7 @@
 - **File Saving**: file-saver 2.0.5
 
 ### Collaboration
+
 - **Real-time Editing**:
   - Yjs 13.6.27 (CRDT for sync)
   - y-prosemirror 1.3.7 (ProseMirror binding)
@@ -167,6 +184,7 @@
 ## Code Quality & Testing
 
 ### Python
+
 - **Linting**: pylint, ruff 0.1+ (fast Python linter)
 - **Formatting**: black (line length: 88-100)
 - **Type Checking**: mypy 1.7+ (strict mode)
@@ -180,6 +198,7 @@
 - **Minimum Coverage**: 80%
 
 ### TypeScript/JavaScript
+
 - **Linting**: ESLint 8.56.0 + @typescript-eslint
 - **Formatting**: Prettier 3.3.3
 - **Testing**: Vitest 1.6.1
@@ -187,6 +206,7 @@
 - **Type Checking**: svelte-check 4.0.0
 
 ### Pre-commit
+
 - black, ruff, mypy hooks
 - Prettier, ESLint hooks
 - Auto-fix on commit
@@ -195,20 +215,22 @@
 
 ## Background Jobs & Scheduling
 
-- **Scheduler**: APScheduler 3.10.4
+- **Scheduler**: APScheduler 3.11.2
 - **Tasks**: Periodic cleanup, subscription renewals, usage aggregation
-- **Execution**: Restricted Python environment (RestrictedPython 8.0)
+- **Execution**: Restricted Python environment (RestrictedPython 8.1)
 
 ---
 
 ## Storage & Files
 
 ### Backend
+
 - **Async File I/O**: aiofiles
-- **Multipart Upload**: python-multipart 0.0.20
+- **Multipart Upload**: python-multipart 0.0.21
 - **Storage**: Local filesystem or S3-compatible
 
 ### Frontend
+
 - **IndexedDB**: idb 7.1.1 (client-side storage)
 - **Blob Handling**: file-saver, heic2any
 
@@ -217,12 +239,14 @@
 ## Logging & Monitoring
 
 ### Logging
+
 - **Library**: loguru 0.7.3 (structured logging)
 - **Levels**: DEBUG, INFO, WARNING, ERROR, CRITICAL
 - **Format**: Structured JSON logs with context
 - **Configuration**: Per-module log levels via env vars
 
 ### Example:
+
 ```python
 from loguru import logger
 
@@ -235,10 +259,12 @@ logger.error("Payment failed", error=str(e), exc_info=True)
 ## Development Tools
 
 ### Package Management
-- **Python**: pip + requirements.txt (no Poetry in this project)
-- **Node**: npm 6.0.0+
+
+- **Python**: `uv.lock` + `backend/requirements.txt` (Docker build uses `uv` for speed; local dev may use pip)
+- **Node**: npm (see `package.json` engines)
 
 ### Containerization
+
 - **Docker**: Multi-stage builds
 - **Docker Compose**: Local development setup
 - **Base Images**:
@@ -246,8 +272,9 @@ logger.error("Payment failed", error=str(e), exc_info=True)
   - Application: ghcr.io/open-webui/open-webui
 
 ### Environment Variables
+
 - Managed via `.env` file
-- Loaded by Pydantic Settings
+- Loaded by `backend/open_webui/env.py` (env vars parsed at import time)
 - Never committed to Git
 
 ---
@@ -255,12 +282,14 @@ logger.error("Payment failed", error=str(e), exc_info=True)
 ## Database Schema Management
 
 ### Migrations
+
 - **Tool**: Alembic 1.17.2
 - **Location**: backend/open_webui/migrations/versions/
 - **Naming**: `{revision}_{description}.py`
 - **Example**: b2f8a9c1d5e3_add_billing_tables.py
 
 ### Indexes
+
 - User lookups: user_id, email
 - Billing: subscription status, payment status, usage periods
 - Performance: created_at, updated_at timestamps
@@ -270,10 +299,12 @@ logger.error("Payment failed", error=str(e), exc_info=True)
 ## Internationalization (i18n)
 
 ### Backend
+
 - Multi-language support for billing (EN/RU)
 - Database fields: name, name_ru, description, description_ru
 
 ### Frontend
+
 - **Library**: i18next 23.10.0
 - **Detection**: i18next-browser-languagedetector 7.2.0
 - **Dynamic Loading**: i18next-resources-to-backend 1.2.0
@@ -285,6 +316,7 @@ logger.error("Payment failed", error=str(e), exc_info=True)
 ## Security Best Practices
 
 ### Enforced Rules
+
 1. **No secrets in code** - all via environment variables
 2. **Input validation** - Pydantic for all inputs
 3. **SQL injection prevention** - ORM only, parameterized queries
@@ -299,6 +331,7 @@ logger.error("Payment failed", error=str(e), exc_info=True)
 ## Performance Optimization
 
 ### Backend
+
 - **Async I/O**: All database and HTTP operations async
 - **Connection Pooling**:
   - Database: SQLAlchemy pool (configurable size)
@@ -308,6 +341,7 @@ logger.error("Payment failed", error=str(e), exc_info=True)
 - **Rate Limiting**: Per-user, per-endpoint limits
 
 ### Frontend
+
 - **Code Splitting**: Vite automatic chunking
 - **Lazy Loading**: Dynamic imports for routes
 - **Bundle Size**: Tree-shaking, minimal dependencies
@@ -318,6 +352,7 @@ logger.error("Payment failed", error=str(e), exc_info=True)
 ## Forbidden Practices
 
 ### Backend
+
 1. Synchronous I/O in async code (blocks event loop)
 2. Using `Any` type hints (defeats type safety)
 3. Raw SQL without parameterization (SQL injection risk)
@@ -326,6 +361,7 @@ logger.error("Payment failed", error=str(e), exc_info=True)
 6. Blocking operations in request handlers
 
 ### Frontend
+
 1. Inline styles (use Tailwind classes)
 2. Direct DOM manipulation (use Svelte reactivity)
 3. Untyped API calls (use TypeScript interfaces)
@@ -379,6 +415,7 @@ airis/
 ## Version Control
 
 ### Git Workflow
+
 - **Branch Naming**:
   - `feature/{description}` - New features
   - `bugfix/{description}` - Bug fixes
@@ -387,6 +424,7 @@ airis/
   - `refactor/{description}` - Code refactoring
 
 ### Commit Messages (Conventional Commits)
+
 - `feat:` - New feature
 - `fix:` - Bug fix
 - `docs:` - Documentation changes
@@ -398,7 +436,8 @@ airis/
 ---
 
 ## Last Updated
+
 **Date**: 2025-12-11
 **Python Version**: 3.11+
 **Node Version**: 18.13.0 - 22.x.x
-**Framework**: FastAPI 0.123.0 + SvelteKit 2.5.27
+**Framework**: FastAPI 0.128.0 + SvelteKit 2.5.27

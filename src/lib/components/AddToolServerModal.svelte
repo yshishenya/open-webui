@@ -835,11 +835,7 @@
 								'MCP support is experimental and its specification changes often, which can lead to incompatibilities. OpenAPI specification support is directly maintained by the AIris team, making it the more reliable option for compatibility.'
 							)}
 
-							<a
-								class="font-medium underline"
-								href="#"
-								target="_blank">{$i18n.t('Read more →')}</a
-							>
+							<a class="font-medium underline" href="#" target="_blank">{$i18n.t('Read more →')}</a>
 						</div>
 					{/if}
 

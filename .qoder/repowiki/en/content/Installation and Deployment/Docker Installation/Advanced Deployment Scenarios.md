@@ -16,6 +16,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [GPU-Accelerated Deployment](#gpu-accelerated-deployment)
 3. [OpenTelemetry Integration](#opentelemetry-integration)
@@ -26,6 +27,7 @@
 8. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive guidance on advanced deployment scenarios for open-webui, focusing on GPU-accelerated deployment, observability through OpenTelemetry, and specialized deployment patterns. The documentation covers the build process in Dockerfile, including multi-stage builds and build-time variables, as well as customization of the start.sh script for pre-launch configuration and health checks. The goal is to provide a detailed reference for deploying open-webui in production environments with optimal performance and reliability.
 
 ## GPU-Accelerated Deployment
@@ -43,6 +45,7 @@ D --> E["Deploy with GPU Support"]
 ```
 
 **Diagram sources**
+
 - [docker-compose.gpu.yaml](file://docker-compose.gpu.yaml#L1-L12)
 
 The Docker build process supports GPU acceleration through build arguments such as `USE_CUDA` and `USE_OLLAMA`. When `USE_CUDA` is set to true, the build process installs CUDA-compatible versions of PyTorch and related libraries, enabling GPU acceleration for deep learning models:
@@ -62,6 +65,7 @@ L --> M
 For AMD GPU support, the repository provides a specialized `docker-compose.amdgpu.yaml` file that configures the necessary devices and environment variables for AMD GPU acceleration. This configuration maps AMD-specific devices (`/dev/kfd` and `/dev/dri`) into the container and sets the appropriate environment variables for ROCm support.
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L4-9)
 - [docker-compose.gpu.yaml](file://docker-compose.gpu.yaml#L1-L12)
 - [docker-compose.amdgpu.yaml](file://docker-compose.amdgpu.yaml#L1-L8)
@@ -82,6 +86,7 @@ D --> E[Visualization and Analysis]
 ```
 
 **Diagram sources**
+
 - [docker-compose.otel.yaml](file://docker-compose.otel.yaml#L1-L36)
 
 The application container is configured with environment variables to enable OpenTelemetry instrumentation and specify the export endpoint. Key environment variables include:
@@ -95,6 +100,7 @@ The application container is configured with environment variables to enable Ope
 The integration allows for detailed monitoring of application performance, including request tracing, metric collection, and log aggregation. This enables operators to identify performance bottlenecks, troubleshoot issues, and optimize resource utilization.
 
 **Section sources**
+
 - [docker-compose.otel.yaml](file://docker-compose.otel.yaml#L1-L36)
 - [Dockerfile](file://Dockerfile#L74-L78)
 
@@ -114,6 +120,7 @@ E --> F["Generate Static Assets"]
 ```
 
 **Diagram sources**
+
 - [Dockerfile](file://Dockerfile#L26-L43)
 
 The backend build stage uses a Python base image and incorporates the built frontend assets. This stage installs Python dependencies, configures environment variables, and sets up the application runtime environment. The multi-stage build pattern allows the final image to include only the necessary runtime components, significantly reducing image size.
@@ -143,9 +150,11 @@ N --> O["Set Final Image Configuration"]
 ```
 
 **Diagram sources**
+
 - [Dockerfile](file://Dockerfile#L45-L192)
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L1-L192)
 
 ## Specialized Deployment Patterns
@@ -153,12 +162,15 @@ N --> O["Set Final Image Configuration"]
 open-webui supports several specialized deployment patterns to accommodate different operational requirements and environments. These patterns are implemented through modular Docker Compose configuration files that can be combined as needed.
 
 ### Air-Gapped Environments
+
 For air-gapped environments where internet access is restricted, the deployment can be configured to use pre-downloaded models and dependencies. The build process can be executed in an environment with internet access, and the resulting images can be transferred to the air-gapped environment for deployment. The `USE_SLIM` build argument can be used to create a minimal image that excludes unnecessary components.
 
 ### High-Availability Setups
+
 High-availability deployments can be achieved by combining multiple instances of the open-webui service behind a load balancer. The stateless nature of the application allows for horizontal scaling, while external databases (such as PostgreSQL) provide persistent storage that can be shared across instances. The `docker-compose.yaml` file includes a PostgreSQL service that can be externalized for high-availability database configurations.
 
 ### External AI Provider Integration
+
 The deployment supports integration with external AI providers through configuration options. The `OLLAMA_BASE_URL` environment variable can be set to point to an external Ollama instance, allowing the web interface to connect to AI models hosted elsewhere. Similarly, the `OPENAI_API_BASE_URL` and `OPENAI_API_KEY` variables enable integration with OpenAI services.
 
 The modular Docker Compose architecture allows these patterns to be combined through the use of multiple compose files. For example, a high-availability setup with external AI providers can be deployed using:
@@ -184,6 +196,7 @@ D --> K[OpenAI Integration]
 ```
 
 **Section sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L1-L60)
 - [docker-compose.api.yaml](file://docker-compose.api.yaml#L1-L6)
 - [run-compose.sh](file://run-compose.sh#L1-L251)
@@ -239,9 +252,11 @@ AA --> AB
 ```
 
 **Diagram sources**
+
 - [backend/start.sh](file://backend/start.sh#L1-L87)
 
 **Section sources**
+
 - [backend/start.sh](file://backend/start.sh#L1-L87)
 
 ## Performance Tuning and Resource Allocation
@@ -249,19 +264,23 @@ AA --> AB
 Effective performance tuning and resource allocation are critical for production deployments of open-webui. The following recommendations provide guidance for optimizing the application's performance and resource utilization.
 
 ### Resource Allocation Guidelines
+
 - **CPU**: Allocate at least 2 cores for moderate workloads, scaling to 4+ cores for high-concurrency scenarios
 - **Memory**: Allocate a minimum of 4GB RAM, with 8GB+ recommended for GPU-accelerated deployments
 - **Storage**: Use SSD storage for the data volume to ensure fast access to cached models and embeddings
 - **GPU**: For GPU-accelerated deployments, allocate appropriate VRAM based on model requirements (minimum 8GB recommended)
 
 ### Configuration Recommendations
+
 - **UVICORN_WORKERS**: Set this environment variable to match the number of CPU cores for optimal concurrency handling
 - **USE_SLIM**: Use the slim build option in resource-constrained environments to reduce memory footprint
 - **Caching**: Ensure adequate storage is allocated for model caching in the `/app/backend/data/cache` directory
 - **Database**: Use an external PostgreSQL instance for production deployments to ensure data persistence and performance
 
 ### Monitoring and Optimization
+
 The OpenTelemetry integration provides valuable insights for performance optimization. Key metrics to monitor include:
+
 - Request latency and throughput
 - Memory usage patterns
 - GPU utilization (for GPU-accelerated deployments)
@@ -289,9 +308,11 @@ L --> P["Database Performance"]
 ```
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L21-L23)
 - [backend/start.sh](file://backend/start.sh#L73-L80)
 - [run-compose.sh](file://run-compose.sh#L98-L104)
 
 ## Conclusion
+
 This document has provided comprehensive coverage of advanced deployment scenarios for open-webui, including GPU-accelerated deployment, OpenTelemetry integration, Docker build processes, specialized deployment patterns, start.sh customization, and performance tuning recommendations. The modular architecture of the deployment configuration enables flexible adaptation to various operational requirements, from air-gapped environments to high-availability setups. By following the guidelines outlined in this document, operators can deploy open-webui in production environments with confidence in performance, reliability, and maintainability.

@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Data Model](#data-model)
 3. [Billing Plan Creation](#billing-plan-creation)
@@ -26,11 +27,17 @@
 
 ## Introduction
 
-The Billing and Subscription Management system in open-webui provides a comprehensive solution for monetizing AI services through tiered subscription plans, usage-based metering, and integration with payment providers. The system is designed to support both free and paid tiers, with granular control over feature access and resource quotas. Built with extensibility in mind, it supports multiple payment providers through a pluggable architecture, with initial implementation focused on YooKassa for Russian market compliance.
+Airis billing supports two product modes:
 
-The system tracks user activity across various metrics including token usage, API requests, and multimedia processing, enabling precise billing and quota enforcement. It integrates seamlessly with the application's authentication and access control systems to ensure that users only access features and resources appropriate to their subscription level.
+- PAYG wallet (primary B2C mode)
+- Subscription plans (optional, feature-flagged)
+
+It also supports an optional “lead magnet” free quota system that applies only to allowlisted models.
+
+User-facing copy should be PAYG-first unless subscription plans are explicitly enabled.
 
 **Section sources**
+
 - [BILLING_SETUP.md](file://BILLING_SETUP.md#L1-L333)
 
 ## Data Model
@@ -106,6 +113,7 @@ billing_subscription ||--o{ billing_transaction : "generates"
 ```
 
 **Diagram sources**
+
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L18-L187)
 - [billing.py](file://backend/open_webui/models/billing.py#L54-L265)
 
@@ -127,7 +135,7 @@ Subscriptions track a user's active plan and billing period. Key fields include:
 - **Status**: ACTIVE, CANCELED, PAST_DUE, TRIALING, or PAUSED
 - **Billing Period**: Current period start and end timestamps
 - **Cancellation**: Flag to indicate if subscription should cancel at period end
-- **Trial**: Optional trial period end timestamp
+- **Trial**: Optional trial period end timestamp (used only if you run subscription trials; PAYG-first deployments usually rely on lead-magnet quotas instead)
 - **Payment Provider**: YooKassa-specific identifiers for payment and subscription management
 
 The system supports both immediate cancellation and end-of-period cancellation, providing flexibility for user experience design.
@@ -155,6 +163,7 @@ Transactions record all payment activity:
 This provides a complete audit trail for financial operations and customer support.
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L54-L265)
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L18-L187)
 
@@ -196,6 +205,7 @@ Plan --> UsageMetric : "references in quotas"
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L54-L81)
 - [billing.py](file://backend/open_webui/models/billing.py#L41-L47)
 
@@ -205,25 +215,21 @@ Administrators can create plans through the REST API using the `/api/v1/billing/
 
 ```json
 {
-  "name": "Pro",
-  "name_ru": "Профессиональный",
-  "description": "Advanced features and higher quotas",
-  "description_ru": "Расширенные возможности и увеличенные квоты",
-  "price": 990.00,
-  "currency": "RUB",
-  "interval": "month",
-  "quotas": {
-    "tokens_input": 1000000,
-    "tokens_output": 500000,
-    "requests": 10000
-  },
-  "features": [
-    "gpt4_access",
-    "claude_access",
-    "priority_support"
-  ],
-  "is_active": true,
-  "display_order": 1
+	"name": "Pro",
+	"name_ru": "Профессиональный",
+	"description": "Advanced features and higher quotas",
+	"description_ru": "Расширенные возможности и увеличенные квоты",
+	"price": 990.0,
+	"currency": "RUB",
+	"interval": "month",
+	"quotas": {
+		"tokens_input": 1000000,
+		"tokens_output": 500000,
+		"requests": 10000
+	},
+	"features": ["gpt4_access", "claude_access", "priority_support"],
+	"is_active": true,
+	"display_order": 1
 }
 ```
 
@@ -249,6 +255,7 @@ OutputSummary --> End([Plans initialized successfully])
 ```
 
 **Diagram sources**
+
 - [init_billing_plans.py](file://backend/scripts/init_billing_plans.py#L29-L74)
 - [plan_templates.py](file://backend/open_webui/utils/plan_templates.py#L10-L304)
 
@@ -258,15 +265,17 @@ The `init_billing_plans.py` script provides command-line options to include annu
 
 The system includes comprehensive plan templates that reflect market research and competitive positioning:
 
-- **Free Tier**: Entry-level access with limited quotas for user onboarding
-- **Starter Tier**: For students and hobbyists with moderate resource limits
-- **Pro Tier**: For professionals and small businesses with advanced features
-- **Business Tier**: For companies and power users with high quotas
-- **Unlimited Tier**: Enterprise-level access with no usage limits
+Default templates exist for subscription plans (including a `free` plan), but the primary B2C flow is:
+
+- lead magnet quotas for “free start” (on allowlisted models)
+- PAYG wallet for everything else
+
+Enable subscription plans only if you intend to operate a plan-based product.
 
 These templates include Russian language translations and are designed to be immediately deployable. Annual variants provide discounted pricing for users who commit to longer terms.
 
 **Section sources**
+
 - [init_billing_plans.py](file://backend/scripts/init_billing_plans.py#L1-L120)
 - [plan_templates.py](file://backend/open_webui/utils/plan_templates.py#L1-L305)
 - [billing.py](file://backend/open_webui/routers/billing.py#L110-L137)
@@ -304,6 +313,7 @@ Backend-->>YooKassa : Return 200 OK
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/utils/billing.py#L374-L447)
 - [billing.py](file://backend/open_webui/routers/billing.py#L182-L211)
 - [yookassa.py](file://backend/open_webui/utils/yookassa.py#L86-L137)
@@ -313,12 +323,12 @@ Backend-->>YooKassa : Return 200 OK
 Subscriptions can exist in several states that reflect their lifecycle:
 
 - **ACTIVE**: Current subscription with access to features
-- **TRIALING**: During a trial period before payment
+- **TRIALING**: During a subscription trial period (optional; not used in PAYG-first deployments)
 - **CANCELED**: Subscription has been canceled
 - **PAST_DUE**: Payment failed and subscription is overdue
 - **PAUSED**: Subscription temporarily suspended
 
-The system uses these states to determine feature access and quota enforcement. For example, trialing subscriptions have full access to premium features during the trial period, while canceled subscriptions lose access at the end of their billing period.
+The system uses these states to determine feature access and quota enforcement. In the backend, `TRIALING` is treated like `ACTIVE` for access checks, but Airis deployments are typically PAYG-first and rely on lead-magnet quotas (if enabled) rather than subscription trials.
 
 ### Subscription Renewal
 
@@ -328,20 +338,20 @@ Subscriptions are automatically renewed when payment is successfully processed. 
 def renew_subscription(self, subscription_id: str) -> Optional[SubscriptionModel]:
     subscription = self.subscriptions.get_subscription_by_id(subscription_id)
     plan = self.get_plan(subscription.plan_id)
-    
+
     # Calculate new period based on plan interval
     if plan.interval == "month":
         new_period_end = subscription.current_period_end + (30 * 24 * 60 * 60)
     elif plan.interval == "year":
         new_period_end = subscription.current_period_end + (365 * 24 * 60 * 60)
-    
+
     updates = {
         "current_period_start": subscription.current_period_end,
         "current_period_end": new_period_end,
         "status": SubscriptionStatus.ACTIVE,
         "cancel_at_period_end": False,
     }
-    
+
     return self.subscriptions.update_subscription(subscription_id, updates)
 ```
 
@@ -361,11 +371,13 @@ D --> F([Subscription continues until period end])
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/utils/billing.py#L156-L184)
 
 Immediate cancellation terminates access immediately, while end-of-period cancellation allows users to continue using the service until the end of their current billing cycle. This provides flexibility for user experience design and reduces churn.
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/utils/billing.py#L86-L223)
 - [billing.py](file://backend/open_webui/routers/billing.py#L144-L174)
 
@@ -407,6 +419,7 @@ Backend-->>User : Return response
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/utils/billing.py#L227-L269)
 
 The system automatically extracts usage information from AI model responses (typically in the `usage` field) and creates corresponding usage records. This happens transparently to the user and is integrated into the request-response cycle.
@@ -420,12 +433,12 @@ def check_quota(self, user_id: str, metric: UsageMetric, amount: int = 1) -> boo
     subscription = self.get_user_subscription(user_id)
     if not subscription:
         return True  # No subscription = unlimited (policy decision)
-        
+
     plan = self.get_plan(subscription.plan_id)
     quota_limit = plan.quotas.get(metric)
     if quota_limit is None:
         return True  # No limit for this metric = unlimited
-        
+
     current_usage = self.get_current_period_usage(user_id, metric)
     would_exceed = (current_usage + amount) > quota_limit
     return not would_exceed
@@ -453,6 +466,7 @@ H --> I["Return list of usage records"]
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L414-L443)
 
 This enables both real-time quota enforcement and historical analytics. The system uses database indexes on user_id and metric for efficient querying.
@@ -468,6 +482,7 @@ The API provides several endpoints for retrieving usage information:
 These endpoints enable client applications to display usage dashboards and warn users when they are approaching their limits.
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/utils/billing.py#L226-L351)
 - [billing.py](file://backend/open_webui/routers/billing.py#L239-L337)
 - [billing.py](file://backend/open_webui/models/billing.py#L176-L199)
@@ -510,6 +525,7 @@ Frontend-->>User : Show successful subscription
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/utils/billing.py#L374-L447)
 - [yookassa.py](file://backend/open_webui/utils/yookassa.py#L86-L137)
 
@@ -521,28 +537,28 @@ Webhooks are critical for maintaining synchronization between the payment provid
 def process_payment_webhook(self, webhook_data: Dict[str, Any]) -> Optional[SubscriptionModel]:
     event_type = webhook_data.get("event_type")
     metadata = webhook_data.get("metadata", {})
-    
+
     # Find transaction
     transaction_id = metadata.get("transaction_id")
     transaction = self.transactions.get_transaction_by_id(transaction_id)
-    
+
     # Update transaction status
     if event_type == "payment.succeeded":
         self.transactions.update_transaction(transaction_id, {
             "status": TransactionStatus.SUCCEEDED,
             "yookassa_status": webhook_data.get("status"),
         })
-        
+
         # Create or renew subscription
         user_id = metadata.get("user_id")
         plan_id = metadata.get("plan_id")
-        
+
         existing_subscription = self.get_user_subscription(user_id)
         if existing_subscription:
             return self.renew_subscription(existing_subscription.id)
         else:
             return self.create_subscription(user_id, plan_id)
-            
+
     elif event_type == "payment.canceled":
         self.transactions.update_transaction(transaction_id, {
             "status": TransactionStatus.CANCELED,
@@ -584,6 +600,7 @@ YooKassaClient --> YooKassaWebhookHandler : "collaborates with"
 ```
 
 **Diagram sources**
+
 - [yookassa.py](file://backend/open_webui/utils/yookassa.py#L38-L354)
 
 The client handles authentication, request signing, error handling, and response parsing. It uses idempotency keys to prevent duplicate payments and provides methods for all necessary payment operations.
@@ -602,6 +619,7 @@ YOOKASSA_API_URL='https://api.yookassa.ru/v3'
 These variables are used to initialize the YooKassa client at application startup. The webhook secret is optional but recommended for enhanced security.
 
 **Section sources**
+
 - [yookassa.py](file://backend/open_webui/utils/yookassa.py#L1-L355)
 - [billing.py](file://backend/open_webui/utils/billing.py#L26-L27)
 - [BILLING_SETUP.md](file://BILLING_SETUP.md#L52-L62)
@@ -629,6 +647,7 @@ J --> K([Return response])
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/utils/billing.py#L311-L351)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L6-L139)
 
@@ -643,11 +662,11 @@ def has_feature_access(user_id: str, feature: str) -> bool:
     subscription = billing_service.get_user_subscription(user_id)
     if not subscription:
         return False
-        
+
     plan = billing_service.get_plan(subscription.plan_id)
     if not plan or not plan.features:
         return False
-        
+
     return feature in plan.features
 ```
 
@@ -657,9 +676,11 @@ This allows plans to include or exclude specific AI models, integrations, or pre
 
 The system implements several policies for handling quota limits:
 
-- **Free Tier Users**: Have limited quotas but can continue using basic features
-- **Paid Tier Users**: Have higher quotas and lose access when limits are exceeded
-- **Enterprise Users**: May have unlimited quotas or custom limits
+Quota behavior depends on the active billing mode:
+
+- lead magnet: free quotas on allowlisted models
+- PAYG wallet: balance + holds + caps
+- subscriptions: plan quotas (only if enabled)
 
 The exact behavior can be configured based on business requirements. Some deployments might choose to allow overages at a premium rate, while others strictly enforce limits.
 
@@ -678,7 +699,7 @@ def track_usage(
     metadata: Optional[Dict[str, Any]] = None,
 ) -> UsageModel:
     subscription = self.get_user_subscription(user_id)
-    
+
     usage = UsageModel(
         id=str(uuid.uuid4()),
         user_id=user_id,
@@ -692,13 +713,14 @@ def track_usage(
         metadata=metadata,
         created_at=int(time.time()),
     )
-    
+
     return self.usage_tracking.track_usage(usage)
 ```
 
 This creates an immutable record of resource consumption that can be used for billing, analytics, and auditing.
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/utils/billing.py#L311-L371)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L6-L139)
 
@@ -733,6 +755,7 @@ Backend-->>YooKassa : Return 200 OK
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/utils/billing.py#L487-L503)
 
 The upgrade takes effect immediately, giving the user access to the higher-tier features and quotas. Any unused time from the previous plan is typically credited toward the new plan (proration), though this behavior can be configured.
@@ -750,13 +773,14 @@ D --> E["User receives lower-tier<br/>features and quotas"]
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/utils/billing.py#L156-L184)
 
 This approach prevents disruption of service during the current billing cycle and encourages users to consider their needs before downgrading. The user continues to have access to the higher-tier features until the end of their paid period.
 
-### Trial Management
+### Trial Management (Optional)
 
-The system supports trial periods for new users or promotional offers:
+Trial periods exist in the subscription code path, but Airis PAYG-first deployments typically use lead-magnet quotas for “free start” instead of plan trials. Use this only if you intentionally operate a subscription plan product:
 
 ```python
 def create_subscription(
@@ -766,14 +790,14 @@ def create_subscription(
     trial_days: Optional[int] = None,
 ) -> SubscriptionModel:
     # ... other code ...
-    
+
     # Set trial if provided
     trial_end = None
     status = SubscriptionStatus.ACTIVE
     if trial_days and trial_days > 0:
         trial_end = now + (trial_days * 24 * 60 * 60)
         status = SubscriptionStatus.TRIALING
-        
+
     subscription = SubscriptionModel(
         # ... other fields ...
         status=status,
@@ -781,7 +805,7 @@ def create_subscription(
     )
 ```
 
-During the trial period, users have full access to the plan's features and quotas. The system tracks the trial end date and automatically transitions to a paid subscription if payment is set up, or deactivates the subscription if not.
+During the trial period, users have full access to the plan's features and quotas. In Airis, this is an optional subscription-only mechanism; most PAYG-first deployments instead use lead-magnet quotas for “free start”.
 
 ### Subscription Expiration
 
@@ -791,17 +815,19 @@ When subscriptions expire due to cancellation or payment failure, the system han
 flowchart TD
 A([Subscription expires]) --> B["Update status to CANCELED"]
 B --> C["Revoke premium feature access"]
-C --> D["Apply free-tier quotas"]
+C --> D["User continues with PAYG wallet or lead magnet quotas (if enabled)"]
 D --> E["User can still access<br/>basic functionality"]
 E --> F["Option to resubscribe"]
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/utils/billing.py#L156-L184)
 
-Expired subscribers lose access to premium features but can continue using the free tier. This encourages reactivation while maintaining a positive user experience.
+Expired subscribers lose access to subscription-gated features, but can continue using the PAYG wallet (and lead-magnet quotas, if enabled). This encourages reactivation while keeping the default B2C access model consistent.
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/utils/billing.py#L102-L223)
 - [billing.py](file://backend/open_webui/utils/billing.py#L487-L503)
 
@@ -838,6 +864,7 @@ python -m backend.scripts.init_billing_plans \
 ```
 
 The script accepts several options:
+
 - `--include-annual`: Creates annual versions of plans with discounted pricing
 - `--include-promo`: Creates promotional plans for special offers
 - `--force`: Overwrites existing plans with template values
@@ -857,7 +884,7 @@ def upgrade():
         sa.Column("name", sa.String(), nullable=False),
         # ... other columns ...
     )
-    
+
     # Create billing_subscription table
     op.create_table(
         "billing_subscription",
@@ -865,7 +892,7 @@ def upgrade():
         sa.Column("user_id", sa.String(), nullable=False),
         # ... other columns ...
     )
-    
+
     # ... create other tables ...
 ```
 
@@ -892,6 +919,7 @@ POST /api/v1/billing/plans
 These endpoints follow REST conventions and use standard HTTP status codes for error handling.
 
 **Section sources**
+
 - [BILLING_SETUP.md](file://BILLING_SETUP.md#L43-L333)
 - [init_billing_plans.py](file://backend/scripts/init_billing_plans.py#L1-L120)
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L18-L187)
@@ -912,13 +940,13 @@ def verify_webhook(
 ) -> bool:
     if not self.config.webhook_secret:
         return True
-        
+
     expected_signature = hmac.new(
         self.config.webhook_secret.encode("utf-8"),
         webhook_body.encode("utf-8"),
         hashlib.sha256,
     ).hexdigest()
-    
+
     return hmac.compare_digest(signature, expected_signature)
 ```
 
@@ -976,6 +1004,7 @@ async def yookassa_webhook(request: Request):
 Even when internal errors occur, the system returns a 200 status code to the payment provider to prevent repeated webhook delivery, while logging the error for debugging.
 
 **Section sources**
+
 - [yookassa.py](file://backend/open_webui/utils/yookassa.py#L262-L293)
 - [billing.py](file://backend/open_webui/routers/billing.py#L363-L412)
 - [BILLING_SETUP.md](file://BILLING_SETUP.md#L269-L272)

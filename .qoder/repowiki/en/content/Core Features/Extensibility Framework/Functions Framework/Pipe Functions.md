@@ -9,6 +9,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Pipe Function Interface](#pipe-function-interface)
 3. [Execution Context and Parameters](#execution-context-and-parameters)
@@ -24,6 +25,7 @@ Pipe Functions in the Functions Framework serve as middleware components in the 
 The implementation follows a modular design where each pipe function is registered as a distinct entity in the system, with its own configuration and execution context. This architecture enables administrators and developers to create, manage, and chain together multiple pipe functions to create sophisticated processing workflows that can adapt to different use cases and requirements.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L81-L156)
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L149-L157)
 
@@ -44,11 +46,13 @@ ReturnResult --> End([Return Result])
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L162-L166)
 
 The system also supports manifold pipes, which are pipe functions that can dynamically generate sub-pipes at runtime. This is achieved through the optional `pipes` attribute, which can be a list of pipe definitions, a synchronous function, or an asynchronous function that returns pipe configurations. This feature enables hierarchical organization of pipe functions and dynamic pipeline construction based on runtime conditions.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L94-L108)
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L149-L157)
 
@@ -59,6 +63,7 @@ Pipe functions receive a rich execution context that provides access to various 
 The parameter injection system uses Python's introspection capabilities to match available context parameters with the function signature, ensuring that only parameters explicitly declared in the function signature are passed. This approach provides type safety and prevents unexpected parameter injection. The `get_function_params` function handles this parameter mapping by examining the function signature using `inspect.signature()` and filtering the available parameters accordingly.
 
 Key execution context parameters include:
+
 - `__event_emitter__`: For emitting real-time events during processing
 - `__event_call__`: For making synchronous calls to other system components
 - `__user__`: User information and permissions
@@ -86,12 +91,14 @@ PipeFunction --> ExecutionContext : "receives"
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L200-L220)
 - [functions.py](file://backend/open_webui/functions.py#L255-L268)
 
 The system also supports specialized parameter types such as valves, which provide configurable settings for pipe functions. Global valves are configured at the function level, while user-specific valves allow for personalized settings per user. This dual valve system enables both administrator-controlled configurations and user-customizable behavior within the same framework.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L60-L78)
 - [models.py](file://backend/open_webui/models/functions.py#L102-L104)
 
@@ -121,6 +128,7 @@ end
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L159-L353)
 - [chat.py](file://backend/open_webui/utils/chat.py#L270-L273)
 
@@ -129,6 +137,7 @@ The pipeline integration also handles special response types such as `StreamingR
 The system uses model identification to determine whether a request should be processed by a pipe function. When a model ID contains a dot notation (e.g., "pipe_id.sub_pipe"), the system extracts the base pipe ID and routes the request accordingly. This naming convention enables hierarchical organization of pipe functions and supports the manifold pipe pattern.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L194-L198)
 - [chat.py](file://backend/open_webui/utils/chat.py#L269-L273)
 
@@ -137,12 +146,15 @@ The system uses model identification to determine whether a request should be pr
 Pipe functions support a variety of common use cases that enhance the AI interaction experience. These use cases leverage the middleware nature of pipe functions to transform prompts and responses in meaningful ways.
 
 ### Prompt Templating
+
 Pipe functions can implement prompt templating by modifying the user's input before it reaches the model. This is achieved by accessing the message history in the `body` parameter and restructuring it according to predefined templates. The function can add system messages, modify conversation history, or inject contextual information to guide the model's response.
 
 ### Language Translation
+
 Language translation is implemented by intercepting the user's prompt, translating it to the model's preferred language, and then translating the model's response back to the user's language. This bidirectional translation ensures that users can interact with the system in their preferred language while leveraging models that may be optimized for different languages.
 
 ### Content Filtering
+
 Content filtering pipe functions analyze both prompts and responses for inappropriate content, applying various filtering strategies such as keyword matching, pattern recognition, or machine learning-based classification. These functions can modify or block content based on configurable policies, with global and user-specific valve settings controlling the strictness of filtering.
 
 ```mermaid
@@ -159,16 +171,19 @@ D --> H
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L168-L175)
 - [functions.py](file://backend/open_webui/functions.py#L318-L337)
 
 Other common use cases include:
+
 - **Prompt enrichment**: Adding contextual information to prompts based on user history or external data sources
 - **Response formatting**: Transforming model output into specific formats such as JSON, HTML, or structured data
 - **Rate limiting**: Implementing usage controls based on user roles or subscription levels
 - **Analytics collection**: Gathering usage data for monitoring and reporting purposes
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L176-L193)
 - [functions.py](file://backend/open_webui/functions.py#L300-L337)
 
@@ -177,9 +192,11 @@ Other common use cases include:
 Debugging pipe function execution requires understanding the flow of data through the pipeline and identifying potential failure points. The system provides several mechanisms for troubleshooting and monitoring pipe function behavior.
 
 ### Debug Logging
+
 The framework includes comprehensive logging capabilities that can be enabled by setting appropriate log levels. The `log.debug()` statements in the `get_function_models` function provide insights into pipe discovery and manifold processing, helping developers understand how pipe functions are being loaded and organized.
 
 ### Error Handling
+
 The system implements robust error handling with try-catch blocks around critical operations such as pipe execution and parameter processing. When an error occurs, the system logs the exception and returns an appropriate error response in the expected format. For streaming responses, errors are formatted as SSE error events to maintain the connection protocol.
 
 ```mermaid
@@ -194,16 +211,19 @@ G --> H[Return Result]
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L313-L316)
 - [functions.py](file://backend/open_webui/functions.py#L343-L345)
 
 ### Common Issues and Solutions
+
 - **Function not loading**: Verify that the module contains a `Pipe` class and that the function is activated in the system
 - **Parameter injection failures**: Check that parameter names in the function signature match available context parameters
 - **Streaming issues**: Ensure that streaming responses are properly formatted as SSE chunks
 - **Performance bottlenecks**: Monitor execution time and consider async implementations for I/O-bound operations
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L313-L316)
 - [functions.py](file://backend/open_webui/functions.py#L343-L345)
 
@@ -212,12 +232,15 @@ G --> H[Return Result]
 Optimizing pipe function performance is critical for maintaining low latency in the AI pipeline. The following techniques can be applied to minimize processing overhead:
 
 ### Asynchronous Implementation
+
 For pipe functions that perform I/O operations such as API calls or database queries, implementing the function as an async coroutine can significantly improve performance by allowing concurrent execution. The framework natively supports async functions through the `asyncio.iscoroutinefunction()` check and `await` syntax.
 
 ### Caching Strategies
+
 The system implements module caching through the `get_function_module_from_cache` function, which stores loaded function modules in memory to avoid repeated parsing and compilation. Developers can extend this caching to application-level data by leveraging the provided context parameters.
 
 ### Efficient Data Processing
+
 When processing streaming responses, using generators and async generators instead of building complete responses in memory can reduce memory usage and improve response time. The `get_message_content` function demonstrates this approach by handling different response types efficiently.
 
 ```mermaid
@@ -233,12 +256,15 @@ E --> I[Reuse HTTP connections]
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L162-L166)
 - [functions.py](file://backend/open_webui/functions.py#L168-L175)
 
 ### Connection Management
+
 For pipe functions that make external API calls, implementing connection pooling and reusing HTTP sessions can reduce connection overhead. The framework's use of `aiohttp.ClientSession` with `trust_env=True` enables efficient connection management for outbound requests.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L162-L175)
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L211-L264)

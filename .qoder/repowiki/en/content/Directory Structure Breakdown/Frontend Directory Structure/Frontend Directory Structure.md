@@ -17,6 +17,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Component Organization](#component-organization)
 2. [API Client Structure](#api-client-structure)
 3. [Routing System](#routing-system)
@@ -62,12 +63,14 @@ G --> G1[SVG Icons]
 ```
 
 **Diagram sources**
+
 - [src/lib/components/admin/Users.svelte](file://src/lib/components/admin/Users.svelte#L1-L122)
 - [src/lib/components/chat/ChatControls.svelte](file://src/lib/components/chat/ChatControls.svelte#L1-L311)
 - [src/lib/components/common/Badge.svelte](file://src/lib/components/common/Badge.svelte#L1-L20)
 - [src/lib/components/workspace/Knowledge.svelte](file://src/lib/components/workspace/Knowledge.svelte#L1-L292)
 
 **Section sources**
+
 - [src/lib/components/admin/Users.svelte](file://src/lib/components/admin/Users.svelte#L1-L122)
 - [src/lib/components/chat/ChatControls.svelte](file://src/lib/components/chat/ChatControls.svelte#L1-L311)
 - [src/lib/components/common/Badge.svelte](file://src/lib/components/common/Badge.svelte#L1-L20)
@@ -135,11 +138,13 @@ ApiClients --> FilesApi : "uses"
 ```
 
 **Diagram sources**
+
 - [src/lib/apis/index.ts](file://src/lib/apis/index.ts#L1-L1706)
 - [src/lib/apis/chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 - [src/lib/apis/models/index.ts](file://src/lib/apis/models/index.ts#L1-L348)
 
 **Section sources**
+
 - [src/lib/apis/index.ts](file://src/lib/apis/index.ts#L1-L1706)
 - [src/lib/apis/chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 - [src/lib/apis/models/index.ts](file://src/lib/apis/models/index.ts#L1-L348)
@@ -182,9 +187,11 @@ style D fill:#f9f,stroke:#333,stroke-width:2px
 ```
 
 **Diagram sources**
+
 - [src/routes/+layout.svelte](file://src/routes/+layout.svelte#L1-L857)
 
 **Section sources**
+
 - [src/routes/+layout.svelte](file://src/routes/+layout.svelte#L1-L857)
 
 ## State Management
@@ -268,9 +275,11 @@ Stores --> SessionUser
 ```
 
 **Diagram sources**
+
 - [src/lib/stores/index.ts](file://src/lib/stores/index.ts#L1-L302)
 
 **Section sources**
+
 - [src/lib/stores/index.ts](file://src/lib/stores/index.ts#L1-L302)
 
 ## Utility Functions and Type Definitions
@@ -323,10 +332,12 @@ I --> I3[NONE]
 ```
 
 **Diagram sources**
+
 - [src/lib/utils/index.ts](file://src/lib/utils/index.ts#L1-L1664)
 - [src/lib/types/index.ts](file://src/lib/types/index.ts#L1-L16)
 
 **Section sources**
+
 - [src/lib/utils/index.ts](file://src/lib/utils/index.ts#L1-L1664)
 - [src/lib/types/index.ts](file://src/lib/types/index.ts#L1-L16)
 
@@ -362,9 +373,11 @@ i18n->>i18n : Update active language
 ```
 
 **Diagram sources**
+
 - [src/lib/i18n/index.ts](file://src/lib/i18n/index.ts#L1-L88)
 
 **Section sources**
+
 - [src/lib/i18n/index.ts](file://src/lib/i18n/index.ts#L1-L88)
 
 ## Practical Implementation Examples
@@ -402,11 +415,13 @@ V --> W[UI updates automatically]
 ```
 
 **Diagram sources**
+
 - [src/lib/components/workspace/Knowledge.svelte](file://src/lib/components/workspace/Knowledge.svelte#L1-L292)
 - [src/lib/apis/chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 - [src/lib/stores/index.ts](file://src/lib/stores/index.ts#L1-L302)
 
 **Section sources**
+
 - [src/lib/components/workspace/Knowledge.svelte](file://src/lib/components/workspace/Knowledge.svelte#L1-L292)
 - [src/lib/apis/chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 - [src/lib/stores/index.ts](file://src/lib/stores/index.ts#L1-L302)

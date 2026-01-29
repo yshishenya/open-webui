@@ -72,7 +72,10 @@
 	<div class="container mx-auto px-4">
 		<div class="flex items-center justify-between h-16">
 			<!-- Logo -->
-			<a href="/" class="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2 rounded-xl">
+			<a
+				href="/"
+				class="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2 rounded-xl"
+			>
 				<div
 					class="w-9 h-9 bg-white rounded-lg border border-gray-200 shadow-sm flex items-center justify-center"
 				>
@@ -91,7 +94,9 @@
 				{#each navLinks as link}
 					<a
 						href={link.href}
-						class="text-sm font-medium transition-colors border-b-2 border-transparent pb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2 rounded-md {isActive(link.href)
+						class="text-sm font-medium transition-colors border-b-2 border-transparent pb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2 rounded-md {isActive(
+							link.href
+						)
 							? 'text-gray-900 border-gray-900'
 							: 'text-gray-500 hover:text-gray-900'}"
 					>
@@ -136,11 +141,21 @@
 				>
 					{#if mobileMenuOpen}
 						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M6 18L18 6M6 6l12 12"
+							/>
 						</svg>
 					{:else}
 						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M4 6h16M4 12h16M4 18h16"
+							/>
 						</svg>
 					{/if}
 				</button>
@@ -154,7 +169,9 @@
 					{#each navLinks as link}
 						<a
 							href={link.href}
-							class="text-sm font-medium px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2 rounded-md {isActive(link.href)
+							class="text-sm font-medium px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2 rounded-md {isActive(
+								link.href
+							)
 								? 'text-gray-900'
 								: 'text-gray-600'}"
 							on:click={() => (mobileMenuOpen = false)}

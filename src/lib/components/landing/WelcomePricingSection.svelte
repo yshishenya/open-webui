@@ -16,14 +16,12 @@
 			{
 				label: 'Текст (ввод)',
 				value: quotas.tokens_input,
-				tooltip:
-					'Текст считается по объёму: ваш запрос и ответ. Это стандартно для AI-сервисов.'
+				tooltip: 'Текст считается по объёму: ваш запрос и ответ. Это стандартно для AI-сервисов.'
 			},
 			{
 				label: 'Текст (ответ)',
 				value: quotas.tokens_output,
-				tooltip:
-					'Текст считается по объёму: ваш запрос и ответ. Это стандартно для AI-сервисов.'
+				tooltip: 'Текст считается по объёму: ваш запрос и ответ. Это стандартно для AI-сервисов.'
 			},
 			{ label: 'Изображения', value: quotas.images },
 			{ label: 'Озвучка текста (сек)', value: quotas.tts_seconds },
@@ -108,7 +106,9 @@
 				{#if leadMagnetItems.length}
 					<div class="mt-6 grid gap-3 text-sm text-gray-700">
 						{#each leadMagnetItems as item}
-							<div class="flex items-center justify-between gap-3 rounded-xl border border-gray-200/70 bg-gray-50 px-4 py-3">
+							<div
+								class="flex items-center justify-between gap-3 rounded-xl border border-gray-200/70 bg-gray-50 px-4 py-3"
+							>
 								<div class="flex items-center gap-2">
 									<span>{item.label}</span>
 									{#if item.tooltip}

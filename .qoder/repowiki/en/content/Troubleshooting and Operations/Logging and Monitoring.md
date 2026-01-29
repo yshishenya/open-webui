@@ -16,6 +16,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Logging Architecture](#logging-architecture)
 3. [Log Levels and Configuration](#log-levels-and-configuration)
@@ -28,6 +29,7 @@
 10. [Production Alerting](#production-alerting)
 
 ## Introduction
+
 Open WebUI provides a comprehensive logging and monitoring system that enables administrators and developers to track application behavior, diagnose issues, and ensure system reliability. The system combines structured logging, audit trails, OpenTelemetry-based metrics collection, and distributed tracing to provide full observability across all components. This documentation details the architecture, configuration options, and best practices for leveraging the monitoring capabilities in both development and production environments.
 
 ## Logging Architecture
@@ -57,11 +59,13 @@ style E fill:#9f9,stroke:#333
 ```
 
 **Diagram sources**
+
 - [backend/open_webui/utils/logger.py](file://backend/open_webui/utils/logger.py#L23-L163)
 - [backend/open_webui/utils/telemetry/logs.py](file://backend/open_webui/utils/telemetry/logs.py#L24-L54)
 - [backend/open_webui/main.py](file://backend/open_webui/main.py#L572)
 
 **Section sources**
+
 - [backend/open_webui/utils/logger.py](file://backend/open_webui/utils/logger.py#L1-L163)
 - [backend/open_webui/utils/telemetry/logs.py](file://backend/open_webui/utils/telemetry/logs.py#L1-L54)
 
@@ -72,6 +76,7 @@ Open WebUI supports granular log level configuration through environment variabl
 ### Global and Component Log Levels
 
 The logging system supports the following log levels in descending order of severity:
+
 - CRITICAL
 - ERROR
 - WARNING
@@ -134,13 +139,13 @@ The logging system is initialized in the `start_logger()` function, which config
 def start_logger():
     """
     Initializes and configures Loguru's logger with distinct handlers:
-    
+
     A console (stdout) handler for general log messages (excluding those marked as auditable).
     An optional file handler for audit logs if audit logging is enabled.
     Additionally, this function reconfigures Python’s standard logging to route through Loguru and adjusts logging levels for Uvicorn.
     """
     logger.remove()
-    
+
     logger.add(
         sys.stdout,
         level=GLOBAL_LOG_LEVEL,
@@ -162,6 +167,7 @@ def start_logger():
 ```
 
 **Section sources**
+
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L74-L114)
 - [backend/open_webui/utils/logger.py](file://backend/open_webui/utils/logger.py#L116-L163)
 
@@ -173,12 +179,12 @@ Open WebUI implements comprehensive audit logging to track security-relevant eve
 
 The system supports three levels of audit logging, controlled by the `AUDIT_LOG_LEVEL` environment variable:
 
-| Audit Level | Description | Data Captured |
-|-------------|-------------|---------------|
-| NONE | No audit logging | None |
-| METADATA | Basic request metadata | User, timestamp, request URI, HTTP method, status code, source IP, user agent |
-| REQUEST | Request metadata and body | All METADATA fields plus request body |
-| REQUEST_RESPONSE | Complete request and response | All REQUEST fields plus response body |
+| Audit Level      | Description                   | Data Captured                                                                 |
+| ---------------- | ----------------------------- | ----------------------------------------------------------------------------- |
+| NONE             | No audit logging              | None                                                                          |
+| METADATA         | Basic request metadata        | User, timestamp, request URI, HTTP method, status code, source IP, user agent |
+| REQUEST          | Request metadata and body     | All METADATA fields plus request body                                         |
+| REQUEST_RESPONSE | Complete request and response | All REQUEST fields plus response body                                         |
 
 ### Audit Log Format
 
@@ -220,6 +226,7 @@ Audit logging is configured through the following environment variables:
 The audit logging middleware automatically redacts sensitive information such as passwords from logged request bodies.
 
 **Section sources**
+
 - [backend/open_webui/utils/audit.py](file://backend/open_webui/utils/audit.py#L1-L284)
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L773-L800)
 - [backend/open_webui/utils/logger.py](file://backend/open_webui/utils/logger.py#L87-L114)
@@ -270,6 +277,7 @@ API->>API : End Trace
 ```
 
 The tracing system is automatically instrumented for:
+
 - FastAPI endpoints
 - SQLAlchemy database operations
 - Redis operations
@@ -290,11 +298,13 @@ The telemetry system is configured through environment variables:
 - `OTEL_BASIC_AUTH_USERNAME` and `OTEL_BASIC_AUTH_PASSWORD`: Basic authentication for OTLP endpoint
 
 **Diagram sources**
+
 - [backend/open_webui/utils/telemetry/setup.py](file://backend/open_webui/utils/telemetry/setup.py#L1-L59)
 - [backend/open_webui/utils/telemetry/metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L1-L204)
 - [backend/open_webui/utils/telemetry/instrumentors.py](file://backend/open_webui/utils/telemetry/instrumentors.py#L1-L203)
 
 **Section sources**
+
 - [backend/open_webui/utils/telemetry/setup.py](file://backend/open_webui/utils/telemetry/setup.py#L1-L59)
 - [backend/open_webui/utils/telemetry/metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L1-L204)
 - [backend/open_webui/utils/telemetry/instrumentors.py](file://backend/open_webui/utils/telemetry/instrumentors.py#L1-L203)
@@ -351,11 +361,13 @@ WebSocket monitoring is configured through the following environment variables:
 - `WEBSOCKET_SERVER_PING_INTERVAL`: Ping interval in seconds
 
 The system maintains several pools for monitoring WebSocket activity:
+
 - **Session Pool**: Tracks active user sessions
 - **Usage Pool**: Tracks model usage by WebSocket connections
 - **Yjs Document Manager**: Manages collaborative editing sessions
 
 **Section sources**
+
 - [backend/open_webui/socket/main.py](file://backend/open_webui/socket/main.py#L1-L839)
 - [backend/open_webui/env.py](file://backend/open_webui/env.py#L613-L662)
 
@@ -403,6 +415,7 @@ The background task system provides the following monitoring capabilities:
 - **Automatic Cleanup**: Tasks are automatically cleaned up when completed or cancelled
 
 Key functions for task monitoring:
+
 - `create_task()`: Create and register a new background task
 - `list_tasks()`: List all active task IDs
 - `list_task_ids_by_item_id()`: List tasks associated with a specific item
@@ -411,6 +424,7 @@ Key functions for task monitoring:
 - `redis_task_command_listener()`: Listen for distributed task commands
 
 **Section sources**
+
 - [backend/open_webui/tasks.py](file://backend/open_webui/tasks.py#L1-L187)
 - [backend/open_webui/socket/main.py](file://backend/open_webui/socket/main.py#L44-L67)
 
@@ -419,6 +433,7 @@ Key functions for task monitoring:
 Certain log patterns indicate potential system issues or security concerns that require immediate attention.
 
 ### Database Connection Issues
+
 ```
 ERROR:db: Failed to connect to database: connection timeout
 ERROR:db: Database pool exhausted - increase DATABASE_POOL_SIZE
@@ -426,6 +441,7 @@ WARNING:db: Long-running query detected (>30s): SELECT * FROM large_table
 ```
 
 ### Authentication and Security Issues
+
 ```
 WARNING:auth: Failed login attempt from IP 192.168.1.100
 ERROR:auth: Invalid JWT token: signature verification failed
@@ -433,6 +449,7 @@ WARNING:audit: Multiple failed login attempts from same IP - potential brute for
 ```
 
 ### Resource Exhaustion
+
 ```
 ERROR:MAIN: Task queue full - unable to process new requests
 WARNING:MAIN: Memory usage above 80% threshold
@@ -441,6 +458,7 @@ WARNING:REDIS: Redis memory usage above 80% threshold
 ```
 
 ### External Service Failures
+
 ```
 ERROR:OLLAMA: Failed to connect to Ollama server at http://localhost:11434
 ERROR:OPENAI: OpenAI API request failed: rate limit exceeded
@@ -448,6 +466,7 @@ ERROR:RETRIEVAL: Web search failed: connection timeout to search API
 ```
 
 ### Performance Issues
+
 ```
 WARNING:MAIN: HTTP request duration > 10s for endpoint POST /api/v1/chat/completions
 ERROR:MAIN: Background task timeout after 300s
@@ -455,6 +474,7 @@ WARNING:MAIN: High latency detected in database query (2.5s)
 ```
 
 ### Configuration Issues
+
 ```
 ERROR:CONFIG: Invalid configuration value for CHUNK_SIZE: must be positive integer
 WARNING:CONFIG: Deprecated environment variable OLLAMA_BASE_URL used - use OLLAMA_BASE_URLS instead
@@ -468,34 +488,36 @@ To set up comprehensive monitoring for Open WebUI, integrate with standard obser
 ### Prometheus and Grafana Setup
 
 1. **Configure OTLP Exporter**:
+
 ```yaml
 # docker-compose.yaml
 services:
   otel-collector:
     image: otel/opentelemetry-collector
-    command: ["--config=/etc/otel-collector-config.yaml"]
+    command: ['--config=/etc/otel-collector-config.yaml']
     volumes:
       - ./otel-config.yaml:/etc/otel-collector-config.yaml
     ports:
-      - "4317:4317"  # OTLP gRPC
-      - "8888:8888"  # Prometheus metrics
+      - '4317:4317' # OTLP gRPC
+      - '8888:8888' # Prometheus metrics
 
   prometheus:
     image: prom/prometheus
     ports:
-      - "9090:9090"
+      - '9090:9090'
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
 
   grafana:
     image: grafana/grafana
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
 ```
 
 2. **OTEL Collector Configuration** (`otel-config.yaml`):
+
 ```yaml
 receivers:
   otlp:
@@ -508,7 +530,7 @@ processors:
 
 exporters:
   prometheus:
-    endpoint: "0.0.0.0:8888"
+    endpoint: '0.0.0.0:8888'
     resource_to_telemetry_conversion:
       enabled: true
 
@@ -521,6 +543,7 @@ service:
 ```
 
 3. **Environment Variables**:
+
 ```bash
 ENABLE_OTEL=true
 ENABLE_OTEL_METRICS=true
@@ -533,6 +556,7 @@ OTEL_SERVICE_NAME=open-webui
 Create Grafana dashboards with the following panels:
 
 **System Overview**
+
 - HTTP Request Rate (requests per second)
 - HTTP Error Rate (4xx and 5xx responses)
 - Average Request Duration
@@ -540,18 +564,21 @@ Create Grafana dashboards with the following panels:
 - Active Users (current and daily)
 
 **Database Performance**
+
 - Database Query Rate
 - Slow Query Count (>1s)
 - Database Connection Pool Usage
 - Database Latency Percentiles
 
 **Model Performance**
+
 - Model Request Rate by model
 - Model Error Rate by model
 - Model Latency by model
 - Active Models in Use
 
 **Resource Utilization**
+
 - Memory Usage
 - CPU Usage
 - Redis Memory Usage
@@ -564,16 +591,18 @@ Implement alerting rules to proactively identify and respond to system issues in
 ### Critical Alerts
 
 **High HTTP Error Rate**
+
 ```
 IF: http_server_requests_count{status_code=~"5.."}[5m] / http_server_requests_count[5m] > 0.1
 FOR: 2m
 LABELS: severity=critical
-ANNOTATIONS: 
+ANNOTATIONS:
   summary: "High error rate on Open WebUI"
   description: "More than 10% of requests are failing with 5xx errors"
 ```
 
 **Service Unavailable**
+
 ```
 IF: up{job="open-webui"} == 0
 FOR: 1m
@@ -584,6 +613,7 @@ ANNOTATIONS:
 ```
 
 **Database Connection Issues**
+
 ```
 IF: rate(http_server_requests_count{status_code="500", endpoint="/api/v1/db/health"}[5m]) > 0
 FOR: 5m
@@ -596,6 +626,7 @@ ANNOTATIONS:
 ### Warning Alerts
 
 **High Request Latency**
+
 ```
 IF: histogram_quantile(0.95, sum(rate(http_server_duration_bucket[5m])) by (le)) > 5
 FOR: 10m
@@ -606,6 +637,7 @@ ANNOTATIONS:
 ```
 
 **Memory Pressure**
+
 ```
 IF: process_resident_memory_bytes / machine_memory_bytes > 0.8
 FOR: 15m
@@ -616,6 +648,7 @@ ANNOTATIONS:
 ```
 
 **WebSocket Connection Limits**
+
 ```
 IF: websocket_connections > 0.9 * max_websocket_connections
 FOR: 5m
@@ -628,6 +661,7 @@ ANNOTATIONS:
 ### Audit Log Alerts
 
 **Suspicious Authentication Activity**
+
 ```
 IF: count_over_time(audit_log_entries{audit_level="METADATA", verb="POST", request_uri="/api/v1/auths/signin", response_status_code="401"}[15m]) > 10
 FOR: 1m
@@ -638,6 +672,7 @@ ANNOTATIONS:
 ```
 
 **Unauthorized Access Attempts**
+
 ```
 IF: count_over_time(audit_log_entries{audit_level="METADATA", response_status_code="403"}[1h]) > 50
 FOR: 5m
@@ -650,6 +685,7 @@ ANNOTATIONS:
 These alerts should be integrated with notification systems such as email, Slack, or PagerDuty to ensure timely response to critical issues.
 
 **Section sources**
+
 - [backend/open_webui/utils/telemetry/metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L7-L204)
 - [backend/open_webui/utils/audit.py](file://backend/open_webui/utils/audit.py#L1-L284)
 - [backend/open_webui/socket/main.py](file://backend/open_webui/socket/main.py#L1-L839)

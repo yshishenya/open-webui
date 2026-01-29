@@ -1,192 +1,194 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Добро пожаловать</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .email-wrapper {
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #ffffff;
-            padding: 40px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-        }
-        .header p {
-            margin: 10px 0 0 0;
-            font-size: 16px;
-            opacity: 0.9;
-        }
-        .content {
-            padding: 40px;
-        }
-        .content h2 {
-            color: #333;
-            font-size: 20px;
-            margin-top: 0;
-        }
-        .content p {
-            color: #666;
-            font-size: 16px;
-            margin: 15px 0;
-        }
-        .features {
-            margin: 30px 0;
-        }
-        .feature {
-            display: flex;
-            align-items: flex-start;
-            margin: 20px 0;
-        }
-        .feature-icon {
-            font-size: 24px;
-            margin-right: 15px;
-            min-width: 30px;
-        }
-        .feature-text h3 {
-            margin: 0 0 5px 0;
-            font-size: 16px;
-            color: #333;
-        }
-        .feature-text p {
-            margin: 0;
-            font-size: 14px;
-            color: #666;
-        }
-        .button-container {
-            text-align: center;
-            margin: 30px 0;
-        }
-        .button {
-            display: inline-block;
-            padding: 14px 32px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #ffffff !important;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 16px;
-        }
-        .tips {
-            background-color: #f8f9fa;
-            border-radius: 6px;
-            padding: 20px;
-            margin: 30px 0;
-        }
-        .tips h3 {
-            margin-top: 0;
-            color: #333;
-            font-size: 18px;
-        }
-        .tips ul {
-            margin: 10px 0;
-            padding-left: 20px;
-        }
-        .tips li {
-            color: #666;
-            font-size: 14px;
-            margin: 8px 0;
-        }
-        .footer {
-            background-color: #f8f9fa;
-            padding: 30px 40px;
-            text-align: center;
-            color: #999;
-            font-size: 14px;
-        }
-        .footer p {
-            margin: 5px 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="email-wrapper">
-            <div class="header">
-                <h1>🎉 Добро пожаловать!</h1>
-                <p>Ваш аккаунт успешно подтвержден</p>
-            </div>
-            
-            <div class="content">
-                <h2>Здравствуйте, {{ name }}!</h2>
-                
-                <p>Поздравляем! Ваш email адрес успешно подтвержден, и теперь вы можете пользоваться всеми возможностями Open WebUI.</p>
-                
-                <div class="features">
-                    <div class="feature">
-                        <div class="feature-icon">🤖</div>
-                        <div class="feature-text">
-                            <h3>Работа с AI моделями</h3>
-                            <p>Доступ к множеству языковых моделей для решения различных задач</p>
-                        </div>
-                    </div>
-                    <div class="feature">
-                        <div class="feature-icon">💬</div>
-                        <div class="feature-text">
-                            <h3>Чаты и история</h3>
-                            <p>Все ваши беседы сохраняются и доступны в любое время</p>
-                        </div>
-                    </div>
-                    <div class="feature">
-                        <div class="feature-icon">⚙️</div>
-                        <div class="feature-text">
-                            <h3>Настройки и персонализация</h3>
-                            <p>Настройте интерфейс и параметры под свои предпочтения</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="button-container">
-                    <a href="{{ dashboard_url }}" class="button">
-                        Начать работу
-                    </a>
-                </div>
-                
-                <div class="tips">
-                    <h3>💡 Полезные советы:</h3>
-                    <ul>
-                        <li>Используйте четкие и конкретные запросы для лучших результатов</li>
-                        <li>Сохраняйте важные чаты для быстрого доступа</li>
-                        <li>Экспериментируйте с разными моделями для разных задач</li>
-                        <li>Настройте уведомления в личном кабинете</li>
-                    </ul>
-                </div>
-                
-                <p style="margin-top: 30px;">
-                    Если у вас возникнут вопросы, наша команда поддержки всегда готова помочь!
-                </p>
-            </div>
-            
-            <div class="footer">
-                <p>С уважением,<br>Команда Open WebUI</p>
-                <p style="margin-top: 15px;">
-                    Это автоматическое письмо, пожалуйста, не отвечайте на него.
-                </p>
-            </div>
-        </div>
-    </div>
-</body>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Добро пожаловать</title>
+		<style>
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+					Cantarell, sans-serif;
+				line-height: 1.6;
+				color: #333;
+				margin: 0;
+				padding: 0;
+				background-color: #f4f4f4;
+			}
+			.container {
+				max-width: 600px;
+				margin: 0 auto;
+				padding: 20px;
+			}
+			.email-wrapper {
+				background-color: #ffffff;
+				border-radius: 8px;
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+				overflow: hidden;
+			}
+			.header {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: #ffffff;
+				padding: 40px;
+				text-align: center;
+			}
+			.header h1 {
+				margin: 0;
+				font-size: 28px;
+				font-weight: 600;
+			}
+			.header p {
+				margin: 10px 0 0 0;
+				font-size: 16px;
+				opacity: 0.9;
+			}
+			.content {
+				padding: 40px;
+			}
+			.content h2 {
+				color: #333;
+				font-size: 20px;
+				margin-top: 0;
+			}
+			.content p {
+				color: #666;
+				font-size: 16px;
+				margin: 15px 0;
+			}
+			.features {
+				margin: 30px 0;
+			}
+			.feature {
+				display: flex;
+				align-items: flex-start;
+				margin: 20px 0;
+			}
+			.feature-icon {
+				font-size: 24px;
+				margin-right: 15px;
+				min-width: 30px;
+			}
+			.feature-text h3 {
+				margin: 0 0 5px 0;
+				font-size: 16px;
+				color: #333;
+			}
+			.feature-text p {
+				margin: 0;
+				font-size: 14px;
+				color: #666;
+			}
+			.button-container {
+				text-align: center;
+				margin: 30px 0;
+			}
+			.button {
+				display: inline-block;
+				padding: 14px 32px;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: #ffffff !important;
+				text-decoration: none;
+				border-radius: 6px;
+				font-weight: 600;
+				font-size: 16px;
+			}
+			.tips {
+				background-color: #f8f9fa;
+				border-radius: 6px;
+				padding: 20px;
+				margin: 30px 0;
+			}
+			.tips h3 {
+				margin-top: 0;
+				color: #333;
+				font-size: 18px;
+			}
+			.tips ul {
+				margin: 10px 0;
+				padding-left: 20px;
+			}
+			.tips li {
+				color: #666;
+				font-size: 14px;
+				margin: 8px 0;
+			}
+			.footer {
+				background-color: #f8f9fa;
+				padding: 30px 40px;
+				text-align: center;
+				color: #999;
+				font-size: 14px;
+			}
+			.footer p {
+				margin: 5px 0;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="email-wrapper">
+				<div class="header">
+					<h1>🎉 Добро пожаловать!</h1>
+					<p>Ваш аккаунт успешно подтвержден</p>
+				</div>
+
+				<div class="content">
+					<h2>Здравствуйте, {{ name }}!</h2>
+
+					<p>
+						Поздравляем! Ваш email адрес успешно подтвержден, и теперь вы можете пользоваться всеми
+						возможностями Open WebUI.
+					</p>
+
+					<div class="features">
+						<div class="feature">
+							<div class="feature-icon">🤖</div>
+							<div class="feature-text">
+								<h3>Работа с AI моделями</h3>
+								<p>Доступ к множеству языковых моделей для решения различных задач</p>
+							</div>
+						</div>
+						<div class="feature">
+							<div class="feature-icon">💬</div>
+							<div class="feature-text">
+								<h3>Чаты и история</h3>
+								<p>Все ваши беседы сохраняются и доступны в любое время</p>
+							</div>
+						</div>
+						<div class="feature">
+							<div class="feature-icon">⚙️</div>
+							<div class="feature-text">
+								<h3>Настройки и персонализация</h3>
+								<p>Настройте интерфейс и параметры под свои предпочтения</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="button-container">
+						<a href="{{ dashboard_url }}" class="button"> Начать работу </a>
+					</div>
+
+					<div class="tips">
+						<h3>💡 Полезные советы:</h3>
+						<ul>
+							<li>Используйте четкие и конкретные запросы для лучших результатов</li>
+							<li>Сохраняйте важные чаты для быстрого доступа</li>
+							<li>Экспериментируйте с разными моделями для разных задач</li>
+							<li>Настройте уведомления в личном кабинете</li>
+						</ul>
+					</div>
+
+					<p style="margin-top: 30px">
+						Если у вас возникнут вопросы, наша команда поддержки всегда готова помочь!
+					</p>
+				</div>
+
+				<div class="footer">
+					<p>С уважением,<br />Команда Open WebUI</p>
+					<p style="margin-top: 15px">
+						Это автоматическое письмо, пожалуйста, не отвечайте на него.
+					</p>
+				</div>
+			</div>
+		</div>
+	</body>
 </html>

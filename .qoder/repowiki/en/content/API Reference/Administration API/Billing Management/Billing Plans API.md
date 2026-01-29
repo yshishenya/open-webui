@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Billing Plan Data Model](#billing-plan-data-model)
 3. [API Endpoints](#api-endpoints)
@@ -29,6 +30,7 @@
 The Billing Plans API provides a comprehensive system for managing subscription plans, user subscriptions, usage tracking, and payment processing. The system is designed to support flexible pricing models with various quotas and features. This documentation covers all endpoints related to creating, reading, updating, and deleting billing plans, including detailed information about the data model, authentication requirements, and practical usage examples.
 
 The billing system is built around several core components:
+
 - **Plans**: Subscription tiers with defined pricing, quotas, and features
 - **Subscriptions**: User enrollments in specific plans
 - **Usage Tracking**: Monitoring of user activity against plan quotas
@@ -38,6 +40,7 @@ The billing system is built around several core components:
 The API is divided into user-facing endpoints (in `billing.py`) and administrative endpoints (in `admin_billing.py`), with appropriate authentication and authorization controls.
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L1-L413)
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L1-L558)
 
@@ -49,22 +52,22 @@ The BillingPlan data model defines the structure of subscription plans in the sy
 
 The Plan model contains the following key fields:
 
-| Field | Type | Description | Constraints |
-|-------|------|-------------|-------------|
-| id | string | Unique identifier for the plan | Required, unique |
-| name | string | Plan name (e.g., "Pro", "Business") | Required |
-| name_ru | string | Russian translation of plan name | Optional |
-| description | string | Detailed description of the plan | Optional |
-| description_ru | string | Russian translation of description | Optional |
-| price | float | Price of the plan | Required, ≥ 0 |
-| currency | string | Currency code (RUB, USD, EUR) | Default: "RUB" |
-| interval | string | Billing interval (day, week, month, year) | Required |
-| quotas | object | Usage limits for different metrics | Optional |
-| features | array | List of features included in the plan | Optional |
-| is_active | boolean | Whether the plan is available for subscription | Default: true |
-| display_order | integer | Order for displaying plans | Default: 0 |
-| created_at | integer | Timestamp of creation | Unix timestamp |
-| updated_at | integer | Timestamp of last update | Unix timestamp |
+| Field          | Type    | Description                                    | Constraints      |
+| -------------- | ------- | ---------------------------------------------- | ---------------- |
+| id             | string  | Unique identifier for the plan                 | Required, unique |
+| name           | string  | Plan name (e.g., "Pro", "Business")            | Required         |
+| name_ru        | string  | Russian translation of plan name               | Optional         |
+| description    | string  | Detailed description of the plan               | Optional         |
+| description_ru | string  | Russian translation of description             | Optional         |
+| price          | float   | Price of the plan                              | Required, ≥ 0    |
+| currency       | string  | Currency code (RUB, USD, EUR)                  | Default: "RUB"   |
+| interval       | string  | Billing interval (day, week, month, year)      | Required         |
+| quotas         | object  | Usage limits for different metrics             | Optional         |
+| features       | array   | List of features included in the plan          | Optional         |
+| is_active      | boolean | Whether the plan is available for subscription | Default: true    |
+| display_order  | integer | Order for displaying plans                     | Default: 0       |
+| created_at     | integer | Timestamp of creation                          | Unix timestamp   |
+| updated_at     | integer | Timestamp of last update                       | Unix timestamp   |
 
 ### Quotas Structure
 
@@ -77,11 +80,12 @@ The quotas field is a JSON object that defines usage limits for various metrics.
 - `audio_minutes`: Minutes of audio processed
 
 For example, a plan might have quotas defined as:
+
 ```json
 {
-  "tokens_input": 1000000,
-  "tokens_output": 500000,
-  "requests": 5000
+	"tokens_input": 1000000,
+	"tokens_output": 500000,
+	"requests": 5000
 }
 ```
 
@@ -92,6 +96,7 @@ When quotas are set to null or a specific metric is not included, there is no li
 The features array contains strings that represent the capabilities included in the plan. These can include access to specific AI models, priority processing, API access, and support levels. Examples include "GPT-4o", "Claude 4.5 Sonnet", "API доступ", and "Приоритетная поддержка".
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L54-L103)
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L18-L39)
 
@@ -118,6 +123,7 @@ A --> K[/webhook/yookassa]
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L84-L413)
 
 ### Administrative Endpoints
@@ -134,6 +140,7 @@ A --> F[/plans/{plan_id}/subscribers]
 ```
 
 **Diagram sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L159-L558)
 
 ### Authentication Requirements
@@ -146,6 +153,7 @@ All endpoints require authentication. The system supports two authentication met
 Administrative endpoints specifically require the user to have the "admin" role, enforced by the `get_admin_user` dependency.
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L84-L413)
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L159-L558)
 - [auth.py](file://backend/open_webui/utils/auth.py#L403-L418)
@@ -159,26 +167,22 @@ The system provides comprehensive functionality for creating, reading, updating,
 Administrators can create new plans using the POST /admin/billing/plans endpoint. The request body must include the plan details according to the CreatePlanRequest model.
 
 **Request Example:**
+
 ```json
 {
-  "name": "Enterprise",
-  "description": "Unlimited access for large organizations",
-  "price": 9990.0,
-  "currency": "RUB",
-  "interval": "month",
-  "quotas": {
-    "tokens_input": 50000000,
-    "tokens_output": 25000000,
-    "requests": 500000
-  },
-  "features": [
-    "All models",
-    "API access",
-    "Dedicated support",
-    "SLA 99.99%"
-  ],
-  "is_active": true,
-  "display_order": 5
+	"name": "Enterprise",
+	"description": "Unlimited access for large organizations",
+	"price": 9990.0,
+	"currency": "RUB",
+	"interval": "month",
+	"quotas": {
+		"tokens_input": 50000000,
+		"tokens_output": 25000000,
+		"requests": 500000
+	},
+	"features": ["All models", "API access", "Dedicated support", "SLA 99.99%"],
+	"is_active": true,
+	"display_order": 5
 }
 ```
 
@@ -188,8 +192,8 @@ The system automatically generates a unique ID for the plan if not provided, usi
 
 There are two endpoints for retrieving plans:
 
-1. **GET /billing/plans**: Returns all active plans (user-facing)
-2. **GET /admin/billing/plans**: Returns all plans with subscription statistics (admin-only)
+1. **GET /api/v1/billing/plans**: Returns all active plans (user-facing)
+2. **GET /api/v1/billing/admin/plans**: Returns all plans with subscription statistics (admin-only)
 
 The administrative endpoint includes additional statistics such as active subscription counts and monthly recurring revenue (MRR) calculations.
 
@@ -208,10 +212,12 @@ Plans can be deleted using the DELETE /admin/billing/plans/{plan_id} endpoint, b
 ### Toggle and Duplicate
 
 Additional administrative operations include:
+
 - **PATCH /plans/{plan_id}/toggle**: Activates or deactivates a plan
 - **POST /plans/{plan_id}/duplicate**: Creates a copy of an existing plan with a new ID
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L205-L487)
 - [billing.py](file://backend/open_webui/models/billing.py#L316-L348)
 
@@ -223,20 +229,21 @@ The billing system manages user subscriptions and tracks usage against plan quot
 
 The subscription model tracks user enrollment in plans with the following key fields:
 
-| Field | Description |
-|-------|-------------|
-| user_id | Reference to the user |
-| plan_id | Reference to the subscribed plan |
-| status | Current status (active, canceled, trialing, etc.) |
-| current_period_start/end | Billing period timestamps |
-| cancel_at_period_end | Whether cancellation is scheduled |
-| trial_end | Trial period expiration (if applicable) |
+| Field                    | Description                                       |
+| ------------------------ | ------------------------------------------------- |
+| user_id                  | Reference to the user                             |
+| plan_id                  | Reference to the subscribed plan                  |
+| status                   | Current status (active, canceled, trialing, etc.) |
+| current_period_start/end | Billing period timestamps                         |
+| cancel_at_period_end     | Whether cancellation is scheduled                 |
+| trial_end                | Trial period expiration (if applicable)           |
 
-Users can retrieve their current subscription with GET /billing/subscription and cancel it with POST /billing/subscription/cancel.
+Users can retrieve their current subscription with GET /api/v1/billing/subscription and cancel it with POST /api/v1/billing/subscription/cancel.
 
 ### Usage Tracking
 
 The system tracks user activity across multiple metrics:
+
 - Token consumption (input and output)
 - Request counts
 - Image generation
@@ -248,7 +255,7 @@ Usage is tracked in the billing_usage table and can be queried by users to monit
 
 The system provides two mechanisms for quota management:
 
-1. **Check Quota**: The POST /billing/usage/check endpoint allows clients to verify if an action would exceed quotas without actually consuming resources.
+1. **Check Quota**: The POST /api/v1/billing/usage/check endpoint allows clients to verify if an action would exceed quotas without actually consuming resources.
 
 2. **Enforce Quota**: The `enforce_quota` method raises a QuotaExceededError if usage would exceed limits, typically resulting in HTTP 429 Too Many Requests responses.
 
@@ -271,6 +278,7 @@ end
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L239-L337)
 - [billing.py](file://backend/open_webui/utils/billing.py#L311-L352)
 
@@ -286,13 +294,13 @@ When updating a plan, the system enforces critical business rules through the `v
 def validate_plan_update(plan: PlanModel, update_data: Dict[str, Any]) -> None:
     # Check if plan has active subscriptions
     active_subs = Subscriptions.get_subscriptions_by_plan(plan.id, status="active")
-    
+
     if len(active_subs) > 0:
         # Cannot decrease quotas
         if "quotas" in update_data and update_data["quotas"] is not None:
             old_quotas = plan.quotas or {}
             new_quotas = update_data["quotas"]
-            
+
             for key, new_value in new_quotas.items():
                 old_value = old_quotas.get(key)
                 if old_value is not None and new_value < old_value:
@@ -316,6 +324,7 @@ The system uses Pydantic models to validate input data:
 ### ID Generation
 
 Plan IDs are generated using a deterministic algorithm based on the plan name:
+
 1. Convert to lowercase
 2. Replace spaces and hyphens with underscores
 3. Remove non-alphanumeric characters
@@ -324,6 +333,7 @@ Plan IDs are generated using a deterministic algorithm based on the plan name:
 This ensures readable IDs while guaranteeing uniqueness.
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L109-L133)
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L30-L64)
 
@@ -334,6 +344,7 @@ The system implements comprehensive security measures and audit logging to prote
 ### Authentication and Authorization
 
 Access control is enforced through dependency functions:
+
 - `get_verified_user`: Ensures the user is authenticated
 - `get_admin_user`: Ensures the user is authenticated and has admin role
 
@@ -342,6 +353,7 @@ These functions are used as dependencies on all billing endpoints to prevent una
 ### Audit Logging
 
 All administrative actions on plans are recorded in the billing_audit_log table with the following information:
+
 - User ID of the administrator
 - Action performed (create, update, delete, etc.)
 - Entity type and ID affected
@@ -350,8 +362,9 @@ All administrative actions on plans are recorded in the billing_audit_log table 
 - Timestamp of the action
 
 The system defines specific audit actions for plan management:
+
 - PLAN_CREATED
-- PLAN_UPDATED  
+- PLAN_UPDATED
 - PLAN_DELETED
 - PLAN_ACTIVATED
 - PLAN_DEACTIVATED
@@ -377,6 +390,7 @@ users ||--o{ billing_audit_log : "creates"
 ```
 
 **Diagram sources**
+
 - [audit.py](file://backend/open_webui/models/audit.py#L34-L56)
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L132-L167)
 
@@ -406,11 +420,13 @@ python -m backend.scripts.init_billing_plans \
 ```
 
 Options:
+
 - `--include-annual`: Include annual plan variants
-- `--include-promo`: Include promotional plans  
+- `--include-promo`: Include promotional plans
 - `--force`: Overwrite existing plans
 
 The script follows a safe update strategy:
+
 - Skips existing plans by default
 - Updates existing plans only when `--force` is specified
 - Creates new plans that don't exist
@@ -418,6 +434,7 @@ The script follows a safe update strategy:
 This allows for safe deployment and updates without disrupting existing subscriptions.
 
 **Section sources**
+
 - [plan_templates.py](file://backend/open_webui/utils/plan_templates.py#L10-L305)
 - [init_billing_plans.py](file://backend/scripts/init_billing_plans.py#L1-L120)
 
@@ -427,13 +444,13 @@ The system implements comprehensive error handling to provide meaningful feedbac
 
 ### Common Error Responses
 
-| Status Code | Error Type | Description |
-|-----------|-----------|-------------|
-| 400 | Bad Request | Invalid input data, such as invalid metrics or decreased quotas |
-| 401 | Unauthorized | Authentication failed or insufficient permissions |
-| 404 | Not Found | Requested plan or subscription does not exist |
-| 429 | Too Many Requests | Usage quota has been exceeded |
-| 500 | Internal Server Error | Unexpected server error during processing |
+| Status Code | Error Type            | Description                                                     |
+| ----------- | --------------------- | --------------------------------------------------------------- |
+| 400         | Bad Request           | Invalid input data, such as invalid metrics or decreased quotas |
+| 401         | Unauthorized          | Authentication failed or insufficient permissions               |
+| 404         | Not Found             | Requested plan or subscription does not exist                   |
+| 429         | Too Many Requests     | Usage quota has been exceeded                                   |
+| 500         | Internal Server Error | Unexpected server error during processing                       |
 
 ### Specific Error Conditions
 
@@ -468,6 +485,7 @@ except Exception as e:
 This pattern ensures that expected validation errors return appropriate client errors while unexpected issues are logged and return generic server errors.
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L254-L261)
 - [billing.py](file://backend/open_webui/routers/billing.py#L90-L95)
 
@@ -478,6 +496,7 @@ This section provides practical examples of API requests for common billing plan
 ### Create a New Plan
 
 **Request:**
+
 ```bash
 curl -X POST "http://localhost:8080/api/v1/admin/billing/plans" \
   -H "Authorization: Bearer <admin_token>" \
@@ -504,34 +523,32 @@ curl -X POST "http://localhost:8080/api/v1/admin/billing/plans" \
 ```
 
 **Response:**
+
 ```json
 {
-  "id": "premium_abc12345",
-  "name": "Premium",
-  "description": "Enhanced features for power users",
-  "price": 2990.0,
-  "currency": "RUB",
-  "interval": "month",
-  "quotas": {
-    "tokens_input": 10000000,
-    "tokens_output": 5000000,
-    "requests": 50000
-  },
-  "features": [
-    "All Pro features",
-    "Priority processing",
-    "Extended API access"
-  ],
-  "is_active": true,
-  "display_order": 4,
-  "created_at": 1738742400,
-  "updated_at": 1738742400
+	"id": "premium_abc12345",
+	"name": "Premium",
+	"description": "Enhanced features for power users",
+	"price": 2990.0,
+	"currency": "RUB",
+	"interval": "month",
+	"quotas": {
+		"tokens_input": 10000000,
+		"tokens_output": 5000000,
+		"requests": 50000
+	},
+	"features": ["All Pro features", "Priority processing", "Extended API access"],
+	"is_active": true,
+	"display_order": 4,
+	"created_at": 1738742400,
+	"updated_at": 1738742400
 }
 ```
 
 ### Update Existing Plan Parameters
 
 **Request:**
+
 ```bash
 curl -X PUT "http://localhost:8080/api/v1/admin/billing/plans/premium_abc12345" \
   -H "Authorization: Bearer <admin_token>" \
@@ -549,40 +566,39 @@ curl -X PUT "http://localhost:8080/api/v1/admin/billing/plans/premium_abc12345" 
 ### Retrieve Plan Details
 
 **Request:**
+
 ```bash
 curl -X GET "http://localhost:8080/api/v1/billing/plans/premium_abc12345" \
   -H "Authorization: Bearer <user_token>"
 ```
 
 **Response:**
+
 ```json
 {
-  "id": "premium_abc12345",
-  "name": "Premium",
-  "description": "Enhanced features for power users",
-  "price": 2490.0,
-  "currency": "RUB",
-  "interval": "month",
-  "quotas": {
-    "tokens_input": 12000000,
-    "tokens_output": 6000000,
-    "requests": 60000
-  },
-  "features": [
-    "All Pro features",
-    "Priority processing",
-    "Extended API access"
-  ],
-  "is_active": true,
-  "display_order": 4,
-  "created_at": 1738742400,
-  "updated_at": 1738743000
+	"id": "premium_abc12345",
+	"name": "Premium",
+	"description": "Enhanced features for power users",
+	"price": 2490.0,
+	"currency": "RUB",
+	"interval": "month",
+	"quotas": {
+		"tokens_input": 12000000,
+		"tokens_output": 6000000,
+		"requests": 60000
+	},
+	"features": ["All Pro features", "Priority processing", "Extended API access"],
+	"is_active": true,
+	"display_order": 4,
+	"created_at": 1738742400,
+	"updated_at": 1738743000
 }
 ```
 
 ### Check Plan Subscribers
 
 **Request:**
+
 ```bash
 curl -X GET "http://localhost:8080/api/v1/admin/billing/plans/premium_abc12345/subscribers?page=1&page_size=10" \
   -H "Authorization: Bearer <admin_token>"
@@ -591,5 +607,6 @@ curl -X GET "http://localhost:8080/api/v1/admin/billing/plans/premium_abc12345/s
 This comprehensive API documentation covers all aspects of the billing plans functionality, enabling administrators to effectively manage subscription plans while ensuring a smooth experience for end users.
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L205-L487)
 - [billing.py](file://backend/open_webui/routers/billing.py#L84-L137)

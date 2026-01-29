@@ -59,9 +59,8 @@
 			? presets
 			: presets.filter((preset) => preset.category === activeCategory);
 
-	$: visiblePresets = showAll || !isMobile
-		? filteredPresets
-		: filteredPresets.slice(0, maxVisibleMobile);
+	$: visiblePresets =
+		showAll || !isMobile ? filteredPresets : filteredPresets.slice(0, maxVisibleMobile);
 
 	$: canShowMore = isMobile && filteredPresets.length > maxVisibleMobile;
 </script>
@@ -110,7 +109,9 @@
 							<h3 class="text-base font-semibold text-gray-900">{preset.title}</h3>
 							<p class="mt-1 text-sm text-gray-600 break-words">{preset.result}</p>
 						</div>
-						<span class="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500 shrink-0 whitespace-nowrap">
+						<span
+							class="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500 shrink-0 whitespace-nowrap"
+						>
 							{labelByCategory[preset.category] ?? preset.category}
 						</span>
 					</div>

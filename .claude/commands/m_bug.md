@@ -9,6 +9,7 @@ You received the command /m_bug. This means we are starting work on fixing a bug
 Your task: $ARGUMENTS.
 
 Execute the following procedure:
+
 1.  Carefully study `.memory_bank/workflows/bug_fix.md`.
 2.  Follow the process described there step by step.
 3.  Ask clarifying questions at each stage if something is unclear.

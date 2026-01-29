@@ -18,6 +18,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Document Ingestion Pipeline](#document-ingestion-pipeline)
 3. [Vector Database Integration](#vector-database-integration)
@@ -29,6 +30,7 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 The Retrieval-Augmented Generation (RAG) system in open-webui provides a comprehensive framework for enhancing language model responses with external knowledge sources. This system enables users to augment chat interactions with information from various document types, web sources, and structured databases. The architecture is designed to be modular and extensible, supporting multiple document loaders, vector databases, and search engines. The RAG pipeline processes user queries by retrieving relevant information from ingested documents and real-time web searches, then formats this context for the language model to generate informed responses.
 
 ## Document Ingestion Pipeline
@@ -42,6 +44,7 @@ YouTube content is processed through the `YoutubeLoader` which extracts transcri
 Document preprocessing includes text normalization using the ftfy library to fix common text issues and encoding problems. The system also supports metadata extraction and processing, filtering out large fields that could impact performance.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/retrieval/loaders/main.py#L1-L398)
 - [youtube.py](file://backend/open_webui/retrieval/loaders/youtube.py#L1-L167)
 
@@ -52,6 +55,7 @@ The RAG system supports multiple vector database backends through a factory patt
 ### Supported Vector Databases
 
 The system supports the following vector databases:
+
 - PGVector (PostgreSQL)
 - Qdrant
 - Chroma
@@ -66,6 +70,7 @@ The system supports the following vector databases:
 ### Vector Database Abstraction
 
 The `VectorDBBase` abstract class in `backend/open_webui/retrieval/vector/main.py` defines the interface for all vector database implementations. This interface includes methods for:
+
 - Collection management (`has_collection`, `delete_collection`)
 - Vector operations (`insert`, `upsert`, `delete`)
 - Similarity search (`search`)
@@ -113,6 +118,7 @@ SearchResult --> VectorDBBase
 ```
 
 **Diagram sources **
+
 - [main.py](file://backend/open_webui/retrieval/vector/main.py#L1-L87)
 
 ### PGVector Implementation
@@ -120,6 +126,7 @@ SearchResult --> VectorDBBase
 The PGVector implementation provides integration with PostgreSQL using the pgvector extension. Key features include:
 
 - **Configuration Options**:
+
   - `PGVECTOR_DB_URL`: Connection string for PostgreSQL database
   - `PGVECTOR_INITIALIZE_MAX_VECTOR_LENGTH`: Maximum vector dimension
   - `PGVECTOR_CREATE_EXTENSION`: Whether to create pgvector extension
@@ -128,6 +135,7 @@ The PGVector implementation provides integration with PostgreSQL using the pgvec
   - `PGVECTOR_INDEX_METHOD`: Index method (ivfflat or hnsw)
 
 - **Index Management**:
+
   - Automatic creation of vector indexes
   - Support for both IVFFLAT and HNSW indexing methods
   - Configurable index parameters (m, ef_construction, lists)
@@ -145,6 +153,7 @@ The implementation handles vector length consistency checking and automatically 
 The Qdrant implementation provides cloud-native vector storage with the following features:
 
 - **Configuration Options**:
+
   - `QDRANT_URI`: Qdrant server URL
   - `QDRANT_API_KEY`: Authentication key
   - `QDRANT_ON_DISK`: Store vectors on disk
@@ -155,6 +164,7 @@ The Qdrant implementation provides cloud-native vector storage with the followin
   - `QDRANT_HNSW_M`: HNSW graph parameter
 
 - **Collection Management**:
+
   - Automatic collection creation with cosine distance metric
   - Collection prefixing for multi-tenancy support
   - Payload indexing for efficient metadata filtering
@@ -171,6 +181,7 @@ The Qdrant implementation provides cloud-native vector storage with the followin
 The Chroma implementation provides lightweight vector storage with the following features:
 
 - **Configuration Options**:
+
   - `CHROMA_DATA_PATH`: Local storage path
   - `CHROMA_HTTP_HOST`: Remote server host
   - `CHROMA_HTTP_PORT`: Remote server port
@@ -182,6 +193,7 @@ The Chroma implementation provides lightweight vector storage with the following
   - `CHROMA_CLIENT_AUTH_CREDENTIALS`: Authentication credentials
 
 - **Storage Modes**:
+
   - Persistent local storage using PersistentClient
   - Remote storage using HttpClient
   - Multi-tenancy support
@@ -194,6 +206,7 @@ The Chroma implementation provides lightweight vector storage with the following
   - Memory-efficient operations
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/retrieval/vector/main.py#L1-L87)
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
 - [pgvector.py](file://backend/open_webui/retrieval/vector/dbs/pgvector.py#L1-L717)
@@ -207,6 +220,7 @@ The RAG system integrates with multiple search engines to provide real-time web 
 ### Supported Search Providers
 
 The system supports the following search providers:
+
 - Tavily
 - SerpAPI
 - Google Programmable Search Engine (PSE)
@@ -274,6 +288,7 @@ SearchResult <-- WebSearchProvider
 ```
 
 **Diagram sources **
+
 - [main.py](file://backend/open_webui/retrieval/web/main.py#L1-L47)
 
 ### Tavily Integration
@@ -281,10 +296,12 @@ SearchResult <-- WebSearchProvider
 The Tavily integration in `backend/open_webui/retrieval/web/tavily.py` provides advanced web search capabilities with the following features:
 
 - **API Configuration**:
+
   - `TAVILY_API_KEY`: Authentication key
   - `TAVILY_EXTRACT_DEPTH`: Content extraction depth
 
 - **Search Parameters**:
+
   - Query string
   - Result count limit
   - Domain filtering
@@ -299,6 +316,7 @@ The Tavily integration in `backend/open_webui/retrieval/web/tavily.py` provides 
 The Tavily integration supports both basic search and deep research modes, allowing for comprehensive information retrieval from the web.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/retrieval/web/main.py#L1-L47)
 - [tavily.py](file://backend/open_webui/retrieval/web/tavily.py#L1-L52)
 
@@ -324,12 +342,14 @@ The `predict` method takes a list of query-document pairs and returns relevance 
 The Colbert reranker implementation in `backend/open_webui/retrieval/models/colbert.py` provides state-of-the-art relevance scoring using the ColBERT model. Key features include:
 
 - **Model Loading**:
+
   - Automatic model downloading from Hugging Face
   - GPU/CPU detection and device assignment
   - Docker-specific initialization handling
   - Cache management
 
 - **Similarity Scoring**:
+
   - Token-level relevance scoring
   - Max-similarity pooling across document tokens
   - Cosine similarity computation
@@ -354,6 +374,7 @@ The system supports external reranking services through the `ExternalReranker` c
 The external reranker abstraction enables the system to leverage specialized reranking models without requiring local model hosting.
 
 **Section sources**
+
 - [base_reranker.py](file://backend/open_webui/retrieval/models/base_reranker.py#L1-L9)
 - [colbert.py](file://backend/open_webui/retrieval/models/colbert.py#L1-L90)
 
@@ -397,6 +418,7 @@ P -.-> E
 ```
 
 **Diagram sources **
+
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L1-L2504)
 - [utils.py](file://backend/open_webui/retrieval/utils.py#L1-L1324)
 
@@ -409,6 +431,7 @@ The system supports multiple chunking strategies for processing documents:
 - **Markdown Header Text Splitter**: Splits Markdown documents by headers
 
 Configuration options include:
+
 - `CHUNK_SIZE`: Maximum chunk size in characters or tokens
 - `CHUNK_OVERLAP`: Overlap between consecutive chunks
 - `TEXT_SPLITTER`: Selected splitting method
@@ -425,6 +448,7 @@ The embedding process converts text chunks into vector representations using the
 - **Ollama**: Local embedding models via Ollama
 
 The embedding process includes:
+
 - **Batch Processing**: Processing multiple chunks simultaneously
 - **Asynchronous Operations**: Non-blocking embedding generation
 - **Prefixing**: Adding query or content prefixes to influence embeddings
@@ -440,12 +464,14 @@ The system supports hybrid search combining vector similarity with keyword-based
 - **Weighted Ranking**: Balances vector and keyword scores
 
 Configuration options for hybrid search include:
+
 - `ENABLE_RAG_HYBRID_SEARCH`: Enable hybrid search
 - `HYBRID_BM25_WEIGHT`: Weight for BM25 component
 - `ENABLE_RAG_HYBRID_SEARCH_ENRICHED_TEXTS`: Use enriched text for BM25
 - `TOP_K_RERANKER`: Number of results to rerank
 
 **Section sources**
+
 - [utils.py](file://backend/open_webui/retrieval/utils.py#L1-L1324)
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L1-L2504)
 
@@ -457,7 +483,7 @@ This section provides configuration examples for different vector database backe
 
 ```yaml
 # PostgreSQL with pgvector configuration
-PGVECTOR_DB_URL: "postgresql://user:password@localhost:5432/webui"
+PGVECTOR_DB_URL: 'postgresql://user:password@localhost:5432/webui'
 PGVECTOR_INITIALIZE_MAX_VECTOR_LENGTH: 1536
 PGVECTOR_CREATE_EXTENSION: true
 PGVECTOR_PGCRYPTO: false
@@ -465,7 +491,7 @@ PGVECTOR_POOL_SIZE: 20
 PGVECTOR_POOL_MAX_OVERFLOW: 10
 PGVECTOR_POOL_TIMEOUT: 30
 PGVECTOR_POOL_RECYCLE: 3600
-PGVECTOR_INDEX_METHOD: "hnsw"
+PGVECTOR_INDEX_METHOD: 'hnsw'
 PGVECTOR_HNSW_M: 16
 PGVECTOR_HNSW_EF_CONSTRUCTION: 64
 PGVECTOR_IVFFLAT_LISTS: 100
@@ -476,12 +502,12 @@ PGVECTOR_USE_HALFVEC: false
 
 ```yaml
 # Qdrant configuration
-QDRANT_URI: "http://localhost:6333"
-QDRANT_API_KEY: "your-api-key"
+QDRANT_URI: 'http://localhost:6333'
+QDRANT_API_KEY: 'your-api-key'
 QDRANT_ON_DISK: true
 QDRANT_PREFER_GRPC: true
 QDRANT_GRPC_PORT: 6334
-QDRANT_COLLECTION_PREFIX: "webui"
+QDRANT_COLLECTION_PREFIX: 'webui'
 QDRANT_TIMEOUT: 30
 QDRANT_HNSW_M: 16
 ```
@@ -490,13 +516,13 @@ QDRANT_HNSW_M: 16
 
 ```yaml
 # Chroma configuration
-CHROMA_DATA_PATH: "./chroma_data"
-CHROMA_HTTP_HOST: ""
+CHROMA_DATA_PATH: './chroma_data'
+CHROMA_HTTP_HOST: ''
 CHROMA_HTTP_PORT: 8000
 CHROMA_HTTP_HEADERS: {}
 CHROMA_HTTP_SSL: false
-CHROMA_TENANT: "default_tenant"
-CHROMA_DATABASE: "default_database"
+CHROMA_TENANT: 'default_tenant'
+CHROMA_DATABASE: 'default_database'
 CHROMA_CLIENT_AUTH_PROVIDER: null
 CHROMA_CLIENT_AUTH_CREDENTIALS: null
 ```
@@ -506,24 +532,24 @@ CHROMA_CLIENT_AUTH_CREDENTIALS: null
 ```yaml
 # Web search configuration
 ENABLE_WEB_SEARCH: true
-WEB_SEARCH_ENGINE: "tavily"
+WEB_SEARCH_ENGINE: 'tavily'
 WEB_SEARCH_RESULT_COUNT: 5
-WEB_SEARCH_DOMAIN_FILTER_LIST: ["wikipedia.org", "github.com"]
-TAVILY_API_KEY: "your-tavily-api-key"
-GOOGLE_PSE_API_KEY: "your-google-api-key"
-GOOGLE_PSE_ENGINE_ID: "your-engine-id"
-BING_SEARCH_V7_ENDPOINT: "https://api.bing.microsoft.com/v7.0/search"
-BING_SEARCH_V7_SUBSCRIPTION_KEY: "your-bing-key"
+WEB_SEARCH_DOMAIN_FILTER_LIST: ['wikipedia.org', 'github.com']
+TAVILY_API_KEY: 'your-tavily-api-key'
+GOOGLE_PSE_API_KEY: 'your-google-api-key'
+GOOGLE_PSE_ENGINE_ID: 'your-engine-id'
+BING_SEARCH_V7_ENDPOINT: 'https://api.bing.microsoft.com/v7.0/search'
+BING_SEARCH_V7_SUBSCRIPTION_KEY: 'your-bing-key'
 ```
 
 ### Reranking Configuration
 
 ```yaml
 # Reranking configuration
-RAG_RERANKING_MODEL: "jinaai/jina-colbert-v2"
-RAG_RERANKING_ENGINE: "local"
-RAG_EXTERNAL_RERANKER_URL: "https://api.example.com/rerank"
-RAG_EXTERNAL_RERANKER_API_KEY: "your-api-key"
+RAG_RERANKING_MODEL: 'jinaai/jina-colbert-v2'
+RAG_RERANKING_ENGINE: 'local'
+RAG_EXTERNAL_RERANKER_URL: 'https://api.example.com/rerank'
+RAG_EXTERNAL_RERANKER_API_KEY: 'your-api-key'
 TOP_K_RERANKER: 20
 RELEVANCE_THRESHOLD: 0.5
 ```
@@ -532,12 +558,12 @@ RELEVANCE_THRESHOLD: 0.5
 
 ```yaml
 # Complete RAG system configuration
-RAG_EMBEDDING_ENGINE: "openai"
-RAG_EMBEDDING_MODEL: "text-embedding-3-small"
+RAG_EMBEDDING_ENGINE: 'openai'
+RAG_EMBEDDING_MODEL: 'text-embedding-3-small'
 RAG_EMBEDDING_BATCH_SIZE: 10
 ENABLE_ASYNC_EMBEDDING: true
-RAG_OPENAI_API_BASE_URL: "https://api.openai.com/v1"
-RAG_OPENAI_API_KEY: "your-openai-key"
+RAG_OPENAI_API_BASE_URL: 'https://api.openai.com/v1'
+RAG_OPENAI_API_KEY: 'your-openai-key'
 
 RAG_TEMPLATE: "Use the following context to answer the question: {context}\n\nQuestion: {question}"
 TOP_K: 5
@@ -548,12 +574,13 @@ ENABLE_RAG_HYBRID_SEARCH: true
 ENABLE_RAG_HYBRID_SEARCH_ENRICHED_TEXTS: true
 HYBRID_BM25_WEIGHT: 0.3
 
-TEXT_SPLITTER: "recursive_character"
+TEXT_SPLITTER: 'recursive_character'
 CHUNK_SIZE: 500
 CHUNK_OVERLAP: 50
 ```
 
 **Section sources**
+
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L1-L2504)
 
 ## Performance Optimization
@@ -565,11 +592,13 @@ This section addresses performance optimization strategies for the RAG system, i
 Effective chunking is critical for retrieval quality and performance. The following strategies are recommended:
 
 - **Size Considerations**:
+
   - Smaller chunks (200-500 characters): Better precision, more chunks to process
   - Larger chunks (800-1000 characters): Better context preservation, fewer chunks
   - Optimal size depends on content type and query patterns
 
 - **Overlap Settings**:
+
   - 10-20% overlap: Prevents information splitting at boundaries
   - Higher overlap: Better context continuity, increased storage
   - Lower overlap: More efficient storage, potential context loss
@@ -584,11 +613,13 @@ Effective chunking is critical for retrieval quality and performance. The follow
 Relevance tuning involves adjusting system parameters to optimize retrieval quality:
 
 - **Top-K Settings**:
+
   - Higher values (10-20): More comprehensive results, slower processing
   - Lower values (3-5): Faster response, potentially missing relevant content
   - Balance between comprehensiveness and efficiency
 
 - **Hybrid Search Weights**:
+
   - BM25 weight 0.0: Pure semantic search
   - BM25 weight 1.0: Pure keyword search
   - BM25 weight 0.2-0.4: Balanced hybrid approach
@@ -617,6 +648,7 @@ Optimize resource usage with the following settings:
 - **Concurrent Requests**: Limit concurrent web requests to avoid rate limiting
 
 **Section sources**
+
 - [utils.py](file://backend/open_webui/retrieval/utils.py#L1-L1324)
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L1-L2504)
 
@@ -625,6 +657,7 @@ Optimize resource usage with the following settings:
 The Retrieval-Augmented Generation system in open-webui provides a comprehensive and flexible framework for enhancing language model interactions with external knowledge sources. The architecture supports multiple document types, vector databases, and search engines, enabling users to create rich, context-aware applications.
 
 Key strengths of the system include:
+
 - **Modular Design**: Pluggable components for loaders, vector databases, and search providers
 - **Extensibility**: Easy integration of new data sources and processing methods
 - **Performance Optimization**: Configurable chunking, caching, and hybrid search

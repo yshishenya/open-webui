@@ -162,7 +162,9 @@
 			</div>
 		</div>
 
-		<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4">
+		<div
+			class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+		>
 			<div class="flex items-center justify-between mb-4">
 				<div class="text-sm font-medium">{$i18n.t('Status')}</div>
 				<Switch

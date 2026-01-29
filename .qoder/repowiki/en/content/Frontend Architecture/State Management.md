@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Store Implementation Overview](#store-implementation-overview)
 3. [Core Store Types and Patterns](#core-store-types-and-patterns)
@@ -25,6 +26,7 @@
 10. [Conclusion](#conclusion)
 
 ## Introduction
+
 The State Management system in open-webui is built on Svelte stores, providing a reactive and efficient way to manage global application state. This documentation explains how Svelte stores are implemented in the application to handle user sessions, UI preferences, real-time updates, and chat state synchronization. The system uses writable, readable, and derived stores to manage different state requirements across the application, ensuring components stay in sync with the latest state changes.
 
 ## Store Implementation Overview
@@ -45,9 +47,11 @@ D --> J[Derived State]
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L1-L302)
 
 **Section sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L1-L302)
 
 ## Core Store Types and Patterns
@@ -55,6 +59,7 @@ D --> J[Derived State]
 The application implements three main types of Svelte stores: writable, readable, and derived. Writable stores are used for state that can be modified by components, such as user sessions, UI preferences, and chat state. Readable stores provide access to state without allowing direct modification, while derived stores compute values based on other stores.
 
 The stores are organized by functionality:
+
 - **Backend state**: Stores like `config`, `user`, and `WEBUI_VERSION` manage backend configuration and user session data
 - **Frontend state**: Stores like `theme`, `mobile`, and `showSidebar` manage UI preferences and responsive behavior
 - **Chat state**: Stores like `chatId`, `chats`, and `messages` manage the current chat context and message history
@@ -93,9 +98,11 @@ class MessageStore {
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L1-L302)
 
 **Section sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L1-L302)
 
 ## Chat Interface State Synchronization
@@ -122,10 +129,12 @@ Messages-->>User : Display updated chat
 ```
 
 **Diagram sources**
+
 - [Messages.svelte](file://src/lib/components/chat/Messages.svelte#L1-L465)
 - [MessageInput.svelte](file://src/lib/components/chat/MessageInput.svelte#L1-L1805)
 
 **Section sources**
+
 - [Messages.svelte](file://src/lib/components/chat/Messages.svelte#L1-L465)
 - [Message.svelte](file://src/lib/components/chat/Messages/Message.svelte#L1-L129)
 
@@ -152,9 +161,11 @@ ShowError --> End
 ```
 
 **Diagram sources**
+
 - [SettingsModal.svelte](file://src/lib/components/chat/SettingsModal.svelte#L1-L944)
 
 **Section sources**
+
 - [SettingsModal.svelte](file://src/lib/components/chat/SettingsModal.svelte#L1-L944)
 
 ## API Integration and Data Flow
@@ -162,6 +173,7 @@ ShowError --> End
 The state management system integrates with backend APIs to fetch and store data. The `apis/index.ts` file contains functions that retrieve data from the backend and update the corresponding stores. For example, the `getModels` function fetches available AI models and updates the `models` store.
 
 The data flow follows a consistent pattern:
+
 1. Components subscribe to relevant stores
 2. On initialization or specific events, API calls are made to fetch data
 3. The retrieved data is stored in the appropriate Svelte store
@@ -184,10 +196,12 @@ Component->>Component : Update UI
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 - [index.ts](file://src/lib/stores/index.ts#L1-L302)
 
 **Section sources**
+
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 - [index.ts](file://src/lib/stores/index.ts#L1-L302)
 
@@ -221,10 +235,12 @@ Browser->>Browser : Components react to changes
 ```
 
 **Diagram sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L88-L742)
 - [index.ts](file://src/lib/stores/index.ts#L1-L302)
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L88-L742)
 
 ## Performance Considerations

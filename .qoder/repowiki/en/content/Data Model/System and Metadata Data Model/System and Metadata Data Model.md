@@ -18,6 +18,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Audit Data Model](#audit-data-model)
 3. [Feedback Data Model](#feedback-data-model)
@@ -29,9 +30,11 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive documentation for the system metadata entities in the open-webui application. The metadata entities include Audit, Feedback, Billing, Prompt, and Memory, which enhance the core functionality of the application by providing administrative tracking, user feedback collection, subscription management, reusable templates, and user-specific context retention. These entities are implemented as database models with specific fields and relationships that support the application's features.
 
 **Section sources**
+
 - [audit.py](file://backend/open_webui/models/audit.py#L1-L137)
 - [feedbacks.py](file://backend/open_webui/models/feedbacks.py#L1-L341)
 - [billing.py](file://backend/open_webui/models/billing.py#L1-L524)
@@ -86,44 +89,47 @@ AUDIT_LOG ||--o{ BILLING_SUBSCRIPTION : "affects"
 ```
 
 **Diagram sources**
+
 - [audit.py](file://backend/open_webui/models/audit.py#L34-L56)
 - [billing.py](file://backend/open_webui/models/billing.py#L54-L141)
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L18-L168)
 
 ### Sample Audit Data
+
 ```json
 {
-  "id": "a1b2c3d4-e5f6-7890-g1h2-i3j4k5l6m7n8",
-  "user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
-  "action": "plan_updated",
-  "entity_type": "plan",
-  "entity_id": "p1q2r3s4-t5u6-7890-v1w2-x3y4z5a6b7c8",
-  "description": "Updated price and quotas for Pro plan",
-  "changes": {
-    "price": {
-      "old": 990,
-      "new": 1490
-    },
-    "quotas": {
-      "old": {
-        "tokens_input": 1000000,
-        "tokens_output": 500000
-      },
-      "new": {
-        "tokens_input": 2000000,
-        "tokens_output": 1000000
-      }
-    }
-  },
-  "audit_metadata": {
-    "ip_address": "192.168.1.100",
-    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-  },
-  "created_at": 1735689200
+	"id": "a1b2c3d4-e5f6-7890-g1h2-i3j4k5l6m7n8",
+	"user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
+	"action": "plan_updated",
+	"entity_type": "plan",
+	"entity_id": "p1q2r3s4-t5u6-7890-v1w2-x3y4z5a6b7c8",
+	"description": "Updated price and quotas for Pro plan",
+	"changes": {
+		"price": {
+			"old": 990,
+			"new": 1490
+		},
+		"quotas": {
+			"old": {
+				"tokens_input": 1000000,
+				"tokens_output": 500000
+			},
+			"new": {
+				"tokens_input": 2000000,
+				"tokens_output": 1000000
+			}
+		}
+	},
+	"audit_metadata": {
+		"ip_address": "192.168.1.100",
+		"user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+	},
+	"created_at": 1735689200
 }
 ```
 
 **Section sources**
+
 - [audit.py](file://backend/open_webui/models/audit.py#L34-L137)
 
 ## Feedback Data Model
@@ -179,62 +185,58 @@ FEEDBACK ||--o{ MODEL : "evaluates"
 ```
 
 **Diagram sources**
+
 - [feedbacks.py](file://backend/open_webui/models/feedbacks.py#L22-L32)
 - [af906e964978_add_feedback_table.py](file://backend/open_webui/migrations/versions/af906e964978_add_feedback_table.py#L19-L52)
 - [evaluations.py](file://backend/open_webui/routers/evaluations.py#L61-L179)
 
 ### Sample Feedback Data
+
 ```json
 {
-  "id": "f1g2h3i4-j5k6-7890-l1m2-n3o4p5q6r7s8",
-  "user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
-  "version": 0,
-  "type": "rating",
-  "data": {
-    "rating": 5,
-    "model_id": "gpt-4-turbo-2024-04-09",
-    "sibling_model_ids": [
-      "claude-3-opus-20240229",
-      "gemini-pro-20240225"
-    ],
-    "reason": "Most accurate and helpful response",
-    "comment": "The response was comprehensive and directly addressed my question with relevant examples."
-  },
-  "meta": {
-    "arena": true,
-    "chat_id": "c1d2e3f4-g5h6-7890-i1j2-k3l4m5n6o7p8",
-    "message_id": "m1n2o3p4-q5r6-7890-s1t2-u3v4w5x6y7z8",
-    "tags": [
-      "accuracy",
-      "helpfulness",
-      "completeness"
-    ]
-  },
-  "snapshot": {
-    "chat": {
-      "title": "Research Assistance",
-      "messages": [
-        {
-          "id": "m1n2o3p4-q5r6-7890-s1t2-u3v4w5x6y7z8",
-          "role": "user",
-          "content": "Explain the concept of quantum entanglement in simple terms.",
-          "created_at": 1735689000
-        },
-        {
-          "id": "n2o3p4q5-r6s7-8901-t2u3-v4w5x6y7z8a9",
-          "role": "assistant",
-          "content": "Quantum entanglement is a phenomenon where two or more particles become linked in such a way that the state of one particle instantly influences the state of the other, no matter how far apart they are...",
-          "created_at": 1735689060
-        }
-      ]
-    }
-  },
-  "created_at": 1735689120,
-  "updated_at": 1735689120
+	"id": "f1g2h3i4-j5k6-7890-l1m2-n3o4p5q6r7s8",
+	"user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
+	"version": 0,
+	"type": "rating",
+	"data": {
+		"rating": 5,
+		"model_id": "gpt-4-turbo-2024-04-09",
+		"sibling_model_ids": ["claude-3-opus-20240229", "gemini-pro-20240225"],
+		"reason": "Most accurate and helpful response",
+		"comment": "The response was comprehensive and directly addressed my question with relevant examples."
+	},
+	"meta": {
+		"arena": true,
+		"chat_id": "c1d2e3f4-g5h6-7890-i1j2-k3l4m5n6o7p8",
+		"message_id": "m1n2o3p4-q5r6-7890-s1t2-u3v4w5x6y7z8",
+		"tags": ["accuracy", "helpfulness", "completeness"]
+	},
+	"snapshot": {
+		"chat": {
+			"title": "Research Assistance",
+			"messages": [
+				{
+					"id": "m1n2o3p4-q5r6-7890-s1t2-u3v4w5x6y7z8",
+					"role": "user",
+					"content": "Explain the concept of quantum entanglement in simple terms.",
+					"created_at": 1735689000
+				},
+				{
+					"id": "n2o3p4q5-r6s7-8901-t2u3-v4w5x6y7z8a9",
+					"role": "assistant",
+					"content": "Quantum entanglement is a phenomenon where two or more particles become linked in such a way that the state of one particle instantly influences the state of the other, no matter how far apart they are...",
+					"created_at": 1735689060
+				}
+			]
+		}
+	},
+	"created_at": 1735689120,
+	"updated_at": 1735689120
 }
 ```
 
 **Section sources**
+
 - [feedbacks.py](file://backend/open_webui/models/feedbacks.py#L22-L341)
 
 ## Billing Data Model
@@ -323,99 +325,97 @@ BILLING_TRANSACTION ||--|| USER : "belongs to"
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L54-L235)
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L18-L168)
 - [billing.py](file://backend/open_webui/utils/billing.py#L39-L566)
 
 ### Sample Billing Data
+
 ```json
 {
-  "plan": {
-    "id": "p1q2r3s4-t5u6-7890-v1w2-x3y4z5a6b7c8",
-    "name": "Pro",
-    "name_ru": "Про",
-    "description": "Advanced features for professional users",
-    "description_ru": "Расширенные функции для профессиональных пользователей",
-    "price": 1490,
-    "currency": "RUB",
-    "interval": "month",
-    "quotas": {
-      "tokens_input": 2000000,
-      "tokens_output": 1000000,
-      "requests": 10000,
-      "images": 500,
-      "audio_minutes": 60
-    },
-    "features": [
-      "gpt-4",
-      "claude-3",
-      "api_access",
-      "priority_support"
-    ],
-    "is_active": true,
-    "display_order": 1,
-    "created_at": 1735680000,
-    "updated_at": 1735680000
-  },
-  "subscription": {
-    "id": "s1t2u3v4-w5x6-7890-y1z2-a3b4c5d6e7f8",
-    "user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
-    "plan_id": "p1q2r3s4-t5u6-7890-v1w2-x3y4z5a6b7c8",
-    "status": "active",
-    "yookassa_payment_id": "pay_1234567890",
-    "yookassa_subscription_id": "sub_0987654321",
-    "current_period_start": 1735680000,
-    "current_period_end": 1738358400,
-    "cancel_at_period_end": false,
-    "trial_end": null,
-    "created_at": 1735680000,
-    "updated_at": 1735680000
-  },
-  "usage": [
-    {
-      "id": "u1v2w3x4-y5z6-7890-a1b2-c3d4e5f6g7h8",
-      "user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
-      "subscription_id": "s1t2u3v4-w5x6-7890-y1z2-a3b4c5d6e7f8",
-      "metric": "tokens_input",
-      "amount": 150000,
-      "period_start": 1735680000,
-      "period_end": 1735680000,
-      "model_id": "gpt-4-turbo-2024-04-09",
-      "chat_id": "c1d2e3f4-g5h6-7890-i1j2-k3l4m5n6o7p8",
-      "created_at": 1735680000
-    },
-    {
-      "id": "v2w3x4y5-z6a7-8901-b2c3-d4e5f6g7h8i9",
-      "user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
-      "subscription_id": "s1t2u3v4-w5x6-7890-y1z2-a3b4c5d6e7f8",
-      "metric": "tokens_output",
-      "amount": 75000,
-      "period_start": 1735680000,
-      "period_end": 1735680000,
-      "model_id": "gpt-4-turbo-2024-04-09",
-      "chat_id": "c1d2e3f4-g5h6-7890-i1j2-k3l4m5n6o7p8",
-      "created_at": 1735680000
-    }
-  ],
-  "transaction": {
-    "id": "t1u2v3w4-x5y6-7890-z1a2-b3c4d5e6f7g8",
-    "user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
-    "subscription_id": "s1t2u3v4-w5x6-7890-y1z2-a3b4c5d6e7f8",
-    "amount": 1490,
-    "currency": "RUB",
-    "status": "succeeded",
-    "yookassa_payment_id": "pay_1234567890",
-    "yookassa_status": "succeeded",
-    "description": "Subscription: Pro",
-    "description_ru": "Подписка: Про",
-    "receipt_url": "https://yookassa.ru/receipt/1234567890",
-    "created_at": 1735680000,
-    "updated_at": 1735680000
-  }
+	"plan": {
+		"id": "p1q2r3s4-t5u6-7890-v1w2-x3y4z5a6b7c8",
+		"name": "Pro",
+		"name_ru": "Про",
+		"description": "Advanced features for professional users",
+		"description_ru": "Расширенные функции для профессиональных пользователей",
+		"price": 1490,
+		"currency": "RUB",
+		"interval": "month",
+		"quotas": {
+			"tokens_input": 2000000,
+			"tokens_output": 1000000,
+			"requests": 10000,
+			"images": 500,
+			"audio_minutes": 60
+		},
+		"features": ["gpt-4", "claude-3", "api_access", "priority_support"],
+		"is_active": true,
+		"display_order": 1,
+		"created_at": 1735680000,
+		"updated_at": 1735680000
+	},
+	"subscription": {
+		"id": "s1t2u3v4-w5x6-7890-y1z2-a3b4c5d6e7f8",
+		"user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
+		"plan_id": "p1q2r3s4-t5u6-7890-v1w2-x3y4z5a6b7c8",
+		"status": "active",
+		"yookassa_payment_id": "pay_1234567890",
+		"yookassa_subscription_id": "sub_0987654321",
+		"current_period_start": 1735680000,
+		"current_period_end": 1738358400,
+		"cancel_at_period_end": false,
+		"trial_end": null,
+		"created_at": 1735680000,
+		"updated_at": 1735680000
+	},
+	"usage": [
+		{
+			"id": "u1v2w3x4-y5z6-7890-a1b2-c3d4e5f6g7h8",
+			"user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
+			"subscription_id": "s1t2u3v4-w5x6-7890-y1z2-a3b4c5d6e7f8",
+			"metric": "tokens_input",
+			"amount": 150000,
+			"period_start": 1735680000,
+			"period_end": 1735680000,
+			"model_id": "gpt-4-turbo-2024-04-09",
+			"chat_id": "c1d2e3f4-g5h6-7890-i1j2-k3l4m5n6o7p8",
+			"created_at": 1735680000
+		},
+		{
+			"id": "v2w3x4y5-z6a7-8901-b2c3-d4e5f6g7h8i9",
+			"user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
+			"subscription_id": "s1t2u3v4-w5x6-7890-y1z2-a3b4c5d6e7f8",
+			"metric": "tokens_output",
+			"amount": 75000,
+			"period_start": 1735680000,
+			"period_end": 1735680000,
+			"model_id": "gpt-4-turbo-2024-04-09",
+			"chat_id": "c1d2e3f4-g5h6-7890-i1j2-k3l4m5n6o7p8",
+			"created_at": 1735680000
+		}
+	],
+	"transaction": {
+		"id": "t1u2v3w4-x5y6-7890-z1a2-b3c4d5e6f7g8",
+		"user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
+		"subscription_id": "s1t2u3v4-w5x6-7890-y1z2-a3b4c5d6e7f8",
+		"amount": 1490,
+		"currency": "RUB",
+		"status": "succeeded",
+		"yookassa_payment_id": "pay_1234567890",
+		"yookassa_status": "succeeded",
+		"description": "Subscription: Pro",
+		"description_ru": "Подписка: Про",
+		"receipt_url": "https://yookassa.ru/receipt/1234567890",
+		"created_at": 1735680000,
+		"updated_at": 1735680000
+	}
 }
 ```
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L54-L524)
 
 ## Prompt Data Model
@@ -459,39 +459,35 @@ GROUP_MEMBER }o--|| USER : "member of"
 ```
 
 **Diagram sources**
+
 - [prompts.py](file://backend/open_webui/models/prompts.py#L18-L27)
 - [prompts.py](file://backend/open_webui/routers/prompts.py#L1-L170)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L1-L175)
 
 ### Sample Prompt Data
+
 ```json
 {
-  "command": "/research",
-  "user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
-  "title": "Academic Research Assistant",
-  "content": "You are an expert academic researcher with extensive experience in scholarly writing and research methodology. When responding to queries:\n\n1. Provide comprehensive, well-structured answers with clear organization\n2. Support claims with evidence and cite sources when possible\n3. Maintain a formal, professional tone appropriate for academic contexts\n4. Break down complex concepts into understandable components\n5. Suggest additional resources or avenues for further research\n\nCurrent query: {{input}}",
-  "timestamp": 1735685000,
-  "access_control": {
-    "read": {
-      "group_ids": [
-        "g1h2i3j4-k5l6-7890-m1n2-o3p4q5r6s7t8",
-        "h2i3j4k5-l6m7-8901-n2o3-p4q5r6s7t8u9"
-      ],
-      "user_ids": [
-        "v8w7x6y5-z4a3-2109-b8c7-d6e5f4g3h2i1"
-      ]
-    },
-    "write": {
-      "group_ids": [
-        "g1h2i3j4-k5l6-7890-m1n2-o3p4q5r6s7t8"
-      ],
-      "user_ids": []
-    }
-  }
+	"command": "/research",
+	"user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
+	"title": "Academic Research Assistant",
+	"content": "You are an expert academic researcher with extensive experience in scholarly writing and research methodology. When responding to queries:\n\n1. Provide comprehensive, well-structured answers with clear organization\n2. Support claims with evidence and cite sources when possible\n3. Maintain a formal, professional tone appropriate for academic contexts\n4. Break down complex concepts into understandable components\n5. Suggest additional resources or avenues for further research\n\nCurrent query: {{input}}",
+	"timestamp": 1735685000,
+	"access_control": {
+		"read": {
+			"group_ids": ["g1h2i3j4-k5l6-7890-m1n2-o3p4q5r6s7t8", "h2i3j4k5-l6m7-8901-n2o3-p4q5r6s7t8u9"],
+			"user_ids": ["v8w7x6y5-z4a3-2109-b8c7-d6e5f4g3h2i1"]
+		},
+		"write": {
+			"group_ids": ["g1h2i3j4-k5l6-7890-m1n2-o3p4q5r6s7t8"],
+			"user_ids": []
+		}
+	}
 }
 ```
 
 **Section sources**
+
 - [prompts.py](file://backend/open_webui/models/prompts.py#L18-L168)
 
 ## Memory Data Model
@@ -529,22 +525,25 @@ MEMORY }o--o{ VECTOR_DB : "represented as vector"
 ```
 
 **Diagram sources**
+
 - [memories.py](file://backend/open_webui/models/memories.py#L14-L22)
 - [008_add_memory.py](file://backend/open_webui/internal/migrations/008_add_memory.py#L37-L54)
 - [memories.py](file://backend/open_webui/routers/memories.py#L1-L213)
 
 ### Sample Memory Data
+
 ```json
 {
-  "id": "m1n2o3p4-q5r6-7890-s1t2-u3v4w5x6y7z8",
-  "user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
-  "content": "I'm currently working on a research paper about quantum computing applications in cryptography. I need detailed, technical explanations with references to recent academic papers. I prefer responses that are comprehensive but well-structured with clear section headings.",
-  "updated_at": 1735687000,
-  "created_at": 1735687000
+	"id": "m1n2o3p4-q5r6-7890-s1t2-u3v4w5x6y7z8",
+	"user_id": "u9v8w7x6-y5z4-3210-a9b8-c7d6e5f4g3h2",
+	"content": "I'm currently working on a research paper about quantum computing applications in cryptography. I need detailed, technical explanations with references to recent academic papers. I prefer responses that are comprehensive but well-structured with clear section headings.",
+	"updated_at": 1735687000,
+	"created_at": 1735687000
 }
 ```
 
 **Section sources**
+
 - [memories.py](file://backend/open_webui/models/memories.py#L14-L148)
 
 ## Data Model Integration
@@ -578,6 +577,7 @@ L[Embedding Function] --> |Creates| K
 ```
 
 **Diagram sources**
+
 - [audit.py](file://backend/open_webui/models/audit.py#L1-L137)
 - [feedbacks.py](file://backend/open_webui/models/feedbacks.py#L1-L341)
 - [billing.py](file://backend/open_webui/models/billing.py#L1-L524)
@@ -601,6 +601,7 @@ Prompts can be shared across users through the flexible access control system. U
 The billing system is tightly integrated with usage tracking to enforce subscription quotas. When a user interacts with the AI system, the usage tracking component records the consumption of various resources such as input/output tokens, API requests, and generated images. The billing service periodically checks these usage metrics against the user's subscription plan quotas, preventing users from exceeding their limits. This integration ensures fair usage of system resources and provides the data needed for potential usage-based billing models.
 
 **Section sources**
+
 - [feedbacks.py](file://backend/open_webui/models/feedbacks.py#L1-L341)
 - [evaluations.py](file://backend/open_webui/routers/evaluations.py#L1-L179)
 - [memories.py](file://backend/open_webui/routers/memories.py#L1-L213)
@@ -618,6 +619,7 @@ Feedback data is retained for 24 months to support long-term model evaluation an
 Both audit logs and feedback data are subject to user data deletion requests in accordance with privacy regulations. When a user account is deleted, associated feedback data is removed, while audit logs may be retained with user identifiers anonymized to preserve the integrity of administrative records. The system also supports data export functionality, allowing users and administrators to download feedback and audit data for external analysis or compliance purposes before any automated deletion occurs.
 
 **Section sources**
+
 - [audit.py](file://backend/open_webui/models/audit.py#L1-L137)
 - [feedbacks.py](file://backend/open_webui/models/feedbacks.py#L1-L341)
 - [evaluations.py](file://backend/open_webui/routers/evaluations.py#L1-L179)

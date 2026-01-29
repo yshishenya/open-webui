@@ -41,7 +41,10 @@
 
 	// Auto-generate ID from name
 	$: if (formData.name) {
-		formData.id = formData.name.replace(/\s+/g, '_').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+		formData.id = formData.name
+			.replace(/\s+/g, '_')
+			.toLowerCase()
+			.replace(/[^a-z0-9_-]/g, '');
 	}
 
 	// Features management
@@ -104,7 +107,9 @@
 			return false;
 		}
 		if (!/^[a-z0-9_-]+$/.test(formData.id)) {
-			toast.error($i18n.t('Plan ID must contain only lowercase letters, numbers, hyphens and underscores'));
+			toast.error(
+				$i18n.t('Plan ID must contain only lowercase letters, numbers, hyphens and underscores')
+			);
 			return false;
 		}
 		if (!formData.name.trim()) {
@@ -115,11 +120,17 @@
 			toast.error($i18n.t('Price cannot be negative'));
 			return false;
 		}
-		if (!unlimitedTokensInput && (!formData.quotas.tokens_input || formData.quotas.tokens_input <= 0)) {
+		if (
+			!unlimitedTokensInput &&
+			(!formData.quotas.tokens_input || formData.quotas.tokens_input <= 0)
+		) {
 			toast.error($i18n.t('Token input quota must be greater than 0'));
 			return false;
 		}
-		if (!unlimitedTokensOutput && (!formData.quotas.tokens_output || formData.quotas.tokens_output <= 0)) {
+		if (
+			!unlimitedTokensOutput &&
+			(!formData.quotas.tokens_output || formData.quotas.tokens_output <= 0)
+		) {
 			toast.error($i18n.t('Token output quota must be greater than 0'));
 			return false;
 		}
@@ -163,10 +174,7 @@
 
 <div class="flex flex-col justify-between w-full overflow-y-auto h-full">
 	<div class="mx-auto w-full md:px-0 h-full">
-		<form
-			class="flex flex-col max-h-[100dvh] h-full"
-			on:submit|preventDefault={handleSave}
-		>
+		<form class="flex flex-col max-h-[100dvh] h-full" on:submit|preventDefault={handleSave}>
 			<div class="flex flex-col flex-1 overflow-auto h-0 rounded-lg">
 				<!-- Header -->
 				<div class="w-full mb-2 flex flex-col gap-0.5">
@@ -201,7 +209,11 @@
 					</div>
 
 					<div class="flex gap-2 px-1 items-center">
-						<Tooltip className="w-full" content={$i18n.t('e.g. professional')} placement="top-start">
+						<Tooltip
+							className="w-full"
+							content={$i18n.t('e.g. professional')}
+							placement="top-start"
+						>
 							<input
 								class="w-full text-sm text-gray-500 bg-transparent outline-hidden"
 								type="text"
@@ -241,7 +253,9 @@
 								/>
 							</div>
 							<div>
-								<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Description (Russian)')}</label>
+								<label class="block text-xs text-gray-500 mb-1"
+									>{$i18n.t('Description (Russian)')}</label
+								>
 								<input
 									type="text"
 									bind:value={formData.description_ru}
@@ -297,7 +311,8 @@
 							<div class="space-y-3">
 								<div class="flex items-center gap-3">
 									<div class="flex-1">
-										<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Input Tokens')}</label>
+										<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Input Tokens')}</label
+										>
 										<input
 											type="number"
 											bind:value={formData.quotas.tokens_input}
@@ -308,18 +323,16 @@
 										/>
 									</div>
 									<label class="flex items-center gap-1.5 text-xs text-gray-500 pt-4">
-										<input
-											type="checkbox"
-											bind:checked={unlimitedTokensInput}
-											class="rounded"
-										/>
+										<input type="checkbox" bind:checked={unlimitedTokensInput} class="rounded" />
 										{$i18n.t('Unlimited')}
 									</label>
 								</div>
 
 								<div class="flex items-center gap-3">
 									<div class="flex-1">
-										<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Output Tokens')}</label>
+										<label class="block text-xs text-gray-500 mb-1"
+											>{$i18n.t('Output Tokens')}</label
+										>
 										<input
 											type="number"
 											bind:value={formData.quotas.tokens_output}
@@ -330,11 +343,7 @@
 										/>
 									</div>
 									<label class="flex items-center gap-1.5 text-xs text-gray-500 pt-4">
-										<input
-											type="checkbox"
-											bind:checked={unlimitedTokensOutput}
-											class="rounded"
-										/>
+										<input type="checkbox" bind:checked={unlimitedTokensOutput} class="rounded" />
 										{$i18n.t('Unlimited')}
 									</label>
 								</div>
@@ -352,11 +361,7 @@
 										/>
 									</div>
 									<label class="flex items-center gap-1.5 text-xs text-gray-500 pt-4">
-										<input
-											type="checkbox"
-											bind:checked={unlimitedRequests}
-											class="rounded"
-										/>
+										<input type="checkbox" bind:checked={unlimitedRequests} class="rounded" />
 										{$i18n.t('Unlimited')}
 									</label>
 								</div>
@@ -386,7 +391,9 @@
 							{#if formData.features.length > 0}
 								<div class="space-y-1">
 									{#each formData.features as feature, index}
-										<div class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-850 rounded-lg text-sm">
+										<div
+											class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-850 rounded-lg text-sm"
+										>
 											<span class="flex-1">{feature}</span>
 											<button
 												type="button"
@@ -409,14 +416,12 @@
 							<div class="grid grid-cols-2 gap-4">
 								<div class="flex items-center gap-3">
 									<label class="flex items-center gap-2 text-sm">
-										<input
-											type="checkbox"
-											bind:checked={formData.is_active}
-											class="rounded"
-										/>
+										<input type="checkbox" bind:checked={formData.is_active} class="rounded" />
 										{$i18n.t('Active')}
 									</label>
-									<span class="text-xs text-gray-400">{$i18n.t('Make plan available to users')}</span>
+									<span class="text-xs text-gray-400"
+										>{$i18n.t('Make plan available to users')}</span
+									>
 								</div>
 								<div>
 									<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Display Order')}</label>
@@ -433,32 +438,55 @@
 						<!-- Preview Card -->
 						<div>
 							<div class="text-xs text-gray-500 mb-2 font-medium">{$i18n.t('Preview')}</div>
-							<div class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-850">
+							<div
+								class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-850"
+							>
 								<div class="flex justify-between items-start mb-2">
 									<div>
-										<div class="font-medium">{formData.name_ru || formData.name || $i18n.t('Plan Name')}</div>
-										<div class="text-xs text-gray-500">{formData.description_ru || formData.description || ''}</div>
+										<div class="font-medium">
+											{formData.name_ru || formData.name || $i18n.t('Plan Name')}
+										</div>
+										<div class="text-xs text-gray-500">
+											{formData.description_ru || formData.description || ''}
+										</div>
 									</div>
 									<div class="text-right">
 										<div class="text-lg font-semibold">
 											{#if formData.price === 0}
 												{$i18n.t('Free')}
 											{:else}
-												{new Intl.NumberFormat($i18n.locale, { style: 'currency', currency: formData.currency, minimumFractionDigits: 0 }).format(formData.price)}
+												{new Intl.NumberFormat($i18n.locale, {
+													style: 'currency',
+													currency: formData.currency,
+													minimumFractionDigits: 0
+												}).format(formData.price)}
 											{/if}
 										</div>
 										<div class="text-xs text-gray-500">/{$i18n.t(formData.interval)}</div>
 									</div>
 								</div>
-								<div class="flex gap-4 text-xs text-gray-500 border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-									<div>{$i18n.t('Input')}: <span class="font-medium">{formatNumber(formData.quotas.tokens_input)}</span></div>
-									<div>{$i18n.t('Output')}: <span class="font-medium">{formatNumber(formData.quotas.tokens_output)}</span></div>
-									<div>{$i18n.t('Requests')}: <span class="font-medium">{formatNumber(formData.quotas.requests)}</span></div>
+								<div
+									class="flex gap-4 text-xs text-gray-500 border-t border-gray-200 dark:border-gray-700 pt-2 mt-2"
+								>
+									<div>
+										{$i18n.t('Input')}:
+										<span class="font-medium">{formatNumber(formData.quotas.tokens_input)}</span>
+									</div>
+									<div>
+										{$i18n.t('Output')}:
+										<span class="font-medium">{formatNumber(formData.quotas.tokens_output)}</span>
+									</div>
+									<div>
+										{$i18n.t('Requests')}:
+										<span class="font-medium">{formatNumber(formData.quotas.requests)}</span>
+									</div>
 								</div>
 								{#if formData.features.length > 0}
 									<div class="flex flex-wrap gap-1 mt-2">
 										{#each formData.features as feature}
-											<span class="text-xs px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded-full">{feature}</span>
+											<span class="text-xs px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded-full"
+												>{feature}</span
+											>
 										{/each}
 									</div>
 								{/if}

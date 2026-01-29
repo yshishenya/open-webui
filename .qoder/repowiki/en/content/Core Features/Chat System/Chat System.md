@@ -14,6 +14,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Data Models](#data-models)
 3. [Chat Creation and Management](#chat-creation-and-management)
@@ -28,6 +29,7 @@
 The Chat System in open-webui provides a comprehensive conversational interface for interacting with AI models. This documentation details the architecture and implementation of the chat system, focusing on message creation, streaming responses, conversation management, chat organization through folders and tags, and real-time communication using WebSocket technology. The system enables users to create new chats, send messages with model selection, retrieve chat history, and manage conversations through archiving and organization features.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L1-L1175)
 - [messages.py](file://backend/open_webui/models/messages.py#L1-L463)
 
@@ -61,6 +63,7 @@ Chat : folder_id links to Folder model for organization
 ```
 
 **Diagram sources **
+
 - [chats.py](file://backend/open_webui/models/chats.py#L26-L80)
 
 ### Message Data Model
@@ -92,6 +95,7 @@ Message : data and meta store additional structured data
 ```
 
 **Diagram sources **
+
 - [messages.py](file://backend/open_webui/models/messages.py#L41-L63)
 
 ### Folder and Tag Data Models
@@ -124,10 +128,12 @@ Chat "0..*" -- "0..*" Tag : has many tags
 ```
 
 **Diagram sources **
+
 - [folders.py](file://backend/open_webui/models/folders.py#L24-L36)
 - [tags.py](file://backend/open_webui/models/tags.py#L20-L33)
 
 **Section sources**
+
 - [folders.py](file://backend/open_webui/models/folders.py#L1-L367)
 - [tags.py](file://backend/open_webui/models/tags.py#L1-L115)
 
@@ -151,6 +157,7 @@ API-->>Client : Return ChatResponse
 ```
 
 **Diagram sources **
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L133-L143)
 
 ### Updating Chat Messages
@@ -170,9 +177,11 @@ B --> |Unauthorized| I[Return Error]
 ```
 
 **Diagram sources **
+
 - [chats.py](file://backend/open_webui/models/chats.py#L304-L329)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L167-L249)
 - [chats.py](file://backend/open_webui/routers/chats.py#L133-L143)
 
@@ -197,6 +206,7 @@ C --> F
 ```
 
 **Diagram sources **
+
 - [main.py](file://backend/open_webui/socket/main.py#L1-L839)
 
 ### Message Streaming Process
@@ -221,10 +231,12 @@ API-->>Client : Complete response
 ```
 
 **Diagram sources **
+
 - [chat.py](file://backend/open_webui/utils/chat.py#L72-L168)
 - [main.py](file://backend/open_webui/socket/main.py#L695-L799)
 
 **Section sources**
+
 - [chat.py](file://backend/open_webui/utils/chat.py#L72-L168)
 - [main.py](file://backend/open_webui/socket/main.py#L695-L799)
 
@@ -247,6 +259,7 @@ F --> G[Display Organized Chats]
 ```
 
 **Diagram sources **
+
 - [folders.py](file://backend/open_webui/models/folders.py#L87-L114)
 
 ### Tag Management
@@ -264,10 +277,12 @@ F --> G[Retrieve Chats by Tag]
 ```
 
 **Diagram sources **
+
 - [chats.py](file://backend/open_webui/models/chats.py#L261-L279)
 - [tags.py](file://backend/open_webui/models/tags.py#L55-L71)
 
 **Section sources**
+
 - [folders.py](file://backend/open_webui/models/folders.py#L87-L367)
 - [chats.py](file://backend/open_webui/models/chats.py#L261-L279)
 
@@ -314,6 +329,7 @@ INDEX updated_at_user_id_idx ON CHAT(updated_at, user_id)
 ```
 
 **Diagram sources **
+
 - [chats.py](file://backend/open_webui/models/chats.py#L44-L56)
 
 ### Large Conversation Handling
@@ -332,6 +348,7 @@ E --> H[Update UI Incrementally]
 ```
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L535-L573)
 - [index.ts](file://src/lib/apis/chats/index.ts#L99-L149)
 
@@ -358,6 +375,7 @@ If message streaming is interrupted or incomplete:
 4. **Examine Error Handling**: Review the error handling in the streaming pipeline.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L695-L799)
 - [chat.py](file://backend/open_webui/utils/chat.py#L72-L168)
 

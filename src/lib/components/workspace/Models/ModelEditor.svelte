@@ -807,8 +807,7 @@
 						/>
 					</div>
 
-						<hr class=" border-gray-100/30 dark:border-gray-850/30 my-2" />
-
+					<hr class=" border-gray-100/30 dark:border-gray-850/30 my-2" />
 
 					<div class="my-2 flex justify-end">
 						<button

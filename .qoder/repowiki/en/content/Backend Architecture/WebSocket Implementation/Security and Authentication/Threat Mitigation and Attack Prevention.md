@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [WebSocket Connection Security](#websocket-connection-security)
 3. [Rate Limiting Implementation](#rate-limiting-implementation)
@@ -22,31 +23,33 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides a comprehensive analysis of the threat mitigation strategies implemented in open-webui's WebSocket infrastructure. The WebSocket implementation is designed to protect against common vulnerabilities such as connection hijacking, message injection, and denial-of-service attacks. The system employs multiple layers of security including authentication, rate limiting, input validation, and connection management to ensure robust protection against various attack vectors. This documentation details the specific mechanisms used to secure WebSocket communications, prevent abuse, and maintain system integrity.
 
 ## WebSocket Connection Security
 
 The open-webui WebSocket implementation employs a multi-layered approach to prevent connection hijacking and unauthorized access. The system uses JWT-based authentication tokens to verify client identity during the connection process. When a client attempts to establish a WebSocket connection, it must provide a valid authentication token in the connection request. The server validates this token using the `decode_token` function from the auth module, which verifies the token's signature and expiration.
 
-The WebSocket server is configured with strict CORS policies to prevent cross-origin attacks. The CORS allowed origins are set based on the application's configuration, with a default of "*" only when explicitly configured to allow all origins. This prevents unauthorized domains from establishing WebSocket connections to the server.
+The WebSocket server is configured with strict CORS policies to prevent cross-origin attacks. The CORS allowed origins are set based on the application's configuration, with a default of "\*" only when explicitly configured to allow all origins. This prevents unauthorized domains from establishing WebSocket connections to the server.
 
 For connection establishment, the client-side implementation in `+layout.svelte` includes proper authentication handling by passing the token in the connection options:
 
 ```javascript
 const _socket = io(`${WEBUI_BASE_URL}` || undefined, {
-    reconnection: true,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    randomizationFactor: 0.5,
-    path: '/ws/socket.io',
-    transports: enableWebsocket ? ['websocket'] : ['polling', 'websocket'],
-    auth: { token: localStorage.token }
+	reconnection: true,
+	reconnectionDelay: 1000,
+	reconnectionDelayMax: 5000,
+	randomizationFactor: 0.5,
+	path: '/ws/socket.io',
+	transports: enableWebsocket ? ['websocket'] : ['polling', 'websocket'],
+	auth: { token: localStorage.token }
 });
 ```
 
 The server validates the token during the connection event and associates the session with the authenticated user. This ensures that only authorized users can establish WebSocket connections and participate in real-time communication.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L317)
 - [+layout.svelte](file://src/routes/+layout.svelte#L98-L106)
 - [auth.py](file://backend/open_webui/utils/auth.py#L208-L213)
@@ -58,6 +61,7 @@ The open-webui system implements a comprehensive rate limiting mechanism to prev
 The rate limiter is designed to be resilient and falls back to in-memory storage when Redis is not available. This ensures that rate limiting functionality remains operational even if the Redis service experiences issues. The implementation uses a bucket-based approach where each time window is divided into smaller buckets to provide more granular control over request rates.
 
 Key configuration parameters for the rate limiter include:
+
 - `limit`: Maximum number of allowed events in the time window
 - `window`: Time window in seconds for rate limiting
 - `bucket_size`: Resolution of the buckets within the window
@@ -68,6 +72,7 @@ The rate limiter tracks requests using Redis keys that are prefixed with the app
 The implementation handles both Redis and in-memory scenarios with consistent logic, ensuring that the same rate limiting rules are applied regardless of the storage backend. When Redis is available, the limiter uses Redis commands to increment counters and set expiration times. When Redis is unavailable, it falls back to an in-memory dictionary that tracks request counts and automatically removes expired buckets.
 
 **Section sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L6-L140)
 - [main.py](file://backend/open_webui/socket/main.py#L135-L140)
 
@@ -96,6 +101,7 @@ For chat and channel events, the system validates event types and associated dat
 The implementation also includes proper handling of user-generated content in notes and collaborative editing features, ensuring that only authorized users can modify content and that all changes are properly validated before being applied.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L448-L523)
 - [main.py](file://backend/open_webui/socket/main.py#L413-L447)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L124-L150)
@@ -105,6 +111,7 @@ The implementation also includes proper handling of user-generated content in no
 The open-webui WebSocket implementation includes comprehensive connection timeout and idle session cleanup mechanisms to reduce the attack surface and prevent resource exhaustion. The system uses configurable ping intervals and timeouts to detect and terminate inactive connections.
 
 Key timeout configurations are defined in the environment variables and include:
+
 - `WEBSOCKET_SERVER_PING_TIMEOUT`: Time in seconds before a client is considered disconnected if no response is received (default: 20 seconds)
 - `WEBSOCKET_SERVER_PING_INTERVAL`: Interval in seconds between ping packets sent by the server (default: 25 seconds)
 
@@ -116,7 +123,7 @@ async def periodic_usage_pool_cleanup():
         if not renew_func():
             log.error(f"Unable to renew cleanup lock. Exiting usage pool cleanup.")
             raise Exception("Unable to renew usage pool cleanup lock.")
-            
+
         now = int(time.time())
         for model_id, connections in list(USAGE_POOL.items()):
             expired_sids = [
@@ -124,15 +131,15 @@ async def periodic_usage_pool_cleanup():
                 for sid, details in connections.items()
                 if now - details["updated_at"] > TIMEOUT_DURATION
             ]
-            
+
             for sid in expired_sids:
                 del connections[sid]
-                
+
             if not connections:
                 del USAGE_POOL[model_id]
             else:
                 USAGE_POOL[model_id] = connections
-                
+
         await asyncio.sleep(TIMEOUT_DURATION)
 ```
 
@@ -152,16 +159,17 @@ Additionally, the client-side implementation includes heartbeat functionality th
 ```javascript
 // Send heartbeat every 30 seconds
 heartbeatInterval = setInterval(() => {
-    if (_socket.connected) {
-        console.log('Sending heartbeat');
-        _socket.emit('heartbeat', {});
-    }
+	if (_socket.connected) {
+		console.log('Sending heartbeat');
+		_socket.emit('heartbeat', {});
+	}
 }, 30000);
 ```
 
 This comprehensive approach to connection management ensures that idle sessions are promptly cleaned up, reducing the risk of resource exhaustion attacks and minimizing the attack surface.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L167-L216)
 - [main.py](file://backend/open_webui/socket/main.py#L684-L693)
 - [+layout.svelte](file://src/routes/+layout.svelte#L131-L137)
@@ -206,7 +214,7 @@ async def yjs_awareness_update(sid, data):
         document_id = data["document_id"]
         user_id = data.get("user_id", sid)
         update = data["update"]
-        
+
         # Broadcast awareness update to all other users in the document
         await sio.emit(
             "ydoc:awareness:update",
@@ -230,14 +238,14 @@ async def channel_events(sid, data):
         namespace="/",
         room=room,
     )
-    
+
     sids = [sid for sid, _ in participants]
     if sid not in sids:
         return
-        
+
     event_data = data["data"]
     event_type = event_data["type"]
-    
+
     if event_type == "typing":
         # Handle typing event
         pass
@@ -249,6 +257,7 @@ async def channel_events(sid, data):
 This comprehensive error handling approach ensures that the system remains stable and secure even when receiving malformed messages or experiencing protocol violations.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L448-L523)
 - [main.py](file://backend/open_webui/socket/main.py#L585-L629)
 - [main.py](file://backend/open_webui/socket/main.py#L664-L682)
@@ -259,6 +268,7 @@ This comprehensive error handling approach ensures that the system remains stabl
 The open-webui WebSocket implementation includes comprehensive monitoring and logging practices to detect suspicious activity and facilitate incident investigation. The system uses structured logging with appropriate log levels to capture relevant information while minimizing performance impact.
 
 Key logging configurations are defined in the environment variables:
+
 - `WEBSOCKET_SERVER_LOGGING`: Enables logging for the WebSocket server (default: False)
 - `WEBSOCKET_SERVER_ENGINEIO_LOGGING`: Enables Engine.IO logging (default: False)
 - `SRC_LOG_LEVELS["SOCKET"]`: Sets the log level for socket-related operations
@@ -274,10 +284,10 @@ async def connect(sid, environ, auth):
     user = None
     if auth and "token" in auth:
         data = decode_token(auth["token"])
-        
+
         if data is not None and "id" in data:
             user = Users.get_user_by_id(data["id"])
-            
+
         if user:
             SESSION_POOL[sid] = user.model_dump(
                 exclude=["date_of_birth", "bio", "gender"]
@@ -315,6 +325,7 @@ log.warning("Failed to acquire cleanup lock after retries. Skipping cleanup.")
 These logging practices provide visibility into WebSocket operations, help detect suspicious activity, and support incident response efforts by providing an audit trail of connection and message events.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L53-L56)
 - [main.py](file://backend/open_webui/socket/main.py#L303-L317)
 - [main.py](file://backend/open_webui/socket/main.py#L479-L481)
@@ -332,14 +343,14 @@ For connection hijacking attempts, the JWT-based authentication system provides 
 ```python
 async def invalidate_token(request, token):
     decoded = decode_token(token)
-    
+
     if request.app.state.redis:
         jti = decoded.get("jti")
         exp = decoded.get("exp")
-        
+
         if jti and exp:
             ttl = exp - int(datetime.now(UTC).timestamp())
-            
+
             if ttl > 0:
                 await request.app.state.redis.set(
                     f"{REDIS_KEY_PREFIX}:auth:token:{jti}:revoked",
@@ -359,12 +370,14 @@ Monitoring the usage pool and session pool can help detect unusual activity patt
 While the current implementation provides strong preventative controls, additional incident response capabilities could be enhanced by implementing more detailed audit logging, real-time alerting for suspicious activity patterns, and automated response mechanisms for common attack types.
 
 **Section sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L231-L251)
 - [main.py](file://backend/open_webui/socket/main.py#L167-L216)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L6-L140)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L124-L150)
 
 ## Conclusion
+
 The open-webui WebSocket implementation demonstrates a comprehensive approach to threat mitigation and attack prevention. The system employs multiple layers of security controls to protect against common WebSocket vulnerabilities including connection hijacking, message injection, and denial-of-service attacks.
 
 Key security features include JWT-based authentication for connection validation, rate limiting to prevent abuse of WebSocket endpoints, comprehensive input validation and access controls for message sanitization, and robust connection timeout and session management to reduce the attack surface. The implementation also includes thorough error handling for malformed messages and protocol violations, along with comprehensive logging practices for monitoring and incident detection.

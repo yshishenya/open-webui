@@ -10,6 +10,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [API Key Validation Process](#api-key-validation-process)
 3. [Configuration and Permissions](#configuration-and-permissions)
@@ -19,9 +20,11 @@
 7. [Security Considerations](#security-considerations)
 
 ## Introduction
+
 The Open WebUI API key authentication system provides a secure mechanism for users to authenticate API requests using API keys that follow the "sk-" prefix convention. This system integrates with the application's role-based access control, telemetry tracking, and user permission framework to ensure secure and auditable access to API endpoints. The authentication flow validates API keys against the database, checks user permissions, and updates user activity timestamps while providing comprehensive telemetry data through OpenTelemetry.
 
 **Section sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L289-L400)
 - [config.py](file://backend/open_webui/config.py#L290-L312)
 
@@ -30,6 +33,7 @@ The Open WebUI API key authentication system provides a secure mechanism for use
 The API key validation process is implemented in the `get_current_user_by_api_key` function within the authentication utility. When an API request contains a token prefixed with "sk-", the system automatically routes the authentication through the API key validation flow rather than the standard JWT token validation.
 
 The validation process follows these steps:
+
 1. The system checks if the provided API key exists in the database by querying the ApiKey table and joining with the User table
 2. If the API key is not found, the system returns a 401 Unauthorized response with the message "Invalid token"
 3. If the API key is found, the system performs additional authorization checks based on the global `enable_api_keys` configuration and the user's specific permissions
@@ -61,10 +65,12 @@ ReturnUser --> End
 ```
 
 **Diagram sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L370-L400)
 - [users.py](file://backend/open_webui/models/users.py#L278-L288)
 
 **Section sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L370-L400)
 - [users.py](file://backend/open_webui/models/users.py#L278-L288)
 
@@ -73,20 +79,23 @@ ReturnUser --> End
 The API key system is controlled by several configuration settings and permission checks that work together to provide granular control over API key usage. The primary configuration flag `ENABLE_API_KEYS` serves as a global switch that enables or disables API key functionality across the entire application.
 
 ### Configuration Settings
+
 The following configuration settings control API key behavior:
 
-| Configuration Setting | Path | Default Value | Description |
-|----------------------|------|-------------|-------------|
-| ENABLE_API_KEYS | auth.enable_api_keys | False | Global flag to enable/disable API key authentication |
-| ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS | auth.api_key.endpoint_restrictions | False | Enables endpoint restrictions for API keys |
-| API_KEYS_ALLOWED_ENDPOINTS | auth.api_key.allowed_endpoints | Empty | Comma-separated list of endpoints accessible via API keys |
+| Configuration Setting                 | Path                               | Default Value | Description                                               |
+| ------------------------------------- | ---------------------------------- | ------------- | --------------------------------------------------------- |
+| ENABLE_API_KEYS                       | auth.enable_api_keys               | False         | Global flag to enable/disable API key authentication      |
+| ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS | auth.api_key.endpoint_restrictions | False         | Enables endpoint restrictions for API keys                |
+| API_KEYS_ALLOWED_ENDPOINTS            | auth.api_key.allowed_endpoints     | Empty         | Comma-separated list of endpoints accessible via API keys |
 
 These settings are implemented as `PersistentConfig` objects, allowing them to be stored in the database and updated dynamically without requiring application restarts.
 
 ### Permission System
+
 The permission system uses a hierarchical structure to determine whether a user can use API keys. The `has_permission` function checks for the "features.api_keys" permission in the user's permission set. This function first checks the user's group permissions and falls back to default permissions if no group permission is found.
 
 The permission check is performed in two scenarios:
+
 1. When validating an API key during authentication
 2. When creating a new API key through the API
 
@@ -130,11 +139,13 @@ Users ..> Config : "references"
 ```
 
 **Diagram sources**
+
 - [config.py](file://backend/open_webui/config.py#L290-L312)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L71-L105)
 - [users.py](file://backend/open_webui/models/users.py#L118-L141)
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L290-L312)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L71-L105)
 
@@ -143,11 +154,12 @@ Users ..> Config : "references"
 The system provides REST endpoints for managing API keys, allowing users to create, retrieve, and delete their API keys. These endpoints are defined in the auths router and follow standard REST conventions.
 
 ### API Key Endpoints
-| Endpoint | Method | Description | Permission Requirements |
-|---------|--------|-------------|------------------------|
-| /api_key | POST | Create a new API key | ENABLE_API_KEYS enabled and features.api_keys permission |
-| /api_key | GET | Retrieve current API key | Authenticated user |
-| /api_key | DELETE | Delete current API key | Authenticated user |
+
+| Endpoint | Method | Description              | Permission Requirements                                  |
+| -------- | ------ | ------------------------ | -------------------------------------------------------- |
+| /api_key | POST   | Create a new API key     | ENABLE_API_KEYS enabled and features.api_keys permission |
+| /api_key | GET    | Retrieve current API key | Authenticated user                                       |
+| /api_key | DELETE | Delete current API key   | Authenticated user                                       |
 
 When creating a new API key, the system generates a cryptographically secure key using UUID4 and stores it in the database, replacing any existing API key for that user. The key generation process prefixes the UUID with "sk-" to maintain consistency with the expected format.
 
@@ -174,11 +186,13 @@ AuthRouter-->>Client : 200 OK with API key
 ```
 
 **Diagram sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L1148-L1184)
 - [auth.py](file://backend/open_webui/utils/auth.py#L257-L259)
 - [users.py](file://backend/open_webui/models/users.py#L655-L673)
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L1148-L1184)
 
 ## Security and Telemetry Integration
@@ -186,7 +200,9 @@ AuthRouter-->>Client : 200 OK with API key
 The API key authentication system integrates with OpenTelemetry to provide comprehensive telemetry data for monitoring and debugging. When a user authenticates with an API key, the system captures user information and attaches it to the current tracing span.
 
 ### Telemetry Data Collection
+
 The system captures the following attributes in OpenTelemetry spans:
+
 - client.user.id: The authenticated user's ID
 - client.user.email: The authenticated user's email address
 - client.user.role: The authenticated user's role
@@ -195,9 +211,11 @@ The system captures the following attributes in OpenTelemetry spans:
 This telemetry data enables monitoring of API key usage patterns, troubleshooting authentication issues, and analyzing user behavior across different authentication methods.
 
 ### User Activity Tracking
+
 The system automatically updates the user's last active timestamp when they successfully authenticate with an API key. This update is performed synchronously within the `get_current_user_by_api_key` function, ensuring that the user's activity is recorded even for API requests that don't involve interactive sessions.
 
 The user activity tracking serves multiple purposes:
+
 - Maintaining accurate user presence information
 - Supporting analytics and reporting features
 - Enabling last active timestamp-based business logic
@@ -230,16 +248,19 @@ I --> R
 ```
 
 **Diagram sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L289-L400)
 - [utils/telemetry/setup.py](file://backend/open_webui/utils/telemetry/setup.py#L1-L58)
 
 **Section sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L289-L400)
 - [utils/telemetry/setup.py](file://backend/open_webui/utils/telemetry/setup.py#L1-L58)
 
 ## Usage Examples
 
 ### API Key Creation
+
 To create a new API key, send a POST request to the /api_key endpoint:
 
 ```bash
@@ -249,13 +270,15 @@ curl -X POST "http://localhost:8080/api/v1/api_key" \
 ```
 
 Successful response:
+
 ```json
 {
-  "api_key": "sk-abc123def456ghi789"
+	"api_key": "sk-abc123def456ghi789"
 }
 ```
 
 ### API Key Usage
+
 To use an API key for authentication, include it in the Authorization header:
 
 ```bash
@@ -264,30 +287,35 @@ curl -X GET "http://localhost:8080/api/v1/some_endpoint" \
 ```
 
 ### Error Responses
+
 Invalid API key:
+
 ```json
 {
-  "detail": "Invalid token"
+	"detail": "Invalid token"
 }
 ```
 
 API keys disabled:
+
 ```json
 {
-  "detail": "Use of API key is not enabled in the environment."
+	"detail": "Use of API key is not enabled in the environment."
 }
 ```
 
 Insufficient permissions:
+
 ```json
 {
-  "detail": "Use of API key is not enabled in the environment."
+	"detail": "Use of API key is not enabled in the environment."
 }
 ```
 
 These examples demonstrate the standard usage patterns for the API key authentication system, including proper header formatting and expected error responses for various failure scenarios.
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L1148-L1184)
 - [auth.py](file://backend/open_webui/utils/auth.py#L370-L400)
 - [constants.py](file://backend/open_webui/constants.py#L66-L68)
@@ -297,22 +325,27 @@ These examples demonstrate the standard usage patterns for the API key authentic
 The API key authentication system incorporates several security measures to protect against common vulnerabilities and ensure secure operation.
 
 ### API Key Generation and Storage
+
 API keys are generated using cryptographically secure UUID4 values, providing sufficient entropy to prevent guessing attacks. The keys are stored in the database with no additional hashing or encryption, as the security model relies on the confidentiality of the key value rather than reversible storage.
 
 The system follows a key rotation model where creating a new API key automatically invalidates any existing key for that user, preventing multiple active keys and simplifying key management.
 
 ### Rate Limiting and Abuse Prevention
+
 While the provided code does not explicitly show rate limiting implementation, the system includes error messages for rate limit exceeded conditions, suggesting that rate limiting is implemented at another layer of the application. This helps prevent brute force attacks against the API key authentication endpoint.
 
 ### Audit Logging
+
 The system includes comprehensive audit logging capabilities through the integration with OpenTelemetry. All API key authentication attempts are captured in telemetry data, allowing administrators to monitor usage patterns and detect potential security incidents.
 
 ### Security Headers and Best Practices
+
 The application implements security best practices through middleware that adds security headers to responses. While not directly related to API key authentication, these measures contribute to the overall security posture of the application.
 
 The combination of secure key generation, permission checks, telemetry integration, and error handling creates a robust security framework for API key authentication that balances usability with protection against common attack vectors.
 
 **Section sources**
+
 - [auth.py](file://backend/open_webui/utils/auth.py#L257-L259)
 - [users.py](file://backend/open_webui/models/users.py#L655-L673)
 - [constants.py](file://backend/open_webui/constants.py#L75)

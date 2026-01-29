@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Model Management Endpoints](#model-management-endpoints)
 3. [Model Metadata Structure](#model-metadata-structure)
@@ -23,6 +24,7 @@
 9. [Configuration Templates and Examples](#configuration-templates-and-examples)
 
 ## Introduction
+
 The Core Model Management system provides a comprehensive API for managing AI models within the Open WebUI platform. This documentation details the endpoints, data structures, access control mechanisms, and operational considerations for model CRUD operations. The system enables users to create custom model configurations, manage access permissions, and organize models through a robust API interface. Model configurations are stored in a database with relationships to user and group entities, allowing for sophisticated access control and sharing capabilities.
 
 ## Model Management Endpoints
@@ -44,9 +46,11 @@ S["POST /models/model/toggle"] --> T["Toggle model active status"]
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/routers/models.py#L51-L418)
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/routers/models.py#L51-L418)
 - [index.ts](file://src/lib/apis/models/index.ts#L1-L348)
 
@@ -94,18 +98,22 @@ ModelModel --> ModelMeta : "contains"
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L107-L123)
 - [models.py](file://backend/open_webui/models/models.py#L33-L52)
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L55-L123)
 
 ### Model Parameters
+
 Model parameters define the behavior and characteristics of a model during inference. These parameters include standard LLM configuration options such as temperature, top_p, max_tokens, and others that control the generation process.
 
 The system supports both standard parameters and custom parameters through the custom_params field, which allows for model-specific configurations. Parameters are validated and applied when processing requests to ensure consistent behavior.
 
 ### Model Metadata
+
 Model metadata includes descriptive information about the model, such as its name, description, profile image URL, and capabilities. The metadata structure also supports tags for categorization and organization of models within the system.
 
 The access_control field defines who can access and modify the model, with support for both user-level and group-level permissions. This field is crucial for implementing the platform's access control system.
@@ -162,13 +170,16 @@ ModelResponse <|-- ModelUserResponse : "extends"
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L129-L151)
 - [models.py](file://backend/open_webui/models/models.py#L138-L141)
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L129-L151)
 
 ### Validation Rules
+
 The system enforces several validation rules for model configurations:
 
 1. Model ID validation: IDs must be non-empty and no longer than 256 characters
@@ -205,14 +216,17 @@ N --> U["}"]
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L84-L99)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L124-L150)
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L84-L99)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L124-L150)
 
 ### Permission Levels
+
 The system supports two primary permission levels:
 
 1. **Read**: Allows viewing model details and using the model for inference
@@ -221,6 +235,7 @@ The system supports two primary permission levels:
 Administrators have special privileges that can bypass certain access controls, depending on the system configuration.
 
 ### Group and User Access
+
 The access control system supports both individual user access and group-based access. Users can be granted access directly through user_ids, or indirectly through group membership via group_ids. This allows for flexible sharing and collaboration scenarios.
 
 ## Database Storage and Relationships
@@ -275,16 +290,19 @@ USER ||--o{ GROUP_MEMBER : "member of"
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L55-L105)
 - [users.py](file://backend/open_webui/models/users.py#L45-L76)
 - [groups.py](file://backend/open_webui/models/groups.py#L36-L52)
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L55-L105)
 - [users.py](file://backend/open_webui/models/users.py#L45-L76)
 - [groups.py](file://backend/open_webui/models/groups.py#L36-L52)
 
 ### Data Relationships
+
 The model management system establishes several key relationships:
 
 1. Each model is owned by a specific user (user_id foreign key)
@@ -321,16 +339,19 @@ O --> T["500 Internal Server Error"]
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/routers/models.py#L136-L149)
 - [models.py](file://backend/open_webui/routers/models.py#L372-L380)
 - [constants.py](file://backend/open_webui/constants.py#L39-L67)
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/routers/models.py#L136-L149)
 - [models.py](file://backend/open_webui/routers/models.py#L372-L380)
 - [constants.py](file://backend/open_webui/constants.py#L39-L67)
 
 ### Common Error Scenarios
+
 The system handles several common error scenarios:
 
 1. **Invalid configurations**: When model parameters or metadata don't meet validation requirements
@@ -362,16 +383,19 @@ E --> N["Efficient model search"]
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L48)
 - [models.py](file://backend/open_webui/models/models.py#L268-L352)
 - [env.py](file://backend/open_webui/env.py#L547-L555)
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L48)
 - [models.py](file://backend/open_webui/models/models.py#L268-L352)
 - [env.py](file://backend/open_webui/env.py#L547-L555)
 
 ### Caching Strategies
+
 The system implements caching at multiple levels:
 
 1. **Model enumeration cache**: Results from get_all_models operations are cached to reduce database load
@@ -381,6 +405,7 @@ The system implements caching at multiple levels:
 The cache TTL (time-to-live) is configurable through the MODELS_CACHE_TTL environment variable, with a default value of 1 second.
 
 ### Pagination
+
 To handle large numbers of models efficiently, the system implements pagination for list operations:
 
 - Default page size: 30 items
@@ -410,14 +435,17 @@ D --> L["Public sharing"]
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L143-L151)
 - [models.py](file://backend/open_webui/routers/models.py#L130-L165)
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L143-L151)
 - [models.py](file://backend/open_webui/routers/models.py#L130-L165)
 
 ### Creating Custom Model Configurations
+
 To create a custom model configuration, users can use the /models/create endpoint with a ModelForm payload. The configuration can include:
 
 1. Custom parameters that override the base model settings
@@ -425,6 +453,7 @@ To create a custom model configuration, users can use the /models/create endpoin
 3. Access control settings that define who can use and modify the model
 
 ### Sharing Models Between Users
+
 Models can be shared between users through the access_control field. The system supports:
 
 1. **Direct sharing**: Adding specific user IDs to the access control list
@@ -432,6 +461,7 @@ Models can be shared between users through the access_control field. The system 
 3. **Public sharing**: Making the model available to all users
 
 ### Applying Configuration Templates
+
 The system allows for the creation and application of configuration templates. These templates can include predefined parameter sets, metadata structures, and access control configurations that can be applied to new or existing models.
 
 The import/export functionality enables users to share configuration templates across instances or backup their model configurations.

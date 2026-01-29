@@ -17,6 +17,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Data Models](#data-models)
 3. [API Endpoints](#api-endpoints)
@@ -30,9 +31,11 @@
 11. [Appendices](#appendices)
 
 ## Introduction
+
 The billing management system in Open WebUI provides a comprehensive solution for managing subscription plans, user subscriptions, usage tracking, and payment processing. The system is designed to support CRUD operations on billing plans, subscription management, and detailed usage analytics. It integrates with the YooKassa payment provider for handling financial transactions and includes robust security features for protecting financial data.
 
 The system consists of several key components:
+
 - **Billing Plans**: Define subscription tiers with pricing, quotas, and features
 - **Subscriptions**: Manage user subscriptions to billing plans
 - **Usage Tracking**: Monitor resource consumption (tokens, requests, etc.)
@@ -43,14 +46,17 @@ The system consists of several key components:
 This documentation provides comprehensive details on the API endpoints, data models, workflows, and integration points for the billing system.
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L1-L413)
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L1-L558)
 - [BILLING_SETUP.md](file://BILLING_SETUP.md#L1-L333)
 
 ## Data Models
+
 The billing system defines several key data models for managing billing entities. These models are implemented as SQLAlchemy ORM classes with corresponding Pydantic models for API serialization.
 
 ### BillingPlan Entity
+
 The `Plan` model represents a subscription plan (tariff plan) with pricing, quotas, and features.
 
 ```mermaid
@@ -93,12 +99,15 @@ PlanModel --> Plan : "Pydantic representation"
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L54-L104)
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L54-L104)
 
 ### Subscription Entity
+
 The `Subscription` model tracks user subscriptions to billing plans, including status, billing periods, and payment provider data.
 
 ```mermaid
@@ -137,12 +146,15 @@ SubscriptionModel --> Subscription : "Pydantic representation"
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L112-L168)
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L112-L168)
 
 ### UsageRecord Entity
+
 The `Usage` model tracks user resource consumption metrics such as tokens, requests, and other usage metrics.
 
 ```mermaid
@@ -177,12 +189,15 @@ UsageModel --> Usage : "Pydantic representation"
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L176-L223)
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L176-L223)
 
 ### Transaction Entity
+
 The `Transaction` model records payment transaction history, including amounts, status, and payment provider details.
 
 ```mermaid
@@ -223,12 +238,15 @@ TransactionModel --> Transaction : "Pydantic representation"
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L231-L289)
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L231-L289)
 
 ### Enum Definitions
+
 The system defines several enumerations for standardizing values across entities.
 
 ```mermaid
@@ -256,37 +274,44 @@ class UsageMetric {
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L26-L47)
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/models/billing.py#L26-L47)
 
 ## API Endpoints
+
 The billing system exposes a comprehensive set of REST API endpoints for managing billing entities. These endpoints are organized into user-facing and admin-only routes.
 
 ### User Endpoints
+
 The user endpoints provide functionality for managing subscriptions, payments, and viewing billing information.
 
 ```mermaid
 flowchart TD
-A[GET /billing/plans] --> B[Get active plans]
-C[GET /billing/subscription] --> D[Get user subscription]
-E[POST /billing/subscription/cancel] --> F[Cancel subscription]
-G[POST /billing/payment] --> H[Create payment]
-I[GET /billing/transactions] --> J[Get transaction history]
-K[GET /billing/usage/{metric}] --> L[Get usage for metric]
-M[POST /billing/usage/check] --> N[Check quota availability]
-O[GET /billing/me] --> P[Get complete billing info]
+A[GET /api/v1/billing/plans] --> B[Get active plans]
+C[GET /api/v1/billing/subscription] --> D[Get user subscription]
+E[POST /api/v1/billing/subscription/cancel] --> F[Cancel subscription]
+G[POST /api/v1/billing/payment] --> H[Create payment]
+I[GET /api/v1/billing/transactions] --> J[Get transaction history]
+K[GET /api/v1/billing/usage/{metric}] --> L[Get usage for metric]
+M[POST /api/v1/billing/usage/check] --> N[Check quota availability]
+O[GET /api/v1/billing/me] --> P[Get complete billing info]
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L84-L356)
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L84-L356)
 - [index.ts](file://src/lib/apis/billing/index.ts#L78-L351)
 
 ### Admin Endpoints
+
 The admin endpoints provide functionality for managing billing plans and viewing plan statistics.
 
 ```mermaid
@@ -302,13 +327,16 @@ O[GET /admin/billing/plans/{id}/subscribers] --> P[Get plan subscribers]
 ```
 
 **Diagram sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L159-L548)
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L159-L548)
 - [billing.ts](file://src/lib/apis/admin/billing.ts#L80-L313)
 
 ### Webhook Endpoint
+
 The webhook endpoint handles payment notifications from YooKassa.
 
 ```mermaid
@@ -316,7 +344,7 @@ sequenceDiagram
 participant YooKassa as "YooKassa Service"
 participant Webhook as "Webhook Endpoint"
 participant Billing as "Billing Service"
-YooKassa->>Webhook : POST /billing/webhook/yookassa
+YooKassa->>Webhook : POST /api/v1/billing/webhook/yookassa
 Webhook->>Webhook : Verify signature
 Webhook->>Webhook : Parse webhook data
 Webhook->>Billing : Process payment webhook
@@ -327,15 +355,19 @@ Webhook-->>YooKassa : 200 OK
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L363-L412)
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L363-L412)
 
 ## Workflow
+
 The billing system implements several key workflows for managing the lifecycle of billing entities.
 
 ### Creating and Modifying Billing Plans
+
 The workflow for creating and modifying billing plans involves using the admin API endpoints. Only administrators can create, update, or delete plans.
 
 ```mermaid
@@ -354,13 +386,16 @@ L --> M[Return updated plan]
 ```
 
 **Diagram sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L205-L330)
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L286-L330)
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L205-L330)
 
 ### Assigning Plans to Users
+
 Users are assigned to plans through the payment process, which creates or renews a subscription when a payment is successful.
 
 ```mermaid
@@ -370,7 +405,7 @@ participant Frontend as "Frontend"
 participant Backend as "Backend"
 participant YooKassa as "YooKassa"
 User->>Frontend : Select plan and return URL
-Frontend->>Backend : POST /billing/payment
+Frontend->>Backend : POST /api/v1/billing/payment
 Backend->>Backend : Validate plan
 Backend->>Backend : Create transaction record
 Backend->>YooKassa : Create payment
@@ -390,16 +425,19 @@ Backend-->>YooKassa : 200 OK
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L182-L211)
 - [billing.py](file://backend/open_webui/routers/billing.py#L363-L412)
 - [billing.py](file://backend/open_webui/utils/billing.py#L374-L523)
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L182-L211)
 - [billing.py](file://backend/open_webui/routers/billing.py#L363-L412)
 - [billing.py](file://backend/open_webui/utils/billing.py#L374-L523)
 
 ### Retrieving Usage Analytics
+
 The system provides endpoints for retrieving detailed usage analytics for users and administrators.
 
 ```mermaid
@@ -418,17 +456,21 @@ L --> M[Return plan statistics]
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L239-L284)
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L159-L195)
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L239-L284)
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L159-L195)
 
 ## Usage Examples
+
 This section provides practical examples of API requests for common billing operations.
 
 ### Creating a New Billing Plan
+
 To create a new billing plan, use the admin API endpoint with the required plan details.
 
 ```bash
@@ -459,10 +501,12 @@ curl -X POST "http://localhost:3000/api/v1/admin/billing/plans" \
 ```
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L205-L262)
 - [BILLING_SETUP.md](file://BILLING_SETUP.md#L87-L112)
 
 ### Updating Subscription Status
+
 To cancel a subscription, use the subscription cancellation endpoint.
 
 ```bash
@@ -475,10 +519,12 @@ curl -X POST "http://localhost:3000/api/v1/billing/subscription/cancel" \
 ```
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L151-L174)
 - [index.ts](file://src/lib/apis/billing/index.ts#L161-L189)
 
 ### Generating Billing Reports
+
 To retrieve a user's complete billing information, use the billing info endpoint.
 
 ```bash
@@ -494,13 +540,16 @@ curl -X GET "http://localhost:3000/api/v1/admin/billing/plans" \
 ```
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L344-L355)
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L159-L195)
 
 ## Integration with Payment Providers
+
 The billing system integrates with YooKassa as the payment provider for handling financial transactions.
 
 ### YooKassa Integration
+
 The integration with YooKassa is implemented through the `YooKassaClient` class, which handles API requests for creating payments, retrieving payment information, and processing webhooks.
 
 ```mermaid
@@ -524,13 +573,16 @@ YooKassaClient --> YooKassaWebhookHandler : "Uses for parsing"
 ```
 
 **Diagram sources**
+
 - [yookassa.py](file://backend/open_webui/utils/yookassa.py#L38-L355)
 
 **Section sources**
+
 - [yookassa.py](file://backend/open_webui/utils/yookassa.py#L38-L355)
 - [billing.py](file://backend/open_webui/utils/billing.py#L374-L523)
 
 ### Configuration
+
 The YooKassa integration requires configuration through environment variables:
 
 ```bash
@@ -548,12 +600,15 @@ YOOKASSA_API_URL='https://api.yookassa.ru/v3'
 ```
 
 **Section sources**
+
 - [BILLING_SETUP.md](file://BILLING_SETUP.md#L52-L63)
 
 ## Security Considerations
+
 The billing system implements several security measures to protect financial data and prevent unauthorized access.
 
 ### Financial Data Protection
+
 The system protects financial data through several mechanisms:
 
 1. **Authentication**: All billing endpoints require authentication via Bearer tokens
@@ -576,15 +631,18 @@ I --> |Valid| K[Process webhook]
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L377-L386)
 - [yookassa.py](file://backend/open_webui/utils/yookassa.py#L262-L293)
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/routers/billing.py#L377-L386)
 - [yookassa.py](file://backend/open_webui/utils/yookassa.py#L262-L293)
 - [BILLING_SETUP.md](file://BILLING_SETUP.md#L270-L272)
 
 ### Validation Rules
+
 The system enforces validation rules for plan configurations to prevent business logic violations:
 
 1. **Price Validation**: Prices must be non-negative
@@ -593,13 +651,16 @@ The system enforces validation rules for plan configurations to prevent business
 4. **Active Subscription Protection**: Plans with active subscriptions cannot have quotas decreased
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L38-L64)
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L109-L133)
 
 ## Error Handling
+
 The billing system implements comprehensive error handling for various failure scenarios.
 
 ### Payment Failures
+
 The system handles payment failures through the webhook processing mechanism:
 
 ```mermaid
@@ -617,12 +678,15 @@ J --> K[Return success to prevent retries]
 ```
 
 **Diagram sources**
+
 - [billing.py](file://backend/open_webui/utils/billing.py#L448-L523)
 
 **Section sources**
+
 - [billing.py](file://backend/open_webui/utils/billing.py#L448-L523)
 
 ### Quota Exceeded Errors
+
 When a user exceeds their quota, the system raises a `QuotaExceededError` which is translated to an HTTP 429 response:
 
 ```python
@@ -638,13 +702,16 @@ def enforce_quota(user_id: str, metric: UsageMetric, amount: int = 1) -> None:
 ```
 
 **Section sources**
+
 - [billing_integration.py](file://backend/open_webui/utils/billing_integration.py#L33-L36)
 - [billing.py](file://backend/open_webui/utils/billing.py#L353-L371)
 
 ## Rate Limiting
+
 The system implements rate limiting for billing API calls to prevent abuse.
 
 ### Rate Limiter Implementation
+
 The rate limiting is implemented using a rolling window strategy with Redis as the primary storage, falling back to in-memory storage if Redis is unavailable.
 
 ```mermaid
@@ -668,15 +735,19 @@ class RateLimiter {
 ```
 
 **Diagram sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L6-L140)
 
 **Section sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L6-L140)
 
 ## Audit Logging
+
 The billing system implements comprehensive audit logging to track changes to billing entities.
 
 ### Audit Log Implementation
+
 The system creates audit log entries for all significant operations on billing entities, including plan creation, updates, and deletions.
 
 ```mermaid
@@ -725,13 +796,16 @@ AuditLoggingMiddleware --> AuditLogger : "Uses"
 ```
 
 **Diagram sources**
+
 - [audit.py](file://backend/open_webui/utils/audit.py#L36-L284)
 
 **Section sources**
+
 - [audit.py](file://backend/open_webui/utils/audit.py#L36-L284)
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L242-L249)
 
 ### Audit Log Database Schema
+
 The audit logs are stored in the `billing_audit_log` table with appropriate indexes for querying.
 
 ```sql
@@ -755,11 +829,13 @@ CREATE INDEX idx_audit_action ON billing_audit_log (action);
 ```
 
 **Section sources**
+
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L132-L167)
 
 ## Appendices
 
 ### Appendix A: Database Schema
+
 The billing system creates the following tables in the database:
 
 - `billing_plan`: Stores subscription plan definitions
@@ -769,10 +845,12 @@ The billing system creates the following tables in the database:
 - `billing_audit_log`: Stores audit logs for billing operations
 
 **Section sources**
+
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L18-L187)
 - [BILLING_SETUP.md](file://BILLING_SETUP.md#L258-L263)
 
 ### Appendix B: Initialization Script
+
 The system includes a script to initialize billing plans from templates:
 
 ```python
@@ -780,13 +858,13 @@ def init_plans(include_annual=False, include_promo=False, force=False):
     """Initialize billing plans from templates"""
     plans_to_create = []
     plans_to_create.extend(get_default_plans())
-    
+
     if include_annual:
         plans_to_create.extend(get_annual_plans())
-    
+
     if include_promo:
         plans_to_create.extend(get_promo_plans())
-    
+
     # Create or update plans
     for plan_data in plans_to_create:
         existing_plan = Plans.get_plan_by_id(plan_data["id"])
@@ -798,9 +876,11 @@ def init_plans(include_annual=False, include_promo=False, force=False):
 ```
 
 **Section sources**
+
 - [init_billing_plans.py](file://backend/scripts/init_billing_plans.py#L29-L67)
 
 ### Appendix C: Environment Variables
+
 The following environment variables are required for the billing system:
 
 - `YOOKASSA_SHOP_ID`: YooKassa Shop ID
@@ -809,4 +889,5 @@ The following environment variables are required for the billing system:
 - `YOOKASSA_API_URL`: YooKassa API URL (default: https://api.yookassa.ru/v3)
 
 **Section sources**
+
 - [BILLING_SETUP.md](file://BILLING_SETUP.md#L52-L63)

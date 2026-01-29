@@ -33,7 +33,9 @@
 					id={isCostQuestion(item) ? 'faq-cost' : undefined}
 					on:toggle={(event) => handleFaqToggle(event, item.id)}
 				>
-					<summary class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center">
+					<summary
+						class="font-semibold text-gray-900 cursor-pointer flex justify-between items-center"
+					>
 						{item.question}
 						<svg
 							class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform"

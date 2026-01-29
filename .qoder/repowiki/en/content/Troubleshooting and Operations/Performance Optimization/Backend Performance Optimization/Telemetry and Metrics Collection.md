@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Telemetry Architecture Overview](#telemetry-architecture-overview)
 3. [Metrics Collection System](#metrics-collection-system)
@@ -30,6 +31,7 @@ Open WebUI implements a comprehensive telemetry system based on OpenTelemetry st
 The telemetry framework collects various performance metrics including request timing, error rates, and system resource usage through the OpenTelemetry instrumentation system. Metrics are exported via OTLP (OpenTelemetry Protocol) to collectors that can expose them to monitoring systems like Prometheus and visualization platforms like Grafana.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L691-L694)
 - [env.py](file://backend/open_webui/env.py#L806-L810)
 
@@ -56,6 +58,7 @@ J --> M[Other Backends]
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/main.py#L691-L694)
 - [setup.py](file://backend/open_webui/utils/telemetry/setup.py#L28-L58)
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L53-L111)
@@ -63,6 +66,7 @@ J --> M[Other Backends]
 The architecture follows the OpenTelemetry specification with three main components: instrumentation, SDK, and exporters. Instrumentation hooks into the application code to collect telemetry data, the SDK processes and aggregates this data, and exporters send the data to external systems. The system supports metrics, traces, and logs collection independently, allowing administrators to enable only the components they need.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L691-L694)
 - [setup.py](file://backend/open_webui/utils/telemetry/setup.py#L28-L58)
 
@@ -85,6 +89,7 @@ F --> G[Export via OTLP]
 ```
 
 **Diagram sources**
+
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L176-L204)
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L126-L130)
 
@@ -107,6 +112,7 @@ F --> G
 ```
 
 **Diagram sources**
+
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L121-L125)
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L202-L203)
 
@@ -135,10 +141,12 @@ class Users {
 ```
 
 **Diagram sources**
+
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L150-L174)
 - [models/users.py](file://backend/open_webui/models/users.py)
 
 The user activity metrics include:
+
 - `webui.users.total`: Total number of registered users
 - `webui.users.active`: Number of currently active users
 - `webui.users.active.today`: Number of users active since midnight today
@@ -146,6 +154,7 @@ The user activity metrics include:
 These metrics use callbacks to query the database at collection time, ensuring the data is always current without requiring continuous updates.
 
 **Section sources**
+
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L120-L174)
 
 ## OpenTelemetry Integration
@@ -175,6 +184,7 @@ App-->>Main : Telemetry initialized
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/main.py#L691-L694)
 - [setup.py](file://backend/open_webui/utils/telemetry/setup.py#L28-L58)
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L114-L179)
@@ -204,10 +214,12 @@ N --> P
 ```
 
 **Diagram sources**
+
 - [instrumentors.py](file://backend/open_webui/utils/telemetry/instrumentors.py#L179-L196)
 - [setup.py](file://backend/open_webui/utils/telemetry/setup.py#L54)
 
 The instrumentors module configures automatic instrumentation for:
+
 - FastAPI: HTTP server requests and responses
 - SQLAlchemy: Database queries and operations
 - Redis: Cache operations and commands
@@ -219,6 +231,7 @@ The instrumentors module configures automatic instrumentation for:
 Each instrumentor can be customized with request and response hooks to add additional context to the telemetry data.
 
 **Section sources**
+
 - [instrumentors.py](file://backend/open_webui/utils/telemetry/instrumentors.py#L179-L196)
 - [setup.py](file://backend/open_webui/utils/telemetry/setup.py#L54)
 
@@ -230,12 +243,12 @@ The telemetry system tracks several key performance indicators (KPIs) that provi
 
 The system collects detailed metrics on request performance to monitor application responsiveness and identify bottlenecks.
 
-| KPI | Metric Name | Type | Unit | Description |
-|-----|-----------|------|------|-------------|
-| Request Rate | http.server.requests | Counter | 1 | Total number of HTTP requests processed |
-| Request Duration | http.server.duration | Histogram | ms | Distribution of request processing times |
-| Error Rate | http.server.requests | Counter | 1 | Requests with status code ≥ 400 |
-| Success Rate | http.server.requests | Counter | 1 | Requests with status code < 400 |
+| KPI              | Metric Name          | Type      | Unit | Description                              |
+| ---------------- | -------------------- | --------- | ---- | ---------------------------------------- |
+| Request Rate     | http.server.requests | Counter   | 1    | Total number of HTTP requests processed  |
+| Request Duration | http.server.duration | Histogram | ms   | Distribution of request processing times |
+| Error Rate       | http.server.requests | Counter   | 1    | Requests with status code ≥ 400          |
+| Success Rate     | http.server.requests | Counter   | 1    | Requests with status code < 400          |
 
 These metrics are collected with attributes for HTTP method, route, and status code, enabling detailed analysis of performance across different endpoints and request types. The histogram for request duration provides percentiles (p50, p90, p95, p99) that help identify outliers and performance degradation.
 
@@ -243,10 +256,10 @@ These metrics are collected with attributes for HTTP method, route, and status c
 
 The system tracks user engagement metrics to monitor adoption and usage patterns.
 
-| KPI | Metric Name | Type | Unit | Description |
-|-----|-----------|------|------|-------------|
-| Total Users | webui.users.total | Gauge | users | Total number of registered users |
-| Active Users | webui.users.active | Gauge | users | Currently active users |
+| KPI                | Metric Name              | Type  | Unit  | Description                       |
+| ------------------ | ------------------------ | ----- | ----- | --------------------------------- |
+| Total Users        | webui.users.total        | Gauge | users | Total number of registered users  |
+| Active Users       | webui.users.active       | Gauge | users | Currently active users            |
 | Daily Active Users | webui.users.active.today | Gauge | users | Users active since midnight today |
 
 These metrics provide insights into user adoption and engagement, helping administrators understand how the application is being used and plan for capacity requirements.
@@ -255,15 +268,16 @@ These metrics provide insights into user adoption and engagement, helping admini
 
 The telemetry system also provides indicators of system health and stability.
 
-| KPI | Metric Name | Type | Unit | Description |
-|-----|-----------|------|------|-------------|
-| Database Performance | db.query.duration | Histogram | ms | Database query execution times |
-| Cache Hit Rate | redis.commands.executed | Counter | 1 | Ratio of cache hits to misses |
-| API Error Rate | http.server.requests | Counter | 1 | Percentage of requests resulting in errors |
+| KPI                  | Metric Name             | Type      | Unit | Description                                |
+| -------------------- | ----------------------- | --------- | ---- | ------------------------------------------ |
+| Database Performance | db.query.duration       | Histogram | ms   | Database query execution times             |
+| Cache Hit Rate       | redis.commands.executed | Counter   | 1    | Ratio of cache hits to misses              |
+| API Error Rate       | http.server.requests    | Counter   | 1    | Percentage of requests resulting in errors |
 
 These KPIs help identify potential issues with backend services and infrastructure, enabling proactive monitoring and troubleshooting.
 
 **Section sources**
+
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L121-L130)
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L150-L174)
 
@@ -275,17 +289,17 @@ The telemetry system is configured through environment variables, providing flex
 
 The system uses several environment variables to control telemetry behavior:
 
-| Variable | Default | Description |
-|---------|--------|-------------|
-| ENABLE_OTEL | false | Enable OpenTelemetry integration |
-| ENABLE_OTEL_METRICS | false | Enable metrics collection |
-| OTEL_EXPORTER_OTLP_ENDPOINT | http://localhost:4317 | OTLP collector endpoint |
-| OTEL_METRICS_EXPORTER_OTLP_ENDPOINT | OTEL_EXPORTER_OTLP_ENDPOINT | Metrics-specific OTLP endpoint |
-| OTEL_EXPORTER_OTLP_INSECURE | false | Use insecure connection for OTLP |
-| OTEL_METRICS_EXPORTER_OTLP_INSECURE | OTEL_EXPORTER_OTLP_INSECURE | Insecure connection for metrics |
-| OTEL_SERVICE_NAME | open-webui | Service name for telemetry data |
-| OTEL_BASIC_AUTH_USERNAME | "" | Basic auth username for OTLP |
-| OTEL_BASIC_AUTH_PASSWORD | "" | Basic auth password for OTLP |
+| Variable                            | Default                     | Description                      |
+| ----------------------------------- | --------------------------- | -------------------------------- |
+| ENABLE_OTEL                         | false                       | Enable OpenTelemetry integration |
+| ENABLE_OTEL_METRICS                 | false                       | Enable metrics collection        |
+| OTEL_EXPORTER_OTLP_ENDPOINT         | http://localhost:4317       | OTLP collector endpoint          |
+| OTEL_METRICS_EXPORTER_OTLP_ENDPOINT | OTEL_EXPORTER_OTLP_ENDPOINT | Metrics-specific OTLP endpoint   |
+| OTEL_EXPORTER_OTLP_INSECURE         | false                       | Use insecure connection for OTLP |
+| OTEL_METRICS_EXPORTER_OTLP_INSECURE | OTEL_EXPORTER_OTLP_INSECURE | Insecure connection for metrics  |
+| OTEL_SERVICE_NAME                   | open-webui                  | Service name for telemetry data  |
+| OTEL_BASIC_AUTH_USERNAME            | ""                          | Basic auth username for OTLP     |
+| OTEL_BASIC_AUTH_PASSWORD            | ""                          | Basic auth password for OTLP     |
 
 These variables allow administrators to enable or disable telemetry components, configure export endpoints, and set authentication credentials.
 
@@ -298,9 +312,9 @@ services:
   grafana:
     image: grafana/otel-lgtm:latest
     ports:
-      - "3000:3000"   # Grafana UI
-      - "4317:4317"   # OTLP/gRPC
-      - "4318:4318"   # OTLP/HTTP
+      - '3000:3000' # Grafana UI
+      - '4317:4317' # OTLP/gRPC
+      - '4318:4318' # OTLP/HTTP
     restart: unless-stopped
 
   airis:
@@ -330,11 +344,13 @@ F --> G
 ```
 
 **Diagram sources**
+
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L64-L83)
 
 The system defaults to gRPC but can be configured to use HTTP. The choice depends on network configuration, firewall rules, and collector capabilities. The export interval is set to 10 seconds by default, balancing data freshness with network overhead.
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L862-L864)
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L50-L83)
 
@@ -367,9 +383,11 @@ J[Cache Miss Rate High] --> K[Alert: Cache Performance]
 ```
 
 **Diagram sources**
+
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L121-L130)
 
 Recommended alerting thresholds:
+
 - Error rate > 5% for 5 minutes
 - 95th percentile request duration > 2 seconds
 - Daily active users growth > 50% day-over-day
@@ -388,6 +406,7 @@ The metrics can be visualized in Grafana or similar tools using the following da
 These dashboards provide real-time visibility into application performance and user behavior, enabling proactive management and optimization.
 
 **Section sources**
+
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L121-L174)
 - [docker-compose.otel.yaml](file://docker-compose.otel.yaml)
 
@@ -410,13 +429,13 @@ The system uses a 10-second export interval by default, balancing data freshness
 
 For production deployments, consider the following optimization strategies:
 
-| Strategy | Benefit | Configuration |
-|---------|-------|--------------|
-| Disable Unneeded Components | Reduce resource usage | Set ENABLE_OTEL_TRACES=false if not needed |
-| Use Secure Connections | Protect telemetry data | Set OTEL_EXPORTER_OTLP_INSECURE=false |
-| Configure Appropriate Sampling | Balance detail and volume | Set OTEL_TRACES_SAMPLER=parentbased_traceidratio |
-| Monitor Exporter Performance | Ensure reliable delivery | Check exporter queue sizes and retry counts |
-| Limit Metric Attributes | Prevent cardinality issues | Use views to filter attributes |
+| Strategy                       | Benefit                    | Configuration                                    |
+| ------------------------------ | -------------------------- | ------------------------------------------------ |
+| Disable Unneeded Components    | Reduce resource usage      | Set ENABLE_OTEL_TRACES=false if not needed       |
+| Use Secure Connections         | Protect telemetry data     | Set OTEL_EXPORTER_OTLP_INSECURE=false            |
+| Configure Appropriate Sampling | Balance detail and volume  | Set OTEL_TRACES_SAMPLER=parentbased_traceidratio |
+| Monitor Exporter Performance   | Ensure reliable delivery   | Check exporter queue sizes and retry counts      |
+| Limit Metric Attributes        | Prevent cardinality issues | Use views to filter attributes                   |
 
 ### Production Recommendations
 
@@ -432,6 +451,7 @@ For production deployments, follow these best practices:
 These strategies ensure that the telemetry system provides valuable insights without negatively impacting application performance or reliability.
 
 **Section sources**
+
 - [metrics.py](file://backend/open_webui/utils/telemetry/metrics.py#L85-L104)
 - [env.py](file://backend/open_webui/env.py#L806-L868)
 

@@ -23,8 +23,7 @@
 		activeTabId = fallbackTab.id;
 	}
 
-	$: activeExamplesTab =
-		visibleExampleTabs.find((tab) => tab.id === activeTabId) ?? fallbackTab;
+	$: activeExamplesTab = visibleExampleTabs.find((tab) => tab.id === activeTabId) ?? fallbackTab;
 
 	const handleCardKeydown = (event: KeyboardEvent, action: () => void) => {
 		if (event.key === 'Enter' || event.key === ' ') {
@@ -101,7 +100,9 @@
 							<h3 class="text-base font-semibold text-gray-900">{card.title}</h3>
 							<p class="mt-1 text-sm text-gray-600 break-words">{card.result}</p>
 						</div>
-						<span class="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500 shrink-0 whitespace-nowrap">
+						<span
+							class="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500 shrink-0 whitespace-nowrap"
+						>
 							{card.badge}
 						</span>
 					</div>

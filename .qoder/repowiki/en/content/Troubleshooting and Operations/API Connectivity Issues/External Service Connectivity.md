@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [API Client Implementations](#api-client-implementations)
 3. [Request/Response Transformation Patterns](#requestresponse-transformation-patterns)
@@ -22,6 +23,7 @@
 7. [Service-Specific Integration Details](#service-specific-integration-details)
 
 ## Introduction
+
 This document provides comprehensive guidance on diagnosing and resolving connectivity issues with external services in Open WebUI, specifically focusing on Ollama, OpenAI, and web search integrations. It covers the architecture of API client implementations, request/response transformation patterns, error handling strategies, and configuration requirements for service endpoints, timeout settings, and SSL/TLS certificate validation. The document includes troubleshooting steps for common issues such as network connectivity problems, API key validation failures, rate limiting, and service-specific error responses.
 
 ## API Client Implementations
@@ -48,6 +50,7 @@ end
 ```
 
 **Diagram sources**
+
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L115-L190)
 - [openai.py](file://backend/open_webui/routers/openai.py#L105-L184)
 
@@ -68,9 +71,11 @@ G --> H[Process Response]
 ```
 
 **Diagram sources**
+
 - [openai.py](file://backend/open_webui/routers/openai.py#L126-L188)
 
 **Section sources**
+
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L81-L193)
 - [openai.py](file://backend/open_webui/routers/openai.py#L72-L189)
 
@@ -93,6 +98,7 @@ H --> I[Return Standardized Error]
 ```
 
 **Diagram sources**
+
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L48-L51)
 - [openai.py](file://backend/open_webui/routers/openai.py#L41-L44)
 
@@ -116,6 +122,7 @@ OpenAIRequestTransformer --> AzureOpenAISettings : uses
 ```
 
 **Diagram sources**
+
 - [openai.py](file://backend/open_webui/routers/openai.py#L105-L204)
 - [openai.py](file://backend/open_webui/routers/openai.py#L729-L780)
 
@@ -138,9 +145,11 @@ H --> I[Return Documents]
 ```
 
 **Diagram sources**
+
 - [utils.py](file://backend/open_webui/retrieval/web/utils.py#L654-L712)
 
 **Section sources**
+
 - [openai.py](file://backend/open_webui/routers/openai.py#L105-L204)
 - [utils.py](file://backend/open_webui/retrieval/web/utils.py#L654-L712)
 
@@ -164,6 +173,7 @@ H --> |No Detail| J[Return Generic Connection Error]
 ```
 
 **Diagram sources**
+
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L115-L190)
 
 For web search operations, the system implements safety checks and validation before processing URLs. The `validate_url` function in `utils.py` performs multiple validation steps:
@@ -184,6 +194,7 @@ H --> |Yes| K
 ```
 
 **Diagram sources**
+
 - [utils.py](file://backend/open_webui/retrieval/web/utils.py#L62-L95)
 
 The error propagation to the frontend follows a standardized pattern using the `ERROR_MESSAGES` enum in `constants.py`. This ensures consistent error messaging across the application:
@@ -207,11 +218,13 @@ ErrorPropagation --> ERROR_MESSAGES : uses
 ```
 
 **Diagram sources**
+
 - [constants.py](file://backend/open_webui/constants.py#L19-L94)
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L490-L484)
 - [openai.py](file://backend/open_webui/routers/openai.py#L330-L345)
 
 **Section sources**
+
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L115-L190)
 - [openai.py](file://backend/open_webui/routers/openai.py#L307-L345)
 - [utils.py](file://backend/open_webui/retrieval/web/utils.py#L62-L95)
@@ -222,6 +235,7 @@ ErrorPropagation --> ERROR_MESSAGES : uses
 This section provides step-by-step troubleshooting guidance for common external service connectivity issues in Open WebUI.
 
 ### Network Connectivity Issues
+
 When experiencing network connectivity problems, follow these steps:
 
 1. **Verify service availability**: Use the `/verify` endpoint to test connectivity to external services
@@ -248,10 +262,12 @@ end
 ```
 
 **Diagram sources**
+
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L224-L266)
 - [openai.py](file://backend/open_webui/routers/openai.py#L643-L727)
 
 ### API Key Validation
+
 For API key validation issues, verify the following:
 
 1. **Key format**: Ensure the API key matches the expected format for the service
@@ -271,10 +287,12 @@ D --> |Yes| F[Process Request]
 ```
 
 **Diagram sources**
+
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L87-L88)
 - [openai.py](file://backend/open_webui/routers/openai.py#L77-L78)
 
 ### Rate Limiting
+
 When encountering rate limiting issues:
 
 1. **Check rate limit headers**: Examine response headers for rate limit information
@@ -295,10 +313,12 @@ B --> |Other Error| G[Handle Error]
 ```
 
 **Diagram sources**
+
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L148-L153)
 - [openai.py](file://backend/open_webui/routers/openai.py#L590-L595)
 
 ### Service-Specific Error Responses
+
 Different services return unique error responses that require specific handling:
 
 - **Ollama**: Returns structured JSON errors with "error" field
@@ -318,10 +338,12 @@ E --> F[Return standardized error]
 ```
 
 **Diagram sources**
+
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L469-L484)
 - [openai.py](file://backend/open_webui/routers/openai.py#L334-L341)
 
 **Section sources**
+
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L224-L266)
 - [openai.py](file://backend/open_webui/routers/openai.py#L643-L727)
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L87-L88)
@@ -332,6 +354,7 @@ E --> F[Return standardized error]
 Proper configuration is essential for successful external service connectivity in Open WebUI. This section outlines the key configuration requirements for service endpoints, timeout settings, and SSL/TLS certificate validation.
 
 ### Service Endpoints
+
 Service endpoints must be configured correctly in the system settings:
 
 - **Ollama**: Configure `OLLAMA_BASE_URLS` and `OLLAMA_API_CONFIGS`
@@ -360,9 +383,11 @@ AppConfig --> PersistentConfig : contains
 ```
 
 **Diagram sources**
+
 - [config.py](file://backend/open_webui/config.py#L224-L284)
 
 ### Timeout Settings
+
 Timeout settings are critical for preventing hanging requests and ensuring system responsiveness:
 
 - **AIOHTTP_CLIENT_TIMEOUT**: Global timeout for API requests
@@ -384,9 +409,11 @@ F --> |No| H[Return Timeout Error]
 ```
 
 **Diagram sources**
+
 - [env.py](file://backend/open_webui/env.py#L664-L691)
 
 ### SSL/TLS Certificate Validation
+
 SSL/TLS certificate validation ensures secure connections to external services:
 
 - **AIOHTTP_CLIENT_SESSION_SSL**: Enables SSL verification for aiohttp sessions
@@ -406,10 +433,12 @@ E --> |No| G[Return SSL Verification Error]
 ```
 
 **Diagram sources**
+
 - [env.py](file://backend/open_webui/env.py#L675-L677)
 - [utils.py](file://backend/open_webui/retrieval/web/utils.py#L125-L140)
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L224-L284)
 - [env.py](file://backend/open_webui/env.py#L664-L691)
 - [utils.py](file://backend/open_webui/retrieval/web/utils.py#L125-L140)
@@ -419,9 +448,11 @@ E --> |No| G[Return SSL Verification Error]
 This section provides detailed information about the integration patterns for each external service supported by Open WebUI.
 
 ### Ollama Integration
+
 The Ollama integration in Open WebUI provides comprehensive support for model management and inference operations. The system supports multiple Ollama instances through the `OLLAMA_BASE_URLS` configuration, enabling load balancing and high availability.
 
 Key features of the Ollama integration include:
+
 - Model listing and filtering through the `/api/tags` endpoint
 - Version compatibility checking via the `/api/version` endpoint
 - Model loading and unloading management
@@ -440,13 +471,16 @@ F --> G[Return Unified Response]
 ```
 
 **Diagram sources**
+
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L308-L356)
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L492-L551)
 
 ### OpenAI Integration
+
 The OpenAI integration supports both standard OpenAI API and Azure OpenAI Service, with special handling for different model types and authentication methods.
 
 Key features of the OpenAI integration include:
+
 - Support for reasoning models (o1, o3, o4 series)
 - Azure OpenAI API compatibility with proper parameter filtering
 - Multiple authentication methods (bearer tokens, Azure AD, OAuth)
@@ -466,13 +500,16 @@ F --> G[Send Request]
 ```
 
 **Diagram sources**
+
 - [openai.py](file://backend/open_webui/routers/openai.py#L105-L123)
 - [openai.py](file://backend/open_webui/routers/openai.py#L775-L797)
 
 ### Web Search Integration
+
 The web search integration provides flexible content retrieval from various sources through multiple loader implementations. The system supports different web scraping engines based on the `WEB_LOADER_ENGINE` configuration.
 
 Available web loader engines include:
+
 - **safe_web**: Basic web content fetching with safety checks
 - **playwright**: Browser-based scraping with JavaScript rendering
 - **firecrawl**: Advanced web crawling and scraping service
@@ -516,6 +553,7 @@ BaseLoader <|-- ExternalWebLoader
 ```
 
 **Diagram sources**
+
 - [utils.py](file://backend/open_webui/retrieval/web/utils.py#L549-L712)
 - [main.py](file://backend/open_webui/retrieval/web/main.py#L43-L47)
 
@@ -534,10 +572,12 @@ OpenWebUI-->>Frontend : Return search results
 ```
 
 **Diagram sources**
+
 - [ollama.py](file://backend/open_webui/retrieval/web/ollama.py#L13-L51)
 - [main.py](file://backend/open_webui/retrieval/web/main.py#L43-L47)
 
 **Section sources**
+
 - [ollama.py](file://backend/open_webui/routers/ollama.py#L308-L356)
 - [openai.py](file://backend/open_webui/routers/openai.py#L105-L123)
 - [utils.py](file://backend/open_webui/retrieval/web/utils.py#L549-L712)

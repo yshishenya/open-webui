@@ -86,17 +86,27 @@
 	}
 
 	// Check if quotas are being decreased (for edit mode)
-	$: quotasDecreased = isEditMode && originalPlan && formData.quotas && originalPlan.quotas && (
-		(formData.quotas.tokens_input !== null && originalPlan.quotas.tokens_input !== null &&
-		 formData.quotas.tokens_input < originalPlan.quotas.tokens_input) ||
-		(formData.quotas.tokens_output !== null && originalPlan.quotas.tokens_output !== null &&
-		 formData.quotas.tokens_output < originalPlan.quotas.tokens_output) ||
-		(formData.quotas.requests !== null && originalPlan.quotas.requests !== null &&
-		 formData.quotas.requests < originalPlan.quotas.requests)
-	);
+	$: quotasDecreased =
+		isEditMode &&
+		originalPlan &&
+		formData.quotas &&
+		originalPlan.quotas &&
+		((formData.quotas.tokens_input !== null &&
+			originalPlan.quotas.tokens_input !== null &&
+			formData.quotas.tokens_input < originalPlan.quotas.tokens_input) ||
+			(formData.quotas.tokens_output !== null &&
+				originalPlan.quotas.tokens_output !== null &&
+				formData.quotas.tokens_output < originalPlan.quotas.tokens_output) ||
+			(formData.quotas.requests !== null &&
+				originalPlan.quotas.requests !== null &&
+				formData.quotas.requests < originalPlan.quotas.requests));
 
 	// Check if price is being changed (for edit mode)
-	$: priceChanged = isEditMode && originalPlan && formData.price !== undefined && formData.price !== originalPlan.price;
+	$: priceChanged =
+		isEditMode &&
+		originalPlan &&
+		formData.price !== undefined &&
+		formData.price !== originalPlan.price;
 
 	const formatNumber = (value: number | null): string => {
 		if (value === null) return '∞';
@@ -127,19 +137,34 @@
 	<div class="lg:col-span-2 space-y-6">
 		<!-- Warnings (edit mode only) -->
 		{#if isEditMode && hasActiveSubscribers}
-			<div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4">
+			<div
+				class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4"
+			>
 				<div class="flex items-start gap-3">
-					<svg class="size-5 text-yellow-600 dark:text-yellow-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+					<svg
+						class="size-5 text-yellow-600 dark:text-yellow-500 mt-0.5"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+						/>
 					</svg>
 					<div class="flex-1">
 						<div class="font-medium text-yellow-900 dark:text-yellow-200">
 							{$i18n.t('Plan has active subscribers')}
 						</div>
 						<div class="text-sm text-yellow-800 dark:text-yellow-300 mt-1">
-							{$i18n.t('{count} users are currently subscribed to this plan. Be careful when making changes.', {
-								count: subscriberCount
-							})}
+							{$i18n.t(
+								'{count} users are currently subscribed to this plan. Be careful when making changes.',
+								{
+									count: subscriberCount
+								}
+							)}
 						</div>
 						{#if quotasDecreased}
 							<div class="text-sm text-red-600 dark:text-red-400 mt-2 font-medium">
@@ -311,11 +336,7 @@
 							{$i18n.t('Input Tokens')}
 						</label>
 						<label class="flex items-center gap-2 text-sm">
-							<input
-								type="checkbox"
-								bind:checked={unlimitedTokensInput}
-								class="rounded"
-							/>
+							<input type="checkbox" bind:checked={unlimitedTokensInput} class="rounded" />
 							{$i18n.t('Unlimited')}
 						</label>
 					</div>
@@ -329,7 +350,9 @@
 					/>
 					{#if isEditMode && hasActiveSubscribers && originalPlan?.quotas?.tokens_input !== null}
 						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-							{$i18n.t('Current: {value}', { value: formatNumber(originalPlan.quotas.tokens_input) })}
+							{$i18n.t('Current: {value}', {
+								value: formatNumber(originalPlan.quotas.tokens_input)
+							})}
 						</p>
 					{/if}
 				</div>
@@ -341,11 +364,7 @@
 							{$i18n.t('Output Tokens')}
 						</label>
 						<label class="flex items-center gap-2 text-sm">
-							<input
-								type="checkbox"
-								bind:checked={unlimitedTokensOutput}
-								class="rounded"
-							/>
+							<input type="checkbox" bind:checked={unlimitedTokensOutput} class="rounded" />
 							{$i18n.t('Unlimited')}
 						</label>
 					</div>
@@ -359,7 +378,9 @@
 					/>
 					{#if isEditMode && hasActiveSubscribers && originalPlan?.quotas?.tokens_output !== null}
 						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-							{$i18n.t('Current: {value}', { value: formatNumber(originalPlan.quotas.tokens_output) })}
+							{$i18n.t('Current: {value}', {
+								value: formatNumber(originalPlan.quotas.tokens_output)
+							})}
 						</p>
 					{/if}
 				</div>
@@ -371,11 +392,7 @@
 							{$i18n.t('Requests')}
 						</label>
 						<label class="flex items-center gap-2 text-sm">
-							<input
-								type="checkbox"
-								bind:checked={unlimitedRequests}
-								class="rounded"
-							/>
+							<input type="checkbox" bind:checked={unlimitedRequests} class="rounded" />
 							{$i18n.t('Unlimited')}
 						</label>
 					</div>
@@ -457,12 +474,10 @@
 						</div>
 					</div>
 					<label class="relative inline-flex items-center cursor-pointer">
-						<input
-							type="checkbox"
-							bind:checked={formData.is_active}
-							class="sr-only peer"
-						/>
-						<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+						<input type="checkbox" bind:checked={formData.is_active} class="sr-only peer" />
+						<div
+							class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
+						></div>
 					</label>
 				</div>
 
@@ -552,10 +567,12 @@
 
 					<!-- Status Badge -->
 					<div class="pt-4 border-t dark:border-gray-700">
-						<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+						<span
+							class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
 							{formData.is_active
 								? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-								: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'}">
+								: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'}"
+						>
 							{formData.is_active ? $i18n.t('Active') : $i18n.t('Inactive')}
 						</span>
 					</div>

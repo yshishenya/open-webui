@@ -4,13 +4,21 @@
 
 ## Обзор
 
-Система биллинга включает:
-- ✅ Управление тарифными планами
-- ✅ Подписки пользователей
-- ✅ Интеграция с ЮKassa (платежный шлюз для России)
-- ✅ Трекинг использования моделей (токены, запросы)
-- ✅ Контроль квот
-- ✅ История транзакций
+Airis billing состоит из двух независимых режимов (feature flags):
+
+- `ENABLE_BILLING_WALLET=true` — кошелек (PAYG) + списание по rate cards + пополнения через YooKassa.
+- `ENABLE_BILLING_SUBSCRIPTIONS=true` — подписки и тарифные планы (обычно выключено).
+
+Дополнительно:
+
+- `LEAD_MAGNET_ENABLED=true` — "lead magnet" квоты на ограниченный набор моделей.
+
+Что реально поддерживается в коде:
+
+- ✅ YooKassa: платежи, webhooks
+- ✅ Wallet (баланс, ledger, история транзакций)
+- ✅ Rate cards / public pricing endpoints для публичных страниц
+- ✅ Подписки/планы (только если включить `ENABLE_BILLING_SUBSCRIPTIONS`)
 
 ## 1. Настройка ЮKassa
 
@@ -42,24 +50,30 @@
 
 ### Переменные окружения
 
-Добавьте в `.env` файл:
+Добавьте в `.env` файл (ориентируйтесь на `.env.example`):
 
 ```bash
 ####################################
 # Billing & YooKassa Configuration
 ####################################
 
-# YooKassa Shop ID
-YOOKASSA_SHOP_ID='ваш_shop_id'
+ENABLE_BILLING_WALLET=true
+ENABLE_BILLING_SUBSCRIPTIONS=false
+LEAD_MAGNET_ENABLED=false
 
-# YooKassa Secret Key
-YOOKASSA_SECRET_KEY='ваш_secret_key'
+BILLING_DEFAULT_CURRENCY=RUB
+BILLING_RATE_CARD_VERSION=2025-01
+BILLING_HOLD_TTL_SECONDS=900
+BILLING_TOPUP_TTL_DAYS=365
+BILLING_TOPUP_PACKAGES_KOPEKS=100000,150000,500000,1000000
 
-# YooKassa Webhook Secret (опционально, для безопасности)
-YOOKASSA_WEBHOOK_SECRET='ваш_webhook_secret'
+YOOKASSA_SHOP_ID=...
+YOOKASSA_SECRET_KEY=...
+YOOKASSA_WEBHOOK_SECRET=...
+YOOKASSA_API_URL=https://api.yookassa.ru/v3
 
-# YooKassa API URL (можно оставить по умолчанию)
-YOOKASSA_API_URL='https://api.yookassa.ru/v3'
+# Webhook URL настраивается в кабинете YooKassa (это не env var бэка)
+# Укажите endpoint: https://ваш-домен.ru/api/v1/billing/webhook/yookassa
 ```
 
 ### Проверка конфигурации
@@ -71,11 +85,13 @@ docker-compose logs -f airis
 ```
 
 Должна появиться строка:
+
 ```
 INFO: YooKassa billing client initialized
 ```
 
 Если не настроено:
+
 ```
 INFO: YooKassa billing not configured (set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY to enable)
 ```
@@ -83,6 +99,8 @@ INFO: YooKassa billing not configured (set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_
 ## 3. Создание тарифных планов
 
 ### Через API
+
+Важно: endpoints управления планами доступны только при `ENABLE_BILLING_SUBSCRIPTIONS=true`.
 
 ```bash
 # Авторизуйтесь как admin
@@ -113,6 +131,8 @@ curl -X POST "http://localhost:3000/api/v1/billing/plans" \
 ```
 
 ### Через Python скрипт
+
+Важно: это пример для subscriptions режима.
 
 Создайте файл `setup_plans.py`:
 
@@ -152,37 +172,30 @@ print("План создан!")
 ### Для пользователей
 
 ```bash
-# Получить список планов (admin-only UI)
+# Wallet (если ENABLE_BILLING_WALLET=true)
+GET /api/v1/billing/balance
+GET /api/v1/billing/ledger
+GET /api/v1/billing/transactions
+GET /api/v1/billing/usage-events
+POST /api/v1/billing/topup
+POST /api/v1/billing/auto-topup
+POST /api/v1/billing/settings
+
+# Subscriptions / plans (если ENABLE_BILLING_SUBSCRIPTIONS=true)
 GET /api/v1/billing/plans
-
-# Получить свою подписку
 GET /api/v1/billing/subscription
-
-# Создать платеж
 POST /api/v1/billing/payment
-{
-  "plan_id": "pro",
-  "return_url": "https://yourdomain.ru/billing/success"
-}
-
-# Отменить подписку
 POST /api/v1/billing/subscription/cancel
-{
-  "immediate": false
-}
+POST /api/v1/billing/subscription/resume
 
-# Получить использование
-GET /api/v1/billing/usage/tokens_input
-
-# Проверить квоту
+# Misc
 POST /api/v1/billing/usage/check
-{
-  "metric": "tokens_input",
-  "amount": 1000
-}
-
-# Полная информация о биллинге
 GET /api/v1/billing/me
+
+# Public endpoints (для лендинга /pricing)
+GET /api/v1/billing/public/lead-magnet
+GET /api/v1/billing/public/pricing-config
+GET /api/v1/billing/public/rate-cards
 ```
 
 ### Для администраторов
@@ -194,52 +207,51 @@ POST /api/v1/billing/plans
 
 ## 5. Как работает система
 
-### 1. Проверка квот
+В Airis есть 3 независимых источника биллинга (billing_source):
 
-Перед каждым запросом к модели:
+- `lead_magnet` — бесплатные квоты на ограниченный список моделей.
+- `payg` — кошелек (wallet): hold -> settle, списания по rate cards.
+- `subscription` — подписки/планы (если включены).
 
-```python
-# Автоматически проверяется
-if user.has_active_subscription:
-    check_quota(user_id, metric="requests", amount=1)
-    check_quota(user_id, metric="tokens_input", estimated_amount)
-```
+### 1. Preflight / ограничения перед запросом
 
-Если квота превышена → HTTP 429 Too Many Requests
+Перед каждым запросом к модели система определяет, как именно будет списание:
 
-### 2. Трекинг использования
+- если модель разрешена для lead magnet и есть доступные квоты → используется `lead_magnet` (hold в кошельке не делается)
+- иначе (PAYG) → проверяется кошелек: лимиты, daily cap, max reply cost, затем создается hold
 
-После получения ответа от модели:
+Ошибки, которые может вернуть preflight:
 
-```python
-# Автоматически сохраняется
-track_usage(
-    user_id=user.id,
-    metric="tokens_input",
-    amount=150,  # из response.usage.prompt_tokens
-    model_id="gpt-4",
-    chat_id="chat_123"
-)
-```
+- `402 Payment Required` (`insufficient_funds`, `max_reply_cost_exceeded`)
+- `429 Too Many Requests` (`daily_cap_exceeded`)
+- `422 Unprocessable Content` (`modality_disabled`)
 
-### 3. Оплата
+### 2. Списание и трекинг
 
-1. Пользователь выбирает план
-2. Создается платеж через ЮKassa
-3. Пользователь перенаправляется на страницу оплаты
-4. После оплаты ЮКassa отправляет webhook
-5. Создается/продлевается подписка
+После генерации ответа:
+
+- для `lead_magnet`: списываются единицы из lead-magnet state (`tokens_*`, `images`, `tts_seconds`, `stt_seconds`)
+- для `payg`: hold конвертируется в settle (списание с кошелька) и пишется usage event / ledger
+- для `subscription` (если включено): usage пишется в usage tracking; квоты берутся из плана
+
+### 3. Оплата / пополнение (wallet)
+
+1. Пользователь делает top-up (создается платеж YooKassa)
+2. Пользователь переходит на страницу оплаты YooKassa
+3. YooKassa отправляет webhook на `/api/v1/billing/webhook/yookassa`
+4. Бэк подтверждает оплату и зачисляет средства в кошелек
+
+Подписки работают отдельным флоу и доступны только при `ENABLE_BILLING_SUBSCRIPTIONS=true`.
 
 ## 6. База данных
 
-Система создает 4 таблицы:
+Схема включает:
 
-- `billing_plan` - тарифные планы
-- `billing_subscription` - подписки пользователей
-- `billing_usage` - использование ресурсов
-- `billing_transaction` - история платежей
+- подписки/планы (если включены): `billing_plan`, `billing_subscription`, `billing_usage`, `billing_transaction`
+- кошелек/PAYG: wallet/ledger/payments/rate cards/usage events (см. модели billing wallet)
+- lead magnet: lead magnet state (использование квот по циклам)
 
-Миграция применяется автоматически при запуске.
+Миграции применяются автоматически при запуске.
 
 ## 7. Безопасность
 
@@ -291,19 +303,23 @@ docker-compose logs -f airis | grep "quota"
 
 ### Проблема: Квоты не работают
 
-- ✅ У пользователя должна быть активная подписка
-- ✅ Проверьте что план имеет quotas
-- ✅ Проверьте логи: `grep quota`
+Зависит от режима:
 
-### Проблема: Usage не трекается
+- lead magnet: проверьте `LEAD_MAGNET_ENABLED=true` и что у модели стоит `meta.lead_magnet=true`
+- subscriptions: проверьте `ENABLE_BILLING_SUBSCRIPTIONS=true` и что у плана заданы `quotas`
 
-- ✅ Трекинг только для пользователей с подпиской
-- ✅ API должен возвращать `usage` в ответе
-- ✅ Проверьте логи: `grep "Tracked.*tokens"`
+Полезные логи: `grep -i "lead magnet\|quota\|billing"`
+
+### Проблема: Usage / списания не видны
+
+- PAYG wallet: проверьте, что `ENABLE_BILLING_WALLET=true` и что запросы не падают в `insufficient_funds`
+- Lead magnet: проверьте `/api/v1/billing/lead-magnet` (user) или `/api/v1/billing/public/lead-magnet` (public), а также `/api/v1/billing/usage-events`
+- Подписки: проверьте, что subscriptions включены и у пользователя есть subscription
 
 ## Поддержка
 
 При возникновении проблем:
+
 1. Проверьте логи
 2. Убедитесь что все переменные окружения заданы
 3. Проверьте миграции: `docker-compose exec airis alembic current`

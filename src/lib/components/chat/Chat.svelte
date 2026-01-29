@@ -1080,7 +1080,9 @@
 					};
 					const presetPrompt = parsed.prompt ?? '';
 					const presetSource = parsed.source ?? '';
-					const presetAgeMs = parsed.createdAt ? Date.now() - parsed.createdAt : Number.POSITIVE_INFINITY;
+					const presetAgeMs = parsed.createdAt
+						? Date.now() - parsed.createdAt
+						: Number.POSITIVE_INFINITY;
 					const PRESET_TTL_MS = 10 * 60 * 1000;
 					const isWelcomeSource = presetSource.startsWith('welcome_');
 
@@ -1920,8 +1922,7 @@
 			$settings?.params?.stream_response ??
 			params?.stream_response ??
 			true;
-		const includeUsage =
-			model?.info?.meta?.capabilities?.usage ?? (model?.owned_by === 'openai');
+		const includeUsage = model?.info?.meta?.capabilities?.usage ?? model?.owned_by === 'openai';
 
 		let messages = [
 			params?.system || $settings.system

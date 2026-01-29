@@ -27,10 +27,10 @@
 	const pageSize = 20;
 
 	// Computed stats
-	$: activeSubscribers = subscribers.filter(s => s.subscription_status === 'active').length;
-	$: canceledSubscribers = subscribers.filter(s => s.subscription_status === 'canceled').length;
-	$: trialSubscribers = subscribers.filter(s => s.subscription_status === 'trialing').length;
-	$: pastDueSubscribers = subscribers.filter(s => s.subscription_status === 'past_due').length;
+	$: activeSubscribers = subscribers.filter((s) => s.subscription_status === 'active').length;
+	$: canceledSubscribers = subscribers.filter((s) => s.subscription_status === 'canceled').length;
+	$: trialSubscribers = subscribers.filter((s) => s.subscription_status === 'trialing').length;
+	$: pastDueSubscribers = subscribers.filter((s) => s.subscription_status === 'past_due').length;
 
 	// MRR calculation
 	$: mrr = plan ? calculateMRR(plan, activeSubscribers) : 0;
@@ -88,7 +88,12 @@
 		if (newPage < 1 || newPage > totalPages) return;
 		currentPage = newPage;
 		try {
-			const subscribersData = await getPlanSubscribers(localStorage.token, planId, currentPage, pageSize);
+			const subscribersData = await getPlanSubscribers(
+				localStorage.token,
+				planId,
+				currentPage,
+				pageSize
+			);
 			if (subscribersData) {
 				subscribers = subscribersData.items;
 				totalSubscribers = subscribersData.total;
@@ -115,13 +120,26 @@
 	};
 
 	const generateRevenueData = () => {
-		const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+		const months = [
+			'Jan',
+			'Feb',
+			'Mar',
+			'Apr',
+			'May',
+			'Jun',
+			'Jul',
+			'Aug',
+			'Sep',
+			'Oct',
+			'Nov',
+			'Dec'
+		];
 		const currentMonth = new Date().getMonth();
 
 		return months.slice(Math.max(0, currentMonth - 5), currentMonth + 1).map((month, i) => ({
 			month,
-			revenue: mrr * (0.7 + (i * 0.05)),
-			subscribers: Math.floor(activeSubscribers * (0.7 + (i * 0.05)))
+			revenue: mrr * (0.7 + i * 0.05),
+			subscribers: Math.floor(activeSubscribers * (0.7 + i * 0.05))
 		}));
 	};
 
@@ -206,22 +224,32 @@
 
 		<!-- Key Metrics -->
 		<div class="grid grid-cols-4 gap-2 mb-4">
-			<div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3">
+			<div
+				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
+			>
 				<div class="text-xs text-gray-500">{$i18n.t('MRR')}</div>
 				<div class="text-lg font-medium">{formatPrice(mrr, plan.currency)}</div>
 				<div class="text-xs text-gray-400">{$i18n.t('ARR')}: {formatPrice(arr, plan.currency)}</div>
 			</div>
-			<div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3">
+			<div
+				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
+			>
 				<div class="text-xs text-gray-500">{$i18n.t('Active')}</div>
-				<div class="text-lg font-medium text-green-600 dark:text-green-400">{activeSubscribers}</div>
+				<div class="text-lg font-medium text-green-600 dark:text-green-400">
+					{activeSubscribers}
+				</div>
 				<div class="text-xs text-gray-400">{trialSubscribers} {$i18n.t('on trial')}</div>
 			</div>
-			<div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3">
+			<div
+				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
+			>
 				<div class="text-xs text-gray-500">{$i18n.t('Churn')}</div>
 				<div class="text-lg font-medium">{churnRate.toFixed(1)}%</div>
 				<div class="text-xs text-gray-400">{canceledSubscribers} {$i18n.t('canceled')}</div>
 			</div>
-			<div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3">
+			<div
+				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
+			>
 				<div class="text-xs text-gray-500">{$i18n.t('Total')}</div>
 				<div class="text-lg font-medium">{totalSubscribers}</div>
 				<div class="text-xs text-gray-400">{pastDueSubscribers} {$i18n.t('past due')}</div>
@@ -231,34 +259,52 @@
 		<!-- Plan Details & Revenue -->
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 			<!-- Plan Details -->
-			<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4">
+			<div
+				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+			>
 				<div class="text-sm font-medium mb-3">{$i18n.t('Plan Details')}</div>
 				<div class="grid grid-cols-2 gap-3 text-sm">
 					<div>
 						<div class="text-xs text-gray-500">{$i18n.t('Price')}</div>
-						<div class="font-medium">{formatPrice(plan.price, plan.currency)} / {$i18n.t(plan.interval)}</div>
+						<div class="font-medium">
+							{formatPrice(plan.price, plan.currency)} / {$i18n.t(plan.interval)}
+						</div>
 					</div>
 					<div>
 						<div class="text-xs text-gray-500">{$i18n.t('Status')}</div>
-						<span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+						<span
+							class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
 							{plan.is_active
 								? 'bg-green-500/20 text-green-700 dark:text-green-200'
-								: 'bg-gray-500/20 text-gray-700 dark:text-gray-200'}">
+								: 'bg-gray-500/20 text-gray-700 dark:text-gray-200'}"
+						>
 							{plan.is_active ? $i18n.t('Active') : $i18n.t('Inactive')}
 						</span>
 					</div>
 					{#if plan.quotas}
 						<div>
 							<div class="text-xs text-gray-500">{$i18n.t('Input Tokens')}</div>
-							<div class="font-medium">{plan.quotas.tokens_input !== null ? plan.quotas.tokens_input.toLocaleString($i18n.locale) : '∞'}</div>
+							<div class="font-medium">
+								{plan.quotas.tokens_input !== null
+									? plan.quotas.tokens_input.toLocaleString($i18n.locale)
+									: '∞'}
+							</div>
 						</div>
 						<div>
 							<div class="text-xs text-gray-500">{$i18n.t('Output Tokens')}</div>
-							<div class="font-medium">{plan.quotas.tokens_output !== null ? plan.quotas.tokens_output.toLocaleString($i18n.locale) : '∞'}</div>
+							<div class="font-medium">
+								{plan.quotas.tokens_output !== null
+									? plan.quotas.tokens_output.toLocaleString($i18n.locale)
+									: '∞'}
+							</div>
 						</div>
 						<div>
 							<div class="text-xs text-gray-500">{$i18n.t('Requests')}</div>
-							<div class="font-medium">{plan.quotas.requests !== null ? plan.quotas.requests.toLocaleString($i18n.locale) : '∞'}</div>
+							<div class="font-medium">
+								{plan.quotas.requests !== null
+									? plan.quotas.requests.toLocaleString($i18n.locale)
+									: '∞'}
+							</div>
 						</div>
 					{/if}
 				</div>
@@ -266,10 +312,14 @@
 
 			<!-- Revenue Trend -->
 			{#if revenueData.length > 0}
-				<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4">
+				<div
+					class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+				>
 					<div class="flex items-center justify-between mb-3">
 						<div class="text-sm font-medium">{$i18n.t('Revenue Trend')}</div>
-						<span class="px-1.5 py-0.5 text-xs font-medium bg-yellow-500/20 text-yellow-700 dark:text-yellow-200 rounded">
+						<span
+							class="px-1.5 py-0.5 text-xs font-medium bg-yellow-500/20 text-yellow-700 dark:text-yellow-200 rounded"
+						>
 							{$i18n.t('Demo')}
 						</span>
 					</div>
@@ -296,7 +346,9 @@
 		</div>
 
 		<!-- Subscribers List -->
-		<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30">
+		<div
+			class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30"
+		>
 			<div class="px-4 py-3 border-b border-gray-100/30 dark:border-gray-850/30">
 				<div class="text-sm font-medium">{$i18n.t('Subscribers')} ({totalSubscribers})</div>
 			</div>
@@ -310,28 +362,48 @@
 					<table class="w-full">
 						<thead>
 							<tr class="border-b border-gray-100/30 dark:border-gray-850/30 text-left">
-								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase">{$i18n.t('User')}</th>
-								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase">{$i18n.t('Email')}</th>
-								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase">{$i18n.t('Status')}</th>
-								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase">{$i18n.t('Subscribed')}</th>
-								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase">{$i18n.t('Next Billing')}</th>
+								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase"
+									>{$i18n.t('User')}</th
+								>
+								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase"
+									>{$i18n.t('Email')}</th
+								>
+								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase"
+									>{$i18n.t('Status')}</th
+								>
+								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase"
+									>{$i18n.t('Subscribed')}</th
+								>
+								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase"
+									>{$i18n.t('Next Billing')}</th
+								>
 							</tr>
 						</thead>
 						<tbody>
 							{#each subscribers as subscriber}
-								<tr class="border-b border-gray-100/30 dark:border-gray-850/30 hover:bg-black/5 dark:hover:bg-white/5">
+								<tr
+									class="border-b border-gray-100/30 dark:border-gray-850/30 hover:bg-black/5 dark:hover:bg-white/5"
+								>
 									<td class="px-4 py-2">
 										<div class="font-medium text-sm">{subscriber.name || 'Unknown'}</div>
 										<div class="text-xs text-gray-500">{subscriber.user_id.slice(0, 8)}...</div>
 									</td>
 									<td class="px-4 py-2 text-sm">{subscriber.email}</td>
 									<td class="px-4 py-2">
-										<span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium {getStatusColor(subscriber.subscription_status)}">
+										<span
+											class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium {getStatusColor(
+												subscriber.subscription_status
+											)}"
+										>
 											{getStatusLabel(subscriber.subscription_status)}
 										</span>
 									</td>
-									<td class="px-4 py-2 text-sm text-gray-500">{formatDate(subscriber.subscribed_at)}</td>
-									<td class="px-4 py-2 text-sm text-gray-500">{formatDate(subscriber.current_period_end)}</td>
+									<td class="px-4 py-2 text-sm text-gray-500"
+										>{formatDate(subscriber.subscribed_at)}</td
+									>
+									<td class="px-4 py-2 text-sm text-gray-500"
+										>{formatDate(subscriber.current_period_end)}</td
+									>
 								</tr>
 							{/each}
 						</tbody>
@@ -340,9 +412,14 @@
 
 				<!-- Pagination -->
 				{#if totalPages > 1}
-					<div class="flex items-center justify-between px-4 py-3 border-t border-gray-100/30 dark:border-gray-850/30">
+					<div
+						class="flex items-center justify-between px-4 py-3 border-t border-gray-100/30 dark:border-gray-850/30"
+					>
 						<div class="text-xs text-gray-500">
-							{$i18n.t('Page')} {currentPage} {$i18n.t('of')} {totalPages}
+							{$i18n.t('Page')}
+							{currentPage}
+							{$i18n.t('of')}
+							{totalPages}
 						</div>
 						<div class="flex items-center gap-1">
 							<button

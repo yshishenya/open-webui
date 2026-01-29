@@ -16,6 +16,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Static Assets Organization](#static-assets-organization)
 2. [Theme System Implementation](#theme-system-implementation)
 3. [Configuration Files](#configuration-files)
@@ -31,6 +32,7 @@ The root `/static` directory includes theme CSS files in the `/static/themes` su
 In contrast, the backend static directory `/backend/open_webui/static` contains assets specifically required by the backend services, including PDF styling rules in `assets/pdf-style.css`, Swagger UI interface styles, and shared web manifest files. These assets are served through the backend application and are typically not intended for direct user modification.
 
 **Section sources**
+
 - [site.webmanifest](file://static/static/site.webmanifest)
 - [site.webmanifest](file://backend/open_webui/static/site.webmanifest)
 - [pdf-style.css](file://backend/open_webui/static/assets/pdf-style.css)
@@ -69,11 +71,13 @@ ThemeSystem --> ThemeFile : "applies"
 ```
 
 **Diagram sources**
+
 - [rosepine.css](file://static/themes/rosepine.css)
 - [rosepine-dawn.css](file://static/themes/rosepine-dawn.css)
 - [app.html](file://src/app.html#L49-L72)
 
 **Section sources**
+
 - [rosepine.css](file://static/themes/rosepine.css)
 - [rosepine-dawn.css](file://static/themes/rosepine-dawn.css)
 - [app.html](file://src/app.html#L49-L72)
@@ -103,11 +107,13 @@ Purpose3 --> Result3["Installable web application"]
 ```
 
 **Diagram sources**
+
 - [opensearch.xml](file://static/opensearch.xml)
 - [robots.txt](file://static/robots.txt)
 - [site.webmanifest](file://static/static/site.webmanifest)
 
 **Section sources**
+
 - [opensearch.xml](file://static/opensearch.xml)
 - [robots.txt](file://static/robots.txt)
 - [site.webmanifest](file://static/static/site.webmanifest)
@@ -149,11 +155,13 @@ StaticFiles-->>Browser : Return CSS content
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/main.py#L2252-L2283)
 - [app.html](file://src/app.html#L1-L51)
 - [pdf-style.css](file://backend/open_webui/static/assets/pdf-style.css)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L2252-L2283)
 - [app.html](file://src/app.html#L1-L72)
 - [pdf-style.css](file://backend/open_webui/static/assets/pdf-style.css)
@@ -171,6 +179,7 @@ When referencing assets in code, use the `/static/` path prefix consistently and
 Finally, document any custom assets or themes added to the system, explaining their purpose and usage. This documentation helps other developers understand the asset structure and maintain consistency across the codebase.
 
 **Section sources**
+
 - [rosepine.css](file://static/themes/rosepine.css)
 - [rosepine-dawn.css](file://static/themes/rosepine-dawn.css)
 - [site.webmanifest](file://static/static/site.webmanifest)

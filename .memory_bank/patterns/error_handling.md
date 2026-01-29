@@ -1,6 +1,7 @@
 # Error Handling Patterns
 
 ## Philosophy
+
 - Fail fast and explicitly
 - Always log errors with context
 - User-facing errors should be actionable
@@ -13,7 +14,9 @@
 ## Error Categories
 
 ### 1. Client Errors (4xx)
+
 **User input issues, authentication failures, authorization problems**
+
 - 400 Bad Request - Malformed request
 - 401 Unauthorized - Missing or invalid authentication
 - 403 Forbidden - Insufficient permissions
@@ -23,21 +26,27 @@
 - 429 Too Many Requests - Rate limit / quota exceeded
 
 ### 2. Server Errors (5xx)
+
 **Internal failures, service unavailability**
+
 - 500 Internal Server Error - Unexpected server error
 - 502 Bad Gateway - External service failure
 - 503 Service Unavailable - Temporary service downtime
 - 504 Gateway Timeout - External service timeout
 
 ### 3. Business Logic Errors
+
 **Application-specific rule violations**
+
 - Quota exceeded
 - Subscription inactive
 - Invalid plan state
 - Payment processing failures
 
 ### 4. External Integration Errors
+
 **Third-party API failures**
+
 - YooKassa payment gateway errors
 - OpenAI/Anthropic API failures
 - Database connection errors
@@ -48,6 +57,7 @@
 ## FastAPI Exception Handling
 
 ### HTTPException Usage
+
 ```python
 from fastapi import HTTPException, status
 
@@ -92,6 +102,7 @@ if usage >= quota:
 ```
 
 ### Custom Exception Classes
+
 ```python
 class AirisException(Exception):
     """Base exception for Airis application"""
@@ -134,6 +145,7 @@ class AIProviderError(AirisException):
 ```
 
 ### Global Exception Handler
+
 ```python
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
@@ -208,6 +220,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 ## Error Handling Patterns
 
 ### Pattern 1: Try-Except with Specific Exceptions
+
 ```python
 from loguru import logger
 
@@ -294,6 +307,7 @@ async def create_payment(
 ```
 
 ### Pattern 2: Service Layer with Error Propagation
+
 ```python
 # utils/billing.py
 class BillingService:
@@ -371,6 +385,7 @@ async def create_subscription(
 ```
 
 ### Pattern 3: Retry with Exponential Backoff
+
 ```python
 import asyncio
 from typing import TypeVar, Callable
@@ -410,8 +425,9 @@ async def fetch_payment_status(payment_id: str):
 ```
 
 ### Pattern 4: Graceful Degradation
+
 ```python
-@router.get("/billing/me")
+@router.get("/me")
 async def get_billing_info(user=Depends(get_verified_user)):
     """Get billing info with graceful degradation"""
     result = {
@@ -453,6 +469,7 @@ async def get_billing_info(user=Depends(get_verified_user)):
 ## Logging Standards
 
 ### Structured Logging with Context
+
 ```python
 from loguru import logger
 
@@ -486,6 +503,7 @@ logger.error(
 ```
 
 ### Log Levels Usage
+
 - **DEBUG**: Detailed diagnostic information (SQL queries, API payloads)
 - **INFO**: General operational messages (payment created, user logged in)
 - **WARNING**: Unexpected but handled situations (quota approaching limit, slow query)
@@ -493,6 +511,7 @@ logger.error(
 - **CRITICAL**: Critical system failures (database down, all AI providers unavailable)
 
 ### What NOT to Log
+
 - API keys, secrets, passwords
 - Full payment card numbers (only last 4 digits)
 - Personal data (unless necessary and anonymized)
@@ -518,6 +537,7 @@ logger.info(f"Card charged: {card_number}")  # NEVER!
 ## Error Recovery Strategies
 
 ### Circuit Breaker Pattern
+
 ```python
 from datetime import datetime, timedelta
 
@@ -572,6 +592,7 @@ async def create_payment_with_breaker(...):
 ```
 
 ### Fallback Strategies
+
 ```python
 async def get_ai_response(prompt: str, model: str = "gpt-4"):
     """Get AI response with fallback to alternative models"""
@@ -596,6 +617,7 @@ async def get_ai_response(prompt: str, model: str = "gpt-4"):
 ## Error Monitoring & Alerting
 
 ### Sentry Integration (Optional)
+
 ```python
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastAPIIntegration
@@ -611,6 +633,7 @@ sentry_sdk.init(
 ```
 
 ### Custom Error Metrics
+
 ```python
 from prometheus_client import Counter, Histogram
 
@@ -644,6 +667,7 @@ async def error_metrics_middleware(request: Request, call_next):
 ## Testing Error Handling
 
 ### Unit Tests for Error Cases
+
 ```python
 import pytest
 from fastapi.testclient import TestClient
@@ -651,7 +675,7 @@ from fastapi.testclient import TestClient
 def test_create_payment_plan_not_found():
     """Test payment creation with non-existent plan"""
     response = client.post(
-        "/api/billing/payment",
+        "/api/v1/billing/payment",
         json={"plan_id": "nonexistent", "return_url": "https://example.com"},
         headers={"Authorization": f"Bearer {token}"}
     )
@@ -663,7 +687,7 @@ def test_create_payment_quota_exceeded():
     # Setup: User with exceeded quota
     # ...
 
-    response = client.post("/api/billing/payment", ...)
+    response = client.post("/api/v1/billing/payment", ...)
     assert response.status_code == 429
     assert "quota exceeded" in response.json()["detail"].lower()
 ```
@@ -671,5 +695,5 @@ def test_create_payment_quota_exceeded():
 ---
 
 **Last Updated**: 2025-12-11
-**Framework**: FastAPI 0.123.0
-**Logging**: Loguru 0.7.3
+**Framework**: FastAPI 0.128.0
+**Logging**: Standard `logging` routed into Loguru via `backend/open_webui/utils/logger.py`

@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Top-Level Directory Overview](#top-level-directory-overview)
 2. [Backend Structure](#backend-structure)
 3. [Frontend Structure](#frontend-structure)
@@ -28,6 +29,7 @@
 The open-webui repository follows a well-organized structure that separates concerns between backend, frontend, testing, deployment, and static assets. The top-level directories include backend/ for the FastAPI application, src/ for the Svelte frontend, cypress/ for end-to-end testing, kubernetes/ for deployment manifests, and static/ for themes and assets. This separation enables independent development and deployment of different application components while maintaining clear boundaries between concerns. The structure supports modularity and maintainability by grouping related functionality together and following established conventions for Python and Svelte applications.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py)
 - [index.ts](file://src/lib/index.ts)
 
@@ -65,9 +67,11 @@ User "1" -- "0..*" Chat : creates
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/models/users.py)
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/models/users.py)
 
 ### Routers Directory
@@ -86,9 +90,11 @@ Router-->>Client : 200 OK with chat data
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py)
 
 ### Retrieval Directory
@@ -127,9 +133,11 @@ VectorDBBase <|-- QdrantDB : implements
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/retrieval/vector/main.py)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/retrieval/vector/main.py)
 
 ### Utils Directory
@@ -137,6 +145,7 @@ VectorDBBase <|-- QdrantDB : implements
 The utils/ directory contains reusable utility functions and classes organized by concern, with subdirectories for specific functionality like images, telemetry, and OAuth. This structure promotes code reuse by providing a centralized location for common functionality that can be imported across the application. The flat structure within the utils directory follows a type-based organization, grouping related functions together while maintaining a shallow hierarchy that is easy to navigate. This approach balances discoverability with simplicity, making it straightforward to find and use utility functions.
 
 **Section sources**
+
 - [chat.py](file://backend/open_webui/utils/chat.py)
 - [config.py](file://backend/open_webui/config.py)
 
@@ -149,6 +158,7 @@ The src/ directory contains the Svelte frontend application with a structure tha
 The src/lib/components/ directory contains reusable UI components organized by feature area, with subdirectories for admin, channel, chat, common, icons, layout, notes, playground, and workspace components. This organization follows a hybrid approach that combines feature-based and type-based grouping, making it easy to locate components related to specific functionality while maintaining a logical hierarchy. The common/ subdirectory contains generic UI elements like buttons, modals, and form controls that can be used across features, while feature-specific directories contain components tailored to particular use cases.
 
 **Section sources**
+
 - [index.ts](file://src/lib/index.ts)
 
 ### Routes Directory
@@ -156,6 +166,7 @@ The src/lib/components/ directory contains reusable UI components organized by f
 The src/routes/ directory contains the application's page routes defined using SvelteKit's file-based routing system. The structure uses nested directories and special naming conventions like (app) for route groups and +page.svelte for page components. This approach enables complex routing patterns while maintaining a clear mapping between URL paths and file locations. The layout components (+layout.svelte) provide shared UI elements and logic for groups of pages, promoting consistency across the application. This structure supports both static and dynamic routes, with parameterized routes using square bracket syntax for dynamic segments.
 
 **Section sources**
+
 - [index.ts](file://src/lib/index.ts)
 
 ### APIs Directory
@@ -163,6 +174,7 @@ The src/routes/ directory contains the application's page routes defined using S
 The src/lib/apis/ directory contains API client modules organized by feature, with each subdirectory corresponding to a specific domain such as admin, audio, auths, or billing. This structure mirrors the backend's router organization, creating a clear correspondence between frontend API clients and backend endpoints. Each API module exports functions that wrap fetch calls to specific endpoints, handling request formatting, authentication, and response parsing. This approach centralizes API interactions and provides a consistent interface for consuming backend services throughout the frontend application.
 
 **Section sources**
+
 - [index.ts](file://src/lib/index.ts)
 
 ## Testing with Cypress
@@ -183,9 +195,11 @@ I --> J[Test Complete]
 ```
 
 **Diagram sources**
+
 - [chat.cy.ts](file://cypress/e2e/chat.cy.ts)
 
 **Section sources**
+
 - [chat.cy.ts](file://cypress/e2e/chat.cy.ts)
 
 ## Kubernetes Deployment
@@ -193,6 +207,7 @@ I --> J[Test Complete]
 The kubernetes/ directory contains deployment manifests organized by environment, with base/ containing common configuration and gpu/ containing GPU-specific overrides. This structure follows Kubernetes best practices for configuration management, using Kustomize to manage environment-specific variations. The manifests define the application's deployment, service, ingress, persistent volume claim, and stateful set resources, providing a complete specification for running the application in a Kubernetes cluster. This approach enables consistent deployments across environments while allowing for necessary variations in resource allocation and configuration.
 
 **Section sources**
+
 - [open-webui.yaml](file://kubernetes/manifest/base/open-webui.yaml)
 
 ## Static Assets and Themes
@@ -218,9 +233,11 @@ RosePine : +--text : #e0def4
 ```
 
 **Diagram sources**
+
 - [rosepine.css](file://static/themes/rosepine.css)
 
 **Section sources**
+
 - [rosepine.css](file://static/themes/rosepine.css)
 
 ## Navigation Patterns and Contribution Guidelines
@@ -228,5 +245,6 @@ RosePine : +--text : #e0def4
 The open-webui codebase follows consistent navigation patterns that make it easy to locate related functionality across the frontend and backend. Feature parity between the models, routers, and APIs directories creates a predictable structure where developers can find related code by following the feature-based organization. When contributing to the codebase, developers should maintain this pattern by creating corresponding files in each relevant directory when adding new features. For backend changes, this means adding a model, router, and any necessary utility functions. For frontend changes, it involves creating components, API clients, and routes as needed. This approach ensures consistency across the codebase and makes it easier for team members to understand and extend the application's functionality.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py)
 - [index.ts](file://src/lib/index.ts)

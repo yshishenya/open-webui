@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Billing Plan Initialization Script](#billing-plan-initialization-script)
 3. [Database Schema and Migration](#database-schema-and-migration)
@@ -21,6 +22,7 @@
 7. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive guidance on the initial data population process for open-webui, with a focus on the initialization of billing plans through the `init_billing_plans.py` script. The system requires specific initial data to function properly, particularly for the billing functionality that manages subscription plans, user quotas, and payment processing. The initialization process ensures that the database contains the necessary default billing configurations when the application starts for the first time. This documentation covers the technical implementation, integration with the application lifecycle, customization options, and common issues related to initial data setup.
 
 ## Billing Plan Initialization Script
@@ -58,9 +60,11 @@ PrintSummary --> End([Script Complete])
 ```
 
 **Diagram sources**
+
 - [init_billing_plans.py](file://backend/scripts/init_billing_plans.py#L29-L74)
 
 **Section sources**
+
 - [init_billing_plans.py](file://backend/scripts/init_billing_plans.py#L1-L120)
 
 ## Database Schema and Migration
@@ -150,10 +154,12 @@ billing_plan ||--o{ billing_audit_log : "audits"
 ```
 
 **Diagram sources**
+
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L18-L187)
 - [billing.py](file://backend/open_webui/models/billing.py#L54-L292)
 
 **Section sources**
+
 - [b2f8a9c1d5e3_add_billing_tables.py](file://backend/open_webui/migrations/versions/b2f8a9c1d5e3_add_billing_tables.py#L1-L187)
 - [db.py](file://backend/open_webui/internal/db.py#L1-L165)
 
@@ -201,10 +207,12 @@ Script->>App : Return exit code
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/main.py#L574-L575)
 - [init_billing_plans.py](file://backend/scripts/init_billing_plans.py#L77-L119)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L569-L655)
 - [init_billing_plans.py](file://backend/scripts/init_billing_plans.py#L77-L119)
 
@@ -243,10 +251,12 @@ VerifyData --> End([Customization Complete])
 ```
 
 **Diagram sources**
+
 - [plan_templates.py](file://backend/open_webui/utils/plan_templates.py#L10-L305)
 - [init_billing_plans.py](file://backend/scripts/init_billing_plans.py#L79-L89)
 
 **Section sources**
+
 - [plan_templates.py](file://backend/open_webui/utils/plan_templates.py#L1-L305)
 - [init_billing_plans.py](file://backend/scripts/init_billing_plans.py#L79-L89)
 
@@ -286,12 +296,15 @@ UnknownIssue --> End
 ```
 
 **Diagram sources**
+
 - [init_billing_plans.py](file://backend/scripts/init_billing_plans.py#L53-L61)
 - [env.py](file://backend/open_webui/env.py#L11-L20)
 
 **Section sources**
+
 - [init_billing_plans.py](file://backend/scripts/init_billing_plans.py#L53-L61)
 - [env.py](file://backend/open_webui/env.py#L11-L20)
 
 ## Conclusion
+
 The initial data population process for open-webui, particularly the initialization of billing plans, is a critical step in setting up the application for production use. The `init_billing_plans.py` script provides a robust mechanism for populating the database with default billing configurations, with safeguards against duplicate data insertion and options for customization. The integration with the application lifecycle through configuration settings ensures that the initialization can be controlled based on deployment requirements. By understanding the database schema, customization options, and common issues, administrators can effectively manage the initial data setup and ensure the billing system functions correctly from the start.

@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -27,7 +28,9 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document provides comprehensive API documentation for the chat functionality, covering:
+
 - RESTful endpoints for chat creation, retrieval, deletion, archiving, cloning, tagging, and sharing
 - WebSocket interactions for real-time message streaming and event propagation
 - Authentication and permissions
@@ -37,6 +40,7 @@ This document provides comprehensive API documentation for the chat functionalit
 - Performance considerations and pagination recommendations
 
 ## Project Structure
+
 The chat system spans backend routers, models, utilities, and WebSocket handlers, with a frontend API wrapper that consumes the backend endpoints.
 
 ```mermaid
@@ -64,6 +68,7 @@ SSE --> FE
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L1-L942)
 - [socket_main.py](file://backend/open_webui/socket/main.py#L1-L839)
 - [chats_model.py](file://backend/open_webui/models/chats.py#L1-L1175)
@@ -75,6 +80,7 @@ SSE --> FE
 - [frontend_streaming_api.ts](file://src/lib/apis/streaming/index.ts#L43-L93)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L1-L942)
 - [socket_main.py](file://backend/open_webui/socket/main.py#L1-L839)
 - [chats_model.py](file://backend/open_webui/models/chats.py#L1-L1175)
@@ -86,6 +92,7 @@ SSE --> FE
 - [frontend_streaming_api.ts](file://src/lib/apis/streaming/index.ts#L43-L93)
 
 ## Core Components
+
 - REST chat router: Defines endpoints for CRUD operations, search, archives, tags, sharing, and metadata management.
 - Chat model: Defines the chat schema and message map persistence logic.
 - Message model: Defines message schema and related operations.
@@ -94,6 +101,7 @@ SSE --> FE
 - Frontend API wrapper: Provides typed fetch helpers for chat operations and streaming.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L1-L942)
 - [chats_model.py](file://backend/open_webui/models/chats.py#L1-L1175)
 - [messages_model.py](file://backend/open_webui/models/messages.py#L1-L463)
@@ -102,6 +110,7 @@ SSE --> FE
 - [frontend_chats_api.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 
 ## Architecture Overview
+
 The chat API integrates REST endpoints with WebSocket streaming. REST endpoints manage chat lifecycle and metadata, while WebSocket handles real-time events and streaming responses. The chat utilities coordinate model routing and billing.
 
 ```mermaid
@@ -131,6 +140,7 @@ Utils-->>Client : "SSE stream"
 ```
 
 **Diagram sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L420-L560)
 - [chat_utils.py](file://backend/open_webui/utils/chat.py#L171-L332)
 - [socket_main.py](file://backend/open_webui/socket/main.py#L695-L800)
@@ -140,6 +150,7 @@ Utils-->>Client : "SSE stream"
 ## Detailed Component Analysis
 
 ### REST Endpoints: Chat Lifecycle and Management
+
 - Create new chat
   - Method: POST
   - Path: /chats/new
@@ -310,25 +321,31 @@ Utils-->>Client : "SSE stream"
   - Auth: Verified user
 
 Authentication and permissions:
+
 - get_verified_user is used for most endpoints.
 - Admin-only endpoints guarded by get_admin_user and permission checks.
 - Sharing requires "chat.share" permission for non-admin users.
 
 Pagination:
+
 - Many endpoints accept page with default limit (e.g., 60 or 10) and support skip/limit semantics.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L1-L942)
 - [frontend_chats_api.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 
 ### WebSocket Interactions: Real-time Streaming and Events
+
 WebSocket server manages connections, rooms, and event broadcasting. It exposes:
+
 - Connect/disconnect lifecycle
-- Rooms: user:{id}, channel:{id}, doc_{id}
-- Event handlers: usage, heartbeat, join-channels, join-note, events:channel, ydoc:* (collaborative editing)
+- Rooms: user:{id}, channel:{id}, doc\_{id}
+- Event handlers: usage, heartbeat, join-channels, join-note, events:channel, ydoc:\* (collaborative editing)
 - Event emitter: get_event_emitter emits "events" to user rooms and updates chat message content/status/embeds/files as needed.
 
 Key behaviors:
+
 - Authentication via token in connect/auth events.
 - Usage tracking pool records model usage per session.
 - Event types include "typing", "last_read_at", and custom message events (e.g., status, message, replace, embeds, files, source/citation).
@@ -350,24 +367,30 @@ WS-->>FE : "events broadcast"
 ```
 
 **Diagram sources**
+
 - [socket_main.py](file://backend/open_webui/socket/main.py#L288-L800)
 
 **Section sources**
+
 - [socket_main.py](file://backend/open_webui/socket/main.py#L1-L839)
 - [socket_utils.py](file://backend/open_webui/socket/utils.py#L1-L224)
 
 ### Message Format and Streaming Protocol
+
 Message format:
+
 - ChatResponse includes id, user_id, title, chat (JSON), timestamps, share_id, archived, pinned, meta, folder_id.
 - Chat messages are stored under chat.history.messages with currentId pointing to the latest message.
 - MessageForm for updating a specific message includes content and optional reply/parent metadata.
 
 Streaming protocol:
+
 - SSE (Server-Sent Events) is used for streaming responses.
 - Frontend adapter converts SSE to an iterator, handling done markers, error payloads, usage, and content deltas.
 - Backend streaming is produced by OpenAI/Ollama routers and wrapped by chat utilities for billing tracking and OpenAI-compatible deltas.
 
 Event types:
+
 - message_start, content_block, message_end are emitted as part of the streaming lifecycle via WebSocket events and SSE.
 
 ```mermaid
@@ -383,18 +406,21 @@ Done --> |Yes| End(["End Streaming"])
 ```
 
 **Diagram sources**
+
 - [frontend_streaming_api.ts](file://src/lib/apis/streaming/index.ts#L43-L93)
 - [chat_utils.py](file://backend/open_webui/utils/chat.py#L171-L332)
 - [openai_router.py](file://backend/open_webui/routers/openai.py#L1-L200)
 - [ollama_router.py](file://backend/open_webui/routers/ollama.py#L1-L200)
 
 **Section sources**
+
 - [chats_model.py](file://backend/open_webui/models/chats.py#L280-L370)
 - [messages_model.py](file://backend/open_webui/models/messages.py#L1-L200)
 - [chat_utils.py](file://backend/open_webui/utils/chat.py#L171-L332)
 - [frontend_streaming_api.ts](file://src/lib/apis/streaming/index.ts#L43-L93)
 
 ### Relationship Between Chats, Messages, and Models
+
 - Chats store conversation history as a JSON structure with messages keyed by message_id and currentId.
 - Messages are persisted separately (for channels) but chat messages are embedded in the chat JSON.
 - Models are resolved via request state or direct model injection. The chat utilities select models, enforce quotas, and route to providers.
@@ -446,32 +472,39 @@ ChatTable --> Message : "stores messages in chat.history"
 ```
 
 **Diagram sources**
+
 - [chats_model.py](file://backend/open_webui/models/chats.py#L1-L400)
 - [messages_model.py](file://backend/open_webui/models/messages.py#L1-L200)
 
 **Section sources**
+
 - [chats_model.py](file://backend/open_webui/models/chats.py#L1-L400)
 - [messages_model.py](file://backend/open_webui/models/messages.py#L1-L200)
 
 ### Error Handling
+
 Common error scenarios:
+
 - Model not found: raised when requested model is missing from MODELS registry.
 - Quota exceeded: enforced before Ollama requests; raises HTTPException for quota errors.
 - Connection errors: OpenAI/Ollama routers wrap provider errors and return structured details.
 - WebSocket usage cleanup: periodic cleanup lock prevents race conditions; failures are logged and retried.
 
 Recommendations:
+
 - For model timeouts, ensure provider-side timeouts and retries are configured appropriately.
 - For token limits, pre-estimate tokens and cap prompt sizes.
 - For connection issues, implement exponential backoff and circuit breaker patterns upstream.
 
 **Section sources**
+
 - [chat_utils.py](file://backend/open_webui/utils/chat.py#L270-L332)
 - [ollama_router.py](file://backend/open_webui/routers/ollama.py#L115-L194)
 - [openai_router.py](file://backend/open_webui/routers/openai.py#L72-L104)
 - [socket_main.py](file://backend/open_webui/socket/main.py#L167-L217)
 
 ## Dependency Analysis
+
 - REST endpoints depend on models for persistence and on chat utilities for streaming and model routing.
 - WebSocket server depends on Redis/Sentinel for distributed state and rooms.
 - Frontend API wrapper depends on REST endpoints and SSE streaming adapter.
@@ -488,6 +521,7 @@ WS --> Redis["Redis/Sentinel"]
 ```
 
 **Diagram sources**
+
 - [frontend_chats_api.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 - [chats.py](file://backend/open_webui/routers/chats.py#L1-L942)
 - [chats_model.py](file://backend/open_webui/models/chats.py#L1-L1175)
@@ -498,11 +532,13 @@ WS --> Redis["Redis/Sentinel"]
 - [ollama_router.py](file://backend/open_webui/routers/ollama.py#L1-L200)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L1-L942)
 - [socket_main.py](file://backend/open_webui/socket/main.py#L1-L839)
 - [chat_utils.py](file://backend/open_webui/utils/chat.py#L1-L490)
 
 ## Performance Considerations
+
 - Pagination: Use page-based pagination with reasonable limits (e.g., 60) to avoid large payloads.
 - Indexes: Chat table includes indexes on folder_id, user_id+archived, user_id+pinned, updated_at+user_id, folder_id+user_id for efficient queries.
 - Streaming: Prefer SSE streaming for long-running completions to reduce latency and memory footprint.
@@ -512,6 +548,7 @@ WS --> Redis["Redis/Sentinel"]
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - 401 Unauthorized: Verify token presence and validity; ensure user roles meet endpoint requirements.
 - 403 Access Prohibited: Check permissions for actions like sharing or deleting chats.
 - Model not found: Ensure model id exists in MODELS registry or direct model injection is used.
@@ -519,11 +556,13 @@ WS --> Redis["Redis/Sentinel"]
 - WebSocket disconnects: Check ping intervals, timeouts, and Redis connectivity.
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L70-L120)
 - [chat_utils.py](file://backend/open_webui/utils/chat.py#L270-L332)
 - [socket_main.py](file://backend/open_webui/socket/main.py#L167-L217)
 
 ## Conclusion
+
 The chat API provides a robust foundation for chat lifecycle management, real-time streaming, and collaborative features. REST endpoints handle metadata and persistence, while WebSocket enables low-latency event propagation. Proper pagination, streaming, and error handling ensure scalability and reliability.
 
 [No sources needed since this section summarizes without analyzing specific files]
@@ -533,10 +572,12 @@ The chat API provides a robust foundation for chat lifecycle management, real-ti
 ### API Reference Summary
 
 - Chat Creation and Import
+
   - POST /chats/new
   - POST /chats/import
 
 - Chat Retrieval and Search
+
   - GET /chats/ or /chats/list
   - GET /chats/search
   - GET /chats/folder/{folder_id}
@@ -549,6 +590,7 @@ The chat API provides a robust foundation for chat lifecycle management, real-ti
   - GET /chats/archived
 
 - Chat Operations
+
   - GET /chats/{id}
   - POST /chats/{id}
   - POST /chats/{id}/messages/{message_id}
@@ -570,10 +612,11 @@ The chat API provides a robust foundation for chat lifecycle management, real-ti
 - WebSocket Events
   - connect, user-join, heartbeat, join-channels, join-note
   - events:channel (typing, last_read_at)
-  - ydoc:* (collaborative editing)
+  - ydoc:\* (collaborative editing)
   - events (message updates, status, replace, embeds, files, source/citation)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/routers/chats.py#L1-L942)
 - [socket_main.py](file://backend/open_webui/socket/main.py#L288-L800)
 - [frontend_chats_api.ts](file://src/lib/apis/chats/index.ts#L1-L1169)

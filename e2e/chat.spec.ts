@@ -85,9 +85,7 @@ test.describe('Chat', () => {
 	test('user can perform text chat', async ({ page }) => {
 		test.slow();
 		await selectFirstModelOrSkip(page);
-		await page
-			.locator('#chat-input')
-			.fill('Hi, what can you do? A single sentence only please.');
+		await page.locator('#chat-input').fill('Hi, what can you do? A single sentence only please.');
 		await page.locator('button[type="submit"]').click();
 
 		const userMessages = await getUserMessages(page);
@@ -102,9 +100,7 @@ test.describe('Chat', () => {
 	test('user can share chat', async ({ page }) => {
 		test.slow();
 		await selectFirstModelOrSkip(page);
-		await page
-			.locator('#chat-input')
-			.fill('Hi, what can you do? A single sentence only please.');
+		await page.locator('#chat-input').fill('Hi, what can you do? A single sentence only please.');
 		await page.locator('button[type="submit"]').click();
 
 		const userMessages = await getUserMessages(page);
@@ -128,9 +124,7 @@ test.describe('Chat', () => {
 	test('user can generate image', async ({ page }) => {
 		test.slow();
 		await selectFirstModelOrSkip(page);
-		await page
-			.locator('#chat-input')
-			.fill('Hi, what can you do? A single sentence only please.');
+		await page.locator('#chat-input').fill('Hi, what can you do? A single sentence only please.');
 		await page.locator('button[type="submit"]').click();
 
 		const userMessages = await getUserMessages(page);
@@ -147,7 +141,10 @@ test.describe('Chat', () => {
 		await imageButton.click();
 		await Promise.race([
 			page.locator('img[data-cy="image"]').first().waitFor({ state: 'visible', timeout: 60_000 }),
-			page.getByText(/insufficient_funds/i).first().waitFor({ state: 'visible', timeout: 60_000 })
+			page
+				.getByText(/insufficient_funds/i)
+				.first()
+				.waitFor({ state: 'visible', timeout: 60_000 })
 		]);
 		if ((await page.getByText(/insufficient_funds/i).count()) > 0) {
 			test.skip(true, 'Insufficient funds to generate images');

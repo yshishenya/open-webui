@@ -10,6 +10,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [API Endpoint Overview](#api-endpoint-overview)
 3. [Response Model Structure](#response-model-structure)
@@ -25,6 +26,7 @@
 The Plan Subscribers Management API provides administrators with the ability to retrieve paginated lists of users subscribed to specific billing plans. This documentation details the `GET /admin/billing/plans/{plan_id}/subscribers` endpoint that enables retrieval of subscriber information for analytics, reporting, and administrative purposes. The endpoint returns comprehensive subscriber data including user details, subscription status, and billing period information in a paginated format to manage large datasets efficiently.
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L489-L558)
 
 ## API Endpoint Overview
@@ -32,6 +34,7 @@ The Plan Subscribers Management API provides administrators with the ability to 
 The `GET /admin/billing/plans/{plan_id}/subscribers` endpoint provides paginated access to users subscribed to a specific billing plan. This administrative endpoint requires authentication and is designed for use by system administrators to monitor and analyze subscription patterns.
 
 The endpoint accepts the following parameters:
+
 - `plan_id` (path parameter): The unique identifier of the billing plan
 - `page` (query parameter): The page number to retrieve (default: 1)
 - `page_size` (query parameter): The number of items per page (default: 20)
@@ -55,10 +58,12 @@ API-->>Admin : Return PaginatedSubscribersResponse
 ```
 
 **Diagram sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L489-L558)
 - [models/billing.py](file://backend/open_webui/models/billing.py#L350-L413)
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L489-L558)
 
 ## Response Model Structure
@@ -69,26 +74,26 @@ The endpoint returns data in the `PaginatedSubscribersResponse` model, which pro
 
 The response model includes the following fields:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| items | Array<PlanSubscriberModel> | List of subscriber objects for the current page |
-| total | Integer | Total number of subscribers for the plan |
-| page | Integer | Current page number |
-| page_size | Integer | Number of items per page |
-| total_pages | Integer | Total number of pages available |
+| Field       | Type                       | Description                                     |
+| ----------- | -------------------------- | ----------------------------------------------- |
+| items       | Array<PlanSubscriberModel> | List of subscriber objects for the current page |
+| total       | Integer                    | Total number of subscribers for the plan        |
+| page        | Integer                    | Current page number                             |
+| page_size   | Integer                    | Number of items per page                        |
+| total_pages | Integer                    | Total number of pages available                 |
 
 ### PlanSubscriberModel Fields
 
 Each subscriber in the `items` array contains the following information:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| user_id | String | Unique identifier of the user |
-| email | String | User's email address |
-| name | String | User's display name |
-| subscription_status | String | Current status of the subscription (e.g., "active", "canceled") |
-| subscribed_at | Integer | Unix timestamp when the subscription was created |
-| current_period_end | Integer | Unix timestamp when the current billing period ends |
+| Field               | Type    | Description                                                     |
+| ------------------- | ------- | --------------------------------------------------------------- |
+| user_id             | String  | Unique identifier of the user                                   |
+| email               | String  | User's email address                                            |
+| name                | String  | User's display name                                             |
+| subscription_status | String  | Current status of the subscription (e.g., "active", "canceled") |
+| subscribed_at       | Integer | Unix timestamp when the subscription was created                |
+| current_period_end  | Integer | Unix timestamp when the current billing period ends             |
 
 ```mermaid
 classDiagram
@@ -111,10 +116,12 @@ PaginatedSubscribersResponse "1" -- "0..*" PlanSubscriberModel : contains
 ```
 
 **Diagram sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L85-L92)
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L75-L83)
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L74-L92)
 
 ## Pagination Parameters
@@ -123,10 +130,10 @@ The endpoint supports pagination through two query parameters that control the s
 
 ### Parameter Details
 
-| Parameter | Type | Default | Constraints | Description |
-|---------|------|---------|-------------|-------------|
-| page | Integer | 1 | Minimum: 1 | Page number to retrieve (1-based indexing) |
-| page_size | Integer | 20 | Minimum: 1, Maximum: 100 | Number of subscribers to include per page |
+| Parameter | Type    | Default | Constraints              | Description                                |
+| --------- | ------- | ------- | ------------------------ | ------------------------------------------ |
+| page      | Integer | 1       | Minimum: 1               | Page number to retrieve (1-based indexing) |
+| page_size | Integer | 20      | Minimum: 1, Maximum: 100 | Number of subscribers to include per page  |
 
 ### Validation Rules
 
@@ -156,9 +163,11 @@ CalculatePagination --> ReturnResults["Return paginated results"]
 ```
 
 **Diagram sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L498-L504)
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L498-L504)
 
 ## Data Retrieval Process
@@ -190,10 +199,12 @@ I --> J[Return PaginatedSubscribersResponse]
 ```
 
 **Diagram sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L507-L548)
 - [models/billing.py](file://backend/open_webui/models/billing.py#L400-L412)
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L507-L548)
 
 ## Subscription Information
@@ -203,6 +214,7 @@ The API exposes detailed subscription information that provides insights into us
 ### Subscription Status
 
 The `subscription_status` field indicates the current state of a user's subscription. Possible values include:
+
 - `active`: The subscription is currently active and in good standing
 - `canceled`: The subscription has been canceled by the user
 - `past_due`: Payment is overdue for the subscription
@@ -223,6 +235,7 @@ The endpoint exposes two key timestamps related to the billing cycle:
 This information is valuable for analytics purposes, allowing administrators to track subscription trends, calculate churn rates, and forecast revenue.
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L536-L539)
 - [models/billing.py](file://backend/open_webui/models/billing.py#L129-L130)
 
@@ -232,11 +245,11 @@ The endpoint implements comprehensive error handling to provide meaningful feedb
 
 ### Error Types and Responses
 
-| Error Condition | HTTP Status Code | Response Detail |
-|----------------|------------------|-----------------|
-| Invalid plan_id | 404 Not Found | "Plan '{plan_id}' not found" |
-| System failure | 500 Internal Server Error | "Failed to get plan subscribers" |
-| Invalid pagination parameters | Automatically corrected | Parameters are normalized to valid ranges |
+| Error Condition               | HTTP Status Code          | Response Detail                           |
+| ----------------------------- | ------------------------- | ----------------------------------------- |
+| Invalid plan_id               | 404 Not Found             | "Plan '{plan_id}' not found"              |
+| System failure                | 500 Internal Server Error | "Failed to get plan subscribers"          |
+| Invalid pagination parameters | Automatically corrected   | Parameters are normalized to valid ranges |
 
 When a requested `plan_id` does not exist, the endpoint returns a 404 status code with a descriptive message. For system-level failures such as database connectivity issues, a 500 status code is returned. The system automatically handles invalid pagination parameters by normalizing them to acceptable values rather than rejecting the request.
 
@@ -254,10 +267,12 @@ G --> H[Return 500]
 ```
 
 **Diagram sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L509-L512)
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L553-L557)
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L509-L557)
 
 ## Performance Considerations
@@ -284,6 +299,7 @@ Potential improvements to enhance performance include:
 The maximum page size limit of 100 acts as a protective measure against abuse and helps maintain system stability, but administrators should be aware of the potential performance impact when dealing with plans that have large numbers of subscribers.
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L514-L524)
 
 ## Usage Examples
@@ -309,6 +325,7 @@ For analytics that require processing all subscribers, clients can implement pag
 3. Aggregate the subscriber data from all pages
 
 Administrators can use this data to calculate metrics such as:
+
 - Monthly Recurring Revenue (MRR)
 - Churn rate
 - Customer acquisition trends
@@ -317,5 +334,6 @@ Administrators can use this data to calculate metrics such as:
 The subscriber information can also be exported for further analysis in business intelligence tools or for integration with marketing platforms.
 
 **Section sources**
+
 - [admin_billing.py](file://backend/open_webui/routers/admin_billing.py#L489-L558)
 - [billing.ts](file://src/lib/apis/admin/billing.ts#L278-L314)

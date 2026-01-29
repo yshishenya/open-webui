@@ -99,34 +99,35 @@
 				redirectUrl: redirectUrl || window.location.origin,
 				responseMode: VKID.ConfigResponseMode.Callback,
 				source: VKID.ConfigSource.LOWCODE,
-				scope: 'email', // Request email permission
+				scope: 'email' // Request email permission
 			});
 
 			const oneTap = new VKID.OneTap();
 
-			vkidInstance = oneTap.render({
-				container: container,
-				scheme: scheme,
-				showAlternativeLogin: showAlternativeLogin,
-				styles: {
-					borderRadius: 18
-				},
-				oauthList: oauthList
-			})
-			.on(VKID.WidgetEvents.ERROR, handleVKIDError)
-			.on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, async (payload: any) => {
-				const code = payload.code;
-				const deviceId = payload.device_id;
+			vkidInstance = oneTap
+				.render({
+					container: container,
+					scheme: scheme,
+					showAlternativeLogin: showAlternativeLogin,
+					styles: {
+						borderRadius: 18
+					},
+					oauthList: oauthList
+				})
+				.on(VKID.WidgetEvents.ERROR, handleVKIDError)
+				.on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, async (payload: any) => {
+					const code = payload.code;
+					const deviceId = payload.device_id;
 
-				try {
-					// Use built-in exchange
-					const authData = await VKID.Auth.exchangeCode(code, deviceId);
-					await handleVKIDSuccess({ ...payload, ...authData });
-				} catch (error) {
-					// If built-in exchange fails, try our backend
-					await handleVKIDSuccess(payload);
-				}
-			});
+					try {
+						// Use built-in exchange
+						const authData = await VKID.Auth.exchangeCode(code, deviceId);
+						await handleVKIDSuccess({ ...payload, ...authData });
+					} catch (error) {
+						// If built-in exchange fails, try our backend
+						await handleVKIDSuccess(payload);
+					}
+				});
 		} catch (error) {
 			console.error('Failed to initialize VK ID:', error);
 		}

@@ -10,6 +10,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Action Function Interface Implementation](#action-function-interface-implementation)
 3. [Execution Flow and Integration](#execution-flow-and-integration)
@@ -19,6 +20,7 @@
 7. [Troubleshooting Guide](#troubleshooting-guide)
 
 ## Introduction
+
 Action Functions in the Functions Framework serve as a critical component for executing side effects and external interactions within the AI pipeline. These functions enable integration with external systems such as databases, APIs, and file systems, allowing for comprehensive post-processing operations after model responses. The framework supports various function types, with Action Functions specifically designed to perform operations that modify state or communicate with external services. This documentation details the implementation, execution patterns, error handling, and integration points for Action Functions, providing guidance for developers and administrators.
 
 ## Action Function Interface Implementation
@@ -30,6 +32,7 @@ Action Functions are defined as Python modules that can be dynamically loaded an
 The framework supports configuration through "valves," which are essentially configuration parameters that can be set at both global and user levels. These valves allow for customization of function behavior without modifying the underlying code. Global valves are stored in the function's valves field, while user-specific valves are stored in the user's settings object under the functions.valves namespace.
 
 **Section sources**
+
 - [models/functions.py](file://backend/open_webui/models/functions.py#L19-L395)
 - [utils/plugin.py](file://backend/open_webui/utils/plugin.py#L118-L166)
 
@@ -38,6 +41,7 @@ The framework supports configuration through "valves," which are essentially con
 Action Functions are executed as part of the post-processing stage after model responses. The execution flow begins when a chat request is processed and specific action IDs are identified in the model configuration. The system retrieves the relevant Action Functions from the database and loads their modules into memory.
 
 The execution process involves several key steps:
+
 1. Retrieval of the function module from cache or database
 2. Configuration of valves (both global and user-specific)
 3. Preparation of execution parameters including the request body, model information, and event emitters
@@ -67,10 +71,12 @@ Chat->>Client : Send Final Response
 ```
 
 **Diagram sources**
+
 - [utils/chat.py](file://backend/open_webui/utils/chat.py#L417-L490)
 - [functions.py](file://backend/open_webui/functions.py#L159-L354)
 
 **Section sources**
+
 - [utils/chat.py](file://backend/open_webui/utils/chat.py#L417-L490)
 - [functions.py](file://backend/open_webui/functions.py#L159-L354)
 
@@ -85,6 +91,7 @@ For streaming responses, the framework implements a generator pattern that yield
 The event emitter system enables real-time communication between the executing function and the client interface. Functions can emit events during their execution, which are then propagated to the client through WebSocket connections. This pattern allows for progress updates, status notifications, and intermediate results to be communicated to the user interface.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L159-L354)
 - [utils/plugin.py](file://backend/open_webui/utils/plugin.py#L118-L166)
 
@@ -97,6 +104,7 @@ During function loading, the system catches exceptions and logs detailed error i
 For execution errors, the framework uses try-except blocks to catch exceptions and return appropriate error responses to clients. The error handling system distinguishes between different types of errors, providing specific error messages for validation issues, external service failures, and internal processing errors.
 
 Security considerations are addressed through several mechanisms:
+
 1. Function execution occurs in isolated modules with restricted imports
 2. Admin privileges are required to create, modify, or delete functions
 3. User-specific valves allow for personalized configuration without exposing sensitive data
@@ -106,6 +114,7 @@ Security considerations are addressed through several mechanisms:
 The system also implements rate limiting and access control to prevent abuse of privileged operations. Functions that perform sensitive operations are typically restricted to administrative users or require explicit user consent.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L313-L316)
 - [models/functions.py](file://backend/open_webui/models/functions.py#L120-L132)
 - [routers/functions.py](file://backend/open_webui/routers/functions.py#L170-L175)
@@ -121,6 +130,7 @@ Notification systems utilize Action Functions to send alerts and updates to user
 Data synchronization functions maintain consistency between the application's internal state and external data sources. These functions can sync user profiles, chat histories, and document repositories with external systems, ensuring data integrity across platforms. For example, a function might synchronize user profile updates with an external CRM system or update contact information in a marketing automation platform.
 
 Other common use cases include:
+
 - Database operations for storing and retrieving structured data
 - API calls to external services for enhanced functionality
 - File system modifications for document management
@@ -130,6 +140,7 @@ Other common use cases include:
 These use cases demonstrate the flexibility and power of the Action Functions framework in extending the capabilities of the AI pipeline.
 
 **Section sources**
+
 - [routers/channels.py](file://backend/open_webui/routers/channels.py#L789-L813)
 - [utils/chat.py](file://backend/open_webui/utils/chat.py#L417-L490)
 
@@ -148,6 +159,7 @@ When troubleshooting issues with Action Functions, consider the following common
 **Performance Problems**: Long-running functions can impact system responsiveness. Consider implementing asynchronous processing or background tasks for operations that take significant time to complete. Monitor function execution times and optimize code as needed.
 
 **Debugging Tips**:
+
 - Enable detailed logging to capture function execution flow
 - Use the event emitter system to trace function progress
 - Test functions in isolation before integrating them into the pipeline
@@ -155,6 +167,7 @@ When troubleshooting issues with Action Functions, consider the following common
 - Monitor system resources during function execution
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L313-L316)
 - [models/functions.py](file://backend/open_webui/models/functions.py#L120-L132)
 - [routers/functions.py](file://backend/open_webui/routers/functions.py#L170-L175)

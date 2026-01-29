@@ -18,6 +18,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Chat System with AI Model Integration](#chat-system-with-ai-model-integration)
 2. [Document Processing and Knowledge Management](#document-processing-and-knowledge-management)
 3. [Model Management System](#model-management-system)
@@ -50,10 +51,12 @@ K --> |Yes| L[Conversation Complete]
 ```
 
 **Diagram sources**
+
 - [chat.py](file://backend/open_webui/utils/chat.py#L72-L331)
 - [chats.py](file://backend/open_webui/routers/chats.py#L133-L143)
 
 **Section sources**
+
 - [chats.py](file://backend/open_webui/models/chats.py#L26-L87)
 - [chat.py](file://backend/open_webui/utils/chat.py#L72-L331)
 
@@ -82,11 +85,13 @@ L --> M[Answer with Citations]
 ```
 
 **Diagram sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L36-L115)
 - [main.py](file://backend/open_webui/retrieval/vector/main.py#L6-L87)
 - [knowledge.py](file://backend/open_webui/routers/knowledge.py#L277-L339)
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L36-L115)
 - [main.py](file://backend/open_webui/retrieval/vector/main.py#L6-L87)
 
@@ -126,10 +131,12 @@ Model --> ModelMeta : "has"
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L55-L123)
 - [models.py](file://backend/open_webui/routers/models.py#L130-L166)
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L55-L123)
 - [models.py](file://backend/open_webui/routers/models.py#L130-L166)
 
@@ -161,12 +168,14 @@ Chat->>User : Display response with tool results
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L19-L35)
 - [tools.py](file://backend/open_webui/models/tools.py#L24-L54)
 - [functions.py](file://backend/open_webui/routers/functions.py#L235-L348)
 - [tools.py](file://backend/open_webui/routers/tools.py#L364-L420)
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L19-L35)
 - [tools.py](file://backend/open_webui/models/tools.py#L24-L54)
 - [functions.py](file://backend/open_webui/routers/functions.py#L235-L348)

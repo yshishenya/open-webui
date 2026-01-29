@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -23,9 +24,11 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive guidance for installing and running open-webui using Docker and docker-compose. It covers service configuration, environment variables, build processes, volume mappings, and deployment examples for both basic and GPU-enabled setups. The documentation also addresses common issues and performance optimization for production environments.
 
 ## Project Structure
+
 The open-webui project is structured with a clear separation between frontend and backend components, along with comprehensive Docker configuration files. The main Docker-related files are located at the root directory, while the backend service is contained in the `backend/` directory.
 
 ```mermaid
@@ -41,6 +44,7 @@ G --> I[requirements.txt]
 ```
 
 **Diagram sources**
+
 - [Dockerfile](file://Dockerfile)
 - [docker-compose.yaml](file://docker-compose.yaml)
 - [.env.example](file://.env.example)
@@ -49,19 +53,23 @@ G --> I[requirements.txt]
 - [backend/start.sh](file://backend/start.sh)
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile)
 - [docker-compose.yaml](file://docker-compose.yaml)
 - [.env.example](file://.env.example)
 
 ## Core Components
+
 The Docker installation for open-webui consists of three main services: the webui (airis), PostgreSQL database, and optional Ollama service. The system uses Docker build arguments to customize the build process and environment variables for runtime configuration.
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L1-L192)
 - [docker-compose.yaml](file://docker-compose.yaml#L1-L60)
 - [.env.example](file://.env.example#L1-L22)
 
 ## Architecture Overview
+
 The Docker architecture for open-webui follows a microservices pattern with clear separation of concerns. The webui service acts as the main application container, connecting to a PostgreSQL database for persistent storage and optionally integrating with Ollama for AI model serving.
 
 ```mermaid
@@ -76,12 +84,14 @@ end
 ```
 
 **Diagram sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L1-L60)
 - [Dockerfile](file://Dockerfile#L1-L192)
 
 ## Detailed Component Analysis
 
 ### Docker Build Configuration
+
 The Docker build process is highly configurable through build arguments that enable various features and optimizations. These build arguments are defined in the Dockerfile and can be passed during the build process to customize the container image.
 
 ```mermaid
@@ -101,12 +111,15 @@ G --> M[Set RAG reranking model]
 ```
 
 **Diagram sources**
+
 - [Dockerfile](file://Dockerfile#L4-L16)
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L1-L192)
 
 ### Service Configuration in docker-compose.yaml
+
 The docker-compose.yaml file defines the services required for open-webui, including the webui (airis), PostgreSQL database, and commented-out Ollama service. The configuration includes volume mappings, port configurations, and environment variables.
 
 ```mermaid
@@ -138,12 +151,15 @@ AirisService --> PostgresService : "depends on"
 ```
 
 **Diagram sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L1-L60)
 
 **Section sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L1-L60)
 
 ### Environment Variables Configuration
+
 Environment variables are used to configure the runtime behavior of the open-webui application. These variables can be set directly or through a .env file, with default values provided for essential configuration options.
 
 ```mermaid
@@ -159,7 +175,8 @@ C --> I[WEBUI_SECRET_KEY: auto-generated]
 C --> J[SCARF_NO_ANALYTICS: true]
 C --> K[DO_NOT_TRACK: true]
 C --> L[ANONYMIZED_TELEMETRY: false]
-D --> M[BILLING_ENABLED: true]
+D --> M[ENABLE_BILLING_WALLET: true]
+D --> N[ENABLE_BILLING_SUBSCRIPTIONS: false]
 D --> N[YOOKASSA_SHOP_ID: empty]
 D --> O[YOOKASSA_SECRET_KEY: empty]
 E --> P[CORS_ALLOW_ORIGIN: *]
@@ -167,14 +184,17 @@ E --> Q[FORWARDED_ALLOW_IPS: *]
 ```
 
 **Diagram sources**
+
 - [.env.example](file://.env.example#L1-L22)
 - [docker-compose.yaml](file://docker-compose.yaml#L43-L54)
 
 **Section sources**
+
 - [.env.example](file://.env.example#L1-L22)
 - [docker-compose.yaml](file://docker-compose.yaml#L43-L54)
 
 ### Build Process and Arguments
+
 The Docker build process is defined in the Dockerfile and supports several build arguments that customize the resulting image. These arguments control the inclusion of CUDA support, Ollama integration, and embedding models.
 
 ```mermaid
@@ -207,13 +227,16 @@ DockerBuild-->>Developer : Return final image
 ```
 
 **Diagram sources**
+
 - [Dockerfile](file://Dockerfile#L1-L192)
 - [backend/start.sh](file://backend/start.sh#L1-L87)
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L1-L192)
 
 ### Volume Mappings and Persistent Storage
+
 The Docker configuration includes volume mappings for persistent data storage across container restarts. These volumes ensure that application data, database information, and Ollama models are preserved.
 
 ```mermaid
@@ -231,14 +254,17 @@ I --> D
 ```
 
 **Diagram sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L36-L37)
 - [docker-compose.yaml](file://docker-compose.yaml#L20-L21)
 - [docker-compose.yaml](file://docker-compose.yaml#L57-L59)
 
 **Section sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L1-L60)
 
 ### Deployment Examples
+
 The open-webui project provides multiple deployment examples for different use cases, including basic deployment, GPU-enabled deployment, and API exposure.
 
 ```mermaid
@@ -258,16 +284,19 @@ I --> M[Uses bind mount for data]
 ```
 
 **Diagram sources**
+
 - [run-compose.sh](file://run-compose.sh#L1-L251)
 - [docker-compose.gpu.yaml](file://docker-compose.gpu.yaml#L1-L12)
 - [docker-compose.api.yaml](file://docker-compose.api.yaml#L1-L6)
 - [docker-compose.data.yaml](file://docker-compose.data.yaml#L1-L5)
 
 **Section sources**
+
 - [run-compose.sh](file://run-compose.sh#L1-L251)
 - [docker-compose.gpu.yaml](file://docker-compose.gpu.yaml#L1-L12)
 
 ## Dependency Analysis
+
 The open-webui Docker installation has several dependencies that are managed through Docker images, Python packages, and external services.
 
 ```mermaid
@@ -293,15 +322,18 @@ A --> S[Docker Compose]
 ```
 
 **Diagram sources**
+
 - [Dockerfile](file://Dockerfile#L26-L45)
 - [backend/requirements.txt](file://backend/requirements.txt#L1-L153)
 - [docker-compose.yaml](file://docker-compose.yaml#L11-L28)
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L1-L192)
 - [backend/requirements.txt](file://backend/requirements.txt#L1-L153)
 
 ## Performance Considerations
+
 For production deployments, several performance optimization strategies can be applied to improve the efficiency and responsiveness of the open-webui application.
 
 ```mermaid
@@ -329,11 +361,13 @@ F --> U[Enable compression]
 ```
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L4-L16)
 - [backend/start.sh](file://backend/start.sh#L73-L80)
 - [docker-compose.yaml](file://docker-compose.yaml#L11-L28)
 
 ## Troubleshooting Guide
+
 Common issues with the Docker installation of open-webui include container networking problems, volume permission issues, and database initialization errors.
 
 ```mermaid
@@ -361,9 +395,11 @@ F --> U[Test API endpoints]
 ```
 
 **Section sources**
+
 - [docker-compose.yaml](file://docker-compose.yaml#L52-L54)
 - [Dockerfile](file://Dockerfile#L106-L111)
 - [backend/start.sh](file://backend/start.sh#L23-L26)
 
 ## Conclusion
+
 The Docker installation process for open-webui provides a flexible and robust deployment option with support for various configurations and hardware setups. By leveraging Docker and docker-compose, users can easily deploy the application with persistent storage, optional GPU acceleration, and customizable environment settings. The comprehensive configuration options and deployment scripts make it suitable for both development and production environments.

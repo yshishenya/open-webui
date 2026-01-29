@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [SQLAlchemy Query Optimization](#sqlalchemy-query-optimization)
 3. [N+1 Query Problem Resolution](#n1-query-problem-resolution)
@@ -23,9 +24,11 @@
 8. [High-Concurrency Optimization](#high-concurrency-optimization)
 
 ## Introduction
+
 This document provides comprehensive guidance on database performance optimization for the open-webui application. It covers key aspects including SQLAlchemy query optimization, N+1 query problem resolution, Redis caching strategies, indexing approaches, connection pooling configuration, schema design principles, and high-concurrency optimization techniques. The analysis is based on the application's database architecture, migration files, and utility implementations.
 
 ## SQLAlchemy Query Optimization
+
 The open-webui application implements several optimization techniques for SQLAlchemy queries to enhance database performance. The application uses a centralized database configuration in `db.py` that establishes the SQLAlchemy engine with optimized parameters based on the database type and environment variables.
 
 For PostgreSQL and other non-SQLite databases, the application configures connection pooling with specific parameters that can be adjusted through environment variables. The connection pool is configured with `pool_pre_ping=True` to validate connections before use, preventing errors from stale connections. The pool configuration includes adjustable parameters such as `pool_size`, `max_overflow`, `pool_timeout`, and `pool_recycle` which control the number of connections maintained in the pool, the maximum number of connections that can be created beyond the pool size, the timeout for acquiring a connection, and the time after which connections are recycled, respectively.
@@ -51,13 +54,16 @@ K --> L["Create scoped_session"]
 ```
 
 **Diagram sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L114-L145)
 
 **Section sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L80-L164)
 - [env.py](file://backend/open_webui/env.py#L310-L349)
 
 ## N+1 Query Problem Resolution
+
 The application addresses the N+1 query problem through careful query construction and the use of SQLAlchemy's relationship loading techniques. In the `users.py` model, the application demonstrates proper handling of relationships between users and their associated data, such as groups and channels, by using explicit joins rather than lazy loading.
 
 For example, when retrieving users with their associated group memberships, the application uses a join operation to fetch the necessary data in a single query rather than making additional queries for each user's group memberships. This approach is evident in the `get_users` method of the `UsersTable` class, which uses SQLAlchemy's `exists` function with subqueries to efficiently filter users based on their group memberships without triggering additional queries.
@@ -77,14 +83,17 @@ Note right of API : Prevents N+1 queries by<br>fetching all data in one round tr
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L324-L367)
 - [messages.py](file://backend/open_webui/models/messages.py#L400-L407)
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L270-L453)
 - [messages.py](file://backend/open_webui/models/messages.py#L159-L188)
 
 ## Redis Caching Strategy
+
 The open-webui application implements a comprehensive Redis caching strategy to improve performance by reducing database load and accelerating data retrieval. The Redis configuration is managed through the `redis.py` utility, which provides a flexible connection interface supporting various Redis deployment patterns including standalone, sentinel, and cluster configurations.
 
 The application uses environment variables to configure Redis connectivity, allowing for different deployment scenarios. The `REDIS_URL` environment variable specifies the Redis connection string, while `REDIS_SENTINEL_HOSTS` and `REDIS_SENTINEL_PORT` enable sentinel-based high availability configurations. For clustered deployments, the `REDIS_CLUSTER` flag activates cluster mode.
@@ -123,16 +132,20 @@ end
 ```
 
 **Diagram sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L1-L231)
 
 **Section sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L1-L231)
 - [env.py](file://backend/open_webui/env.py#L379-L395)
 
 ## Indexing Strategies
+
 The open-webui application employs strategic indexing to optimize query performance based on actual usage patterns. The indexing strategy is implemented through Alembic migrations, with a specific migration file dedicated to adding performance-critical indexes.
 
 The `018012973d35_add_indexes.py` migration file demonstrates the application's indexing approach by adding indexes to support common query patterns. For the `chat` table, indexes are created on combinations of columns that are frequently used together in WHERE clauses and ORDER BY operations. These include:
+
 - `folder_id_idx` on the `folder_id` column for filtering chats by folder
 - `user_id_pinned_idx` on the combination of `user_id` and `pinned` columns for retrieving pinned chats
 - `user_id_archived_idx` on the combination of `user_id` and `archived` columns for filtering archived chats
@@ -189,14 +202,17 @@ index is_global_idx (is_global)
 ```
 
 **Diagram sources**
+
 - [018012973d35_add_indexes.py](file://backend/open_webui/migrations/versions/018012973d35_add_indexes.py#L18-L46)
 - [7e5b5dc7342b_init.py](file://backend/open_webui/migrations/versions/7e5b5dc7342b_init.py#L39-L52)
 
 **Section sources**
+
 - [018012973d35_add_indexes.py](file://backend/open_webui/migrations/versions/018012973d35_add_indexes.py#L1-L47)
 - [chats.py](file://backend/open_webui/models/chats.py#L26-L56)
 
 ## Database Connection Pooling
+
 The open-webui application implements sophisticated database connection pooling to optimize resource utilization and handle concurrent requests efficiently. The connection pooling strategy varies based on the database type and is configured through environment variables that allow for tuning based on deployment requirements.
 
 For non-SQLite databases, the application uses SQLAlchemy's `QueuePool` as the connection pool class, which maintains a pool of database connections that can be reused across requests. The pool size is controlled by the `DATABASE_POOL_SIZE` environment variable, with a default behavior of using unbounded pooling if not specified. The `DATABASE_POOL_MAX_OVERFLOW` parameter determines how many connections can be created beyond the base pool size to handle spikes in demand.
@@ -227,14 +243,17 @@ style H fill:#f9f,stroke:#333
 ```
 
 **Diagram sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L129-L145)
 - [env.py](file://backend/open_webui/env.py#L310-L352)
 
 **Section sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L114-L145)
 - [env.py](file://backend/open_webui/env.py#L310-L352)
 
 ## Schema Design Best Practices
+
 The open-webui application follows several database schema design best practices to ensure data integrity, performance, and maintainability. The schema design is implemented through Alembic migrations, with the initial schema defined in the `7e5b5dc7342b_init.py` migration file.
 
 One key design principle is the use of appropriate data types for different kinds of data. The application uses `BigInteger` for timestamp fields, which allows for nanosecond precision and avoids potential issues with timestamp overflow. Text fields are used for longer content like chat messages and document content, while String fields with specific lengths are used for identifiers and shorter text.
@@ -314,15 +333,18 @@ end
 ```
 
 **Diagram sources**
+
 - [7e5b5dc7342b_init.py](file://backend/open_webui/migrations/versions/7e5b5dc7342b_init.py#L1-L205)
 - [users.py](file://backend/open_webui/models/users.py#L45-L77)
 - [chats.py](file://backend/open_webui/models/chats.py#L26-L43)
 
 **Section sources**
+
 - [7e5b5dc7342b_init.py](file://backend/open_webui/migrations/versions/7e5b5dc7342b_init.py#L1-L205)
 - [db.py](file://backend/open_webui/internal/db.py#L31-L51)
 
 ## High-Concurrency Optimization
+
 The open-webui application implements several strategies to optimize database performance in high-concurrency scenarios. These optimizations address potential bottlenecks in database access patterns, connection management, and query execution.
 
 One key optimization is the use of database-specific query patterns based on the underlying database dialect. In the `users.py` model, the application detects whether it is running against SQLite or PostgreSQL and adjusts the query syntax accordingly when searching within JSON fields. For SQLite, it uses the `contains` method, while for PostgreSQL, it uses the more efficient JSONB operators with `astext` conversion.
@@ -356,11 +378,13 @@ style O fill:#f9f,stroke:#333
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L300-L310)
 - [chats.py](file://backend/open_webui/models/chats.py#L716-L800)
 - [users.py](file://backend/open_webui/models/users.py#L551-L563)
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L300-L310)
 - [chats.py](file://backend/open_webui/models/chats.py#L716-L905)
 - [utils/misc.py](file://backend/open_webui/utils/misc.py#L1-L10)

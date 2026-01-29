@@ -14,6 +14,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Plugin System Overview](#plugin-system-overview)
 3. [Plugin Lifecycle and Initialization](#plugin-lifecycle-and-initialization)
@@ -25,9 +26,11 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 The Open WebUI plugin architecture provides a robust extensibility framework that enables developers to enhance the core application functionality through modular plugins. This document details the underlying plugin system, covering how plugins are loaded, initialized, and interact with the core application. The architecture supports two primary plugin types: functions and tools, each with distinct capabilities and integration patterns. The system is designed with security, performance, and developer experience in mind, providing comprehensive APIs for extending chat functionality, processing pipelines, and user interfaces.
 
 **Section sources**
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L1-L313)
 - [functions.py](file://backend/open_webui/functions.py#L1-L354)
 
@@ -55,11 +58,13 @@ Q[Frontend] --> R[Plugin UI]
 ```
 
 **Diagram sources **
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L1-L313)
 - [functions.py](file://backend/open_webui/functions.py#L1-L354)
 - [tools.py](file://backend/open_webui/models/tools.py#L1-L100)
 
 **Section sources**
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L1-L313)
 - [functions.py](file://backend/open_webui/functions.py#L1-L354)
 
@@ -98,11 +103,13 @@ end
 ```
 
 **Diagram sources **
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L71-L166)
 - [functions.py](file://backend/open_webui/functions.py#L60-L78)
 - [main.py](file://backend/open_webui/main.py#L582-L583)
 
 **Section sources**
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L71-L166)
 - [functions.py](file://backend/open_webui/functions.py#L60-L78)
 
@@ -131,11 +138,13 @@ C --> J
 ```
 
 **Diagram sources **
+
 - [socket/main.py](file://backend/open_webui/socket/main.py#L695-L798)
 - [middleware.py](file://backend/open_webui/utils/middleware.py#L144-L284)
 - [filter.py](file://backend/open_webui/utils/filter.py#L60-L137)
 
 **Section sources**
+
 - [socket/main.py](file://backend/open_webui/socket/main.py#L695-L798)
 - [middleware.py](file://backend/open_webui/utils/middleware.py#L144-L284)
 
@@ -164,11 +173,13 @@ M --> N[Authenticated Requests]
 ```
 
 **Diagram sources **
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L54-L68)
 - [env.py](file://backend/open_webui/env.py#L414-L446)
 - [tools.py](file://backend/open_webui/utils/tools.py#L254-L266)
 
 **Section sources**
+
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L54-L68)
 - [env.py](file://backend/open_webui/env.py#L414-L446)
 
@@ -181,6 +192,7 @@ During development, plugins can be tested in real-time by toggling their active 
 For distribution, plugins can be exported as JSON files containing all necessary code and configuration, or shared via GitHub URLs. The import system can fetch plugins directly from GitHub repositories, making it easy to distribute and update plugins. The version control integration allows developers to maintain plugins in external repositories while still using them in the application.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/routers/functions.py#L178-L234)
 - [tools.py](file://backend/open_webui/routers/tools.py#L244-L333)
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L267-L313)
@@ -194,6 +206,7 @@ Error handling is implemented through comprehensive exception management and log
 The configuration system supports both global and user-specific settings. Global valves apply to all users and are typically managed by administrators, while user valves allow individual users to customize plugin behavior according to their preferences. This dual configuration model provides flexibility while maintaining security and consistency.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/routers/functions.py#L374-L459)
 - [tools.py](file://backend/open_webui/routers/tools.py#L461-L559)
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L109-L113)
@@ -209,6 +222,7 @@ Security should be a primary consideration, with input validation, output saniti
 Documentation is essential, with clear comments, docstrings, and frontmatter descriptions that explain the plugin's purpose, configuration options, and usage patterns. This helps both end users and other developers understand and use the plugin effectively.
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/functions.py#L159-L175)
 - [middleware.py](file://backend/open_webui/utils/middleware.py#L126-L127)
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L51-L52)

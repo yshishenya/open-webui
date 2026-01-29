@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Database Configuration](#database-configuration)
 2. [Migration System Architecture](#migration-system-architecture)
 3. [Database Initialization Process](#database-initialization-process)
@@ -28,6 +29,7 @@ The open-webui application provides flexible database configuration through both
 Database connection settings can be configured through environment variables or directly in the application configuration. The main database URL is set using the DATABASE_URL environment variable, with a default value of sqlite:///{DATA_DIR}/webui.db for SQLite databases. For PostgreSQL connections, the URL should follow the format: postgresql://username:password@host:port/database_name.
 
 Key database configuration parameters include:
+
 - DATABASE_URL: Complete database connection string
 - DATABASE_TYPE: Type of database (postgresql, sqlite, etc.)
 - DATABASE_USER: Database username
@@ -37,6 +39,7 @@ Key database configuration parameters include:
 - DATABASE_NAME: Name of the database
 
 Connection pool settings are also configurable:
+
 - DATABASE_POOL_SIZE: Number of connections to maintain in the pool
 - DATABASE_POOL_MAX_OVERFLOW: Maximum number of connections to create beyond the pool size
 - DATABASE_POOL_TIMEOUT: Timeout for acquiring a connection from the pool
@@ -46,6 +49,7 @@ Connection pool settings are also configurable:
 The configuration also supports SQLCipher for encrypted SQLite databases, requiring the DATABASE_PASSWORD environment variable when using the sqlite+sqlcipher:// protocol.
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L272-L352)
 - [db.py](file://backend/open_webui/internal/db.py#L80-L145)
 
@@ -54,6 +58,7 @@ The configuration also supports SQLCipher for encrypted SQLite databases, requir
 The open-webui project implements a dual migration system using both Peewee migrations for initial schema setup and Alembic for ongoing database evolution. This architecture supports both SQLite and PostgreSQL databases while maintaining schema consistency across different database backends.
 
 The migration system consists of two distinct directories:
+
 1. internal/migrations: Contains Peewee-based migrations for core schema initialization
 2. migrations/versions: Contains Alembic-based migrations for application-level changes
 
@@ -76,10 +81,12 @@ G --> H[Database Ready]
 ```
 
 **Diagram sources **
+
 - [db.py](file://backend/open_webui/internal/db.py#L55-L80)
 - [config.py](file://backend/open_webui/config.py#L53-L70)
 
 **Section sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L53-L80)
 - [config.py](file://backend/open_webui/config.py#L53-L70)
 
@@ -90,6 +97,7 @@ The database initialization process in open-webui follows a specific sequence to
 The initialization begins with the detection and configuration of the database backend. The system checks for the presence of a DATABASE_URL environment variable, defaulting to a SQLite database in the data directory if not specified. For PostgreSQL connections, the URL must include the username, password, host, port, and database name.
 
 During initialization, the system performs several key operations:
+
 1. Database type detection and connection string normalization
 2. Creation of the data directory if it doesn't exist
 3. Migration of legacy database files (e.g., ollama.db to webui.db)
@@ -101,6 +109,7 @@ The initialization process also handles special cases such as encrypted database
 After the database connection is established, the system applies migrations in a specific order: first the Peewee migrations from the internal/migrations directory, followed by Alembic migrations from the migrations/versions directory. This ensures that the core schema is properly established before applying application-level changes.
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L272-L352)
 - [db.py](file://backend/open_webui/internal/db.py#L53-L80)
 
@@ -134,6 +143,7 @@ When running migrations, Alembic compares the current database schema with the e
 For production environments, it's recommended to run migrations during maintenance windows and to backup the database before applying significant schema changes. The system supports both online and offline migration modes, with online mode being the default for normal operation.
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L53-L70)
 - [alembic.ini](file://backend/open_webui/alembic.ini#L1-L115)
 - [env.py](file://backend/open_webui/migrations/env.py#L1-L109)
@@ -147,6 +157,7 @@ Peewee migration files (e.g., 001_initial_schema.py) use a Python-based approach
 Alembic migration files (e.g., 7e5b5dc7342b_init.py) follow a standard revision format with upgrade() and downgrade() functions. Each file includes metadata such as revision ID, creation date, and dependencies. The upgrade() function contains the operations to apply the migration, while downgrade() specifies how to revert it.
 
 Key aspects of migration file structure:
+
 - Revision identifiers using UUIDs for uniqueness
 - Conditional table creation using get_existing_tables()
 - Use of custom JSONField for storing structured data
@@ -154,6 +165,7 @@ Key aspects of migration file structure:
 - Proper constraint and index management
 
 The migration evolution shows a progression from basic schema elements to more complex features:
+
 1. Initial schema with core entities (users, chats, documents)
 2. Addition of metadata fields (created_at, updated_at)
 3. Introduction of new entity types (functions, tools, models)
@@ -179,10 +191,12 @@ L --> M[Add indexes, optimize schema]
 ```
 
 **Diagram sources **
+
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py#L1-L255)
 - [7e5b5dc7342b_init.py](file://backend/open_webui/migrations/versions/7e5b5dc7342b_init.py#L1-L205)
 
 **Section sources**
+
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py#L1-L255)
 - [7e5b5dc7342b_init.py](file://backend/open_webui/migrations/versions/7e5b5dc7342b_init.py#L1-L205)
 
@@ -191,30 +205,35 @@ L --> M[Add indexes, optimize schema]
 Several common issues may arise when configuring and migrating the open-webui database. Understanding these issues and their solutions can help maintain a stable database environment.
 
 **Migration Conflicts**: When multiple migrations attempt to modify the same table or column, conflicts can occur. To resolve this:
+
 - Ensure only one migration modifies a specific schema element
 - Use alembic branches to manage parallel development
 - Manually resolve conflicts by editing migration files
 - Test migrations thoroughly in a development environment
 
 **Database Connection Timeouts**: These typically occur when the application cannot establish a connection to the database server. Solutions include:
+
 - Verify database server is running and accessible
 - Check network connectivity between application and database
 - Adjust DATABASE_POOL_TIMEOUT value if connections are timing out
 - Ensure correct credentials and connection parameters
 
 **Schema Version Mismatches**: When the database schema version doesn't match the application expectations:
+
 - Run alembic current to check the current revision
 - Use alembic upgrade head to apply pending migrations
 - Verify that all migration files are present and correctly ordered
 - Check for manual schema changes that bypass migrations
 
 **"Relation Already Exists" Errors**: These occur when attempting to create tables that already exist:
+
 - The system uses get_existing_tables() to check for existing tables
 - Ensure migration scripts are idempotent (can be run multiple times safely)
 - Use conditional creation statements (IF NOT EXISTS)
 - Verify that the alembic_version table is properly maintained
 
 **PostgreSQL-Specific Issues**:
+
 - Ensure the postgresql:// protocol is used instead of postgres://
 - Verify that the database user has appropriate permissions
 - Check that the database schema (if specified) exists and is accessible
@@ -223,6 +242,7 @@ Several common issues may arise when configuring and migrating the open-webui da
 For troubleshooting, enable detailed logging by setting the DB_LOG_LEVEL environment variable to DEBUG. This provides insight into the migration process and database operations.
 
 **Section sources**
+
 - [util.py](file://backend/open_webui/migrations/util.py#L1-L16)
 - [env.py](file://backend/open_webui/migrations/env.py#L66-L88)
 - [db.py](file://backend/open_webui/internal/db.py#L55-L80)
@@ -232,6 +252,7 @@ For troubleshooting, enable detailed logging by setting the DB_LOG_LEVEL environ
 Safe migration rollback is critical for maintaining data integrity when issues arise. The open-webui migration system provides mechanisms for both automated and manual rollback procedures.
 
 For Alembic-based migrations, use the downgrade command to revert changes:
+
 ```bash
 # Roll back to the previous migration
 alembic downgrade -1
@@ -244,6 +265,7 @@ alembic downgrade base
 ```
 
 Before performing any rollback operation:
+
 1. Backup the database to prevent data loss
 2. Verify the current migration state with alembic current
 3. Review the downgrade() function in the migration file
@@ -254,12 +276,14 @@ The system's migration files include downgrade() functions that specify how to r
 For Peewee migrations, rollback is handled through the rollback() function in each migration file. The initial schema migration, for example, removes all tables in reverse order of creation.
 
 When rolling back multiple migrations:
+
 - Perform rollbacks one at a time to monitor the process
 - Verify database integrity after each step
 - Check application functionality after each rollback
 - Document the rollback process for future reference
 
 In cases where standard rollback procedures fail:
+
 - Restore from a recent backup
 - Manually correct schema inconsistencies
 - Reapply migrations in the correct order
@@ -268,5 +292,6 @@ In cases where standard rollback procedures fail:
 Always ensure that rollback procedures are tested in a non-production environment before applying them to production databases.
 
 **Section sources**
+
 - [7e5b5dc7342b_init.py](file://backend/open_webui/migrations/versions/7e5b5dc7342b_init.py#L190-L205)
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py#L237-L255)

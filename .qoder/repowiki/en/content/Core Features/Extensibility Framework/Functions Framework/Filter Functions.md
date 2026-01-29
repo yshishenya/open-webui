@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Filter Function Interface](#filter-function-interface)
 3. [Implementation and Decision-Making Patterns](#implementation-and-decision-making-patterns)
@@ -20,6 +21,7 @@
 7. [Performance Considerations](#performance-considerations)
 
 ## Introduction
+
 Filter functions in the Functions Framework serve as validation and gating mechanisms within the AI pipeline, determining whether a request should proceed based on custom logic. These functions are implemented as specialized components that can intercept requests at various stages of processing, evaluate them against defined criteria, and either allow them to continue or halt execution with custom error messages. The framework supports multiple filter types including inlet, outlet, and stream filters, each designed to operate at different points in the request-response cycle. Filter functions can be used for content moderation, access control, input validation, rate limiting, and other security or business logic requirements.
 
 ## Filter Function Interface
@@ -27,6 +29,7 @@ Filter functions in the Functions Framework serve as validation and gating mecha
 The filter function interface is implemented through the `process_filter_functions` function in the filter.py module. This function processes a collection of filter functions in a specified order, applying each filter to the request data. The interface supports different filter types (inlet, outlet, stream) which are executed at different stages of the request processing pipeline. Each filter function is loaded dynamically from the database and executed with appropriate parameters. The interface handles parameter preparation, valve application, and error handling during filter execution. Filters can modify the request data or raise exceptions to block requests. The system also supports file handling capabilities through the `file_handler` attribute, allowing filters to control file processing behavior.
 
 **Section sources**
+
 - [filter.py](file://backend/open_webui/utils/filter.py#L60-L136)
 
 ## Implementation and Decision-Making Patterns
@@ -61,9 +64,11 @@ HandleError --> End
 ```
 
 **Diagram sources **
+
 - [filter.py](file://backend/open_webui/utils/filter.py#L60-L136)
 
 **Section sources**
+
 - [filter.py](file://backend/open_webui/utils/filter.py#L25-L57)
 - [filter.py](file://backend/open_webui/utils/filter.py#L60-L136)
 
@@ -100,10 +105,12 @@ Note over FilterSystem,ExternalService : Filters can modify request data<br/>or 
 ```
 
 **Diagram sources **
+
 - [pipelines.py](file://backend/open_webui/routers/pipelines.py#L60-L109)
 - [middleware.py](file://backend/open_webui/utils/middleware.py#L96-L99)
 
 **Section sources**
+
 - [pipelines.py](file://backend/open_webui/routers/pipelines.py#L60-L109)
 - [middleware.py](file://backend/open_webui/utils/middleware.py#L96-L99)
 
@@ -137,10 +144,12 @@ style UseCases fill:#f9f,stroke:#333,stroke-width:2px
 ```
 
 **Diagram sources **
+
 - [filter.py](file://backend/open_webui/utils/filter.py#L60-L136)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L6-L140)
 
 **Section sources**
+
 - [filter.py](file://backend/open_webui/utils/filter.py#L60-L136)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L6-L140)
 
@@ -149,6 +158,7 @@ style UseCases fill:#f9f,stroke:#333,stroke-width:2px
 When troubleshooting filter logic issues, start by verifying that the filter function is properly registered in the database and marked as active. Check the filter's priority setting to ensure it executes in the expected order relative to other filters. Verify that the filter type (inlet, outlet, stream) matches the intended use case and that the corresponding handler method exists in the function module. For filters that are not executing as expected, confirm that the request model includes the filter in its configuration or that the filter is configured as global. When filters are raising unexpected errors, examine the function's exception handling and ensure that any required valves or user valves are properly configured. For performance issues, review the filter's execution time and consider whether database queries or external API calls can be optimized. Use the logging system to trace filter execution and identify where failures occur.
 
 **Section sources**
+
 - [filter.py](file://backend/open_webui/utils/filter.py#L125-L127)
 - [functions.py](file://backend/open_webui/functions.py#L223-L225)
 - [routers/functions.py](file://backend/open_webui/routers/functions.py#L258-L278)
@@ -158,6 +168,7 @@ When troubleshooting filter logic issues, start by verifying that the filter fun
 When implementing complex filtering rules, consider the performance implications of synchronous versus asynchronous execution. Synchronous filters block the request thread during execution, while asynchronous filters allow for non-blocking operation. For filters that perform database queries or external API calls, use asynchronous methods to prevent request queuing. Cache frequently accessed data to reduce database load, and consider implementing rate limiting to prevent abuse. When multiple filters are applied, ensure they are ordered by priority with the most selective filters first to minimize unnecessary processing. For high-traffic scenarios, consider offloading filter execution to external services to reduce load on the main application server. Monitor filter execution times and optimize any filters that consistently exceed acceptable latency thresholds. The system's built-in caching mechanism for function modules helps reduce the overhead of repeatedly loading the same filter code.
 
 **Section sources**
+
 - [filter.py](file://backend/open_webui/utils/filter.py#L72-L73)
 - [plugin.py](file://backend/open_webui/utils/plugin.py#L211-L264)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L54-L60)

@@ -59,8 +59,7 @@
 	$: filteredModels = models.filter((model) => {
 		const name = `${model.display_name} ${model.provider ?? ''}`.toLowerCase();
 		const matchesQuery = normalizedQuery ? name.includes(normalizedQuery) : true;
-		const matchesFilter =
-			filter === 'all' ? true : model.capabilities.includes(filter);
+		const matchesFilter = filter === 'all' ? true : model.capabilities.includes(filter);
 		return matchesQuery && matchesFilter;
 	});
 
@@ -111,12 +110,7 @@
 			/>
 		</div>
 		<div class="flex flex-wrap gap-2">
-			{#each [
-				{ id: 'all', label: 'Все' },
-				{ id: 'text', label: 'Текст' },
-				{ id: 'image', label: 'Изображения' },
-				{ id: 'audio', label: 'Аудио' }
-			] as option}
+			{#each [{ id: 'all', label: 'Все' }, { id: 'text', label: 'Текст' }, { id: 'image', label: 'Изображения' }, { id: 'audio', label: 'Аудио' }] as option}
 				<button
 					type="button"
 					on:click={() => handleFilterChange(option.id as 'all' | 'text' | 'image' | 'audio')}
@@ -132,9 +126,9 @@
 		</div>
 	</div>
 
-{#if showUpdatedAt}
-	<p class="text-xs text-gray-500">Ставки обновлены {updatedAtLabel}</p>
-{/if}
+	{#if showUpdatedAt}
+		<p class="text-xs text-gray-500">Ставки обновлены {updatedAtLabel}</p>
+	{/if}
 
 	{#if loading}
 		<div class="space-y-3">
@@ -160,7 +154,9 @@
 							<span title="Ввод = ваш запрос. Цена за 1 000 токенов.">Текст (ввод) — за 1 000</span>
 						</th>
 						<th class="text-left px-4 py-3">
-							<span title="Ответ = ответ модели. Цена за 1 000 токенов.">Текст (ответ) — за 1 000</span>
+							<span title="Ответ = ответ модели. Цена за 1 000 токенов."
+								>Текст (ответ) — за 1 000</span
+							>
 						</th>
 						<th class="text-left px-4 py-3">
 							<span title="Изображение по фиксированной ставке.">Изображение (1024px)</span>

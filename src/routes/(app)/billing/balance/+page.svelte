@@ -13,7 +13,12 @@
 	} from '$lib/apis/billing';
 	import { getUserInfo } from '$lib/apis/users';
 	import type { Balance, LeadMagnetInfo, LedgerEntry } from '$lib/apis/billing';
-	import { formatCompactNumber, getUsagePercentage, getUsageColor, getQuotaLabel } from '$lib/utils/billing-formatters';
+	import {
+		formatCompactNumber,
+		getUsagePercentage,
+		getUsageColor,
+		getQuotaLabel
+	} from '$lib/utils/billing-formatters';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
@@ -147,8 +152,8 @@
 
 			await updateAutoTopup(localStorage.token, {
 				enabled: autoTopupEnabled,
-				threshold_kopeks: autoTopupEnabled ? threshold ?? undefined : undefined,
-				amount_kopeks: autoTopupEnabled ? amount ?? undefined : undefined
+				threshold_kopeks: autoTopupEnabled ? (threshold ?? undefined) : undefined,
+				amount_kopeks: autoTopupEnabled ? (amount ?? undefined) : undefined
 			});
 
 			toast.success($i18n.t('Auto-topup settings saved'));
@@ -264,8 +269,7 @@
 
 	$: leadMagnetMetrics = getLeadMagnetMetrics(leadMagnetInfo);
 	$: customTopupKopeks = parseMoneyInput(customTopup);
-	$: totalBalance =
-		(balance?.balance_topup_kopeks ?? 0) + (balance?.balance_included_kopeks ?? 0);
+	$: totalBalance = (balance?.balance_topup_kopeks ?? 0) + (balance?.balance_included_kopeks ?? 0);
 
 	const formatEntryType = (type: string): string => {
 		const labels: Record<string, string> = {
@@ -355,7 +359,9 @@
 		</div>
 
 		<div class="space-y-4">
-			<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-5">
+			<div
+				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-5"
+			>
 				<div class="text-sm text-gray-500">{$i18n.t('Available now')}</div>
 				<div class="text-3xl font-semibold mt-1">
 					{formatMoney(totalBalance, balance.currency)}
@@ -366,7 +372,10 @@
 					</span>
 					{#if balance.balance_included_kopeks > 0}
 						<span>
-							{$i18n.t('From plan')}: {formatMoney(balance.balance_included_kopeks, balance.currency)}
+							{$i18n.t('From plan')}: {formatMoney(
+								balance.balance_included_kopeks,
+								balance.currency
+							)}
 						</span>
 						<span>
 							{$i18n.t('Included expires')}: {formatDateTime(balance.included_expires_at)}
@@ -376,7 +385,9 @@
 			</div>
 
 			{#if leadMagnetInfo?.enabled}
-				<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4">
+				<div
+					class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+				>
 					<div class="flex items-start justify-between mb-3">
 						<h3 class="text-sm font-medium">
 							{$i18n.t('Free limit')}
@@ -461,7 +472,9 @@
 						<button
 							type="button"
 							on:click={handleCustomTopup}
-							disabled={customTopupKopeks === null || customTopupKopeks <= 0 || creatingTopupAmount !== null}
+							disabled={customTopupKopeks === null ||
+								customTopupKopeks <= 0 ||
+								creatingTopupAmount !== null}
 							class="h-fit sm:self-end px-4 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
 						>
 							{creatingTopupAmount !== null && customTopupKopeks === creatingTopupAmount
@@ -474,7 +487,9 @@
 					</div>
 				</div>
 
-				<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4">
+				<div
+					class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+				>
 					<div class="flex items-center justify-between mb-3">
 						<div class="text-sm font-medium">{$i18n.t('Auto-topup')}</div>
 						<Switch state={autoTopupEnabled} on:change={(e) => (autoTopupEnabled = e.detail)} />
@@ -522,7 +537,9 @@
 				</div>
 			</div>
 
-			<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4">
+			<div
+				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+			>
 				<div class="text-sm font-medium mb-3">{$i18n.t('Spend controls')}</div>
 				<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 					<label class="flex flex-col gap-1 text-sm">
@@ -592,7 +609,9 @@
 				</div>
 			</div>
 
-			<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4">
+			<div
+				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+			>
 				<div class="flex items-center justify-between mb-3">
 					<div class="text-sm font-medium">{$i18n.t('Latest activity')}</div>
 					<a

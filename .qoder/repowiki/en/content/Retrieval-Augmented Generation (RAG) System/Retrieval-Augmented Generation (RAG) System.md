@@ -16,6 +16,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [RAG Pipeline Overview](#rag-pipeline-overview)
 3. [Document Ingestion and Processing](#document-ingestion-and-processing)
@@ -33,6 +34,7 @@ The Retrieval-Augmented Generation (RAG) System in open-webui provides a compreh
 The RAG system follows a pipeline approach that begins with document ingestion and processing, continues through vectorization and storage, and culminates in retrieval during chat sessions. This documentation provides a detailed analysis of the complete RAG pipeline, including the retrieval module architecture, web search integration, knowledge base management, and practical configuration examples.
 
 **Section sources**
+
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L1-L2504)
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 
@@ -57,12 +59,14 @@ M[Chat Session] --> F
 ```
 
 **Diagram sources **
+
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L1-L2504)
 - [utils.py](file://backend/open_webui/retrieval/utils.py#L1-L800)
 
 The retrieval process during chat sessions involves querying one or more vector databases with the user's query, potentially combined with web search results. The system supports hybrid search approaches that combine semantic search with keyword-based BM25 retrieval, followed by reranking to improve result relevance. The retrieved documents are then used to augment the context provided to the language model, enabling more informed and accurate responses.
 
 **Section sources**
+
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L1-L2504)
 - [utils.py](file://backend/open_webui/retrieval/utils.py#L1-L800)
 
@@ -118,9 +122,11 @@ DocumentLoader <|-- DoclingLoader
 ```
 
 **Diagram sources **
+
 - [main.py](file://backend/open_webui/retrieval/loaders/main.py#L1-L398)
 
 The system supports document loaders for various content extraction engines, including:
+
 - **Internal processing**: Using PyPDFLoader for PDFs, CSVLoader for CSV files, and TextLoader for plain text
 - **Tika Server**: For document content extraction via Apache Tika
 - **Datalab Marker**: For advanced PDF and document processing with AI-powered extraction
@@ -134,6 +140,7 @@ Each loader is selected based on the configured content extraction engine and th
 Text splitting is configurable through parameters such as CHUNK_SIZE and CHUNK_OVERLAP, which determine how documents are divided into smaller chunks for vectorization. The system uses LangChain's text splitters, including RecursiveCharacterTextSplitter and TokenTextSplitter, to handle different chunking strategies based on characters or tokens.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/retrieval/loaders/main.py#L1-L398)
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L31-L33)
 
@@ -186,10 +193,12 @@ VectorDBBase <|-- WeaviateClient
 ```
 
 **Diagram sources **
+
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
 - [chroma.py](file://backend/open_webui/retrieval/vector/dbs/chroma.py#L1-L199)
 
 The system supports the following vector databases:
+
 - **Chroma**: An open-source vector database with both in-memory and persistent storage options
 - **Qdrant**: A high-performance vector search engine with advanced filtering capabilities
 - **Pinecone**: A managed vector database service with serverless and dedicated options
@@ -228,10 +237,12 @@ Router-->>User : Enhanced Response
 ```
 
 **Diagram sources **
+
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L1-L2504)
 
 **Section sources**
+
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
 - [chroma.py](file://backend/open_webui/retrieval/vector/dbs/chroma.py#L1-L199)
 
@@ -286,12 +297,14 @@ WebSearchProvider <|-- FirecrawlProvider
 ```
 
 **Diagram sources **
+
 - [main.py](file://backend/open_webui/retrieval/web/main.py#L1-L47)
 - [tavily.py](file://backend/open_webui/retrieval/web/tavily.py#L1-L52)
 - [serpapi.py](file://backend/open_webui/retrieval/web/serpapi.py#L1-L51)
 - [google_pse.py](file://backend/open_webui/retrieval/web/google_pse.py#L1-L75)
 
 The system supports integration with multiple web search providers:
+
 - **Tavily**: An AI-native search API optimized for LLM applications
 - **SerpAPI**: A service that provides structured data from various search engines
 - **Google Programmable Search Engine (PSE)**: Google's custom search API
@@ -310,6 +323,7 @@ Each search provider is implemented as a separate module with a consistent inter
 Web search results are processed similarly to uploaded documents, with URLs being crawled and content extracted before being included in the retrieval context. The system includes domain filtering capabilities to restrict search results to specific websites or exclude unwanted domains.
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/retrieval/web/main.py#L1-L47)
 - [tavily.py](file://backend/open_webui/retrieval/web/tavily.py#L1-L52)
 - [serpapi.py](file://backend/open_webui/retrieval/web/serpapi.py#L1-L51)
@@ -366,9 +380,11 @@ USER ||--o{ GROUP : member_of
 ```
 
 **Diagram sources **
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 
 Knowledge bases support access control through configurable permissions that determine who can read from or write to a knowledge base. The access control system supports:
+
 - **Public access**: Available to all users with the "user" role
 - **Private access**: Restricted exclusively to the owner
 - **Custom permissions**: Specific access control for reading and writing, with support for group or user-level restrictions
@@ -378,6 +394,7 @@ The knowledge base system allows users to create multiple knowledge bases for di
 The system provides APIs for managing knowledge bases, including creating, updating, and deleting knowledge bases, as well as adding or removing documents from knowledge bases. These operations are reflected in the vector database, with documents being added to or removed from the appropriate collections.
 
 **Section sources**
+
 - [knowledge.py](file://backend/open_webui/models/knowledge.py#L1-L371)
 
 ## Configuration and Usage Examples
@@ -402,6 +419,7 @@ C --> C5[Pgvector: PGVECTOR_CONNECTION_STRING]
 ```
 
 **Diagram sources **
+
 - [factory.py](file://backend/open_webui/retrieval/vector/factory.py#L1-L79)
 
 ### Adding Web Search to a Model
@@ -424,9 +442,11 @@ D --> D3[WEB_SEARCH_DOMAIN_FILTER_LIST]
 ```
 
 **Diagram sources **
+
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L498-L548)
 
 The system provides API endpoints for retrieving and updating RAG configuration, allowing for dynamic reconfiguration without restarting the application. The configuration includes settings for:
+
 - Embedding models and batch sizes
 - Chunking strategies (size and overlap)
 - Retrieval parameters (top-k results)
@@ -435,6 +455,7 @@ The system provides API endpoints for retrieving and updating RAG configuration,
 - Content extraction engines for different document types
 
 **Section sources**
+
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L225-L800)
 
 ## Performance Considerations
@@ -444,6 +465,7 @@ The RAG system in open-webui includes several performance optimization features 
 ### Chunking Strategies
 
 The system supports configurable chunking strategies that balance information completeness with retrieval precision. Key parameters include:
+
 - **CHUNK_SIZE**: The maximum number of characters or tokens in each chunk
 - **CHUNK_OVERLAP**: The number of characters or tokens that overlap between adjacent chunks
 - **TEXT_SPLITTER**: The method used for splitting text (recursive character, token-based, or markdown headers)
@@ -453,6 +475,7 @@ Optimal chunk sizes depend on the use case and the language model's context wind
 ### Relevance Tuning
 
 The system implements hybrid search and reranking to improve result relevance:
+
 - **Hybrid search**: Combines semantic vector search with keyword-based BM25 retrieval
 - **Reranking**: Uses cross-encoder models to re-rank results based on query relevance
 - **Relevance threshold**: Filters results below a minimum relevance score
@@ -473,9 +496,11 @@ K[RELEVANCE_THRESHOLD] --> F
 ```
 
 **Diagram sources **
+
 - [utils.py](file://backend/open_webui/retrieval/utils.py#L207-L315)
 
 The system supports various reranking models, including:
+
 - Sentence Transformers cross-encoders
 - Jina ColBERT models
 - External reranking APIs
@@ -483,6 +508,7 @@ The system supports various reranking models, including:
 ### Asynchronous Processing
 
 To improve performance with large document collections, the system supports asynchronous embedding generation:
+
 - **ENABLE_ASYNC_EMBEDDING**: When enabled, document processing occurs in the background
 - **RAG_EMBEDDING_BATCH_SIZE**: Controls the number of documents processed in each batch
 - Thread pool execution for CPU-bound operations
@@ -490,6 +516,7 @@ To improve performance with large document collections, the system supports asyn
 These performance considerations allow the RAG system to scale effectively with growing document collections while maintaining responsive chat interactions.
 
 **Section sources**
+
 - [utils.py](file://backend/open_webui/retrieval/utils.py#L207-L315)
 - [retrieval.py](file://backend/open_webui/routers/retrieval.py#L244-L251)
 
@@ -498,6 +525,7 @@ These performance considerations allow the RAG system to scale effectively with 
 The Retrieval-Augmented Generation (RAG) System in open-webui provides a comprehensive and flexible framework for enhancing language model interactions with external knowledge sources. The system's modular architecture supports a wide range of document types, vector databases, and web search providers, making it adaptable to various use cases and deployment scenarios.
 
 Key strengths of the system include:
+
 - Support for multiple content extraction engines and document loaders
 - Flexible vector database backend with support for popular solutions
 - Integration with numerous web search providers for real-time information access

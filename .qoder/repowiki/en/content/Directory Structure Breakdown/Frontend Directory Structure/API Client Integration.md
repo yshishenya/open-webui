@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [API Client Architecture](#api-client-architecture)
 2. [Feature-Based Organization](#feature-based-organization)
 3. [HTTP Request Implementation](#http-request-implementation)
@@ -43,10 +44,12 @@ H[Response Processing] --> A
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 - [Chat.svelte](file://src/lib/components/chat/Chat.svelte#L1-L2642)
 
 **Section sources**
+
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 
 ## Feature-Based Organization
@@ -104,11 +107,13 @@ V --> V1[index.ts]
 ```
 
 **Diagram sources**
+
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 - [models/index.ts](file://src/lib/apis/models/index.ts#L1-L348)
 - [users/index.ts](file://src/lib/apis/users/index.ts#L1-L553)
 
 **Section sources**
+
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 - [models/index.ts](file://src/lib/apis/models/index.ts#L1-L348)
 - [users/index.ts](file://src/lib/apis/users/index.ts#L1-L553)
@@ -138,10 +143,12 @@ API-->>Component : Return data or throw error
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 
 **Section sources**
+
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 
@@ -166,11 +173,13 @@ G --> H[FastAPI Backend]
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 - [users/index.ts](file://src/lib/apis/users/index.ts#L1-L553)
 
 **Section sources**
+
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 - [users/index.ts](file://src/lib/apis/users/index.ts#L1-L553)
@@ -199,10 +208,12 @@ J --> K[Calling Component]
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 
 **Section sources**
+
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 
@@ -233,9 +244,11 @@ class ChatAPI {
 ```
 
 **Diagram sources**
+
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 
 **Section sources**
+
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 
 ## Type Safety with TypeScript
@@ -261,10 +274,12 @@ J --> K
 ```
 
 **Diagram sources**
+
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 
 **Section sources**
+
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 
@@ -291,10 +306,12 @@ J --> K[Return Error]
 ```
 
 **Diagram sources**
+
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 
 **Section sources**
+
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 
@@ -326,10 +343,12 @@ UI->>User : Display result
 ```
 
 **Diagram sources**
+
 - [Chat.svelte](file://src/lib/components/chat/Chat.svelte#L1-L2642)
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 
 **Section sources**
+
 - [Chat.svelte](file://src/lib/components/chat/Chat.svelte#L1-L2642)
 
 ## Common Issues and Solutions
@@ -358,9 +377,11 @@ M --> N[Queue requests for retry]
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)
 
 **Section sources**
+
 - [index.ts](file://src/lib/apis/index.ts#L1-L1706)
 - [chats/index.ts](file://src/lib/apis/chats/index.ts#L1-L1169)

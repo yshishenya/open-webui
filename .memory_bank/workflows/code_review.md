@@ -3,6 +3,7 @@
 ## 1. General Check
 
 ### 1.1 Pull Request Quality
+
 - [ ] Pull Request contains a clear description of changes
 - [ ] Description includes:
   - Context: what and why is being done
@@ -14,6 +15,7 @@
 - [ ] PR size is reasonable (no more than 500 lines of changes, preferably <300)
 
 ### 1.2 Scope Check
+
 - [ ] All modified files are related to the task being solved
 - [ ] No unrelated changes (scope creep)
 - [ ] No commented-out code
@@ -21,6 +23,7 @@
 - [ ] No dead code (unused imports, functions)
 
 ### 1.3 Commit History
+
 - [ ] Commits have meaningful messages
 - [ ] Follow Conventional Commits format
 - [ ] Commit history is logical and clear
@@ -29,6 +32,7 @@
 ## 2. Coding Standards Compliance
 
 ### 2.1 Code Style
+
 - [ ] Code complies with **[coding standards](../guides/coding_standards.md)**
 - [ ] Variable, function, and class naming follows conventions:
   - `snake_case` for variables and functions
@@ -38,10 +42,12 @@
 - [ ] Maximum line length: 100 characters
 
 ### 2.2 Type Hints
+
 - [ ] All functions have type hints for parameters and return value
 - [ ] Correct types from `typing` are used
 - [ ] No use of `Any` (if present - must be justified)
 - [ ] Example:
+
   ```python
   # Good
   def fetch_data(url: str, timeout: int = 30) -> Dict[str, Any]:
@@ -53,6 +59,7 @@
   ```
 
 ### 2.3 Docstrings
+
 - [ ] All public functions and classes have docstrings
 - [ ] Docstrings follow Google style
 - [ ] Docstrings contain:
@@ -62,45 +69,50 @@
   - Raises for exceptions
   - Example (if applicable)
 - [ ] Example:
+
   ```python
-  async def analyze_company(
-      company_name: str,
-      correlation_id: str
-  ) -> CompanyAnalysis:
-      """Analyze company data and generate report.
+  async def create_topup_payment(
+      user_id: str,
+      amount_kopeks: int,
+      return_url: str,
+  ) -> dict[str, str]:
+      """Create a YooKassa payment for a wallet top-up.
 
       Args:
-          company_name: Name of the company to analyze
-          correlation_id: Request correlation ID for tracking
+          user_id: Verified user id.
+          amount_kopeks: Top-up amount in kopeks.
+          return_url: Where to redirect after payment.
 
       Returns:
-          CompanyAnalysis object with analysis results
+          Mapping with provider payment id and confirmation url.
 
       Raises:
-          ValidationError: If company_name is invalid
-          ExternalAPIError: If external API call fails
+          HTTPException: If validation fails or billing is disabled.
       """
-      pass
+      ...
   ```
 
 ## 3. Architecture and Patterns
 
 ### 3.1 Architectural Compliance
+
 - [ ] Changes don't violate architectural principles from **[../patterns/](../patterns/)**
 - [ ] New components follow established patterns
 - [ ] Proper separation of responsibilities between modules:
-  - `bot/` - Telegram handlers only
-  - `core/` - business logic
-  - `integrations/` - external API clients
-  - `data/` - data processing and storage
+  - `backend/open_webui/routers/` - FastAPI routers (API layer)
+  - `backend/open_webui/models/` - DB models + persistence helpers
+  - `backend/open_webui/utils/` - business logic and services
+  - `src/` - SvelteKit frontend
 
 ### 3.2 Code Reuse
+
 - [ ] No duplication of functionality existing in other parts of the project
 - [ ] Existing Pydantic models are used
 - [ ] Existing utility functions are used
 - [ ] API clients from `integrations/` are reused
 
 ### 3.3 Dependency Management
+
 - [ ] If new dependencies were added:
   - They are truly necessary
   - **[../tech_stack.md](../tech_stack.md)** is updated
@@ -110,16 +122,19 @@
 ## 4. Code Quality
 
 ### 4.1 Single Responsibility Principle
+
 - [ ] Each function has one responsibility
 - [ ] Each class has one responsibility
 - [ ] Functions don't exceed 50 lines
 - [ ] Files don't exceed 500 lines
 
 ### 4.2 Code Complexity
+
 - [ ] No overly complex functions
 - [ ] Nesting level doesn't exceed 3-4
 - [ ] Complex conditions are extracted to separate functions with clear names
 - [ ] Example:
+
   ```python
   # Good
   def is_eligible_for_discount(user: User) -> bool:
@@ -138,21 +153,23 @@
   ```
 
 ### 4.3 Error Handling
+
 - [ ] Error handling follows **[../patterns/error_handling.md](../patterns/error_handling.md)**
 - [ ] Specific exceptions are used (not bare `Exception`)
 - [ ] No empty `except` blocks or `except: pass`
 - [ ] All errors are logged with context
 - [ ] User-facing errors don't contain internal details
 - [ ] Example:
+
   ```python
   # Good
   try:
       result = await fetch_data(url)
   except httpx.HTTPStatusError as e:
-      logger.error(f"HTTP error: {e.response.status_code}", extra={"correlation_id": correlation_id})
+      logger.warning("Upstream returned error", extra={"status_code": e.response.status_code})
       raise ExternalAPIError(f"API returned {e.response.status_code}")
   except httpx.TimeoutException:
-      logger.error("Request timeout", extra={"correlation_id": correlation_id})
+      logger.warning("Upstream request timeout")
       raise ExternalAPIError("Request timeout")
 
   # Bad
@@ -163,9 +180,11 @@
   ```
 
 ### 4.4 Magic Numbers and Strings
+
 - [ ] No "magic" numbers - named constants are used
 - [ ] No hardcoded strings - constants or config are used
 - [ ] Example:
+
   ```python
   # Good
   MAX_RETRIES = 3
@@ -184,11 +203,13 @@
 ## 5. Async Code Quality
 
 ### 5.1 Async Best Practices
+
 - [ ] All I/O operations are asynchronous
 - [ ] No blocking operations in async functions
 - [ ] `httpx.AsyncClient` is used instead of `requests`
 - [ ] `aiofiles` is used for file operations
 - [ ] Example:
+
   ```python
   # Good
   async def fetch_data(url: str) -> Dict[str, Any]:
@@ -203,10 +224,12 @@
   ```
 
 ### 5.2 Resource Management
+
 - [ ] Async context managers are used for resources
 - [ ] Proper cleanup of resources (clients, connections, files)
 - [ ] No resource leaks
 - [ ] Example:
+
   ```python
   # Good - automatic cleanup
   async with httpx.AsyncClient() as client:
@@ -219,10 +242,12 @@
   ```
 
 ### 5.3 Concurrency
+
 - [ ] `asyncio.gather()` is used for parallel operations
 - [ ] No race conditions
 - [ ] Proper use of locks (if needed)
 - [ ] Example:
+
   ```python
   # Good - parallel execution
   results = await asyncio.gather(
@@ -240,11 +265,13 @@
 ## 6. Testing
 
 ### 6.1 Test Coverage
+
 - [ ] All new functions are covered by unit tests
 - [ ] Code coverage >= 80% for new code
 - [ ] Critical business logic has 100% coverage
 
 ### 6.2 Test Quality
+
 - [ ] Tests follow AAA pattern (Arrange-Act-Assert)
 - [ ] Tests are independent of each other
 - [ ] Tests have clear names (`test_function_name_expected_behavior`)
@@ -252,25 +279,19 @@
 - [ ] Example:
   ```python
   @pytest.mark.asyncio
-  async def test_fetch_company_data_returns_valid_data():
-      # Arrange
-      client = CompanyClient(api_key="test_key")
-      expected_company = "Test Corp"
-
-      # Act
-      result = await client.fetch_company_data(expected_company)
-
-      # Assert
-      assert result.name == expected_company
-      assert result.inn is not None
+  async def test_fetch_data_handles_timeout():
+      with pytest.raises(ExternalAPIError):
+          await fetch_data("https://example.invalid", timeout=0.001)
   ```
 
 ### 6.3 Test Execution
+
 - [ ] All tests pass: `pytest`
 - [ ] No warnings in tests
 - [ ] Tests execute quickly (<5 minutes for entire suite)
 
 ### 6.4 Edge Cases
+
 - [ ] Edge cases are tested
 - [ ] Error handling is tested
 - [ ] Input validation is tested
@@ -279,31 +300,34 @@
 ## 7. Security
 
 ### 7.1 Secrets Management
+
 - [ ] No hardcoded passwords, API keys, tokens
 - [ ] All secrets in environment variables
-- [ ] `python-dotenv` or `pydantic-settings` is used
+- [ ] Configuration is via environment variables (see `.env.example`, `backend/open_webui/env.py` and persistent config where applicable)
 - [ ] `.env` file is in `.gitignore`
 
 ### 7.2 Input Validation
+
 - [ ] All user input is validated
 - [ ] Pydantic models are used for validation
 - [ ] No possibility of injection attacks
 
 ### 7.3 SQL Security
+
 - [ ] Parameterized queries are used
 - [ ] No string concatenations for SQL
 - [ ] Example:
-  ```python
-  # Good
-  query = "SELECT * FROM companies WHERE name = %s"
-  cursor.execute(query, (company_name,))
 
-  # Bad - SQL injection risk!
-  query = f"SELECT * FROM companies WHERE name = '{company_name}'"
-  cursor.execute(query)
+  ```python
+  # Good: ORM only (SQLAlchemy)
+  user = db.query(User).filter(User.email == email).first()
+
+  # Bad: raw SQL strings / string interpolation
+  # query = f"SELECT * FROM users WHERE email = '{email}'"
   ```
 
 ### 7.4 Data Exposure
+
 - [ ] Logs don't contain sensitive data (API keys, passwords, PII)
 - [ ] Error messages don't show internal details to users
 - [ ] User-facing messages don't contain stack traces
@@ -311,58 +335,65 @@
 ## 8. Performance
 
 ### 8.1 Efficiency
+
 - [ ] No N+1 queries
 - [ ] No excessive API calls
 - [ ] Caching is used where appropriate
 - [ ] Batch operations for bulk processing
 
 ### 8.2 Resource Usage
+
 - [ ] Large data is processed in streaming fashion (not loaded entirely in memory)
 - [ ] Generators are used for large collections
 - [ ] Connection pooling for database
 
 ### 8.3 Async Optimization
+
 - [ ] Parallel operations execute concurrently
 - [ ] No excessive `await` statements (blocking parallelism)
 
 ## 9. Documentation
 
 ### 9.1 Code Documentation
+
 - [ ] Documentation is updated if public API changed
 - [ ] Complex algorithms have explanatory comments
 - [ ] Comments explain WHY, not WHAT
 - [ ] TODO comments contain context and assignee
 
 ### 9.2 Memory Bank Updates
+
 - [ ] **[../tech_stack.md](../tech_stack.md)** is updated when dependencies are added
 - [ ] **[../guides/](../guides/)** are updated when new subsystems are added
 - [ ] **[../patterns/](../patterns/)** are updated when new patterns are introduced
 - [ ] **[../current_tasks.md](../current_tasks.md)** is updated (task in Done)
 
 ### 9.3 API Documentation
+
 - [ ] New API endpoints are documented
 - [ ] Request/response examples are added
 - [ ] Error codes are documented
 
 ## 10. Project-Specific Checks
 
-### 10.1 Telegram Bot Code
-- [ ] All user-facing messages in Russian
-- [ ] Help texts added for new commands
-- [ ] Graceful error handling for user errors
-- [ ] Logging with `correlation_id` for all operations
-- [ ] User doesn't see internal error details
-- [ ] Handling of incorrect user input
+### 10.1 Public / User-Facing UI
+
+- [ ] Copy matches current billing mode (PAYG wallet + optional lead magnet)
+- [ ] Loading/error states are handled and tested where critical
+- [ ] i18n strings are added for new user-facing text (EN/RU)
+- [ ] No secrets/PII in logs or analytics events
 
 ### 10.2 External API Integration
+
 - [ ] All responses wrapped in Pydantic models
 - [ ] Retry mechanism for transient errors
 - [ ] Timeout handling
-- [ ] Logging of all API calls with `correlation_id`
+- [ ] Logging includes useful context (endpoint, provider, user id where available) without secrets
 - [ ] Circuit breaker (for critical integrations)
 - [ ] API keys from environment variables
 
 ### 10.3 Database Code
+
 - [ ] Parameterized queries (no SQL injection risk)
 - [ ] Proper transaction management
 - [ ] Connection pooling
@@ -370,6 +401,7 @@
 - [ ] Indexes for frequently queried fields
 
 ### 10.4 AI/LLM Integration
+
 - [ ] API keys in environment variables
 - [ ] Rate limiting implemented
 - [ ] Retry mechanism for API errors
@@ -380,22 +412,26 @@
 ## 11. Final Check
 
 ### 11.1 CI/CD
+
 - [ ] No merge conflicts
 - [ ] CI/CD pipeline passes successfully
-- [ ] All linters pass (Black, Ruff, mypy)
+- [ ] All linters/checks pass (`black .`, `npm run lint`, `npm run check`)
 - [ ] All tests pass
 
 ### 11.2 Acceptance Criteria
+
 - [ ] All acceptance criteria from specification are met
 - [ ] Feature works according to requirements
 - [ ] No known bugs or limitations (or they are documented)
 
 ### 11.3 Backwards Compatibility
+
 - [ ] Changes don't break existing functionality
 - [ ] API contracts are not violated
 - [ ] Database migrations are backwards compatible (if applicable)
 
 ### 11.4 Deployment Readiness
+
 - [ ] Environment variables are documented
 - [ ] Deployment instructions are updated (if needed)
 - [ ] Database migrations are ready (if needed)
@@ -417,6 +453,7 @@
 ## Review Comment Templates
 
 ### For Approval (LGTM)
+
 ```
 ✅ Code Review LGTM
 
@@ -431,6 +468,7 @@ Great work! 🚀
 ```
 
 ### For Requesting Changes
+
 ```
 ⚠️ Code Review - Changes Requested
 
@@ -446,6 +484,7 @@ Ready for re-review after critical issues are fixed.
 ```
 
 ### For Comments
+
 ```
 💬 Comment
 

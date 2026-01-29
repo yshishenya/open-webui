@@ -213,7 +213,9 @@
 				<div class="flex items-center gap-2">
 					<div class="text-xl font-medium">{$i18n.t('Billing Dashboard')}</div>
 					{#if hasUnlimitedPlan}
-						<span class="px-1.5 py-0.5 text-xs font-medium rounded bg-sky-500/10 text-sky-700 dark:text-sky-300">
+						<span
+							class="px-1.5 py-0.5 text-xs font-medium rounded bg-sky-500/10 text-sky-700 dark:text-sky-300"
+						>
 							{$i18n.t('Безлимит')}
 						</span>
 					{/if}
@@ -232,7 +234,9 @@
 		</div>
 
 		{#if billingInfo.lead_magnet?.enabled}
-			<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4 mb-4">
+			<div
+				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4 mb-4"
+			>
 				<div class="flex items-start justify-between mb-3">
 					<h3 class="text-sm font-medium">
 						{$i18n.t('Lead magnet')}
@@ -268,7 +272,8 @@
 								</div>
 								<div class="text-xs text-gray-500 mt-1">
 									{metric.percentage.toFixed(1)}% {$i18n.t('used')} •
-									{formatCompactNumber(metric.remaining)} {$i18n.t('remaining')}
+									{formatCompactNumber(metric.remaining)}
+									{$i18n.t('remaining')}
 								</div>
 							</div>
 						{/each}
@@ -283,13 +288,19 @@
 
 		{#if subscriptionsEnabled}
 			<!-- Subscription Card -->
-			<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4 mb-4">
+			<div
+				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4 mb-4"
+			>
 				<div class="flex items-start justify-between mb-3">
 					<h3 class="text-sm font-medium">
 						{$i18n.t('Current Subscription')}
 					</h3>
 					{#if billingInfo.subscription}
-						<span class="px-1.5 py-0.5 text-xs font-medium rounded {getStatusColor(billingInfo.subscription.status)}">
+						<span
+							class="px-1.5 py-0.5 text-xs font-medium rounded {getStatusColor(
+								billingInfo.subscription.status
+							)}"
+						>
 							{billingInfo.subscription.status.toUpperCase()}
 						</span>
 					{/if}
@@ -311,11 +322,15 @@
 						<div class="grid grid-cols-2 gap-3 text-sm">
 							<div>
 								<span class="text-gray-500">{$i18n.t('Current period start')}:</span>
-								<div class="font-medium">{formatDate(billingInfo.subscription.current_period_start)}</div>
+								<div class="font-medium">
+									{formatDate(billingInfo.subscription.current_period_start)}
+								</div>
 							</div>
 							<div>
 								<span class="text-gray-500">{$i18n.t('Current period end')}:</span>
-								<div class="font-medium">{formatDate(billingInfo.subscription.current_period_end)}</div>
+								<div class="font-medium">
+									{formatDate(billingInfo.subscription.current_period_end)}
+								</div>
 							</div>
 						</div>
 
@@ -372,7 +387,9 @@
 
 		<!-- Usage Card -->
 		{#if billingInfo.usage && Object.keys(billingInfo.usage).length > 0}
-			<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4 mb-4">
+			<div
+				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4 mb-4"
+			>
 				<h3 class="text-sm font-medium mb-3">
 					{$i18n.t('Usage Statistics')}
 				</h3>
@@ -394,14 +411,17 @@
 							{#if usage.limit}
 								<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
 									<div
-										class="{getUsageColor(getUsagePercent(usage))} h-1.5 rounded-full transition-all"
+										class="{getUsageColor(
+											getUsagePercent(usage)
+										)} h-1.5 rounded-full transition-all"
 										style="width: {getUsagePercent(usage)}%"
 									/>
 								</div>
 								<div class="text-xs text-gray-500 mt-1">
 									{getUsagePercent(usage).toFixed(1)}% {$i18n.t('used')}
 									{#if usage.limit}
-										• {formatCompactNumber(Math.max(0, usage.limit - usage.current))} {$i18n.t('remaining')}
+										• {formatCompactNumber(Math.max(0, usage.limit - usage.current))}
+										{$i18n.t('remaining')}
 									{/if}
 								</div>
 							{/if}
@@ -413,7 +433,9 @@
 
 		<!-- Transactions Card -->
 		{#if billingInfo.transactions && billingInfo.transactions.length > 0}
-			<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30">
+			<div
+				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30"
+			>
 				<div class="px-4 py-3 border-b border-gray-100/30 dark:border-gray-850/30">
 					<h3 class="text-sm font-medium">
 						{$i18n.t('Transaction History')}
@@ -424,20 +446,38 @@
 					<table class="w-full">
 						<thead>
 							<tr class="border-b border-gray-100/30 dark:border-gray-850/30 text-left">
-								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase">{$i18n.t('Date')}</th>
-								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase">{$i18n.t('Description')}</th>
-								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase">{$i18n.t('Amount')}</th>
-								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase">{$i18n.t('Status')}</th>
+								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase"
+									>{$i18n.t('Date')}</th
+								>
+								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase"
+									>{$i18n.t('Description')}</th
+								>
+								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase"
+									>{$i18n.t('Amount')}</th
+								>
+								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase"
+									>{$i18n.t('Status')}</th
+								>
 							</tr>
 						</thead>
 						<tbody>
 							{#each billingInfo.transactions as transaction}
-								<tr class="border-b border-gray-100/30 dark:border-gray-850/30 hover:bg-black/5 dark:hover:bg-white/5">
+								<tr
+									class="border-b border-gray-100/30 dark:border-gray-850/30 hover:bg-black/5 dark:hover:bg-white/5"
+								>
 									<td class="px-4 py-2 text-sm">{formatDateTime(transaction.created_at)}</td>
-									<td class="px-4 py-2 text-sm">{transaction.description_ru || transaction.description || '-'}</td>
-									<td class="px-4 py-2 text-sm font-medium">{formatPrice(transaction.amount, transaction.currency)}</td>
+									<td class="px-4 py-2 text-sm"
+										>{transaction.description_ru || transaction.description || '-'}</td
+									>
+									<td class="px-4 py-2 text-sm font-medium"
+										>{formatPrice(transaction.amount, transaction.currency)}</td
+									>
 									<td class="px-4 py-2">
-										<span class="px-1.5 py-0.5 text-xs font-medium rounded {getStatusColor(transaction.status)}">
+										<span
+											class="px-1.5 py-0.5 text-xs font-medium rounded {getStatusColor(
+												transaction.status
+											)}"
+										>
 											{transaction.status.toUpperCase()}
 										</span>
 									</td>
@@ -456,5 +496,7 @@
 	bind:show={showCancelConfirm}
 	on:confirm={handleCancelSubscription}
 	title={$i18n.t('Cancel Subscription')}
-	message={$i18n.t('Are you sure you want to cancel your subscription? You will retain access until the end of the current billing period.')}
+	message={$i18n.t(
+		'Are you sure you want to cancel your subscription? You will retain access until the end of the current billing period.'
+	)}
 />

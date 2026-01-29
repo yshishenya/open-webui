@@ -1,9 +1,11 @@
 # B2C Монетизация AIris Chat (кошелёк + подписка + PAYG)
 
 ## Цель
+
 Внедрить двухкошелёчную модель (included + top-up), прозрачное ценообразование по моделям/модальностям и оплату “в рублях” с поддержкой подписок, пополнений, авто-пополнения и лимитов стоимости ответа. Основные сценарии: подписка с включённым балансом и скидкой, PAYG-пополнение кошелька, защита от перерасхода, история списаний, админ-управление тарифами и rate card.
 
 ## Этапы внедрения (по приоритету)
+
 - **Этап 1: PAYG first (кошелёк + топапы + rate card + hold/settle)**
   - Включить кошелёк, ledger, rate card, оценку/hold/settle.
   - Запустить планы Free и PAYG (без включённого баланса/скидок/годовых; Start/Plus/Pro пока скрыть или оставить выключенными).
@@ -13,13 +15,16 @@
   - Активировать Start/Plus/Pro, annual скидку, начисление included, discount на списания.
   - Auto-renew/dunning, proration при смене плана, отчёты ARPU.
   - Расширить UI подписок и администратора.
+
 ## Текущее состояние (важное)
+
 - Есть тарифы/подписки/usage/транзакции в SQLAlchemy (`backend/open_webui/models/billing.py`, миграция `b2f8a9c1d5e3_add_billing_tables.py`).
 - YooKassa интеграция для разовых платежей за план (`billing.py` router, `utils/billing.py`, `utils/yookassa.py`), вебхуки обновляют транзакцию и создают/реновят подписку.
 - Квоты токенов/запросов проверяются только для активных подписок в текстовом пайплайне (`routers/openai.py` + `utils/billing_integration.py`); usage пишется post factum, без hold/settle.
-- UI: `/billing/plans`, `/billing/dashboard`, публичный `/pricing`; админ CRUD тарифов + статистика. Нет кошелька, нет rate card, нет PAYG, нет лимитов стоимости ответа.
+- UI: `/billing/plans`, `/billing/dashboard`, публичный `/pricing`; админ CRUD тарифов + статистика. (Legacy note: docs below use `/api/v1/billing/*` for API endpoints.) Нет кошелька, нет rate card, нет PAYG, нет лимитов стоимости ответа.
 
 ## Ключевые пробелы vs целевая модель
+
 - Нет кошелька (kopeks), нет top-up/auto top-up, нет included vs top-up кошельков.
 - Нет rate card по моделям/модальностям, нет расчёта стоимости, нет hold/settle.
 - Нет квот/учёта по изображениям/TTS, нет трекинга usage для пользователей без подписки (PAYG).
@@ -31,6 +36,7 @@
 ## План работ (детально по слоям)
 
 ### 1) Схема данных и миграции (PostgreSQL/SQLite)
+
 - Добавить таблицы:
   - `wallets(id, user_id, currency, balance_topup_kopeks, balance_included_kopeks, included_expires_at, max_reply_cost_kopeks, daily_cap_kopeks, daily_spent_kopeks, daily_reset_at, auto_topup_enabled, auto_topup_threshold_kopeks, auto_topup_amount_kopeks, auto_topup_fail_count, auto_topup_last_failed_at, created_at, updated_at)`, уникальный ключ `(user_id, currency)`.
   - `pricing_rate_card(id, model_id, model_tier, modality, unit, raw_cost_per_unit_kopeks, platform_factor, fixed_fee_kopeks, min_charge_kopeks, rounding_rules_json, version, effective_from, effective_to, provider, is_default, is_active)` + отдельная таблица версий `rate_card_version(id, version, effective_from, created_at)` или жёсткая ссылка на `pricing_rate_card.id` в usage.
@@ -46,6 +52,7 @@
 - Написать Alembic миграцию: создание новых таблиц, перенос price→kopeks (оставить `price` для UI, добавить `price_kopeks` как источник истины), бэкап старых значений, индексы по `user_id/status/created_at/model_id`, создание wallets для всех пользователей. Новая схема — единственный источник данных (без dual-write), при необходимости временно отдаём read-only совместимые ответы.
 
 #### DDL/индексы (детализация для миграции)
+
 - `wallets`:
   - `id` PK (uuid), `user_id` FK → users.id, `currency` (TEXT, default `BILLING_DEFAULT_CURRENCY`), unique (`user_id`,`currency`).
   - Балансы: `balance_topup_kopeks` BIGINT NOT NULL DEFAULT 0, `balance_included_kopeks` BIGINT NOT NULL DEFAULT 0.
@@ -80,6 +87,7 @@
   - `users.billing_contact_email/phone` (nullable) для receipt, индекс по email если нужен для валидации платежей.
 
 ### 2) Сервис ценообразования и биллинга (backend/utils)
+
 - Новый модуль `utils/pricing.py`: загрузка rate card, формула `(raw_cost × platform_factor × (1 - discount) + fixed_fee)`, поддержка модальностей text/image/tts, округление до копеек.
   - Правило округления: по умолчанию `ceil` до 1 копейки, минимум `min_charge_kopeks` из rate card.
   - Для локальных моделей допускаем `raw_cost_per_unit_kopeks = 0`, но можно задавать `fixed_fee_kopeks` за инфраструктуру.
@@ -105,19 +113,21 @@
   - Трекать usage для пользователей без подписки (PAYG).
 
 ### 3) Платежи и кошелёк (YooKassa)
+
 - Расширить `utils/yookassa.py`: сценарии top-up (разовые), возможный one-click/recurring token если YooKassa поддерживает (уточнить).
 - Роуты `billing.py`:
-  - `/billing/topup` (создание платежа с пакетами 199/499/999/1999/4999 ₽, metadata kind=topup).
-  - `/billing/auto-topup` toggle/update.
-  - `/billing/balance` возврат балансов/лимитов.
-  - `/billing/estimate` получение оценки перед запросом (для UI бейджа).
-  - `/billing/settings` (max_reply_cost, daily_cap).
+  - `/api/v1/billing/topup` (создание платежа с пакетами 199/499/999/1999/4999 ₽, metadata kind=topup).
+  - `/api/v1/billing/auto-topup` toggle/update.
+  - `/api/v1/billing/balance` возврат балансов/лимитов.
+  - `/api/v1/billing/estimate` получение оценки перед запросом (для UI бейджа).
+  - `/api/v1/billing/settings` (max_reply_cost, daily_cap).
 - Вебхуки: idempotency по `payment_id`, при `payment.succeeded` — create ledger topup или subscription_credit (annual/monthly начисление included).
 - При создании платежей: передавать `receipt` (если требуется 54‑ФЗ) и валидировать контакт пользователя.
 - Планы с годовой оплатой: отдельные планы (`is_annual=true`), начисление included на период, скидка 16% в цене.
 - Автопродление подписки: если возможен сохранённый метод — авто-платёж; иначе напоминание (не делаем пока автосписание, если YooKassa не даёт).
 
 ### 4) Интеграция в пайплайны OpenWebUI
+
 - Текст (`routers/openai.py`): preflight estimate→hold по лимиту, учёт `max_reply_cost` и дневного лимита; settle после ответа/stream завершения; обработать таймаут/отмену → release hold.
 - Изображения (`routers/images.py`): встроить расчет цены по rate card (model+size+count), квоты на изображения, hold/settle, блокировка при нехватке средств.
 - TTS (ищем соответствующий роут) и STT при необходимости: считать по символам/секундам, квоты, hold/settle.
@@ -126,6 +136,7 @@
 - При отсутствии `usage` в streaming: фиксируем estimate, пишем предупреждение в логи/контейнер.
 
 ### 5) Админ-функции
+
 - Admin API/UI:
   - CRUD rate card (модели, модальности, факторы, fixed_fee, rounding).
   - Страница Model Pricing: список моделей, цены, статусы, массовые операции.
@@ -136,6 +147,7 @@
   - Отчёты: выручка по видам платежей (subscription/topup), ARPU, расход по моделям/модальностям.
 
 ### 6) Пользовательский UI/UX
+
 - Баланс/кошелёк:
   - Страница с балансом (included vs top-up), срок сгорания included, быстрые суммы пополнения, авто-topup toggle, промокод, статусы платежей.
   - История операций: ledger (charges/topups/holds/refunds), фильтр по чатам/датам/типам.
@@ -143,27 +155,31 @@
   - Карточки Start/Plus/Pro (и годовые) с включённым балансом/скидкой, квоты по модальностям, кнопки “докупка”.
   - Настройки лимитов: max cost per reply, дневной лимит.
 - В чате:
-  - Бейдж “~X ₽” перед отправкой (данные `/billing/estimate`).
+  - Бейдж “~X ₽” перед отправкой (данные `/api/v1/billing/estimate`).
   - Предупреждение о длинном контексте, блок/апсейл при нехватке средств/квот.
   - Счётчик/лимит картинок/TTS по плану.
 - Публичный `/pricing`: отразить новую сетку (Free/Start/Plus/Pro/PAYG, годовые -16%).
-- Единый источник цен: все UI (внутренние страницы и будущий лендинг) получают планы и цены через `/billing/plans/public` и не хардкодят стоимость.
+- Единый источник цен: все UI (внутренние страницы и будущий лендинг) получают планы и цены через `/api/v1/billing/plans/public` и не хардкодят стоимость.
 
 ### 7) Фоновые задачи
+
 - Крон/APS: сгорание included в конце периода, чистка expired holds, напоминания о низком балансе/дневном лимите, деактивация auto_topup при повторных фейлах платежа.
 - Дневная агрегация usage по пользователям/моделям для аналитики.
 
 ### 8) Наблюдаемость и безопасность
+
 - Логирование всех биллинг-операций (structured), алерты на fail вебхуков/hold/settle.
 - Метрики: число hold/denied, средний чек, отказов по лимиту, расходы по модальностям.
 - Audit log уже есть — расширить на новые admin действия и ручные корректировки.
 
 ### 9) Тестирование
+
 - Юнит-тесты: pricing (rounding/discount), hold/settle с недостатком средств, очередность списаний included→topup, промокоды.
 - Интеграционные: платежный webhook idempotency, auto-topup сценарий, отказ по лимиту/дневному лимиту, PAYG без подписки.
 - E2E (Playwright/Vitest): покупка top-up, оценка стоимости в чате, блокировка при нехватке баланса, отображение ledger/баланса.
 
 ### 10) Миграции/роллаут
+
 - Миграция данных тарифов/подписок в копейки, создание годовых планов с -16%.
 - Seed rate card (базовые цены на text/image/TTS) и дефолтные пакеты пополнений.
 - Временно держать фича-флаг биллинга новой модели; параллельный режим “старый квоты” → “новый кошелёк” с принудительным переведением пользователей.
@@ -171,15 +187,16 @@
   1. Применить миграции таблиц.
   2. Создать кошельки всем существующим пользователям (нулевой баланс).
   3. Бэкоф/перенос истории: конвертировать существующие `billing_transaction`/usage в `ledger_entries`/`usage_events` для целостной истории UI.
-  3. **Этап 1 (PAYG)**: включить `plans/public` с Free+PAYG, estimate→hold/settle, топапы/auto-topup, ledger UI.
-  4. Включить PAYG пополнения (без подписок).
-  5. Переключить UI на `plans/public` и показать balances.
-  6. Постепенно заменить `billing_transaction` в UI на `ledger_entries` (история операций).
-  7. **Этап 2 (подписки)**: включить Start/Plus/Pro/Annual, начисления included, скидки, auto-renew/dunning, proration.
+  4. **Этап 1 (PAYG)**: включить `plans/public` с Free+PAYG, estimate→hold/settle, топапы/auto-topup, ledger UI.
+  5. Включить PAYG пополнения (без подписок).
+  6. Переключить UI на `plans/public` и показать balances.
+  7. Постепенно заменить `billing_transaction` в UI на `ledger_entries` (история операций).
+  8. **Этап 2 (подписки)**: включить Start/Plus/Pro/Annual, начисления included, скидки, auto-renew/dunning, proration.
 
 ## Детализация: данные, транзакции, идемпотентность
 
 ### A) Инварианты и правила учёта
+
 - Все деньги храним в копейках (int); Decimal используем только для отображения.
 - Любая финансовая операция фиксируется в `ledger_entries` и не редактируется.
 - Баланс пользователя = последний снапшот из `wallets`, сверяется с суммой ledger (периодически).
@@ -194,6 +211,7 @@
   - Для жёстких ограничений использовать флаг `hard_quota` в plan metadata.
 
 ### B) Конкурентные запросы и атомарность
+
 - Все операции hold/settle/release выполняются в одной транзакции с `SELECT ... FOR UPDATE` по строке `wallets`.
 - Идемпотентность:
   - `ledger_entries`: уникальный ключ `(reference_type, reference_id, type)` + `idempotency_key`.
@@ -203,6 +221,7 @@
 - Любой повторный webhook не меняет баланс второй раз (idempotency).
 
 ### C) Политика hold/settle
+
 - Preflight:
   - Рассчитать estimate (min/max).
   - `max_estimate_kopeks` → hold (reduce available funds).
@@ -217,6 +236,7 @@
   - `hold_expires_at` + job на release “зависших” hold.
 
 ## Детализация: оценка стоимости (estimate)
+
 - Источник входа:
   - Для текста: `max_tokens`/`max_output_tokens` и текущий контекст.
   - Для изображений: размер/количество/модель.
@@ -229,10 +249,11 @@
   - UI показывает диапазон, hold делаем по max.
 - Фолбэк:
   - Если usage не пришёл — фиксируем `max_estimate`, пишем warning с `request_id`, `provider`, `model_id`.
- - Учитывать добавки:
-   - system prompt, retrieved контекст (RAG), tool calls, вложения (если сериализуются в prompt).
+- Учитывать добавки:
+  - system prompt, retrieved контекст (RAG), tool calls, вложения (если сериализуются в prompt).
 
 ## Детализация: маппинг usage по провайдерам
+
 - Базовые поля: `prompt_tokens`, `completion_tokens`, `total_tokens`.
 - Дополнительно учитывать:
   - `reasoning_tokens` (если есть, суммировать в output).
@@ -242,65 +263,69 @@
 - Если usage отсутствует или невалиден → fallback на estimate и `is_estimated=true`.
 
 ## Детализация: модельные tiers и единый источник цен
+
 - Маппинг модели → pricing key:
   - Используем `model.base_model_id` как ключ, если есть.
   - Дополняем `model.meta.billing` полями `billing_model_id`, `billing_tier`, `billing_modality`.
   - `pricing_rate_card.model_id` хранит `billing_model_id` (единый ключ для цены).
 - Rate card версионируем: `version` + `effective_from`.
 - Обновление цен:
-  - Любой UI (billing, pricing, будущий лендинг) читает `/billing/plans/public`.
+  - Любой UI (billing, pricing, будущий лендинг) читает `/api/v1/billing/plans/public`.
   - Никаких хардкодов цен во фронтенде; только серверные данные.
   - Для лендинга: кэширование публичного прайса (Redis/HTTP cache), обновление при изменении плана.
   - Использовать `Cache-Control`/ETag, чтобы CDN/лендинг подтягивал актуальные цены без релиза.
 - Доступ по tiers:
   - Проверять `model_tiers_allowed` плана до запроса.
   - Если tier запрещён → 403 с апсейлом.
- - Управление ценами моделей:
-   - Новая модель появляется в списке “Unpriced models”.
-   - Админ назначает tier/modality/unit и цену, либо применяет tier default.
-   - Деактивация модели = `is_active=false` (soft delete).
-   - Изменение цены = новая версия rate card с `effective_from`.
-   - Публичная витрина цен моделей (если нужна):
-     - `GET /billing/models/pricing/public` с кэшем и версионированием.
-     - Кэш TTL 5–15 минут + ETag для лендинга/CDN.
+- Управление ценами моделей:
+  - Новая модель появляется в списке “Unpriced models”.
+  - Админ назначает tier/modality/unit и цену, либо применяет tier default.
+  - Деактивация модели = `is_active=false` (soft delete).
+  - Изменение цены = новая версия rate card с `effective_from`.
+  - Публичная витрина цен моделей (если нужна):
+    - `GET /api/v1/billing/models/pricing/public` с кэшем и версионированием.
+    - Кэш TTL 5–15 минут + ETag для лендинга/CDN.
 
 ## Детализация: API контракты (черновики)
 
 ### Пользовательские
-- `GET /billing/plans/public`
+
+- `GET /api/v1/billing/plans/public`
   - Возвращает публичные планы, включая `price_kopeks`, `included_kopeks`, `discount_percent`, `max_reply_cost_kopeks`, `daily_cap_kopeks`.
-- `GET /billing/models/pricing/public` (опционально)
+- `GET /api/v1/billing/models/pricing/public` (опционально)
   - Публичный список цен моделей с кэшем и версионированием.
-- `GET /billing/balance`
+- `GET /api/v1/billing/balance`
   - `{ balance_topup_kopeks, balance_included_kopeks, included_expires_at, daily_cap_kopeks, daily_spent_kopeks }`
-- `POST /billing/estimate`
+- `POST /api/v1/billing/estimate`
   - Вход: `{ model_id, modality, payload, max_reply_cost_kopeks? }`
   - Выход: `{ min_kopeks, max_kopeks, is_allowed, reason? }`
   - Ошибки: `402` (insufficient_funds), `429` (quota_exceeded), `400` (invalid_model).
-- `POST /billing/topup`
+- `POST /api/v1/billing/topup`
   - Вход: `{ amount_kopeks, return_url }`
   - Выход: `{ payment_id, confirmation_url }`
   - Ошибки: `400` (invalid_amount), `503` (payment_provider_unavailable).
   - При обязательном receipt: `400` (missing_contact).
-- `POST /billing/auto-topup`
+- `POST /api/v1/billing/auto-topup`
   - Вход: `{ enabled, threshold_kopeks, amount_kopeks }`
-- `GET /billing/ledger`
+- `GET /api/v1/billing/ledger`
   - Пагинация + фильтры по type/date/chat_id.
   - Типы: `hold`, `charge`, `release`, `topup`, `subscription_credit`, `refund`, `adjustment`.
-- `POST /billing/settings`
+- `POST /api/v1/billing/settings`
   - Вход: `{ max_reply_cost_kopeks, daily_cap_kopeks, billing_contact_email?, billing_contact_phone? }`
 
 ### Админские
+
 - `POST /admin/billing/rate-card` (CRUD)
 - `POST /admin/billing/rate-card/sync-models` (создать placeholder для моделей без цены)
 - `POST /admin/billing/plans` (расширенные поля)
 - `POST /admin/billing/users/{id}/adjust` (ручная корректировка)
 - `POST /admin/billing/promo` (CRUD промокодов)
- - `GET /admin/billing/models/pricing` (таблица цен по моделям)
+- `GET /admin/billing/models/pricing` (таблица цен по моделям)
 
 ## Детализация: сценарии и edge-cases
 
 ### Чат (текст, streaming)
+
 1. Пользователь нажимает Send.
 2. Preflight estimate + hold.
 3. Streaming завершён → получаем usage.
@@ -309,12 +334,14 @@
 6. Если запрос отменён пользователем/ошибся провайдер → release hold.
 
 ### Генерация изображений
+
 1. Preflight: размер/кол-во → estimate.
 2. Hold → запрос к провайдеру.
 3. Ответ → charge по факту.
 4. Ошибка генерации → release hold.
 
 ### Подписка
+
 1. Пользователь выбирает план.
 2. Создаётся платёж с metadata plan_id.
 3. Webhook payment.succeeded → создаём/обновляем подписку, начисляем included.
@@ -322,21 +349,25 @@
 5. Renewal failed → статус `past_due`, grace period N дней, ограничения/только PAYG.
 
 ### Смена плана
+
 1. Апгрейд: сразу пересчитать период, применить pro-rate credit/charge.
 2. Дауngrade: поставить `cancel_at_period_end` + `next_plan_id`.
 3. На следующий период активировать новый план и начислить included.
 
 ### Auto-topup
+
 1. Баланс ниже порога.
 2. Создать платёж на сумму auto_topup_amount.
 3. Если платёж failed → выключить auto_topup после N попыток и уведомить.
 
 ### Возврат/chargeback
+
 1. Webhook refund → ledger refund (плюс).
 2. Если refund касается подписки → не увеличивать included, только вернуть topup.
 3. Chargeback → выключить auto-renew и передать в ручную проверку.
 
 ## Детализация: UI
+
 - Чат: бейдж диапазона цены, блокировка при превышении лимитов, кнопки “пополнить/перейти на план”.
 - Баланс: отображать 2 кошелька, историю и статус авто-topup.
 - Подписки: ясно показать included баланс и скидку.
@@ -353,22 +384,24 @@
   - Превышение daily_cap или max_reply_cost.
 
 ## Детализация: безопасность, комплаенс, логирование
+
 - Webhook подписи YooKassa — обязательная проверка; при ошибке возвращать 401.
 - Логи без PII/секретов, только `user_id`, `payment_id`, `request_id`.
 - Любые ручные корректировки пишем в `audit_log` с `changes`.
 - Включить rate limit на публичные billing endpoints.
 - Все warnings по `is_estimated` пишем в лог с меткой `BILLING_ESTIMATE_ONLY`.
   - Логируем на уровне WARNING (видно в контейнерных логах).
- - Разграничение доступа: все admin endpoints только для `admin`.
+- Разграничение доступа: все admin endpoints только для `admin`.
 - Ретеншн ledger/usage_events — минимум 24 месяца (для фин. аудита).
- - Фискализация (54‑ФЗ):
-   - Передавать `receipt` в YooKassa (наименование услуги, сумма, ставка НДС).
-   - Хранить email/телефон покупателя в профиле (запрашивать при первом платеже).
-   - Если receipt обязателен — блокировать платеж с понятным сообщением.
- - Маскирование PII в raw payloads:
-   - Очищать `raw_payload_json` от email/телефона/паспортных данных.
+- Фискализация (54‑ФЗ):
+  - Передавать `receipt` в YooKassa (наименование услуги, сумма, ставка НДС).
+  - Хранить email/телефон покупателя в профиле (запрашивать при первом платеже).
+  - Если receipt обязателен — блокировать платеж с понятным сообщением.
+- Маскирование PII в raw payloads:
+  - Очищать `raw_payload_json` от email/телефона/паспортных данных.
 
 ## Детализация: мониторинг и алерты
+
 - Метрики:
   - `billing.hold.count`, `billing.hold.released`, `billing.hold.expired`.
   - `billing.charge.total_kopeks`, `billing.topup.total_kopeks`.
@@ -380,13 +413,15 @@
   - Несоответствие ledger vs wallet.
   - Резкий рост refund/chargeback.
 
-## Детализация: онбординг и free access
-- При регистрации: создать `wallets` и активировать lead magnet (без free plan).
+## Детализация: онбординг и free start / lead magnet
+
+- При регистрации: создать `wallets` и активировать lead magnet (без подписки; без auto-assigned free plan).
 - Lead magnet: модель‑allowlist + квоты на tokens/requests/images/tts по циклу.
 - Для “гостя” без подписки: разрешать PAYG при наличии topup, иначе блок и апсейл.
 - Привилегированный доступ выдаётся админом через планы с quotas = null (безлимит).
 
 ## Детализация: тестовая матрица
+
 - PAYG: успешное пополнение → списание → история ledger.
 - Подписка: покупка → начисление included → расход included → переход на topup.
 - Streaming без usage: estimate-charge + warning log.
@@ -399,6 +434,7 @@
 ## Детализация: что и где менять в коде
 
 ### Backend (Python/FastAPI)
+
 - `backend/open_webui/models/billing.py`
   - Добавить новые SQLAlchemy модели (wallets, rate card, ledger, payments, usage_events, promo_codes).
   - Если файл превысит 500 строк — вынести в `models/billing_wallet.py`, `models/billing_pricing.py`.
@@ -411,8 +447,8 @@
   - Фолбэк на estimate при отсутствии usage.
 - `backend/open_webui/routers/billing.py`
   - Новые endpoints: balance, estimate, topup, auto-topup, ledger, settings.
-  - Расширить `/billing/plans/public` для цены и лимитов.
-  - Опционально: `/billing/models/pricing/public`.
+  - Расширить `/api/v1/billing/plans/public` для цены и лимитов.
+  - Опционально: `/api/v1/billing/models/pricing/public`.
 - `backend/open_webui/routers/admin_billing.py`
   - CRUD rate card, promo codes, корректировки кошелька.
   - Список цен моделей для админки.
@@ -426,6 +462,7 @@
 - Переходный режим: без dual-write; при необходимости краткосрочно отдаём read-only совместимые ответы в старом формате, но данные храним только в новой схеме.
 
 ### Frontend (Svelte/TypeScript)
+
 - `src/lib/apis/billing/index.ts`
   - Новые типы: `Balance`, `LedgerEntry`, `Estimate`.
   - Новые методы: `getBalance`, `getEstimate`, `getLedger`, `topup`, `updateAutoTopup`, `updateBillingSettings`.
@@ -434,7 +471,7 @@
   - Обновить `dashboard` под новый баланс.
   - В `settings` добавить поля billing contact (email/phone).
 - `src/routes/pricing/+page.svelte`
-  - Перевести на `/billing/plans/public`.
+  - Перевести на `/api/v1/billing/plans/public`.
 - `src/routes/(app)/admin/billing/models/`
   - Страница Model Pricing (таблица цен моделей).
 - Admin меню: добавить пункты Billing → Plans, Ledger/Balance (если нужно), Model Pricing.
@@ -446,6 +483,7 @@
   - Новые строки для кошелька/лимитов/ошибок.
 
 ## Детализация: конфигурация и фича-флаги
+
 - `ENABLE_BILLING_WALLET=true` — включает новый кошелёк/ledger.
 - `BILLING_DEFAULT_CURRENCY=RUB`.
 - `BILLING_RATE_CARD_VERSION=2025-01`.
@@ -459,6 +497,7 @@
 ## Стартовые значения (MVP, редактируются через админку)
 
 ### A) Тарифы (рекомендованные)
+
 - Этап 1: активны только Free и PAYG, остальные планы создаются, но скрыты/неактивны до запуска подписок.
 - Free:
   - price: `0`
@@ -488,11 +527,13 @@
   - лимиты задаются через `max_reply_cost` и `daily_cap`
 
 ### B) Годовые планы
+
 - Цена: `monthly * 12 * 0.84` (‑16%).
 - Included: `monthly_included * 12`.
 - Остальные лимиты и tiers такие же, как у monthly.
 
 ### C) Rate card (стартовые правила)
+
 - Единицы тарификации:
   - `token_in` и `token_out` (за 1000 токенов).
   - `image_1024` (1 изображение 1024px).
@@ -510,26 +551,30 @@
   - для локальных моделей — `0`, но допускается `fixed_fee_kopeks`.
 
 ### D) Авто‑topup (дефолт)
+
 - Этап 1: выключен по умолчанию, ручное включение.
 - Рекомендация: `threshold=10000` (100 ₽), `amount=49900` (499 ₽), максимум 2 пополнения/день.
 - Этап 2: допускается автопополнение вместе с авто-renew подписок при наличии payment_method.
 
 ### E) Модельные tiers (предложение)
+
 - Economy: GPT-3.5/Haiku/Mini/Flash/OSS 7–8B, старые open models.
 - Standard: GPT-4o-mini/Gemini Flash/Claude Sonnet-lite, OSS 14–32B.
 - Premium: GPT-4o/Sonnet/Gemini Pro, OSS ≥70B.
 - Ultra: GPT-4.1/Claude Opus/o1, будущие top-модели.
 
 ### F) Публичные витрины (TTL)
-- `/billing/plans/public`: ETag + Cache-Control max-age=300s.
-- `/billing/models/pricing/public` (если включим): ETag + max-age=300–900s.
 
+- `/api/v1/billing/plans/public`: ETag + Cache-Control max-age=300s.
+- `/api/v1/billing/models/pricing/public` (если включим): ETag + max-age=300–900s.
 
 ## Решения/вводные, которые надо уточнить
+
 1. Уточнить реальную себестоимость по ключевым моделям для заполнения raw_cost.
 2. Проверить лимиты на старте после первых 2–4 недель данных.
 
 ## Принятые решения (на этот этап)
+
 - Политика смены плана: апгрейд сразу с пропорциональным кредитом, даунгрейд в конце периода.
 - Отсутствие `usage` от провайдера: списываем по estimate, фиксируем `is_estimated`, пишем warning в логи.
 - Цены и тарифы должны обновляться централизованно: API `plans/public` — единственный источник для всех экранов и будущего лендинга.
@@ -539,6 +584,7 @@
 - Top-up по умолчанию живёт 12 месяцев (параметризуем).
 
 ## Чек-лист реализации (BILLING-05)
+
 - [x] Закрыть пробелы спецификации (кошелёк PK/FK, версионирование rate card, без dual-write, auto-topup fail tracking, SQLite locking).
 - [x] Финализировать DDL/индексы: wallets/ledger/usage_events/payments/pricing_rate_card/promo + расширения plans/subscriptions/users; явные FK, unique, expires_at для top-up.
 - [x] Alembic миграция: создать новые таблицы, добавить поля в существующие, перенести price→price_kopeks, создать кошельки всем пользователям, индексы; миграция хранит только новую схему (без dual-write).
@@ -555,6 +601,7 @@
 ## Backend дизайн (MVP PAYG + подготовка подписок)
 
 ### Сервисы и модули
+
 - `utils/pricing.py`:
   - Интерфейс: `get_rate_card(model_id, modality, unit, as_of)`; `estimate_cost(units, rate, plan_discount_percent) -> (min,max)`; `round_cost` по правилам rate card; поддержка `fixed_fee_kopeks`, `min_charge_kopeks`, `platform_factor`.
   - Версионирование: возвращает `pricing_rate_card_id` и `version` для записи в `usage_events`.
@@ -580,13 +627,14 @@
   - Хранение `payment_method_id` (если поддержано) для будущего auto-topup/renew.
 
 ### API контракты (MVP PAYG)
+
 - Пользовательские:
-  - `GET /billing/balance` → `{ balance_topup_kopeks, balance_included_kopeks, included_expires_at, daily_cap_kopeks, daily_spent_kopeks, max_reply_cost_kopeks, currency }`.
-  - `POST /billing/estimate` → `{ min_kopeks, max_kopeks, is_allowed, reason?, pricing_rate_card_id, pricing_version }`.
-  - `POST /billing/topup` → `{ payment_id, confirmation_url }` (сумма из списка пакетов).
-  - `POST /billing/auto-topup` → toggle/update threshold/amount.
-  - `GET /billing/ledger` → пагинация/фильтры type/date; source `ledger_entries`.
-  - `POST /billing/settings` → update `max_reply_cost_kopeks`, `daily_cap_kopeks`, billing contacts.
+  - `GET /api/v1/billing/balance` → `{ balance_topup_kopeks, balance_included_kopeks, included_expires_at, daily_cap_kopeks, daily_spent_kopeks, max_reply_cost_kopeks, currency }`.
+  - `POST /api/v1/billing/estimate` → `{ min_kopeks, max_kopeks, is_allowed, reason?, pricing_rate_card_id, pricing_version }`.
+  - `POST /api/v1/billing/topup` → `{ payment_id, confirmation_url }` (сумма из списка пакетов).
+  - `POST /api/v1/billing/auto-topup` → toggle/update threshold/amount.
+  - `GET /api/v1/billing/ledger` → пагинация/фильтры type/date; source `ledger_entries`.
+  - `POST /api/v1/billing/settings` → update `max_reply_cost_kopeks`, `daily_cap_kopeks`, billing contacts.
 - Админ:
   - `POST /admin/billing/rate-card` CRUD.
   - `POST /admin/billing/rate-card/sync-models` — создать placeholders для непрайсованных моделей.
@@ -595,32 +643,37 @@
   - `GET /admin/billing/models/pricing` — таблица цен.
 
 ### Платёжный поток (top-up)
-1) `POST /billing/topup` → создаём платеж (YooKassa) с metadata `{kind: "topup", wallet_id, user_id}`; валидируем контакт для receipt.
-2) Пользователь платит; webhook `payment.succeeded`:
+
+1. `POST /api/v1/billing/topup` → создаём платеж (YooKassa) с metadata `{kind: "topup", wallet_id, user_id}`; валидируем контакт для receipt.
+2. Пользователь платит; webhook `payment.succeeded`:
    - Idempotency по `provider_payment_id`.
    - Находит wallet (по metadata) → ledger `topup` с `expires_at` (TTL 12 мес), обновляет баланс.
-3) Если webhook повторяется → нет двойного списания (idempotency).
+3. Если webhook повторяется → нет двойного списания (idempotency).
 
 ### Ограничения и лимиты
+
 - `max_reply_cost_kopeks` и `daily_cap_kopeks` читаем из `wallets` (пользовательские настройки или дефолты); проверяем в preflight.
 - Доступные модели: по `model_tiers_allowed` плана (или PAYG плана).
 - Недостаток средств/лимитов → 402/429 с кодом для UI апсейла.
 
 ### Логи/метрики
+
 - Логируем `request_id`, `wallet_id`, `pricing_rate_card_id`, `is_estimated`.
 - Метрики: hold/denied, charge totals, topup totals, estimated_usage_count, webhook_errors.
 
 ### Разграничение и безопасность
+
 - Все billing endpoints за аутентификацией; admin — только роль admin.
 - YooKassa webhooks — проверка подписи; без PII в логах.
 
 ## Frontend план
+
 - API клиенты (`src/lib/apis/billing/index.ts`):
   - Методы: `getBalance`, `getEstimate`, `getLedger`, `topup`, `updateAutoTopup`, `updateBillingSettings`, `getPlansPublic` (новые поля цены/лимитов), опционально `getModelPricingPublic`.
   - Типы: `Balance`, `LedgerEntry`, `Estimate`, расширенный `Plan` (price_kopeks, included_kopeks, discount_percent, max_reply_cost_kopeks, daily_cap_kopeks, model_tiers_allowed, quotas по модальностям).
 - Пользовательский UI:
   - `/billing` страницы: вкладки `balance` (кошелёк, auto-topup toggle, промокод поле), `history` (ledger с фильтрами), `settings` (лимиты max_reply_cost/daily_cap + контакты для receipt), обновлённый dashboard.
-  - `/pricing` публичная страница — берёт данные из `/billing/plans/public`, отображает Free/PAYG/Start/Plus/Pro + годовые (скидка -16%), без хардкодов цен.
+  - `/pricing` публичная страница — берёт данные из `/api/v1/billing/plans/public`, отображает Free/PAYG/Start/Plus/Pro + годовые (скидка -16%), без хардкодов цен.
   - Чат (`routes/(app)/c/[id]`): генерировать `request_id`, отображать бейдж estimate `~X ₽` перед отправкой, блок/апсейл при 402/429 (недостаток средств/квот/лимитов).
   - Показать лимиты/квоты по картинкам/TTS, если доступны в плане.
 - Админ UI:
@@ -634,8 +687,9 @@
   - Блоки/апсейлы в чатах при нехватке средств/лимитов с кнопками “Пополнить”/“Выбрать план”.
 
 ## Пайплайны (интеграция в OpenWebUI)
+
 - Текст (`routers/openai.py`):
-  - Preflight: `POST /billing/estimate` → проверка лимитов/tiers → `hold` через billing_integration; прокидываем лимит токенов из estimate.
+  - Preflight: `POST /api/v1/billing/estimate` → проверка лимитов/tiers → `hold` через billing_integration; прокидываем лимит токенов из estimate.
   - Финализация: получить usage (tokens); если нет usage — charge=estimate, `is_estimated=true`.
   - Обработка отмен/таймаутов → `release_hold`.
 - Изображения (`routers/images.py`):
@@ -647,6 +701,7 @@
   - Отсутствие usage: warning log `BILLING_ESTIMATE_ONLY`, `is_estimated=true`.
 
 ## Тесты и роллаут
+
 - Unit:
   - pricing: rounding/min_charge/fixed_fee/discount, выбор версии rate card.
   - wallet/ledger: hold/settle/release, порядок списания included→topup, превышение hold, idempotency ключи.
@@ -664,6 +719,6 @@
 - Покрытие: ≥80% для нового кода (pytest + Vitest/Playwright по необходимости).
 - Роллаут/фича-флаги:
   - ENV: `ENABLE_BILLING_WALLET`, `BILLING_RATE_CARD_VERSION`, `BILLING_HOLD_TTL_SECONDS`, `BILLING_MAX_DAILY_SPEND_DEFAULT_KOPEKS`.
-  - Этапность: включить `/billing/plans/public` + estimate (без hold), затем hold/settle для text/images/TTS, затем подписки/annual.
+  - Этапность: включить `/api/v1/billing/plans/public` + estimate (без hold), затем hold/settle для text/images/TTS, затем подписки/annual.
   - Откат: флагом отключить hold/settle → вернуть только estimate, блокировать платные запросы, если критичные ошибки.
   - Мониторинг: алерты на webhook errors, рост `usage.estimated`, рассинхрон ledger vs wallet, рост отказов 402/429.

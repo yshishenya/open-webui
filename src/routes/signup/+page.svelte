@@ -32,10 +32,7 @@
 <div class="min-h-screen flex items-center justify-center font-primary text-gray-600">
 	<p>
 		Перенаправляем на страницу входа…
-		<a
-			href={redirectHref}
-			class="underline underline-offset-4 ml-2 text-gray-900"
-		>
+		<a href={redirectHref} class="underline underline-offset-4 ml-2 text-gray-900">
 			Открыть сейчас
 		</a>
 	</p>

@@ -10,6 +10,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [WebSocket Client Initialization](#websocket-client-initialization)
 3. [Event Registration Pattern](#event-registration-pattern)
@@ -20,6 +21,7 @@
 8. [Conclusion](#conclusion)
 
 ## Introduction
+
 The open-webui application implements a robust WebSocket client event handling mechanism that enables real-time communication between the Svelte frontend and backend services. This documentation details how the frontend subscribes to various Socket.IO events including chat messages, channel updates, and user presence events. The system leverages Svelte's lifecycle methods to manage event listeners efficiently, preventing memory leaks while maintaining reactive state updates through Svelte stores. The architecture supports collaborative features such as typing indicators, message reactions, and real-time message updates across multiple clients.
 
 ## WebSocket Client Initialization
@@ -41,9 +43,11 @@ J --> K[Start Heartbeat Monitoring]
 ```
 
 **Diagram sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L97-L107)
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L97-L141)
 
 ## Event Registration Pattern
@@ -65,10 +69,12 @@ Lifecycle->>Socket : $socket?.off('events : channel', handler)
 ```
 
 **Diagram sources**
+
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L246-L267)
 - [Thread.svelte](file://src/lib/components/channel/Thread.svelte#L159-L164)
 
 **Section sources**
+
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L242-L267)
 - [Thread.svelte](file://src/lib/components/channel/Thread.svelte#L158-L164)
 
@@ -96,10 +102,12 @@ H --> M[Set Typing Timeout]
 ```
 
 **Diagram sources**
+
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L115-L180)
 - [Thread.svelte](file://src/lib/components/channel/Thread.svelte#L62-L123)
 
 **Section sources**
+
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L115-L180)
 - [Thread.svelte](file://src/lib/components/channel/Thread.svelte#L62-L123)
 
@@ -124,10 +132,12 @@ K --> L[Trigger UI Update]
 ```
 
 **Diagram sources**
+
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L116-L117)
 - [Thread.svelte](file://src/lib/components/channel/Thread.svelte#L64-L65)
 
 **Section sources**
+
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L115-L180)
 - [Thread.svelte](file://src/lib/components/channel/Thread.svelte#L62-L123)
 
@@ -172,11 +182,13 @@ ThreadComponent --> UserStore : updates
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L28-L30)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L14-L16)
 - [Thread.svelte](file://src/lib/components/channel/Thread.svelte#L4-L5)
 
 **Section sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L1-L51)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L1-L27)
 - [Thread.svelte](file://src/lib/components/channel/Thread.svelte#L1-L7)
@@ -188,9 +200,11 @@ The open-webui application implements several best practices for error handling 
 The backend implementation in `main.py` also includes comprehensive error handling, validating authentication tokens, checking user permissions, and verifying data integrity before processing events. This multi-layered approach ensures that both client and server handle unexpected conditions gracefully, maintaining application stability even when receiving malformed or unauthorized events.
 
 **Section sources**
+
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L117-L118)
 - [Thread.svelte](file://src/lib/components/channel/Thread.svelte#L65-L66)
 - [main.py](file://backend/open_webui/socket/main.py#L384-L407)
 
 ## Conclusion
+
 The WebSocket client event handling mechanism in open-webui demonstrates a well-architected approach to real-time communication in a Svelte application. By leveraging Svelte's lifecycle methods, the system efficiently manages event subscriptions and prevents memory leaks. The integration with Svelte stores enables reactive state updates across components, while comprehensive event filtering and transformation logic ensures data integrity. The implementation supports collaborative features like typing indicators and message reactions through a consistent event-driven architecture. Following best practices for error handling, the system gracefully manages unexpected conditions, providing a robust foundation for real-time interactions in the application.

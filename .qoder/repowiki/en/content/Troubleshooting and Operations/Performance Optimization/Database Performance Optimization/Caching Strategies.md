@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Redis Implementation Overview](#redis-implementation-overview)
 3. [Connection Management](#connection-management)
@@ -29,13 +30,16 @@
 14. [Conclusion](#conclusion)
 
 ## Introduction
+
 Open WebUI implements a comprehensive caching strategy using Redis to optimize performance and reduce database load. This document details how Redis is utilized for caching frequently accessed data such as user sessions, model configurations, and chat metadata. The implementation includes connection management, key naming conventions, TTL strategies, cache invalidation patterns, and monitoring approaches. The caching system is designed to handle high-traffic scenarios while maintaining data consistency and reliability.
 
 **Section sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L1-L231)
 - [main.py](file://backend/open_webui/main.py#L500-L699)
 
 ## Redis Implementation Overview
+
 Open WebUI's caching system is built around Redis, providing a robust solution for storing frequently accessed data. The implementation supports multiple Redis deployment patterns including standalone, cluster, and sentinel configurations. The system is designed to handle user sessions, model configurations, chat metadata, and rate limiting data.
 
 The core Redis functionality is implemented in the `redis.py` utility module, which provides connection management, failover handling, and connection pooling. The system uses Redis for various purposes including session storage, rate limiting, model caching, and real-time communication state management.
@@ -58,14 +62,17 @@ H --> N[Config Values]
 ```
 
 **Diagram sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L1-L231)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L120-L140)
 
 **Section sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L1-L231)
 - [main.py](file://backend/open_webui/main.py#L500-L699)
 
 ## Connection Management
+
 The Redis connection management system in Open WebUI is designed for reliability and performance. The implementation provides multiple connection options including standalone, cluster, and sentinel configurations. Connection pooling is implemented to minimize connection overhead and improve performance.
 
 The `get_redis_connection` function is the primary entry point for establishing Redis connections. It supports async mode for non-blocking operations and implements connection caching to prevent redundant connection creation. The system uses a cache key based on connection parameters to ensure connections are reused appropriately.
@@ -91,14 +98,17 @@ end
 ```
 
 **Diagram sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L117-L209)
 - [main.py](file://backend/open_webui/main.py#L585-L592)
 
 **Section sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L117-L209)
 - [main.py](file://backend/open_webui/main.py#L585-L592)
 
 ## Key Naming Conventions
+
 Open WebUI follows a consistent key naming convention to organize cached data and prevent key collisions. The system uses a prefix-based approach with the `REDIS_KEY_PREFIX` environment variable, which defaults to "open-webui".
 
 The key naming structure follows the pattern: `{prefix}:{category}:{identifier}`. This hierarchical structure makes it easy to identify the purpose of each key and facilitates bulk operations. Different categories of cached data use specific naming patterns:
@@ -131,16 +141,19 @@ B4 --> F2[config_key]
 ```
 
 **Diagram sources**
+
 - [env.py](file://backend/open_webui/env.py#L381)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L37)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L123)
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L381)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L37)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L123)
 
 ## TTL and Expiration Strategies
+
 Open WebUI implements time-to-live (TTL) strategies to ensure cached data remains fresh and memory usage is controlled. Different types of cached data have appropriate TTL values based on their volatility and importance.
 
 For rate limiting, the system uses a rolling window strategy with bucket-based expiration. Each rate limit bucket has an expiration time equal to the window duration plus bucket size, ensuring expired data is automatically removed. The `expire` command is used to set the TTL when a bucket is first created.
@@ -167,15 +180,18 @@ M --> N[Auto-expire when expired]
 ```
 
 **Diagram sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L83)
 - [main.py](file://backend/open_webui/main.py#L629-L648)
 - [env.py](file://backend/open_webui/env.py#L547-L554)
 
 **Section sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L83)
 - [main.py](file://backend/open_webui/main.py#L629-L648)
 
 ## Caching in Application Components
+
 Redis caching is integrated throughout Open WebUI's application components to optimize performance. The system caches data at multiple levels, from user sessions to model configurations and real-time state information.
 
 In the authentication system, Redis is used for rate limiting login attempts through the `signin_rate_limiter` instance in `auths.py`. This prevents brute force attacks while maintaining performance. The rate limiter uses Redis for storage when available, with an in-memory fallback for high availability.
@@ -206,16 +222,19 @@ O --> P[Cache Warming]
 ```
 
 **Diagram sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L86-L88)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L122-L135)
 - [config.py](file://backend/open_webui/config.py#L258-L261)
 
 **Section sources**
+
 - [auths.py](file://backend/open_webui/routers/auths.py#L86-L88)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L122-L135)
 - [config.py](file://backend/open_webui/config.py#L258-L261)
 
 ## Cache Invalidation Patterns
+
 Open WebUI implements several cache invalidation patterns to maintain data consistency between the cache and primary data sources. The system uses a combination of time-based expiration, explicit invalidation, and write-through patterns.
 
 For configuration data, the system uses a write-through approach where updates are written to both the database and Redis cache simultaneously. The `save` method in the `PersistentConfig` class updates both storage layers, ensuring immediate consistency.
@@ -241,15 +260,18 @@ K --> M[Update Database]
 ```
 
 **Diagram sources**
+
 - [config.py](file://backend/open_webui/config.py#L258-L261)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L83)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L194-L212)
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L258-L261)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L83)
 
 ## Cache Warming Strategies
+
 Open WebUI implements cache warming strategies to improve application startup performance and reduce latency for frequently accessed data. The system pre-loads critical data into Redis during the application initialization phase.
 
 The primary cache warming mechanism is triggered by the `ENABLE_BASE_MODELS_CACHE` configuration setting. When enabled, the application calls `get_all_models` during startup to populate the models cache. This prevents the first user from experiencing delays when accessing model information.
@@ -276,15 +298,18 @@ B --> |No| N[Skip Cache Warming]
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/main.py#L629-L648)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L122-L135)
 - [config.py](file://backend/open_webui/config.py#L120-L122)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L629-L648)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L122-L135)
 
 ## Handling Cache Misses
+
 Open WebUI implements robust strategies for handling cache misses to ensure application reliability and performance. The system uses a combination of fallback mechanisms, error handling, and monitoring to manage cache misses effectively.
 
 For critical functionality like rate limiting, the system provides an in-memory fallback when Redis is unavailable. The `RateLimiter` class uses an in-memory dictionary store as a backup, ensuring rate limiting continues to function even if Redis is down.
@@ -314,15 +339,18 @@ M --> N
 ```
 
 **Diagram sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L43-L60)
 - [redis.py](file://backend/open_webui/utils/redis.py#L127-L129)
 - [config.py](file://backend/open_webui/config.py#L267-L272)
 
 **Section sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L43-L60)
 - [redis.py](file://backend/open_webui/utils/redis.py#L127-L129)
 
 ## Best Practices for Cacheable Data
+
 Open WebUI follows best practices for determining what data should be cached to maximize performance benefits while minimizing resource usage. The system caches data that meets specific criteria for frequency of access, computational cost, and data volatility.
 
 Frequently accessed data with low volatility is prioritized for caching. This includes user session information, model configurations, and application settings. These data types are read frequently but updated infrequently, making them ideal candidates for caching.
@@ -351,15 +379,18 @@ I --> P[Infrequently accessed but expensive data]
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/main.py#L629-L648)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L122-L135)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L37)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L629-L648)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L122-L135)
 
 ## Memory Management
+
 Open WebUI implements several memory management strategies to ensure efficient Redis usage and prevent memory exhaustion. The system uses TTLs, size limits, and monitoring to control memory consumption.
 
 The primary memory management mechanism is the use of appropriate TTL values for different data types. Short-lived data like rate limiting counters have relatively short expiration times, while more stable data like model configurations may have longer TTLs or be refreshed rather than expired.
@@ -388,15 +419,18 @@ E --> P[Optimize cache patterns]
 ```
 
 **Diagram sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L83)
 - [socket/utils.py](file://backend/open_webui/socket/utils.py#L59-L61)
 - [env.py](file://backend/open_webui/env.py#L380)
 
 **Section sources**
+
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L83)
 - [socket/utils.py](file://backend/open_webui/socket/utils.py#L59-L61)
 
 ## Cache Consistency
+
 Open WebUI maintains cache consistency through a combination of write-through patterns, event-driven updates, and periodic synchronization. The system ensures that cached data remains aligned with the primary data source to prevent stale data issues.
 
 The primary consistency mechanism is the write-through pattern used for configuration data. When configuration values are updated, they are written to both the database and Redis cache simultaneously. This ensures immediate consistency and prevents race conditions.
@@ -427,15 +461,18 @@ N --> Q[State consistency]
 ```
 
 **Diagram sources**
+
 - [config.py](file://backend/open_webui/config.py#L258-L261)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L167-L216)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L83)
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L258-L261)
 - [socket/main.py](file://backend/open_webui/socket/main.py#L167-L216)
 
 ## Monitoring and Troubleshooting
+
 Open WebUI provides several mechanisms for monitoring cache performance and troubleshooting common issues. The system includes logging, metrics collection, and diagnostic tools to help maintain cache health.
 
 The application logs Redis connection issues and cache-related errors at appropriate log levels. Connection failures, timeouts, and other issues are logged to help diagnose problems. The log level for Redis operations can be configured independently using the `SRC_LOG_LEVELS` settings.
@@ -467,15 +504,18 @@ I --> S[Scale Redis]
 ```
 
 **Diagram sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L127-L129)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L94-L97)
 - [env.py](file://backend/open_webui/env.py#L75-L111)
 
 **Section sources**
+
 - [redis.py](file://backend/open_webui/utils/redis.py#L127-L129)
 - [rate_limit.py](file://backend/open_webui/utils/rate_limit.py#L94-L97)
 
 ## Conclusion
+
 Open WebUI's caching strategy using Redis provides a robust foundation for performance optimization and scalability. The system effectively caches frequently accessed data including user sessions, model configurations, and chat metadata through a well-designed implementation that balances performance, reliability, and resource efficiency.
 
 The Redis implementation supports multiple deployment patterns and includes comprehensive connection management, key naming conventions, and TTL strategies. Cache invalidation, warming, and consistency mechanisms ensure data integrity while monitoring and troubleshooting tools help maintain system health.

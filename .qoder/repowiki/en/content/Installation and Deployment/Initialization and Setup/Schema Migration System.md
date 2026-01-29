@@ -24,6 +24,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Migration System Overview](#migration-system-overview)
 3. [Migration Sequence Analysis](#migration-sequence-analysis)
@@ -44,6 +45,7 @@ The schema migration system in open-webui is implemented using the peewee-migrat
 The system supports both SQLite and external databases (PostgreSQL, MySQL, etc.), with different migration paths for each database type. This is particularly evident in the initial schema migration (001_initial_schema.py), which provides separate migration functions (migrate_sqlite and migrate_external) to handle database-specific differences. The migration system uses Peewee's migration operations such as create_model, add_fields, change_fields, remove_fields, and raw SQL execution through the migrator.sql() method.
 
 **Section sources**
+
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py#L37-L255)
 
 ## Migration Sequence Analysis
@@ -53,6 +55,7 @@ The system supports both SQLite and external databases (PostgreSQL, MySQL, etc.)
 The first migration script establishes the foundational database schema for the application. It creates seven core tables: Auth, Chat, ChatIdTag, Document, Modelfile, Prompt, and User. For SQLite databases, the migration uses specific field types appropriate for SQLite, while for external databases, it uses more robust field types. Notably, the password field in the Auth table uses TextField for external databases to accommodate longer password hashes, while using CharField for SQLite. Similarly, text fields like title and profile_image_url use TextField for external databases but CharField for SQLite. This migration also includes a comprehensive rollback function that removes all created models in reverse order to prevent foreign key constraint issues.
 
 **Section sources**
+
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py#L51-L255)
 
 ### 002_add_local_sharing.py: Enabling Chat Sharing
@@ -60,6 +63,7 @@ The first migration script establishes the foundational database schema for the 
 This migration adds a share_id field to the Chat table to support local chat sharing functionality. The field is defined as a CharField with max_length=255, allowing null values initially (null=True) and enforcing uniqueness (unique=True) to ensure each shared chat has a unique identifier. This enables users to share specific chats with others by generating a unique shareable link. The rollback function simply removes this field, restoring the Chat table to its previous state.
 
 **Section sources**
+
 - [002_add_local_sharing.py](file://backend/open_webui/internal/migrations/002_add_local_sharing.py#L40-L42)
 
 ### 003_add_auth_api_key.py: API Key Authentication
@@ -67,6 +71,7 @@ This migration adds a share_id field to the Chat table to support local chat sha
 This migration extends the User model by adding an api_key field to support API-based authentication. The field is a CharField with max_length=255, allows null values (null=True), and enforces uniqueness (unique=True) to ensure each API key is globally unique. This enables users to generate API keys for programmatic access to the application's functionality without using traditional username/password authentication. The migration is straightforward, adding a single field to an existing table.
 
 **Section sources**
+
 - [003_add_auth_api_key.py](file://backend/open_webui/internal/migrations/003_add_auth_api_key.py#L40-L42)
 
 ### 004_add_archived.py: Chat Archiving
@@ -74,6 +79,7 @@ This migration extends the User model by adding an api_key field to support API-
 This migration introduces an archived field to the Chat table to support chat archiving functionality. The field is a BooleanField with a default value of False, indicating that chats are not archived by default. This allows users to archive chats they no longer actively use while keeping them accessible for future reference. The implementation is simple but effective, adding a boolean flag to control the visibility and organization of chats in the user interface.
 
 **Section sources**
+
 - [004_add_archived.py](file://backend/open_webui/internal/migrations/004_add_archived.py#L40-L41)
 
 ### 005_add_updated_at.py: Enhanced Timestamp Management
@@ -81,6 +87,7 @@ This migration introduces an archived field to the Chat table to support chat ar
 This migration significantly enhances the timestamp management for the Chat table by replacing the single timestamp field with two dedicated fields: created_at and updated_at. For SQLite databases, these fields use DateTimeField to store date and time information, while for external databases, they use BigIntegerField to store Unix timestamps. The migration follows a careful three-step process: first adding the new fields with null=True to prevent data loss, then populating them with data from the original timestamp field using raw SQL, and finally removing the original timestamp field. This approach ensures data integrity during the transition. The migration also updates the fields to be non-nullable after population.
 
 **Section sources**
+
 - [005_add_updated_at.py](file://backend/open_webui/internal/migrations/005_add_updated_at.py#L46-L91)
 
 ### 006_migrate_timestamps_and_charfields.py: Data Type Standardization
@@ -88,6 +95,7 @@ This migration significantly enhances the timestamp management for the Chat tabl
 This migration standardizes data types across multiple tables to ensure consistency and compatibility. It converts timestamp fields in ChatIdTag, Document, Modelfile, Prompt, and User tables from DateField to BigIntegerField to maintain uniform timestamp storage as Unix timestamps. Additionally, it upgrades several CharField columns to TextField for better flexibility: password in Auth, title in Chat, title and filename in Document, title in Prompt, and profile_image_url in User. This change accommodates longer content without truncation issues. The rollback function includes conditional logic for SQLite databases, reverting timestamp fields to DateField only for SQLite while maintaining BigIntegerField for external databases.
 
 **Section sources**
+
 - [006_migrate_timestamps_and_charfields.py](file://backend/open_webui/internal/migrations/006_migrate_timestamps_and_charfields.py#L41-L131)
 
 ### 007_add_user_last_active_at.py: User Activity Tracking
@@ -95,6 +103,7 @@ This migration standardizes data types across multiple tables to ensure consiste
 This migration enhances user tracking by adding three fields to the User table: created_at, updated_at, and last_active_at. All fields use BigIntegerField to store Unix timestamps. The migration follows the same pattern as 005_add_updated_at.py: adding the fields with null=True, populating them from the existing timestamp field using raw SQL, removing the original timestamp field, and finally making the new fields non-nullable. The last_active_at field specifically tracks when a user was last active in the system, enabling features like online status indicators and activity-based user sorting.
 
 **Section sources**
+
 - [007_add_user_last_active_at.py](file://backend/open_webui/internal/migrations/007_add_user_last_active_at.py#L41-L62)
 
 ### 008_add_memory.py: Memory Storage
@@ -102,6 +111,7 @@ This migration enhances user tracking by adding three fields to the User table: 
 This migration introduces a new Memory table to store user memory data. The table includes fields for id, user_id, content, updated_at, and created_at. The content field is a non-nullable TextField, ensuring that memory entries always have content. This table likely supports AI memory features, allowing the system to remember user preferences, conversation context, or other persistent information across sessions. The migration is straightforward, creating a new model without modifying existing tables.
 
 **Section sources**
+
 - [008_add_memory.py](file://backend/open_webui/internal/migrations/008_add_memory.py#L38-L47)
 
 ### 009_add_models.py: Model Management
@@ -109,6 +119,7 @@ This migration introduces a new Memory table to store user memory data. The tabl
 This migration adds a Model table to support the management of AI models within the application. The table includes fields for id, user_id, base_model_id, name, meta, params, created_at, and updated_at. The meta and params fields are TextFields that likely store JSON data about the model configuration and parameters. This enables users to create, store, and manage custom AI models within the system. The id field uses TextField with a unique constraint, suggesting that model identifiers are longer strings rather than simple integers.
 
 **Section sources**
+
 - [009_add_models.py](file://backend/open_webui/internal/migrations/009_add_models.py#L40-L55)
 
 ### 010_migrate_modelfiles_to_models.py: Data Migration and Schema Evolution
@@ -116,6 +127,7 @@ This migration adds a Model table to support the management of AI models within 
 This complex migration performs a significant schema evolution by replacing the Modelfile table with the Model table introduced in the previous migration. It accomplishes this through a multi-step process: first migrating data from the old Modelfile table to the new Model table by transforming the data structure, then dropping the Modelfile table. The data transformation is handled in Python code within the migrate_modelfile_to_model function, which extracts data from the JSON modelfile field, processes it using the parse_ollama_modelfile utility function, and maps it to the new Model table structure. The rollback function is equally sophisticated, recreating the Modelfile table and moving data back from the Model table. This migration demonstrates advanced data migration techniques, including custom data transformation and bidirectional migration logic.
 
 **Section sources**
+
 - [010_migrate_modelfiles_to_models.py](file://backend/open_webui/internal/migrations/010_migrate_modelfiles_to_models.py#L39-L131)
 
 ### 011_add_user_settings.py: User Preferences
@@ -123,6 +135,7 @@ This complex migration performs a significant schema evolution by replacing the 
 This migration adds a settings field to the User table to store user-specific preferences and configurations. The field is a TextField with null=True, allowing users to have no settings initially. This flexible approach enables the storage of structured data (likely JSON) containing various user preferences, interface settings, or application configurations. The migration is simple but provides a foundation for extensive user customization features.
 
 **Section sources**
+
 - [011_add_user_settings.py](file://backend/open_webui/internal/migrations/011_add_user_settings.py#L40-L41)
 
 ### 012_add_tools.py: Tool Management
@@ -130,6 +143,7 @@ This migration adds a settings field to the User table to store user-specific pr
 This migration introduces a Tool table to support the management of tools within the application. Similar in structure to the Model table, it includes fields for id, user_id, name, content, specs, meta, created_at, and updated_at. The content and specs fields suggest that tools can have executable code and specification data, while the meta field likely stores additional metadata. This table enables users to create, store, and manage custom tools that can be integrated into the AI workflow.
 
 **Section sources**
+
 - [012_add_tools.py](file://backend/open_webui/internal/migrations/012_add_tools.py#L40-L55)
 
 ### 013_add_user_info.py: User Profile Information
@@ -137,6 +151,7 @@ This migration introduces a Tool table to support the management of tools within
 This migration adds an info field to the User table to store additional user profile information. Like the settings field, it's a TextField with null=True, providing flexible storage for user data such as bio, preferences, or other profile details. This separation of settings and info allows for organized storage of different types of user data—one for application settings and another for personal information.
 
 **Section sources**
+
 - [013_add_user_info.py](file://backend/open_webui/internal/migrations/013_add_user_info.py#L40-L41)
 
 ### 014_add_files.py: File Management
@@ -144,6 +159,7 @@ This migration adds an info field to the User table to store additional user pro
 This migration adds a File table to support file management within the application. The table includes fields for id, user_id, filename, meta, and created_at. The meta field likely stores file metadata such as size, type, and other attributes. This enables users to upload, store, and manage files within the system, potentially for use in AI processing or as attachments in conversations.
 
 **Section sources**
+
 - [014_add_files.py](file://backend/open_webui/internal/migrations/014_add_files.py#L40-L49)
 
 ### 015_add_functions.py: Function Management
@@ -151,6 +167,7 @@ This migration adds a File table to support file management within the applicati
 This migration introduces a Function table to support the management of functions within the application. Similar in structure to Model and Tool tables, it includes fields for id, user_id, name, type, content, meta, created_at, and updated_at. The type field suggests that functions can have different categories or classifications. This table enables users to create, store, and manage custom functions that can be executed within the AI system.
 
 **Section sources**
+
 - [015_add_functions.py](file://backend/open_webui/internal/migrations/015_add_functions.py#L40-L55)
 
 ### 016_add_valves_and_is_active.py: Enhanced Functionality
@@ -158,6 +175,7 @@ This migration introduces a Function table to support the management of function
 This migration enhances the Tool and Function tables by adding new fields. It adds a valves field to both tables, which is a TextField with null=True, likely for storing configuration data or parameters for tools and functions. Additionally, it adds an is_active field to the Function table, a BooleanField with a default value of False, to control whether functions are enabled or disabled. This allows for granular control over which functions are available for use in the system.
 
 **Section sources**
+
 - [016_add_valves_and_is_active.py](file://backend/open_webui/internal/migrations/016_add_valves_and_is_active.py#L40-L42)
 
 ### 017_add_user_oauth_sub.py: OAuth Integration
@@ -165,6 +183,7 @@ This migration enhances the Tool and Function tables by adding new fields. It ad
 This migration adds an oauth_sub field to the User table to support OAuth authentication. The field is a TextField with null=True and unique=True, designed to store the subject identifier from OAuth providers. This enables the system to link user accounts to external OAuth identities (such as Google, GitHub, etc.) and support single sign-on functionality. The unique constraint ensures that each OAuth subject is associated with only one user account.
 
 **Section sources**
+
 - [017_add_user_oauth_sub.py](file://backend/open_webui/internal/migrations/017_add_user_oauth_sub.py#L36-L38)
 
 ### 018_add_function_is_global.py: Function Visibility
@@ -172,6 +191,7 @@ This migration adds an oauth_sub field to the User table to support OAuth authen
 This migration adds an is_global field to the Function table, a BooleanField with a default value of False. This field controls whether a function is available globally to all users or only to the user who created it. When set to True, the function can be used by any user in the system, enabling shared functionality and community contributions. This feature supports both personal customization and collaborative tool sharing within the platform.
 
 **Section sources**
+
 - [018_add_function_is_global.py](file://backend/open_webui/internal/migrations/018_add_function_is_global.py#L40-L42)
 
 ## Migration Application Process
@@ -183,6 +203,7 @@ For SQLite databases, the migration process takes into account SQLite's limitati
 The application likely uses a migration history table or similar mechanism to track which migrations have been applied, preventing the re-application of completed migrations. This ensures that the database schema evolves correctly over time, regardless of when or how often the application is restarted.
 
 **Section sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L1-L100)
 
 ## Creating New Migration Scripts
@@ -191,9 +212,10 @@ To create new migration scripts for the open-webui project, follow these steps:
 
 1. **Identify the schema change needed**: Determine whether you need to create a new table, add/remove fields, modify existing fields, or perform other schema modifications.
 
-2. **Generate a new migration file**: Use the peewee-migrate command-line tool or manually create a new Python file in the internal/migrations directory with the next sequential number (e.g., 019_*.py).
+2. **Generate a new migration file**: Use the peewee-migrate command-line tool or manually create a new Python file in the internal/migrations directory with the next sequential number (e.g., 019\_\*.py).
 
 3. **Implement the migrate function**: In the migrate function, use the appropriate migrator methods to implement your schema changes:
+
    - Use `migrator.create_model()` to create new tables
    - Use `migrator.add_fields()` to add new fields to existing tables
    - Use `migrator.change_fields()` to modify existing fields
@@ -209,6 +231,7 @@ To create new migration scripts for the open-webui project, follow these steps:
 When adding new fields, consider using null=True initially if the field will be populated with data from existing fields, following the pattern seen in migrations like 005_add_updated_at.py and 007_add_user_last_active_at.py. For data migrations that require transformation (like 010_migrate_modelfiles_to_models.py), implement the transformation logic in Python within the migration function.
 
 **Section sources**
+
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py#L37-L255)
 - [005_add_updated_at.py](file://backend/open_webui/internal/migrations/005_add_updated_at.py#L46-L91)
 - [010_migrate_modelfiles_to_models.py](file://backend/open_webui/internal/migrations/010_migrate_modelfiles_to_models.py#L39-L131)
@@ -230,6 +253,7 @@ For handling migration conflicts, particularly in team environments where multip
 5. **Use transactions when possible**: Although not explicitly shown in the migration scripts, consider wrapping migration operations in transactions to ensure atomicity.
 
 When conflicts do occur, resolve them by:
+
 - Merging conflicting migrations into a single migration script
 - Adjusting migration numbers to maintain proper sequence
 - Ensuring that the combined migration maintains data integrity
@@ -238,6 +262,7 @@ When conflicts do occur, resolve them by:
 The system's support for both forward and backward migrations provides a safety net for development and deployment, allowing teams to iterate on schema design with confidence.
 
 **Section sources**
+
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py#L237-L255)
 - [010_migrate_modelfiles_to_models.py](file://backend/open_webui/internal/migrations/010_migrate_modelfiles_to_models.py#L84-L131)
 
@@ -268,6 +293,7 @@ Based on the open-webui migration system, here are key best practices for writin
 These best practices ensure that migration scripts are reliable, maintainable, and safe to deploy in production environments.
 
 **Section sources**
+
 - [001_initial_schema.py](file://backend/open_webui/internal/migrations/001_initial_schema.py#L37-L255)
 - [005_add_updated_at.py](file://backend/open_webui/internal/migrations/005_add_updated_at.py#L46-L91)
 - [010_migrate_modelfiles_to_models.py](file://backend/open_webui/internal/migrations/010_migrate_modelfiles_to_models.py#L39-L131)

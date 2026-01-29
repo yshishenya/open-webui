@@ -205,29 +205,30 @@
 						</div>
 					</div>
 
-						<div class="flex w-full justify-end gap-1.5">
-							<button
-								class="px-2 py-1.5 rounded-xl bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-200 transition font-medium text-sm flex items-center"
-								on:click={() => {
-									showUnlimitedOnly = !showUnlimitedOnly;
-								}}
-							>
-								{$i18n.t('Безлимит')}
-							</button>
-							<button
-								class="px-2 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
-								on:click={() => goto('/admin/billing/plans/new')}
-							>
-								<Plus className="size-3" strokeWidth="2.5" />
-								<div class="hidden md:block md:ml-1 text-xs">{$i18n.t('New Plan')}</div>
-							</button>
-						</div>
-
+					<div class="flex w-full justify-end gap-1.5">
+						<button
+							class="px-2 py-1.5 rounded-xl bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-200 transition font-medium text-sm flex items-center"
+							on:click={() => {
+								showUnlimitedOnly = !showUnlimitedOnly;
+							}}
+						>
+							{$i18n.t('Безлимит')}
+						</button>
+						<button
+							class="px-2 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
+							on:click={() => goto('/admin/billing/plans/new')}
+						>
+							<Plus className="size-3" strokeWidth="2.5" />
+							<div class="hidden md:block md:ml-1 text-xs">{$i18n.t('New Plan')}</div>
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
 
-		<div class="py-2 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30">
+		<div
+			class="py-2 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30"
+		>
 			<!-- Search -->
 			<div class="px-3.5 flex flex-1 items-center w-full space-x-2 py-0.5 pb-2">
 				<div class="flex flex-1">
@@ -258,7 +259,9 @@
 			{#if filteredPlans.length !== 0}
 				<div class="px-3 my-2 gap-1 lg:gap-2 grid lg:grid-cols-2">
 					{#each filteredPlans as planStat (planStat.plan.id)}
-						<div class="flex space-x-4 cursor-pointer w-full px-2 py-2 dark:hover:bg-white/5 hover:bg-black/5 rounded-xl">
+						<div
+							class="flex space-x-4 cursor-pointer w-full px-2 py-2 dark:hover:bg-white/5 hover:bg-black/5 rounded-xl"
+						>
 							<a
 								class="flex flex-1 space-x-3.5 cursor-pointer w-full"
 								href={`/admin/billing/plans/${planStat.plan.id}/edit`}
@@ -267,24 +270,30 @@
 									<div class="flex-1 self-center pl-1">
 										<Tooltip content={planStat.plan.id} placement="top-start">
 											<div class="flex items-center gap-1.5">
-												<div class="text-xs font-semibold px-1 rounded-sm uppercase line-clamp-1
+												<div
+													class="text-xs font-semibold px-1 rounded-sm uppercase line-clamp-1
 													{planStat.plan.is_active
 														? 'bg-green-500/20 text-green-700 dark:text-green-200'
-														: 'bg-gray-500/20 text-gray-700 dark:text-gray-200'}">
+														: 'bg-gray-500/20 text-gray-700 dark:text-gray-200'}"
+												>
 													{planStat.plan.is_active ? $i18n.t('Active') : $i18n.t('Inactive')}
 												</div>
 												<div class="line-clamp-1 text-sm font-medium">
 													{planStat.plan.name_ru || planStat.plan.name}
 												</div>
 												<div class="text-gray-500 text-xs font-medium shrink-0">
-													{formatPrice(planStat.plan.price, planStat.plan.currency)}/{getIntervalLabel(planStat.plan.interval)}
+													{formatPrice(
+														planStat.plan.price,
+														planStat.plan.currency
+													)}/{getIntervalLabel(planStat.plan.interval)}
 												</div>
 											</div>
 										</Tooltip>
 
 										<div class="flex gap-1.5 px-1">
 											<div class="text-xs text-gray-500 shrink-0">
-												{planStat.active_subscriptions} {$i18n.t('subscribers')}
+												{planStat.active_subscriptions}
+												{$i18n.t('subscribers')}
 											</div>
 											{#if planStat.mrr > 0}
 												<div class="text-xs text-gray-500">
@@ -292,7 +301,9 @@
 												</div>
 											{/if}
 											{#if planStat.plan.description_ru || planStat.plan.description}
-												<div class="text-xs overflow-hidden text-ellipsis line-clamp-1 text-gray-400">
+												<div
+													class="text-xs overflow-hidden text-ellipsis line-clamp-1 text-gray-400"
+												>
 													• {planStat.plan.description_ru || planStat.plan.description}
 												</div>
 											{/if}
@@ -320,8 +331,19 @@
 											type="button"
 											on:click={() => goto(`/admin/billing/plans/${planStat.plan.id}/subscribers`)}
 										>
-											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-												<path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke-width="1.5"
+												stroke="currentColor"
+												class="size-4"
+											>
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+												/>
 											</svg>
 										</button>
 									</Tooltip>
@@ -343,15 +365,28 @@
 											disabled={actionInProgress}
 											on:click={() => handleDuplicate(planStat.plan.id)}
 										>
-											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-												<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke-width="1.5"
+												stroke="currentColor"
+												class="size-4"
+											>
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"
+												/>
 											</svg>
 										</button>
 									</Tooltip>
 								{/if}
 
 								<div class="self-center mx-1">
-									<Tooltip content={planStat.plan.is_active ? $i18n.t('Enabled') : $i18n.t('Disabled')}>
+									<Tooltip
+										content={planStat.plan.is_active ? $i18n.t('Enabled') : $i18n.t('Disabled')}
+									>
 										<Switch
 											state={planStat.plan.is_active}
 											on:change={() => handleToggleActive(planStat.plan.id)}
@@ -382,19 +417,32 @@
 		<!-- Summary Stats -->
 		{#if plansWithStats.length > 0}
 			<div class="mt-4 grid grid-cols-3 gap-2 text-sm">
-				<div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3">
+				<div
+					class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
+				>
 					<div class="text-xs text-gray-500">{$i18n.t('Total Plans')}</div>
 					<div class="text-lg font-medium">{plansWithStats.length}</div>
-					<div class="text-xs text-gray-400">{plansWithStats.filter((p) => p.plan.is_active).length} {$i18n.t('active')}</div>
+					<div class="text-xs text-gray-400">
+						{plansWithStats.filter((p) => p.plan.is_active).length}
+						{$i18n.t('active')}
+					</div>
 				</div>
-				<div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3">
+				<div
+					class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
+				>
 					<div class="text-xs text-gray-500">{$i18n.t('Subscribers')}</div>
-					<div class="text-lg font-medium">{plansWithStats.reduce((sum, p) => sum + p.active_subscriptions, 0)}</div>
+					<div class="text-lg font-medium">
+						{plansWithStats.reduce((sum, p) => sum + p.active_subscriptions, 0)}
+					</div>
 					<div class="text-xs text-gray-400">{$i18n.t('across all plans')}</div>
 				</div>
-				<div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3">
+				<div
+					class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
+				>
 					<div class="text-xs text-gray-500">{$i18n.t('Total MRR')}</div>
-					<div class="text-lg font-medium">{formatMRR(plansWithStats.reduce((sum, p) => sum + p.mrr, 0))}</div>
+					<div class="text-lg font-medium">
+						{formatMRR(plansWithStats.reduce((sum, p) => sum + p.mrr, 0))}
+					</div>
 					<div class="text-xs text-gray-400">{$i18n.t('monthly')}</div>
 				</div>
 			</div>

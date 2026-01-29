@@ -22,7 +22,9 @@
 	{/if}
 </svelte:head>
 
-<div class="min-h-screen bg-[radial-gradient(1200px_600px_at_15%_-10%,rgba(0,0,0,0.05),transparent),radial-gradient(900px_500px_at_90%_0%,rgba(0,0,0,0.04),transparent),linear-gradient(180deg,#f7f7f8_0%,#ffffff_70%)] text-gray-900 flex flex-col font-primary">
+<div
+	class="min-h-screen bg-[radial-gradient(1200px_600px_at_15%_-10%,rgba(0,0,0,0.05),transparent),radial-gradient(900px_500px_at_90%_0%,rgba(0,0,0,0.04),transparent),linear-gradient(180deg,#f7f7f8_0%,#ffffff_70%)] text-gray-900 flex flex-col font-primary"
+>
 	<NavHeader currentPath={$page.url.pathname} />
 
 	{#if showHero}
@@ -32,7 +34,9 @@
 			>
 				<div class="space-y-6">
 					{#if heroEyebrow}
-						<span class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gray-600">
+						<span
+							class="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gray-600"
+						>
 							{heroEyebrow}
 						</span>
 					{/if}

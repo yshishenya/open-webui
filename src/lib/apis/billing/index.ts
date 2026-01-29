@@ -268,11 +268,7 @@ const BILLING_INFO_TIMEOUT_MS = 15000;
  * @param options - Fetch options
  * @returns Response data or throws error
  */
-async function apiRequest<T>(
-	url: string,
-	token: string,
-	options: RequestInit = {}
-): Promise<T> {
+async function apiRequest<T>(url: string, token: string, options: RequestInit = {}): Promise<T> {
 	const response = await fetch(url, {
 		...options,
 		headers: {
@@ -329,9 +325,7 @@ export const getPlans = async (token: string): Promise<Plan[] | null> => {
 
 export const getPlansPublic = async (): Promise<PublicPlan[] | null> => {
 	try {
-		return await publicApiRequest<PublicPlan[]>(
-			`${WEBUI_API_BASE_URL}/billing/plans/public`
-		);
+		return await publicApiRequest<PublicPlan[]>(`${WEBUI_API_BASE_URL}/billing/plans/public`);
 	} catch (error) {
 		console.error('Failed to get public plans:', error);
 		throw error;
@@ -541,14 +535,10 @@ export const updateAutoTopup = async (
 	payload: { enabled: boolean; threshold_kopeks?: number | null; amount_kopeks?: number | null }
 ): Promise<{ status: string } | null> => {
 	try {
-		return await apiRequest<{ status: string }>(
-			`${WEBUI_API_BASE_URL}/billing/auto-topup`,
-			token,
-			{
-				method: 'POST',
-				body: JSON.stringify(payload)
-			}
-		);
+		return await apiRequest<{ status: string }>(`${WEBUI_API_BASE_URL}/billing/auto-topup`, token, {
+			method: 'POST',
+			body: JSON.stringify(payload)
+		});
 	} catch (error) {
 		console.error('Failed to update auto-topup:', error);
 		throw error;
@@ -565,14 +555,10 @@ export const updateBillingSettings = async (
 	}
 ): Promise<{ status: string } | null> => {
 	try {
-		return await apiRequest<{ status: string }>(
-			`${WEBUI_API_BASE_URL}/billing/settings`,
-			token,
-			{
-				method: 'POST',
-				body: JSON.stringify(payload)
-			}
-		);
+		return await apiRequest<{ status: string }>(`${WEBUI_API_BASE_URL}/billing/settings`, token, {
+			method: 'POST',
+			body: JSON.stringify(payload)
+		});
 	} catch (error) {
 		console.error('Failed to update billing settings:', error);
 		throw error;
@@ -648,10 +634,7 @@ export const getBillingInfo = async (token: string): Promise<BillingInfo | null>
 
 export const getLeadMagnetInfo = async (token: string): Promise<LeadMagnetInfo | null> => {
 	try {
-		return await apiRequest<LeadMagnetInfo>(
-			`${WEBUI_API_BASE_URL}/billing/lead-magnet`,
-			token
-		);
+		return await apiRequest<LeadMagnetInfo>(`${WEBUI_API_BASE_URL}/billing/lead-magnet`, token);
 	} catch (error) {
 		console.error('Failed to get lead magnet info:', error);
 		return null;
@@ -661,7 +644,7 @@ export const getLeadMagnetInfo = async (token: string): Promise<LeadMagnetInfo |
 export const getPublicLeadMagnetConfig = async (): Promise<PublicLeadMagnetConfig | null> => {
 	try {
 		return await publicApiRequest<PublicLeadMagnetConfig>(
-			`${WEBUI_API_BASE_URL}/billing/public/lead-magnet`,
+			`${WEBUI_API_BASE_URL}/billing/public/lead-magnet`
 		);
 	} catch (error) {
 		console.error('Failed to get public lead magnet config:', error);
@@ -672,7 +655,7 @@ export const getPublicLeadMagnetConfig = async (): Promise<PublicLeadMagnetConfi
 export const getPublicPricingConfig = async (): Promise<PublicPricingConfig | null> => {
 	try {
 		return await publicApiRequest<PublicPricingConfig>(
-			`${WEBUI_API_BASE_URL}/billing/public/pricing-config`,
+			`${WEBUI_API_BASE_URL}/billing/public/pricing-config`
 		);
 	} catch (error) {
 		console.error('Failed to get public pricing config:', error);
@@ -683,7 +666,7 @@ export const getPublicPricingConfig = async (): Promise<PublicPricingConfig | nu
 export const getPublicRateCards = async (): Promise<PublicRateCardResponse | null> => {
 	try {
 		return await publicApiRequest<PublicRateCardResponse>(
-			`${WEBUI_API_BASE_URL}/billing/public/rate-cards`,
+			`${WEBUI_API_BASE_URL}/billing/public/rate-cards`
 		);
 	} catch (error) {
 		console.error('Failed to get public rate cards:', error);

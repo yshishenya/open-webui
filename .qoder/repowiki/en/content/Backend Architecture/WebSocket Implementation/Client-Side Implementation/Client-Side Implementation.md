@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [WebSocket Client Initialization](#websocket-client-initialization)
 2. [Connection Configuration](#connection-configuration)
 3. [Event Listener Registration](#event-listener-registration)
@@ -27,6 +28,7 @@ The WebSocket client in open-webui's Svelte frontend is initialized within the `
 The initialization process begins by retrieving backend configuration through the `getBackendConfig` API call. Once the configuration is available, the `setupSocket` function is called with a boolean parameter indicating whether WebSocket support is enabled on the server. This function creates a new Socket.IO client instance using the `io` function, passing the base URL of the application and a configuration object that defines connection options.
 
 **Section sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L28)
 - [+layout.svelte](file://src/routes/+layout.svelte#L97-L107)
 
@@ -55,11 +57,13 @@ Note over Client,Server : Connection terminated
 ```
 
 **Diagram sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L98-L106)
 - [+layout.svelte](file://src/routes/+layout.svelte#L131-L137)
 - [main.py](file://backend/open_webui/socket/main.py#L354-L359)
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L97-L141)
 
 ## Event Listener Registration
@@ -71,6 +75,7 @@ Two main event handlers are registered: `chatEventHandler` for the "events" chan
 The event listener registration is reactive to the user's authentication state. When the user store receives a value (indicating login), the existing handlers are first removed using `off()` calls, and then the new handlers are attached using `on()` calls. This approach ensures that there are no duplicate listeners and that the handlers have access to the current application state.
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L683-L707)
 
 ## Svelte Store Integration
@@ -97,11 +102,13 @@ style G fill:#bbf,stroke:#333
 ```
 
 **Diagram sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L28-L31)
 - [+layout.svelte](file://src/routes/+layout.svelte#L325-L383)
 - [+layout.svelte](file://src/routes/+layout.svelte#L482-L500)
 
 **Section sources**
+
 - [index.ts](file://src/lib/stores/index.ts#L1-L51)
 - [+layout.svelte](file://src/routes/+layout.svelte#L325-L500)
 
@@ -116,6 +123,7 @@ When a chat completion event is received with `done: true`, indicating the compl
 The handler also processes other chat-related events such as chat title updates and tag updates, refreshing the relevant stores to ensure the UI reflects the latest data. For events originating from the same client session, the handler processes execution requests for Python code and tool execution, coordinating with worker threads to execute the code and return results.
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L325-L478)
 
 ## Channel Event Handler
@@ -148,10 +156,12 @@ Handler->>UI : Hide typing indicator after timeout
 ```
 
 **Diagram sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L482-L500)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L115-L174)
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L482-L500)
 - [Channel.svelte](file://src/lib/components/channel/Channel.svelte#L115-L174)
 
@@ -166,6 +176,7 @@ The reconnection strategy leverages Socket.IO's built-in reconnection mechanism 
 User feedback is integrated into the connection status changes through the use of Svelte stores. The `isLastActiveTab` store, combined with visibility change events, ensures that notifications are only shown when appropriate. This prevents redundant notifications across multiple browser tabs while still informing users of important events when they return to the application.
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L109-L177)
 
 ## Component Subscription Management
@@ -179,5 +190,6 @@ Component-specific subscriptions are managed using Svelte's `onDestroy` lifecycl
 The application also uses a BroadcastChannel to coordinate state across multiple browser tabs, ensuring that only the active tab processes certain events and displays notifications. This prevents duplicate notifications and ensures a consistent user experience when the application is open in multiple tabs.
 
 **Section sources**
+
 - [+layout.svelte](file://src/routes/+layout.svelte#L683-L707)
 - [Thread.svelte](file://src/lib/components/channel/Thread.svelte#L162-L164)

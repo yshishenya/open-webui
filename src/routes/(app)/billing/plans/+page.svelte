@@ -125,7 +125,6 @@
 		}
 	};
 
-
 	const isCurrentPlan = (planId: string): boolean => {
 		return (
 			subscription?.plan_id === planId &&
@@ -201,16 +200,17 @@
 					<div class="text-xl font-medium">{$i18n.t('Subscription Plans')}</div>
 				</div>
 			</div>
-		<div class="text-sm text-gray-500">
-			{$i18n.t('Plans are managed by administrators')}
-		</div>
-
+			<div class="text-sm text-gray-500">
+				{$i18n.t('Plans are managed by administrators')}
+			</div>
 		</div>
 
 		<!-- Plans Grid -->
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
 			{#each plans as plan (plan.id)}
-				<div class="flex flex-col bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-5 hover:shadow-lg transition-shadow">
+				<div
+					class="flex flex-col bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-5 hover:shadow-lg transition-shadow"
+				>
 					<!-- Plan Header -->
 					<div class="mb-3">
 						<h3 class="text-lg font-semibold">
@@ -267,7 +267,9 @@
 						<div class="mb-4 space-y-1.5">
 							<div class="text-xs text-gray-500 mb-2">{$i18n.t('Quotas')}:</div>
 							{#each Object.entries(plan.quotas) as [key, value]}
-								<div class="flex items-center justify-between text-sm bg-gray-50 dark:bg-gray-850 rounded-lg px-2 py-1.5">
+								<div
+									class="flex items-center justify-between text-sm bg-gray-50 dark:bg-gray-850 rounded-lg px-2 py-1.5"
+								>
 									<span class="text-gray-600 dark:text-gray-400">{getQuotaLabel(key)}</span>
 									<span class="font-medium">{formatQuota(value)}</span>
 								</div>

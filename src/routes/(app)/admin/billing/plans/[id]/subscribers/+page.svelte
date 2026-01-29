@@ -105,14 +105,17 @@
 						{plan?.name_ru || plan?.name || $i18n.t('Plan Subscribers')}
 					</div>
 					<div class="text-sm text-gray-500">
-						{totalSubscribers} {$i18n.t('subscribers')}
+						{totalSubscribers}
+						{$i18n.t('subscribers')}
 					</div>
 				</div>
 			</div>
 		</div>
 
 		<!-- Subscribers Table -->
-		<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 overflow-hidden">
+		<div
+			class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 overflow-hidden"
+		>
 			{#if subscribers.length === 0}
 				<div class="w-full h-full flex flex-col justify-center items-center my-16">
 					<div class="max-w-md text-center">
@@ -126,20 +129,38 @@
 			{:else}
 				<div class="overflow-x-auto">
 					<table class="w-full text-sm">
-						<thead class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+						<thead
+							class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
+						>
 							<tr>
-								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('User')}</th>
-								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Status')}</th>
-								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Tokens Input')}</th>
-								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Tokens Output')}</th>
-								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Requests')}</th>
-								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Subscribed')}</th>
-								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300">{$i18n.t('Period Ends')}</th>
+								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300"
+									>{$i18n.t('User')}</th
+								>
+								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300"
+									>{$i18n.t('Status')}</th
+								>
+								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300"
+									>{$i18n.t('Tokens Input')}</th
+								>
+								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300"
+									>{$i18n.t('Tokens Output')}</th
+								>
+								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300"
+									>{$i18n.t('Requests')}</th
+								>
+								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300"
+									>{$i18n.t('Subscribed')}</th
+								>
+								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300"
+									>{$i18n.t('Period Ends')}</th
+								>
 							</tr>
 						</thead>
 						<tbody>
 							{#each subscribers as subscriber (subscriber.user_id)}
-								<tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+								<tr
+									class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition"
+								>
 									<td class="px-4 py-3">
 										<div class="flex items-center gap-2">
 											<img
@@ -154,52 +175,88 @@
 										</div>
 									</td>
 									<td class="px-4 py-3">
-										<span class="px-2 py-0.5 rounded text-xs font-medium {getStatusColor(subscriber.subscription_status)}">
+										<span
+											class="px-2 py-0.5 rounded text-xs font-medium {getStatusColor(
+												subscriber.subscription_status
+											)}"
+										>
 											{subscriber.subscription_status}
 										</span>
 									</td>
 									<td class="px-4 py-3">
 										{#if subscriber.tokens_input_limit}
-											{@const pct = getUsagePercentage(subscriber.tokens_input_used, subscriber.tokens_input_limit)}
+											{@const pct = getUsagePercentage(
+												subscriber.tokens_input_used,
+												subscriber.tokens_input_limit
+											)}
 											<div class="space-y-1">
 												<div class="flex justify-between text-xs">
 													<span>{formatCompactNumber(subscriber.tokens_input_used)}</span>
-													<span class="text-gray-500">/ {formatCompactNumber(subscriber.tokens_input_limit)}</span>
+													<span class="text-gray-500"
+														>/ {formatCompactNumber(subscriber.tokens_input_limit)}</span
+													>
 												</div>
-												<div class="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-													<div class="h-full {getUsageColor(pct)} transition-all" style="width: {pct}%"></div>
+												<div
+													class="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
+												>
+													<div
+														class="h-full {getUsageColor(pct)} transition-all"
+														style="width: {pct}%"
+													></div>
 												</div>
 											</div>
 										{:else}
-											<span class="text-gray-400">{formatCompactNumber(subscriber.tokens_input_used)}</span>
+											<span class="text-gray-400"
+												>{formatCompactNumber(subscriber.tokens_input_used)}</span
+											>
 										{/if}
 									</td>
 									<td class="px-4 py-3">
 										{#if subscriber.tokens_output_limit}
-											{@const pct = getUsagePercentage(subscriber.tokens_output_used, subscriber.tokens_output_limit)}
+											{@const pct = getUsagePercentage(
+												subscriber.tokens_output_used,
+												subscriber.tokens_output_limit
+											)}
 											<div class="space-y-1">
 												<div class="flex justify-between text-xs">
 													<span>{formatCompactNumber(subscriber.tokens_output_used)}</span>
-													<span class="text-gray-500">/ {formatCompactNumber(subscriber.tokens_output_limit)}</span>
+													<span class="text-gray-500"
+														>/ {formatCompactNumber(subscriber.tokens_output_limit)}</span
+													>
 												</div>
-												<div class="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-													<div class="h-full {getUsageColor(pct)} transition-all" style="width: {pct}%"></div>
+												<div
+													class="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
+												>
+													<div
+														class="h-full {getUsageColor(pct)} transition-all"
+														style="width: {pct}%"
+													></div>
 												</div>
 											</div>
 										{:else}
-											<span class="text-gray-400">{formatCompactNumber(subscriber.tokens_output_used)}</span>
+											<span class="text-gray-400"
+												>{formatCompactNumber(subscriber.tokens_output_used)}</span
+											>
 										{/if}
 									</td>
 									<td class="px-4 py-3">
 										{#if subscriber.requests_limit}
-											{@const pct = getUsagePercentage(subscriber.requests_used, subscriber.requests_limit)}
+											{@const pct = getUsagePercentage(
+												subscriber.requests_used,
+												subscriber.requests_limit
+											)}
 											<div class="space-y-1">
 												<div class="flex justify-between text-xs">
 													<span>{subscriber.requests_used}</span>
 													<span class="text-gray-500">/ {subscriber.requests_limit}</span>
 												</div>
-												<div class="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-													<div class="h-full {getUsageColor(pct)} transition-all" style="width: {pct}%"></div>
+												<div
+													class="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
+												>
+													<div
+														class="h-full {getUsageColor(pct)} transition-all"
+														style="width: {pct}%"
+													></div>
 												</div>
 											</div>
 										{:else}
@@ -220,16 +277,21 @@
 
 				<!-- Pagination -->
 				{#if totalPages > 1}
-					<div class="flex justify-between items-center px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+					<div
+						class="flex justify-between items-center px-4 py-3 border-t border-gray-200 dark:border-gray-700"
+					>
 						<div class="text-sm text-gray-500">
-							{$i18n.t('Page')} {currentPage} {$i18n.t('of')} {totalPages}
+							{$i18n.t('Page')}
+							{currentPage}
+							{$i18n.t('of')}
+							{totalPages}
 						</div>
 						<div class="flex gap-2">
 							<button
 								class="px-3 py-1.5 rounded-lg text-sm font-medium transition
 									{currentPage === 1
-										? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-										: 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}"
+									? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+									: 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}"
 								disabled={currentPage === 1}
 								on:click={() => goToPage(currentPage - 1)}
 							>
@@ -238,8 +300,8 @@
 							<button
 								class="px-3 py-1.5 rounded-lg text-sm font-medium transition
 									{currentPage === totalPages
-										? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-										: 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}"
+									? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+									: 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}"
 								disabled={currentPage === totalPages}
 								on:click={() => goToPage(currentPage + 1)}
 							>

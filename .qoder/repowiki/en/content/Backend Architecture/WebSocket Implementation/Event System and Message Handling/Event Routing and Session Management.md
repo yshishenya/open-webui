@@ -10,6 +10,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Session Management System](#session-management-system)
 3. [Event Routing Mechanism](#event-routing-mechanism)
@@ -20,6 +21,7 @@
 8. [State Synchronization and Cleanup](#state-synchronization-and-cleanup)
 
 ## Introduction
+
 This document provides a comprehensive analysis of the event routing mechanism in open-webui's WebSocket implementation, focusing on how messages are directed to specific sessions using the 'to' parameter in Socket.IO calls. The system leverages Socket.IO for real-time communication, with Redis for distributed state management in clustered environments. The architecture supports efficient message distribution through room-based broadcasting, user session tracking, and channel membership management. This documentation details the complete flow from connection establishment to message routing, including the session lifecycle, authentication integration, and state synchronization mechanisms.
 
 ## Session Management System
@@ -48,10 +50,12 @@ end
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L316)
 - [main.py](file://backend/open_webui/socket/main.py#L318-L351)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L351)
 
 ## Event Routing Mechanism
@@ -78,10 +82,12 @@ style End fill:#4CAF50,stroke:#388E3C
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L256-L269)
 - [main.py](file://backend/open_webui/socket/main.py#L815-L838)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L256-L269)
 - [main.py](file://backend/open_webui/socket/main.py#L695-L838)
 
@@ -111,10 +117,12 @@ SocketServer-->>UserA : Message confirmation
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L413-L447)
 - [channels.py](file://backend/open_webui/routers/channels.py#L1035-L1039)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L413-L447)
 - [channels.py](file://backend/open_webui/routers/channels.py#L1023-L1060)
 
@@ -146,11 +154,13 @@ style CompleteDisconnection fill:#4CAF50,stroke:#388E3C
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L316)
 - [main.py](file://backend/open_webui/socket/main.py#L318-L351)
 - [main.py](file://backend/open_webui/socket/main.py#L684-L693)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L303-L351)
 - [main.py](file://backend/open_webui/socket/main.py#L354-L359)
 - [main.py](file://backend/open_webui/socket/main.py#L684-L693)
@@ -194,11 +204,13 @@ note right of SessionPool : Maintains session-to-user mapping<br/>Tracks user se
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L76-L99)
 - [main.py](file://backend/open_webui/socket/main.py#L272-L285)
 - [main.py](file://backend/open_webui/socket/main.py#L238-L244)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L64-L99)
 - [main.py](file://backend/open_webui/socket/main.py#L272-L285)
 
@@ -236,10 +248,12 @@ note left of REDIS_CONFIG: Redis configuration for<br/>distributed state managem
 ```
 
 **Diagram sources**
+
 - [env.py](file://backend/open_webui/env.py#L613-L662)
 - [main.py](file://backend/open_webui/socket/main.py#L64-L99)
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L613-L662)
 
 ## State Synchronization and Cleanup
@@ -281,10 +295,12 @@ style ReleaseLock fill:#F44336,stroke:#D32F2F
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L167-L216)
 - [utils.py](file://backend/open_webui/socket/utils.py#L120-L224)
 - [main.py](file://backend/open_webui/socket/main.py#L448-L659)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/socket/main.py#L167-L216)
 - [utils.py](file://backend/open_webui/socket/utils.py#L120-L224)

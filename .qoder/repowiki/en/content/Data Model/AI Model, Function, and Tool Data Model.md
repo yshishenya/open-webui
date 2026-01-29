@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Model Entity](#model-entity)
 3. [Function Entity](#function-entity)
@@ -24,6 +25,7 @@
 10. [Conclusion](#conclusion)
 
 ## Introduction
+
 The Open WebUI application provides a comprehensive framework for managing AI models, functions, and tools within a collaborative environment. This document details the data model for these core entities, including their fields, relationships, and configuration options. The system supports user ownership, group-based sharing, parameter customization through the valves system, and feature toggling via the is_active flag. Understanding these data models is essential for administrators and developers who need to configure and extend the platform's capabilities.
 
 ## Model Entity
@@ -31,6 +33,7 @@ The Open WebUI application provides a comprehensive framework for managing AI mo
 The Model entity represents AI models that can be used within the Open WebUI application. Each model has a unique identifier and is associated with a user who created it. The model configuration includes various parameters that define its behavior and appearance.
 
 **Model Fields:**
+
 - **id**: Unique identifier for the model, used in API calls
 - **user_id**: Identifier of the user who created the model
 - **base_model_id**: Optional pointer to the actual model for proxying requests
@@ -43,11 +46,13 @@ The Model entity represents AI models that can be used within the Open WebUI app
 - **created_at**: Timestamp of creation (epoch)
 
 The ModelMeta class includes additional metadata fields:
+
 - **profile_image_url**: URL for the model's profile image
 - **description**: User-facing description of the model
 - **capabilities**: Dictionary defining model capabilities
 
 The access_control field implements a flexible permission system:
+
 - `None`: Public access for all users with "user" role
 - `{}`: Private access, restricted to the owner
 - Custom permissions: Specific access control with group and user-level restrictions
@@ -79,9 +84,11 @@ Model --> ModelParams : "contains"
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L55-L84)
 
 **Section sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L55-L84)
 
 ## Function Entity
@@ -89,6 +96,7 @@ Model --> ModelParams : "contains"
 The Function entity represents executable code modules that can be used to extend the functionality of the Open WebUI application. Functions are typically Python scripts that implement specific behaviors such as filters, actions, or pipes.
 
 **Function Fields:**
+
 - **id**: Unique identifier for the function
 - **user_id**: Identifier of the user who created the function
 - **name**: Display name of the function
@@ -102,10 +110,12 @@ The Function entity represents executable code modules that can be used to exten
 - **created_at**: Timestamp of creation (epoch)
 
 The FunctionMeta class includes:
+
 - **description**: User-facing description of the function
 - **manifest**: Dictionary containing function manifest information
 
 Functions can be of different types:
+
 - **Filter**: Processes input before it reaches the model
 - **Action**: Performs actions in response to events
 - **Pipe**: Transforms data in a pipeline
@@ -139,9 +149,11 @@ Function --> FunctionValves : "contains"
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L19-L34)
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L19-L34)
 
 ## Tool Entity
@@ -149,6 +161,7 @@ Function --> FunctionValves : "contains"
 The Tool entity represents external services or APIs that can be integrated into the Open WebUI application. Tools allow users to connect to various external systems and leverage their capabilities within the platform.
 
 **Tool Fields:**
+
 - **id**: Unique identifier for the tool
 - **user_id**: Identifier of the user who created the tool
 - **name**: Display name of the tool
@@ -161,6 +174,7 @@ The Tool entity represents external services or APIs that can be integrated into
 - **created_at**: Timestamp of creation (epoch)
 
 The ToolMeta class includes:
+
 - **description**: User-facing description of the tool
 - **manifest**: Dictionary containing tool manifest information
 
@@ -194,9 +208,11 @@ Tool --> ToolValves : "contains"
 ```
 
 **Diagram sources**
+
 - [tools.py](file://backend/open_webui/models/tools.py#L24-L54)
 
 **Section sources**
+
 - [tools.py](file://backend/open_webui/models/tools.py#L24-L54)
 
 ## User and Group Relationships
@@ -205,6 +221,7 @@ The Open WebUI application implements a sophisticated access control system that
 
 **User Entity:**
 The User entity represents individuals who use the application. Key fields include:
+
 - **id**: Unique identifier
 - **email**: User's email address
 - **username**: Optional username
@@ -215,17 +232,20 @@ The User entity represents individuals who use the application. Key fields inclu
 
 **Group Entity:**
 Groups are collections of users that can be used for sharing resources. Key aspects:
+
 - Groups have a name and description
 - Users can be members of multiple groups
 - Groups can have permissions that apply to all members
 - Resources can be shared with specific groups
 
 The access control system works as follows:
+
 - Resources can be public (accessible to all users)
 - Resources can be private (accessible only to the owner)
 - Resources can have custom permissions specifying which users and groups can read or write
 
 The has_access function in the access_control utility determines whether a user has permission to access a resource based on:
+
 1. The user's ID
 2. The type of access requested (read or write)
 3. The resource's access_control configuration
@@ -267,10 +287,12 @@ Group --> User : "owned by"
 ```
 
 **Diagram sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L45-L76)
 - [groups.py](file://backend/open_webui/models/groups.py#L36-L84)
 
 **Section sources**
+
 - [users.py](file://backend/open_webui/models/users.py#L45-L76)
 - [groups.py](file://backend/open_webui/models/groups.py#L36-L84)
 
@@ -279,6 +301,7 @@ Group --> User : "owned by"
 The valves system is a powerful feature that allows for parameter overrides at different levels of the application. This system enables administrators and users to customize the behavior of functions and tools without modifying their core code.
 
 **Valves Implementation:**
+
 - **Function Valves**: Allow administrators to set default parameters for functions
 - **User Valves**: Allow individual users to override parameters for functions and tools
 - **Tool Valves**: Allow administrators to set default parameters for tools
@@ -309,10 +332,12 @@ ExecuteFunction --> End([Function Complete])
 ```
 
 **Diagram sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L28-L29)
 - [tools.py](file://backend/open_webui/models/tools.py#L33-L34)
 
 **Section sources**
+
 - [functions.py](file://backend/open_webui/models/functions.py#L28-L29)
 - [tools.py](file://backend/open_webui/models/tools.py#L33-L34)
 
@@ -321,30 +346,35 @@ ExecuteFunction --> End([Function Complete])
 The Open WebUI application implements several security measures to protect against potential risks associated with code execution and API access.
 
 **Code Execution Security:**
+
 - Functions and tools are executed in isolated environments
 - The code_interpreter.py module handles code execution with timeout protection
 - Jupyter kernels are used for code execution with controlled resource access
 - Code is executed with limited privileges to prevent system-level access
 
 **API Access Security:**
+
 - OAuth 2.1 authentication is supported for external tools
 - API keys can be used for authentication
 - Session tokens are managed securely
 - Access to external APIs is controlled through the access_control system
 
 **Input Validation:**
+
 - Function and tool IDs are validated to contain only alphanumeric characters and underscores
 - Model IDs are validated for length and format
 - User input is sanitized before being used in code execution
 - JSON payloads are validated against schemas
 
 **Access Control:**
+
 - The has_access function enforces permission checks
 - Users can only modify resources they own or have write access to
 - Admin users have elevated privileges but can be restricted by configuration
 - Group-based permissions enable collaborative sharing with controlled access
 
 **Additional Security Measures:**
+
 - Code is loaded from temporary files that are deleted after use
 - Import statements in functions and tools are replaced to prevent unauthorized imports
 - Requirements specified in frontmatter are installed in isolated environments
@@ -371,10 +401,12 @@ end
 ```
 
 **Diagram sources**
+
 - [code_interpreter.py](file://backend/open_webui/utils/code_interpreter.py#L100-L211)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L124-L150)
 
 **Section sources**
+
 - [code_interpreter.py](file://backend/open_webui/utils/code_interpreter.py#L100-L211)
 - [access_control.py](file://backend/open_webui/utils/access_control.py#L124-L150)
 
@@ -464,6 +496,7 @@ TOOL }o--|| GROUP : "shared with"
 ```
 
 **Diagram sources**
+
 - [models.py](file://backend/open_webui/models/models.py#L55-L84)
 - [functions.py](file://backend/open_webui/models/functions.py#L19-L34)
 - [tools.py](file://backend/open_webui/models/tools.py#L24-L54)
@@ -473,49 +506,48 @@ TOOL }o--|| GROUP : "shared with"
 ## Sample Data
 
 ### Custom Model Configuration
+
 ```json
 {
-  "id": "custom-gpt-4",
-  "user_id": "user123",
-  "base_model_id": "gpt-4",
-  "name": "Custom GPT-4 Configuration",
-  "params": {
-    "temperature": 0.7,
-    "max_tokens": 2000,
-    "top_p": 0.9,
-    "frequency_penalty": 0.0,
-    "presence_penalty": 0.0
-  },
-  "meta": {
-    "profile_image_url": "/static/custom-model.png",
-    "description": "A customized version of GPT-4 with adjusted parameters for creative writing",
-    "capabilities": {
-      "text_generation": true,
-      "code_generation": false,
-      "image_generation": false
-    },
-    "tags": [
-      {"name": "creative"},
-      {"name": "writing"}
-    ]
-  },
-  "access_control": {
-    "read": {
-      "group_ids": ["group456"],
-      "user_ids": ["user789"]
-    },
-    "write": {
-      "group_ids": ["group456"],
-      "user_ids": ["user789"]
-    }
-  },
-  "is_active": true,
-  "updated_at": 1703123456,
-  "created_at": 1703123456
+	"id": "custom-gpt-4",
+	"user_id": "user123",
+	"base_model_id": "gpt-4",
+	"name": "Custom GPT-4 Configuration",
+	"params": {
+		"temperature": 0.7,
+		"max_tokens": 2000,
+		"top_p": 0.9,
+		"frequency_penalty": 0.0,
+		"presence_penalty": 0.0
+	},
+	"meta": {
+		"profile_image_url": "/static/custom-model.png",
+		"description": "A customized version of GPT-4 with adjusted parameters for creative writing",
+		"capabilities": {
+			"text_generation": true,
+			"code_generation": false,
+			"image_generation": false
+		},
+		"tags": [{ "name": "creative" }, { "name": "writing" }]
+	},
+	"access_control": {
+		"read": {
+			"group_ids": ["group456"],
+			"user_ids": ["user789"]
+		},
+		"write": {
+			"group_ids": ["group456"],
+			"user_ids": ["user789"]
+		}
+	},
+	"is_active": true,
+	"updated_at": 1703123456,
+	"created_at": 1703123456
 }
 ```
 
 ### Function Definition
+
 ```python
 # Function ID: web_search
 # Function type: action
@@ -555,4 +587,5 @@ class Action:
 ```
 
 ## Conclusion
+
 The Open WebUI application provides a robust data model for managing AI models, functions, and tools with comprehensive support for user ownership, group sharing, parameter customization, and security controls. The Model, Function, and Tool entities each have well-defined fields that support their specific purposes, with common patterns for metadata, access control, and configuration. The valves system enables flexible parameter overrides at both system and user levels, while the is_active flag provides simple feature toggling. The security model protects against risks associated with code execution and API access through isolation, validation, and access control mechanisms. This comprehensive data model supports a collaborative environment where users can safely share and extend AI capabilities.

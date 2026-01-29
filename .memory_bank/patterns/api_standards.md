@@ -1,6 +1,7 @@
 # API Standards
 
 ## Overview
+
 This document defines API design standards for the Airis project (Open WebUI fork). All API endpoints must follow these conventions for consistency, maintainability, and developer experience.
 
 ---
@@ -8,23 +9,25 @@ This document defines API design standards for the Airis project (Open WebUI for
 ## Naming Conventions
 
 ### Endpoints
+
 - Use lowercase with underscores for multi-word resources
 - Resource-based URLs, not action-based
-- Plural nouns for collections: `/api/billing/plans`, `/api/billing/transactions`
-- Singular for specific resources: `/api/billing/subscription`
+- Plural nouns for collections: `/api/v1/billing/plans`, `/api/v1/billing/transactions`
+- Singular for specific resources: `/api/v1/billing/subscription`
 
 ### Examples
+
 ```
 Good:
-  GET  /api/billing/plans                  - List all plans
-  GET  /api/billing/plans/{plan_id}        - Get specific plan
-  POST /api/billing/payment                - Create payment
-  GET  /api/billing/subscription           - Get user's subscription
+  GET  /api/v1/billing/plans                  - List all plans
+  GET  /api/v1/billing/plans/{plan_id}        - Get specific plan
+  POST /api/v1/billing/payment                - Create payment
+  GET  /api/v1/billing/subscription           - Get user's subscription
 
 Bad:
-  GET  /api/billing/getPlan                - Action-based (avoid)
-  GET  /api/billing/plan-list              - Inconsistent casing
-  POST /api/billing/createNewPayment       - Too verbose
+  GET  /api/v1/billing/getPlan                - Action-based (avoid)
+  GET  /api/v1/billing/plan-list              - Inconsistent casing
+  POST /api/v1/billing/createNewPayment       - Too verbose
 ```
 
 ---
@@ -32,16 +35,17 @@ Bad:
 ## FastAPI Router Organization
 
 ### Router Structure
+
 ```python
 from fastapi import APIRouter, Depends, HTTPException, status
 from open_webui.utils.auth import get_verified_user, get_admin_user
 from pydantic import BaseModel
 
 # User-facing API
-router = APIRouter(prefix="/api/billing", tags=["billing"])
+router = APIRouter(prefix="/api/v1/billing", tags=["billing"])
 
 # Admin API
-admin_router = APIRouter(prefix="/api/admin/billing", tags=["admin-billing"])
+admin_router = APIRouter(prefix="/api/v1/admin/billing", tags=["admin", "billing"])
 
 @router.get("/plans")
 async def get_plans(user=Depends(get_verified_user)):
@@ -58,9 +62,10 @@ async def create_plan(
 ```
 
 ### Router Grouping
+
 ```
-/api/billing/*          - User billing operations
-/api/admin/billing/*    - Admin billing management
+/api/v1/billing/*          - User billing operations
+/api/v1/admin/billing/*    - Admin billing management
 /api/auths/*            - Authentication
 /api/users/*            - User management
 /api/chats/*            - Chat operations
@@ -72,16 +77,19 @@ async def create_plan(
 ## Request/Response Format
 
 ### Content Type
+
 - All requests/responses use `application/json`
 - File uploads use `multipart/form-data`
 
 ### Date Formats
+
 - ISO 8601: `2025-12-11T10:30:00Z`
 - All timestamps in UTC
 - Python: `datetime.datetime.utcnow().isoformat() + 'Z'`
 - TypeScript: `new Date().toISOString()`
 
 ### Currency
+
 - Store amounts as `Decimal` or `float` (in smallest unit or standard unit)
 - Currency code: ISO 4217 (`RUB`, `USD`, `EUR`)
 - Example: `{"amount": 1000.00, "currency": "RUB"}`
@@ -91,6 +99,7 @@ async def create_plan(
 ## Pydantic Request/Response Models
 
 ### Request Models
+
 ```python
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
@@ -125,6 +134,7 @@ class CreatePlanRequest(BaseModel):
 ```
 
 ### Response Models
+
 ```python
 from datetime import datetime
 
@@ -147,6 +157,7 @@ class PlanResponse(BaseModel):
 ```
 
 ### Validation Example
+
 ```python
 from pydantic import validator
 
@@ -166,11 +177,13 @@ class CreatePaymentRequest(BaseModel):
 ## HTTP Status Codes
 
 ### Success Codes
+
 - `200 OK` - Successful GET, PUT, DELETE
 - `201 Created` - Successful POST with resource creation
 - `204 No Content` - Successful DELETE with no response body
 
 ### Client Error Codes
+
 - `400 Bad Request` - Invalid request data
 - `401 Unauthorized` - Not authenticated
 - `403 Forbidden` - Authenticated but not authorized
@@ -180,11 +193,13 @@ class CreatePaymentRequest(BaseModel):
 - `429 Too Many Requests` - Rate limit exceeded
 
 ### Server Error Codes
+
 - `500 Internal Server Error` - Unexpected server error
 - `502 Bad Gateway` - External API failure (YooKassa, OpenAI)
 - `503 Service Unavailable` - Service temporarily down
 
 ### Usage Examples
+
 ```python
 from fastapi import HTTPException, status
 
@@ -224,6 +239,7 @@ except YooKassaError as e:
 ## Authentication & Authorization
 
 ### JWT Token Authentication
+
 ```python
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -250,16 +266,17 @@ async def get_current_user(
 ```
 
 ### Authorization Dependencies
+
 ```python
 from open_webui.utils.auth import get_verified_user, get_admin_user
 
 # Requires authenticated user
-@router.get("/billing/subscription")
+@router.get("/subscription")
 async def get_subscription(user=Depends(get_verified_user)):
     return Subscriptions.get_subscription_by_user_id(user.id)
 
 # Requires admin role
-@admin_router.post("/billing/plans")
+@admin_router.post("/plans")
 async def create_plan(
     request: CreatePlanRequest,
     admin_user=Depends(get_admin_user)
@@ -273,6 +290,7 @@ async def create_plan(
 ## External API Integration Standards
 
 ### YooKassa Pattern
+
 ```python
 import httpx
 from typing import Dict, Any
@@ -336,6 +354,7 @@ class YooKassaClient:
 ```
 
 ### OpenAI/Anthropic Pattern
+
 ```python
 import openai
 from anthropic import AsyncAnthropic
@@ -361,6 +380,7 @@ async def call_openai(prompt: str, model: str = "gpt-4") -> str:
 ## Rate Limiting
 
 ### Implementation with Redis
+
 ```python
 from datetime import timedelta
 import redis.asyncio as redis
@@ -380,6 +400,7 @@ async def check_rate_limit(user_id: str, limit: int = 100, window: int = 60):
 ```
 
 ### Quota Enforcement
+
 ```python
 from open_webui.utils.billing import BillingService
 
@@ -409,6 +430,7 @@ async def check_and_enforce_quota(
 ## Webhooks
 
 ### YooKassa Webhook Handler
+
 ```python
 from fastapi import Request, HTTPException
 
@@ -441,6 +463,7 @@ async def yookassa_webhook(request: Request):
 ## Logging Standards
 
 ### Structured Logging with Loguru
+
 ```python
 from loguru import logger
 
@@ -471,6 +494,7 @@ logger.error(
 ```
 
 ### What NOT to Log
+
 - API keys, secrets, passwords
 - Full payment card numbers
 - Personal data (unless necessary and anonymized)
@@ -481,6 +505,7 @@ logger.error(
 ## Pagination
 
 ### Standard Pagination Pattern
+
 ```python
 from typing import List, Optional
 from pydantic import BaseModel
@@ -522,6 +547,7 @@ async def get_transactions(
 ## Versioning
 
 ### URL-Based Versioning (Not currently used, but reserved)
+
 ```python
 # Future versioning strategy
 router_v1 = APIRouter(prefix="/api/v1/billing")
@@ -533,6 +559,7 @@ router_v2 = APIRouter(prefix="/api/v2/billing")
 ## CORS Configuration
 
 ### FastAPI CORS Middleware
+
 ```python
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -550,6 +577,7 @@ app.add_middleware(
 ## Documentation
 
 ### OpenAPI/Swagger
+
 - FastAPI automatically generates OpenAPI docs at `/docs`
 - Ensure all endpoints have:
   - Clear descriptions
@@ -557,6 +585,7 @@ app.add_middleware(
   - Proper tags for grouping
 
 ### Example with Full Documentation
+
 ```python
 @router.post(
     "/payment",
@@ -586,5 +615,5 @@ async def create_payment(
 ---
 
 **Last Updated**: 2025-12-11
-**Framework**: FastAPI 0.123.0
-**API Version**: v1 (implicit)
+**Framework**: FastAPI 0.128.0
+**API Version**: v1 (explicit via `/api/v1/*` routes)

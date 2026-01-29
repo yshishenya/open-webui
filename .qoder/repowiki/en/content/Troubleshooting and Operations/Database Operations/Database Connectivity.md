@@ -10,6 +10,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Database Configuration Parameters](#database-configuration-parameters)
 3. [Connection Pooling with SQLAlchemy](#connection-pooling-with-sqlalchemy)
@@ -25,6 +26,7 @@ Open WebUI establishes database connectivity using SQLAlchemy as the primary ORM
 The database connectivity system is designed to be flexible, supporting both simple SQLite deployments for development and robust PostgreSQL configurations for production use. The application handles database connections through a centralized configuration system that allows environment variables to control connection behavior, pool sizing, and timeout settings.
 
 **Section sources**
+
 - [config.py](file://backend/open_webui/config.py#L1-L800)
 - [db.py](file://backend/open_webui/internal/db.py#L1-L165)
 - [env.py](file://backend/open_webui/env.py#L300-L499)
@@ -59,10 +61,12 @@ G --> H["Database Engine Creation"]
 ```
 
 **Diagram sources**
+
 - [env.py](file://backend/open_webui/env.py#L306-L352)
 - [db.py](file://backend/open_webui/internal/db.py#L83-L146)
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L306-L352)
 - [db.py](file://backend/open_webui/internal/db.py#L83-L146)
 
@@ -113,9 +117,11 @@ NullPool --> Connection : "creates on demand"
 ```
 
 **Diagram sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L129-L145)
 
 **Section sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L129-L145)
 
 ## Database Initialization and Lifecycle Management
@@ -147,9 +153,11 @@ App->>App : Database initialization complete
 ```
 
 **Diagram sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L80-L164)
 
 **Section sources**
+
 - [db.py](file://backend/open_webui/internal/db.py#L80-L164)
 
 ## Connection Resilience and Health Monitoring
@@ -159,6 +167,7 @@ Open WebUI implements several mechanisms to ensure database connection resilienc
 For encrypted SQLite databases using SQLCipher, the application implements custom connection handling through a creator function that establishes the encryption key upon connection. This ensures that all connections to the encrypted database are properly authenticated and secured.
 
 The application also provides health check endpoints to monitor database connectivity:
+
 - `/health`: Basic application health check
 - `/health/db`: Database connectivity health check that executes a simple query
 
@@ -182,10 +191,12 @@ J --> K["Request Complete"]
 ```
 
 **Diagram sources**
+
 - [main.py](file://backend/open_webui/main.py#L2306-L2309)
 - [db.py](file://backend/open_webui/internal/db.py#L137)
 
 **Section sources**
+
 - [main.py](file://backend/open_webui/main.py#L2306-L2309)
 - [db.py](file://backend/open_webui/internal/db.py#L137)
 
@@ -206,6 +217,7 @@ When encountering database connectivity issues in Open WebUI, several common pro
 The TROUBLESHOOTING.md document provides general guidance for connection issues, emphasizing the importance of verifying configuration settings and ensuring compatibility between application and database versions.
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L330-L338)
 - [db.py](file://backend/open_webui/internal/db.py#L67-L70)
 - [main.py](file://backend/open_webui/main.py#L2306-L2309)
@@ -232,6 +244,7 @@ For production deployments of Open WebUI, the following database connectivity re
 By following these recommendations and understanding the database connectivity architecture, administrators can ensure reliable and performant operation of Open WebUI in production environments.
 
 **Section sources**
+
 - [env.py](file://backend/open_webui/env.py#L312-L348)
 - [db.py](file://backend/open_webui/internal/db.py#L132-L139)
 - [TROUBLESHOOTING.md](file://TROUBLESHOOTING.md#L1-L37)

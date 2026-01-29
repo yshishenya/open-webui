@@ -18,10 +18,10 @@ const loginWithRedirect = async (
 ): Promise<void> => {
 	const params = new URLSearchParams({ redirect: redirectPath, form: '1' });
 	await page.goto(`/auth?${params.toString()}`);
-	await expect(page.locator('input[autocomplete=\"email\"]')).toBeVisible();
-	await page.locator('input[autocomplete=\"email\"]').fill(email);
-	await page.locator('input[type=\"password\"]').fill(password);
-	await page.locator('button[type=\"submit\"]').click();
+	await expect(page.locator('input[autocomplete="email"]')).toBeVisible();
+	await page.locator('input[autocomplete="email"]').fill(email);
+	await page.locator('input[type="password"]').fill(password);
+	await page.locator('button[type="submit"]').click();
 	await page.waitForSelector('#chat-input', { timeout: 15_000 });
 
 	const changelogButton = page.getByRole('button', { name: "Okay, Let's Go!" });

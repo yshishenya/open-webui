@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [System Dependencies](#system-dependencies)
 2. [Hardware Requirements](#hardware-requirements)
 3. [Installation on Ubuntu/Debian](#installation-on-ubuntudebian)
@@ -24,6 +25,7 @@
 Open WebUI requires several system dependencies to function properly. The application consists of a Python backend and a Node.js frontend, requiring both Python and Node.js environments to be properly configured.
 
 The core system dependencies include:
+
 - **Python 3.11**: Required for the backend application, with specific version constraints (>= 3.11, < 3.13.0a1)
 - **Node.js 18+**: Required for building and running the frontend application, with compatibility up to Node.js 22
 - **npm**: Node package manager for installing frontend dependencies
@@ -35,6 +37,7 @@ The core system dependencies include:
 These dependencies are specified in the Dockerfile and package configuration files, ensuring the application can properly handle multimedia processing, graphics rendering, and compilation of native Python extensions.
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L120-L125)
 - [package.json](file://package.json#L148-L149)
 - [pyproject.toml](file://pyproject.toml#L119)
@@ -44,17 +47,21 @@ These dependencies are specified in the Dockerfile and package configuration fil
 Open WebUI is designed to run AI models locally, requiring specific hardware specifications to ensure optimal performance. The minimum hardware requirements vary based on whether you're running models with or without GPU acceleration.
 
 ### RAM Requirements
+
 - **Minimum**: 8GB RAM for basic operation with small language models
 - **Recommended**: 16GB+ RAM for smooth operation with larger models
 - **High-performance**: 32GB+ RAM for running multiple large models simultaneously
 
 ### Storage Requirements
+
 - **Minimum**: 20GB free disk space
 - **Recommended**: 50GB+ free disk space to accommodate model downloads and cached data
 - **Model storage**: Additional space required based on downloaded models (typically 4-20GB per model)
 
 ### GPU Considerations
+
 For GPU acceleration, Open WebUI supports CUDA-enabled NVIDIA GPUs:
+
 - **CUDA support**: Requires NVIDIA GPU with CUDA capability (compute capability 5.0+)
 - **CUDA version**: Compatible with CUDA 11.7+ and CUDA 12.x
 - **VRAM**: Minimum 8GB VRAM recommended for running large models efficiently
@@ -63,6 +70,7 @@ For GPU acceleration, Open WebUI supports CUDA-enabled NVIDIA GPUs:
 The application can also run in CPU-only mode, though performance will be significantly slower for inference tasks. When using GPU acceleration, the application automatically configures the LD_LIBRARY_PATH to include necessary CUDA and cuDNN libraries.
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L4-L9)
 - [backend/start.sh](file://backend/start.sh#L43-L46)
 
@@ -116,6 +124,7 @@ sudo apt-get install -y nodejs
 ```
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L120-L125)
 - [backend/requirements.txt](file://backend/requirements.txt)
 
@@ -187,6 +196,7 @@ sudo yum install -y nodejs
 ```
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L120-L125)
 - [backend/requirements.txt](file://backend/requirements.txt)
 
@@ -202,8 +212,8 @@ sudo useradd -m -s /bin/bash openwebui
 sudo usermod -aG audio,video openwebui
 
 # Set appropriate permissions on application directory
-sudo chown -R openwebui:openwebui 
-sudo chmod -R 755 
+sudo chown -R openwebui:openwebui
+sudo chmod -R 755
 
 # Switch to the openwebui user
 sudo su - openwebui
@@ -218,6 +228,7 @@ docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t open-webui .
 The application automatically handles permission configuration, ensuring the specified user has access to necessary directories and files. The start script also creates necessary cache directories with appropriate ownership.
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L106-L111)
 - [backend/start.sh](file://backend/start.sh#L23-L36)
 
@@ -226,6 +237,7 @@ The application automatically handles permission configuration, ensuring the spe
 After installing the dependencies, verify each component is properly installed and configured:
 
 ### Python Verification
+
 ```bash
 # Check Python version
 python3.11 --version
@@ -244,6 +256,7 @@ python3.11 -c "from sentence_transformers import SentenceTransformer; print('Sen
 ```
 
 ### Node.js and npm Verification
+
 ```bash
 # Check Node.js version
 node --version
@@ -257,6 +270,7 @@ node -e "console.log('Node.js is working')"
 ```
 
 ### System Libraries Verification
+
 ```bash
 # Check ffmpeg installation
 ffmpeg -version
@@ -274,6 +288,7 @@ make --version
 ```
 
 ### Application-Specific Verification
+
 ```bash
 # Verify Python dependencies
 pip list | grep -E "(fastapi|uvicorn|pydantic|transformers|sentence-transformers)"
@@ -286,12 +301,14 @@ npm ls | grep -E "(vite|svelte)"
 ```
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L130-L148)
 - [backend/requirements.txt](file://backend/requirements.txt)
 
 ## Common Installation Issues
 
 ### Outdated Package Index
+
 When installing on Ubuntu/Debian systems, ensure the package index is up to date:
 
 ```bash
@@ -300,6 +317,7 @@ sudo apt-get upgrade
 ```
 
 For CentOS/RHEL systems:
+
 ```bash
 sudo yum update
 # or for dnf-based systems
@@ -307,6 +325,7 @@ sudo dnf update
 ```
 
 ### Missing Development Headers
+
 Some Python packages require development headers. If you encounter compilation errors, install the necessary development packages:
 
 ```bash
@@ -318,6 +337,7 @@ sudo yum install -y python3.11-devel
 ```
 
 ### Architecture-Specific Dependencies
+
 On ARM-based systems (like Raspberry Pi), some packages may require specific versions:
 
 ```bash
@@ -326,6 +346,7 @@ pip install pyarrow==20.0.0
 ```
 
 ### CUDA and GPU Issues
+
 When using GPU acceleration, ensure CUDA libraries are properly configured:
 
 ```bash
@@ -340,6 +361,7 @@ export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/cuda/lib64:/usr/local/cuda/e
 ```
 
 ### Permission Issues
+
 If encountering permission errors when running the application:
 
 ```bash
@@ -347,10 +369,11 @@ If encountering permission errors when running the application:
 chmod -R u+rw backend/data
 
 # Or run with appropriate user
-sudo chown -R $USER:$USER 
+sudo chown -R $USER:$USER
 ```
 
 ### Node.js Memory Issues
+
 During frontend build, you may encounter JavaScript heap out of memory errors:
 
 ```bash
@@ -362,6 +385,7 @@ echo 'export NODE_OPTIONS="--max-old-space-size=4096"' >> ~/.bashrc
 ```
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L120-L125)
 - [backend/start.sh](file://backend/start.sh#L43-L46)
 - [hatch_build.py](file://hatch_build.py#L13-L23)

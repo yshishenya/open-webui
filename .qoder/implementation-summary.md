@@ -13,12 +13,15 @@
 **Status:** COMPLETE
 
 **Files Created:**
+
 - `backend/open_webui/migrations/versions/c7d4e8f9a2b1_add_email_verification_and_password_reset_tokens.py`
 - `backend/open_webui/models/email_verification.py`
 - `backend/open_webui/models/password_reset.py`
 
 **Changes Made:**
+
 1. **Database Migration:**
+
    - Created `email_verification_token` table with columns: id, user_id, email, token, expires_at, created_at
    - Created `password_reset_token` table with columns: id, user_id, token, expires_at, used, created_at
    - Added indexes for fast token lookups
@@ -26,6 +29,7 @@
    - Added `terms_accepted_at` (bigint timestamp) column to user table
 
 2. **Email Verification Token Model:**
+
    - `EmailVerificationTokensTable` class with full CRUD operations
    - `generate_token()` - Creates secure URL-safe 32-character tokens
    - `create_verification_token()` - Generates token with 24-hour expiry
@@ -34,6 +38,7 @@
    - `cleanup_expired_tokens()` - Periodic cleanup job
 
 3. **Password Reset Token Model:**
+
    - `PasswordResetTokensTable` class with full CRUD operations
    - `generate_token()` - Creates secure reset tokens
    - `create_reset_token()` - Generates token with 1-hour expiry
@@ -46,6 +51,7 @@
    - Added `terms_accepted_at: Optional[int] = None` field
 
 **Technical Details:**
+
 - Tokens use `secrets.token_urlsafe(32)` for cryptographic security
 - All timestamps stored as Unix epoch integers for consistency
 - Automatic cleanup of expired tokens to prevent database bloat
@@ -58,9 +64,11 @@
 **Status:** COMPLETE
 
 **Files Created:**
+
 - `backend/open_webui/routers/oauth_russian.py` (792 lines)
 
 **Files Modified:**
+
 - `backend/open_webui/config.py` - Added VK, Yandex, Telegram OAuth configuration
 - `backend/open_webui/main.py` - Registered oauth_russian router
 
@@ -69,6 +77,7 @@
 #### 1. VK OAuth Integration
 
 **Configuration Added:**
+
 ```python
 VK_CLIENT_ID = PersistentConfig("VK_CLIENT_ID", "oauth.vk.client_id", ...)
 VK_CLIENT_SECRET = PersistentConfig("VK_CLIENT_SECRET", "oauth.vk.client_secret", ...)
@@ -78,11 +87,11 @@ VK_API_VERSION = PersistentConfig("VK_API_VERSION", "oauth.vk.api_version", "5.1
 ```
 
 **Endpoints:**
+
 - `GET /api/v1/oauth/vk/login` - Initiates VK OAuth flow
   - Generates CSRF state token
   - Stores state in Redis with 5-minute expiry
   - Redirects to VK authorization URL
-  
 - `GET /api/v1/oauth/vk/callback` - Handles VK callback
   - Validates state token (CSRF protection)
   - Exchanges authorization code for access token
@@ -95,6 +104,7 @@ VK_API_VERSION = PersistentConfig("VK_API_VERSION", "oauth.vk.api_version", "5.1
   - Redirects to `/home`
 
 **Features:**
+
 - Full CSRF protection with state tokens stored in Redis
 - Account merging: If email matches existing account, links VK OAuth
 - Automatic email verification (VK already verifies)
@@ -104,6 +114,7 @@ VK_API_VERSION = PersistentConfig("VK_API_VERSION", "oauth.vk.api_version", "5.1
 #### 2. Yandex OAuth Integration
 
 **Configuration Added:**
+
 ```python
 YANDEX_CLIENT_ID = PersistentConfig(...)
 YANDEX_CLIENT_SECRET = PersistentConfig(...)
@@ -112,10 +123,10 @@ YANDEX_OAUTH_SCOPE = PersistentConfig(..., "login:email login:info login:avatar"
 ```
 
 **Endpoints:**
+
 - `GET /api/v1/oauth/yandex/login` - Initiates Yandex OAuth flow
   - Generates and stores CSRF state token
   - Redirects to `https://oauth.yandex.ru/authorize`
-  
 - `GET /api/v1/oauth/yandex/callback` - Handles Yandex callback
   - Validates state token
   - Exchanges code for access token
@@ -127,6 +138,7 @@ YANDEX_OAUTH_SCOPE = PersistentConfig(..., "login:email login:info login:avatar"
   - Creates session and redirects
 
 **Features:**
+
 - Avatar URL construction: `https://avatars.yandex.net/get-yapic/{id}/islands-200`
 - Handles missing display_name gracefully
 - Full error handling and Russian messages
@@ -134,6 +146,7 @@ YANDEX_OAUTH_SCOPE = PersistentConfig(..., "login:email login:info login:avatar"
 #### 3. Telegram OAuth Integration
 
 **Configuration Added:**
+
 ```python
 TELEGRAM_BOT_TOKEN = PersistentConfig(...)
 TELEGRAM_BOT_NAME = PersistentConfig(...)
@@ -141,6 +154,7 @@ TELEGRAM_AUTH_ORIGIN = PersistentConfig(...)
 ```
 
 **Endpoints:**
+
 - `POST /api/v1/oauth/telegram/callback` - Handles Telegram widget callback
   - Accepts `TelegramAuthData` model: id, first_name, last_name, username, photo_url, auth_date, hash
   - Verifies HMAC-SHA256 signature using bot token
@@ -148,7 +162,6 @@ TELEGRAM_AUTH_ORIGIN = PersistentConfig(...)
   - For existing users: Returns token immediately
   - For new users: Creates temporary session in Redis
   - Returns `{requires_email: true, temp_session: "token", name: "..."}`
-  
 - `POST /api/v1/oauth/telegram/complete-profile` - Completes registration
   - Accepts `TelegramCompleteProfileForm`: temp_session, email, terms_accepted
   - Retrieves Telegram data from temporary session
@@ -160,6 +173,7 @@ TELEGRAM_AUTH_ORIGIN = PersistentConfig(...)
   - Returns JWT token
 
 **Features:**
+
 - Widget-based authentication (different from traditional OAuth)
 - HMAC-SHA256 signature verification for security
 - Two-step flow: 1) Telegram auth → 2) Email collection
@@ -170,6 +184,7 @@ TELEGRAM_AUTH_ORIGIN = PersistentConfig(...)
 #### OAuth State Management
 
 **CSRF Protection Functions:**
+
 ```python
 generate_oauth_state() -> str
     # Generates secure 32-character URL-safe token
@@ -185,6 +200,7 @@ validate_oauth_state(state: str, expected_provider: str) -> bool
 ```
 
 **Security Features:**
+
 - All state tokens stored in Redis with automatic expiration
 - One-time use tokens (deleted after validation)
 - Provider-specific validation prevents token reuse across providers
@@ -193,6 +209,7 @@ validate_oauth_state(state: str, expected_provider: str) -> bool
 #### Account Merging Logic
 
 **Implementation:**
+
 ```python
 # Step 1: Find by OAuth sub (provider + user_id)
 user = Users.get_user_by_oauth_sub(provider, provider_user_id)
@@ -221,6 +238,7 @@ if not user:
 ```
 
 **Merge Security:**
+
 - Only merges if `OAUTH_MERGE_ACCOUNTS_BY_EMAIL=true`
 - Only for providers that verify emails (VK, Yandex)
 - Telegram requires email verification even if merging
@@ -229,6 +247,7 @@ if not user:
 #### Error Handling
 
 **All OAuth providers handle:**
+
 - Access denied by user: Redirect with Russian message
 - Invalid/expired state token: HTTP 403 Forbidden
 - Missing authorization code: HTTP 400 Bad Request
@@ -237,6 +256,7 @@ if not user:
 - API failures: HTTP 500 with logging
 
 **Error Response Format:**
+
 ```python
 return RedirectResponse(
     url=f"/auth?error=oauth_error&message={russian_message}"
@@ -246,6 +266,7 @@ return RedirectResponse(
 #### Session Management
 
 **JWT Token Creation:**
+
 ```python
 expires_delta = parse_duration(request.app.state.config.JWT_EXPIRES_IN)
 token = create_token(data={"id": user.id}, expires_delta=expires_delta)
@@ -262,6 +283,7 @@ response.set_cookie(
 ```
 
 **Cookie Security:**
+
 - `httponly=True` - Prevents JavaScript access
 - `samesite` - CSRF protection
 - `secure` - HTTPS only (in production)
@@ -309,6 +331,7 @@ alembic upgrade head
 ```
 
 This will create:
+
 - `email_verification_token` table
 - `password_reset_token` table
 - `email_verified` column in `user` table
@@ -317,6 +340,7 @@ This will create:
 ### 2. Register OAuth Applications
 
 #### VK (ВКонтакте):
+
 1. Go to https://vk.com/apps?act=manage
 2. Create new standalone application
 3. In settings, add redirect URI: `https://yourdomain.com/api/v1/oauth/vk/callback`
@@ -324,6 +348,7 @@ This will create:
 5. Enable "Access to email" in application settings
 
 #### Yandex:
+
 1. Go to https://oauth.yandex.ru/
 2. Register new application
 3. Add redirect URI: `https://yourdomain.com/api/v1/oauth/yandex/callback`
@@ -331,6 +356,7 @@ This will create:
 5. Copy Client ID and Client secret
 
 #### Telegram:
+
 1. Open Telegram and message @BotFather
 2. Send `/newbot` command
 3. Follow prompts to create bot
@@ -346,18 +372,21 @@ Create or update `.env` file with the credentials from step 2.
 ### 4. Test OAuth Flows
 
 **VK:**
+
 - Navigate to: `/api/v1/oauth/vk/login`
 - Should redirect to VK authorization
 - Authorize app
 - Should redirect back and create account
 
 **Yandex:**
+
 - Navigate to: `/api/v1/oauth/yandex/login`
 - Should redirect to Yandex authorization
 - Authorize app
 - Should redirect back and create account
 
 **Telegram:**
+
 - Embed widget on frontend (see Frontend Integration below)
 - Click widget button
 - Authorize in Telegram app
@@ -374,13 +403,13 @@ Add to auth page:
 
 ```html
 <a href="/api/v1/oauth/vk/login" class="oauth-button vk">
-  <img src="/icons/vk-icon.svg" alt="VK" />
-  <span>Войти через ВКонтакте</span>
+	<img src="/icons/vk-icon.svg" alt="VK" />
+	<span>Войти через ВКонтакте</span>
 </a>
 
 <a href="/api/v1/oauth/yandex/login" class="oauth-button yandex">
-  <img src="/icons/yandex-icon.svg" alt="Yandex" />
-  <span>Войти через Яндекс</span>
+	<img src="/icons/yandex-icon.svg" alt="Yandex" />
+	<span>Войти через Яндекс</span>
 </a>
 ```
 
@@ -389,17 +418,18 @@ Add to auth page:
 Add to auth page:
 
 ```html
-<script 
-  async 
-  src="https://telegram.org/js/telegram-widget.js?22" 
-  data-telegram-login="your_bot_username" 
-  data-size="large" 
-  data-auth-url="https://yourdomain.com/api/v1/oauth/telegram/callback"
-  data-request-access="write">
-</script>
+<script
+	async
+	src="https://telegram.org/js/telegram-widget.js?22"
+	data-telegram-login="your_bot_username"
+	data-size="large"
+	data-auth-url="https://yourdomain.com/api/v1/oauth/telegram/callback"
+	data-request-access="write"
+></script>
 ```
 
 When Telegram returns data, handle the callback:
+
 - If `requires_email: true`, show email collection form
 - Call `/api/v1/oauth/telegram/complete-profile` with temp_session and email
 - Set received token in cookie/storage
@@ -411,6 +441,7 @@ When Telegram returns data, handle the callback:
 ### Phase 1 Remaining (Core Infrastructure):
 
 **1.5 Email Verification System:**
+
 - Email sending service integration with Postal
 - Verification email templates (Russian)
 - `GET /api/v1/auth/verify-email?token=` endpoint
@@ -419,6 +450,7 @@ When Telegram returns data, handle the callback:
 - Welcome email after verification
 
 **1.6 Password Recovery System:**
+
 - `POST /api/v1/auth/password-reset-request` endpoint
 - Password reset email template (Russian)
 - `POST /api/v1/auth/reset-password` endpoint
@@ -426,6 +458,7 @@ When Telegram returns data, handle the callback:
 - Invalidate all sessions on password change
 
 **1.7 Postal Email Service Integration:**
+
 - SMTP configuration and connection
 - Email template system (HTML + plain text)
 - Email sending service abstraction
@@ -433,6 +466,7 @@ When Telegram returns data, handle the callback:
 - Email queue for reliability
 
 **1.8 Registration Enhancement:**
+
 - Plan selection during signup
 - Terms of Service acceptance requirement
 - Enhanced signup form validation
@@ -440,18 +474,21 @@ When Telegram returns data, handle the callback:
 - Free plan auto-assignment
 
 ### Phase 2: Public-Facing Pages
+
 - Landing page at `/` with OAuth buttons
 - Public pricing page at `/pricing`
 - Marketing pages (About, Features, Contact)
 - Terms of Service and Privacy Policy pages
 
 ### Phase 3: Enhanced User Experience
+
 - User onboarding flow
 - Subscription management enhancements
 - OAuth account management UI
 - Payment method management
 
 ### Phase 4: Optimization
+
 - SEO optimization
 - Analytics integration (Yandex.Metrica)
 - Performance optimization
@@ -461,12 +498,14 @@ When Telegram returns data, handle the callback:
 ## 🧪 Testing Checklist
 
 ### Database Migrations:
+
 - [x] Migration file created
 - [ ] Migration runs successfully
 - [ ] Tables created with correct schema
 - [ ] Indexes created for performance
 
 ### VK OAuth:
+
 - [x] Configuration loaded
 - [ ] Login endpoint redirects to VK
 - [ ] State token generated and stored
@@ -480,6 +519,7 @@ When Telegram returns data, handle the callback:
 - [ ] Redirect to /home works
 
 ### Yandex OAuth:
+
 - [x] Configuration loaded
 - [ ] Login endpoint redirects to Yandex
 - [ ] State validation works
@@ -491,6 +531,7 @@ When Telegram returns data, handle the callback:
 - [ ] Session created
 
 ### Telegram OAuth:
+
 - [x] Configuration loaded
 - [ ] Widget callback validates signature
 - [ ] Existing user login works
@@ -501,6 +542,7 @@ When Telegram returns data, handle the callback:
 - [ ] Email verification sent (when implemented)
 
 ### Security:
+
 - [x] CSRF protection with state tokens
 - [x] One-time use tokens
 - [x] Token expiration (5 min for OAuth, 24h for email, 1h for password reset)
@@ -515,24 +557,28 @@ When Telegram returns data, handle the callback:
 ## 📊 Architecture Decisions
 
 ### Why Redis for State Management?
+
 - **Fast TTL:** Automatic expiration without database cleanup
 - **Atomic operations:** Thread-safe state validation
 - **Scalability:** Distributed state across multiple app instances
 - **Fallback:** System works even if Redis unavailable (degrades gracefully)
 
 ### Why Separate oauth_russian Router?
+
 - **Modularity:** Easy to enable/disable Russian OAuth
 - **Maintainability:** All Russian provider logic in one file
 - **Extensibility:** Can add more Russian providers easily
 - **Testing:** Can test Russian OAuth independently
 
 ### Why Two-Step Telegram Flow?
+
 - **Telegram limitation:** Widget doesn't return email
 - **User experience:** Better than asking for email upfront
 - **Security:** Email verification still required
 - **Flexibility:** Can add more fields in future (phone, etc.)
 
 ### Why Mark VK/Yandex Email as Verified?
+
 - **Provider verification:** Both VK and Yandex verify emails
 - **User experience:** No extra step for verified providers
 - **Security:** OAuth providers are trusted
@@ -543,6 +589,7 @@ When Telegram returns data, handle the callback:
 ## 🔐 Security Considerations
 
 ### Implemented:
+
 - CSRF protection with state tokens
 - HMAC signature verification (Telegram)
 - Secure cookie settings (httponly, samesite, secure)
@@ -552,6 +599,7 @@ When Telegram returns data, handle the callback:
 - OAuth provider email verification check
 
 ### TODO:
+
 - Account merge notification emails
 - Rate limiting on OAuth endpoints
 - IP-based abuse detection
@@ -564,24 +612,28 @@ When Telegram returns data, handle the callback:
 ## 📈 Next Steps Priority
 
 **Immediate (Week 1):**
+
 1. Implement Postal email service integration
 2. Create email templates (verification, password reset, welcome)
 3. Implement email verification endpoints
 4. Test end-to-end OAuth flows
 
 **Short-term (Week 2-3):**
+
 1. Implement password recovery flow
 2. Enhance registration with plan selection
 3. Create Terms of Service and Privacy Policy pages
 4. Frontend integration for OAuth buttons
 
 **Medium-term (Week 4-6):**
+
 1. Build landing page
 2. Enhance pricing page
 3. User onboarding flow
 4. Subscription management UI
 
 **Long-term (Week 7-12):**
+
 1. Marketing pages
 2. SEO optimization
 3. Analytics integration
@@ -592,6 +644,7 @@ When Telegram returns data, handle the callback:
 ## 🎯 Success Metrics
 
 When Phase 1 is complete, we should be able to:
+
 - [ ] User registers via VK and gets verified account
 - [ ] User registers via Yandex and gets verified account
 - [ ] User registers via Telegram, provides email, gets verification email
@@ -608,11 +661,13 @@ When Phase 1 is complete, we should be able to:
 ## 📞 Support & Documentation
 
 **OAuth Provider Documentation:**
+
 - VK API: https://dev.vk.com/ru/api/oauth/overview
 - Yandex OAuth: https://yandex.ru/dev/id/doc/ru/
 - Telegram Login: https://core.telegram.org/widgets/login
 
 **Implementation Files:**
+
 - OAuth Router: `backend/open_webui/routers/oauth_russian.py`
 - Config: `backend/open_webui/config.py` (lines 546-625, 789-856)
 - Email Verification Model: `backend/open_webui/models/email_verification.py`
@@ -620,6 +675,7 @@ When Phase 1 is complete, we should be able to:
 - Migration: `backend/open_webui/migrations/versions/c7d4e8f9a2b1_add_email_verification_and_password_reset_tokens.py`
 
 **For Questions:**
+
 - Check design document: `/opt/projects/open-webui/.qoder/quests/b2c-service-development-1765992497.md`
 - Review implementation plan: Section in design document
 - OAuth provider docs (linked above)
