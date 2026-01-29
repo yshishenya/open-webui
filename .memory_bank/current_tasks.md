@@ -329,22 +329,21 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Owner**: Codex
   - **Target**: 2026-01-24
 
-- [ ] **[MODEL-01]** Align model visibility + pricing flow
+- [x] **[MODEL-01]** Align model visibility + pricing flow
 
-  - Public pricing respects model access/hidden/active flags
-  - Modality disabled errors handled explicitly
-  - Cascade deactivate rate cards on model delete
+  - Public pricing filters out inactive, access-controlled, and hidden models in `/billing/public/rate-cards`.
+  - Modality disabled errors returned explicitly as `{"error": "modality_disabled"}` (covered by backend tests).
+  - Model delete deactivates all related rate cards via `RateCards.deactivate_rate_cards_by_model_ids`.
   - **Owner**: Codex
-  - **Target**: 2026-01-26
+  - **Done**: 2026-01-26
 
-- [ ] **[BILLING-15][REFACTOR]** Remove effective from/to from rate cards
+- [x] **[BILLING-15][REFACTOR]** Remove effective from/to from rate cards
 
-  - Add created_at for ordering and keep immutable price history
-  - Update admin/public pricing logic and rate card editor flow
-  - Progress: fix Postgres Alembic migration to safely backfill created_at
-  - Progress: restore bulk delete for model pricing list in admin UI
+  - `effective_from/effective_to` removed from `billing_pricing_rate_card`; `created_at` added for ordering and immutable history.
+  - Postgres-safe backfill implemented (DDL separated from backfill to avoid Alembic batch buffering issues).
+  - Admin model pricing list supports bulk delete for selected models again.
   - **Owner**: Codex
-  - **Target**: 2026-01-25
+  - **Done**: 2026-01-26
 
 - [x] **[UI-21]** Обновить hero + header /welcome по новому ТЗ
   - Новый hero с CTA, trust chips и быстрыми пресетами
@@ -374,34 +373,30 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Owner**: TBD
   - **Target**: TBD
 
-- [ ] **[BILLING-08]** Implement PAYG default + lead magnet access
+- [x] **[BILLING-08]** Implement PAYG default + lead magnet access
 
-  - Full audit of billing-related files and gaps vs policy
-  - Plan saved: `.memory_bank/specs/payg_lead_magnet_implementation_plan.md`
-  - Progress: lead magnet config/state + admin API + model flag + UI (dashboard/balance/estimate) + STT billing path
-  - Progress: chat preflight now evaluates lead magnet eligibility using the selected model ID even when the provider payload uses `base_model_id`
-  - Progress: lead magnet defaults enabled in local `.env`; `gemini-2.5-flash-lite` flagged as lead magnet in DB for validation
-  - Progress: billing history now fetches lead-magnet usage events (new `/billing/usage-events` endpoint + UI section)
-  - Tests added for lead magnet preflight/settle + billing lead magnet routes (/lead-magnet, /estimate) + Playwright lead magnet UI checks; pytest backend/open_webui/test/apps/webui/routers/test_billing_lead_magnet.py passes (3 tests, warnings only); e2e not run here
-  - Related plan: `.memory_bank/specs/billing_unlimited_plan_admin_flow.md`
+  - Implemented lead magnet config/state + billing integration (preflight/hold/settle) with fallback to PAYG wallet.
+  - Lead magnet eligibility uses selected model ID consistently (handles provider `base_model_id`).
+  - User/API/UI flows wired: `/billing/lead-magnet`, `/billing/usage-events`, billing dashboard/history sections.
+  - Backend tests cover lead magnet evaluation/consume + billing lead magnet routes.
   - **Owner**: Codex
-  - **Target**: TBD
+  - **Done**: 2026-01-26
 
-- [ ] **[BILLING-12]** Remove chat estimate UI and endpoint
+- [x] **[BILLING-12]** Remove chat estimate UI and endpoint
 
-  - Spec: `.memory_bank/specs/remove_chat_estimate_plan.md`
-  - Remove UI estimate in chat input and `/billing/estimate` endpoint
-  - Keep server-side preflight/hold to prevent overdraft
+  - `/billing/estimate` endpoint removed from backend routers; no UI usage in chat/billing routes.
+  - Server-side preflight/hold remains to prevent overdraft.
+  - Note: client types may still contain legacy `is_estimated/estimate_reason` fields; safe to clean up when convenient.
   - **Owner**: TBD
-  - **Target**: TBD
+  - **Done**: 2026-01-26
 
 - [ ] **[BILLING-03]** Test billing system end-to-end
 
-  - Test plan subscription flow
-  - Test payment processing and webhooks
-  - Test quota enforcement
-  - Verify audit logging
-  - Progress: pytest bootstraps SQLite test DB when DATABASE_URL is unset; backend suite passes locally (122 tests); chat streaming now includes `stream_options.include_usage` for OpenAI models; image generation still disabled
+  - Cover plan subscription flow end-to-end (UI -> payment -> webhook -> subscription state)
+  - Cover payment processing and webhooks (YooKassa) in an E2E-like environment
+  - Cover quota enforcement and billing error surfaces
+  - Cover audit logging assertions for admin actions
+  - Current state: backend pytest coverage exists for key billing flows; Playwright has wallet/lead-magnet specs but no webhook/subscription E2E coverage yet
   - **Owner**: TBD
   - **Target**: Week of 2025-12-16
 
@@ -418,6 +413,7 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Show usage trends over time
   - Display quota utilization charts
   - Add cost projections
+  - Current state: admin plan analytics page exists but uses demo data; needs real aggregation + queries
   - **Owner**: TBD
   - **Target**: 2025-12-20
 
@@ -456,9 +452,9 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 - [ ] **[DOCS-03]** Add API documentation for billing endpoints
 
-  - Document all billing API endpoints
-  - Add request/response examples
-  - Create integration guide
+  - Document all billing API endpoints (wallet/PAYG/lead-magnet + admin)
+  - Add request/response examples and common error cases
+  - Update/replace legacy docs that still describe subscription-only flows
   - **Owner**: TBD
   - **Target**: 2026-01-15
 
@@ -571,6 +567,6 @@ _No blocked tasks currently_
 
 ---
 
-**Last Updated**: 2026-01-19
+**Last Updated**: 2026-01-29
 **Project Version**: 0.6.41
 **Active Contributors**: 1 (maintainer)
