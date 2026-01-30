@@ -987,6 +987,8 @@
 										<input
 											type="checkbox"
 											class="rounded"
+											aria-label={`${$i18n.t('Select')}: ${getModelDisplayName(model)}`}
+											title={`${$i18n.t('Select')}: ${getModelDisplayName(model)}`}
 											checked={selectedModelIds.has(model.id)}
 											on:change={(event) => {
 												const checked = getInputChecked(event);
@@ -1073,26 +1075,28 @@
 						</tbody>
 					</table>
 				</div>
-				<div class="grid gap-3 md:hidden px-3 py-3">
-					{#each filteredModelRows as model}
-						<div class="rounded-2xl border border-gray-100/60 dark:border-gray-800/70 p-4">
-							<label class="flex items-center gap-2 text-xs text-gray-500 mb-3">
-								<input
-									type="checkbox"
-									class="rounded"
-									checked={selectedModelIds.has(model.id)}
-									on:change={(event) => {
-										const checked = getInputChecked(event);
-										if (checked) {
-											selectedModelIds.add(model.id);
-										} else {
-											selectedModelIds.delete(model.id);
-										}
-										selectedModelIds = new Set(selectedModelIds);
-									}}
-								/>
-								{$i18n.t('Select')}
-							</label>
+					<div class="grid gap-3 md:hidden px-3 py-3">
+						{#each filteredModelRows as model}
+							<div class="rounded-2xl border border-gray-100/60 dark:border-gray-800/70 p-4">
+								<label class="flex items-center gap-2 text-xs text-gray-500 mb-3">
+									<input
+										type="checkbox"
+										class="rounded"
+										aria-label={`${$i18n.t('Select')}: ${getModelDisplayName(model)}`}
+										title={`${$i18n.t('Select')}: ${getModelDisplayName(model)}`}
+										checked={selectedModelIds.has(model.id)}
+										on:change={(event) => {
+											const checked = getInputChecked(event);
+											if (checked) {
+												selectedModelIds.add(model.id);
+											} else {
+												selectedModelIds.delete(model.id);
+											}
+											selectedModelIds = new Set(selectedModelIds);
+										}}
+									/>
+									{$i18n.t('Select')}
+								</label>
 							<div class="flex items-start justify-between gap-3">
 								<div class="min-w-0">
 									<div class="text-sm font-medium line-clamp-1">
