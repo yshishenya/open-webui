@@ -6,6 +6,13 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[SPEC]** Billing wallet UX redesign
+
+  - Single wallet flow with unified timeline + settings merge (spec only)
+  - Spec: `.memory_bank/specs/billing_wallet_ux_redesign.md`
+  - **Owner**: Codex
+  - **Done**: 2026-02-01
+
 - [x] **[DEV-01]** Add Docker dev hot-reload compose
 
   - Added `docker-compose.dev.yaml` overlay to run backend with `uvicorn --reload` and frontend via Vite dev server (HMR)
