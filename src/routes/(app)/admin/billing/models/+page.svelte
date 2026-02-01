@@ -1599,7 +1599,7 @@
 										on:input={(event) => {
 											updateUnitCost(modalityKey, unitState.unit, getInputValue(event));
 										}}
-										placeholder="0"
+										placeholder={$i18n.t('0')}
 										disabled={!modalityState.enabled ||
 											(linkTextPrices && modalityKey === 'text' && unitState.unit === 'token_out')}
 										class="w-28 px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-transparent text-xs disabled:opacity-50"

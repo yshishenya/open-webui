@@ -248,7 +248,7 @@
 								<input
 									type="text"
 									bind:value={formData.name_ru}
-									placeholder="Профессиональный"
+									placeholder={$i18n.t('Professional')}
 									class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
 								/>
 							</div>
@@ -259,7 +259,7 @@
 								<input
 									type="text"
 									bind:value={formData.description_ru}
-									placeholder="Для растущих команд"
+									placeholder={$i18n.t('For growing teams')}
 									class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
 								/>
 							</div>
@@ -285,9 +285,9 @@
 										bind:value={formData.currency}
 										class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
 									>
-										<option value="RUB">RUB (₽)</option>
-										<option value="USD">USD ($)</option>
-										<option value="EUR">EUR (€)</option>
+										<option value="RUB">{$i18n.t('RUB (₽)')}</option>
+										<option value="USD">{$i18n.t('USD ($)')}</option>
+										<option value="EUR">{$i18n.t('EUR (€)')}</option>
 									</select>
 								</div>
 								<div>

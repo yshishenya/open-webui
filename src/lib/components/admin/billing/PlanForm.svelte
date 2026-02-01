@@ -206,7 +206,7 @@
 						<input
 							type="text"
 							bind:value={formData.id}
-							placeholder="starter, pro, business..."
+							placeholder={$i18n.t('e.g. starter, pro, business...')}
 							class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-transparent"
 						/>
 						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -225,7 +225,7 @@
 						<input
 							type="text"
 							bind:value={formData.name}
-							placeholder="Starter"
+							placeholder={$i18n.t('e.g. Starter')}
 							class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-transparent"
 						/>
 					</div>
@@ -236,7 +236,7 @@
 						<input
 							type="text"
 							bind:value={formData.name_ru}
-							placeholder="Старт"
+							placeholder={$i18n.t('e.g. Starter')}
 							class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-transparent"
 						/>
 					</div>
@@ -250,7 +250,7 @@
 						</label>
 						<textarea
 							bind:value={formData.description}
-							placeholder="Perfect for students and hobbyists"
+							placeholder={$i18n.t('e.g. Perfect for students and hobbyists')}
 							rows="3"
 							class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-transparent"
 						/>
@@ -261,7 +261,7 @@
 						</label>
 						<textarea
 							bind:value={formData.description_ru}
-							placeholder="Идеально для студентов и любителей"
+							placeholder={$i18n.t('e.g. Perfect for students and hobbyists')}
 							rows="3"
 							class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-transparent"
 						/>
@@ -299,9 +299,9 @@
 							bind:value={formData.currency}
 							class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-transparent"
 						>
-							<option value="RUB">RUB (₽)</option>
-							<option value="USD">USD ($)</option>
-							<option value="EUR">EUR (€)</option>
+							<option value="RUB">{$i18n.t('RUB (₽)')}</option>
+							<option value="USD">{$i18n.t('USD ($)')}</option>
+							<option value="EUR">{$i18n.t('EUR (€)')}</option>
 						</select>
 					</div>
 

@@ -10,6 +10,9 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Added GitHub OAuth variables to local `.env`.
   - **Owner**: Codex
   - **Done**: 2026-02-01
+- [x] **[BUG]** Перевести отсутствующие строки на страницах биллинга Airis_b2c
+  - RU переводы для admin/user billing + model pricing
+  - Добавлены i18n-плейсхолдеры в форме плана, локализация \"Unknown\", валюты, email/телефон и числовые плейсхолдеры
 
 - [x] **[DEV-01]** Add Docker dev hot-reload compose
 

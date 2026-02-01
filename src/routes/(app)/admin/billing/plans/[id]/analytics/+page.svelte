@@ -385,7 +385,9 @@
 									class="border-b border-gray-100/30 dark:border-gray-850/30 hover:bg-black/5 dark:hover:bg-white/5"
 								>
 									<td class="px-4 py-2">
-										<div class="font-medium text-sm">{subscriber.name || 'Unknown'}</div>
+										<div class="font-medium text-sm">
+											{subscriber.name || $i18n.t('Unknown')}
+										</div>
 										<div class="text-xs text-gray-500">{subscriber.user_id.slice(0, 8)}...</div>
 									</td>
 									<td class="px-4 py-2 text-sm">{subscriber.email}</td>

@@ -144,7 +144,7 @@
 					<input
 						type="text"
 						inputmode="decimal"
-						placeholder="0.00"
+						placeholder={$i18n.t('0.00')}
 						bind:value={maxReplyCost}
 						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 					/>
@@ -159,7 +159,7 @@
 					<input
 						type="text"
 						inputmode="decimal"
-						placeholder="0.00"
+						placeholder={$i18n.t('0.00')}
 						bind:value={dailyCap}
 						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 					/>
@@ -181,7 +181,7 @@
 					<span class="text-gray-500">{$i18n.t('Email')}</span>
 					<input
 						type="email"
-						placeholder="you@example.com"
+						placeholder={$i18n.t('you@example.com')}
 						bind:value={contactEmail}
 						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 					/>
@@ -190,7 +190,7 @@
 					<span class="text-gray-500">{$i18n.t('Phone')}</span>
 					<input
 						type="tel"
-						placeholder="+7 900 000 00 00"
+						placeholder={$i18n.t('+7 900 000 00 00')}
 						bind:value={contactPhone}
 						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 					/>
