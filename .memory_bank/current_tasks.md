@@ -6,6 +6,14 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[UI-28]** Implement billing wallet UX redesign (wallet-first)
+
+  - Unified timeline (ledger + usage) with filters and clear labels
+  - Merged wallet + settings; lead-magnet model list; auto-topup UX polish
+  - Spec: `.memory_bank/specs/billing_wallet_ux_redesign.md`
+  - **Owner**: Codex
+  - **Done**: 2026-02-01
+
 - [x] **[SPEC]** Billing wallet UX redesign
 
   - Single wallet flow with unified timeline + settings merge (spec only)

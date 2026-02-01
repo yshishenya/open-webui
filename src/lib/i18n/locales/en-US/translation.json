@@ -2044,5 +2044,18 @@
 	"Raw cost hint (stt)": "Price per 1 second of audio",
 	"Raw cost hint (text)": "Price per 1000 tokens",
 	"Raw cost hint (tts)": "Price per 1 character",
-	"Kopeks per unit": "Kopeks per unit"
+	"Kopeks per unit": "Kopeks per unit",
+	"Limits": "Limits",
+	"All activity": "All activity",
+	"Paid": "Paid",
+	"Top-ups": "Top-ups",
+	"Estimated": "Estimated",
+	"Not charged": "Not charged",
+	"Models included": "Models included",
+	"Hide models": "Hide models",
+	"List unavailable": "List unavailable",
+	"Show all": "Show all",
+	"Show less": "Show less",
+	"Auto-topup disabled after failed attempts": "Auto-topup disabled after failed attempts",
+	"No free models available": "No free models available"
 }

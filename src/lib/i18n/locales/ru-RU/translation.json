@@ -2047,5 +2047,18 @@
 	"Raw cost hint (stt)": "Цена за 1 секунду аудио",
 	"Raw cost hint (text)": "Цена за 1000 токенов",
 	"Raw cost hint (tts)": "Цена за 1 символ",
-	"Kopeks per unit": "Копеек за единицу"
+	"Kopeks per unit": "Копеек за единицу",
+	"Limits": "Лимиты",
+	"All activity": "Вся активность",
+	"Paid": "Платные",
+	"Top-ups": "Пополнения",
+	"Estimated": "Оценка",
+	"Not charged": "Не списано",
+	"Models included": "Какие модели входят",
+	"Hide models": "Скрыть модели",
+	"List unavailable": "Список недоступен",
+	"Show all": "Показать все",
+	"Show less": "Свернуть",
+	"Auto-topup disabled after failed attempts": "Автопополнение отключено после неудачных попыток",
+	"No free models available": "Нет бесплатных моделей"
 }
