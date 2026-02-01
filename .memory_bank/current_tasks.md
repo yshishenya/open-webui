@@ -6,6 +6,12 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[MAINT]** Restore backend static assets
+
+  - Reverted accidental removal of static icons, manifest, loader, and user assets
+  - **Owner**: Codex
+  - **Done**: 2026-02-01
+
 - [x] **[UI-28]** Implement billing wallet UX redesign (wallet-first)
 
   - Unified timeline (ledger + usage) with filters and clear labels
