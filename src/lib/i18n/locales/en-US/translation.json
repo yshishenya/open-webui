@@ -2058,5 +2058,18 @@
 	"you@example.com": "",
 	"0": "",
 	"0.00": "",
-	"+7 900 000 00 00": ""
+	"+7 900 000 00 00": "",
+	"Limits": "Limits",
+	"All activity": "All activity",
+	"Paid": "Paid",
+	"Top-ups": "Top-ups",
+	"Estimated": "Estimated",
+	"Not charged": "Not charged",
+	"Models included": "Models included",
+	"Hide models": "Hide models",
+	"List unavailable": "List unavailable",
+	"Show all": "Show all",
+	"Show less": "Show less",
+	"Auto-topup disabled after failed attempts": "Auto-topup disabled after failed attempts",
+	"No free models available": "No free models available"
 }

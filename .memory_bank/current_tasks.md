@@ -13,6 +13,26 @@ This file tracks active development tasks for the Airis project. Update this fil
 - [x] **[BUG]** Перевести отсутствующие строки на страницах биллинга Airis_b2c
   - RU переводы для admin/user billing + model pricing
   - Добавлены i18n-плейсхолдеры в форме плана, локализация \"Unknown\", валюты, email/телефон и числовые плейсхолдеры
+- [x] **[MAINT]** Restore backend static assets
+
+  - Reverted accidental removal of static icons, manifest, loader, and user assets
+  - **Owner**: Codex
+  - **Done**: 2026-02-01
+
+- [x] **[UI-28]** Implement billing wallet UX redesign (wallet-first)
+
+  - Unified timeline (ledger + usage) with filters and clear labels
+  - Merged wallet + settings; lead-magnet model list; auto-topup UX polish
+  - Spec: `.memory_bank/specs/billing_wallet_ux_redesign.md`
+  - **Owner**: Codex
+  - **Done**: 2026-02-01
+
+- [x] **[SPEC]** Billing wallet UX redesign
+
+  - Single wallet flow with unified timeline + settings merge (spec only)
+  - Spec: `.memory_bank/specs/billing_wallet_ux_redesign.md`
+  - **Owner**: Codex
+  - **Done**: 2026-02-01
 
 - [x] **[DEV-01]** Add Docker dev hot-reload compose
 

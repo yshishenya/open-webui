@@ -2,31 +2,28 @@
 	import { onMount, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
-	import { WEBUI_NAME } from '$lib/stores';
+	import { WEBUI_NAME, models } from '$lib/stores';
 	import {
 		createTopup,
 		getBalance,
 		getLeadMagnetInfo,
-		getLedger,
 		updateAutoTopup,
 		updateBillingSettings
 	} from '$lib/apis/billing';
 	import { getUserInfo } from '$lib/apis/users';
-	import type { Balance, LeadMagnetInfo, LedgerEntry } from '$lib/apis/billing';
-	import {
-		formatCompactNumber,
-		getUsagePercentage,
-		getUsageColor,
-		getQuotaLabel
-	} from '$lib/utils/billing-formatters';
+	import type { Balance, LeadMagnetInfo } from '$lib/apis/billing';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
-	import Switch from '$lib/components/common/Switch.svelte';
+	import UnifiedTimeline from '$lib/components/billing/UnifiedTimeline.svelte';
+	import WalletTopupSection from '$lib/components/billing/WalletTopupSection.svelte';
+	import WalletAutoTopupSection from '$lib/components/billing/WalletAutoTopupSection.svelte';
+	import WalletSpendControls from '$lib/components/billing/WalletSpendControls.svelte';
+	import WalletContactsSection from '$lib/components/billing/WalletContactsSection.svelte';
+	import WalletLeadMagnetSection from '$lib/components/billing/WalletLeadMagnetSection.svelte';
 
 	const i18n = getContext('i18n');
 
 	const DEFAULT_TOPUP_PACKAGES_KOPEKS = [100000, 150000, 500000, 1000000];
-	const RECENT_LEDGER_LIMIT = 5;
 
 	let loading = true;
 	let balance: Balance | null = null;
@@ -34,8 +31,6 @@
 	let creatingTopupAmount: number | null = null;
 	let savingAutoTopup = false;
 	let leadMagnetInfo: LeadMagnetInfo | null = null;
-	let recentEntries: LedgerEntry[] = [];
-	let recentError: string | null = null;
 
 	let savingPreferences = false;
 	let maxReplyCost = '';
@@ -50,17 +45,8 @@
 	let autoTopupThreshold = '';
 	let autoTopupAmount = '';
 
-	type LeadMagnetMetric = {
-		key: string;
-		used: number;
-		limit: number;
-		remaining: number;
-		percentage: number;
-	};
-
 	onMount(async () => {
 		await loadBalance();
-		await loadRecentActivity();
 	});
 
 	const loadBalance = async (): Promise<void> => {
@@ -95,18 +81,6 @@
 			leadMagnetInfo = null;
 		} finally {
 			loading = false;
-		}
-	};
-
-	const loadRecentActivity = async (): Promise<void> => {
-		recentError = null;
-		try {
-			const result = await getLedger(localStorage.token, RECENT_LEDGER_LIMIT, 0);
-			recentEntries = result ?? [];
-		} catch (error) {
-			console.error('Failed to load recent activity:', error);
-			recentError = $i18n.t('Failed to load ledger');
-			recentEntries = [];
 		}
 	};
 
@@ -235,6 +209,11 @@
 		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 	};
 
+	const scrollToLimits = () => {
+		const target = document.getElementById('spend-controls-section');
+		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	};
+
 	const formatDateTime = (timestamp: number | null | undefined): string => {
 		if (!timestamp) return $i18n.t('Never');
 		return new Date(timestamp * 1000).toLocaleString($i18n.locale, {
@@ -246,65 +225,14 @@
 		});
 	};
 
-	const getLocalizedQuotaLabel = (key: string): string => {
-		return getQuotaLabel(key, (k) => $i18n.t(k));
-	};
-
-	const getLeadMagnetMetrics = (leadMagnet?: LeadMagnetInfo | null): LeadMagnetMetric[] => {
-		if (!leadMagnet) return [];
-		return Object.entries(leadMagnet.quotas ?? {})
-			.filter(([, limit]) => typeof limit === 'number' && limit > 0)
-			.map(([key, limit]) => {
-				const used = leadMagnet.usage?.[key] ?? 0;
-				const remaining = leadMagnet.remaining?.[key] ?? Math.max(0, limit - used);
-				return {
-					key,
-					used,
-					limit,
-					remaining,
-					percentage: getUsagePercentage(used, limit)
-				};
-			});
-	};
-
-	$: leadMagnetMetrics = getLeadMagnetMetrics(leadMagnetInfo);
 	$: customTopupKopeks = parseMoneyInput(customTopup);
 	$: totalBalance = (balance?.balance_topup_kopeks ?? 0) + (balance?.balance_included_kopeks ?? 0);
 
-	const formatEntryType = (type: string): string => {
-		const labels: Record<string, string> = {
-			hold: $i18n.t('Hold'),
-			charge: $i18n.t('Charge'),
-			refund: $i18n.t('Refund'),
-			topup: $i18n.t('Top-up'),
-			subscription_credit: $i18n.t('Subscription credit'),
-			adjustment: $i18n.t('Adjustment'),
-			release: $i18n.t('Release')
-		};
-		return labels[type] || type;
-	};
-
-	const getEntryAmount = (entry: LedgerEntry): number => {
-		if (entry.type === 'charge') {
-			const chargedInput = entry.charged_input_kopeks ?? null;
-			const chargedOutput = entry.charged_output_kopeks ?? null;
-			if (chargedInput !== null || chargedOutput !== null) {
-				const total = (chargedInput ?? 0) + (chargedOutput ?? 0);
-				return total > 0 ? -total : total;
-			}
-			const metadataCharge = entry.metadata_json?.charged_kopeks;
-			if (typeof metadataCharge === 'number') {
-				return metadataCharge > 0 ? -metadataCharge : metadataCharge;
-			}
-		}
-		return entry.amount_kopeks;
-	};
-
-	const getAmountClass = (amount: number): string => {
-		if (amount > 0) return 'text-green-600 dark:text-green-400';
-		if (amount < 0) return 'text-red-600 dark:text-red-400';
-		return 'text-gray-600 dark:text-gray-400';
-	};
+	$: leadMagnetModels =
+		$models
+			?.filter((model) => model.info?.meta?.lead_magnet)
+			.map((model) => ({ id: model.id, name: model.name ?? model.id })) ?? [];
+	$: leadMagnetModelsReady = $models.length > 0;
 </script>
 
 <svelte:head>
@@ -345,13 +273,22 @@
 				<div class="flex items-center gap-2">
 					<div class="text-xl font-medium">{$i18n.t('Wallet')}</div>
 				</div>
-				<button
-					type="button"
-					on:click={scrollToTopup}
-					class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium"
-				>
-					{$i18n.t('Top up')}
-				</button>
+				<div class="flex items-center gap-2">
+					<button
+						type="button"
+						on:click={scrollToLimits}
+						class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
+					>
+						{$i18n.t('Limits')}
+					</button>
+					<button
+						type="button"
+						on:click={scrollToTopup}
+						class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium"
+					>
+						{$i18n.t('Top up')}
+					</button>
+				</div>
 			</div>
 			<div class="text-sm text-gray-500">
 				{$i18n.t('Manage your balance and limits')}
@@ -385,229 +322,52 @@
 			</div>
 
 			{#if leadMagnetInfo?.enabled}
-				<div
-					class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
-				>
-					<div class="flex items-start justify-between mb-3">
-						<h3 class="text-sm font-medium">
-							{$i18n.t('Free limit')}
-						</h3>
-						<span
-							class="px-1.5 py-0.5 text-xs font-medium rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-						>
-							{$i18n.t('Free')}
-						</span>
-					</div>
-
-					<div class="text-xs text-gray-500 mb-3">
-						{$i18n.t('Next reset')}: {formatDateTime(leadMagnetInfo.cycle_end)}
-					</div>
-
-					{#if leadMagnetMetrics.length > 0}
-						<div class="space-y-4">
-							{#each leadMagnetMetrics as metric}
-								<div>
-									<div class="flex items-center justify-between mb-1.5">
-										<span class="text-sm font-medium">
-											{getLocalizedQuotaLabel(metric.key)}
-										</span>
-										<span class="text-sm text-gray-500">
-											{formatCompactNumber(metric.remaining)} / {formatCompactNumber(metric.limit)}
-										</span>
-									</div>
-									<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-										<div
-											class="{getUsageColor(metric.percentage)} h-1.5 rounded-full transition-all"
-											style="width: {metric.percentage}%"
-										></div>
-									</div>
-									<div class="text-xs text-gray-500 mt-1">
-										{metric.percentage.toFixed(1)}% {$i18n.t('used')}
-									</div>
-								</div>
-							{/each}
-						</div>
-					{:else}
-						<div class="text-sm text-gray-500">
-							{$i18n.t('No free limits configured')}
-						</div>
-					{/if}
-				</div>
+				<WalletLeadMagnetSection
+					leadMagnetInfo={leadMagnetInfo as LeadMagnetInfo}
+					models={leadMagnetModels}
+					modelsReady={leadMagnetModelsReady}
+				/>
 			{/if}
 
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-				<div
-					class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
-					id="topup-section"
-				>
-					<div class="flex items-center justify-between mb-3">
-						<div class="text-sm font-medium">{$i18n.t('Top-up')}</div>
-					</div>
-					<div class="flex flex-wrap gap-2">
-						{#each DEFAULT_TOPUP_PACKAGES_KOPEKS as amount}
-							<button
-								type="button"
-								on:click={() => handleTopup(amount)}
-								class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
-								disabled={creatingTopupAmount !== null}
-							>
-								{creatingTopupAmount === amount
-									? $i18n.t('Processing')
-									: formatMoney(amount, balance.currency)}
-							</button>
-						{/each}
-					</div>
-					<div class="mt-4 grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2">
-						<label class="flex flex-col gap-1 text-sm">
-							<span class="text-gray-500">{$i18n.t('Custom amount')}</span>
-							<input
-								type="text"
-								inputmode="decimal"
-								placeholder={$i18n.t('0.00')}
-								bind:value={customTopup}
-								class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-								disabled={creatingTopupAmount !== null}
-							/>
-						</label>
-						<button
-							type="button"
-							on:click={handleCustomTopup}
-							disabled={customTopupKopeks === null ||
-								customTopupKopeks <= 0 ||
-								creatingTopupAmount !== null}
-							class="h-fit sm:self-end px-4 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-						>
-							{creatingTopupAmount !== null && customTopupKopeks === creatingTopupAmount
-								? $i18n.t('Processing')
-								: $i18n.t('Top up')}
-						</button>
-					</div>
-					<div class="text-xs text-gray-500 mt-2">
-						{$i18n.t('Top-up packages are charged in')}: {balance.currency}
-					</div>
-				</div>
-
-				<div
-					class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
-				>
-					<div class="flex items-center justify-between mb-3">
-						<div class="text-sm font-medium">{$i18n.t('Auto-topup')}</div>
-						<Switch state={autoTopupEnabled} on:change={(e) => (autoTopupEnabled = e.detail)} />
-					</div>
-					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-						<label class="flex flex-col gap-1 text-sm">
-							<span class="text-gray-500">{$i18n.t('Threshold')}</span>
-							<input
-								type="text"
-								inputmode="decimal"
-								placeholder={$i18n.t('0.00')}
-								bind:value={autoTopupThreshold}
-								class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-								disabled={!autoTopupEnabled}
-							/>
-						</label>
-						<label class="flex flex-col gap-1 text-sm">
-							<span class="text-gray-500">{$i18n.t('Amount')}</span>
-							<input
-								type="text"
-								inputmode="decimal"
-								placeholder={$i18n.t('0.00')}
-								bind:value={autoTopupAmount}
-								class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-								disabled={!autoTopupEnabled}
-							/>
-						</label>
-					</div>
-					<div class="flex items-center justify-between mt-3">
-						<div class="text-xs text-gray-500">
-							{$i18n.t('Failed attempts')}: {balance.auto_topup_fail_count ?? 0}
-						</div>
-						<button
-							type="button"
-							on:click={handleSaveAutoTopup}
-							disabled={savingAutoTopup}
-							class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-						>
-							{savingAutoTopup ? $i18n.t('Saving') : $i18n.t('Save')}
-						</button>
-					</div>
-					<div class="text-xs text-gray-500 mt-2">
-						{$i18n.t('Last failed')}: {formatDateTime(balance.auto_topup_last_failed_at)}
-					</div>
-				</div>
+				<WalletTopupSection
+					currency={balance.currency}
+					defaultPackages={DEFAULT_TOPUP_PACKAGES_KOPEKS}
+					creatingTopupAmount={creatingTopupAmount}
+					bind:customTopup
+					customTopupKopeks={customTopupKopeks}
+					onTopup={handleTopup}
+					onCustomTopup={handleCustomTopup}
+				/>
+				<WalletAutoTopupSection
+					bind:autoTopupEnabled
+					bind:autoTopupThreshold
+					bind:autoTopupAmount
+					savingAutoTopup={savingAutoTopup}
+					autoTopupFailCount={balance.auto_topup_fail_count ?? 0}
+					autoTopupLastFailedAt={balance.auto_topup_last_failed_at}
+					onSave={handleSaveAutoTopup}
+				/>
 			</div>
 
-			<div
-				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
-			>
-				<div class="text-sm font-medium mb-3">{$i18n.t('Spend controls')}</div>
-				<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-					<label class="flex flex-col gap-1 text-sm">
-						<span class="text-gray-500">{$i18n.t('Max reply cost')}</span>
-						<input
-							type="text"
-							inputmode="decimal"
-							placeholder={$i18n.t('0.00')}
-							bind:value={maxReplyCost}
-							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-						/>
-						<span class="text-xs text-gray-500">
-							{$i18n.t('Current')}: {formatMoney(balance.max_reply_cost_kopeks, balance.currency)}
-						</span>
-					</label>
-					<label class="flex flex-col gap-1 text-sm">
-						<span class="text-gray-500">{$i18n.t('Daily cap')}</span>
-						<input
-							type="text"
-							inputmode="decimal"
-							placeholder={$i18n.t('0.00')}
-							bind:value={dailyCap}
-							class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-						/>
-						<span class="text-xs text-gray-500">
-							{$i18n.t('Current')}: {formatMoney(balance.daily_cap_kopeks, balance.currency)}
-						</span>
-					</label>
-				</div>
-				<div class="text-xs text-gray-500 mt-2">
-					{$i18n.t('Set limits to control spending')}
-				</div>
-
-				<div class="border-t border-gray-100/30 dark:border-gray-850/30 mt-4 pt-4">
-					<div class="text-sm font-medium mb-3">{$i18n.t('Contacts for receipts')}</div>
-					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-						<label class="flex flex-col gap-1 text-sm">
-							<span class="text-gray-500">{$i18n.t('Email')}</span>
-							<input
-								type="email"
-								placeholder={$i18n.t('you@example.com')}
-								bind:value={contactEmail}
-								class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-							/>
-						</label>
-						<label class="flex flex-col gap-1 text-sm">
-							<span class="text-gray-500">{$i18n.t('Phone')}</span>
-							<input
-								type="tel"
-								placeholder={$i18n.t('+7 900 000 00 00')}
-								bind:value={contactPhone}
-								class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
-							/>
-						</label>
-					</div>
-				</div>
-
-				<div class="flex justify-end mt-4">
-					<button
-						type="button"
-						on:click={handleSavePreferences}
-						disabled={savingPreferences}
-						class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-					>
-						{savingPreferences ? $i18n.t('Saving') : $i18n.t('Save')}
-					</button>
-				</div>
+			<div id="spend-controls-section">
+				<WalletSpendControls
+					bind:maxReplyCost
+					bind:dailyCap
+					currentMaxReply={balance.max_reply_cost_kopeks ?? null}
+					currentDailyCap={balance.daily_cap_kopeks ?? null}
+					currency={balance.currency}
+					savingPreferences={savingPreferences}
+					onSave={handleSavePreferences}
+				/>
 			</div>
+
+			<WalletContactsSection
+				bind:contactEmail
+				bind:contactPhone
+				savingPreferences={savingPreferences}
+				onSave={handleSavePreferences}
+			/>
 
 			<div
 				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
@@ -621,28 +381,13 @@
 						{$i18n.t('View all activity')}
 					</a>
 				</div>
-
-				{#if recentError}
-					<div class="text-sm text-gray-500">{recentError}</div>
-				{:else if recentEntries.length === 0}
-					<div class="text-sm text-gray-500">{$i18n.t('No recent activity')}</div>
-				{:else}
-					<div class="space-y-3">
-						{#each recentEntries as entry}
-							{@const entryAmount = getEntryAmount(entry)}
-							<div class="flex items-center justify-between">
-								<div>
-									<div class="text-sm font-medium">{formatEntryType(entry.type)}</div>
-									<div class="text-xs text-gray-500">{formatDateTime(entry.created_at)}</div>
-								</div>
-								<div class={`text-sm font-semibold ${getAmountClass(entryAmount)}`}>
-									{entryAmount > 0 ? '+' : ''}
-									{formatMoney(entryAmount, entry.currency)}
-								</div>
-							</div>
-						{/each}
-					</div>
-				{/if}
+				<UnifiedTimeline
+					pageSize={6}
+					maxItems={6}
+					showFilters={false}
+					showLoadMore={false}
+					currency={balance.currency}
+				/>
 			</div>
 		</div>
 	</div>
