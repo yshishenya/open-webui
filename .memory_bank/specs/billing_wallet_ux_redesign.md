@@ -7,6 +7,7 @@
 - Change: Redesign the billing wallet page into a single, user-friendly flow with a unified timeline, and remove the separate settings page.
 - Outcome: Faster top-up, clearer spend controls, and understandable “why charged” history with free/paid usage in one place.
 - Constraints/assumptions: Frontend-only; use existing APIs and stores; no new backend fields or endpoints.
+ - UX principles: progressive disclosure, action-first layout, minimal jargon, clear cost source labeling.
 
 ## Context / Problem
 - Why: The current wallet experience is long, fragmented, and uses billing terminology that is hard to interpret.
@@ -20,6 +21,8 @@ Goals:
 - Provide a unified activity timeline with clear labels and cost context.
 - Keep all existing functionality (top-up, auto-topup, limits, contacts, history).
 - Ensure mobile-first usability (CTA visible early, readable cards).
+- Reduce cognitive load for new users while keeping advanced controls discoverable.
+- Make cost source explicit (wallet vs included vs free) to avoid “where did money go?” confusion.
 Non-goals:
 - No backend/API changes or new notifications logic.
 - No new analytics, forecasts, or pricing estimator blocks.
@@ -41,7 +44,7 @@ TO-BE:
   5) Lead magnet limits + “Какие модели входят” list.
   6) Unified timeline preview (last 6 items) with “Вся история”.
   7) Contacts for receipts.
-- History page uses the same unified timeline with optional filters.
+- History page uses the same unified timeline with filters: Все / Платные / Бесплатные / Пополнения.
 - `billing/settings` is deprecated and redirects to `/billing/balance` (no UI there).
 
 Edge cases / failures:
@@ -51,6 +54,7 @@ Edge cases / failures:
 - No activity → show empty state text (wallet + history).
 - Auto-topup disabled by backend after max failures → toggle is off + show banner text.
 - API errors (balance, ledger, usage) → show retry CTA for that section only.
+- Usage event `is_estimated=true` or `cost_charged_kopeks=0` (payg) → label as “Оценка / Не списано” and use neutral color.
 
 Concurrency/idempotency:
 - N/A (frontend-only; existing backend idempotency remains unchanged).
@@ -76,18 +80,25 @@ Flow/components:
   - Timeline preview: last 6 items + “Вся история”.
   - Contacts: email + phone, save.
 
+User journeys (primary personas):
+- New user (нулевой баланс): видит баланс + CTA “Пополнить”, быстрые суммы, без сложных настроек.
+- Free user (lead magnet): видит остатки и понятную дату сброса, кнопку с моделями.
+- Cost‑sensitive user: быстро находит лимиты, понимает эффект “остановим запросы”.
+- Power user: включает авто‑пополнение, настраивает порог и сумму за 1 проход.
+
 Unified timeline (shared component):
 - Data sources:
   - Usage events: `getUsageEvents(token)` (no billing_source filter) → includes PAYG + lead_magnet.
   - Ledger entries: `getLedger(token)` → include only non-usage types (topup, refund, adjustment, subscription_credit).
 - Exclude ledger types: hold, release, charge.
 - Merge items by `created_at` desc and render one list.
+- Pagination: fetch equal page sizes from both sources (e.g., 20/20), merge-sort by `created_at`, render top N (e.g., 20). Keep leftover items in buffer; on “Load more”, top up from the source whose next item is newest. Avoid over-fetching by tracking independent `skip` for ledger/usage.
 
 Mapping to timeline items:
 - UsageEvent →
   - kind: `usage` (billing_source=payg) or `free` (billing_source=lead_magnet)
   - title: `Списание` / `Бесплатное использование`
-  - subtitle: `{model_id} · {modality} · {units}`
+  - subtitle: `{model_name || model_id} · {modality} · {units}`
   - amount: `cost_charged_kopeks` (0 for free)
   - sign: negative for payg; “Free” label for lead_magnet.
 - LedgerEntry →
@@ -99,7 +110,7 @@ Mapping to timeline items:
 Lead magnet “models included”:
 - Source: `$models` store (loaded via `/api/models` in app layout).
 - Filter: `model.info?.meta?.lead_magnet === true`.
-- Display: list of model names or IDs in a small modal/tooltip.
+- Display: list of model names or IDs in a small modal/tooltip (limit to 5 + “Показать все”).
 - If list empty → hide button.
 
 Contracts (if any): API / events + examples
@@ -157,7 +168,9 @@ Acceptance criteria (DoD):
 - [ ] Spend limits and contacts save correctly from wallet (no separate settings needed).
 - [ ] Lead magnet block shows progress + reset date; model list is available when flagged.
 - [ ] Timeline shows payg + free usage + topups in one list with correct signs and colors.
-- [ ] `/billing/history` shows the same timeline with filters and pagination.
+- [ ] Estimated usage is labeled and does not look like a paid charge.
+- [ ] Model names render from store; fallback to model_id if missing.
+- [ ] `/billing/history` shows the same timeline with filters and pagination (stable order).
 - [ ] `/billing/settings` redirects to `/billing/balance`.
 - [ ] Dark mode remains readable (contrast OK).
 
