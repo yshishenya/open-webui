@@ -6,15 +6,10 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
-- [x] **[BUG]** Admin model pricing resets to 0 after save
+- [x] **[DEV-01]** Add Docker dev hot-reload compose
 
-  - Fixed rate card editor to compare against original saved cost
-  - Prevents price edits from being treated as no-op in the UI
-
-- [x] **[BILLING-16][FEATURE]** Rate card XLSX import/export (admin)
-
-  - Backend: export workbook + import preview/apply endpoints with validation
-  - Frontend: bulk export/import flows in admin model pricing page (EN/RU)
+  - Added `docker-compose.dev.yaml` overlay to run backend with `uvicorn --reload` and frontend via Vite dev server (HMR)
+  - Goal: avoid rebuilding the image on every code change
 
 - [x] **[UI-27]** Convert admin model pricing list to responsive table
 
@@ -354,23 +349,6 @@ This file tracks active development tasks for the Airis project. Update this fil
   - Admin model pricing list supports bulk delete for selected models again.
   - **Owner**: Codex
   - **Done**: 2026-01-26
-
-- [x] **[BUG]** Admin model pricing resets to 0 after save
-
-  - Fixed rate card editor to compare against original saved cost
-  - Prevents price edits from being treated as no-op in the UI
-  - **Owner**: OpenCode
-  - **Target**: 2026-01-27
-
-- [x] **[BILLING-16][FEATURE]** Rate card XLSX import/export (admin)
-
-  - Backend: export workbook + import preview/apply endpoints with validation
-  - Backend: Apply returns 400 with structured errors (matches Preview)
-  - Frontend: bulk export/import flows in admin model pricing page (EN/RU)
-  - Frontend: preserve structured Apply error payloads on 400
-  - Tests: backend XLSX suite updated (incl. non-integer float rejection)
-  - **Owner**: OpenCode
-  - **Target**: 2026-01-28
 
 - [x] **[UI-21]** Обновить hero + header /welcome по новому ТЗ
   - Новый hero с CTA, trust chips и быстрыми пресетами

@@ -1,0 +1,38 @@
+services:
+  # Dev overlay:
+  # - Backend runs with `uvicorn --reload` and mounts `./backend`.
+  # - Frontend runs Vite dev server (HMR) on :5173.
+
+  airis:
+    ports:
+      - ${OPEN_WEBUI_API_PORT-8080}:8080
+    environment:
+      - ENV=dev
+    working_dir: /app/backend
+    command: ['bash', 'dev.sh']
+    volumes:
+      - ./backend:/app/backend
+      - airis:/app/backend/data
+
+  airis-frontend:
+    image: node:22-alpine3.20
+    container_name: airis-frontend
+    working_dir: /app
+    command:
+      - sh
+      - -lc
+      - |
+        if [ ! -d node_modules ]; then
+          npm ci --force
+        fi
+        npm run dev -- --host 0.0.0.0 --port 5173
+    ports:
+      - ${AIRIS_FRONTEND_PORT-5173}:5173
+    volumes:
+      - ./:/app
+      - airis-frontend-node-modules:/app/node_modules
+    depends_on:
+      - airis
+
+volumes:
+  airis-frontend-node-modules: {}
