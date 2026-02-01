@@ -62,6 +62,9 @@ test.describe('Billing Wallet', () => {
 		await page.route('**/api/v1/billing/ledger*', async (route) => {
 			await route.fulfill({ json: ledgerResponse });
 		});
+		await page.route('**/api/v1/billing/usage-events*', async (route) => {
+			await route.fulfill({ json: [] });
+		});
 		await page.route('**/api/v1/users/user/info', async (route) => {
 			await route.fulfill({ json: userInfoResponse });
 		});
@@ -118,7 +121,8 @@ test.describe('Billing Wallet', () => {
 	test('user can view ledger history', async ({ page }) => {
 		await page.goto('/billing/history');
 		await page.waitForResponse('**/api/v1/billing/ledger*');
-		await expect(page.getByText('Operations')).toBeVisible();
+		await expect(page.locator('#billing-container').getByText('History')).toBeVisible();
+		await expect(page.getByText('All activity')).toBeVisible();
 		await expect(page.getByText('Top-up', { exact: true })).toBeVisible();
 		await expect(page.getByText('Charge', { exact: true })).toBeVisible();
 	});

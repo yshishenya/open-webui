@@ -77,17 +77,25 @@ test.describe('Billing Lead Magnet', () => {
 		await page.waitForURL(/\/billing\/balance/);
 		await page.waitForResponse('**/api/v1/billing/lead-magnet');
 
-		await expect(page.getByText('Free limit')).toBeVisible();
-		await expect(page.getByText('Next reset')).toBeVisible();
-		await expect(page.getByText('Input tokens')).toBeVisible();
+		const leadMagnetSection = page
+			.getByRole('heading', { name: 'Free limit' })
+			.locator('..')
+			.locator('..');
+		await expect(leadMagnetSection.getByText('Free limit')).toBeVisible();
+		await expect(leadMagnetSection.getByText('Next reset')).toBeVisible();
+		await expect(leadMagnetSection.getByText('Input tokens')).toBeVisible();
 	});
 
 	test('wallet shows free limit summary', async ({ page }) => {
 		await page.goto('/billing/balance');
 		await page.waitForResponse('**/api/v1/billing/lead-magnet');
 
-		await expect(page.getByText('Free limit')).toBeVisible();
-		await expect(page.getByText('Next reset')).toBeVisible();
-		await expect(page.getByText('Output tokens')).toBeVisible();
+		const leadMagnetSection = page
+			.getByRole('heading', { name: 'Free limit' })
+			.locator('..')
+			.locator('..');
+		await expect(leadMagnetSection.getByText('Free limit')).toBeVisible();
+		await expect(leadMagnetSection.getByText('Next reset')).toBeVisible();
+		await expect(leadMagnetSection.getByText('Output tokens')).toBeVisible();
 	});
 });
