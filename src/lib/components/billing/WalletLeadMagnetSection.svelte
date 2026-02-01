@@ -69,7 +69,10 @@
 	$: hasHiddenModels = models.length > 5;
 </script>
 
-<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4" data-testid="lead-magnet-section">
+<div
+	class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+	data-testid="lead-magnet-section"
+>
 	<div class="flex items-start justify-between mb-3">
 		<h3 class="text-sm font-medium">
 			{$i18n.t('Free limit')}

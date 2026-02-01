@@ -77,10 +77,7 @@ test.describe('Billing Lead Magnet', () => {
 		await page.waitForURL(/\/billing\/balance/);
 		await page.waitForResponse('**/api/v1/billing/lead-magnet');
 
-		const leadMagnetSection = page
-			.getByRole('heading', { name: 'Free limit' })
-			.locator('..')
-			.locator('..');
+		const leadMagnetSection = page.getByTestId('lead-magnet-section');
 		await expect(leadMagnetSection.getByText('Free limit')).toBeVisible();
 		await expect(leadMagnetSection.getByText('Next reset')).toBeVisible();
 		await expect(leadMagnetSection.getByText('Input tokens')).toBeVisible();
@@ -90,10 +87,7 @@ test.describe('Billing Lead Magnet', () => {
 		await page.goto('/billing/balance');
 		await page.waitForResponse('**/api/v1/billing/lead-magnet');
 
-		const leadMagnetSection = page
-			.getByRole('heading', { name: 'Free limit' })
-			.locator('..')
-			.locator('..');
+		const leadMagnetSection = page.getByTestId('lead-magnet-section');
 		await expect(leadMagnetSection.getByText('Free limit')).toBeVisible();
 		await expect(leadMagnetSection.getByText('Next reset')).toBeVisible();
 		await expect(leadMagnetSection.getByText('Output tokens')).toBeVisible();
