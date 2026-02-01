@@ -9,7 +9,14 @@
 	const i18n = getContext('i18n');
 
 	type FilterKey = 'all' | 'paid' | 'free' | 'topups';
-	type TimelineKind = 'usage' | 'free' | 'topup' | 'refund' | 'adjustment' | 'subscription_credit';
+	type TimelineKind =
+		| 'usage'
+		| 'free'
+		| 'topup'
+		| 'refund'
+		| 'adjustment'
+		| 'subscription_credit'
+		| 'charge';
 
 	type TimelineItem = {
 		id: string;
@@ -163,7 +170,7 @@
 		const subtitle = `${modelName} · ${entry.modality}`;
 		const metrics = getUsageMetrics(entry);
 		const charged = entry.cost_charged_kopeks ?? 0;
-		const isEstimated = Boolean(entry.is_estimated) || (!isFree && charged === 0);
+		const isEstimated = Boolean(entry.is_estimated);
 
 		return {
 			id: entry.id,
@@ -178,11 +185,41 @@
 		};
 	};
 
-	const mapLedgerEntry = (entry: LedgerEntry): TimelineItem | null => {
-		if (['hold', 'release', 'charge'].includes(entry.type)) {
+	const getLedgerAmount = (entry: LedgerEntry): number => {
+		if (entry.type === 'charge') {
+			const chargedInput = entry.charged_input_kopeks ?? null;
+			const chargedOutput = entry.charged_output_kopeks ?? null;
+			if (chargedInput !== null || chargedOutput !== null) {
+				const total = (chargedInput ?? 0) + (chargedOutput ?? 0);
+				return total > 0 ? -total : total;
+			}
+			const metadataCharge = entry.metadata_json?.charged_kopeks;
+			if (typeof metadataCharge === 'number') {
+				return metadataCharge > 0 ? -metadataCharge : metadataCharge;
+			}
+		}
+		return entry.amount_kopeks;
+	};
+
+	const mapLedgerEntry = (
+		entry: LedgerEntry,
+		usageRequestIds: Set<string>
+	): TimelineItem | null => {
+		if (['hold', 'release'].includes(entry.type)) {
+			return null;
+		}
+		if (entry.type === 'charge') {
+			const refId = entry.reference_id ?? '';
+			if (refId && usageRequestIds.has(refId)) {
+				return null;
+			}
+		}
+		const amountKopeks = getLedgerAmount(entry);
+		if (amountKopeks === 0 && entry.type === 'charge') {
 			return null;
 		}
 		const titleMap: Record<string, string> = {
+			charge: $i18n.t('Charge'),
 			topup: $i18n.t('Top-up'),
 			refund: $i18n.t('Refund'),
 			adjustment: $i18n.t('Adjustment'),
@@ -198,7 +235,7 @@
 			title,
 			subtitle,
 			metrics: [],
-			amountKopeks: entry.amount_kopeks,
+			amountKopeks,
 			currency: entry.currency,
 			isEstimated: false
 		};
@@ -206,14 +243,17 @@
 
 	const mergeItems = (ledger: LedgerEntry[], usage: UsageEvent[]): TimelineItem[] => {
 		const currencyCode = resolveCurrency();
-		const mappedLedger = ledger.map(mapLedgerEntry).filter(Boolean) as TimelineItem[];
+		const usageRequestIds = new Set(usage.map((entry) => entry.request_id).filter(Boolean));
+		const mappedLedger = ledger
+			.map((entry) => mapLedgerEntry(entry, usageRequestIds))
+			.filter(Boolean) as TimelineItem[];
 		const mappedUsage = usage.map((entry) => mapUsageEvent(entry, currencyCode));
 		return [...mappedLedger, ...mappedUsage].sort((a, b) => b.createdAt - a.createdAt);
 	};
 
 	const filterItems = (items: TimelineItem[]): TimelineItem[] => {
 		if (activeFilter === 'paid') {
-			return items.filter((item) => item.kind === 'usage');
+			return items.filter((item) => item.kind === 'usage' || item.kind === 'charge');
 		}
 		if (activeFilter === 'free') {
 			return items.filter((item) => item.kind === 'free');
@@ -306,7 +346,7 @@
 	</div>
 {:else}
 	<div class="space-y-2">
-		{#each visibleItems as item (item.id)}
+		{#each visibleItems as item (`${item.kind}:${item.id}`)}
 			{@const amountValue = item.kind === 'usage' ? -Math.abs(item.amountKopeks ?? 0) : item.amountKopeks ?? 0}
 			<div
 				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4"

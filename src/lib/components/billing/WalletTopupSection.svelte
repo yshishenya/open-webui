@@ -50,7 +50,7 @@
 			<input
 				type="text"
 				inputmode="decimal"
-				placeholder="0.00"
+				placeholder={$i18n.t('0.00')}
 				bind:value={customTopup}
 				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 				disabled={creatingTopupAmount !== null}

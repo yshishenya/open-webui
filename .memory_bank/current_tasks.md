@@ -6,6 +6,12 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG]** Fix wallet timeline + lead magnet UI regressions
+  - Lead magnet fetch no longer blocks wallet load; charge entries handled correctly
+  - i18n placeholders restored for wallet inputs; models list empty state corrected
+  - **Owner**: Codex
+  - **Done**: 2026-02-01
+
 - [x] **[AUTH-02]** Add GitHub OAuth env config
   - Added GitHub OAuth variables to local `.env`.
   - **Owner**: Codex

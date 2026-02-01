@@ -52,18 +52,23 @@
 	const loadBalance = async (): Promise<void> => {
 		loading = true;
 		errorMessage = null;
+		leadMagnetInfo = null;
 		try {
-			const [balanceResult, leadMagnetResult] = await Promise.all([
-				getBalance(localStorage.token),
-				getLeadMagnetInfo(localStorage.token)
-			]);
+			const balanceResult = await getBalance(localStorage.token);
 			balance = balanceResult;
-			leadMagnetInfo = leadMagnetResult;
 			autoTopupEnabled = balance?.auto_topup_enabled ?? false;
 			autoTopupThreshold = formatMoneyInput(balance?.auto_topup_threshold_kopeks ?? null);
 			autoTopupAmount = formatMoneyInput(balance?.auto_topup_amount_kopeks ?? null);
 			maxReplyCost = formatMoneyInput(balance?.max_reply_cost_kopeks ?? null);
 			dailyCap = formatMoneyInput(balance?.daily_cap_kopeks ?? null);
+
+			try {
+				const leadMagnetResult = await getLeadMagnetInfo(localStorage.token);
+				leadMagnetInfo = leadMagnetResult;
+			} catch (error) {
+				console.error('Failed to load lead magnet info:', error);
+				leadMagnetInfo = null;
+			}
 
 			try {
 				const infoResult = await getUserInfo(localStorage.token);
@@ -232,7 +237,7 @@
 		$models
 			?.filter((model) => model.info?.meta?.lead_magnet)
 			.map((model) => ({ id: model.id, name: model.name ?? model.id })) ?? [];
-	$: leadMagnetModelsReady = $models.length > 0;
+	const leadMagnetModelsReady = true;
 </script>
 
 <svelte:head>
