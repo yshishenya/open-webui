@@ -6,6 +6,11 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[AUTH-02]** Add GitHub OAuth env config
+  - Added GitHub OAuth variables to local `.env`.
+  - **Owner**: Codex
+  - **Done**: 2026-02-01
+
 - [x] **[DEV-01]** Add Docker dev hot-reload compose
 
   - Added `docker-compose.dev.yaml` overlay to run backend with `uvicorn --reload` and frontend via Vite dev server (HMR)
@@ -326,6 +331,12 @@ This file tracks active development tasks for the Airis project. Update this fil
 ## In Progress
 
 ### High Priority
+
+- [x] **[AUTH-01]** Verify GitHub OAuth login visibility
+  - Confirm backend GitHub OAuth support and prerequisites.
+  - Identify conditions for showing the GitHub login button in the UI.
+  - **Owner**: Codex
+  - **Target**: 2026-02-01
 
 - [x] **[SPEC]** Model management lifecycle + pricing visibility flow
 
