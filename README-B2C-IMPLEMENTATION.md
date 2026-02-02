@@ -47,12 +47,23 @@ Note: OAuth and SMTP settings are defined as persistent configs in `backend/open
 
 Set these in `.env` as needed:
 
+- `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_CLIENT_SCOPE`, `GITHUB_CLIENT_REDIRECT_URI`
 - `VK_CLIENT_ID`, `VK_CLIENT_SECRET`, `VK_REDIRECT_URI`
 - `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`, `YANDEX_REDIRECT_URI`
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_NAME`, `TELEGRAM_AUTH_ORIGIN`
 - `ENABLE_OAUTH_SIGNUP`, `OAUTH_MERGE_ACCOUNTS_BY_EMAIL`
 
 Setup guide: `.qoder/RUSSIAN_OAUTH_SETUP.md`
+
+### Keep `.env` in sync
+
+When you pull updates, `.env.example` may gain new keys. To safely sync an existing `.env` with the latest
+template (preserving your current values and keeping unknown custom keys), run:
+
+- Local/dev: `python3 scripts/sync_env.py --env .env`
+- Prod (example): `python3 scripts/sync_env.py --env /opt/projects/open-webui/.env`
+
+The script writes a timestamped backup (`.env.bak.<timestamp>`) and never prints values.
 
 ### SMTP (transactional email)
 
