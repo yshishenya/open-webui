@@ -529,7 +529,7 @@
 			toast.error($i18n.t('Preview import first'));
 			return;
 		}
-		if (importPreview.errors?.length) {
+		if (applyDisabled) {
 			toast.error($i18n.t('Fix import errors before applying'));
 			return;
 		}
@@ -930,6 +930,15 @@
 	);
 
 	$: previewCounts = calculatePreviewCounts();
+	$: applyDisabled = !importFile ||
+		!importPreview ||
+		Boolean(importPreview?.errors?.length) ||
+		(importPreview?.summary?.rows_invalid ?? 0) > 0;
+	$: applyStatusLabel = !importPreview
+		? $i18n.t('Preview required to unlock apply')
+		: applyDisabled
+			? $i18n.t('Fix errors to apply')
+			: $i18n.t('Ready to apply');
 	$: visibleModelIds = filteredModelRows.map((model) => model.id);
 	$: allVisibleSelected =
 		visibleModelIds.length > 0 && visibleModelIds.every((modelId) => selectedModelIds.has(modelId));
@@ -1007,15 +1016,15 @@
 			</div>
 		</ConfirmDialog>
 
-		<ConfirmDialog
-			bind:show={showImportModal}
-			title={$i18n.t('Import rate cards from XLSX')}
-			message={$i18n.t('Upload an XLSX file, preview changes, then apply.')}
-			confirmLabel={importing ? $i18n.t('Applying...') : $i18n.t('Apply import')}
-			confirmDisabled={!importFile || !importPreview || Boolean(importPreview?.errors?.length)}
-			cancelLabel={$i18n.t('Close')}
-			on:confirm={handleApplyImport}
-		>
+			<ConfirmDialog
+				bind:show={showImportModal}
+				title={$i18n.t('Import rate cards from XLSX')}
+				message={$i18n.t('Upload an XLSX file, preview changes, then apply.')}
+				confirmLabel={importing ? $i18n.t('Applying...') : $i18n.t('Apply import')}
+				confirmDisabled={applyDisabled}
+				cancelLabel={$i18n.t('Close')}
+				on:confirm={handleApplyImport}
+			>
 			<div class="flex flex-col gap-3">
 				<div class="flex flex-col gap-2">
 					<label for="rate-card-import-mode" class="text-sm font-medium"
@@ -1049,31 +1058,87 @@
 					/>
 				</div>
 
-				<div class="flex items-center gap-2">
-					<button
-						type="button"
-						on:click={handlePreviewImport}
-						disabled={importPreviewLoading || !importFile}
-						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition disabled:opacity-50"
-					>
-						{importPreviewLoading ? $i18n.t('Previewing...') : $i18n.t('Preview import')}
-					</button>
+				<div class="rounded-2xl border border-gray-200/70 dark:border-gray-800/70 p-3">
+					<div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+						<div>
+							<div class="text-sm font-medium">{$i18n.t('Step 1 — Preview')}</div>
+							<div class="text-xs text-gray-500 dark:text-gray-400">
+								{$i18n.t('Validate the file and calculate changes before applying.')}
+							</div>
+						</div>
+						<button
+							type="button"
+							on:click={handlePreviewImport}
+							disabled={importPreviewLoading || !importFile}
+							class="w-full md:w-auto px-4 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm font-medium hover:bg-gray-900 dark:hover:bg-gray-100 transition disabled:opacity-50"
+						>
+							{importPreviewLoading ? $i18n.t('Previewing...') : $i18n.t('Preview import')}
+						</button>
+					</div>
 					{#if importPreviewError}
-						<span class="text-sm text-red-600 dark:text-red-400">{importPreviewError}</span>
+						<div class="mt-2 text-xs text-red-600 dark:text-red-400">{importPreviewError}</div>
 					{/if}
 				</div>
 
-				{#if importPreview}
-					<div class="rounded-xl border border-gray-200 dark:border-gray-800 p-3 text-sm">
-						<div class="font-medium mb-2">{$i18n.t('Preview summary')}</div>
-						<div class="text-gray-600 dark:text-gray-300">
+				<div class="rounded-2xl border border-gray-200/70 dark:border-gray-800/70 p-3">
+					<div class="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+						<div>
+							<div class="text-sm font-medium">{$i18n.t('Step 2 — Apply')}</div>
+							<div class="text-xs text-gray-500 dark:text-gray-400">
+								{$i18n.t('Apply import after preview. Fix errors before continuing.')}
+							</div>
+						</div>
+						<div class="text-xs text-gray-500 dark:text-gray-400">
+							{applyStatusLabel}
+						</div>
+					</div>
+					<div class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+						{$i18n.t('Apply with the button below')}
+					</div>
+
+					{#if importPreview}
+						<div class="mt-3 text-sm text-gray-700 dark:text-gray-200">
 							{$i18n.t('Creates: {count}', { count: importPreview.summary.creates })}
 							· {$i18n.t('Updates: {count}', { count: importPreview.summary.updates_via_create })}
 							· {$i18n.t('Deactivations: {count}', { count: importPreview.summary.deactivations })}
 							· {$i18n.t('Invalid rows: {count}', { count: importPreview.summary.rows_invalid })}
 						</div>
+
+						<div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+							<div class="rounded-xl border border-gray-200/70 dark:border-gray-800/70 p-2">
+								<div class="text-[11px] uppercase text-gray-500 dark:text-gray-400">
+									{$i18n.t('Creates')}
+								</div>
+								<div class="text-lg font-semibold">{importPreview.summary.creates}</div>
+							</div>
+							<div class="rounded-xl border border-gray-200/70 dark:border-gray-800/70 p-2">
+								<div class="text-[11px] uppercase text-gray-500 dark:text-gray-400">
+									{$i18n.t('Updates')}
+								</div>
+								<div class="text-lg font-semibold">
+									{importPreview.summary.updates_via_create}
+								</div>
+							</div>
+							<div class="rounded-xl border border-gray-200/70 dark:border-gray-800/70 p-2">
+								<div class="text-[11px] uppercase text-gray-500 dark:text-gray-400">
+									{$i18n.t('Deactivations')}
+								</div>
+								<div class="text-lg font-semibold">
+									{importPreview.summary.deactivations}
+								</div>
+							</div>
+							<div class="rounded-xl border border-gray-200/70 dark:border-gray-800/70 p-2">
+								<div class="text-[11px] uppercase text-gray-500 dark:text-gray-400">
+									{$i18n.t('Invalid rows')}
+								</div>
+								<div class="text-lg font-semibold">
+									{importPreview.summary.rows_invalid}
+								</div>
+							</div>
+						</div>
+
 						{#if importPreview.warnings?.length}
-							<div class="mt-2 text-amber-700 dark:text-amber-300">
+							<div class="mt-3 text-amber-700 dark:text-amber-300">
 								{$i18n.t('Warnings: {count}', { count: importPreview.warnings.length })}
 							</div>
 							<div
@@ -1088,9 +1153,17 @@
 									</div>
 								{/each}
 							</div>
+							{#if importPreview.warnings.length > 50}
+								<div class="mt-2 text-[11px] text-amber-700/80 dark:text-amber-300/80">
+									{$i18n.t('Showing {shown} of {total} warnings', {
+										shown: 50,
+										total: importPreview.warnings.length
+									})}
+								</div>
+							{/if}
 						{/if}
 						{#if importPreview.errors?.length}
-							<div class="mt-2 text-red-700 dark:text-red-300">
+							<div class="mt-3 text-red-700 dark:text-red-300">
 								{$i18n.t('Errors: {count}', { count: importPreview.errors.length })}
 							</div>
 							<div
@@ -1108,9 +1181,21 @@
 									</div>
 								{/each}
 							</div>
+							{#if importPreview.errors.length > 50}
+								<div class="mt-2 text-[11px] text-red-700/80 dark:text-red-300/80">
+									{$i18n.t('Showing {shown} of {total} errors', {
+										shown: 50,
+										total: importPreview.errors.length
+									})}
+								</div>
+							{/if}
 						{/if}
-					</div>
-				{/if}
+					{:else}
+						<div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+							{$i18n.t('Run preview to see counters and unlock apply.')}
+						</div>
+					{/if}
+				</div>
 			</div>
 		</ConfirmDialog>
 		<div class="flex flex-col gap-1 px-1 mt-2.5 mb-4">

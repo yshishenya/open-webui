@@ -215,6 +215,7 @@
 									{#each presets as preset}
 										<button
 											type="button"
+											data-testid={`welcome-hero-preset-${preset.id}`}
 											class="shrink-0 rounded-full border border-gray-200 bg-white/90 px-4 py-2 text-[12px] font-medium text-gray-700 hover:border-gray-300 hover:text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
 											on:click={() => handlePresetClick(preset)}
 										>

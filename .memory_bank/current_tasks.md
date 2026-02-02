@@ -6,6 +6,22 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BILLING]** Update rate card prices from competitor analysis
+  - Built import-ready XLSX with text token_in/out prices from Rec IN/OUT (RUB/1K)
+  - Output: `.memory_bank/images/rate-cards-all_units_template (2)-filled.xlsx`
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
+- [x] **[UI]** Improve rate card import preview UX
+  - Added step-by-step preview/apply layout with prominent preview CTA and counter cards
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
+- [x] **[QA]** Fix e2e selectors after billing timeline + welcome hero updates
+  - Lead magnet checks scoped to card; history test mocks usage events; preset selectors stabilized
+  - **Owner**: Codex
+  - **Done**: 2026-02-01
+
 - [x] **[BUG]** Fix wallet timeline + lead magnet UI regressions
   - Lead magnet fetch no longer blocks wallet load; charge entries handled correctly
   - i18n placeholders restored for wallet inputs; models list empty state corrected

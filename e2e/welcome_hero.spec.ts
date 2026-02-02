@@ -45,7 +45,8 @@ test.describe('Welcome Hero', () => {
 		});
 
 		await page.goto('/welcome');
-		await page.getByRole('button', { name: 'Пост для соцсетей' }).click();
+		const heroPresetSection = page.getByText('Попробовать задачу:').locator('..');
+		await heroPresetSection.getByRole('button', { name: 'Пост для соцсетей' }).click();
 
 		await page.waitForURL(/\/auth/);
 		const redirectParam = new URL(page.url()).searchParams.get('redirect');
@@ -74,10 +75,11 @@ test.describe('Welcome Hero', () => {
 		await loginWithRedirect(page, user.email, user.password, '/');
 		await page.goto('/welcome');
 
-		await page.getByRole('button', { name: 'Резюме' }).click();
+		const heroPresetSection = page.getByText('Попробовать задачу:').locator('..');
+		await heroPresetSection.getByRole('button', { name: 'Резюме по фактам' }).click();
 		await page.waitForURL(/\?src=welcome_hero_preset/);
 
-		await expect(page.locator('#chat-input')).toContainText('Составь резюме по фактам');
+		await expect(page.locator('#chat-input')).toContainText('Сделай резюме по фактам');
 		const userMessages = await getUserMessages(page);
 		await expect(userMessages).toHaveCount(0);
 	});
