@@ -6,6 +6,13 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[UI]** Simplify billing pages UX (Wallet/History/Plans)
+  - Hero-first wallet layout with low-balance state, collapsed advanced settings, history URL filters, analytics + i18n/a11y updates
+  - Spec: `.memory_bank/specs/billing_pages_ux_simplification.md`
+  - Note: `npm run check` fails due to pre-existing svelte-check/TypeScript errors (katex-extension, utils/index, admin/Settings/Connections)
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
 - [x] **[DEV]** Mirror Codex workflow in Opencode
   - Added project opencode.json instructions + .opencode skills for workflow compliance
   - Added global OpenCode AGENTS + workflow-compliance skill
