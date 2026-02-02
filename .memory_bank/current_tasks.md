@@ -23,6 +23,18 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 - [x] **[DEV]** Standardize Codex docs/actions for Docker Compose + remove non-Codex assistant tooling
   - Updated `AGENTS.md` + Memory Bank guides/workflows/specs to use Docker Compose-first test/lint commands.
   - Removed legacy non-Codex assistant config files/folders from the repo.
+
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
+- [x] **[BILLING][AUDIT]** Проверка корректности списаний (wallet + subscriptions)
+  - Закрыта утечка денег: при недооценке токенов списание ограничивалось hold → часть стоимости не списывалась.
+  - Усилен preflight: более консервативная оценка токенов (tiktoken + fallback), дефолтный cap для max output tokens.
+  - Исправлено применение квот подписки: `plan.quotas` теперь читается по ключу `metric.value`, usage привязан к периоду подписки.
+  - Усилена обработка вебхуков YooKassa: верификация по API провайдера + идемпотентность для subscription (без повторного продления).
+  - YooKassa: добавлен timeout на HTTP-запросы; парсер вебхуков стал строже (валидирует `event`); опциональная защита вебхука через `YOOKASSA_WEBHOOK_TOKEN` и `?token=...` (не ломает `YOOKASSA_WEBHOOK_SECRET`).
+  - Подписки: renewal теперь продлевает от `now`, если подписка просрочена (чтобы пользователь не терял оплаченные дни).
+  - Тесты (docker): `pytest -q` — 145 passed.
   - **Owner**: Codex
   - **Done**: 2026-02-02
 
