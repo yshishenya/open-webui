@@ -19,6 +19,11 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Owner**: Codex
   - **Done**: 2026-02-02
 
+- [x] **[DEV]** Fix Codex worktree Local Environment setup
+  - Make setup robust when `$wt` is empty; support Docker-first workflow (no local deps) and provide docker-based Actions. (The earlier failure was from creating venv on system Python 3.9, causing `uvicorn==0.40.0` install to fail.)
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
 - [x] **[UI]** Simplify billing pages UX (Wallet/History/Plans)
   - Hero-first wallet layout with low-balance state, collapsed advanced settings, history URL filters, analytics + i18n/a11y updates
   - Spec: `.memory_bank/specs/billing_pages_ux_simplification.md`

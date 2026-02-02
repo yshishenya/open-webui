@@ -7,6 +7,12 @@ This project uses the same workflow rules across different coding assistants. Th
 - **Rules**: `AGENTS.md` (project root)
 - **Skills**: `.codex/skills/`
   - Workflow compliance skill: `.codex/skills/workflow-compliance/SKILL.md`
+- **Worktrees + Local Environments**
+  - Codex worktrees live outside the repo (typically under `~/.codex/worktrees/...`).
+  - Setup scripts should not assume `../open-webui/...` paths; derive the main checkout from `git rev-parse --git-common-dir` or rely on `$PWD` when `$wt` is empty.
+  - Airis requires **Python >= 3.11**; if you choose a local-venv workflow and `python3` resolves to macOS `/usr/bin/python3` (often 3.9), `pip install -r backend/requirements.txt` will fail (e.g. `uvicorn==0.40.0`).
+  - For a Docker-first workflow, prefer running tests/linters via `docker compose` Actions and avoid local dependency installs in worktrees.
+  - Codex-specific helper services for Actions live in `.codex/docker-compose.codex.yaml` (e.g. `pytools`, `e2e`) and are composed on top of `docker-compose.yaml` + `docker-compose.dev.yaml`.
 
 ## OpenCode
 

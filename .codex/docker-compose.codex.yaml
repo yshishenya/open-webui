@@ -1,0 +1,27 @@
+services:
+  # Helper containers for Codex Actions when you are Docker-first.
+  # These avoid requiring a local Python venv / npm install in the worktree.
+
+  pytools:
+    image: python:3.11-slim
+    working_dir: /work
+    volumes:
+      - ./:/work
+      - codex-pytools-pip-cache:/root/.cache/pip
+    entrypoint: ["bash", "-lc"]
+
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.57.0-noble
+    working_dir: /work
+    environment:
+      # In this compose project network, "airis" resolves to the backend container.
+      - PLAYWRIGHT_BASE_URL=http://airis:8080
+    volumes:
+      - ./:/work
+      - codex-e2e-node-modules:/work/node_modules
+    entrypoint: ["bash", "-lc"]
+
+volumes:
+  codex-pytools-pip-cache: {}
+  codex-e2e-node-modules: {}
+
