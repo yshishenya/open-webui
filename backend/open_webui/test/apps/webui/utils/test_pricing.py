@@ -40,6 +40,21 @@ def test_calculate_cost_kopeks_discount_applied() -> None:
     assert cost == 80
 
 
+def test_calculate_cost_kopeks_discount_clamped() -> None:
+    service = PricingService()
+    rate = _rate_card(raw_cost=100, modality="image", unit="image_1024")
+
+    assert service.calculate_cost_kopeks(Decimal(1), rate, -10) == 100
+    assert service.calculate_cost_kopeks(Decimal(1), rate, 200) == 0
+
+
+def test_calculate_cost_kopeks_negative_rate_clamped() -> None:
+    service = PricingService()
+    rate = _rate_card(raw_cost=-100, modality="image", unit="image_1024")
+
+    assert service.calculate_cost_kopeks(Decimal(1), rate, 0) == 0
+
+
 def test_calculate_cost_kopeks_zero_units() -> None:
     service = PricingService()
     rate = _rate_card(raw_cost=100)

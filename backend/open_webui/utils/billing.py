@@ -56,6 +56,14 @@ class QuotaExceededError(Exception):
     pass
 
 
+class WebhookVerificationError(Exception):
+    """Non-retryable webhook validation error."""
+
+
+class WebhookRetryableError(Exception):
+    """Retryable webhook processing error (provider should retry)."""
+
+
 @dataclass(frozen=True)
 class AutoTopupResult:
     attempted: bool
@@ -207,9 +215,7 @@ class BillingService:
         updated = self.subscriptions.update_subscription(subscription_id, updates)
 
         if updated:
-            log.info(
-                f"Canceled subscription {subscription_id} (immediate={immediate})"
-            )
+            log.info(f"Canceled subscription {subscription_id} (immediate={immediate})")
 
         return updated
 
@@ -252,16 +258,18 @@ class BillingService:
 
         now = int(time.time())
 
+        base_start = max(int(subscription.current_period_end), now)
+
         # Calculate new period
         if plan.interval == "month":
-            new_period_end = subscription.current_period_end + (30 * 24 * 60 * 60)
+            new_period_end = base_start + (30 * 24 * 60 * 60)
         elif plan.interval == "year":
-            new_period_end = subscription.current_period_end + (365 * 24 * 60 * 60)
+            new_period_end = base_start + (365 * 24 * 60 * 60)
         else:
             return None
 
         updates = {
-            "current_period_start": subscription.current_period_end,
+            "current_period_start": base_start,
             "current_period_end": new_period_end,
             "status": SubscriptionStatus.ACTIVE,
             "cancel_at_period_end": False,
@@ -298,6 +306,8 @@ class BillingService:
         """
         now = int(time.time())
         subscription = self.get_user_subscription(user_id)
+        period_start = subscription.current_period_start if subscription else now
+        period_end = subscription.current_period_end if subscription else now
 
         usage = UsageModel(
             id=str(uuid.uuid4()),
@@ -305,11 +315,11 @@ class BillingService:
             subscription_id=subscription.id if subscription else None,
             metric=metric,
             amount=amount,
-            period_start=now,
-            period_end=now,
+            period_start=period_start,
+            period_end=period_end,
             model_id=model_id,
             chat_id=chat_id,
-            metadata=metadata,
+            extra_metadata=metadata,
             created_at=now,
         )
 
@@ -329,9 +339,7 @@ class BillingService:
             user_id, period_start, period_end, metric
         )
 
-    def get_current_period_usage(
-        self, user_id: str, metric: UsageMetric
-    ) -> int:
+    def get_current_period_usage(self, user_id: str, metric: UsageMetric) -> int:
         """
         Get total usage for current billing period
 
@@ -357,9 +365,7 @@ class BillingService:
             user_id, period_start, period_end, metric
         )
 
-    def check_quota(
-        self, user_id: str, metric: UsageMetric, amount: int = 1
-    ) -> bool:
+    def check_quota(self, user_id: str, metric: UsageMetric, amount: int = 1) -> bool:
         """
         Check if user can use specified amount without exceeding quota
 
@@ -383,7 +389,7 @@ class BillingService:
             # No plan or no quotas = unlimited
             return True
 
-        quota_limit = plan.quotas.get(metric)
+        quota_limit = plan.quotas.get(metric.value)
         if quota_limit is None:
             # No limit for this metric = unlimited
             return True
@@ -399,9 +405,7 @@ class BillingService:
 
         return not would_exceed
 
-    def enforce_quota(
-        self, user_id: str, metric: UsageMetric, amount: int = 1
-    ) -> None:
+    def enforce_quota(self, user_id: str, metric: UsageMetric, amount: int = 1) -> None:
         """
         Enforce quota limit - raises exception if exceeded
 
@@ -483,9 +487,7 @@ class BillingService:
             },
         )
 
-        log.info(
-            f"Created payment {payment['id']} for user {user_id}, plan {plan_id}"
-        )
+        log.info(f"Created payment {payment['id']} for user {user_id}, plan {plan_id}")
 
         return {
             "transaction_id": created_transaction.id,
@@ -782,14 +784,64 @@ class BillingService:
         """
         event_type = webhook_data.get("event_type")
         payment_id = webhook_data.get("payment_id")
-        metadata_value = webhook_data.get("metadata", {})
+        if not isinstance(event_type, str) or not event_type:
+            raise WebhookVerificationError("Missing event_type")
+        if not isinstance(payment_id, str) or not payment_id:
+            raise WebhookVerificationError("Missing payment_id")
+
+        yookassa = get_yookassa_client()
+        if not yookassa:
+            raise WebhookRetryableError("YooKassa client not initialized")
+
+        try:
+            provider_payment = await yookassa.get_payment(payment_id)
+        except Exception as e:
+            raise WebhookRetryableError("Failed to fetch payment from provider") from e
+
+        if not isinstance(provider_payment, dict):
+            raise WebhookRetryableError("Provider payment payload invalid")
+
+        provider_status = provider_payment.get("status")
+        provider_paid = provider_payment.get("paid", False)
+        amount_value = None
+        currency_value = None
+        amount_obj = provider_payment.get("amount")
+        if isinstance(amount_obj, dict):
+            amount_value = amount_obj.get("value")
+            currency_value = amount_obj.get("currency")
+
+        expected_status_map: Dict[str, str] = {
+            "payment.succeeded": "succeeded",
+            "payment.canceled": "canceled",
+            "payment.waiting_for_capture": "waiting_for_capture",
+        }
+        expected_status = expected_status_map.get(event_type)
+        if expected_status and provider_status != expected_status:
+            raise WebhookRetryableError(
+                f"Provider status mismatch (expected {expected_status}, got {provider_status})"
+            )
+        if event_type == "payment.succeeded" and provider_paid is not True:
+            raise WebhookRetryableError("Provider payment not marked as paid")
+
+        metadata_value = provider_payment.get(
+            "metadata", webhook_data.get("metadata", {})
+        )
         metadata = metadata_value if isinstance(metadata_value, dict) else {}
 
         log.info(f"Processing webhook: {event_type} for payment {payment_id}")
 
         kind = metadata.get("kind")
         if kind == PaymentKind.TOPUP.value:
-            self._process_topup_webhook(event_type, payment_id, webhook_data)
+            trusted_webhook_data = {
+                **webhook_data,
+                "payment_id": payment_id,
+                "event_type": event_type,
+                "status": provider_status,
+                "amount": amount_value,
+                "currency": currency_value,
+                "metadata": metadata,
+            }
+            self._process_topup_webhook(event_type, payment_id, trusted_webhook_data)
             return None
 
         # Find transaction
@@ -802,6 +854,17 @@ class BillingService:
         if not transaction:
             log.error(f"Transaction {transaction_id} not found")
             return None
+        if (
+            transaction.yookassa_payment_id
+            and transaction.yookassa_payment_id != payment_id
+        ):
+            raise WebhookVerificationError("Payment ID does not match transaction")
+        if transaction.status == TransactionStatus.SUCCEEDED:
+            log.info(
+                "Transaction %s already succeeded; ignoring duplicate webhook",
+                transaction_id,
+            )
+            return None
 
         # Update transaction status
         if event_type == "payment.succeeded":
@@ -809,7 +872,7 @@ class BillingService:
                 transaction_id,
                 {
                     "status": TransactionStatus.SUCCEEDED,
-                    "yookassa_status": webhook_data.get("status"),
+                    "yookassa_status": provider_status,
                 },
             )
 
@@ -836,7 +899,7 @@ class BillingService:
                 transaction_id,
                 {
                     "status": TransactionStatus.CANCELED,
-                    "yookassa_status": webhook_data.get("status"),
+                    "yookassa_status": provider_status,
                 },
             )
 
@@ -845,7 +908,7 @@ class BillingService:
             self.transactions.update_transaction(
                 transaction_id,
                 {
-                    "yookassa_status": webhook_data.get("status"),
+                    "yookassa_status": provider_status,
                 },
             )
 
@@ -863,6 +926,15 @@ class BillingService:
         if not payment_id:
             log.error("Topup webhook missing payment_id")
             return
+
+        if event_type == "payment.succeeded":
+            existing = self.payments.get_payment_by_provider_id(payment_id)
+            if existing and existing.status == PaymentStatus.SUCCEEDED.value:
+                log.info(
+                    "Topup payment %s already succeeded; ignoring duplicate webhook",
+                    payment_id,
+                )
+                return
 
         amount_kopeks = self._extract_amount_kopeks(
             metadata_dict, webhook_data.get("amount")
@@ -1000,9 +1072,11 @@ class BillingService:
             "id": payment.get("id"),
             "status": payment.get("status"),
             "amount": payment.get("amount"),
-            "currency": payment.get("amount", {}).get("currency")
-            if isinstance(payment.get("amount"), dict)
-            else None,
+            "currency": (
+                payment.get("amount", {}).get("currency")
+                if isinstance(payment.get("amount"), dict)
+                else None
+            ),
             "confirmation": sanitized_confirmation,
         }
 

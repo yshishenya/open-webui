@@ -920,9 +920,7 @@ async def generate_chat_completion(
 
     max_reply_cost_value = metadata.get("max_reply_cost_kopeks")
     max_reply_cost_kopeks = (
-        int(max_reply_cost_value)
-        if isinstance(max_reply_cost_value, int)
-        else None
+        int(max_reply_cost_value) if isinstance(max_reply_cost_value, int) else None
     )
 
     model_id = form_data.get("model")
@@ -975,7 +973,9 @@ async def generate_chat_completion(
 
     # Billing: Check quota before making API request
     try:
-        estimated_tokens = estimate_tokens_from_messages(payload.get("messages", []))
+        estimated_tokens = estimate_tokens_from_messages(
+            payload.get("messages", []), model_id=model_id
+        )
         await check_and_enforce_quota(
             user_id=user.id,
             model_id=model_id,

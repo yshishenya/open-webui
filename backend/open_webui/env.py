@@ -928,6 +928,7 @@ EXTERNAL_PWA_MANIFEST_URL = os.environ.get("EXTERNAL_PWA_MANIFEST_URL")
 # BILLING / YOOKASSA OPTIONS
 ####################################
 
+
 def _parse_int_list(value: str) -> list[int]:
     items: list[int] = []
     for part in value.split(","):
@@ -950,13 +951,18 @@ def _parse_str_list(value: str) -> list[str]:
     return items
 
 
-ENABLE_BILLING_WALLET = os.environ.get("ENABLE_BILLING_WALLET", "False").lower() == "true"
+ENABLE_BILLING_WALLET = (
+    os.environ.get("ENABLE_BILLING_WALLET", "False").lower() == "true"
+)
 ENABLE_BILLING_SUBSCRIPTIONS = (
     os.environ.get("ENABLE_BILLING_SUBSCRIPTIONS", "False").lower() == "true"
 )
 BILLING_DEFAULT_CURRENCY = os.environ.get("BILLING_DEFAULT_CURRENCY", "RUB")
 BILLING_RATE_CARD_VERSION = os.environ.get("BILLING_RATE_CARD_VERSION", "2025-01")
 BILLING_HOLD_TTL_SECONDS = int(os.environ.get("BILLING_HOLD_TTL_SECONDS", "900"))
+BILLING_ESTIMATE_MAX_OUTPUT_TOKENS = int(
+    os.environ.get("BILLING_ESTIMATE_MAX_OUTPUT_TOKENS", "512")
+)
 BILLING_MAX_DAILY_SPEND_DEFAULT_KOPEKS = int(
     os.environ.get("BILLING_MAX_DAILY_SPEND_DEFAULT_KOPEKS", "0")
 )
@@ -988,4 +994,5 @@ PUBLIC_PRICING_RATE_CARD_MODEL_LIMIT = int(
 YOOKASSA_SHOP_ID = os.environ.get("YOOKASSA_SHOP_ID", "")
 YOOKASSA_SECRET_KEY = os.environ.get("YOOKASSA_SECRET_KEY", "")
 YOOKASSA_WEBHOOK_SECRET = os.environ.get("YOOKASSA_WEBHOOK_SECRET", "")
+YOOKASSA_WEBHOOK_TOKEN = os.environ.get("YOOKASSA_WEBHOOK_TOKEN", "")
 YOOKASSA_API_URL = os.environ.get("YOOKASSA_API_URL", "https://api.yookassa.ru/v3")

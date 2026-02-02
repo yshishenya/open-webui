@@ -16,9 +16,7 @@ class TestWalletService(AbstractPostgresTest):
             {"balance_included_kopeks": 500, "balance_topup_kopeks": 700},
         )
 
-        hold_entry = wallet_service.hold_funds(
-            wallet.id, 1000, "hold_ref_1", "test"
-        )
+        hold_entry = wallet_service.hold_funds(wallet.id, 1000, "hold_ref_1", "test")
         assert hold_entry.amount_kopeks == -1000
         assert hold_entry.metadata_json["held_included_kopeks"] == 500
         assert hold_entry.metadata_json["held_topup_kopeks"] == 500
@@ -28,9 +26,7 @@ class TestWalletService(AbstractPostgresTest):
         assert updated_wallet.balance_included_kopeks == 0
         assert updated_wallet.balance_topup_kopeks == 200
 
-        charge_entry = wallet_service.settle_hold(
-            wallet.id, "hold_ref_1", "test", 600
-        )
+        charge_entry = wallet_service.settle_hold(wallet.id, "hold_ref_1", "test", 600)
         assert charge_entry.metadata_json["charged_kopeks"] == 600
 
         release_entry = (
@@ -58,12 +54,8 @@ class TestWalletService(AbstractPostgresTest):
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 1000})
 
-        first = wallet_service.hold_funds(
-            wallet.id, 200, "hold_ref_idem", "test"
-        )
-        second = wallet_service.hold_funds(
-            wallet.id, 200, "hold_ref_idem", "test"
-        )
+        first = wallet_service.hold_funds(wallet.id, 200, "hold_ref_idem", "test")
+        second = wallet_service.hold_funds(wallet.id, 200, "hold_ref_idem", "test")
 
         assert first.id == second.id
 
@@ -84,16 +76,36 @@ class TestWalletService(AbstractPostgresTest):
         assert len(hold_entries) == 1
 
     def test_settle_hold_exceeds_held_raises(self) -> None:
-        from open_webui.utils.wallet import WalletError, wallet_service
-        from open_webui.models.billing import Wallets
+        from open_webui.internal.db import ScopedSession as Session
+        from open_webui.models.billing import LedgerEntry, Wallets
+        from open_webui.utils.wallet import wallet_service
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 500})
 
         wallet_service.hold_funds(wallet.id, 300, "hold_ref_err", "test")
 
-        with pytest.raises(WalletError):
-            wallet_service.settle_hold(wallet.id, "hold_ref_err", "test", 400)
+        charge_entry = wallet_service.settle_hold(
+            wallet.id, "hold_ref_err", "test", 400
+        )
+        assert charge_entry.metadata_json["charged_kopeks"] == 400
+        assert charge_entry.metadata_json["held_kopeks"] == 300
+        assert charge_entry.metadata_json["overage_kopeks"] == 100
+
+        overage_entry = (
+            Session.query(LedgerEntry)
+            .filter(
+                LedgerEntry.reference_id == "hold_ref_err",
+                LedgerEntry.type == "adjustment",
+            )
+            .first()
+        )
+        assert overage_entry is not None
+        assert overage_entry.amount_kopeks == -100
+
+        updated_wallet = Wallets.get_wallet_by_id(wallet.id)
+        assert updated_wallet is not None
+        assert updated_wallet.balance_topup_kopeks == 100
 
     def test_release_hold_after_charge_noop(self) -> None:
         from open_webui.utils.wallet import wallet_service
@@ -140,13 +152,9 @@ class TestWalletService(AbstractPostgresTest):
             {"balance_included_kopeks": 200, "balance_topup_kopeks": 300},
         )
 
-        wallet_service.hold_funds(
-            wallet.id, 400, "hold_ref_release", "test"
-        )
+        wallet_service.hold_funds(wallet.id, 400, "hold_ref_release", "test")
 
-        released = wallet_service.release_hold(
-            wallet.id, "hold_ref_release", "test"
-        )
+        released = wallet_service.release_hold(wallet.id, "hold_ref_release", "test")
         assert released is not None
 
         updated_wallet = Wallets.get_wallet_by_id(wallet.id)

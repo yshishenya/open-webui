@@ -12,6 +12,32 @@ from test.util.mock_user import mock_webui_user
 class TestBillingTopup(AbstractPostgresTest):
     BASE_PATH = "/api/v1/billing"
 
+    def _mock_yookassa_get_payment(
+        self,
+        monkeypatch: MonkeyPatch,
+        payment_id: str,
+        status: str,
+        metadata: dict[str, object],
+        amount_value: str = "199.00",
+        currency: str = "RUB",
+        paid: bool = True,
+    ) -> None:
+        import open_webui.utils.billing as billing_utils
+
+        class FakeYooKassaClient:
+            async def get_payment(self, provider_payment_id: str) -> dict[str, object]:
+                assert provider_payment_id == payment_id
+                return {
+                    "id": payment_id,
+                    "status": status,
+                    "paid": paid,
+                    "amount": {"value": amount_value, "currency": currency},
+                    "metadata": metadata,
+                }
+
+        fake_client = FakeYooKassaClient()
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: fake_client)
+
     def test_topup_rejects_invalid_amount(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
         import open_webui.utils.billing as billing_utils
@@ -224,7 +250,9 @@ class TestBillingTopup(AbstractPostgresTest):
         assert len(updated) == len(existing)
 
     @pytest.mark.asyncio
-    async def test_auto_topup_canceled_increments_fail_count(self) -> None:
+    async def test_auto_topup_canceled_increments_fail_count(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
         from open_webui.models.billing import (
             PaymentKind,
             PaymentModel,
@@ -272,6 +300,16 @@ class TestBillingTopup(AbstractPostgresTest):
         )
         Payments.create_payment(payment)
 
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_auto_fail",
+            status="canceled",
+            metadata=payment.metadata_json or {},
+            amount_value="199.00",
+            currency="RUB",
+            paid=False,
+        )
+
         await billing_service.process_payment_webhook(
             {
                 "event_type": "payment.canceled",
@@ -289,7 +327,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert updated_wallet.auto_topup_last_failed_at is not None
 
     @pytest.mark.asyncio
-    async def test_topup_webhook_credits_wallet(self) -> None:
+    async def test_topup_webhook_credits_wallet(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import (
             LedgerEntries,
             PaymentKind,
@@ -330,6 +368,16 @@ class TestBillingTopup(AbstractPostgresTest):
         )
         Payments.create_payment(payment)
 
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_123",
+            status="succeeded",
+            metadata=payment.metadata_json or {},
+            amount_value="199.00",
+            currency="RUB",
+            paid=True,
+        )
+
         webhook_data = {
             "event_type": "payment.succeeded",
             "payment_id": "pay_123",
@@ -361,7 +409,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert updated_payment.status == PaymentStatus.SUCCEEDED.value
 
     @pytest.mark.asyncio
-    async def test_topup_webhook_idempotent(self) -> None:
+    async def test_topup_webhook_idempotent(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import (
             LedgerEntries,
             PaymentKind,
@@ -402,6 +450,16 @@ class TestBillingTopup(AbstractPostgresTest):
         )
         Payments.create_payment(payment)
 
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_456",
+            status="succeeded",
+            metadata=payment.metadata_json or {},
+            amount_value="199.00",
+            currency="RUB",
+            paid=True,
+        )
+
         webhook_data = {
             "event_type": "payment.succeeded",
             "payment_id": "pay_456",
@@ -432,12 +490,29 @@ class TestBillingTopup(AbstractPostgresTest):
         assert len(topups) == 1
 
     @pytest.mark.asyncio
-    async def test_topup_webhook_creates_payment_when_missing(self) -> None:
+    async def test_topup_webhook_creates_payment_when_missing(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
         from open_webui.models.billing import LedgerEntries, Payments, Wallets
         from open_webui.utils.billing import billing_service
         from open_webui.utils.wallet import wallet_service
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
+
+        metadata = {
+            "kind": "topup",
+            "user_id": "1",
+            "wallet_id": wallet.id,
+        }
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_new",
+            status="succeeded",
+            metadata=metadata,
+            amount_value="199.00",
+            currency="RUB",
+            paid=True,
+        )
 
         webhook_data = {
             "event_type": "payment.succeeded",
@@ -445,11 +520,7 @@ class TestBillingTopup(AbstractPostgresTest):
             "status": "succeeded",
             "amount": "199.00",
             "currency": "RUB",
-            "metadata": {
-                "kind": "topup",
-                "user_id": "1",
-                "wallet_id": wallet.id,
-            },
+            "metadata": metadata,
         }
 
         await billing_service.process_payment_webhook(webhook_data)
@@ -469,7 +540,9 @@ class TestBillingTopup(AbstractPostgresTest):
         )
 
     @pytest.mark.asyncio
-    async def test_topup_webhook_canceled_updates_status(self) -> None:
+    async def test_topup_webhook_canceled_updates_status(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
         from open_webui.models.billing import (
             PaymentKind,
             PaymentModel,
@@ -509,6 +582,16 @@ class TestBillingTopup(AbstractPostgresTest):
         )
         Payments.create_payment(payment)
 
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_cancel",
+            status="canceled",
+            metadata=payment.metadata_json or {},
+            amount_value="199.00",
+            currency="RUB",
+            paid=False,
+        )
+
         webhook_data = {
             "event_type": "payment.canceled",
             "payment_id": "pay_cancel",
@@ -534,7 +617,9 @@ class TestBillingTopup(AbstractPostgresTest):
         assert updated_wallet.balance_topup_kopeks == 0
 
     @pytest.mark.asyncio
-    async def test_topup_webhook_waiting_for_capture_updates_status(self) -> None:
+    async def test_topup_webhook_waiting_for_capture_updates_status(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
         from open_webui.models.billing import (
             PaymentKind,
             PaymentModel,
@@ -573,6 +658,16 @@ class TestBillingTopup(AbstractPostgresTest):
             updated_at=now,
         )
         Payments.create_payment(payment)
+
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_wait",
+            status="waiting_for_capture",
+            metadata=payment.metadata_json or {},
+            amount_value="199.00",
+            currency="RUB",
+            paid=False,
+        )
 
         webhook_data = {
             "event_type": "payment.waiting_for_capture",

@@ -18,6 +18,8 @@ from open_webui.env import SRC_LOG_LEVELS
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS.get("YOOKASSA", logging.INFO))
 
+DEFAULT_TIMEOUT = aiohttp.ClientTimeout(total=15)
+
 
 class YooKassaConfig:
     """YooKassa configuration"""
@@ -63,15 +65,17 @@ class YooKassaClient:
             log.debug(f"YooKassa {method} {url}")
             async with aiohttp.ClientSession(auth=self.auth) as session:
                 async with session.request(
-                    method, url, json=data, headers=headers
+                    method,
+                    url,
+                    json=data,
+                    headers=headers,
+                    timeout=DEFAULT_TIMEOUT,
                 ) as response:
                     response_text = await response.text()
                     log.debug(f"YooKassa response: {response_text}")
 
                     if response.status >= 400:
-                        log.error(
-                            f"YooKassa error {response.status}: {response_text}"
-                        )
+                        log.error(f"YooKassa error {response.status}: {response_text}")
                         response.raise_for_status()
 
                     return json.loads(response_text) if response_text else {}
@@ -141,9 +145,7 @@ class YooKassaClient:
             idempotence_key=idempotence_key,
         )
 
-        log.info(
-            f"Created payment {response.get('id')} for {amount} {currency}"
-        )
+        log.info(f"Created payment {response.get('id')} for {amount} {currency}")
         return response
 
     async def get_payment(self, payment_id: str) -> Dict[str, Any]:
@@ -324,6 +326,8 @@ class YooKassaWebhookHandler:
             Normalized webhook data
         """
         event_type = webhook_data.get("event")
+        if not isinstance(event_type, str) or not event_type:
+            raise ValueError("Missing webhook event type")
         payment_object = webhook_data.get("object", {})
 
         result = {
@@ -340,7 +344,7 @@ class YooKassaWebhookHandler:
         }
 
         # For refund events
-        if "refund" in event_type:
+        if event_type.startswith("refund."):
             result["payment_id"] = payment_object.get("payment_id")
             result["refund_id"] = payment_object.get("id")
 

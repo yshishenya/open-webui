@@ -282,7 +282,9 @@ async def generate_chat_completion(
         if model.get("owned_by") == "ollama":
             # Billing: Check quota before Ollama request
             try:
-                estimated_tokens = estimate_tokens_from_messages(form_data.get("messages", []))
+                estimated_tokens = estimate_tokens_from_messages(
+                    form_data.get("messages", []), model_id=model_id
+                )
                 await check_and_enforce_quota(
                     user_id=user.id,
                     model_id=model_id,
@@ -291,6 +293,7 @@ async def generate_chat_completion(
             except Exception as e:
                 # Re-raise HTTPException for quota errors, log others
                 from fastapi import HTTPException
+
                 if isinstance(e, HTTPException):
                     raise
                 log.error(f"Billing quota check error for Ollama: {e}")

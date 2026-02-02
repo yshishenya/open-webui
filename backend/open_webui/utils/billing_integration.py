@@ -8,7 +8,8 @@ import json
 import time
 import uuid
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_FLOOR
+import math
+from decimal import Decimal
 from typing import Optional, Dict, AsyncGenerator
 
 from fastapi import HTTPException, status
@@ -16,6 +17,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from open_webui.env import (
     BILLING_DEFAULT_CURRENCY,
+    BILLING_ESTIMATE_MAX_OUTPUT_TOKENS,
     BILLING_HOLD_TTL_SECONDS,
     ENABLE_BILLING_WALLET,
     SRC_LOG_LEVELS,
@@ -123,7 +125,9 @@ async def check_and_enforce_quota(
             billing_service.has_active_subscription, user_id
         )
         if not has_subscription:
-            log.debug(f"User {user_id} has no active subscription, skipping quota check")
+            log.debug(
+                f"User {user_id} has no active subscription, skipping quota check"
+            )
             return
 
         # Check request quota
@@ -281,30 +285,11 @@ def _calculate_cost_breakdown(
 ) -> tuple[int, int, int]:
     unit_in = Decimal(prompt_tokens) / Decimal(1000)
     unit_out = Decimal(completion_tokens) / Decimal(1000)
-    cost_in = pricing_service.calculate_cost_kopeks(
-        unit_in, rate_in, discount_percent
-    )
+    cost_in = pricing_service.calculate_cost_kopeks(unit_in, rate_in, discount_percent)
     cost_out = pricing_service.calculate_cost_kopeks(
         unit_out, rate_out, discount_percent
     )
     return cost_in, cost_out, cost_in + cost_out
-
-
-def _scale_cost_breakdown(
-    input_cost: int,
-    output_cost: int,
-    target_total: int,
-) -> tuple[int, int]:
-    current_total = input_cost + output_cost
-    if current_total <= 0 or target_total >= current_total:
-        return input_cost, output_cost
-
-    input_scaled = int(
-        (Decimal(target_total) * Decimal(input_cost) / Decimal(current_total))
-        .to_integral_value(rounding=ROUND_FLOOR)
-    )
-    output_scaled = target_total - input_scaled
-    return input_scaled, output_scaled
 
 
 def _resolve_lead_magnet_units(
@@ -402,9 +387,12 @@ async def preflight_estimate_hold(
         max_tokens_value = payload.get("max_completion_tokens")
 
     max_tokens = _parse_non_negative_int(max_tokens_value)
-    estimated_prompt_tokens = estimate_tokens_from_messages(messages)
-    min_output_tokens = 1 if max_tokens > 0 else 0
-    max_output_tokens = max_tokens
+    estimated_prompt_tokens = estimate_tokens_from_messages(messages, model_id=model_id)
+    resolved_max_output_tokens = (
+        max_tokens if max_tokens > 0 else BILLING_ESTIMATE_MAX_OUTPUT_TOKENS
+    )
+    min_output_tokens = 1 if resolved_max_output_tokens > 0 else 0
+    max_output_tokens = resolved_max_output_tokens
 
     wallet = await run_in_threadpool(
         wallet_service.get_or_create_wallet, user_id, BILLING_DEFAULT_CURRENCY
@@ -423,11 +411,7 @@ async def preflight_estimate_hold(
     effective_max_reply = max_reply_cost_kopeks
     if effective_max_reply is None and wallet.max_reply_cost_kopeks is not None:
         effective_max_reply = wallet.max_reply_cost_kopeks
-    if (
-        effective_max_reply is None
-        and plan
-        and plan.max_reply_cost_kopeks is not None
-    ):
+    if effective_max_reply is None and plan and plan.max_reply_cost_kopeks is not None:
         effective_max_reply = plan.max_reply_cost_kopeks
 
     daily_cap = (
@@ -631,11 +615,7 @@ async def preflight_single_rate_hold(
     effective_max_reply = max_reply_cost_kopeks
     if effective_max_reply is None and wallet.max_reply_cost_kopeks is not None:
         effective_max_reply = wallet.max_reply_cost_kopeks
-    if (
-        effective_max_reply is None
-        and plan
-        and plan.max_reply_cost_kopeks is not None
-    ):
+    if effective_max_reply is None and plan and plan.max_reply_cost_kopeks is not None:
         effective_max_reply = plan.max_reply_cost_kopeks
 
     daily_cap = (
@@ -653,9 +633,7 @@ async def preflight_single_rate_hold(
             detail={"error": "modality_disabled"},
         )
 
-    cost = pricing_service.calculate_cost_kopeks(
-        units, rate_card, discount_percent
-    )
+    cost = pricing_service.calculate_cost_kopeks(units, rate_card, discount_percent)
 
     lead_magnet_decision = None
     if lead_magnet_requirements:
@@ -860,24 +838,13 @@ async def settle_billing_usage(
     charge_entry = None
     if billing_context.billing_source == BillingSource.PAYG.value:
         if billing_context.hold_amount_kopeks > 0:
-            charge_amount = min(cost_charged, billing_context.hold_amount_kopeks)
-            if charge_amount < cost_charged:
-                is_estimated = True
-                estimate_reason = "charge_exceeds_hold"
-                cost_charged = charge_amount
-                cost_charged_input, cost_charged_output = _scale_cost_breakdown(
-                    cost_charged_input,
-                    cost_charged_output,
-                    charge_amount,
-                )
-
             try:
                 charge_entry = await run_in_threadpool(
                     wallet_service.settle_hold,
                     billing_context.wallet_id,
                     billing_context.request_id,
                     CHAT_HOLD_REFERENCE,
-                    charge_amount,
+                    cost_charged,
                     cost_charged_input,
                     cost_charged_output,
                 )
@@ -1000,18 +967,13 @@ async def settle_single_rate_usage(
     charge_entry = None
     if billing_context.billing_source == BillingSource.PAYG.value:
         if billing_context.hold_amount_kopeks > 0:
-            charge_amount = min(cost_charged, billing_context.hold_amount_kopeks)
-            if charge_amount < cost_charged:
-                is_estimated = True
-                estimate_reason = "charge_exceeds_hold"
-                cost_charged = charge_amount
             try:
                 charge_entry = await run_in_threadpool(
                     wallet_service.settle_hold,
                     billing_context.wallet_id,
                     billing_context.request_id,
                     reference_type,
-                    charge_amount,
+                    cost_charged,
                 )
             except WalletError as e:
                 log.exception(
@@ -1091,7 +1053,7 @@ async def settle_single_rate_usage(
 
 
 def extract_usage_from_response(
-    response: Dict[str, object]
+    response: Dict[str, object],
 ) -> Optional[Dict[str, int]]:
     """
     Extract usage data from API response
@@ -1206,7 +1168,9 @@ async def track_streaming_response(
                             chunk_usage = extract_usage_from_response(data)
                             if chunk_usage:
                                 usage_data = chunk_usage
-                                log.debug(f"Extracted usage from streaming chunk: {usage_data}")
+                                log.debug(
+                                    f"Extracted usage from streaming chunk: {usage_data}"
+                                )
                     except json.JSONDecodeError:
                         # Not JSON, skip
                         pass
@@ -1245,34 +1209,77 @@ async def track_streaming_response(
 # ==================== Helper Functions ====================
 
 
-def estimate_tokens_from_messages(messages: list) -> int:
+def estimate_tokens_from_messages(
+    messages: list[object],
+    model_id: Optional[str] = None,
+) -> int:
     """
-    Rough estimation of token count from messages.
+    Best-effort, conservative token estimation for preflight/quota checks.
 
-    This is a very rough approximation: ~4 chars = 1 token.
+    We prefer to slightly over-estimate to avoid under-holding funds and quota bypass.
 
     Args:
-        messages: List of message dicts
+        messages: List of message dicts (OpenAI-like chat format).
+        model_id: Optional model id hint for tokenizer selection.
 
     Returns:
         Estimated token count
     """
-    total_chars = 0
-    for message in messages:
-        content = message.get("content", "")
-        if isinstance(content, str):
-            total_chars += len(content)
-        elif isinstance(content, list):
-            # Handle multimodal content
-            for item in content:
-                if isinstance(item, dict) and item.get("type") == "text":
-                    total_chars += len(item.get("text", ""))
+    extracted_texts: list[str] = []
+    message_count = 0
 
+    for message in messages:
+        if not isinstance(message, dict):
+            continue
+        message_count += 1
+
+        content = message.get("content")
+        if isinstance(content, str):
+            if content:
+                extracted_texts.append(content)
+            continue
+
+        if isinstance(content, list):
+            for item in content:
+                if not isinstance(item, dict):
+                    continue
+                item_type = item.get("type")
+                if item_type == "text" and isinstance(item.get("text"), str):
+                    text = item.get("text") or ""
+                    if text:
+                        extracted_texts.append(text)
+                elif isinstance(item.get("text"), str):
+                    text = item.get("text") or ""
+                    if text:
+                        extracted_texts.append(text)
+
+    if not extracted_texts:
+        return 0
+
+    total_chars = sum(len(text) for text in extracted_texts)
     if total_chars <= 0:
         return 0
 
-    # Rough approximation: 4 characters ≈ 1 token
-    return max(total_chars // 4, 1)
+    try:
+        import tiktoken  # type: ignore
+
+        try:
+            encoding = tiktoken.encoding_for_model(model_id) if model_id else None
+        except Exception:
+            encoding = None
+        if encoding is None:
+            encoding = tiktoken.get_encoding("cl100k_base")
+
+        token_count = 0
+        for text in extracted_texts:
+            token_count += len(encoding.encode(text))
+
+        # Conservative overhead for chat-style payloads (roles, separators, etc.).
+        overhead = 4 * message_count + 2
+        return max(token_count + overhead, 1)
+    except Exception:
+        # Fallback: conservative chars->tokens estimate (ceil).
+        return max(int(math.ceil(total_chars / 3)), 1)
 
 
 def is_billing_enabled(user_id: str) -> bool:

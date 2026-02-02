@@ -74,10 +74,7 @@ class WalletService:
         if dialect and dialect.name == "sqlite":
             db.execute(sa.text("BEGIN IMMEDIATE"))
         wallet = (
-            db.query(Wallet)
-            .filter(Wallet.id == wallet_id)
-            .with_for_update()
-            .first()
+            db.query(Wallet).filter(Wallet.id == wallet_id).with_for_update().first()
         )
         if not wallet:
             raise WalletError(f"Wallet {wallet_id} not found")
@@ -86,9 +83,15 @@ class WalletService:
     def _compute_hold_breakdown(
         self, wallet: Wallet, amount_kopeks: int
     ) -> Tuple[int, int]:
-        hold_included = min(wallet.balance_included_kopeks, amount_kopeks)
+        if int(wallet.balance_topup_kopeks) < 0:
+            raise InsufficientFundsError("Wallet has outstanding balance")
+
+        available_included = max(int(wallet.balance_included_kopeks), 0)
+        available_topup = max(int(wallet.balance_topup_kopeks), 0)
+
+        hold_included = min(available_included, amount_kopeks)
         remaining = amount_kopeks - hold_included
-        hold_topup = min(wallet.balance_topup_kopeks, remaining)
+        hold_topup = min(available_topup, remaining)
         if hold_included + hold_topup < amount_kopeks:
             raise InsufficientFundsError("Insufficient funds for hold")
         return hold_included, hold_topup
@@ -249,6 +252,7 @@ class WalletService:
         now = int(time.time())
         with get_db() as db:
             wallet = self._lock_wallet(db, wallet_id)
+            self._reset_daily_spent_if_needed(wallet, now)
 
             hold_entry = (
                 db.query(LedgerEntry)
@@ -275,10 +279,7 @@ class WalletService:
                 return existing_charge
 
             held_amount = abs(hold_entry.amount_kopeks)
-            if actual_amount_kopeks > held_amount:
-                raise WalletError("Actual amount exceeds held amount")
-
-            release_amount = held_amount - actual_amount_kopeks
+            release_amount = max(held_amount - actual_amount_kopeks, 0)
             if release_amount > 0:
                 release_topup, release_included = self._release_breakdown(
                     hold_entry.metadata_json or {}, release_amount
@@ -306,6 +307,54 @@ class WalletService:
                 )
                 db.add(release_entry)
 
+            overage_amount = max(actual_amount_kopeks - held_amount, 0)
+            if overage_amount > 0:
+                existing_overage = (
+                    db.query(LedgerEntry)
+                    .filter(
+                        LedgerEntry.reference_type == reference_type,
+                        LedgerEntry.reference_id == reference_id,
+                        LedgerEntry.type == LedgerEntryType.ADJUSTMENT.value,
+                    )
+                    .first()
+                )
+                if not existing_overage:
+                    available_included = max(int(wallet.balance_included_kopeks), 0)
+                    available_topup = max(int(wallet.balance_topup_kopeks), 0)
+
+                    debit_included = min(available_included, overage_amount)
+                    remaining = overage_amount - debit_included
+                    debit_topup = min(available_topup, remaining)
+                    debt_topup = remaining - debit_topup
+
+                    wallet.balance_included_kopeks -= debit_included
+                    wallet.balance_topup_kopeks -= debit_topup + debt_topup
+                    wallet.updated_at = now
+
+                    overage_entry = LedgerEntry(
+                        id=str(uuid.uuid4()),
+                        user_id=wallet.user_id,
+                        wallet_id=wallet.id,
+                        currency=wallet.currency,
+                        type=LedgerEntryType.ADJUSTMENT.value,
+                        amount_kopeks=-overage_amount,
+                        balance_included_after=wallet.balance_included_kopeks,
+                        balance_topup_after=wallet.balance_topup_kopeks,
+                        reference_id=reference_id,
+                        reference_type=reference_type,
+                        metadata_json={
+                            "reason": "hold_overage",
+                            "held_kopeks": held_amount,
+                            "charged_kopeks": actual_amount_kopeks,
+                            "overage_kopeks": overage_amount,
+                            "debited_included_kopeks": debit_included,
+                            "debited_topup_kopeks": debit_topup,
+                            "debt_topup_kopeks": debt_topup,
+                        },
+                        created_at=now,
+                    )
+                    db.add(overage_entry)
+
             wallet.daily_spent_kopeks += actual_amount_kopeks
             wallet.updated_at = now
 
@@ -324,6 +373,8 @@ class WalletService:
                 reference_type=reference_type,
                 metadata_json={
                     "charged_kopeks": actual_amount_kopeks,
+                    "held_kopeks": held_amount,
+                    "overage_kopeks": overage_amount,
                 },
                 created_at=now,
             )

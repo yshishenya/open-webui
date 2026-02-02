@@ -30,8 +30,11 @@ class PricingService:
         if units <= 0:
             return 0
 
-        discount_factor = Decimal(100 - max(discount_percent, 0)) / Decimal(100)
-        raw = Decimal(rate.raw_cost_per_unit_kopeks) * units
+        safe_discount = min(max(int(discount_percent), 0), 100)
+        discount_factor = Decimal(100 - safe_discount) / Decimal(100)
+
+        raw_cost_per_unit = max(int(rate.raw_cost_per_unit_kopeks), 0)
+        raw = Decimal(raw_cost_per_unit) * units
         amount = raw * discount_factor
         return int(amount.to_integral_value(rounding=ROUND_CEILING))
 

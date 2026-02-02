@@ -5,12 +5,22 @@ Handles subscription plans, payments, usage, and webhooks
 
 import logging
 import time
+import hmac
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional, Dict, List
 from pydantic import BaseModel
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Response
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+    Request,
+    Header,
+    Response,
+    Query,
+)
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 
@@ -29,7 +39,12 @@ from open_webui.models.billing import (
     RateCards,
 )
 from open_webui.utils.auth import get_verified_user, get_admin_user
-from open_webui.utils.billing import billing_service, QuotaExceededError
+from open_webui.utils.billing import (
+    billing_service,
+    QuotaExceededError,
+    WebhookRetryableError,
+    WebhookVerificationError,
+)
 from open_webui.utils.lead_magnet import evaluate_lead_magnet
 from open_webui.utils.pricing import PricingService
 from open_webui.utils.wallet import wallet_service, WalletError
@@ -46,6 +61,7 @@ from open_webui.env import (
     PUBLIC_PRICING_RECOMMENDED_IMAGE_MODEL,
     PUBLIC_PRICING_RECOMMENDED_AUDIO_MODEL,
     PUBLIC_PRICING_RATE_CARD_MODEL_LIMIT,
+    YOOKASSA_WEBHOOK_TOKEN,
 )
 from open_webui.models.users import Users
 from open_webui.models.models import Models
@@ -248,6 +264,7 @@ class LeadMagnetInfoResponse(BaseModel):
 
 class PublicPlanResponse(BaseModel):
     """Public plan information for unauthenticated users"""
+
     id: str
     name: str
     name_ru: Optional[str] = None
@@ -274,20 +291,20 @@ async def get_public_plans():
     try:
         plans = billing_service.get_active_plans()
         # Sort by display_order
-        plans = sorted(plans, key=lambda p: getattr(p, 'display_order', 0) or 0)
+        plans = sorted(plans, key=lambda p: getattr(p, "display_order", 0) or 0)
         return [
             PublicPlanResponse(
                 id=plan.id,
                 name=plan.name,
-                name_ru=getattr(plan, 'name_ru', None),
+                name_ru=getattr(plan, "name_ru", None),
                 description=plan.description,
-                description_ru=getattr(plan, 'description_ru', None),
+                description_ru=getattr(plan, "description_ru", None),
                 price=plan.price,
                 currency=plan.currency,
                 interval=plan.interval,
                 features=plan.features or [],
                 quotas=plan.quotas or {},
-                display_order=getattr(plan, 'display_order', 0) or 0,
+                display_order=getattr(plan, "display_order", 0) or 0,
             )
             for plan in plans
         ]
@@ -314,9 +331,7 @@ async def get_balance(user=Depends(get_verified_user)):
         )
 
     try:
-        wallet = wallet_service.get_or_create_wallet(
-            user.id, BILLING_DEFAULT_CURRENCY
-        )
+        wallet = wallet_service.get_or_create_wallet(user.id, BILLING_DEFAULT_CURRENCY)
         return BalanceResponse(
             balance_topup_kopeks=wallet.balance_topup_kopeks,
             balance_included_kopeks=wallet.balance_included_kopeks,
@@ -745,9 +760,7 @@ async def get_my_usage(
                 detail=f"Invalid metric: {metric}",
             )
 
-        current_usage = billing_service.get_current_period_usage(
-            user.id, usage_metric
-        )
+        current_usage = billing_service.get_current_period_usage(user.id, usage_metric)
 
         subscription = billing_service.get_user_subscription(user.id)
         quota_limit = None
@@ -793,13 +806,9 @@ async def check_quota(
                 detail=f"Invalid metric: {request.metric}",
             )
 
-        allowed = billing_service.check_quota(
-            user.id, usage_metric, request.amount
-        )
+        allowed = billing_service.check_quota(user.id, usage_metric, request.amount)
 
-        current_usage = billing_service.get_current_period_usage(
-            user.id, usage_metric
-        )
+        current_usage = billing_service.get_current_period_usage(user.id, usage_metric)
 
         subscription = billing_service.get_user_subscription(user.id)
         quota_limit = None
@@ -935,8 +944,12 @@ async def get_public_pricing_config(request: Request) -> PublicPricingConfigResp
             text_in=quotas["tokens_input"],
             text_out=quotas["tokens_output"],
             images=quotas["images"],
-            tts_minutes=int(quotas["tts_seconds"] / 60) if quotas["tts_seconds"] > 0 else 0,
-            stt_minutes=int(quotas["stt_seconds"] / 60) if quotas["stt_seconds"] > 0 else 0,
+            tts_minutes=(
+                int(quotas["tts_seconds"] / 60) if quotas["tts_seconds"] > 0 else 0
+            ),
+            stt_minutes=(
+                int(quotas["stt_seconds"] / 60) if quotas["stt_seconds"] > 0 else 0
+            ),
         ),
         popular_model_ids=PUBLIC_PRICING_POPULAR_MODELS,
         recommended_model_ids=PublicPricingRecommendedModels(
@@ -1073,50 +1086,83 @@ async def get_public_rate_cards(
 @router.post("/webhook/yookassa")
 async def yookassa_webhook(
     request: Request,
-    x_yookassa_signature: Optional[str] = Header(None),
+    x_yookassa_signature: Optional[str] = Header(None, alias="X-YooKassa-Signature"),
+    token: Optional[str] = Query(None),
 ):
     """
     Webhook endpoint for YooKassa payment notifications
     This endpoint is called by YooKassa when payment status changes
     """
+    # Optional app-level shared secret protection (independent of YooKassa auth):
+    # configure webhook URL as `...?token=...` and set YOOKASSA_WEBHOOK_TOKEN.
+    if YOOKASSA_WEBHOOK_TOKEN and (
+        not token or not hmac.compare_digest(token, YOOKASSA_WEBHOOK_TOKEN)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid webhook token",
+        )
+
+    # Get raw body for signature verification / parsing.
+    body = await request.body()
     try:
-        # Get raw body for signature verification
-        body = await request.body()
         body_str = body.decode("utf-8")
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid request body encoding",
+        )
 
-        # Verify webhook signature
-        yookassa = get_yookassa_client()
-        if yookassa and x_yookassa_signature:
-            is_valid = yookassa.verify_webhook(body_str, x_yookassa_signature)
-            if not is_valid:
-                log.warning("Invalid webhook signature")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid signature",
-                )
+    # Optional signature check (best-effort).
+    yookassa = get_yookassa_client()
+    if yookassa and x_yookassa_signature:
+        is_valid = yookassa.verify_webhook(body_str, x_yookassa_signature)
+        if not is_valid:
+            log.warning("Invalid webhook signature")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid signature",
+            )
 
-        # Parse webhook data
+    try:
         import json
 
         webhook_data = json.loads(body_str)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid JSON payload",
+        )
+
+    try:
         parsed_data = YooKassaWebhookHandler.parse_webhook(webhook_data)
-
-        # Process webhook
-        result = await billing_service.process_payment_webhook(parsed_data)
-
-        log.info(f"Processed webhook for payment {parsed_data.get('payment_id')}")
-
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"status": "ok"},
-        )
-
-    except HTTPException:
-        raise
     except Exception as e:
-        log.exception(f"Error processing webhook: {e}")
-        # Return 200 to YooKassa to avoid retries for internal errors
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"status": "error", "message": str(e)},
+        log.warning("Failed to parse YooKassa webhook: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid webhook payload",
         )
+
+    try:
+        await billing_service.process_payment_webhook(parsed_data)
+    except WebhookVerificationError as e:
+        log.warning("Webhook verification failed: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Webhook verification failed",
+        )
+    except WebhookRetryableError as e:
+        log.warning("Webhook processing retryable error: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Temporary error processing webhook",
+        )
+    except Exception as e:
+        log.exception("Webhook processing error: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to process webhook",
+        )
+
+    log.info("Processed webhook for payment %s", parsed_data.get("payment_id"))
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ok"})

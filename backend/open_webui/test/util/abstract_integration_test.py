@@ -43,22 +43,23 @@ class AbstractPostgresTest:
         Base.metadata.drop_all(bind=engine)
         Base.metadata.create_all(bind=engine)
 
-    def create_url(
-        self, path: str, query_params: Optional[QueryParams] = None
-    ) -> str:
+    def create_url(self, path: str, query_params: Optional[QueryParams] = None) -> str:
         base = self.BASE_PATH.rstrip("/")
-        tail = path.lstrip("/")
-
-        if base and tail:
-            url = f"{base}/{tail}"
-        elif base:
-            url = base
-        elif tail:
-            url = f"/{tail}"
+        if path in {"", "/"}:
+            url = f"{base}/" if base else "/"
         else:
-            url = ""
+            tail = path.lstrip("/")
+            if base and tail:
+                url = f"{base}/{tail}"
+            elif base:
+                url = base
+            elif tail:
+                url = f"/{tail}"
+            else:
+                url = "/"
 
         if query_params:
-            url = f"{url}?{urlencode(query_params, doseq=True)}"
+            separator = "&" if "?" in url else "?"
+            url = f"{url}{separator}{urlencode(query_params, doseq=True)}"
 
         return url

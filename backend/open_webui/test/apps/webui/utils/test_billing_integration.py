@@ -148,9 +148,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert updated_wallet.daily_spent_kopeks == expected_charge
 
         usage_event = (
-            Session.query(UsageEvent)
-            .filter(UsageEvent.request_id == "req_1")
-            .first()
+            Session.query(UsageEvent).filter(UsageEvent.request_id == "req_1").first()
         )
         assert usage_event is not None
         assert usage_event.cost_charged_kopeks == expected_charge
@@ -265,7 +263,7 @@ class TestBillingIntegration(AbstractPostgresTest):
 
         assert exc.value.status_code == 422
         assert exc.value.detail == {"error": "modality_disabled"}
- 
+
     @pytest.mark.asyncio
     async def test_text_preflight_insufficient_funds(self, monkeypatch):
         from fastapi import HTTPException
@@ -321,7 +319,14 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.wallet import wallet_service
         import open_webui.utils.billing_integration as billing_integration
 
-        called = {"count": 0, "user_id": None, "wallet_id": None, "available": None, "required": None, "reason": None}
+        called = {
+            "count": 0,
+            "user_id": None,
+            "wallet_id": None,
+            "available": None,
+            "required": None,
+            "reason": None,
+        }
 
         async def fake_auto_topup(
             user_id: str,
@@ -657,11 +662,12 @@ class TestBillingIntegration(AbstractPostgresTest):
     @pytest.mark.asyncio
     async def test_text_settle_charge_exceeds_hold_marks_estimated(self, monkeypatch):
         from open_webui.internal.db import ScopedSession as Session
-        from open_webui.models.billing import UsageEvent, Wallets
+        from open_webui.models.billing import LedgerEntry, UsageEvent, Wallets
         from open_webui.utils.billing_integration import (
             preflight_estimate_hold,
             settle_billing_usage,
         )
+        from open_webui.utils.pricing import PricingService
         from open_webui.utils.wallet import wallet_service
 
         monkeypatch.setattr(
@@ -699,30 +705,58 @@ class TestBillingIntegration(AbstractPostgresTest):
             message_id="msg_1",
         )
 
+        pricing_service = PricingService()
+        expected_input_charge = pricing_service.calculate_cost_kopeks(
+            Decimal(10000) / Decimal(1000),
+            billing_context.rate_in,
+            0,
+        )
+        expected_output_charge = pricing_service.calculate_cost_kopeks(
+            Decimal(10000) / Decimal(1000),
+            billing_context.rate_out,
+            0,
+        )
+        expected_charge = expected_input_charge + expected_output_charge
+        expected_overage = expected_charge - billing_context.hold_amount_kopeks
+
         usage_event = (
             Session.query(UsageEvent)
             .filter(UsageEvent.request_id == "req_exceed_hold")
             .first()
         )
         assert usage_event is not None
-        assert usage_event.is_estimated is True
-        assert usage_event.estimate_reason == "charge_exceeds_hold"
-        assert usage_event.cost_charged_kopeks == billing_context.hold_amount_kopeks
-        assert (
-            (usage_event.cost_charged_input_kopeks or 0)
-            + (usage_event.cost_charged_output_kopeks or 0)
-        ) == billing_context.hold_amount_kopeks
+        assert usage_event.is_estimated is False
+        assert usage_event.cost_charged_kopeks == expected_charge
+        assert usage_event.cost_charged_input_kopeks == expected_input_charge
+        assert usage_event.cost_charged_output_kopeks == expected_output_charge
+
+        updated_wallet = Wallets.get_wallet_by_id(wallet.id)
+        assert updated_wallet is not None
+        assert updated_wallet.balance_topup_kopeks == 100000 - expected_charge
+
+        overage_entry = (
+            Session.query(LedgerEntry)
+            .filter(
+                LedgerEntry.reference_id == "req_exceed_hold",
+                LedgerEntry.reference_type == "chat_completion",
+                LedgerEntry.type == "adjustment",
+            )
+            .first()
+        )
+        assert overage_entry is not None
+        assert overage_entry.amount_kopeks == -expected_overage
 
     @pytest.mark.asyncio
     async def test_single_rate_settle_charge_exceeds_hold_marks_estimated(
         self, monkeypatch
     ):
         from open_webui.internal.db import ScopedSession as Session
-        from open_webui.models.billing import UsageEvent, Wallets
+        from open_webui.models.billing import LedgerEntry, UsageEvent, Wallets
         from open_webui.utils.billing_integration import (
             preflight_single_rate_hold,
             settle_single_rate_usage,
         )
+        from open_webui.utils.pricing import PricingService
         from open_webui.utils.wallet import wallet_service
 
         monkeypatch.setattr(
@@ -750,15 +784,36 @@ class TestBillingIntegration(AbstractPostgresTest):
             units=Decimal(2),
         )
 
+        pricing_service = PricingService()
+        expected_charge = pricing_service.calculate_cost_kopeks(
+            Decimal(2), billing_context.rate_card, 0
+        )
+        expected_overage = expected_charge - billing_context.hold_amount_kopeks
+
         usage_event = (
             Session.query(UsageEvent)
             .filter(UsageEvent.request_id == "img_exceed_hold")
             .first()
         )
         assert usage_event is not None
-        assert usage_event.is_estimated is True
-        assert usage_event.estimate_reason == "charge_exceeds_hold"
-        assert usage_event.cost_charged_kopeks == billing_context.hold_amount_kopeks
+        assert usage_event.is_estimated is False
+        assert usage_event.cost_charged_kopeks == expected_charge
+
+        updated_wallet = Wallets.get_wallet_by_id(wallet.id)
+        assert updated_wallet is not None
+        assert updated_wallet.balance_topup_kopeks == 100000 - expected_charge
+
+        overage_entry = (
+            Session.query(LedgerEntry)
+            .filter(
+                LedgerEntry.reference_id == "img_exceed_hold",
+                LedgerEntry.reference_type == "image_generation",
+                LedgerEntry.type == "adjustment",
+            )
+            .first()
+        )
+        assert overage_entry is not None
+        assert overage_entry.amount_kopeks == -expected_overage
 
     @pytest.mark.asyncio
     async def test_single_rate_hold_rejects_invalid_units(self, monkeypatch):
@@ -809,7 +864,7 @@ class TestBillingIntegration(AbstractPostgresTest):
 
         assert exc.value.status_code == 422
         assert exc.value.detail == {"error": "modality_disabled"}
- 
+
     @pytest.mark.asyncio
     async def test_single_rate_hold_insufficient_funds(self, monkeypatch):
         from fastapi import HTTPException
@@ -995,7 +1050,9 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert exc.value.status_code == 402
 
     @pytest.mark.asyncio
-    async def test_single_rate_hold_populates_subscription_id_without_plan(self, monkeypatch):
+    async def test_single_rate_hold_populates_subscription_id_without_plan(
+        self, monkeypatch
+    ):
 
         from open_webui.models.billing import SubscriptionModel
         from open_webui.utils.billing_integration import preflight_single_rate_hold
