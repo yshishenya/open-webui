@@ -13,6 +13,10 @@
 - [ ] Log task status update per **[../guides/task_updates.md](../guides/task_updates.md)** to "In Progress"
 - [ ] Add `[BUG]` label to the task for visual distinction
 
+### 1.2.1 Work Item Spec (recommended)
+
+- [ ] For non-trivial bugs: create a **work item spec** in `../specs/work_items/` (see `../specs/README.md`) and reference it from your branch update entry
+
 ### 1.3 Bug Analysis
 
 - [ ] Study the bug description and reproduce the problem

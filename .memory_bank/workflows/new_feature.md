@@ -15,7 +15,7 @@
 ### 1.3 Requirements
 
 - [ ] Clarify goal, scope, and acceptance criteria
-- [ ] For larger features: create/update a spec in **[../specs/](../specs/)**
+- [ ] For non-trivial work: create a **work item spec** in `../specs/work_items/` (see `../specs/README.md`) and reference it from your branch update entry
 
 ## 2. Design
 

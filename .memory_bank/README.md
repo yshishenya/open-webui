@@ -110,6 +110,7 @@ Step-by-step instructions for standard tasks. Choose the appropriate workflow fo
   - Created when planning major features
   - Include requirements, design, API contracts
   - Reference from workflows
+  - **Work item specs (recommended)**: use `.memory_bank/specs/work_items/` and the rules in `.memory_bank/specs/README.md`
 
 ---
 

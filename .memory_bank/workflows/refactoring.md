@@ -6,6 +6,7 @@
 - [ ] Identify what must NOT change (public behavior, API contracts, data model)
 - [ ] Create a branch from the base branch (usually `main`): `refactor/short-description`
 - [ ] Log task update per **[../guides/task_updates.md](../guides/task_updates.md)**
+- [ ] For non-trivial refactors: create a **work item spec** in `../specs/work_items/` (see `../specs/README.md`) and reference it from your branch update entry
 
 ## 2. Safety Net
 
