@@ -40,9 +40,9 @@ They are more likely to be touched by multiple branches and cause conflicts.
 
 Guideline:
 
-- Prefer to **add a new work item spec** that references a plan, instead of editing the plan from multiple feature branches.
+- Prefer to **add a new work item spec** that references a plan, instead of editing the plan from multiple feature branches/worktrees.
+- If a plan must change, do it on the integration branch (or in a dedicated docs branch that is coordinated), and keep the edit narrowly scoped.
 
 ## Template
 
 Use `.memory_bank/specs/work_items/_template.md` as a starting point.
-

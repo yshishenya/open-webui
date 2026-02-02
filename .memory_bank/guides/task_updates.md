@@ -25,7 +25,7 @@ Use the template:
 Instead, append updates to a branch log:
 
 ```
-.memory_bank/branch_updates/<YYYY-MM-DD>-<branch>.md
+.memory_bank/branch_updates/<YYYY-MM-DD>-<branch-slug>.md
 ```
 
 Example:
@@ -33,6 +33,19 @@ Example:
 ```
 .memory_bank/branch_updates/2026-02-02-feature-billing-wallet.md
 ```
+
+**Branch slug rule (worktree-safe)**
+
+Branch names commonly contain `/` (e.g. `feature/billing-wallet`). Do **not** put `/` in filenames.
+Use a filesystem-safe slug:
+
+- Replace `/` with `-`
+- Optionally replace spaces with `-` (if any)
+
+Examples:
+
+- `feature/billing-wallet` → `feature-billing-wallet`
+- `bugfix/fix-oauth-config` → `bugfix-fix-oauth-config`
 
 Use the same task format as `current_tasks.md` (checkboxes + details).
 

@@ -90,12 +90,13 @@ async def fetch_data(url: str) -> dict[str, object]:
 
 When performing tasks you MUST:
 
-- **Branch workflow (no conflicts):**
-  - On feature/bugfix branches **do not edit** `.memory_bank/current_tasks.md`.
-  - Instead, append updates to `.memory_bank/branch_updates/<YYYY-MM-DD>-<branch>.md`.
-  - Only on the integration branch (e.g. `airis_b2c`), consolidate branch updates into
-    `.memory_bank/current_tasks.md`, then delete the processed `branch_updates` file(s).
-  - Follow `.memory_bank/guides/task_updates.md` for the full workflow.
+- **Worktree-safe docs workflow (no conflicts):**
+  - **On any non-integration branch** (`feature/*`, `bugfix/*`, `refactor/*`, `docs/*`) **do not edit** `.memory_bank/current_tasks.md`.
+  - Create a **work item spec** (one file per task) under `.memory_bank/specs/work_items/` (see `.memory_bank/specs/README.md`).
+  - Append status updates to `.memory_bank/branch_updates/<YYYY-MM-DD>-<branch-slug>.md` and include `Spec: <path>` linking the work item spec.
+  - **Only on the integration branch** (e.g. `airis_b2c`), consolidate `branch_updates` into `.memory_bank/current_tasks.md` and delete processed branch logs.
+  - **Do not edit shared “plan/strategy” specs from multiple branches**; create a new work item spec that references the plan and captures deltas.
+  - Follow `.memory_bank/guides/task_updates.md` for the full workflow (including branch name sanitizing for worktrees).
 - **Workflow compliance gate (mandatory):**
   - Identify the task type and load the matching workflow doc before making changes.
   - If any mandatory step cannot be completed, stop and ask the user before proceeding.

@@ -173,8 +173,9 @@ Before starting work on a task, always check `current_tasks.md` and log task sta
 - Add new tasks as they arise
 
 **Branch workflow (avoid conflicts):**
-- On feature/bugfix branches **do not edit** `.memory_bank/current_tasks.md`.
-- Append updates to `.memory_bank/branch_updates/<YYYY-MM-DD>-<branch>.md` instead.
+- On any non-integration branch (`feature/*`, `bugfix/*`, `refactor/*`, `docs/*`) **do not edit** `.memory_bank/current_tasks.md`.
+- Create a **work item spec** in `.memory_bank/specs/work_items/` and link it from your branch update (`Spec: ...`).
+- Append updates to `.memory_bank/branch_updates/<YYYY-MM-DD>-<branch-slug>.md` instead (use a filesystem-safe branch slug; see task_updates).
 - Only on the integration branch (e.g. `airis_b2c`), consolidate these updates into
   `.memory_bank/current_tasks.md`, then delete the processed `branch_updates` file(s).
 
