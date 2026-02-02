@@ -12,6 +12,8 @@ This project uses the same workflow rules across different coding assistants. Th
 
 - **Rules**: `AGENTS.md` (project root) + optional global rules in `~/.config/opencode/AGENTS.md`
 - **Auto-loaded docs**: `opencode.json` (project root) `instructions` list
+- **Custom commands**: `.opencode/commands/` (project) and `~/.config/opencode/commands/` (global)
+- **Custom agents**: `.opencode/agents/` (project) and `~/.config/opencode/agents/` (global)
 - **Skills**: `.opencode/skills/` (project) and `~/.config/opencode/skills/` (global)
   - Workflow compliance skill: `.opencode/skills/workflow-compliance/SKILL.md`
 
