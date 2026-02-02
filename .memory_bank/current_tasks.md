@@ -6,6 +6,11 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG]** Fix duplicate dictation button in chat input
+  - Removed duplicate `Dictate` render path so only one mic button shows next to Voice mode
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
 - [x] **[BUG]** Fix wallet timeline + lead magnet UI regressions
   - Lead magnet fetch no longer blocks wallet load; charge entries handled correctly
   - i18n placeholders restored for wallet inputs; models list empty state corrected
