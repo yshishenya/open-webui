@@ -79,8 +79,7 @@ type UsageCapableModel = {
 
 export const shouldIncludeUsage = (model: UsageCapableModel): boolean => {
 	const explicitUsage = model?.info?.meta?.capabilities?.usage;
-	if (explicitUsage === true) return true;
+	if (typeof explicitUsage === 'boolean') return explicitUsage;
 
 	return model?.owned_by === 'openai';
 };
-
