@@ -120,6 +120,7 @@ Note: `mypy`/`ruff` may be used ad-hoc where configured, but are not wired as re
 
 ### 6.2 Commit and Push
 
+- [ ] Use detailed commit message template from **[../guides/commit_messages.md](../guides/commit_messages.md)**
 - [ ] Create a commit with a meaningful message (Conventional Commits):
   - `fix: ...`
   - `docs: ...`

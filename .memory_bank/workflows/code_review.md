@@ -367,6 +367,7 @@
 - [ ] **[../guides/](../guides/)** are updated when new subsystems are added
 - [ ] **[../patterns/](../patterns/)** are updated when new patterns are introduced
 - [ ] Task status logged per **[../guides/task_updates.md](../guides/task_updates.md)** (task in Done)
+- [ ] Commit message format follows **[../guides/commit_messages.md](../guides/commit_messages.md)**
 
 ### 9.3 API Documentation
 

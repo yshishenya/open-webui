@@ -246,5 +246,7 @@ If you feel context was lost or compressed:
   - Backend: `pytest`, `black .`
   - Frontend: `npm run test:frontend`, `npm run check`, `npm run lint:frontend`
   - Optional combined: `npm run lint`
+ - Commit messages must follow the detailed template in `.memory_bank/guides/commit_messages.md`
+ - Run `scripts/setup_git_hooks.sh` once per clone to enforce commit message policy automatically
 
 **Main Principle**: If unsure - ask the user or re-read documentation in Memory Bank.

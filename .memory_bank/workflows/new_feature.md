@@ -52,5 +52,6 @@
 ## 7. Completion
 
 - [ ] Log task status update per **[../guides/task_updates.md](../guides/task_updates.md)** to "Done"
+- [ ] Use detailed commit message template from **[../guides/commit_messages.md](../guides/commit_messages.md)**
 - [ ] Create commit(s) with Conventional Commits messages (`feat: ...`, `docs: ...`)
 - [ ] Push branch and open PR

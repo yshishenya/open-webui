@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+msg_file="$1"
+subject=$(head -n1 "$msg_file")
+
+case "$subject" in
+  "Merge "*|"Revert "*|"fixup!"*|"squash!"*)
+    exit 0
+    ;;
+esac
+
+if [ "${#subject}" -gt 72 ]; then
+  echo "Commit subject too long (max 72 chars)."
+  exit 1
+fi
+
+second_line=$(sed -n '2p' "$msg_file")
+if [ -n "$second_line" ]; then
+  echo "Second line must be blank."
+  exit 1
+fi
+
+required_sections=("Context:" "Changes:" "Tests:" "Risks:")
+missing=0
+for section in "${required_sections[@]}"; do
+  if ! grep -q "^${section}" "$msg_file"; then
+    echo "Missing ${section} section."
+    missing=1
+  fi
+done
+
+if [ "$missing" -ne 0 ]; then
+  echo "Use .gitmessage template or include required sections."
+  exit 1
+fi

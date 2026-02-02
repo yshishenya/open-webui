@@ -6,6 +6,11 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[DEV]** Enforce detailed commit messages with template + hook
+  - Added commit message template, commit-msg hook, and setup script
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
 - [x] **[DEV]** Add workflow compliance guardrails for Codex
   - Added workflow compliance gate in AGENTS and new `workflow-compliance` skill
   - **Owner**: Codex
