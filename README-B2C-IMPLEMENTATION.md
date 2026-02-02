@@ -55,6 +55,16 @@ Set these in `.env` as needed:
 
 Setup guide: `.qoder/RUSSIAN_OAUTH_SETUP.md`
 
+### Keep `.env` in sync
+
+When you pull updates, `.env.example` may gain new keys. To safely sync an existing `.env` with the latest
+template (preserving your current values and keeping unknown custom keys), run:
+
+- Local/dev: `python3 scripts/sync_env.py --env .env`
+- Prod (example): `python3 scripts/sync_env.py --env /opt/projects/open-webui/.env`
+
+The script writes a timestamped backup (`.env.bak.<timestamp>`) and never prints values.
+
 ### SMTP (transactional email)
 
 - `SMTP_HOST`, `SMTP_PORT`
