@@ -69,6 +69,24 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Owner**: Codex
   - **Done**: 2026-02-02
 
+- [x] **[BUG][AUTH]** GitHub OAuth не отображается в UI при запуске через `docker-compose.yaml`
+  - **Root cause**: переменные `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` не прокидывались в контейнер, поэтому `/api/config` не возвращал `oauth.providers.github`
+  - **Fix**: добавлены GitHub OAuth env vars в `docker-compose.yaml`, обновлены `.env.example` и `README-B2C-IMPLEMENTATION.md`
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
+- [x] **[DOCS][ENV]** Привести `.env.example` и `docker-compose.yaml` к одному набору переменных
+  - **Problem**: `.env.example` содержал переменные (OpenAI/CORS/SMTP/Scopes), которые не попадали в контейнер через `docker-compose.yaml`
+  - **Fix**: добавлен pass-through переменных в `docker-compose.yaml`, расширен `.env.example`, добавлены `scripts/env_diff.sh` и `scripts/validate_env_example.sh` для безопасного сравнения/валидации без вывода секретов
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
+- [x] **[TOOLS][ENV]** Скрипт для безопасной синхронизации `.env` по актуальному `.env.example`
+  - **Goal**: обновлять `.env` после pull/апдейтов без потери текущих значений и без утечек секретов
+  - **Fix**: добавлен `scripts/sync_env.py` (создаёт `.env.bak.<timestamp>` и печатает только названия ключей), документация в `README-B2C-IMPLEMENTATION.md`
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
 - [x] **[QA]** Fix e2e selectors after billing timeline + welcome hero updates
   - Lead magnet checks scoped to card; history test mocks usage events; preset selectors stabilized
   - **Owner**: Codex
