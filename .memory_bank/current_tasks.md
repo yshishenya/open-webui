@@ -141,8 +141,12 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 - [x] **[DEV-01]** Add Docker dev hot-reload compose
 
-  - Added `docker-compose.dev.yaml` overlay to run backend with `uvicorn --reload` and frontend via Vite dev server (HMR)
+  - Backend: run `start.sh --reload` (avoid `backend/dev.sh` rewriting `DATABASE_URL` inside Docker)
+  - Frontend: install deps when node_modules volume is empty (check `node_modules/.bin/vite`; uses `npm ci --legacy-peer-deps`)
+  - Added polling env flags for Docker Desktop FS events (`WATCHFILES_FORCE_POLLING`, `CHOKIDAR_USEPOLLING`)
   - Goal: avoid rebuilding the image on every code change
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
 
 - [x] **[UI-27]** Convert admin model pricing list to responsive table
 

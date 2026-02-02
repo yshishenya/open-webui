@@ -29,7 +29,7 @@ services:
       - sh
       - -lc
       - |
-        if [ ! -d node_modules ]; then
+        if [ ! -e node_modules/.bin/vite ]; then
           npm ci --legacy-peer-deps
         fi
         npm run dev -- --host 0.0.0.0 --port 5173
