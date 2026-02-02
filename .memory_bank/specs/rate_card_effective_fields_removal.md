@@ -144,7 +144,7 @@ All price changes become immutable: create a new rate card entry and deactivate 
 3. Admin/public API updates.
 4. Frontend API types + admin UI updates.
 5. Tests and fixture updates.
-6. Memory Bank update (current_tasks).
+6. Memory Bank update (task_updates workflow).
 
 ## Risks and Mitigations
 

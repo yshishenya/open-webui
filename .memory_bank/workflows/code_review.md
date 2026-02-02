@@ -366,7 +366,7 @@
 - [ ] **[../tech_stack.md](../tech_stack.md)** is updated when dependencies are added
 - [ ] **[../guides/](../guides/)** are updated when new subsystems are added
 - [ ] **[../patterns/](../patterns/)** are updated when new patterns are introduced
-- [ ] **[../current_tasks.md](../current_tasks.md)** is updated (task in Done)
+- [ ] Task status logged per **[../guides/task_updates.md](../guides/task_updates.md)** (task in Done)
 
 ### 9.3 API Documentation
 

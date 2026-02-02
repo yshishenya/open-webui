@@ -10,7 +10,7 @@
 
 ### 1.2 Task Tracking
 
-- [ ] Update task status in **[../current_tasks.md](../current_tasks.md)** to "In Progress"
+- [ ] Log task status update per **[../guides/task_updates.md](../guides/task_updates.md)** to "In Progress"
 - [ ] Add `[BUG]` label to the task for visual distinction
 
 ### 1.3 Bug Analysis
@@ -115,7 +115,7 @@ Note: `mypy`/`ruff` may be used ad-hoc where configured, but are not wired as re
 
 ### 6.1 Task Status Update
 
-- [ ] Update task status in **[../current_tasks.md](../current_tasks.md)** to "Done"
+- [ ] Log task status update per **[../guides/task_updates.md](../guides/task_updates.md)** to "Done"
 - [ ] Add a brief description of the solution to the task
 
 ### 6.2 Commit and Push

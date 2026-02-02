@@ -140,7 +140,7 @@ Security/validation/logging rules:
 4. Update history page to reuse the timeline component with filters.
 5. Deprecate `billing/settings` route (redirect to `/billing/balance`).
 6. Update i18n strings for new labels and empty states.
-7. Update `.memory_bank/current_tasks.md` with spec completion entry.
+7. Log task update per `.memory_bank/guides/task_updates.md` with spec completion entry.
 
 Parallel:
 - Build timeline component and update history page UI.
@@ -157,7 +157,7 @@ Strict order:
 - UPDATE: `src/routes/(app)/billing/settings/+page.svelte` — redirect to `/billing/balance`.
 - UPDATE: `src/lib/i18n/locales/ru-RU/translation.json` — new copy.
 - UPDATE: `src/lib/i18n/locales/en-US/translation.json` — new copy.
-- UPDATE: `.memory_bank/current_tasks.md` — mark spec done.
+- UPDATE: `.memory_bank/guides/task_updates.md` — mark spec done.
 
 ## Testing / Acceptance
 Tests: manual UI validation (frontend only).

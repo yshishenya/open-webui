@@ -90,7 +90,17 @@ async def fetch_data(url: str) -> dict[str, object]:
 
 When performing tasks you MUST:
 
-- Update status in `.memory_bank/current_tasks.md` (To Do → In Progress → Done)
+- **Branch workflow (no conflicts):**
+  - On feature/bugfix branches **do not edit** `.memory_bank/current_tasks.md`.
+  - Instead, append updates to `.memory_bank/branch_updates/<YYYY-MM-DD>-<branch>.md`.
+  - Only on the integration branch (e.g. `airis_b2c`), consolidate branch updates into
+    `.memory_bank/current_tasks.md`, then delete the processed `branch_updates` file(s).
+  - Follow `.memory_bank/guides/task_updates.md` for the full workflow.
+- **Workflow compliance gate (mandatory):**
+  - Identify the task type and load the matching workflow doc before making changes.
+  - If any mandatory step cannot be completed, stop and ask the user before proceeding.
+  - In the first response, state the chosen workflow and the steps you will follow.
+  - In the final response, include a short checklist of workflow steps (Completed/Pending).
 - Create/update documentation in `.memory_bank/guides/` when implementing new subsystems
 - Update `.memory_bank/tech_stack.md` when adding new dependencies
 - Create new patterns in `.memory_bank/patterns/` when making architectural decisions
@@ -170,9 +180,9 @@ Before writing code ALWAYS check:
    - How to properly handle errors in this project?
    - Which API standards to use?
 
-4. **Current Tasks** (`.memory_bank/current_tasks.md`):
+4. **Current Tasks + Task Updates** (`.memory_bank/current_tasks.md`, `.memory_bank/guides/task_updates.md`):
    - Does my task conflict with others?
-   - Need to update status?
+   - Log status updates per task_updates (branch_updates on feature/bugfix; consolidate on integration).
 
 ---
 

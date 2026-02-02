@@ -6,6 +6,16 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[DEV]** Add workflow compliance guardrails for Codex
+  - Added workflow compliance gate in AGENTS and new `workflow-compliance` skill
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
+- [x] **[DOCS]** Align task update workflow to avoid branch conflicts
+  - Updated AGENTS + Memory Bank workflows/specs to use branch_updates + task_updates guide
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
 - [x] **[BILLING]** Update rate card prices from competitor analysis
   - Built import-ready XLSX with text token_in/out prices from Rec IN/OUT (RUB/1K)
   - Output: `.memory_bank/images/rate-cards-all_units_template (2)-filled.xlsx`

@@ -5,7 +5,7 @@
 - [ ] Define the refactoring goal and non-goals
 - [ ] Identify what must NOT change (public behavior, API contracts, data model)
 - [ ] Create a branch from the base branch (usually `main`): `refactor/short-description`
-- [ ] Add/update task in **[../current_tasks.md](../current_tasks.md)**
+- [ ] Log task update per **[../guides/task_updates.md](../guides/task_updates.md)**
 
 ## 2. Safety Net
 
@@ -38,7 +38,7 @@
 
 ## 7. Completion
 
-- [ ] Update task status in **[../current_tasks.md](../current_tasks.md)** to "Done"
+- [ ] Log task status update per **[../guides/task_updates.md](../guides/task_updates.md)** to "Done"
 - [ ] Create commit(s) with Conventional Commits messages (`refactor: ...`)
 - [ ] Push the branch: `git push -u origin refactor/short-description`
 - [ ] Open a PR with:

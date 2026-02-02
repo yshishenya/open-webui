@@ -45,4 +45,4 @@ Status: approved for implementation (2026-01-23)
 ## Docs
 
 - Remove free plan references from BILLING_SETUP.md and b2c_monetization_plan.
-- Update current_tasks.md to link this plan.
+- Log task update per .memory_bank/guides/task_updates.md to link this plan.

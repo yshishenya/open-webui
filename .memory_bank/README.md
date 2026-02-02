@@ -162,11 +162,18 @@ If you make changes that affect architecture or add a new dependency, you **must
 
 ### Rule 2: Track Task Progress
 
-Before starting work on a task, always check `current_tasks.md` and update the task status:
+Before starting work on a task, always check `current_tasks.md` and log task status changes per
+**[./guides/task_updates.md](./guides/task_updates.md)**:
 
 - **To Do** → **In Progress** (when you start)
 - **In Progress** → **Done** (when you complete)
 - Add new tasks as they arise
+
+**Branch workflow (avoid conflicts):**
+- On feature/bugfix branches **do not edit** `.memory_bank/current_tasks.md`.
+- Append updates to `.memory_bank/branch_updates/<YYYY-MM-DD>-<branch>.md` instead.
+- Only on the integration branch (e.g. `airis_b2c`), consolidate these updates into
+  `.memory_bank/current_tasks.md`, then delete the processed `branch_updates` file(s).
 
 ### Rule 3: Follow Established Patterns
 
@@ -202,7 +209,7 @@ All external integrations must be documented and follow API standards:
 1. Check if similar functionality exists
 2. Review relevant patterns in `patterns/`
 3. Choose appropriate workflow from `workflows/`
-4. Update task status in `current_tasks.md`
+4. Log task status update per **[./guides/task_updates.md](./guides/task_updates.md)**
 
 ### After Writing Code
 
@@ -272,12 +279,12 @@ All external integrations must be documented and follow API standards:
 ```bash
 1. Read workflows/new_feature.md
 2. Create specification in specs/
-3. Update current_tasks.md (add task, set to "In Progress")
+3. Log task update per guides/task_updates.md (set to "In Progress")
 4. Implement following coding_standards.md
 5. Write tests (minimum 80% coverage)
 6. Update relevant documentation
 7. Request code review
-8. Update current_tasks.md (set to "Done")
+8. Log task update per guides/task_updates.md (set to "Done")
 ```
 
 ### Fixing a Bug
@@ -285,10 +292,10 @@ All external integrations must be documented and follow API standards:
 ```bash
 1. Read workflows/bug_fix.md
 2. Reproduce the bug
-3. Update current_tasks.md (add bug task)
+3. Log task update per guides/task_updates.md (add bug task)
 4. Fix following error_handling.md patterns
 5. Add regression test
-6. Update current_tasks.md (set to "Done")
+6. Log task update per guides/task_updates.md (set to "Done")
 ```
 
 ### Integrating External API

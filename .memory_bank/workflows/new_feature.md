@@ -9,7 +9,7 @@
 
 ### 1.2 Task Tracking
 
-- [ ] Add/update the task in **[../current_tasks.md](../current_tasks.md)**
+- [ ] Log the task update per **[../guides/task_updates.md](../guides/task_updates.md)**
 - [ ] Set status to "In Progress"
 
 ### 1.3 Requirements
@@ -51,6 +51,6 @@
 
 ## 7. Completion
 
-- [ ] Update task status in **[../current_tasks.md](../current_tasks.md)** to "Done"
+- [ ] Log task status update per **[../guides/task_updates.md](../guides/task_updates.md)** to "Done"
 - [ ] Create commit(s) with Conventional Commits messages (`feat: ...`, `docs: ...`)
 - [ ] Push branch and open PR
