@@ -12,7 +12,7 @@ services:
       TERM: "vt100"
       SD_WEBUI_VARIANT: "default"
     # Hack to get container working on Apple Silicon
-    # Rosetta creates a conflict ${HOME}/.cache folder
+    # Rosetta creates a conflict in the HOME cache folder
     entrypoint: /bin/bash
     command:
       - -c
