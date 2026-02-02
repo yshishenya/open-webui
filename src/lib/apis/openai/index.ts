@@ -1,4 +1,5 @@
 import { OPENAI_API_BASE_URL, WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+import { enhanceOpenAIChatCompletionBody } from '$lib/utils/airis/openai';
 
 export const getOpenAIConfig = async (token: string = '') => {
 	let error = null;
@@ -373,7 +374,7 @@ export const generateOpenAIChatCompletion = async (
 			'Content-Type': 'application/json'
 		},
 		credentials: 'include',
-		body: JSON.stringify(body)
+		body: JSON.stringify(enhanceOpenAIChatCompletionBody(body))
 	})
 		.then(async (res) => {
 			if (!res.ok) throw await res.json();
