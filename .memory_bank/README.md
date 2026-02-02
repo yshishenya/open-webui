@@ -60,6 +60,8 @@ This Memory Bank is the central knowledge repository for the **Airis** project (
   - Security best practices
   - Testing guidelines
 
+- **[Assistant Tooling](./guides/assistant_tooling.md)**: Codex/OpenCode rules, skills, and auto-loaded docs
+
 - **[Testing Strategy](./guides/testing_strategy.md)**: Testing strategy
   - Unit tests with pytest (Python) and Vitest (TypeScript)
   - Integration tests

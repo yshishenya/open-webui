@@ -6,6 +6,12 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[DEV]** Mirror Codex workflow in Opencode
+  - Added project opencode.json instructions + .opencode skills for workflow compliance
+  - Added global OpenCode AGENTS + workflow-compliance skill
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
 - [x] **[DEV]** Enforce detailed commit messages with template + hook
   - Added commit message template, commit-msg hook, and setup script
   - **Owner**: Codex
@@ -408,7 +414,6 @@ This file tracks active development tasks for the Airis project. Update this fil
 ## In Progress
 
 ### High Priority
-
 - [x] **[AUTH-01]** Verify GitHub OAuth login visibility
   - Confirm backend GitHub OAuth support and prerequisites.
   - Identify conditions for showing the GitHub login button in the UI.

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    ".memory_bank/README.md",
+    ".memory_bank/tech_stack.md",
+    ".memory_bank/guides/coding_standards.md",
+    ".memory_bank/guides/task_updates.md",
+    ".memory_bank/current_tasks.md"
+  ]
+}
