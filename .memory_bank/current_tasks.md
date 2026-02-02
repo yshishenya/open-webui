@@ -6,6 +6,19 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[QA]** Add billing UX tests (unit + e2e)
+  - Unit: UnifiedTimeline URL filter sync
+  - Unit: Wallet advanced settings auto-expand logic
+  - E2E: Wallet hero + advanced collapse + history navigation smoke
+  - Note: vitest config now includes SvelteKit plugin + browser conditions for client mounts
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
+- [x] **[DEV]** Add OpenCode project commands + instructions
+  - Added AGENTS.md to opencode instructions and project `.opencode/commands/` shortcuts
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
 - [x] **[UI]** Simplify billing pages UX (Wallet/History/Plans)
   - Hero-first wallet layout with low-balance state, collapsed advanced settings, history URL filters, analytics + i18n/a11y updates
   - Spec: `.memory_bank/specs/billing_pages_ux_simplification.md`
