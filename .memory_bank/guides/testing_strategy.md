@@ -10,19 +10,26 @@ This repository is an Airis fork of Open WebUI.
 
 ## Commands
 
+This project is **Docker Compose-first** (especially for Codex Actions). Prefer running commands inside containers.
+
 ### Backend (Python)
 
-- Run tests: `pytest`
+- Run tests:
+  - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest"`
 
 ### Frontend (SvelteKit)
 
-- Unit tests (Vitest): `npm run test:frontend`
-- Typecheck (svelte-check): `npm run check`
-- Lint (ESLint): `npm run lint:frontend`
+- Unit tests (Vitest):
+  - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend"`
+- Typecheck (svelte-check):
+  - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/svelte-check ]; then npm ci --legacy-peer-deps; fi; npm run check"`
+- Lint (ESLint):
+  - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; npm run lint:frontend"`
 
 ### E2E
 
-- Run E2E tests: `npm run test:e2e`
+- Run E2E tests:
+  - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps e2e "npm ci && npm run test:e2e"`
 
 ## Coverage
 

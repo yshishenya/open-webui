@@ -1,7 +1,7 @@
 # admin-billing-models-table
 
 - Date: 2026-01-24
-- Owner/Agent: OpenCode
+- Owner/Agent: Codex
 - Links: N/A
 
 ## Summary
@@ -154,6 +154,8 @@ Risks:
 ## Quick start
 
 1. Start files/modules: `src/routes/(app)/admin/billing/models/+page.svelte`.
-2. Commands: `npm run check` (optional), `npm run test:frontend -- --run` if unit tests updated.
+2. Commands (Docker Compose-first):
+   - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run check"` (optional)
+   - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run"` if unit tests updated
 3. Local setup: standard dev server.
 4. Manual verification: check desktop table at ≥1024px and mobile cards at ≤640px.

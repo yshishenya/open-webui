@@ -10,17 +10,15 @@ Use this checklist before requesting review or merging.
 
 ## 2. Tests
 
-- [ ] Backend tests pass: `pytest`
-- [ ] Frontend tests pass: `npm run test:frontend`
-- [ ] E2E tests pass when relevant: `npm run test:e2e`
+- [ ] Tests pass (Docker Compose-first): see `.memory_bank/guides/testing_strategy.md`
 
 ## 3. Code Quality
 
-- [ ] Backend formatted: `black .`
-- [ ] Backend linted: `npm run lint:backend` (pylint)
-- [ ] Frontend formatted: `npm run format`
-- [ ] Frontend linted: `npm run lint:frontend`
-- [ ] Frontend typecheck passes: `npm run check`
+- [ ] Backend formatted: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "black ."`
+- [ ] Backend linted (ruff): use Codex Action `ruff (docker)` or run `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check backend"`
+- [ ] Frontend formatted: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run format"`
+- [ ] Frontend linted: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run lint:frontend"`
+- [ ] Frontend typecheck passes: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run check"`
 
 ## 4. Security
 

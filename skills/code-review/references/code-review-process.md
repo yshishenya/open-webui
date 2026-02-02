@@ -294,7 +294,7 @@
 
 ### 6.3 Test Execution
 
-- [ ] All tests pass: `pytest`
+- [ ] All tests pass (Docker Compose-first in this repo): see `.memory_bank/guides/testing_strategy.md`
 - [ ] No warnings in tests
 - [ ] Tests execute quickly (<5 minutes for entire suite)
 
@@ -311,7 +311,7 @@
 
 - [ ] No hardcoded passwords, API keys, tokens
 - [ ] All secrets in environment variables
-- [ ] `python-dotenv` or `pydantic-settings` is used
+- [ ] Configuration uses env vars (see `.env.example`, `backend/open_webui/env.py`)
 - [ ] `.env` file is in `.gitignore`
 
 ### 7.2 Input Validation

@@ -185,7 +185,7 @@
 
 ### Python
 
-- **Linting**: pylint, ruff 0.1+ (fast Python linter)
+- **Linting**: ruff 0.1+ (fast Python linter; preferred in Docker-first workflow via Codex Actions/`pytools`)
 - **Formatting**: black (line length: 88-100)
 - **Type Checking**: mypy 1.7+ (strict mode)
 - **Testing**:

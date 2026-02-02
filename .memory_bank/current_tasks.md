@@ -6,6 +6,12 @@ This file tracks active development tasks for the Airis project. Update this fil
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[DEV]** Standardize Codex docs/actions for Docker Compose + remove non-Codex assistant tooling
+  - Updated `AGENTS.md` + Memory Bank guides/workflows/specs to use Docker Compose-first test/lint commands.
+  - Removed legacy non-Codex assistant config files/folders from the repo.
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
 - [x] **[QA]** Add billing UX tests (unit + e2e)
   - Unit: UnifiedTimeline URL filter sync
   - Unit: Wallet advanced settings auto-expand logic
@@ -14,8 +20,8 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Owner**: Codex
   - **Done**: 2026-02-02
 
-- [x] **[DEV]** Add OpenCode project commands + instructions
-  - Added AGENTS.md to opencode instructions and project `.opencode/commands/` shortcuts
+- [x] **[DEV]** Add assistant commands + instructions
+  - Added project shortcuts and assistant tooling documentation (Codex-first, Docker Compose).
   - **Owner**: Codex
   - **Done**: 2026-02-02
 
@@ -31,9 +37,8 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Owner**: Codex
   - **Done**: 2026-02-02
 
-- [x] **[DEV]** Mirror Codex workflow in Opencode
-  - Added project opencode.json instructions + .opencode skills for workflow compliance
-  - Added global OpenCode AGENTS + workflow-compliance skill
+- [x] **[DEV]** Align assistant workflow compliance
+  - Consolidated workflow compliance guardrails and task-update rules in Memory Bank + `AGENTS.md`.
   - **Owner**: Codex
   - **Done**: 2026-02-02
 
@@ -641,7 +646,9 @@ This file tracks active development tasks for the Airis project. Update this fil
 - **[TECH-07]** Add rate limiting per endpoint
 - **[TECH-08]** Align frontend dependencies and verify installs
   - Upgrade mismatched TipTap packages (bubble-menu v2 -> v3)
-  - Run `npm install` and `npm run test:frontend`
+  - Run via Docker Compose:
+    - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm ci --legacy-peer-deps"`
+    - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend"`
   - **Owner**: TBD
   - **Target**: TBD
 

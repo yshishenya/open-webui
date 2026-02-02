@@ -716,7 +716,7 @@
   - Покупка top-up пакета, отображение в балансе/ledger.
   - Estimate badge в чате, блокировка при нехватке средств, кнопка “Пополнить”.
   - Ledger фильтры, auto-topup toggle, обновление лимитов в settings.
-- Покрытие: ≥80% для нового кода (pytest + Vitest/Playwright по необходимости).
+- Покрытие: ≥80% для нового кода (backend pytest через Docker Compose + Vitest/Playwright по необходимости).
 - Роллаут/фича-флаги:
   - ENV: `ENABLE_BILLING_WALLET`, `BILLING_RATE_CARD_VERSION`, `BILLING_HOLD_TTL_SECONDS`, `BILLING_MAX_DAILY_SPEND_DEFAULT_KOPEKS`.
   - Этапность: включить `/api/v1/billing/plans/public` + estimate (без hold), затем hold/settle для text/images/TTS, затем подписки/annual.

@@ -286,7 +286,7 @@
 
 ### 6.3 Test Execution
 
-- [ ] All tests pass: `pytest`
+- [ ] All tests pass (Docker Compose-first): see `../guides/testing_strategy.md`
 - [ ] No warnings in tests
 - [ ] Tests execute quickly (<5 minutes for entire suite)
 
@@ -416,8 +416,11 @@
 
 - [ ] No merge conflicts
 - [ ] CI/CD pipeline passes successfully
-- [ ] All linters/checks pass (`black .`, `npm run lint`, `npm run check`)
-- [ ] All tests pass
+- [ ] All linters/checks pass (Docker Compose-first)
+  - Backend format: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "black ."`
+  - Backend lint (ruff): use Codex Action `ruff (docker)` or run `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check backend"`
+  - Frontend: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run lint:frontend && npm run check"`
+- [ ] All tests pass (Docker Compose-first): see `../guides/testing_strategy.md`
 
 ### 11.2 Acceptance Criteria
 
@@ -445,7 +448,7 @@
 - [ ] Architectural patterns from **[../patterns/](../patterns/)** are followed
 - [ ] Error handling follows **[../patterns/error_handling.md](../patterns/error_handling.md)**
 - [ ] Technology stack complies with **[../tech_stack.md](../tech_stack.md)**
-- [ ] All tests pass with coverage >= 80%
+- [ ] All tests pass with coverage >= 80% (Docker Compose-first)
 - [ ] Documentation is updated
 - [ ] No security issues
 - [ ] No performance problems

@@ -212,9 +212,11 @@ If you feel context was lost or compressed:
 
 ## Testing Requirements
 
-- Backend tests: `pytest`
-- Frontend tests: `npm run test:frontend`
-- E2E tests when relevant: `npm run test:e2e`
+This repo is **Docker Compose-first** (especially for Codex Actions).
+
+- Backend tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest"`
+- Frontend tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend"`
+- E2E tests when relevant: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps e2e "npm ci && npm run test:e2e"`
 
 ---
 
@@ -243,9 +245,9 @@ If you feel context was lost or compressed:
 
 - Branch naming: `feature/...`, `bugfix/...`, `docs/...`
 - Before committing:
-  - Backend: `pytest`, `black .`
-  - Frontend: `npm run test:frontend`, `npm run check`, `npm run lint:frontend`
-  - Optional combined: `npm run lint`
+  - Backend tests + format: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest && black ."`
+  - Backend lint (ruff): use Codex Action `ruff (docker)` or run `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check backend"`
+  - Frontend: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend && npm run check && npm run lint:frontend"`
  - Commit messages must follow the detailed template in `.memory_bank/guides/commit_messages.md`
  - Run `scripts/setup_git_hooks.sh` once per clone to enforce commit message policy automatically
 

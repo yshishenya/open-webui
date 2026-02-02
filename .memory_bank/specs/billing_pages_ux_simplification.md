@@ -204,6 +204,8 @@ Open questions:
 
 ## Quick start
 1. Start files/modules: `src/routes/(app)/billing/balance/+page.svelte`, `src/lib/components/billing/UnifiedTimeline.svelte`.
-2. Commands: `npm run check` (optional), `npm run test:frontend` (optional).
+2. Commands (Docker Compose-first):
+   - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run check"` (optional)
+   - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend"` (optional)
 3. Local setup: standard frontend dev server.
 4. Manual verification: wallet load, topup flow, advanced toggle, limits save, history filters.

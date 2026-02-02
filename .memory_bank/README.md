@@ -60,7 +60,7 @@ This Memory Bank is the central knowledge repository for the **Airis** project (
   - Security best practices
   - Testing guidelines
 
-- **[Assistant Tooling](./guides/assistant_tooling.md)**: Codex/OpenCode rules, skills, and auto-loaded docs
+- **[Assistant Tooling](./guides/assistant_tooling.md)**: Codex rules, skills, and tooling
 
 - **[Testing Strategy](./guides/testing_strategy.md)**: Testing strategy
   - Unit tests with pytest (Python) and Vitest (TypeScript)
@@ -215,9 +215,13 @@ All external integrations must be documented and follow API standards:
 
 ### After Writing Code
 
-1. Run tests: `pytest` (backend), `npm run test:frontend` (frontend)
-2. Format code: `black .` (Python), `npm run format` (frontend + docs)
-3. Type check: `mypy .` (optional/where configured), `npm run check` (frontend)
+1. Run tests (Docker Compose-first): see `.memory_bank/guides/testing_strategy.md`
+2. Format code:
+   - Backend: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "black ."`
+   - Frontend + docs: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run format"`
+3. Type check:
+   - Frontend: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run check"`
+   - Backend (optional/where configured): use Codex Action `mypy (docker)` or run in `.codex/docker-compose.codex.yaml` `pytools`
 4. Update relevant documentation in Memory Bank
 5. Request code review following `workflows/code_review.md`
 

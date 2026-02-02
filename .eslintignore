@@ -3,6 +3,8 @@ node_modules
 /build
 /.svelte-kit
 /package
+/backend/open_webui/static
+/static
 .env
 .env.*
 !.env.example

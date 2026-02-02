@@ -194,6 +194,8 @@ Open questions:
 
 ## Quick start
 1. Start files/modules: `src/routes/(app)/billing/balance/+page.svelte`, `src/routes/(app)/billing/history/+page.svelte`.
-2. Commands: `npm run check` (optional), `npm run lint:frontend` (optional).
+2. Commands (Docker Compose-first):
+   - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run check"` (optional)
+   - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run lint:frontend"` (optional)
 3. Local setup: standard frontend dev server.
 4. Manual verification: wallet load, top-up flow, auto-topup toggle, limits save, timeline entries.

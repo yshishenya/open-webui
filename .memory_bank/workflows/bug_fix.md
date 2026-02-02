@@ -70,9 +70,7 @@
 
 ### 3.2 Run Test Suites
 
-- [ ] Backend tests: `pytest`
-- [ ] Frontend tests: `npm run test:frontend`
-- [ ] E2E tests (when relevant): `npm run test:e2e`
+- [ ] Run tests via Docker Compose (see **[testing strategy](../guides/testing_strategy.md)**)
 
 ### 3.3 Manual Testing
 
@@ -84,10 +82,10 @@
 
 ### 4.1 Linting and Formatting
 
-- [ ] Backend formatting: `black .`
-- [ ] Backend linting: `npm run lint:backend` (pylint)
-- [ ] Frontend formatting: `npm run format`
-- [ ] Frontend linting/typecheck: `npm run lint:frontend` and `npm run check`
+- [ ] Backend formatting: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "black ."`
+- [ ] Backend linting (ruff): use Codex Action `ruff (docker)` or run `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check backend"`
+- [ ] Frontend formatting: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run format"`
+- [ ] Frontend lint/typecheck: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run lint:frontend && npm run check"`
 
 Note: `mypy`/`ruff` may be used ad-hoc where configured, but are not wired as required project commands.
 

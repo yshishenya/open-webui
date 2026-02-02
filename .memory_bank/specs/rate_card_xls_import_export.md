@@ -1,6 +1,6 @@
 # rate_card_xls_import_export
 - Date: 2026-01-27
-- Owner/Agent: OpenCode
+- Owner/Agent: Codex
 - Links: N/A
 
 ## Summary
@@ -373,7 +373,7 @@ Open questions:
    - Backend: `backend/open_webui/routers/admin_billing_rate_card.py`
    - Frontend: `src/routes/(app)/admin/billing/models/+page.svelte`
 2. Commands:
-   - Backend tests: `pytest backend/open_webui/test/apps/webui/routers/test_admin_billing_rate_card_xlsx.py`
-   - Frontend typecheck: `npm run check`
+   - Backend tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest backend/open_webui/test/apps/webui/routers/test_admin_billing_rate_card_xlsx.py"`
+   - Frontend typecheck: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run check"`
 3. Manual verification:
    - Select models → export `all_units_template` → set price+is_active for disabled units → preview → apply → confirm modalities appear enabled in UI.
