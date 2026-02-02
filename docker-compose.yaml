@@ -52,7 +52,7 @@ services:
       - 'WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}'
       - 'WEBUI_AUTH=${WEBUI_AUTH:-true}'
       - 'WEBUI_URL=${WEBUI_URL:-}'
-      - 'DATABASE_URL=postgresql://${POSTGRES_USER-airis}:${POSTGRES_PASSWORD-airis_password}@postgres:5432/${POSTGRES_DB-airis}'
+      - 'DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER-airis}:${POSTGRES_PASSWORD-airis_password}@postgres:5432/${POSTGRES_DB-airis}}'
       # User registration settings
       - 'DEFAULT_USER_ROLE=user'
       # OAuth configuration
