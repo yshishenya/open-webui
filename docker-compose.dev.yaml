@@ -8,8 +8,12 @@ services:
       - ${OPEN_WEBUI_API_PORT-8080}:8080
     environment:
       - ENV=dev
+      # Hot reload can miss FS events on Docker Desktop (macOS/Windows).
+      - WATCHFILES_FORCE_POLLING=true
+      # Frontend dev server runs on :5173 and calls backend API on :8080.
+      - CORS_ALLOW_ORIGIN=http://localhost:5173;http://localhost:8080
     working_dir: /app/backend
-    command: ['bash', 'dev.sh']
+    command: ['bash', 'start.sh', '--reload', '--reload-dir', '/app/backend']
     volumes:
       - ./backend:/app/backend
       - airis:/app/backend/data
@@ -18,12 +22,15 @@ services:
     image: node:22-alpine3.20
     container_name: airis-frontend
     working_dir: /app
+    environment:
+      # Hot reload can miss FS events on Docker Desktop (macOS/Windows).
+      - CHOKIDAR_USEPOLLING=true
     command:
       - sh
       - -lc
       - |
         if [ ! -d node_modules ]; then
-          npm ci --force
+          npm ci --legacy-peer-deps
         fi
         npm run dev -- --host 0.0.0.0 --port 5173
     ports:
