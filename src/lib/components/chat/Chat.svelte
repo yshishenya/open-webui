@@ -2593,7 +2593,6 @@
 									bind:imageGenerationEnabled
 									bind:codeInterpreterEnabled
 									bind:webSearchEnabled
-									bind:params
 									bind:atSelectedModel
 									bind:showCommands
 									toolServers={$toolServers}

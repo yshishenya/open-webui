@@ -113,7 +113,6 @@
 
 	export let prompt = '';
 	export let files = [];
-	export let params = {};
 
 	export let selectedToolIds = [];
 	export let selectedFilterIds = [];
