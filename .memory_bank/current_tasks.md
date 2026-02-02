@@ -33,6 +33,13 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Owner**: Codex
   - **Done**: 2026-02-02
 
+- [x] **[BUG]** Fix zero-priced rate cards (import + seed)
+  - Updated `.memory_bank/images/rate-cards-all_units_template (2)-filled.xlsx` to remove active zero prices (fill missing token/image/audio rates; disable irrelevant modalities).
+  - Changed `backend/open_webui/utils/billing_seed.py` to seed default rate cards as inactive (prevents free usage by default).
+  - Added regression test: `backend/open_webui/test/apps/webui/utils/test_billing_seed.py`.
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
 - [x] **[UI]** Improve rate card import preview UX
   - Added step-by-step preview/apply layout with prominent preview CTA and counter cards
   - **Owner**: Codex
