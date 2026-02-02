@@ -35,7 +35,11 @@ def seed_default_rate_cards_if_missing() -> int:
         return 0
 
     for model in models:
-        templates = build_rate_cards_for_model(model.id, created_at=int(time.time()))
+        templates = build_rate_cards_for_model(
+            model.id,
+            created_at=int(time.time()),
+            is_active=False,
+        )
         for template in templates:
             model_id = str(template.get("model_id", ""))
             modality = str(template.get("modality", ""))
