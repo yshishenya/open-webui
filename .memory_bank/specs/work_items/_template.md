@@ -52,10 +52,22 @@ Docker Compose-first commands (adjust if needed):
 - Frontend lint: `npm run docker:lint:frontend`
 - E2E (when relevant): `npm run docker:test:e2e`
 
+## Task Entry (for branch_updates/current_tasks)
+
+Use this snippet in `.memory_bank/branch_updates/<YYYY-MM-DD>-<branch-slug>.md` and later in `.memory_bank/current_tasks.md`:
+
+- [ ] **[<TAG>]** <Short title>
+  - Spec: `.memory_bank/specs/work_items/<THIS FILE>`
+  - Owner: <name/agent>
+  - Branch: `<branch-name>`
+  - Started: <YYYY-MM-DD>
+  - Summary: <1–2 lines>
+  - Tests: <what was run, or "N/A (docs-only)">
+  - Risks: <1 line, or "N/A">
+
 ## Risks / Rollback
 
 - Risks:
   - …
 - Rollback plan:
   - …
-

@@ -54,6 +54,20 @@ Use the same task format as `current_tasks.md` (checkboxes + details).
 - `Spec: <path>` (point to the work item spec)
 - `Done: YYYY-MM-DD` (when completed)
 
+## Entry format (copy/paste safe)
+
+To make consolidation deterministic (and avoid “style drift”), use the template:
+
+- `.memory_bank/branch_updates/_template.md`
+
+During consolidation on the integration branch, copy the entry into `.memory_bank/current_tasks.md` and keep at minimum:
+
+- the checkbox line
+- `Spec: ...`
+- `Summary: ...`
+- `Owner: ...`
+- `Done:` / `Started:`
+
 ## 2) On the integration branch (e.g. `airis_b2c`)
 
 1. Merge your feature branch as usual.

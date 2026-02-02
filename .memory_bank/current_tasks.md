@@ -6,6 +6,16 @@ This file tracks active development tasks for the Airis project.
 
 For non-trivial work items, each entry should include a `Spec:` link to a work item spec under `.memory_bank/specs/work_items/` (see `.memory_bank/specs/README.md`).
 
+**Entry format rule (copy/paste safe):**
+
+- Use the same bullet structure as `.memory_bank/branch_updates/_template.md`.
+- Keep entries short; detailed design/implementation notes live in the work item spec.
+- Minimum fields per entry:
+  - `Spec: ...`
+  - `Owner: ...`
+  - `Summary: ...`
+  - `Done:` (for completed) or `Started:` (for in progress)
+
 ---
 
 ## Recently Completed (Last 7 Days)
