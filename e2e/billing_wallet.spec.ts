@@ -122,7 +122,8 @@ test.describe('Billing Wallet', () => {
 		await page.goto('/billing/history');
 		await page.waitForResponse('**/api/v1/billing/ledger*');
 		await expect(page.locator('#billing-container').getByText('History')).toBeVisible();
-		await expect(page.getByText('All activity')).toBeVisible();
+		await expect(page.getByText('All activity in one place')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'All activity' })).toBeVisible();
 		await expect(page.getByText('Top-up', { exact: true })).toBeVisible();
 		await expect(page.getByText('Charge', { exact: true })).toBeVisible();
 	});
@@ -151,5 +152,42 @@ test.describe('Billing Wallet', () => {
 			billing_contact_email: 'ops@example.com',
 			billing_contact_phone: '+7 999 123-45-67'
 		});
+	});
+
+	test('wallet hero shows topup and advanced settings start collapsed', async ({ page }) => {
+		await page.route('**/api/v1/billing/balance', async (route) => {
+			await route.fulfill({
+				json: {
+					...balanceResponse,
+					max_reply_cost_kopeks: null,
+					daily_cap_kopeks: null,
+					auto_topup_enabled: false
+				}
+			});
+		});
+		await page.route('**/api/v1/users/user/info', async (route) => {
+			await route.fulfill({
+				json: { billing_contact_email: '', billing_contact_phone: '' }
+			});
+		});
+
+		await page.goto('/billing/balance');
+		const heroHeading = page.getByRole('heading', { name: 'Wallet' });
+		await expect(heroHeading).toBeVisible();
+		const heroRow = heroHeading.locator('xpath=../../..');
+		await expect(heroRow.getByRole('button', { name: 'Top up' })).toBeVisible();
+
+		const advancedToggle = page.getByRole('button', { name: 'Manage limits & auto-topup' });
+		await expect(advancedToggle).toHaveAttribute('aria-expanded', 'false');
+
+		const autoTopupHeader = page.getByText('Auto-topup', { exact: true });
+		await expect(autoTopupHeader).toHaveCount(0);
+
+		await advancedToggle.click();
+		await expect(advancedToggle).toHaveAttribute('aria-expanded', 'true');
+		await expect(autoTopupHeader).toBeVisible();
+
+		await page.getByRole('link', { name: 'View history' }).click();
+		await expect(page).toHaveURL(/\/billing\/history/);
 	});
 });
