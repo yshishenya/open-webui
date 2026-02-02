@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, getContext } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 
 	import { WEBUI_NAME, models } from '$lib/stores';
@@ -20,10 +21,13 @@
 	import WalletSpendControls from '$lib/components/billing/WalletSpendControls.svelte';
 	import WalletContactsSection from '$lib/components/billing/WalletContactsSection.svelte';
 	import WalletLeadMagnetSection from '$lib/components/billing/WalletLeadMagnetSection.svelte';
+	import WalletAdvancedSettings from '$lib/components/billing/WalletAdvancedSettings.svelte';
+	import { trackEvent } from '$lib/utils/analytics';
 
 	const i18n = getContext('i18n');
 
 	const DEFAULT_TOPUP_PACKAGES_KOPEKS = [100000, 150000, 500000, 1000000];
+	const LOW_BALANCE_THRESHOLD_KOPEKS = 10000;
 
 	let loading = true;
 	let balance: Balance | null = null;
@@ -44,6 +48,9 @@
 	let autoTopupEnabled = false;
 	let autoTopupThreshold = '';
 	let autoTopupAmount = '';
+	let advancedOpen = false;
+	let advancedAutoLock = false;
+	let lastTrackedStatus: 'success' | 'error' | null = null;
 
 	onMount(async () => {
 		await loadBalance();
@@ -79,21 +86,45 @@
 				contactEmail = '';
 				contactPhone = '';
 			}
+			const hasLimits =
+				(balance?.max_reply_cost_kopeks ?? null) !== null ||
+				(balance?.daily_cap_kopeks ?? null) !== null;
+			const hasContacts = Boolean(contactEmail || contactPhone);
+			const hasAutoTopup = balance?.auto_topup_enabled ?? false;
+			if (!advancedAutoLock) {
+				advancedOpen = hasAutoTopup || hasLimits || hasContacts;
+			}
+			if (lastTrackedStatus !== 'success') {
+				trackEvent('billing_wallet_view', { status: 'success' });
+				lastTrackedStatus = 'success';
+			}
 		} catch (error) {
 			console.error('Failed to load balance:', error);
 			errorMessage = $i18n.t('Failed to load balance');
 			balance = null;
 			leadMagnetInfo = null;
+			if (lastTrackedStatus !== 'error') {
+				trackEvent('billing_wallet_view', { status: 'error' });
+				lastTrackedStatus = 'error';
+			}
 		} finally {
 			loading = false;
 		}
 	};
 
-	const handleTopup = async (amountKopeks: number): Promise<void> => {
+	const handleTopup = async (
+		amountKopeks: number,
+		source: 'package' | 'custom' = 'package'
+	): Promise<void> => {
 		if (creatingTopupAmount !== null) return;
 		creatingTopupAmount = amountKopeks;
 
 		try {
+			if (source === 'package') {
+				trackEvent('billing_wallet_topup_package_click', { amount_kopeks: amountKopeks });
+			} else {
+				trackEvent('billing_wallet_topup_custom_submit', { amount_kopeks: amountKopeks });
+			}
 			const returnUrl = `${window.location.origin}/billing/balance`;
 			const result = await createTopup(localStorage.token, amountKopeks, returnUrl);
 			if (result?.confirmation_url) {
@@ -113,7 +144,7 @@
 		if (customTopupKopeks === null || customTopupKopeks <= 0) {
 			return;
 		}
-		await handleTopup(customTopupKopeks);
+		await handleTopup(customTopupKopeks, 'custom');
 		customTopup = '';
 	};
 
@@ -135,6 +166,11 @@
 				amount_kopeks: autoTopupEnabled ? (amount ?? undefined) : undefined
 			});
 
+			trackEvent('billing_wallet_auto_topup_save', {
+				enabled: autoTopupEnabled,
+				threshold_kopeks: autoTopupEnabled ? threshold : null,
+				amount_kopeks: autoTopupEnabled ? amount : null
+			});
 			toast.success($i18n.t('Auto-topup settings saved'));
 			await loadBalance();
 		} catch (error) {
@@ -145,7 +181,7 @@
 		}
 	};
 
-	const handleSavePreferences = async (): Promise<void> => {
+	const handleSavePreferences = async (source: 'limits' | 'contacts'): Promise<void> => {
 		if (!balance) return;
 		savingPreferences = true;
 		try {
@@ -168,6 +204,18 @@
 				billing_contact_phone: contactPhone || undefined
 			});
 
+			if (source === 'limits') {
+				trackEvent('billing_wallet_limits_save', {
+					max_reply_cost_kopeks: maxReply ?? null,
+					daily_cap_kopeks: daily ?? null
+				});
+			}
+			if (source === 'contacts') {
+				trackEvent('billing_wallet_contacts_save', {
+					has_email: Boolean(contactEmail),
+					has_phone: Boolean(contactPhone)
+				});
+			}
 			toast.success($i18n.t('Billing settings saved'));
 			await loadBalance();
 		} catch (error) {
@@ -213,10 +261,24 @@
 		const target = document.getElementById('topup-section');
 		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 	};
-
-	const scrollToLimits = () => {
-		const target = document.getElementById('spend-controls-section');
-		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	const handleAdvancedToggle = (open: boolean): void => {
+		advancedOpen = open;
+		advancedAutoLock = true;
+		trackEvent('billing_wallet_advanced_toggle', { open });
+	};
+	const handleHistoryClick = async (event: MouseEvent): Promise<void> => {
+		if (
+			event.metaKey ||
+			event.ctrlKey ||
+			event.shiftKey ||
+			event.altKey ||
+			event.button !== 0
+		) {
+			return;
+		}
+		event.preventDefault();
+		trackEvent('billing_wallet_history_click');
+		await goto('/billing/history');
 	};
 
 	const formatDateTime = (timestamp: number | null | undefined): string => {
@@ -232,6 +294,7 @@
 
 	$: customTopupKopeks = parseMoneyInput(customTopup);
 	$: totalBalance = (balance?.balance_topup_kopeks ?? 0) + (balance?.balance_included_kopeks ?? 0);
+	$: isLowBalance = totalBalance < LOW_BALANCE_THRESHOLD_KOPEKS;
 
 	$: leadMagnetModels =
 		$models
@@ -273,58 +336,83 @@
 	</div>
 {:else}
 	<div class="w-full">
-		<div class="flex flex-col gap-1 px-1 mt-1.5 mb-3">
-			<div class="flex justify-between items-center mb-1 w-full">
-				<div class="flex items-center gap-2">
-					<div class="text-xl font-medium">{$i18n.t('Wallet')}</div>
-				</div>
-				<div class="flex items-center gap-2">
-					<button
-						type="button"
-						on:click={scrollToLimits}
-						class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
-					>
-						{$i18n.t('Limits')}
-					</button>
-					<button
-						type="button"
-						on:click={scrollToTopup}
-						class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium"
-					>
-						{$i18n.t('Top up')}
-					</button>
-				</div>
-			</div>
-			<div class="text-sm text-gray-500">
-				{$i18n.t('Manage your balance and limits')}
-			</div>
-		</div>
-
 		<div class="space-y-4">
 			<div
 				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-5"
 			>
-				<div class="text-sm text-gray-500">{$i18n.t('Available now')}</div>
-				<div class="text-3xl font-semibold mt-1">
-					{formatMoney(totalBalance, balance.currency)}
+				<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+					<div>
+						<div class="flex items-center gap-2">
+							<h1 class="text-xl font-medium">{$i18n.t('Wallet')}</h1>
+							{#if isLowBalance}
+								<span
+									class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300"
+								>
+									{$i18n.t('Low balance')}
+								</span>
+							{/if}
+						</div>
+						<div class="text-sm text-gray-500 mt-1">
+							{$i18n.t('Top up and control spending')}
+						</div>
+					</div>
+					<div class="flex items-center gap-2">
+						<a
+							href="/billing/history"
+							on:click={handleHistoryClick}
+							class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
+						>
+							{$i18n.t('View history')}
+						</a>
+						<button
+							type="button"
+							on:click={scrollToTopup}
+							class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium {isLowBalance
+								? 'ring-2 ring-amber-500/40'
+								: ''}"
+						>
+							{$i18n.t('Top up')}
+						</button>
+					</div>
 				</div>
-				<div class="flex flex-wrap gap-3 text-xs text-gray-500 mt-2">
-					<span>
-						{$i18n.t('From wallet')}: {formatMoney(balance.balance_topup_kopeks, balance.currency)}
-					</span>
-					{#if balance.balance_included_kopeks > 0}
+
+				<div class="mt-4">
+					<div class="text-sm text-gray-500">{$i18n.t('Available now')}</div>
+					<div class="text-3xl font-semibold mt-1">
+						{formatMoney(totalBalance, balance.currency)}
+					</div>
+					<div class="flex flex-wrap gap-3 text-xs text-gray-500 mt-2">
 						<span>
-							{$i18n.t('From plan')}: {formatMoney(
-								balance.balance_included_kopeks,
-								balance.currency
-							)}
+							{$i18n.t('From wallet')}:{' '}
+							{formatMoney(balance.balance_topup_kopeks, balance.currency)}
 						</span>
-						<span>
-							{$i18n.t('Included expires')}: {formatDateTime(balance.included_expires_at)}
-						</span>
+						{#if balance.balance_included_kopeks > 0}
+							<span>
+								{$i18n.t('From plan')}:{' '}
+								{formatMoney(balance.balance_included_kopeks, balance.currency)}
+							</span>
+							<span>
+								{$i18n.t('Included expires')}: {formatDateTime(balance.included_expires_at)}
+							</span>
+						{/if}
+					</div>
+					{#if isLowBalance}
+						<div class="text-xs text-amber-700 dark:text-amber-300 mt-2">
+							{$i18n.t('Top up to keep working')}
+						</div>
 					{/if}
 				</div>
 			</div>
+
+			<WalletTopupSection
+				currency={balance.currency}
+				defaultPackages={DEFAULT_TOPUP_PACKAGES_KOPEKS}
+				creatingTopupAmount={creatingTopupAmount}
+				bind:customTopup
+				customTopupKopeks={customTopupKopeks}
+				onTopup={handleTopup}
+				onCustomTopup={handleCustomTopup}
+			/>
 
 			{#if leadMagnetInfo?.enabled}
 				<WalletLeadMagnetSection
@@ -334,45 +422,39 @@
 				/>
 			{/if}
 
-			<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-				<WalletTopupSection
-					currency={balance.currency}
-					defaultPackages={DEFAULT_TOPUP_PACKAGES_KOPEKS}
-					creatingTopupAmount={creatingTopupAmount}
-					bind:customTopup
-					customTopupKopeks={customTopupKopeks}
-					onTopup={handleTopup}
-					onCustomTopup={handleCustomTopup}
-				/>
-				<WalletAutoTopupSection
-					bind:autoTopupEnabled
-					bind:autoTopupThreshold
-					bind:autoTopupAmount
-					savingAutoTopup={savingAutoTopup}
-					autoTopupFailCount={balance.auto_topup_fail_count ?? 0}
-					autoTopupLastFailedAt={balance.auto_topup_last_failed_at}
-					onSave={handleSaveAutoTopup}
-				/>
+			<div id="advanced-settings-section">
+				<WalletAdvancedSettings
+					bind:open={advancedOpen}
+					title={$i18n.t('Manage limits & auto-topup')}
+					helper={$i18n.t('Rarely used settings')}
+					onToggle={handleAdvancedToggle}
+				>
+					<WalletAutoTopupSection
+						bind:autoTopupEnabled
+						bind:autoTopupThreshold
+						bind:autoTopupAmount
+						savingAutoTopup={savingAutoTopup}
+						autoTopupFailCount={balance.auto_topup_fail_count ?? 0}
+						autoTopupLastFailedAt={balance.auto_topup_last_failed_at}
+						onSave={handleSaveAutoTopup}
+					/>
+					<WalletSpendControls
+						bind:maxReplyCost
+						bind:dailyCap
+						currentMaxReply={balance.max_reply_cost_kopeks ?? null}
+						currentDailyCap={balance.daily_cap_kopeks ?? null}
+						currency={balance.currency}
+						savingPreferences={savingPreferences}
+						onSave={() => handleSavePreferences('limits')}
+					/>
+					<WalletContactsSection
+						bind:contactEmail
+						bind:contactPhone
+						savingPreferences={savingPreferences}
+						onSave={() => handleSavePreferences('contacts')}
+					/>
+				</WalletAdvancedSettings>
 			</div>
-
-			<div id="spend-controls-section">
-				<WalletSpendControls
-					bind:maxReplyCost
-					bind:dailyCap
-					currentMaxReply={balance.max_reply_cost_kopeks ?? null}
-					currentDailyCap={balance.daily_cap_kopeks ?? null}
-					currency={balance.currency}
-					savingPreferences={savingPreferences}
-					onSave={handleSavePreferences}
-				/>
-			</div>
-
-			<WalletContactsSection
-				bind:contactEmail
-				bind:contactPhone
-				savingPreferences={savingPreferences}
-				onSave={handleSavePreferences}
-			/>
 
 			<div
 				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
@@ -381,6 +463,7 @@
 					<div class="text-sm font-medium">{$i18n.t('Latest activity')}</div>
 					<a
 						href="/billing/history"
+						on:click={handleHistoryClick}
 						class="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
 					>
 						{$i18n.t('View all activity')}

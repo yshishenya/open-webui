@@ -12,6 +12,7 @@
 	export let autoTopupFailCount: number | null = null;
 	export let autoTopupLastFailedAt: number | null = null;
 	export let onSave: () => void;
+	const toggleLabelId = 'auto-topup-toggle-label';
 
 	const formatDateTime = (timestamp: number | null | undefined): string => {
 		if (!timestamp) return $i18n.t('Never');
@@ -27,8 +28,14 @@
 
 <div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4">
 	<div class="flex items-center justify-between mb-3">
-		<div class="text-sm font-medium">{$i18n.t('Auto-topup')}</div>
-		<Switch state={autoTopupEnabled} on:change={(e) => (autoTopupEnabled = e.detail)} />
+		<div class="text-sm font-medium" id={toggleLabelId}>
+			{$i18n.t('Auto-topup')}
+		</div>
+		<Switch
+			state={autoTopupEnabled}
+			ariaLabelledbyId={toggleLabelId}
+			on:change={(e) => (autoTopupEnabled = e.detail)}
+		/>
 	</div>
 
 	{#if autoTopupFailCount && autoTopupFailCount >= 3}
@@ -42,8 +49,10 @@
 			<span class="text-gray-500">{$i18n.t('Threshold')}</span>
 			<input
 				type="text"
+				name="auto_topup_threshold"
+				autocomplete="off"
 				inputmode="decimal"
-				placeholder={$i18n.t('0.00')}
+				placeholder={$i18n.t('0.00…')}
 				bind:value={autoTopupThreshold}
 				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 				disabled={!autoTopupEnabled}
@@ -53,8 +62,10 @@
 			<span class="text-gray-500">{$i18n.t('Amount')}</span>
 			<input
 				type="text"
+				name="auto_topup_amount"
+				autocomplete="off"
 				inputmode="decimal"
-				placeholder={$i18n.t('0.00')}
+				placeholder={$i18n.t('0.00…')}
 				bind:value={autoTopupAmount}
 				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 				disabled={!autoTopupEnabled}
@@ -73,10 +84,10 @@
 			class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
 		>
 			{#if savingAutoTopup}
-				<div class="flex items-center gap-2">
-					<Spinner className="size-4" />
-					<span>{$i18n.t('Saving')}</span>
-				</div>
+					<div class="flex items-center gap-2">
+						<Spinner className="size-4" />
+						<span>{$i18n.t('Saving…')}</span>
+					</div>
 			{:else}
 				{$i18n.t('Save')}
 			{/if}

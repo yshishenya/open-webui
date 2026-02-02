@@ -14,6 +14,7 @@
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
+	import { trackEvent } from '$lib/utils/analytics';
 
 	const i18n = getContext('i18n');
 
@@ -25,12 +26,14 @@
 	let resumingPlanId: string | null = null;
 	let didLoad = false;
 	let unsubscribeConfig: (() => void) | null = null;
+	let didTrackView = false;
 
 	onMount(async () => {
 		unsubscribeConfig = config.subscribe((current) => {
 			if (!current || didLoad) return;
 			const enabled = current.features?.enable_billing_subscriptions ?? true;
 			if (!enabled || $user?.role !== 'admin') {
+				trackEvent('billing_plans_view', { status: 'unauthorized' });
 				loading = false;
 				goto('/billing/dashboard');
 				didLoad = true;
@@ -76,6 +79,12 @@
 			]);
 			plans = plansResult;
 			subscription = subscriptionResult;
+			if (!didTrackView) {
+				trackEvent('billing_plans_view', {
+					status: plansResult.length > 0 ? 'loaded' : 'empty'
+				});
+				didTrackView = true;
+			}
 		} finally {
 			loading = false;
 		}
@@ -197,7 +206,7 @@
 		<div class="flex flex-col gap-1 px-1 mt-1.5 mb-3">
 			<div class="flex justify-between items-center mb-1 w-full">
 				<div class="flex items-center gap-2">
-					<div class="text-xl font-medium">{$i18n.t('Subscription Plans')}</div>
+					<h1 class="text-xl font-medium">{$i18n.t('Subscription Plans')}</h1>
 				</div>
 			</div>
 			<div class="text-sm text-gray-500">

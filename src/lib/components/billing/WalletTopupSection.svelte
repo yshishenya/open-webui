@@ -40,7 +40,9 @@
 				class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
 				disabled={creatingTopupAmount !== null}
 			>
-				{creatingTopupAmount === amount ? $i18n.t('Processing') : formatMoney(amount, currency)}
+				{creatingTopupAmount === amount
+					? $i18n.t('Processing…')
+					: formatMoney(amount, currency)}
 			</button>
 		{/each}
 	</div>
@@ -49,8 +51,10 @@
 			<span class="text-gray-500">{$i18n.t('Custom amount')}</span>
 			<input
 				type="text"
+				name="custom_topup"
+				autocomplete="off"
 				inputmode="decimal"
-				placeholder={$i18n.t('0.00')}
+				placeholder={$i18n.t('0.00…')}
 				bind:value={customTopup}
 				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 				disabled={creatingTopupAmount !== null}
@@ -63,7 +67,7 @@
 			class="h-fit sm:self-end px-4 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
 		>
 			{creatingTopupAmount !== null && customTopupKopeks === creatingTopupAmount
-				? $i18n.t('Processing')
+				? $i18n.t('Processing…')
 				: $i18n.t('Top up')}
 		</button>
 	</div>

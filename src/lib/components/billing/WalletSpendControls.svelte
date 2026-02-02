@@ -36,8 +36,10 @@
 			<span class="text-gray-500">{$i18n.t('Max reply cost')}</span>
 			<input
 				type="text"
+				name="max_reply_cost"
+				autocomplete="off"
 				inputmode="decimal"
-				placeholder={$i18n.t('0.00')}
+				placeholder={$i18n.t('0.00…')}
 				bind:value={maxReplyCost}
 				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 			/>
@@ -49,8 +51,10 @@
 			<span class="text-gray-500">{$i18n.t('Daily cap')}</span>
 			<input
 				type="text"
+				name="daily_cap"
+				autocomplete="off"
 				inputmode="decimal"
-				placeholder={$i18n.t('0.00')}
+				placeholder={$i18n.t('0.00…')}
 				bind:value={dailyCap}
 				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 			/>
@@ -70,10 +74,10 @@
 			class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
 		>
 			{#if savingPreferences}
-				<div class="flex items-center gap-2">
-					<Spinner className="size-4" />
-					<span>{$i18n.t('Saving')}</span>
-				</div>
+					<div class="flex items-center gap-2">
+						<Spinner className="size-4" />
+						<span>{$i18n.t('Saving…')}</span>
+					</div>
 			{:else}
 				{$i18n.t('Save')}
 			{/if}

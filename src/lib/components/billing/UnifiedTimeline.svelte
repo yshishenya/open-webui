@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { onMount, getContext } from 'svelte';
+	import { derived } from 'svelte/store';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import { models } from '$lib/stores';
 	import { getLedger, getUsageEvents } from '$lib/apis/billing';
 	import type { LedgerEntry, UsageEvent } from '$lib/apis/billing';
@@ -35,6 +38,8 @@
 	export let showFilters = false;
 	export let showLoadMore = true;
 	export let currency: string | null = null;
+	export let syncFilterWithUrl = false;
+	export let onFilterChange: (filter: FilterKey) => void = () => {};
 
 	let loading = true;
 	let loadingMore = false;
@@ -48,6 +53,27 @@
 	let usageError: string | null = null;
 	let displayCount = pageSize;
 	let activeFilter: FilterKey = 'all';
+	const filterKeys: FilterKey[] = ['all', 'paid', 'free', 'topups'];
+	const urlFilter = derived(page, ($page): FilterKey => {
+		const value = $page.url.searchParams.get('filter');
+		if (value && filterKeys.includes(value as FilterKey)) {
+			return value as FilterKey;
+		}
+		return 'all';
+	});
+
+	const updateUrlFilter = async (filter: FilterKey): Promise<void> => {
+		if (!syncFilterWithUrl) return;
+		const params = new URLSearchParams($page.url.searchParams);
+		if (filter === 'all') {
+			params.delete('filter');
+		} else {
+			params.set('filter', filter);
+		}
+		const query = params.toString();
+		const target = query ? `${$page.url.pathname}?${query}` : $page.url.pathname;
+		await goto(target, { replaceState: true, keepFocus: true, noScroll: true });
+	};
 
 	const fetchLedger = async (): Promise<void> => {
 		if (!ledgerHasMore) return;
@@ -96,6 +122,7 @@
 	};
 
 	onMount(async () => {
+		activeFilter = syncFilterWithUrl ? $urlFilter : 'all';
 		await loadInitial();
 	});
 
@@ -105,6 +132,13 @@
 		displayCount += pageSize;
 		await Promise.all([fetchLedger(), fetchUsage()]);
 		loadingMore = false;
+	};
+
+	const handleFilterChange = async (filter: FilterKey): Promise<void> => {
+		if (activeFilter === filter) return;
+		activeFilter = filter;
+		onFilterChange(filter);
+		await updateUrlFilter(filter);
 	};
 
 	const resolveCurrency = (): string => {
@@ -272,6 +306,9 @@
 		return 'text-gray-600 dark:text-gray-400';
 	};
 
+	$: if (syncFilterWithUrl && $urlFilter !== activeFilter) {
+		activeFilter = $urlFilter;
+	}
 	$: mergedItems = mergeItems(ledgerEntries, usageEntries);
 	$: filteredItems = filterItems(mergedItems);
 	$: visibleItems = (() => {
@@ -286,7 +323,7 @@
 	<div class="flex flex-wrap gap-2 mb-3">
 		<button
 			type="button"
-			on:click={() => (activeFilter = 'all')}
+			on:click={() => handleFilterChange('all')}
 			class="px-3 py-1.5 rounded-full text-sm font-medium transition {activeFilter === 'all'
 				? 'bg-black text-white dark:bg-white dark:text-black'
 				: 'border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}"
@@ -295,7 +332,7 @@
 		</button>
 		<button
 			type="button"
-			on:click={() => (activeFilter = 'paid')}
+			on:click={() => handleFilterChange('paid')}
 			class="px-3 py-1.5 rounded-full text-sm font-medium transition {activeFilter === 'paid'
 				? 'bg-black text-white dark:bg-white dark:text-black'
 				: 'border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}"
@@ -304,7 +341,7 @@
 		</button>
 		<button
 			type="button"
-			on:click={() => (activeFilter = 'free')}
+			on:click={() => handleFilterChange('free')}
 			class="px-3 py-1.5 rounded-full text-sm font-medium transition {activeFilter === 'free'
 				? 'bg-black text-white dark:bg-white dark:text-black'
 				: 'border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}"
@@ -313,7 +350,7 @@
 		</button>
 		<button
 			type="button"
-			on:click={() => (activeFilter = 'topups')}
+			on:click={() => handleFilterChange('topups')}
 			class="px-3 py-1.5 rounded-full text-sm font-medium transition {activeFilter === 'topups'
 				? 'bg-black text-white dark:bg-white dark:text-black'
 				: 'border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}"
@@ -399,7 +436,7 @@
 				disabled={loadingMore}
 				class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
 			>
-				{loadingMore ? $i18n.t('Loading') : $i18n.t('Load more')}
+				{loadingMore ? $i18n.t('Loading…') : $i18n.t('Load more')}
 			</button>
 		</div>
 	{/if}
