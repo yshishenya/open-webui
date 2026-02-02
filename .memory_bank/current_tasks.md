@@ -22,6 +22,18 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Owner**: Codex
   - **Done**: 2026-02-02
 
+- [x] **[REFAC]** Minimize upstream diffs for chat billing/prefill
+  - Moved welcome preset prefill + OpenAI billing metadata into `src/lib/utils/airis/*`
+  - Kept upstream files to thin hooks: `Chat.svelte` (+prefill + include_usage policy), `openai/index.ts` (+body enhancer)
+  - Added Vitest coverage for airis helpers; respect explicit `capabilities.usage` flag
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
+- [x] **[BUG]** Fix duplicate dictation button in chat input
+  - Removed duplicate `Dictate` render path so only one mic button shows next to Voice mode
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
 - [x] **[QA]** Fix e2e selectors after billing timeline + welcome hero updates
   - Lead magnet checks scoped to card; history test mocks usage events; preset selectors stabilized
   - **Owner**: Codex

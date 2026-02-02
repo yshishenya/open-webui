@@ -56,6 +56,12 @@
 		getCodeBlockContents,
 		isYoutubeUrl
 	} from '$lib/utils';
+	import {
+		clearWelcomePresetPrompt,
+		consumeWelcomePresetPrompt,
+		setTextWithRetries,
+		shouldIncludeUsage
+	} from '$lib/utils/airis/chat';
 	import { AudioQueue } from '$lib/utils/audio';
 
 	import {
@@ -1051,16 +1057,9 @@
 			showControls.set(true);
 		}
 
-		const applyPromptText = async (text: string) => {
-			for (let attempt = 0; attempt < 5 && !messageInput; attempt += 1) {
-				await tick();
-			}
-			messageInput?.setText(text);
-		};
-
 		if ($page.url.searchParams.get('q')) {
 			const q = $page.url.searchParams.get('q') ?? '';
-			await applyPromptText(q);
+			await setTextWithRetries(() => messageInput, tick, q);
 
 			if (q) {
 				if (($page.url.searchParams.get('submit') ?? 'true') === 'true') {
@@ -1068,33 +1067,13 @@
 					submitPrompt(q);
 				}
 			}
-			sessionStorage.removeItem('welcome_preset_prompt');
 		} else {
-			const storedPreset = sessionStorage.getItem('welcome_preset_prompt');
-			if (storedPreset) {
-				try {
-					const parsed = JSON.parse(storedPreset) as {
-						prompt?: string;
-						source?: string;
-						createdAt?: number;
-					};
-					const presetPrompt = parsed.prompt ?? '';
-					const presetSource = parsed.source ?? '';
-					const presetAgeMs = parsed.createdAt
-						? Date.now() - parsed.createdAt
-						: Number.POSITIVE_INFINITY;
-					const PRESET_TTL_MS = 10 * 60 * 1000;
-					const isWelcomeSource = presetSource.startsWith('welcome_');
-
-					if (presetPrompt && isWelcomeSource && presetAgeMs <= PRESET_TTL_MS) {
-						await applyPromptText(presetPrompt);
-					}
-				} catch (e) {
-					console.warn('Failed to load preset prompt:', e);
-				}
-				sessionStorage.removeItem('welcome_preset_prompt');
+			const presetPrompt = consumeWelcomePresetPrompt();
+			if (presetPrompt) {
+				await setTextWithRetries(() => messageInput, tick, presetPrompt);
 			}
 		}
+		clearWelcomePresetPrompt();
 
 		selectedModels = selectedModels.map((modelId) =>
 			$models.map((m) => m.id).includes(modelId) ? modelId : ''
@@ -1869,11 +1848,6 @@
 	const sendMessageSocket = async (model, _messages, _history, responseMessageId, _chatId) => {
 		const responseMessage = _history.messages[responseMessageId];
 		const userMessage = _history.messages[responseMessage.parentId];
-		const requestId = responseMessage.request_id ?? uuidv4();
-		responseMessage.request_id = requestId;
-		if (history?.messages?.[responseMessageId]) {
-			history.messages[responseMessageId].request_id = requestId;
-		}
 
 		const chatMessageFiles = _messages
 			.filter((message) => message.files)
@@ -1922,7 +1896,6 @@
 			$settings?.params?.stream_response ??
 			params?.stream_response ??
 			true;
-		const includeUsage = model?.info?.meta?.capabilities?.usage ?? model?.owned_by === 'openai';
 
 		let messages = [
 			params?.system || $settings.system
@@ -2019,11 +1992,6 @@
 
 				id: responseMessageId,
 				parent_id: userMessage?.id ?? null,
-				metadata: {
-					request_id: requestId,
-					chat_id: _chatId,
-					message_id: responseMessageId
-				},
 				parent_message: userMessage,
 
 				background_tasks: {
@@ -2041,7 +2009,7 @@
 					follow_up_generation: $settings?.autoFollowUps ?? true
 				},
 
-				...(stream && includeUsage
+				...(stream && shouldIncludeUsage(model)
 					? {
 							stream_options: {
 								include_usage: true
@@ -2593,7 +2561,6 @@
 									bind:imageGenerationEnabled
 									bind:codeInterpreterEnabled
 									bind:webSearchEnabled
-									bind:params
 									bind:atSelectedModel
 									bind:showCommands
 									toolServers={$toolServers}
