@@ -41,6 +41,17 @@ What problem are we solving and why now?
 - Edge cases:
   - …
 
+## Upstream impact
+
+If this work touches upstream-owned files, list them here and explain why (and how the diff is minimized):
+
+- Upstream-owned files touched:
+  - …
+- Why unavoidable:
+  - …
+- Minimization strategy (thin hooks / additive modules / guarded behavior):
+  - …
+
 ## Verification
 
 Docker Compose-first commands (adjust if needed):

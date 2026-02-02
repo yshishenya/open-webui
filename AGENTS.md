@@ -20,6 +20,25 @@
 
 **Airis** - Chat with LLM
 
+## Upstream Sync Discipline (Open WebUI)
+
+This repository is a **fork** of upstream **Open WebUI**. We periodically sync changes from upstream.
+
+**Primary goal:** keep our fork’s diff small to minimize conflicts during upstream updates.
+
+Rules:
+
+- Prefer **additive changes** (new files/modules) over modifying upstream-owned files.
+- Keep Airis-specific logic in “fork-owned” modules and call it from upstream files via **thin hooks**.
+  - Frontend: prefer `src/lib/utils/airis/*` and keep upstream component diffs minimal.
+  - Backend: prefer small helpers in `backend/open_webui/utils/` (use an `airis/` subpackage when it helps isolate changes).
+- If you must edit an upstream-owned file:
+  - Keep the diff minimal (no reformatting, no large moves/renames, no unrelated cleanups).
+  - Avoid changing public contracts unless strictly required.
+  - Document “Upstream impact” in the work item spec (which upstream files were touched and why).
+
+See `.memory_bank/guides/upstream_sync.md`.
+
 ### Key Project Features:
 
 #### 1. Backend Architecture
