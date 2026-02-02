@@ -17,6 +17,11 @@ This file tracks active development tasks for the Airis project. Update this fil
   - **Owner**: Codex
   - **Done**: 2026-02-02
 
+- [x] **[DEV]** Add interactive dev stack helper
+  - New script: `scripts/dev_stack.sh` to run dev compose with HMR/reload and common actions
+  - **Owner**: Codex
+  - **Done**: 2026-02-02
+
 - [x] **[QA]** Fix e2e selectors after billing timeline + welcome hero updates
   - Lead magnet checks scoped to card; history test mocks usage events; preset selectors stabilized
   - **Owner**: Codex
