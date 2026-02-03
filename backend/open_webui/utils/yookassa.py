@@ -8,6 +8,8 @@ import logging
 import uuid
 import hashlib
 import hmac
+import functools
+import ipaddress
 from typing import Optional, Dict, Any
 from decimal import Decimal
 
@@ -277,7 +279,15 @@ class YooKassaClient:
         signature: str,
     ) -> bool:
         """
-        Verify webhook signature from YooKassa
+        Verify a webhook signature (best-effort / custom).
+
+        YooKassa incoming notifications docs recommend verifying authenticity by:
+        - Fetching the payment/refund via YooKassa API and validating status/amount.
+        - Verifying the source IP belongs to YooKassa documented ranges.
+
+        As of 2026-02-03, the docs do not describe an official request signature header/format.
+        This method is kept for backward compatibility in case the caller provides a signature
+        via a custom reverse-proxy setup.
 
         Args:
             webhook_body: Raw webhook body (JSON string)
@@ -290,7 +300,7 @@ class YooKassaClient:
             log.warning("Webhook secret not configured, skipping verification")
             return True
 
-        # YooKassa uses HMAC-SHA256
+        # Custom HMAC-SHA256 hex over raw body.
         expected_signature = hmac.new(
             self.config.webhook_secret.encode("utf-8"),
             webhook_body.encode("utf-8"),
@@ -303,6 +313,66 @@ class YooKassaClient:
             log.warning("Invalid webhook signature")
 
         return is_valid
+
+
+_DEFAULT_YOOKASSA_WEBHOOK_ALLOWED_IP_RANGES: tuple[str, ...] = (
+    "185.71.76.0/27",
+    "185.71.77.0/27",
+    "77.75.153.0/25",
+    "77.75.154.128/25",
+    "77.75.156.11",
+    "77.75.156.35",
+    "2a02:5180:0:1509::/64",
+    "2a02:5180:0:2655::/64",
+    "2a02:5180:0:1533::/64",
+)
+
+
+@functools.lru_cache(maxsize=16)
+def _parse_ip_allowlist(extra_ranges_csv: str) -> tuple[
+    ipaddress.IPv4Network | ipaddress.IPv6Network, ...
+]:
+    ranges: list[str] = list(_DEFAULT_YOOKASSA_WEBHOOK_ALLOWED_IP_RANGES)
+    for raw in extra_ranges_csv.split(","):
+        token = raw.strip()
+        if token:
+            ranges.append(token)
+
+    networks: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
+    for token in ranges:
+        if "/" in token:
+            network = ipaddress.ip_network(token, strict=False)
+            networks.append(network)
+            continue
+
+        address = ipaddress.ip_address(token)
+        networks.append(
+            ipaddress.ip_network(f"{address}/{address.max_prefixlen}", strict=False)
+        )
+
+    return tuple(networks)
+
+
+def is_yookassa_webhook_source_ip(client_ip: str, extra_ranges_csv: str = "") -> bool:
+    """Return True when the source IP matches YooKassa allowlist.
+
+    Args:
+        client_ip: Remote client IP (IPv4/IPv6 string).
+        extra_ranges_csv: Additional CIDRs/IPs (comma-separated) to allow.
+
+    Returns:
+        True when `client_ip` belongs to YooKassa documented ranges (plus extras).
+    """
+    try:
+        address = ipaddress.ip_address(client_ip)
+    except ValueError:
+        return False
+
+    for network in _parse_ip_allowlist(extra_ranges_csv):
+        if address in network:
+            return True
+
+    return False
 
 
 class YooKassaWebhookHandler:

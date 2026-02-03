@@ -189,6 +189,47 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         )
         assert response_ok.status_code == 200
 
+    def test_yookassa_webhook_ip_allowlist_optional_but_enforced_when_enabled(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+
+        async def _noop_process_webhook(_: dict[str, object]) -> None:
+            return None
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "process_payment_webhook",
+            _noop_process_webhook,
+        )
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST", True)
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_TRUST_X_FORWARDED_FOR", True)
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ALLOWED_IP_RANGES", "")
+
+        payload = {
+            "event": "payment.succeeded",
+            "object": {
+                "id": "pay_1",
+                "status": "succeeded",
+                "amount": {"value": "100.00", "currency": "RUB"},
+                "metadata": {},
+            },
+        }
+
+        response_bad = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            json=payload,
+            headers={"X-Forwarded-For": "1.1.1.1"},
+        )
+        assert response_bad.status_code == 401
+
+        response_ok = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            json=payload,
+            headers={"X-Forwarded-For": "185.71.76.1"},
+        )
+        assert response_ok.status_code == 200
+
     @pytest.mark.asyncio
     async def test_subscription_webhook_renews_from_now_if_expired(
         self, monkeypatch: MonkeyPatch

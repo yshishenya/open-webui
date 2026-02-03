@@ -996,3 +996,14 @@ YOOKASSA_SECRET_KEY = os.environ.get("YOOKASSA_SECRET_KEY", "")
 YOOKASSA_WEBHOOK_SECRET = os.environ.get("YOOKASSA_WEBHOOK_SECRET", "")
 YOOKASSA_WEBHOOK_TOKEN = os.environ.get("YOOKASSA_WEBHOOK_TOKEN", "")
 YOOKASSA_API_URL = os.environ.get("YOOKASSA_API_URL", "https://api.yookassa.ru/v3")
+
+# Optional webhook hardening (recommended if your app receives webhooks directly from YooKassa).
+YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST = (
+    os.environ.get("YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST", "False").lower() == "true"
+)
+YOOKASSA_WEBHOOK_TRUST_X_FORWARDED_FOR = (
+    os.environ.get("YOOKASSA_WEBHOOK_TRUST_X_FORWARDED_FOR", "False").lower() == "true"
+)
+YOOKASSA_WEBHOOK_ALLOWED_IP_RANGES = os.environ.get(
+    "YOOKASSA_WEBHOOK_ALLOWED_IP_RANGES", ""
+)

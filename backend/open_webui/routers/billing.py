@@ -48,7 +48,11 @@ from open_webui.utils.billing import (
 from open_webui.utils.lead_magnet import evaluate_lead_magnet
 from open_webui.utils.pricing import PricingService
 from open_webui.utils.wallet import wallet_service, WalletError
-from open_webui.utils.yookassa import YooKassaWebhookHandler, get_yookassa_client
+from open_webui.utils.yookassa import (
+    YooKassaWebhookHandler,
+    get_yookassa_client,
+    is_yookassa_webhook_source_ip,
+)
 from open_webui.env import SRC_LOG_LEVELS
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import (
@@ -61,7 +65,10 @@ from open_webui.env import (
     PUBLIC_PRICING_RECOMMENDED_IMAGE_MODEL,
     PUBLIC_PRICING_RECOMMENDED_AUDIO_MODEL,
     PUBLIC_PRICING_RATE_CARD_MODEL_LIMIT,
+    YOOKASSA_WEBHOOK_ALLOWED_IP_RANGES,
+    YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST,
     YOOKASSA_WEBHOOK_TOKEN,
+    YOOKASSA_WEBHOOK_TRUST_X_FORWARDED_FOR,
 )
 from open_webui.models.users import Users
 from open_webui.models.models import Models
@@ -1102,6 +1109,23 @@ async def yookassa_webhook(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid webhook token",
         )
+
+    if YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST:
+        source_ip: str | None = None
+        if YOOKASSA_WEBHOOK_TRUST_X_FORWARDED_FOR:
+            forwarded_for = request.headers.get("X-Forwarded-For")
+            if forwarded_for:
+                source_ip = forwarded_for.split(",", 1)[0].strip() or None
+
+        if source_ip is None:
+            source_ip = request.client.host if request.client else ""
+
+        if not is_yookassa_webhook_source_ip(source_ip, YOOKASSA_WEBHOOK_ALLOWED_IP_RANGES):
+            log.warning("Untrusted YooKassa webhook source ip: %s", source_ip)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Untrusted webhook source",
+            )
 
     # Get raw body for signature verification / parsing.
     body = await request.body()
