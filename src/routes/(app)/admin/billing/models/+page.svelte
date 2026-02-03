@@ -1,15 +1,16 @@
-<script lang="ts">
-	import { onMount, getContext } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { toast } from 'svelte-sonner';
+	<script lang="ts">
+		import { onMount, getContext } from 'svelte';
+		import { goto } from '$app/navigation';
+		import { toast } from 'svelte-sonner';
 
-	import { WEBUI_NAME, user } from '$lib/stores';
-	import { getBaseModels, updateModelById } from '$lib/apis/models';
-	import {
-		applyRateCardsXlsxImport,
-		createRateCard,
-		deleteRateCardsByModel,
-		deactivateRateCardsByModel,
+		import { WEBUI_NAME, user } from '$lib/stores';
+		import { getModels } from '$lib/apis';
+		import { createNewModel, getBaseModels, updateModelById } from '$lib/apis/models';
+		import {
+			applyRateCardsXlsxImport,
+			createRateCard,
+			deleteRateCardsByModel,
+			deactivateRateCardsByModel,
 		exportRateCardsXlsx,
 		listRateCards,
 		previewRateCardsXlsxImport,
@@ -92,15 +93,16 @@
 		stt: ['stt_second']
 	};
 
-	let loaded = false;
-	let loading = false;
-	let errorMessage: string | null = null;
+		let loaded = false;
+		let loading = false;
+		let errorMessage: string | null = null;
 
-	let availableModels: ModelOption[] = [];
-	let rateCards: RateCard[] = [];
-	let modelRows: ModelRow[] = [];
-	let rateCardIndex: Record<string, Record<string, RateCard>> = {};
-	let rateCardKeyIndex = new Set<string>();
+		let availableModels: ModelOption[] = [];
+		let workspaceModelIds = new Set<string>();
+		let rateCards: RateCard[] = [];
+		let modelRows: ModelRow[] = [];
+		let rateCardIndex: Record<string, Record<string, RateCard>> = {};
+		let rateCardKeyIndex = new Set<string>();
 
 	let searchValue = '';
 	let statusFilter: StatusFilter = 'all';
@@ -242,18 +244,71 @@
 	};
 
 	const loadModels = async () => {
-		const models = ((await getBaseModels(localStorage.token)) ?? []) as ModelOption[];
-		availableModels = models
-			.map((model: ModelOption) => ({
+		const [workspaceModelsRaw, baseModelsRaw] = await Promise.all([
+			getBaseModels(localStorage.token),
+			getModels(localStorage.token, null, true)
+		]);
+
+		const workspaceModels = ((workspaceModelsRaw ?? []) as ModelOption[]).map((model) => ({
+			id: model.id,
+			name: model.name,
+			is_active: model.is_active,
+			base_model_id: model.base_model_id,
+			meta: model.meta,
+			params: model.params,
+			access_control: model.access_control
+		}));
+
+		const workspaceById = new Map<string, ModelOption>(
+			workspaceModels.map((model) => [model.id, model])
+		);
+		workspaceModelIds = new Set(workspaceModels.map((model) => model.id));
+
+		const baseModels = (baseModelsRaw ?? []) as Array<{ id: string; name?: string | null }>;
+		const baseModelIds = new Set<string>(baseModels.map((model) => model.id));
+
+		const merged: ModelOption[] = baseModels.map((model) => {
+			const workspaceModel = workspaceById.get(model.id);
+			if (workspaceModel) return workspaceModel;
+			return {
 				id: model.id,
-				name: model.name,
-				is_active: model.is_active,
-				base_model_id: model.base_model_id,
-				meta: model.meta,
-				params: model.params,
-				access_control: model.access_control
-			}))
-			.sort((a: ModelOption, b: ModelOption) => (a.name ?? a.id).localeCompare(b.name ?? b.id));
+				name: model.name ?? model.id,
+				is_active: true,
+				base_model_id: null,
+				meta: null,
+				params: null,
+				access_control: null
+			};
+		});
+
+		for (const model of workspaceModels) {
+			if (baseModelIds.has(model.id)) continue;
+			merged.push(model);
+		}
+
+		availableModels = merged.sort((a, b) => (a.name ?? a.id).localeCompare(b.name ?? b.id));
+	};
+
+	const ensureWorkspaceBaseModelExists = async (
+		model: ModelOption,
+		nextMeta?: ModelOption['meta']
+	) => {
+		if (workspaceModelIds.has(model.id)) return;
+
+		const created = await createNewModel(localStorage.token, {
+			id: model.id,
+			name: model.name ?? model.id,
+			base_model_id: null,
+			params: model.params ?? {},
+			access_control: model.access_control ?? null,
+			is_active: model.is_active ?? true,
+			meta: nextMeta ?? model.meta ?? {}
+		});
+
+		if (!created) {
+			throw new Error('Failed to create base model workspace entry');
+		}
+		workspaceModelIds.add(model.id);
 	};
 
 	const loadRateCards = async () => {
@@ -783,15 +838,15 @@
 		return { create, update, disable, total: create + update + disable };
 	};
 
-	const handleSave = async () => {
-		if (saving || !selectedModel) return;
-		const activeModel = selectedModel;
+		const handleSave = async () => {
+			if (saving || !selectedModel) return;
+			const activeModel = selectedModel;
 
 		const updateRequests: Array<{ id: string; data: RateCardUpdateRequest }> = [];
 		const createRequests: RateCardCreateRequest[] = [];
 		const deactivatedKeys = new Set<string>();
-		const leadMagnetChanged = Boolean(activeModel.meta?.lead_magnet) !== Boolean(leadMagnetEnabled);
-		let hasValidationError = false;
+			const leadMagnetChanged = Boolean(activeModel.meta?.lead_magnet) !== Boolean(leadMagnetEnabled);
+			let hasValidationError = false;
 
 		(Object.keys(modalState) as ModalityKey[]).forEach((modality) => {
 			const modalityState = modalState[modality];
@@ -865,24 +920,31 @@
 			return;
 		}
 
-		if (createRequests.length === 0 && updateRequests.length === 0 && !leadMagnetChanged) {
-			toast.error($i18n.t('No changes to save'));
-			return;
-		}
+			if (createRequests.length === 0 && updateRequests.length === 0 && !leadMagnetChanged) {
+				toast.error($i18n.t('No changes to save'));
+				return;
+			}
 
-		saving = true;
-		try {
-			if (leadMagnetChanged) {
-				const nextMeta = { ...(selectedModel.meta ?? {}) };
-				if (leadMagnetEnabled) {
-					nextMeta.lead_magnet = true;
-				} else {
-					delete nextMeta.lead_magnet;
+			saving = true;
+			try {
+				if (createRequests.length > 0 || updateRequests.length > 0 || leadMagnetChanged) {
+					await ensureWorkspaceBaseModelExists(activeModel);
 				}
-				const updatedModel = await updateModelById(localStorage.token, selectedModel.id, {
-					id: selectedModel.id,
-					name: selectedModel.name ?? selectedModel.id,
-					base_model_id: selectedModel.base_model_id ?? null,
+
+				if (leadMagnetChanged) {
+					const nextMeta = { ...(selectedModel.meta ?? {}) };
+					if (leadMagnetEnabled) {
+						nextMeta.lead_magnet = true;
+					} else {
+						delete nextMeta.lead_magnet;
+					}
+
+					await ensureWorkspaceBaseModelExists(activeModel, nextMeta);
+
+					const updatedModel = await updateModelById(localStorage.token, selectedModel.id, {
+						id: selectedModel.id,
+						name: selectedModel.name ?? selectedModel.id,
+						base_model_id: selectedModel.base_model_id ?? null,
 					params: selectedModel.params ?? {},
 					access_control: selectedModel.access_control ?? null,
 					is_active: selectedModel.is_active ?? true,
