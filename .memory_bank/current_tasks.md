@@ -20,6 +20,14 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG]** Rate card page shows no models for provider-only setup
+  - Spec: `.memory_bank/specs/work_items/2026-02-03__bugfix__rate-card-no-models.md`
+  - Owner: Codex
+  - Done: 2026-02-03
+  - Summary: Merge provider base models with workspace overrides; auto-create missing base model records on save.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run -T --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run"`
+  - Risks: Creating base model DB entries on explicit admin save may affect access-control enforced environments (mitigated: only on explicit admin save).
+
 - [x] **[DEV]** Standardize Codex docs/actions for Docker Compose + remove non-Codex assistant tooling
   - Updated `AGENTS.md` + Memory Bank guides/workflows/specs to use Docker Compose-first test/lint commands.
   - Removed legacy non-Codex assistant config files/folders from the repo.
