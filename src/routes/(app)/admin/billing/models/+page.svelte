@@ -489,7 +489,7 @@
 				model_ids: modelIds
 			});
 			toast.success(
-				$i18n.t('Deactivated rate cards for {count} models', {
+				$i18n.t('Deactivated rate cards for {{count}} models', {
 					count: modelIds.length
 				})
 			);
@@ -599,7 +599,7 @@
 
 			toast.success(
 				$i18n.t(
-					'Import applied: {creates} creates, {updates} updates, {deactivations} deactivations',
+					'Import applied: {{creates}} creates, {{updates}} updates, {{deactivations}} deactivations',
 					{
 						creates: result.summary.creates,
 						updates: result.summary.updates_via_create,
@@ -654,7 +654,7 @@
 				model_ids: modelIds
 			});
 			toast.success(
-				$i18n.t('Deleted rate cards for {count} models', {
+				$i18n.t('Deleted rate cards for {{count}} models', {
 					count: modelIds.length
 				})
 			);
@@ -1037,7 +1037,7 @@
 		<ConfirmDialog
 			bind:show={showDeactivateModelsConfirm}
 			title={$i18n.t('Deactivate model pricing?')}
-			message={$i18n.t('This will deactivate all rate cards for {count} models.', {
+			message={$i18n.t('This will deactivate all rate cards for {{count}} models.', {
 				count: selectedModelIds.size
 			})}
 			on:confirm={handleDeactivateSelectedModels}
@@ -1045,7 +1045,7 @@
 		<ConfirmDialog
 			bind:show={showDeleteModelsConfirm}
 			title={$i18n.t('Delete model pricing?')}
-			message={`${$i18n.t('This will permanently delete all rate cards for {count} models.', {
+			message={`${$i18n.t('This will permanently delete all rate cards for {{count}} models.', {
 				count: selectedModelIds.size
 			})}\n\n${$i18n.t('Type DELETE to confirm.')}`}
 			input
@@ -1159,13 +1159,6 @@
 					</div>
 
 					{#if importPreview}
-						<div class="mt-3 text-sm text-gray-700 dark:text-gray-200">
-							{$i18n.t('Creates: {count}', { count: importPreview.summary.creates })}
-							· {$i18n.t('Updates: {count}', { count: importPreview.summary.updates_via_create })}
-							· {$i18n.t('Deactivations: {count}', { count: importPreview.summary.deactivations })}
-							· {$i18n.t('Invalid rows: {count}', { count: importPreview.summary.rows_invalid })}
-						</div>
-
 						<div class="mt-3 grid grid-cols-2 gap-2 text-sm">
 							<div class="rounded-xl border border-gray-200/70 dark:border-gray-800/70 p-2">
 								<div class="text-[11px] uppercase text-gray-500 dark:text-gray-400">
@@ -1201,7 +1194,7 @@
 
 						{#if importPreview.warnings?.length}
 							<div class="mt-3 text-amber-700 dark:text-amber-300">
-								{$i18n.t('Warnings: {count}', { count: importPreview.warnings.length })}
+								{$i18n.t('Warnings: {{count}}', { count: importPreview.warnings.length })}
 							</div>
 							<div
 								class="mt-2 max-h-40 overflow-y-auto rounded-lg border border-amber-200/60 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/20"
@@ -1217,7 +1210,7 @@
 							</div>
 							{#if importPreview.warnings.length > 50}
 								<div class="mt-2 text-[11px] text-amber-700/80 dark:text-amber-300/80">
-									{$i18n.t('Showing {shown} of {total} warnings', {
+									{$i18n.t('Showing {{shown}} of {{total}} warnings', {
 										shown: 50,
 										total: importPreview.warnings.length
 									})}
@@ -1226,7 +1219,7 @@
 						{/if}
 						{#if importPreview.errors?.length}
 							<div class="mt-3 text-red-700 dark:text-red-300">
-								{$i18n.t('Errors: {count}', { count: importPreview.errors.length })}
+								{$i18n.t('Errors: {{count}}', { count: importPreview.errors.length })}
 							</div>
 							<div
 								class="mt-2 max-h-40 overflow-y-auto rounded-lg border border-red-200/60 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/20"
@@ -1245,7 +1238,7 @@
 							</div>
 							{#if importPreview.errors.length > 50}
 								<div class="mt-2 text-[11px] text-red-700/80 dark:text-red-300/80">
-									{$i18n.t('Showing {shown} of {total} errors', {
+									{$i18n.t('Showing {{shown}} of {{total}} errors', {
 										shown: 50,
 										total: importPreview.errors.length
 									})}
@@ -1760,15 +1753,15 @@
 
 			<div class="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
 				<div class="text-xs text-gray-500">
-					{$i18n.t('Will create {count} entries', { count: previewCounts.create })}
+					{$i18n.t('Will create {{count}} entries', { count: previewCounts.create })}
 					{#if previewCounts.update > 0}
 						<span class="ml-2">
-							{$i18n.t('Update {count}', { count: previewCounts.update })}
+							{$i18n.t('Update {{count}}', { count: previewCounts.update })}
 						</span>
 					{/if}
 					{#if previewCounts.disable > 0}
 						<span class="ml-2">
-							{$i18n.t('Disable {count}', { count: previewCounts.disable })}
+							{$i18n.t('Disable {{count}}', { count: previewCounts.disable })}
 						</span>
 					{/if}
 				</div>

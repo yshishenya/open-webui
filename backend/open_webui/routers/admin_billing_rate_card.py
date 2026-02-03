@@ -6,7 +6,7 @@ Manage model pricing entries and sync defaults.
 import logging
 import time
 import uuid
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set, Tuple
 
 from fastapi import (
     APIRouter,
@@ -15,6 +15,7 @@ from fastapi import (
     Form,
     HTTPException,
     Query,
+    Request,
     Response,
     UploadFile,
     status,
@@ -25,8 +26,9 @@ from pydantic import BaseModel, Field
 
 from open_webui.env import BILLING_RATE_CARD_VERSION, ENABLE_BILLING_WALLET, SRC_LOG_LEVELS
 from open_webui.models.billing import PricingRateCardModel, RateCards
-from open_webui.models.models import Models
+from open_webui.models.models import ModelForm, ModelMeta, ModelParams, Models
 from open_webui.utils.auth import get_admin_user
+from open_webui.utils.models import get_all_base_models
 from open_webui.utils.rate_card_templates import build_rate_cards_for_model
 from open_webui.utils.rate_card_xlsx import (
     XlsxExportMode,
@@ -153,6 +155,68 @@ def ensure_wallet_enabled() -> None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Billing wallet is disabled",
+        )
+
+
+async def _get_rate_card_import_known_models(
+    request: Request,
+    *,
+    admin_user,
+) -> Tuple[Set[str], Dict[str, str], Set[str]]:
+    """Return (known_model_ids, model_names_by_id, db_base_model_ids).
+
+    XLSX import is used on the Rate Cards page which supports provider-only models.
+    Those models may exist in `/api/models/base` but not yet be persisted as base models
+    in the workspace DB. For import UX parity, treat provider base models as "known".
+    """
+
+    db_base_models = await run_in_threadpool(Models.get_base_models)
+    db_base_model_ids = {model.id for model in db_base_models}
+
+    known_model_ids = set(db_base_model_ids)
+    model_names_by_id: Dict[str, str] = {
+        model.id: (model.name or model.id) for model in db_base_models
+    }
+
+    try:
+        provider_base_models = await get_all_base_models(request, user=admin_user)
+    except Exception as e:
+        log.debug(f"Failed to fetch provider base models for import: {e}")
+        provider_base_models = []
+
+    for item in provider_base_models:
+        model_id = (item.get("id") or "").strip()
+        if not model_id:
+            continue
+        known_model_ids.add(model_id)
+        model_names_by_id.setdefault(model_id, (item.get("name") or model_id))
+
+    return known_model_ids, model_names_by_id, db_base_model_ids
+
+
+async def _ensure_base_models_exist(
+    *,
+    model_ids: Set[str],
+    model_names_by_id: Dict[str, str],
+    owner_user_id: str,
+) -> None:
+    for model_id in sorted(model_ids):
+        existing = await run_in_threadpool(Models.get_model_by_id, model_id)
+        if existing is not None:
+            continue
+
+        await run_in_threadpool(
+            Models.insert_new_model,
+            ModelForm(
+                id=model_id,
+                base_model_id=None,
+                name=model_names_by_id.get(model_id, model_id),
+                meta=ModelMeta(),
+                params=ModelParams(),
+                access_control=None,
+                is_active=True,
+            ),
+            owner_user_id,
         )
 
 
@@ -563,6 +627,7 @@ async def sync_rate_cards_for_models(
 @router.post("/rate-card/import-xlsx/preview", response_model=RateCardXlsxImportPreviewResponse)
 
 async def import_rate_cards_xlsx_preview(
+    request: Request,
     file: UploadFile = File(...),
     mode: XlsxImportMode = Form(XlsxImportMode.PATCH),
     scope_model_ids: str = Form(...),
@@ -605,8 +670,9 @@ async def import_rate_cards_xlsx_preview(
             actions_preview=[],
         )
 
-    known_models = await run_in_threadpool(Models.get_base_models)
-    known_model_ids = {model.id for model in known_models}
+    known_model_ids, _, _ = await _get_rate_card_import_known_models(
+        request, admin_user=admin_user
+    )
 
     active_entries = await run_in_threadpool(
         RateCards.list_rate_cards_by_model_ids,
@@ -643,6 +709,7 @@ async def import_rate_cards_xlsx_preview(
 
 @router.post("/rate-card/import-xlsx/apply", response_model=RateCardXlsxImportApplyResponse)
 async def import_rate_cards_xlsx_apply(
+    request: Request,
     file: UploadFile = File(...),
     mode: XlsxImportMode = Form(XlsxImportMode.PATCH),
     scope_model_ids: str = Form(...),
@@ -686,8 +753,9 @@ async def import_rate_cards_xlsx_apply(
         )
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=payload.model_dump())
 
-    known_models = await run_in_threadpool(Models.get_base_models)
-    known_model_ids = {model.id for model in known_models}
+    known_model_ids, model_names_by_id, db_base_model_ids = (
+        await _get_rate_card_import_known_models(request, admin_user=admin_user)
+    )
 
     active_entries = await run_in_threadpool(
         RateCards.list_rate_cards_by_model_ids,
@@ -720,6 +788,22 @@ async def import_rate_cards_xlsx_apply(
             errors=[RateCardXlsxImportError(**e.__dict__) for e in plan_errors],
         )
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=payload.model_dump())
+
+    scope_set = set(parsed_scope or [])
+    imported_model_ids = {
+        row.model_id
+        for row in rows
+        if row.model_id
+        and row.model_id in scope_set
+        and row.model_id in known_model_ids
+        and row.model_id not in db_base_model_ids
+    }
+    if imported_model_ids:
+        await _ensure_base_models_exist(
+            model_ids=imported_model_ids,
+            model_names_by_id=model_names_by_id,
+            owner_user_id=admin_user.id,
+        )
 
     now = int(time.time())
 

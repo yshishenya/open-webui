@@ -20,6 +20,13 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG]** Rate card XLSX import: provider-only models + i18n placeholders
+  - Spec: `.memory_bank/specs/work_items/2026-02-03__bugfix__rate-card-xlsx-import-provider-models-i18n.md`
+  - Owner: Codex
+  - Done: 2026-02-03
+  - Summary: Import preview/apply now recognizes provider base models; apply auto-creates missing base model records; i18n placeholders interpolate and Step 2 summary duplication removed.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_admin_billing_rate_card_xlsx.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run"`
+
 - [x] **[BUG]** Rate card page shows no models for provider-only setup
   - Spec: `.memory_bank/specs/work_items/2026-02-03__bugfix__rate-card-no-models.md`
   - Owner: Codex

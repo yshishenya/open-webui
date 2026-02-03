@@ -431,3 +431,59 @@ class TestAdminBillingRateCardXlsx(AbstractPostgresTest):
         payload = response.json()
         assert payload.get("errors") == []
         assert RateCards.get_active_rate_card(self.model_a, "text", "token_out") is None
+
+    def test_import_apply_creates_missing_base_model_from_provider_models(self, monkeypatch) -> None:
+        from open_webui.models.billing import RateCards
+        from open_webui.models.models import Models
+        from open_webui.routers import admin_billing_rate_card
+        from open_webui.utils.rate_card_xlsx import dump_scope_model_ids
+
+        monkeypatch.setattr(admin_billing_rate_card, "ENABLE_BILLING_WALLET", True)
+        monkeypatch.setattr(admin_billing_rate_card, "BILLING_RATE_CARD_VERSION", "2025-01")
+
+        provider_model_id = "provider-only-model"
+
+        async def _fake_get_all_base_models(request, user=None):
+            return [{"id": provider_model_id, "name": "Provider Only"}]
+
+        monkeypatch.setattr(admin_billing_rate_card, "get_all_base_models", _fake_get_all_base_models)
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        assert ws is not None
+        ws.title = "RateCards"
+        ws.append(["model_id", "modality", "unit", "is_active", "raw_cost_per_unit_kopeks"])
+        ws.append([provider_model_id, "text", "token_in", True, 123])
+
+        buf = io.BytesIO()
+        wb.save(buf)
+
+        with mock_webui_user(role="admin"):
+            response = self.fast_api_client.post(
+                self.create_url("/rate-card/import-xlsx/apply"),
+                files={
+                    "file": (
+                        "rate-cards.xlsx",
+                        buf.getvalue(),
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    )
+                },
+                data={
+                    "mode": "patch",
+                    "scope_model_ids": dump_scope_model_ids([provider_model_id]),
+                },
+            )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload.get("errors") == []
+        assert not any(w.get("code") == "unknown_model" for w in payload.get("warnings", []))
+
+        created_model = Models.get_model_by_id(provider_model_id)
+        assert created_model is not None
+        assert created_model.base_model_id is None
+        assert created_model.name == "Provider Only"
+
+        active = RateCards.get_active_rate_card(provider_model_id, "text", "token_in")
+        assert active is not None
+        assert active.raw_cost_per_unit_kopeks == 123
