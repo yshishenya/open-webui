@@ -340,15 +340,18 @@ def _parse_ip_allowlist(extra_ranges_csv: str) -> tuple[
 
     networks: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
     for token in ranges:
-        if "/" in token:
-            network = ipaddress.ip_network(token, strict=False)
-            networks.append(network)
-            continue
+        try:
+            if "/" in token:
+                network = ipaddress.ip_network(token, strict=False)
+                networks.append(network)
+                continue
 
-        address = ipaddress.ip_address(token)
-        networks.append(
-            ipaddress.ip_network(f"{address}/{address.max_prefixlen}", strict=False)
-        )
+            address = ipaddress.ip_address(token)
+            networks.append(
+                ipaddress.ip_network(f"{address}/{address.max_prefixlen}", strict=False)
+            )
+        except ValueError:
+            log.warning("Invalid YooKassa webhook allowlist entry: %s", token)
 
     return tuple(networks)
 
