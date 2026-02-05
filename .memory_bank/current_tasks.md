@@ -52,6 +52,22 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
   - Tests: N/A (docs-only)
   - Risks: N/A
 
+- [x] **[DOCS][PRICING]** Review ТЗ страницы тарифов (JTBD + гэпы)
+  - Spec: `.memory_bank/specs/work_items/2026-02-05__docs__pricing-page-tariffs-tz-review.md`
+  - Owner: Codex
+  - Done: 2026-02-05
+  - Summary: Map teammate “Тарифы” draft to current `/pricing`, identify gaps (tokens/moderation/video) and suggest structure/copy improvements.
+  - Tests: N/A (docs-only)
+  - Risks: Copy must not promise moderation/enforcement without implementation + legal terms.
+
+- [x] **[DOCS][BILLING]** Wallet (/billing/balance) UX audit + improvement backlog
+  - Spec: `.memory_bank/specs/work_items/2026-02-05__docs__billing-balance-ux-audit.md`
+  - Owner: Codex
+  - Done: 2026-02-05
+  - Summary: Enumerate wallet entry/usage/exit scenarios and propose prioritized UX improvements for `/billing/balance`.
+  - Tests: N/A (docs-only)
+  - Risks: N/A
+
 - [x] **[DEV]** SDD toolkit: first-time project setup
   - Spec: `.memory_bank/specs/work_items/2026-02-05__docs__sdd-toolkit-setup.md`
   - Owner: Codex
@@ -586,6 +602,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 ## In Progress
 
 ### High Priority
+
+- [ ] **[UI][BILLING]** Wallet UX v2: return-to-chat + topup clarity
+  - Spec: `.memory_bank/specs/work_items/2026-02-05__feature__billing-wallet-ux-v2.md`
+  - Owner: Codex
+  - Started: 2026-02-05
+  - Summary: Improve `/billing/balance` UX and add first-class recovery from chat billing blocks with a safe return-to-chat deep link.
+  - Tests: TBD
+  - Risks: Medium (touches core chat error UX + billing flow)
+
 - [x] **[AUTH-01]** Verify GitHub OAuth login visibility
   - Confirm backend GitHub OAuth support and prerequisites.
   - Identify conditions for showing the GitHub login button in the UI.
