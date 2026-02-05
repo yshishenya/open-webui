@@ -1,11 +1,19 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { trackEvent } from '$lib/utils/analytics';
-	import type { PublicLeadMagnetConfig } from '$lib/apis/billing';
+	import { getPublicPricingConfig, getPublicRateCards } from '$lib/apis/billing';
+	import type { PublicLeadMagnetConfig, PublicPricingConfig, PublicRateCardResponse } from '$lib/apis/billing';
+	import RatesTable from '$lib/components/pricing/RatesTable.svelte';
 	import SectionHeader from './SectionHeader.svelte';
 	import { openCta } from './welcomeNavigation';
 
 	export let leadMagnetConfig: PublicLeadMagnetConfig | null = null;
 	let leadMagnetItems: { label: string; value: number; tooltip?: string }[] = [];
+
+	let rateCard: PublicRateCardResponse | null = null;
+	let pricingConfig: PublicPricingConfig | null = null;
+	let loadingRates = true;
+	let ratesError: string | null = null;
 
 	const formatRawNumber = (value: number): string => new Intl.NumberFormat('ru-RU').format(value);
 
@@ -30,6 +38,29 @@
 	};
 
 	$: leadMagnetItems = formatLeadMagnetItems(leadMagnetConfig);
+	$: popularModelIds = pricingConfig?.popular_model_ids ?? [];
+
+	onMount(async () => {
+		loadingRates = true;
+		ratesError = null;
+		try {
+			const [rateCardResult, pricingConfigResult] = await Promise.all([
+				getPublicRateCards(),
+				getPublicPricingConfig()
+			]);
+			rateCard = rateCardResult;
+			pricingConfig = pricingConfigResult;
+
+			if (!rateCardResult) {
+				ratesError = 'Ставки временно недоступны. Попробуйте обновить страницу.';
+			}
+		} catch (error) {
+			console.error('Failed to load rate cards:', error);
+			ratesError = 'Ставки временно недоступны. Попробуйте обновить страницу.';
+		} finally {
+			loadingRates = false;
+		}
+	});
 
 	const handlePricingCtaClick = (event: MouseEvent) => {
 		event.preventDefault();
@@ -45,6 +76,10 @@
 			target.open = true;
 		}
 		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	};
+
+	const handleRatesMoreClick = () => {
+		trackEvent('welcome_pricing_rates_more_click');
 	};
 </script>
 
@@ -133,6 +168,35 @@
 						Лимиты будут отображаться после настройки квот администратора.
 					</p>
 				{/if}
+			</div>
+
+			<div class="welcome-card welcome-card--soft p-6 lg:col-span-2">
+				<div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+					<div class="max-w-2xl">
+						<h3 class="text-xl font-semibold text-gray-900">Ставки по моделям</h3>
+						<p class="mt-2 text-sm text-gray-600">
+							Цены обновляются автоматически. Полная таблица — на странице тарифов.
+						</p>
+					</div>
+					<a
+						href="/pricing"
+						class="inline-flex items-center justify-center rounded-full border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700 hover:border-gray-400 hover:text-gray-900 transition-colors"
+						on:click={handleRatesMoreClick}
+					>
+						Все тарифы
+					</a>
+				</div>
+				<div class="mt-6">
+					<RatesTable
+						models={rateCard?.models ?? []}
+						currency={rateCard?.currency ?? 'RUB'}
+						updatedAt={rateCard?.updated_at ?? null}
+						{popularModelIds}
+						defaultView="popular"
+						loading={loadingRates}
+						error={ratesError}
+					/>
+				</div>
 			</div>
 		</div>
 	</div>

@@ -31,6 +31,68 @@ const loginWithRedirect = async (
 };
 
 test.describe('Welcome Hero', () => {
+	test('pricing section shows model rates preview', async ({ page }) => {
+		await page.route('**/api/v1/billing/public/rate-cards', async (route) => {
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					currency: 'RUB',
+					updated_at: '2026-02-05T00:00:00Z',
+					models: [
+						{
+							id: 'test-model',
+							display_name: 'Test Model',
+							provider: 'openai',
+							capabilities: ['text'],
+							rates: {
+								text_in_1000_tokens: 100,
+								text_out_1000_tokens: 200,
+								image_1024: null,
+								tts_1000_chars: null,
+								stt_minute: null
+							}
+						}
+					]
+				})
+			});
+		});
+
+		await page.route('**/api/v1/billing/public/pricing-config', async (route) => {
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					topup_amounts_rub: [],
+					free_limits: {
+						text_in: 0,
+						text_out: 0,
+						images: 0,
+						tts_minutes: 0,
+						stt_minutes: 0
+					},
+					popular_model_ids: ['test-model'],
+					recommended_model_ids: {
+						text: 'test-model',
+						image: null,
+						audio: null
+					}
+				})
+			});
+		});
+
+		await page.goto('/welcome');
+		await page.locator('#pricing').scrollIntoViewIfNeeded();
+
+		await expect(page.getByRole('heading', { name: 'Ставки по моделям' })).toBeVisible();
+		const row = page.locator('tr', { hasText: 'Test Model' });
+		await expect(row).toBeVisible();
+
+		const inputPriceCell = row.locator('td').nth(1);
+		await expect(inputPriceCell).toContainText('1,00');
+		await expect(inputPriceCell).toContainText('₽');
+	});
+
 	test('unauth preset redirects and prefills after login', async ({ page, request }) => {
 		const timestamp = Date.now();
 		const user = {
