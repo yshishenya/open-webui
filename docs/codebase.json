@@ -1,0 +1,6485 @@
+{
+  "metadata": {
+    "project_name": "src",
+    "version": "1.0.0",
+    "generated_at": "2026-02-05T16:48:08.294395Z",
+    "generated_at_commit": "42eb0c27fadc34eaf27222839cb5fc30bae7e894",
+    "languages": [
+      "css",
+      "html",
+      "javascript",
+      "typescript"
+    ],
+    "schema_version": "2.0"
+  },
+  "statistics": {
+    "total_files": 187,
+    "total_lines": 44685,
+    "total_classes": 6,
+    "total_functions": 128,
+    "avg_complexity": 2.55,
+    "max_complexity": 9,
+    "high_complexity_functions": [],
+    "by_language": {
+      "css": {
+        "files": 2,
+        "lines": 894,
+        "classes": 0,
+        "functions": 0,
+        "avg_complexity": 0
+      },
+      "html": {
+        "files": 1,
+        "lines": 243,
+        "classes": 0,
+        "functions": 0,
+        "avg_complexity": 0
+      },
+      "typescript": {
+        "files": 176,
+        "lines": 41680,
+        "classes": 6,
+        "functions": 128,
+        "avg_complexity": 2.55
+      },
+      "javascript": {
+        "files": 8,
+        "lines": 1868,
+        "classes": 0,
+        "functions": 0,
+        "avg_complexity": 0
+      }
+    }
+  },
+  "modules": [
+    {
+      "name": "app",
+      "file": "src/app.css",
+      "language": "css",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "class (154)",
+        "id (4)",
+        "element (102)",
+        "attribute (17)",
+        "pseudo-class (26)",
+        "pseudo-element (37)"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 820,
+      "selector_counts": {
+        "class": 154,
+        "id": 4,
+        "element": 102,
+        "attribute": 17,
+        "pseudo-class": 26,
+        "pseudo-element": 37
+      },
+      "variables": [],
+      "at_rules": [
+        "@keyframes",
+        "@media"
+      ],
+      "total_rules": 136
+    },
+    {
+      "name": "tailwind",
+      "file": "src/tailwind.css",
+      "language": "css",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "element (16)",
+        "attribute (4)",
+        "pseudo-class (4)",
+        "pseudo-element (6)"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 74,
+      "selector_counts": {
+        "class": 0,
+        "id": 0,
+        "element": 16,
+        "attribute": 4,
+        "pseudo-class": 4,
+        "pseudo-element": 6
+      },
+      "variables": [],
+      "at_rules": [
+        "@import"
+      ],
+      "total_rules": 9
+    },
+    {
+      "name": "app",
+      "file": "src/app.html",
+      "language": "html",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 243,
+      "element_counts": {},
+      "htmx_usage": [],
+      "custom_attributes": [],
+      "scripts": 0,
+      "styles": 0
+    },
+    {
+      "name": "app.d",
+      "file": "src/app.d.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 33
+    },
+    {
+      "name": "billing",
+      "file": "src/lib/apis/admin/billing.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [
+        "ApiRequestError"
+      ],
+      "functions": [
+        "apiRequest",
+        "apiRequestBlob"
+      ],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 821
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/audio/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 196
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/auths/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 714
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/billing/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "apiRequest",
+        "publicApiRequest"
+      ],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 675
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/channels/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 917
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/chats/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "$lib/utils"
+      ],
+      "exports": [],
+      "lines": 1272
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/configs/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "$lib/types"
+      ],
+      "exports": [],
+      "lines": 450
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/evaluations/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 353
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/files/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "$lib/utils"
+      ],
+      "exports": [],
+      "lines": 331
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/folders/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 274
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/functions/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 520
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/groups/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 237
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/images/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 232
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "$lib/utils",
+        "./openai"
+      ],
+      "exports": [],
+      "lines": 1710
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/knowledge/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 513
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/legal/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 130
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/memories/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 186
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/models/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 347
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/notes/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "$lib/utils"
+      ],
+      "exports": [],
+      "lines": 286
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/ollama/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 561
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/openai/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "$lib/utils/airis/openai"
+      ],
+      "exports": [],
+      "lines": 425
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/prompts/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 204
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/retrieval/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 532
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/streaming/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "sleep"
+      ],
+      "imports": [
+        "eventsource-parser/stream",
+        "eventsource-parser"
+      ],
+      "exports": [
+        "createOpenAITextStream"
+      ],
+      "lines": 142
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/tools/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 456
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/users/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "$lib/utils"
+      ],
+      "exports": [],
+      "lines": 552
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/utils/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 181
+    },
+    {
+      "name": "UnifiedTimeline.test",
+      "file": "src/lib/components/billing/UnifiedTimeline.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "flushPromises",
+        "createContext"
+      ],
+      "imports": [
+        "vitest",
+        "svelte",
+        "./UnifiedTimeline.svelte"
+      ],
+      "exports": [],
+      "lines": 155
+    },
+    {
+      "name": "AutoCompletion",
+      "file": "src/lib/components/common/RichTextInput/AutoCompletion.js",
+      "language": "javascript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@tiptap/core",
+        "prosemirror-state"
+      ],
+      "exports": [],
+      "lines": 299
+    },
+    {
+      "name": "Collaboration",
+      "file": "src/lib/components/common/RichTextInput/Collaboration.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [
+        "SimpleAwareness"
+      ],
+      "functions": [
+        "generateUserColor"
+      ],
+      "imports": [
+        "yjs",
+        "y-prosemirror",
+        "socket.io-client",
+        "$lib/stores",
+        "@tiptap/core",
+        "prosemirror-keymap",
+        "svelte"
+      ],
+      "exports": [
+        "SocketIOCollaborationProvider"
+      ],
+      "lines": 348
+    },
+    {
+      "name": "image",
+      "file": "src/lib/components/common/RichTextInput/Image/image.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@tiptap/core"
+      ],
+      "exports": [],
+      "lines": 197
+    },
+    {
+      "name": "index",
+      "file": "src/lib/components/common/RichTextInput/Image/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "./image.js"
+      ],
+      "exports": [
+        "Image"
+      ],
+      "lines": 5
+    },
+    {
+      "name": "commands",
+      "file": "src/lib/components/common/RichTextInput/commands.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@tiptap/core",
+        "@tiptap/suggestion"
+      ],
+      "exports": [],
+      "lines": 26
+    },
+    {
+      "name": "listDragHandlePlugin",
+      "file": "src/lib/components/common/RichTextInput/listDragHandlePlugin.js",
+      "language": "javascript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "prosemirror-state",
+        "prosemirror-view",
+        "prosemirror-model"
+      ],
+      "exports": [
+        "listDragHandlePlugin"
+      ],
+      "lines": 513
+    },
+    {
+      "name": "suggestions",
+      "file": "src/lib/components/common/RichTextInput/suggestions.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "svelte",
+        "svelte/legacy",
+        "tippy.js"
+      ],
+      "exports": [
+        "getSuggestionRenderer"
+      ],
+      "lines": 127
+    },
+    {
+      "name": "index",
+      "file": "src/lib/components/landing/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 12
+    },
+    {
+      "name": "welcomeData",
+      "file": "src/lib/components/landing/welcomeData.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "applyPresetPrompt"
+      ],
+      "imports": [
+        "$lib/data/features"
+      ],
+      "exports": [],
+      "lines": 456
+    },
+    {
+      "name": "welcomeNavigation.test",
+      "file": "src/lib/components/landing/welcomeNavigation.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "parseUrl"
+      ],
+      "imports": [
+        "vitest",
+        "./welcomeNavigation"
+      ],
+      "exports": [],
+      "lines": 142
+    },
+    {
+      "name": "welcomeNavigation",
+      "file": "src/lib/components/landing/welcomeNavigation.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$app/environment",
+        "$app/navigation",
+        "svelte/store",
+        "$lib/stores"
+      ],
+      "exports": [],
+      "lines": 64
+    },
+    {
+      "name": "utils",
+      "file": "src/lib/components/notes/utils.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "dompurify",
+        "svelte-sonner",
+        "$lib/apis/notes"
+      ],
+      "exports": [],
+      "lines": 132
+    },
+    {
+      "name": "permissions",
+      "file": "src/lib/constants/permissions.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 61
+    },
+    {
+      "name": "constants",
+      "file": "src/lib/constants.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$app/environment"
+      ],
+      "exports": [],
+      "lines": 103
+    },
+    {
+      "name": "features",
+      "file": "src/lib/data/features.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "./features-page.json",
+        "./presets.json"
+      ],
+      "exports": [],
+      "lines": 78
+    },
+    {
+      "name": "dayjs",
+      "file": "src/lib/dayjs.js",
+      "language": "javascript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "dayjs",
+        "dayjs/locale/af",
+        "dayjs/locale/am",
+        "dayjs/locale/ar",
+        "dayjs/locale/az",
+        "dayjs/locale/be",
+        "dayjs/locale/bg",
+        "dayjs/locale/bi",
+        "dayjs/locale/bm",
+        "dayjs/locale/bn",
+        "dayjs/locale/bo",
+        "dayjs/locale/br",
+        "dayjs/locale/bs",
+        "dayjs/locale/ca",
+        "dayjs/locale/cs",
+        "dayjs/locale/cv",
+        "dayjs/locale/cy",
+        "dayjs/locale/da",
+        "dayjs/locale/de",
+        "dayjs/locale/dv",
+        "dayjs/locale/el",
+        "dayjs/locale/en",
+        "dayjs/locale/eo",
+        "dayjs/locale/es",
+        "dayjs/locale/eu",
+        "dayjs/locale/fa",
+        "dayjs/locale/fi",
+        "dayjs/locale/fo",
+        "dayjs/locale/fr",
+        "dayjs/locale/fy",
+        "dayjs/locale/ga",
+        "dayjs/locale/gd",
+        "dayjs/locale/gl",
+        "dayjs/locale/gu",
+        "dayjs/locale/he",
+        "dayjs/locale/hi",
+        "dayjs/locale/hr",
+        "dayjs/locale/ht",
+        "dayjs/locale/hu",
+        "dayjs/locale/id",
+        "dayjs/locale/is",
+        "dayjs/locale/it",
+        "dayjs/locale/ja",
+        "dayjs/locale/jv",
+        "dayjs/locale/ka",
+        "dayjs/locale/kk",
+        "dayjs/locale/km",
+        "dayjs/locale/kn",
+        "dayjs/locale/ko",
+        "dayjs/locale/ku",
+        "dayjs/locale/ky",
+        "dayjs/locale/lb",
+        "dayjs/locale/lo",
+        "dayjs/locale/lt",
+        "dayjs/locale/lv",
+        "dayjs/locale/me",
+        "dayjs/locale/mi",
+        "dayjs/locale/mk",
+        "dayjs/locale/ml",
+        "dayjs/locale/mn",
+        "dayjs/locale/mr",
+        "dayjs/locale/ms",
+        "dayjs/locale/mt",
+        "dayjs/locale/my",
+        "dayjs/locale/nb",
+        "dayjs/locale/ne",
+        "dayjs/locale/nl",
+        "dayjs/locale/nn",
+        "dayjs/locale/pl",
+        "dayjs/locale/pt",
+        "dayjs/locale/ro",
+        "dayjs/locale/ru",
+        "dayjs/locale/rw",
+        "dayjs/locale/sd",
+        "dayjs/locale/se",
+        "dayjs/locale/si",
+        "dayjs/locale/sk",
+        "dayjs/locale/sl",
+        "dayjs/locale/sq",
+        "dayjs/locale/sr",
+        "dayjs/locale/ss",
+        "dayjs/locale/sv",
+        "dayjs/locale/sw",
+        "dayjs/locale/ta",
+        "dayjs/locale/te",
+        "dayjs/locale/tet",
+        "dayjs/locale/tg",
+        "dayjs/locale/th",
+        "dayjs/locale/tk",
+        "dayjs/locale/tlh",
+        "dayjs/locale/tr",
+        "dayjs/locale/tzl",
+        "dayjs/locale/tzm",
+        "dayjs/locale/uk",
+        "dayjs/locale/ur",
+        "dayjs/locale/uz",
+        "dayjs/locale/vi",
+        "dayjs/locale/yo",
+        "dayjs/locale/zh",
+        "dayjs/locale/zh-tw",
+        "dayjs/locale/et",
+        "dayjs/locale/en-gb"
+      ],
+      "exports": [
+        "dayjs"
+      ],
+      "lines": 106
+    },
+    {
+      "name": "index",
+      "file": "src/lib/i18n/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "createI18nStore",
+        "createIsLoadingStore"
+      ],
+      "imports": [
+        "i18next",
+        "i18next-resources-to-backend",
+        "i18next-browser-languagedetector",
+        "i18next",
+        "svelte/store"
+      ],
+      "exports": [
+        "i18n"
+      ],
+      "lines": 87
+    },
+    {
+      "name": "index",
+      "file": "src/lib/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 1
+    },
+    {
+      "name": "pyodideKernel",
+      "file": "src/lib/pyodide/pyodideKernel.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/pyodide/pyodideKernel.worker?worker"
+      ],
+      "exports": [
+        "PyodideKernel"
+      ],
+      "lines": 81
+    },
+    {
+      "name": "pyodideKernel.worker",
+      "file": "src/lib/pyodide/pyodideKernel.worker.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "initializePyodide",
+        "executeCode"
+      ],
+      "imports": [
+        "pyodide"
+      ],
+      "exports": [],
+      "lines": 123
+    },
+    {
+      "name": "shortcuts",
+      "file": "src/lib/shortcuts.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 156
+    },
+    {
+      "name": "index",
+      "file": "src/lib/stores/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "svelte/store",
+        "$lib/apis",
+        "$lib/types",
+        "socket.io-client",
+        "$lib/emoji-shortcodes.json"
+      ],
+      "exports": [],
+      "lines": 306
+    },
+    {
+      "name": "index",
+      "file": "src/lib/types/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 15
+    },
+    {
+      "name": "vkid.d",
+      "file": "src/lib/types/vkid.d.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 83
+    },
+    {
+      "name": "_template_old",
+      "file": "src/lib/utils/_template_old.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/utils/index",
+        "vitest"
+      ],
+      "exports": [],
+      "lines": 66
+    },
+    {
+      "name": "admin_billing_models_page_compile.test",
+      "file": "src/lib/utils/airis/admin_billing_models_page_compile.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "createStore"
+      ],
+      "imports": [
+        "vitest"
+      ],
+      "exports": [],
+      "lines": 66
+    },
+    {
+      "name": "chat.test",
+      "file": "src/lib/utils/airis/chat.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "./chat"
+      ],
+      "exports": [],
+      "lines": 135
+    },
+    {
+      "name": "chat",
+      "file": "src/lib/utils/airis/chat.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "isRecord"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 85
+    },
+    {
+      "name": "model_pricing_audit.test",
+      "file": "src/lib/utils/airis/model_pricing_audit.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "$lib/utils/airis/rate_cards",
+        "./model_pricing_audit"
+      ],
+      "exports": [],
+      "lines": 57
+    },
+    {
+      "name": "model_pricing_audit",
+      "file": "src/lib/utils/airis/model_pricing_audit.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/utils/airis/rate_cards"
+      ],
+      "exports": [],
+      "lines": 58
+    },
+    {
+      "name": "model_pricing_completeness.test",
+      "file": "src/lib/utils/airis/model_pricing_completeness.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "$lib/utils/airis/rate_cards",
+        "./model_pricing_completeness"
+      ],
+      "exports": [],
+      "lines": 43
+    },
+    {
+      "name": "model_pricing_completeness",
+      "file": "src/lib/utils/airis/model_pricing_completeness.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/utils/airis/rate_cards",
+        "$lib/utils/airis/model_pricing_audit"
+      ],
+      "exports": [],
+      "lines": 60
+    },
+    {
+      "name": "openai.test",
+      "file": "src/lib/utils/airis/openai.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "./openai"
+      ],
+      "exports": [],
+      "lines": 79
+    },
+    {
+      "name": "openai",
+      "file": "src/lib/utils/airis/openai.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "isRecord"
+      ],
+      "imports": [
+        "uuid"
+      ],
+      "exports": [],
+      "lines": 32
+    },
+    {
+      "name": "rate_cards.test",
+      "file": "src/lib/utils/airis/rate_cards.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "buildRateCard"
+      ],
+      "imports": [
+        "vitest",
+        "$lib/apis/admin/billing",
+        "$lib/utils/rate-card-models",
+        "./rate_cards"
+      ],
+      "exports": [],
+      "lines": 81
+    },
+    {
+      "name": "rate_cards",
+      "file": "src/lib/utils/airis/rate_cards.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "normalizeKopeks",
+        "getLatestActive"
+      ],
+      "imports": [
+        "$lib/apis/admin/billing",
+        "$lib/utils/rate-card-models"
+      ],
+      "exports": [],
+      "lines": 71
+    },
+    {
+      "name": "analytics",
+      "file": "src/lib/utils/analytics.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 21
+    },
+    {
+      "name": "audio",
+      "file": "src/lib/utils/audio.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [
+        "AudioQueue"
+      ],
+      "lines": 73
+    },
+    {
+      "name": "billing-formatters",
+      "file": "src/lib/utils/billing-formatters.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 103
+    },
+    {
+      "name": "index",
+      "file": "src/lib/utils/characters/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "parseJsonFile",
+        "parsePngFile",
+        "parsePngText",
+        "readPngChunks",
+        "decodeTextChunk",
+        "extractCharacter",
+        "detectFormats"
+      ],
+      "imports": [
+        "crc-32"
+      ],
+      "exports": [],
+      "lines": 197
+    },
+    {
+      "name": "google-drive-picker",
+      "file": "src/lib/utils/google-drive-picker.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "getCredentials",
+        "validateCredentials",
+        "initialize"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 213
+    },
+    {
+      "name": "index",
+      "file": "src/lib/utils/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "escapeRegExp",
+        "isChineseChar",
+        "processChineseContent",
+        "processChineseDelimiters",
+        "convertOpenAIMessages",
+        "validateChat",
+        "resolveSchema",
+        "ensurePDFjsLoaded"
+      ],
+      "imports": [
+        "uuid",
+        "js-sha256",
+        "$lib/constants",
+        "dayjs",
+        "dayjs/plugin/relativeTime",
+        "dayjs/plugin/isToday",
+        "dayjs/plugin/isYesterday",
+        "dayjs/plugin/localizedFormat",
+        "$lib/types",
+        "pdfjs-dist/build/pdf.worker.mjs?url",
+        "marked",
+        "$lib/utils/marked/extension",
+        "$lib/utils/marked/katex-extension",
+        "highlight.js"
+      ],
+      "exports": [
+        "unescapeHtml"
+      ],
+      "lines": 1687
+    },
+    {
+      "name": "citation-extension",
+      "file": "src/lib/utils/marked/citation-extension.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [
+        "citationExtension"
+      ],
+      "lines": 70
+    },
+    {
+      "name": "extension",
+      "file": "src/lib/utils/marked/extension.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "findMatchingClosingTag",
+        "parseAttributes",
+        "detailsTokenizer",
+        "detailsStart",
+        "detailsRenderer",
+        "detailsExtension"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 94
+    },
+    {
+      "name": "footnote-extension",
+      "file": "src/lib/utils/marked/footnote-extension.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "escapeHtml"
+      ],
+      "imports": [],
+      "exports": [
+        "footnoteExtension"
+      ],
+      "lines": 38
+    },
+    {
+      "name": "katex-extension",
+      "file": "src/lib/utils/marked/katex-extension.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "escapeRegex",
+        "generateRegexRules",
+        "katexStart",
+        "katexTokenizer",
+        "inlineKatex",
+        "blockKatex"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 166
+    },
+    {
+      "name": "mention-extension",
+      "file": "src/lib/utils/marked/mention-extension.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "escapeHtml",
+        "mentionStart",
+        "mentionTokenizer",
+        "mentionRenderer"
+      ],
+      "imports": [],
+      "exports": [
+        "mentionExtension"
+      ],
+      "lines": 73
+    },
+    {
+      "name": "strikethrough-extension",
+      "file": "src/lib/utils/marked/strikethrough-extension.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 29
+    },
+    {
+      "name": "onedrive-file-picker",
+      "file": "src/lib/utils/onedrive-file-picker.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [
+        "OneDriveConfig"
+      ],
+      "functions": [
+        "getToken",
+        "getPickerParams",
+        "downloadOneDriveFile"
+      ],
+      "imports": [
+        "@azure/msal-browser",
+        "uuid"
+      ],
+      "exports": [
+        "openOneDrivePicker",
+        "pickAndDownloadFile"
+      ],
+      "lines": 453
+    },
+    {
+      "name": "rate-card-models.test",
+      "file": "src/lib/utils/rate-card-models.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "buildRateCard"
+      ],
+      "imports": [
+        "vitest",
+        "$lib/apis/admin/billing",
+        "./rate-card-models"
+      ],
+      "exports": [],
+      "lines": 83
+    },
+    {
+      "name": "rate-card-models",
+      "file": "src/lib/utils/rate-card-models.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/apis/admin/billing"
+      ],
+      "exports": [],
+      "lines": 79
+    },
+    {
+      "name": "text-scale",
+      "file": "src/lib/utils/text-scale.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 7
+    },
+    {
+      "name": "index",
+      "file": "src/lib/utils/transitions/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "svelte/easing",
+        "svelte/transition"
+      ],
+      "exports": [],
+      "lines": 48
+    },
+    {
+      "name": "KokoroWorker",
+      "file": "src/lib/workers/KokoroWorker.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/workers/kokoro.worker?worker"
+      ],
+      "exports": [
+        "KokoroWorker"
+      ],
+      "lines": 106
+    },
+    {
+      "name": "kokoro.worker",
+      "file": "src/lib/workers/kokoro.worker.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@huggingface/transformers",
+        "kokoro-js"
+      ],
+      "exports": [],
+      "lines": 57
+    },
+    {
+      "name": "pyodide.worker",
+      "file": "src/lib/workers/pyodide.worker.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "loadPyodideAndPackages",
+        "processResult"
+      ],
+      "imports": [
+        "pyodide"
+      ],
+      "exports": [],
+      "lines": 176
+    },
+    {
+      "name": "billing-balance.test",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "flushPromises",
+        "createBalance",
+        "createContext"
+      ],
+      "imports": [
+        "vitest",
+        "svelte",
+        "./+page.svelte"
+      ],
+      "exports": [],
+      "lines": 195
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/(app)/billing/dashboard/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit"
+      ],
+      "exports": [],
+      "lines": 5
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/(app)/billing/settings/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit"
+      ],
+      "exports": [],
+      "lines": 5
+    },
+    {
+      "name": "+layout",
+      "file": "src/routes/+layout.js",
+      "language": "javascript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 16
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/documents/contract/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit",
+        "./$types"
+      ],
+      "exports": [],
+      "lines": 7
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/documents/privacy/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit",
+        "./$types"
+      ],
+      "exports": [],
+      "lines": 7
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/prices/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit",
+        "./$types"
+      ],
+      "exports": [],
+      "lines": 7
+    },
+    {
+      "name": "app.d",
+      "file": "src/app.d.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 33
+    },
+    {
+      "name": "billing",
+      "file": "src/lib/apis/admin/billing.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [
+        "ApiRequestError"
+      ],
+      "functions": [
+        "apiRequest",
+        "apiRequestBlob"
+      ],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 821
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/audio/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 196
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/auths/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 714
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/billing/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "apiRequest",
+        "publicApiRequest"
+      ],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 675
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/channels/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 917
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/chats/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "$lib/utils"
+      ],
+      "exports": [],
+      "lines": 1272
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/configs/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "$lib/types"
+      ],
+      "exports": [],
+      "lines": 450
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/evaluations/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 353
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/files/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "$lib/utils"
+      ],
+      "exports": [],
+      "lines": 331
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/folders/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 274
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/functions/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 520
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/groups/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 237
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/images/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 232
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "$lib/utils",
+        "./openai"
+      ],
+      "exports": [],
+      "lines": 1710
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/knowledge/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 513
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/legal/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 130
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/memories/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 186
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/models/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 347
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/notes/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "$lib/utils"
+      ],
+      "exports": [],
+      "lines": 286
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/ollama/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 561
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/openai/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "$lib/utils/airis/openai"
+      ],
+      "exports": [],
+      "lines": 425
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/prompts/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 204
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/retrieval/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 532
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/streaming/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "sleep"
+      ],
+      "imports": [
+        "eventsource-parser/stream",
+        "eventsource-parser"
+      ],
+      "exports": [
+        "createOpenAITextStream"
+      ],
+      "lines": 142
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/tools/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 456
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/users/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "$lib/utils"
+      ],
+      "exports": [],
+      "lines": 552
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/utils/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 181
+    },
+    {
+      "name": "UnifiedTimeline.test",
+      "file": "src/lib/components/billing/UnifiedTimeline.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "flushPromises",
+        "createContext"
+      ],
+      "imports": [
+        "vitest",
+        "svelte",
+        "./UnifiedTimeline.svelte"
+      ],
+      "exports": [],
+      "lines": 155
+    },
+    {
+      "name": "AutoCompletion",
+      "file": "src/lib/components/common/RichTextInput/AutoCompletion.js",
+      "language": "javascript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@tiptap/core",
+        "prosemirror-state"
+      ],
+      "exports": [],
+      "lines": 299
+    },
+    {
+      "name": "Collaboration",
+      "file": "src/lib/components/common/RichTextInput/Collaboration.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [
+        "SimpleAwareness"
+      ],
+      "functions": [
+        "generateUserColor"
+      ],
+      "imports": [
+        "yjs",
+        "y-prosemirror",
+        "socket.io-client",
+        "$lib/stores",
+        "@tiptap/core",
+        "prosemirror-keymap",
+        "svelte"
+      ],
+      "exports": [
+        "SocketIOCollaborationProvider"
+      ],
+      "lines": 348
+    },
+    {
+      "name": "image",
+      "file": "src/lib/components/common/RichTextInput/Image/image.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@tiptap/core"
+      ],
+      "exports": [],
+      "lines": 197
+    },
+    {
+      "name": "index",
+      "file": "src/lib/components/common/RichTextInput/Image/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "./image.js"
+      ],
+      "exports": [
+        "Image"
+      ],
+      "lines": 5
+    },
+    {
+      "name": "commands",
+      "file": "src/lib/components/common/RichTextInput/commands.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@tiptap/core",
+        "@tiptap/suggestion"
+      ],
+      "exports": [],
+      "lines": 26
+    },
+    {
+      "name": "listDragHandlePlugin",
+      "file": "src/lib/components/common/RichTextInput/listDragHandlePlugin.js",
+      "language": "javascript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "prosemirror-state",
+        "prosemirror-view",
+        "prosemirror-model"
+      ],
+      "exports": [
+        "listDragHandlePlugin"
+      ],
+      "lines": 513
+    },
+    {
+      "name": "suggestions",
+      "file": "src/lib/components/common/RichTextInput/suggestions.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "svelte",
+        "svelte/legacy",
+        "tippy.js"
+      ],
+      "exports": [
+        "getSuggestionRenderer"
+      ],
+      "lines": 127
+    },
+    {
+      "name": "index",
+      "file": "src/lib/components/landing/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 12
+    },
+    {
+      "name": "welcomeData",
+      "file": "src/lib/components/landing/welcomeData.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "applyPresetPrompt"
+      ],
+      "imports": [
+        "$lib/data/features"
+      ],
+      "exports": [],
+      "lines": 456
+    },
+    {
+      "name": "welcomeNavigation.test",
+      "file": "src/lib/components/landing/welcomeNavigation.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "parseUrl"
+      ],
+      "imports": [
+        "vitest",
+        "./welcomeNavigation"
+      ],
+      "exports": [],
+      "lines": 142
+    },
+    {
+      "name": "welcomeNavigation",
+      "file": "src/lib/components/landing/welcomeNavigation.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$app/environment",
+        "$app/navigation",
+        "svelte/store",
+        "$lib/stores"
+      ],
+      "exports": [],
+      "lines": 64
+    },
+    {
+      "name": "utils",
+      "file": "src/lib/components/notes/utils.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "dompurify",
+        "svelte-sonner",
+        "$lib/apis/notes"
+      ],
+      "exports": [],
+      "lines": 132
+    },
+    {
+      "name": "permissions",
+      "file": "src/lib/constants/permissions.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 61
+    },
+    {
+      "name": "constants",
+      "file": "src/lib/constants.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$app/environment"
+      ],
+      "exports": [],
+      "lines": 103
+    },
+    {
+      "name": "features",
+      "file": "src/lib/data/features.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "./features-page.json",
+        "./presets.json"
+      ],
+      "exports": [],
+      "lines": 78
+    },
+    {
+      "name": "dayjs",
+      "file": "src/lib/dayjs.js",
+      "language": "javascript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "dayjs",
+        "dayjs/locale/af",
+        "dayjs/locale/am",
+        "dayjs/locale/ar",
+        "dayjs/locale/az",
+        "dayjs/locale/be",
+        "dayjs/locale/bg",
+        "dayjs/locale/bi",
+        "dayjs/locale/bm",
+        "dayjs/locale/bn",
+        "dayjs/locale/bo",
+        "dayjs/locale/br",
+        "dayjs/locale/bs",
+        "dayjs/locale/ca",
+        "dayjs/locale/cs",
+        "dayjs/locale/cv",
+        "dayjs/locale/cy",
+        "dayjs/locale/da",
+        "dayjs/locale/de",
+        "dayjs/locale/dv",
+        "dayjs/locale/el",
+        "dayjs/locale/en",
+        "dayjs/locale/eo",
+        "dayjs/locale/es",
+        "dayjs/locale/eu",
+        "dayjs/locale/fa",
+        "dayjs/locale/fi",
+        "dayjs/locale/fo",
+        "dayjs/locale/fr",
+        "dayjs/locale/fy",
+        "dayjs/locale/ga",
+        "dayjs/locale/gd",
+        "dayjs/locale/gl",
+        "dayjs/locale/gu",
+        "dayjs/locale/he",
+        "dayjs/locale/hi",
+        "dayjs/locale/hr",
+        "dayjs/locale/ht",
+        "dayjs/locale/hu",
+        "dayjs/locale/id",
+        "dayjs/locale/is",
+        "dayjs/locale/it",
+        "dayjs/locale/ja",
+        "dayjs/locale/jv",
+        "dayjs/locale/ka",
+        "dayjs/locale/kk",
+        "dayjs/locale/km",
+        "dayjs/locale/kn",
+        "dayjs/locale/ko",
+        "dayjs/locale/ku",
+        "dayjs/locale/ky",
+        "dayjs/locale/lb",
+        "dayjs/locale/lo",
+        "dayjs/locale/lt",
+        "dayjs/locale/lv",
+        "dayjs/locale/me",
+        "dayjs/locale/mi",
+        "dayjs/locale/mk",
+        "dayjs/locale/ml",
+        "dayjs/locale/mn",
+        "dayjs/locale/mr",
+        "dayjs/locale/ms",
+        "dayjs/locale/mt",
+        "dayjs/locale/my",
+        "dayjs/locale/nb",
+        "dayjs/locale/ne",
+        "dayjs/locale/nl",
+        "dayjs/locale/nn",
+        "dayjs/locale/pl",
+        "dayjs/locale/pt",
+        "dayjs/locale/ro",
+        "dayjs/locale/ru",
+        "dayjs/locale/rw",
+        "dayjs/locale/sd",
+        "dayjs/locale/se",
+        "dayjs/locale/si",
+        "dayjs/locale/sk",
+        "dayjs/locale/sl",
+        "dayjs/locale/sq",
+        "dayjs/locale/sr",
+        "dayjs/locale/ss",
+        "dayjs/locale/sv",
+        "dayjs/locale/sw",
+        "dayjs/locale/ta",
+        "dayjs/locale/te",
+        "dayjs/locale/tet",
+        "dayjs/locale/tg",
+        "dayjs/locale/th",
+        "dayjs/locale/tk",
+        "dayjs/locale/tlh",
+        "dayjs/locale/tr",
+        "dayjs/locale/tzl",
+        "dayjs/locale/tzm",
+        "dayjs/locale/uk",
+        "dayjs/locale/ur",
+        "dayjs/locale/uz",
+        "dayjs/locale/vi",
+        "dayjs/locale/yo",
+        "dayjs/locale/zh",
+        "dayjs/locale/zh-tw",
+        "dayjs/locale/et",
+        "dayjs/locale/en-gb"
+      ],
+      "exports": [
+        "dayjs"
+      ],
+      "lines": 106
+    },
+    {
+      "name": "index",
+      "file": "src/lib/i18n/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "createI18nStore",
+        "createIsLoadingStore"
+      ],
+      "imports": [
+        "i18next",
+        "i18next-resources-to-backend",
+        "i18next-browser-languagedetector",
+        "i18next",
+        "svelte/store"
+      ],
+      "exports": [
+        "i18n"
+      ],
+      "lines": 87
+    },
+    {
+      "name": "index",
+      "file": "src/lib/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 1
+    },
+    {
+      "name": "pyodideKernel",
+      "file": "src/lib/pyodide/pyodideKernel.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/pyodide/pyodideKernel.worker?worker"
+      ],
+      "exports": [
+        "PyodideKernel"
+      ],
+      "lines": 81
+    },
+    {
+      "name": "pyodideKernel.worker",
+      "file": "src/lib/pyodide/pyodideKernel.worker.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "initializePyodide",
+        "executeCode"
+      ],
+      "imports": [
+        "pyodide"
+      ],
+      "exports": [],
+      "lines": 123
+    },
+    {
+      "name": "shortcuts",
+      "file": "src/lib/shortcuts.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 156
+    },
+    {
+      "name": "index",
+      "file": "src/lib/stores/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants",
+        "svelte/store",
+        "$lib/apis",
+        "$lib/types",
+        "socket.io-client",
+        "$lib/emoji-shortcodes.json"
+      ],
+      "exports": [],
+      "lines": 306
+    },
+    {
+      "name": "index",
+      "file": "src/lib/types/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 15
+    },
+    {
+      "name": "vkid.d",
+      "file": "src/lib/types/vkid.d.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 83
+    },
+    {
+      "name": "_template_old",
+      "file": "src/lib/utils/_template_old.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/utils/index",
+        "vitest"
+      ],
+      "exports": [],
+      "lines": 66
+    },
+    {
+      "name": "admin_billing_models_page_compile.test",
+      "file": "src/lib/utils/airis/admin_billing_models_page_compile.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "createStore"
+      ],
+      "imports": [
+        "vitest"
+      ],
+      "exports": [],
+      "lines": 66
+    },
+    {
+      "name": "chat.test",
+      "file": "src/lib/utils/airis/chat.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "./chat"
+      ],
+      "exports": [],
+      "lines": 135
+    },
+    {
+      "name": "chat",
+      "file": "src/lib/utils/airis/chat.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "isRecord"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 85
+    },
+    {
+      "name": "model_pricing_audit.test",
+      "file": "src/lib/utils/airis/model_pricing_audit.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "$lib/utils/airis/rate_cards",
+        "./model_pricing_audit"
+      ],
+      "exports": [],
+      "lines": 57
+    },
+    {
+      "name": "model_pricing_audit",
+      "file": "src/lib/utils/airis/model_pricing_audit.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/utils/airis/rate_cards"
+      ],
+      "exports": [],
+      "lines": 58
+    },
+    {
+      "name": "model_pricing_completeness.test",
+      "file": "src/lib/utils/airis/model_pricing_completeness.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "$lib/utils/airis/rate_cards",
+        "./model_pricing_completeness"
+      ],
+      "exports": [],
+      "lines": 43
+    },
+    {
+      "name": "model_pricing_completeness",
+      "file": "src/lib/utils/airis/model_pricing_completeness.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/utils/airis/rate_cards",
+        "$lib/utils/airis/model_pricing_audit"
+      ],
+      "exports": [],
+      "lines": 60
+    },
+    {
+      "name": "openai.test",
+      "file": "src/lib/utils/airis/openai.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "./openai"
+      ],
+      "exports": [],
+      "lines": 79
+    },
+    {
+      "name": "openai",
+      "file": "src/lib/utils/airis/openai.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "isRecord"
+      ],
+      "imports": [
+        "uuid"
+      ],
+      "exports": [],
+      "lines": 32
+    },
+    {
+      "name": "rate_cards.test",
+      "file": "src/lib/utils/airis/rate_cards.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "buildRateCard"
+      ],
+      "imports": [
+        "vitest",
+        "$lib/apis/admin/billing",
+        "$lib/utils/rate-card-models",
+        "./rate_cards"
+      ],
+      "exports": [],
+      "lines": 81
+    },
+    {
+      "name": "rate_cards",
+      "file": "src/lib/utils/airis/rate_cards.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "normalizeKopeks",
+        "getLatestActive"
+      ],
+      "imports": [
+        "$lib/apis/admin/billing",
+        "$lib/utils/rate-card-models"
+      ],
+      "exports": [],
+      "lines": 71
+    },
+    {
+      "name": "analytics",
+      "file": "src/lib/utils/analytics.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 21
+    },
+    {
+      "name": "audio",
+      "file": "src/lib/utils/audio.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [
+        "AudioQueue"
+      ],
+      "lines": 73
+    },
+    {
+      "name": "billing-formatters",
+      "file": "src/lib/utils/billing-formatters.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 103
+    },
+    {
+      "name": "index",
+      "file": "src/lib/utils/characters/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "parseJsonFile",
+        "parsePngFile",
+        "parsePngText",
+        "readPngChunks",
+        "decodeTextChunk",
+        "extractCharacter",
+        "detectFormats"
+      ],
+      "imports": [
+        "crc-32"
+      ],
+      "exports": [],
+      "lines": 197
+    },
+    {
+      "name": "google-drive-picker",
+      "file": "src/lib/utils/google-drive-picker.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "getCredentials",
+        "validateCredentials",
+        "initialize"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 213
+    },
+    {
+      "name": "index",
+      "file": "src/lib/utils/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "escapeRegExp",
+        "isChineseChar",
+        "processChineseContent",
+        "processChineseDelimiters",
+        "convertOpenAIMessages",
+        "validateChat",
+        "resolveSchema",
+        "ensurePDFjsLoaded"
+      ],
+      "imports": [
+        "uuid",
+        "js-sha256",
+        "$lib/constants",
+        "dayjs",
+        "dayjs/plugin/relativeTime",
+        "dayjs/plugin/isToday",
+        "dayjs/plugin/isYesterday",
+        "dayjs/plugin/localizedFormat",
+        "$lib/types",
+        "pdfjs-dist/build/pdf.worker.mjs?url",
+        "marked",
+        "$lib/utils/marked/extension",
+        "$lib/utils/marked/katex-extension",
+        "highlight.js"
+      ],
+      "exports": [
+        "unescapeHtml"
+      ],
+      "lines": 1687
+    },
+    {
+      "name": "citation-extension",
+      "file": "src/lib/utils/marked/citation-extension.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [
+        "citationExtension"
+      ],
+      "lines": 70
+    },
+    {
+      "name": "extension",
+      "file": "src/lib/utils/marked/extension.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "findMatchingClosingTag",
+        "parseAttributes",
+        "detailsTokenizer",
+        "detailsStart",
+        "detailsRenderer",
+        "detailsExtension"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 94
+    },
+    {
+      "name": "footnote-extension",
+      "file": "src/lib/utils/marked/footnote-extension.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "escapeHtml"
+      ],
+      "imports": [],
+      "exports": [
+        "footnoteExtension"
+      ],
+      "lines": 38
+    },
+    {
+      "name": "katex-extension",
+      "file": "src/lib/utils/marked/katex-extension.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "escapeRegex",
+        "generateRegexRules",
+        "katexStart",
+        "katexTokenizer",
+        "inlineKatex",
+        "blockKatex"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 166
+    },
+    {
+      "name": "mention-extension",
+      "file": "src/lib/utils/marked/mention-extension.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "escapeHtml",
+        "mentionStart",
+        "mentionTokenizer",
+        "mentionRenderer"
+      ],
+      "imports": [],
+      "exports": [
+        "mentionExtension"
+      ],
+      "lines": 73
+    },
+    {
+      "name": "strikethrough-extension",
+      "file": "src/lib/utils/marked/strikethrough-extension.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 29
+    },
+    {
+      "name": "onedrive-file-picker",
+      "file": "src/lib/utils/onedrive-file-picker.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [
+        "OneDriveConfig"
+      ],
+      "functions": [
+        "getToken",
+        "getPickerParams",
+        "downloadOneDriveFile"
+      ],
+      "imports": [
+        "@azure/msal-browser",
+        "uuid"
+      ],
+      "exports": [
+        "openOneDrivePicker",
+        "pickAndDownloadFile"
+      ],
+      "lines": 453
+    },
+    {
+      "name": "rate-card-models.test",
+      "file": "src/lib/utils/rate-card-models.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "buildRateCard"
+      ],
+      "imports": [
+        "vitest",
+        "$lib/apis/admin/billing",
+        "./rate-card-models"
+      ],
+      "exports": [],
+      "lines": 83
+    },
+    {
+      "name": "rate-card-models",
+      "file": "src/lib/utils/rate-card-models.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/apis/admin/billing"
+      ],
+      "exports": [],
+      "lines": 79
+    },
+    {
+      "name": "text-scale",
+      "file": "src/lib/utils/text-scale.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 7
+    },
+    {
+      "name": "index",
+      "file": "src/lib/utils/transitions/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "svelte/easing",
+        "svelte/transition"
+      ],
+      "exports": [],
+      "lines": 48
+    },
+    {
+      "name": "KokoroWorker",
+      "file": "src/lib/workers/KokoroWorker.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/workers/kokoro.worker?worker"
+      ],
+      "exports": [
+        "KokoroWorker"
+      ],
+      "lines": 106
+    },
+    {
+      "name": "kokoro.worker",
+      "file": "src/lib/workers/kokoro.worker.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@huggingface/transformers",
+        "kokoro-js"
+      ],
+      "exports": [],
+      "lines": 57
+    },
+    {
+      "name": "pyodide.worker",
+      "file": "src/lib/workers/pyodide.worker.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "loadPyodideAndPackages",
+        "processResult"
+      ],
+      "imports": [
+        "pyodide"
+      ],
+      "exports": [],
+      "lines": 176
+    },
+    {
+      "name": "billing-balance.test",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "flushPromises",
+        "createBalance",
+        "createContext"
+      ],
+      "imports": [
+        "vitest",
+        "svelte",
+        "./+page.svelte"
+      ],
+      "exports": [],
+      "lines": 195
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/(app)/billing/dashboard/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit"
+      ],
+      "exports": [],
+      "lines": 5
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/(app)/billing/settings/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit"
+      ],
+      "exports": [],
+      "lines": 5
+    },
+    {
+      "name": "+layout",
+      "file": "src/routes/+layout.js",
+      "language": "javascript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 16
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/documents/contract/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit",
+        "./$types"
+      ],
+      "exports": [],
+      "lines": 7
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/documents/privacy/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit",
+        "./$types"
+      ],
+      "exports": [],
+      "lines": 7
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/prices/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit",
+        "./$types"
+      ],
+      "exports": [],
+      "lines": 7
+    }
+  ],
+  "classes": [
+    {
+      "name": "ApiRequestError",
+      "file": "src/lib/apis/admin/billing.ts",
+      "line": 234,
+      "language": "typescript",
+      "docstring": null,
+      "bases": [],
+      "methods": [
+        "constructor"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "SimpleAwareness",
+      "file": "src/lib/components/common/RichTextInput/Collaboration.ts",
+      "line": 270,
+      "language": "typescript",
+      "docstring": null,
+      "bases": [],
+      "methods": [
+        "constructor",
+        "on",
+        "off",
+        "getLocalState",
+        "getStates",
+        "setLocalStateField",
+        "applyUpdate",
+        "encodeUpdate"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "OneDriveConfig",
+      "file": "src/lib/utils/onedrive-file-picker.ts",
+      "line": 4,
+      "language": "typescript",
+      "docstring": null,
+      "bases": [],
+      "methods": [
+        "constructor",
+        "getInstance",
+        "initialize",
+        "ensureInitialized",
+        "getCredentials",
+        "getMsalInstance",
+        "getAuthorityType",
+        "getSharepointUrl",
+        "getSharepointTenantId",
+        "getBaseUrl"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "ApiRequestError",
+      "file": "src/lib/apis/admin/billing.ts",
+      "line": 234,
+      "language": "typescript",
+      "docstring": null,
+      "bases": [],
+      "methods": [
+        "constructor"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "SimpleAwareness",
+      "file": "src/lib/components/common/RichTextInput/Collaboration.ts",
+      "line": 270,
+      "language": "typescript",
+      "docstring": null,
+      "bases": [],
+      "methods": [
+        "constructor",
+        "on",
+        "off",
+        "getLocalState",
+        "getStates",
+        "setLocalStateField",
+        "applyUpdate",
+        "encodeUpdate"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "OneDriveConfig",
+      "file": "src/lib/utils/onedrive-file-picker.ts",
+      "line": 4,
+      "language": "typescript",
+      "docstring": null,
+      "bases": [],
+      "methods": [
+        "constructor",
+        "getInstance",
+        "initialize",
+        "ensureInitialized",
+        "getCredentials",
+        "getMsalInstance",
+        "getAuthorityType",
+        "getSharepointUrl",
+        "getSharepointTenantId",
+        "getBaseUrl"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true
+    }
+  ],
+  "functions": [
+    {
+      "name": "apiRequest",
+      "file": "src/lib/apis/admin/billing.ts",
+      "line": 246,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 5,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "apiRequestBlob",
+      "file": "src/lib/apis/admin/billing.ts",
+      "line": 272,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "apiRequest",
+      "file": "src/lib/apis/billing/index.ts",
+      "line": 271,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "publicApiRequest",
+      "file": "src/lib/apis/billing/index.ts",
+      "line": 291,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "sleep",
+      "file": "src/lib/apis/streaming/index.ts",
+      "line": 142,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "ms",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "flushPromises",
+      "file": "src/lib/components/billing/UnifiedTimeline.test.ts",
+      "line": 75,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createContext",
+      "file": "src/lib/components/billing/UnifiedTimeline.test.ts",
+      "line": 80,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "generateUserColor",
+      "file": "src/lib/components/common/RichTextInput/Collaboration.ts",
+      "line": 28,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "applyPresetPrompt",
+      "file": "src/lib/components/landing/welcomeData.ts",
+      "line": 53,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "item",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parseUrl",
+      "file": "src/lib/components/landing/welcomeNavigation.test.ts",
+      "line": 36,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createI18nStore",
+      "file": "src/lib/i18n/index.ts",
+      "line": 7,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "i18n",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createIsLoadingStore",
+      "file": "src/lib/i18n/index.ts",
+      "line": 23,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "i18n",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "initializePyodide",
+      "file": "src/lib/pyodide/pyodideKernel.worker.ts",
+      "line": 21,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "executeCode",
+      "file": "src/lib/pyodide/pyodideKernel.worker.ts",
+      "line": 35,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "id",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "code",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createStore",
+      "file": "src/lib/utils/airis/admin_billing_models_page_compile.test.ts",
+      "line": 6,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isRecord",
+      "file": "src/lib/utils/airis/chat.ts",
+      "line": 14,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isRecord",
+      "file": "src/lib/utils/airis/openai.ts",
+      "line": 3,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "buildRateCard",
+      "file": "src/lib/utils/airis/rate_cards.test.ts",
+      "line": 8,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "overrides",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "normalizeKopeks",
+      "file": "src/lib/utils/airis/rate_cards.ts",
+      "line": 12,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "getLatestActive",
+      "file": "src/lib/utils/airis/rate_cards.ts",
+      "line": 17,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "modelEntries",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "modality",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "unit",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parseJsonFile",
+      "file": "src/lib/utils/characters/index.ts",
+      "line": 13,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "file",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parsePngFile",
+      "file": "src/lib/utils/characters/index.ts",
+      "line": 27,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "file",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parsePngText",
+      "file": "src/lib/utils/characters/index.ts",
+      "line": 44,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "arrayBuffer",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "readPngChunks",
+      "file": "src/lib/utils/characters/index.ts",
+      "line": 64,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "data",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "decodeTextChunk",
+      "file": "src/lib/utils/characters/index.ts",
+      "line": 102,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "data",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "extractCharacter",
+      "file": "src/lib/utils/characters/index.ts",
+      "line": 118,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "json",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "detectFormats",
+      "file": "src/lib/utils/characters/index.ts",
+      "line": 157,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "json",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 5,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "getCredentials",
+      "file": "src/lib/utils/google-drive-picker.ts",
+      "line": 6,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "validateCredentials",
+      "file": "src/lib/utils/google-drive-picker.ts",
+      "line": 25,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "initialize",
+      "file": "src/lib/utils/google-drive-picker.ts",
+      "line": 99,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "escapeRegExp",
+      "file": "src/lib/utils/index.ts",
+      "line": 31,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "string",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isChineseChar",
+      "file": "src/lib/utils/index.ts",
+      "line": 92,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "char",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "processChineseContent",
+      "file": "src/lib/utils/index.ts",
+      "line": 97,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "content",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 5,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "processChineseDelimiters",
+      "file": "src/lib/utils/index.ts",
+      "line": 137,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "line",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "symbol",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "leftSymbol",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "rightSymbol",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "convertOpenAIMessages",
+      "file": "src/lib/utils/index.ts",
+      "line": 669,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "convo",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "validateChat",
+      "file": "src/lib/utils/index.ts",
+      "line": 727,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "chat",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 5,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "resolveSchema",
+      "file": "src/lib/utils/index.ts",
+      "line": 1201,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "schemaRef",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "components",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "resolvedSchemas = new Set()",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 8,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "ensurePDFjsLoaded",
+      "file": "src/lib/utils/index.ts",
+      "line": 1469,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "findMatchingClosingTag",
+      "file": "src/lib/utils/marked/extension.ts",
+      "line": 2,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "src",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "openTag",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "closeTag",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 6,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parseAttributes",
+      "file": "src/lib/utils/marked/extension.ts",
+      "line": 19,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "tag",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "detailsTokenizer",
+      "file": "src/lib/utils/marked/extension.ts",
+      "line": 29,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "src",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "detailsStart",
+      "file": "src/lib/utils/marked/extension.ts",
+      "line": 62,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "src",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "detailsRenderer",
+      "file": "src/lib/utils/marked/extension.ts",
+      "line": 66,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "detailsExtension",
+      "file": "src/lib/utils/marked/extension.ts",
+      "line": 80,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "_options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "escapeHtml",
+      "file": "src/lib/utils/marked/footnote-extension.ts",
+      "line": 4,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "s",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "escapeRegex",
+      "file": "src/lib/utils/marked/katex-extension.ts",
+      "line": 27,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "string",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "generateRegexRules",
+      "file": "src/lib/utils/marked/katex-extension.ts",
+      "line": 31,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "delimiters",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "katexStart",
+      "file": "src/lib/utils/marked/katex-extension.ts",
+      "line": 69,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "src",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "displayMode",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 8,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "katexTokenizer",
+      "file": "src/lib/utils/marked/katex-extension.ts",
+      "line": 115,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "src",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "tokens",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "displayMode",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "inlineKatex",
+      "file": "src/lib/utils/marked/katex-extension.ts",
+      "line": 136,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "blockKatex",
+      "file": "src/lib/utils/marked/katex-extension.ts",
+      "line": 152,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "escapeHtml",
+      "file": "src/lib/utils/marked/mention-extension.ts",
+      "line": 8,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "s",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "mentionStart",
+      "file": "src/lib/utils/marked/mention-extension.ts",
+      "line": 15,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "src",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "mentionTokenizer",
+      "file": "src/lib/utils/marked/mention-extension.ts",
+      "line": 21,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "this",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "src",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "mentionRenderer",
+      "file": "src/lib/utils/marked/mention-extension.ts",
+      "line": 39,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "getToken",
+      "file": "src/lib/utils/onedrive-file-picker.ts",
+      "line": 124,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "resource?",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "authorityType?",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 7,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "getPickerParams",
+      "file": "src/lib/utils/onedrive-file-picker.ts",
+      "line": 196,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "downloadOneDriveFile",
+      "file": "src/lib/utils/onedrive-file-picker.ts",
+      "line": 243,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "fileInfo",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "authorityType?",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 5,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "buildRateCard",
+      "file": "src/lib/utils/rate-card-models.test.ts",
+      "line": 6,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "overrides",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "loadPyodideAndPackages",
+      "file": "src/lib/workers/pyodide.worker.ts",
+      "line": 16,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "packages",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "processResult",
+      "file": "src/lib/workers/pyodide.worker.ts",
+      "line": 135,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "result",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 9,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "flushPromises",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "line": 117,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createBalance",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "line": 122,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "overrides",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createContext",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "line": 138,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "apiRequest",
+      "file": "src/lib/apis/admin/billing.ts",
+      "line": 246,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 5,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "apiRequestBlob",
+      "file": "src/lib/apis/admin/billing.ts",
+      "line": 272,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "apiRequest",
+      "file": "src/lib/apis/billing/index.ts",
+      "line": 271,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "publicApiRequest",
+      "file": "src/lib/apis/billing/index.ts",
+      "line": 291,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "sleep",
+      "file": "src/lib/apis/streaming/index.ts",
+      "line": 142,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "ms",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "flushPromises",
+      "file": "src/lib/components/billing/UnifiedTimeline.test.ts",
+      "line": 75,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createContext",
+      "file": "src/lib/components/billing/UnifiedTimeline.test.ts",
+      "line": 80,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "generateUserColor",
+      "file": "src/lib/components/common/RichTextInput/Collaboration.ts",
+      "line": 28,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "applyPresetPrompt",
+      "file": "src/lib/components/landing/welcomeData.ts",
+      "line": 53,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "item",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parseUrl",
+      "file": "src/lib/components/landing/welcomeNavigation.test.ts",
+      "line": 36,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createI18nStore",
+      "file": "src/lib/i18n/index.ts",
+      "line": 7,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "i18n",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createIsLoadingStore",
+      "file": "src/lib/i18n/index.ts",
+      "line": 23,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "i18n",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "initializePyodide",
+      "file": "src/lib/pyodide/pyodideKernel.worker.ts",
+      "line": 21,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "executeCode",
+      "file": "src/lib/pyodide/pyodideKernel.worker.ts",
+      "line": 35,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "id",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "code",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createStore",
+      "file": "src/lib/utils/airis/admin_billing_models_page_compile.test.ts",
+      "line": 6,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isRecord",
+      "file": "src/lib/utils/airis/chat.ts",
+      "line": 14,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isRecord",
+      "file": "src/lib/utils/airis/openai.ts",
+      "line": 3,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "buildRateCard",
+      "file": "src/lib/utils/airis/rate_cards.test.ts",
+      "line": 8,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "overrides",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "normalizeKopeks",
+      "file": "src/lib/utils/airis/rate_cards.ts",
+      "line": 12,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "getLatestActive",
+      "file": "src/lib/utils/airis/rate_cards.ts",
+      "line": 17,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "modelEntries",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "modality",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "unit",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parseJsonFile",
+      "file": "src/lib/utils/characters/index.ts",
+      "line": 13,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "file",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parsePngFile",
+      "file": "src/lib/utils/characters/index.ts",
+      "line": 27,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "file",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parsePngText",
+      "file": "src/lib/utils/characters/index.ts",
+      "line": 44,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "arrayBuffer",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "readPngChunks",
+      "file": "src/lib/utils/characters/index.ts",
+      "line": 64,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "data",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "decodeTextChunk",
+      "file": "src/lib/utils/characters/index.ts",
+      "line": 102,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "data",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "extractCharacter",
+      "file": "src/lib/utils/characters/index.ts",
+      "line": 118,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "json",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "detectFormats",
+      "file": "src/lib/utils/characters/index.ts",
+      "line": 157,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "json",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 5,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "getCredentials",
+      "file": "src/lib/utils/google-drive-picker.ts",
+      "line": 6,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "validateCredentials",
+      "file": "src/lib/utils/google-drive-picker.ts",
+      "line": 25,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "initialize",
+      "file": "src/lib/utils/google-drive-picker.ts",
+      "line": 99,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "escapeRegExp",
+      "file": "src/lib/utils/index.ts",
+      "line": 31,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "string",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isChineseChar",
+      "file": "src/lib/utils/index.ts",
+      "line": 92,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "char",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "processChineseContent",
+      "file": "src/lib/utils/index.ts",
+      "line": 97,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "content",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 5,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "processChineseDelimiters",
+      "file": "src/lib/utils/index.ts",
+      "line": 137,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "line",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "symbol",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "leftSymbol",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "rightSymbol",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "convertOpenAIMessages",
+      "file": "src/lib/utils/index.ts",
+      "line": 669,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "convo",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "validateChat",
+      "file": "src/lib/utils/index.ts",
+      "line": 727,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "chat",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 5,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "resolveSchema",
+      "file": "src/lib/utils/index.ts",
+      "line": 1201,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "schemaRef",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "components",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "resolvedSchemas = new Set()",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 8,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "ensurePDFjsLoaded",
+      "file": "src/lib/utils/index.ts",
+      "line": 1469,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "findMatchingClosingTag",
+      "file": "src/lib/utils/marked/extension.ts",
+      "line": 2,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "src",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "openTag",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "closeTag",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 6,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parseAttributes",
+      "file": "src/lib/utils/marked/extension.ts",
+      "line": 19,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "tag",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "detailsTokenizer",
+      "file": "src/lib/utils/marked/extension.ts",
+      "line": 29,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "src",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "detailsStart",
+      "file": "src/lib/utils/marked/extension.ts",
+      "line": 62,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "src",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "detailsRenderer",
+      "file": "src/lib/utils/marked/extension.ts",
+      "line": 66,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "detailsExtension",
+      "file": "src/lib/utils/marked/extension.ts",
+      "line": 80,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "_options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "escapeHtml",
+      "file": "src/lib/utils/marked/footnote-extension.ts",
+      "line": 4,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "s",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "escapeRegex",
+      "file": "src/lib/utils/marked/katex-extension.ts",
+      "line": 27,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "string",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "generateRegexRules",
+      "file": "src/lib/utils/marked/katex-extension.ts",
+      "line": 31,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "delimiters",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "katexStart",
+      "file": "src/lib/utils/marked/katex-extension.ts",
+      "line": 69,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "src",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "displayMode",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 8,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "katexTokenizer",
+      "file": "src/lib/utils/marked/katex-extension.ts",
+      "line": 115,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "src",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "tokens",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "displayMode",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "inlineKatex",
+      "file": "src/lib/utils/marked/katex-extension.ts",
+      "line": 136,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "blockKatex",
+      "file": "src/lib/utils/marked/katex-extension.ts",
+      "line": 152,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "escapeHtml",
+      "file": "src/lib/utils/marked/mention-extension.ts",
+      "line": 8,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "s",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "mentionStart",
+      "file": "src/lib/utils/marked/mention-extension.ts",
+      "line": 15,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "src",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "mentionTokenizer",
+      "file": "src/lib/utils/marked/mention-extension.ts",
+      "line": 21,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "this",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "src",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "mentionRenderer",
+      "file": "src/lib/utils/marked/mention-extension.ts",
+      "line": 39,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "getToken",
+      "file": "src/lib/utils/onedrive-file-picker.ts",
+      "line": 124,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "resource?",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "authorityType?",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 7,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "getPickerParams",
+      "file": "src/lib/utils/onedrive-file-picker.ts",
+      "line": 196,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "downloadOneDriveFile",
+      "file": "src/lib/utils/onedrive-file-picker.ts",
+      "line": 243,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "fileInfo",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "authorityType?",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 5,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "buildRateCard",
+      "file": "src/lib/utils/rate-card-models.test.ts",
+      "line": 6,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "overrides",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "loadPyodideAndPackages",
+      "file": "src/lib/workers/pyodide.worker.ts",
+      "line": 16,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "packages",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "processResult",
+      "file": "src/lib/workers/pyodide.worker.ts",
+      "line": 135,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "result",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 9,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "flushPromises",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "line": 117,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createBalance",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "line": 122,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "overrides",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createContext",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "line": 138,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    }
+  ],
+  "dependencies": {
+    "src/lib/apis/admin/billing.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/audio/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/auths/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/billing/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/channels/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/chats/index.ts": [
+      "$lib/constants",
+      "$lib/utils",
+      "$lib/constants",
+      "$lib/utils"
+    ],
+    "src/lib/apis/configs/index.ts": [
+      "$lib/constants",
+      "$lib/types",
+      "$lib/constants",
+      "$lib/types"
+    ],
+    "src/lib/apis/evaluations/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/files/index.ts": [
+      "$lib/constants",
+      "$lib/utils",
+      "$lib/constants",
+      "$lib/utils"
+    ],
+    "src/lib/apis/folders/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/functions/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/groups/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/images/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/index.ts": [
+      "$lib/constants",
+      "$lib/utils",
+      "./openai",
+      "$lib/constants",
+      "$lib/utils",
+      "./openai"
+    ],
+    "src/lib/apis/knowledge/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/legal/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/memories/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/models/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/notes/index.ts": [
+      "$lib/constants",
+      "$lib/utils",
+      "$lib/constants",
+      "$lib/utils"
+    ],
+    "src/lib/apis/ollama/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/openai/index.ts": [
+      "$lib/constants",
+      "$lib/utils/airis/openai",
+      "$lib/constants",
+      "$lib/utils/airis/openai"
+    ],
+    "src/lib/apis/prompts/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/retrieval/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/streaming/index.ts": [
+      "eventsource-parser/stream",
+      "eventsource-parser",
+      "eventsource-parser/stream",
+      "eventsource-parser"
+    ],
+    "src/lib/apis/tools/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/users/index.ts": [
+      "$lib/constants",
+      "$lib/utils",
+      "$lib/constants",
+      "$lib/utils"
+    ],
+    "src/lib/apis/utils/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/components/billing/UnifiedTimeline.test.ts": [
+      "vitest",
+      "svelte",
+      "./UnifiedTimeline.svelte",
+      "vitest",
+      "svelte",
+      "./UnifiedTimeline.svelte"
+    ],
+    "src/lib/components/common/RichTextInput/AutoCompletion.js": [
+      "@tiptap/core",
+      "prosemirror-state",
+      "@tiptap/core",
+      "prosemirror-state"
+    ],
+    "src/lib/components/common/RichTextInput/Collaboration.ts": [
+      "yjs",
+      "y-prosemirror",
+      "socket.io-client",
+      "$lib/stores",
+      "@tiptap/core",
+      "prosemirror-keymap",
+      "svelte",
+      "yjs",
+      "y-prosemirror",
+      "socket.io-client",
+      "$lib/stores",
+      "@tiptap/core",
+      "prosemirror-keymap",
+      "svelte"
+    ],
+    "src/lib/components/common/RichTextInput/Image/image.ts": [
+      "@tiptap/core",
+      "@tiptap/core"
+    ],
+    "src/lib/components/common/RichTextInput/Image/index.ts": [
+      "./image.js",
+      "./image.js"
+    ],
+    "src/lib/components/common/RichTextInput/commands.ts": [
+      "@tiptap/core",
+      "@tiptap/suggestion",
+      "@tiptap/core",
+      "@tiptap/suggestion"
+    ],
+    "src/lib/components/common/RichTextInput/listDragHandlePlugin.js": [
+      "prosemirror-state",
+      "prosemirror-view",
+      "prosemirror-model",
+      "prosemirror-state",
+      "prosemirror-view",
+      "prosemirror-model"
+    ],
+    "src/lib/components/common/RichTextInput/suggestions.ts": [
+      "svelte",
+      "svelte/legacy",
+      "tippy.js",
+      "svelte",
+      "svelte/legacy",
+      "tippy.js"
+    ],
+    "src/lib/components/landing/welcomeData.ts": [
+      "$lib/data/features",
+      "$lib/data/features"
+    ],
+    "src/lib/components/landing/welcomeNavigation.test.ts": [
+      "vitest",
+      "./welcomeNavigation",
+      "vitest",
+      "./welcomeNavigation"
+    ],
+    "src/lib/components/landing/welcomeNavigation.ts": [
+      "$app/environment",
+      "$app/navigation",
+      "svelte/store",
+      "$lib/stores",
+      "$app/environment",
+      "$app/navigation",
+      "svelte/store",
+      "$lib/stores"
+    ],
+    "src/lib/components/notes/utils.ts": [
+      "dompurify",
+      "svelte-sonner",
+      "$lib/apis/notes",
+      "dompurify",
+      "svelte-sonner",
+      "$lib/apis/notes"
+    ],
+    "src/lib/constants.ts": [
+      "$app/environment",
+      "$app/environment"
+    ],
+    "src/lib/data/features.ts": [
+      "./features-page.json",
+      "./presets.json",
+      "./features-page.json",
+      "./presets.json"
+    ],
+    "src/lib/dayjs.js": [
+      "dayjs",
+      "dayjs/locale/af",
+      "dayjs/locale/am",
+      "dayjs/locale/ar",
+      "dayjs/locale/az",
+      "dayjs/locale/be",
+      "dayjs/locale/bg",
+      "dayjs/locale/bi",
+      "dayjs/locale/bm",
+      "dayjs/locale/bn",
+      "dayjs/locale/bo",
+      "dayjs/locale/br",
+      "dayjs/locale/bs",
+      "dayjs/locale/ca",
+      "dayjs/locale/cs",
+      "dayjs/locale/cv",
+      "dayjs/locale/cy",
+      "dayjs/locale/da",
+      "dayjs/locale/de",
+      "dayjs/locale/dv",
+      "dayjs/locale/el",
+      "dayjs/locale/en",
+      "dayjs/locale/eo",
+      "dayjs/locale/es",
+      "dayjs/locale/eu",
+      "dayjs/locale/fa",
+      "dayjs/locale/fi",
+      "dayjs/locale/fo",
+      "dayjs/locale/fr",
+      "dayjs/locale/fy",
+      "dayjs/locale/ga",
+      "dayjs/locale/gd",
+      "dayjs/locale/gl",
+      "dayjs/locale/gu",
+      "dayjs/locale/he",
+      "dayjs/locale/hi",
+      "dayjs/locale/hr",
+      "dayjs/locale/ht",
+      "dayjs/locale/hu",
+      "dayjs/locale/id",
+      "dayjs/locale/is",
+      "dayjs/locale/it",
+      "dayjs/locale/ja",
+      "dayjs/locale/jv",
+      "dayjs/locale/ka",
+      "dayjs/locale/kk",
+      "dayjs/locale/km",
+      "dayjs/locale/kn",
+      "dayjs/locale/ko",
+      "dayjs/locale/ku",
+      "dayjs/locale/ky",
+      "dayjs/locale/lb",
+      "dayjs/locale/lo",
+      "dayjs/locale/lt",
+      "dayjs/locale/lv",
+      "dayjs/locale/me",
+      "dayjs/locale/mi",
+      "dayjs/locale/mk",
+      "dayjs/locale/ml",
+      "dayjs/locale/mn",
+      "dayjs/locale/mr",
+      "dayjs/locale/ms",
+      "dayjs/locale/mt",
+      "dayjs/locale/my",
+      "dayjs/locale/nb",
+      "dayjs/locale/ne",
+      "dayjs/locale/nl",
+      "dayjs/locale/nn",
+      "dayjs/locale/pl",
+      "dayjs/locale/pt",
+      "dayjs/locale/ro",
+      "dayjs/locale/ru",
+      "dayjs/locale/rw",
+      "dayjs/locale/sd",
+      "dayjs/locale/se",
+      "dayjs/locale/si",
+      "dayjs/locale/sk",
+      "dayjs/locale/sl",
+      "dayjs/locale/sq",
+      "dayjs/locale/sr",
+      "dayjs/locale/ss",
+      "dayjs/locale/sv",
+      "dayjs/locale/sw",
+      "dayjs/locale/ta",
+      "dayjs/locale/te",
+      "dayjs/locale/tet",
+      "dayjs/locale/tg",
+      "dayjs/locale/th",
+      "dayjs/locale/tk",
+      "dayjs/locale/tlh",
+      "dayjs/locale/tr",
+      "dayjs/locale/tzl",
+      "dayjs/locale/tzm",
+      "dayjs/locale/uk",
+      "dayjs/locale/ur",
+      "dayjs/locale/uz",
+      "dayjs/locale/vi",
+      "dayjs/locale/yo",
+      "dayjs/locale/zh",
+      "dayjs/locale/zh-tw",
+      "dayjs/locale/et",
+      "dayjs/locale/en-gb",
+      "dayjs",
+      "dayjs/locale/af",
+      "dayjs/locale/am",
+      "dayjs/locale/ar",
+      "dayjs/locale/az",
+      "dayjs/locale/be",
+      "dayjs/locale/bg",
+      "dayjs/locale/bi",
+      "dayjs/locale/bm",
+      "dayjs/locale/bn",
+      "dayjs/locale/bo",
+      "dayjs/locale/br",
+      "dayjs/locale/bs",
+      "dayjs/locale/ca",
+      "dayjs/locale/cs",
+      "dayjs/locale/cv",
+      "dayjs/locale/cy",
+      "dayjs/locale/da",
+      "dayjs/locale/de",
+      "dayjs/locale/dv",
+      "dayjs/locale/el",
+      "dayjs/locale/en",
+      "dayjs/locale/eo",
+      "dayjs/locale/es",
+      "dayjs/locale/eu",
+      "dayjs/locale/fa",
+      "dayjs/locale/fi",
+      "dayjs/locale/fo",
+      "dayjs/locale/fr",
+      "dayjs/locale/fy",
+      "dayjs/locale/ga",
+      "dayjs/locale/gd",
+      "dayjs/locale/gl",
+      "dayjs/locale/gu",
+      "dayjs/locale/he",
+      "dayjs/locale/hi",
+      "dayjs/locale/hr",
+      "dayjs/locale/ht",
+      "dayjs/locale/hu",
+      "dayjs/locale/id",
+      "dayjs/locale/is",
+      "dayjs/locale/it",
+      "dayjs/locale/ja",
+      "dayjs/locale/jv",
+      "dayjs/locale/ka",
+      "dayjs/locale/kk",
+      "dayjs/locale/km",
+      "dayjs/locale/kn",
+      "dayjs/locale/ko",
+      "dayjs/locale/ku",
+      "dayjs/locale/ky",
+      "dayjs/locale/lb",
+      "dayjs/locale/lo",
+      "dayjs/locale/lt",
+      "dayjs/locale/lv",
+      "dayjs/locale/me",
+      "dayjs/locale/mi",
+      "dayjs/locale/mk",
+      "dayjs/locale/ml",
+      "dayjs/locale/mn",
+      "dayjs/locale/mr",
+      "dayjs/locale/ms",
+      "dayjs/locale/mt",
+      "dayjs/locale/my",
+      "dayjs/locale/nb",
+      "dayjs/locale/ne",
+      "dayjs/locale/nl",
+      "dayjs/locale/nn",
+      "dayjs/locale/pl",
+      "dayjs/locale/pt",
+      "dayjs/locale/ro",
+      "dayjs/locale/ru",
+      "dayjs/locale/rw",
+      "dayjs/locale/sd",
+      "dayjs/locale/se",
+      "dayjs/locale/si",
+      "dayjs/locale/sk",
+      "dayjs/locale/sl",
+      "dayjs/locale/sq",
+      "dayjs/locale/sr",
+      "dayjs/locale/ss",
+      "dayjs/locale/sv",
+      "dayjs/locale/sw",
+      "dayjs/locale/ta",
+      "dayjs/locale/te",
+      "dayjs/locale/tet",
+      "dayjs/locale/tg",
+      "dayjs/locale/th",
+      "dayjs/locale/tk",
+      "dayjs/locale/tlh",
+      "dayjs/locale/tr",
+      "dayjs/locale/tzl",
+      "dayjs/locale/tzm",
+      "dayjs/locale/uk",
+      "dayjs/locale/ur",
+      "dayjs/locale/uz",
+      "dayjs/locale/vi",
+      "dayjs/locale/yo",
+      "dayjs/locale/zh",
+      "dayjs/locale/zh-tw",
+      "dayjs/locale/et",
+      "dayjs/locale/en-gb"
+    ],
+    "src/lib/i18n/index.ts": [
+      "i18next",
+      "i18next-resources-to-backend",
+      "i18next-browser-languagedetector",
+      "i18next",
+      "svelte/store",
+      "i18next",
+      "i18next-resources-to-backend",
+      "i18next-browser-languagedetector",
+      "i18next",
+      "svelte/store"
+    ],
+    "src/lib/pyodide/pyodideKernel.ts": [
+      "$lib/pyodide/pyodideKernel.worker?worker",
+      "$lib/pyodide/pyodideKernel.worker?worker"
+    ],
+    "src/lib/pyodide/pyodideKernel.worker.ts": [
+      "pyodide",
+      "pyodide"
+    ],
+    "src/lib/stores/index.ts": [
+      "$lib/constants",
+      "svelte/store",
+      "$lib/apis",
+      "$lib/types",
+      "socket.io-client",
+      "$lib/emoji-shortcodes.json",
+      "$lib/constants",
+      "svelte/store",
+      "$lib/apis",
+      "$lib/types",
+      "socket.io-client",
+      "$lib/emoji-shortcodes.json"
+    ],
+    "src/lib/utils/_template_old.ts": [
+      "$lib/utils/index",
+      "vitest",
+      "$lib/utils/index",
+      "vitest"
+    ],
+    "src/lib/utils/airis/admin_billing_models_page_compile.test.ts": [
+      "vitest",
+      "vitest"
+    ],
+    "src/lib/utils/airis/chat.test.ts": [
+      "vitest",
+      "./chat",
+      "vitest",
+      "./chat"
+    ],
+    "src/lib/utils/airis/model_pricing_audit.test.ts": [
+      "vitest",
+      "$lib/utils/airis/rate_cards",
+      "./model_pricing_audit",
+      "vitest",
+      "$lib/utils/airis/rate_cards",
+      "./model_pricing_audit"
+    ],
+    "src/lib/utils/airis/model_pricing_audit.ts": [
+      "$lib/utils/airis/rate_cards",
+      "$lib/utils/airis/rate_cards"
+    ],
+    "src/lib/utils/airis/model_pricing_completeness.test.ts": [
+      "vitest",
+      "$lib/utils/airis/rate_cards",
+      "./model_pricing_completeness",
+      "vitest",
+      "$lib/utils/airis/rate_cards",
+      "./model_pricing_completeness"
+    ],
+    "src/lib/utils/airis/model_pricing_completeness.ts": [
+      "$lib/utils/airis/rate_cards",
+      "$lib/utils/airis/model_pricing_audit",
+      "$lib/utils/airis/rate_cards",
+      "$lib/utils/airis/model_pricing_audit"
+    ],
+    "src/lib/utils/airis/openai.test.ts": [
+      "vitest",
+      "./openai",
+      "vitest",
+      "./openai"
+    ],
+    "src/lib/utils/airis/openai.ts": [
+      "uuid",
+      "uuid"
+    ],
+    "src/lib/utils/airis/rate_cards.test.ts": [
+      "vitest",
+      "$lib/apis/admin/billing",
+      "$lib/utils/rate-card-models",
+      "./rate_cards",
+      "vitest",
+      "$lib/apis/admin/billing",
+      "$lib/utils/rate-card-models",
+      "./rate_cards"
+    ],
+    "src/lib/utils/airis/rate_cards.ts": [
+      "$lib/apis/admin/billing",
+      "$lib/utils/rate-card-models",
+      "$lib/apis/admin/billing",
+      "$lib/utils/rate-card-models"
+    ],
+    "src/lib/utils/characters/index.ts": [
+      "crc-32",
+      "crc-32"
+    ],
+    "src/lib/utils/index.ts": [
+      "uuid",
+      "js-sha256",
+      "$lib/constants",
+      "dayjs",
+      "dayjs/plugin/relativeTime",
+      "dayjs/plugin/isToday",
+      "dayjs/plugin/isYesterday",
+      "dayjs/plugin/localizedFormat",
+      "$lib/types",
+      "pdfjs-dist/build/pdf.worker.mjs?url",
+      "marked",
+      "$lib/utils/marked/extension",
+      "$lib/utils/marked/katex-extension",
+      "highlight.js",
+      "uuid",
+      "js-sha256",
+      "$lib/constants",
+      "dayjs",
+      "dayjs/plugin/relativeTime",
+      "dayjs/plugin/isToday",
+      "dayjs/plugin/isYesterday",
+      "dayjs/plugin/localizedFormat",
+      "$lib/types",
+      "pdfjs-dist/build/pdf.worker.mjs?url",
+      "marked",
+      "$lib/utils/marked/extension",
+      "$lib/utils/marked/katex-extension",
+      "highlight.js"
+    ],
+    "src/lib/utils/onedrive-file-picker.ts": [
+      "@azure/msal-browser",
+      "uuid",
+      "@azure/msal-browser",
+      "uuid"
+    ],
+    "src/lib/utils/rate-card-models.test.ts": [
+      "vitest",
+      "$lib/apis/admin/billing",
+      "./rate-card-models",
+      "vitest",
+      "$lib/apis/admin/billing",
+      "./rate-card-models"
+    ],
+    "src/lib/utils/rate-card-models.ts": [
+      "$lib/apis/admin/billing",
+      "$lib/apis/admin/billing"
+    ],
+    "src/lib/utils/transitions/index.ts": [
+      "svelte/easing",
+      "svelte/transition",
+      "svelte/easing",
+      "svelte/transition"
+    ],
+    "src/lib/workers/KokoroWorker.ts": [
+      "$lib/workers/kokoro.worker?worker",
+      "$lib/workers/kokoro.worker?worker"
+    ],
+    "src/lib/workers/kokoro.worker.ts": [
+      "@huggingface/transformers",
+      "kokoro-js",
+      "@huggingface/transformers",
+      "kokoro-js"
+    ],
+    "src/lib/workers/pyodide.worker.ts": [
+      "pyodide",
+      "pyodide"
+    ],
+    "src/routes/(app)/billing/balance/billing-balance.test.ts": [
+      "vitest",
+      "svelte",
+      "./+page.svelte",
+      "vitest",
+      "svelte",
+      "./+page.svelte"
+    ],
+    "src/routes/(app)/billing/dashboard/+page.ts": [
+      "@sveltejs/kit",
+      "@sveltejs/kit"
+    ],
+    "src/routes/(app)/billing/settings/+page.ts": [
+      "@sveltejs/kit",
+      "@sveltejs/kit"
+    ],
+    "src/routes/documents/contract/+page.ts": [
+      "@sveltejs/kit",
+      "./$types",
+      "@sveltejs/kit",
+      "./$types"
+    ],
+    "src/routes/documents/privacy/+page.ts": [
+      "@sveltejs/kit",
+      "./$types",
+      "@sveltejs/kit",
+      "./$types"
+    ],
+    "src/routes/prices/+page.ts": [
+      "@sveltejs/kit",
+      "./$types",
+      "@sveltejs/kit",
+      "./$types"
+    ]
+  }
+}
