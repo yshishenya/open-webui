@@ -75,6 +75,8 @@ from open_webui.utils.auth import get_password_hash, create_token
 from open_webui.utils.webhook import post_webhook
 from open_webui.utils.groups import apply_default_group_assignment
 
+from open_webui.utils.airis.oauth_yandex import normalize_yandex_userinfo
+
 from mcp.shared.auth import (
     OAuthClientMetadata as MCPOAuthClientMetadata,
     OAuthMetadata,
@@ -1442,6 +1444,8 @@ class OAuthManager:
                 and "data" in user_data
             ):
                 user_data = user_data["data"]
+            if provider == "yandex":
+                user_data = normalize_yandex_userinfo(user_data)
             if not user_data:
                 log.warning(f"OAuth callback failed, user data is missing: {token}")
                 raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)

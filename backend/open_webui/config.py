@@ -928,6 +928,7 @@ def load_oauth_providers():
         OAUTH_PROVIDERS["yandex"] = {
             "redirect_uri": YANDEX_REDIRECT_URI.value,
             "register": yandex_oauth_register,
+            "sub_claim": "id",
         }
 
     # Note: Telegram uses widget-based auth, not traditional OAuth

@@ -48,6 +48,10 @@ from aiohttp import ClientSession
 import datetime
 import json
 
+from sqlalchemy.orm import Session
+
+from open_webui.internal.db import get_session
+
 router = APIRouter()
 
 log = logging.getLogger(__name__)
@@ -565,6 +569,27 @@ async def vk_oauth_callback(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Yandex authentication failed"
         )
+
+
+############################
+# Yandex OAuth Endpoints (Thin hooks)
+############################
+
+
+@router.get("/oauth/yandex/login")
+async def yandex_oauth_login(request: Request):
+    return await request.app.state.oauth_manager.handle_login(request, "yandex")
+
+
+@router.get("/oauth/yandex/callback")
+async def yandex_oauth_callback(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_session),
+):
+    return await request.app.state.oauth_manager.handle_callback(
+        request, "yandex", response, db=db
+    )
 
 
 ############################
