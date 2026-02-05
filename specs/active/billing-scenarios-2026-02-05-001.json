@@ -1,0 +1,939 @@
+{
+  "spec_id": "billing-scenarios-2026-02-05-001",
+  "generated": "2026-02-05T00:00:00Z",
+  "last_updated": "2026-02-05T15:38:06.053334Z",
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Billing scenario-based tests (wallet PAYG + topup + lead magnet)",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4",
+        "phase-5"
+      ],
+      "total_tasks": 20,
+      "completed_tasks": 16,
+      "metadata": {
+        "work_item_spec": ".memory_bank/specs/work_items/2026-02-05__feature__billing-scenarios-e2e-tests.md",
+        "scope": "backend-first; optional minimal UI E2E"
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Scenario matrix + shared fakes",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-1-files",
+        "phase-1-verify"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "risk": "low",
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T15:33:46.398245Z",
+        "journaled_at": "2026-02-05T15:33:46.403537Z"
+      }
+    },
+    "phase-1-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T15:33:03.547399Z",
+        "journaled_at": "2026-02-05T15:33:03.550808Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "backend/open_webui/test/util/billing_scenarios_matrix.py",
+      "status": "completed",
+      "parent": "phase-1-files",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "backend/open_webui/test/util/billing_scenarios_matrix.py",
+        "task_category": "implementation",
+        "notes": "Centralized scenario definitions + invariant helpers (expected ledger/usage invariants per scenario).",
+        "completed_at": "2026-02-05T15:32:48.172598Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:32:48.174430Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "backend/open_webui/test/util/openai_provider_fakes.py",
+      "status": "completed",
+      "parent": "phase-1-files",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "backend/open_webui/test/util/openai_provider_fakes.py",
+        "task_category": "implementation",
+        "notes": "Reusable fake aiohttp ClientSession/Response for JSON + SSE streaming + failure modes.",
+        "completed_at": "2026-02-05T15:33:03.547161Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:33:03.548833Z"
+      }
+    },
+    "phase-1-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [
+        "verify-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "dependencies": {
+          "blocked_by": [
+            "phase-1-files"
+          ],
+          "blocks": [],
+          "depends": []
+        },
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T15:33:46.398241Z",
+        "journaled_at": "2026-02-05T15:33:46.401805Z"
+      }
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Helper modules import and typing sanity",
+      "status": "completed",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc \"python -c 'import open_webui.test.util.openai_provider_fakes'\"",
+        "expected": "Modules import without errors.",
+        "completed_at": "2026-02-05T15:33:46.398015Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:33:46.399636Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "PAYG text billing via /openai/chat/completions",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-2-files",
+        "phase-2-verify"
+      ],
+      "total_tasks": 7,
+      "completed_tasks": 7,
+      "metadata": {
+        "risk": "high",
+        "depends_on": [
+          "phase-1"
+        ],
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T15:35:32.669759Z",
+        "journaled_at": "2026-02-05T15:35:32.675205Z"
+      }
+    },
+    "phase-2-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 5,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T15:34:40.739861Z",
+        "journaled_at": "2026-02-05T15:34:40.743467Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "backend/open_webui/test/apps/webui/routers/test_openai_chat_billing.py",
+      "status": "completed",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-1-1",
+        "task-2-1-2",
+        "task-2-1-3",
+        "task-2-1-4",
+        "task-2-1-5"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 5,
+      "metadata": {
+        "file_path": "backend/open_webui/test/apps/webui/routers/test_openai_chat_billing.py",
+        "task_category": "implementation",
+        "notes": "Backend integration tests asserting DB invariants (wallet/ledger/usage_event) for chat completions."
+      }
+    },
+    "task-2-1-1": {
+      "type": "subtask",
+      "title": "PAYG success: hold -> settle -> usage_event -> wallet balances",
+      "status": "completed",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-05T15:34:05.339248Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:34:05.340817Z"
+      }
+    },
+    "task-2-1-2": {
+      "type": "subtask",
+      "title": "PAYG insufficient funds: returns 402 (insufficient_funds) and creates no charge",
+      "status": "completed",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-05T15:34:13.053089Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:34:13.055187Z"
+      }
+    },
+    "task-2-1-3": {
+      "type": "subtask",
+      "title": "Limits: max_reply_cost_exceeded (402) + daily_cap_exceeded (429)",
+      "status": "completed",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-05T15:34:23.445752Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:34:23.447648Z"
+      }
+    },
+    "task-2-1-4": {
+      "type": "subtask",
+      "title": "Provider error after hold: releases hold and restores balance",
+      "status": "completed",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-05T15:34:32.946338Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:34:32.948090Z"
+      }
+    },
+    "task-2-1-5": {
+      "type": "subtask",
+      "title": "Balance depleted -> apply_topup -> success (end-to-end recovery)",
+      "status": "completed",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-05T15:34:40.739543Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:34:40.741424Z"
+      }
+    },
+    "phase-2-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [
+        "verify-2-1",
+        "verify-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "dependencies": {
+          "blocked_by": [
+            "phase-2-files"
+          ],
+          "blocks": [],
+          "depends": []
+        },
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T15:35:32.669754Z",
+        "journaled_at": "2026-02-05T15:35:32.674125Z"
+      }
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Run new PAYG chat billing tests",
+      "status": "completed",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc \"pytest -q backend/open_webui/test/apps/webui/routers/test_openai_chat_billing.py\"",
+        "expected": "All scenarios pass.",
+        "completed_at": "2026-02-05T15:35:25.060256Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:35:25.062084Z"
+      }
+    },
+    "verify-2-2": {
+      "type": "verify",
+      "title": "Phase 2 fidelity review",
+      "status": "completed",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "fidelity",
+        "skill": "sdd-fidelity-review",
+        "scope": "phase",
+        "target": "phase-2",
+        "agent": "sdd-fidelity-review",
+        "completed_at": "2026-02-05T15:35:32.669459Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:35:32.671628Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Lead magnet behaviour for text requests",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-3-files",
+        "phase-3-verify"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "risk": "medium",
+        "depends_on": [
+          "phase-2"
+        ],
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T15:36:30.853228Z",
+        "journaled_at": "2026-02-05T15:36:30.858369Z"
+      }
+    },
+    "phase-3-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T15:35:55.403991Z",
+        "journaled_at": "2026-02-05T15:35:55.408252Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "backend/open_webui/test/apps/webui/routers/test_openai_chat_billing_lead_magnet.py",
+      "status": "completed",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-1-1",
+        "task-3-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/test/apps/webui/routers/test_openai_chat_billing_lead_magnet.py",
+        "task_category": "implementation",
+        "notes": "Lead magnet allowed: no wallet hold/charge; denied: fallback to PAYG (or blocks)."
+      }
+    },
+    "task-3-1-1": {
+      "type": "subtask",
+      "title": "Lead magnet allowed: billing_source=lead_magnet, cost_charged=0, wallet unchanged",
+      "status": "completed",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-05T15:35:48.265792Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:35:48.267853Z"
+      }
+    },
+    "task-3-1-2": {
+      "type": "subtask",
+      "title": "Lead magnet exhausted/disabled: request charges PAYG or returns 402 when wallet empty",
+      "status": "completed",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-05T15:35:55.403744Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:35:55.405540Z"
+      }
+    },
+    "phase-3-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [
+        "verify-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "dependencies": {
+          "blocked_by": [
+            "phase-3-files"
+          ],
+          "blocks": [],
+          "depends": []
+        },
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T15:36:30.853224Z",
+        "journaled_at": "2026-02-05T15:36:30.857220Z"
+      }
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Run lead magnet chat billing tests",
+      "status": "completed",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc \"pytest -q backend/open_webui/test/apps/webui/routers/test_openai_chat_billing_lead_magnet.py\"",
+        "expected": "Lead magnet scenarios pass.",
+        "completed_at": "2026-02-05T15:36:30.853005Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:36:30.854792Z"
+      }
+    },
+    "phase-4": {
+      "type": "phase",
+      "title": "Streaming + usage missing (estimated charge) scenarios",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-4-files",
+        "phase-4-verify"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "risk": "high",
+        "depends_on": [
+          "phase-2"
+        ],
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T15:38:06.047370Z",
+        "journaled_at": "2026-02-05T15:38:06.053301Z"
+      }
+    },
+    "phase-4-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-4",
+      "children": [
+        "task-4-1"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T15:37:26.266495Z",
+        "journaled_at": "2026-02-05T15:37:26.270608Z"
+      }
+    },
+    "task-4-1": {
+      "type": "task",
+      "title": "backend/open_webui/test/apps/webui/routers/test_openai_chat_billing_streaming.py",
+      "status": "completed",
+      "parent": "phase-4-files",
+      "children": [
+        "task-4-1-1",
+        "task-4-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/test/apps/webui/routers/test_openai_chat_billing_streaming.py",
+        "task_category": "implementation",
+        "notes": "Streaming settle via usage in final SSE chunk; estimated charge when usage absent."
+      }
+    },
+    "task-4-1-1": {
+      "type": "subtask",
+      "title": "Streaming with usage: settle occurs once iterator ends",
+      "status": "completed",
+      "parent": "task-4-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-05T15:37:14.363255Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:37:14.365088Z"
+      }
+    },
+    "task-4-1-2": {
+      "type": "subtask",
+      "title": "Streaming without usage: is_estimated=true and estimate_reason=usage_missing",
+      "status": "completed",
+      "parent": "task-4-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-05T15:37:26.266196Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:37:26.268195Z"
+      }
+    },
+    "phase-4-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-4",
+      "children": [
+        "verify-4-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "dependencies": {
+          "blocked_by": [
+            "phase-4-files"
+          ],
+          "blocks": [],
+          "depends": []
+        },
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T15:38:06.047366Z",
+        "journaled_at": "2026-02-05T15:38:06.052151Z"
+      }
+    },
+    "verify-4-1": {
+      "type": "verify",
+      "title": "Run streaming billing tests",
+      "status": "completed",
+      "parent": "phase-4-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc \"pytest -q backend/open_webui/test/apps/webui/routers/test_openai_chat_billing_streaming.py\"",
+        "expected": "Streaming scenarios pass.",
+        "completed_at": "2026-02-05T15:38:06.047003Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T15:38:06.049344Z"
+      }
+    },
+    "phase-5": {
+      "type": "phase",
+      "title": "Minimal UI E2E smoke (wallet/topup + lead magnet visibility)",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-5-files",
+        "phase-5-verify"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 0,
+      "metadata": {
+        "risk": "medium",
+        "depends_on": [
+          "phase-2"
+        ],
+        "optional": false
+      }
+    },
+    "phase-5-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [
+        "task-5-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-5-1": {
+      "type": "task",
+      "title": "e2e/billing_wallet_recovery.spec.ts",
+      "status": "pending",
+      "parent": "phase-5-files",
+      "children": [
+        "task-5-1-1",
+        "task-5-1-2",
+        "task-5-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "e2e/billing_wallet_recovery.spec.ts",
+        "task_category": "implementation",
+        "notes": "Minimal Playwright smoke: (1) wallet/topup insufficient funds + topup initiation wiring, (2) lead magnet section visibility when enabled, (3) redirects/wiring stay intact. Mock API responses only; no real YooKassa."
+      }
+    },
+    "task-5-1-1": {
+      "type": "subtask",
+      "title": "Wallet shows insufficient funds UX and top-up CTA",
+      "status": "pending",
+      "parent": "task-5-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-5-1-2": {
+      "type": "subtask",
+      "title": "Top-up initiation uses /api/v1/billing/topup and confirmation_url redirect",
+      "status": "pending",
+      "parent": "task-5-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-5-1-3": {
+      "type": "subtask",
+      "title": "Lead magnet section visible when enabled (contract smoke)",
+      "status": "pending",
+      "parent": "task-5-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-5-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [
+        "verify-5-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "dependencies": {
+          "blocked_by": [
+            "phase-5-files"
+          ],
+          "blocks": [],
+          "depends": []
+        }
+      }
+    },
+    "verify-5-1": {
+      "type": "verify",
+      "title": "Run E2E billing wallet recovery test",
+      "status": "pending",
+      "parent": "phase-5-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps e2e \"npm ci && npm run test:e2e -- --grep billing wallet recovery\"",
+        "expected": "E2E smoke passes."
+      }
+    }
+  },
+  "metadata": {
+    "status": "active",
+    "activated_date": "2026-02-05T15:32:05.441027Z",
+    "progress_percentage": 80,
+    "current_phase": "phase-4"
+  },
+  "journal": [
+    {
+      "timestamp": "2026-02-05T15:32:48.174423Z",
+      "entry_type": "status_change",
+      "title": "Implement invariant helpers",
+      "author": "Codex",
+      "content": "Implemented shared invariant helpers for billing scenarios in backend/open_webui/test/util/billing_scenarios_matrix.py.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-02-05T15:33:03.548826Z",
+      "entry_type": "status_change",
+      "title": "Add OpenAI provider fakes",
+      "author": "Codex",
+      "content": "Added reusable fake aiohttp session/response/stream primitives in backend/open_webui/test/util/openai_provider_fakes.py (JSON + SSE streaming + failure modes).",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-02-05T15:33:03.550800Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "Codex",
+      "content": "All child tasks in group phase-1-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-1-files"
+    },
+    {
+      "timestamp": "2026-02-05T15:33:46.399631Z",
+      "entry_type": "status_change",
+      "title": "Verify helper imports",
+      "author": "Codex",
+      "content": "Ran container import smoke: python -c 'import open_webui.test.util.openai_provider_fakes; import open_webui.test.util.billing_scenarios_matrix' (DATABASE_URL=sqlite).",
+      "metadata": {},
+      "task_id": "verify-1-1"
+    },
+    {
+      "timestamp": "2026-02-05T15:33:46.401800Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "Codex",
+      "content": "All child tasks in group phase-1-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-1-verify"
+    },
+    {
+      "timestamp": "2026-02-05T15:33:46.403524Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Scenario matrix + shared fakes",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-02-05T15:34:05.340811Z",
+      "entry_type": "status_change",
+      "title": "PAYG success scenario covered",
+      "author": "Codex",
+      "content": "Covered by backend/open_webui/test/apps/webui/routers/test_openai_chat_billing.py::test_payg_success_creates_hold_charge_usage_event; asserts hold/charge ledger + usage_event + wallet balance.",
+      "metadata": {},
+      "task_id": "task-2-1-1"
+    },
+    {
+      "timestamp": "2026-02-05T15:34:13.055181Z",
+      "entry_type": "status_change",
+      "title": "Insufficient funds scenario covered",
+      "author": "Codex",
+      "content": "Covered by test_openai_chat_billing.py::test_payg_insufficient_funds_returns_402; asserts 402 insufficient_funds and no hold/usage_event.",
+      "metadata": {},
+      "task_id": "task-2-1-2"
+    },
+    {
+      "timestamp": "2026-02-05T15:34:23.447642Z",
+      "entry_type": "status_change",
+      "title": "Limits scenarios covered",
+      "author": "Codex",
+      "content": "Covered by test_openai_chat_billing.py::test_payg_limits_max_reply_and_daily_cap; asserts 402 max_reply_cost_exceeded and 429 daily_cap_exceeded.",
+      "metadata": {},
+      "task_id": "task-2-1-3"
+    },
+    {
+      "timestamp": "2026-02-05T15:34:32.948075Z",
+      "entry_type": "status_change",
+      "title": "Provider error releases hold",
+      "author": "Codex",
+      "content": "Covered by test_openai_chat_billing.py::test_provider_error_releases_hold_and_restores_balance; asserts hold+release ledger and wallet restored.",
+      "metadata": {},
+      "task_id": "task-2-1-4"
+    },
+    {
+      "timestamp": "2026-02-05T15:34:40.741416Z",
+      "entry_type": "status_change",
+      "title": "Depleted->topup->success covered",
+      "author": "Codex",
+      "content": "Covered by test_openai_chat_billing.py::test_balance_depleted_then_topup_then_success; asserts initial 402 then wallet apply_topup enables success.",
+      "metadata": {},
+      "task_id": "task-2-1-5"
+    },
+    {
+      "timestamp": "2026-02-05T15:34:40.743462Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "Codex",
+      "content": "All child tasks in group phase-2-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-2-files"
+    },
+    {
+      "timestamp": "2026-02-05T15:35:25.062073Z",
+      "entry_type": "status_change",
+      "title": "Verify PAYG chat billing tests",
+      "author": "Codex",
+      "content": "Ran: pytest -q open_webui/test/apps/webui/routers/test_openai_chat_billing.py (docker compose, DATABASE_URL unset -> sqlite). Result: 5 passed.",
+      "metadata": {},
+      "task_id": "verify-2-1"
+    },
+    {
+      "timestamp": "2026-02-05T15:35:32.671616Z",
+      "entry_type": "note",
+      "title": "Fidelity review (Phase 2)",
+      "author": "Codex",
+      "content": "Manual fidelity check: Phase 2 scenarios implemented in test_openai_chat_billing.py cover all subtasks (success/402/limits/release/topup recovery) and assert DB invariants (ledger/usage_event/wallet).",
+      "metadata": {},
+      "task_id": "verify-2-2"
+    },
+    {
+      "timestamp": "2026-02-05T15:35:32.674115Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "Codex",
+      "content": "All child tasks in group phase-2-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-2-verify"
+    },
+    {
+      "timestamp": "2026-02-05T15:35:32.675201Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: PAYG text billing via /openai/chat/completions",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-02-05T15:35:48.267844Z",
+      "entry_type": "status_change",
+      "title": "Lead magnet allowed scenario covered",
+      "author": "Codex",
+      "content": "Covered by test_openai_chat_billing_lead_magnet.py::test_lead_magnet_allowed_does_not_charge_wallet; asserts no hold/charge, usage_event billing_source=lead_magnet, wallet unchanged.",
+      "metadata": {},
+      "task_id": "task-3-1-1"
+    },
+    {
+      "timestamp": "2026-02-05T15:35:55.405532Z",
+      "entry_type": "status_change",
+      "title": "Lead magnet exhausted scenario covered",
+      "author": "Codex",
+      "content": "Covered by test_openai_chat_billing_lead_magnet.py::test_lead_magnet_exhausted_falls_back_to_payg_and_blocks_when_wallet_empty; asserts 402 insufficient_funds when LM quotas are 0 and wallet empty.",
+      "metadata": {},
+      "task_id": "task-3-1-2"
+    },
+    {
+      "timestamp": "2026-02-05T15:35:55.408239Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "Codex",
+      "content": "All child tasks in group phase-3-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-3-files"
+    },
+    {
+      "timestamp": "2026-02-05T15:36:30.854783Z",
+      "entry_type": "status_change",
+      "title": "Verify lead magnet chat billing tests",
+      "author": "Codex",
+      "content": "Ran: pytest -q open_webui/test/apps/webui/routers/test_openai_chat_billing_lead_magnet.py (docker compose, DATABASE_URL unset -> sqlite). Result: 2 passed.",
+      "metadata": {},
+      "task_id": "verify-3-1"
+    },
+    {
+      "timestamp": "2026-02-05T15:36:30.857212Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "Codex",
+      "content": "All child tasks in group phase-3-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-3-verify"
+    },
+    {
+      "timestamp": "2026-02-05T15:36:30.858365Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Lead magnet behaviour for text requests",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    },
+    {
+      "timestamp": "2026-02-05T15:37:14.365082Z",
+      "entry_type": "status_change",
+      "title": "Streaming with usage covered",
+      "author": "Codex",
+      "content": "Covered by test_openai_chat_billing_streaming.py::test_streaming_with_usage_settles_charge; asserts settle on stream completion with usage in final SSE chunk.",
+      "metadata": {},
+      "task_id": "task-4-1-1"
+    },
+    {
+      "timestamp": "2026-02-05T15:37:26.268187Z",
+      "entry_type": "status_change",
+      "title": "Streaming without usage (estimated) covered",
+      "author": "Codex",
+      "content": "Covered by test_openai_chat_billing_streaming.py::test_streaming_without_usage_marks_estimated; asserts is_estimated=true, estimate_reason=usage_missing, wallet charged estimate.",
+      "metadata": {},
+      "task_id": "task-4-1-2"
+    },
+    {
+      "timestamp": "2026-02-05T15:37:26.270603Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "Codex",
+      "content": "All child tasks in group phase-4-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-4-files"
+    },
+    {
+      "timestamp": "2026-02-05T15:38:06.049333Z",
+      "entry_type": "status_change",
+      "title": "Verify streaming billing tests",
+      "author": "Codex",
+      "content": "Ran: pytest -q open_webui/test/apps/webui/routers/test_openai_chat_billing_streaming.py (docker compose, DATABASE_URL unset -> sqlite). Result: 2 passed.",
+      "metadata": {},
+      "task_id": "verify-4-1"
+    },
+    {
+      "timestamp": "2026-02-05T15:38:06.052141Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "Codex",
+      "content": "All child tasks in group phase-4-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-4-verify"
+    },
+    {
+      "timestamp": "2026-02-05T15:38:06.053296Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Streaming + usage missing (estimated charge) scenarios",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-4 have been completed.",
+      "metadata": {},
+      "task_id": "phase-4"
+    }
+  ]
+}
