@@ -293,7 +293,6 @@ async def create_plan(
 
 ```python
 import httpx
-from typing import Dict, Any
 from loguru import logger
 
 class YooKassaClient:
@@ -310,7 +309,7 @@ class YooKassaClient:
         currency: str,
         return_url: str,
         description: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, object]:
         """Create payment in YooKassa"""
         async with httpx.AsyncClient() as client:
             try:
@@ -507,12 +506,12 @@ logger.error(
 ### Standard Pagination Pattern
 
 ```python
-from typing import List, Optional
+from typing import Optional
 from pydantic import BaseModel
 
 class PaginatedResponse(BaseModel):
     """Paginated response wrapper"""
-    items: List[Any]
+    items: list[object]
     total: int
     page: int
     page_size: int
@@ -614,6 +613,6 @@ async def create_payment(
 
 ---
 
-**Last Updated**: 2025-12-11
+**Last Updated**: 2026-02-05
 **Framework**: FastAPI 0.128.0
 **API Version**: v1 (explicit via `/api/v1/*` routes)

@@ -68,6 +68,11 @@ This Memory Bank is the central knowledge repository for the **Airis** project (
   - E2E tests with Playwright
   - Minimum 80% code coverage
 
+#### Fork Docs & Solutions
+
+- **[Airis fork docs](../docs/airis/README.md)**: Sharded Airis-specific documentation (architecture/guides/reference).
+- **[Solutions log](../docs/solutions/README.md)**: Document solved problems for reuse and pattern promotion.
+
 ### 3. Processes and Tasks (Context "WHAT TO DO")
 
 #### Workflows
@@ -350,7 +355,7 @@ If you feel context was lost or compressed:
 
 **Current Version**: 0.6.41
 **Status**: Active Development
-**Last Memory Bank Update**: 2026-01-19
+**Last Memory Bank Update**: 2026-02-05
 **Active Contributors**: 1 (project maintainer)
 
 ---

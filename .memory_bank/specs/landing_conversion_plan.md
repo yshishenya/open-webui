@@ -77,7 +77,7 @@ Create a detailed, step-by-step plan to improve conversion on public pages and a
 
 ### /privacy and /terms
 
-- Updated to AIris branding and legal entity (ИП Шишеня Ян Александрович).
+- Updated to Airis branding and legal entity (ИП Шишеня Ян Александрович).
 - Added summary blocks and PAYG wording alignment.
 
 ### Product/Billing logic (in-app)
@@ -244,7 +244,7 @@ Implemented:
 
 **2) Visual (Product screenshot)**
 
-- **Caption:** «Интерфейс AIris»
+- **Caption:** «Интерфейс Airis»
 - **Goal:** show real UI; use soft glow / stacked tilt (choose best variant).
 
 **3) Trust/Benefit chips (3–4 items)**
@@ -300,7 +300,7 @@ Implemented:
 
 **1) Hero**
 
-- **Title:** «Возможности AIris»
+- **Title:** «Возможности Airis»
 - **Subtitle:** «Один сервис для текста, изображений, аудио и кода»
 - **CTA:** «Начать бесплатно»
 
@@ -322,7 +322,7 @@ Implemented:
 
 - Учёба / Работа / Творчество (короткие 2–3 пункта)
 
-**5) Why AIris (3 points)**
+**5) Why Airis (3 points)**
 
 - «PAYG без подписок»
 - «Без VPN»
@@ -374,7 +374,7 @@ Implemented:
 
 **1) Hero**
 
-- «AIris — простой доступ к AI без сложностей»
+- «Airis — простой доступ к AI без сложностей»
 
 **2) Mission**
 

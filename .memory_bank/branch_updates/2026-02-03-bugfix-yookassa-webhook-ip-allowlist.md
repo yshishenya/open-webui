@@ -1,6 +1,0 @@
-- [x] **[BUG]** YooKassa webhook: docs-aligned source verification (IP allowlist)
-  - Spec: `.memory_bank/specs/work_items/2026-02-03__bugfix__yookassa-webhook-source-verification.md`
-  - Owner: Codex
-  - Done: 2026-02-03
-  - Summary: Add optional IP allowlist verification (per YooKassa incoming notifications docs) and clarify signature verification semantics; keep provider API verification as the main gate.
-  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run -T --rm -e DATABASE_URL= -e WEBUI_SECRET_KEY=secret-key airis bash -lc "pytest -q"`

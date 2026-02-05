@@ -20,6 +20,14 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[DOCS]** Documentation + Memory Bank consistency cleanup
+  - Spec: `.memory_bank/specs/work_items/2026-02-05__docs__docs-memory-bank-consistency-cleanup.md`
+  - Owner: Codex
+  - Done: 2026-02-05
+  - Summary: Align rules/examples (no `Any` in Python snippets), consolidate task updates, standardize compose command snippets, and add sharded Airis docs + solutions log.
+  - Tests: N/A (docs-only)
+  - Risks: N/A
+
 - [x] **[UI]** Admin billing models: audit-first pricing
   - Spec: `.memory_bank/specs/work_items/2026-02-04__feature__admin-models-pricing-audit-first.md`
   - Owner: Codex
@@ -42,6 +50,14 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
   - Summary: Merge provider base models with workspace overrides; auto-create missing base model records on save.
   - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run -T --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run"`
   - Risks: Creating base model DB entries on explicit admin save may affect access-control enforced environments (mitigated: only on explicit admin save).
+
+- [x] **[BUG]** YooKassa webhook: docs-aligned source verification (IP allowlist)
+  - Spec: `.memory_bank/specs/work_items/2026-02-03__bugfix__yookassa-webhook-source-verification.md`
+  - Owner: Codex
+  - Done: 2026-02-03
+  - Summary: Add optional IP allowlist verification (per YooKassa incoming notifications docs) and clarify signature verification semantics; keep provider API verification as the main gate.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run -T --rm -e DATABASE_URL= -e WEBUI_SECRET_KEY=secret-key airis bash -lc "pytest -q"`
+  - Risks: N/A
 
 - [x] **[DEV]** Standardize Codex docs/actions for Docker Compose + remove non-Codex assistant tooling
   - Updated `AGENTS.md` + Memory Bank guides/workflows/specs to use Docker Compose-first test/lint commands.

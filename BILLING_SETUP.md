@@ -1,6 +1,6 @@
 # Настройка биллинга и ЮKassa
 
-Это руководство описывает настройку системы биллинга для B2C версии AIris.
+Это руководство описывает настройку системы биллинга для B2C версии Airis.
 
 ## Обзор
 
@@ -46,7 +46,7 @@ Airis billing состоит из двух независимых режимов
    - `payment.waiting_for_capture` - ожидание подтверждения
 4. Скопируйте **Webhook Secret** (опционально, для верификации)
 
-## 2. Конфигурация AIris
+## 2. Конфигурация Airis
 
 ### Переменные окружения
 
@@ -78,10 +78,10 @@ YOOKASSA_API_URL=https://api.yookassa.ru/v3
 
 ### Проверка конфигурации
 
-После запуска AIris проверьте логи:
+После запуска Airis проверьте логи:
 
 ```bash
-docker-compose logs -f airis
+docker compose logs -f airis
 ```
 
 Должна появиться строка:
@@ -284,13 +284,13 @@ ngrok http 3000
 
 ```bash
 # Все логи биллинга
-docker-compose logs -f airis | grep BILLING
+docker compose logs -f airis | grep BILLING
 
 # Webhook события
-docker-compose logs -f airis | grep "webhook"
+docker compose logs -f airis | grep "webhook"
 
 # Ошибки квот
-docker-compose logs -f airis | grep "quota"
+docker compose logs -f airis | grep "quota"
 ```
 
 ## 10. Troubleshooting
@@ -322,4 +322,4 @@ docker-compose logs -f airis | grep "quota"
 
 1. Проверьте логи
 2. Убедитесь что все переменные окружения заданы
-3. Проверьте миграции: `docker-compose exec airis alembic current`
+3. Проверьте миграции: `docker compose exec airis alembic current`

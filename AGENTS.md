@@ -226,7 +226,7 @@ If you feel context was lost or compressed:
 ## Type Safety Requirements
 
 - All new/modified functions must have type hints.
-- Avoid `Any` unless there is a strong reason.
+- Do not use `Any` in type hints (use concrete types).
 
 ---
 
@@ -268,7 +268,7 @@ This repo is **Docker Compose-first** (especially for Codex Actions).
   - Backend tests + format: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest && black ."`
   - Backend lint (ruff): use Codex Action `ruff (docker)` or run `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check backend"`
   - Frontend: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend && npm run check && npm run lint:frontend"`
- - Commit messages must follow the detailed template in `.memory_bank/guides/commit_messages.md`
- - Run `scripts/setup_git_hooks.sh` once per clone to enforce commit message policy automatically
+  - Commit messages must follow the detailed template in `.memory_bank/guides/commit_messages.md`
+  - Run `scripts/setup_git_hooks.sh` once per clone to enforce commit message policy automatically
 
 **Main Principle**: If unsure - ask the user or re-read documentation in Memory Bank.

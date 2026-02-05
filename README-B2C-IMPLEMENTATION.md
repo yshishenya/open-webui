@@ -3,6 +3,11 @@
 This repository is an Airis fork of Open WebUI.
 This document captures the B2C-specific additions and the current state of the Russian-market flows.
 
+Related internal docs:
+
+- Airis fork docs: `docs/airis/README.md`
+- Memory Bank (source of truth): `.memory_bank/README.md`
+
 ## What’s Implemented
 
 ### Authentication

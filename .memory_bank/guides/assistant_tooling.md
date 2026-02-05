@@ -33,6 +33,14 @@ For convenience (and to reduce command drift), `package.json` provides Docker Co
 - Frontend: `npm run docker:test:frontend`, `npm run docker:check:frontend`, `npm run docker:lint:frontend`, `npm run docker:format:frontend`
 - E2E: `npm run docker:test:e2e`
 
+## Docs checks (optional but recommended)
+
+- Markdown internal links: `python3 scripts/check_markdown_links.py`
+
+## Knowledge persistence
+
+- Solutions log: `docs/solutions/` (templates + patterns)
+
 ## Worktrees note
 
 - Codex worktrees may live outside the repo (e.g. `~/.codex/worktrees/...`).

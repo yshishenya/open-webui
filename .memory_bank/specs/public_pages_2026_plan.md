@@ -1,4 +1,4 @@
-# Public Pages 2026 Plan (AIris)
+# Public Pages 2026 Plan (Airis)
 
 ## Purpose
 
@@ -73,7 +73,7 @@ Explain the product in 5 seconds, show real UI, remove friction, and drive a fre
 
 **Block 2: Product visual**
 
-- Caption: "Интерфейс AIris"
+- Caption: "Интерфейс Airis"
 - Use the best of the two visual treatments (Spotlight or Stacked Tilt).
 
 **Block 3: Benefit chips (3–4 items)**
@@ -145,7 +145,7 @@ Explain the core value and “what you can do” with minimal duplication.
 **Hero**
 
 - Eyebrow: "Возможности"
-- H1: "Все ключевые возможности AIris"
+- H1: "Все ключевые возможности Airis"
 - Subhead: "Тексты, изображения, аудио и код — в одном интерфейсе"
 - CTA: "Начать бесплатно"
 
@@ -167,7 +167,7 @@ Explain the core value and “what you can do” with minimal duplication.
 
 - Учёба / Работа / Творчество
 
-**Block 4: Why AIris (3 points)**
+**Block 4: Why Airis (3 points)**
 
 - "PAYG без подписок"
 - "Без VPN"
@@ -245,7 +245,7 @@ Communicate mission and reliability without fake stats.
 
 **Hero**
 
-- H1: "AIris — доступный и понятный AI"
+- H1: "Airis — доступный и понятный AI"
 - Subhead: "Мы делаем работу с AI удобной для реальных задач"
 
 **Mission**

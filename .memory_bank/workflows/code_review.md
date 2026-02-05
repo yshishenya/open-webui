@@ -45,17 +45,17 @@
 
 - [ ] All functions have type hints for parameters and return value
 - [ ] Correct types from `typing` are used
-- [ ] No use of `Any` (if present - must be justified)
+- [ ] No use of `Any` (use concrete types or `object` as a last resort)
 - [ ] Example:
 
   ```python
   # Good
-  def fetch_data(url: str, timeout: int = 30) -> Dict[str, Any]:
-      pass
+  def fetch_data(url: str, timeout: int = 30) -> dict[str, object]:
+      ...
 
   # Bad
   def fetch_data(url, timeout=30):  # No type hints
-      pass
+      ...
   ```
 
 ### 2.3 Docstrings
@@ -212,13 +212,13 @@
 
   ```python
   # Good
-  async def fetch_data(url: str) -> Dict[str, Any]:
+  async def fetch_data(url: str) -> dict[str, object]:
       async with httpx.AsyncClient() as client:
           response = await client.get(url)
           return response.json()
 
   # Bad - blocks event loop!
-  async def fetch_data(url: str) -> Dict[str, Any]:
+  async def fetch_data(url: str) -> dict[str, object]:
       response = requests.get(url)  # Blocking I/O!
       return response.json()
   ```

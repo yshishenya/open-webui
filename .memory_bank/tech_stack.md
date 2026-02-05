@@ -80,7 +80,7 @@
 
 - **HTTP Client**: httpx 0.28.1 (async, with http2, socks, brotli, zstd support)
 - **Async HTTP**: aiohttp 3.13.2
-- **Sync HTTP**: requests 2.32.5 (fallback)
+- **Sync HTTP (legacy-only; do not use in app code)**: requests 2.32.5 (kept for legacy/third-party compatibility; prefer httpx)
 - **WebSocket**: python-socketio 5.16.0 (real-time communication)
 - **Compression**: starlette-compress 1.6.1
 
@@ -372,7 +372,7 @@ logger.error("Payment failed", error=str(e), exc_info=True)
 ## Project Structure
 
 ```
-airis/
+repo-root/
 ├── backend/
 │   ├── open_webui/
 │   │   ├── routers/           # FastAPI endpoints
@@ -437,7 +437,7 @@ airis/
 
 ## Last Updated
 
-**Date**: 2025-12-11
+**Date**: 2026-02-05
 **Python Version**: 3.11+
 **Node Version**: 18.13.0 - 22.x.x
 **Framework**: FastAPI 0.128.0 + SvelteKit 2.5.27

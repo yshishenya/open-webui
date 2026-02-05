@@ -40,19 +40,19 @@
 All functions, methods, and variables must have type hints:
 
 ```python
-from typing import Optional, List, Dict, Any
+from typing import Optional
 from pydantic import BaseModel
 
 async def get_user_subscription(
     user_id: str,
     include_usage: bool = False
-) -> Optional[Dict[str, Any]]:
+) -> Optional[dict[str, object]]:
     """Get user subscription data"""
     pass
 
 # Type hints for variables
-plans: List[Plan] = []
-config: Dict[str, Any] = {}
+plans: list[Plan] = []
+config: dict[str, object] = {}
 subscription: Optional[Subscription] = None
 ```
 
@@ -63,7 +63,7 @@ async def create_payment(
     user_id: str,
     plan_id: str,
     return_url: str
-) -> Dict[str, Any]:
+) -> dict[str, str]:
     """Create a payment for subscription.
 
     Args:
@@ -152,14 +152,14 @@ class PlanResponse(BaseModel):
 
 ```python
 # Good - async for all I/O operations
-async def fetch_payment_status(payment_id: str) -> Dict[str, Any]:
+async def fetch_payment_status(payment_id: str) -> dict[str, object]:
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{YOOKASSA_API}/payments/{payment_id}")
         response.raise_for_status()
         return response.json()
 
 # Bad - blocking I/O in async function
-async def fetch_payment_status_bad(payment_id: str) -> Dict[str, Any]:
+async def fetch_payment_status_bad(payment_id: str) -> dict[str, object]:
     response = requests.get(f"{YOOKASSA_API}/payments/{payment_id}")  # BLOCKS!
     return response.json()
 ```
@@ -624,7 +624,7 @@ def add_numbers(a: int, b: int) -> int:
 # Standard library imports
 import asyncio
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional
 
 # Third-party imports
 import httpx
@@ -834,6 +834,6 @@ await emitter.emit("subscription_updated", {
 
 ---
 
-**Last Updated**: 2025-12-11
+**Last Updated**: 2026-02-05
 **Python Version**: 3.11+
 **Node Version**: 18.13.0 - 22.x.x
