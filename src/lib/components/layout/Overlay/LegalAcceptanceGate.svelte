@@ -17,6 +17,7 @@
 	$: requiredDocs = (status?.docs ?? []).filter((doc) => doc.required);
 	$: missingDocs = requiredDocs.filter((doc) => doc.accepted_version !== doc.version);
 	$: hasGateDocs = missingDocs.length > 0;
+	$: allDocsChecked = missingDocs.every((doc) => Boolean(checks[doc.key]));
 
 	$: {
 		// Initialize checkboxes for missing docs only.
@@ -27,10 +28,8 @@
 		checks = next;
 	}
 
-	const allChecked = (): boolean => missingDocs.every((doc) => Boolean(checks[doc.key]));
-
 	const handleAccept = async (): Promise<void> => {
-		if (!hasGateDocs || !allChecked()) return;
+		if (!hasGateDocs || !allDocsChecked) return;
 		submitting = true;
 		error = null;
 		try {
@@ -73,8 +72,12 @@
 								<input
 									id={`legal-${doc.key}`}
 									type="checkbox"
-									bind:checked={checks[doc.key]}
+									checked={Boolean(checks[doc.key])}
 									class="mt-1 size-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+									on:change={(event) => {
+										const target = event.currentTarget as HTMLInputElement;
+										checks = { ...checks, [doc.key]: target.checked };
+									}}
 								/>
 								<label
 									for={`legal-${doc.key}`}
@@ -109,7 +112,7 @@
 					{#if hasGateDocs}
 						<button
 							class="w-full rounded-full py-2.5 text-sm font-medium transition bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-							disabled={!allChecked() || submitting}
+							disabled={!allDocsChecked || submitting}
 							on:click={handleAccept}
 						>
 							{submitting ? 'Сохраняем…' : 'Принять и продолжить'}
