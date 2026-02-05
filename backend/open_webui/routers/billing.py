@@ -496,9 +496,22 @@ async def update_billing_settings(
 
     wallet = wallet_service.get_or_create_wallet(user.id, BILLING_DEFAULT_CURRENCY)
     updates: Dict[str, object] = {}
-    if request.max_reply_cost_kopeks is not None:
+    if "max_reply_cost_kopeks" in request.model_fields_set:
+        if (
+            request.max_reply_cost_kopeks is not None
+            and request.max_reply_cost_kopeks < 0
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="max_reply_cost_kopeks must be non-negative",
+            )
         updates["max_reply_cost_kopeks"] = request.max_reply_cost_kopeks
-    if request.daily_cap_kopeks is not None:
+    if "daily_cap_kopeks" in request.model_fields_set:
+        if request.daily_cap_kopeks is not None and request.daily_cap_kopeks < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="daily_cap_kopeks must be non-negative",
+            )
         updates["daily_cap_kopeks"] = request.daily_cap_kopeks
 
     if updates:
@@ -510,9 +523,9 @@ async def update_billing_settings(
             )
 
     contact_updates: Dict[str, object] = {}
-    if request.billing_contact_email is not None:
+    if "billing_contact_email" in request.model_fields_set:
         contact_updates["billing_contact_email"] = request.billing_contact_email
-    if request.billing_contact_phone is not None:
+    if "billing_contact_phone" in request.model_fields_set:
         contact_updates["billing_contact_phone"] = request.billing_contact_phone
 
     if contact_updates:
