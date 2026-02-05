@@ -19,6 +19,7 @@ class TestBillingPublicPricing(AbstractPostgresTest):
         self.audio_model_id = "pricing-public-audio"
         self.hidden_model_id = "pricing-hidden"
         self.private_model_id = "pricing-private"
+        self.provider_only_model_id = "pricing-provider-only"
 
         Models.insert_new_model(
             ModelForm(
@@ -113,6 +114,21 @@ class TestBillingPublicPricing(AbstractPostgresTest):
                 version="2025-01",
                 created_at=now,
                 provider="Test",
+                is_default=True,
+                is_active=True,
+            ).model_dump()
+        )
+        RateCards.create_rate_card(
+            PricingRateCardModel(
+                id=str(uuid.uuid4()),
+                model_id=self.provider_only_model_id,
+                model_tier=None,
+                modality="text",
+                unit="token_in",
+                raw_cost_per_unit_kopeks=300,
+                version="2025-01",
+                created_at=now,
+                provider=None,
                 is_default=True,
                 is_active=True,
             ).model_dump()
@@ -238,3 +254,29 @@ class TestBillingPublicPricing(AbstractPostgresTest):
         assert entries
         assert all(entry.model_id == self.text_model_id for entry in entries)
         assert not any(entry.model_id == self.audio_model_id for entry in entries)
+
+    def test_public_rate_cards_provider_only_model(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.routers.billing as billing_router
+
+        async def _mock_get_all_base_models(request):  # noqa: ARG001
+            return [
+                {
+                    "id": self.provider_only_model_id,
+                    "name": "Provider Only",
+                    "owned_by": "openai",
+                }
+            ]
+
+        monkeypatch.setattr(billing_router, "get_all_base_models", _mock_get_all_base_models)
+
+        response = self.fast_api_client.get(self.create_url("/public/rate-cards"))
+        assert response.status_code == 200
+
+        payload = response.json()
+        provider_only = next(
+            model
+            for model in payload["models"]
+            if model["id"] == self.provider_only_model_id
+        )
+        assert provider_only["provider"] == "openai"
+        assert provider_only["rates"]["text_in_1000_tokens"] is not None

@@ -47,6 +47,7 @@ from open_webui.utils.billing import (
 )
 from open_webui.utils.lead_magnet import evaluate_lead_magnet
 from open_webui.utils.pricing import PricingService
+from open_webui.utils.models import get_all_base_models
 from open_webui.utils.wallet import wallet_service, WalletError
 from open_webui.utils.yookassa import (
     YooKassaWebhookHandler,
@@ -969,7 +970,7 @@ async def get_public_pricing_config(request: Request) -> PublicPricingConfigResp
 
 @router.get("/public/rate-cards", response_model=PublicRateCardResponse)
 async def get_public_rate_cards(
-    response: Response, currency: Optional[str] = None
+    request: Request, response: Response, currency: Optional[str] = None
 ) -> PublicRateCardResponse:
     """Expose rate cards for public pricing tables."""
     response.headers["Cache-Control"] = "public, max-age=600"
@@ -985,23 +986,73 @@ async def get_public_rate_cards(
     }
 
     model_limit = min(max(PUBLIC_PRICING_RATE_CARD_MODEL_LIMIT, 1), 50)
-    base_models = Models.get_base_models()
-    active_models = []
-    for model in base_models:
+    workspace_base_models = await run_in_threadpool(Models.get_base_models)
+
+    excluded_model_ids = set()
+    merged_models_by_id: Dict[str, Dict[str, Optional[str]]] = {}
+    for model in workspace_base_models:
         if not model.is_active:
+            excluded_model_ids.add(model.id)
             continue
         if model.access_control is not None:
+            excluded_model_ids.add(model.id)
             continue
         if model.meta and getattr(model.meta, "hidden", False):
+            excluded_model_ids.add(model.id)
             continue
-        active_models.append(model)
-    active_models.sort(key=lambda model: (model.name or model.id).lower())
-    active_model_ids = [model.id for model in active_models]
+        merged_models_by_id[model.id] = {
+            "id": model.id,
+            "display_name": model.name or model.id,
+            "owned_by": None,
+        }
 
-    rate_cards = RateCards.list_rate_cards_by_model_ids(
-        active_model_ids,
-        is_active=True,
+    try:
+        provider_base_models = await get_all_base_models(request)
+    except Exception as e:
+        log.debug(f"Failed to fetch provider base models for public pricing: {e}")
+        provider_base_models = []
+
+    for item in provider_base_models:
+        model_id = (item.get("id") or "").strip()
+        if not model_id:
+            continue
+        if model_id in excluded_model_ids:
+            continue
+
+        owned_by_value = item.get("owned_by")
+        owned_by = str(owned_by_value).strip() if owned_by_value else None
+        name_value = item.get("name")
+        display_name = str(name_value).strip() if name_value else model_id
+
+        existing = merged_models_by_id.get(model_id)
+        if existing is not None:
+            if existing.get("owned_by") is None and owned_by:
+                existing["owned_by"] = owned_by
+            continue
+
+        merged_models_by_id[model_id] = {
+            "id": model_id,
+            "display_name": display_name,
+            "owned_by": owned_by,
+        }
+
+    active_models = sorted(
+        merged_models_by_id.values(),
+        key=lambda model: (model.get("display_name") or model["id"]).lower(),
     )
+    active_model_ids = [model["id"] for model in active_models]
+
+    rate_cards = []
+    chunk_size = 250
+    for offset in range(0, len(active_model_ids), chunk_size):
+        chunk = active_model_ids[offset : offset + chunk_size]
+        rate_cards.extend(
+            await run_in_threadpool(
+                RateCards.list_rate_cards_by_model_ids,
+                chunk,
+                True,
+            )
+        )
 
     latest_by_model: Dict[str, Dict[tuple[str, str], object]] = {}
     for entry in rate_cards:
@@ -1014,7 +1065,7 @@ async def get_public_rate_cards(
     updated_at_ts: Optional[int] = None
 
     for model in active_models:
-        latest = latest_by_model.get(model.id, {})
+        latest = latest_by_model.get(model["id"], {})
         if not latest:
             continue
 
@@ -1052,6 +1103,9 @@ async def get_public_rate_cards(
             if model_updated_at is None or entry.created_at > model_updated_at:
                 model_updated_at = entry.created_at
 
+        if provider is None:
+            provider = model.get("owned_by")
+
         if all(value is None for value in rates_payload.values()):
             continue
 
@@ -1061,8 +1115,8 @@ async def get_public_rate_cards(
 
         models.append(
             PublicRateCardModel(
-                id=model.id,
-                display_name=model.name or model.id,
+                id=model["id"],
+                display_name=model.get("display_name") or model["id"],
                 provider=provider,
                 capabilities=sorted(capabilities),
                 rates=PublicRateCardRates(**rates_payload),
