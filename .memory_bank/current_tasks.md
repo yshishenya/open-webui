@@ -20,6 +20,14 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG]** Landing pricing: show rate cards for provider-only models
+  - Spec: `.memory_bank/specs/work_items/2026-02-05__bugfix__public-pricing-rate-cards-provider-models.md`
+  - Owner: Codex
+  - Done: 2026-02-05
+  - Summary: Public `/billing/public/rate-cards` merges provider base models with workspace overrides so `/pricing` shows prices.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_billing_public_pricing.py"`
+  - Risks: Low (provider model fetch adds some work; failures degrade gracefully).
+
 - [x] **[BILLING][TEST]** Scenario-based billing E2E tests (wallet PAYG + topup + lead magnet)
   - Spec: `.memory_bank/specs/work_items/2026-02-05__feature__billing-scenarios-e2e-tests.md`
   - Owner: Codex
