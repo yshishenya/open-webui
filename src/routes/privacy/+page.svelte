@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { PublicPageLayout } from '$lib/components/landing';
 
-	const lastUpdated = '19 января 2026';
+	const lastUpdated = '05 февраля 2026';
+	const docVersion = '2026-02-05';
 </script>
 
 <PublicPageLayout
@@ -31,7 +32,9 @@
 				<p class="text-lg md:text-xl text-gray-600 max-w-3xl">
 					Рассказываем, какие данные мы собираем, зачем это нужно и как их защищаем.
 				</p>
-				<p class="text-sm text-gray-500">Последнее обновление: {lastUpdated}</p>
+				<p class="text-sm text-gray-500">
+					Версия: {docVersion} · Последнее обновление: {lastUpdated}
+				</p>
 			</div>
 		</div>
 	</section>
@@ -44,10 +47,13 @@
 					<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
 					Собираем только данные, необходимые для работы сервиса.
 				</li>
-				<li class="flex items-start gap-2">
-					<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
-					Передаем данные только партнёрам, которые обеспечивают работу сервиса.
-				</li>
+					<li class="flex items-start gap-2">
+						<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+						Передаем данные только партнёрам, которые обеспечивают работу сервиса (перечень —
+						<a href="/documents/subprocessors" class="text-gray-900 font-medium hover:underline"
+							>subprocessors</a
+						>).
+					</li>
 				<li class="flex items-start gap-2">
 					<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
 					Вы можете запросить доступ, исправление или удаление данных.
@@ -121,7 +127,15 @@
 							<li>По требованию государственных органов в соответствии с законом</li>
 						</ul>
 						<p class="pt-4">
-							4.3. Все наши партнеры обязаны соблюдать строгие стандарты защиты данных.
+							4.3. Актуальный перечень привлеченных поставщиков/подрядчиков, а также сведения о странах обработки
+							опубликованы на странице
+							<a href="/documents/subprocessors" class="text-gray-900 font-medium hover:underline"
+								>subprocessors</a
+							>.
+						</p>
+						<p class="pt-4">
+							4.4. Все наши партнеры обязаны соблюдать стандарты защиты данных. При использовании отдельных AI‑провайдеров
+							возможно трансграничное предоставление данных (в том числе запросов и контента) в объёме, необходимом для генерации ответа.
 						</p>
 					</div>
 				</section>
@@ -144,6 +158,9 @@
 				<section>
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">6. Хранение данных</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
+						<p>
+							6.0. Мы стремимся хранить персональные данные пользователей в базах данных на территории Российской Федерации.
+						</p>
 						<p>
 							6.1. Мы храним ваши персональные данные до тех пор, пока это необходимо для
 							предоставления услуг или выполнения законодательных требований.
@@ -191,6 +208,11 @@
 							8.2. Вы можете управлять настройками cookies в своем браузере или в настройках
 							аккаунта.
 						</p>
+						<p class="pt-4">
+							Подробно: <a href="/documents/cookies" class="text-gray-900 font-medium hover:underline"
+								>Cookie‑политика</a
+							>.
+						</p>
 					</div>
 				</section>
 
@@ -232,15 +254,18 @@
 					</ul>
 				</section>
 
-				<div class="pt-8 border-t border-gray-200 flex flex-wrap gap-4">
-					<a href="/terms" class="text-gray-900 font-medium hover:underline">
-						Условия использования
-					</a>
-					<a href="/contact" class="text-gray-900 font-medium hover:underline">
-						Связаться с нами
-					</a>
+					<div class="pt-8 border-t border-gray-200 flex flex-wrap gap-4">
+						<a href="/terms" class="text-gray-900 font-medium hover:underline">
+							Оферта
+						</a>
+						<a href="/documents" class="text-gray-900 font-medium hover:underline">
+							Документы
+						</a>
+						<a href="/contact" class="text-gray-900 font-medium hover:underline">
+							Связаться с нами
+						</a>
+					</div>
 				</div>
-			</div>
 		</div>
 	</section>
 </PublicPageLayout>

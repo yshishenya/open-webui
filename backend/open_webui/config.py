@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 import requests
 from pydantic import BaseModel
 from sqlalchemy import JSON, Column, DateTime, Integer, func
+from sqlalchemy.exc import OperationalError, ProgrammingError
 from authlib.integrations.starlette_client import OAuth
 
 
@@ -120,7 +121,14 @@ DEFAULT_CONFIG = {
 
 def get_config():
     with get_db() as db:
-        config_entry = db.query(Config).order_by(Config.id.desc()).first()
+        try:
+            config_entry = db.query(Config).order_by(Config.id.desc()).first()
+        except (ProgrammingError, OperationalError) as e:
+            # The config table may be missing on a fresh DB (or after a manual reset)
+            # while alembic_version is already at head. Fall back to defaults.
+            log.warning("Config table is not available yet; using DEFAULT_CONFIG. %s", e)
+            return DEFAULT_CONFIG
+
         return config_entry.data if config_entry else DEFAULT_CONFIG
 
 

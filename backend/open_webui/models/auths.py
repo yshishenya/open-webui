@@ -73,6 +73,8 @@ class SignupForm(BaseModel):
     email: str
     password: str
     profile_image_url: Optional[str] = "/user.png"
+    terms_accepted: bool = False
+    privacy_accepted: bool = False
 
 
 class AddUserForm(SignupForm):

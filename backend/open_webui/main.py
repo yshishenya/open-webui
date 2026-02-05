@@ -77,6 +77,7 @@ from open_webui.routers import (
     tasks,
     auths,
     oauth_russian,
+    legal,
     billing,
     admin_billing,
     admin_billing_rate_card,
@@ -1478,6 +1479,7 @@ app.include_router(configs.router, prefix="/api/v1/configs", tags=["configs"])
 
 app.include_router(auths.router, prefix="/api/v1/auths", tags=["auths"])
 app.include_router(oauth_russian.router, prefix="/api/v1", tags=["oauth", "russian"])
+app.include_router(legal.router, prefix="/api/v1/legal", tags=["legal"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 
 app.include_router(billing.router, prefix="/api/v1/billing", tags=["billing"])

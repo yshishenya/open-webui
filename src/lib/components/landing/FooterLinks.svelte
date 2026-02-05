@@ -9,7 +9,8 @@
 		{ href: '/pricing', label: 'Тарифы' },
 		{ href: '/features', label: 'Возможности' },
 		{ href: '/contact', label: 'Контакты' },
-		{ href: '/terms', label: 'Условия использования' },
+		{ href: '/documents', label: 'Документы' },
+		{ href: '/terms', label: 'Оферта' },
 		{ href: '/privacy', label: 'Политика конфиденциальности' }
 	];
 

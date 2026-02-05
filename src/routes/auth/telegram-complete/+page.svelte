@@ -25,7 +25,7 @@
 		}
 
 		if (!termsAccepted) {
-			error = 'Необходимо принять условия использования';
+			error = 'Необходимо принять оферту и политику конфиденциальности';
 			return;
 		}
 
@@ -39,7 +39,8 @@
 				body: JSON.stringify({
 					temp_session: tempSession,
 					email: email,
-					terms_accepted: termsAccepted
+					terms_accepted: termsAccepted,
+					privacy_accepted: termsAccepted
 				})
 			});
 
@@ -123,9 +124,7 @@
 						class="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
 					/>
 					<label for="terms" class="ml-2 text-sm text-gray-700">
-						Я принимаю <a href="/terms" class="text-purple-600 hover:underline" target="_blank"
-							>условия использования</a
-						>
+						Я принимаю <a href="/terms" class="text-purple-600 hover:underline" target="_blank">оферту</a>
 						и
 						<a href="/privacy" class="text-purple-600 hover:underline" target="_blank"
 							>политику конфиденциальности</a

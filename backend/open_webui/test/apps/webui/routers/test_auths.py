@@ -110,6 +110,8 @@ class TestAuths(AbstractPostgresTest):
                 "name": "John Doe",
                 "email": "john.doe@openwebui.com",
                 "password": "password",
+                "terms_accepted": True,
+                "privacy_accepted": True,
             },
         )
         assert response.status_code == 200
@@ -121,6 +123,18 @@ class TestAuths(AbstractPostgresTest):
         assert data["profile_image_url"] == "/user.png"
         assert data["token"] is not None and len(data["token"]) > 0
         assert data["token_type"] == "Bearer"
+
+        db_user = self.users.get_user_by_id(data["id"])
+        assert db_user is not None
+        assert db_user.terms_accepted_at is not None
+        assert db_user.privacy_accepted_at is not None
+
+        status_response = self.fast_api_client.get(
+            "/api/v1/legal/status",
+            headers={"Authorization": f"Bearer {data['token']}"},
+        )
+        assert status_response.status_code == 200
+        assert status_response.json()["needs_accept"] is False
 
     def test_add_user(self):
         with mock_webui_user():

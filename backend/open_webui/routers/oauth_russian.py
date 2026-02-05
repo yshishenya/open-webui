@@ -35,6 +35,7 @@ from open_webui.config import (
 )
 from open_webui.utils.auth import create_token, get_password_hash
 from open_webui.utils.misc import parse_duration
+from open_webui.utils.airis.legal_acceptance import record_legal_acceptances
 from open_webui.utils.redis import get_redis_client
 from open_webui.env import (
     WEBUI_AUTH_COOKIE_SAME_SITE,
@@ -276,10 +277,7 @@ async def vkid_callback(
                     detail="Failed to create user"
                 )
 
-            Users.update_user_by_id(user.id, {
-                "email_verified": True,
-                "terms_accepted_at": int(time.time())
-            })
+            Users.update_user_by_id(user.id, {"email_verified": True})
 
             if email_service.is_configured():
                 try:
@@ -515,11 +513,9 @@ async def vk_oauth_callback(
                     detail="Failed to create user"
                 )
 
-            # Set email as verified (VK verifies emails) and record terms acceptance
-            Users.update_user_by_id(user.id, {
-                "email_verified": True,
-                "terms_accepted_at": int(time.time())
-            })
+            # Set email as verified (VK verifies emails).
+            # Legal docs acceptance is collected separately in the UI gate.
+            Users.update_user_by_id(user.id, {"email_verified": True})
             
             # Send welcome email
             if email_service.is_configured():
@@ -528,10 +524,9 @@ async def vk_oauth_callback(
                 except Exception as e:
                     log.error(f"Failed to send welcome email to {user.email}: {e}")
 
-            # Billing: lead magnet applies by default; no free plan assignment.
+            log.info(f"Created new user {user.id} via VK OAuth")
 
-
-            log.info(f"Created new user {user.id} via Yandex OAuth")
+        # Billing: lead magnet applies by default; no free plan assignment.
 
         # Create JWT token
         expires_delta = parse_duration(request.app.state.config.JWT_EXPIRES_IN)
@@ -564,10 +559,10 @@ async def vk_oauth_callback(
     except HTTPException:
         raise
     except Exception as e:
-        log.error(f"Yandex OAuth callback error: {e}")
+        log.error(f"VK OAuth callback error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Yandex authentication failed"
+            detail="VK authentication failed"
         )
 
 
@@ -749,6 +744,7 @@ class TelegramCompleteProfileForm(BaseModel):
     temp_session: str
     email: EmailStr
     terms_accepted: bool = False
+    privacy_accepted: bool = False
 
 
 @router.post("/oauth/telegram/complete-profile")
@@ -759,10 +755,10 @@ async def telegram_complete_profile(
 ):
     """Complete Telegram user profile with email"""
     
-    if not form_data.terms_accepted:
+    if not form_data.terms_accepted or not form_data.privacy_accepted:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You must accept the terms of service"
+            detail="You must accept the terms and privacy policy"
         )
 
     try:
@@ -825,9 +821,6 @@ async def telegram_complete_profile(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to create user"
                 )
-
-            # Set terms accepted timestamp
-            Users.update_user_by_id(user.id, {"terms_accepted_at": int(time.time())})
             
             # Email NOT verified (Telegram doesn't verify emails)
             # Send verification email
@@ -855,6 +848,14 @@ async def telegram_complete_profile(
             # Billing: lead magnet applies by default; no free plan assignment.
 
             log.info(f"Created new user {user.id} via Telegram OAuth")
+
+        if user:
+            record_legal_acceptances(
+                user_id=user.id,
+                keys=["terms_offer", "privacy_policy"],
+                request=request,
+                method="telegram_complete",
+            )
 
         # Delete temporary session
         redis_client.delete(session_key)

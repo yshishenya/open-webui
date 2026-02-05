@@ -13,6 +13,7 @@
 	import { getTools } from '$lib/apis/tools';
 	import { getBanners } from '$lib/apis/configs';
 	import { getUserSettings } from '$lib/apis/users';
+	import { getLegalRequirements, getLegalStatus, type LegalStatusResponse } from '$lib/apis/legal';
 
 	import { WEBUI_VERSION } from '$lib/constants';
 	import { compareVersion } from '$lib/utils';
@@ -41,6 +42,7 @@
 	import SettingsModal from '$lib/components/chat/SettingsModal.svelte';
 	import ChangelogModal from '$lib/components/ChangelogModal.svelte';
 	import AccountPending from '$lib/components/layout/Overlay/AccountPending.svelte';
+	import LegalAcceptanceGate from '$lib/components/layout/Overlay/LegalAcceptanceGate.svelte';
 	import UpdateInfoToast from '$lib/components/layout/UpdateInfoToast.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import { Shortcut, shortcuts } from '$lib/shortcuts';
@@ -50,6 +52,9 @@
 	let loaded = false;
 	let DB = null;
 	let localDBChats = [];
+
+	let legalStatus: LegalStatusResponse | null = null;
+	let legalGateOpen = false;
 
 	let version;
 
@@ -141,15 +146,7 @@
 		tools.set(toolsData);
 	};
 
-	onMount(async () => {
-		if ($user === undefined || $user === null) {
-			await goto('/auth');
-			return;
-		}
-		if (!['user', 'admin'].includes($user?.role)) {
-			return;
-		}
-
+	const bootstrapApp = async (): Promise<void> => {
 		clearChatInputStorage();
 		await Promise.all([
 			checkLocalDBChats(),
@@ -289,7 +286,64 @@
 		await tick();
 
 		loaded = true;
-	});
+	};
+
+	const handleLegalAccepted = async (event: CustomEvent<{ status: LegalStatusResponse }>): Promise<void> => {
+		legalStatus = event.detail.status;
+		legalGateOpen = false;
+		if (!loaded) {
+			await bootstrapApp();
+		}
+	};
+
+	onMount(async () => {
+		if ($user === undefined || $user === null) {
+			await goto('/auth');
+			return;
+		}
+		if (!['user', 'admin'].includes($user?.role)) {
+			return;
+		}
+
+			try {
+				legalStatus = await getLegalStatus(localStorage.token);
+				if (legalStatus?.needs_accept) {
+					legalGateOpen = true;
+					return;
+				}
+			} catch (error) {
+				console.error(error);
+				toast.error(`${error}`);
+
+				// Fail-closed: if we can't load status, still show the gate with required docs.
+				try {
+					const requirements = await getLegalRequirements();
+					legalStatus = {
+						docs: requirements.docs.map((doc) => ({
+							...doc,
+							accepted_at: null,
+							accepted_version: null
+						})),
+						needs_accept: true,
+						server_time: requirements.server_time
+					};
+					legalGateOpen = true;
+					return;
+				} catch (requirementsError) {
+					console.error(requirementsError);
+					toast.error(`${requirementsError}`);
+					legalStatus = {
+						docs: [],
+						needs_accept: true,
+						server_time: Math.floor(Date.now() / 1000)
+					};
+					legalGateOpen = true;
+					return;
+				}
+			}
+
+			await bootstrapApp();
+		});
 
 	const checkForVersionUpdates = async () => {
 		version = await getVersionUpdates(localStorage.token).catch((error) => {
@@ -377,25 +431,34 @@
 							</div>
 						</div>
 					</div>
-				{/if}
+					{/if}
 
-				<Sidebar />
+					{#if legalGateOpen && legalStatus?.needs_accept}
+						<LegalAcceptanceGate
+							token={localStorage.token}
+							status={legalStatus}
+							acceptMethod="ui_gate"
+							on:accepted={handleLegalAccepted}
+						/>
+					{:else}
+						<Sidebar />
 
-				{#if loaded}
-					<slot />
-				{:else}
-					<div
-						class="w-full flex-1 h-full flex items-center justify-center {$showSidebar
-							? '  md:max-w-[calc(100%-var(--sidebar-width))]'
-							: ' '}"
-					>
-						<Spinner className="size-5" />
-					</div>
+						{#if loaded}
+							<slot />
+						{:else}
+							<div
+								class="w-full flex-1 h-full flex items-center justify-center {$showSidebar
+									? '  md:max-w-[calc(100%-var(--sidebar-width))]'
+									: ' '}"
+							>
+								<Spinner className="size-5" />
+							</div>
+						{/if}
+					{/if}
 				{/if}
-			{/if}
+			</div>
 		</div>
-	</div>
-{/if}
+	{/if}
 
 <style>
 	.loading {

@@ -42,6 +42,7 @@
 	let email = '';
 	let password = '';
 	let confirmPassword = '';
+	let legalAccepted = false;
 
 	let ldapUsername = '';
 
@@ -94,12 +95,21 @@
 			}
 		}
 
-		const sessionUser = await userSignUp(name, email, password, generateInitialsImage(name)).catch(
-			(error) => {
-				toast.error(`${error}`);
-				return null;
-			}
-		);
+		if (!legalAccepted) {
+			toast.error('Необходимо принять оферту и политику конфиденциальности.');
+			return;
+		}
+
+		const sessionUser = await userSignUp(
+			name,
+			email,
+			password,
+			generateInitialsImage(name),
+			legalAccepted
+		).catch((error) => {
+			toast.error(`${error}`);
+			return null;
+		});
 
 		await setSessionUser(sessionUser);
 	};
@@ -421,6 +431,35 @@
 												/>
 											</div>
 										{/if}
+
+										{#if mode === 'signup'}
+											<div class="mt-4 flex items-start gap-2 text-xs text-gray-600 dark:text-gray-400">
+												<input
+													id="legal-accept"
+													type="checkbox"
+													bind:checked={legalAccepted}
+													class="mt-1 size-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+												/>
+												<label for="legal-accept" class="leading-relaxed">
+													Я принимаю
+													<a
+														href="/terms"
+														target="_blank"
+														rel="noreferrer"
+														class="text-gray-900 dark:text-gray-200 font-medium hover:underline"
+														>оферту</a
+													>
+													и
+													<a
+														href="/privacy"
+														target="_blank"
+														rel="noreferrer"
+														class="text-gray-900 dark:text-gray-200 font-medium hover:underline"
+														>политику конфиденциальности</a
+													>.
+												</label>
+											</div>
+										{/if}
 									</div>
 								{/if}
 								<div class="mt-5">
@@ -434,8 +473,9 @@
 											</button>
 										{:else}
 											<button
-												class="bg-gray-700/5 hover:bg-gray-700/10 dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-medium text-sm py-2.5"
+												class="bg-gray-700/5 hover:bg-gray-700/10 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-medium text-sm py-2.5"
 												type="submit"
+												disabled={mode === 'signup' && !legalAccepted}
 											>
 												{mode === 'signin'
 													? $i18n.t('Sign in')

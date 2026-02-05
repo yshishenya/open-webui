@@ -73,6 +73,7 @@ class User(Base):
 
     email_verified = Column(Boolean, nullable=True, default=False)
     terms_accepted_at = Column(BigInteger, nullable=True)
+    privacy_accepted_at = Column(BigInteger, nullable=True)
 
     last_active_at = Column(BigInteger)
     updated_at = Column(BigInteger)
@@ -108,6 +109,7 @@ class UserModel(BaseModel):
 
     email_verified: Optional[bool] = False
     terms_accepted_at: Optional[int] = None
+    privacy_accepted_at: Optional[int] = None
 
     last_active_at: int  # timestamp in epoch
     updated_at: int  # timestamp in epoch

@@ -52,6 +52,7 @@ from open_webui.config import (
 from pydantic import BaseModel
 
 from open_webui.utils.misc import parse_duration, validate_email_format
+from open_webui.utils.airis.legal_acceptance import record_legal_acceptances
 from open_webui.utils.auth import (
     validate_password,
     verify_password,
@@ -594,7 +595,13 @@ async def signin(
             await signup(
                 request,
                 response,
-                SignupForm(email=email, password=str(uuid.uuid4()), name=name),
+                SignupForm(
+                    email=email,
+                    password=str(uuid.uuid4()),
+                    name=name,
+                    terms_accepted=True,
+                    privacy_accepted=True,
+                ),
                 db=db,
             )
 
@@ -625,7 +632,13 @@ async def signin(
             await signup(
                 request,
                 response,
-                SignupForm(email=admin_email, password=admin_password, name="User"),
+                SignupForm(
+                    email=admin_email,
+                    password=admin_password,
+                    name="User",
+                    terms_accepted=True,
+                    privacy_accepted=True,
+                ),
                 db=db,
             )
 
@@ -740,6 +753,12 @@ async def signup(
     if Users.get_user_by_email(form_data.email.lower(), db=db):
         raise HTTPException(400, detail=ERROR_MESSAGES.EMAIL_TAKEN)
 
+    if not form_data.terms_accepted or not form_data.privacy_accepted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must accept the terms and privacy policy",
+        )
+
     try:
         try:
             validate_password(form_data.password)
@@ -759,10 +778,12 @@ async def signup(
         )
 
         if user:
-            # Record terms acceptance timestamp
-            Users.update_user_by_id(user.id, {
-                "terms_accepted_at": int(time.time())
-            })
+            record_legal_acceptances(
+                user_id=user.id,
+                keys=["terms_offer", "privacy_policy"],
+                request=request,
+                method="signup",
+            )
             
             # Create and send email verification token
             if email_service.is_configured():
