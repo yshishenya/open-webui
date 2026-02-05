@@ -172,6 +172,17 @@ ENABLE_PERSISTENT_CONFIG = (
 )
 
 
+def _is_sensitive_config_key(key: str) -> bool:
+    upper_key = key.upper()
+    if upper_key.startswith("ENABLE_"):
+        return False
+
+    if "PASSWORD" in upper_key:
+        return True
+
+    return upper_key.endswith(("_SECRET", "_TOKEN", "_API_KEY", "_API_KEYS"))
+
+
 class PersistentConfig(Generic[T]):
     def __init__(self, env_name: str, config_path: str, env_value: T):
         self.env_name = env_name
@@ -216,7 +227,10 @@ class PersistentConfig(Generic[T]):
         new_value = get_config_value(self.config_path)
         if new_value is not None:
             self.value = new_value
-            log.info(f"Updated {self.env_name} to new value {self.value}")
+            if _is_sensitive_config_key(self.env_name):
+                log.info(f"Updated {self.env_name} to new value [REDACTED]")
+            else:
+                log.info(f"Updated {self.env_name} to new value {self.value}")
 
     def save(self):
         log.info(f"Saving '{self.env_name}' to the database")
@@ -285,7 +299,10 @@ class AppConfig:
                     # Update the in-memory value if different
                     if self._state[key].value != decoded_value:
                         self._state[key].value = decoded_value
-                        log.info(f"Updated {key} from Redis: {decoded_value}")
+                        if _is_sensitive_config_key(key):
+                            log.info(f"Updated {key} from Redis: [REDACTED]")
+                        else:
+                            log.info(f"Updated {key} from Redis: {decoded_value}")
 
                 except json.JSONDecodeError:
                     log.error(f"Invalid JSON format in Redis for {key}: {redis_value}")
@@ -350,6 +367,40 @@ OAUTH_MERGE_ACCOUNTS_BY_EMAIL = PersistentConfig(
     "oauth.merge_accounts_by_email",
     os.environ.get("OAUTH_MERGE_ACCOUNTS_BY_EMAIL", "False").lower() == "true",
 )
+
+# Telegram authentication (Telegram Login Widget)
+ENABLE_TELEGRAM_AUTH = PersistentConfig(
+    "ENABLE_TELEGRAM_AUTH",
+    "oauth.telegram.enabled",
+    os.environ.get("ENABLE_TELEGRAM_AUTH", "False").lower() == "true",
+)
+
+TELEGRAM_BOT_USERNAME = PersistentConfig(
+    "TELEGRAM_BOT_USERNAME",
+    "oauth.telegram.bot_username",
+    os.environ.get("TELEGRAM_BOT_USERNAME", os.environ.get("TELEGRAM_BOT_NAME", "")),
+)
+
+TELEGRAM_AUTH_MAX_AGE_SECONDS = PersistentConfig(
+    "TELEGRAM_AUTH_MAX_AGE_SECONDS",
+    "oauth.telegram.auth_max_age_seconds",
+    int(os.environ.get("TELEGRAM_AUTH_MAX_AGE_SECONDS", "600")),
+)
+
+ENABLE_TELEGRAM_SIGNUP = PersistentConfig(
+    "ENABLE_TELEGRAM_SIGNUP",
+    "oauth.telegram.enable_signup",
+    os.environ.get("ENABLE_TELEGRAM_SIGNUP", "False").lower() == "true",
+)
+
+
+def is_telegram_auth_configured() -> bool:
+    return bool(
+        ENABLE_TELEGRAM_AUTH.value
+        and TELEGRAM_BOT_USERNAME.value
+        and TELEGRAM_BOT_TOKEN.value
+    )
+
 
 OAUTH_PROVIDERS = {}
 
@@ -625,7 +676,7 @@ TELEGRAM_BOT_TOKEN = PersistentConfig(
 TELEGRAM_BOT_NAME = PersistentConfig(
     "TELEGRAM_BOT_NAME",
     "oauth.telegram.bot_name",
-    os.environ.get("TELEGRAM_BOT_NAME", ""),
+    os.environ.get("TELEGRAM_BOT_NAME", os.environ.get("TELEGRAM_BOT_USERNAME", "")),
 )
 
 TELEGRAM_AUTH_ORIGIN = PersistentConfig(

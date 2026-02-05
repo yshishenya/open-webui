@@ -405,6 +405,12 @@ from open_webui.config import (
     OAUTH_USERNAME_CLAIM,
     OAUTH_ALLOWED_ROLES,
     OAUTH_ADMIN_ROLES,
+    # WebUI (Telegram)
+    ENABLE_TELEGRAM_AUTH,
+    TELEGRAM_BOT_USERNAME,
+    TELEGRAM_BOT_TOKEN,
+    TELEGRAM_AUTH_MAX_AGE_SECONDS,
+    ENABLE_TELEGRAM_SIGNUP,
     # WebUI (LDAP)
     ENABLE_LDAP,
     LDAP_SERVER_LABEL,
@@ -819,6 +825,12 @@ app.state.config.ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS = (
 app.state.config.API_KEYS_ALLOWED_ENDPOINTS = API_KEYS_ALLOWED_ENDPOINTS
 
 app.state.config.JWT_EXPIRES_IN = JWT_EXPIRES_IN
+
+app.state.config.ENABLE_TELEGRAM_AUTH = ENABLE_TELEGRAM_AUTH
+app.state.config.TELEGRAM_BOT_USERNAME = TELEGRAM_BOT_USERNAME
+app.state.config.TELEGRAM_BOT_TOKEN = TELEGRAM_BOT_TOKEN
+app.state.config.TELEGRAM_AUTH_MAX_AGE_SECONDS = TELEGRAM_AUTH_MAX_AGE_SECONDS
+app.state.config.ENABLE_TELEGRAM_SIGNUP = ENABLE_TELEGRAM_SIGNUP
 
 app.state.config.SHOW_ADMIN_DETAILS = SHOW_ADMIN_DETAILS
 app.state.config.ADMIN_EMAIL = ADMIN_EMAIL
@@ -1981,6 +1993,15 @@ async def get_app_config(request: Request):
     if user is None:
         onboarding = user_count == 0
 
+    telegram_bot_username = (
+        str(request.app.state.config.TELEGRAM_BOT_USERNAME or "").strip().lstrip("@")
+    )
+    telegram_enabled = bool(
+        request.app.state.config.ENABLE_TELEGRAM_AUTH
+        and telegram_bot_username
+        and str(request.app.state.config.TELEGRAM_BOT_TOKEN or "").strip()
+    )
+
     return {
         **({"onboarding": True} if onboarding else {}),
         "status": True,
@@ -2000,6 +2021,10 @@ async def get_app_config(request: Request):
                 }
                 for name, config in OAUTH_PROVIDERS.items()
             }
+        },
+        "telegram": {
+            "enabled": telegram_enabled,
+            "bot_username": telegram_bot_username,
         },
         "features": {
             "auth": WEBUI_AUTH,

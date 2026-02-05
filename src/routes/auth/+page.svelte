@@ -12,6 +12,9 @@
 	import {
 		ldapUserSignIn,
 		getSessionUser,
+		getTelegramAuthState,
+		telegramSignIn,
+		telegramSignUp,
 		userSignIn,
 		userSignUp,
 		updateUserTimezone
@@ -26,6 +29,7 @@
 	import OnBoarding from '$lib/components/OnBoarding.svelte';
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
 	import VKIDWidget from '$lib/components/auth/VKIDWidget.svelte';
+	import TelegramLoginWidget from '$lib/components/auth/TelegramLoginWidget.svelte';
 	import { redirect } from '@sveltejs/kit';
 
 	const i18n = getContext('i18n');
@@ -45,6 +49,7 @@
 	let legalAccepted = false;
 
 	let ldapUsername = '';
+	let telegramLoading = false;
 
 	$: signupEnabled = $config?.features.enable_signup ?? true;
 	$: passwordAuthEnabled =
@@ -132,6 +137,31 @@
 		}
 	};
 
+	const telegramAuthHandler = async (payload: Record<string, unknown>) => {
+		if (telegramLoading) return;
+		telegramLoading = true;
+
+		try {
+			const { state } = await getTelegramAuthState();
+			const sessionUser =
+				mode === 'signup'
+					? await telegramSignUp(state, payload)
+					: await telegramSignIn(state, payload);
+
+			await setSessionUser(sessionUser);
+		} catch (error) {
+			if (error === 'NOT_LINKED') {
+				toast.error($i18n.t('Telegram account is not linked. Sign in and link it in Settings.'));
+			} else if (error === 'SIGNUP_DISABLED') {
+				toast.error($i18n.t('Signup is disabled.'));
+			} else {
+				toast.error(`${error}`);
+			}
+		} finally {
+			telegramLoading = false;
+		}
+	};
+
 	const oauthCallbackHandler = async () => {
 		// Get the value of the 'token' cookie
 		function getCookie(name) {
@@ -161,59 +191,6 @@
 
 	let onboarding = false;
 
-	// Telegram widget callback and setup
-	const setupTelegramAuth = () => {
-		if (typeof window !== 'undefined') {
-			// Setup callback handler
-			(window as any).onTelegramAuth = async (userData: any) => {
-				try {
-					const response = await fetch(`${WEBUI_BASE_URL}/api/v1/oauth/telegram/callback`, {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(userData)
-					});
-
-					const data = await response.json();
-
-					if (data.requires_email) {
-						// Store temp session and redirect to email collection
-						sessionStorage.setItem('telegram_temp_session', data.temp_session);
-						sessionStorage.setItem('telegram_name', data.name);
-						goto('/auth/telegram-complete');
-					} else if (data.token) {
-						// Login successful
-						localStorage.setItem('token', data.token);
-						const sessionUser = await getSessionUser(data.token);
-						await setSessionUser(sessionUser);
-					} else {
-						toast.error(data.detail || 'Telegram authentication failed');
-					}
-				} catch (error) {
-					console.error('Telegram auth error:', error);
-					toast.error('Telegram authentication failed');
-				}
-			};
-
-			// Inject Telegram widget script if bot is configured
-			const botName = $config?.oauth?.providers?.telegram?.bot_name;
-			if (botName) {
-				setTimeout(() => {
-					const container = document.getElementById('telegram-login-container');
-					if (container && !container.querySelector('iframe')) {
-						const script = document.createElement('script');
-						script.async = true;
-						script.src = 'https://telegram.org/js/telegram-widget.js?22';
-						script.setAttribute('data-telegram-login', botName);
-						script.setAttribute('data-size', 'large');
-						script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-						script.setAttribute('data-request-access', 'write');
-						container.appendChild(script);
-					}
-				}, 100);
-			}
-		}
-	};
-
 	async function setLogoImage() {
 		await tick();
 		const logo = document.getElementById('logo');
@@ -240,7 +217,6 @@
 		}
 
 		await oauthCallbackHandler();
-		setupTelegramAuth();
 		form = $page.url.searchParams.get('form');
 		const requestedMode = form ?? $page.url.searchParams.get('mode');
 		if (requestedMode === 'signup' && ($config?.features.enable_signup ?? true)) {
@@ -510,7 +486,7 @@
 								</div>
 							</form>
 
-							{#if Object.keys($config?.oauth?.providers ?? {}).length > 0}
+							{#if Object.keys($config?.oauth?.providers ?? {}).length > 0 || $config?.telegram?.enabled}
 								<div class="inline-flex items-center justify-center w-full">
 									<hr class="w-32 h-px my-4 border-0 dark:bg-gray-100/10 bg-gray-700/10" />
 									{#if passwordAuthEnabled}
@@ -523,6 +499,19 @@
 									<hr class="w-32 h-px my-4 border-0 dark:bg-gray-100/10 bg-gray-700/10" />
 								</div>
 								<div class="flex flex-col space-y-2">
+									{#if $config?.telegram?.enabled}
+										<div class="flex justify-center">
+											<TelegramLoginWidget
+												botUsername={$config?.telegram?.bot_username}
+												on:auth={(e) => telegramAuthHandler(e.detail)}
+											/>
+										</div>
+										{#if telegramLoading}
+											<div class="py-2">
+												<Spinner className="size-5" />
+											</div>
+										{/if}
+									{/if}
 									{#if $config?.oauth?.providers?.google}
 										<button
 											class="flex justify-center items-center bg-gray-700/5 hover:bg-gray-700/10 dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-medium text-sm py-2.5"
@@ -685,9 +674,19 @@
 											<span>{$i18n.t('Continue with {{provider}}', { provider: 'Yandex' })}</span>
 										</button>
 									{/if}
-									{#if $config?.oauth?.providers?.telegram?.bot_name}
-										<div class="flex justify-center pt-2" id="telegram-login-container">
-											<!-- Telegram widget will be injected here -->
+									{#if $config?.telegram?.enabled}
+										<div class="flex justify-center pt-2">
+											<TelegramLoginWidget
+												botUsername={$config?.telegram?.bot_username}
+												on:auth={(event) => {
+													telegramAuthHandler(event.detail);
+												}}
+											/>
+											{#if telegramLoading}
+												<div class="ml-2 flex items-center">
+													<Spinner className="size-4" />
+												</div>
+											{/if}
 										</div>
 									{/if}
 								</div>

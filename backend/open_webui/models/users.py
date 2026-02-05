@@ -618,8 +618,32 @@ class UsersTable:
                 db.query(User).filter_by(id=id).update({"oauth": oauth})
                 db.commit()
 
-                return UserModel.model_validate(user)
+                updated_user = db.query(User).filter_by(id=id).first()
+                return UserModel.model_validate(updated_user)
 
+        except Exception:
+            return None
+
+    def remove_user_oauth_provider_by_id(
+        self, id: str, provider: str, db: Optional[Session] = None
+    ) -> Optional[UserModel]:
+        """
+        Remove an OAuth provider entry from the user's oauth JSON field.
+        """
+        try:
+            with get_db_context(db) as db:
+                user = db.query(User).filter_by(id=id).first()
+                if not user:
+                    return None
+
+                oauth = user.oauth or {}
+                if provider in oauth:
+                    oauth.pop(provider, None)
+                    db.query(User).filter_by(id=id).update({"oauth": oauth})
+                    db.commit()
+
+                updated_user = db.query(User).filter_by(id=id).first()
+                return UserModel.model_validate(updated_user)
         except Exception:
             return None
 

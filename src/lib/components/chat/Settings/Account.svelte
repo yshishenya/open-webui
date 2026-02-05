@@ -3,7 +3,15 @@
 	import { onMount, getContext } from 'svelte';
 
 	import { user, config, settings } from '$lib/stores';
-	import { updateUserProfile, createAPIKey, getAPIKey, getSessionUser } from '$lib/apis/auths';
+	import {
+		createAPIKey,
+		getAPIKey,
+		getSessionUser,
+		getTelegramAuthState,
+		telegramLink,
+		telegramUnlink,
+		updateUserProfile
+	} from '$lib/apis/auths';
 	import { WEBUI_BASE_URL } from '$lib/constants';
 
 	import UpdatePassword from './Account/UpdatePassword.svelte';
@@ -13,10 +21,12 @@
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
+	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Textarea from '$lib/components/common/Textarea.svelte';
 	import { getUserById } from '$lib/apis/users';
 	import User from '$lib/components/icons/User.svelte';
 	import UserProfileImage from './Account/UserProfileImage.svelte';
+	import TelegramLoginWidget from '$lib/components/auth/TelegramLoginWidget.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -41,6 +51,54 @@
 	let APIKey = '';
 	let APIKeyCopied = false;
 	let profileImageInputElement: HTMLInputElement;
+
+	let fullUser: any = null;
+	let telegramLinkLoading = false;
+
+	const refreshFullUser = async () => {
+		if (!$user?.id) return;
+
+		fullUser = await getUserById(localStorage.token, $user.id).catch((error) => {
+			toast.error(`${error}`);
+			return null;
+		});
+	};
+
+	const telegramConnectHandler = async (payload: Record<string, unknown>) => {
+		if (telegramLinkLoading) return;
+		telegramLinkLoading = true;
+
+		try {
+			const { state } = await getTelegramAuthState();
+			await telegramLink(state, payload);
+			toast.success($i18n.t('Telegram connected.'));
+			await refreshFullUser();
+		} catch (error) {
+			if (error === 'TELEGRAM_ALREADY_LINKED') {
+				toast.error($i18n.t('This Telegram account is already linked to another user.'));
+			} else {
+				toast.error(`${error}`);
+			}
+		} finally {
+			telegramLinkLoading = false;
+		}
+	};
+
+	const telegramDisconnectHandler = async () => {
+		if (telegramLinkLoading) return;
+		telegramLinkLoading = true;
+
+		try {
+			const { state } = await getTelegramAuthState();
+			await telegramUnlink(state);
+			toast.success($i18n.t('Telegram disconnected.'));
+			await refreshFullUser();
+		} catch (error) {
+			toast.error(`${error}`);
+		} finally {
+			telegramLinkLoading = false;
+		}
+	};
 
 	const submitHandler = async () => {
 		if (name !== $user?.name) {
@@ -122,6 +180,8 @@
 		}
 
 		loaded = true;
+
+		await refreshFullUser();
 	});
 </script>
 
@@ -246,6 +306,56 @@
 		{#if $config?.features.enable_login_form}
 			<div class="mt-2">
 				<UpdatePassword />
+			</div>
+		{/if}
+
+		{#if $config?.telegram?.enabled}
+			<hr class="border-gray-50 dark:border-gray-850/30 my-4" />
+
+			<div class="mt-2">
+				<div class="flex justify-between items-center text-sm">
+					<div class="font-medium">{$i18n.t('Telegram')}</div>
+					{#if fullUser?.oauth?.telegram?.sub}
+						<div class="text-xs text-green-600 dark:text-green-400">
+							{$i18n.t('Connected')}
+						</div>
+					{:else}
+						<div class="text-xs text-gray-500">{$i18n.t('Not connected')}</div>
+					{/if}
+				</div>
+
+				<div class="text-xs text-gray-500 mt-0.5">
+					{$i18n.t('Link your Telegram account for one-click sign-in.')}
+				</div>
+
+				{#if fullUser?.oauth?.telegram?.sub}
+					<div class="flex justify-between items-center mt-3">
+						<div class="text-xs text-gray-500">
+							{$i18n.t('Telegram ID')}: {fullUser.oauth.telegram.sub}
+						</div>
+						<button
+							class="text-xs font-medium text-red-600 dark:text-red-400 disabled:opacity-50"
+							type="button"
+							disabled={telegramLinkLoading}
+							on:click={telegramDisconnectHandler}
+						>
+							{$i18n.t('Disconnect')}
+						</button>
+					</div>
+				{:else}
+					<div class="mt-3 flex justify-center">
+						<TelegramLoginWidget
+							botUsername={$config?.telegram?.bot_username}
+							on:auth={(e) => telegramConnectHandler(e.detail)}
+						/>
+					</div>
+				{/if}
+
+				{#if telegramLinkLoading}
+					<div class="py-2">
+						<Spinner className="size-5" />
+					</div>
+				{/if}
 			</div>
 		{/if}
 
