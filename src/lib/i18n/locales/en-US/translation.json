@@ -2099,5 +2099,9 @@
 	"Show all": "Show all",
 	"Show less": "Show less",
 	"Auto-topup disabled after failed attempts": "Auto-topup disabled after failed attempts",
-	"No free models available": "No free models available"
+	"No free models available": "No free models available",
+	"Missing": "Missing",
+	"Partial": "Partial",
+	"OK": "OK",
+	"Zero price": "Zero price"
 }

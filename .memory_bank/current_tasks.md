@@ -20,6 +20,14 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[UI]** Admin billing models: audit-first pricing
+  - Spec: `.memory_bank/specs/work_items/2026-02-04__feature__admin-models-pricing-audit-first.md`
+  - Owner: Codex
+  - Done: 2026-02-04
+  - Summary: Default focus is Text with sortable Input/Output columns; missing prices always sort last; focus switch added for Images/Audio/All; “All” keeps compact summary.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run src/lib/utils/airis/model_pricing_audit.test.ts src/lib/utils/airis/model_pricing_completeness.test.ts src/lib/utils/airis/rate_cards.test.ts src/lib/utils/airis/admin_billing_models_page_compile.test.ts"`
+  - Risks: N/A
+
 - [x] **[BUG]** Rate card XLSX import: provider-only models + i18n placeholders
   - Spec: `.memory_bank/specs/work_items/2026-02-03__bugfix__rate-card-xlsx-import-provider-models-i18n.md`
   - Owner: Codex

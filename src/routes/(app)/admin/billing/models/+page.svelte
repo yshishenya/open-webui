@@ -11,19 +11,19 @@
 			createRateCard,
 			deleteRateCardsByModel,
 			deactivateRateCardsByModel,
-		exportRateCardsXlsx,
-		listRateCards,
-		previewRateCardsXlsxImport,
-		updateRateCard
-	} from '$lib/apis/admin/billing';
-	import type {
-		RateCard,
-		RateCardCreateRequest,
-		RateCardUpdateRequest,
-		RateCardXlsxExportMode,
-		RateCardXlsxImportMode,
-		RateCardXlsxImportPreviewResponse
-	} from '$lib/apis/admin/billing';
+			exportRateCardsXlsx,
+			listRateCards,
+			previewRateCardsXlsxImport,
+			updateRateCard
+		} from '$lib/apis/admin/billing';
+		import type {
+			RateCard,
+			RateCardCreateRequest,
+			RateCardUpdateRequest,
+			RateCardXlsxExportMode,
+			RateCardXlsxImportMode,
+			RateCardXlsxImportPreviewResponse
+		} from '$lib/apis/admin/billing';
 
 	type RateCardXlsxImportApplyPayload = Pick<
 		RateCardXlsxImportPreviewResponse,
@@ -55,6 +55,20 @@
 		type ModelOption,
 		type ModelRow
 	} from '$lib/utils/rate-card-models';
+	import { buildModelRateDisplayIndex, type ModelRateDisplay } from '$lib/utils/airis/rate_cards';
+		import {
+			compareNullableNumbersMissingLast,
+			getDefaultSortForFocus,
+			getModelPriceSortValue,
+			isPriceSortKey,
+			type PricingFocus,
+			type PricingSortKey
+		} from '$lib/utils/airis/model_pricing_audit';
+		import {
+			getPricingCompletenessForFocus,
+			hasZeroPriceForFocus,
+			type PricingCompleteness
+		} from '$lib/utils/airis/model_pricing_completeness';
 
 	import type { Readable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
@@ -103,11 +117,16 @@
 		let modelRows: ModelRow[] = [];
 		let rateCardIndex: Record<string, Record<string, RateCard>> = {};
 		let rateCardKeyIndex = new Set<string>();
+			let modelRateDisplayIndex: Record<string, ModelRateDisplay | undefined> = {};
 
 	let searchValue = '';
 	let statusFilter: StatusFilter = 'all';
-	let sortKey: SortKey = 'model';
-	let sortDirection: SortDirection = 'asc';
+		let pricingFocus: PricingFocus = 'text';
+		let sortKey: SortKey = 'text_in';
+		let sortDirection: SortDirection = 'asc';
+		let showMissingPrices = false;
+		let showPartialPrices = false;
+		let showZeroPrices = false;
 
 	let showModal = false;
 	let formMode: FormMode = 'add';
@@ -141,12 +160,24 @@
 		configured: 'Configured'
 	};
 
-	const STATUS_STYLES: Record<ModelRow['status'], string> = {
-		new: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-		configured: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-	};
+		const STATUS_STYLES: Record<ModelRow['status'], string> = {
+			new: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+			configured: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+		};
 
-	type SortKey = 'model' | 'status' | 'lead';
+		const PRICING_COMPLETENESS_LABELS: Record<PricingCompleteness, string> = {
+			missing: 'Missing',
+			partial: 'Partial',
+			ok: 'OK'
+		};
+
+		const PRICING_COMPLETENESS_STYLES: Record<PricingCompleteness, string> = {
+			missing: 'bg-red-500/15 text-red-700 dark:text-red-300',
+			partial: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+			ok: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+		};
+
+	type SortKey = PricingSortKey;
 	type SortDirection = 'asc' | 'desc';
 
 	const STATUS_ORDER: Record<ModelRow['status'], number> = {
@@ -332,7 +363,56 @@
 		rateCardIndex = buildLatestRateCardIndex(rateCards);
 		rateCardKeyIndex = buildRateCardKeyIndex(rateCards);
 		modelRows = buildModelRows(availableModels, rateCards);
+		modelRateDisplayIndex = buildModelRateDisplayIndex(rateCardIndex);
 	};
+
+			const RATE_CARD_CURRENCY = 'RUB';
+
+			const moneyFormatterCache = new Map<string, Intl.NumberFormat>();
+			let moneyLocale = 'ru-RU';
+			let rateCardCurrencySymbol = '₽';
+
+			const getMoneyFormatter = (locale: string, currency: string): Intl.NumberFormat => {
+				const key = `${locale}::${currency}`;
+				const cached = moneyFormatterCache.get(key);
+				if (cached) return cached;
+				const formatter = new Intl.NumberFormat(locale, { style: 'currency', currency });
+				moneyFormatterCache.set(key, formatter);
+				return formatter;
+			};
+
+			const getCurrencySymbol = (locale: string, currency: string): string => {
+				try {
+					const formatter = new Intl.NumberFormat(locale, {
+						style: 'currency',
+						currency,
+						currencyDisplay: 'narrowSymbol',
+						minimumFractionDigits: 0,
+						maximumFractionDigits: 0
+					});
+					return (
+						formatter.formatToParts(0).find((part) => part.type === 'currency')?.value ?? currency
+					);
+				} catch {
+					return currency;
+				}
+			};
+
+			$: moneyLocale = $i18n.language ?? 'ru-RU';
+			$: rateCardCurrencySymbol = getCurrencySymbol(moneyLocale, RATE_CARD_CURRENCY);
+
+			const formatMoney = (
+				kopeks: number | null | undefined,
+				currency: string = RATE_CARD_CURRENCY
+			): string => {
+				if (kopeks === null || kopeks === undefined) return '—';
+				const amount = kopeks / 100;
+				try {
+					return getMoneyFormatter(moneyLocale, currency).format(amount);
+				} catch {
+					return `${amount.toFixed(2)} ${currency}`.trim();
+				}
+			};
 
 	const buildRateCardKeyIndex = (entries: RateCard[]): Set<string> => {
 		const keys = new Set<string>();
@@ -389,6 +469,11 @@
 	const getSortLabel = (key: SortKey): string => {
 		if (key === 'model') return $i18n.t('Model');
 		if (key === 'lead') return $i18n.t('Lead magnet');
+		if (key === 'text_in') return $i18n.t('Input');
+		if (key === 'text_out') return $i18n.t('Output');
+		if (key === 'image') return $i18n.t('Images');
+		if (key === 'tts') return 'TTS';
+		if (key === 'stt') return 'STT';
 		return $i18n.t('Status');
 	};
 
@@ -433,6 +518,26 @@
 		sortDirection = 'asc';
 	};
 
+		const setPricingFocus = (nextFocus: PricingFocus): void => {
+			pricingFocus = nextFocus;
+			const nextSort = getDefaultSortForFocus(nextFocus);
+			sortKey = nextSort.sortKey;
+			sortDirection = nextSort.sortDirection;
+		};
+
+		const togglePricingFilter = (key: 'missing' | 'partial' | 'zero'): void => {
+			if (key === 'missing') showMissingPrices = !showMissingPrices;
+			if (key === 'partial') showPartialPrices = !showPartialPrices;
+			if (key === 'zero') showZeroPrices = !showZeroPrices;
+		};
+
+		const handleRowClick = (event: MouseEvent, model: ModelRow): void => {
+			const target = event.target as HTMLElement | null;
+			if (!target) return;
+			if (target.closest('button, a, input, label, [role="button"]')) return;
+			openModal(model);
+		};
+
 	const getSortButtonLabel = (key: SortKey): string => {
 		if (sortKey !== key) return $i18n.t('Sort by {label}', { label: getSortLabel(key) });
 		return $i18n.t('Sort by {label} ({direction})', {
@@ -446,6 +551,14 @@
 		return [...rows].sort((a, b) => {
 			const nameA = getModelDisplayName(a);
 			const nameB = getModelDisplayName(b);
+
+				if (isPriceSortKey(sortKey)) {
+					const valueA = getModelPriceSortValue(modelRateDisplayIndex, a.id, sortKey);
+					const valueB = getModelPriceSortValue(modelRateDisplayIndex, b.id, sortKey);
+					const delta = compareNullableNumbersMissingLast(valueA, valueB, sortDirection);
+					if (delta !== 0) return delta;
+					return compareStrings(nameA, nameB) * direction;
+				}
 
 			if (sortKey === 'status') {
 				const statusDelta = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
@@ -979,17 +1092,31 @@
 		}
 	};
 
-	$: filteredModelRows = sortModelRows(
-		modelRows.filter((model) => {
-			const needle = searchValue.trim().toLowerCase();
-			const matchesSearch =
+		$: filteredModelRows = sortModelRows(
+			modelRows.filter((model) => {
+				const needle = searchValue.trim().toLowerCase();
+				const matchesSearch =
 				!needle ||
-				getModelDisplayName(model).toLowerCase().includes(needle) ||
-				model.id.toLowerCase().includes(needle);
-			const matchesStatus = statusFilter === 'all' ? true : model.status === statusFilter;
-			return matchesSearch && matchesStatus;
-		})
-	);
+					getModelDisplayName(model).toLowerCase().includes(needle) ||
+					model.id.toLowerCase().includes(needle);
+				const matchesStatus = statusFilter === 'all' ? true : model.status === statusFilter;
+				if (!(matchesSearch && matchesStatus)) return false;
+
+				const anyPricingFilter = showMissingPrices || showPartialPrices || showZeroPrices;
+				if (!anyPricingFilter) return true;
+				if (pricingFocus === 'all') return true;
+
+				const rates = modelRateDisplayIndex[model.id];
+				const completeness = getPricingCompletenessForFocus(rates, pricingFocus);
+				const hasZero = hasZeroPriceForFocus(rates, pricingFocus);
+
+				if (showMissingPrices && completeness === 'missing') return true;
+				if (showPartialPrices && completeness === 'partial') return true;
+				if (showZeroPrices && hasZero) return true;
+
+				return false;
+			})
+		);
 
 	$: previewCounts = calculatePreviewCounts();
 	$: applyDisabled = !importFile ||
@@ -1288,9 +1415,105 @@
 					<option value="configured">{$i18n.t('Configured')}</option>
 				</select>
 
-				{#if selectedModelIds.size > 0}
-					<div class="flex flex-wrap items-center gap-2">
+					<div
+						class="inline-flex flex-wrap items-center rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden"
+						role="group"
+						aria-label={$i18n.t('Modalities')}
+					>
+					<button
+						type="button"
+						on:click={() => setPricingFocus('text')}
+						class={`px-3 py-2 text-sm font-medium transition ${
+							pricingFocus === 'text'
+								? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+								: 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+						}`}
+						aria-pressed={pricingFocus === 'text'}
+					>
+						{$i18n.t('Text')}
+					</button>
+					<button
+						type="button"
+						on:click={() => setPricingFocus('image')}
+						class={`px-3 py-2 text-sm font-medium transition ${
+							pricingFocus === 'image'
+								? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+								: 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+						}`}
+						aria-pressed={pricingFocus === 'image'}
+					>
+						{$i18n.t('Images')}
+					</button>
+					<button
+						type="button"
+						on:click={() => setPricingFocus('audio')}
+						class={`px-3 py-2 text-sm font-medium transition ${
+							pricingFocus === 'audio'
+								? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+								: 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+						}`}
+						aria-pressed={pricingFocus === 'audio'}
+					>
+						{$i18n.t('Audio')}
+					</button>
 						<button
+							type="button"
+							on:click={() => setPricingFocus('all')}
+							class={`px-3 py-2 text-sm font-medium transition ${
+								pricingFocus === 'all'
+									? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+									: 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+							}`}
+							aria-pressed={pricingFocus === 'all'}
+						>
+							{$i18n.t('All')}
+						</button>
+					</div>
+
+					{#if pricingFocus !== 'all'}
+						<div class="flex flex-wrap items-center gap-2">
+							<button
+								type="button"
+								on:click={() => togglePricingFilter('missing')}
+								class={`px-3 py-2 rounded-xl border text-sm font-medium transition ${
+									showMissingPrices
+										? 'border-red-400/40 bg-red-500/10 text-red-700 dark:text-red-200'
+										: 'border-gray-200 dark:border-gray-800 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+								}`}
+								aria-pressed={showMissingPrices}
+							>
+								{$i18n.t('Missing')}
+							</button>
+							<button
+								type="button"
+								on:click={() => togglePricingFilter('partial')}
+								class={`px-3 py-2 rounded-xl border text-sm font-medium transition ${
+									showPartialPrices
+										? 'border-amber-400/50 bg-amber-500/10 text-amber-800 dark:text-amber-200'
+										: 'border-gray-200 dark:border-gray-800 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+								}`}
+								aria-pressed={showPartialPrices}
+							>
+								{$i18n.t('Partial')}
+							</button>
+							<button
+								type="button"
+								on:click={() => togglePricingFilter('zero')}
+								class={`px-3 py-2 rounded-xl border text-sm font-medium transition ${
+									showZeroPrices
+										? 'border-sky-400/40 bg-sky-500/10 text-sky-800 dark:text-sky-200'
+										: 'border-gray-200 dark:border-gray-800 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+								}`}
+								aria-pressed={showZeroPrices}
+							>
+								{$i18n.t('Zero price')}
+							</button>
+						</div>
+					{/if}
+
+					{#if selectedModelIds.size > 0}
+						<div class="flex flex-wrap items-center gap-2">
+							<button
 							type="button"
 							on:click={() => (showExportModal = true)}
 							class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-800 text-white text-sm font-medium transition"
@@ -1414,8 +1637,142 @@
 											<ChevronUpDown className="size-3.5" />
 										{/if}
 									</button>
-								</th>
-								<th class="px-4 py-2 text-left font-semibold">{$i18n.t('Modalities')}</th>
+									</th>
+									<th class="px-4 py-2 text-left font-semibold">{$i18n.t('Modalities')}</th>
+									{#if pricingFocus !== 'all'}
+										<th class="px-4 py-2 text-left font-semibold">{$i18n.t('Pricing')}</th>
+									{/if}
+									{#if pricingFocus === 'text'}
+										<th class="px-4 py-2 text-right font-semibold">
+											<button
+												type="button"
+											on:click={() => toggleSort('text_in')}
+											class={`inline-flex items-center gap-1.5 transition ${
+												sortKey === 'text_in'
+													? 'text-gray-700 dark:text-gray-100'
+													: 'text-gray-500 dark:text-gray-400'
+											}`}
+											aria-label={`${getSortButtonLabel('text_in')} — ${getModalityShortDescription('text')}`}
+											title={`${getSortButtonLabel('text_in')} — ${getModalityShortDescription('text')}`}
+										>
+												{$i18n.t('Input')}
+													<span class="text-[10px] text-gray-400 dark:text-gray-500">{rateCardCurrencySymbol}/1k tok</span>
+												{#if sortKey === 'text_in'}
+													{#if sortDirection === 'asc'}
+														<ChevronUp className="size-3.5" />
+												{:else}
+													<ChevronDown className="size-3.5" />
+												{/if}
+											{:else}
+												<ChevronUpDown className="size-3.5" />
+											{/if}
+										</button>
+									</th>
+									<th class="px-4 py-2 text-right font-semibold">
+										<button
+											type="button"
+											on:click={() => toggleSort('text_out')}
+											class={`inline-flex items-center gap-1.5 transition ${
+												sortKey === 'text_out'
+													? 'text-gray-700 dark:text-gray-100'
+													: 'text-gray-500 dark:text-gray-400'
+											}`}
+											aria-label={`${getSortButtonLabel('text_out')} — ${getModalityShortDescription('text')}`}
+											title={`${getSortButtonLabel('text_out')} — ${getModalityShortDescription('text')}`}
+										>
+												{$i18n.t('Output')}
+													<span class="text-[10px] text-gray-400 dark:text-gray-500">{rateCardCurrencySymbol}/1k tok</span>
+												{#if sortKey === 'text_out'}
+													{#if sortDirection === 'asc'}
+														<ChevronUp className="size-3.5" />
+												{:else}
+													<ChevronDown className="size-3.5" />
+												{/if}
+											{:else}
+												<ChevronUpDown className="size-3.5" />
+											{/if}
+										</button>
+									</th>
+								{:else if pricingFocus === 'image'}
+									<th class="px-4 py-2 text-right font-semibold">
+										<button
+											type="button"
+											on:click={() => toggleSort('image')}
+											class={`inline-flex items-center gap-1.5 transition ${
+												sortKey === 'image'
+													? 'text-gray-700 dark:text-gray-100'
+													: 'text-gray-500 dark:text-gray-400'
+											}`}
+											aria-label={`${getSortButtonLabel('image')} — ${getModalityShortDescription('image')}`}
+											title={`${getSortButtonLabel('image')} — ${getModalityShortDescription('image')}`}
+										>
+												{$i18n.t('Images')}
+													<span class="text-[10px] text-gray-400 dark:text-gray-500">{rateCardCurrencySymbol}/img</span>
+												{#if sortKey === 'image'}
+													{#if sortDirection === 'asc'}
+														<ChevronUp className="size-3.5" />
+												{:else}
+													<ChevronDown className="size-3.5" />
+												{/if}
+											{:else}
+												<ChevronUpDown className="size-3.5" />
+											{/if}
+										</button>
+									</th>
+								{:else if pricingFocus === 'audio'}
+									<th class="px-4 py-2 text-right font-semibold">
+										<button
+											type="button"
+											on:click={() => toggleSort('tts')}
+											class={`inline-flex items-center gap-1.5 transition ${
+												sortKey === 'tts'
+													? 'text-gray-700 dark:text-gray-100'
+													: 'text-gray-500 dark:text-gray-400'
+											}`}
+											aria-label={`${getSortButtonLabel('tts')} — ${getModalityShortDescription('tts')}`}
+											title={`${getSortButtonLabel('tts')} — ${getModalityShortDescription('tts')}`}
+										>
+												TTS
+													<span class="text-[10px] text-gray-400 dark:text-gray-500">{rateCardCurrencySymbol}/1k chars</span>
+												{#if sortKey === 'tts'}
+													{#if sortDirection === 'asc'}
+														<ChevronUp className="size-3.5" />
+												{:else}
+													<ChevronDown className="size-3.5" />
+												{/if}
+											{:else}
+												<ChevronUpDown className="size-3.5" />
+											{/if}
+										</button>
+									</th>
+									<th class="px-4 py-2 text-right font-semibold">
+										<button
+											type="button"
+											on:click={() => toggleSort('stt')}
+											class={`inline-flex items-center gap-1.5 transition ${
+												sortKey === 'stt'
+													? 'text-gray-700 dark:text-gray-100'
+													: 'text-gray-500 dark:text-gray-400'
+											}`}
+											aria-label={`${getSortButtonLabel('stt')} — ${getModalityShortDescription('stt')}`}
+											title={`${getSortButtonLabel('stt')} — ${getModalityShortDescription('stt')}`}
+										>
+												STT
+													<span class="text-[10px] text-gray-400 dark:text-gray-500">{rateCardCurrencySymbol}/min</span>
+												{#if sortKey === 'stt'}
+													{#if sortDirection === 'asc'}
+														<ChevronUp className="size-3.5" />
+												{:else}
+													<ChevronDown className="size-3.5" />
+												{/if}
+											{:else}
+												<ChevronUpDown className="size-3.5" />
+											{/if}
+										</button>
+									</th>
+								{:else}
+									<th class="px-4 py-2 text-left font-semibold">{$i18n.t('Price')}</th>
+								{/if}
 								<th class="px-4 py-2 text-left font-semibold">
 									<button
 										type="button"
@@ -1468,8 +1825,11 @@
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-							{#each filteredModelRows as model}
-								<tr class="hover:bg-black/5 dark:hover:bg-white/5">
+								{#each filteredModelRows as model}
+									<tr
+										class="hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+										on:click={(event) => handleRowClick(event, model)}
+									>
 									<td class="px-4 py-3">
 										<input
 											type="checkbox"
@@ -1523,11 +1883,119 @@
 													{/each}
 												{/if}
 											</div>
-										</Tooltip>
-									</td>
-									<td class="px-4 py-3">
-										<span
-											class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[model.status]}`}
+											</Tooltip>
+										</td>
+										{#key model.id}
+											{@const rates = modelRateDisplayIndex[model.id]}
+											{@const completeness = getPricingCompletenessForFocus(rates, pricingFocus)}
+											{#if pricingFocus !== 'all'}
+												<td class="px-4 py-3">
+													<span
+														class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${PRICING_COMPLETENESS_STYLES[completeness]}`}
+													>
+														{$i18n.t(PRICING_COMPLETENESS_LABELS[completeness])}
+													</span>
+												</td>
+											{/if}
+											{#if pricingFocus === 'text'}
+												<td class="px-4 py-3 text-right font-medium">
+													{#if rates?.text_in_1000_tokens !== undefined}
+														{formatMoney(rates.text_in_1000_tokens)}
+													{:else}
+														<span class="text-[11px] text-gray-400">—</span>
+													{/if}
+												</td>
+												<td class="px-4 py-3 text-right font-medium">
+													{#if rates?.text_out_1000_tokens !== undefined}
+														{formatMoney(rates.text_out_1000_tokens)}
+													{:else}
+														<span class="text-[11px] text-gray-400">—</span>
+													{/if}
+												</td>
+											{:else if pricingFocus === 'image'}
+												<td class="px-4 py-3 text-right font-medium">
+													{#if rates?.image_1024 !== undefined}
+														{formatMoney(rates.image_1024)}
+													{:else}
+														<span class="text-[11px] text-gray-400">—</span>
+													{/if}
+												</td>
+											{:else if pricingFocus === 'audio'}
+												<td class="px-4 py-3 text-right font-medium">
+													{#if rates?.tts_1000_chars !== undefined}
+														{formatMoney(rates.tts_1000_chars)}
+													{:else}
+														<span class="text-[11px] text-gray-400">—</span>
+													{/if}
+												</td>
+												<td class="px-4 py-3 text-right font-medium">
+													{#if rates?.stt_minute !== undefined}
+														{formatMoney(rates.stt_minute)}
+													{:else}
+														<span class="text-[11px] text-gray-400">—</span>
+													{/if}
+												</td>
+											{:else}
+												<td class="px-4 py-3">
+													{#if !rates || model.modalities.length === 0}
+														<span class="text-[11px] text-gray-400">—</span>
+													{:else}
+														<div class="space-y-1">
+															{#each MODALITY_ORDER as modality}
+																{#if model.modalities.includes(modality)}
+																	{@const Icon = getModalityIcon(modality)}
+																	{@const label = getModalityLabel(modality)}
+																	<Tooltip
+																		content={getModalityShortDescription(modality)}
+																		placement="top-start"
+																		tippyOptions={{ maxWidth: 260, appendTo: () => document.body }}
+																	>
+																		<div class="flex items-center justify-between gap-3 text-xs">
+																			<div class="inline-flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+																				<span
+																					class={`inline-flex items-center justify-center rounded-full px-2 py-1 font-medium ${getModalityTone(
+																						modality
+																					)}`}
+																				>
+																					<Icon className="size-3" />
+																				</span>
+																				<span class="font-medium">{label}</span>
+																			</div>
+																			<div class="min-w-0 text-right font-medium text-gray-700 dark:text-gray-200">
+																				{#if modality === 'text'}
+																					{@const textIn = rates.text_in_1000_tokens ?? null}
+																					{@const textOut = rates.text_out_1000_tokens ?? null}
+																					{#if textIn === null || textOut === null}
+																						<span class="text-[11px] text-gray-400">—</span>
+																					{:else}
+																						<span class="whitespace-nowrap">
+																							{$i18n.t('Input')}: {formatMoney(textIn)}
+																						</span>
+																						<span class="text-gray-400 mx-1">·</span>
+																						<span class="whitespace-nowrap">
+																							{$i18n.t('Output')}: {formatMoney(textOut)}
+																						</span>
+																					{/if}
+																				{:else if modality === 'image'}
+																					{formatMoney(rates.image_1024 ?? null)}
+																				{:else if modality === 'tts'}
+																					{formatMoney(rates.tts_1000_chars ?? null)}
+																				{:else if modality === 'stt'}
+																					{formatMoney(rates.stt_minute ?? null)}
+																				{/if}
+																			</div>
+																		</div>
+																	</Tooltip>
+																{/if}
+															{/each}
+														</div>
+													{/if}
+												</td>
+											{/if}
+										{/key}
+										<td class="px-4 py-3">
+											<span
+												class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[model.status]}`}
 										>
 											{$i18n.t(STATUS_LABELS[model.status])}
 										</span>
@@ -1630,8 +2098,127 @@
 											{/each}
 										{/if}
 									</div>
-								</Tooltip>
-							</div>
+									</Tooltip>
+								</div>
+								<div class="mt-3 space-y-1">
+									{#key model.id}
+										{@const rates = modelRateDisplayIndex[model.id]}
+										{#if pricingFocus !== 'all'}
+											{@const completeness = getPricingCompletenessForFocus(rates, pricingFocus)}
+											<div class="flex justify-end">
+												<span
+													class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${PRICING_COMPLETENESS_STYLES[completeness]}`}
+												>
+													{$i18n.t(PRICING_COMPLETENESS_LABELS[completeness])}
+												</span>
+											</div>
+										{/if}
+										{#if pricingFocus === 'text'}
+											<div class="flex items-center justify-between gap-2 text-xs">
+												<span class="text-[11px] text-gray-500 dark:text-gray-400">
+													{$i18n.t('Input')}
+												</span>
+												<span class="font-medium text-gray-800 dark:text-gray-200">
+													{#if rates?.text_in_1000_tokens !== undefined}
+														{formatMoney(rates.text_in_1000_tokens)}
+													{:else}
+														<span class="text-[11px] text-gray-400">—</span>
+													{/if}
+												</span>
+											</div>
+											<div class="flex items-center justify-between gap-2 text-xs">
+												<span class="text-[11px] text-gray-500 dark:text-gray-400">
+													{$i18n.t('Output')}
+												</span>
+												<span class="font-medium text-gray-800 dark:text-gray-200">
+													{#if rates?.text_out_1000_tokens !== undefined}
+														{formatMoney(rates.text_out_1000_tokens)}
+													{:else}
+														<span class="text-[11px] text-gray-400">—</span>
+													{/if}
+												</span>
+											</div>
+										{:else if pricingFocus === 'image'}
+											<div class="flex items-center justify-between gap-2 text-xs">
+												<span class="text-[11px] text-gray-500 dark:text-gray-400">
+													{$i18n.t('Images')}
+												</span>
+												<span class="font-medium text-gray-800 dark:text-gray-200">
+													{#if rates?.image_1024 !== undefined}
+														{formatMoney(rates.image_1024)}
+													{:else}
+														<span class="text-[11px] text-gray-400">—</span>
+													{/if}
+												</span>
+											</div>
+										{:else if pricingFocus === 'audio'}
+											<div class="flex items-center justify-between gap-2 text-xs">
+												<span class="text-[11px] text-gray-500 dark:text-gray-400">TTS</span>
+												<span class="font-medium text-gray-800 dark:text-gray-200">
+													{#if rates?.tts_1000_chars !== undefined}
+														{formatMoney(rates.tts_1000_chars)}
+													{:else}
+														<span class="text-[11px] text-gray-400">—</span>
+													{/if}
+												</span>
+											</div>
+											<div class="flex items-center justify-between gap-2 text-xs">
+												<span class="text-[11px] text-gray-500 dark:text-gray-400">STT</span>
+												<span class="font-medium text-gray-800 dark:text-gray-200">
+													{#if rates?.stt_minute !== undefined}
+														{formatMoney(rates.stt_minute)}
+													{:else}
+														<span class="text-[11px] text-gray-400">—</span>
+													{/if}
+												</span>
+											</div>
+										{:else}
+											{#if rates && model.modalities.length > 0}
+												{#each MODALITY_ORDER as modality}
+													{#if model.modalities.includes(modality)}
+														{@const label = getModalityLabel(modality)}
+														<Tooltip
+															content={getModalityShortDescription(modality)}
+															placement="top-start"
+															tippyOptions={{ maxWidth: 260, appendTo: () => document.body }}
+														>
+															<div class="flex items-center justify-between gap-2 text-xs">
+																<span class="text-[11px] text-gray-500 dark:text-gray-400">
+																	{label}
+																</span>
+																<span class="font-medium text-gray-800 dark:text-gray-200">
+																	{#if modality === 'text'}
+																		{@const textIn = rates.text_in_1000_tokens ?? null}
+																		{@const textOut = rates.text_out_1000_tokens ?? null}
+																		{#if textIn === null || textOut === null}
+																			<span class="text-[11px] text-gray-400">—</span>
+																		{:else}
+																			<span class="whitespace-nowrap">
+																				{$i18n.t('Input')}: {formatMoney(textIn)}
+																			</span>
+																			<span class="text-gray-400 mx-1">·</span>
+																			<span class="whitespace-nowrap">
+																				{$i18n.t('Output')}: {formatMoney(textOut)}
+																			</span>
+																		{/if}
+																	{:else if modality === 'image'}
+																		{formatMoney(rates.image_1024 ?? null)}
+																	{:else if modality === 'tts'}
+																		{formatMoney(rates.tts_1000_chars ?? null)}
+																	{:else if modality === 'stt'}
+																		{formatMoney(rates.stt_minute ?? null)}
+																	{/if}
+																</span>
+															</div>
+														</Tooltip>
+													{/if}
+												{/each}
+											{:else}
+												<span class="text-[11px] text-gray-400">—</span>
+											{/if}
+										{/if}
+									{/key}
+								</div>
 							<div class="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
 								<span class={`px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[model.status]}`}>
 									{$i18n.t(STATUS_LABELS[model.status])}
