@@ -20,6 +20,14 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[AUTH]** Telegram Login Widget auth + account linking
+  - Spec: `.memory_bank/specs/work_items/2026-02-05__feature__telegram-auth-login-widget.md`
+  - Owner: Codex
+  - Done: 2026-02-05
+  - Summary: Add Telegram Login Widget signin/signup plus account link/unlink, with HMAC verification and operator docs.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/util/test_telegram_auth.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run"`
+  - Risks: Medium (new auth surface; mitigated by HMAC + TTL/replay checks and unit tests).
+
 - [x] **[BUG]** Landing pricing: show rate cards for provider-only models
   - Spec: `.memory_bank/specs/work_items/2026-02-05__bugfix__public-pricing-rate-cards-provider-models.md`
   - Owner: Codex
