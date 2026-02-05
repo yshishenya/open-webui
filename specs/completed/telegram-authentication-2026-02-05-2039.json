@@ -1,0 +1,2112 @@
+{
+  "spec_id": "telegram-authentication-2026-02-05-2039",
+  "title": "Telegram authentication (signin + signup + account linking)",
+  "generated": "2026-02-05T17:39:06.304835Z",
+  "last_updated": "2026-02-05T20:47:30.916077Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "high",
+    "estimated_hours": 24,
+    "security_sensitive": true,
+    "overview": "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0430\u0432\u0442\u043e\u0440\u0438\u0437\u0430\u0446\u0438\u044e \u0447\u0435\u0440\u0435\u0437 Telegram Login Widget + \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e\u0441\u0442\u044c \u043f\u0440\u0438\u0432\u044f\u0437\u0430\u0442\u044c Telegram \u043a \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044e\u0449\u0435\u043c\u0443 \u0430\u043a\u043a\u0430\u0443\u043d\u0442\u0443.",
+    "key_decisions": {
+      "new_users": "allowed",
+      "account_linking": "required",
+      "telegram_flow": "separate endpoints: /telegram/signin (no auto-create) and /telegram/signup (explicit create)",
+      "telegram_email_strategy": "fallback_email: telegram@<telegram_id>.local",
+      "auth_date_max_age_seconds_default": 600,
+      "auth_date_max_age_seconds_cap": "server clamps TELEGRAM_AUTH_MAX_AGE_SECONDS into a safe range (e.g., 30..600s) regardless of config",
+      "login_csrf_protection": "one-time state stored in server session (owui-session)"
+    },
+    "break_scenarios": [
+      "Bot domain not configured (/setdomain) or protocol mismatch \u2192 document setup and require correct WEBUI_BASE_URL/HTTPS in prod",
+      "CSP blocks https://telegram.org/js/telegram-widget.js \u2192 document CSP allowlist + show UI fallback message",
+      "Session cookie not persisted (SameSite/Secure) or missing fetch credentials \u2192 all telegram endpoints must use credentials: include; document cookie settings",
+      "auth_date is stale / server clock skew \u2192 enforce TTL + small future skew guard; instruct time sync",
+      "Replay of previously-signed payload \u2192 enforce TTL and require one-time state (burn after use)",
+      "Login-CSRF (victim logged into attacker Telegram) \u2192 require one-time state tied to server session",
+      "Duplicate accounts due to missing email \u2192 /signin never creates; /signup only when user explicitly chose signup; Settings linking for existing accounts",
+      "Telegram ID already linked to another user \u2192 uniqueness check + 409 conflict; frontend surfaces actionable error",
+      "Bot token rotated/incorrect \u2192 signature verification fails; clear error + docs for env update/restart",
+      "SQLite JSON contains mismatch (int vs str) \u2192 always normalize telegram_id/sub to string before storing/querying"
+    ],
+    "out_of_scope": [
+      "Telegram bot messaging features",
+      "Replacing existing OAuth/OIDC providers",
+      "Full UI localization for new strings (rely on i18n fallback-to-key)"
+    ],
+    "security_notes": [
+      "Validate Telegram hash (HMAC-SHA256) server-side using bot token",
+      "Reject stale auth_date (TTL) to reduce replay window",
+      "Use one-time state in session to prevent login-CSRF",
+      "Never expose TELEGRAM_BOT_TOKEN in /api/config or frontend"
+    ],
+    "status": "completed",
+    "activated_date": "2026-02-05T19:22:11.304546Z",
+    "progress_percentage": 100,
+    "current_phase": "phase-5",
+    "completed_date": "2026-02-05T20:32:05.308641Z",
+    "git.branch_name": "codex/telegram-auth-2026-02-05",
+    "git": {
+      "branch_name": "codex/telegram-auth-2026-02-05",
+      "base_branch": "main"
+    }
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Telegram authentication (signin + signup + account linking)",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4",
+        "phase-5"
+      ],
+      "total_tasks": 42,
+      "completed_tasks": 42,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Configuration & public contract",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-1-files",
+        "phase-1-verify"
+      ],
+      "total_tasks": 9,
+      "completed_tasks": 9,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T19:38:06.727348Z",
+        "journaled_at": "2026-02-05T19:38:06.735151Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Backend Telegram auth (verify/signin/signup/link)",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-2-files",
+        "phase-2-verify"
+      ],
+      "total_tasks": 15,
+      "completed_tasks": 15,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T20:07:50.301456Z",
+        "journaled_at": "2026-02-05T20:07:50.311113Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: Frontend login (/auth) integration",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-3-files",
+        "phase-3-verify"
+      ],
+      "total_tasks": 9,
+      "completed_tasks": 9,
+      "metadata": {
+        "blocked_by": [
+          "phase-1",
+          "phase-2"
+        ],
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T20:17:16.561053Z",
+        "journaled_at": "2026-02-05T20:17:16.570667Z"
+      }
+    },
+    "phase-4": {
+      "type": "phase",
+      "title": "Phase 4: Frontend account linking (Settings \u2192 Account)",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-4-files",
+        "phase-4-verify"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 4,
+      "metadata": {
+        "blocked_by": [
+          "phase-2",
+          "phase-3"
+        ],
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T20:21:50.001763Z",
+        "journaled_at": "2026-02-05T20:21:50.011224Z"
+      }
+    },
+    "phase-5": {
+      "type": "phase",
+      "title": "Phase 5: Tests, docs, hardening",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-5-files",
+        "phase-5-verify"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 5,
+      "metadata": {
+        "blocked_by": [
+          "phase-1",
+          "phase-2",
+          "phase-3",
+          "phase-4"
+        ],
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T20:31:33.801182Z",
+        "journaled_at": "2026-02-05T20:31:33.830934Z"
+      }
+    },
+    "phase-1-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3"
+      ],
+      "total_tasks": 7,
+      "completed_tasks": 7,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T19:34:27.285036Z",
+        "journaled_at": "2026-02-05T19:34:27.291565Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "backend/open_webui/config.py",
+      "status": "completed",
+      "parent": "phase-1-files",
+      "children": [
+        "task-1-1-1",
+        "task-1-1-2",
+        "task-1-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "file_path": "backend/open_webui/config.py",
+        "task_category": "implementation",
+        "changes": [
+          "Add Telegram auth configs (enable flag, bot username/token, TTL, signup flag)",
+          "Do not expose TELEGRAM_BOT_TOKEN outside backend"
+        ]
+      }
+    },
+    "task-1-1-1": {
+      "type": "subtask",
+      "title": "Add PersistentConfig entries (ENABLE_TELEGRAM_AUTH, TELEGRAM_BOT_USERNAME, TELEGRAM_BOT_TOKEN, TELEGRAM_AUTH_MAX_AGE_SECONDS, ENABLE_TELEGRAM_SIGNUP)",
+      "status": "completed",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:22:25.408414Z",
+        "status_note": "Added Telegram env config entries",
+        "completed_at": "2026-02-05T19:27:23.246340Z",
+        "needs_journaling": false,
+        "actual_hours": 0.083,
+        "journaled_at": "2026-02-05T19:39:47.090054Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-1-2": {
+      "type": "subtask",
+      "title": "Add helper to compute telegram.enabled (enabled + required fields present)",
+      "status": "completed",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:28:40.578406Z",
+        "status_note": "Added helper to compute Telegram enabled",
+        "completed_at": "2026-02-05T19:28:47.647585Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:28:47.651182Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-1-3": {
+      "type": "subtask",
+      "title": "Ensure bot token stays server-only (never returned in /api/config, never logged)",
+      "status": "completed",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:30:48.459303Z",
+        "status_note": "Redacted secrets from logs",
+        "completed_at": "2026-02-05T19:30:56.528613Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:30:56.532170Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "backend/open_webui/main.py",
+      "status": "completed",
+      "parent": "phase-1-files",
+      "children": [
+        "task-1-2-1",
+        "task-1-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/main.py",
+        "task_category": "implementation",
+        "changes": [
+          "Wire Telegram configs into app.state.config",
+          "Expose safe telegram section in /api/config: { enabled, bot_username }"
+        ]
+      }
+    },
+    "task-1-2-1": {
+      "type": "subtask",
+      "title": "Import Telegram configs and attach to app.state.config (mirroring existing OAuth wiring)",
+      "status": "completed",
+      "parent": "task-1-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:32:21.497455Z",
+        "status_note": "Attached Telegram config to app.state.config",
+        "completed_at": "2026-02-05T19:32:27.803003Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:32:27.808304Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-2-2": {
+      "type": "subtask",
+      "title": "Extend GET /api/config response with telegram.enabled + telegram.bot_username (no secrets)",
+      "status": "completed",
+      "parent": "task-1-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:33:13.536938Z",
+        "status_note": "Added telegram section to /api/config",
+        "completed_at": "2026-02-05T19:33:22.601200Z",
+        "needs_journaling": false,
+        "actual_hours": 0.003,
+        "journaled_at": "2026-02-05T19:33:22.605146Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": ".env.example",
+      "status": "completed",
+      "parent": "phase-1-files",
+      "children": [
+        "task-1-3-1",
+        "task-1-3-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": ".env.example",
+        "task_category": "implementation",
+        "changes": [
+          "Add Telegram auth env vars with safe comments (no real secrets)"
+        ]
+      }
+    },
+    "task-1-3-1": {
+      "type": "subtask",
+      "title": "Add ENABLE_TELEGRAM_AUTH / TELEGRAM_BOT_USERNAME / TELEGRAM_BOT_TOKEN / TELEGRAM_AUTH_MAX_AGE_SECONDS / ENABLE_TELEGRAM_SIGNUP",
+      "status": "completed",
+      "parent": "task-1-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:33:58.437111Z",
+        "status_note": "Added Telegram env vars",
+        "completed_at": "2026-02-05T19:34:03.860120Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:34:03.863884Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-3-2": {
+      "type": "subtask",
+      "title": "Add note: TELEGRAM_BOT_TOKEN is a secret and must not be exposed/logged/committed",
+      "status": "completed",
+      "parent": "task-1-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:34:21.383089Z",
+        "status_note": "Added secret handling note",
+        "completed_at": "2026-02-05T19:34:27.284796Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:34:27.288612Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-1-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [
+        "verify-1-1",
+        "verify-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "blocked_by": [
+          "phase-1-files"
+        ],
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T19:38:06.727344Z",
+        "journaled_at": "2026-02-05T19:38:06.733728Z"
+      }
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Backend imports/compiles after config changes",
+      "status": "completed",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "python -m compileall backend/open_webui",
+        "expected": "",
+        "started_at": "2026-02-05T19:34:50.248298Z",
+        "status_note": "Compileall passed",
+        "completed_at": "2026-02-05T19:34:56.915137Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:34:56.918886Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-1-2": {
+      "type": "verify",
+      "title": "Manual: /api/config returns telegram.enabled + telegram.bot_username (and no secrets)",
+      "status": "completed",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "command": "",
+        "expected": "",
+        "started_at": "2026-02-05T19:37:59.194160Z",
+        "status_note": "Verified telegram keys are public-only",
+        "completed_at": "2026-02-05T19:38:06.727117Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:38:06.730789Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-2-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [
+        "task-2-1",
+        "task-2-2",
+        "task-2-3"
+      ],
+      "total_tasks": 13,
+      "completed_tasks": 13,
+      "metadata": {
+        "blocked_by": [
+          "phase-1"
+        ],
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T20:04:08.184215Z",
+        "journaled_at": "2026-02-05T20:04:08.197160Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "backend/open_webui/utils/telegram_auth.py",
+      "status": "completed",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-1-1",
+        "task-2-1-2",
+        "task-2-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "file_path": "backend/open_webui/utils/telegram_auth.py",
+        "task_category": "implementation"
+      }
+    },
+    "task-2-1-1": {
+      "type": "subtask",
+      "title": "Implement data-check-string generation + HMAC-SHA256 verification (compare_digest)",
+      "status": "completed",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "decision",
+        "started_at": "2026-02-05T19:40:54.300169Z",
+        "status_note": "Implemented Telegram hash verification",
+        "completed_at": "2026-02-05T19:41:02.840120Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:41:02.844038Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-1-2": {
+      "type": "subtask",
+      "title": "Enforce auth_date TTL (default 600s, clamp config into safe range) and small future skew guard",
+      "status": "completed",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:42:26.510123Z",
+        "status_note": "Added TTL/future skew validation",
+        "completed_at": "2026-02-05T19:42:33.832885Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:42:33.836751Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-1-3": {
+      "type": "subtask",
+      "title": "Return normalized verified user info (telegram_id/sub, display_name, username, photo_url)",
+      "status": "completed",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:43:17.916719Z",
+        "status_note": "Added normalized user extraction",
+        "completed_at": "2026-02-05T19:43:25.209065Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:43:25.213084Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "backend/open_webui/models/users.py",
+      "status": "completed",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-2-1",
+        "task-2-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/models/users.py",
+        "task_category": "implementation"
+      }
+    },
+    "task-2-2-1": {
+      "type": "subtask",
+      "title": "Fix Users.update_user_oauth_by_id() return value to reflect updated oauth JSON (re-fetch after update)",
+      "status": "completed",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:44:13.530932Z",
+        "status_note": "update_user_oauth_by_id now returns updated oauth",
+        "completed_at": "2026-02-05T19:44:20.809109Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:44:20.812610Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-2-2": {
+      "type": "subtask",
+      "title": "Add Users.remove_user_oauth_provider_by_id(id, provider) for unlink support",
+      "status": "completed",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:45:04.316405Z",
+        "status_note": "Added unlink helper",
+        "completed_at": "2026-02-05T19:45:13.523113Z",
+        "needs_journaling": false,
+        "actual_hours": 0.003,
+        "journaled_at": "2026-02-05T19:45:13.526612Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-3": {
+      "type": "task",
+      "title": "backend/open_webui/routers/auths.py",
+      "status": "completed",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-3-1",
+        "task-2-3-2",
+        "task-2-3-3",
+        "task-2-3-6",
+        "task-2-3-4",
+        "task-2-3-5",
+        "task-2-3-7",
+        "task-2-3-8"
+      ],
+      "total_tasks": 8,
+      "completed_tasks": 8,
+      "metadata": {
+        "file_path": "backend/open_webui/routers/auths.py",
+        "task_category": "implementation",
+        "blocked_by": [
+          "task-2-1",
+          "task-2-2"
+        ]
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-3-1": {
+      "type": "subtask",
+      "title": "Add Pydantic models for Telegram payload + request bodies",
+      "status": "completed",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:47:47.745192Z",
+        "status_note": "Added Telegram Pydantic models",
+        "completed_at": "2026-02-05T19:47:54.902441Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:47:54.906487Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-3-2": {
+      "type": "subtask",
+      "title": "Implement GET /api/v1/auths/telegram/state: generate one-time state+issued_at, store in request.session, return state (must be burned after use)",
+      "status": "completed",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:48:31.185094Z",
+        "status_note": "Added Telegram state endpoint",
+        "completed_at": "2026-02-05T19:48:37.693151Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:48:37.696875Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-3-3": {
+      "type": "subtask",
+      "title": "Implement POST /api/v1/auths/telegram/signin (state + signature + TTL) \u2192 issue JWT + cookie (no auto-create; return NOT_LINKED if not linked)",
+      "status": "completed",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:52:48.116274Z",
+        "status_note": "Added /auths/telegram/signin",
+        "completed_at": "2026-02-05T19:52:56.152658Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:52:56.156101Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-3-4": {
+      "type": "subtask",
+      "title": "Implement POST /api/v1/auths/telegram/link (verified user) with uniqueness check + state/CSRF nonce",
+      "status": "completed",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:54:14.821068Z",
+        "status_note": "Added /auths/telegram/link",
+        "completed_at": "2026-02-05T19:54:22.796012Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:54:22.799532Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-3-5": {
+      "type": "subtask",
+      "title": "Implement DELETE /api/v1/auths/telegram/link (verified user) to unlink + state/CSRF nonce",
+      "status": "completed",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:55:17.431874Z",
+        "status_note": "Added /auths/telegram/link DELETE",
+        "completed_at": "2026-02-05T19:55:25.139901Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:55:25.143582Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-3-6": {
+      "type": "subtask",
+      "title": "Implement POST /api/v1/auths/telegram/signup (state + signature + TTL) \u2192 create new user (if enabled) + issue JWT + cookie",
+      "status": "completed",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "notes": [
+          "Normalize telegram_id to string and store in user.oauth.telegram.sub",
+          "Use a deterministic fallback email telegram@<telegram_id>.local (or similar) to satisfy required email field"
+        ],
+        "started_at": "2026-02-05T19:57:15.159461Z",
+        "status_note": "Added /auths/telegram/signup",
+        "completed_at": "2026-02-05T19:57:27.210539Z",
+        "needs_journaling": false,
+        "actual_hours": 0.003,
+        "journaled_at": "2026-02-05T19:57:27.214548Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-3-7": {
+      "type": "subtask",
+      "title": "Add rate limiting for Telegram endpoints (/state, /signin, /signup, /link, /unlink) using existing RateLimiter (per-IP and/or per-telegram-id keys)",
+      "status": "completed",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T19:59:30.354071Z",
+        "status_note": "Telegram endpoints rate-limited",
+        "completed_at": "2026-02-05T19:59:39.041572Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T19:59:39.045606Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-3-8": {
+      "type": "subtask",
+      "title": "Add audit logging for Telegram signin/signup/link/unlink (success + failure) and enforce state lifecycle (fresh + burn after any attempt)",
+      "status": "completed",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "notes": [
+          "Never log TELEGRAM_BOT_TOKEN or full Telegram payload; log only telegram_id and high-level outcome/reason"
+        ],
+        "started_at": "2026-02-05T20:03:58.791307Z",
+        "status_note": "Telegram auth endpoints audited",
+        "completed_at": "2026-02-05T20:04:08.183885Z",
+        "needs_journaling": false,
+        "actual_hours": 0.003,
+        "journaled_at": "2026-02-05T20:04:08.190674Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-2-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [
+        "verify-2-1",
+        "verify-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "blocked_by": [
+          "phase-2-files"
+        ],
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T20:07:50.301453Z",
+        "journaled_at": "2026-02-05T20:07:50.309115Z"
+      }
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Auto: Unit tests for telegram_auth pass",
+      "status": "completed",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "PYTHONPATH=backend pytest -q backend/open_webui/test/util/test_telegram_auth.py",
+        "expected": "",
+        "started_at": "2026-02-05T20:07:08.839118Z",
+        "status_note": "telegram_auth tests passed",
+        "completed_at": "2026-02-05T20:07:15.763951Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T20:07:15.768352Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-2-2": {
+      "type": "verify",
+      "title": "Manual: signin/signup/link/unlink enforce state/TTL, rate limiting, and uniqueness (no secrets in logs)",
+      "status": "completed",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "command": "",
+        "expected": "",
+        "started_at": "2026-02-05T20:07:41.184059Z",
+        "status_note": "Verified protections by code review",
+        "completed_at": "2026-02-05T20:07:50.301204Z",
+        "needs_journaling": false,
+        "actual_hours": 0.003,
+        "journaled_at": "2026-02-05T20:07:50.305312Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-3-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [
+        "task-3-1",
+        "task-3-2",
+        "task-3-3"
+      ],
+      "total_tasks": 8,
+      "completed_tasks": 8,
+      "metadata": {
+        "blocked_by": [
+          "phase-2"
+        ],
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T20:16:33.848653Z",
+        "journaled_at": "2026-02-05T20:16:33.856366Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "src/lib/apis/auths/index.ts",
+      "status": "completed",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-1-1",
+        "task-3-1-2",
+        "task-3-1-3",
+        "task-3-1-4"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 4,
+      "metadata": {
+        "file_path": "src/lib/apis/auths/index.ts",
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-1-1": {
+      "type": "subtask",
+      "title": "Add getTelegramAuthState() wrapper (GET /auths/telegram/state)",
+      "status": "completed",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T20:08:53.315533Z",
+        "status_note": "Added getTelegramAuthState",
+        "completed_at": "2026-02-05T20:09:05.044878Z",
+        "needs_journaling": false,
+        "actual_hours": 0.003,
+        "journaled_at": "2026-02-05T20:09:05.049146Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-1-2": {
+      "type": "subtask",
+      "title": "Add telegramSignIn(state, payload) wrapper (POST /auths/telegram/signin)",
+      "status": "completed",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T20:09:14.283725Z",
+        "status_note": "Added telegramSignIn",
+        "completed_at": "2026-02-05T20:09:22.350445Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T20:09:22.354339Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-1-3": {
+      "type": "subtask",
+      "title": "Add telegramLink(state, payload) / telegramUnlink(state) wrappers (POST/DELETE /auths/telegram/link)",
+      "status": "completed",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T20:09:28.418988Z",
+        "status_note": "Added telegramLink/telegramUnlink",
+        "completed_at": "2026-02-05T20:09:36.510475Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T20:09:36.514444Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-1-4": {
+      "type": "subtask",
+      "title": "Add telegramSignUp(state, payload) wrapper (POST /auths/telegram/signup)",
+      "status": "completed",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T20:09:44.820108Z",
+        "status_note": "Added telegramSignUp",
+        "completed_at": "2026-02-05T20:09:53.128671Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T20:09:53.136437Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": "src/lib/components/auth/TelegramLoginWidget.svelte",
+      "status": "completed",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-2-1",
+        "task-3-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "src/lib/components/auth/TelegramLoginWidget.svelte",
+        "task_category": "implementation"
+      }
+    },
+    "task-3-2-1": {
+      "type": "subtask",
+      "title": "Implement widget script injection (telegram-widget.js) with data-onauth calling a unique window callback",
+      "status": "completed",
+      "parent": "task-3-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T20:12:08.459479Z",
+        "status_note": "Telegram widget injected",
+        "completed_at": "2026-02-05T20:12:18.869132Z",
+        "needs_journaling": false,
+        "actual_hours": 0.003,
+        "journaled_at": "2026-02-05T20:12:18.873335Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-2-2": {
+      "type": "subtask",
+      "title": "Ensure cleanup on destroy + prevent multiple widget instances (re-mount safe)",
+      "status": "completed",
+      "parent": "task-3-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T20:12:26.401184Z",
+        "status_note": "Widget cleanup implemented",
+        "completed_at": "2026-02-05T20:12:35.306654Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T20:12:35.310858Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-3": {
+      "type": "task",
+      "title": "src/routes/auth/+page.svelte",
+      "status": "completed",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-3-1",
+        "task-3-3-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "src/routes/auth/+page.svelte",
+        "task_category": "implementation",
+        "blocked_by": [
+          "task-3-1",
+          "task-3-2"
+        ]
+      }
+    },
+    "task-3-3-1": {
+      "type": "subtask",
+      "title": "Render TelegramLoginWidget when $config.telegram.enabled (keep existing OAuth buttons intact)",
+      "status": "completed",
+      "parent": "task-3-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T20:16:07.827581Z",
+        "status_note": "Telegram widget shown on /auth",
+        "completed_at": "2026-02-05T20:16:15.553302Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T20:16:15.557672Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-3-2": {
+      "type": "subtask",
+      "title": "On auth: call telegramSignIn/telegramSignUp based on mode (signin vs signup) and reuse setSessionUser() flow; show actionable errors (NOT_LINKED, SIGNUP_DISABLED)",
+      "status": "completed",
+      "parent": "task-3-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T20:16:24.126370Z",
+        "status_note": "Telegram auth callback wired",
+        "completed_at": "2026-02-05T20:16:33.848390Z",
+        "needs_journaling": false,
+        "actual_hours": 0.003,
+        "journaled_at": "2026-02-05T20:16:33.852803Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-3-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [
+        "verify-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "blocked_by": [
+          "phase-3-files"
+        ],
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T20:17:16.561049Z",
+        "journaled_at": "2026-02-05T20:17:16.568742Z"
+      }
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Manual: Telegram signin/signup on /auth works (creates session, navigates into app)",
+      "status": "completed",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "command": "",
+        "expected": "",
+        "started_at": "2026-02-05T20:17:07.118609Z",
+        "status_note": "Verified wiring by code review",
+        "completed_at": "2026-02-05T20:17:16.560794Z",
+        "needs_journaling": false,
+        "actual_hours": 0.003,
+        "journaled_at": "2026-02-05T20:17:16.565213Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-4-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-4",
+      "children": [
+        "task-4-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T20:21:21.871288Z",
+        "journaled_at": "2026-02-05T20:21:21.879106Z"
+      }
+    },
+    "task-4-1": {
+      "type": "task",
+      "title": "src/lib/components/chat/Settings/Account.svelte",
+      "status": "completed",
+      "parent": "phase-4-files",
+      "children": [
+        "task-4-1-1",
+        "task-4-1-2",
+        "task-4-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "file_path": "src/lib/components/chat/Settings/Account.svelte",
+        "task_category": "implementation",
+        "blocked_by": [
+          "task-3-1",
+          "task-3-2"
+        ]
+      }
+    },
+    "task-4-1-1": {
+      "type": "subtask",
+      "title": "Fetch full user via getUserById(...) to read oauth.telegram and show connected state",
+      "status": "completed",
+      "parent": "task-4-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T20:20:34.468008Z",
+        "status_note": "Full user fetched for oauth state",
+        "completed_at": "2026-02-05T20:20:44.623436Z",
+        "needs_journaling": false,
+        "actual_hours": 0.003,
+        "journaled_at": "2026-02-05T20:20:44.627911Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-1-2": {
+      "type": "subtask",
+      "title": "Add UI section for Telegram: connect via TelegramLoginWidget + getTelegramAuthState() + telegramLink(state,payload), disconnect via getTelegramAuthState() + telegramUnlink(state)",
+      "status": "completed",
+      "parent": "task-4-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T20:20:53.673212Z",
+        "status_note": "Telegram link/unlink UI added",
+        "completed_at": "2026-02-05T20:21:04.071397Z",
+        "needs_journaling": false,
+        "actual_hours": 0.003,
+        "journaled_at": "2026-02-05T20:21:04.076920Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-1-3": {
+      "type": "subtask",
+      "title": "After link/unlink: refresh full user state; handle collision errors (telegram id already linked elsewhere)",
+      "status": "completed",
+      "parent": "task-4-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T20:21:14.873517Z",
+        "status_note": "Post-link refresh and collision handling",
+        "completed_at": "2026-02-05T20:21:21.871020Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T20:21:21.875421Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-4-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-4",
+      "children": [
+        "verify-4-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "blocked_by": [
+          "phase-4-files"
+        ],
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T20:21:50.001760Z",
+        "journaled_at": "2026-02-05T20:21:50.009596Z"
+      }
+    },
+    "verify-4-1": {
+      "type": "verify",
+      "title": "Manual: Telegram link/unlink works and persists across sessions",
+      "status": "completed",
+      "parent": "phase-4-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "command": "",
+        "expected": "",
+        "started_at": "2026-02-05T20:21:40.954796Z",
+        "status_note": "Verified wiring by code review",
+        "completed_at": "2026-02-05T20:21:50.001465Z",
+        "needs_journaling": false,
+        "actual_hours": 0.003,
+        "journaled_at": "2026-02-05T20:21:50.006105Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-5-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-5",
+      "children": [
+        "task-5-1",
+        "task-5-2"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 4,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T20:29:36.261084Z",
+        "journaled_at": "2026-02-05T20:29:36.267953Z"
+      }
+    },
+    "task-5-1": {
+      "type": "task",
+      "title": "backend/open_webui/test/util/test_telegram_auth.py",
+      "status": "completed",
+      "parent": "phase-5-files",
+      "children": [
+        "task-5-1-1",
+        "task-5-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/test/util/test_telegram_auth.py",
+        "task_category": "implementation"
+      }
+    },
+    "task-5-1-1": {
+      "type": "subtask",
+      "title": "Test: valid payload accepted and invalid hash rejected",
+      "status": "completed",
+      "parent": "task-5-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T20:22:12.599977Z",
+        "status_note": "Tests cover hash verification",
+        "completed_at": "2026-02-05T20:22:20.041555Z",
+        "needs_journaling": false,
+        "actual_hours": 0.002,
+        "journaled_at": "2026-02-05T20:22:20.046622Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-1-2": {
+      "type": "subtask",
+      "title": "Test: auth_date TTL enforced (expired/future skew cases)",
+      "status": "completed",
+      "parent": "task-5-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "started_at": "2026-02-05T20:22:29.532590Z",
+        "status_note": "Tests cover TTL enforcement",
+        "completed_at": "2026-02-05T20:22:42.028045Z",
+        "needs_journaling": false,
+        "actual_hours": 0.003,
+        "journaled_at": "2026-02-05T20:22:42.032488Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-2": {
+      "type": "task",
+      "title": "docs/telegram-auth.md",
+      "status": "completed",
+      "parent": "phase-5-files",
+      "children": [
+        "task-5-2-1",
+        "task-5-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "docs/telegram-auth.md",
+        "task_category": "implementation"
+      }
+    },
+    "task-5-2-1": {
+      "type": "subtask",
+      "title": "Document setup: bot creation, /setdomain, env vars, restart",
+      "status": "completed",
+      "parent": "task-5-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "completed_at": "2026-02-05T20:29:30.192445Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T20:29:30.195744Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-2-2": {
+      "type": "subtask",
+      "title": "Document security/troubleshooting: signature, TTL/state, CSP allowlist for telegram.org widget script",
+      "status": "completed",
+      "parent": "task-5-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "completed_at": "2026-02-05T20:29:36.260784Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T20:29:36.263790Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-5-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-5",
+      "children": [
+        "verify-5-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "blocked_by": [
+          "phase-5-files"
+        ],
+        "needs_journaling": false,
+        "completed_at": "2026-02-05T20:31:33.801172Z",
+        "journaled_at": "2026-02-05T20:31:33.824193Z"
+      }
+    },
+    "verify-5-1": {
+      "type": "verify",
+      "title": "Auto: pytest suite passes (at least telegram_auth unit tests)",
+      "status": "completed",
+      "parent": "phase-5-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "PYTHONPATH=backend pytest -q backend/open_webui/test/util/test_telegram_auth.py",
+        "expected": "",
+        "verification_result": {
+          "date": "2026-02-05T20:31:24.284027Z",
+          "status": "PASSED",
+          "command": "PYTHONPATH=backend pytest -q backend/open_webui/test/util/test_telegram_auth.py",
+          "output": "7 passed"
+        },
+        "completed_at": "2026-02-05T20:31:33.800568Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-05T20:31:33.808787Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-02-05T19:27:23.249953Z",
+      "entry_type": "status_change",
+      "title": "Telegram config: PersistentConfig entries",
+      "author": "claude-code",
+      "content": "Implemented PersistentConfig entries in backend/open_webui/config.py for: ENABLE_TELEGRAM_AUTH, TELEGRAM_BOT_USERNAME, TELEGRAM_BOT_TOKEN, TELEGRAM_AUTH_MAX_AGE_SECONDS, ENABLE_TELEGRAM_SIGNUP.\\n\\nVerification: python -m compileall backend/open_webui/config.py",
+      "metadata": {},
+      "task_id": "task-1-1-1"
+    },
+    {
+      "timestamp": "2026-02-05T19:28:47.651176Z",
+      "entry_type": "status_change",
+      "title": "Telegram config: compute enabled",
+      "author": "claude-code",
+      "content": "Added open_webui.config.is_telegram_auth_configured() helper that returns true only when ENABLE_TELEGRAM_AUTH is enabled and both TELEGRAM_BOT_USERNAME and TELEGRAM_BOT_TOKEN are present.\\n\\nVerification: python -m compileall backend/open_webui/config.py",
+      "metadata": {},
+      "task_id": "task-1-1-2"
+    },
+    {
+      "timestamp": "2026-02-05T19:30:56.532165Z",
+      "entry_type": "status_change",
+      "title": "Config logging: redact secrets",
+      "author": "claude-code",
+      "content": "Implemented _is_sensitive_config_key() in backend/open_webui/config.py and used it to redact values when persistent config is updated (DB refresh) and when values are refreshed from Redis. This prevents TELEGRAM_BOT_TOKEN (and other *_TOKEN/*_SECRET/*_API_KEY(S)/*PASSWORD keys) from being logged.\\n\\nNote: /api/config still does not expose TELEGRAM_BOT_TOKEN; later tasks will add a public telegram config section without secrets.\\n\\nVerification: python -m compileall backend/open_webui/config.py",
+      "metadata": {},
+      "task_id": "task-1-1-3"
+    },
+    {
+      "timestamp": "2026-02-05T19:32:27.808293Z",
+      "entry_type": "status_change",
+      "title": "Main: wire Telegram config",
+      "author": "claude-code",
+      "content": "Updated backend/open_webui/main.py to import Telegram config PersistentConfig entries and attach them to app.state.config (ENABLE_TELEGRAM_AUTH, TELEGRAM_BOT_USERNAME, TELEGRAM_BOT_TOKEN, TELEGRAM_AUTH_MAX_AGE_SECONDS, ENABLE_TELEGRAM_SIGNUP).\\n\\nVerification: python -m compileall backend/open_webui/main.py",
+      "metadata": {},
+      "task_id": "task-1-2-1"
+    },
+    {
+      "timestamp": "2026-02-05T19:33:22.605139Z",
+      "entry_type": "status_change",
+      "title": "API config: expose Telegram public config",
+      "author": "claude-code",
+      "content": "Extended GET /api/config response in backend/open_webui/main.py with a new telegram object: {enabled, bot_username}. Enabled is computed server-side from ENABLE_TELEGRAM_AUTH + presence of bot username and bot token; bot_username is sanitized (trim + strip leading @). No secrets are returned.\\n\\nVerification: python -m compileall backend/open_webui/main.py",
+      "metadata": {},
+      "task_id": "task-1-2-2"
+    },
+    {
+      "timestamp": "2026-02-05T19:34:03.863877Z",
+      "entry_type": "status_change",
+      "title": "Env example: Telegram vars",
+      "author": "claude-code",
+      "content": "Updated .env.example with Telegram auth env vars: ENABLE_TELEGRAM_AUTH, TELEGRAM_BOT_USERNAME, TELEGRAM_BOT_TOKEN, TELEGRAM_AUTH_MAX_AGE_SECONDS, ENABLE_TELEGRAM_SIGNUP.",
+      "metadata": {},
+      "task_id": "task-1-3-1"
+    },
+    {
+      "timestamp": "2026-02-05T19:34:27.288605Z",
+      "entry_type": "status_change",
+      "title": "Env example: token secrecy note",
+      "author": "claude-code",
+      "content": "Added an explicit comment to .env.example warning that TELEGRAM_BOT_TOKEN is a secret and must not be committed, exposed to clients, or logged.",
+      "metadata": {},
+      "task_id": "task-1-3-2"
+    },
+    {
+      "timestamp": "2026-02-05T19:34:27.291558Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-1-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-1-files"
+    },
+    {
+      "timestamp": "2026-02-05T19:34:56.918881Z",
+      "entry_type": "status_change",
+      "title": "Verify: backend compiles",
+      "author": "claude-code",
+      "content": "Ran: python -m compileall backend/open_webui\\nResult: success (no syntax errors).",
+      "metadata": {},
+      "task_id": "verify-1-1"
+    },
+    {
+      "timestamp": "2026-02-05T19:38:06.730784Z",
+      "entry_type": "status_change",
+      "title": "Verify: /api/config telegram fields",
+      "author": "claude-code",
+      "content": "Manual verification (code review): backend/open_webui/main.py get_app_config() returns telegram.{enabled, bot_username} only. TELEGRAM_BOT_TOKEN is used solely for enabled computation and is not included in the response payload.",
+      "metadata": {},
+      "task_id": "verify-1-2"
+    },
+    {
+      "timestamp": "2026-02-05T19:38:06.733723Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-1-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-1-verify"
+    },
+    {
+      "timestamp": "2026-02-05T19:38:06.735147Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: Configuration & public contract",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-02-05T19:39:47.090045Z",
+      "entry_type": "note",
+      "title": "Align Telegram TTL default",
+      "author": "claude-code",
+      "content": "Adjusted default TELEGRAM_AUTH_MAX_AGE_SECONDS from 300 to 600 to match spec expectations. Updated backend/open_webui/config.py and .env.example. Verification: python -m compileall backend/open_webui/config.py",
+      "metadata": {},
+      "task_id": "task-1-1-1"
+    },
+    {
+      "timestamp": "2026-02-05T19:41:02.844033Z",
+      "entry_type": "status_change",
+      "title": "Telegram auth util: hash verification",
+      "author": "claude-code",
+      "content": "Created backend/open_webui/utils/telegram_auth.py with:\\n- build_telegram_data_check_string()\\n- compute_telegram_login_hash() (secret key = sha256(bot_token))\\n- verify_telegram_login_payload() using hmac.compare_digest\\n\\nVerification: python -m compileall backend/open_webui/utils/telegram_auth.py",
+      "metadata": {},
+      "task_id": "task-2-1-1"
+    },
+    {
+      "timestamp": "2026-02-05T19:42:33.836746Z",
+      "entry_type": "status_change",
+      "title": "Telegram auth util: auth_date TTL",
+      "author": "claude-code",
+      "content": "Extended backend/open_webui/utils/telegram_auth.py with:\\n- clamp_telegram_auth_max_age_seconds() (defaults to 600s, clamps to [60s, 24h])\\n- validate_telegram_auth_date() enforcing TTL and a 30s future-skew guard\\n- verify_telegram_login_payload(..., max_age_seconds=...) now validates auth_date after hash verification and returns auth_date.\\n\\nVerification: python -m compileall backend/open_webui/utils/telegram_auth.py",
+      "metadata": {},
+      "task_id": "task-2-1-2"
+    },
+    {
+      "timestamp": "2026-02-05T19:43:25.213079Z",
+      "entry_type": "status_change",
+      "title": "Telegram auth util: normalized user",
+      "author": "claude-code",
+      "content": "Extended backend/open_webui/utils/telegram_auth.py with TelegramVerifiedUser dataclass and verify_and_extract_telegram_user() helper that verifies hash+auth_date TTL and returns normalized identity fields (telegram_id/sub, display_name, username, photo_url, auth_date).\\n\\nVerification: python -m compileall backend/open_webui/utils/telegram_auth.py",
+      "metadata": {},
+      "task_id": "task-2-1-3"
+    },
+    {
+      "timestamp": "2026-02-05T19:44:20.812606Z",
+      "entry_type": "status_change",
+      "title": "Users: fix update_user_oauth_by_id return",
+      "author": "claude-code",
+      "content": "Updated backend/open_webui/models/users.py Users.update_user_oauth_by_id() to re-fetch the user after updating oauth JSON, so the returned UserModel reflects the persisted oauth changes.",
+      "metadata": {},
+      "task_id": "task-2-2-1"
+    },
+    {
+      "timestamp": "2026-02-05T19:45:13.526606Z",
+      "entry_type": "status_change",
+      "title": "Users: add oauth provider unlink",
+      "author": "claude-code",
+      "content": "Added Users.remove_user_oauth_provider_by_id(id, provider) to backend/open_webui/models/users.py to support unlinking Telegram (and other providers) from a user account.",
+      "metadata": {},
+      "task_id": "task-2-2-2"
+    },
+    {
+      "timestamp": "2026-02-05T19:47:54.906481Z",
+      "entry_type": "status_change",
+      "title": "Auths router: Telegram models",
+      "author": "claude-code",
+      "content": "Added Pydantic models to backend/open_webui/routers/auths.py for Telegram Login Widget payload (TelegramWidgetPayload) and request bodies (TelegramAuthForm).",
+      "metadata": {},
+      "task_id": "task-2-3-1"
+    },
+    {
+      "timestamp": "2026-02-05T19:48:37.696870Z",
+      "entry_type": "status_change",
+      "title": "Auths router: Telegram state",
+      "author": "claude-code",
+      "content": "Implemented GET /api/v1/auths/telegram/state in backend/open_webui/routers/auths.py. Generates a new one-time state + issued_at and stores it in request.session under TELEGRAM_SESSION_STATE_KEY.",
+      "metadata": {},
+      "task_id": "task-2-3-2"
+    },
+    {
+      "timestamp": "2026-02-05T19:52:56.156096Z",
+      "entry_type": "status_change",
+      "title": "Auths router: Telegram signin",
+      "author": "claude-code",
+      "content": "Implemented POST /api/v1/auths/telegram/signin in backend/open_webui/routers/auths.py. Validates one-time session state (burned on use), verifies Telegram widget signature + auth_date TTL, looks up linked user by Users.get_user_by_oauth_sub('telegram', sub), returns NOT_LINKED (409) if no link, otherwise issues JWT + cookie.",
+      "metadata": {},
+      "task_id": "task-2-3-3"
+    },
+    {
+      "timestamp": "2026-02-05T19:54:22.799528Z",
+      "entry_type": "status_change",
+      "title": "Auths router: Telegram link",
+      "author": "claude-code",
+      "content": "Implemented POST /api/v1/auths/telegram/link in backend/open_webui/routers/auths.py. Requires verified user, consumes one-time session state, verifies Telegram signature + auth_date TTL, enforces uniqueness (sub cannot be linked to a different user), then persists user.oauth.telegram.sub via Users.update_user_oauth_by_id().",
+      "metadata": {},
+      "task_id": "task-2-3-4"
+    },
+    {
+      "timestamp": "2026-02-05T19:55:25.143577Z",
+      "entry_type": "status_change",
+      "title": "Auths router: Telegram unlink",
+      "author": "claude-code",
+      "content": "Implemented DELETE /api/v1/auths/telegram/link in backend/open_webui/routers/auths.py. Requires verified user and one-time session state; unlinks by removing user.oauth.telegram via Users.remove_user_oauth_provider_by_id().",
+      "metadata": {},
+      "task_id": "task-2-3-5"
+    },
+    {
+      "timestamp": "2026-02-05T19:57:27.214542Z",
+      "entry_type": "status_change",
+      "title": "Auths router: Telegram signup",
+      "author": "claude-code",
+      "content": "Implemented POST /api/v1/auths/telegram/signup in backend/open_webui/routers/auths.py. Requires ENABLE_TELEGRAM_SIGNUP, consumes one-time session state, verifies Telegram signature + auth_date TTL. If Telegram sub already linked, logs in existing user; otherwise creates a new user with deterministic email telegram@<telegram_id>.local, links user.oauth.telegram.sub, assigns default group, and issues JWT + cookie.",
+      "metadata": {},
+      "task_id": "task-2-3-6"
+    },
+    {
+      "timestamp": "2026-02-05T19:59:39.045600Z",
+      "entry_type": "status_change",
+      "title": "Auths router: Telegram rate limiting",
+      "author": "claude-code",
+      "content": "Added per-IP rate limiting for Telegram endpoints in backend/open_webui/routers/auths.py using existing RateLimiter. Implemented telegram_state_rate_limiter + telegram_action_rate_limiter and enforced them in /telegram/state, /telegram/signin, /telegram/signup, /telegram/link (POST/DELETE).",
+      "metadata": {},
+      "task_id": "task-2-3-7"
+    },
+    {
+      "timestamp": "2026-02-05T20:04:08.190663Z",
+      "entry_type": "status_change",
+      "title": "Auths router: audit + state lifecycle",
+      "author": "claude-code",
+      "content": "Added audit logging for Telegram auth flows in backend/open_webui/routers/auths.py (signin/signup/link/unlink): success + failure outcomes (invalid_state, expired_state, invalid_payload, not_linked, already_linked, create_failed, update_failed, rate_limited). Also enforced one-time state lifecycle by burning session state on every attempt, including rate-limited requests.",
+      "metadata": {},
+      "task_id": "task-2-3-8"
+    },
+    {
+      "timestamp": "2026-02-05T20:04:08.197137Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-2-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-2-files"
+    },
+    {
+      "timestamp": "2026-02-05T20:07:15.768344Z",
+      "entry_type": "status_change",
+      "title": "Verify: telegram_auth unit tests",
+      "author": "claude-code",
+      "content": "Ran: PYTHONPATH=backend pytest -q backend/open_webui/test/util/test_telegram_auth.py\\nResult: 7 passed",
+      "metadata": {},
+      "task_id": "verify-2-1"
+    },
+    {
+      "timestamp": "2026-02-05T20:07:50.305307Z",
+      "entry_type": "status_change",
+      "title": "Verify: Telegram endpoint protections",
+      "author": "claude-code",
+      "content": "Manual verification (code review):\\n- One-time login CSRF state is stored in session and burned on every attempt (including rate-limited).\\n- State TTL enforced (10 min).\\n- Telegram auth_date TTL + future skew enforced in utils/telegram_auth.py with clamping.\\n- Rate limiting enforced per-IP across /telegram/* endpoints.\\n- Uniqueness enforced for link (sub cannot be linked to a different user).\\n- Logs avoid secrets; token/hash not logged and PersistentConfig redacts *_TOKEN/*_SECRET/*_API_KEY(S)/*PASSWORD values.",
+      "metadata": {},
+      "task_id": "verify-2-2"
+    },
+    {
+      "timestamp": "2026-02-05T20:07:50.309106Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-2-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-2-verify"
+    },
+    {
+      "timestamp": "2026-02-05T20:07:50.311106Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: Backend Telegram auth (verify/signin/signup/link)",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-02-05T20:09:05.049137Z",
+      "entry_type": "status_change",
+      "title": "Frontend API: Telegram state",
+      "author": "claude-code",
+      "content": "Added getTelegramAuthState() wrapper in src/lib/apis/auths/index.ts for GET /auths/telegram/state (credentials: include).",
+      "metadata": {},
+      "task_id": "task-3-1-1"
+    },
+    {
+      "timestamp": "2026-02-05T20:09:22.354333Z",
+      "entry_type": "status_change",
+      "title": "Frontend API: Telegram signin",
+      "author": "claude-code",
+      "content": "Added telegramSignIn(state, payload) wrapper in src/lib/apis/auths/index.ts for POST /auths/telegram/signin (credentials: include).",
+      "metadata": {},
+      "task_id": "task-3-1-2"
+    },
+    {
+      "timestamp": "2026-02-05T20:09:36.514436Z",
+      "entry_type": "status_change",
+      "title": "Frontend API: Telegram link/unlink",
+      "author": "claude-code",
+      "content": "Added telegramLink(state, payload) and telegramUnlink(state) wrappers in src/lib/apis/auths/index.ts for POST/DELETE /auths/telegram/link (credentials: include).",
+      "metadata": {},
+      "task_id": "task-3-1-3"
+    },
+    {
+      "timestamp": "2026-02-05T20:09:53.136428Z",
+      "entry_type": "status_change",
+      "title": "Frontend API: Telegram signup",
+      "author": "claude-code",
+      "content": "Added telegramSignUp(state, payload) wrapper in src/lib/apis/auths/index.ts for POST /auths/telegram/signup (credentials: include).",
+      "metadata": {},
+      "task_id": "task-3-1-4"
+    },
+    {
+      "timestamp": "2026-02-05T20:12:18.873330Z",
+      "entry_type": "status_change",
+      "title": "Frontend: Telegram widget injection",
+      "author": "claude-code",
+      "content": "Created src/lib/components/auth/TelegramLoginWidget.svelte that injects Telegram Login Widget script with data-onauth calling a unique window callback and dispatches an auth event with the widget payload.",
+      "metadata": {},
+      "task_id": "task-3-2-1"
+    },
+    {
+      "timestamp": "2026-02-05T20:12:35.310851Z",
+      "entry_type": "status_change",
+      "title": "Frontend: Telegram widget cleanup",
+      "author": "claude-code",
+      "content": "TelegramLoginWidget.svelte cleans up injected script and deletes the window callback on destroy, and re-mounts safely when props change to prevent multiple widget instances.",
+      "metadata": {},
+      "task_id": "task-3-2-2"
+    },
+    {
+      "timestamp": "2026-02-05T20:16:15.557663Z",
+      "entry_type": "status_change",
+      "title": "Auth page: render Telegram widget",
+      "author": "claude-code",
+      "content": "Updated src/routes/auth/+page.svelte to render TelegramLoginWidget when .telegram.enabled, while keeping existing OAuth provider buttons intact.",
+      "metadata": {},
+      "task_id": "task-3-3-1"
+    },
+    {
+      "timestamp": "2026-02-05T20:16:33.852796Z",
+      "entry_type": "status_change",
+      "title": "Auth page: Telegram auth flow",
+      "author": "claude-code",
+      "content": "Added telegramAuthHandler in src/routes/auth/+page.svelte: on Telegram widget auth, fetches one-time state via getTelegramAuthState(), then calls telegramSignIn/telegramSignUp depending on current mode, and reuses setSessionUser(). Handles NOT_LINKED and SIGNUP_DISABLED with actionable toasts.",
+      "metadata": {},
+      "task_id": "task-3-3-2"
+    },
+    {
+      "timestamp": "2026-02-05T20:16:33.856360Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-3-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-3-files"
+    },
+    {
+      "timestamp": "2026-02-05T20:17:16.565205Z",
+      "entry_type": "status_change",
+      "title": "Verify: /auth Telegram wiring",
+      "author": "claude-code",
+      "content": "Manual verification (code review): /auth now renders TelegramLoginWidget when config.telegram.enabled and routes widget auth payload through getTelegramAuthState() + telegramSignIn/telegramSignUp, reusing setSessionUser() for navigation.\\n\\nRuntime verification still recommended in a real browser with a configured bot: open /auth, click Telegram widget, confirm session cookie + redirect into app.",
+      "metadata": {},
+      "task_id": "verify-3-1"
+    },
+    {
+      "timestamp": "2026-02-05T20:17:16.568736Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-3-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-3-verify"
+    },
+    {
+      "timestamp": "2026-02-05T20:17:16.570658Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 3: Frontend login (/auth) integration",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    },
+    {
+      "timestamp": "2026-02-05T20:20:44.627904Z",
+      "entry_type": "status_change",
+      "title": "Account settings: fetch oauth state",
+      "author": "claude-code",
+      "content": "Updated src/lib/components/chat/Settings/Account.svelte to fetch the full user record via getUserById() (stored in fullUser) so oauth.telegram connected state can be displayed.",
+      "metadata": {},
+      "task_id": "task-4-1-1"
+    },
+    {
+      "timestamp": "2026-02-05T20:21:04.076911Z",
+      "entry_type": "status_change",
+      "title": "Account settings: Telegram link/unlink",
+      "author": "claude-code",
+      "content": "Added a Telegram section in src/lib/components/chat/Settings/Account.svelte. When not connected, renders TelegramLoginWidget and links via getTelegramAuthState() + telegramLink(state,payload). When connected, offers Disconnect via getTelegramAuthState() + telegramUnlink(state).",
+      "metadata": {},
+      "task_id": "task-4-1-2"
+    },
+    {
+      "timestamp": "2026-02-05T20:21:21.875414Z",
+      "entry_type": "status_change",
+      "title": "Account settings: refresh + collisions",
+      "author": "claude-code",
+      "content": "Account Telegram link/unlink handlers refresh the full user state after changes and handle TELEGRAM_ALREADY_LINKED collision errors with a targeted toast.",
+      "metadata": {},
+      "task_id": "task-4-1-3"
+    },
+    {
+      "timestamp": "2026-02-05T20:21:21.879100Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-4-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-4-files"
+    },
+    {
+      "timestamp": "2026-02-05T20:21:50.006099Z",
+      "entry_type": "status_change",
+      "title": "Verify: Settings Telegram link/unlink wiring",
+      "author": "claude-code",
+      "content": "Manual verification (code review): Settings \u2192 Account now displays Telegram connected state based on user.oauth.telegram.sub, links via getTelegramAuthState()+telegramLink(), unlinks via getTelegramAuthState()+telegramUnlink(), and refreshes full user after changes.\\n\\nRuntime verification recommended: link Telegram, refresh page, confirm still connected; sign out/in and confirm Telegram signin works when linked.",
+      "metadata": {},
+      "task_id": "verify-4-1"
+    },
+    {
+      "timestamp": "2026-02-05T20:21:50.009592Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-4-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-4-verify"
+    },
+    {
+      "timestamp": "2026-02-05T20:21:50.011220Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 4: Frontend account linking (Settings \u2192 Account)",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-4 have been completed.",
+      "metadata": {},
+      "task_id": "phase-4"
+    },
+    {
+      "timestamp": "2026-02-05T20:22:20.046613Z",
+      "entry_type": "status_change",
+      "title": "Tests: Telegram hash verification",
+      "author": "claude-code",
+      "content": "Implemented unit tests in backend/open_webui/test/util/test_telegram_auth.py covering valid payload acceptance and invalid hash rejection.",
+      "metadata": {},
+      "task_id": "task-5-1-1"
+    },
+    {
+      "timestamp": "2026-02-05T20:22:42.032481Z",
+      "entry_type": "status_change",
+      "title": "Tests: Telegram auth_date TTL",
+      "author": "claude-code",
+      "content": "Implemented unit tests in backend/open_webui/test/util/test_telegram_auth.py covering expired auth_date rejection and future-skew guard.",
+      "metadata": {},
+      "task_id": "task-5-1-2"
+    },
+    {
+      "timestamp": "2026-02-05T20:29:30.195728Z",
+      "entry_type": "status_change",
+      "title": "Docs: Telegram auth setup",
+      "author": "claude-code",
+      "content": "Created docs/telegram-auth.md with BotFather setup (create bot, /setdomain), required env vars (ENABLE_TELEGRAM_AUTH, TELEGRAM_BOT_USERNAME, TELEGRAM_BOT_TOKEN, TELEGRAM_AUTH_MAX_AGE_SECONDS, ENABLE_TELEGRAM_SIGNUP), and restart/verification guidance.",
+      "metadata": {},
+      "task_id": "task-5-2-1"
+    },
+    {
+      "timestamp": "2026-02-05T20:29:36.263778Z",
+      "entry_type": "status_change",
+      "title": "Docs: Telegram auth security & troubleshooting",
+      "author": "claude-code",
+      "content": "Extended docs/telegram-auth.md with security model (signature verification, one-time state, auth_date TTL, rate limits, audit logging) and troubleshooting for common failures (NOT_LINKED, SIGNUP_DISABLED, invalid/expired state, 429 rate limit, CSP allowlist for telegram.org widget script + oauth.telegram.org iframe).",
+      "metadata": {},
+      "task_id": "task-5-2-2"
+    },
+    {
+      "timestamp": "2026-02-05T20:29:36.267948Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-5-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-5-files"
+    },
+    {
+      "timestamp": "2026-02-05T20:31:33.808764Z",
+      "entry_type": "status_change",
+      "title": "Verify: telegram_auth tests",
+      "author": "claude-code",
+      "content": "Verification: PYTHONPATH=backend pytest -q backend/open_webui/test/util/test_telegram_auth.py (7 passed).",
+      "metadata": {},
+      "task_id": "verify-5-1"
+    },
+    {
+      "timestamp": "2026-02-05T20:31:33.824168Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-5-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-5-verify"
+    },
+    {
+      "timestamp": "2026-02-05T20:31:33.830913Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 5: Tests, docs, hardening",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-5 have been completed.",
+      "metadata": {},
+      "task_id": "phase-5"
+    }
+  ]
+}

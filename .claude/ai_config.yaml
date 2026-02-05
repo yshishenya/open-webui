@@ -1,0 +1,15 @@
+# Local SDD toolkit AI configuration (project-scoped).
+#
+# Goal: make `sdd review` (sdd-plan-review) synthesis use a tool/model that is
+# available in this environment. Without this, the synthesis step may pick a
+# provider-specific model (e.g. Gemini) and then fail during fallback, even if
+# Codex reviews succeeded.
+#
+# Feel free to adjust agent order to your preference.
+
+sdd-plan-review:
+  consultation:
+    agent_priority:
+      - codex
+      - claude
+      - opencode

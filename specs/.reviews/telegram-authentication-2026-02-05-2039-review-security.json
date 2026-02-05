@@ -1,0 +1,49 @@
+{
+  "spec_id": "telegram-authentication-2026-02-05-2039",
+  "spec_title": "Telegram authentication (signin + signup + account linking)",
+  "review_type": "security",
+  "timestamp": "2026-02-05T18:57:36.257738Z",
+  "models_consulted": [
+    "codex"
+  ],
+  "num_models": 1,
+  "consensus_level": "Weak",
+  "critical_blockers": [
+    "None (single review only; no cross-model consensus to highlight)"
+  ],
+  "major_suggestions": [
+    "**Security** Reinstate CSRF/state binding for link/unlink \u2013 flagged by: codex",
+    "Description: `/api/v1/auths/telegram/link` and `/auths/telegram/link` (DELETE) lack the state token + session binding mandated for login/signup, so any ambient session cookie can authorize link/unlink actions.",
+    "Recommended fix: Require the same one-time, session-bound state (or equivalent CSRF nonce) for link/unlink flows, burn the state after use, and consider adding an interactive confirmation step.",
+    "**Security** Clamp configurable auth-date TTL \u2013 flagged by: codex",
+    "Description: `TELEGRAM_AUTH_MAX_AGE_SECONDS` can be misconfigured to extreme or unsafe values, undermining replay protections.",
+    "Recommended fix: Enforce hard-coded server limits (e.g., 30\u2013120\u202fs range) and ignore/reject unsafe admin-provided values.",
+    "**Security** Add audit logging for Telegram events \u2013 flagged by: codex",
+    "Description: Spec lacks requirements to log successful/failed sign-in, signup, link, unlink, or duplicate-link attempts, limiting incident response.",
+    "Recommended fix: Document structured security logging (user id, Telegram id, outcome, reason) while excluding sensitive tokens.",
+    "**Security** Rate-limit new Telegram endpoints \u2013 flagged by: codex",
+    "Description: No throttling is specified for state issuance, login/signup submissions, or link/unlink routes, enabling brute force and DoS attempts.",
+    "Recommended fix: Define per-IP/user limits (and backoff on repeated failures) leveraging existing auth throttle infrastructure.",
+    "**Security** Explicit burn-after-use for state tokens \u2013 flagged by: codex",
+    "Description: Spec stores state in the session but never mandates deletion/rotation after use, leaving room for replay from the same session.",
+    "Recommended fix: Require immediate state removal or regeneration after every success or failure."
+  ],
+  "questions": [
+    "**Security** Session cookie attributes \u2013 flagged by: codex",
+    "Context: CSRF protection depends on the `owui-session` cookie behavior, yet attributes (HttpOnly, Secure, SameSite) are unspecified; confirming them ensures the Telegram flow balances security with local-dev usability."
+  ],
+  "design_strengths": [
+    "**Security** Solid verification baseline \u2013 noted by: codex",
+    "Why this is effective: Mandated server-side HMAC verification, auth-date TTL with skew checks, server-only handling of bot tokens, and uniqueness constraints on Telegram IDs provide strong foundational defenses."
+  ],
+  "agreements": [
+    "Not applicable; only the codex review is available, so no multi-model agreements can be inferred."
+  ],
+  "disagreements": [
+    "None observed because only one review was provided. No conflicts to resolve."
+  ],
+  "synthesis_notes": [
+    "Central theme: codex emphasizes tightening CSRF defenses, replay windows, observability, and abuse throttling around the Telegram flows.",
+    "Actionable next steps: add CSRF/state requirements for link/unlink endpoints, constrain TTL configuration, specify logging/rate limits/state lifecycle, and document session cookie guarantees to close the identified gaps."
+  ]
+}
