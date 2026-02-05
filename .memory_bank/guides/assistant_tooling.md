@@ -45,3 +45,11 @@ For convenience (and to reduce command drift), `package.json` provides Docker Co
 
 - Codex worktrees may live outside the repo (e.g. `~/.codex/worktrees/...`).
 - Do not assume fixed relative paths; rely on `$PWD` (or `${wt}` when defined) and compose file paths relative to the worktree root.
+
+## SDD toolkit (optional)
+
+If you use the SDD (Spec-Driven Development) toolkit, project-local config lives under `.claude/`:
+
+- `.claude/settings.local.json` (permissions)
+- `.claude/git_config.json` (git integration behaviour)
+- `.claude/sdd_config.json` (SDD CLI output preferences)

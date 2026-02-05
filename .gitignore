@@ -8,6 +8,11 @@ node_modules
 .env
 .env.*
 !.env.example
+
+# SDD toolkit (local tool artifacts)
+specs/.backups/
+specs/.reports/
+specs/.human-readable/
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 # Byte-compiled / optimized / DLL files

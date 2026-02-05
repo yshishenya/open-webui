@@ -1,0 +1,4 @@
+# Project-local Claude/SDD configs (machine/user-specific).
+settings.local.json
+git_config.json
+sdd_config.json
