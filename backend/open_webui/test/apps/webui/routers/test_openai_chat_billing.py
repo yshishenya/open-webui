@@ -204,6 +204,9 @@ class TestOpenAIChatBilling(AbstractPostgresTest):
         detail = response.json().get("detail")
         assert isinstance(detail, dict)
         assert detail.get("error") == "insufficient_funds"
+        assert detail.get("available_kopeks") == 0
+        assert isinstance(detail.get("required_kopeks"), int)
+        assert detail.get("currency") == "RUB"
 
         assert get_ledger_entry(self.request_id, "chat_completion", LedgerEntryType.HOLD) is None
         assert get_usage_event(self.request_id) is None
@@ -236,6 +239,7 @@ class TestOpenAIChatBilling(AbstractPostgresTest):
         detail = too_low_max_reply.json().get("detail")
         assert isinstance(detail, dict)
         assert detail.get("error") == "max_reply_cost_exceeded"
+        assert isinstance(detail.get("required_kopeks"), int)
 
         now = int(time.time())
         Wallets.update_wallet(
@@ -261,6 +265,10 @@ class TestOpenAIChatBilling(AbstractPostgresTest):
         detail = daily_cap.json().get("detail")
         assert isinstance(detail, dict)
         assert detail.get("error") == "daily_cap_exceeded"
+        assert detail.get("daily_cap_kopeks") == 100
+        assert detail.get("daily_spent_kopeks") == 90
+        assert detail.get("daily_reset_at") == now + 3600
+        assert isinstance(detail.get("required_kopeks"), int)
 
     def test_provider_error_releases_hold_and_restores_balance(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import LedgerEntryType, Wallets

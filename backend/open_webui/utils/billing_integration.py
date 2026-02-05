@@ -493,13 +493,20 @@ async def preflight_estimate_hold(
             detail={
                 "error": "max_reply_cost_exceeded",
                 "max_reply_cost_kopeks": effective_max_reply,
+                "required_kopeks": max_cost,
             },
         )
 
     if daily_cap is not None and (wallet.daily_spent_kopeks + max_cost) > daily_cap:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={"error": "daily_cap_exceeded"},
+            detail={
+                "error": "daily_cap_exceeded",
+                "daily_cap_kopeks": daily_cap,
+                "daily_spent_kopeks": wallet.daily_spent_kopeks,
+                "daily_reset_at": wallet.daily_reset_at,
+                "required_kopeks": max_cost,
+            },
         )
 
     auto_topup_result: Optional[AutoTopupResult] = None
@@ -513,7 +520,12 @@ async def preflight_estimate_hold(
         )
 
     if available < max_cost:
-        detail: Dict[str, object] = {"error": "insufficient_funds"}
+        detail: Dict[str, object] = {
+            "error": "insufficient_funds",
+            "available_kopeks": available,
+            "required_kopeks": max_cost,
+            "currency": wallet.currency,
+        }
         if auto_topup_result and (
             auto_topup_result.attempted or auto_topup_result.status == "pending"
         ):
@@ -544,7 +556,13 @@ async def preflight_estimate_hold(
         except InsufficientFundsError as e:
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail={"error": "insufficient_funds", "message": str(e)},
+                detail={
+                    "error": "insufficient_funds",
+                    "message": str(e),
+                    "available_kopeks": available,
+                    "required_kopeks": hold_amount,
+                    "currency": wallet.currency,
+                },
             )
         except WalletError as e:
             raise HTTPException(
@@ -674,13 +692,20 @@ async def preflight_single_rate_hold(
             detail={
                 "error": "max_reply_cost_exceeded",
                 "max_reply_cost_kopeks": effective_max_reply,
+                "required_kopeks": cost,
             },
         )
 
     if daily_cap is not None and (wallet.daily_spent_kopeks + cost) > daily_cap:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={"error": "daily_cap_exceeded"},
+            detail={
+                "error": "daily_cap_exceeded",
+                "daily_cap_kopeks": daily_cap,
+                "daily_spent_kopeks": wallet.daily_spent_kopeks,
+                "daily_reset_at": wallet.daily_reset_at,
+                "required_kopeks": cost,
+            },
         )
 
     auto_topup_result: Optional[AutoTopupResult] = None
@@ -694,7 +719,12 @@ async def preflight_single_rate_hold(
         )
 
     if available < cost:
-        detail: Dict[str, object] = {"error": "insufficient_funds"}
+        detail: Dict[str, object] = {
+            "error": "insufficient_funds",
+            "available_kopeks": available,
+            "required_kopeks": cost,
+            "currency": wallet.currency,
+        }
         if auto_topup_result and (
             auto_topup_result.attempted or auto_topup_result.status == "pending"
         ):
@@ -724,7 +754,13 @@ async def preflight_single_rate_hold(
         except InsufficientFundsError as e:
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail={"error": "insufficient_funds", "message": str(e)},
+                detail={
+                    "error": "insufficient_funds",
+                    "message": str(e),
+                    "available_kopeks": available,
+                    "required_kopeks": cost,
+                    "currency": wallet.currency,
+                },
             )
         except WalletError as e:
             raise HTTPException(

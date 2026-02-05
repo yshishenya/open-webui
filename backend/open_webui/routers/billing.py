@@ -29,6 +29,9 @@ from open_webui.models.billing import (
     LedgerEntries,
     LedgerEntryModel,
     PlanModel,
+    PaymentKind,
+    PaymentStatus,
+    Payments,
     SubscriptionModel,
     UsageEventModel,
     UsageEvents,
@@ -225,11 +228,13 @@ class BalanceResponse(BaseModel):
     max_reply_cost_kopeks: Optional[int] = None
     daily_cap_kopeks: Optional[int] = None
     daily_spent_kopeks: int
+    daily_reset_at: Optional[int] = None
     auto_topup_enabled: bool = False
     auto_topup_threshold_kopeks: Optional[int] = None
     auto_topup_amount_kopeks: Optional[int] = None
     auto_topup_fail_count: int = 0
     auto_topup_last_failed_at: Optional[int] = None
+    auto_topup_payment_method_saved: bool = False
     currency: str
 
 
@@ -339,6 +344,11 @@ async def get_balance(user=Depends(get_verified_user)):
 
     try:
         wallet = wallet_service.get_or_create_wallet(user.id, BILLING_DEFAULT_CURRENCY)
+        latest_payment_with_method = Payments.get_latest_payment_with_method(
+            wallet.id,
+            status=PaymentStatus.SUCCEEDED.value,
+            kind=PaymentKind.TOPUP.value,
+        )
         return BalanceResponse(
             balance_topup_kopeks=wallet.balance_topup_kopeks,
             balance_included_kopeks=wallet.balance_included_kopeks,
@@ -346,11 +356,13 @@ async def get_balance(user=Depends(get_verified_user)):
             max_reply_cost_kopeks=wallet.max_reply_cost_kopeks,
             daily_cap_kopeks=wallet.daily_cap_kopeks,
             daily_spent_kopeks=wallet.daily_spent_kopeks,
+            daily_reset_at=wallet.daily_reset_at,
             auto_topup_enabled=wallet.auto_topup_enabled,
             auto_topup_threshold_kopeks=wallet.auto_topup_threshold_kopeks,
             auto_topup_amount_kopeks=wallet.auto_topup_amount_kopeks,
             auto_topup_fail_count=wallet.auto_topup_fail_count,
             auto_topup_last_failed_at=wallet.auto_topup_last_failed_at,
+            auto_topup_payment_method_saved=latest_payment_with_method is not None,
             currency=wallet.currency,
         )
     except WalletError as e:
