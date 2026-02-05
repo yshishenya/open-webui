@@ -28,6 +28,22 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
   - Tests: N/A (docs-only)
   - Risks: N/A
 
+- [x] **[DEV]** SDD toolkit: first-time project setup
+  - Spec: `.memory_bank/specs/work_items/2026-02-05__docs__sdd-toolkit-setup.md`
+  - Owner: Codex
+  - Done: 2026-02-05
+  - Summary: Configure `.claude/` SDD permissions + defaults (git integration is read-only; no auto-commit/branch by default).
+  - Tests: `sdd skills-dev setup-permissions check . --json`, `sdd skills-dev start-helper session-summary . --json`
+  - Risks: N/A (local dev tooling config only)
+
+- [x] **[AUTH]** Yandex OAuth login (hooks + userinfo normalization)
+  - Spec: `.memory_bank/specs/work_items/2026-02-05__feature__yandex-oauth-login.md`
+  - Owner: Codex
+  - Done: 2026-02-05
+  - Summary: Implement `/api/v1/oauth/yandex/*` thin hooks + normalize Yandex userinfo (email/name/picture) for shared OAuth flow.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run -T --rm -e DATABASE_URL= -e WEBUI_SECRET_KEY=secret-key airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_oauth_yandex.py open_webui/test/apps/webui/utils/test_oauth_yandex_normalization.py"`
+  - Risks: Manual smoke test is still required after env+deploy; redirect URI mismatch can block login.
+
 - [x] **[UI]** Admin billing models: audit-first pricing
   - Spec: `.memory_bank/specs/work_items/2026-02-04__feature__admin-models-pricing-audit-first.md`
   - Owner: Codex
@@ -538,6 +554,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 ## In Progress
 
 ### High Priority
+- [ ] **[LEGAL]** Publish оферта + acceptance tracking
+  - Spec: `.memory_bank/specs/work_items/2026-02-05__feature__legal-offer-docs-acceptance.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Started: 2026-02-05
+  - Summary: Canonical `/terms` оферта + `/documents/*` legal pack; versioned acceptance logging and UI gate.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -T airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_legal.py open_webui/test/apps/webui/routers/test_auths.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps -T airis-frontend sh -lc "npm run test:frontend -- --run"`
+  - Risks: Legal wording must be reviewed by counsel; acceptance gating could affect onboarding if misconfigured.
+
 - [x] **[AUTH-01]** Verify GitHub OAuth login visibility
   - Confirm backend GitHub OAuth support and prerequisites.
   - Identify conditions for showing the GitHub login button in the UI.

@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: feature
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: airis_b2c
-- SDD Spec: `specs/active/yandex-oauth-login-2026-02-05-1722.json`
+- SDD Spec: `specs/completed/yandex-oauth-login-2026-02-05-1722.json`
 - Created: 2026-02-05
 - Updated: 2026-02-05
 
@@ -205,13 +205,11 @@ Add:
 
 ## Verification
 
-Docker Compose-first commands (expected after implementation):
+Automated checks (passed):
 
-- Backend tests: `npm run docker:test:backend`
-- Backend lint (ruff): `npm run docker:lint:backend`
-- Frontend tests: `npm run docker:test:frontend`
+- `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run -T --rm -e DATABASE_URL= -e WEBUI_SECRET_KEY=secret-key airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_oauth_yandex.py open_webui/test/apps/webui/utils/test_oauth_yandex_normalization.py"`
 
-Manual smoke test:
+Manual smoke test (pending; required after env+deploy):
 
 1. Set env vars:
    - `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`

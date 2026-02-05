@@ -2,7 +2,7 @@
   "spec_id": "yandex-oauth-login-2026-02-05-1722",
   "title": "yandex-oauth-login",
   "generated": "2026-02-05T14:22:38.324414Z",
-  "last_updated": "2026-02-05T15:17:39.511523Z",
+  "last_updated": "2026-02-05T16:48:07.877328Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -11,8 +11,9 @@
     "security_sensitive": false,
     "default_category": "implementation",
     "title": "Yandex OAuth login",
-    "status": "active",
-    "activated_date": "2026-02-05T14:45:35.803465Z"
+    "status": "completed",
+    "activated_date": "2026-02-05T14:45:35.803465Z",
+    "completed_date": "2026-02-05T16:48:07.877004Z"
   },
   "hierarchy": {
     "spec-root": {
@@ -257,9 +258,24 @@
         "verification_type": "manual",
         "expected": "Redirects to Yandex authorize, then back to /auth with token cookie set (not HttpOnly) and user logged in.",
         "command": "Set YANDEX_CLIENT_ID/YANDEX_CLIENT_SECRET and YANDEX_REDIRECT_URI=https://<domain>/api/v1/oauth/yandex/callback, restart, then open /auth and click 'Continue with Yandex'.",
-        "status_note": "Awaiting Yandex OAuth env config (YANDEX_CLIENT_ID/SECRET/REDIRECT_URI/OAUTH_SCOPE) to run manual smoke test."
+        "status_note": "Awaiting Yandex OAuth env config (YANDEX_CLIENT_ID/SECRET/REDIRECT_URI/OAUTH_SCOPE) to run manual smoke test.",
+        "blocked_at": "2026-02-05T16:48:07.444876Z",
+        "blocker_type": "resource",
+        "blocker_description": "Manual smoke test requires env+deploy (YANDEX_* + WEBUI_URL) on target instance; then verify /auth -> Yandex OAuth login works end-to-end.",
+        "blocked_by_external": true
       },
       "description": "With YANDEX_CLIENT_ID/SECRET set, open /auth and click 'Continue with Yandex'. Verify redirect to Yandex authorize, then callback to /auth sets token cookie (not HttpOnly) and user is logged in. Verify missing email is handled safely (no user created)."
     }
-  }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-02-05T16:48:07.664881Z",
+      "entry_type": "blocker",
+      "title": "Manual smoke test pending",
+      "author": "Codex",
+      "content": "Automated tests passed, but the end-to-end Yandex OAuth smoke test still requires configuring YANDEX_* (and WEBUI_URL behind reverse proxy) on the target instance and running the /auth login flow.",
+      "metadata": {},
+      "task_id": "task-3-3"
+    }
+  ]
 }
