@@ -36,6 +36,14 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
   - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_billing_public_pricing.py"`
   - Risks: Low (provider model fetch adds some work; failures degrade gracefully).
 
+- [x] **[BUG]** Landing (/welcome) pricing: show model prices (rate-cards)
+  - Spec: `.memory_bank/specs/work_items/2026-02-05__bugfix__welcome-pricing-rate-cards.md`
+  - Owner: Codex
+  - Done: 2026-02-05
+  - Summary: Add public rate-cards table to the landing pricing section so model prices are visible without leaving `/welcome`.
+  - Tests: `npm run test:frontend -- --run`, `npx playwright test e2e/welcome_hero.spec.ts --list`
+  - Risks: Low (read-only public fetch; graceful empty/error states).
+
 - [x] **[BILLING][TEST]** Scenario-based billing E2E tests (wallet PAYG + topup + lead magnet)
   - Spec: `.memory_bank/specs/work_items/2026-02-05__feature__billing-scenarios-e2e-tests.md`
   - Owner: Codex
