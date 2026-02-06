@@ -20,6 +20,14 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG]** Chat: direct ack crash + wallet billing blocked modal in task/websocket mode
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-06__bugfix__chat-direct-ack-billing-block-modal.md`
+  - Owner: Codex
+  - Done: 2026-02-06
+  - Summary: Harden direct Socket.IO ack contract to avoid `NoneType.get` crashes; show BillingBlockedModal for billing blocks delivered via websocket errors.
+  - Tests: `pytest (targeted)` + `vitest (targeted)`
+  - Risks: Medium (touches chat UX + error propagation); minimized via additive Airis helpers and thin hooks.
+
 - [x] **[UI][BILLING]** Wallet (/billing/balance) rebuild: clarity-first layout + copy
   - Spec: `meta/memory_bank/specs/work_items/2026-02-06__feature__billing-balance-page-rebuild.md`
   - Owner: Codex

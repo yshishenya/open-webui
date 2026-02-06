@@ -1,0 +1,537 @@
+{
+  "spec_id": "chat-billing-direct-guards-2026-02-06-001",
+  "generated": "2026-02-06T00:00:00Z",
+  "last_updated": "2026-02-06T21:19:47Z",
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Fix direct-ack NoneType crash + show billing recovery modal for task/websocket errors",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 19,
+      "completed_tasks": 19,
+      "metadata": {
+        "context": {
+          "date": "2026-02-06",
+          "reported_symptoms": [
+            "UI shows 'NoneType object has no attribute get' (no backend logs)",
+            "Paid model request: 402 insufficient_funds shows raw '402: {...}' instead of top-up prompt"
+          ]
+        },
+        "upstream_impact": {
+          "upstream_owned_files_touched": [
+            "backend/open_webui/utils/chat.py",
+            "src/lib/components/chat/Chat.svelte",
+            "backend/open_webui/main.py"
+          ],
+          "strategy": "Prefer additive Airis helpers; keep upstream diffs as thin hooks. Phase 3 is optional but recommended to avoid brittle string parsing."
+        },
+        "acceptance_criteria": [
+          "Direct connections path never crashes on ack=None/non-dict; user sees user-safe error instead.",
+          "When billing preflight blocks (insufficient_funds/daily_cap/max_reply_cost) in async task/websocket path, the chat opens BillingBlockedModal and shows an inline error message.",
+          "No secrets are logged or sent to client error payloads."
+        ],
+        "work_item_spec": "meta/memory_bank/specs/work_items/2026-02-06__bugfix__chat-direct-ack-billing-block-modal.md"
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Harden direct connections ack contract (prevent NoneType.get)",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-1-files",
+        "phase-1-verify"
+      ],
+      "total_tasks": 6,
+      "completed_tasks": 6,
+      "metadata": {
+        "risk": "low",
+        "notes": "Applies a type guard to the result of Socket.IO ack for request:chat:completion. This crash exists upstream but manifests in Airis due to use of direct connections."
+      }
+    },
+    "phase-1-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 4,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "backend/open_webui/utils/airis/direct_ack.py",
+      "status": "completed",
+      "parent": "phase-1-files",
+      "children": [
+        "task-1-1-1",
+        "task-1-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/utils/airis/direct_ack.py",
+        "task_category": "implementation",
+        "notes": "Add a small helper to normalize/validate direct Socket.IO ack payload. Must not log secrets; include request_id/channel for debugging."
+      }
+    },
+    "task-1-1-1": {
+      "type": "subtask",
+      "title": "Define a validator that accepts dict acks and rejects None/non-dict acks",
+      "status": "completed",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "task-1-1-2": {
+      "type": "subtask",
+      "title": "Provide user-safe error message and structured logging fields (no secrets)",
+      "status": "completed",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "backend/open_webui/utils/chat.py",
+      "status": "completed",
+      "parent": "phase-1-files",
+      "children": [
+        "task-1-2-1",
+        "task-1-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/utils/chat.py",
+        "task_category": "implementation",
+        "notes": "Thin hook: use Airis helper to validate direct-ack before calling .get(). Handle event_caller None defensively."
+      }
+    },
+    "task-1-2-1": {
+      "type": "subtask",
+      "title": "In generate_direct_chat_completion, validate ack before res.get(...) (stream and non-stream)",
+      "status": "completed",
+      "parent": "task-1-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "task-1-2-2": {
+      "type": "subtask",
+      "title": "Ensure errors propagate as user-safe exceptions (avoid raw NoneType traces)",
+      "status": "completed",
+      "parent": "task-1-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "phase-1-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [
+        "verify-1-1",
+        "verify-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "dependencies": {
+          "blocked_by": [
+            "phase-1-files"
+          ],
+          "blocks": [],
+          "depends": []
+        }
+      }
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Backend unit test: direct ack None/non-dict does not crash",
+      "status": "completed",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc \"pytest -q open_webui/test/util/test_chat_direct_ack.py\"",
+        "expected": "Test passes; no AttributeError on .get"
+      }
+    },
+    "verify-1-2": {
+      "type": "verify",
+      "title": "Manual smoke: direct connection request returns user-safe error on invalid ack",
+      "status": "completed",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "command": "Manual: enable a direct connection model, trigger a completion, and confirm invalid ack does not surface as AttributeError in UI",
+        "expected": "UI shows a generic direct-connection error (no 'NoneType.get')"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Show BillingBlockedModal for task/websocket error events",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-2-files",
+        "phase-2-verify"
+      ],
+      "total_tasks": 7,
+      "completed_tasks": 7,
+      "metadata": {
+        "risk": "medium",
+        "notes": "Billing blocks already work for sync HTTP errors (generateOpenAIChatCompletion catch). This phase adds parity for websocket chat:message:error."
+      }
+    },
+    "phase-2-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [
+        "task-2-1",
+        "task-2-2"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 5,
+      "metadata": {}
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "src/lib/utils/airis/ws_billing_block.ts",
+      "status": "completed",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-1-1",
+        "task-2-1-2",
+        "task-2-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "file_path": "src/lib/utils/airis/ws_billing_block.ts",
+        "task_category": "implementation",
+        "notes": "Add helper to detect/parse billing blocked details from websocket error payloads. Prefer structured detail; fall back to conservative parsing for '402: {...}' python repr strings."
+      }
+    },
+    "task-2-1-1": {
+      "type": "subtask",
+      "title": "Implement extraction from structured objects (detail/error dict) using parseBillingBlockedDetail",
+      "status": "completed",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "task-2-1-2": {
+      "type": "subtask",
+      "title": "Implement conservative regex extraction for python-repr strings (insufficient_funds/daily_cap/max_reply_cost)",
+      "status": "completed",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "task-2-1-3": {
+      "type": "subtask",
+      "title": "Unit tests for ws_billing_block helper (happy + failure cases)",
+      "status": "completed",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "src/lib/components/chat/Chat.svelte",
+      "status": "completed",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-2-1",
+        "task-2-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "src/lib/components/chat/Chat.svelte",
+        "task_category": "implementation",
+        "notes": "Thin hook: on websocket event chat:message:error, detect billing block and open BillingBlockedModal + inline error content (no auto-redirect)."
+      }
+    },
+    "task-2-2-1": {
+      "type": "subtask",
+      "title": "Integrate ws_billing_block helper into chat:message:error handler and open modal",
+      "status": "completed",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "task-2-2-2": {
+      "type": "subtask",
+      "title": "Set a user-friendly inline error message and mark response done when billing-blocked",
+      "status": "completed",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "phase-2-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [
+        "verify-2-1",
+        "verify-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "dependencies": {
+          "blocked_by": [
+            "phase-2-files"
+          ],
+          "blocks": [],
+          "depends": []
+        }
+      }
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Frontend unit tests for ws billing block parsing",
+      "status": "completed",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc \"npm run test:frontend -- --run\"",
+        "expected": "ws_billing_block tests pass"
+      }
+    },
+    "verify-2-2": {
+      "type": "verify",
+      "title": "Manual: trigger insufficient_funds in task/websocket mode and confirm modal + CTA",
+      "status": "completed",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "command": "Manual: in a chat session (task/websocket mode), trigger a wallet billing block (e.g., insufficient funds) and confirm the modal opens",
+        "expected": "BillingBlockedModal opens; inline message is 'Top up to keep working'; CTA navigates to /billing/balance with return_to"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "(Optional) Emit structured billing block details from backend task errors",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-3-files",
+        "phase-3-verify"
+      ],
+      "total_tasks": 6,
+      "completed_tasks": 6,
+      "metadata": {
+        "risk": "medium",
+        "optional": true,
+        "notes": "Recommended to avoid relying on parsing python repr strings like `402: {...}`. Keep diff minimal (thin hook + helper)."
+      }
+    },
+    "phase-3-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [
+        "task-3-1",
+        "task-3-2"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 4,
+      "metadata": {}
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "backend/open_webui/utils/airis/task_error_payload.py",
+      "status": "completed",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-1-1",
+        "task-3-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/utils/airis/task_error_payload.py",
+        "task_category": "implementation",
+        "notes": "Add helper to map exceptions (HTTPException with dict detail) to websocket-safe payload with both user-friendly content and machine-readable detail."
+      }
+    },
+    "task-3-1-1": {
+      "type": "subtask",
+      "title": "Implement exception-to-error-payload mapping (content + detail) for HTTPException",
+      "status": "completed",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "task-3-1-2": {
+      "type": "subtask",
+      "title": "Ensure billing-blocked codes are included without leaking internal stack traces",
+      "status": "completed",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": "backend/open_webui/main.py",
+      "status": "completed",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-2-1",
+        "task-3-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/main.py",
+        "task_category": "implementation",
+        "notes": "Thin hook in process_chat exception handler: when catching HTTPException, emit structured error payload (content + detail) so frontend can avoid parsing strings."
+      }
+    },
+    "task-3-2-1": {
+      "type": "subtask",
+      "title": "In task-mode error path, include machine-readable detail for billing blocks (e.detail) alongside content",
+      "status": "completed",
+      "parent": "task-3-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "task-3-2-2": {
+      "type": "subtask",
+      "title": "Keep stored chat message error content user-friendly (avoid '402: {...}' in history)",
+      "status": "completed",
+      "parent": "task-3-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "phase-3-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [
+        "verify-3-1",
+        "verify-3-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "dependencies": {
+          "blocked_by": [
+            "phase-3-files"
+          ],
+          "blocks": [],
+          "depends": []
+        }
+      }
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Backend tests: billing blocked HTTPException gets structured error payload in task-mode",
+      "status": "completed",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc \"pytest -q\"",
+        "expected": "No regressions; new/updated tests pass"
+      }
+    },
+    "verify-3-2": {
+      "type": "verify",
+      "title": "Manual: 402 insufficient_funds in task-mode yields modal without string parsing",
+      "status": "completed",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "command": "Manual: trigger insufficient_funds via task/websocket and verify frontend uses structured detail (no '402: {...}' string in UI/history)",
+        "expected": "Frontend reads structured detail and opens BillingBlockedModal; message history stores user-friendly content"
+      }
+    }
+  }
+}
