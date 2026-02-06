@@ -155,5 +155,6 @@ If your change affects prompts, routing, tools, retrieval, or any “AI decision
 - OpenAI evaluation best practices: https://platform.openai.com/docs/guides/evals/evaluation-best-practices
 - GitHub Copilot:
   - Best practices: https://docs.github.com/en/copilot/get-started/best-practices
+  - Coding agent best practices: https://docs.github.com/en/copilot/using-github-copilot/using-github-copilot-coding-agent/best-practices-for-using-github-copilot-to-work-on-tasks
   - Responsible use: https://docs.github.com/en/copilot/responsible-use
 - Anthropic prompt engineering overview: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview
