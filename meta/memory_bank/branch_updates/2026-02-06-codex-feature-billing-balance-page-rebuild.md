@@ -1,8 +1,0 @@
-- [x] **[UI][BILLING]** Wallet (/billing/balance) rebuild: clarity-first layout + copy
-  - Spec: `meta/memory_bank/specs/work_items/2026-02-06__feature__billing-balance-page-rebuild.md`
-  - Owner: Codex
-  - Branch: `codex/feature/billing-balance-page-rebuild`
-  - Done: 2026-02-06
-  - Summary: Make wallet vs free limits explicit, remove misleading low-balance messaging, and reduce desktop scrolling. Follow-up: stabilize top-up return check + E2E selectors.
-  - Tests: `npm run docker:test:frontend -- --run src/routes/\\(app\\)/billing/balance/billing-balance.test.ts`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml up -d --build airis-e2e`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps e2e "npm ci && npm run test:e2e -- e2e/billing_wallet.spec.ts e2e/billing_wallet_recovery.spec.ts e2e/billing_lead_magnet.spec.ts"`
-  - Risks: Low-Medium (copy/layout touches; ensure no regressions in top-up flow)
