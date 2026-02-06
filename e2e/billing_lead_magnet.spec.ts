@@ -55,6 +55,16 @@ const balanceResponse = {
 
 test.describe('Billing Lead Magnet', () => {
 	test.beforeEach(async ({ page }) => {
+		await page.route('**/api/v1/legal/status', async (route) => {
+			await route.fulfill({
+				json: {
+					needs_accept: false,
+					docs: [],
+					accepted: {}
+				}
+			});
+		});
+
 		await page.route('**/api/v1/billing/me', async (route) => {
 			await route.fulfill({ json: billingInfoResponse });
 		});
@@ -80,7 +90,8 @@ test.describe('Billing Lead Magnet', () => {
 		const leadMagnetSection = page.getByTestId('lead-magnet-section');
 		await expect(leadMagnetSection.getByText('Free limit')).toBeVisible();
 		await expect(leadMagnetSection.getByText('Next reset')).toBeVisible();
-		await expect(leadMagnetSection.getByText('Input tokens')).toBeVisible();
+		await expect(leadMagnetSection.getByText('Text', { exact: true })).toBeVisible();
+		await expect(leadMagnetSection.getByText('Input', { exact: true })).toBeVisible();
 	});
 
 	test('wallet shows free limit summary', async ({ page }) => {
@@ -90,6 +101,6 @@ test.describe('Billing Lead Magnet', () => {
 		const leadMagnetSection = page.getByTestId('lead-magnet-section');
 		await expect(leadMagnetSection.getByText('Free limit')).toBeVisible();
 		await expect(leadMagnetSection.getByText('Next reset')).toBeVisible();
-		await expect(leadMagnetSection.getByText('Output tokens')).toBeVisible();
+		await expect(leadMagnetSection.getByText('Output', { exact: true })).toBeVisible();
 	});
 });
