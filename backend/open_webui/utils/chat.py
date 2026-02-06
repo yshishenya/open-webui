@@ -78,7 +78,8 @@ async def generate_direct_chat_completion(
 ):
     log.info("generate_direct_chat_completion")
 
-    metadata = form_data.pop("metadata", {})
+    metadata_value = form_data.pop("metadata", None)
+    metadata = metadata_value if isinstance(metadata_value, dict) else {}
 
     user_id = metadata.get("user_id")
     session_id = metadata.get("session_id")
