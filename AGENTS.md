@@ -266,7 +266,7 @@ This repo is **Docker Compose-first** (especially for Codex Actions).
 
 ## Git Workflow
 
-- Branch naming: `feature/...`, `bugfix/...`, `docs/...`
+- Branch naming: `feature/...`, `bugfix/...`, `refactor/...`, `docs/...` (optionally prefixed with `codex/`)
 - Before committing:
   - Backend tests + format: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest && black ."`
   - Backend lint (ruff): use Codex Action `ruff (docker)` or run `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check backend"`
