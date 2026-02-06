@@ -81,6 +81,8 @@
 			<button
 				type="button"
 				on:click={() => handleSelectPackage(amount)}
+				data-testid="topup-preset"
+				data-amount-kopeks={amount}
 				aria-pressed={selectedPackageKopeks === amount && !hasValidCustom}
 				class="px-3 py-1.5 rounded-xl border text-sm font-medium transition disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 {selectedPackageKopeks === amount && !hasValidCustom
 					? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white'
@@ -152,6 +154,7 @@
 		<button
 			type="button"
 			on:click={() => void handleProceed()}
+			data-testid="topup-proceed"
 			disabled={!canProceed}
 			class="px-4 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
 		>

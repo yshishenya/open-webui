@@ -122,8 +122,8 @@ test.describe('Billing Wallet', () => {
 
 		const topupSection = page.locator('#topup-section');
 		const topupRequest = page.waitForRequest('**/api/v1/billing/topup');
-		await topupSection.getByRole('button').first().click();
-		await topupSection.getByRole('button', { name: 'Proceed to payment' }).click();
+		await topupSection.getByTestId('topup-preset').first().click();
+		await topupSection.getByTestId('topup-proceed').click();
 		await topupRequest;
 
 		await expect(page).toHaveURL(/\/billing\/balance\?topup=1/);

@@ -207,9 +207,14 @@
 		}
 	};
 
+	const getTotalBalanceKopeks = (current: Balance | null): number => {
+		return (current?.balance_topup_kopeks ?? 0) + (current?.balance_included_kopeks ?? 0);
+	};
+
 	const handleTopupReturnRefresh = async (): Promise<void> => {
 		await loadBalance({ showLoader: false });
-		if (topupFlow && totalBalance > topupFlow.previous_total_kopeks) {
+		const latestTotal = getTotalBalanceKopeks(balance);
+		if (topupFlow && latestTotal > topupFlow.previous_total_kopeks) {
 			topupReturnStatus = 'success';
 			clearTopupFlow();
 			if (topupReturnTimer) {
@@ -241,7 +246,8 @@
 			topupReturnAttempts += 1;
 			await loadBalance({ showLoader: false });
 			if (!topupFlow) return;
-			if (totalBalance > topupFlow.previous_total_kopeks) {
+			const latestTotal = getTotalBalanceKopeks(balance);
+			if (latestTotal > topupFlow.previous_total_kopeks) {
 				topupReturnStatus = 'success';
 				clearTopupFlow();
 				if (topupReturnTimer) {
@@ -259,7 +265,8 @@
 		const flow = readTopupFlowFromStorage();
 		if (!flow) return;
 		topupFlow = flow;
-		if (totalBalance > flow.previous_total_kopeks) {
+		const latestTotal = getTotalBalanceKopeks(balance);
+		if (latestTotal > flow.previous_total_kopeks) {
 			topupReturnStatus = 'success';
 			clearTopupFlow();
 			return;
@@ -380,7 +387,7 @@
 					const flow: TopupFlow = {
 						started_at_ms: Date.now(),
 						amount_kopeks: amountKopeks,
-						previous_total_kopeks: totalBalance,
+						previous_total_kopeks: getTotalBalanceKopeks(balance),
 						payment_id: result.payment_id,
 						return_to: returnTo
 					};
@@ -654,7 +661,7 @@
 	};
 
 	$: customTopupKopeks = parseMoneyInput(customTopup);
-	$: totalBalance = (balance?.balance_topup_kopeks ?? 0) + (balance?.balance_included_kopeks ?? 0);
+	$: totalBalance = getTotalBalanceKopeks(balance);
 	$: isLowBalance = totalBalance < LOW_BALANCE_THRESHOLD_KOPEKS;
 
 	$: leadMagnetModels =

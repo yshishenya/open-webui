@@ -126,8 +126,8 @@ test.describe('Billing wallet recovery (smoke)', () => {
 
 		const topupSection = page.locator('#topup-section');
 		const topupRequest = page.waitForRequest('**/api/v1/billing/topup');
-		await topupSection.getByRole('button').first().click();
-		await topupSection.getByRole('button', { name: 'Proceed to payment' }).click();
+		await topupSection.getByTestId('topup-preset').first().click();
+		await topupSection.getByTestId('topup-proceed').click();
 
 		const request = await topupRequest;
 		const body = JSON.parse(request.postData() ?? '{}');
