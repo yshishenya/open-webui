@@ -60,6 +60,11 @@ Endpoint: `POST /api/v1/auths/telegram/signup`
 - Only available when `ENABLE_TELEGRAM_SIGNUP=true`.
 - If disabled, the API responds with:
   - `403` and `detail="SIGNUP_DISABLED"`
+- Requires legal acceptance flags in the request body:
+  - `terms_accepted=true`
+  - `privacy_accepted=true`
+  - If missing, the API responds with:
+    - `400` and `detail="You must accept the terms and privacy policy"`
 - New users get a deterministic placeholder email:
   - `telegram@<telegram_id>.local`
 
@@ -156,4 +161,3 @@ CONTENT_SECURITY_POLICY="default-src 'self'; script-src 'self' https://telegram.
 
 - Prefer **linking** Telegram to an existing account rather than enabling Telegram sign-up.
 - If you enable Telegram sign-up, decide how you want to handle account duplication and whether you want admins to merge accounts (Open WebUI does not automatically merge users across providers).
-

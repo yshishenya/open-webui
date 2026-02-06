@@ -8,6 +8,7 @@
 	import { trackEvent } from '$lib/utils/analytics';
 	import { buildSignupUrl, openCta, openPreset } from '$lib/components/landing/welcomeNavigation';
 	import { presetsById } from '$lib/data/features';
+	import { sanitizeRedirectPath } from '$lib/utils/airis/return_to';
 	import {
 		WelcomePhaseOneSections,
 		CTASection,
@@ -19,7 +20,7 @@
 	let leadMagnetConfig: PublicLeadMagnetConfig | null = null;
 
 	// Get redirect URL from query params
-	$: redirectParam = $page.url.searchParams.get('redirect');
+	$: redirectParam = sanitizeRedirectPath($page.url.searchParams.get('redirect'));
 	$: redirectUrl = redirectParam || '/';
 	$: shouldAutoRedirect = Boolean(redirectParam);
 

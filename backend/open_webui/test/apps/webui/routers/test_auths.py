@@ -1,5 +1,18 @@
+import time
+
 from test.util.abstract_integration_test import AbstractPostgresTest
 from test.util.mock_user import mock_webui_user
+
+
+def _sign_telegram_payload(payload: dict[str, object], bot_token: str) -> dict[str, object]:
+    from open_webui.utils.telegram_auth import (
+        build_telegram_data_check_string,
+        compute_telegram_login_hash,
+    )
+
+    data_check_string = build_telegram_data_check_string(payload)
+    payload["hash"] = compute_telegram_login_hash(data_check_string, bot_token)
+    return payload
 
 
 class TestAuths(AbstractPostgresTest):
@@ -207,7 +220,7 @@ class TestAuths(AbstractPostgresTest):
         with mock_webui_user(id=user.id):
             response = self.fast_api_client.delete(self.create_url("/api_key"))
         assert response.status_code == 200
-        assert response.json() == True
+        assert response.json()
         api_key = self.users.get_user_api_key_by_id(user.id)
         assert api_key is None
 
@@ -224,3 +237,75 @@ class TestAuths(AbstractPostgresTest):
             response = self.fast_api_client.get(self.create_url("/api_key"))
         assert response.status_code == 200
         assert response.json() == {"api_key": "abc"}
+
+    def test_telegram_signup_requires_legal_acceptance(self):
+        bot_token = "123:TEST_BOT_TOKEN"
+        config = self.fast_api_client.app.state.config
+        config.ENABLE_TELEGRAM_AUTH = True
+        config.ENABLE_TELEGRAM_SIGNUP = True
+        config.TELEGRAM_BOT_TOKEN = bot_token
+
+        state_response = self.fast_api_client.get(self.create_url("/telegram/state"))
+        assert state_response.status_code == 200
+        state = state_response.json()["state"]
+
+        payload: dict[str, object] = _sign_telegram_payload(
+            {
+                "id": 777,
+                "first_name": "Jane",
+                "auth_date": int(time.time()),
+            },
+            bot_token,
+        )
+
+        response = self.fast_api_client.post(
+            self.create_url("/telegram/signup"),
+            json={"state": state, "payload": payload},
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == "You must accept the terms and privacy policy"
+
+        assert self.users.get_user_by_email("telegram@777.local") is None
+
+    def test_telegram_signup_records_legal_acceptance(self):
+        bot_token = "123:TEST_BOT_TOKEN"
+        config = self.fast_api_client.app.state.config
+        config.ENABLE_TELEGRAM_AUTH = True
+        config.ENABLE_TELEGRAM_SIGNUP = True
+        config.TELEGRAM_BOT_TOKEN = bot_token
+
+        state_response = self.fast_api_client.get(self.create_url("/telegram/state"))
+        assert state_response.status_code == 200
+        state = state_response.json()["state"]
+
+        payload: dict[str, object] = _sign_telegram_payload(
+            {
+                "id": 888,
+                "first_name": "Jane",
+                "auth_date": int(time.time()),
+            },
+            bot_token,
+        )
+
+        response = self.fast_api_client.post(
+            self.create_url("/telegram/signup"),
+            json={
+                "state": state,
+                "payload": payload,
+                "terms_accepted": True,
+                "privacy_accepted": True,
+            },
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["id"] is not None and len(data["id"]) > 0
+        assert data["email"] == "telegram@888.local"
+        assert data["token"] is not None and len(data["token"]) > 0
+
+        db_user = self.users.get_user_by_id(data["id"])
+        assert db_user is not None
+        assert db_user.terms_accepted_at is not None
+        assert db_user.privacy_accepted_at is not None
+        assert db_user.oauth is not None
+        assert db_user.oauth.get("telegram", {}).get("sub") == "888"

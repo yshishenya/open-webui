@@ -173,11 +173,11 @@
 			($config?.features?.enable_api_keys ?? true) &&
 			(user?.role === 'admin' || (user?.permissions?.features?.api_keys ?? false))
 		) {
-			APIKey = await getAPIKey(localStorage.token).catch((error) => {
-				console.log(error);
-				return '';
-			});
-		}
+				APIKey = await getAPIKey(localStorage.token).catch((error) => {
+					console.error(error);
+					return '';
+				});
+			}
 
 		loaded = true;
 
@@ -234,15 +234,13 @@
 							<div class=" mb-1 text-xs font-medium">{$i18n.t('Gender')}</div>
 
 							<div class="flex-1">
-								<select
-									class="dark:bg-gray-900 w-full text-sm dark:text-gray-300 bg-transparent outline-hidden"
-									bind:value={_gender}
-									on:change={(e) => {
-										console.log(_gender);
-
-										if (_gender === 'custom') {
-											// Handle custom gender input
-											gender = '';
+									<select
+										class="dark:bg-gray-900 w-full text-sm dark:text-gray-300 bg-transparent outline-hidden"
+										bind:value={_gender}
+										on:change={(e) => {
+											if (_gender === 'custom') {
+												// Handle custom gender input
+												gender = '';
 										} else {
 											gender = _gender;
 										}

@@ -30,7 +30,7 @@
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
 	import VKIDWidget from '$lib/components/auth/VKIDWidget.svelte';
 	import TelegramLoginWidget from '$lib/components/auth/TelegramLoginWidget.svelte';
-	import { redirect } from '@sveltejs/kit';
+	import { sanitizeRedirectPath } from '$lib/utils/airis/return_to';
 
 	const i18n = getContext('i18n');
 
@@ -59,7 +59,6 @@
 
 	const setSessionUser = async (sessionUser, redirectPath: string | null = null) => {
 		if (sessionUser) {
-			console.log(sessionUser);
 			toast.success($i18n.t(`You're now logged in.`));
 			if (sessionUser.token) {
 				localStorage.token = sessionUser.token;
@@ -74,11 +73,9 @@
 				updateUserTimezone(sessionUser.token, timezone);
 			}
 
-			if (!redirectPath) {
-				redirectPath = $page.url.searchParams.get('redirect') || '/';
-			}
-
-			goto(redirectPath);
+			const safeRedirect =
+				sanitizeRedirectPath(redirectPath ?? $page.url.searchParams.get('redirect')) || '/';
+			await goto(safeRedirect);
 			localStorage.removeItem('redirectPath');
 		}
 	};
@@ -101,7 +98,7 @@
 		}
 
 		if (!legalAccepted) {
-			toast.error('Необходимо принять оферту и политику конфиденциальности.');
+			toast.error($i18n.t('You must accept the terms and privacy policy'));
 			return;
 		}
 
@@ -139,13 +136,17 @@
 
 	const telegramAuthHandler = async (payload: Record<string, unknown>) => {
 		if (telegramLoading) return;
+		if (mode === 'signup' && !legalAccepted) {
+			toast.error($i18n.t('You must accept the terms and privacy policy'));
+			return;
+		}
 		telegramLoading = true;
 
 		try {
 			const { state } = await getTelegramAuthState();
 			const sessionUser =
 				mode === 'signup'
-					? await telegramSignUp(state, payload)
+					? await telegramSignUp(state, payload, legalAccepted)
 					: await telegramSignIn(state, payload);
 
 			await setSessionUser(sessionUser);
@@ -202,7 +203,7 @@
 	}
 
 	onMount(async () => {
-		const redirectPath = $page.url.searchParams.get('redirect');
+		const redirectPath = sanitizeRedirectPath($page.url.searchParams.get('redirect'));
 		if ($user !== undefined) {
 			goto(redirectPath || '/');
 		} else {
@@ -501,10 +502,16 @@
 								<div class="flex flex-col space-y-2">
 									{#if $config?.telegram?.enabled}
 										<div class="flex justify-center">
-											<TelegramLoginWidget
-												botUsername={$config?.telegram?.bot_username}
-												on:auth={(e) => telegramAuthHandler(e.detail)}
-											/>
+											{#if mode !== 'signup' || legalAccepted}
+												<TelegramLoginWidget
+													botUsername={$config?.telegram?.bot_username}
+													on:auth={(e) => telegramAuthHandler(e.detail)}
+												/>
+											{:else}
+												<div class="text-xs text-center text-gray-500">
+													{$i18n.t('You must accept the terms and privacy policy')}
+												</div>
+											{/if}
 										</div>
 										{#if telegramLoading}
 											<div class="py-2">
@@ -676,12 +683,18 @@
 									{/if}
 									{#if $config?.telegram?.enabled}
 										<div class="flex justify-center pt-2">
-											<TelegramLoginWidget
-												botUsername={$config?.telegram?.bot_username}
-												on:auth={(event) => {
-													telegramAuthHandler(event.detail);
-												}}
-											/>
+											{#if mode !== 'signup' || legalAccepted}
+												<TelegramLoginWidget
+													botUsername={$config?.telegram?.bot_username}
+													on:auth={(event) => {
+														telegramAuthHandler(event.detail);
+													}}
+												/>
+											{:else}
+												<div class="text-xs text-center text-gray-500">
+													{$i18n.t('You must accept the terms and privacy policy')}
+												</div>
+											{/if}
 											{#if telegramLoading}
 												<div class="ml-2 flex items-center">
 													<Spinner className="size-4" />

@@ -2030,7 +2030,7 @@
 			},
 			`${WEBUI_BASE_URL}/api`
 		).catch(async (error) => {
-			console.log(error);
+			console.error(error);
 
 			const billingBlocked = parseBillingBlockedDetail(error);
 			if (billingBlocked) {

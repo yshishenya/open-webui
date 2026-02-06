@@ -2,7 +2,7 @@ import time
 from typing import Optional
 
 from sqlalchemy.orm import Session
-from open_webui.internal.db import Base, JSONField, get_db, get_db_context
+from open_webui.internal.db import Base, get_db_context
 
 
 from open_webui.env import DATABASE_USER_ACTIVE_STATUS_UPDATE_INTERVAL
@@ -25,7 +25,6 @@ from sqlalchemy import (
     Date,
     exists,
     select,
-    cast,
 )
 from sqlalchemy import or_, case
 from sqlalchemy.dialects.postgresql import JSONB
@@ -326,11 +325,12 @@ class UsersTable:
                     query = query.filter(
                         User.oauth[provider].cast(JSONB)["sub"].astext == sub
                     )
+                else:
+                    return None
 
                 user = query.first()
                 return UserModel.model_validate(user) if user else None
-        except Exception as e:
-            # You may want to log the exception here
+        except Exception:
             return None
 
     def get_users(

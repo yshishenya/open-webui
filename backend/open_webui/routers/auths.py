@@ -43,11 +43,9 @@ from open_webui.env import (
     ENABLE_INITIAL_ADMIN_SIGNUP,
 )
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import RedirectResponse, Response, JSONResponse
+from fastapi.responses import Response, JSONResponse
 from open_webui.config import (
     OPENID_PROVIDER_URL,
-    ENABLE_OAUTH_SIGNUP,
-    ENABLE_LDAP,
     ENABLE_PASSWORD_AUTH,
 )
 from pydantic import BaseModel, ConfigDict
@@ -78,7 +76,7 @@ from open_webui.utils.rate_limit import RateLimiter
 from open_webui.utils.telegram_auth import TelegramAuthError, verify_and_extract_telegram_user
 
 
-from typing import Optional, List
+from typing import Optional
 
 from ssl import CERT_NONE, CERT_REQUIRED, PROTOCOL_TLS
 
@@ -181,6 +179,8 @@ class TelegramWidgetPayload(BaseModel):
 class TelegramAuthForm(BaseModel):
     state: str
     payload: TelegramWidgetPayload
+    terms_accepted: bool = False
+    privacy_accepted: bool = False
 
 
 class TelegramUnlinkForm(BaseModel):
@@ -233,6 +233,10 @@ def _consume_telegram_state(
 
 @router.get("/telegram/state", response_model=TelegramStateResponse)
 async def telegram_auth_state(request: Request):
+    if not request.app.state.config.ENABLE_TELEGRAM_AUTH:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_MESSAGES.NOT_FOUND
+        )
     _enforce_telegram_rate_limit(request, action="state")
 
     state = secrets.token_urlsafe(32)
@@ -411,7 +415,6 @@ async def ldap_auth(
         )
 
     # NOW load LDAP config variables
-    LDAP_SERVER_LABEL = request.app.state.config.LDAP_SERVER_LABEL
     LDAP_SERVER_HOST = request.app.state.config.LDAP_SERVER_HOST
     LDAP_SERVER_PORT = request.app.state.config.LDAP_SERVER_PORT
     LDAP_ATTRIBUTE_FOR_MAIL = request.app.state.config.LDAP_ATTRIBUTE_FOR_MAIL
@@ -718,7 +721,7 @@ async def signin(
             name = request.headers.get(WEBUI_AUTH_TRUSTED_NAME_HEADER, email)
             try:
                 name = urllib.parse.unquote(name, encoding="utf-8")
-            except Exception as e:
+            except Exception:
                 pass
 
         if not Users.get_user_by_email(email.lower(), db=db):
@@ -745,7 +748,7 @@ async def signin(
             if group_names:
                 Groups.sync_groups_by_group_names(user.id, group_names, db=db)
 
-    elif WEBUI_AUTH == False:
+    elif not WEBUI_AUTH:
         admin_email = "admin@localhost"
         admin_password = "admin"
 
@@ -1134,6 +1137,12 @@ async def telegram_signup(
             detail="Telegram authentication is not configured.",
         )
 
+    if not form_data.terms_accepted or not form_data.privacy_accepted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must accept the terms and privacy policy",
+        )
+
     _consume_telegram_state(request, form_data.state, action="signup")
     _enforce_telegram_rate_limit(request, action="signup")
 
@@ -1199,6 +1208,12 @@ async def telegram_signup(
             request.app.state.config.DEFAULT_GROUP_ID,
             user.id,
             db=db,
+        )
+        record_legal_acceptances(
+            user_id=user.id,
+            keys=["terms_offer", "privacy_policy"],
+            request=request,
+            method="telegram_signup",
         )
         created_user = True
 
@@ -1348,6 +1363,10 @@ async def telegram_unlink(
     session_user=Depends(get_verified_user),
     db: Session = Depends(get_session),
 ):
+    if not request.app.state.config.ENABLE_TELEGRAM_AUTH:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_MESSAGES.NOT_FOUND
+        )
     _consume_telegram_state(
         request,
         form_data.state,
@@ -1399,6 +1418,7 @@ async def signout(
         await invalidate_token(request, token)
 
     response.delete_cookie("token")
+    response.delete_cookie("owui-session")
     response.delete_cookie("oui-session")
     response.delete_cookie("oauth_id_token")
 

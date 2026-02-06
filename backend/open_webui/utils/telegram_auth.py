@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import time
 from dataclasses import dataclass
-from typing import Any, Mapping
+from collections.abc import Mapping
 
 
 class TelegramAuthError(ValueError):
@@ -25,7 +25,7 @@ MAX_TELEGRAM_AUTH_MAX_AGE_SECONDS = 24 * 60 * 60
 TELEGRAM_AUTH_FUTURE_SKEW_SECONDS = 30
 
 
-def build_telegram_data_check_string(payload: Mapping[str, Any]) -> str:
+def build_telegram_data_check_string(payload: Mapping[str, object]) -> str:
     """
     Build the canonical data-check-string per Telegram Login Widget docs.
 
@@ -66,10 +66,10 @@ def compute_telegram_login_hash(data_check_string: str, bot_token: str) -> str:
 
 
 def verify_telegram_login_payload(
-    payload: Mapping[str, Any],
+    payload: Mapping[str, object],
     bot_token: str,
     *,
-    max_age_seconds: Any = DEFAULT_TELEGRAM_AUTH_MAX_AGE_SECONDS,
+    max_age_seconds: object = DEFAULT_TELEGRAM_AUTH_MAX_AGE_SECONDS,
 ) -> int:
     provided_hash = payload.get("hash")
     if not provided_hash or not str(provided_hash).strip():
@@ -86,10 +86,10 @@ def verify_telegram_login_payload(
 
 
 def verify_and_extract_telegram_user(
-    payload: Mapping[str, Any],
+    payload: Mapping[str, object],
     bot_token: str,
     *,
-    max_age_seconds: Any = DEFAULT_TELEGRAM_AUTH_MAX_AGE_SECONDS,
+    max_age_seconds: object = DEFAULT_TELEGRAM_AUTH_MAX_AGE_SECONDS,
 ) -> TelegramVerifiedUser:
     auth_date = verify_telegram_login_payload(
         payload, bot_token, max_age_seconds=max_age_seconds
@@ -133,7 +133,7 @@ def verify_and_extract_telegram_user(
     )
 
 
-def clamp_telegram_auth_max_age_seconds(max_age_seconds: Any) -> int:
+def clamp_telegram_auth_max_age_seconds(max_age_seconds: object) -> int:
     try:
         value = int(max_age_seconds)
     except Exception:
@@ -146,7 +146,9 @@ def clamp_telegram_auth_max_age_seconds(max_age_seconds: Any) -> int:
     return value
 
 
-def validate_telegram_auth_date(payload: Mapping[str, Any], *, max_age_seconds: int) -> int:
+def validate_telegram_auth_date(
+    payload: Mapping[str, object], *, max_age_seconds: int
+) -> int:
     auth_date_raw = payload.get("auth_date")
     if auth_date_raw is None:
         raise TelegramAuthError("Invalid telegram payload: missing auth_date")

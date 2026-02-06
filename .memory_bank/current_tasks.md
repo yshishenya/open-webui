@@ -20,6 +20,14 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[REVIEW]** Code review fixes (auth/telegram): legal gating + redirect hardening
+  - Spec: `.memory_bank/specs/work_items/2026-02-06__bugfix__code-review-fixes-recent-commits.md`
+  - Owner: Codex
+  - Done: 2026-02-06
+  - Summary: Fix issues found in latest commits: enforce Terms/Privacy acceptance for Telegram signup and sanitize `redirect` to prevent open redirects.
+  - Tests: `pytest (targeted)` + `vitest (targeted)` + `ruff (touched files)`
+  - Risks: Medium (touches auth + billing UX; security-sensitive surfaces).
+
 - [x] **[AUTH]** Telegram Login Widget auth + account linking
   - Spec: `.memory_bank/specs/work_items/2026-02-05__feature__telegram-auth-login-widget.md`
   - Owner: Codex

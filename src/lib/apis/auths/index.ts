@@ -382,7 +382,11 @@ export const telegramSignIn = async (state: string, payload: Record<string, unkn
 	return res;
 };
 
-export const telegramSignUp = async (state: string, payload: Record<string, unknown>) => {
+export const telegramSignUp = async (
+	state: string,
+	payload: Record<string, unknown>,
+	legalAccepted: boolean
+) => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/auths/telegram/signup`, {
@@ -391,7 +395,12 @@ export const telegramSignUp = async (state: string, payload: Record<string, unkn
 			'Content-Type': 'application/json'
 		},
 		credentials: 'include',
-		body: JSON.stringify({ state, payload })
+		body: JSON.stringify({
+			state,
+			payload,
+			terms_accepted: legalAccepted,
+			privacy_accepted: legalAccepted
+		})
 	})
 		.then(async (res) => {
 			if (!res.ok) throw await res.json();
