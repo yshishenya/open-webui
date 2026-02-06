@@ -6,6 +6,13 @@
 
 ---
 
+## Dependency Policy (Important)
+
+- **Assume fast-moving dependencies**: your built-in knowledge of library APIs may be stale.
+- **Source of truth**: repo-pinned versions (lockfiles) + this document.
+- **Stay fresh, stay safe**: prefer keeping dependencies close to the latest stable releases, but do upgrades as explicit work items:
+  read release notes, update versions incrementally, and run the full verification suite.
+
 ## Core Stack
 
 ### Backend
@@ -195,7 +202,7 @@
   - gcp-storage-emulator 2024.8+ (GCS emulator for storage tests)
   - pytest-cov 4.1+ (coverage reporting)
   - pytest-mock (mocking)
-- **Minimum Coverage**: 80%
+- **Coverage target**: 80%+ on critical paths (prefer meaningful assertions; don't chase a number)
 
 ### TypeScript/JavaScript
 
