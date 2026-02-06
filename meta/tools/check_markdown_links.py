@@ -23,6 +23,8 @@ def _iter_markdown_files(repo_root: Path, meta_root: Path) -> list[Path]:
         candidates.extend((meta_root / "memory_bank").rglob("*.md"))
     if (meta_root / "docs").exists():
         candidates.extend((meta_root / "docs").rglob("*.md"))
+    if (meta_root / "sdd").exists():
+        candidates.extend((meta_root / "sdd").rglob("*.md"))
 
     # Keep scanning upstream docs too (read-only, but links should still work).
     candidates.extend((repo_root / "docs").rglob("*.md"))
@@ -34,6 +36,10 @@ def _iter_markdown_files(repo_root: Path, meta_root: Path) -> list[Path]:
     ):
         if root_md.exists():
             candidates.append(root_md)
+
+    meta_readme = meta_root / "README.md"
+    if meta_readme.exists():
+        candidates.append(meta_readme)
 
     return sorted({p for p in candidates if p.is_file()})
 
