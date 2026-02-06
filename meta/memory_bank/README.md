@@ -400,7 +400,7 @@ Then read relevant workflow based on your task type.
 **A**: See `guides/testing_strategy.md`:
 
 - Unit tests: pytest (Python), Vitest (TypeScript)
-- Minimum 80% code coverage
+- Coverage target: 80%+ on critical paths (prefer meaningful assertions; don't chase a number)
 - Integration tests for critical flows
 - E2E tests for user journeys
 
