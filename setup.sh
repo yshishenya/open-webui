@@ -1,276 +1,123 @@
-#!/bin/bash
-# AI SWE Template - Setup for Existing Projects
-# This script adds AI SWE methodology to an existing project
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -e  # Exit on error
+usage() {
+  cat <<'EOF'
+Project local setup helper (meta-root aware).
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+This script is intentionally safe and idempotent. It does NOT install system deps.
 
-echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║   AI SWE Template - Existing Project  ║${NC}"
-echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
-echo ""
+Usage:
+  ./setup.sh [--no-env-sync] [--setup-sdd] [--no-git-hooks]
 
-# Detect project directory
-PROJECT_DIR=$(pwd)
-echo -e "${BLUE}Project directory: $PROJECT_DIR${NC}"
+Options:
+  --no-env-sync   Do not create/update .env from .env.example (default: sync .env)
+  --setup-sdd     Configure local SDD/Claude settings under .claude/ (ignored by git)
+  --no-git-hooks  Skip configuring git hooks + commit message template
+  -h, --help      Show this help
 
-# Verify this is an existing project
-if [ ! -d ".git" ]; then
-    echo -e "${RED}Error: This doesn't appear to be a git repository${NC}"
-    echo -e "${YELLOW}Please run this script from your project root, or initialize git first:${NC}"
-    echo "  git init"
-    exit 1
-fi
-
-# Check if already has Memory Bank
-if [ -d ".memory_bank" ]; then
-    echo -e "${YELLOW}Warning: .memory_bank directory already exists${NC}"
-    read -p "Do you want to overwrite it? (y/N): " OVERWRITE
-    if [[ ! "$OVERWRITE" =~ ^[Yy]$ ]]; then
-        echo -e "${RED}Aborted.${NC}"
-        exit 1
-    fi
-    echo -e "${YELLOW}Backing up existing .memory_bank to .memory_bank.backup${NC}"
-    mv .memory_bank .memory_bank.backup
-fi
-
-# Detect project language
-echo ""
-echo -e "${BLUE}Detecting project language...${NC}"
-
-DETECTED_LANG=""
-if [ -f "pyproject.toml" ] || [ -f "requirements.txt" ] || [ -f "setup.py" ]; then
-    DETECTED_LANG="python"
-    echo -e "${GREEN}Detected: Python${NC}"
-elif [ -f "package.json" ]; then
-    DETECTED_LANG="javascript"
-    echo -e "${GREEN}Detected: JavaScript/TypeScript${NC}"
-elif [ -f "go.mod" ]; then
-    DETECTED_LANG="go"
-    echo -e "${GREEN}Detected: Go${NC}"
-elif [ -f "Cargo.toml" ]; then
-    DETECTED_LANG="rust"
-    echo -e "${GREEN}Detected: Rust${NC}"
-else
-    echo -e "${YELLOW}Could not auto-detect language${NC}"
-fi
-
-# Interactive prompts
-echo ""
-echo -e "${BLUE}Project Configuration${NC}"
-read -p "Project name (detected from directory): " PROJECT_NAME
-if [ -z "$PROJECT_NAME" ]; then
-    PROJECT_NAME=$(basename "$PROJECT_DIR")
-    echo -e "${YELLOW}Using: $PROJECT_NAME${NC}"
-fi
-
-read -p "Brief description: " PROJECT_DESC
-while [ -z "$PROJECT_DESC" ]; do
-    echo -e "${RED}Description cannot be empty${NC}"
-    read -p "Brief description: " PROJECT_DESC
-done
-
-read -p "Primary language [$DETECTED_LANG]: " LANG
-if [ -z "$LANG" ]; then
-    LANG=$DETECTED_LANG
-fi
-
-read -p "Framework (optional): " FRAMEWORK
-
-# Download template files
-echo ""
-echo -e "${GREEN}Downloading AI SWE Template files...${NC}"
-
-TEMPLATE_URL="https://raw.githubusercontent.com/o2alexanderfedin/ai-swe-template/main"
-
-# Create temporary directory
-TMP_DIR=$(mktemp -d)
-trap "rm -rf $TMP_DIR" EXIT
-
-# Download Memory Bank structure
-echo -e "${BLUE}Setting up Memory Bank...${NC}"
-mkdir -p .memory_bank/{patterns,guides,workflows,specs}
-
-# Download core Memory Bank files
-curl -sSL "$TEMPLATE_URL/.memory_bank/README.md" -o "$TMP_DIR/README.md"
-curl -sSL "$TEMPLATE_URL/.memory_bank/product_brief.md" -o "$TMP_DIR/product_brief.md"
-curl -sSL "$TEMPLATE_URL/.memory_bank/current_tasks.md" -o "$TMP_DIR/current_tasks.md"
-
-# Download patterns
-curl -sSL "$TEMPLATE_URL/.memory_bank/patterns/api_standards.md" -o .memory_bank/patterns/api_standards.md
-curl -sSL "$TEMPLATE_URL/.memory_bank/patterns/error_handling.md" -o .memory_bank/patterns/error_handling.md
-
-# Download guides
-curl -sSL "$TEMPLATE_URL/.memory_bank/guides/coding_standards.md" -o .memory_bank/guides/coding_standards.md
-curl -sSL "$TEMPLATE_URL/.memory_bank/guides/testing_strategy.md" -o .memory_bank/guides/testing_strategy.md
-
-# Download workflows
-curl -sSL "$TEMPLATE_URL/.memory_bank/workflows/bug_fix.md" -o .memory_bank/workflows/bug_fix.md
-curl -sSL "$TEMPLATE_URL/.memory_bank/workflows/new_feature.md" -o .memory_bank/workflows/new_feature.md
-curl -sSL "$TEMPLATE_URL/.memory_bank/workflows/code_review.md" -o .memory_bank/workflows/code_review.md
-curl -sSL "$TEMPLATE_URL/.memory_bank/workflows/self_review.md" -o .memory_bank/workflows/self_review.md
-curl -sSL "$TEMPLATE_URL/.memory_bank/workflows/refactoring.md" -o .memory_bank/workflows/refactoring.md
-
-# Download language-specific tech_stack.md
-case $LANG in
-    python)
-        echo -e "${GREEN}Using Python template...${NC}"
-        curl -sSL "$TEMPLATE_URL/templates/python/tech_stack.md" -o "$TMP_DIR/tech_stack.md"
-        ;;
-    javascript|typescript)
-        echo -e "${GREEN}Using JavaScript/TypeScript template...${NC}"
-        curl -sSL "$TEMPLATE_URL/templates/javascript/tech_stack.md" -o "$TMP_DIR/tech_stack.md"
-        ;;
-    go)
-        echo -e "${GREEN}Using Go template...${NC}"
-        curl -sSL "$TEMPLATE_URL/templates/go/tech_stack.md" -o "$TMP_DIR/tech_stack.md"
-        ;;
-    rust)
-        echo -e "${GREEN}Using Rust template...${NC}"
-        curl -sSL "$TEMPLATE_URL/templates/rust/tech_stack.md" -o "$TMP_DIR/tech_stack.md"
-        ;;
-    *)
-        echo -e "${YELLOW}Using generic template${NC}"
-        curl -sSL "$TEMPLATE_URL/.memory_bank/tech_stack.md" -o "$TMP_DIR/tech_stack.md"
-        ;;
-esac
-
-# Replace placeholders in downloaded files
-echo -e "${BLUE}Customizing for your project...${NC}"
-
-for file in "$TMP_DIR"/*.md; do
-    if [ -f "$file" ]; then
-        sed -e "s/{{PROJECT_NAME}}/$PROJECT_NAME/g" \
-            -e "s/{{PROJECT_DESC}}/$PROJECT_DESC/g" \
-            -e "s/{{LANGUAGE}}/$LANG/g" \
-            -e "s/{{FRAMEWORK}}/$FRAMEWORK/g" \
-            "$file" > ".memory_bank/$(basename "$file")"
-    fi
-done
-
-# Set up .claude/commands/
-echo -e "${BLUE}Setting up custom commands...${NC}"
-mkdir -p .claude/commands
-
-curl -sSL "$TEMPLATE_URL/.claude/commands/refresh_context.md" -o .claude/commands/refresh_context.md
-curl -sSL "$TEMPLATE_URL/.claude/commands/m_bug.md" -o .claude/commands/m_bug.md
-curl -sSL "$TEMPLATE_URL/.claude/commands/m_feature.md" -o .claude/commands/m_feature.md
-curl -sSL "$TEMPLATE_URL/.claude/commands/m_review.md" -o .claude/commands/m_review.md
-curl -sSL "$TEMPLATE_URL/.claude/commands/m_refactor.md" -o .claude/commands/m_refactor.md
-
-# Handle CLAUDE.md
-if [ -f "CLAUDE.md" ]; then
-    echo -e "${YELLOW}CLAUDE.md already exists${NC}"
-    read -p "Do you want to replace it? (y/N): " REPLACE_CLAUDE
-    if [[ "$REPLACE_CLAUDE" =~ ^[Yy]$ ]]; then
-        mv CLAUDE.md CLAUDE.md.backup
-        curl -sSL "$TEMPLATE_URL/CLAUDE.md" -o CLAUDE.md
-        sed -i.bak \
-            -e "s/{{PROJECT_NAME}}/$PROJECT_NAME/g" \
-            -e "s/{{PROJECT_DESC}}/$PROJECT_DESC/g" \
-            -e "s/{{LANGUAGE}}/$LANG/g" \
-            -e "s/{{FRAMEWORK}}/$FRAMEWORK/g" \
-            CLAUDE.md && rm CLAUDE.md.bak
-        echo -e "${GREEN}Original backed up to CLAUDE.md.backup${NC}"
-    else
-        echo -e "${YELLOW}Skipping CLAUDE.md${NC}"
-    fi
-else
-    curl -sSL "$TEMPLATE_URL/CLAUDE.md" -o CLAUDE.md
-    sed -i.bak \
-        -e "s/{{PROJECT_NAME}}/$PROJECT_NAME/g" \
-        -e "s/{{PROJECT_DESC}}/$PROJECT_DESC/g" \
-        -e "s/{{LANGUAGE}}/$LANG/g" \
-        -e "s/{{FRAMEWORK}}/$FRAMEWORK/g" \
-        CLAUDE.md && rm CLAUDE.md.bak
-fi
-
-# Merge .gitignore intelligently
-if [ -f ".gitignore" ]; then
-    echo -e "${BLUE}Merging .gitignore...${NC}"
-
-    # Add AI SWE specific entries if not present
-    if ! grep -q ".memory_bank/current_tasks.md" .gitignore 2>/dev/null; then
-        echo "" >> .gitignore
-        echo "# AI SWE Memory Bank - Don't ignore the structure, only volatile files" >> .gitignore
-        echo "# .memory_bank/current_tasks.md  # Uncomment if tasks are personal" >> .gitignore
-    fi
-else
-    echo -e "${YELLOW}No .gitignore found, creating one${NC}"
-    cat > .gitignore << 'EOF'
-# AI SWE Memory Bank
-# Most files should be committed to share team knowledge
-# Uncomment to make tasks personal:
-# .memory_bank/current_tasks.md
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Environment
-.env
-.env.local
+Next steps (after running):
+  - Read: <META_ROOT>/README.md
+  - Local dev: ./scripts/dev_stack.sh
+  - Tests: npm run docker:test:backend | npm run docker:test:frontend
+  - SDD: <META_ROOT>/tools/sdd list-specs --json
 EOF
+}
+
+need_cmd() {
+  local cmd="$1"
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "Missing required command: $cmd" >&2
+    return 1
+  fi
+}
+
+repo_root() {
+  git rev-parse --show-toplevel 2>/dev/null
+}
+
+sync_env=1
+setup_sdd=0
+setup_git_hooks=1
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-env-sync) sync_env=0 ;;
+    --setup-sdd) setup_sdd=1 ;;
+    --no-git-hooks) setup_git_hooks=0 ;;
+    -h|--help) usage; exit 0 ;;
+    *)
+      echo "Unknown option: $1" >&2
+      echo >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+need_cmd git
+
+root="$(repo_root || true)"
+if [[ -z "${root:-}" ]]; then
+  echo "Error: not a git repository. Run from the repo root." >&2
+  exit 1
 fi
 
-# Git commit
-echo ""
-echo -e "${GREEN}Creating git commit...${NC}"
+cd "$root"
 
-git add .memory_bank .claude CLAUDE.md .gitignore
+meta_root=""
+shopt -s nullglob dotglob
+for candidate in */ ; do
+  if [[ -f "${candidate}memory_bank/README.md" ]]; then
+    meta_root="${candidate%/}"
+    break
+  fi
+done
+shopt -u nullglob dotglob
 
-if git diff --staged --quiet; then
-    echo -e "${YELLOW}No changes to commit${NC}"
-else
-    git commit -m "feat: Add AI SWE methodology
-
-Added AI Software Engineering development infrastructure to existing project:
-- Memory Bank system (.memory_bank/)
-- Custom slash commands (.claude/commands/)
-- Development workflows
-- Documentation standards
-
-Project: $PROJECT_NAME
-Language: $LANG
-Framework: $FRAMEWORK
-
-🤖 Generated with AI SWE Template
-https://github.com/o2alexanderfedin/ai-swe-template
-" || echo -e "${YELLOW}Commit created (or already exists)${NC}"
+if [[ -z "${meta_root:-}" ]]; then
+  echo "Error: could not find <META_ROOT>/memory_bank/README.md under repo root." >&2
+  exit 1
 fi
 
-echo ""
-echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║      AI SWE Setup Complete! 🎉        ║${NC}"
-echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
-echo ""
-echo "Your project now has:"
-echo "  ✅ Memory Bank system (.memory_bank/)"
-echo "  ✅ Custom slash commands (.claude/commands/)"
-echo "  ✅ Development workflows"
-echo "  ✅ Documentation standards"
-echo ""
-echo "Next steps:"
-echo "  1. Review .memory_bank/product_brief.md"
-echo "  2. Customize .memory_bank/tech_stack.md for your stack"
-echo "  3. Update .memory_bank/current_tasks.md with your tasks"
-echo "  4. In Claude Code, run: /refresh_context"
-echo ""
-echo "Documentation:"
-echo "  - Quick start: https://github.com/o2alexanderfedin/ai-swe-template#readme"
-echo "  - Memory Bank guide: cat .memory_bank/README.md"
-echo ""
-echo -e "${BLUE}Happy coding with AI assistance! 🤖${NC}"
+echo "Repo root: $root"
+echo "Meta root: $meta_root/"
+
+if [[ "$setup_git_hooks" == "1" ]]; then
+  if [[ -x "$meta_root/tools/setup_git_hooks.sh" ]]; then
+    echo
+    echo "Configuring git hooks + commit template..."
+    "$meta_root/tools/setup_git_hooks.sh"
+  else
+    echo "WARN: missing executable $meta_root/tools/setup_git_hooks.sh (skipping git hooks setup)" >&2
+  fi
+fi
+
+if [[ "$sync_env" == "1" ]]; then
+  echo
+  echo "Syncing .env with .env.example (safe: preserves existing values; creates a backup if needed)..."
+  if need_cmd python3; then
+    python3 scripts/sync_env.py --env .env
+  else
+    echo "WARN: python3 not found; skipping .env sync" >&2
+  fi
+fi
+
+if [[ "$setup_sdd" == "1" ]]; then
+  echo
+  echo "Configuring local SDD settings under .claude/ (ignored by git)..."
+  if command -v sdd >/dev/null 2>&1; then
+    sdd skills-dev verify-install --json >/dev/null
+    sdd skills-dev setup-permissions update . --non-interactive --enable-git --no-git-write >/dev/null
+    sdd skills-dev start-helper setup-git-config . --non-interactive --enabled --no-auto-branch --no-auto-commit --no-auto-push --show-files --no-ai-pr >/dev/null
+    sdd skills-dev start-helper ensure-sdd-config . >/dev/null
+    echo "SDD: configured (verify with: $meta_root/tools/sdd find-specs --json)"
+  else
+    echo "WARN: sdd not found; skipping SDD setup. Install SDD toolkit, then rerun with --setup-sdd." >&2
+  fi
+fi
+
+echo
+echo "Done."
+echo "Start here: $meta_root/README.md"

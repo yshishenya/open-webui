@@ -10,9 +10,9 @@ node_modules
 !.env.example
 
 # SDD toolkit (local tool artifacts)
-specs/.backups/
-specs/.reports/
-specs/.human-readable/
+meta/sdd/specs/.backups/
+meta/sdd/specs/.reports/
+meta/sdd/specs/.human-readable/
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 # Byte-compiled / optimized / DLL files
@@ -322,7 +322,7 @@ cypress/screenshots
 .vscode/settings.json
 
 # AI SWE Memory Bank - Don't ignore the structure, only volatile files
-# .memory_bank/current_tasks.md  # Uncomment if tasks are personal
+# meta/memory_bank/current_tasks.md  # Uncomment if tasks are personal
 
 # Local docker client config (do not commit)
 .docker/

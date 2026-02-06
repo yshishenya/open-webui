@@ -1,0 +1,55 @@
+{
+  "spec": "meta/memory_bank/specs/work_items/2026-02-05__feature__yandex-oauth-login.md",
+  "review_type": "security",
+  "date": "2026-02-05",
+  "tooling": {
+    "sdd_cli_available": false,
+    "attempted_command": "sdd list-review-tools",
+    "error": "command not found: sdd",
+    "multi_model_consultation": false
+  },
+  "summary": {
+    "overall_assessment": "Solid minimal-diff approach: add /api/v1 alias endpoints and normalize Yandex userinfo for the shared Authlib OAuth flow.",
+    "top_risks": [
+      "Shared OAuth flow sets token cookie as non-HttpOnly (existing XSS amplification trade-off).",
+      "Redirect URI mismatch between Yandex app config and YANDEX_REDIRECT_URI is likely to break production logins.",
+      "Merge-by-email is a known risk trade-off (existing behavior)."
+    ],
+    "top_gaps": [
+      "No concrete example of Yandex userinfo payload; needed to lock down mapping + tests.",
+      "Avatar mapping decision not finalized (MVP vs follow-up)."
+    ]
+  },
+  "findings": [
+    {
+      "category": "Risk Flags",
+      "priority": "CRITICAL",
+      "title": "Non-HttpOnly token cookie in shared OAuth flow",
+      "recommendation": "Acknowledge as existing platform behavior; avoid adding new injection surfaces; consider follow-up hardening work item."
+    },
+    {
+      "category": "Risk Flags",
+      "priority": "HIGH",
+      "title": "Redirect URI mismatch likely to break login",
+      "recommendation": "Add explicit acceptance criteria and doc checklist that YANDEX_REDIRECT_URI must exactly match Yandex app callback URL."
+    },
+    {
+      "category": "Missing Information",
+      "priority": "HIGH",
+      "title": "No representative Yandex userinfo payload example",
+      "recommendation": "Add a redacted sample response and confirm field names/types (id/default_email/name fields)."
+    },
+    {
+      "category": "Design Concerns",
+      "priority": "HIGH",
+      "title": "Prefer endpoint wiring tests over Authlib integration mocks",
+      "recommendation": "Monkeypatch app.state.oauth_manager methods to validate /api/v1 endpoints delegate to provider='yandex' correctly."
+    },
+    {
+      "category": "Feasibility Questions",
+      "priority": "MEDIUM",
+      "title": "Work is on detached HEAD",
+      "recommendation": "Create a feature branch before implementation per workflow."
+    }
+  ]
+}
