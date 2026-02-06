@@ -54,6 +54,10 @@
 	const handleSelectPackage = (amount: number): void => {
 		if (creatingTopupAmount !== null) return;
 		selectedPackageKopeks = amount;
+		// Ensure selected amount matches what user sees (and avoid custom taking precedence).
+		if (allowCustom) {
+			customTopup = '';
+		}
 		userSelected = true;
 	};
 
@@ -62,9 +66,6 @@
 		const source: 'package' | 'custom' = hasValidCustom ? 'custom' : 'package';
 		userSelected = true;
 		await onTopup(selectedAmountKopeks, source);
-		if (source === 'custom') {
-			customTopup = '';
-		}
 	};
 </script>
 
