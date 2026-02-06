@@ -1,12 +1,12 @@
 {
   "spec_id": "billing-scenarios-2026-02-05-001",
   "generated": "2026-02-05T00:00:00Z",
-  "last_updated": "2026-02-05T15:38:06.053334Z",
+  "last_updated": "2026-02-06T18:32:45.931815Z",
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Billing scenario-based tests (wallet PAYG + topup + lead magnet)",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
@@ -16,7 +16,7 @@
         "phase-5"
       ],
       "total_tasks": 20,
-      "completed_tasks": 16,
+      "completed_tasks": 20,
       "metadata": {
         "work_item_spec": ".memory_bank/specs/work_items/2026-02-05__feature__billing-scenarios-e2e-tests.md",
         "scope": "backend-first; optional minimal UI E2E"
@@ -565,38 +565,45 @@
     "phase-5": {
       "type": "phase",
       "title": "Minimal UI E2E smoke (wallet/topup + lead magnet visibility)",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "phase-5-files",
         "phase-5-verify"
       ],
       "total_tasks": 4,
-      "completed_tasks": 0,
+      "completed_tasks": 4,
       "metadata": {
         "risk": "medium",
         "depends_on": [
           "phase-2"
         ],
-        "optional": false
+        "optional": false,
+        "needs_journaling": false,
+        "completed_at": "2026-02-06T18:32:19.407671Z",
+        "journaled_at": "2026-02-06T18:32:19.413033Z"
       }
     },
     "phase-5-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-5",
       "children": [
         "task-5-1"
       ],
       "total_tasks": 3,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-06T18:29:34.280580Z",
+        "journaled_at": "2026-02-06T18:29:34.285547Z"
+      }
     },
     "task-5-1": {
       "type": "task",
       "title": "e2e/billing_wallet_recovery.spec.ts",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-5-files",
       "children": [
         "task-5-1-1",
@@ -604,7 +611,7 @@
         "task-5-1-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 0,
+      "completed_tasks": 3,
       "metadata": {
         "file_path": "e2e/billing_wallet_recovery.spec.ts",
         "task_category": "implementation",
@@ -614,43 +621,55 @@
     "task-5-1-1": {
       "type": "subtask",
       "title": "Wallet shows insufficient funds UX and top-up CTA",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-5-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-06T18:29:07.167981Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-06T18:29:07.170351Z"
+      }
     },
     "task-5-1-2": {
       "type": "subtask",
       "title": "Top-up initiation uses /api/v1/billing/topup and confirmation_url redirect",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-5-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-06T18:29:27.448971Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-06T18:29:27.451297Z"
+      }
     },
     "task-5-1-3": {
       "type": "subtask",
       "title": "Lead magnet section visible when enabled (contract smoke)",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-5-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-06T18:29:34.280311Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-06T18:29:34.283142Z"
+      }
     },
     "phase-5-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-5",
       "children": [
         "verify-5-1"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "dependencies": {
           "blocked_by": [
@@ -658,29 +677,42 @@
           ],
           "blocks": [],
           "depends": []
-        }
+        },
+        "needs_journaling": false,
+        "completed_at": "2026-02-06T18:32:19.407668Z",
+        "journaled_at": "2026-02-06T18:32:19.411996Z"
       }
     },
     "verify-5-1": {
       "type": "verify",
       "title": "Run E2E billing wallet recovery test",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-5-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
-        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps e2e \"npm ci && npm run test:e2e -- --grep billing wallet recovery\"",
-        "expected": "E2E smoke passes."
+        "command": "docker compose -f ../docker-compose.yaml -f ../docker-compose.dev.yaml -f ../.codex/docker-compose.codex.yaml run --rm --no-deps e2e \"npm ci && npm run test:e2e -- e2e/billing_wallet_recovery.spec.ts\"",
+        "expected": "E2E smoke passes.",
+        "verification_result": {
+          "date": "2026-02-06T18:31:58.384731Z",
+          "status": "PASSED",
+          "command": "automated execution",
+          "output": "\nadded 987 packages, and audited 988 packages in 48s\n\n197 packages are looking for funding\n  run `npm fund` for details\n\n25 vulnerabilities (1 low, 16 moderate, 8 high)\n\nTo address issues that do not require attention, run:\n  npm audit fix\n\nTo address all issues possible (including breaking changes), run:\n  npm audit fix --force\n\nSome issues need review, and may require choosing\na different dependency.\n\nRun `npm audit` for details.\n\n> airis@0.6.41 test:e2e\n> playwright test e2e/billing_wallet_re"
+        },
+        "completed_at": "2026-02-06T18:32:19.407382Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-06T18:32:19.409645Z"
       }
     }
   },
   "metadata": {
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-02-05T15:32:05.441027Z",
-    "progress_percentage": 80,
-    "current_phase": "phase-4"
+    "progress_percentage": 100,
+    "current_phase": "phase-5",
+    "completed_date": "2026-02-06T18:32:45.931389Z"
   },
   "journal": [
     {
@@ -934,6 +966,69 @@
       "content": "All child tasks in phase phase-4 have been completed.",
       "metadata": {},
       "task_id": "phase-4"
+    },
+    {
+      "timestamp": "2026-02-06T18:29:07.170338Z",
+      "entry_type": "status_change",
+      "title": "Wallet recovery: insufficient funds smoke",
+      "author": "Codex",
+      "content": "Updated wallet recovery E2E smoke to assert low-balance UX and presence of a top-up CTA (incl. legal/status stub so the legal gate does not block the test).\\n\\nFiles: e2e/billing_wallet_recovery.spec.ts\\nTests: docker compose e2e playwright (billing_wallet_recovery + subset)",
+      "metadata": {},
+      "task_id": "task-5-1-1"
+    },
+    {
+      "timestamp": "2026-02-06T18:29:27.451285Z",
+      "entry_type": "status_change",
+      "title": "Wallet recovery: top-up initiation wiring",
+      "author": "Codex",
+      "content": "Updated wallet recovery E2E smoke to verify top-up initiation calls /api/v1/billing/topup and follows the returned confirmation_url (no real YooKassa).\\n\\nFiles: e2e/billing_wallet_recovery.spec.ts\\nTests: docker compose e2e playwright (billing_wallet_recovery + subset)",
+      "metadata": {},
+      "task_id": "task-5-1-2"
+    },
+    {
+      "timestamp": "2026-02-06T18:29:34.283130Z",
+      "entry_type": "status_change",
+      "title": "Wallet recovery: lead magnet section visibility",
+      "author": "Codex",
+      "content": "Updated wallet recovery E2E smoke to assert Free limit (lead magnet) section renders when enabled and visible on the wallet page.\\n\\nFiles: e2e/billing_wallet_recovery.spec.ts\\nTests: docker compose e2e playwright (billing_wallet_recovery + subset)",
+      "metadata": {},
+      "task_id": "task-5-1-3"
+    },
+    {
+      "timestamp": "2026-02-06T18:29:34.285542Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "Codex",
+      "content": "All child tasks in group phase-5-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-5-files"
+    },
+    {
+      "timestamp": "2026-02-06T18:32:19.409635Z",
+      "entry_type": "status_change",
+      "title": "Verification: billing wallet recovery E2E",
+      "author": "Codex",
+      "content": "Ran Playwright E2E smoke for billing wallet recovery via docker compose (billing_wallet_recovery.spec.ts). Verification PASSED and recorded in spec.\\n\\nCommand: docker compose ... e2e \"npm ci && npm run test:e2e -- e2e/billing_wallet_recovery.spec.ts\"",
+      "metadata": {},
+      "task_id": "verify-5-1"
+    },
+    {
+      "timestamp": "2026-02-06T18:32:19.411991Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "Codex",
+      "content": "All child tasks in group phase-5-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-5-verify"
+    },
+    {
+      "timestamp": "2026-02-06T18:32:19.413030Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Minimal UI E2E smoke (wallet/topup + lead magnet visibility)",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-5 have been completed.",
+      "metadata": {},
+      "task_id": "phase-5"
     }
   ]
 }
