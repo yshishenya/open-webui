@@ -84,6 +84,18 @@ fi
 echo "Repo root: $root"
 echo "Meta root: $meta_root/"
 
+if [[ -d ".memory_bank" ]]; then
+  echo "WARN: legacy '.memory_bank/' directory exists. Use '$meta_root/memory_bank/' instead." >&2
+fi
+
+if [[ -d "specs" ]]; then
+  if find specs -type f -print -quit 2>/dev/null | grep -q .; then
+    echo "WARN: legacy SDD root 'specs/' exists and contains files. Use '$meta_root/tools/sdd ...' and move SDD specs under '$meta_root/sdd/specs/'." >&2
+  else
+    echo "NOTE: legacy SDD root 'specs/' directory exists (empty). Consider removing it to avoid accidental SDD auto-detection." >&2
+  fi
+fi
+
 if [[ "$setup_git_hooks" == "1" ]]; then
   if [[ -x "$meta_root/tools/setup_git_hooks.sh" ]]; then
     echo

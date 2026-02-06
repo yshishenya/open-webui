@@ -66,7 +66,7 @@ This Memory Bank is the central knowledge repository for the **Airis** project (
   - Unit tests with pytest (Python) and Vitest (TypeScript)
   - Integration tests
   - E2E tests with Playwright
-  - Minimum 80% code coverage
+  - Coverage target: 80%+ on critical paths (prefer meaningful assertions over chasing a number)
 
 #### Fork Docs & Solutions
 
@@ -78,6 +78,8 @@ This Memory Bank is the central knowledge repository for the **Airis** project (
 #### Workflows
 
 Step-by-step instructions for standard tasks. Choose the appropriate workflow for your current task:
+
+- **[Universal AI workflow (reusable)](./guides/universal_ai_workflow.md)**: Project-agnostic best practices for AI-assisted development
 
 - **[New Feature Development](./workflows/new_feature.md)**: Process for adding new features
 
