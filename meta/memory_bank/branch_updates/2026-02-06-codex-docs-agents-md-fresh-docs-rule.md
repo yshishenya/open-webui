@@ -1,0 +1,8 @@
+- [x] **[DOCS]** AGENTS: require fresh library docs before new module/component work
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-06__docs__agents-md-fresh-docs-rule.md`
+  - Owner: Codex
+  - Branch: `codex/docs/agents-md-fresh-docs-rule`
+  - Done: 2026-02-06
+  - Summary: Add an explicit “docs freshness” rule so new work is based on current official online docs and release notes for the repo's dependency versions.
+  - Tests: N/A (docs-only)
+  - Risks: N/A

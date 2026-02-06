@@ -10,16 +10,16 @@ Code for review: $ARGUMENTS.
 
 Execute the following procedure:
 
-1.  Carefully study `.memory_bank/workflows/code_review.md`.
+1.  Carefully study `meta/memory_bank/workflows/code_review.md`.
 2.  Check the code against all checklist items.
 3.  For each violation or issue found:
     - Indicate the specific location (file, line)
     - Explain why this is a problem
     - Suggest a concrete solution
 4.  Verify compliance with:
-    - **[Coding standards](.memory_bank/guides/coding_standards.md)**
-    - **[Architectural patterns](.memory_bank/patterns/)**
-    - **[Technology stack](.memory_bank/tech_stack.md)**
+    - **[Coding standards](meta/memory_bank/guides/coding_standards.md)**
+    - **[Architectural patterns](meta/memory_bank/patterns/)**
+    - **[Technology stack](meta/memory_bank/tech_stack.md)**
 5.  Provide a final report:
     - ✅ What was done well
     - ⚠️ What needs improvement

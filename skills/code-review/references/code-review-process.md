@@ -294,7 +294,7 @@
 
 ### 6.3 Test Execution
 
-- [ ] All tests pass (Docker Compose-first in this repo): see `.memory_bank/guides/testing_strategy.md`
+- [ ] All tests pass (Docker Compose-first in this repo): see `meta/memory_bank/guides/testing_strategy.md`
 - [ ] No warnings in tests
 - [ ] Tests execute quickly (<5 minutes for entire suite)
 

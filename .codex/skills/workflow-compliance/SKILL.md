@@ -10,8 +10,8 @@ description: Ensure Codex follows project workflows and task-update rules (Memor
 - If unclear, ask before making changes.
 
 ## Mandatory reads
-- Read `.memory_bank/README.md` and follow its reading sequence.
-- Load the relevant workflow file from `.memory_bank/workflows/`.
+- Read `meta/memory_bank/README.md` and follow its reading sequence.
+- Load the relevant workflow file from `meta/memory_bank/workflows/`.
 
 ## Execution gate
 - If any mandatory step cannot be completed, stop and ask for confirmation.
@@ -21,8 +21,8 @@ description: Ensure Codex follows project workflows and task-update rules (Memor
 - In the final response, include a short checklist: Completed / Pending.
 
 ## Task updates
-- Follow `.memory_bank/guides/task_updates.md`.
-- Do not edit `.memory_bank/current_tasks.md` on feature/bugfix branches.
+- Follow `meta/memory_bank/guides/task_updates.md`.
+- Do not edit `meta/memory_bank/current_tasks.md` on feature/bugfix branches.
 
 ## Verification
 - List required tests from the chosen workflow and whether they were run.

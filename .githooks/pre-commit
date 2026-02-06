@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Guardrail: keep process artifacts consolidated under meta/.
+# This prevents accidental re-introduction of legacy roots (e.g. from running raw `sdd`).
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+staged_paths="$(git diff --cached --name-only --diff-filter=ACMR || true)"
+if [[ -z "${staged_paths:-}" ]]; then
+  exit 0
+fi
+
+bad=0
+while IFS= read -r path; do
+  case "$path" in
+    .memory_bank/*)
+      echo "ERROR: refusing to commit legacy '.memory_bank/' paths." >&2
+      echo "       Use 'meta/memory_bank/' instead." >&2
+      bad=1
+      ;;
+    specs/pending/*|specs/active/*|specs/completed/*|specs/.backups/*|specs/.reports/*|specs/.reviews/*|specs/.fidelity-reviews/*|specs/.human-readable/*)
+      echo "ERROR: refusing to commit legacy SDD root 'specs/' paths." >&2
+      echo "       Use 'meta/sdd/specs/' and run SDD via 'meta/tools/sdd ...'." >&2
+      bad=1
+      ;;
+  esac
+done <<<"$staged_paths"
+
+if [[ "$bad" -ne 0 ]]; then
+  echo >&2
+  echo "Fix: move files under meta/ and update references. Start here: meta/README.md" >&2
+  exit 1
+fi
+
+exit 0
