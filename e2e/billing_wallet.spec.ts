@@ -53,6 +53,16 @@ const userInfoResponse = {
 
 test.describe('Billing Wallet', () => {
 	test.beforeEach(async ({ page }) => {
+		await page.route('**/api/v1/legal/status', async (route) => {
+			await route.fulfill({
+				json: {
+					needs_accept: false,
+					docs: [],
+					accepted: {}
+				}
+			});
+		});
+
 		await page.route('**/api/v1/billing/balance', async (route) => {
 			await route.fulfill({ json: balanceResponse });
 		});
@@ -112,7 +122,8 @@ test.describe('Billing Wallet', () => {
 
 		const topupSection = page.locator('#topup-section');
 		const topupRequest = page.waitForRequest('**/api/v1/billing/topup');
-		await topupSection.locator('button').first().click();
+		await topupSection.getByRole('button').first().click();
+		await topupSection.getByRole('button', { name: 'Proceed to payment' }).click();
 		await topupRequest;
 
 		await expect(page).toHaveURL(/\/billing\/balance\?topup=1/);
@@ -140,15 +151,31 @@ test.describe('Billing Wallet', () => {
 		await page.getByText('Email').locator('xpath=..').locator('input').fill('ops@example.com');
 		await page.getByText('Phone').locator('xpath=..').locator('input').fill('+7 999 123-45-67');
 
-		const updateRequest = page.waitForRequest('**/api/v1/billing/settings');
-		const preferencesSection = page.getByText('Spend controls').locator('xpath=..');
-		await preferencesSection.getByRole('button', { name: 'Save' }).click();
-		const request = await updateRequest;
-		const body = JSON.parse(request.postData() ?? '{}');
+		const spendControlsSection = page.getByText('Spend controls').locator('xpath=..');
+		const contactsSection = page.getByText('Contacts for receipts').locator('xpath=..');
 
-		expect(body).toEqual({
+		const limitsRequest = page.waitForRequest('**/api/v1/billing/settings');
+		const limitsResponse = page.waitForResponse('**/api/v1/billing/settings');
+		await spendControlsSection.getByRole('button', { name: 'Save' }).click();
+		const limitsReq = await limitsRequest;
+		await limitsResponse;
+		const limitsBody = JSON.parse(limitsReq.postData() ?? '{}');
+
+		expect(limitsBody).toEqual({
 			max_reply_cost_kopeks: 12500,
-			daily_cap_kopeks: 25000,
+			daily_cap_kopeks: 25000
+		});
+
+		await expect(contactsSection.getByRole('button', { name: 'Save' })).toBeEnabled();
+
+		const contactsRequest = page.waitForRequest('**/api/v1/billing/settings');
+		const contactsResponse = page.waitForResponse('**/api/v1/billing/settings');
+		await contactsSection.getByRole('button', { name: 'Save' }).click();
+		const contactsReq = await contactsRequest;
+		await contactsResponse;
+		const contactsBody = JSON.parse(contactsReq.postData() ?? '{}');
+
+		expect(contactsBody).toEqual({
 			billing_contact_email: 'ops@example.com',
 			billing_contact_phone: '+7 999 123-45-67'
 		});

@@ -402,14 +402,6 @@
 		}
 	};
 
-	const handleCustomTopup = async (): Promise<void> => {
-		if (customTopupKopeks === null || customTopupKopeks <= 0) {
-			return;
-		}
-		await handleTopup(customTopupKopeks, 'custom');
-		customTopup = '';
-	};
-
 	const handleSaveAutoTopup = async (): Promise<void> => {
 		if (!balance) return;
 		savingAutoTopup = true;
@@ -434,7 +426,23 @@
 				amount_kopeks: autoTopupEnabled ? amount : null
 			});
 			toast.success($i18n.t('Auto-topup settings saved'));
-			await loadBalance({ showLoader: false });
+			autoTopupBaseline = {
+				enabled: autoTopupEnabled,
+				threshold: autoTopupThreshold,
+				amount: autoTopupAmount
+			};
+			// Avoid wiping other unsaved inputs (contacts/limits) by reloading the whole page state.
+			// Balance is updated optimistically; a full refresh will still reconcile with backend state.
+			balance = {
+				...balance,
+				auto_topup_enabled: autoTopupEnabled,
+				auto_topup_threshold_kopeks: autoTopupEnabled
+					? (threshold ?? balance.auto_topup_threshold_kopeks)
+					: balance.auto_topup_threshold_kopeks,
+				auto_topup_amount_kopeks: autoTopupEnabled
+					? (amount ?? balance.auto_topup_amount_kopeks)
+					: balance.auto_topup_amount_kopeks
+			};
 		} catch (error) {
 			console.error('Failed to update auto-topup:', error);
 			toast.error($i18n.t('Failed to update auto-topup'));
@@ -488,7 +496,23 @@
 
 			await updateBillingSettings(localStorage.token, payload);
 			toast.success($i18n.t('Billing settings saved'));
-			await loadBalance({ showLoader: false });
+			if (source === 'limits') {
+				limitsBaseline = { maxReplyCost, dailyCap };
+				balance = {
+					...balance,
+					max_reply_cost_kopeks:
+						typeof payload.max_reply_cost_kopeks === 'number' ||
+						payload.max_reply_cost_kopeks === null
+							? payload.max_reply_cost_kopeks
+							: balance.max_reply_cost_kopeks,
+					daily_cap_kopeks:
+						typeof payload.daily_cap_kopeks === 'number' || payload.daily_cap_kopeks === null
+							? payload.daily_cap_kopeks
+							: balance.daily_cap_kopeks
+				};
+			} else {
+				contactsBaseline = { email: contactEmail, phone: contactPhone };
+			}
 		} catch (error) {
 			console.error('Failed to update billing settings:', error);
 			toast.error($i18n.t('Failed to update billing settings'));
@@ -530,6 +554,11 @@
 
 	const scrollToTopup = () => {
 		const target = document.getElementById('topup-section');
+		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	};
+
+	const scrollToFreeLimit = () => {
+		const target = document.getElementById('free-limit-section');
 		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 	};
 
@@ -633,6 +662,25 @@
 			?.filter((model) => model.info?.meta?.lead_magnet)
 			.map((model) => ({ id: model.id, name: model.name ?? model.id })) ?? [];
 	const leadMagnetModelsReady = true;
+	$: leadMagnetHasRemaining = (() => {
+		if (!leadMagnetInfo?.enabled) return false;
+
+		// Prefer server-provided remaining, but keep a local fallback for robustness.
+		const remaining = (leadMagnetInfo.remaining ?? {}) as Record<string, number | undefined>;
+		if (Object.values(remaining).some((value) => typeof value === 'number' && value > 0)) {
+			return true;
+		}
+
+		const quotas = (leadMagnetInfo.quotas ?? {}) as Record<string, number | undefined>;
+		const usage = (leadMagnetInfo.usage ?? {}) as Record<string, number | undefined>;
+		return Object.entries(quotas).some(([key, limit]) => {
+			if (typeof limit !== 'number' || limit <= 0) return false;
+			const used = usage[key] ?? 0;
+			return limit - used > 0;
+		});
+	})();
+	$: freeUsageAvailable =
+		Boolean(leadMagnetInfo?.enabled) && leadMagnetHasRemaining;
 </script>
 
 <svelte:head>
@@ -768,14 +816,25 @@
 						<div class="text-sm text-gray-500 mt-1">
 							{$i18n.t('Top up and control spending')}
 						</div>
-						<button
-							type="button"
-							class="mt-1 inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
-							on:click={openHowItWorks}
-						>
-							<InfoCircle className="size-4" />
-							<span>{$i18n.t('How billing works')}</span>
-						</button>
+						<div class="mt-1 flex flex-wrap items-center gap-3">
+							<button
+								type="button"
+								class="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
+								on:click={openHowItWorks}
+							>
+								<InfoCircle className="size-4" />
+								<span>{$i18n.t('How billing works')}</span>
+							</button>
+							<a
+								href="/pricing"
+								target="_blank"
+								rel="noreferrer"
+								class="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
+								on:click={() => trackEvent('billing_wallet_pricing_click')}
+							>
+								<span>{$i18n.t('Pricing')}</span>
+							</a>
+						</div>
 					</div>
 					<div class="flex items-center gap-2">
 						{#if returnTo}
@@ -837,12 +896,24 @@
 					</div>
 					{#if isLowBalance}
 						<div class="text-xs text-amber-700 dark:text-amber-300 mt-2">
-							{$i18n.t('Top up to keep working')}
+							{#if freeUsageAvailable}
+								{$i18n.t('Wallet is low but free limit is available')}{' '}
+								<button
+									type="button"
+									class="underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100 transition"
+									on:click={scrollToFreeLimit}
+								>
+									{$i18n.t('Free limit')}
+								</button>
+							{:else}
+								{$i18n.t('Top up to keep working')}
+							{/if}
 						</div>
 					{/if}
 				</div>
 			</div>
 
+			<div class={`grid gap-4 ${leadMagnetInfo?.enabled ? 'lg:grid-cols-2' : ''}`}>
 			<WalletTopupSection
 				currency={balance.currency}
 				defaultPackages={topupPackages}
@@ -853,16 +924,16 @@
 				bind:customTopup
 				customTopupKopeks={customTopupKopeks}
 				onTopup={handleTopup}
-				onCustomTopup={handleCustomTopup}
 			/>
 
-			{#if leadMagnetInfo?.enabled}
-				<WalletLeadMagnetSection
-					leadMagnetInfo={leadMagnetInfo as LeadMagnetInfo}
-					models={leadMagnetModels}
-					modelsReady={leadMagnetModelsReady}
-				/>
-			{/if}
+				{#if leadMagnetInfo?.enabled}
+					<WalletLeadMagnetSection
+						leadMagnetInfo={leadMagnetInfo as LeadMagnetInfo}
+						models={leadMagnetModels}
+						modelsReady={leadMagnetModelsReady}
+					/>
+				{/if}
+			</div>
 
 			<div id="advanced-settings-section">
 				<WalletAdvancedSettings

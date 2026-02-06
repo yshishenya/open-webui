@@ -116,7 +116,7 @@ test.describe('Billing wallet recovery (smoke)', () => {
 
 		await expect(page.getByRole('heading', { name: 'Wallet' })).toBeVisible();
 		await expect(page.getByText('Low balance')).toBeVisible();
-		await expect(page.getByText('Top up to keep working')).toBeVisible();
+		await expect(page.getByText('Wallet balance is low. Free limit:')).toBeVisible();
 		const heroHeading = page.getByRole('heading', { name: 'Wallet' });
 		const heroRow = heroHeading.locator('xpath=../../..');
 		await expect(heroRow.getByRole('button', { name: 'Top up' })).toBeVisible();
@@ -126,7 +126,8 @@ test.describe('Billing wallet recovery (smoke)', () => {
 
 		const topupSection = page.locator('#topup-section');
 		const topupRequest = page.waitForRequest('**/api/v1/billing/topup');
-		await topupSection.locator('button').first().click();
+		await topupSection.getByRole('button').first().click();
+		await topupSection.getByRole('button', { name: 'Proceed to payment' }).click();
 
 		const request = await topupRequest;
 		const body = JSON.parse(request.postData() ?? '{}');

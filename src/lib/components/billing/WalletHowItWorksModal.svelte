@@ -30,6 +30,8 @@
 
 		<ul class="mt-4 space-y-2 text-sm text-gray-700 dark:text-gray-200 list-disc pl-5">
 			<li>{$i18n.t('Top up your balance and pay only for usage')}</li>
+			<li>{$i18n.t('Free limit applies to select models')}</li>
+			<li>{$i18n.t('After the free limit ends, usage is charged from your wallet')}</li>
 			<li>{$i18n.t('Payments are processed by YooKassa')}</li>
 			<li>{$i18n.t('Use limits and auto-topup to control spending')}</li>
 			<li>{$i18n.t("We don't store card details")}</li>
@@ -59,4 +61,3 @@
 		</div>
 	</div>
 </Modal>
-
