@@ -141,6 +141,9 @@ async def get_headers_and_cookies(
     metadata: Optional[dict] = None,
     user: UserModel = None,
 ):
+    config_value = config if isinstance(config, dict) else {}
+    config = config_value
+
     cookies = {}
     headers = {
         "Content-Type": "application/json",
@@ -366,10 +369,11 @@ async def speech(request: Request, user=Depends(get_verified_user)):
 
         url = request.app.state.config.OPENAI_API_BASE_URLS[idx]
         key = request.app.state.config.OPENAI_API_KEYS[idx]
-        api_config = request.app.state.config.OPENAI_API_CONFIGS.get(
+        api_config_value = request.app.state.config.OPENAI_API_CONFIGS.get(
             str(idx),
             request.app.state.config.OPENAI_API_CONFIGS.get(url, {}),  # Legacy support
         )
+        api_config = api_config_value if isinstance(api_config_value, dict) else {}
 
         headers, cookies = await get_headers_and_cookies(
             request, url, key, api_config, user=user
@@ -471,12 +475,13 @@ async def get_all_models_responses(request: Request, user: UserModel) -> list:
                 )
             )
         else:
-            api_config = request.app.state.config.OPENAI_API_CONFIGS.get(
+            api_config_value = request.app.state.config.OPENAI_API_CONFIGS.get(
                 str(idx),
                 request.app.state.config.OPENAI_API_CONFIGS.get(
                     url, {}
                 ),  # Legacy support
             )
+            api_config = api_config_value if isinstance(api_config_value, dict) else {}
 
             enable = api_config.get("enable", True)
             model_ids = api_config.get("model_ids", [])
@@ -516,12 +521,13 @@ async def get_all_models_responses(request: Request, user: UserModel) -> list:
     for idx, response in enumerate(responses):
         if response:
             url = request.app.state.config.OPENAI_API_BASE_URLS[idx]
-            api_config = request.app.state.config.OPENAI_API_CONFIGS.get(
+            api_config_value = request.app.state.config.OPENAI_API_CONFIGS.get(
                 str(idx),
                 request.app.state.config.OPENAI_API_CONFIGS.get(
                     url, {}
                 ),  # Legacy support
             )
+            api_config = api_config_value if isinstance(api_config_value, dict) else {}
 
             connection_type = api_config.get("connection_type", "external")
             prefix_id = api_config.get("prefix_id", None)
@@ -652,10 +658,11 @@ async def get_models(
         url = request.app.state.config.OPENAI_API_BASE_URLS[url_idx]
         key = request.app.state.config.OPENAI_API_KEYS[url_idx]
 
-        api_config = request.app.state.config.OPENAI_API_CONFIGS.get(
+        api_config_value = request.app.state.config.OPENAI_API_CONFIGS.get(
             str(url_idx),
             request.app.state.config.OPENAI_API_CONFIGS.get(url, {}),  # Legacy support
         )
+        api_config = api_config_value if isinstance(api_config_value, dict) else {}
 
         r = None
         async with aiohttp.ClientSession(
@@ -1017,12 +1024,13 @@ async def generate_chat_completion(
         )
 
     # Get the API config for the model
-    api_config = request.app.state.config.OPENAI_API_CONFIGS.get(
+    api_config_value = request.app.state.config.OPENAI_API_CONFIGS.get(
         str(idx),
         request.app.state.config.OPENAI_API_CONFIGS.get(
             request.app.state.config.OPENAI_API_BASE_URLS[idx], {}
         ),  # Legacy support
     )
+    api_config = api_config_value if isinstance(api_config_value, dict) else {}
 
     prefix_id = api_config.get("prefix_id", None)
     if prefix_id:
@@ -1186,10 +1194,11 @@ async def embeddings(request: Request, form_data: dict, user):
 
     url = request.app.state.config.OPENAI_API_BASE_URLS[idx]
     key = request.app.state.config.OPENAI_API_KEYS[idx]
-    api_config = request.app.state.config.OPENAI_API_CONFIGS.get(
+    api_config_value = request.app.state.config.OPENAI_API_CONFIGS.get(
         str(idx),
         request.app.state.config.OPENAI_API_CONFIGS.get(url, {}),  # Legacy support
     )
+    api_config = api_config_value if isinstance(api_config_value, dict) else {}
 
     r = None
     session = None
@@ -1255,12 +1264,13 @@ async def proxy(path: str, request: Request, user=Depends(get_verified_user)):
     idx = 0
     url = request.app.state.config.OPENAI_API_BASE_URLS[idx]
     key = request.app.state.config.OPENAI_API_KEYS[idx]
-    api_config = request.app.state.config.OPENAI_API_CONFIGS.get(
+    api_config_value = request.app.state.config.OPENAI_API_CONFIGS.get(
         str(idx),
         request.app.state.config.OPENAI_API_CONFIGS.get(
             request.app.state.config.OPENAI_API_BASE_URLS[idx], {}
         ),  # Legacy support
     )
+    api_config = api_config_value if isinstance(api_config_value, dict) else {}
 
     r = None
     session = None
