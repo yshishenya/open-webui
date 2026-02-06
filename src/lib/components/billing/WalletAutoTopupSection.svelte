@@ -9,6 +9,8 @@
 	export let autoTopupThreshold = '';
 	export let autoTopupAmount = '';
 	export let savingAutoTopup = false;
+	export let dirty = false;
+	export let paymentMethodSaved = false;
 	export let autoTopupFailCount: number | null = null;
 	export let autoTopupLastFailedAt: number | null = null;
 	export let onSave: () => void;
@@ -44,6 +46,18 @@
 		</div>
 	{/if}
 
+	{#if autoTopupEnabled && !paymentMethodSaved}
+		<div class="mb-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+			{$i18n.t('Enable auto-topup, then make one top-up to save your payment method')}
+			<span class="mx-1">•</span>
+			{$i18n.t("We don't store card details")}.
+		</div>
+	{:else if autoTopupEnabled && paymentMethodSaved}
+		<div class="mb-3 text-xs text-emerald-700 dark:text-emerald-300">
+			{$i18n.t('Payment method is saved for auto-topup')}
+		</div>
+	{/if}
+
 	<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 		<label class="flex flex-col gap-1 text-sm">
 			<span class="text-gray-500">{$i18n.t('Threshold')}</span>
@@ -54,7 +68,7 @@
 				inputmode="decimal"
 				placeholder={$i18n.t('0.00…')}
 				bind:value={autoTopupThreshold}
-				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
+				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
 				disabled={!autoTopupEnabled}
 			/>
 		</label>
@@ -67,34 +81,40 @@
 				inputmode="decimal"
 				placeholder={$i18n.t('0.00…')}
 				bind:value={autoTopupAmount}
-				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
+				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
 				disabled={!autoTopupEnabled}
 			/>
 		</label>
 	</div>
 
 	<div class="flex items-center justify-between mt-3">
-		<div class="text-xs text-gray-500">
-			{$i18n.t('Failed attempts')}: {autoTopupFailCount ?? 0}
-		</div>
+		{#if (autoTopupFailCount ?? 0) > 0}
+			<div class="text-xs text-gray-500">
+				{$i18n.t('Failed attempts')}: {autoTopupFailCount ?? 0}
+			</div>
+		{:else}
+			<div></div>
+		{/if}
 		<button
 			type="button"
 			on:click={onSave}
-			disabled={savingAutoTopup}
-			class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+			disabled={savingAutoTopup || !dirty}
+			class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
 		>
 			{#if savingAutoTopup}
-					<div class="flex items-center gap-2">
-						<Spinner className="size-4" />
-						<span>{$i18n.t('Saving…')}</span>
-					</div>
+				<div class="flex items-center gap-2">
+					<Spinner className="size-4" />
+					<span>{$i18n.t('Saving…')}</span>
+				</div>
 			{:else}
 				{$i18n.t('Save')}
 			{/if}
 		</button>
 	</div>
 
-	<div class="text-xs text-gray-500 mt-2">
-		{$i18n.t('Last failed')}: {formatDateTime(autoTopupLastFailedAt)}
-	</div>
+	{#if (autoTopupFailCount ?? 0) > 0}
+		<div class="text-xs text-gray-500 mt-2">
+			{$i18n.t('Last failed')}: {formatDateTime(autoTopupLastFailedAt)}
+		</div>
+	{/if}
 </div>

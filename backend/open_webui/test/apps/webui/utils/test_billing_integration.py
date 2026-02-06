@@ -380,6 +380,9 @@ class TestBillingIntegration(AbstractPostgresTest):
         detail = exc.value.detail
         assert isinstance(detail, dict)
         assert detail["error"] == "insufficient_funds"
+        assert detail["available_kopeks"] == 0
+        assert detail["required_kopeks"] == called["required"]
+        assert detail["currency"] == "RUB"
         assert detail["auto_topup_status"] == "created"
         assert detail["auto_topup_payment_id"] == "pay_auto"
 
@@ -939,6 +942,9 @@ class TestBillingIntegration(AbstractPostgresTest):
 
         assert exc.value.status_code == 402
         assert exc.value.detail["error"] == "insufficient_funds"
+        assert exc.value.detail["available_kopeks"] == 0
+        assert exc.value.detail["required_kopeks"] is not None
+        assert exc.value.detail["currency"] == "RUB"
         assert exc.value.detail["auto_topup_status"] == "pending"
         assert "auto_topup_payment_id" not in exc.value.detail
 

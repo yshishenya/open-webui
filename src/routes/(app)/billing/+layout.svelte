@@ -5,14 +5,40 @@
 	import { goto } from '$app/navigation';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
+	import ChatBubbles from '$lib/components/icons/ChatBubbles.svelte';
+	import { sanitizeReturnTo } from '$lib/utils/airis/return_to';
 
 	const i18n = getContext('i18n');
 
 	let loaded = false;
 	let subscriptionsEnabled = true;
+	let returnTo: string | null = null;
 
 	$: subscriptionsEnabled = $config?.features?.enable_billing_subscriptions ?? true;
 	$: isAdmin = $user?.role === 'admin';
+	$: returnTo = sanitizeReturnTo($page.url.searchParams.get('return_to'));
+
+	const buildBillingHref = (pathname: string): string => {
+		if (!returnTo) return pathname;
+		const params = new URLSearchParams();
+		params.set('return_to', returnTo);
+		return `${pathname}?${params.toString()}`;
+	};
+
+	const handleReturnToClick = async (event: MouseEvent): Promise<void> => {
+		if (!returnTo) return;
+		if (
+			event.metaKey ||
+			event.ctrlKey ||
+			event.shiftKey ||
+			event.altKey ||
+			event.button !== 0
+		) {
+			return;
+		}
+		event.preventDefault();
+		await goto(returnTo);
+	};
 
 	onMount(async () => {
 		if (!$user) {
@@ -68,7 +94,7 @@
 							$page.url.pathname === '/billing/settings'
 								? ''
 								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
-							href="/billing/balance"
+							href={buildBillingHref('/billing/balance')}
 						>
 							{$i18n.t('Wallet')}
 						</a>
@@ -77,7 +103,7 @@
 							class="min-w-fit p-1.5 {$page.url.pathname === '/billing/history'
 								? ''
 								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
-							href="/billing/history"
+							href={buildBillingHref('/billing/history')}
 						>
 							{$i18n.t('History')}
 						</a>
@@ -87,13 +113,27 @@
 								class="min-w-fit p-1.5 {$page.url.pathname === '/billing/plans'
 									? ''
 									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
-								href="/billing/plans"
+								href={buildBillingHref('/billing/plans')}
 							>
 								{$i18n.t('Plans')}
 							</a>
 						{/if}
 					</div>
 				</div>
+
+				{#if returnTo}
+					<div class="ml-auto">
+						<a
+							href={returnTo}
+							on:click={handleReturnToClick}
+							class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
+						>
+							<ChatBubbles className="size-4" />
+							<span class="hidden sm:inline">{$i18n.t('Back to chat')}</span>
+							<span class="sm:hidden">{$i18n.t('Back')}</span>
+						</a>
+					</div>
+				{/if}
 			</div>
 		</nav>
 

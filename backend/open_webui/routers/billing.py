@@ -29,6 +29,9 @@ from open_webui.models.billing import (
     LedgerEntries,
     LedgerEntryModel,
     PlanModel,
+    PaymentKind,
+    PaymentStatus,
+    Payments,
     SubscriptionModel,
     UsageEventModel,
     UsageEvents,
@@ -226,11 +229,13 @@ class BalanceResponse(BaseModel):
     max_reply_cost_kopeks: Optional[int] = None
     daily_cap_kopeks: Optional[int] = None
     daily_spent_kopeks: int
+    daily_reset_at: Optional[int] = None
     auto_topup_enabled: bool = False
     auto_topup_threshold_kopeks: Optional[int] = None
     auto_topup_amount_kopeks: Optional[int] = None
     auto_topup_fail_count: int = 0
     auto_topup_last_failed_at: Optional[int] = None
+    auto_topup_payment_method_saved: bool = False
     currency: str
 
 
@@ -340,6 +345,11 @@ async def get_balance(user=Depends(get_verified_user)):
 
     try:
         wallet = wallet_service.get_or_create_wallet(user.id, BILLING_DEFAULT_CURRENCY)
+        latest_payment_with_method = Payments.get_latest_payment_with_method(
+            wallet.id,
+            status=PaymentStatus.SUCCEEDED.value,
+            kind=PaymentKind.TOPUP.value,
+        )
         return BalanceResponse(
             balance_topup_kopeks=wallet.balance_topup_kopeks,
             balance_included_kopeks=wallet.balance_included_kopeks,
@@ -347,11 +357,13 @@ async def get_balance(user=Depends(get_verified_user)):
             max_reply_cost_kopeks=wallet.max_reply_cost_kopeks,
             daily_cap_kopeks=wallet.daily_cap_kopeks,
             daily_spent_kopeks=wallet.daily_spent_kopeks,
+            daily_reset_at=wallet.daily_reset_at,
             auto_topup_enabled=wallet.auto_topup_enabled,
             auto_topup_threshold_kopeks=wallet.auto_topup_threshold_kopeks,
             auto_topup_amount_kopeks=wallet.auto_topup_amount_kopeks,
             auto_topup_fail_count=wallet.auto_topup_fail_count,
             auto_topup_last_failed_at=wallet.auto_topup_last_failed_at,
+            auto_topup_payment_method_saved=latest_payment_with_method is not None,
             currency=wallet.currency,
         )
     except WalletError as e:
@@ -485,9 +497,22 @@ async def update_billing_settings(
 
     wallet = wallet_service.get_or_create_wallet(user.id, BILLING_DEFAULT_CURRENCY)
     updates: Dict[str, object] = {}
-    if request.max_reply_cost_kopeks is not None:
+    if "max_reply_cost_kopeks" in request.model_fields_set:
+        if (
+            request.max_reply_cost_kopeks is not None
+            and request.max_reply_cost_kopeks < 0
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="max_reply_cost_kopeks must be non-negative",
+            )
         updates["max_reply_cost_kopeks"] = request.max_reply_cost_kopeks
-    if request.daily_cap_kopeks is not None:
+    if "daily_cap_kopeks" in request.model_fields_set:
+        if request.daily_cap_kopeks is not None and request.daily_cap_kopeks < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="daily_cap_kopeks must be non-negative",
+            )
         updates["daily_cap_kopeks"] = request.daily_cap_kopeks
 
     if updates:
@@ -499,9 +524,9 @@ async def update_billing_settings(
             )
 
     contact_updates: Dict[str, object] = {}
-    if request.billing_contact_email is not None:
+    if "billing_contact_email" in request.model_fields_set:
         contact_updates["billing_contact_email"] = request.billing_contact_email
-    if request.billing_contact_phone is not None:
+    if "billing_contact_phone" in request.model_fields_set:
         contact_updates["billing_contact_phone"] = request.billing_contact_phone
 
     if contact_updates:

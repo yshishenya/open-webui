@@ -33,6 +33,7 @@ type MockSet = {
 	createTopupMock: ReturnType<typeof vi.fn>;
 	getBalanceMock: ReturnType<typeof vi.fn>;
 	getLeadMagnetInfoMock: ReturnType<typeof vi.fn>;
+	getPublicPricingConfigMock: ReturnType<typeof vi.fn>;
 	getLedgerMock: ReturnType<typeof vi.fn>;
 	getUsageEventsMock: ReturnType<typeof vi.fn>;
 	updateAutoTopupMock: ReturnType<typeof vi.fn>;
@@ -68,6 +69,7 @@ const mocks: MockSet = vi.hoisted(() => {
 		createTopupMock: vi.fn().mockResolvedValue({ confirmation_url: '/billing/balance' }),
 		getBalanceMock: vi.fn(),
 		getLeadMagnetInfoMock: vi.fn().mockResolvedValue({ enabled: false }),
+		getPublicPricingConfigMock: vi.fn().mockResolvedValue(null),
 		getLedgerMock: vi.fn().mockResolvedValue([]),
 		getUsageEventsMock: vi.fn().mockResolvedValue([]),
 		updateAutoTopupMock: vi.fn().mockResolvedValue({ status: 'ok' }),
@@ -96,6 +98,7 @@ vi.mock(
 		createTopup: mocks.createTopupMock,
 		getBalance: mocks.getBalanceMock,
 		getLeadMagnetInfo: mocks.getLeadMagnetInfoMock,
+		getPublicPricingConfig: mocks.getPublicPricingConfigMock,
 		getLedger: mocks.getLedgerMock,
 		getUsageEvents: mocks.getUsageEventsMock,
 		updateAutoTopup: mocks.updateAutoTopupMock,
@@ -144,6 +147,7 @@ describe('Billing balance page', () => {
 	beforeEach(() => {
 		mocks.getBalanceMock.mockReset();
 		mocks.getLeadMagnetInfoMock.mockReset().mockResolvedValue({ enabled: false });
+		mocks.getPublicPricingConfigMock.mockReset().mockResolvedValue(null);
 		mocks.getUserInfoMock.mockReset().mockResolvedValue({
 			billing_contact_email: '',
 			billing_contact_phone: ''

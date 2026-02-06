@@ -62,6 +62,10 @@
 		setTextWithRetries,
 		shouldIncludeUsage
 	} from '$lib/utils/airis/chat';
+	import {
+		parseBillingBlockedDetail,
+		type BillingBlockedDetail
+	} from '$lib/utils/airis/billing_block';
 	import { AudioQueue } from '$lib/utils/audio';
 
 	import {
@@ -103,6 +107,7 @@
 	import Tooltip from '../common/Tooltip.svelte';
 	import Sidebar from '../icons/Sidebar.svelte';
 	import Image from '../common/Image.svelte';
+	import BillingBlockedModal from '$lib/components/airis/BillingBlockedModal.svelte';
 
 	export let chatIdProp = '';
 
@@ -127,6 +132,12 @@
 	let eventConfirmationInputPlaceholder = '';
 	let eventConfirmationInputValue = '';
 	let eventCallback = null;
+
+	let billingBlockedOpen = false;
+	let billingBlockedDetail: BillingBlockedDetail | null = null;
+	$: if (!billingBlockedOpen && billingBlockedDetail) {
+		billingBlockedDetail = null;
+	}
 
 	let chatIdUnsubscriber: Unsubscriber | undefined;
 
@@ -2021,6 +2032,30 @@
 		).catch(async (error) => {
 			console.log(error);
 
+			const billingBlocked = parseBillingBlockedDetail(error);
+			if (billingBlocked) {
+				billingBlockedDetail = billingBlocked;
+				billingBlockedOpen = true;
+
+				const inlineMessage =
+					billingBlocked.error === 'insufficient_funds'
+						? $i18n.t('Top up to keep working')
+						: billingBlocked.error === 'daily_cap_exceeded'
+							? $i18n.t('Daily cap reached')
+							: $i18n.t('Max reply cost limit reached');
+
+				responseMessage.error = {
+					content: inlineMessage
+				};
+
+				responseMessage.done = true;
+
+				history.messages[responseMessageId] = responseMessage;
+				history.currentId = responseMessageId;
+
+				return null;
+			}
+
 			let errorMessage = error;
 			if (error?.error?.message) {
 				errorMessage = error.error.message;
@@ -2418,6 +2453,12 @@
 	on:cancel={() => {
 		eventCallback(false);
 	}}
+/>
+
+<BillingBlockedModal
+	bind:open={billingBlockedOpen}
+	detail={billingBlockedDetail}
+	returnTo={(chatIdProp || $chatId) ? `/c/${chatIdProp || $chatId}` : null}
 />
 
 <div

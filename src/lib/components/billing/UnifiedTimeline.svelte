@@ -40,6 +40,8 @@
 	export let currency: string | null = null;
 	export let syncFilterWithUrl = false;
 	export let onFilterChange: (filter: FilterKey) => void = () => {};
+	export let emptyActionLabel: string | null = null;
+	export let onEmptyAction: () => void = () => {};
 
 	let loading = true;
 	let loadingMore = false;
@@ -378,8 +380,19 @@
 		</button>
 	</div>
 {:else if !visibleItems.length}
-	<div class="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">
-		{$i18n.t('No recent activity')}
+	<div class="flex flex-col items-center justify-center py-8 text-center">
+		<div class="text-sm text-gray-500 dark:text-gray-400">
+			{$i18n.t('No recent activity')}
+		</div>
+		{#if emptyActionLabel}
+			<button
+				type="button"
+				on:click={onEmptyAction}
+				class="mt-3 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
+			>
+				{emptyActionLabel}
+			</button>
+		{/if}
 	</div>
 {:else}
 	<div class="space-y-2">

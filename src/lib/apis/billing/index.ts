@@ -50,11 +50,13 @@ export interface Balance {
 	max_reply_cost_kopeks?: number | null;
 	daily_cap_kopeks?: number | null;
 	daily_spent_kopeks: number;
+	daily_reset_at?: number | null;
 	auto_topup_enabled?: boolean;
 	auto_topup_threshold_kopeks?: number | null;
 	auto_topup_amount_kopeks?: number | null;
 	auto_topup_fail_count?: number;
 	auto_topup_last_failed_at?: number | null;
+	auto_topup_payment_method_saved?: boolean;
 	currency: string;
 }
 
