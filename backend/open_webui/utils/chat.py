@@ -63,6 +63,8 @@ from open_webui.utils.billing_integration import (
 
 from open_webui.env import GLOBAL_LOG_LEVEL, BYPASS_MODEL_ACCESS_CONTROL
 
+from open_webui.utils.airis.direct_ack import DirectAckContext, coerce_direct_ack
+
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)
@@ -83,6 +85,8 @@ async def generate_direct_chat_completion(
     request_id = str(uuid.uuid4())  # Generate a unique request ID
 
     event_caller = get_event_call(metadata)
+    if event_caller is None:
+        raise Exception("Direct connection is unavailable (missing session context).")
 
     channel = f"{user_id}:{session_id}:{request_id}"
     logging.info(f"WebSocket channel: {channel}")
@@ -111,6 +115,8 @@ async def generate_direct_chat_completion(
                 },
             }
         )
+
+        res = coerce_direct_ack(res, context=DirectAckContext(request_id=request_id, channel=channel))
 
         log.info(f"res: {res}")
 
@@ -160,6 +166,8 @@ async def generate_direct_chat_completion(
                 },
             }
         )
+
+        res = coerce_direct_ack(res, context=DirectAckContext(request_id=request_id, channel=channel))
 
         if "error" in res and res["error"]:
             raise Exception(res["error"])

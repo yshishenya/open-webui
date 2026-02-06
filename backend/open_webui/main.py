@@ -1833,13 +1833,18 @@ async def chat_completion(
             if metadata.get("chat_id") and metadata.get("message_id"):
                 # Update the chat message with the error
                 try:
+                    from open_webui.utils.airis.task_error_payload import (
+                        build_task_ws_error_payload,
+                    )
+
+                    ws_error = build_task_ws_error_payload(e) or {"content": str(e)}
                     if not metadata["chat_id"].startswith("local:"):
                         Chats.upsert_message_to_chat_by_id_and_message_id(
                             metadata["chat_id"],
                             metadata["message_id"],
                             {
                                 "parentId": metadata.get("parent_message_id", None),
-                                "error": {"content": str(e)},
+                                "error": ws_error,
                             },
                         )
 
@@ -1847,7 +1852,7 @@ async def chat_completion(
                     await event_emitter(
                         {
                             "type": "chat:message:error",
-                            "data": {"error": {"content": str(e)}},
+                            "data": {"error": ws_error},
                         }
                     )
                     await event_emitter(
