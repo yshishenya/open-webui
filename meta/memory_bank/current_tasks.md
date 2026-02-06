@@ -20,8 +20,24 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[REFACTOR][DOCS][SDD]** Consolidate Airis docs + plans + specs under `meta/`
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-06__refactor__airis-docs-sdd-consolidation.md`
+  - Owner: Codex
+  - Done: 2026-02-06
+  - Summary: Move Memory Bank, SDD specs, Airis docs, and process scripts into `meta/`; add SDD wrapper + guardrails; fix path references.
+  - Tests: `python3 meta/tools/check_markdown_links.py`, `meta/tools/sdd find-specs --json`, `meta/tools/sdd list-specs --json`, `meta/tools/sdd schema --json`
+  - Risks: Medium (large mechanical move; mitigated by wrapper + link checking + grep).
+
+- [x] **[DOCS]** AGENTS: require fresh library docs before new module/component work
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-06__docs__agents-md-fresh-docs-rule.md`
+  - Owner: Codex
+  - Done: 2026-02-06
+  - Summary: Add an explicit "docs freshness" rule so new work is based on current official online docs and release notes for the repo's dependency versions.
+  - Tests: N/A (docs-only)
+  - Risks: N/A
+
 - [x] **[REVIEW]** Code review fixes (auth/telegram): legal gating + redirect hardening
-  - Spec: `.memory_bank/specs/work_items/2026-02-06__bugfix__code-review-fixes-recent-commits.md`
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-06__bugfix__code-review-fixes-recent-commits.md`
   - Owner: Codex
   - Done: 2026-02-06
   - Summary: Fix issues found in latest commits: enforce Terms/Privacy acceptance for Telegram signup and sanitize `redirect` to prevent open redirects.
