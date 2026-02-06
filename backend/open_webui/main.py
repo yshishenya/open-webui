@@ -1829,7 +1829,16 @@ async def chat_completion(
             finally:
                 raise  # re-raise to ensure proper task cancellation handling
         except Exception as e:
-            log.debug(f"Error processing chat payload: {e}")
+            # This runs in a background task when async chat processing is enabled.
+            # Use exception-level logging so production operators can see a traceback
+            # (access logs alone will show 200 for the task creation request).
+            log.exception(
+                "Chat background task failed (chat_id=%s message_id=%s model=%s direct=%s)",
+                metadata.get("chat_id"),
+                metadata.get("message_id"),
+                form_data.get("model"),
+                metadata.get("direct"),
+            )
             if metadata.get("chat_id") and metadata.get("message_id"):
                 # Update the chat message with the error
                 try:
