@@ -66,6 +66,7 @@
 		parseBillingBlockedDetail,
 		type BillingBlockedDetail
 	} from '$lib/utils/airis/billing_block';
+	import { parseWsBillingBlockedDetail } from '$lib/utils/airis/ws_billing_block';
 	import { AudioQueue } from '$lib/utils/audio';
 
 	import {
@@ -400,7 +401,23 @@
 				} else if (type === 'chat:message:embeds' || type === 'embeds') {
 					message.embeds = data.embeds;
 				} else if (type === 'chat:message:error') {
-					message.error = data.error;
+					const billingBlocked = parseWsBillingBlockedDetail(data?.error);
+					if (billingBlocked) {
+						billingBlockedDetail = billingBlocked;
+						billingBlockedOpen = true;
+
+						const inlineMessage =
+							billingBlocked.error === 'insufficient_funds'
+								? $i18n.t('Top up to keep working')
+								: billingBlocked.error === 'daily_cap_exceeded'
+									? $i18n.t('Daily cap reached')
+									: $i18n.t('Max reply cost limit reached');
+
+						message.error = { content: inlineMessage };
+						message.done = true;
+					} else {
+						message.error = data.error;
+					}
 				} else if (type === 'chat:message:follow_ups') {
 					message.followUps = data.follow_ups;
 
