@@ -202,22 +202,24 @@
 		}
 	};
 
-	const closeAuth = (): void => {
-		// Make /auth feel like a modal, but avoid navigating back into OAuth/provider pages.
-		try {
-			const referrer = typeof document !== 'undefined' ? document.referrer : '';
-			const isSameOrigin =
-				typeof window !== 'undefined' &&
-				Boolean(referrer) &&
-				referrer.startsWith(window.location.origin);
+		const closeAuth = (): void => {
+			// Make /auth feel like a modal, but avoid navigating into OAuth/provider pages.
+			try {
+				const referrer = typeof document !== 'undefined' ? document.referrer : '';
+				if (typeof window !== 'undefined' && referrer) {
+					const refUrl = new URL(referrer);
+					const isSameOrigin = refUrl.origin === window.location.origin;
+					const refPath = refUrl.pathname;
+					const isOauthHop = refPath.startsWith('/oauth/') || refPath.startsWith('/api/v1/oauth/');
 
-			if (isSameOrigin && typeof window !== 'undefined' && window.history.length > 1) {
-				window.history.back();
-				return;
+					if (isSameOrigin && !isOauthHop) {
+						goto(`${refUrl.pathname}${refUrl.search}${refUrl.hash}`);
+						return;
+					}
+				}
+			} catch {
+				// Fall through to a safe close target.
 			}
-		} catch {
-			// Fall through to a safe close target.
-		}
 
 		goto('/welcome');
 	};
@@ -398,9 +400,7 @@
 											<div
 												class="text-[2rem] sm:text-[2.15rem] font-semibold tracking-tight leading-[1.05] animate-[fade-up_650ms_ease-out_both]"
 											>
-												{$i18n.t('Sign in')} {$i18n.t('or')}
-												<br />
-												{$i18n.t('Sign up')}
+												{$i18n.t('Sign in or sign up')}
 											</div>
 											<div class="mt-3 text-sm text-white/60 animate-[fade-up_650ms_ease-out_80ms_both]">
 												{$i18n.t('Select an auth method')}
@@ -780,9 +780,9 @@
 												{#if mode === 'signup'}
 													{$i18n.t('This may take a minute')}
 												{:else if mode === 'ldap'}
-													{$i18n.t('Username')} {$i18n.t('and')} {$i18n.t('Password')}
+													{$i18n.t('Username and Password')}
 												{:else}
-													{$i18n.t('Email')} {$i18n.t('and')} {$i18n.t('Password')}
+													{$i18n.t('Email and Password')}
 												{/if}
 											</div>
 										</div>

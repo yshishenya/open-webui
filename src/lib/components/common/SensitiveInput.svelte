@@ -29,8 +29,8 @@
 		{autocomplete}
 		required={required && !readOnly}
 		disabled={readOnly}
-		on:change={(e) => {
-			value = e.target.value;
+		on:input={(e) => {
+			value = (e.target as HTMLInputElement).value;
 		}}
 	/>
 	<button
