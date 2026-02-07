@@ -1,0 +1,8 @@
+- [ ] **[BUG]** Guard chat middleware against `null` model capabilities
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-07__bugfix__model-info-null-capabilities-guards.md`
+  - Owner: Codex
+  - Branch: `bugfix/chat-direct-ack-billing-block`
+  - Started: 2026-02-07
+  - Summary: Prevent `NoneType.get` in background chat task when model `info/meta/capabilities` contains JSON nulls in prod DB.
+  - Tests: `pytest -q open_webui/test/util/test_safe_get.py (docker)`
+  - Risks: Low (read-path only; defaults preserve existing behavior).
