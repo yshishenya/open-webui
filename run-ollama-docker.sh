@@ -16,4 +16,6 @@ fi
 
 docker run $docker_args
 
-docker image prune -f
+if [ "${AIRIS_PRUNE_IMAGES:-false}" = "true" ]; then
+    docker image prune -f
+fi

@@ -20,7 +20,14 @@ const config = {
 		// poll for new version name every 60 seconds (to trigger reload mechanic in +layout.svelte)
 		version: {
 			name: (() => {
+				if (process.env.APP_BUILD_HASH) return process.env.APP_BUILD_HASH;
+
 				try {
+					// Avoid noisy build warnings in environments where `.git` is not present
+					// (e.g. Docker build contexts that exclude it).
+					if (!fs.existsSync(new URL('./.git', import.meta.url))) {
+						throw new Error('Missing .git directory');
+					}
 					return child_process.execSync('git rev-parse HEAD').toString().trim();
 				} catch {
 					// if git is not available, fallback to package.json version

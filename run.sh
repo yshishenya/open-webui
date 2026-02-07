@@ -16,4 +16,6 @@ docker run -d -p "$host_port":"$container_port" \
     --restart always \
     "$image_name"
 
-docker image prune -f
+if [ "${AIRIS_PRUNE_IMAGES:-false}" = "true" ]; then
+    docker image prune -f
+fi
