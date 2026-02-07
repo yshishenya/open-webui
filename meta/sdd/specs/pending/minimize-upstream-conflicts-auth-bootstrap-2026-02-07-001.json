@@ -1,0 +1,648 @@
+{
+  "spec_id": "minimize-upstream-conflicts-auth-bootstrap-2026-02-07-001",
+  "generated": "2026-02-07T00:00:00Z",
+  "last_updated": "2026-02-07T22:16:01.435938Z",
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Minimize upstream conflict surface (auths/main bootstrap hooks)",
+      "status": "pending",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4"
+      ],
+      "total_tasks": 22,
+      "completed_tasks": 0,
+      "metadata": {
+        "work_item_spec": "meta/memory_bank/specs/work_items/2026-02-07__refactor__minimize-upstream-conflicts-auth-bootstrap.md",
+        "context": {
+          "date": "2026-02-07",
+          "problem": "Large Airis-specific diffs in upstream-owned auths.py and main.py increase merge-conflict risk during upstream sync."
+        },
+        "acceptance_criteria": [
+          "Telegram auth endpoints remain available under /api/v1/auths/telegram/* with unchanged behavior.",
+          "Email verification and password reset endpoints remain under the same /api/v1/auths/* paths with unchanged behavior.",
+          "/api/config response remains backward compatible for Airis UI (telegram section, billing feature flags, VK/Telegram oauth provider metadata).",
+          "Upstream-owned files auths.py and main.py become thin hooks; most Airis logic is moved to fork-owned modules.",
+          "Backend tests covering auth flows pass."
+        ],
+        "upstream_impact": {
+          "upstream_owned_files_touched": [
+            "backend/open_webui/routers/auths.py",
+            "backend/open_webui/main.py"
+          ],
+          "minimization_strategy": "Prefer additive Airis modules and thin hooks (include_router + single bootstrap/config extender calls)."
+        }
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Baseline And Safety Net",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-1-files",
+        "phase-1-verify"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-1-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Capture baseline diffs + endpoint inventory (no behavior change)",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "task_category": "investigation",
+        "notes": [
+          "Record current diff stats for auths.py and main.py vs upstream/main.",
+          "List Airis-specific endpoints that must remain unchanged after extraction."
+        ]
+      }
+    },
+    "phase-1-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [
+        "verify-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "dependencies": {
+          "blocks": [],
+          "blocked_by": [
+            "phase-1-files"
+          ],
+          "depends": []
+        }
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Run baseline backend auth tests (targeted)",
+      "status": "pending",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e DATABASE_URL= airis bash -lc \"pytest -q open_webui/test/apps/webui/routers/test_auths.py open_webui/test/util/test_telegram_auth.py\"",
+        "expected": "Targeted auth tests pass on baseline before refactor."
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Extract Airis Auth Routers",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-2-files",
+        "phase-2-verify"
+      ],
+      "total_tasks": 11,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-2-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [
+        "task-2-1",
+        "task-2-2",
+        "task-2-3",
+        "task-2-4"
+      ],
+      "total_tasks": 8,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "backend/open_webui/routers/airis/__init__.py",
+      "status": "pending",
+      "parent": "phase-2-files",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "backend/open_webui/routers/airis/__init__.py",
+        "task_category": "implementation"
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "backend/open_webui/routers/airis/telegram_auth.py",
+      "status": "pending",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-2-1",
+        "task-2-2-2",
+        "task-2-2-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "backend/open_webui/routers/airis/telegram_auth.py",
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-2-1": {
+      "type": "subtask",
+      "title": "Move /telegram/state endpoint and state storage helpers",
+      "status": "pending",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-2-2-2": {
+      "type": "subtask",
+      "title": "Move /telegram/signin + /telegram/signup endpoints (preserve behavior)",
+      "status": "pending",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-2-2-3": {
+      "type": "subtask",
+      "title": "Move /telegram/link endpoints (preserve behavior and permissions)",
+      "status": "pending",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-2-3": {
+      "type": "task",
+      "title": "backend/open_webui/routers/airis/password_reset.py",
+      "status": "pending",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-3-1",
+        "task-2-3-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "backend/open_webui/routers/airis/password_reset.py",
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-3-1": {
+      "type": "subtask",
+      "title": "Move email verification endpoints (/verify-email, /resend-verification)",
+      "status": "pending",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-2-3-2": {
+      "type": "subtask",
+      "title": "Move password reset endpoints (/request-password-reset, /validate-reset-token/{token}, /reset-password)",
+      "status": "pending",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-2-4": {
+      "type": "task",
+      "title": "backend/open_webui/routers/auths.py",
+      "status": "pending",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-4-1",
+        "task-2-4-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "backend/open_webui/routers/auths.py",
+        "task_category": "refactoring"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-4-1": {
+      "type": "subtask",
+      "title": "Remove large Telegram block and include Airis Telegram router (thin hook)",
+      "status": "pending",
+      "parent": "task-2-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-2-4-2": {
+      "type": "subtask",
+      "title": "Remove password reset/email verification endpoints and include Airis router (thin hook)",
+      "status": "pending",
+      "parent": "task-2-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-2-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [
+        "verify-2-1",
+        "verify-2-2",
+        "verify-2-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {
+        "dependencies": {
+          "blocks": [],
+          "blocked_by": [
+            "phase-2-files"
+          ],
+          "depends": []
+        }
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Run auth router tests",
+      "status": "pending",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e DATABASE_URL= airis bash -lc \"pytest -q open_webui/test/apps/webui/routers/test_auths.py\"",
+        "expected": "Auth router tests pass after extraction."
+      }
+    },
+    "verify-2-2": {
+      "type": "verify",
+      "title": "Run Telegram auth unit tests",
+      "status": "pending",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e DATABASE_URL= airis bash -lc \"pytest -q open_webui/test/util/test_telegram_auth.py\"",
+        "expected": "Telegram auth unit tests pass after extraction."
+      }
+    },
+    "verify-2-3": {
+      "type": "verify",
+      "title": "Manual smoke: verify /api/v1/auths/telegram/state is reachable",
+      "status": "pending",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "manual",
+        "expected": "Endpoint returns 200 + state when Telegram auth enabled; 404 when disabled.",
+        "command": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Extract Airis App Bootstrap And /api/config Extension",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-3-files",
+        "phase-3-verify"
+      ],
+      "total_tasks": 6,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-3-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [
+        "task-3-1",
+        "task-3-2"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "backend/open_webui/utils/airis/app_bootstrap.py",
+      "status": "pending",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-1-1",
+        "task-3-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "backend/open_webui/utils/airis/app_bootstrap.py",
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-1-1": {
+      "type": "subtask",
+      "title": "Implement bootstrap_airis(app) to register Airis-only routers (lazy imports)",
+      "status": "pending",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-3-1-2": {
+      "type": "subtask",
+      "title": "Implement extend_airis_app_config(payload, request) to inject telegram/billing/oauth provider metadata",
+      "status": "pending",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": "backend/open_webui/main.py",
+      "status": "pending",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-2-1",
+        "task-3-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "backend/open_webui/main.py",
+        "task_category": "refactoring"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-2-1": {
+      "type": "subtask",
+      "title": "Replace direct Airis router includes with bootstrap_airis(app) call",
+      "status": "pending",
+      "parent": "task-3-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-3-2-2": {
+      "type": "subtask",
+      "title": "Refactor /api/config to build upstream payload first, then call extend_airis_app_config(...)",
+      "status": "pending",
+      "parent": "task-3-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-3-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [
+        "verify-3-1",
+        "verify-3-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "dependencies": {
+          "blocks": [],
+          "blocked_by": [
+            "phase-3-files"
+          ],
+          "depends": []
+        }
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Run targeted config/auth tests after bootstrap extraction",
+      "status": "pending",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e DATABASE_URL= airis bash -lc \"pytest -q open_webui/test/apps/webui/routers/test_auths.py open_webui/test/apps/webui/routers/test_legal.py\"",
+        "expected": "Auth + legal tests pass after bootstrap/config refactor."
+      }
+    },
+    "verify-3-2": {
+      "type": "verify",
+      "title": "Manual smoke: /api/config includes telegram + billing fields expected by UI",
+      "status": "pending",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "manual",
+        "expected": "Payload includes oauth.providers.* extensions, telegram.enabled/bot_username, and features.enable_billing_subscriptions.",
+        "command": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-4": {
+      "type": "phase",
+      "title": "Diff Audit And Final Verification",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-4-files",
+        "phase-4-verify"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-4-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [
+        "task-4-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-1": {
+      "type": "task",
+      "title": "Finalize work item docs and record diff reduction evidence",
+      "status": "pending",
+      "parent": "phase-4-files",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "task_category": "investigation",
+        "notes": [
+          "Update work item spec with measured diff stats and verification results.",
+          "Update branch_updates entry (tests run, risks)."
+        ]
+      }
+    },
+    "phase-4-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [
+        "verify-4-1",
+        "verify-4-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "dependencies": {
+          "blocks": [],
+          "blocked_by": [
+            "phase-4-files"
+          ],
+          "depends": []
+        }
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-4-1": {
+      "type": "verify",
+      "title": "Run full backend test suite",
+      "status": "pending",
+      "parent": "phase-4-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "npm run docker:test:backend",
+        "expected": "Full backend tests pass."
+      }
+    },
+    "verify-4-2": {
+      "type": "verify",
+      "title": "Measure diff reduction vs upstream for main.py + auths.py",
+      "status": "pending",
+      "parent": "phase-4-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "git diff --numstat upstream/main...HEAD backend/open_webui/routers/auths.py backend/open_webui/main.py",
+        "expected": "Deltas for auths.py and main.py are materially smaller after extraction."
+      }
+    }
+  }
+}
