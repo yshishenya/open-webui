@@ -324,5 +324,12 @@ cypress/screenshots
 # AI SWE Memory Bank - Don't ignore the structure, only volatile files
 # meta/memory_bank/current_tasks.md  # Uncomment if tasks are personal
 
+# Qoder artifacts (generated docs / notes; keep repo lean and reduce upstream sync noise)
+.qoder/repowiki/
+.qoder/quests/
+
+# SDD toolkit local artifacts (repo uses meta/sdd/specs as source of truth)
+specs/
+
 # Local docker client config (do not commit)
 .docker/
