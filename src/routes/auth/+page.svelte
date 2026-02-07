@@ -357,13 +357,13 @@
 							class="absolute inset-0 pointer-events-none bg-[radial-gradient(600px_420px_at_15%_0%,rgba(255,255,255,0.10),transparent),radial-gradient(700px_500px_at_85%_110%,rgba(255,255,255,0.06),transparent)]"
 						></div>
 
-						<button
-							type="button"
-							class="absolute top-4 right-4 size-10 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
-							on:click={closeAuth}
-							disabled={submitting || oauthRedirectingTo !== null}
-							aria-label={$i18n.t('Close')}
-						>
+							<button
+								type="button"
+								class="absolute top-4 right-4 size-10 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+								on:click={closeAuth}
+								disabled={submitting || oauthRedirectingTo !== null || telegramLoading}
+								aria-label={$i18n.t('Close')}
+							>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								viewBox="0 0 24 24"
@@ -393,18 +393,18 @@
 								</div>
 							{/if}
 
-								{#if panel === 'choice'}
-									<div class="text-center">
-										<div
-											class="text-[2rem] sm:text-[2.15rem] font-semibold tracking-tight leading-[1.05] animate-[fade-up_650ms_ease-out_both]"
-										>
-											{$i18n.t('Войти или')}
-											<br />
-											{$i18n.t('зарегистрироваться')}
-										</div>
-										<div class="mt-3 text-sm text-white/55 animate-[fade-up_650ms_ease-out_80ms_both]">
-											{$i18n.t('используя социальную сеть')}
-										</div>
+									{#if panel === 'choice'}
+										<div class="text-center">
+											<div
+												class="text-[2rem] sm:text-[2.15rem] font-semibold tracking-tight leading-[1.05] animate-[fade-up_650ms_ease-out_both]"
+											>
+												{$i18n.t('Sign in')} {$i18n.t('or')}
+												<br />
+												{$i18n.t('Sign up')}
+											</div>
+											<div class="mt-3 text-sm text-white/60 animate-[fade-up_650ms_ease-out_80ms_both]">
+												{$i18n.t('Select an auth method')}
+											</div>
 
 									<div
 										class="mt-5 flex justify-center text-white/70 animate-[fade-up_650ms_ease-out_140ms_both]"
@@ -426,23 +426,27 @@
 									</div>
 								</div>
 
-								<div class="mt-6 space-y-3 animate-[fade-up_650ms_ease-out_200ms_both]">
-									{#if yandexEnabled}
-										<button
-											type="button"
-											class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/6 hover:bg-white/10 transition flex items-center px-4 gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
-											on:click={() => startSocialLogin('yandex')}
-											disabled={oauthRedirectingTo !== null || submitting}
-										>
-											<span
-												class="size-10 rounded-full bg-[#FC3F1D] flex items-center justify-center font-extrabold text-white"
-												aria-hidden="true"
-												>Я</span
+									<div class="mt-6 space-y-3 animate-[fade-up_650ms_ease-out_200ms_both]">
+										{#if yandexEnabled}
+											<button
+												type="button"
+												class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center px-4 gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+												on:click={() => startSocialLogin('yandex')}
+												disabled={oauthRedirectingTo !== null || submitting}
 											>
-											<span class="text-sm font-semibold">{$i18n.t('Войти через Яндекс')}</span>
-											<span class="ml-auto text-white/70">
-												{#if oauthRedirectingTo === 'yandex'}
-													<Spinner className="size-4" />
+												<span
+													class="size-10 rounded-full bg-[#FC3F1D] flex items-center justify-center font-extrabold text-white"
+													aria-hidden="true"
+													>Я</span
+												>
+												<span class="text-sm font-semibold"
+													>{$i18n.t('Continue with {{provider}}', {
+														provider: $i18n.t('Yandex')
+													})}</span
+												>
+												<span class="ml-auto text-white/70">
+													{#if oauthRedirectingTo === 'yandex'}
+														<Spinner className="size-4" />
 												{:else}
 													<svg
 														xmlns="http://www.w3.org/2000/svg"
@@ -463,8 +467,8 @@
 										</button>
 									{/if}
 
-									{#if vkEnabled}
-										{#if vkIdEnabled}
+										{#if vkEnabled}
+											{#if vkIdEnabled}
 											<div
 												class="w-full rounded-[22px] overflow-hidden border border-white/10 bg-white/5"
 											>
@@ -476,22 +480,24 @@
 													oauthList={[]}
 												/>
 											</div>
-										{:else}
-											<button
-												type="button"
-												class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/6 hover:bg-white/10 transition flex items-center px-4 gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
-												on:click={() => startSocialLogin('vk')}
-												disabled={oauthRedirectingTo !== null || submitting}
-											>
+											{:else}
+												<button
+													type="button"
+													class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center px-4 gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+													on:click={() => startSocialLogin('vk')}
+													disabled={oauthRedirectingTo !== null || submitting}
+												>
 												<span
 													class="size-10 rounded-full bg-[#0077FF] flex items-center justify-center font-extrabold text-white"
 													aria-hidden="true"
-													>VK</span
-												>
-												<span class="text-sm font-semibold">{$i18n.t('Войти через VK')}</span>
-												<span class="ml-auto text-white/70">
-													{#if oauthRedirectingTo === 'vk'}
-														<Spinner className="size-4" />
+														>VK</span
+													>
+													<span class="text-sm font-semibold"
+														>{$i18n.t('Continue with {{provider}}', { provider: 'VK' })}</span
+													>
+													<span class="ml-auto text-white/70">
+														{#if oauthRedirectingTo === 'vk'}
+															<Spinner className="size-4" />
 													{:else}
 														<svg
 															xmlns="http://www.w3.org/2000/svg"
@@ -513,28 +519,30 @@
 										{/if}
 									{/if}
 
-									{#if githubEnabled}
-										<button
-											type="button"
-											class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/6 hover:bg-white/10 transition flex items-center px-4 gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
-											on:click={() => startSocialLogin('github')}
-											disabled={oauthRedirectingTo !== null || submitting}
-										>
-											<span
-												class="size-10 rounded-full bg-white/8 border border-white/10 flex items-center justify-center text-white"
-												aria-hidden="true"
+										{#if githubEnabled}
+											<button
+												type="button"
+												class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center px-4 gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+												on:click={() => startSocialLogin('github')}
+												disabled={oauthRedirectingTo !== null || submitting}
 											>
+												<span
+													class="size-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white"
+													aria-hidden="true"
+												>
 												<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="size-5">
 													<path
 														fill="currentColor"
 														d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.92 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57C20.565 21.795 24 17.31 24 12c0-6.63-5.37-12-12-12z"
 													/>
-												</svg>
-											</span>
-											<span class="text-sm font-semibold">{$i18n.t('Войти через GitHub')}</span>
-											<span class="ml-auto text-white/70">
-												{#if oauthRedirectingTo === 'github'}
-													<Spinner className="size-4" />
+													</svg>
+												</span>
+												<span class="text-sm font-semibold"
+													>{$i18n.t('Continue with {{provider}}', { provider: 'GitHub' })}</span
+												>
+												<span class="ml-auto text-white/70">
+													{#if oauthRedirectingTo === 'github'}
+														<Spinner className="size-4" />
 												{:else}
 													<svg
 														xmlns="http://www.w3.org/2000/svg"
@@ -562,31 +570,31 @@
 													{$i18n.t('Telegram')}
 												</div>
 												<div class="flex items-center gap-1">
-													<button
-														type="button"
-														class={`px-3 py-1 rounded-full text-[0.7rem] font-semibold transition border ${
-															telegramMode === 'signin'
-																? 'bg-white text-black border-white/20'
-																: 'bg-white/0 text-white/70 border-white/15 hover:bg-white/8 hover:text-white'
-														}`}
-														on:click={() => {
-															telegramMode = 'signin';
-														}}
-														disabled={telegramLoading}
-													>
-														{$i18n.t('Sign in')}
-													</button>
-													{#if signupEnabled}
 														<button
 															type="button"
 															class={`px-3 py-1 rounded-full text-[0.7rem] font-semibold transition border ${
-																telegramMode === 'signup'
+																telegramMode === 'signin'
 																	? 'bg-white text-black border-white/20'
-																	: 'bg-white/0 text-white/70 border-white/15 hover:bg-white/8 hover:text-white'
+																	: 'bg-white/0 text-white/70 border-white/20 hover:bg-white/10 hover:text-white'
 															}`}
 															on:click={() => {
-																telegramMode = 'signup';
+																telegramMode = 'signin';
 															}}
+															disabled={telegramLoading}
+														>
+															{$i18n.t('Sign in')}
+														</button>
+														{#if signupEnabled}
+															<button
+																type="button"
+																class={`px-3 py-1 rounded-full text-[0.7rem] font-semibold transition border ${
+																	telegramMode === 'signup'
+																		? 'bg-white text-black border-white/20'
+																		: 'bg-white/0 text-white/70 border-white/20 hover:bg-white/10 hover:text-white'
+																}`}
+																on:click={() => {
+																	telegramMode = 'signup';
+																}}
 															disabled={telegramLoading}
 														>
 															{$i18n.t('Sign up')}
@@ -595,19 +603,35 @@
 												</div>
 											</div>
 
-											{#if telegramMode === 'signup'}
-												<div class="mt-3 flex items-start gap-2 text-xs text-white/55">
-													<input
-														id="telegram-legal-accept"
-														type="checkbox"
-														bind:checked={legalAccepted}
-														class="mt-0.5 size-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/15"
-													/>
-													<label for="telegram-legal-accept" class="leading-relaxed">
-														{$i18n.t('You must accept the terms and privacy policy')}
-													</label>
-												</div>
-											{/if}
+												{#if telegramMode === 'signup'}
+													<div class="mt-3 flex items-start gap-2 text-xs text-white/60">
+														<input
+															id="telegram-legal-accept"
+															type="checkbox"
+															bind:checked={legalAccepted}
+															class="mt-0.5 size-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/20"
+														/>
+														<label for="telegram-legal-accept" class="leading-relaxed">
+															{$i18n.t('I accept the')}
+															<a
+																href="/terms"
+																target="_blank"
+																rel="noreferrer"
+																class="text-white/90 font-semibold hover:underline"
+																>{$i18n.t('Terms of Service')}</a
+															>
+															{$i18n.t('and')}
+															<a
+																href="/privacy"
+																target="_blank"
+																rel="noreferrer"
+																class="text-white/90 font-semibold hover:underline"
+																>{$i18n.t('Privacy Policy')}</a
+															>
+															.
+														</label>
+													</div>
+												{/if}
 
 											<div class="mt-3 flex justify-center">
 												<TelegramLoginWidget
@@ -628,33 +652,33 @@
 									{/if}
 								</div>
 
-								{#if passwordAuthEnabled}
-									<div class="mt-6 flex items-center gap-3 animate-[fade-up_650ms_ease-out_260ms_both]">
-										<div class="h-px flex-1 bg-white/10"></div>
-										<div class="text-xs font-semibold tracking-widest text-white/35">
-											{$i18n.t('ИЛИ')}
+									{#if passwordAuthEnabled}
+										<div class="mt-6 flex items-center gap-3 animate-[fade-up_650ms_ease-out_260ms_both]">
+											<div class="h-px flex-1 bg-white/10"></div>
+											<div class="text-xs font-semibold uppercase tracking-widest text-white/40">
+												{$i18n.t('or')}
+											</div>
+											<div class="h-px flex-1 bg-white/10"></div>
 										</div>
-										<div class="h-px flex-1 bg-white/10"></div>
-									</div>
 
-									<div class="mt-5 space-y-3 animate-[fade-up_650ms_ease-out_320ms_both]">
-										<button
-											type="button"
-											class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/6 hover:bg-white/10 transition flex items-center justify-center gap-3 px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
-											on:click={() => {
-												panel = 'email';
-												mode = ($config?.onboarding ?? false)
-													? 'signup'
-													: $config?.features.enable_ldap
-														? 'ldap'
-														: 'signin';
-											}}
-											disabled={oauthRedirectingTo !== null || submitting}
-										>
-											<span
-												class="size-10 rounded-full bg-white/8 border border-white/10 flex items-center justify-center text-white/85"
-												aria-hidden="true"
+										<div class="mt-5 space-y-3 animate-[fade-up_650ms_ease-out_320ms_both]">
+											<button
+												type="button"
+												class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center gap-3 px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+												on:click={() => {
+													panel = 'email';
+													mode = ($config?.onboarding ?? false)
+														? 'signup'
+														: $config?.features.enable_ldap
+															? 'ldap'
+															: 'signin';
+												}}
+												disabled={oauthRedirectingTo !== null || submitting}
 											>
+												<span
+													class="size-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white/90"
+													aria-hidden="true"
+												>
 												<svg
 													xmlns="http://www.w3.org/2000/svg"
 													viewBox="0 0 24 24"
@@ -668,57 +692,57 @@
 												>
 													<rect x="3" y="5" width="18" height="14" rx="2" />
 													<path d="m3 7 9 6 9-6" />
-												</svg>
-											</span>
-											<span class="text-sm font-semibold">{$i18n.t('Через эл.почту')}</span>
-										</button>
+													</svg>
+												</span>
+												<span class="text-sm font-semibold">{$i18n.t('Continue with Email')}</span>
+											</button>
 
-										<button
-											type="button"
-											class="w-full text-center text-sm font-semibold text-white/55 hover:text-white/85 transition underline underline-offset-4 decoration-white/20 hover:decoration-white/40"
-											on:click={() => {
-												panel = 'email';
-												mode = $config?.features.enable_ldap ? 'ldap' : 'signin';
-											}}
-											disabled={oauthRedirectingTo !== null || submitting}
-										>
-											{$i18n.t('У меня есть логин/пароль')}
-										</button>
-									</div>
-								{/if}
+											<button
+												type="button"
+												class="w-full text-center text-sm font-semibold text-white/60 hover:text-white/90 transition underline underline-offset-4 decoration-white/20 hover:decoration-white/40"
+												on:click={() => {
+													panel = 'email';
+													mode = $config?.features.enable_ldap ? 'ldap' : 'signin';
+												}}
+												disabled={oauthRedirectingTo !== null || submitting}
+											>
+												{$i18n.t('Already have an account?')}
+											</button>
+										</div>
+									{/if}
 
-								<div
-									class="mt-6 text-xs leading-relaxed text-white/40 animate-[fade-up_650ms_ease-out_380ms_both]"
-								>
-									{$i18n.t('Нажимая на кнопку, вы принимаете')}
-									<a
-										href="/terms"
-										target="_blank"
-										rel="noreferrer"
-										class="underline underline-offset-4 decoration-white/20 hover:decoration-white/50 transition"
-										>{$i18n.t('Пользовательское соглашение')}</a
-									>,
-									<a
-										href="/privacy"
-										target="_blank"
-										rel="noreferrer"
-										class="underline underline-offset-4 decoration-white/20 hover:decoration-white/50 transition"
-										>{$i18n.t('Политику конфиденциальности')}</a
+									<div
+										class="mt-6 text-xs leading-relaxed text-white/40 animate-[fade-up_650ms_ease-out_380ms_both]"
 									>
-									{$i18n.t('и даёте согласие на обработку персональных данных.')}
-								</div>
-							{:else}
+										{$i18n.t('By continuing, you agree to the')}
+										<a
+											href="/terms"
+											target="_blank"
+											rel="noreferrer"
+											class="underline underline-offset-4 decoration-white/20 hover:decoration-white/50 transition"
+											>{$i18n.t('Terms of Service')}</a
+										>
+										{$i18n.t('and')}
+										<a
+											href="/privacy"
+											target="_blank"
+											rel="noreferrer"
+											class="underline underline-offset-4 decoration-white/20 hover:decoration-white/50 transition"
+											>{$i18n.t('Privacy Policy')}</a
+										>.
+									</div>
+								{:else}
 								<div class="animate-[fade-up_650ms_ease-out_both]">
 									<div class="flex items-center justify-between">
 										{#if hasSocialProviders}
-											<button
-												type="button"
-												class="inline-flex items-center gap-2 text-xs font-semibold text-white/60 hover:text-white/85 transition"
-												on:click={() => {
-													panel = 'choice';
-												}}
-												disabled={submitting}
-											>
+												<button
+													type="button"
+													class="inline-flex items-center gap-2 text-xs font-semibold text-white/60 hover:text-white/90 transition"
+													on:click={() => {
+														panel = 'choice';
+													}}
+													disabled={submitting}
+												>
 												<svg
 													xmlns="http://www.w3.org/2000/svg"
 													viewBox="0 0 24 24"
@@ -732,11 +756,11 @@
 												>
 													<path d="M15 18l-6-6 6-6" />
 												</svg>
-													{$i18n.t('Назад')}
-												</button>
-											{:else}
-												<div></div>
-											{/if}
+														{$i18n.t('Back')}
+													</button>
+												{:else}
+													<div></div>
+												{/if}
 											<div></div>
 										</div>
 
@@ -751,15 +775,17 @@
 											{:else}
 												{$i18n.t(`Sign in to {{WEBUI_NAME}}`, { WEBUI_NAME: $WEBUI_NAME })}
 											{/if}
+											</div>
+											<div class="mt-2 text-sm text-white/60">
+												{#if mode === 'signup'}
+													{$i18n.t('This may take a minute')}
+												{:else if mode === 'ldap'}
+													{$i18n.t('Username')} {$i18n.t('and')} {$i18n.t('Password')}
+												{:else}
+													{$i18n.t('Email')} {$i18n.t('and')} {$i18n.t('Password')}
+												{/if}
+											</div>
 										</div>
-										<div class="mt-2 text-sm text-white/55">
-											{mode === 'signup'
-												? $i18n.t('Создайте аккаунт за минуту')
-												: mode === 'ldap'
-													? $i18n.t('Введите логин и пароль')
-													: $i18n.t('Введите email и пароль')}
-										</div>
-									</div>
 
 									{#if passwordAuthEnabled}
 										<form
@@ -772,62 +798,62 @@
 											{#if mode === 'signup'}
 												<div>
 													<label for="name" class="sr-only">{$i18n.t('Name')}</label>
-													<input
-														bind:value={name}
-														type="text"
-														id="name"
-														class="w-full min-h-[52px] rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/35 outline-none focus-visible:ring-2 focus-visible:ring-white/15 focus-visible:border-white/20"
-														autocomplete="name"
-														placeholder={$i18n.t('Enter Your Full Name')}
-														required
-													/>
+														<input
+															bind:value={name}
+															type="text"
+															id="name"
+															class="w-full min-h-[52px] rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:border-white/20"
+															autocomplete="name"
+															placeholder={$i18n.t('Enter Your Full Name')}
+															required
+														/>
 												</div>
 											{/if}
 
 											{#if mode === 'ldap'}
 												<div>
 													<label for="username" class="sr-only">{$i18n.t('Username')}</label>
-													<input
-														bind:value={ldapUsername}
-														type="text"
-														id="username"
-														class="w-full min-h-[52px] rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/35 outline-none focus-visible:ring-2 focus-visible:ring-white/15 focus-visible:border-white/20"
-														autocomplete="username"
-														name="username"
-														placeholder={$i18n.t('Enter Your Username')}
-														required
-													/>
+														<input
+															bind:value={ldapUsername}
+															type="text"
+															id="username"
+															class="w-full min-h-[52px] rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:border-white/20"
+															autocomplete="username"
+															name="username"
+															placeholder={$i18n.t('Enter Your Username')}
+															required
+														/>
 												</div>
 											{:else}
 												<div>
 													<label for="email" class="sr-only">{$i18n.t('Email')}</label>
-													<input
-														bind:value={email}
-														type="email"
-														id="email"
-														class="w-full min-h-[52px] rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/35 outline-none focus-visible:ring-2 focus-visible:ring-white/15 focus-visible:border-white/20"
-														autocomplete="email"
-														name="email"
-														placeholder={$i18n.t('Enter Your Email')}
-														required
-													/>
+														<input
+															bind:value={email}
+															type="email"
+															id="email"
+															class="w-full min-h-[52px] rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:border-white/20"
+															autocomplete="email"
+															name="email"
+															placeholder={$i18n.t('Enter Your Email')}
+															required
+														/>
 												</div>
 											{/if}
 
 											<div>
 												<label for="password" class="sr-only">{$i18n.t('Password')}</label>
-												<SensitiveInput
-													bind:value={password}
-													type="password"
-													id="password"
-													outerClassName="w-full min-h-[52px] flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 outline-none focus-within:ring-2 focus-within:ring-white/15 focus-within:border-white/20"
-													inputClassName="w-full text-sm bg-transparent outline-none text-white placeholder:text-white/35"
-													showButtonClassName="pl-2 pr-0.5 text-white/55 hover:text-white/85 transition focus-visible:outline-none"
-													placeholder={$i18n.t('Enter Your Password')}
-													autocomplete={mode === 'signup' ? 'new-password' : 'current-password'}
-													name="password"
-													required
-												/>
+													<SensitiveInput
+														bind:value={password}
+														type="password"
+														id="password"
+														outerClassName="w-full min-h-[52px] flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 outline-none focus-within:ring-2 focus-within:ring-white/20 focus-within:border-white/20"
+														inputClassName="w-full text-sm bg-transparent outline-none text-white placeholder:text-white/40"
+														showButtonClassName="pl-2 pr-0.5 text-white/60 hover:text-white/90 transition focus-visible:outline-none"
+														placeholder={$i18n.t('Enter Your Password')}
+														autocomplete={mode === 'signup' ? 'new-password' : 'current-password'}
+														name="password"
+														required
+													/>
 											</div>
 
 											{#if mode === 'signup' && $config?.features?.enable_signup_password_confirmation}
@@ -835,50 +861,50 @@
 													<label for="confirm-password" class="sr-only">
 														{$i18n.t('Confirm Password')}
 													</label>
-													<SensitiveInput
-														bind:value={confirmPassword}
-														type="password"
-														id="confirm-password"
-														outerClassName="w-full min-h-[52px] flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 outline-none focus-within:ring-2 focus-within:ring-white/15 focus-within:border-white/20"
-														inputClassName="w-full text-sm bg-transparent outline-none text-white placeholder:text-white/35"
-														showButtonClassName="pl-2 pr-0.5 text-white/55 hover:text-white/85 transition focus-visible:outline-none"
-														placeholder={$i18n.t('Confirm Your Password')}
-														autocomplete="new-password"
-														name="confirm-password"
-														required
-													/>
+														<SensitiveInput
+															bind:value={confirmPassword}
+															type="password"
+															id="confirm-password"
+															outerClassName="w-full min-h-[52px] flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 outline-none focus-within:ring-2 focus-within:ring-white/20 focus-within:border-white/20"
+															inputClassName="w-full text-sm bg-transparent outline-none text-white placeholder:text-white/40"
+															showButtonClassName="pl-2 pr-0.5 text-white/60 hover:text-white/90 transition focus-visible:outline-none"
+															placeholder={$i18n.t('Confirm Your Password')}
+															autocomplete="new-password"
+															name="confirm-password"
+															required
+														/>
 												</div>
 											{/if}
 
-											{#if mode === 'signup'}
-												<div class="pt-1">
-													<div class="flex items-start gap-2 text-xs text-white/55">
-														<input
-															id="legal-accept"
-															type="checkbox"
-															bind:checked={legalAccepted}
-															class="mt-0.5 size-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/15"
-														/>
-														<label for="legal-accept" class="leading-relaxed">
-															{$i18n.t('Я принимаю')}
-															<a
-																href="/terms"
-																target="_blank"
-																rel="noreferrer"
-																class="text-white/85 font-semibold hover:underline"
-																>{$i18n.t('оферту')}</a
-															>
-															{$i18n.t('и')}
-															<a
-																href="/privacy"
-																target="_blank"
-																rel="noreferrer"
-																class="text-white/85 font-semibold hover:underline"
-																>{$i18n.t('политику конфиденциальности')}</a
-															>
-															.
-														</label>
-													</div>
+												{#if mode === 'signup'}
+													<div class="pt-1">
+														<div class="flex items-start gap-2 text-xs text-white/60">
+																<input
+																	id="legal-accept"
+																	type="checkbox"
+																	bind:checked={legalAccepted}
+																	class="mt-0.5 size-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/20"
+																/>
+															<label for="legal-accept" class="leading-relaxed">
+																{$i18n.t('I accept the')}
+																<a
+																	href="/terms"
+																	target="_blank"
+																	rel="noreferrer"
+																	class="text-white/90 font-semibold hover:underline"
+																	>{$i18n.t('Terms of Service')}</a
+																>
+																{$i18n.t('and')}
+																<a
+																	href="/privacy"
+																	target="_blank"
+																	rel="noreferrer"
+																	class="text-white/90 font-semibold hover:underline"
+																	>{$i18n.t('Privacy Policy')}</a
+																>
+																.
+															</label>
+														</div>
 												</div>
 											{/if}
 
@@ -887,12 +913,12 @@
 												type="submit"
 												disabled={(mode === 'signup' && !legalAccepted) || submitting}
 											>
-												{#if submitting}
-													<span class="inline-flex items-center gap-2">
-														<Spinner className="size-4" />
-														<span>{$i18n.t('Подождите…')}</span>
-													</span>
-												{:else}
+													{#if submitting}
+														<span class="inline-flex items-center gap-2">
+															<Spinner className="size-4" />
+															<span>{$i18n.t('Loading…')}</span>
+														</span>
+													{:else}
 													{mode === 'ldap'
 														? $i18n.t('Authenticate')
 														: mode === 'signin'
@@ -905,7 +931,7 @@
 										</form>
 
 										{#if signupEnabled && !($config?.onboarding ?? false) && mode !== 'ldap'}
-											<div class="mt-4 text-sm text-center text-white/55">
+												<div class="mt-4 text-sm text-center text-white/60">
 												{mode === 'signin'
 													? $i18n.t("Don't have an account?")
 													: $i18n.t('Already have an account?')}
@@ -927,10 +953,10 @@
 
 										{#if $config?.features.enable_ldap && $config?.features.enable_login_form}
 											<div class="mt-3">
-												<button
-													class="flex justify-center items-center text-xs w-full text-center underline underline-offset-4 decoration-white/20 hover:decoration-white/50 transition text-white/60 hover:text-white/85"
-													type="button"
-													on:click={() => {
+													<button
+														class="flex justify-center items-center text-xs w-full text-center underline underline-offset-4 decoration-white/20 hover:decoration-white/50 transition text-white/60 hover:text-white/90"
+														type="button"
+														on:click={() => {
 														if (mode === 'ldap')
 															mode = ($config?.onboarding ?? false) ? 'signup' : 'signin';
 														else mode = 'ldap';
@@ -944,11 +970,11 @@
 												</button>
 											</div>
 										{/if}
-									{:else}
-										<div class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-center text-sm text-white/60">
-											{$i18n.t('Вход по email отключён.')}
-										</div>
-									{/if}
+										{:else}
+											<div class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-center text-sm text-white/60">
+												{$i18n.t('Email sign-in is disabled.')}
+											</div>
+										{/if}
 								</div>
 							{/if}
 						</div>
@@ -957,7 +983,7 @@
 
 					{#if $config?.metadata?.login_footer}
 						<div class="mt-6 px-2">
-							<div class="text-[0.7rem] leading-relaxed text-white/45 marked">
+								<div class="text-[0.7rem] leading-relaxed text-white/50 marked">
 								<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 								{@html DOMPurify.sanitize(marked($config?.metadata?.login_footer))}
 							</div>
