@@ -642,42 +642,10 @@ async def lifespan(app: FastAPI):
 
     asyncio.create_task(periodic_usage_pool_cleanup())
 
-    # Initialize YooKassa billing client if configured
-    from open_webui.env import (
-        YOOKASSA_SHOP_ID,
-        YOOKASSA_SECRET_KEY,
-        YOOKASSA_WEBHOOK_SECRET,
-        YOOKASSA_API_URL,
-    )
+    # Airis-owned bootstrap (keeps upstream-owned file diffs smaller).
+    from open_webui.utils.airis.billing_init import init_billing_on_startup
 
-    if YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY:
-        from open_webui.utils.yookassa import YooKassaConfig, init_yookassa
-
-        yookassa_config = YooKassaConfig(
-            shop_id=YOOKASSA_SHOP_ID,
-            secret_key=YOOKASSA_SECRET_KEY,
-            webhook_secret=YOOKASSA_WEBHOOK_SECRET if YOOKASSA_WEBHOOK_SECRET else None,
-            api_url=YOOKASSA_API_URL,
-        )
-        init_yookassa(yookassa_config)
-        log.info("YooKassa billing client initialized")
-    else:
-        log.info(
-            "YooKassa billing not configured (set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY to enable)"
-        )
-
-    try:
-        from open_webui.utils.billing_seed import seed_default_billing_if_missing
-
-        created = await anyio.to_thread.run_sync(seed_default_billing_if_missing)
-        if created.get("plans") or created.get("rate_cards"):
-            log.info(
-                "Seeded billing defaults: plans=%s rate_cards=%s",
-                created.get("plans", 0),
-                created.get("rate_cards", 0),
-            )
-    except Exception as e:
-        log.error(f"Failed to seed default billing defaults: {e}")
+    await init_billing_on_startup()
 
     if app.state.config.ENABLE_BASE_MODELS_CACHE:
         await get_all_models(
