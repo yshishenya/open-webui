@@ -31,7 +31,7 @@ ENV NODE_OPTIONS="--max-old-space-size=6144"
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 RUN npm ci --legacy-peer-deps
 
 COPY static ./static

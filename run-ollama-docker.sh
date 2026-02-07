@@ -16,6 +16,8 @@ fi
 
 docker run $docker_args
 
+# Opt-in cleanup: keep this disabled by default to preserve Docker build cache.
+# Enable explicitly with `AIRIS_PRUNE_IMAGES=true`.
 if [ "${AIRIS_PRUNE_IMAGES:-false}" = "true" ]; then
     docker image prune -f
 fi
