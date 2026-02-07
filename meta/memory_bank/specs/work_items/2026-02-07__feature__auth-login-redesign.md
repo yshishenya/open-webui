@@ -58,6 +58,7 @@ provider-first entry, and a clear “Email vs Social” split without SMS.
 - Edge cases:
   - Signup: legal checkbox disables submit until accepted.
   - VK: support VK ID SDK widget (when configured) and legacy redirect flow fallback.
+  - Telegram: if Telegram auth is enabled and no supported OAuth providers are configured, show Telegram login as a fallback to avoid lockout.
   - Signup disabled: “email” button opens signin (no signup toggle).
   - No social providers: default to email panel.
 

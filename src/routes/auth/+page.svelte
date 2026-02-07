@@ -12,6 +12,9 @@
 	import {
 		ldapUserSignIn,
 		getSessionUser,
+		getTelegramAuthState,
+		telegramSignIn,
+		telegramSignUp,
 		userSignIn,
 		userSignUp,
 		updateUserTimezone
@@ -25,6 +28,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import OnBoarding from '$lib/components/OnBoarding.svelte';
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
+	import TelegramLoginWidget from '$lib/components/auth/TelegramLoginWidget.svelte';
 	import VKIDWidget from '$lib/components/auth/VKIDWidget.svelte';
 	import { sanitizeRedirectPath } from '$lib/utils/airis/return_to';
 
@@ -47,6 +51,8 @@
 	let ldapUsername = '';
 	let panel: 'choice' | 'email' = 'choice';
 	let submitting = false;
+	let telegramLoading = false;
+	let telegramMode: 'signin' | 'signup' = 'signin';
 
 	type SocialProvider = 'yandex' | 'vk' | 'github';
 	let oauthRedirectingTo: SocialProvider | null = null;
@@ -55,7 +61,9 @@
 	$: githubEnabled = Boolean($config?.oauth?.providers?.github);
 	$: vkEnabled = Boolean($config?.oauth?.providers?.vk);
 	$: vkIdEnabled = Boolean($config?.oauth?.providers?.vk?.app_id);
-	$: hasSocialProviders = yandexEnabled || githubEnabled || vkEnabled;
+	$: telegramEnabled = Boolean($config?.telegram?.enabled) && Boolean($config?.telegram?.bot_username);
+	$: telegramVisible = telegramEnabled && !yandexEnabled && !githubEnabled && !vkEnabled;
+	$: hasSocialProviders = yandexEnabled || githubEnabled || vkEnabled || telegramVisible;
 
 	$: signupEnabled = $config?.features.enable_signup ?? true;
 	$: passwordAuthEnabled =
@@ -164,11 +172,51 @@
 		}
 	};
 
-	const closeAuth = (): void => {
-		// Make /auth feel like a modal: close returns to the previous page when possible.
-		if (typeof window !== 'undefined' && window.history.length > 1) {
-			window.history.back();
+	const telegramAuthHandler = async (payload: Record<string, unknown>) => {
+		if (telegramLoading) return;
+		if (telegramMode === 'signup' && !legalAccepted) {
+			toast.error($i18n.t('You must accept the terms and privacy policy'));
 			return;
+		}
+
+		telegramLoading = true;
+		try {
+			const { state } = await getTelegramAuthState();
+			const sessionUser =
+				telegramMode === 'signup'
+					? await telegramSignUp(state, payload, legalAccepted)
+					: await telegramSignIn(state, payload);
+			await setSessionUser(sessionUser);
+		} catch (error) {
+			if (error === 'NOT_LINKED') {
+				toast.error(
+					$i18n.t('Telegram account is not linked. Sign in and link it in Settings.')
+				);
+			} else if (error === 'SIGNUP_DISABLED') {
+				toast.error($i18n.t('Signup is disabled.'));
+			} else {
+				toast.error(`${error}`);
+			}
+		} finally {
+			telegramLoading = false;
+		}
+	};
+
+	const closeAuth = (): void => {
+		// Make /auth feel like a modal, but avoid navigating back into OAuth/provider pages.
+		try {
+			const referrer = typeof document !== 'undefined' ? document.referrer : '';
+			const isSameOrigin =
+				typeof window !== 'undefined' &&
+				Boolean(referrer) &&
+				referrer.startsWith(window.location.origin);
+
+			if (isSameOrigin && typeof window !== 'undefined' && window.history.length > 1) {
+				window.history.back();
+				return;
+			}
+		} catch {
+			// Fall through to a safe close target.
 		}
 
 		goto('/welcome');
@@ -285,7 +333,10 @@
 	<div class="w-full absolute top-0 left-0 right-0 h-8 drag-region"></div>
 
 	{#if loaded}
-		<div class="fixed inset-0 z-50 flex justify-center px-4 py-10 sm:py-14" id="auth-container">
+			<div
+				class="fixed inset-0 z-50 flex justify-center overflow-y-auto overscroll-contain px-4 py-10 sm:py-14"
+				id="auth-container"
+			>
 			<div class="w-full max-w-sm">
 				{#if ($config?.features.auth_trusted_header ?? false) || $config?.features.auth === false}
 					<div class="py-14">
@@ -311,7 +362,7 @@
 							class="absolute top-4 right-4 size-10 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
 							on:click={closeAuth}
 							disabled={submitting || oauthRedirectingTo !== null}
-							aria-label="Close"
+							aria-label={$i18n.t('Close')}
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
@@ -342,16 +393,18 @@
 								</div>
 							{/if}
 
-							{#if panel === 'choice'}
-								<div class="text-center">
-									<div
-										class="text-[2rem] sm:text-[2.15rem] font-semibold tracking-tight leading-[1.05] animate-[fade-up_650ms_ease-out_both]"
-									>
-										Войти или<br />зарегистрироваться
-									</div>
-									<div class="mt-3 text-sm text-white/55 animate-[fade-up_650ms_ease-out_80ms_both]">
-										используя социальную сеть
-									</div>
+								{#if panel === 'choice'}
+									<div class="text-center">
+										<div
+											class="text-[2rem] sm:text-[2.15rem] font-semibold tracking-tight leading-[1.05] animate-[fade-up_650ms_ease-out_both]"
+										>
+											{$i18n.t('Войти или')}
+											<br />
+											{$i18n.t('зарегистрироваться')}
+										</div>
+										<div class="mt-3 text-sm text-white/55 animate-[fade-up_650ms_ease-out_80ms_both]">
+											{$i18n.t('используя социальную сеть')}
+										</div>
 
 									<div
 										class="mt-5 flex justify-center text-white/70 animate-[fade-up_650ms_ease-out_140ms_both]"
@@ -386,7 +439,7 @@
 												aria-hidden="true"
 												>Я</span
 											>
-											<span class="text-sm font-semibold">Войти через Яндекс</span>
+											<span class="text-sm font-semibold">{$i18n.t('Войти через Яндекс')}</span>
 											<span class="ml-auto text-white/70">
 												{#if oauthRedirectingTo === 'yandex'}
 													<Spinner className="size-4" />
@@ -419,8 +472,8 @@
 													appId={$config?.oauth?.providers?.vk?.app_id}
 													redirectUrl={$config?.oauth?.providers?.vk?.redirect_url || ''}
 													scheme={'dark'}
-													showAlternativeLogin={true}
-													oauthList={['ok_ru', 'mail_ru']}
+													showAlternativeLogin={false}
+													oauthList={[]}
 												/>
 											</div>
 										{:else}
@@ -435,7 +488,7 @@
 													aria-hidden="true"
 													>VK</span
 												>
-												<span class="text-sm font-semibold">Войти через VK</span>
+												<span class="text-sm font-semibold">{$i18n.t('Войти через VK')}</span>
 												<span class="ml-auto text-white/70">
 													{#if oauthRedirectingTo === 'vk'}
 														<Spinner className="size-4" />
@@ -478,7 +531,7 @@
 													/>
 												</svg>
 											</span>
-											<span class="text-sm font-semibold">Войти через GitHub</span>
+											<span class="text-sm font-semibold">{$i18n.t('Войти через GitHub')}</span>
 											<span class="ml-auto text-white/70">
 												{#if oauthRedirectingTo === 'github'}
 													<Spinner className="size-4" />
@@ -501,14 +554,88 @@
 											</span>
 										</button>
 									{/if}
+
+									{#if telegramVisible}
+										<div class="mt-2 rounded-[22px] border border-white/10 bg-white/5 p-4">
+											<div class="flex items-center justify-between gap-3">
+												<div class="text-xs font-semibold text-white/60">
+													{$i18n.t('Telegram')}
+												</div>
+												<div class="flex items-center gap-1">
+													<button
+														type="button"
+														class={`px-3 py-1 rounded-full text-[0.7rem] font-semibold transition border ${
+															telegramMode === 'signin'
+																? 'bg-white text-black border-white/20'
+																: 'bg-white/0 text-white/70 border-white/15 hover:bg-white/8 hover:text-white'
+														}`}
+														on:click={() => {
+															telegramMode = 'signin';
+														}}
+														disabled={telegramLoading}
+													>
+														{$i18n.t('Sign in')}
+													</button>
+													{#if signupEnabled}
+														<button
+															type="button"
+															class={`px-3 py-1 rounded-full text-[0.7rem] font-semibold transition border ${
+																telegramMode === 'signup'
+																	? 'bg-white text-black border-white/20'
+																	: 'bg-white/0 text-white/70 border-white/15 hover:bg-white/8 hover:text-white'
+															}`}
+															on:click={() => {
+																telegramMode = 'signup';
+															}}
+															disabled={telegramLoading}
+														>
+															{$i18n.t('Sign up')}
+														</button>
+													{/if}
+												</div>
+											</div>
+
+											{#if telegramMode === 'signup'}
+												<div class="mt-3 flex items-start gap-2 text-xs text-white/55">
+													<input
+														id="telegram-legal-accept"
+														type="checkbox"
+														bind:checked={legalAccepted}
+														class="mt-0.5 size-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/15"
+													/>
+													<label for="telegram-legal-accept" class="leading-relaxed">
+														{$i18n.t('You must accept the terms and privacy policy')}
+													</label>
+												</div>
+											{/if}
+
+											<div class="mt-3 flex justify-center">
+												<TelegramLoginWidget
+													botUsername={$config?.telegram?.bot_username}
+													radius={18}
+													showUserPic={false}
+													on:auth={(event) => {
+														telegramAuthHandler(event.detail);
+													}}
+												/>
+												{#if telegramLoading}
+													<div class="ml-2 flex items-center">
+														<Spinner className="size-4" />
+													</div>
+												{/if}
+											</div>
+										</div>
+									{/if}
 								</div>
 
 								{#if passwordAuthEnabled}
-										<div class="mt-6 flex items-center gap-3 animate-[fade-up_650ms_ease-out_260ms_both]">
-											<div class="h-px flex-1 bg-white/10"></div>
-											<div class="text-xs font-semibold tracking-widest text-white/35">ИЛИ</div>
-											<div class="h-px flex-1 bg-white/10"></div>
+									<div class="mt-6 flex items-center gap-3 animate-[fade-up_650ms_ease-out_260ms_both]">
+										<div class="h-px flex-1 bg-white/10"></div>
+										<div class="text-xs font-semibold tracking-widest text-white/35">
+											{$i18n.t('ИЛИ')}
 										</div>
+										<div class="h-px flex-1 bg-white/10"></div>
+									</div>
 
 									<div class="mt-5 space-y-3 animate-[fade-up_650ms_ease-out_320ms_both]">
 										<button
@@ -516,7 +643,11 @@
 											class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/6 hover:bg-white/10 transition flex items-center justify-center gap-3 px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
 											on:click={() => {
 												panel = 'email';
-												mode = signupEnabled ? 'signup' : 'signin';
+												mode = ($config?.onboarding ?? false)
+													? 'signup'
+													: $config?.features.enable_ldap
+														? 'ldap'
+														: 'signin';
 											}}
 											disabled={oauthRedirectingTo !== null || submitting}
 										>
@@ -539,7 +670,7 @@
 													<path d="m3 7 9 6 9-6" />
 												</svg>
 											</span>
-											<span class="text-sm font-semibold">Через эл.почту</span>
+											<span class="text-sm font-semibold">{$i18n.t('Через эл.почту')}</span>
 										</button>
 
 										<button
@@ -551,7 +682,7 @@
 											}}
 											disabled={oauthRedirectingTo !== null || submitting}
 										>
-											У меня есть логин/пароль
+											{$i18n.t('У меня есть логин/пароль')}
 										</button>
 									</div>
 								{/if}
@@ -559,22 +690,22 @@
 								<div
 									class="mt-6 text-xs leading-relaxed text-white/40 animate-[fade-up_650ms_ease-out_380ms_both]"
 								>
-									Нажимая на кнопку, вы принимаете
+									{$i18n.t('Нажимая на кнопку, вы принимаете')}
 									<a
 										href="/terms"
 										target="_blank"
 										rel="noreferrer"
 										class="underline underline-offset-4 decoration-white/20 hover:decoration-white/50 transition"
-										>Пользовательское соглашение</a
+										>{$i18n.t('Пользовательское соглашение')}</a
 									>,
 									<a
 										href="/privacy"
 										target="_blank"
 										rel="noreferrer"
 										class="underline underline-offset-4 decoration-white/20 hover:decoration-white/50 transition"
-										>Политику конфиденциальности</a
+										>{$i18n.t('Политику конфиденциальности')}</a
 									>
-									и даёте согласие на обработку персональных данных.
+									{$i18n.t('и даёте согласие на обработку персональных данных.')}
 								</div>
 							{:else}
 								<div class="animate-[fade-up_650ms_ease-out_both]">
@@ -601,8 +732,8 @@
 												>
 													<path d="M15 18l-6-6 6-6" />
 												</svg>
-												Назад
-											</button>
+													{$i18n.t('Назад')}
+												</button>
 											{:else}
 												<div></div>
 											{/if}
@@ -623,10 +754,10 @@
 										</div>
 										<div class="mt-2 text-sm text-white/55">
 											{mode === 'signup'
-												? 'Создайте аккаунт за минуту'
+												? $i18n.t('Создайте аккаунт за минуту')
 												: mode === 'ldap'
-													? 'Введите логин и пароль'
-													: 'Введите email и пароль'}
+													? $i18n.t('Введите логин и пароль')
+													: $i18n.t('Введите email и пароль')}
 										</div>
 									</div>
 
@@ -729,21 +860,21 @@
 															class="mt-0.5 size-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/15"
 														/>
 														<label for="legal-accept" class="leading-relaxed">
-															Я принимаю
+															{$i18n.t('Я принимаю')}
 															<a
 																href="/terms"
 																target="_blank"
 																rel="noreferrer"
 																class="text-white/85 font-semibold hover:underline"
-																>оферту</a
+																>{$i18n.t('оферту')}</a
 															>
-															и
+															{$i18n.t('и')}
 															<a
 																href="/privacy"
 																target="_blank"
 																rel="noreferrer"
 																class="text-white/85 font-semibold hover:underline"
-																>политику конфиденциальности</a
+																>{$i18n.t('политику конфиденциальности')}</a
 															>
 															.
 														</label>
@@ -759,7 +890,7 @@
 												{#if submitting}
 													<span class="inline-flex items-center gap-2">
 														<Spinner className="size-4" />
-														<span>Подождите…</span>
+														<span>{$i18n.t('Подождите…')}</span>
 													</span>
 												{:else}
 													{mode === 'ldap'
@@ -815,7 +946,7 @@
 										{/if}
 									{:else}
 										<div class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-center text-sm text-white/60">
-											Вход по email отключён.
+											{$i18n.t('Вход по email отключён.')}
 										</div>
 									{/if}
 								</div>
