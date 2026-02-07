@@ -329,7 +329,7 @@ cypress/screenshots
 .qoder/quests/
 
 # SDD toolkit local artifacts (repo uses meta/sdd/specs as source of truth)
-specs/
+/specs/
 
 # Local docker client config (do not commit)
 .docker/
