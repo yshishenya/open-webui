@@ -76,12 +76,6 @@ from open_webui.routers import (
     pipelines,
     tasks,
     auths,
-    oauth_russian,
-    legal,
-    billing,
-    admin_billing,
-    admin_billing_rate_card,
-    admin_billing_lead_magnet,
     channels,
     chats,
     notes,
@@ -100,6 +94,8 @@ from open_webui.routers import (
     utils,
     scim,
 )
+
+from open_webui.utils.airis.app_bootstrap import bootstrap_airis, extend_airis_app_config
 
 from open_webui.routers.retrieval import (
     get_embedding_function,
@@ -380,10 +376,6 @@ from open_webui.config import (
     ENABLE_COMMUNITY_SHARING,
     ENABLE_MESSAGE_RATING,
     ENABLE_USER_WEBHOOKS,
-    LEAD_MAGNET_ENABLED,
-    LEAD_MAGNET_CYCLE_DAYS,
-    LEAD_MAGNET_QUOTAS,
-    LEAD_MAGNET_CONFIG_VERSION,
     ENABLE_EVALUATION_ARENA_MODELS,
     BYPASS_ADMIN_ACCESS_CONTROL,
     USER_PERMISSIONS,
@@ -405,12 +397,6 @@ from open_webui.config import (
     OAUTH_USERNAME_CLAIM,
     OAUTH_ALLOWED_ROLES,
     OAUTH_ADMIN_ROLES,
-    # WebUI (Telegram)
-    ENABLE_TELEGRAM_AUTH,
-    TELEGRAM_BOT_USERNAME,
-    TELEGRAM_BOT_TOKEN,
-    TELEGRAM_AUTH_MAX_AGE_SECONDS,
-    ENABLE_TELEGRAM_SIGNUP,
     # WebUI (LDAP)
     ENABLE_LDAP,
     LDAP_SERVER_LABEL,
@@ -498,7 +484,6 @@ from open_webui.env import (
     BYPASS_MODEL_ACCESS_CONTROL,
     RESET_CONFIG_ON_START,
     ENABLE_VERSION_UPDATE_CHECK,
-    ENABLE_BILLING_SUBSCRIPTIONS,
     ENABLE_OTEL,
     EXTERNAL_PWA_MANIFEST_URL,
     AIOHTTP_CLIENT_SESSION_SSL,
@@ -794,12 +779,6 @@ app.state.config.API_KEYS_ALLOWED_ENDPOINTS = API_KEYS_ALLOWED_ENDPOINTS
 
 app.state.config.JWT_EXPIRES_IN = JWT_EXPIRES_IN
 
-app.state.config.ENABLE_TELEGRAM_AUTH = ENABLE_TELEGRAM_AUTH
-app.state.config.TELEGRAM_BOT_USERNAME = TELEGRAM_BOT_USERNAME
-app.state.config.TELEGRAM_BOT_TOKEN = TELEGRAM_BOT_TOKEN
-app.state.config.TELEGRAM_AUTH_MAX_AGE_SECONDS = TELEGRAM_AUTH_MAX_AGE_SECONDS
-app.state.config.ENABLE_TELEGRAM_SIGNUP = ENABLE_TELEGRAM_SIGNUP
-
 app.state.config.SHOW_ADMIN_DETAILS = SHOW_ADMIN_DETAILS
 app.state.config.ADMIN_EMAIL = ADMIN_EMAIL
 
@@ -837,11 +816,6 @@ app.state.config.ENABLE_USER_STATUS = ENABLE_USER_STATUS
 # BILLING
 #
 ########################################
-
-app.state.config.LEAD_MAGNET_ENABLED = LEAD_MAGNET_ENABLED
-app.state.config.LEAD_MAGNET_CYCLE_DAYS = LEAD_MAGNET_CYCLE_DAYS
-app.state.config.LEAD_MAGNET_QUOTAS = LEAD_MAGNET_QUOTAS
-app.state.config.LEAD_MAGNET_CONFIG_VERSION = LEAD_MAGNET_CONFIG_VERSION
 
 app.state.config.ENABLE_EVALUATION_ARENA_MODELS = ENABLE_EVALUATION_ARENA_MODELS
 app.state.config.EVALUATION_ARENA_MODELS = EVALUATION_ARENA_MODELS
@@ -1458,22 +1432,9 @@ app.include_router(retrieval.router, prefix="/api/v1/retrieval", tags=["retrieva
 app.include_router(configs.router, prefix="/api/v1/configs", tags=["configs"])
 
 app.include_router(auths.router, prefix="/api/v1/auths", tags=["auths"])
-app.include_router(oauth_russian.router, prefix="/api/v1", tags=["oauth", "russian"])
-app.include_router(legal.router, prefix="/api/v1/legal", tags=["legal"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 
-app.include_router(billing.router, prefix="/api/v1/billing", tags=["billing"])
-app.include_router(admin_billing.router, prefix="/api/v1/admin/billing", tags=["admin", "billing"])
-app.include_router(
-    admin_billing_rate_card.router,
-    prefix="/api/v1/admin/billing",
-    tags=["admin", "billing"],
-)
-app.include_router(
-    admin_billing_lead_magnet.router,
-    prefix="/api/v1/admin/billing",
-    tags=["admin", "billing"],
-)
+bootstrap_airis(app)
 
 app.include_router(channels.router, prefix="/api/v1/channels", tags=["channels"])
 app.include_router(chats.router, prefix="/api/v1/chats", tags=["chats"])
@@ -1975,16 +1936,7 @@ async def get_app_config(request: Request):
     if user is None:
         onboarding = user_count == 0
 
-    telegram_bot_username = (
-        str(request.app.state.config.TELEGRAM_BOT_USERNAME or "").strip().lstrip("@")
-    )
-    telegram_enabled = bool(
-        request.app.state.config.ENABLE_TELEGRAM_AUTH
-        and telegram_bot_username
-        and str(request.app.state.config.TELEGRAM_BOT_TOKEN or "").strip()
-    )
-
-    return {
+    payload = {
         **({"onboarding": True} if onboarding else {}),
         "status": True,
         "name": app.state.WEBUI_NAME,
@@ -1992,21 +1944,8 @@ async def get_app_config(request: Request):
         "default_locale": str(DEFAULT_LOCALE),
         "oauth": {
             "providers": {
-                name: {
-                    "name": config.get("name", name),
-                    # VK ID SDK specific config
-                    **({"app_id": config.get("app_id"), "redirect_url": config.get("redirect_url")}
-                       if name == "vk" and config.get("app_id") else {}),
-                    # Telegram specific config
-                    **({"bot_name": config.get("bot_name")}
-                       if name == "telegram" and config.get("bot_name") else {}),
-                }
-                for name, config in OAUTH_PROVIDERS.items()
+                name: config.get("name", name) for name, config in OAUTH_PROVIDERS.items()
             }
-        },
-        "telegram": {
-            "enabled": telegram_enabled,
-            "bot_username": telegram_bot_username,
         },
         "features": {
             "auth": WEBUI_AUTH,
@@ -2019,7 +1958,6 @@ async def get_app_config(request: Request):
             "enable_websocket": ENABLE_WEBSOCKET_SUPPORT,
             "enable_version_update_check": ENABLE_VERSION_UPDATE_CHECK,
             "enable_public_active_users_count": ENABLE_PUBLIC_ACTIVE_USERS_COUNT,
-            "enable_billing_subscriptions": ENABLE_BILLING_SUBSCRIPTIONS,
             **(
                 {
                     "enable_direct_connections": app.state.config.ENABLE_DIRECT_CONNECTIONS,
@@ -2135,6 +2073,8 @@ async def get_app_config(request: Request):
             }
         ),
     }
+
+    return extend_airis_app_config(payload, request)
 
 
 class UrlForm(BaseModel):
