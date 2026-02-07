@@ -25,7 +25,6 @@ ARG GID=0
 
 ######## WebUI frontend ########
 FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
-ARG BUILD_HASH
 
 # Set Node.js options for frontend build memory usage.
 # Default is intentionally conservative to avoid OOM-kills on small build hosts.
@@ -34,15 +33,24 @@ ENV NODE_OPTIONS="--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}"
 
 WORKDIR /app
 
-# to store git revision in build
-RUN apk add --no-cache git
-
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 RUN npm ci --legacy-peer-deps
 
-COPY . .
-ENV APP_BUILD_HASH=${BUILD_HASH}
-RUN npm run build
+COPY static ./static
+COPY scripts ./scripts
+# Download Pyodide wheels and copy Pyodide files into static/pyodide.
+# Keep this as a separate layer so it stays cached when BUILD_HASH changes.
+RUN npm run pyodide:fetch
+
+# Copy only frontend build inputs to avoid cache busting on backend-only changes.
+COPY svelte.config.js vite.config.ts tsconfig.json tsconfig.check.json postcss.config.js tailwind.config.js i18next-parser.config.ts ./
+COPY src ./src
+
+ARG BUILD_HASH
+RUN APP_BUILD_HASH=${BUILD_HASH} npm run build:vite
+
+# Required by the final stage (copied from this build stage).
+COPY CHANGELOG.md ./CHANGELOG.md
 
 ######## WebUI backend ########
 FROM python:3.11.14-slim-bookworm AS base
