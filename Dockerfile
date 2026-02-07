@@ -29,7 +29,7 @@ ARG BUILD_HASH
 
 # Set Node.js options for frontend build memory usage.
 # Default is intentionally conservative to avoid OOM-kills on small build hosts.
-ARG NODE_MAX_OLD_SPACE_SIZE=2048
+ARG NODE_MAX_OLD_SPACE_SIZE=3072
 ENV NODE_OPTIONS="--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}"
 
 WORKDIR /app
