@@ -21,11 +21,11 @@ We need a safe speed-up that preserves correctness and reproducibility (same inp
 
 ## Goal / Acceptance Criteria
 
-- [ ] Rebuilding the image after backend-only changes should not trigger a frontend rebuild step.
-- [ ] Building via helper scripts should not destroy Docker build cache by default.
-- [ ] Docker build context should not include `.git` (reduces context size and prevents unnecessary cache busting).
-- [ ] Changing `BUILD_HASH` should not force re-installing frontend dependencies or re-downloading Pyodide packages (only the final Vite build should be invalidated).
-- [ ] No runtime behavior changes; changes are limited to build/infra ergonomics.
+- [x] Rebuilding the image after backend-only changes should not trigger a frontend rebuild step.
+- [x] Building via helper scripts should not destroy Docker build cache by default.
+- [x] Docker build context should not include `.git` (reduces context size and prevents unnecessary cache busting).
+- [x] Changing `BUILD_HASH` should not force re-installing frontend dependencies or re-downloading Pyodide packages (only the final Vite build should be invalidated).
+- [x] No runtime behavior changes; changes are limited to build/infra ergonomics.
 
 ## Non-goals
 
