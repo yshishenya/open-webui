@@ -58,6 +58,7 @@ from open_webui.routers.pipelines import (
 from open_webui.routers.memories import query_memory, QueryMemoryForm
 
 from open_webui.utils.webhook import post_webhook
+from open_webui.utils.airis.safe_get import deep_get_bool, deep_get_mapping
 from open_webui.utils.files import (
     convert_markdown_base64_images,
     get_file_url_from_base64,
@@ -1482,7 +1483,7 @@ async def process_chat_payload(request, form_data, user, metadata, model):
 
     # Model "Knowledge" handling
     user_message = get_last_user_message(form_data["messages"])
-    model_knowledge = model.get("info", {}).get("meta", {}).get("knowledge", False)
+    model_knowledge = deep_get_bool(model, ("info", "meta", "knowledge"), default=False)
 
     if (
         model_knowledge
@@ -1658,7 +1659,8 @@ async def process_chat_payload(request, form_data, user, metadata, model):
                     ) in request.app.state.config.TOOL_SERVER_CONNECTIONS:
                         if (
                             server_connection.get("type", "") == "mcp"
-                            and server_connection.get("info", {}).get("id") == server_id
+                            and deep_get_mapping(server_connection, ("info",)).get("id")
+                            == server_id
                         ):
                             mcp_server_connection = server_connection
                             break
@@ -1807,11 +1809,8 @@ async def process_chat_payload(request, form_data, user, metadata, model):
 
     # Inject builtin tools for native function calling based on enabled features and model capability
     # Check if builtin_tools capability is enabled for this model (defaults to True if not specified)
-    builtin_tools_enabled = (
-        model.get("info", {})
-        .get("meta", {})
-        .get("capabilities", {})
-        .get("builtin_tools", True)
+    builtin_tools_enabled = deep_get_bool(
+        model, ("info", "meta", "capabilities", "builtin_tools"), default=True
     )
     if (
         metadata.get("params", {}).get("function_calling") == "native"
@@ -1855,11 +1854,8 @@ async def process_chat_payload(request, form_data, user, metadata, model):
                 log.exception(e)
 
     # Check if file context extraction is enabled for this model (default True)
-    file_context_enabled = (
-        model.get("info", {})
-        .get("meta", {})
-        .get("capabilities", {})
-        .get("file_context", True)
+    file_context_enabled = deep_get_bool(
+        model, ("info", "meta", "capabilities", "file_context"), default=True
     )
 
     if file_context_enabled:
