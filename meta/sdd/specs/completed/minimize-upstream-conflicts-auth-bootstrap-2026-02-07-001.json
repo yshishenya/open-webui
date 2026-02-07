@@ -1,0 +1,1141 @@
+{
+  "spec_id": "minimize-upstream-conflicts-auth-bootstrap-2026-02-07-001",
+  "generated": "2026-02-07T00:00:00Z",
+  "last_updated": "2026-02-07T23:32:10.460073Z",
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Minimize upstream conflict surface (auths/main bootstrap hooks)",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4"
+      ],
+      "total_tasks": 22,
+      "completed_tasks": 22,
+      "metadata": {
+        "work_item_spec": "meta/memory_bank/specs/work_items/2026-02-07__refactor__minimize-upstream-conflicts-auth-bootstrap.md",
+        "context": {
+          "date": "2026-02-07",
+          "problem": "Large Airis-specific diffs in upstream-owned auths.py and main.py increase merge-conflict risk during upstream sync."
+        },
+        "acceptance_criteria": [
+          "Telegram auth endpoints remain available under /api/v1/auths/telegram/* with unchanged behavior.",
+          "Email verification and password reset endpoints remain under the same /api/v1/auths/* paths with unchanged behavior.",
+          "/api/config response remains backward compatible for Airis UI (telegram section, billing feature flags, VK/Telegram oauth provider metadata).",
+          "Upstream-owned files auths.py and main.py become thin hooks; most Airis logic is moved to fork-owned modules.",
+          "Backend tests covering auth flows pass."
+        ],
+        "upstream_impact": {
+          "upstream_owned_files_touched": [
+            "backend/open_webui/routers/auths.py",
+            "backend/open_webui/main.py"
+          ],
+          "minimization_strategy": "Prefer additive Airis modules and thin hooks (include_router + single bootstrap/config extender calls)."
+        }
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Baseline And Safety Net",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-1-files",
+        "phase-1-verify"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-07T23:31:21.928810Z",
+        "journaled_at": "2026-02-07T23:31:21.933320Z"
+      }
+    },
+    "phase-1-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-07T23:31:09.153327Z",
+        "journaled_at": "2026-02-07T23:31:09.157887Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Capture baseline diffs + endpoint inventory (no behavior change)",
+      "status": "completed",
+      "parent": "phase-1-files",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "investigation",
+        "notes": [
+          "Record current diff stats for auths.py and main.py vs upstream/main.",
+          "List Airis-specific endpoints that must remain unchanged after extraction."
+        ],
+        "completed_at": "2026-02-07T23:31:51.899815Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-07T23:31:51.901425Z",
+        "status_note": "Completed (work merged to airis_b2c)"
+      }
+    },
+    "phase-1-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [
+        "verify-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "dependencies": {
+          "blocks": [],
+          "blocked_by": [
+            "phase-1-files"
+          ],
+          "depends": []
+        },
+        "needs_journaling": false,
+        "completed_at": "2026-02-07T23:31:21.928806Z",
+        "journaled_at": "2026-02-07T23:31:21.932412Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Run baseline backend auth tests (targeted)",
+      "status": "completed",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e DATABASE_URL= airis bash -lc \"pytest -q open_webui/test/apps/webui/routers/test_auths.py open_webui/test/util/test_telegram_auth.py\"",
+        "expected": "Targeted auth tests pass on baseline before refactor.",
+        "completed_at": "2026-02-07T23:31:52.101981Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-07T23:31:52.103592Z",
+        "status_note": "Completed (work merged to airis_b2c)"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Extract Airis Auth Routers",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-2-files",
+        "phase-2-verify"
+      ],
+      "total_tasks": 11,
+      "completed_tasks": 11,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-07T23:31:54.343851Z",
+        "journaled_at": "2026-02-07T23:31:54.348396Z"
+      }
+    },
+    "phase-2-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [
+        "task-2-1",
+        "task-2-2",
+        "task-2-3",
+        "task-2-4"
+      ],
+      "total_tasks": 8,
+      "completed_tasks": 8,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-07T23:31:53.729177Z",
+        "journaled_at": "2026-02-07T23:31:53.732548Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "backend/open_webui/routers/airis/__init__.py",
+      "status": "completed",
+      "parent": "phase-2-files",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "backend/open_webui/routers/airis/__init__.py",
+        "task_category": "implementation",
+        "completed_at": "2026-02-07T23:31:52.304760Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:52.306363Z"
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "backend/open_webui/routers/airis/telegram_auth.py",
+      "status": "completed",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-2-1",
+        "task-2-2-2",
+        "task-2-2-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "file_path": "backend/open_webui/routers/airis/telegram_auth.py",
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-2-1": {
+      "type": "subtask",
+      "title": "Move /telegram/state endpoint and state storage helpers",
+      "status": "completed",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-07T23:31:52.505554Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-07T23:31:52.507063Z",
+        "status_note": "Completed (work merged to airis_b2c)"
+      }
+    },
+    "task-2-2-2": {
+      "type": "subtask",
+      "title": "Move /telegram/signin + /telegram/signup endpoints (preserve behavior)",
+      "status": "completed",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-07T23:31:52.707950Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:52.709466Z"
+      }
+    },
+    "task-2-2-3": {
+      "type": "subtask",
+      "title": "Move /telegram/link endpoints (preserve behavior and permissions)",
+      "status": "completed",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-07T23:31:52.914382Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:52.915900Z"
+      }
+    },
+    "task-2-3": {
+      "type": "task",
+      "title": "backend/open_webui/routers/airis/password_reset.py",
+      "status": "completed",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-3-1",
+        "task-2-3-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/routers/airis/password_reset.py",
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-3-1": {
+      "type": "subtask",
+      "title": "Move email verification endpoints (/verify-email, /resend-verification)",
+      "status": "completed",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-07T23:31:53.119626Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:53.121322Z"
+      }
+    },
+    "task-2-3-2": {
+      "type": "subtask",
+      "title": "Move password reset endpoints (/request-password-reset, /validate-reset-token/{token}, /reset-password)",
+      "status": "completed",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-07T23:31:53.323908Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:53.325505Z"
+      }
+    },
+    "task-2-4": {
+      "type": "task",
+      "title": "backend/open_webui/routers/auths.py",
+      "status": "completed",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-4-1",
+        "task-2-4-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/routers/auths.py",
+        "task_category": "refactoring"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-4-1": {
+      "type": "subtask",
+      "title": "Remove large Telegram block and include Airis Telegram router (thin hook)",
+      "status": "completed",
+      "parent": "task-2-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-07T23:31:53.527024Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:53.528606Z"
+      }
+    },
+    "task-2-4-2": {
+      "type": "subtask",
+      "title": "Remove password reset/email verification endpoints and include Airis router (thin hook)",
+      "status": "completed",
+      "parent": "task-2-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-07T23:31:53.728957Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:53.730620Z"
+      }
+    },
+    "phase-2-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [
+        "verify-2-1",
+        "verify-2-2",
+        "verify-2-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "dependencies": {
+          "blocks": [],
+          "blocked_by": [
+            "phase-2-files"
+          ],
+          "depends": []
+        },
+        "needs_journaling": false,
+        "completed_at": "2026-02-07T23:31:54.343848Z",
+        "journaled_at": "2026-02-07T23:31:54.347387Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Run auth router tests",
+      "status": "completed",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e DATABASE_URL= airis bash -lc \"pytest -q open_webui/test/apps/webui/routers/test_auths.py\"",
+        "expected": "Auth router tests pass after extraction.",
+        "completed_at": "2026-02-07T23:31:53.933667Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:53.935341Z"
+      }
+    },
+    "verify-2-2": {
+      "type": "verify",
+      "title": "Run Telegram auth unit tests",
+      "status": "completed",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e DATABASE_URL= airis bash -lc \"pytest -q open_webui/test/util/test_telegram_auth.py\"",
+        "expected": "Telegram auth unit tests pass after extraction.",
+        "completed_at": "2026-02-07T23:31:54.137655Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:54.139249Z"
+      }
+    },
+    "verify-2-3": {
+      "type": "verify",
+      "title": "Manual smoke: verify /api/v1/auths/telegram/state is reachable",
+      "status": "completed",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "expected": "Endpoint returns 200 + state when Telegram auth enabled; 404 when disabled.",
+        "command": "",
+        "completed_at": "2026-02-07T23:31:54.343611Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:54.345272Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Extract Airis App Bootstrap And /api/config Extension",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-3-files",
+        "phase-3-verify"
+      ],
+      "total_tasks": 6,
+      "completed_tasks": 6,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-07T23:31:55.573711Z",
+        "journaled_at": "2026-02-07T23:31:55.578524Z"
+      }
+    },
+    "phase-3-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [
+        "task-3-1",
+        "task-3-2"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 4,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-07T23:31:55.163504Z",
+        "journaled_at": "2026-02-07T23:31:55.167118Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "backend/open_webui/utils/airis/app_bootstrap.py",
+      "status": "completed",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-1-1",
+        "task-3-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/utils/airis/app_bootstrap.py",
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-1-1": {
+      "type": "subtask",
+      "title": "Implement bootstrap_airis(app) to register Airis-only routers (lazy imports)",
+      "status": "completed",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-07T23:31:54.548476Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:54.550169Z"
+      }
+    },
+    "task-3-1-2": {
+      "type": "subtask",
+      "title": "Implement extend_airis_app_config(payload, request) to inject telegram/billing/oauth provider metadata",
+      "status": "completed",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-07T23:31:54.753633Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:54.755361Z"
+      }
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": "backend/open_webui/main.py",
+      "status": "completed",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-2-1",
+        "task-3-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/main.py",
+        "task_category": "refactoring"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-2-1": {
+      "type": "subtask",
+      "title": "Replace direct Airis router includes with bootstrap_airis(app) call",
+      "status": "completed",
+      "parent": "task-3-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-07T23:31:54.958050Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:54.959823Z"
+      }
+    },
+    "task-3-2-2": {
+      "type": "subtask",
+      "title": "Refactor /api/config to build upstream payload first, then call extend_airis_app_config(...)",
+      "status": "completed",
+      "parent": "task-3-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-02-07T23:31:55.163255Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:55.164979Z"
+      }
+    },
+    "phase-3-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [
+        "verify-3-1",
+        "verify-3-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "dependencies": {
+          "blocks": [],
+          "blocked_by": [
+            "phase-3-files"
+          ],
+          "depends": []
+        },
+        "needs_journaling": false,
+        "completed_at": "2026-02-07T23:31:55.573707Z",
+        "journaled_at": "2026-02-07T23:31:55.577442Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Run targeted config/auth tests after bootstrap extraction",
+      "status": "completed",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e DATABASE_URL= airis bash -lc \"pytest -q open_webui/test/apps/webui/routers/test_auths.py open_webui/test/apps/webui/routers/test_legal.py\"",
+        "expected": "Auth + legal tests pass after bootstrap/config refactor.",
+        "completed_at": "2026-02-07T23:31:55.367366Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:55.369094Z"
+      }
+    },
+    "verify-3-2": {
+      "type": "verify",
+      "title": "Manual smoke: /api/config includes telegram + billing fields expected by UI",
+      "status": "completed",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "expected": "Payload includes oauth.providers.* extensions, telegram.enabled/bot_username, and features.enable_billing_subscriptions.",
+        "command": "",
+        "completed_at": "2026-02-07T23:31:55.573468Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:55.575174Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-4": {
+      "type": "phase",
+      "title": "Diff Audit And Final Verification",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-4-files",
+        "phase-4-verify"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-07T23:31:56.202420Z",
+        "journaled_at": "2026-02-07T23:31:56.207453Z"
+      }
+    },
+    "phase-4-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-4",
+      "children": [
+        "task-4-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-07T23:31:55.787726Z",
+        "journaled_at": "2026-02-07T23:31:55.792033Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-1": {
+      "type": "task",
+      "title": "Finalize work item docs and record diff reduction evidence",
+      "status": "completed",
+      "parent": "phase-4-files",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "investigation",
+        "notes": [
+          "Update work item spec with measured diff stats and verification results.",
+          "Update branch_updates entry (tests run, risks)."
+        ],
+        "completed_at": "2026-02-07T23:31:55.787468Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:55.789446Z"
+      }
+    },
+    "phase-4-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-4",
+      "children": [
+        "verify-4-1",
+        "verify-4-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "dependencies": {
+          "blocks": [],
+          "blocked_by": [
+            "phase-4-files"
+          ],
+          "depends": []
+        },
+        "needs_journaling": false,
+        "completed_at": "2026-02-07T23:31:56.202417Z",
+        "journaled_at": "2026-02-07T23:31:56.206345Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-4-1": {
+      "type": "verify",
+      "title": "Run full backend test suite",
+      "status": "completed",
+      "parent": "phase-4-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "npm run docker:test:backend",
+        "expected": "Full backend tests pass.",
+        "completed_at": "2026-02-07T23:31:55.996480Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:55.998389Z"
+      }
+    },
+    "verify-4-2": {
+      "type": "verify",
+      "title": "Measure diff reduction vs upstream for main.py + auths.py",
+      "status": "completed",
+      "parent": "phase-4-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "git diff --numstat upstream/main...HEAD backend/open_webui/routers/auths.py backend/open_webui/main.py",
+        "expected": "Deltas for auths.py and main.py are materially smaller after extraction.",
+        "completed_at": "2026-02-07T23:31:56.202161Z",
+        "needs_journaling": false,
+        "status_note": "Completed (work merged to airis_b2c)",
+        "journaled_at": "2026-02-07T23:31:56.203988Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-02-07T23:31:09.156101Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Capture baseline diffs + endpoint inventory (no behavior change)",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:09.157881Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-1-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-1-files"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:16.397884Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Move /telegram/state endpoint and state storage helpers",
+      "author": "claude-code",
+      "content": "Task task-2-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-2-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:21.930229Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run baseline backend auth tests (targeted)",
+      "author": "claude-code",
+      "content": "Task verify-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "verify-1-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:21.932407Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-1-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-1-verify"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:21.933316Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Baseline And Safety Net",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:35.786371Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Capture baseline diffs + endpoint inventory (no behavior change)",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:51.901419Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Capture baseline diffs + endpoint inventory (no behavior change)",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:52.103586Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run baseline backend auth tests (targeted)",
+      "author": "claude-code",
+      "content": "Task verify-1-1 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "verify-1-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:52.306358Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: backend/open_webui/routers/airis/__init__.py",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:52.507058Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Move /telegram/state endpoint and state storage helpers",
+      "author": "claude-code",
+      "content": "Task task-2-2-1 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "task-2-2-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:52.709461Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Move /telegram/signin + /telegram/signup endpoints (preserve behavior)",
+      "author": "claude-code",
+      "content": "Task task-2-2-2 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "task-2-2-2"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:52.915895Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Move /telegram/link endpoints (preserve behavior and permissions)",
+      "author": "claude-code",
+      "content": "Task task-2-2-3 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "task-2-2-3"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:53.121316Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Move email verification endpoints (/verify-email, /resend-verification)",
+      "author": "claude-code",
+      "content": "Task task-2-3-1 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "task-2-3-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:53.325499Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Move password reset endpoints (/request-password-reset, /validate-reset-token/{token}, /reset-password)",
+      "author": "claude-code",
+      "content": "Task task-2-3-2 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "task-2-3-2"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:53.528601Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Remove large Telegram block and include Airis Telegram router (thin hook)",
+      "author": "claude-code",
+      "content": "Task task-2-4-1 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "task-2-4-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:53.730615Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Remove password reset/email verification endpoints and include Airis router (thin hook)",
+      "author": "claude-code",
+      "content": "Task task-2-4-2 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "task-2-4-2"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:53.732543Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-2-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-2-files"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:53.935336Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run auth router tests",
+      "author": "claude-code",
+      "content": "Task verify-2-1 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "verify-2-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:54.139243Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run Telegram auth unit tests",
+      "author": "claude-code",
+      "content": "Task verify-2-2 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "verify-2-2"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:54.345267Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Manual smoke: verify /api/v1/auths/telegram/state is reachable",
+      "author": "claude-code",
+      "content": "Task verify-2-3 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "verify-2-3"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:54.347382Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-2-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-2-verify"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:54.348393Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Extract Airis Auth Routers",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:54.550164Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement bootstrap_airis(app) to register Airis-only routers (lazy imports)",
+      "author": "claude-code",
+      "content": "Task task-3-1-1 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "task-3-1-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:54.755355Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement extend_airis_app_config(payload, request) to inject telegram/billing/oauth provider metadata",
+      "author": "claude-code",
+      "content": "Task task-3-1-2 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "task-3-1-2"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:54.959817Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Replace direct Airis router includes with bootstrap_airis(app) call",
+      "author": "claude-code",
+      "content": "Task task-3-2-1 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "task-3-2-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:55.164974Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Refactor /api/config to build upstream payload first, then call extend_airis_app_config(...)",
+      "author": "claude-code",
+      "content": "Task task-3-2-2 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "task-3-2-2"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:55.167113Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-3-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-3-files"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:55.369089Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run targeted config/auth tests after bootstrap extraction",
+      "author": "claude-code",
+      "content": "Task verify-3-1 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "verify-3-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:55.575169Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Manual smoke: /api/config includes telegram + billing fields expected by UI",
+      "author": "claude-code",
+      "content": "Task verify-3-2 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "verify-3-2"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:55.577437Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-3-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-3-verify"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:55.578520Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Extract Airis App Bootstrap And /api/config Extension",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:55.789437Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Finalize work item docs and record diff reduction evidence",
+      "author": "claude-code",
+      "content": "Task task-4-1 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "task-4-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:55.792025Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-4-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-4-files"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:55.998384Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run full backend test suite",
+      "author": "claude-code",
+      "content": "Task verify-4-1 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "verify-4-1"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:56.203983Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Measure diff reduction vs upstream for main.py + auths.py",
+      "author": "claude-code",
+      "content": "Task verify-4-2 marked as completed. \nNote: Completed (work merged to airis_b2c)",
+      "metadata": {},
+      "task_id": "verify-4-2"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:56.206339Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-4-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-4-verify"
+    },
+    {
+      "timestamp": "2026-02-07T23:31:56.207450Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Diff Audit And Final Verification",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-4 have been completed.",
+      "metadata": {},
+      "task_id": "phase-4"
+    }
+  ],
+  "metadata": {
+    "progress_percentage": 100,
+    "status": "completed",
+    "current_phase": "phase-4",
+    "completed_date": "2026-02-07T23:32:10.459621Z"
+  }
+}
