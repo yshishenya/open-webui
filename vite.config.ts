@@ -3,7 +3,8 @@ import { defineConfig } from 'vite';
 
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
-const enableSourcemap = process.env.AIRIS_VITE_SOURCEMAP !== 'false';
+const airisViteSourcemapEnv = process.env.AIRIS_VITE_SOURCEMAP?.toLowerCase();
+const enableSourcemap = !['false', '0', 'no'].includes(airisViteSourcemapEnv ?? '');
 
 export default defineConfig({
 	plugins: [

@@ -43,7 +43,7 @@ Even with Docker sourcemaps disabled, the current bundle can exceed a 3 GB old-s
 ## Implementation Notes
 
 - `vite.config.ts`:
-  - `enableSourcemap` defaults to `true` unless `AIRIS_VITE_SOURCEMAP=false`.
+  - `enableSourcemap` defaults to `true` unless `AIRIS_VITE_SOURCEMAP` is set to a falsey value (`false`, `0`, `no`).
 - `Dockerfile`:
   - Sets the frontend build stage default Node heap limit via `NODE_MAX_OLD_SPACE_SIZE` (overrideable via build-arg).
   - Adds `ARG AIRIS_VITE_SOURCEMAP=false` right before the Vite build step.
