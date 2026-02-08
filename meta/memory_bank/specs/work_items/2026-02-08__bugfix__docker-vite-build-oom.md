@@ -76,7 +76,7 @@ Even with Docker sourcemaps disabled, the current bundle can exceed a 3 GB old-s
   - Owner: Codex
   - Branch: `codex/bugfix/docker-vite-build-oom`
   - Done: 2026-02-08
-  - Summary: Disable Vite sourcemaps by default in Docker builds (overrideable) to reduce peak memory and avoid Node heap OOM.
+  - Summary: Raise Node heap limit for the frontend Docker build stage and disable Vite sourcemaps by default (overrideable) to avoid `vite build` OOM.
   - Tests: `docker build --target build ...`
   - Risks: Low (build-time only; sourcemap output changes in Docker images).
 
