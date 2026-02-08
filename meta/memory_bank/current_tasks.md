@@ -20,6 +20,42 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG]** Guard chat middleware against `null` model capabilities
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-07__bugfix__model-info-null-capabilities-guards.md`
+  - Owner: Codex
+  - Branch: `bugfix/chat-direct-ack-billing-block`
+  - Done: 2026-02-07
+  - Summary: Prevent `NoneType.get` in background chat task when model `info/meta/capabilities` contains JSON nulls in prod DB.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/util/test_safe_get.py"`
+  - Risks: Low (read-path only; defaults preserve existing behavior).
+
+- [x] **[REFACTOR][UPSTREAM]** Minimize upstream conflict surface (auths/main bootstrap hooks)
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-07__refactor__minimize-upstream-conflicts-auth-bootstrap.md`
+  - Owner: Codex
+  - Branch: `codex/refactor/minimize-upstream-conflicts-auth-bootstrap`
+  - Done: 2026-02-07
+  - Summary: Extract Airis auth endpoints + app bootstrap into fork-owned modules; keep upstream files as thin hooks to reduce merge conflicts.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e DATABASE_URL= airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_auths.py open_webui/test/util/test_telegram_auth.py open_webui/test/apps/webui/routers/test_legal.py"`
+  - Risks: Medium (auth routes + config payload)
+
+- [x] **[REFACTOR]** Reduce upstream sync noise (prune qoder wiki + thin hook for billing bootstrap)
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-07__refactor__reduce-upstream-sync-noise.md`
+  - Owner: Codex
+  - Branch: `codex/prune-qoder`
+  - Done: 2026-02-07
+  - Summary: Prune generated `.qoder` artifacts; extract billing bootstrap into an Airis helper; add `.gitignore` entries to prevent re-adding generated artifacts.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/util/test_safe_get.py open_webui/test/util/test_task_error_payload.py open_webui/test/util/test_chat_direct_ack.py"`
+  - Risks: Low (repo hygiene + startup refactor; no intended runtime behavior changes)
+
+- [x] **[DEV][DOCKER]** Speed up Docker builds by fixing cache busting + avoiding cache-destructive pruning
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-07__refactor__docker-build-cache-speed.md`
+  - Owner: Codex
+  - Branch: `codex/refactor/docker-build-cache`
+  - Done: 2026-02-07
+  - Summary: Reduce unnecessary rebuilds/downloads by narrowing frontend build COPY inputs, splitting Pyodide fetch, and preserving Docker caches in helper scripts.
+  - Tests: `docker build --target build ...` (cache checks: repeat build is cached; changing `BUILD_HASH` keeps `npm ci` + `pyodide:fetch` cached)
+  - Risks: Low (build-time only; no runtime logic changes)
+
 - [x] **[BUG]** Chat: direct ack crash + wallet billing blocked modal in task/websocket mode
   - Spec: `meta/memory_bank/specs/work_items/2026-02-06__bugfix__chat-direct-ack-billing-block-modal.md`
   - Owner: Codex

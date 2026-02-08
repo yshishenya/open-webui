@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: refactor
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: codex/refactor/minimize-upstream-conflicts-auth-bootstrap
-- SDD Spec (JSON, required for non-trivial): meta/sdd/specs/pending/minimize-upstream-conflicts-auth-bootstrap-2026-02-07-001.json
+- SDD Spec (JSON, required for non-trivial): meta/sdd/specs/completed/minimize-upstream-conflicts-auth-bootstrap-2026-02-07-001.json
 - Created: 2026-02-07
 - Updated: 2026-02-07
 
@@ -23,16 +23,16 @@ This increases merge-conflict risk on upstream sync and makes upstream updates m
 
 ## Goal / Acceptance Criteria
 
-- [ ] **No behavior change** (API surface + contracts):
-  - [ ] Telegram auth endpoints remain available under `/api/v1/auths/telegram/*` with the same request/response behavior.
-  - [ ] Email verification + password reset endpoints remain available under the same `/api/v1/auths/*` paths.
-  - [ ] `/api/config` response remains backward compatible for Airis UI (telegram section, billing feature flags, VK/Telegram oauth provider metadata).
-- [ ] **Reduce upstream conflict surface**:
-  - [ ] `backend/open_webui/routers/auths.py` becomes a thin hook (remove large Airis blocks; include Airis routers instead).
-  - [ ] `backend/open_webui/main.py` becomes a thin hook (Airis-only router includes + config extensions moved into a fork-owned bootstrap helper).
-- [ ] **Verification**:
-  - [ ] Backend tests covering auth/telegram/password-reset/config pass.
-  - [ ] Diff reduction is measurable: `git diff --numstat upstream/main...HEAD backend/open_webui/routers/auths.py backend/open_webui/main.py` shows materially smaller deltas.
+- [x] **No behavior change** (API surface + contracts):
+  - [x] Telegram auth endpoints remain available under `/api/v1/auths/telegram/*` with the same request/response behavior.
+  - [x] Email verification + password reset endpoints remain available under the same `/api/v1/auths/*` paths.
+  - [x] `/api/config` response remains backward compatible for Airis UI (telegram section, billing feature flags, VK/Telegram oauth provider metadata).
+- [x] **Reduce upstream conflict surface**:
+  - [x] `backend/open_webui/routers/auths.py` becomes a thin hook (remove large Airis blocks; include Airis routers instead).
+  - [x] `backend/open_webui/main.py` becomes a thin hook (Airis-only router includes + config extensions moved into a fork-owned bootstrap helper).
+- [x] **Verification**:
+  - [x] Backend tests covering auth/telegram/password-reset/config pass.
+  - [x] Diff reduction is measurable: `git diff --numstat upstream/main...HEAD backend/open_webui/routers/auths.py backend/open_webui/main.py` shows materially smaller deltas.
 
 ## Non-goals
 
@@ -92,13 +92,13 @@ Docker Compose-first commands (adjust if needed):
 
 ## Task Entry (for branch_updates/current_tasks)
 
-- [ ] **[REFACTOR][UPSTREAM]** Minimize upstream conflict surface (auths/main bootstrap hooks)
+- [x] **[REFACTOR][UPSTREAM]** Minimize upstream conflict surface (auths/main bootstrap hooks)
   - Spec: `meta/memory_bank/specs/work_items/2026-02-07__refactor__minimize-upstream-conflicts-auth-bootstrap.md`
   - Owner: Codex
   - Branch: `codex/refactor/minimize-upstream-conflicts-auth-bootstrap`
-  - Started: 2026-02-07
+  - Done: 2026-02-07
   - Summary: Extract Airis auth endpoints + app bootstrap into fork-owned modules; keep upstream files as thin hooks to reduce merge conflicts.
-  - Tests: TBD
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e DATABASE_URL= airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_auths.py open_webui/test/util/test_telegram_auth.py open_webui/test/apps/webui/routers/test_legal.py"`
   - Risks: Medium (auth routes + config payload)
 
 ## Risks / Rollback
