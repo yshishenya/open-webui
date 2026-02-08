@@ -45,7 +45,8 @@ COPY svelte.config.js vite.config.ts tsconfig.json tsconfig.check.json postcss.c
 COPY src ./src
 
 ARG BUILD_HASH
-RUN APP_BUILD_HASH=${BUILD_HASH} npm run build:vite
+ARG AIRIS_VITE_SOURCEMAP=false
+RUN AIRIS_VITE_SOURCEMAP=${AIRIS_VITE_SOURCEMAP} APP_BUILD_HASH=${BUILD_HASH} npm run build:vite
 
 # Required by the final stage (copied from this build stage).
 COPY CHANGELOG.md ./CHANGELOG.md
