@@ -51,11 +51,57 @@ From the dev server:
 scripts/deploy_prod.sh
 ```
 
-Optional: deploy a specific tag:
+By default, when run in a terminal with no flags, the script will prompt an interactive dialog.
+For automation, pass flags and/or use `--non-interactive`.
+
+Optional: deploy a specific tag (positional arg, backward-compatible):
 
 ```bash
 scripts/deploy_prod.sh v0.6.41
 ```
+
+Optional: deploy a specific tag (flag form):
+
+```bash
+scripts/deploy_prod.sh --tag v0.6.41
+```
+
+Optional: fast rebuild using cache, but always pick a unique tag:
+
+```bash
+scripts/deploy_prod.sh --unique-tag
+```
+
+Optional: rebuild without cache (clean build):
+
+```bash
+scripts/deploy_prod.sh --no-cache
+```
+
+Optional: rebuild without cache and also refresh base layers:
+
+```bash
+scripts/deploy_prod.sh --no-cache --pull
+```
+
+Optional: force restart on prod even if Compose thinks nothing changed:
+
+```bash
+scripts/deploy_prod.sh --force-recreate
+```
+
+Optional: force interactive or disable it:
+
+```bash
+scripts/deploy_prod.sh --interactive
+scripts/deploy_prod.sh --non-interactive
+```
+
+Tagging behavior (when no tag is provided):
+
+- Clean working tree: tag is `<short-sha>`
+- Dirty working tree (uncommitted changes): tag is `<short-sha>-dirty-<hash>`
+- With `--unique-tag`: adds a UTC timestamp suffix
 
 What the script does:
 
