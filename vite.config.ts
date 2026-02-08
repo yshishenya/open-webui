@@ -3,6 +3,9 @@ import { defineConfig } from 'vite';
 
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
+const airisViteSourcemapEnv = process.env.AIRIS_VITE_SOURCEMAP?.toLowerCase();
+const enableSourcemap = !['false', '0', 'no'].includes(airisViteSourcemapEnv ?? '');
+
 export default defineConfig({
 	plugins: [
 		sveltekit(),
@@ -21,7 +24,7 @@ export default defineConfig({
 		APP_BUILD_HASH: JSON.stringify(process.env.APP_BUILD_HASH || 'dev-build')
 	},
 	build: {
-		sourcemap: true
+		sourcemap: enableSourcemap
 	},
 	worker: {
 		format: 'es'

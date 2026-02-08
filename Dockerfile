@@ -27,8 +27,9 @@ ARG GID=0
 FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
 
 # Set Node.js options for frontend build memory usage.
-# Default is intentionally conservative to avoid OOM-kills on small build hosts.
-ARG NODE_MAX_OLD_SPACE_SIZE=3072
+# Default is tuned to avoid Node heap OOM during `vite build` in the Docker build stage.
+# Override with `--build-arg NODE_MAX_OLD_SPACE_SIZE=...` if your build host is memory constrained.
+ARG NODE_MAX_OLD_SPACE_SIZE=4096
 ENV NODE_OPTIONS="--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}"
 
 WORKDIR /app
@@ -47,7 +48,8 @@ COPY svelte.config.js vite.config.ts tsconfig.json tsconfig.check.json postcss.c
 COPY src ./src
 
 ARG BUILD_HASH
-RUN APP_BUILD_HASH=${BUILD_HASH} npm run build:vite
+ARG AIRIS_VITE_SOURCEMAP=false
+RUN AIRIS_VITE_SOURCEMAP=${AIRIS_VITE_SOURCEMAP} APP_BUILD_HASH=${BUILD_HASH} npm run build:vite
 
 # Required by the final stage (copied from this build stage).
 COPY CHANGELOG.md ./CHANGELOG.md
