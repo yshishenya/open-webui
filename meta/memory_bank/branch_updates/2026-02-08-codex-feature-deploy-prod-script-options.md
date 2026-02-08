@@ -1,0 +1,8 @@
+- [x] **[DEPLOY-02]** Deploy script build options + safe tagging
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-08__feature__deploy-prod-script-build-options.md`
+  - Owner: Codex
+  - Branch: `codex/feature/deploy-prod-script-options`
+  - Done: 2026-02-08
+  - Summary: Add interactive dialog + build options and safe tagging so prod always runs the intended image.
+  - Tests: `bash -n scripts/deploy_prod.sh`, `scripts/deploy_prod.sh --dry-run --non-interactive --no-cache --pull --force-recreate`
+  - Risks: Low (deploy tooling only)
