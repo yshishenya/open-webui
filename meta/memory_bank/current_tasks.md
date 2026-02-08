@@ -20,6 +20,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG][AUTH]** Restore Telegram + password reset UI
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-08__bugfix__auth-login-providers-password-reset-ui.md`
+  - Owner: Codex
+  - Branch: `bugfix/auth-login-providers-password-reset`
+  - Done: 2026-02-08
+  - Summary: Show Telegram + VKID OK/Mail alternatives on `/auth`, add password reset/verify pages, and polish UX (close button + RU copy).
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps -e NODE_OPTIONS=--max-old-space-size=4096 airis-frontend sh -lc "npm run build:vite"`
+  - Risks: Low (auth UX changes; verify provider buttons + email flow in prod).
+
 - [x] **[BUG]** Guard chat middleware against `null` model capabilities
   - Spec: `meta/memory_bank/specs/work_items/2026-02-07__bugfix__model-info-null-capabilities-guards.md`
   - Owner: Codex
