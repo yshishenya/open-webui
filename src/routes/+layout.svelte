@@ -795,6 +795,9 @@
 					// Public pages: auth, welcome, pricing, about, contact, terms, privacy, features, error
 					const publicPaths = [
 						'/auth',
+						'/forgot-password',
+						'/reset-password',
+						'/verify-email',
 						'/signup',
 						'/welcome',
 						'/pricing',
