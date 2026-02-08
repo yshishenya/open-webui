@@ -39,6 +39,7 @@
 	let mode = $config?.features.enable_ldap ? 'ldap' : 'signin';
 
 	let form = null;
+	let requestedMode: string | null = null;
 	let signupEnabled = true;
 	let passwordAuthEnabled = false;
 
@@ -50,6 +51,7 @@
 
 	let ldapUsername = '';
 	let panel: 'choice' | 'email' = 'choice';
+	let panelAuto = true;
 	let submitting = false;
 	let telegramLoading = false;
 	let telegramMode: 'signin' | 'signup' = 'signin';
@@ -202,26 +204,28 @@
 		}
 	};
 
-		const closeAuth = (): void => {
-			// Make /auth feel like a modal, but avoid navigating into OAuth/provider pages.
-			try {
-				const referrer = typeof document !== 'undefined' ? document.referrer : '';
-				if (typeof window !== 'undefined' && referrer) {
-					const refUrl = new URL(referrer);
-					const isSameOrigin = refUrl.origin === window.location.origin;
-					const refPath = refUrl.pathname;
-					const isOauthHop = refPath.startsWith('/oauth/') || refPath.startsWith('/api/v1/oauth/');
+	const closeAuth = (): void => {
+		// Make /auth feel like a modal, but avoid navigating into OAuth/provider pages.
+		try {
+			const referrer = typeof document !== 'undefined' ? document.referrer : '';
+			if (typeof window !== 'undefined' && referrer) {
+				const refUrl = new URL(referrer);
+				const isSameOrigin = refUrl.origin === window.location.origin;
+				const refPath = refUrl.pathname;
+				const isOauthHop =
+					refPath.startsWith('/oauth/') || refPath.startsWith('/api/v1/oauth/');
+				const isAuthPath = refPath === '/auth';
 
-					if (isSameOrigin && !isOauthHop) {
-						goto(`${refUrl.pathname}${refUrl.search}${refUrl.hash}`);
-						return;
-					}
+				if (isSameOrigin && !isOauthHop && !isAuthPath) {
+					void goto(`${refUrl.pathname}${refUrl.search}${refUrl.hash}`);
+					return;
 				}
-			} catch {
-				// Fall through to a safe close target.
 			}
+		} catch {
+			// Fall through to a safe close target.
+		}
 
-		goto('/welcome');
+		void goto('/welcome');
 	};
 
 	const oauthCallbackHandler = async () => {
@@ -281,7 +285,7 @@
 
 		await oauthCallbackHandler();
 		form = $page.url.searchParams.get('form');
-		const requestedMode = form ?? $page.url.searchParams.get('mode');
+		requestedMode = form ?? $page.url.searchParams.get('mode');
 		if (requestedMode === 'signup' && ($config?.features.enable_signup ?? true)) {
 			mode = 'signup';
 		} else if (requestedMode === 'signin' && $config?.features.enable_login_form) {
@@ -290,12 +294,13 @@
 
 		// Default panel: choice (social + email) unless the caller explicitly asks for a form,
 		// or we have no social providers configured.
+		const configReady = $config !== undefined;
 		const shouldOpenEmailPanel =
 			requestedMode === 'signup' ||
 			requestedMode === 'signin' ||
 			requestedMode === 'ldap' ||
 			($config?.onboarding ?? false) ||
-			!hasSocialProviders;
+			(configReady && !hasSocialProviders);
 		panel = shouldOpenEmailPanel ? 'email' : 'choice';
 
 		loaded = true;
@@ -307,6 +312,18 @@
 			onboarding = $config?.onboarding ?? false;
 		}
 	});
+
+	// Panel auto-selection should respect late-loaded config (common on cold start) but never
+	// override an explicit user action.
+	$: if (loaded && panelAuto && $config !== undefined) {
+		const shouldOpenEmailPanel =
+			requestedMode === 'signup' ||
+			requestedMode === 'signin' ||
+			requestedMode === 'ldap' ||
+			($config?.onboarding ?? false) ||
+			!hasSocialProviders;
+		panel = shouldOpenEmailPanel ? 'email' : 'choice';
+	}
 </script>
 
 <svelte:head>
@@ -665,12 +682,13 @@
 											<button
 												type="button"
 												class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center gap-3 px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
-												on:click={() => {
-													panel = 'email';
-													mode = ($config?.onboarding ?? false)
-														? 'signup'
-														: $config?.features.enable_ldap
-															? 'ldap'
+													on:click={() => {
+														panel = 'email';
+														panelAuto = false;
+														mode = ($config?.onboarding ?? false)
+															? 'signup'
+															: $config?.features.enable_ldap
+																? 'ldap'
 															: 'signin';
 												}}
 												disabled={oauthRedirectingTo !== null || submitting}
@@ -700,12 +718,13 @@
 											<button
 												type="button"
 												class="w-full text-center text-sm font-semibold text-white/60 hover:text-white/90 transition underline underline-offset-4 decoration-white/20 hover:decoration-white/40"
-												on:click={() => {
-													panel = 'email';
-													mode = $config?.features.enable_ldap ? 'ldap' : 'signin';
-												}}
-												disabled={oauthRedirectingTo !== null || submitting}
-											>
+													on:click={() => {
+														panel = 'email';
+														panelAuto = false;
+														mode = $config?.features.enable_ldap ? 'ldap' : 'signin';
+													}}
+													disabled={oauthRedirectingTo !== null || submitting}
+												>
 												{$i18n.t('Already have an account?')}
 											</button>
 										</div>
@@ -737,12 +756,13 @@
 										{#if hasSocialProviders}
 												<button
 													type="button"
-													class="inline-flex items-center gap-2 text-xs font-semibold text-white/60 hover:text-white/90 transition"
-													on:click={() => {
-														panel = 'choice';
-													}}
-													disabled={submitting}
-												>
+														class="inline-flex items-center gap-2 text-xs font-semibold text-white/60 hover:text-white/90 transition"
+														on:click={() => {
+															panel = 'choice';
+															panelAuto = false;
+														}}
+														disabled={submitting}
+													>
 												<svg
 													xmlns="http://www.w3.org/2000/svg"
 													viewBox="0 0 24 24"
