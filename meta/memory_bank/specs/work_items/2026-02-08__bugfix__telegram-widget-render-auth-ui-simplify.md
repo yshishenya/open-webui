@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: bugfix/auth-telegram-widget-ui
 - SDD Spec (JSON, required for non-trivial): N/A

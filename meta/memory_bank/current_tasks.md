@@ -20,6 +20,33 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG][AUTH]** Fix Telegram widget render + simplify auth provider UI
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-08__bugfix__telegram-widget-render-auth-ui-simplify.md`
+  - Owner: Codex
+  - Branch: `bugfix/auth-telegram-widget-ui`
+  - Done: 2026-02-08
+  - Summary: Fix Telegram widget callback naming (prevents JS syntax error) and simplify `/auth` providers layout (primary button + icon row + expand panels).
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps -e NODE_OPTIONS=--max-old-space-size=4096 airis-frontend sh -lc "npm run build:vite"`
+  - Risks: Low (auth choice UX tweaks; smoke test Telegram + VK ID expand in prod).
+
+- [x] **[BUG][DEV][DOCKER]** Fix frontend Vite build OOM in Docker builds
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-08__bugfix__docker-vite-build-oom.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/docker-vite-build-oom`
+  - Done: 2026-02-08
+  - Summary: Raise Node heap limit for the frontend Docker build stage and disable Vite sourcemaps by default (overrideable) to avoid `vite build` OOM.
+  - Tests: `docker build --target build ...`
+  - Risks: Low (build-time only; sourcemap output changes in Docker images).
+
+- [x] **[DEPLOY-02]** Deploy script build options + safe tagging
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-08__feature__deploy-prod-script-build-options.md`
+  - Owner: Codex
+  - Branch: `codex/feature/deploy-prod-script-options`
+  - Done: 2026-02-08
+  - Summary: Add interactive dialog + build options and safe tagging so prod always runs the intended image.
+  - Tests: `bash -n scripts/deploy_prod.sh`, `scripts/deploy_prod.sh --dry-run --non-interactive --no-cache --pull --force-recreate`
+  - Risks: Low (deploy tooling only)
+
 - [x] **[BUG][AUTH]** Restore Telegram + password reset UI
   - Spec: `meta/memory_bank/specs/work_items/2026-02-08__bugfix__auth-login-providers-password-reset-ui.md`
   - Owner: Codex
@@ -821,6 +848,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
   - **Target**: TBD
 
 ### Medium Priority
+
+- [ ] **[UI][AUTH]** Auth page redesign (login screen)
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-07__feature__auth-login-redesign.md`
+  - Owner: Codex
+  - Branch: `codex/feature/auth-login-redesign`
+  - Started: 2026-02-07
+  - Summary: Redesign `/auth` as a modal-like OLED sheet with provider-first entry and a separate email panel (no SMS); follow up with manual smoke tests on all providers and layouts.
+  - Tests: TBD
+  - Risks: Low-Medium (touches auth UX; watch for layout regressions in all modes/providers).
 
 - [ ] **[FEATURE-01]** Improve AI model switching UX
 
