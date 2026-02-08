@@ -27,4 +27,10 @@ describe('Auth Login Regressions', () => {
 		expect(auth).toMatch(/\$:\s*telegramVisible\s*=\s*telegramEnabled\s*;/);
 		expect(auth).not.toMatch(/telegramEnabled\s*&&\s*!yandexEnabled/);
 	});
+
+	it('generates Telegram widget callback names safe for JS identifiers', async () => {
+		const widget = await readText('src/lib/components/auth/TelegramLoginWidget.svelte');
+
+		expect(widget).toContain("replace(/-/g, '_')");
+	});
 });
