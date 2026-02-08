@@ -69,7 +69,7 @@
 	$: vkEnabled = Boolean($config?.oauth?.providers?.vk);
 	$: vkIdEnabled = Boolean($config?.oauth?.providers?.vk?.app_id);
 	$: telegramEnabled = Boolean($config?.telegram?.enabled) && Boolean($config?.telegram?.bot_username);
-	$: telegramVisible = telegramEnabled && !yandexEnabled && !githubEnabled && !vkEnabled;
+	$: telegramVisible = telegramEnabled;
 	$: hasSocialProviders = yandexEnabled || githubEnabled || vkEnabled || telegramVisible;
 
 	$: signupEnabled = $config?.features.enable_signup ?? true;
@@ -406,9 +406,8 @@
 
 							<button
 								type="button"
-								class="absolute top-4 right-4 size-10 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+								class="absolute top-4 right-4 z-20 size-10 pointer-events-auto rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
 								on:click={closeAuth}
-								disabled={submitting || oauthRedirectingTo !== null || telegramLoading}
 								aria-label={$i18n.t('Close')}
 							>
 							<svg
@@ -443,7 +442,7 @@
 									{#if panel === 'choice'}
 										<div class="text-center">
 											<div
-												class="text-[2rem] sm:text-[2.15rem] font-semibold tracking-tight leading-[1.05] animate-[fade-up_650ms_ease-out_both]"
+												class="text-balance text-[2rem] sm:text-[2.15rem] font-semibold tracking-tight leading-[1.05] animate-[fade-up_650ms_ease-out_both]"
 											>
 												{$i18n.t('Sign in or sign up')}
 											</div>
@@ -521,8 +520,6 @@
 													appId={$config?.oauth?.providers?.vk?.app_id}
 													redirectUrl={$config?.oauth?.providers?.vk?.redirect_url || ''}
 													scheme={'dark'}
-													showAlternativeLogin={false}
-													oauthList={[]}
 												/>
 											</div>
 											{:else}
@@ -741,6 +738,17 @@
 													>
 												</button>
 
+												{#if emailSignInEnabled}
+													<div class="flex justify-center">
+														<a
+															href="/forgot-password"
+															class="text-xs font-semibold text-white/60 hover:text-white/90 hover:underline transition"
+														>
+															{$i18n.t('Forgot password?')}
+														</a>
+													</div>
+												{/if}
+
 												{#if choiceEmailSecondaryMode}
 													<button
 														type="button"
@@ -889,11 +897,11 @@
 												</div>
 											{/if}
 
-											<div>
-												<label for="password" class="sr-only">{$i18n.t('Password')}</label>
-													<SensitiveInput
-														bind:value={password}
-														type="password"
+												<div>
+													<label for="password" class="sr-only">{$i18n.t('Password')}</label>
+														<SensitiveInput
+															bind:value={password}
+															type="password"
 														id="password"
 														outerClassName="w-full min-h-[52px] flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 outline-none focus-within:ring-2 focus-within:ring-white/20 focus-within:border-white/20"
 														inputClassName="w-full text-sm bg-transparent outline-none text-white placeholder:text-white/40"
@@ -901,13 +909,24 @@
 														placeholder={$i18n.t('Enter Your Password')}
 														autocomplete={mode === 'signup' ? 'new-password' : 'current-password'}
 														name="password"
-														required
-													/>
-											</div>
+															required
+														/>
+												</div>
 
-											{#if mode === 'signup' && $config?.features?.enable_signup_password_confirmation}
-												<div>
-													<label for="confirm-password" class="sr-only">
+												{#if mode === 'signin' && emailSignInEnabled}
+													<div class="mt-1 flex justify-end">
+														<a
+															href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+															class="text-xs font-semibold text-white/60 hover:text-white/90 hover:underline transition"
+														>
+															{$i18n.t('Forgot password?')}
+														</a>
+													</div>
+												{/if}
+	
+												{#if mode === 'signup' && $config?.features?.enable_signup_password_confirmation}
+													<div>
+														<label for="confirm-password" class="sr-only">
 														{$i18n.t('Confirm Password')}
 													</label>
 														<SensitiveInput

@@ -1,0 +1,17 @@
+- [x] **[BUG][AUTH]** Restore social providers + add password reset UI
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-08__bugfix__auth-login-providers-password-reset-ui.md`
+  - Owner: Codex
+  - Branch: `bugfix/auth-login-providers-password-reset`
+  - Done: 2026-02-08
+  - Summary: Bring back OK/Mail.ru + Telegram on `/auth` and ship password reset pages (`/forgot-password`, `/reset-password`).
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps -e NODE_OPTIONS=--max-old-space-size=4096 airis-frontend sh -lc "npm run build:vite"`
+  - Risks: Low-Medium (auth UX changes; ensure no regressions for existing providers).
+
+- [x] **[BUG][AUTH]** Auth screen UX polish (close button + mobile copy + password reset discoverability)
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-08__bugfix__auth-login-providers-password-reset-ui.md`
+  - Owner: Codex
+  - Branch: `bugfix/auth-login-providers-password-reset`
+  - Done: 2026-02-08
+  - Summary: Make /auth close button reliably clickable, shorten RU title to avoid awkward wrapping on mobile, and add a visible password reset link from the choice screen.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps -e NODE_OPTIONS=--max-old-space-size=4096 airis-frontend sh -lc "npm run build:vite"`
+  - Risks: Low (copy + small interaction tweaks).
