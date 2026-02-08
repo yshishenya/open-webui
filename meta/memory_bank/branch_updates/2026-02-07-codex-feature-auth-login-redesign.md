@@ -9,6 +9,6 @@
   - Update: 2026-02-07
   - Update Summary: Fix i18n key usage (no Cyrillic keys; add missing legal keys), disable close during Telegram auth, and replace non-standard Tailwind opacity classes with valid ones. Follow-up: harden close navigation against OAuth hops, remove i18n string concatenations, and make SensitiveInput update value on input.
   - Update: 2026-02-08
-  - Update Summary: Stabilize initial panel selection when backend config is late-loaded (keep provider-first default; still default to email panel when no social providers). Tidy closeAuth implementation and guard against navigating to /auth itself. Avoid redirecting away from /auth when `$user` is `null` (logged out) and return early when already authenticated.
+  - Update Summary: Stabilize initial panel selection when backend config is late-loaded (keep provider-first default; still default to email panel when no social providers). Tidy closeAuth implementation and guard against navigating to /auth itself. Avoid redirecting away from /auth when `$user` is `null` (logged out) and return early when already authenticated. Fix choice panel email CTAs: primary opens signup when enabled, secondary sign-in link only shown when relevant (and uses LDAP label when email sign-in is disabled).
   - Tests: Not run (no existing auth UI tests); lint (targeted, docker): `npx eslint src/routes/auth/+page.svelte`
   - Risks: Low-Medium (touches auth UX; watch for layout regressions in all modes/providers).

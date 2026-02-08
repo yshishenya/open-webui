@@ -42,6 +42,11 @@
 	let requestedMode: string | null = null;
 	let signupEnabled = true;
 	let passwordAuthEnabled = false;
+	let emailSignInEnabled = false;
+	let ldapSignInEnabled = false;
+	let choiceEmailPrimaryMode: 'signin' | 'signup' | 'ldap' = 'signin';
+	let choiceEmailPrimaryLabelKey = 'Continue with Email';
+	let choiceEmailSecondaryMode: 'signin' | 'ldap' | null = null;
 
 	let name = '';
 	let email = '';
@@ -72,6 +77,29 @@
 		($config?.features.enable_login_form ?? false) ||
 		($config?.features.enable_ldap ?? false) ||
 		signupEnabled;
+	$: emailSignInEnabled = Boolean($config?.features.enable_login_form);
+	$: ldapSignInEnabled = Boolean($config?.features.enable_ldap);
+
+	$: choiceEmailPrimaryMode =
+		($config?.onboarding ?? false)
+			? 'signup'
+			: signupEnabled
+				? 'signup'
+				: emailSignInEnabled
+					? 'signin'
+					: ldapSignInEnabled
+						? 'ldap'
+						: 'signin';
+
+	$: choiceEmailPrimaryLabelKey =
+		choiceEmailPrimaryMode === 'ldap' ? 'Continue with LDAP' : 'Continue with Email';
+
+	$: choiceEmailSecondaryMode =
+		signupEnabled && (emailSignInEnabled || ldapSignInEnabled)
+			? emailSignInEnabled
+				? 'signin'
+				: 'ldap'
+			: null;
 
 	const setSessionUser = async (sessionUser, redirectPath: string | null = null) => {
 		if (sessionUser) {
@@ -679,20 +707,16 @@
 										</div>
 
 										<div class="mt-5 space-y-3 animate-[fade-up_650ms_ease-out_320ms_both]">
-											<button
-												type="button"
-												class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center gap-3 px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+												<button
+													type="button"
+													class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center gap-3 px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
 													on:click={() => {
 														panel = 'email';
 														panelAuto = false;
-														mode = ($config?.onboarding ?? false)
-															? 'signup'
-															: $config?.features.enable_ldap
-																? 'ldap'
-															: 'signin';
-												}}
-												disabled={oauthRedirectingTo !== null || submitting}
-											>
+														mode = choiceEmailPrimaryMode;
+													}}
+													disabled={oauthRedirectingTo !== null || submitting}
+												>
 												<span
 													class="size-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white/90"
 													aria-hidden="true"
@@ -711,24 +735,29 @@
 													<rect x="3" y="5" width="18" height="14" rx="2" />
 													<path d="m3 7 9 6 9-6" />
 													</svg>
-												</span>
-												<span class="text-sm font-semibold">{$i18n.t('Continue with Email')}</span>
-											</button>
+													</span>
+													<span class="text-sm font-semibold"
+														>{$i18n.t(choiceEmailPrimaryLabelKey)}</span
+													>
+												</button>
 
-											<button
-												type="button"
-												class="w-full text-center text-sm font-semibold text-white/60 hover:text-white/90 transition underline underline-offset-4 decoration-white/20 hover:decoration-white/40"
-													on:click={() => {
-														panel = 'email';
-														panelAuto = false;
-														mode = $config?.features.enable_ldap ? 'ldap' : 'signin';
-													}}
-													disabled={oauthRedirectingTo !== null || submitting}
-												>
-												{$i18n.t('Already have an account?')}
-											</button>
-										</div>
-									{/if}
+												{#if choiceEmailSecondaryMode}
+													<button
+														type="button"
+														class="w-full text-center text-sm font-semibold text-white/60 hover:text-white/90 transition underline underline-offset-4 decoration-white/20 hover:decoration-white/40"
+														on:click={() => {
+															if (!choiceEmailSecondaryMode) return;
+															panel = 'email';
+															panelAuto = false;
+															mode = choiceEmailSecondaryMode;
+														}}
+														disabled={oauthRedirectingTo !== null || submitting}
+													>
+														{$i18n.t('Already have an account?')}
+													</button>
+												{/if}
+											</div>
+										{/if}
 
 									<div
 										class="mt-6 text-xs leading-relaxed text-white/40 animate-[fade-up_650ms_ease-out_380ms_both]"
