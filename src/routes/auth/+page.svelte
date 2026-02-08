@@ -269,12 +269,12 @@
 
 	onMount(async () => {
 		const redirectPath = sanitizeRedirectPath($page.url.searchParams.get('redirect'));
-		if ($user !== undefined) {
-			goto(redirectPath || '/');
-		} else {
-			if (redirectPath) {
-				localStorage.setItem('redirectPath', redirectPath);
-			}
+		if ($user) {
+			await goto(redirectPath || '/');
+			return;
+		}
+		if (redirectPath) {
+			localStorage.setItem('redirectPath', redirectPath);
 		}
 
 		const error = $page.url.searchParams.get('error');
