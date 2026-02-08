@@ -27,8 +27,9 @@ ARG GID=0
 FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
 
 # Set Node.js options for frontend build memory usage.
-# Default is intentionally conservative to avoid OOM-kills on small build hosts.
-ARG NODE_MAX_OLD_SPACE_SIZE=3072
+# Default is tuned to avoid Node heap OOM during `vite build` in the Docker build stage.
+# Override with `--build-arg NODE_MAX_OLD_SPACE_SIZE=...` if your build host is memory constrained.
+ARG NODE_MAX_OLD_SPACE_SIZE=4096
 ENV NODE_OPTIONS="--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}"
 
 WORKDIR /app

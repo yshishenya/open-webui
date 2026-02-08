@@ -18,8 +18,8 @@ Docker builds can fail during the frontend `vite build` step with:
 
 This blocks `docker compose up -d --build` and any image build that relies on the Dockerfile frontend stage.
 
-The most likely trigger is memory-heavy sourcemap generation: `vite.config.ts` forces `build.sourcemap: true`,
-which increases peak memory usage substantially during bundling/minification.
+The immediate root cause is that the frontend Docker build stage hits the Node heap limit during `vite build`.
+Even with Docker sourcemaps disabled, the current bundle can exceed a 3 GB old-space cap.
 
 ## Goal / Acceptance Criteria
 
@@ -38,16 +38,20 @@ which increases peak memory usage substantially during bundling/minification.
   - Make Vite sourcemaps configurable via `AIRIS_VITE_SOURCEMAP`.
 - Docker build recipe:
   - Disable sourcemaps by default in Docker builds (overrideable via build-arg).
+  - Increase the default Node heap limit for the frontend build stage (overrideable via build-arg).
 
 ## Implementation Notes
 
 - `vite.config.ts`:
   - `enableSourcemap` defaults to `true` unless `AIRIS_VITE_SOURCEMAP=false`.
 - `Dockerfile`:
+  - Sets the frontend build stage default Node heap limit via `NODE_MAX_OLD_SPACE_SIZE` (overrideable via build-arg).
   - Adds `ARG AIRIS_VITE_SOURCEMAP=false` right before the Vite build step.
   - Runs `vite build` with `AIRIS_VITE_SOURCEMAP` set from the build-arg.
   - Override example:
     - `docker build --build-arg AIRIS_VITE_SOURCEMAP=true ...`
+  - Heap override example:
+    - `docker build --build-arg NODE_MAX_OLD_SPACE_SIZE=3072 ...`
 
 ## Upstream impact
 
@@ -83,4 +87,3 @@ which increases peak memory usage substantially during bundling/minification.
   - Developers can opt back in via `--build-arg AIRIS_VITE_SOURCEMAP=true`.
 - Rollback plan:
   - Revert `vite.config.ts` and the `AIRIS_VITE_SOURCEMAP` changes in `Dockerfile`.
-
