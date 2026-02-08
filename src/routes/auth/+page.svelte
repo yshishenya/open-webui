@@ -20,16 +20,16 @@
 		updateUserTimezone
 	} from '$lib/apis/auths';
 
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+	import { WEBUI_BASE_URL } from '$lib/constants';
 	import { WEBUI_NAME, config, user, socket } from '$lib/stores';
 
-	import { generateInitialsImage, canvasPixelTest, getUserTimezone } from '$lib/utils';
+	import { generateInitialsImage, getUserTimezone } from '$lib/utils';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import OnBoarding from '$lib/components/OnBoarding.svelte';
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
-	import VKIDWidget from '$lib/components/auth/VKIDWidget.svelte';
 	import TelegramLoginWidget from '$lib/components/auth/TelegramLoginWidget.svelte';
+	import VKIDWidget from '$lib/components/auth/VKIDWidget.svelte';
 	import { sanitizeRedirectPath } from '$lib/utils/airis/return_to';
 
 	const i18n = getContext('i18n');
@@ -39,8 +39,14 @@
 	let mode = $config?.features.enable_ldap ? 'ldap' : 'signin';
 
 	let form = null;
+	let requestedMode: string | null = null;
 	let signupEnabled = true;
 	let passwordAuthEnabled = false;
+	let emailSignInEnabled = false;
+	let ldapSignInEnabled = false;
+	let choiceEmailPrimaryMode: 'signin' | 'signup' | 'ldap' = 'signin';
+	let choiceEmailPrimaryLabelKey = 'Continue with Email';
+	let choiceEmailSecondaryMode: 'signin' | 'ldap' | null = null;
 
 	let name = '';
 	let email = '';
@@ -49,13 +55,51 @@
 	let legalAccepted = false;
 
 	let ldapUsername = '';
+	let panel: 'choice' | 'email' = 'choice';
+	let panelAuto = true;
+	let submitting = false;
 	let telegramLoading = false;
+	let telegramMode: 'signin' | 'signup' = 'signin';
+
+	type SocialProvider = 'yandex' | 'vk' | 'github';
+	let oauthRedirectingTo: SocialProvider | null = null;
+
+	$: yandexEnabled = Boolean($config?.oauth?.providers?.yandex);
+	$: githubEnabled = Boolean($config?.oauth?.providers?.github);
+	$: vkEnabled = Boolean($config?.oauth?.providers?.vk);
+	$: vkIdEnabled = Boolean($config?.oauth?.providers?.vk?.app_id);
+	$: telegramEnabled = Boolean($config?.telegram?.enabled) && Boolean($config?.telegram?.bot_username);
+	$: telegramVisible = telegramEnabled && !yandexEnabled && !githubEnabled && !vkEnabled;
+	$: hasSocialProviders = yandexEnabled || githubEnabled || vkEnabled || telegramVisible;
 
 	$: signupEnabled = $config?.features.enable_signup ?? true;
 	$: passwordAuthEnabled =
 		($config?.features.enable_login_form ?? false) ||
 		($config?.features.enable_ldap ?? false) ||
 		signupEnabled;
+	$: emailSignInEnabled = Boolean($config?.features.enable_login_form);
+	$: ldapSignInEnabled = Boolean($config?.features.enable_ldap);
+
+	$: choiceEmailPrimaryMode =
+		($config?.onboarding ?? false)
+			? 'signup'
+			: signupEnabled
+				? 'signup'
+				: emailSignInEnabled
+					? 'signin'
+					: ldapSignInEnabled
+						? 'ldap'
+						: 'signin';
+
+	$: choiceEmailPrimaryLabelKey =
+		choiceEmailPrimaryMode === 'ldap' ? 'Continue with LDAP' : 'Continue with Email';
+
+	$: choiceEmailSecondaryMode =
+		signupEnabled && (emailSignInEnabled || ldapSignInEnabled)
+			? emailSignInEnabled
+				? 'signin'
+				: 'ldap'
+			: null;
 
 	const setSessionUser = async (sessionUser, redirectPath: string | null = null) => {
 		if (sessionUser) {
@@ -125,34 +169,59 @@
 	};
 
 	const submitHandler = async () => {
-		if (mode === 'ldap') {
-			await ldapSignInHandler();
-		} else if (mode === 'signin') {
-			await signInHandler();
-		} else {
-			await signUpHandler();
+		if (submitting) return;
+		submitting = true;
+		try {
+			if (mode === 'ldap') {
+				await ldapSignInHandler();
+			} else if (mode === 'signin') {
+				await signInHandler();
+			} else {
+				await signUpHandler();
+			}
+		} finally {
+			submitting = false;
+		}
+	};
+
+	const startSocialLogin = (provider: SocialProvider): void => {
+		if (oauthRedirectingTo) return;
+		oauthRedirectingTo = provider;
+
+		if (provider === 'yandex') {
+			window.location.href = `${WEBUI_BASE_URL}/api/v1/oauth/yandex/login`;
+			return;
+		}
+		if (provider === 'github') {
+			window.location.href = `${WEBUI_BASE_URL}/oauth/github/login`;
+			return;
+		}
+		if (provider === 'vk') {
+			// VK ID uses the embedded widget. This is the legacy redirect-based flow.
+			window.location.href = `${WEBUI_BASE_URL}/api/v1/oauth/vk/login`;
 		}
 	};
 
 	const telegramAuthHandler = async (payload: Record<string, unknown>) => {
 		if (telegramLoading) return;
-		if (mode === 'signup' && !legalAccepted) {
+		if (telegramMode === 'signup' && !legalAccepted) {
 			toast.error($i18n.t('You must accept the terms and privacy policy'));
 			return;
 		}
-		telegramLoading = true;
 
+		telegramLoading = true;
 		try {
 			const { state } = await getTelegramAuthState();
 			const sessionUser =
-				mode === 'signup'
+				telegramMode === 'signup'
 					? await telegramSignUp(state, payload, legalAccepted)
 					: await telegramSignIn(state, payload);
-
 			await setSessionUser(sessionUser);
 		} catch (error) {
 			if (error === 'NOT_LINKED') {
-				toast.error($i18n.t('Telegram account is not linked. Sign in and link it in Settings.'));
+				toast.error(
+					$i18n.t('Telegram account is not linked. Sign in and link it in Settings.')
+				);
 			} else if (error === 'SIGNUP_DISABLED') {
 				toast.error($i18n.t('Signup is disabled.'));
 			} else {
@@ -161,6 +230,30 @@
 		} finally {
 			telegramLoading = false;
 		}
+	};
+
+	const closeAuth = (): void => {
+		// Make /auth feel like a modal, but avoid navigating into OAuth/provider pages.
+		try {
+			const referrer = typeof document !== 'undefined' ? document.referrer : '';
+			if (typeof window !== 'undefined' && referrer) {
+				const refUrl = new URL(referrer);
+				const isSameOrigin = refUrl.origin === window.location.origin;
+				const refPath = refUrl.pathname;
+				const isOauthHop =
+					refPath.startsWith('/oauth/') || refPath.startsWith('/api/v1/oauth/');
+				const isAuthPath = refPath === '/auth';
+
+				if (isSameOrigin && !isOauthHop && !isAuthPath) {
+					void goto(`${refUrl.pathname}${refUrl.search}${refUrl.hash}`);
+					return;
+				}
+			}
+		} catch {
+			// Fall through to a safe close target.
+		}
+
+		void goto('/welcome');
 	};
 
 	const oauthCallbackHandler = async () => {
@@ -204,27 +297,39 @@
 
 	onMount(async () => {
 		const redirectPath = sanitizeRedirectPath($page.url.searchParams.get('redirect'));
-		if ($user !== undefined) {
-			goto(redirectPath || '/');
-		} else {
-			if (redirectPath) {
-				localStorage.setItem('redirectPath', redirectPath);
-			}
+		if ($user) {
+			await goto(redirectPath || '/');
+			return;
+		}
+		if (redirectPath) {
+			localStorage.setItem('redirectPath', redirectPath);
 		}
 
 		const error = $page.url.searchParams.get('error');
+		const message = $page.url.searchParams.get('message');
 		if (error) {
-			toast.error(error);
+			toast.error(message || error);
 		}
 
 		await oauthCallbackHandler();
 		form = $page.url.searchParams.get('form');
-		const requestedMode = form ?? $page.url.searchParams.get('mode');
+		requestedMode = form ?? $page.url.searchParams.get('mode');
 		if (requestedMode === 'signup' && ($config?.features.enable_signup ?? true)) {
 			mode = 'signup';
 		} else if (requestedMode === 'signin' && $config?.features.enable_login_form) {
 			mode = $config?.features.enable_ldap ? 'ldap' : 'signin';
 		}
+
+		// Default panel: choice (social + email) unless the caller explicitly asks for a form,
+		// or we have no social providers configured.
+		const configReady = $config !== undefined;
+		const shouldOpenEmailPanel =
+			requestedMode === 'signup' ||
+			requestedMode === 'signin' ||
+			requestedMode === 'ldap' ||
+			($config?.onboarding ?? false) ||
+			(configReady && !hasSocialProviders);
+		panel = shouldOpenEmailPanel ? 'email' : 'choice';
 
 		loaded = true;
 		setLogoImage();
@@ -235,6 +340,18 @@
 			onboarding = $config?.onboarding ?? false;
 		}
 	});
+
+	// Panel auto-selection should respect late-loaded config (common on cold start) but never
+	// override an explicit user action.
+	$: if (loaded && panelAuto && $config !== undefined) {
+		const shouldOpenEmailPanel =
+			requestedMode === 'signup' ||
+			requestedMode === 'signin' ||
+			requestedMode === 'ldap' ||
+			($config?.onboarding ?? false) ||
+			!hasSocialProviders;
+		panel = shouldOpenEmailPanel ? 'email' : 'choice';
+	}
 </script>
 
 <svelte:head>
@@ -251,506 +368,677 @@
 	}}
 />
 
-<div class="w-full h-screen max-h-[100dvh] text-white relative" id="auth-page">
-	<div class="w-full h-full absolute top-0 left-0 bg-white dark:bg-black"></div>
+<div class="w-full min-h-[100dvh] relative font-primary text-white" id="auth-page">
+	<!-- Background: OLED dark with subtle soft glow -->
+	<div
+		class="absolute inset-0 bg-[radial-gradient(900px_650px_at_10%_-10%,rgba(255,255,255,0.10),transparent),radial-gradient(900px_650px_at_90%_110%,rgba(255,255,255,0.06),transparent),linear-gradient(180deg,#0b0b0c_0%,#000000_70%)]"
+	></div>
+	<div
+		class="absolute inset-0 pointer-events-none opacity-70 bg-[radial-gradient(600px_420px_at_20%_20%,rgba(56,189,248,0.10),transparent),radial-gradient(700px_500px_at_80%_75%,rgba(99,102,241,0.08),transparent)]"
+	></div>
 
-	<div class="w-full absolute top-0 left-0 right-0 h-8 drag-region" />
+	<div class="w-full absolute top-0 left-0 right-0 h-8 drag-region"></div>
 
 	{#if loaded}
-		<div
-			class="fixed bg-transparent min-h-screen w-full flex justify-center font-primary z-50 text-black dark:text-white"
-			id="auth-container"
-		>
-			<div class="w-full px-10 min-h-screen flex flex-col text-center">
+			<div
+				class="fixed inset-0 z-50 flex justify-center overflow-y-auto overscroll-contain px-4 py-10 sm:py-14"
+				id="auth-container"
+			>
+			<div class="w-full max-w-sm">
 				{#if ($config?.features.auth_trusted_header ?? false) || $config?.features.auth === false}
-					<div class=" my-auto pb-10 w-full sm:max-w-md">
+					<div class="py-14">
 						<div
-							class="flex items-center justify-center gap-3 text-xl sm:text-2xl text-center font-medium dark:text-gray-200"
+							class="flex items-center justify-center gap-3 text-xl text-center font-semibold text-white/90"
 						>
 							<div>
 								{$i18n.t('Signing in to {{WEBUI_NAME}}', { WEBUI_NAME: $WEBUI_NAME })}
 							</div>
-
-							<div>
-								<Spinner className="size-5" />
-							</div>
+							<Spinner className="size-5" />
 						</div>
 					</div>
 				{:else}
-					<div class="my-auto flex flex-col justify-center items-center">
-						<div class=" sm:max-w-md my-auto pb-10 w-full dark:text-gray-100">
+					<div
+						class="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#0b0b0c]/75 shadow-[0_35px_120px_rgba(0,0,0,0.75)] backdrop-blur-xl animate-[fade-up_650ms_ease-out_both]"
+					>
+						<div
+							class="absolute inset-0 pointer-events-none bg-[radial-gradient(600px_420px_at_15%_0%,rgba(255,255,255,0.10),transparent),radial-gradient(700px_500px_at_85%_110%,rgba(255,255,255,0.06),transparent)]"
+						></div>
+
+							<button
+								type="button"
+								class="absolute top-4 right-4 size-10 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+								on:click={closeAuth}
+								disabled={submitting || oauthRedirectingTo !== null || telegramLoading}
+								aria-label={$i18n.t('Close')}
+							>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								class="size-5 text-white/80"
+								aria-hidden="true"
+							>
+								<path d="M18 6 6 18" />
+								<path d="m6 6 12 12" />
+							</svg>
+						</button>
+
+						<div class="relative px-6 pt-12 pb-7 sm:px-7 sm:pt-12 sm:pb-8">
 							{#if $config?.metadata?.auth_logo_position === 'center'}
-								<div class="flex justify-center mb-6">
+								<div class="flex justify-center mb-5 animate-[fade-up_650ms_ease-out_both]">
 									<img
 										id="logo"
 										crossorigin="anonymous"
 										src="{WEBUI_BASE_URL}/static/favicon.svg"
-										class="size-24 rounded-full"
+										class="size-14 rounded-2xl border border-white/10 bg-white/5"
 										alt=""
 									/>
 								</div>
 							{/if}
-							<form
-								class=" flex flex-col justify-center"
-								on:submit={(e) => {
-									e.preventDefault();
-									submitHandler();
-								}}
-							>
-								<div class="mb-1">
-									<div class=" text-2xl font-medium">
-										{#if $config?.onboarding ?? false}
-											{$i18n.t(`Get started with {{WEBUI_NAME}}`, { WEBUI_NAME: $WEBUI_NAME })}
-										{:else if mode === 'ldap'}
-											{$i18n.t(`Sign in to {{WEBUI_NAME}} with LDAP`, { WEBUI_NAME: $WEBUI_NAME })}
-										{:else if mode === 'signin'}
-											{$i18n.t(`Sign in to {{WEBUI_NAME}}`, { WEBUI_NAME: $WEBUI_NAME })}
-										{:else}
-											{$i18n.t(`Sign up to {{WEBUI_NAME}}`, { WEBUI_NAME: $WEBUI_NAME })}
-										{/if}
-									</div>
 
-									{#if $config?.onboarding ?? false}
-										<div class="mt-1 text-xs font-medium text-gray-600 dark:text-gray-500">
-											ⓘ {$WEBUI_NAME}
-											{$i18n.t(
-												'does not make any external connections, and your data stays securely on your locally hosted server.'
-											)}
-										</div>
-									{/if}
-								</div>
-
-								{#if passwordAuthEnabled}
-									<div class="flex flex-col mt-4">
-										{#if mode === 'signup'}
-											<div class="mb-2">
-												<label for="name" class="text-sm font-medium text-left mb-1 block"
-													>{$i18n.t('Name')}</label
-												>
-												<input
-													bind:value={name}
-													type="text"
-													id="name"
-													class="my-0.5 w-full text-sm outline-hidden bg-transparent placeholder:text-gray-300 dark:placeholder:text-gray-600"
-													autocomplete="name"
-													placeholder={$i18n.t('Enter Your Full Name')}
-													required
-												/>
-											</div>
-										{/if}
-
-										{#if mode === 'ldap'}
-											<div class="mb-2">
-												<label for="username" class="text-sm font-medium text-left mb-1 block"
-													>{$i18n.t('Username')}</label
-												>
-												<input
-													bind:value={ldapUsername}
-													type="text"
-													class="my-0.5 w-full text-sm outline-hidden bg-transparent placeholder:text-gray-300 dark:placeholder:text-gray-600"
-													autocomplete="username"
-													name="username"
-													id="username"
-													placeholder={$i18n.t('Enter Your Username')}
-													required
-												/>
-											</div>
-										{:else}
-											<div class="mb-2">
-												<label for="email" class="text-sm font-medium text-left mb-1 block"
-													>{$i18n.t('Email')}</label
-												>
-												<input
-													bind:value={email}
-													type="email"
-													id="email"
-													class="my-0.5 w-full text-sm outline-hidden bg-transparent placeholder:text-gray-300 dark:placeholder:text-gray-600"
-													autocomplete="email"
-													name="email"
-													placeholder={$i18n.t('Enter Your Email')}
-													required
-												/>
-											</div>
-										{/if}
-
-										<div>
-											<label for="password" class="text-sm font-medium text-left mb-1 block"
-												>{$i18n.t('Password')}</label
+									{#if panel === 'choice'}
+										<div class="text-center">
+											<div
+												class="text-[2rem] sm:text-[2.15rem] font-semibold tracking-tight leading-[1.05] animate-[fade-up_650ms_ease-out_both]"
 											>
-											<SensitiveInput
-												bind:value={password}
-												type="password"
-												id="password"
-												class="my-0.5 w-full text-sm outline-hidden bg-transparent placeholder:text-gray-300 dark:placeholder:text-gray-600"
-												placeholder={$i18n.t('Enter Your Password')}
-												autocomplete={mode === 'signup' ? 'new-password' : 'current-password'}
-												name="password"
-												required
-											/>
-										</div>
-
-										{#if mode === 'signup' && $config?.features?.enable_signup_password_confirmation}
-											<div class="mt-2">
-												<label
-													for="confirm-password"
-													class="text-sm font-medium text-left mb-1 block"
-													>{$i18n.t('Confirm Password')}</label
-												>
-												<SensitiveInput
-													bind:value={confirmPassword}
-													type="password"
-													id="confirm-password"
-													class="my-0.5 w-full text-sm outline-hidden bg-transparent"
-													placeholder={$i18n.t('Confirm Your Password')}
-													autocomplete="new-password"
-													name="confirm-password"
-													required
-												/>
+												{$i18n.t('Sign in or sign up')}
 											</div>
-										{/if}
-
-										{#if mode === 'signup'}
-											<div class="mt-4 flex items-start gap-2 text-xs text-gray-600 dark:text-gray-400">
-												<input
-													id="legal-accept"
-													type="checkbox"
-													bind:checked={legalAccepted}
-													class="mt-1 size-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
-												/>
-												<label for="legal-accept" class="leading-relaxed">
-													Я принимаю
-													<a
-														href="/terms"
-														target="_blank"
-														rel="noreferrer"
-														class="text-gray-900 dark:text-gray-200 font-medium hover:underline"
-														>оферту</a
-													>
-													и
-													<a
-														href="/privacy"
-														target="_blank"
-														rel="noreferrer"
-														class="text-gray-900 dark:text-gray-200 font-medium hover:underline"
-														>политику конфиденциальности</a
-													>.
-												</label>
+											<div class="mt-3 text-sm text-white/60 animate-[fade-up_650ms_ease-out_80ms_both]">
+												{$i18n.t('Select an auth method')}
 											</div>
-										{/if}
-									</div>
-								{/if}
-								<div class="mt-5">
-									{#if passwordAuthEnabled}
-										{#if mode === 'ldap'}
-											<button
-												class="bg-gray-700/5 hover:bg-gray-700/10 dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-medium text-sm py-2.5"
-												type="submit"
-											>
-												{$i18n.t('Authenticate')}
-											</button>
-										{:else}
-											<button
-												class="bg-gray-700/5 hover:bg-gray-700/10 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-medium text-sm py-2.5"
-												type="submit"
-												disabled={mode === 'signup' && !legalAccepted}
-											>
-												{mode === 'signin'
-													? $i18n.t('Sign in')
-													: ($config?.onboarding ?? false)
-														? $i18n.t('Create Admin Account')
-														: $i18n.t('Create Account')}
-											</button>
 
-											{#if $config?.features.enable_signup && !($config?.onboarding ?? false)}
-												<div class=" mt-4 text-sm text-center">
-													{mode === 'signin'
-														? $i18n.t("Don't have an account?")
-														: $i18n.t('Already have an account?')}
-
-													<button
-														class=" font-medium underline"
-														type="button"
-														on:click={() => {
-															if (mode === 'signin') {
-																mode = 'signup';
-															} else {
-																mode = 'signin';
-															}
-														}}
-													>
-														{mode === 'signin' ? $i18n.t('Sign up') : $i18n.t('Sign in')}
-													</button>
-												</div>
-											{/if}
-										{/if}
-									{/if}
-								</div>
-							</form>
-
-							{#if Object.keys($config?.oauth?.providers ?? {}).length > 0 || $config?.telegram?.enabled}
-								<div class="inline-flex items-center justify-center w-full">
-									<hr class="w-32 h-px my-4 border-0 dark:bg-gray-100/10 bg-gray-700/10" />
-									{#if passwordAuthEnabled}
-										<span
-											class="px-3 text-sm font-medium text-gray-900 dark:text-white bg-transparent"
-											>{$i18n.t('or')}</span
+									<div
+										class="mt-5 flex justify-center text-white/70 animate-[fade-up_650ms_ease-out_140ms_both]"
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											class="size-6"
+											aria-hidden="true"
 										>
+											<path d="M12 5v14" />
+											<path d="m19 12-7 7-7-7" />
+										</svg>
+									</div>
+								</div>
+
+									<div class="mt-6 space-y-3 animate-[fade-up_650ms_ease-out_200ms_both]">
+										{#if yandexEnabled}
+											<button
+												type="button"
+												class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center px-4 gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+												on:click={() => startSocialLogin('yandex')}
+												disabled={oauthRedirectingTo !== null || submitting}
+											>
+												<span
+													class="size-10 rounded-full bg-[#FC3F1D] flex items-center justify-center font-extrabold text-white"
+													aria-hidden="true"
+													>Я</span
+												>
+												<span class="text-sm font-semibold"
+													>{$i18n.t('Continue with {{provider}}', {
+														provider: $i18n.t('Yandex')
+													})}</span
+												>
+												<span class="ml-auto text-white/70">
+													{#if oauthRedirectingTo === 'yandex'}
+														<Spinner className="size-4" />
+												{:else}
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														class="size-5 transition group-hover:translate-x-0.5"
+														aria-hidden="true"
+													>
+														<path d="M5 12h14" />
+														<path d="m13 5 7 7-7 7" />
+													</svg>
+												{/if}
+											</span>
+										</button>
 									{/if}
 
-									<hr class="w-32 h-px my-4 border-0 dark:bg-gray-100/10 bg-gray-700/10" />
-								</div>
-								<div class="flex flex-col space-y-2">
-									{#if $config?.telegram?.enabled}
-										<div class="flex justify-center">
-											{#if mode !== 'signup' || legalAccepted}
-												<TelegramLoginWidget
-													botUsername={$config?.telegram?.bot_username}
-													on:auth={(e) => telegramAuthHandler(e.detail)}
+										{#if vkEnabled}
+											{#if vkIdEnabled}
+											<div
+												class="w-full rounded-[22px] overflow-hidden border border-white/10 bg-white/5"
+											>
+												<VKIDWidget
+													appId={$config?.oauth?.providers?.vk?.app_id}
+													redirectUrl={$config?.oauth?.providers?.vk?.redirect_url || ''}
+													scheme={'dark'}
+													showAlternativeLogin={false}
+													oauthList={[]}
 												/>
+											</div>
 											{:else}
-												<div class="text-xs text-center text-gray-500">
-													{$i18n.t('You must accept the terms and privacy policy')}
-												</div>
-											{/if}
-										</div>
-										{#if telegramLoading}
-											<div class="py-2">
-												<Spinner className="size-5" />
-											</div>
+												<button
+													type="button"
+													class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center px-4 gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+													on:click={() => startSocialLogin('vk')}
+													disabled={oauthRedirectingTo !== null || submitting}
+												>
+												<span
+													class="size-10 rounded-full bg-[#0077FF] flex items-center justify-center font-extrabold text-white"
+													aria-hidden="true"
+														>VK</span
+													>
+													<span class="text-sm font-semibold"
+														>{$i18n.t('Continue with {{provider}}', { provider: 'VK' })}</span
+													>
+													<span class="ml-auto text-white/70">
+														{#if oauthRedirectingTo === 'vk'}
+															<Spinner className="size-4" />
+													{:else}
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															viewBox="0 0 24 24"
+															fill="none"
+															stroke="currentColor"
+															stroke-width="2"
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															class="size-5 transition group-hover:translate-x-0.5"
+															aria-hidden="true"
+														>
+															<path d="M5 12h14" />
+															<path d="m13 5 7 7-7 7" />
+														</svg>
+													{/if}
+												</span>
+											</button>
 										{/if}
 									{/if}
-									{#if $config?.oauth?.providers?.google}
-										<button
-											class="flex justify-center items-center bg-gray-700/5 hover:bg-gray-700/10 dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-medium text-sm py-2.5"
-											on:click={() => {
-												window.location.href = `${WEBUI_BASE_URL}/oauth/google/login`;
-											}}
-										>
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												viewBox="0 0 48 48"
-												class="size-6 mr-3"
-											>
-												<path
-													fill="#EA4335"
-													d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-												/><path
-													fill="#4285F4"
-													d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-												/><path
-													fill="#FBBC05"
-													d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-												/><path
-													fill="#34A853"
-													d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-												/><path fill="none" d="M0 0h48v48H0z" />
-											</svg>
-											<span>{$i18n.t('Continue with {{provider}}', { provider: 'Google' })}</span>
-										</button>
-									{/if}
-									{#if $config?.oauth?.providers?.microsoft}
-										<button
-											class="flex justify-center items-center bg-gray-700/5 hover:bg-gray-700/10 dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-medium text-sm py-2.5"
-											on:click={() => {
-												window.location.href = `${WEBUI_BASE_URL}/oauth/microsoft/login`;
-											}}
-										>
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												viewBox="0 0 21 21"
-												class="size-6 mr-3"
-											>
-												<rect x="1" y="1" width="9" height="9" fill="#f25022" /><rect
-													x="1"
-													y="11"
-													width="9"
-													height="9"
-													fill="#00a4ef"
-												/><rect x="11" y="1" width="9" height="9" fill="#7fba00" /><rect
-													x="11"
-													y="11"
-													width="9"
-													height="9"
-													fill="#ffb900"
-												/>
-											</svg>
-											<span>{$i18n.t('Continue with {{provider}}', { provider: 'Microsoft' })}</span
-											>
-										</button>
-									{/if}
-									{#if $config?.oauth?.providers?.github}
-										<button
-											class="flex justify-center items-center bg-gray-700/5 hover:bg-gray-700/10 dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-medium text-sm py-2.5"
-											on:click={() => {
-												window.location.href = `${WEBUI_BASE_URL}/oauth/github/login`;
-											}}
-										>
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												viewBox="0 0 24 24"
-												class="size-6 mr-3"
-											>
-												<path
-													fill="currentColor"
-													d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.92 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57C20.565 21.795 24 17.31 24 12c0-6.63-5.37-12-12-12z"
-												/>
-											</svg>
-											<span>{$i18n.t('Continue with {{provider}}', { provider: 'GitHub' })}</span>
-										</button>
-									{/if}
-									{#if $config?.oauth?.providers?.oidc}
-										<button
-											class="flex justify-center items-center bg-gray-700/5 hover:bg-gray-700/10 dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-medium text-sm py-2.5"
-											on:click={() => {
-												window.location.href = `${WEBUI_BASE_URL}/oauth/oidc/login`;
-											}}
-										>
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												fill="none"
-												viewBox="0 0 24 24"
-												stroke-width="1.5"
-												stroke="currentColor"
-												class="size-6 mr-3"
-											>
-												<path
-													stroke-linecap="round"
-													stroke-linejoin="round"
-													d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z"
-												/>
-											</svg>
 
-											<span
-												>{$i18n.t('Continue with {{provider}}', {
-													provider: $config?.oauth?.providers?.oidc ?? 'SSO'
-												})}</span
+										{#if githubEnabled}
+											<button
+												type="button"
+												class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center px-4 gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+												on:click={() => startSocialLogin('github')}
+												disabled={oauthRedirectingTo !== null || submitting}
 											>
+												<span
+													class="size-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white"
+													aria-hidden="true"
+												>
+												<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="size-5">
+													<path
+														fill="currentColor"
+														d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.92 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57C20.565 21.795 24 17.31 24 12c0-6.63-5.37-12-12-12z"
+													/>
+													</svg>
+												</span>
+												<span class="text-sm font-semibold"
+													>{$i18n.t('Continue with {{provider}}', { provider: 'GitHub' })}</span
+												>
+												<span class="ml-auto text-white/70">
+													{#if oauthRedirectingTo === 'github'}
+														<Spinner className="size-4" />
+												{:else}
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														class="size-5 transition group-hover:translate-x-0.5"
+														aria-hidden="true"
+													>
+														<path d="M5 12h14" />
+														<path d="m13 5 7 7-7 7" />
+													</svg>
+												{/if}
+											</span>
 										</button>
 									{/if}
-									{#if $config?.oauth?.providers?.feishu}
-										<button
-											class="flex justify-center items-center bg-gray-700/5 hover:bg-gray-700/10 dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-medium text-sm py-2.5"
-											on:click={() => {
-												window.location.href = `${WEBUI_BASE_URL}/oauth/feishu/login`;
-											}}
-										>
-											<span>{$i18n.t('Continue with {{provider}}', { provider: 'Feishu' })}</span>
-										</button>
-									{/if}
-									{#if $config?.oauth?.providers?.vk?.app_id}
-										<!-- VK ID SDK Widget -->
-										<div class="w-full">
-											<VKIDWidget
-												appId={$config?.oauth?.providers?.vk?.app_id}
-												redirectUrl={$config?.oauth?.providers?.vk?.redirect_url || ''}
-												scheme={document.documentElement.classList.contains('dark')
-													? 'dark'
-													: 'light'}
-												showAlternativeLogin={true}
-												oauthList={['ok_ru', 'mail_ru']}
-											/>
-										</div>
-									{:else if $config?.oauth?.providers?.vk}
-										<!-- Fallback: Legacy VK OAuth button -->
-										<button
-											class="flex justify-center items-center bg-[#0077FF] hover:bg-[#0066DD] text-white transition w-full rounded-full font-medium text-sm py-2.5"
-											on:click={() => {
-												window.location.href = `${WEBUI_BASE_URL}/api/v1/oauth/vk/login`;
-											}}
-										>
-											<svg class="size-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
-												<path
-													d="M12.785 16.241s.288-.032.436-.194c.136-.149.132-.428.132-.428s-.02-1.304.587-1.496c.6-.19 1.37 1.26 2.184 1.817.616.42 1.083.328 1.083.328l2.178-.03s1.139-.071.599-.967c-.04-.083-.286-.602-1.471-1.703-1.24-1.151-1.074-.965.42-2.957.91-1.214 1.274-1.955 1.161-2.272-.108-.302-.777-.222-.777-.222l-2.452.015s-.182-.025-.316.056c-.131.079-.215.263-.215.263s-.386 1.027-.9 1.902c-1.082 1.843-1.515 1.941-1.692 1.826-.411-.267-.308-1.074-.308-1.647 0-1.791.272-2.537-.53-2.73-.267-.064-.463-.106-1.145-.113-.875-.009-1.616.003-2.034.208-.278.137-.493.442-.362.46.161.021.527.099.721.363.251.341.242 1.106.242 1.106s.145 2.109-.337 2.372c-.331.18-.785-.188-1.76-1.873-.499-.851-.876-1.792-.876-1.792s-.073-.178-.203-.273c-.157-.115-.376-.151-.376-.151l-2.329.015s-.35.01-.478.162c-.114.135-.009.413-.009.413s1.816 4.242 3.871 6.383c1.884 1.963 4.022 1.833 4.022 1.833h.971z"
-												/>
-											</svg>
-											<span>{$i18n.t('Continue with {{provider}}', { provider: 'VK' })}</span>
-										</button>
-									{/if}
-									{#if $config?.oauth?.providers?.yandex}
-										<button
-											class="flex justify-center items-center bg-[#FC3F1D] hover:bg-[#E63600] text-white transition w-full rounded-full font-medium text-sm py-2.5"
-											on:click={() => {
-												window.location.href = `${WEBUI_BASE_URL}/api/v1/oauth/yandex/login`;
-											}}
-										>
-											<svg class="size-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
-												<path
-													d="M2.04 12c0-5.523 4.476-10 10-10 5.522 0 10 4.477 10 10s-4.478 10-10 10c-5.524 0-10-4.477-10-10zm6.292 6h2.1v-6.22h.062l2.742 6.22h2.104V6.42h-2.1v6.22h-.062l-2.742-6.22h-2.104V18z"
-												/>
-											</svg>
-											<span>{$i18n.t('Continue with {{provider}}', { provider: 'Yandex' })}</span>
-										</button>
-									{/if}
-									{#if $config?.telegram?.enabled}
-										<div class="flex justify-center pt-2">
-											{#if mode !== 'signup' || legalAccepted}
+
+									{#if telegramVisible}
+										<div class="mt-2 rounded-[22px] border border-white/10 bg-white/5 p-4">
+											<div class="flex items-center justify-between gap-3">
+												<div class="text-xs font-semibold text-white/60">
+													{$i18n.t('Telegram')}
+												</div>
+												<div class="flex items-center gap-1">
+														<button
+															type="button"
+															class={`px-3 py-1 rounded-full text-[0.7rem] font-semibold transition border ${
+																telegramMode === 'signin'
+																	? 'bg-white text-black border-white/20'
+																	: 'bg-white/0 text-white/70 border-white/20 hover:bg-white/10 hover:text-white'
+															}`}
+															on:click={() => {
+																telegramMode = 'signin';
+															}}
+															disabled={telegramLoading}
+														>
+															{$i18n.t('Sign in')}
+														</button>
+														{#if signupEnabled}
+															<button
+																type="button"
+																class={`px-3 py-1 rounded-full text-[0.7rem] font-semibold transition border ${
+																	telegramMode === 'signup'
+																		? 'bg-white text-black border-white/20'
+																		: 'bg-white/0 text-white/70 border-white/20 hover:bg-white/10 hover:text-white'
+																}`}
+																on:click={() => {
+																	telegramMode = 'signup';
+																}}
+															disabled={telegramLoading}
+														>
+															{$i18n.t('Sign up')}
+														</button>
+													{/if}
+												</div>
+											</div>
+
+												{#if telegramMode === 'signup'}
+													<div class="mt-3 flex items-start gap-2 text-xs text-white/60">
+														<input
+															id="telegram-legal-accept"
+															type="checkbox"
+															bind:checked={legalAccepted}
+															class="mt-0.5 size-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/20"
+														/>
+														<label for="telegram-legal-accept" class="leading-relaxed">
+															{$i18n.t('I accept the')}
+															<a
+																href="/terms"
+																target="_blank"
+																rel="noreferrer"
+																class="text-white/90 font-semibold hover:underline"
+																>{$i18n.t('Terms of Service')}</a
+															>
+															{$i18n.t('and')}
+															<a
+																href="/privacy"
+																target="_blank"
+																rel="noreferrer"
+																class="text-white/90 font-semibold hover:underline"
+																>{$i18n.t('Privacy Policy')}</a
+															>
+															.
+														</label>
+													</div>
+												{/if}
+
+											<div class="mt-3 flex justify-center">
 												<TelegramLoginWidget
 													botUsername={$config?.telegram?.bot_username}
+													radius={18}
+													showUserPic={false}
 													on:auth={(event) => {
 														telegramAuthHandler(event.detail);
 													}}
 												/>
-											{:else}
-												<div class="text-xs text-center text-gray-500">
-													{$i18n.t('You must accept the terms and privacy policy')}
-												</div>
-											{/if}
-											{#if telegramLoading}
-												<div class="ml-2 flex items-center">
-													<Spinner className="size-4" />
-												</div>
-											{/if}
+												{#if telegramLoading}
+													<div class="ml-2 flex items-center">
+														<Spinner className="size-4" />
+													</div>
+												{/if}
+											</div>
 										</div>
 									{/if}
 								</div>
-							{/if}
 
-							{#if $config?.features.enable_ldap && $config?.features.enable_login_form}
-								<div class="mt-2">
-									<button
-										class="flex justify-center items-center text-xs w-full text-center underline"
-										type="button"
-										on:click={() => {
-											if (mode === 'ldap')
-												mode = ($config?.onboarding ?? false) ? 'signup' : 'signin';
-											else mode = 'ldap';
-										}}
+									{#if passwordAuthEnabled}
+										<div class="mt-6 flex items-center gap-3 animate-[fade-up_650ms_ease-out_260ms_both]">
+											<div class="h-px flex-1 bg-white/10"></div>
+											<div class="text-xs font-semibold uppercase tracking-widest text-white/40">
+												{$i18n.t('or')}
+											</div>
+											<div class="h-px flex-1 bg-white/10"></div>
+										</div>
+
+										<div class="mt-5 space-y-3 animate-[fade-up_650ms_ease-out_320ms_both]">
+												<button
+													type="button"
+													class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center gap-3 px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+													on:click={() => {
+														panel = 'email';
+														panelAuto = false;
+														mode = choiceEmailPrimaryMode;
+													}}
+													disabled={oauthRedirectingTo !== null || submitting}
+												>
+												<span
+													class="size-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white/90"
+													aria-hidden="true"
+												>
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													class="size-5"
+													aria-hidden="true"
+												>
+													<rect x="3" y="5" width="18" height="14" rx="2" />
+													<path d="m3 7 9 6 9-6" />
+													</svg>
+													</span>
+													<span class="text-sm font-semibold"
+														>{$i18n.t(choiceEmailPrimaryLabelKey)}</span
+													>
+												</button>
+
+												{#if choiceEmailSecondaryMode}
+													<button
+														type="button"
+														class="w-full text-center text-sm font-semibold text-white/60 hover:text-white/90 transition underline underline-offset-4 decoration-white/20 hover:decoration-white/40"
+														on:click={() => {
+															if (!choiceEmailSecondaryMode) return;
+															panel = 'email';
+															panelAuto = false;
+															mode = choiceEmailSecondaryMode;
+														}}
+														disabled={oauthRedirectingTo !== null || submitting}
+													>
+														{$i18n.t('Already have an account?')}
+													</button>
+												{/if}
+											</div>
+										{/if}
+
+									<div
+										class="mt-6 text-xs leading-relaxed text-white/40 animate-[fade-up_650ms_ease-out_380ms_both]"
 									>
-										<span
-											>{mode === 'ldap'
-												? $i18n.t('Continue with Email')
-												: $i18n.t('Continue with LDAP')}</span
+										{$i18n.t('By continuing, you agree to the')}
+										<a
+											href="/terms"
+											target="_blank"
+											rel="noreferrer"
+											class="underline underline-offset-4 decoration-white/20 hover:decoration-white/50 transition"
+											>{$i18n.t('Terms of Service')}</a
 										>
-									</button>
+										{$i18n.t('and')}
+										<a
+											href="/privacy"
+											target="_blank"
+											rel="noreferrer"
+											class="underline underline-offset-4 decoration-white/20 hover:decoration-white/50 transition"
+											>{$i18n.t('Privacy Policy')}</a
+										>.
+									</div>
+								{:else}
+								<div class="animate-[fade-up_650ms_ease-out_both]">
+									<div class="flex items-center justify-between">
+										{#if hasSocialProviders}
+												<button
+													type="button"
+														class="inline-flex items-center gap-2 text-xs font-semibold text-white/60 hover:text-white/90 transition"
+														on:click={() => {
+															panel = 'choice';
+															panelAuto = false;
+														}}
+														disabled={submitting}
+													>
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													class="size-4"
+													aria-hidden="true"
+												>
+													<path d="M15 18l-6-6 6-6" />
+												</svg>
+														{$i18n.t('Back')}
+													</button>
+												{:else}
+													<div></div>
+												{/if}
+											<div></div>
+										</div>
+
+									<div class="mt-5 text-center">
+										<div class="text-2xl font-semibold tracking-tight">
+											{#if $config?.onboarding ?? false}
+												{$i18n.t('Create Admin Account')}
+											{:else if mode === 'signup'}
+												{$i18n.t(`Sign up to {{WEBUI_NAME}}`, { WEBUI_NAME: $WEBUI_NAME })}
+											{:else if mode === 'ldap'}
+												{$i18n.t(`Sign in to {{WEBUI_NAME}} with LDAP`, { WEBUI_NAME: $WEBUI_NAME })}
+											{:else}
+												{$i18n.t(`Sign in to {{WEBUI_NAME}}`, { WEBUI_NAME: $WEBUI_NAME })}
+											{/if}
+											</div>
+											<div class="mt-2 text-sm text-white/60">
+												{#if mode === 'signup'}
+													{$i18n.t('This may take a minute')}
+												{:else if mode === 'ldap'}
+													{$i18n.t('Username and Password')}
+												{:else}
+													{$i18n.t('Email and Password')}
+												{/if}
+											</div>
+										</div>
+
+									{#if passwordAuthEnabled}
+										<form
+											class="mt-6 space-y-3 text-left"
+											on:submit={(e) => {
+												e.preventDefault();
+												submitHandler();
+											}}
+										>
+											{#if mode === 'signup'}
+												<div>
+													<label for="name" class="sr-only">{$i18n.t('Name')}</label>
+														<input
+															bind:value={name}
+															type="text"
+															id="name"
+															class="w-full min-h-[52px] rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:border-white/20"
+															autocomplete="name"
+															placeholder={$i18n.t('Enter Your Full Name')}
+															required
+														/>
+												</div>
+											{/if}
+
+											{#if mode === 'ldap'}
+												<div>
+													<label for="username" class="sr-only">{$i18n.t('Username')}</label>
+														<input
+															bind:value={ldapUsername}
+															type="text"
+															id="username"
+															class="w-full min-h-[52px] rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:border-white/20"
+															autocomplete="username"
+															name="username"
+															placeholder={$i18n.t('Enter Your Username')}
+															required
+														/>
+												</div>
+											{:else}
+												<div>
+													<label for="email" class="sr-only">{$i18n.t('Email')}</label>
+														<input
+															bind:value={email}
+															type="email"
+															id="email"
+															class="w-full min-h-[52px] rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:border-white/20"
+															autocomplete="email"
+															name="email"
+															placeholder={$i18n.t('Enter Your Email')}
+															required
+														/>
+												</div>
+											{/if}
+
+											<div>
+												<label for="password" class="sr-only">{$i18n.t('Password')}</label>
+													<SensitiveInput
+														bind:value={password}
+														type="password"
+														id="password"
+														outerClassName="w-full min-h-[52px] flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 outline-none focus-within:ring-2 focus-within:ring-white/20 focus-within:border-white/20"
+														inputClassName="w-full text-sm bg-transparent outline-none text-white placeholder:text-white/40"
+														showButtonClassName="pl-2 pr-0.5 text-white/60 hover:text-white/90 transition focus-visible:outline-none"
+														placeholder={$i18n.t('Enter Your Password')}
+														autocomplete={mode === 'signup' ? 'new-password' : 'current-password'}
+														name="password"
+														required
+													/>
+											</div>
+
+											{#if mode === 'signup' && $config?.features?.enable_signup_password_confirmation}
+												<div>
+													<label for="confirm-password" class="sr-only">
+														{$i18n.t('Confirm Password')}
+													</label>
+														<SensitiveInput
+															bind:value={confirmPassword}
+															type="password"
+															id="confirm-password"
+															outerClassName="w-full min-h-[52px] flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 outline-none focus-within:ring-2 focus-within:ring-white/20 focus-within:border-white/20"
+															inputClassName="w-full text-sm bg-transparent outline-none text-white placeholder:text-white/40"
+															showButtonClassName="pl-2 pr-0.5 text-white/60 hover:text-white/90 transition focus-visible:outline-none"
+															placeholder={$i18n.t('Confirm Your Password')}
+															autocomplete="new-password"
+															name="confirm-password"
+															required
+														/>
+												</div>
+											{/if}
+
+												{#if mode === 'signup'}
+													<div class="pt-1">
+														<div class="flex items-start gap-2 text-xs text-white/60">
+																<input
+																	id="legal-accept"
+																	type="checkbox"
+																	bind:checked={legalAccepted}
+																	class="mt-0.5 size-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/20"
+																/>
+															<label for="legal-accept" class="leading-relaxed">
+																{$i18n.t('I accept the')}
+																<a
+																	href="/terms"
+																	target="_blank"
+																	rel="noreferrer"
+																	class="text-white/90 font-semibold hover:underline"
+																	>{$i18n.t('Terms of Service')}</a
+																>
+																{$i18n.t('and')}
+																<a
+																	href="/privacy"
+																	target="_blank"
+																	rel="noreferrer"
+																	class="text-white/90 font-semibold hover:underline"
+																	>{$i18n.t('Privacy Policy')}</a
+																>
+																.
+															</label>
+														</div>
+												</div>
+											{/if}
+
+											<button
+												class="mt-2 w-full min-h-[56px] rounded-full font-semibold text-sm transition bg-white text-black hover:bg-white/90 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+												type="submit"
+												disabled={(mode === 'signup' && !legalAccepted) || submitting}
+											>
+													{#if submitting}
+														<span class="inline-flex items-center gap-2">
+															<Spinner className="size-4" />
+															<span>{$i18n.t('Loading…')}</span>
+														</span>
+													{:else}
+													{mode === 'ldap'
+														? $i18n.t('Authenticate')
+														: mode === 'signin'
+															? $i18n.t('Sign in')
+															: ($config?.onboarding ?? false)
+																? $i18n.t('Create Admin Account')
+																: $i18n.t('Create Account')}
+												{/if}
+											</button>
+										</form>
+
+										{#if signupEnabled && !($config?.onboarding ?? false) && mode !== 'ldap'}
+												<div class="mt-4 text-sm text-center text-white/60">
+												{mode === 'signin'
+													? $i18n.t("Don't have an account?")
+													: $i18n.t('Already have an account?')}
+												<button
+													type="button"
+													class="ml-2 font-semibold underline underline-offset-4 decoration-white/20 hover:decoration-white/50 transition"
+													on:click={() => {
+														if (mode === 'signin') {
+															mode = 'signup';
+														} else {
+															mode = 'signin';
+														}
+													}}
+												>
+													{mode === 'signin' ? $i18n.t('Sign up') : $i18n.t('Sign in')}
+												</button>
+											</div>
+										{/if}
+
+										{#if $config?.features.enable_ldap && $config?.features.enable_login_form}
+											<div class="mt-3">
+													<button
+														class="flex justify-center items-center text-xs w-full text-center underline underline-offset-4 decoration-white/20 hover:decoration-white/50 transition text-white/60 hover:text-white/90"
+														type="button"
+														on:click={() => {
+														if (mode === 'ldap')
+															mode = ($config?.onboarding ?? false) ? 'signup' : 'signin';
+														else mode = 'ldap';
+													}}
+												>
+													<span
+														>{mode === 'ldap'
+															? $i18n.t('Continue with Email')
+															: $i18n.t('Continue with LDAP')}</span
+													>
+												</button>
+											</div>
+										{/if}
+										{:else}
+											<div class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-center text-sm text-white/60">
+												{$i18n.t('Email sign-in is disabled.')}
+											</div>
+										{/if}
 								</div>
 							{/if}
 						</div>
-						{#if $config?.metadata?.login_footer}
-							<div class="max-w-3xl mx-auto">
-								<div class="mt-2 text-[0.7rem] text-gray-500 dark:text-gray-400 marked">
-									{@html DOMPurify.sanitize(marked($config?.metadata?.login_footer))}
-								</div>
-							</div>
-						{/if}
 					</div>
 				{/if}
+
+					{#if $config?.metadata?.login_footer}
+						<div class="mt-6 px-2">
+								<div class="text-[0.7rem] leading-relaxed text-white/50 marked">
+								<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+								{@html DOMPurify.sanitize(marked($config?.metadata?.login_footer))}
+							</div>
+						</div>
+					{/if}
 			</div>
 		</div>
-
-		{#if !$config?.metadata?.auth_logo_position}
-			<div class="fixed m-10 z-50">
-				<div class="flex space-x-2">
-					<div class=" self-center">
-						<img
-							id="logo"
-							crossorigin="anonymous"
-							src="{WEBUI_BASE_URL}/static/favicon.svg"
-							class=" w-6 rounded-full"
-							alt=""
-						/>
-					</div>
-				</div>
-			</div>
-		{/if}
 	{/if}
 </div>
