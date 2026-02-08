@@ -9,16 +9,15 @@
 	import { page } from '$app/stores';
 
 	import { getBackendConfig } from '$lib/apis';
-	import {
-		ldapUserSignIn,
-		getSessionUser,
-		getTelegramAuthState,
-		telegramSignIn,
-		telegramSignUp,
-		userSignIn,
-		userSignUp,
-		updateUserTimezone
-	} from '$lib/apis/auths';
+		import {
+			ldapUserSignIn,
+			getSessionUser,
+			getTelegramAuthState,
+			telegramSignIn,
+			userSignIn,
+			userSignUp,
+			updateUserTimezone
+		} from '$lib/apis/auths';
 
 	import { WEBUI_BASE_URL } from '$lib/constants';
 	import { WEBUI_NAME, config, user, socket } from '$lib/stores';
@@ -55,14 +54,14 @@
 	let legalAccepted = false;
 
 	let ldapUsername = '';
-	let panel: 'choice' | 'email' = 'choice';
-	let panelAuto = true;
-	let submitting = false;
-	let telegramLoading = false;
-	let telegramMode: 'signin' | 'signup' = 'signin';
+		let panel: 'choice' | 'email' = 'choice';
+		let panelAuto = true;
+		let submitting = false;
+		let telegramLoading = false;
+		let expandedSocialProvider: 'telegram' | 'vk' | null = null;
 
-	type SocialProvider = 'yandex' | 'vk' | 'github';
-	let oauthRedirectingTo: SocialProvider | null = null;
+		type SocialProvider = 'yandex' | 'vk' | 'github';
+		let oauthRedirectingTo: SocialProvider | null = null;
 
 	$: yandexEnabled = Boolean($config?.oauth?.providers?.yandex);
 	$: githubEnabled = Boolean($config?.oauth?.providers?.github);
@@ -202,35 +201,26 @@
 		}
 	};
 
-	const telegramAuthHandler = async (payload: Record<string, unknown>) => {
-		if (telegramLoading) return;
-		if (telegramMode === 'signup' && !legalAccepted) {
-			toast.error($i18n.t('You must accept the terms and privacy policy'));
-			return;
-		}
+		const telegramAuthHandler = async (payload: Record<string, unknown>) => {
+			if (telegramLoading) return;
 
-		telegramLoading = true;
-		try {
-			const { state } = await getTelegramAuthState();
-			const sessionUser =
-				telegramMode === 'signup'
-					? await telegramSignUp(state, payload, legalAccepted)
-					: await telegramSignIn(state, payload);
-			await setSessionUser(sessionUser);
-		} catch (error) {
-			if (error === 'NOT_LINKED') {
-				toast.error(
-					$i18n.t('Telegram account is not linked. Sign in and link it in Settings.')
-				);
-			} else if (error === 'SIGNUP_DISABLED') {
-				toast.error($i18n.t('Signup is disabled.'));
-			} else {
-				toast.error(`${error}`);
+			telegramLoading = true;
+			try {
+				const { state } = await getTelegramAuthState();
+				const sessionUser = await telegramSignIn(state, payload);
+				await setSessionUser(sessionUser);
+			} catch (error) {
+				if (error === 'NOT_LINKED') {
+					toast.error(
+						$i18n.t('Telegram account is not linked. Sign in and link it in Settings.')
+					);
+				} else {
+					toast.error(`${error}`);
+				}
+			} finally {
+				telegramLoading = false;
 			}
-		} finally {
-			telegramLoading = false;
-		}
-	};
+		};
 
 	const closeAuth = (): void => {
 		// Make /auth feel like a modal, but avoid navigating into OAuth/provider pages.
@@ -508,195 +498,126 @@
 													</svg>
 												{/if}
 											</span>
-										</button>
-									{/if}
+											</button>
+										{/if}
 
-										{#if vkEnabled}
-											{#if vkIdEnabled}
-											<div
-												class="w-full rounded-[22px] overflow-hidden border border-white/10 bg-white/5"
-											>
-												<VKIDWidget
-													appId={$config?.oauth?.providers?.vk?.app_id}
-													redirectUrl={$config?.oauth?.providers?.vk?.redirect_url || ''}
-													scheme={'dark'}
-												/>
-											</div>
-											{:else}
-												<button
-													type="button"
-													class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center px-4 gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
-													on:click={() => startSocialLogin('vk')}
-													disabled={oauthRedirectingTo !== null || submitting}
-												>
-												<span
-													class="size-10 rounded-full bg-[#0077FF] flex items-center justify-center font-extrabold text-white"
-													aria-hidden="true"
-														>VK</span
+										{#if vkEnabled || githubEnabled || telegramVisible}
+											<div class="mt-1 flex items-center justify-center gap-3">
+												{#if telegramVisible}
+													<button
+														type="button"
+														class={`size-12 rounded-full border transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
+															expandedSocialProvider === 'telegram'
+																? 'border-white/25 bg-white/10'
+																: 'border-white/10 bg-white/5 hover:bg-white/10'
+														}`}
+														on:click={() => {
+															expandedSocialProvider =
+																expandedSocialProvider === 'telegram' ? null : 'telegram';
+														}}
+														disabled={submitting}
+														aria-label={$i18n.t('Continue with {{provider}}', { provider: 'Telegram' })}
+														aria-expanded={expandedSocialProvider === 'telegram'}
 													>
-													<span class="text-sm font-semibold"
-														>{$i18n.t('Continue with {{provider}}', { provider: 'VK' })}</span
+														<span
+															class="size-8 rounded-full bg-[#2AABEE] flex items-center justify-center font-extrabold text-[0.7rem] text-white"
+															aria-hidden="true"
+															>TG</span
+														>
+													</button>
+												{/if}
+
+												{#if vkEnabled}
+													<button
+														type="button"
+														class={`size-12 rounded-full border transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
+															expandedSocialProvider === 'vk'
+																? 'border-white/25 bg-white/10'
+																: 'border-white/10 bg-white/5 hover:bg-white/10'
+														}`}
+														on:click={() => {
+															if (vkIdEnabled) {
+																expandedSocialProvider =
+																	expandedSocialProvider === 'vk' ? null : 'vk';
+															} else {
+																startSocialLogin('vk');
+															}
+														}}
+														disabled={oauthRedirectingTo !== null || submitting}
+														aria-label={$i18n.t('Continue with {{provider}}', { provider: 'VK' })}
+														aria-expanded={expandedSocialProvider === 'vk'}
 													>
-													<span class="ml-auto text-white/70">
-														{#if oauthRedirectingTo === 'vk'}
-															<Spinner className="size-4" />
-													{:else}
+														<span
+															class="size-8 rounded-full bg-[#0077FF] flex items-center justify-center font-extrabold text-[0.7rem] text-white"
+															aria-hidden="true"
+															>VK</span
+														>
+													</button>
+												{/if}
+
+												{#if githubEnabled}
+													<button
+														type="button"
+														class="size-12 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+														on:click={() => startSocialLogin('github')}
+														disabled={oauthRedirectingTo !== null || submitting}
+														aria-label={$i18n.t('Continue with {{provider}}', { provider: 'GitHub' })}
+													>
 														<svg
 															xmlns="http://www.w3.org/2000/svg"
 															viewBox="0 0 24 24"
-															fill="none"
-															stroke="currentColor"
-															stroke-width="2"
-															stroke-linecap="round"
-															stroke-linejoin="round"
-															class="size-5 transition group-hover:translate-x-0.5"
+															class="size-6 text-white/90"
 															aria-hidden="true"
 														>
-															<path d="M5 12h14" />
-															<path d="m13 5 7 7-7 7" />
+															<path
+																fill="currentColor"
+																d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.92 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57C20.565 21.795 24 17.31 24 12c0-6.63-5.37-12-12-12z"
+															/>
 														</svg>
-													{/if}
-												</span>
-											</button>
-										{/if}
-									{/if}
+													</button>
+												{/if}
+											</div>
 
-										{#if githubEnabled}
-											<button
-												type="button"
-												class="group w-full min-h-[56px] rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center px-4 gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
-												on:click={() => startSocialLogin('github')}
-												disabled={oauthRedirectingTo !== null || submitting}
-											>
-												<span
-													class="size-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white"
-													aria-hidden="true"
+											{#if expandedSocialProvider === 'vk' && vkEnabled && vkIdEnabled}
+												<div
+													class="w-full rounded-[22px] overflow-hidden border border-white/10 bg-white/5"
 												>
-												<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="size-5">
-													<path
-														fill="currentColor"
-														d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.92 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57C20.565 21.795 24 17.31 24 12c0-6.63-5.37-12-12-12z"
+													<VKIDWidget
+														appId={$config?.oauth?.providers?.vk?.app_id}
+														redirectUrl={$config?.oauth?.providers?.vk?.redirect_url || ''}
+														scheme={'dark'}
 													/>
-													</svg>
-												</span>
-												<span class="text-sm font-semibold"
-													>{$i18n.t('Continue with {{provider}}', { provider: 'GitHub' })}</span
-												>
-												<span class="ml-auto text-white/70">
-													{#if oauthRedirectingTo === 'github'}
-														<Spinner className="size-4" />
-												{:else}
-													<svg
-														xmlns="http://www.w3.org/2000/svg"
-														viewBox="0 0 24 24"
-														fill="none"
-														stroke="currentColor"
-														stroke-width="2"
-														stroke-linecap="round"
-														stroke-linejoin="round"
-														class="size-5 transition group-hover:translate-x-0.5"
-														aria-hidden="true"
-													>
-														<path d="M5 12h14" />
-														<path d="m13 5 7 7-7 7" />
-													</svg>
-												{/if}
-											</span>
-										</button>
-									{/if}
-
-									{#if telegramVisible}
-										<div class="mt-2 rounded-[22px] border border-white/10 bg-white/5 p-4">
-											<div class="flex items-center justify-between gap-3">
-												<div class="text-xs font-semibold text-white/60">
-													{$i18n.t('Telegram')}
 												</div>
-												<div class="flex items-center gap-1">
-														<button
-															type="button"
-															class={`px-3 py-1 rounded-full text-[0.7rem] font-semibold transition border ${
-																telegramMode === 'signin'
-																	? 'bg-white text-black border-white/20'
-																	: 'bg-white/0 text-white/70 border-white/20 hover:bg-white/10 hover:text-white'
-															}`}
-															on:click={() => {
-																telegramMode = 'signin';
+											{/if}
+
+											{#if expandedSocialProvider === 'telegram' && telegramVisible}
+												<div class="w-full rounded-[22px] border border-white/10 bg-white/5 p-4">
+													<div class="flex justify-center">
+														<TelegramLoginWidget
+															botUsername={$config?.telegram?.bot_username}
+															radius={18}
+															showUserPic={false}
+															on:auth={(event) => {
+																telegramAuthHandler(event.detail);
 															}}
-															disabled={telegramLoading}
-														>
-															{$i18n.t('Sign in')}
-														</button>
-														{#if signupEnabled}
-															<button
-																type="button"
-																class={`px-3 py-1 rounded-full text-[0.7rem] font-semibold transition border ${
-																	telegramMode === 'signup'
-																		? 'bg-white text-black border-white/20'
-																		: 'bg-white/0 text-white/70 border-white/20 hover:bg-white/10 hover:text-white'
-																}`}
-																on:click={() => {
-																	telegramMode = 'signup';
-																}}
-															disabled={telegramLoading}
-														>
-															{$i18n.t('Sign up')}
-														</button>
-													{/if}
-												</div>
-											</div>
-
-												{#if telegramMode === 'signup'}
-													<div class="mt-3 flex items-start gap-2 text-xs text-white/60">
-														<input
-															id="telegram-legal-accept"
-															type="checkbox"
-															bind:checked={legalAccepted}
-															class="mt-0.5 size-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/20"
 														/>
-														<label for="telegram-legal-accept" class="leading-relaxed">
-															{$i18n.t('I accept the')}
-															<a
-																href="/terms"
-																target="_blank"
-																rel="noreferrer"
-																class="text-white/90 font-semibold hover:underline"
-																>{$i18n.t('Terms of Service')}</a
-															>
-															{$i18n.t('and')}
-															<a
-																href="/privacy"
-																target="_blank"
-																rel="noreferrer"
-																class="text-white/90 font-semibold hover:underline"
-																>{$i18n.t('Privacy Policy')}</a
-															>
-															.
-														</label>
+														{#if telegramLoading}
+															<div class="ml-2 flex items-center">
+																<Spinner className="size-4" />
+															</div>
+														{/if}
 													</div>
-												{/if}
-
-											<div class="mt-3 flex justify-center">
-												<TelegramLoginWidget
-													botUsername={$config?.telegram?.bot_username}
-													radius={18}
-													showUserPic={false}
-													on:auth={(event) => {
-														telegramAuthHandler(event.detail);
-													}}
-												/>
-												{#if telegramLoading}
-													<div class="ml-2 flex items-center">
-														<Spinner className="size-4" />
+													<div class="mt-3 text-center text-[0.7rem] leading-relaxed text-white/50">
+														{$i18n.t('Telegram sign-in requires linking the account in Settings.')}
 													</div>
-												{/if}
-											</div>
-										</div>
-									{/if}
-								</div>
+												</div>
+											{/if}
+										{/if}
+									</div>
 
-									{#if passwordAuthEnabled}
-										<div class="mt-6 flex items-center gap-3 animate-[fade-up_650ms_ease-out_260ms_both]">
-											<div class="h-px flex-1 bg-white/10"></div>
+										{#if passwordAuthEnabled}
+											<div class="mt-6 flex items-center gap-3 animate-[fade-up_650ms_ease-out_260ms_both]">
+												<div class="h-px flex-1 bg-white/10"></div>
 											<div class="text-xs font-semibold uppercase tracking-widest text-white/40">
 												{$i18n.t('or')}
 											</div>

@@ -11,11 +11,14 @@
 	let container: HTMLDivElement | null = null;
 	let scriptEl: HTMLScriptElement | null = null;
 	let callbackName = '';
+	let scriptLoadError = false;
 
 	const createCallbackName = () => {
 		try {
 			// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-			return `__owuiTelegramAuth_${(crypto as any).randomUUID()}`;
+			// randomUUID() returns UUIDs with dashes, which are invalid in JS identifiers.
+			const uuid = String((crypto as any).randomUUID()).replace(/-/g, '_');
+			return `__owuiTelegramAuth_${uuid}`;
 		} catch {
 			return `__owuiTelegramAuth_${Math.random().toString(36).slice(2)}`;
 		}
@@ -49,6 +52,7 @@
 		if (!container) return;
 
 		cleanup();
+		scriptLoadError = false;
 
 		const username = (botUsernameValue ?? '').trim().replace(/^@/, '');
 		if (!username) return;
@@ -68,6 +72,9 @@
 		if (typeof radiusValue === 'number') {
 			s.setAttribute('data-radius', String(radiusValue));
 		}
+		s.addEventListener('error', () => {
+			scriptLoadError = true;
+		});
 
 		scriptEl = s;
 		container.appendChild(s);
@@ -82,4 +89,11 @@
 	});
 </script>
 
-<div bind:this={container} />
+<div>
+	<div bind:this={container} />
+	{#if scriptLoadError}
+		<div class="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
+			Telegram widget failed to load.
+		</div>
+	{/if}
+</div>
