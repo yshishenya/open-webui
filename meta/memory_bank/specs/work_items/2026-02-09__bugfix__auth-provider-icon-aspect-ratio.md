@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: bugfix/auth-provider-icons-object-fit
 - SDD Spec (JSON, required for non-trivial): N/A
@@ -16,8 +16,8 @@ Provider icons on `/auth` are rendered as fixed-size `<img>` elements. Without `
 
 ## Goal / Acceptance Criteria
 
-- [ ] Provider icons on `/auth` keep their original aspect ratio (no stretching).
-- [ ] Change is minimal and does not affect provider button behavior.
+- [x] Provider icons on `/auth` keep their original aspect ratio (no stretching).
+- [x] Change is minimal and does not affect provider button behavior.
 
 ## Non-goals
 
@@ -44,11 +44,11 @@ Provider icons on `/auth` are rendered as fixed-size `<img>` elements. Without `
 
 ## Task Entry (for branch_updates/current_tasks)
 
-- [ ] **[BUG][AUTH]** Fix provider icon aspect ratio on `/auth`
+- [x] **[BUG][AUTH]** Fix provider icon aspect ratio on `/auth`
   - Spec: `meta/memory_bank/specs/work_items/2026-02-09__bugfix__auth-provider-icon-aspect-ratio.md`
   - Owner: Codex
   - Branch: `bugfix/auth-provider-icons-object-fit`
-  - Started: 2026-02-09
+  - Done: 2026-02-09
   - Summary: Ensure Telegram/VK/GitHub icons render without stretching by using `object-contain`.
   - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run"`
   - Risks: Low (CSS-only).
