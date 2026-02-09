@@ -504,79 +504,76 @@
 										{#if vkEnabled || githubEnabled || telegramVisible}
 											<div class="mt-1 flex items-center justify-center gap-3">
 												{#if telegramVisible}
-													<button
-														type="button"
-														class={`size-12 rounded-full border transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
-															expandedSocialProvider === 'telegram'
-																? 'border-white/25 bg-white/10'
-																: 'border-white/10 bg-white/5 hover:bg-white/10'
-														}`}
-														on:click={() => {
-															expandedSocialProvider =
-																expandedSocialProvider === 'telegram' ? null : 'telegram';
-														}}
-														disabled={submitting}
-														aria-label={$i18n.t('Continue with {{provider}}', { provider: 'Telegram' })}
-														aria-expanded={expandedSocialProvider === 'telegram'}
-													>
-														<span
-															class="size-8 rounded-full bg-[#2AABEE] flex items-center justify-center font-extrabold text-[0.7rem] text-white"
-															aria-hidden="true"
-															>TG</span
+														<button
+															type="button"
+															class={`size-12 rounded-full border transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
+																expandedSocialProvider === 'telegram'
+																	? 'border-white/25 bg-white/10'
+																	: 'border-white/10 bg-white/5 hover:bg-white/10'
+															}`}
+															on:click={() => {
+																expandedSocialProvider =
+																	expandedSocialProvider === 'telegram' ? null : 'telegram';
+															}}
+															disabled={submitting}
+															aria-label={$i18n.t('Continue with {{provider}}', { provider: 'Telegram' })}
+															aria-expanded={expandedSocialProvider === 'telegram'}
 														>
-													</button>
-												{/if}
+															<img
+																src="{WEBUI_BASE_URL}/static/brand/telegram.svg"
+																class="block size-8"
+																alt=""
+																aria-hidden="true"
+															/>
+														</button>
+													{/if}
 
 												{#if vkEnabled}
-													<button
-														type="button"
-														class={`size-12 rounded-full border transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
-															expandedSocialProvider === 'vk'
-																? 'border-white/25 bg-white/10'
-																: 'border-white/10 bg-white/5 hover:bg-white/10'
-														}`}
-														on:click={() => {
-															if (vkIdEnabled) {
-																expandedSocialProvider =
-																	expandedSocialProvider === 'vk' ? null : 'vk';
-															} else {
-																startSocialLogin('vk');
-															}
-														}}
-														disabled={oauthRedirectingTo !== null || submitting}
-														aria-label={$i18n.t('Continue with {{provider}}', { provider: 'VK' })}
-														aria-expanded={expandedSocialProvider === 'vk'}
-													>
-														<span
-															class="size-8 rounded-full bg-[#0077FF] flex items-center justify-center font-extrabold text-[0.7rem] text-white"
-															aria-hidden="true"
-															>VK</span
+														<button
+															type="button"
+															class={`size-12 rounded-full border transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
+																expandedSocialProvider === 'vk'
+																	? 'border-white/25 bg-white/10'
+																	: 'border-white/10 bg-white/5 hover:bg-white/10'
+															}`}
+															on:click={() => {
+																if (vkIdEnabled) {
+																	expandedSocialProvider =
+																		expandedSocialProvider === 'vk' ? null : 'vk';
+																} else {
+																	startSocialLogin('vk');
+																}
+															}}
+															disabled={oauthRedirectingTo !== null || submitting}
+															aria-label={$i18n.t('Continue with {{provider}}', { provider: 'VK' })}
+															aria-expanded={expandedSocialProvider === 'vk'}
 														>
-													</button>
-												{/if}
-
-												{#if githubEnabled}
-													<button
-														type="button"
-														class="size-12 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
-														on:click={() => startSocialLogin('github')}
-														disabled={oauthRedirectingTo !== null || submitting}
-														aria-label={$i18n.t('Continue with {{provider}}', { provider: 'GitHub' })}
-													>
-														<svg
-															xmlns="http://www.w3.org/2000/svg"
-															viewBox="0 0 24 24"
-															class="size-6 text-white/90"
-															aria-hidden="true"
-														>
-															<path
-																fill="currentColor"
-																d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.92 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57C20.565 21.795 24 17.31 24 12c0-6.63-5.37-12-12-12z"
+															<img
+																src="{WEBUI_BASE_URL}/static/brand/vk.png"
+																class="block size-8"
+																alt=""
+																aria-hidden="true"
 															/>
-														</svg>
-													</button>
-												{/if}
-											</div>
+														</button>
+													{/if}
+
+													{#if githubEnabled}
+														<button
+															type="button"
+															class="size-12 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+															on:click={() => startSocialLogin('github')}
+															disabled={oauthRedirectingTo !== null || submitting}
+															aria-label={$i18n.t('Continue with {{provider}}', { provider: 'GitHub' })}
+														>
+															<img
+																src="{WEBUI_BASE_URL}/static/brand/github.svg"
+																class="block size-7"
+																alt=""
+																aria-hidden="true"
+															/>
+														</button>
+													{/if}
+												</div>
 
 											{#if expandedSocialProvider === 'vk' && vkEnabled && vkIdEnabled}
 												<div
