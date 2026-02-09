@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: feature
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: codex/feature/auth-provider-official-icons
 - SDD Spec (JSON, required for non-trivial): N/A
@@ -18,10 +18,10 @@ official brand icons sourced from providers' official brand resources.
 
 ## Goal / Acceptance Criteria
 
-- [ ] Telegram, VK, GitHub icons on `/auth` use official brand assets (not custom-drawn text placeholders).
-- [ ] Assets are stored locally in the repo (no runtime external fetch for icons).
-- [ ] No new dependencies added.
-- [ ] `/auth` remains functional (provider buttons still work; Telegram widget still loads in expanded panel).
+- [x] Telegram, VK, GitHub icons on `/auth` use official brand assets (not custom-drawn text placeholders).
+- [x] Assets are stored locally in the repo (no runtime external fetch for icons).
+- [x] No new dependencies added.
+- [x] `/auth` remains functional (provider buttons still work; Telegram widget still loads in expanded panel).
 
 ## Non-goals
 
@@ -67,11 +67,11 @@ official brand icons sourced from providers' official brand resources.
 
 ## Task Entry (for branch_updates/current_tasks)
 
-- [ ] **[UI][AUTH]** Use official provider icons on `/auth`
+- [x] **[UI][AUTH]** Use official provider icons on `/auth`
   - Spec: `meta/memory_bank/specs/work_items/2026-02-09__feature__auth-official-provider-icons.md`
   - Owner: Codex
   - Branch: `codex/feature/auth-provider-official-icons`
-  - Started: 2026-02-09
+  - Done: 2026-02-09
   - Summary: Replace placeholder TG/VK icons with official brand assets (Telegram/VK/GitHub) stored locally.
   - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps -e NODE_OPTIONS=--max-old-space-size=4096 airis-frontend sh -lc "npm run build:vite"`
   - Risks: Low (UI-only; verify assets load + icons align on mobile).
@@ -83,4 +83,3 @@ official brand icons sourced from providers' official brand resources.
   - Visual regressions on dark backgrounds (contrast/alignment).
 - Rollback plan:
   - Revert the icon asset + markup changes in `/auth`; fallback to prior placeholder letters.
-

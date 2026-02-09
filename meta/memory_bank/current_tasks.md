@@ -20,6 +20,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[UI][AUTH]** Use official provider icons on `/auth`
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-09__feature__auth-official-provider-icons.md`
+  - Owner: Codex
+  - Branch: `codex/feature/auth-provider-official-icons`
+  - Done: 2026-02-09
+  - Summary: Replace placeholder TG/VK icons with official brand assets (Telegram/VK/GitHub) stored locally.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps -e NODE_OPTIONS=--max-old-space-size=4096 airis-frontend sh -lc "npm run build:vite"`
+  - Risks: Low (UI-only; verify assets load + icons align on mobile).
+
 - [x] **[BUG][AUTH]** Fix Telegram widget render + simplify auth provider UI
   - Spec: `meta/memory_bank/specs/work_items/2026-02-08__bugfix__telegram-widget-render-auth-ui-simplify.md`
   - Owner: Codex
