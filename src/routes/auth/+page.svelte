@@ -521,7 +521,7 @@
 														>
 															<img
 																src="{WEBUI_BASE_URL}/static/brand/telegram.svg"
-																class="block size-8"
+																class="block size-8 object-contain"
 																alt=""
 																aria-hidden="true"
 															/>
@@ -548,12 +548,12 @@
 															aria-label={$i18n.t('Continue with {{provider}}', { provider: 'VK' })}
 															aria-expanded={expandedSocialProvider === 'vk'}
 														>
-															<img
-																src="{WEBUI_BASE_URL}/static/brand/vk.png"
-																class="block size-8"
-																alt=""
-																aria-hidden="true"
-															/>
+																<img
+																	src="{WEBUI_BASE_URL}/static/brand/vk.png"
+																	class="block size-8 object-contain"
+																	alt=""
+																	aria-hidden="true"
+																/>
 														</button>
 													{/if}
 
@@ -565,12 +565,12 @@
 															disabled={oauthRedirectingTo !== null || submitting}
 															aria-label={$i18n.t('Continue with {{provider}}', { provider: 'GitHub' })}
 														>
-															<img
-																src="{WEBUI_BASE_URL}/static/brand/github.svg"
-																class="block size-7"
-																alt=""
-																aria-hidden="true"
-															/>
+																<img
+																	src="{WEBUI_BASE_URL}/static/brand/github.svg"
+																	class="block size-7 object-contain"
+																	alt=""
+																	aria-hidden="true"
+																/>
 														</button>
 													{/if}
 												</div>
