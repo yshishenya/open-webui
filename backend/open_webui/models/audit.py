@@ -18,12 +18,17 @@ from sqlalchemy import BigInteger, Column, String, Text, JSON, Index
 
 class AuditAction(str, Enum):
     """Types of auditable actions"""
+
     PLAN_CREATED = "plan_created"
     PLAN_UPDATED = "plan_updated"
     PLAN_DELETED = "plan_deleted"
     PLAN_ACTIVATED = "plan_activated"
     PLAN_DEACTIVATED = "plan_deactivated"
     PLAN_DUPLICATED = "plan_duplicated"
+    SUBSCRIPTION_CREATED = "subscription_created"
+    SUBSCRIPTION_PLAN_CHANGED = "subscription_plan_changed"
+    WALLET_ADJUSTED = "wallet_adjusted"
+    BILLING = "billing"  # Backward compatibility for legacy billing logs.
 
 
 ####################
@@ -132,5 +137,10 @@ class AuditLogs:
             if user_id:
                 query = query.filter(AuditLog.user_id == user_id)
 
-            logs = query.order_by(AuditLog.created_at.desc()).limit(limit).offset(offset).all()
+            logs = (
+                query.order_by(AuditLog.created_at.desc())
+                .limit(limit)
+                .offset(offset)
+                .all()
+            )
             return [AuditLogModel.model_validate(log) for log in logs]

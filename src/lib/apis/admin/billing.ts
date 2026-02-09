@@ -144,6 +144,54 @@ export interface UserSubscriptionInfo {
 	>;
 }
 
+export interface UserWalletModel {
+	id: string;
+	user_id: string;
+	currency: string;
+	balance_topup_kopeks: number;
+	balance_included_kopeks: number;
+	daily_spent_kopeks: number;
+	daily_cap_kopeks: number | null;
+	created_at: number;
+	updated_at: number;
+}
+
+export interface UserWalletLedgerEntry {
+	id: string;
+	user_id: string;
+	wallet_id: string;
+	currency: string;
+	type: string;
+	amount_kopeks: number;
+	balance_included_after: number;
+	balance_topup_after: number;
+	reference_id: string;
+	reference_type: string;
+	idempotency_key: string | null;
+	metadata_json: Record<string, unknown> | null;
+	created_at: number;
+}
+
+export interface UserWalletSummaryResponse {
+	user_id: string;
+	wallet: UserWalletModel;
+	ledger_preview: UserWalletLedgerEntry[];
+}
+
+export interface AdjustUserWalletRequest {
+	delta_topup_kopeks: number;
+	delta_included_kopeks: number;
+	reason: string;
+	idempotency_key?: string;
+	reference_id?: string;
+}
+
+export interface AdjustUserWalletResponse {
+	success: boolean;
+	wallet: UserWalletModel;
+	ledger_entry: UserWalletLedgerEntry;
+}
+
 export interface PaginatedSubscribers {
 	items: PlanSubscriber[];
 	total: number;
@@ -800,6 +848,54 @@ export const changeUserSubscription = async (
 		);
 	} catch (error) {
 		console.error('Failed to change user subscription:', error);
+		throw error;
+	}
+};
+
+/**
+ * Get user wallet summary (admin only)
+ * @param token - Auth token
+ * @param userId - User ID
+ * @returns User wallet snapshot with recent ledger entries
+ */
+export const getUserWalletAdmin = async (
+	token: string,
+	userId: string
+): Promise<UserWalletSummaryResponse> => {
+	try {
+		return await apiRequest<UserWalletSummaryResponse>(
+			`${WEBUI_API_BASE_URL}/admin/billing/users/${userId}/wallet`,
+			token
+		);
+	} catch (error) {
+		console.error('Failed to get user wallet summary:', error);
+		throw error;
+	}
+};
+
+/**
+ * Apply admin wallet adjustment (admin only)
+ * @param token - Auth token
+ * @param userId - User ID
+ * @param data - Wallet adjustment payload
+ * @returns Updated wallet and created ledger entry
+ */
+export const adjustUserWalletAdmin = async (
+	token: string,
+	userId: string,
+	data: AdjustUserWalletRequest
+): Promise<AdjustUserWalletResponse> => {
+	try {
+		return await apiRequest<AdjustUserWalletResponse>(
+			`${WEBUI_API_BASE_URL}/admin/billing/users/${userId}/wallet/adjust`,
+			token,
+			{
+				method: 'POST',
+				body: JSON.stringify(data)
+			}
+		);
+	} catch (error) {
+		console.error('Failed to adjust user wallet:', error);
 		throw error;
 	}
 };

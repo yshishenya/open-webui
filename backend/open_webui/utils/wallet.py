@@ -438,6 +438,83 @@ class WalletService:
             db.refresh(entry)
             return entry
 
+    def adjust_balances(
+        self,
+        wallet_id: str,
+        delta_topup_kopeks: int,
+        delta_included_kopeks: int,
+        reason: str,
+        admin_user_id: str,
+        idempotency_key: Optional[str] = None,
+        reference_id: Optional[str] = None,
+        reference_type: str = "admin_wallet_adjustment",
+    ) -> LedgerEntry:
+        """Apply manual admin balance adjustments and create ledger entry."""
+        if delta_topup_kopeks == 0 and delta_included_kopeks == 0:
+            raise WalletError("At least one balance delta must be non-zero")
+
+        reason_normalized = reason.strip()
+        if not reason_normalized:
+            raise WalletError("Adjustment reason is required")
+
+        now = int(time.time())
+        with get_db() as db:
+            wallet = self._lock_wallet(db, wallet_id)
+            self._reset_daily_spent_if_needed(wallet, now)
+
+            if idempotency_key:
+                existing_by_idempotency = (
+                    db.query(LedgerEntry)
+                    .filter(LedgerEntry.idempotency_key == idempotency_key)
+                    .first()
+                )
+                if existing_by_idempotency:
+                    return existing_by_idempotency
+
+            effective_reference_id = reference_id or str(uuid.uuid4())
+            existing_by_reference = (
+                db.query(LedgerEntry)
+                .filter(
+                    LedgerEntry.reference_type == reference_type,
+                    LedgerEntry.reference_id == effective_reference_id,
+                    LedgerEntry.type == LedgerEntryType.ADJUSTMENT.value,
+                )
+                .first()
+            )
+            if existing_by_reference:
+                return existing_by_reference
+
+            wallet.balance_topup_kopeks += delta_topup_kopeks
+            wallet.balance_included_kopeks += delta_included_kopeks
+            wallet.updated_at = now
+
+            entry = LedgerEntry(
+                id=str(uuid.uuid4()),
+                user_id=wallet.user_id,
+                wallet_id=wallet.id,
+                currency=wallet.currency,
+                type=LedgerEntryType.ADJUSTMENT.value,
+                amount_kopeks=delta_topup_kopeks + delta_included_kopeks,
+                balance_included_after=wallet.balance_included_kopeks,
+                balance_topup_after=wallet.balance_topup_kopeks,
+                reference_id=effective_reference_id,
+                reference_type=reference_type,
+                idempotency_key=idempotency_key,
+                metadata_json={
+                    "reason": reason_normalized,
+                    "source": "admin_adjustment",
+                    "admin_user_id": admin_user_id,
+                    "delta_topup_kopeks": delta_topup_kopeks,
+                    "delta_included_kopeks": delta_included_kopeks,
+                },
+                created_at=now,
+            )
+
+            db.add(entry)
+            db.commit()
+            db.refresh(entry)
+            return entry
+
     def _release_breakdown(
         self, metadata_json: JsonDict, release_amount: int
     ) -> Tuple[int, int]:

@@ -29,6 +29,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
   - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps -e NODE_OPTIONS=--max-old-space-size=4096 airis-frontend sh -lc "npm run build:vite"`
   - Risks: Low-Medium (auth UX flow touches; verify Telegram click-through and VKID popup behavior on mobile).
 
+- [x] **[UI][BILLING][ADMIN]** Admin: user wallet balance adjustment
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-09__feature__admin-user-wallet-balance-edit.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-02-09
+  - Summary: Add admin-only wallet snapshot and balance adjustment from Edit User modal with ledger+audit tracking.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml exec -T airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_admin_billing_wallet_adjust.py open_webui/test/apps/webui/utils/test_wallet_service.py::TestWalletService::test_adjust_balances_updates_wallet_and_creates_adjustment_entry open_webui/test/apps/webui/utils/test_wallet_service.py::TestWalletService::test_adjust_balances_idempotent_by_key open_webui/test/apps/webui/utils/test_wallet_service.py::TestWalletService::test_adjust_balances_requires_reason_and_non_zero_delta open_webui/test/apps/webui/routers/test_billing_subscription.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check backend/open_webui/routers/admin_billing.py backend/open_webui/utils/wallet.py backend/open_webui/models/audit.py backend/open_webui/test/apps/webui/routers/test_admin_billing_wallet_adjust.py backend/open_webui/test/apps/webui/utils/test_wallet_service.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run src/lib/utils/airis/admin_billing_user_wallet.test.ts"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npx eslint src/lib/apis/admin/billing.ts src/lib/components/admin/Users/UserList/EditUserModal.svelte src/lib/utils/airis/admin_billing_user_wallet.ts src/lib/utils/airis/admin_billing_user_wallet.test.ts"`
+  - Risks: Medium (financial adjustments); mitigated with admin-only access, ledger idempotency, and audit logs.
+
 - [x] **[BUG][AUTH][UI]** Fix `/auth` social providers row (Telegram/VKID/OK/Mail)
   - Spec: `meta/memory_bank/specs/work_items/2026-02-09__bugfix__auth-social-providers-ui.md`
   - Owner: Codex

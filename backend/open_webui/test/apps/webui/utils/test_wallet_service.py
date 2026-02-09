@@ -227,3 +227,88 @@ class TestWalletService(AbstractPostgresTest):
                 reference_id="topup_ref_invalid",
                 reference_type="payment",
             )
+
+    def test_adjust_balances_updates_wallet_and_creates_adjustment_entry(self) -> None:
+        from open_webui.models.billing import Wallets
+        from open_webui.utils.wallet import wallet_service
+
+        wallet = wallet_service.get_or_create_wallet("1", "RUB")
+        Wallets.update_wallet(
+            wallet.id,
+            {"balance_topup_kopeks": 1000, "balance_included_kopeks": 500},
+        )
+
+        entry = wallet_service.adjust_balances(
+            wallet_id=wallet.id,
+            delta_topup_kopeks=-200,
+            delta_included_kopeks=300,
+            reason="admin correction",
+            admin_user_id="admin-1",
+            idempotency_key="adjust-idem-1",
+        )
+
+        assert entry.type == "adjustment"
+        assert entry.amount_kopeks == 100
+        assert entry.metadata_json is not None
+        assert entry.metadata_json.get("reason") == "admin correction"
+        assert entry.metadata_json.get("admin_user_id") == "admin-1"
+
+        updated_wallet = Wallets.get_wallet_by_id(wallet.id)
+        assert updated_wallet is not None
+        assert updated_wallet.balance_topup_kopeks == 800
+        assert updated_wallet.balance_included_kopeks == 800
+
+    def test_adjust_balances_idempotent_by_key(self) -> None:
+        from open_webui.models.billing import Wallets
+        from open_webui.utils.wallet import wallet_service
+
+        wallet = wallet_service.get_or_create_wallet("1", "RUB")
+        Wallets.update_wallet(
+            wallet.id,
+            {"balance_topup_kopeks": 1000, "balance_included_kopeks": 0},
+        )
+
+        first = wallet_service.adjust_balances(
+            wallet_id=wallet.id,
+            delta_topup_kopeks=-100,
+            delta_included_kopeks=0,
+            reason="manual debit",
+            admin_user_id="admin-1",
+            idempotency_key="adjust-idem-2",
+        )
+        second = wallet_service.adjust_balances(
+            wallet_id=wallet.id,
+            delta_topup_kopeks=-100,
+            delta_included_kopeks=0,
+            reason="manual debit",
+            admin_user_id="admin-1",
+            idempotency_key="adjust-idem-2",
+        )
+
+        assert first.id == second.id
+        updated_wallet = Wallets.get_wallet_by_id(wallet.id)
+        assert updated_wallet is not None
+        assert updated_wallet.balance_topup_kopeks == 900
+
+    def test_adjust_balances_requires_reason_and_non_zero_delta(self) -> None:
+        from open_webui.utils.wallet import WalletError, wallet_service
+
+        wallet = wallet_service.get_or_create_wallet("1", "RUB")
+
+        with pytest.raises(WalletError):
+            wallet_service.adjust_balances(
+                wallet_id=wallet.id,
+                delta_topup_kopeks=0,
+                delta_included_kopeks=0,
+                reason="valid",
+                admin_user_id="admin-1",
+            )
+
+        with pytest.raises(WalletError):
+            wallet_service.adjust_balances(
+                wallet_id=wallet.id,
+                delta_topup_kopeks=100,
+                delta_included_kopeks=0,
+                reason="   ",
+                admin_user_id="admin-1",
+            )

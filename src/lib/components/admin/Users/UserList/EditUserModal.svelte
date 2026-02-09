@@ -11,14 +11,20 @@
 		getUserSubscription,
 		getActivePlans,
 		changeUserSubscription,
+		getUserWalletAdmin,
+		adjustUserWalletAdmin,
 		type UserSubscriptionInfo,
-		type Plan
+		type Plan,
+		type UserWalletSummaryResponse
 	} from '$lib/apis/admin/billing';
 	import {
 		formatCompactNumber,
-		getUsageColor,
-		getStatusTextColor
+		getUsageColor
 	} from '$lib/utils/billing-formatters';
+	import {
+		buildWalletAdjustmentRequest,
+		validateWalletAdjustmentInput
+	} from '$lib/utils/airis/admin_billing_user_wallet';
 
 	import Modal from '$lib/components/common/Modal.svelte';
 	import localizedFormat from 'dayjs/plugin/localizedFormat';
@@ -61,7 +67,12 @@
 		if (selectedUser) {
 			_user = { ...selectedUser, password: '' };
 			// Load data in parallel for better performance
-			await Promise.all([loadUserGroups(), loadUserSubscription(), loadAvailablePlans()]);
+			await Promise.all([
+				loadUserGroups(),
+				loadUserSubscription(),
+				loadAvailablePlans(),
+				loadUserWallet()
+			]);
 		}
 	};
 
@@ -81,6 +92,12 @@
 	let availablePlans: Plan[] = [];
 	let selectedPlanId: string = '';
 	let changingPlan = false;
+	let walletSummary: UserWalletSummaryResponse | null = null;
+	let walletLoading = false;
+	let walletAdjusting = false;
+	let walletDeltaTopupKopeks = 0;
+	let walletDeltaIncludedKopeks = 0;
+	let walletAdjustmentReason = '';
 
 	// Handlers
 	const submitHandler = async () => {
@@ -146,6 +163,23 @@
 		}
 	};
 
+	const loadUserWallet = async () => {
+		if (!selectedUser?.id || sessionUser?.role !== 'admin') {
+			walletSummary = null;
+			return;
+		}
+
+		walletLoading = true;
+		try {
+			walletSummary = await getUserWalletAdmin(localStorage.token, selectedUser.id);
+		} catch (error) {
+			console.error('Failed to load user wallet:', error);
+			toast.error($i18n.t('Failed to load wallet'));
+		} finally {
+			walletLoading = false;
+		}
+	};
+
 	const handleChangePlan = async () => {
 		if (!selectedUser?.id) return;
 
@@ -188,6 +222,52 @@
 			}
 		} finally {
 			changingPlan = false;
+		}
+	};
+
+	const formatKopeksAmount = (amountKopeks: number): string =>
+		(amountKopeks / 100).toLocaleString(undefined, {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		});
+
+	const handleAdjustWallet = async () => {
+		if (!selectedUser?.id || sessionUser?.role !== 'admin') {
+			return;
+		}
+
+		const validationError = validateWalletAdjustmentInput({
+			delta_topup_kopeks: walletDeltaTopupKopeks,
+			delta_included_kopeks: walletDeltaIncludedKopeks,
+			reason: walletAdjustmentReason
+		});
+		if (validationError) {
+			toast.error($i18n.t(validationError));
+			return;
+		}
+
+		walletAdjusting = true;
+		try {
+			await adjustUserWalletAdmin(
+				localStorage.token,
+				selectedUser.id,
+				buildWalletAdjustmentRequest({
+					delta_topup_kopeks: walletDeltaTopupKopeks,
+					delta_included_kopeks: walletDeltaIncludedKopeks,
+					reason: walletAdjustmentReason
+				})
+			);
+			walletDeltaTopupKopeks = 0;
+			walletDeltaIncludedKopeks = 0;
+			walletAdjustmentReason = '';
+			await loadUserWallet();
+			toast.success($i18n.t('Wallet adjusted successfully'));
+		} catch (error: unknown) {
+			const errorMessage =
+				error instanceof Error ? error.message : String(error) || $i18n.t('Failed to adjust wallet');
+			toast.error(errorMessage);
+		} finally {
+			walletAdjusting = false;
 		}
 	};
 </script>
@@ -333,6 +413,113 @@
 											{/if}
 										{/if}
 									</div>
+
+									{#if sessionUser?.role === 'admin'}
+										<div
+											class="flex flex-col w-full rounded-lg border border-gray-200 dark:border-gray-800 p-2"
+										>
+											<div class="mb-1 text-xs text-gray-500">{$i18n.t('Wallet')}</div>
+
+											{#if walletLoading}
+												<div class="text-xs text-gray-400">{$i18n.t('Loading...')}</div>
+											{:else if walletSummary}
+												<div class="grid grid-cols-2 gap-2 text-xs">
+													<div class="rounded-md bg-gray-50 dark:bg-gray-850 px-2 py-1">
+														<div class="text-gray-500">{$i18n.t('Topup balance')}</div>
+														<div class="font-medium">
+															{formatKopeksAmount(walletSummary.wallet.balance_topup_kopeks)}
+															{` ${walletSummary.wallet.currency}`}
+														</div>
+													</div>
+													<div class="rounded-md bg-gray-50 dark:bg-gray-850 px-2 py-1">
+														<div class="text-gray-500">{$i18n.t('Included balance')}</div>
+														<div class="font-medium">
+															{formatKopeksAmount(walletSummary.wallet.balance_included_kopeks)}
+															{` ${walletSummary.wallet.currency}`}
+														</div>
+													</div>
+												</div>
+
+												{#if walletSummary.ledger_preview.length > 0}
+													<div class="mt-2 space-y-1">
+														<div class="text-[11px] text-gray-500">
+															{$i18n.t('Recent ledger entries')}
+														</div>
+														{#each walletSummary.ledger_preview.slice(0, 5) as entry}
+															<div class="flex items-center justify-between text-[11px]">
+																<div class="truncate text-gray-500">{entry.type}</div>
+																<div
+																	class={entry.amount_kopeks >= 0
+																		? 'text-green-600 dark:text-green-400'
+																		: 'text-red-600 dark:text-red-400'}
+																>
+																	{entry.amount_kopeks >= 0 ? '+' : ''}{formatKopeksAmount(
+																		entry.amount_kopeks
+																	)}
+																</div>
+															</div>
+														{/each}
+													</div>
+												{/if}
+
+												<div class="mt-2 grid grid-cols-2 gap-1.5">
+													<div class="flex flex-col">
+														<label for="wallet-delta-topup" class="mb-0.5 text-[11px] text-gray-500">
+															{$i18n.t('Topup delta (kopeks)')}
+														</label>
+														<input
+															id="wallet-delta-topup"
+															class="w-full text-sm bg-transparent outline-hidden border border-gray-200 dark:border-gray-800 rounded-md px-2 py-1"
+															type="number"
+															bind:value={walletDeltaTopupKopeks}
+															disabled={walletAdjusting || walletLoading}
+														/>
+													</div>
+													<div class="flex flex-col">
+														<label for="wallet-delta-included" class="mb-0.5 text-[11px] text-gray-500">
+															{$i18n.t('Included delta (kopeks)')}
+														</label>
+														<input
+															id="wallet-delta-included"
+															class="w-full text-sm bg-transparent outline-hidden border border-gray-200 dark:border-gray-800 rounded-md px-2 py-1"
+															type="number"
+															bind:value={walletDeltaIncludedKopeks}
+															disabled={walletAdjusting || walletLoading}
+														/>
+													</div>
+												</div>
+
+												<div class="mt-1.5 flex flex-col">
+													<label for="wallet-adjust-reason" class="mb-0.5 text-[11px] text-gray-500"
+														>{$i18n.t('Reason')}</label
+													>
+													<input
+														id="wallet-adjust-reason"
+														class="w-full text-sm bg-transparent outline-hidden border border-gray-200 dark:border-gray-800 rounded-md px-2 py-1"
+														type="text"
+														bind:value={walletAdjustmentReason}
+														placeholder={$i18n.t('Admin reason')}
+														disabled={walletAdjusting || walletLoading}
+													/>
+												</div>
+
+												<div class="mt-2 flex justify-end">
+													<button
+														class="px-2.5 py-1 text-xs font-medium bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full disabled:opacity-60"
+														type="button"
+														disabled={walletAdjusting || walletLoading}
+														on:click|preventDefault={handleAdjustWallet}
+													>
+														{walletAdjusting
+															? $i18n.t('Applying...')
+															: $i18n.t('Apply wallet adjustment')}
+													</button>
+												</div>
+											{:else}
+												<div class="text-xs text-gray-400">{$i18n.t('Wallet data unavailable')}</div>
+											{/if}
+										</div>
+									{/if}
 
 									<div class="flex flex-col w-full">
 										<div class=" mb-1 text-xs text-gray-500">{$i18n.t('Role')}</div>
