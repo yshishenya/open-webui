@@ -58,7 +58,8 @@
 		let panelAuto = true;
 		let submitting = false;
 		let telegramLoading = false;
-		let expandedSocialProvider: 'telegram' | 'vk' | null = null;
+		let expandedSocialProvider: 'vk' | null = null;
+		let vkIdOauthList: string[] = ['ok_ru', 'mail_ru'];
 
 		type SocialProvider = 'yandex' | 'vk' | 'github';
 		let oauthRedirectingTo: SocialProvider | null = null;
@@ -501,32 +502,49 @@
 											</button>
 										{/if}
 
-										{#if vkEnabled || githubEnabled || telegramVisible}
-											<div class="mt-1 flex items-center justify-center gap-3">
-												{#if telegramVisible}
-														<button
-															type="button"
-															class={`size-12 rounded-full border transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
-																expandedSocialProvider === 'telegram'
-																	? 'border-white/25 bg-white/10'
-																	: 'border-white/10 bg-white/5 hover:bg-white/10'
+											{#if vkEnabled || githubEnabled || telegramVisible}
+												<div class="mt-1 flex items-center justify-center gap-2 sm:gap-3">
+													{#if telegramVisible}
+														<div
+															class={`relative size-12 rounded-full border border-white/10 bg-white/5 transition overflow-hidden ${
+																submitting || telegramLoading
+																	? 'opacity-60 cursor-not-allowed'
+																	: 'hover:bg-white/10 cursor-pointer'
 															}`}
-															on:click={() => {
-																expandedSocialProvider =
-																	expandedSocialProvider === 'telegram' ? null : 'telegram';
-															}}
-															disabled={submitting}
 															aria-label={$i18n.t('Continue with {{provider}}', { provider: 'Telegram' })}
-															aria-expanded={expandedSocialProvider === 'telegram'}
 														>
-															<img
-																src="{WEBUI_BASE_URL}/static/brand/telegram.svg"
-																class="block size-8 object-contain"
-																alt=""
-																aria-hidden="true"
-															/>
-														</button>
-													{/if}
+															<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+																<img
+																	src="{WEBUI_BASE_URL}/static/brand/telegram.svg"
+																	class="block size-8 object-contain"
+																	alt=""
+																	aria-hidden="true"
+																/>
+																{#if telegramLoading}
+																	<div class="absolute inset-0 flex items-center justify-center">
+																		<Spinner className="size-4" />
+																	</div>
+																{/if}
+															</div>
+
+															<div class="absolute inset-0 telegram-widget-root">
+																<TelegramLoginWidget
+																	botUsername={$config?.telegram?.bot_username}
+																	size="small"
+																	radius={18}
+																	showUserPic={false}
+																	containerClass="telegram-widget-icon"
+																	on:auth={(event) => {
+																		telegramAuthHandler(event.detail);
+																	}}
+																/>
+															</div>
+
+															{#if submitting || telegramLoading}
+																<div class="absolute inset-0 cursor-not-allowed" />
+															{/if}
+														</div>
+														{/if}
 
 												{#if vkEnabled}
 														<button
@@ -536,31 +554,70 @@
 																	? 'border-white/25 bg-white/10'
 																	: 'border-white/10 bg-white/5 hover:bg-white/10'
 															}`}
-															on:click={() => {
-																if (vkIdEnabled) {
-																	expandedSocialProvider =
-																		expandedSocialProvider === 'vk' ? null : 'vk';
-																} else {
-																	startSocialLogin('vk');
-																}
-															}}
+																on:click={() => {
+																	if (vkIdEnabled) {
+																		vkIdOauthList = ['ok_ru', 'mail_ru'];
+																		expandedSocialProvider =
+																			expandedSocialProvider === 'vk' ? null : 'vk';
+																	} else {
+																		startSocialLogin('vk');
+																	}
+																}}
 															disabled={oauthRedirectingTo !== null || submitting}
 															aria-label={$i18n.t('Continue with {{provider}}', { provider: 'VK' })}
 															aria-expanded={expandedSocialProvider === 'vk'}
 														>
 																<img
-																	src="{WEBUI_BASE_URL}/static/brand/vk.png"
+																		src="{WEBUI_BASE_URL}/static/brand/vk.svg"
+																		class="block size-8 object-contain"
+																		alt=""
+																		aria-hidden="true"
+																	/>
+															</button>
+														{/if}
+
+														{#if vkEnabled && vkIdEnabled}
+															<button
+																type="button"
+																class="size-12 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+																on:click={() => {
+																	vkIdOauthList = ['ok_ru'];
+																	expandedSocialProvider = 'vk';
+																}}
+																disabled={oauthRedirectingTo !== null || submitting}
+																aria-label={$i18n.t('Continue with {{provider}}', { provider: 'OK' })}
+															>
+																<img
+																	src="{WEBUI_BASE_URL}/static/brand/ok.svg"
 																	class="block size-8 object-contain"
 																	alt=""
 																	aria-hidden="true"
 																/>
-														</button>
-													{/if}
+															</button>
 
-													{#if githubEnabled}
-														<button
-															type="button"
-															class="size-12 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+															<button
+																type="button"
+																class="size-12 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+																on:click={() => {
+																	vkIdOauthList = ['mail_ru'];
+																	expandedSocialProvider = 'vk';
+																}}
+																disabled={oauthRedirectingTo !== null || submitting}
+																aria-label={$i18n.t('Continue with {{provider}}', { provider: 'Mail.ru' })}
+															>
+																<img
+																	src="{WEBUI_BASE_URL}/static/brand/mailru.svg"
+																	class="block size-8 object-cover object-left"
+																	alt=""
+																	aria-hidden="true"
+																/>
+															</button>
+														{/if}
+
+														{#if githubEnabled}
+															<button
+																type="button"
+																class="size-12 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
 															on:click={() => startSocialLogin('github')}
 															disabled={oauthRedirectingTo !== null || submitting}
 															aria-label={$i18n.t('Continue with {{provider}}', { provider: 'GitHub' })}
@@ -579,34 +636,14 @@
 												<div
 													class="w-full rounded-[22px] overflow-hidden border border-white/10 bg-white/5"
 												>
-													<VKIDWidget
-														appId={$config?.oauth?.providers?.vk?.app_id}
-														redirectUrl={$config?.oauth?.providers?.vk?.redirect_url || ''}
-														scheme={'dark'}
-													/>
-												</div>
-											{/if}
-
-											{#if expandedSocialProvider === 'telegram' && telegramVisible}
-												<div class="w-full rounded-[22px] border border-white/10 bg-white/5 p-4">
-													<div class="flex justify-center">
-														<TelegramLoginWidget
-															botUsername={$config?.telegram?.bot_username}
-															radius={18}
-															showUserPic={false}
-															on:auth={(event) => {
-																telegramAuthHandler(event.detail);
-															}}
+													{#key vkIdOauthList.join(',')}
+														<VKIDWidget
+															appId={$config?.oauth?.providers?.vk?.app_id}
+															redirectUrl={$config?.oauth?.providers?.vk?.redirect_url || ''}
+															scheme={'dark'}
+															oauthList={vkIdOauthList}
 														/>
-														{#if telegramLoading}
-															<div class="ml-2 flex items-center">
-																<Spinner className="size-4" />
-															</div>
-														{/if}
-													</div>
-													<div class="mt-3 text-center text-[0.7rem] leading-relaxed text-white/50">
-														{$i18n.t('Telegram sign-in requires linking the account in Settings.')}
-													</div>
+													{/key}
 												</div>
 											{/if}
 										{/if}
@@ -979,3 +1016,20 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	:global(.telegram-widget-root),
+	:global(.telegram-widget-root > div),
+	:global(.telegram-widget-root > div > .telegram-widget-icon) {
+		width: 100%;
+		height: 100%;
+	}
+
+	:global(.telegram-widget-icon iframe) {
+		width: 100% !important;
+		height: 100% !important;
+		border: none !important;
+		opacity: 0 !important;
+		cursor: pointer !important;
+	}
+</style>

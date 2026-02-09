@@ -5,6 +5,7 @@
 	export let size: 'large' | 'medium' | 'small' = 'large';
 	export let radius: number | undefined = undefined;
 	export let showUserPic = false;
+	export let containerClass: string = '';
 
 	const dispatch = createEventDispatcher<{ auth: Record<string, unknown> }>();
 
@@ -90,7 +91,7 @@
 </script>
 
 <div>
-	<div bind:this={container} />
+	<div bind:this={container} class={containerClass} />
 	{#if scriptLoadError}
 		<div class="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
 			Telegram widget failed to load.
