@@ -12,7 +12,14 @@ declare namespace VKIDSDK {
 		redirectUrl: string;
 		responseMode: ConfigResponseMode;
 		source: ConfigSource;
+		mode?: ConfigAuthMode;
 		scope?: string;
+	}
+
+	enum ConfigAuthMode {
+		Redirect = 'redirect',
+		InNewTab = 'new_tab',
+		InNewWindow = 'new_window'
 	}
 
 	enum ConfigResponseMode {
@@ -29,7 +36,28 @@ declare namespace VKIDSDK {
 	}
 
 	namespace Auth {
+		function login(params?: AuthLoginParams): Promise<AuthResponse>;
 		function exchangeCode(code: string, deviceId: string): Promise<AuthData>;
+	}
+
+	enum OAuthName {
+		OK = 'ok_ru',
+		MAIL = 'mail_ru',
+		VK = 'vkid'
+	}
+
+	interface AuthLoginParams {
+		scheme?: 'light' | 'dark';
+		lang?: string;
+		provider?: OAuthName;
+	}
+
+	interface AuthResponse {
+		code: string;
+		type: string;
+		state: string;
+		device_id: string;
+		expires_in: number;
 	}
 
 	interface AuthData {
