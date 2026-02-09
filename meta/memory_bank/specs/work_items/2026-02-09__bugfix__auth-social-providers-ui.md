@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: codex/bugfix/auth-social-providers-ui
 - SDD Spec (JSON, required for non-trivial): N/A
