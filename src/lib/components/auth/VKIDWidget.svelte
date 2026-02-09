@@ -17,6 +17,7 @@
 
 	let container: HTMLDivElement;
 	let vkidInstance: any = null;
+	let allowErrorToast = false;
 
 	const defaultOnSuccess = async (data: any) => {
 		try {
@@ -38,7 +39,9 @@
 
 	const defaultOnError = (error: any) => {
 		console.error('VK ID error:', error);
-		toast.error('Ошибка авторизации VK');
+		if (allowErrorToast) {
+			toast.error('Ошибка авторизации VK');
+		}
 	};
 
 	const handleVKIDSuccess = async (payload: any) => {
@@ -168,7 +171,13 @@
 	});
 </script>
 
-<div bind:this={container} class="vkid-widget-container w-full"></div>
+<div
+	bind:this={container}
+	class="vkid-widget-container w-full"
+	on:pointerdown={() => {
+		allowErrorToast = true;
+	}}
+></div>
 
 <style>
 	.vkid-widget-container {
