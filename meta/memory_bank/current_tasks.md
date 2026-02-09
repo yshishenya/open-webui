@@ -20,6 +20,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG][AUTH]** VKID one-click login + Telegram icon hitbox + official Yandex/VK icons on `/auth`
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-09__bugfix__auth-vkid-direct-login-telegram-hitbox-yandex-icons.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/auth-vkid-direct-login`
+  - Done: 2026-02-09
+  - Summary: Fix Telegram icon click area, make VK/OK/Mail one-click via `VKID.Auth.login`, and swap in official icons (including Yandex).
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps -e NODE_OPTIONS=--max-old-space-size=4096 airis-frontend sh -lc "npm run build:vite"`
+  - Risks: Low-Medium (auth UX flow touches; verify Telegram click-through and VKID popup behavior on mobile).
+
 - [x] **[BUG][AUTH][UI]** Fix `/auth` social providers row (Telegram/VKID/OK/Mail)
   - Spec: `meta/memory_bank/specs/work_items/2026-02-09__bugfix__auth-social-providers-ui.md`
   - Owner: Codex
