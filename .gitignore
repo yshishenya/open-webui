@@ -13,6 +13,7 @@ node_modules
 meta/sdd/specs/.backups/
 meta/sdd/specs/.reports/
 meta/sdd/specs/.human-readable/
+meta/sdd/.fidelity-reviews/
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 # Byte-compiled / optimized / DLL files

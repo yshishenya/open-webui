@@ -236,6 +236,17 @@
 			return;
 		}
 
+		const createIdempotencyKey = (): string => {
+			try {
+				if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+					return crypto.randomUUID();
+				}
+			} catch {
+				// ignore
+			}
+			return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+		};
+
 		const validationError = validateWalletAdjustmentInput({
 			delta_topup_kopeks: walletDeltaTopupKopeks,
 			delta_included_kopeks: walletDeltaIncludedKopeks,
@@ -248,13 +259,15 @@
 
 		walletAdjusting = true;
 		try {
+			const idempotencyKey = createIdempotencyKey();
 			await adjustUserWalletAdmin(
 				localStorage.token,
 				selectedUser.id,
 				buildWalletAdjustmentRequest({
 					delta_topup_kopeks: walletDeltaTopupKopeks,
 					delta_included_kopeks: walletDeltaIncludedKopeks,
-					reason: walletAdjustmentReason
+					reason: walletAdjustmentReason,
+					idempotency_key: idempotencyKey
 				})
 			);
 			walletDeltaTopupKopeks = 0;
@@ -471,6 +484,7 @@
 															id="wallet-delta-topup"
 															class="w-full text-sm bg-transparent outline-hidden border border-gray-200 dark:border-gray-800 rounded-md px-2 py-1"
 															type="number"
+															step="1"
 															bind:value={walletDeltaTopupKopeks}
 															disabled={walletAdjusting || walletLoading}
 														/>
@@ -483,6 +497,7 @@
 															id="wallet-delta-included"
 															class="w-full text-sm bg-transparent outline-hidden border border-gray-200 dark:border-gray-800 rounded-md px-2 py-1"
 															type="number"
+															step="1"
 															bind:value={walletDeltaIncludedKopeks}
 															disabled={walletAdjusting || walletLoading}
 														/>

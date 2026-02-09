@@ -465,7 +465,12 @@ class WalletService:
             if idempotency_key:
                 existing_by_idempotency = (
                     db.query(LedgerEntry)
-                    .filter(LedgerEntry.idempotency_key == idempotency_key)
+                    .filter(
+                        LedgerEntry.idempotency_key == idempotency_key,
+                        LedgerEntry.wallet_id == wallet.id,
+                        LedgerEntry.type == LedgerEntryType.ADJUSTMENT.value,
+                        LedgerEntry.reference_type == reference_type,
+                    )
                     .first()
                 )
                 if existing_by_idempotency:
@@ -477,6 +482,7 @@ class WalletService:
                 .filter(
                     LedgerEntry.reference_type == reference_type,
                     LedgerEntry.reference_id == effective_reference_id,
+                    LedgerEntry.wallet_id == wallet.id,
                     LedgerEntry.type == LedgerEntryType.ADJUSTMENT.value,
                 )
                 .first()
