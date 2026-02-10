@@ -15,6 +15,8 @@ sdd-plan-review:
       - opencode
 
 sdd-fidelity-review:
+  consultation:
+    timeout_seconds: 600
   tool_priority:
     - codex
     - opencode

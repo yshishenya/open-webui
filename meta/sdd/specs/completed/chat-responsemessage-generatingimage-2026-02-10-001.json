@@ -1,0 +1,182 @@
+{
+  "spec_id": "chat-responsemessage-generatingimage-2026-02-10-001",
+  "generated": "2026-02-10T00:00:00Z",
+  "last_updated": "2026-02-10T13:13:11Z",
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Chat: fix ResponseMessage crash from undefined generatingImage",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 5,
+      "metadata": {
+        "context": {
+          "date": "2026-02-10",
+          "reported_symptoms": [
+            "Opening some chats results in a blank/black screen.",
+            "Browser console: Uncaught ReferenceError: generatingImage is not defined."
+          ]
+        },
+        "acceptance_criteria": [
+          "Chat page renders without a runtime ReferenceError when image generation feature is enabled.",
+          "Generate Image action in response message does not crash the UI.",
+          "Generated image URLs are appended to the message files list and persisted via updateChat()."
+        ],
+        "upstream_impact": {
+          "upstream_owned_files_touched": [
+            "src/lib/components/chat/Messages/ResponseMessage.svelte"
+          ],
+          "strategy": "Minimal localized fix: add missing state + handler; avoid refactors."
+        },
+        "work_item_spec": "meta/memory_bank/specs/work_items/2026-02-10__bugfix__chat-responsemessage-generatingimage-referenceerror.md",
+        "implementation_commit": "a8026817f"
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Fix ResponseMessage image generation button crash",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-1-files",
+        "phase-1-verify"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 5,
+      "metadata": {
+        "risk": "low",
+        "notes": "Define missing identifiers used by the template so component render cannot throw a ReferenceError."
+      }
+    },
+    "phase-1-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "src/lib/components/chat/Messages/ResponseMessage.svelte",
+      "status": "completed",
+      "parent": "phase-1-files",
+      "children": [
+        "task-1-1-1",
+        "task-1-1-2",
+        "task-1-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "file_path": "src/lib/components/chat/Messages/ResponseMessage.svelte",
+        "task_category": "implementation",
+        "notes": "Implement generatingImage state + generateImage handler using imageGenerations(), user-safe error toasts, and history update persistence."
+      }
+    },
+    "task-1-1-1": {
+      "type": "subtask",
+      "title": "Add generatingImage state referenced by template",
+      "status": "completed",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "task-1-1-2": {
+      "type": "subtask",
+      "title": "Implement generateImage() handler with request/guardrails",
+      "status": "completed",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "details": [
+          "Prevent double-submit while in-flight.",
+          "Derive prompt from message content (after removeAllDetails).",
+          "Call imageGenerations(token, prompt) and surface user-safe errors via toast."
+        ]
+      }
+    },
+    "task-1-1-3": {
+      "type": "subtask",
+      "title": "Append generated images to message files and persist via updateChat()",
+      "status": "completed",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "details": [
+          "Deduplicate by URL against existing message files.",
+          "Append {type: 'image', url} entries to history.messages[messageId].files.",
+          "Call updateChat() to persist changes to backend."
+        ]
+      }
+    },
+    "phase-1-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [
+        "verify-1-1",
+        "verify-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "dependencies": {
+          "blocked_by": [
+            "phase-1-files"
+          ],
+          "blocks": [],
+          "depends": []
+        }
+      }
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Frontend tests: vitest (docker, --run)",
+      "status": "completed",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc \"if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run\"",
+        "expected": "Tests pass"
+      }
+    },
+    "verify-1-2": {
+      "type": "verify",
+      "title": "Frontend build: vite build (docker, OOM-safe)",
+      "status": "completed",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps -e NODE_OPTIONS=--max-old-space-size=4096 airis-frontend sh -lc \"npm run build:vite\"",
+        "expected": "Build succeeds"
+      }
+    }
+  }
+}
+
