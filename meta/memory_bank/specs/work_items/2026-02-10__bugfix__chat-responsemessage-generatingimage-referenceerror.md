@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: codex/bugfix/chat-black-screen-generate-image
-- SDD Spec (JSON, required for non-trivial): N/A
+- SDD Spec (JSON, required for non-trivial): meta/sdd/specs/completed/chat-responsemessage-generatingimage-2026-02-10-001.json
 - Created: 2026-02-10
 - Updated: 2026-02-10
 
