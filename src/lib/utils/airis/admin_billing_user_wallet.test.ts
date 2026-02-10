@@ -11,6 +11,7 @@ import {
 
 import {
 	buildWalletAdjustmentRequest,
+	parseRubleAmountToKopeks,
 	validateWalletAdjustmentInput
 } from './admin_billing_user_wallet';
 
@@ -127,6 +128,25 @@ describe('airis/admin_billing_user_wallet', () => {
 	});
 
 	it('validation helpers reject invalid input and normalize reason', () => {
+		expect(parseRubleAmountToKopeks('').ok).toBe(true);
+		expect(parseRubleAmountToKopeks('0').ok).toBe(true);
+
+		expect(parseRubleAmountToKopeks('1')).toEqual({ ok: true, kopeks: 100 });
+		expect(parseRubleAmountToKopeks('1.23')).toEqual({ ok: true, kopeks: 123 });
+		expect(parseRubleAmountToKopeks('1,23')).toEqual({ ok: true, kopeks: 123 });
+		expect(parseRubleAmountToKopeks('0,01')).toEqual({ ok: true, kopeks: 1 });
+		expect(parseRubleAmountToKopeks('-50')).toEqual({ ok: true, kopeks: -5000 });
+		expect(parseRubleAmountToKopeks('1 000,50')).toEqual({ ok: true, kopeks: 100050 });
+		expect(parseRubleAmountToKopeks('1,000.50')).toEqual({ ok: true, kopeks: 100050 });
+		expect(parseRubleAmountToKopeks('1.000')).toEqual({ ok: true, kopeks: 100000 });
+
+		expect(parseRubleAmountToKopeks('-').ok).toBe(false);
+		expect(parseRubleAmountToKopeks('abc').ok).toBe(false);
+		expect(parseRubleAmountToKopeks('1.2345')).toEqual({
+			ok: false,
+			error: 'Amount must have at most 2 decimal places'
+		});
+
 		expect(
 			validateWalletAdjustmentInput({
 				delta_topup_kopeks: 0,
