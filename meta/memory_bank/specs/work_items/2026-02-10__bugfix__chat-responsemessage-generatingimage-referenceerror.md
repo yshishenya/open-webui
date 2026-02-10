@@ -20,9 +20,9 @@ This comes from `ResponseMessage.svelte` referencing `generatingImage` (and call
 
 ## Goal / Acceptance Criteria
 
-- [ ] Chat page renders without a runtime `ReferenceError` when image generation is enabled.
-- [ ] The “Generate Image” action in a response message does not crash the app.
-- [ ] (Best-effort) Generated images are appended to the message `files` list and persisted via `updateChat()`.
+- [x] Chat page renders without a runtime `ReferenceError` when image generation is enabled.
+- [x] The “Generate Image” action in a response message does not crash the app.
+- [x] (Best-effort) Generated images are appended to the message `files` list and persisted via `updateChat()`.
 
 ## Non-goals
 
