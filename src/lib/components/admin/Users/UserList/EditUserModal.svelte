@@ -23,6 +23,7 @@
 	} from '$lib/utils/billing-formatters';
 	import {
 		buildWalletAdjustmentRequest,
+		parseRubleAmountToKopeks,
 		validateWalletAdjustmentInput
 	} from '$lib/utils/airis/admin_billing_user_wallet';
 
@@ -95,8 +96,8 @@
 	let walletSummary: UserWalletSummaryResponse | null = null;
 	let walletLoading = false;
 	let walletAdjusting = false;
-	let walletDeltaTopupKopeks = 0;
-	let walletDeltaIncludedKopeks = 0;
+	let walletDeltaTopupRub = '';
+	let walletDeltaIncludedRub = '';
 	let walletAdjustmentReason = '';
 
 	// Handlers
@@ -247,9 +248,21 @@
 			return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 		};
 
+		const topupParsed = parseRubleAmountToKopeks(walletDeltaTopupRub);
+		if (!topupParsed.ok) {
+			toast.error($i18n.t(topupParsed.error));
+			return;
+		}
+
+		const includedParsed = parseRubleAmountToKopeks(walletDeltaIncludedRub);
+		if (!includedParsed.ok) {
+			toast.error($i18n.t(includedParsed.error));
+			return;
+		}
+
 		const validationError = validateWalletAdjustmentInput({
-			delta_topup_kopeks: walletDeltaTopupKopeks,
-			delta_included_kopeks: walletDeltaIncludedKopeks,
+			delta_topup_kopeks: topupParsed.kopeks,
+			delta_included_kopeks: includedParsed.kopeks,
 			reason: walletAdjustmentReason
 		});
 		if (validationError) {
@@ -264,14 +277,14 @@
 				localStorage.token,
 				selectedUser.id,
 				buildWalletAdjustmentRequest({
-					delta_topup_kopeks: walletDeltaTopupKopeks,
-					delta_included_kopeks: walletDeltaIncludedKopeks,
+					delta_topup_kopeks: topupParsed.kopeks,
+					delta_included_kopeks: includedParsed.kopeks,
 					reason: walletAdjustmentReason,
 					idempotency_key: idempotencyKey
 				})
 			);
-			walletDeltaTopupKopeks = 0;
-			walletDeltaIncludedKopeks = 0;
+			walletDeltaTopupRub = '';
+			walletDeltaIncludedRub = '';
 			walletAdjustmentReason = '';
 			await loadUserWallet();
 			toast.success($i18n.t('Wallet adjusted successfully'));
@@ -453,6 +466,10 @@
 													</div>
 												</div>
 
+												<div class="mt-1 text-[11px] text-gray-500">
+													{$i18n.t('Spending order: included first, then topup')}
+												</div>
+
 												{#if walletSummary.ledger_preview.length > 0}
 													<div class="mt-2 space-y-1">
 														<div class="text-[11px] text-gray-500">
@@ -460,7 +477,7 @@
 														</div>
 														{#each walletSummary.ledger_preview.slice(0, 5) as entry}
 															<div class="flex items-center justify-between text-[11px]">
-																<div class="truncate text-gray-500">{entry.type}</div>
+																<div class="truncate text-gray-500">{$i18n.t(entry.type)}</div>
 																<div
 																	class={entry.amount_kopeks >= 0
 																		? 'text-green-600 dark:text-green-400'
@@ -478,30 +495,36 @@
 												<div class="mt-2 grid grid-cols-2 gap-1.5">
 													<div class="flex flex-col">
 														<label for="wallet-delta-topup" class="mb-0.5 text-[11px] text-gray-500">
-															{$i18n.t('Topup delta (kopeks)')}
+															{$i18n.t('Topup delta (RUB)')}
 														</label>
 														<input
 															id="wallet-delta-topup"
 															class="w-full text-sm bg-transparent outline-hidden border border-gray-200 dark:border-gray-800 rounded-md px-2 py-1"
-															type="number"
-															step="1"
-															bind:value={walletDeltaTopupKopeks}
+															type="text"
+															inputmode="decimal"
+															placeholder="0"
+															bind:value={walletDeltaTopupRub}
 															disabled={walletAdjusting || walletLoading}
 														/>
 													</div>
 													<div class="flex flex-col">
 														<label for="wallet-delta-included" class="mb-0.5 text-[11px] text-gray-500">
-															{$i18n.t('Included delta (kopeks)')}
+															{$i18n.t('Included delta (RUB)')}
 														</label>
 														<input
 															id="wallet-delta-included"
 															class="w-full text-sm bg-transparent outline-hidden border border-gray-200 dark:border-gray-800 rounded-md px-2 py-1"
-															type="number"
-															step="1"
-															bind:value={walletDeltaIncludedKopeks}
+															type="text"
+															inputmode="decimal"
+															placeholder="0"
+															bind:value={walletDeltaIncludedRub}
 															disabled={walletAdjusting || walletLoading}
 														/>
 													</div>
+												</div>
+
+												<div class="mt-1 text-[11px] text-gray-500">
+													{$i18n.t('Enter deltas in rubles (e.g. 1000,50). Use negative values to subtract.')}
 												</div>
 
 												<div class="mt-1.5 flex flex-col">
@@ -648,7 +671,4 @@
 		scrollbar-width: none; /* Firefox */
 	}
 
-	input[type='number'] {
-		-moz-appearance: textfield; /* Firefox */
-	}
-</style>
+	</style>

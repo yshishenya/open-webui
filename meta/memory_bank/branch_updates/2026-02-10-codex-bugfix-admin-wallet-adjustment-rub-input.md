@@ -1,0 +1,8 @@
+- [x] **[BUG][UI][BILLING][ADMIN]** Admin wallet adjustment: RU copy + RUB deltas
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-10__bugfix__admin-wallet-adjustment-ui-rub-input.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/admin-wallet-adjustment-rub-input`
+  - Done: 2026-02-10
+  - Summary: Перевести и упростить wallet-корректировку в админке: понятные подписи + ввод суммы в рублях с конвертацией в копейки для API.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run src/lib/utils/airis/admin_billing_user_wallet.test.ts"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npx eslint src/lib/components/admin/Users/UserList/EditUserModal.svelte src/lib/utils/airis/admin_billing_user_wallet.ts src/lib/utils/airis/admin_billing_user_wallet.test.ts"`
+  - Risks: Low-Medium (операторский UX на финансовой операции)
