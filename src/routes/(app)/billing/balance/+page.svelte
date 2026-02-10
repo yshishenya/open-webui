@@ -669,6 +669,7 @@
 			?.filter((model) => model.info?.meta?.lead_magnet)
 			.map((model) => ({ id: model.id, name: model.name ?? model.id })) ?? [];
 	const leadMagnetModelsReady = true;
+	$: leadMagnetModelsAvailable = leadMagnetModels.length > 0;
 	$: leadMagnetHasRemaining = (() => {
 		if (!leadMagnetInfo?.enabled) return false;
 
@@ -687,7 +688,7 @@
 		});
 	})();
 	$: freeUsageAvailable =
-		Boolean(leadMagnetInfo?.enabled) && leadMagnetHasRemaining;
+		Boolean(leadMagnetInfo?.enabled) && leadMagnetHasRemaining && leadMagnetModelsAvailable;
 </script>
 
 <svelte:head>

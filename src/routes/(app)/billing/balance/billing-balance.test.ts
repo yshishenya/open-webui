@@ -43,7 +43,13 @@ type MockSet = {
 	gotoMock: ReturnType<typeof vi.fn>;
 	toast: { error: ReturnType<typeof vi.fn>; success: ReturnType<typeof vi.fn> };
 	webuiNameStore: MockStore<string>;
-	modelsStore: MockStore<{ id: string; name?: string }[]>;
+	modelsStore: MockStore<
+		{
+			id: string;
+			name?: string;
+			info?: { meta?: { lead_magnet?: boolean } };
+		}[]
+	>;
 	settingsStore: MockStore<{ highContrastMode?: boolean }>;
 	pageStore: MockStore<{ url: URL }>;
 	i18nStore: MockStore<I18nValue>;
@@ -138,6 +144,16 @@ const createBalance = (overrides: Partial<Balance> = {}): Balance => ({
 	...overrides
 });
 
+const createLeadMagnetInfo = (enabled = true) => ({
+	enabled,
+	cycle_start: null,
+	cycle_end: null,
+	usage: { tokens_input: 0, tokens_output: 0, images: 0, tts_seconds: 0, stt_seconds: 0 },
+	quotas: { tokens_input: 1000, tokens_output: 1000, images: 10, tts_seconds: 60, stt_seconds: 60 },
+	remaining: { tokens_input: 1000, tokens_output: 1000, images: 10, tts_seconds: 60, stt_seconds: 60 },
+	config_version: 1
+});
+
 const createContext = (): Map<string, unknown> => new Map([['i18n', mocks.i18nStore]]);
 
 describe('Billing balance page', () => {
@@ -152,6 +168,7 @@ describe('Billing balance page', () => {
 			billing_contact_email: '',
 			billing_contact_phone: ''
 		});
+		mocks.modelsStore.set([]);
 		mocks.pageStore.set({ url: new URL('http://localhost/billing/balance') });
 		localStorage.token = 'test-token';
 	});
@@ -195,5 +212,34 @@ describe('Billing balance page', () => {
 
 		const toggle = root.querySelector('button[aria-controls^="wallet-advanced-settings-"]');
 		expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+	});
+
+	it('hides free-limit hint when free models are unavailable', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 5000 }));
+		mocks.getLeadMagnetInfoMock.mockResolvedValue(createLeadMagnetInfo(true));
+		mocks.modelsStore.set([]);
+
+		const root = renderPage();
+		await flushPromises();
+
+		expect(root.textContent).not.toContain('Wallet is low but free limit is available');
+		expect(root.textContent).toContain('Top up to keep working');
+	});
+
+	it('shows free-limit hint when free models are available', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 5000 }));
+		mocks.getLeadMagnetInfoMock.mockResolvedValue(createLeadMagnetInfo(true));
+		mocks.modelsStore.set([
+			{
+				id: 'free-model',
+				name: 'Free Model',
+				info: { meta: { lead_magnet: true } }
+			}
+		]);
+
+		const root = renderPage();
+		await flushPromises();
+
+		expect(root.textContent).toContain('Wallet is low but free limit is available');
 	});
 });
