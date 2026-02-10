@@ -173,6 +173,60 @@
 
 	let showRateComment = false;
 
+	let generatingImage = false;
+
+	const generateImage = async (targetMessage: MessageType): Promise<void> => {
+		if (generatingImage) {
+			return;
+		}
+
+		const prompt = removeAllDetails(targetMessage?.content ?? '').trim();
+		if (!prompt) {
+			toast.info($i18n.t('No content to generate image'));
+			return;
+		}
+
+		generatingImage = true;
+
+		try {
+			const images = await imageGenerations(localStorage.token, prompt).catch((error) => {
+				toast.error(`${error}`);
+				return null;
+			});
+
+			if (!Array.isArray(images) || images.length === 0) {
+				return;
+			}
+
+			const messageInHistory = history?.messages?.[targetMessage.id];
+			if (!messageInHistory) {
+				return;
+			}
+
+			const existingUrls = new Set(
+				(messageInHistory.files ?? [])
+					.map((f) => f?.url)
+					.filter((url) => typeof url === 'string' && url.length > 0)
+			);
+
+			const newImageFiles = images
+				.filter(
+					(image): image is { url: string } =>
+						typeof image?.url === 'string' && image.url.length > 0 && !existingUrls.has(image.url)
+				)
+				.map((image) => ({ type: 'image', url: image.url }));
+
+			if (newImageFiles.length === 0) {
+				return;
+			}
+
+			messageInHistory.files = [...(messageInHistory.files ?? []), ...newImageFiles];
+			updateChat();
+		} finally {
+			generatingImage = false;
+		}
+	};
+
 	const copyToClipboard = async (text) => {
 		text = removeAllDetails(text);
 
