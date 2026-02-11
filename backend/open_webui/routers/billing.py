@@ -35,7 +35,6 @@ from open_webui.models.billing import (
     SubscriptionModel,
     UsageEventModel,
     UsageEvents,
-    UsageModel,
     TransactionModel,
     UsageMetric,
     Wallets,
@@ -44,21 +43,19 @@ from open_webui.models.billing import (
 from open_webui.utils.auth import get_verified_user, get_admin_user
 from open_webui.utils.billing import (
     billing_service,
-    QuotaExceededError,
     WebhookRetryableError,
     WebhookVerificationError,
 )
-from open_webui.utils.lead_magnet import evaluate_lead_magnet
 from open_webui.utils.pricing import PricingService
 from open_webui.utils.models import get_all_base_models
 from open_webui.utils.wallet import wallet_service, WalletError
 from open_webui.utils.yookassa import (
     YooKassaWebhookHandler,
+    YooKassaRequestError,
     get_yookassa_client,
     is_yookassa_webhook_source_ip,
 )
 from open_webui.env import SRC_LOG_LEVELS
-from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import (
     ENABLE_BILLING_WALLET,
     ENABLE_BILLING_SUBSCRIPTIONS,
@@ -82,6 +79,26 @@ log.setLevel(SRC_LOG_LEVELS.get("BILLING", logging.INFO))
 
 router = APIRouter()
 pricing_service = PricingService()
+
+
+def _payment_gateway_http_error(error: YooKassaRequestError, action: str) -> HTTPException:
+    status_code = error.status_code
+    detail = "Payment provider is temporarily unavailable"
+
+    if status_code in {401, 403}:
+        detail = "Payment provider credentials are invalid"
+    elif status_code == 400:
+        detail = "Payment provider rejected the payment request"
+    elif status_code == 429:
+        detail = "Payment provider is rate-limiting requests"
+
+    log.error(
+        "YooKassa %s failed (status=%s): %s",
+        action,
+        status_code,
+        error.response_text,
+    )
+    return HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail)
 
 
 def _require_subscriptions_enabled() -> None:
@@ -705,6 +722,8 @@ async def create_topup(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
+    except YooKassaRequestError as e:
+        raise _payment_gateway_http_error(e, action="topup") from e
     except RuntimeError as e:
         log.error(f"Topup system error: {e}")
         raise HTTPException(
@@ -738,6 +757,8 @@ async def create_payment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
+    except YooKassaRequestError as e:
+        raise _payment_gateway_http_error(e, action="payment") from e
     except RuntimeError as e:
         log.error(f"Payment system error: {e}")
         raise HTTPException(
