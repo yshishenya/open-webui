@@ -152,4 +152,99 @@ describe('UnifiedTimeline', () => {
 			noScroll: true
 		});
 	});
+
+	it('keeps selected filter applied while URL store has not emitted the new filter yet', async () => {
+		mocks.getLedgerMock.mockResolvedValue([
+			{
+				id: 'ledger-topup',
+				user_id: 'user-1',
+				wallet_id: 'wallet-1',
+				currency: 'RUB',
+				type: 'topup',
+				amount_kopeks: 5_000,
+				balance_included_after: 0,
+				balance_topup_after: 5_000,
+				created_at: 200
+			},
+			{
+				id: 'ledger-charge',
+				user_id: 'user-1',
+				wallet_id: 'wallet-1',
+				currency: 'RUB',
+				type: 'charge',
+				amount_kopeks: -1_200,
+				balance_included_after: 0,
+				balance_topup_after: 3_800,
+				created_at: 199
+			}
+		]);
+		mocks.getUsageEventsMock.mockResolvedValue([]);
+
+		const root = renderTimeline();
+		await flushPromises();
+		const initialCards = Array.from(root.querySelectorAll('div.rounded-2xl'));
+		expect(initialCards).toHaveLength(2);
+
+		const paidButton = Array.from(root.querySelectorAll('button')).find((button) =>
+			button.textContent?.includes('Paid')
+		);
+		expect(paidButton).toBeTruthy();
+
+		paidButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		await flushPromises();
+
+		const filteredCards = Array.from(root.querySelectorAll('div.rounded-2xl'));
+		expect(filteredCards).toHaveLength(1);
+		expect(filteredCards[0].textContent).toContain('Charge');
+		expect(filteredCards[0].textContent).not.toContain('Top-up');
+		expect(paidButton?.className).toContain('bg-black');
+	});
+
+	it('updates active filter when URL filter changes after mount', async () => {
+		const root = renderTimeline();
+		await flushPromises();
+
+		const freeButton = Array.from(root.querySelectorAll('button')).find((button) =>
+			button.textContent?.includes('Free usage')
+		);
+		expect(freeButton).toBeTruthy();
+		expect(freeButton?.className).not.toContain('bg-black');
+
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/history?filter=free') });
+		await flushPromises();
+
+		expect(freeButton?.className).toContain('bg-black');
+		expect(mocks.gotoMock).not.toHaveBeenCalled();
+	});
+
+	it('ignores stale URL updates when filters are changed quickly', async () => {
+		const root = renderTimeline();
+		await flushPromises();
+
+		const paidButton = Array.from(root.querySelectorAll('button')).find((button) =>
+			button.textContent?.includes('Paid')
+		);
+		const freeButton = Array.from(root.querySelectorAll('button')).find((button) =>
+			button.textContent?.includes('Free usage')
+		);
+		expect(paidButton).toBeTruthy();
+		expect(freeButton).toBeTruthy();
+
+		paidButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		freeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		await flushPromises();
+
+		expect(mocks.gotoMock).toHaveBeenCalledTimes(2);
+		expect(freeButton?.className).toContain('bg-black');
+
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/history?filter=paid') });
+		await flushPromises();
+		expect(freeButton?.className).toContain('bg-black');
+		expect(paidButton?.className).not.toContain('bg-black');
+
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/history?filter=free') });
+		await flushPromises();
+		expect(freeButton?.className).toContain('bg-black');
+		expect(paidButton?.className).not.toContain('bg-black');
+	});
 });

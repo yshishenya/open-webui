@@ -1,0 +1,215 @@
+{
+  "spec_id": "billing-history-filters-2026-02-11-001",
+  "generated": "2026-02-11T00:00:00Z",
+  "last_updated": "2026-02-11T10:33:00Z",
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Billing history: fix non-working timeline filters on click",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 7,
+      "completed_tasks": 7,
+      "metadata": {
+        "context": {
+          "date": "2026-02-11",
+          "reported_symptoms": [
+            "Filter buttons in /billing/history are clickable but visible timeline entries do not change.",
+            "Users perceive filtering as broken despite URL query updates."
+          ]
+        },
+        "acceptance_criteria": [
+          "Clicking Paid/Free/Top-ups updates visible timeline entries immediately.",
+          "Filter-to-URL synchronization remains intact for syncFilterWithUrl mode.",
+          "Regression tests cover delayed URL-store emission and stale URL updates after rapid sequential clicks."
+        ],
+        "upstream_impact": {
+          "upstream_owned_files_touched": [
+            "src/lib/components/billing/UnifiedTimeline.svelte"
+          ],
+          "strategy": "Minimal localized fix in shared component; no API contract changes."
+        },
+        "work_item_spec": "meta/memory_bank/specs/work_items/2026-02-11__bugfix__billing-history-filters-not-working.md"
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Fix timeline filter reactivity and add regression coverage",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-1-files",
+        "phase-1-verify"
+      ],
+      "total_tasks": 7,
+      "completed_tasks": 7,
+      "metadata": {
+        "risk_level": "low",
+        "purpose": "Ensure active filter state drives rendered data and is not reverted unexpectedly by URL sync timing."
+      }
+    },
+    "phase-1-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 4,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "src/lib/components/billing/UnifiedTimeline.svelte",
+      "status": "completed",
+      "parent": "phase-1-files",
+      "children": [
+        "task-1-1-1",
+        "task-1-1-2",
+        "task-1-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "file_path": "src/lib/components/billing/UnifiedTimeline.svelte",
+        "task_category": "implementation",
+        "estimated_hours": 1.0,
+        "changes": "Make filteredItems react to activeFilter changes and stabilize URL sync behavior."
+      }
+    },
+    "task-1-1-1": {
+      "type": "subtask",
+      "title": "Make filter function accept explicit filter parameter",
+      "status": "completed",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "task-1-1-2": {
+      "type": "subtask",
+      "title": "Bind reactive filteredItems computation to activeFilter explicitly",
+      "status": "completed",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "task-1-1-3": {
+      "type": "subtask",
+      "title": "Prevent premature local filter rollback from stale URL-store value",
+      "status": "completed",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "details": [
+          "Track last synchronized URL filter value.",
+          "Apply URL-driven state update only when URL filter actually changes.",
+          "Ignore stale URL updates while waiting for the latest requested filter to sync."
+        ]
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "src/lib/components/billing/UnifiedTimeline.test.ts",
+      "status": "completed",
+      "parent": "phase-1-files",
+      "children": [
+        "task-1-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/lib/components/billing/UnifiedTimeline.test.ts",
+        "task_category": "implementation",
+        "estimated_hours": 0.5,
+        "changes": "Add regression tests for delayed URL emission and out-of-order URL updates after rapid clicks."
+      }
+    },
+    "task-1-2-1": {
+      "type": "subtask",
+      "title": "Add regression scenario asserting Paid filter hides top-up card after click",
+      "status": "completed",
+      "parent": "task-1-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation"
+      }
+    },
+    "phase-1-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [
+        "verify-1-1",
+        "verify-1-2",
+        "verify-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Run targeted frontend tests for UnifiedTimeline",
+      "status": "completed",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "agent": "run-tests",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc \"if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run src/lib/components/billing/UnifiedTimeline.test.ts\"",
+        "expected": "All UnifiedTimeline tests pass, including regression case."
+      }
+    },
+    "verify-1-2": {
+      "type": "verify",
+      "title": "Run targeted ESLint for touched timeline files",
+      "status": "completed",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc \"if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; npx eslint src/lib/components/billing/UnifiedTimeline.svelte src/lib/components/billing/UnifiedTimeline.test.ts\"",
+        "expected": "No lint errors in modified files."
+      }
+    },
+    "verify-1-3": {
+      "type": "verify",
+      "title": "Run URL-sync regression test for post-mount filter updates",
+      "status": "completed",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "agent": "run-tests",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc \"if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run src/lib/components/billing/UnifiedTimeline.test.ts -t 'updates active filter when URL filter changes after mount'\"",
+        "expected": "URL-store driven filter updates activate the expected chip without triggering goto."
+      }
+    }
+  }
+}

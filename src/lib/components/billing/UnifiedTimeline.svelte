@@ -55,6 +55,9 @@
 	let usageError: string | null = null;
 	let displayCount = pageSize;
 	let activeFilter: FilterKey = 'all';
+	let lastSyncedUrlFilter: FilterKey = 'all';
+	let pendingUrlFilter: FilterKey | null = null;
+	let urlUpdateVersion = 0;
 	const filterKeys: FilterKey[] = ['all', 'paid', 'free', 'topups'];
 	const urlFilter = derived(page, ($page): FilterKey => {
 		const value = $page.url.searchParams.get('filter');
@@ -66,6 +69,8 @@
 
 	const updateUrlFilter = async (filter: FilterKey): Promise<void> => {
 		if (!syncFilterWithUrl) return;
+		const requestVersion = ++urlUpdateVersion;
+		pendingUrlFilter = filter;
 		const params = new URLSearchParams($page.url.searchParams);
 		if (filter === 'all') {
 			params.delete('filter');
@@ -74,7 +79,15 @@
 		}
 		const query = params.toString();
 		const target = query ? `${$page.url.pathname}?${query}` : $page.url.pathname;
-		await goto(target, { replaceState: true, keepFocus: true, noScroll: true });
+		try {
+			await goto(target, { replaceState: true, keepFocus: true, noScroll: true });
+		} catch (error) {
+			console.error('Failed to sync filter with URL:', error);
+			if (requestVersion === urlUpdateVersion) {
+				pendingUrlFilter = null;
+				lastSyncedUrlFilter = $urlFilter;
+			}
+		}
 	};
 
 	const fetchLedger = async (): Promise<void> => {
@@ -125,6 +138,7 @@
 
 	onMount(async () => {
 		activeFilter = syncFilterWithUrl ? $urlFilter : 'all';
+		lastSyncedUrlFilter = syncFilterWithUrl ? $urlFilter : 'all';
 		await loadInitial();
 	});
 
@@ -287,14 +301,14 @@
 		return [...mappedLedger, ...mappedUsage].sort((a, b) => b.createdAt - a.createdAt);
 	};
 
-	const filterItems = (items: TimelineItem[]): TimelineItem[] => {
-		if (activeFilter === 'paid') {
+	const filterItems = (items: TimelineItem[], filter: FilterKey): TimelineItem[] => {
+		if (filter === 'paid') {
 			return items.filter((item) => item.kind === 'usage' || item.kind === 'charge');
 		}
-		if (activeFilter === 'free') {
+		if (filter === 'free') {
 			return items.filter((item) => item.kind === 'free');
 		}
-		if (activeFilter === 'topups') {
+		if (filter === 'topups') {
 			return items.filter((item) =>
 				['topup', 'refund', 'adjustment', 'subscription_credit'].includes(item.kind)
 			);
@@ -308,11 +322,22 @@
 		return 'text-gray-600 dark:text-gray-400';
 	};
 
-	$: if (syncFilterWithUrl && $urlFilter !== activeFilter) {
-		activeFilter = $urlFilter;
+	$: if (syncFilterWithUrl) {
+		if (pendingUrlFilter !== null) {
+			// Ignore stale URL updates while waiting for the latest requested filter.
+			if ($urlFilter === pendingUrlFilter) {
+				lastSyncedUrlFilter = $urlFilter;
+				activeFilter = $urlFilter;
+				pendingUrlFilter = null;
+			}
+		} else if ($urlFilter !== lastSyncedUrlFilter) {
+			lastSyncedUrlFilter = $urlFilter;
+			activeFilter = $urlFilter;
+		}
 	}
 	$: mergedItems = mergeItems(ledgerEntries, usageEntries);
-	$: filteredItems = filterItems(mergedItems);
+	// Keep filter key explicit so Svelte tracks activeFilter as a reactive dependency.
+	$: filteredItems = filterItems(mergedItems, activeFilter);
 	$: visibleItems = (() => {
 		const sliceCount = maxItems ?? displayCount;
 		return filteredItems.slice(0, sliceCount);
