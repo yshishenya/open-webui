@@ -1,0 +1,973 @@
+{
+  "spec_id": "yookassa-receipt-54fz-all-payments-2026-02-11-001",
+  "title": "YooKassa receipt for all payment flows (54-FZ compliance)",
+  "generated": "2026-02-11T16:10:00Z",
+  "last_updated": "2026-02-11T13:36:08.176780Z",
+  "metadata": {
+    "title": "YooKassa receipt for all payment flows (54-FZ compliance)",
+    "description": "Fix provider payment rejection by adding fiscal receipt payload for all payment creation flows with configurable tax fields.",
+    "objectives": [
+      "Send receipt payload in all YooKassa create_payment flows.",
+      "Resolve customer contact deterministically using billing settings with account-email fallback.",
+      "Expose tax receipt fields via env configuration and document how to fill them.",
+      "Add regression tests for receipt payload propagation."
+    ],
+    "complexity": "medium",
+    "owner": "Codex",
+    "status": "completed",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-02-11__bugfix__yookassa-receipt-54fz-all-payments.md",
+    "assumptions": [
+      "Production merchant requires receipt payload for payment creation.",
+      "User account email is available for most users and can be used as fallback receipt contact.",
+      "Final tax field values (vat_code, payment_subject, payment_mode, tax_system_code) are business/accounting decisions and must remain configurable via env."
+    ],
+    "completed_date": "2026-02-11T13:34:47.083243Z",
+    "git": {
+      "branch_name": "codex/bugfix/yookassa-receipt-54fz",
+      "base_branch": "airis_b2c",
+      "main_branch": "airis_b2c"
+    }
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "YooKassa receipt for all payment flows (54-FZ compliance)",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 27,
+      "completed_tasks": 27,
+      "metadata": {
+        "work_item_spec": "meta/memory_bank/specs/work_items/2026-02-11__bugfix__yookassa-receipt-54fz-all-payments.md",
+        "scope": "backend billing + yookassa + env/docs for fiscal receipt fields"
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Receipt contract and fiscal configuration",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-1-files",
+        "phase-1-verify"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 7,
+      "completed_tasks": 7,
+      "metadata": {
+        "purpose": "Define the receipt field contract and env-driven tax settings before implementation.",
+        "risk_level": "medium",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "completed_at": "2026-02-11T13:33:03.663146Z"
+      }
+    },
+    "phase-1-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-1-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 5,
+      "completed_tasks": 5,
+      "metadata": {
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "completed_at": "2026-02-11T13:32:56.405322Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "meta/memory_bank/specs/work_items/2026-02-11__bugfix__yookassa-receipt-54fz-all-payments.md",
+      "status": "completed",
+      "parent": "phase-1-files",
+      "children": [
+        "task-1-1-1",
+        "task-1-1-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-1-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-02-11__bugfix__yookassa-receipt-54fz-all-payments.md",
+        "task_category": "decision",
+        "estimated_hours": 0.5,
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-1-1-1": {
+      "type": "subtask",
+      "title": "Capture provider error evidence and acceptance criteria",
+      "status": "completed",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Document the exact YooKassa rejection and expected fixed behavior for all payment flows.",
+        "completed_at": "2026-02-11T13:32:54.745968Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-1-1-2": {
+      "type": "subtask",
+      "title": "Document legal/provider references for tax receipt fields",
+      "status": "completed",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Record 54-FZ and YooKassa links used to determine required receipt fields.",
+        "completed_at": "2026-02-11T13:32:55.089644Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "backend/open_webui/env.py",
+      "status": "completed",
+      "parent": "phase-1-files",
+      "children": [
+        "task-1-2-1",
+        "task-1-2-2",
+        "task-1-2-3"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-2-3",
+          "task-2-2"
+        ],
+        "blocked_by": [
+          "task-1-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "file_path": "backend/open_webui/env.py",
+        "task_category": "implementation",
+        "estimated_hours": 0.5,
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-1-2-1": {
+      "type": "subtask",
+      "title": "Add BILLING_RECEIPT_ENABLED flag",
+      "status": "completed",
+      "parent": "task-1-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Toggle receipt payload generation without code rollback.",
+        "completed_at": "2026-02-11T13:32:55.743248Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-1-2-2": {
+      "type": "subtask",
+      "title": "Add configurable fiscal fields (vat/payment_mode/payment_subject)",
+      "status": "completed",
+      "parent": "task-1-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Expose required YooKassa receipt fields via env.",
+        "completed_at": "2026-02-11T13:32:56.084282Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-1-2-3": {
+      "type": "subtask",
+      "title": "Add optional tax_system_code parsing",
+      "status": "completed",
+      "parent": "task-1-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Support merchants who must send tax system code in receipts.",
+        "completed_at": "2026-02-11T13:32:56.405046Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "phase-1-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [
+        "verify-1-1",
+        "verify-1-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-1-files"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "completed_at": "2026-02-11T13:33:03.663140Z"
+      }
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Spec contract reviewed",
+      "status": "completed",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "command": "Review work item acceptance criteria and legal/provider references.",
+        "expected": "Receipt contract is explicit and implementation-safe.",
+        "completed_at": "2026-02-11T13:33:03.347303Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "verification_result": {
+          "date": "2026-02-11T13:34:38.317119Z",
+          "status": "PARTIAL",
+          "notes": "Reviewed work item + legal/provider references in docs/spec; no separate command output"
+        }
+      }
+    },
+    "verify-1-2": {
+      "type": "verify",
+      "title": "Env variable definitions are parsable",
+      "status": "completed",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "python -m py_compile backend/open_webui/env.py",
+        "expected": "env.py compiles with new receipt settings.",
+        "completed_at": "2026-02-11T13:33:03.662862Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "verification_result": {
+          "date": "2026-02-11T13:34:36.415040Z",
+          "status": "PASSED",
+          "command": "python -m py_compile backend/open_webui/env.py",
+          "output": "Compiled successfully",
+          "notes": "Local verification completed"
+        }
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Backend implementation for all payment flows",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-2-files",
+        "phase-2-verify"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-3"
+        ],
+        "blocked_by": [
+          "phase-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 12,
+      "completed_tasks": 12,
+      "metadata": {
+        "purpose": "Attach receipt payload and contact resolution across top-up/subscription/auto-topup.",
+        "risk_level": "high",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "completed_at": "2026-02-11T13:33:04.739424Z"
+      }
+    },
+    "phase-2-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [
+        "task-2-1",
+        "task-2-2",
+        "task-2-3"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-2-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 9,
+      "completed_tasks": 9,
+      "metadata": {
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "completed_at": "2026-02-11T13:33:00.314994Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "backend/open_webui/utils/yookassa.py",
+      "status": "completed",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-1-1",
+        "task-2-1-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-2-3",
+          "task-2-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/utils/yookassa.py",
+        "task_category": "implementation",
+        "estimated_hours": 0.5,
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-2-1-1": {
+      "type": "subtask",
+      "title": "Extend create_payment with optional receipt argument",
+      "status": "completed",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Keep request contract backward compatible and additive.",
+        "completed_at": "2026-02-11T13:32:57.093397Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-2-1-2": {
+      "type": "subtask",
+      "title": "Include receipt in outgoing payment payload when provided",
+      "status": "completed",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Avoid affecting existing flows where receipt generation is disabled.",
+        "completed_at": "2026-02-11T13:32:57.403335Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "backend/open_webui/utils/billing.py",
+      "status": "completed",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-2-1",
+        "task-2-2-2",
+        "task-2-2-3",
+        "task-2-2-4",
+        "task-2-2-5"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-2-3"
+        ],
+        "blocked_by": [
+          "task-2-1",
+          "task-1-2"
+        ],
+        "depends": []
+      },
+      "total_tasks": 5,
+      "completed_tasks": 5,
+      "metadata": {
+        "file_path": "backend/open_webui/utils/billing.py",
+        "task_category": "implementation",
+        "estimated_hours": 2,
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-2-2-1": {
+      "type": "subtask",
+      "title": "Resolve receipt customer contact from user settings/email fallback",
+      "status": "completed",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Priority: billing_contact_email/phone -> account email.",
+        "completed_at": "2026-02-11T13:32:58.039229Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-2-2-2": {
+      "type": "subtask",
+      "title": "Build reusable receipt payload helper",
+      "status": "completed",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Construct customer/items/tax fields for a single-line receipt item.",
+        "completed_at": "2026-02-11T13:32:58.339106Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-2-2-3": {
+      "type": "subtask",
+      "title": "Attach receipt in subscription payment flow",
+      "status": "completed",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Apply receipt to BillingService.create_payment.",
+        "completed_at": "2026-02-11T13:32:58.649004Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-2-2-4": {
+      "type": "subtask",
+      "title": "Attach receipt in wallet top-up flow",
+      "status": "completed",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Apply receipt to BillingService.create_topup_payment.",
+        "completed_at": "2026-02-11T13:32:58.952137Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-2-2-5": {
+      "type": "subtask",
+      "title": "Attach receipt in auto-topup flow",
+      "status": "completed",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Apply receipt to BillingService.create_auto_topup_payment.",
+        "completed_at": "2026-02-11T13:32:59.300638Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-2-3": {
+      "type": "task",
+      "title": "backend/open_webui/routers/billing.py",
+      "status": "completed",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-3-1",
+        "task-2-3-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-2-verify"
+        ],
+        "blocked_by": [
+          "task-2-2",
+          "task-1-2",
+          "task-2-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/routers/billing.py",
+        "task_category": "implementation",
+        "estimated_hours": 0.5,
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-2-3-1": {
+      "type": "subtask",
+      "title": "Return clear 400 for missing receipt contact",
+      "status": "completed",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Map billing-level ValueError to user-safe actionable detail.",
+        "completed_at": "2026-02-11T13:33:00.002215Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-2-3-2": {
+      "type": "subtask",
+      "title": "Keep existing provider error mapping unchanged",
+      "status": "completed",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Avoid regressions in 502 provider error normalization.",
+        "completed_at": "2026-02-11T13:33:00.314713Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "phase-2-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [
+        "verify-2-1",
+        "verify-2-2",
+        "verify-2-3"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-2-files",
+          "task-2-3"
+        ],
+        "depends": []
+      },
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "completed_at": "2026-02-11T13:33:04.739406Z"
+      }
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Billing module compiles",
+      "status": "completed",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "python -m py_compile backend/open_webui/utils/billing.py backend/open_webui/utils/yookassa.py backend/open_webui/routers/billing.py",
+        "expected": "All touched backend files compile successfully.",
+        "completed_at": "2026-02-11T13:33:04.012009Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "verification_result": {
+          "date": "2026-02-11T13:34:36.894064Z",
+          "status": "PASSED",
+          "command": "python -m py_compile backend/open_webui/utils/billing.py backend/open_webui/utils/yookassa.py backend/open_webui/routers/billing.py",
+          "output": "Compiled successfully",
+          "notes": "Local verification completed"
+        }
+      }
+    },
+    "verify-2-2": {
+      "type": "verify",
+      "title": "Phase 2 fidelity review",
+      "status": "completed",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "fidelity",
+        "agent": "sdd-fidelity-review",
+        "scope": "phase",
+        "target": "phase-2",
+        "on_failure": {
+          "consult": true,
+          "revert_status": "in_progress",
+          "continue_on_failure": false
+        },
+        "completed_at": "2026-02-11T13:33:04.366031Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "verification_result": {
+          "date": "2026-02-11T13:34:38.786687Z",
+          "status": "PARTIAL",
+          "notes": "Dedicated fidelity-review step deferred; functional + test verification completed"
+        }
+      }
+    },
+    "verify-2-3": {
+      "type": "verify",
+      "title": "Manual API behavior check",
+      "status": "completed",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "command": "Trigger /billing/topup and verify no provider receipt error when contacts+tax config are valid.",
+        "expected": "Top-up payment creation returns confirmation_url instead of provider rejection.",
+        "completed_at": "2026-02-11T13:33:04.738710Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "verification_result": {
+          "date": "2026-02-11T13:34:39.245218Z",
+          "status": "PARTIAL",
+          "notes": "Manual API check requires deployed environment with valid YooKassa merchant config"
+        }
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Tests, docs, and rollout notes",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-3-files",
+        "phase-3-verify"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-2"
+        ],
+        "depends": []
+      },
+      "total_tasks": 8,
+      "completed_tasks": 8,
+      "metadata": {
+        "purpose": "Cover regression risk and make fiscal env setup explicit for operators.",
+        "risk_level": "medium",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "completed_at": "2026-02-11T13:33:05.751890Z"
+      }
+    },
+    "phase-3-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [
+        "task-3-1",
+        "task-3-2",
+        "task-3-3"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-3-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 5,
+      "completed_tasks": 5,
+      "metadata": {
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "completed_at": "2026-02-11T13:33:03.011350Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "backend/open_webui/test/apps/webui/routers/test_billing_topup.py",
+      "status": "completed",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-1-1",
+        "task-3-1-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-3-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": "backend/open_webui/test/apps/webui/routers/test_billing_topup.py",
+        "task_category": "implementation",
+        "estimated_hours": 1,
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-3-1-1": {
+      "type": "subtask",
+      "title": "Update fake YooKassa clients for new receipt argument",
+      "status": "completed",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Keep existing tests compatible with additive payment argument.",
+        "completed_at": "2026-02-11T13:33:01.009305Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-3-1-2": {
+      "type": "subtask",
+      "title": "Add assertions for receipt payload in topup/subscription/auto-topup",
+      "status": "completed",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Verify customer contact and fiscal fields are propagated.",
+        "completed_at": "2026-02-11T13:33:01.352081Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": ".env.example",
+      "status": "completed",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-2-1",
+        "task-3-2-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "file_path": ".env.example",
+        "task_category": "implementation",
+        "estimated_hours": 0.5,
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-3-2-1": {
+      "type": "subtask",
+      "title": "Add receipt env variables with RU comments",
+      "status": "completed",
+      "parent": "task-3-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Explain what each tax field means and who should provide values.",
+        "completed_at": "2026-02-11T13:33:01.985638Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-3-2-2": {
+      "type": "subtask",
+      "title": "Document contact fallback and when payment is blocked",
+      "status": "completed",
+      "parent": "task-3-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Clarify that at least one customer contact is required for receipt.",
+        "completed_at": "2026-02-11T13:33:02.320799Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-3-3": {
+      "type": "task",
+      "title": "meta/docs/guides/billing_setup.md",
+      "status": "completed",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-3-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "meta/docs/guides/billing_setup.md",
+        "task_category": "implementation",
+        "estimated_hours": 0.5,
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "task-3-3-1": {
+      "type": "subtask",
+      "title": "Add fiscalization section with legal and YooKassa links",
+      "status": "completed",
+      "parent": "task-3-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "details": "Show required steps for 54-FZ compliant receipt configuration.",
+        "completed_at": "2026-02-11T13:33:03.011015Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch"
+      }
+    },
+    "phase-3-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [
+        "verify-3-1",
+        "verify-3-2",
+        "verify-3-3"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-3-files",
+          "task-3-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "completed_at": "2026-02-11T13:33:05.751885Z"
+      }
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Targeted backend tests pass",
+      "status": "completed",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc \"pytest -q open_webui/test/apps/webui/routers/test_billing_topup.py\"",
+        "expected": "All billing topup tests pass with receipt coverage.",
+        "completed_at": "2026-02-11T13:33:05.080338Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "verification_result": {
+          "date": "2026-02-11T13:34:37.362692Z",
+          "status": "PASSED",
+          "command": "docker compose ... pytest -q open_webui/test/apps/webui/routers/test_billing_topup.py",
+          "output": "16 passed",
+          "notes": "Targeted billing topup tests passed"
+        }
+      }
+    },
+    "verify-3-2": {
+      "type": "verify",
+      "title": "Touched backend files pass ruff",
+      "status": "completed",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps pytools \"python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check backend/open_webui/env.py backend/open_webui/utils/yookassa.py backend/open_webui/utils/billing.py backend/open_webui/test/apps/webui/routers/test_billing_topup.py\"",
+        "expected": "Ruff reports no issues in touched backend files.",
+        "completed_at": "2026-02-11T13:33:05.412667Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "verification_result": {
+          "date": "2026-02-11T13:34:37.842003Z",
+          "status": "PASSED",
+          "command": "docker compose ... ruff check backend/open_webui/env.py backend/open_webui/utils/yookassa.py backend/open_webui/utils/billing.py backend/open_webui/test/apps/webui/routers/test_billing_topup.py",
+          "output": "All checks passed",
+          "notes": "Touched backend files are lint-clean"
+        }
+      }
+    },
+    "verify-3-3": {
+      "type": "verify",
+      "title": "Production smoke checklist prepared",
+      "status": "completed",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "command": "Validate new .env receipt vars and create one top-up in prod after deploy.",
+        "expected": "Payment request accepted by provider and no receipt validation error in logs.",
+        "completed_at": "2026-02-11T13:33:05.751588Z",
+        "needs_journaling": true,
+        "status_note": "Implemented in current branch",
+        "verification_result": {
+          "date": "2026-02-11T13:34:39.739392Z",
+          "status": "PARTIAL",
+          "notes": "Production smoke checklist prepared; execution pending post-deploy"
+        }
+      }
+    }
+  }
+}

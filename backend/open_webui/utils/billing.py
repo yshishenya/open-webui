@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Optional, Dict, List
 from decimal import Decimal
 
+from open_webui.models.users import Users
 from open_webui.models.billing import (
     Plans,
     Subscriptions,
@@ -32,6 +33,11 @@ from open_webui.models.billing import (
 from open_webui.utils.yookassa import get_yookassa_client
 from open_webui.env import (
     BILLING_DEFAULT_CURRENCY,
+    BILLING_RECEIPT_ENABLED,
+    BILLING_RECEIPT_PAYMENT_MODE,
+    BILLING_RECEIPT_PAYMENT_SUBJECT,
+    BILLING_RECEIPT_TAX_SYSTEM_CODE,
+    BILLING_RECEIPT_VAT_CODE,
     BILLING_TOPUP_PACKAGES_KOPEKS,
     BILLING_TOPUP_TTL_DAYS,
     SRC_LOG_LEVELS,
@@ -422,6 +428,78 @@ class BillingService:
                 f"Quota exceeded for {metric}. Please upgrade your plan."
             )
 
+    @staticmethod
+    def _clean_contact(value: object) -> Optional[str]:
+        if not isinstance(value, str):
+            return None
+        cleaned = value.strip()
+        return cleaned if cleaned else None
+
+    def _resolve_receipt_customer(self, user_id: str) -> Dict[str, str]:
+        user = Users.get_user_by_id(user_id)
+        if not user:
+            log.warning("Unable to load user for receipt generation: %s", user_id)
+            raise ValueError(
+                "Set billing contact email or phone in billing settings to issue a payment receipt"
+            )
+
+        user_info = user.info if isinstance(user.info, dict) else {}
+
+        contact_email = self._clean_contact(user_info.get("billing_contact_email"))
+        if not contact_email:
+            contact_email = self._clean_contact(user.email)
+
+        contact_phone = self._clean_contact(user_info.get("billing_contact_phone"))
+
+        customer: Dict[str, str] = {}
+        if contact_email:
+            customer["email"] = contact_email
+        if contact_phone:
+            customer["phone"] = contact_phone
+
+        if customer:
+            return customer
+
+        raise ValueError(
+            "Set billing contact email or phone in billing settings to issue a payment receipt"
+        )
+
+    def _build_receipt(
+        self,
+        user_id: str,
+        amount: Decimal,
+        currency: str,
+        description: str,
+    ) -> Optional[Dict[str, object]]:
+        if not BILLING_RECEIPT_ENABLED:
+            return None
+
+        receipt_description = description.strip() or "AIris payment"
+        receipt_description = receipt_description[:128]
+        rounded_amount = amount.quantize(Decimal("0.01"))
+
+        receipt_item: Dict[str, object] = {
+            "description": receipt_description,
+            "quantity": "1.00",
+            "amount": {
+                "value": str(rounded_amount),
+                "currency": currency,
+            },
+            "vat_code": BILLING_RECEIPT_VAT_CODE,
+            "payment_mode": BILLING_RECEIPT_PAYMENT_MODE,
+            "payment_subject": BILLING_RECEIPT_PAYMENT_SUBJECT,
+        }
+
+        receipt: Dict[str, object] = {
+            "customer": self._resolve_receipt_customer(user_id),
+            "items": [receipt_item],
+        }
+
+        if BILLING_RECEIPT_TAX_SYSTEM_CODE is not None:
+            receipt["tax_system_code"] = BILLING_RECEIPT_TAX_SYSTEM_CODE
+
+        return receipt
+
     # ==================== Payment Processing ====================
 
     async def create_payment(
@@ -464,10 +542,17 @@ class BillingService:
         )
 
         created_transaction = self.transactions.create_transaction(transaction)
+        payment_amount = Decimal(str(plan.price))
+        receipt = self._build_receipt(
+            user_id=user_id,
+            amount=payment_amount,
+            currency=plan.currency,
+            description=transaction.description or f"Subscription: {plan.name}",
+        )
 
         # Create payment via YooKassa
         payment = await yookassa.create_payment(
-            amount=Decimal(str(plan.price)),
+            amount=payment_amount,
             currency=plan.currency,
             description=transaction.description,
             return_url=return_url,
@@ -476,6 +561,7 @@ class BillingService:
                 "plan_id": plan_id,
                 "transaction_id": created_transaction.id,
             },
+            receipt=receipt,
         )
 
         # Update transaction with YooKassa payment ID
@@ -539,13 +625,23 @@ class BillingService:
             "wallet_id": wallet_id,
             "amount_kopeks": amount_kopeks,
         }
+        topup_description = (
+            f"Top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
+        )
+        receipt = self._build_receipt(
+            user_id=user_id,
+            amount=amount_rub,
+            currency=BILLING_DEFAULT_CURRENCY,
+            description=topup_description,
+        )
 
         payment = await yookassa.create_payment(
             amount=amount_rub,
             currency=BILLING_DEFAULT_CURRENCY,
-            description=f"Top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}",
+            description=topup_description,
             return_url=return_url,
             metadata=metadata,
+            receipt=receipt,
             save_payment_method=save_payment_method,
         )
 
@@ -665,12 +761,22 @@ class BillingService:
             "auto_topup": True,
             "auto_topup_reason": reason,
         }
+        auto_topup_description = (
+            f"Auto top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
+        )
+        receipt = self._build_receipt(
+            user_id=user_id,
+            amount=amount_rub,
+            currency=BILLING_DEFAULT_CURRENCY,
+            description=auto_topup_description,
+        )
 
         payment = await yookassa.create_payment(
             amount=amount_rub,
             currency=BILLING_DEFAULT_CURRENCY,
-            description=f"Auto top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}",
+            description=auto_topup_description,
             metadata=metadata,
+            receipt=receipt,
             payment_method_id=payment_method_id,
         )
 
