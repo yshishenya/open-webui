@@ -4,7 +4,7 @@
 
 ### 1.1 Git Branch Setup
 
-- [ ] Create a branch from the base branch (usually the integration branch `airis_b2c`) following one of:
+- [ ] Create a branch from the integration branch `airis_b2c` (do not branch from `main`) following one of:
   - `bugfix/short-description`
   - `codex/bugfix/short-description`
   - Example: `bugfix/fix-billing-dashboard-spinner`
@@ -136,6 +136,7 @@ Note: `mypy`/`ruff` may be used ad-hoc where configured, but are not wired as re
 ### 6.3 Pull Request
 
 - [ ] Create a Pull Request with description:
+  - Target branch: `airis_b2c` (do not open direct PRs to `main`)
   - Bug description
   - Root cause
   - Solution

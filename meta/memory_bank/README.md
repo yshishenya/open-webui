@@ -187,6 +187,7 @@ Before starting work on a task, always check `current_tasks.md` and log task sta
 - Append updates to `meta/memory_bank/branch_updates/<YYYY-MM-DD>-<branch-slug>.md` instead (use a filesystem-safe branch slug; see task_updates).
 - Only on the integration branch (e.g. `airis_b2c`), consolidate these updates into
   `meta/memory_bank/current_tasks.md`, then delete the processed `branch_updates` file(s).
+- Branch policy: `airis_b2c` is the working integration branch for day-to-day development; do not target `main` directly from feature/bugfix/refactor/docs branches.
 
 ### Rule 3: Follow Established Patterns
 

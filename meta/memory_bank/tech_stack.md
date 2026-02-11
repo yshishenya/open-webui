@@ -423,6 +423,8 @@ repo-root/
 
 ### Git Workflow
 
+- **Working integration branch**: `airis_b2c`
+- **Main branch policy**: do not use `main` as the default base/PR target for regular feature/bugfix/refactor/docs work; merge into `airis_b2c` first.
 - **Branch Naming**:
   - `feature/{description}` - New features
   - `bugfix/{description}` - Bug fixes

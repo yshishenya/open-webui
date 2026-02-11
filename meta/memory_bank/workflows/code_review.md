@@ -5,6 +5,7 @@
 ### 1.1 Pull Request Quality
 
 - [ ] Pull Request contains a clear description of changes
+- [ ] PR base branch is `airis_b2c` for regular work (no direct feature/bugfix/refactor/docs PRs to `main`)
 - [ ] Description includes:
   - Context: what and why is being done
   - Technical solution: how it's implemented
