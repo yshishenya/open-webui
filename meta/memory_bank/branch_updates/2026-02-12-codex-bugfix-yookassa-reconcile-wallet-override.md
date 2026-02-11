@@ -1,0 +1,8 @@
+- [x] **[BUG][BILLING][YOOKASSA]** Reconcile: ignore conflicting provider wallet metadata for owned payment
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-12__bugfix__yookassa-reconcile-local-wallet-override.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/yookassa-reconcile-wallet-override`
+  - Done: 2026-02-12
+  - Summary: For locally owned topup payment reconcile, local payment context is now authoritative so stale/conflicting provider `wallet_id` cannot redirect credit to another wallet.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps -e DATABASE_URL= -e WEBUI_SECRET_KEY=test-secret airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_billing_topup.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check backend/open_webui/utils/billing.py backend/open_webui/test/apps/webui/routers/test_billing_topup.py"`
+  - Risks: Low (tightened reconcile metadata precedence for owned payments)

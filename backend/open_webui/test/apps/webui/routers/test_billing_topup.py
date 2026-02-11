@@ -1023,7 +1023,13 @@ class TestBillingTopup(AbstractPostgresTest):
     async def test_reconcile_topup_uses_local_owner_when_provider_metadata_missing(
         self, monkeypatch: MonkeyPatch
     ) -> None:
-        from open_webui.models.billing import PaymentKind, PaymentModel, PaymentStatus, Payments, Wallets
+        from open_webui.models.billing import (
+            PaymentKind,
+            PaymentModel,
+            PaymentStatus,
+            Payments,
+            Wallets,
+        )
         from open_webui.utils.billing import billing_service
         from open_webui.utils.wallet import wallet_service
 
@@ -1073,6 +1079,78 @@ class TestBillingTopup(AbstractPostgresTest):
         updated_wallet = Wallets.get_wallet_by_id(wallet.id)
         assert updated_wallet is not None
         assert updated_wallet.balance_topup_kopeks == 19900
+
+    @pytest.mark.asyncio
+    async def test_reconcile_topup_overrides_conflicting_provider_wallet_context(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        from open_webui.models.billing import (
+            PaymentKind,
+            PaymentModel,
+            PaymentStatus,
+            Payments,
+            Wallets,
+        )
+        from open_webui.utils.billing import billing_service
+        from open_webui.utils.wallet import wallet_service
+
+        self._ensure_user("2", email="other-user@example.com")
+        now = int(time.time())
+        owner_wallet = wallet_service.get_or_create_wallet("1", "RUB")
+        foreign_wallet = wallet_service.get_or_create_wallet("2", "RUB")
+
+        payment = PaymentModel(
+            id="payment_reconcile_wallet_override",
+            provider="yookassa",
+            status=PaymentStatus.PENDING.value,
+            kind=PaymentKind.TOPUP.value,
+            amount_kopeks=19900,
+            currency="RUB",
+            idempotency_key="idem_reconcile_wallet_override",
+            provider_payment_id="pay_reconcile_wallet_override",
+            payment_method_id=None,
+            status_details=None,
+            metadata_json={},
+            raw_payload_json=None,
+            user_id="1",
+            wallet_id=owner_wallet.id,
+            subscription_id=None,
+            created_at=now,
+            updated_at=now,
+        )
+        Payments.create_payment(payment)
+
+        # Provider payload may carry stale/conflicting wallet metadata.
+        # Reconcile must use local payment wallet context for locally owned payment.
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_reconcile_wallet_override",
+            status="succeeded",
+            metadata={
+                "kind": "topup",
+                "wallet_id": foreign_wallet.id,
+                "amount_kopeks": 9900,
+            },
+            amount_value="99.00",
+            currency="RUB",
+            paid=True,
+        )
+
+        result = await billing_service.reconcile_topup_payment(
+            user_id="1",
+            payment_id="pay_reconcile_wallet_override",
+        )
+
+        assert result["credited"] is True
+        assert result["payment_status"] == PaymentStatus.SUCCEEDED.value
+
+        updated_owner_wallet = Wallets.get_wallet_by_id(owner_wallet.id)
+        assert updated_owner_wallet is not None
+        assert updated_owner_wallet.balance_topup_kopeks == 19900
+
+        updated_foreign_wallet = Wallets.get_wallet_by_id(foreign_wallet.id)
+        assert updated_foreign_wallet is not None
+        assert updated_foreign_wallet.balance_topup_kopeks == 0
 
     @pytest.mark.asyncio
     async def test_reconcile_topup_rejects_when_owner_cannot_be_verified(
