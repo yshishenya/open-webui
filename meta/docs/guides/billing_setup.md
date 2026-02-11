@@ -67,6 +67,13 @@ BILLING_HOLD_TTL_SECONDS=900
 BILLING_TOPUP_TTL_DAYS=365
 BILLING_TOPUP_PACKAGES_KOPEKS=100000,150000,500000,1000000
 
+# Fiscal receipts (54-FZ / YooKassa)
+BILLING_RECEIPT_ENABLED=true
+BILLING_RECEIPT_VAT_CODE=1
+BILLING_RECEIPT_PAYMENT_MODE=full_payment
+BILLING_RECEIPT_PAYMENT_SUBJECT=service
+BILLING_RECEIPT_TAX_SYSTEM_CODE=
+
 YOOKASSA_SHOP_ID=...
 YOOKASSA_SECRET_KEY=...
 YOOKASSA_WEBHOOK_SECRET=...
@@ -75,6 +82,42 @@ YOOKASSA_API_URL=https://api.yookassa.ru/v3
 # Webhook URL настраивается в кабинете YooKassa (это не env var бэка)
 # Укажите endpoint: https://ваш-домен.ru/api/v1/billing/webhook/yookassa
 ```
+
+### Фискальные чеки: что обязательно заполнить
+
+Коротко по нормам:
+
+- По 54‑ФЗ (ст. 1.2) при расчете нужно сформировать кассовый чек и передать его покупателю в электронной форме по контакту (email/телефон).
+- По 54‑ФЗ (ст. 4.7) чек должен содержать обязательные реквизиты, включая налоговые признаки.
+- В YooKassa, если у магазина включена отправка чеков, поле `receipt` должно передаваться при создании каждого платежа.
+
+Полезные ссылки:
+
+- 54‑ФЗ, ст. 1.2: https://www.consultant.ru/document/cons_doc_LAW_42359/2da5b655d4f57f25f5ddfdb42fcd152e5d71cb6f/
+- 54‑ФЗ, ст. 4.7: https://www.consultant.ru/document/cons_doc_LAW_42359/6f9432f92af8fe6f7bdde54f90f31fa4e948df5f/
+- YooKassa: чеки 54‑ФЗ (платежи): https://yookassa.ru/developers/payment-acceptance/receipts/54fz/yoomoney/payments
+- YooKassa: значения налоговых параметров: https://yookassa.ru/developers/payment-acceptance/receipts/54fz/yoomoney/parameters-values
+
+Как это настроено в Airis:
+
+- `receipt` отправляется для всех платежных сценариев (`/billing/topup`, `/billing/payment`, auto-topup).
+- Контакт для чека берется в приоритете:
+  1. `billing_contact_email` / `billing_contact_phone` из настроек пользователя;
+  2. fallback на `user.email`.
+- Если нет ни одного контакта, платеж отклоняется с понятной `400` ошибкой (что нужно заполнить).
+
+Что и где заполнять:
+
+- `BILLING_RECEIPT_VAT_CODE`:
+  - код НДС по справочнику YooKassa (часто `1` для «без НДС», но зависит от вашей налоговой схемы).
+- `BILLING_RECEIPT_PAYMENT_MODE`:
+  - способ расчета (`full_payment`, `advance`, `prepayment`, и т.д.).
+- `BILLING_RECEIPT_PAYMENT_SUBJECT`:
+  - предмет расчета (`service`, `payment`, `commodity`, и т.д.).
+- `BILLING_RECEIPT_TAX_SYSTEM_CODE`:
+  - код системы налогообложения (`1..6`), если требуется в вашей схеме.
+
+Рекомендуется согласовать значения этих полей с бухгалтером/налоговым консультантом перед прод-выкаткой.
 
 ### Проверка конфигурации
 

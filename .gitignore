@@ -338,3 +338,6 @@ cypress/screenshots
 
 # Local docker client config (do not commit)
 .docker/
+
+!.env.etalon
+!.env.etalon.example
