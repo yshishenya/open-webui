@@ -123,6 +123,72 @@ class TestBillingTopup(AbstractPostgresTest):
             response.json()["detail"] == "Payment provider rejected the payment request"
         )
 
+    def test_payment_maps_provider_auth_error(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.routers.billing as billing_router
+        from open_webui.utils.yookassa import YooKassaRequestError
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_SUBSCRIPTIONS", True)
+
+        async def fake_create_payment(**_: object) -> dict[str, object]:
+            raise YooKassaRequestError(
+                "YooKassa request failed with status 401",
+                status_code=401,
+                response_text='{"type":"error","code":"invalid_credentials"}',
+            )
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "create_payment",
+            fake_create_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/payment"),
+                json={
+                    "plan_id": "plan_basic",
+                    "return_url": "https://example.com/return",
+                },
+            )
+
+        assert response.status_code == 502
+        assert response.json()["detail"] == "Payment provider credentials are invalid"
+
+    def test_payment_maps_provider_bad_request_error(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+        from open_webui.utils.yookassa import YooKassaRequestError
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_SUBSCRIPTIONS", True)
+
+        async def fake_create_payment(**_: object) -> dict[str, object]:
+            raise YooKassaRequestError(
+                "YooKassa request failed with status 400",
+                status_code=400,
+                response_text='{"type":"error","code":"invalid_request"}',
+            )
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "create_payment",
+            fake_create_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/payment"),
+                json={
+                    "plan_id": "plan_basic",
+                    "return_url": "https://example.com/return",
+                },
+            )
+
+        assert response.status_code == 502
+        assert (
+            response.json()["detail"] == "Payment provider rejected the payment request"
+        )
+
     @pytest.mark.asyncio
     async def test_create_topup_payment_creates_payment_record(
         self, monkeypatch: MonkeyPatch

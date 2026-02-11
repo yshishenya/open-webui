@@ -1,0 +1,8 @@
+- [x] **[BUG][BILLING][YOOKASSA]** Add `/billing/payment` provider mapping regression tests + ignore SDD docs artifact
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-11__bugfix__billing-payment-error-mapping-coverage-and-sdd-doc-ignore.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/billing-payment-mapping-coverage`
+  - Done: 2026-02-11
+  - Summary: Added dedicated `/billing/payment` mapping tests and excluded generated `meta/sdd/docs/*` from tracking.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_billing_topup.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check backend/open_webui/test/apps/webui/routers/test_billing_topup.py"`
+  - Risks: Low (test and repo-hygiene only)

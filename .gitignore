@@ -14,6 +14,7 @@ meta/sdd/specs/.backups/
 meta/sdd/specs/.reports/
 meta/sdd/specs/.human-readable/
 meta/sdd/specs/.fidelity-reviews/
+meta/sdd/docs/
 # Local fidelity review outputs outside the specs tree
 meta/sdd/.fidelity-reviews/
 .fidelity-reviews/
