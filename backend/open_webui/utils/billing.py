@@ -1060,18 +1060,16 @@ class BillingService:
         effective_metadata: Dict[str, object] = dict(metadata)
 
         # YooKassa metadata can be missing/partial in some legacy/manual flows.
-        # When we have a local payment record, treat it as authoritative for ownership/context.
+        # When we have a local payment record, treat it as authoritative for
+        # ownership and wallet context to avoid applying topup to a stale/conflicting wallet.
         if local_payment:
-            if "kind" not in effective_metadata and local_payment.kind:
+            if local_payment.kind:
                 effective_metadata["kind"] = local_payment.kind
-            if "user_id" not in effective_metadata and local_payment.user_id:
+            if local_payment.user_id:
                 effective_metadata["user_id"] = local_payment.user_id
-            if "wallet_id" not in effective_metadata and local_payment.wallet_id:
+            if local_payment.wallet_id:
                 effective_metadata["wallet_id"] = local_payment.wallet_id
-            if (
-                "amount_kopeks" not in effective_metadata
-                and local_payment.amount_kopeks is not None
-            ):
+            if local_payment.amount_kopeks is not None:
                 effective_metadata["amount_kopeks"] = local_payment.amount_kopeks
 
         metadata_user_id_value = effective_metadata.get("user_id")
