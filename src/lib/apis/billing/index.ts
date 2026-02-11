@@ -252,6 +252,13 @@ export interface TopupResponse {
 	status: string;
 }
 
+export interface TopupReconcileResponse {
+	payment_id: string;
+	provider_status?: string | null;
+	payment_status?: string | null;
+	credited: boolean;
+}
+
 export interface QuotaCheckResponse {
 	allowed: boolean;
 	current_usage: number;
@@ -456,6 +463,27 @@ export const createTopup = async (
 		});
 	} catch (error) {
 		console.error('Failed to create topup:', error);
+		throw error;
+	}
+};
+
+export const reconcileTopup = async (
+	token: string,
+	paymentId: string
+): Promise<TopupReconcileResponse | null> => {
+	try {
+		return await apiRequest<TopupReconcileResponse>(
+			`${WEBUI_API_BASE_URL}/billing/topup/reconcile`,
+			token,
+			{
+				method: 'POST',
+				body: JSON.stringify({
+					payment_id: paymentId
+				})
+			}
+		);
+	} catch (error) {
+		console.error('Failed to reconcile topup:', error);
 		throw error;
 	}
 };

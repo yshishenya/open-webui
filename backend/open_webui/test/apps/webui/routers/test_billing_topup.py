@@ -208,6 +208,124 @@ class TestBillingTopup(AbstractPostgresTest):
             response.json()["detail"] == "Payment provider rejected the payment request"
         )
 
+    def test_topup_maps_uninitialized_payment_system_error(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
+
+        async def fake_create_topup_payment(**_: object) -> dict[str, object]:
+            raise RuntimeError("YooKassa client not initialized")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "create_topup_payment",
+            fake_create_topup_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/topup"),
+                json={
+                    "amount_kopeks": 100000,
+                    "return_url": "https://example.com/return",
+                },
+            )
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Payment system is not configured"
+
+    def test_payment_maps_uninitialized_payment_system_error(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_SUBSCRIPTIONS", True)
+
+        async def fake_create_payment(**_: object) -> dict[str, object]:
+            raise RuntimeError("YooKassa client not initialized")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "create_payment",
+            fake_create_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/payment"),
+                json={
+                    "plan_id": "plan_basic",
+                    "return_url": "https://example.com/return",
+                },
+            )
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Payment system is not configured"
+
+    def test_reconcile_topup_success(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
+
+        async def fake_reconcile_topup_payment(
+            user_id: str,
+            payment_id: str,
+        ) -> dict[str, object]:
+            assert user_id == "1"
+            assert payment_id == "pay_sync_1"
+            return {
+                "payment_id": payment_id,
+                "provider_status": "succeeded",
+                "payment_status": "succeeded",
+                "credited": True,
+            }
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "reconcile_topup_payment",
+            fake_reconcile_topup_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/topup/reconcile"),
+                json={"payment_id": "pay_sync_1"},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["credited"] is True
+        assert response.json()["payment_status"] == "succeeded"
+
+    def test_reconcile_topup_forbidden(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
+
+        async def fake_reconcile_topup_payment(
+            user_id: str,
+            payment_id: str,
+        ) -> dict[str, object]:
+            raise PermissionError("Payment does not belong to the current user")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "reconcile_topup_payment",
+            fake_reconcile_topup_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/topup/reconcile"),
+                json={"payment_id": "pay_sync_other"},
+            )
+
+        assert response.status_code == 403
+        assert (
+            response.json()["detail"] == "Payment does not belong to the current user"
+        )
+
     @pytest.mark.asyncio
     async def test_create_subscription_payment_includes_receipt(
         self, monkeypatch: MonkeyPatch
@@ -861,6 +979,126 @@ class TestBillingTopup(AbstractPostgresTest):
             entry.type == "topup" and entry.reference_id == "pay_new"
             for entry in ledger_entries
         )
+
+    @pytest.mark.asyncio
+    async def test_reconcile_topup_rejects_foreign_payment_without_local_record(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        from open_webui.models.billing import Payments, Wallets
+        from open_webui.utils.billing import billing_service
+        from open_webui.utils.wallet import wallet_service
+
+        wallet = wallet_service.get_or_create_wallet("1", "RUB")
+
+        foreign_metadata = {
+            "kind": "topup",
+            "user_id": "foreign-user",
+            "wallet_id": wallet.id,
+            "amount_kopeks": 19900,
+        }
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_foreign",
+            status="succeeded",
+            metadata=foreign_metadata,
+            amount_value="199.00",
+            currency="RUB",
+            paid=True,
+        )
+
+        with pytest.raises(PermissionError):
+            await billing_service.reconcile_topup_payment(
+                user_id="1",
+                payment_id="pay_foreign",
+            )
+
+        created_payment = Payments.get_payment_by_provider_id("pay_foreign")
+        assert created_payment is None
+
+        updated_wallet = Wallets.get_wallet_by_id(wallet.id)
+        assert updated_wallet is not None
+        assert updated_wallet.balance_topup_kopeks == 0
+
+    @pytest.mark.asyncio
+    async def test_reconcile_topup_uses_local_owner_when_provider_metadata_missing(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        from open_webui.models.billing import PaymentKind, PaymentModel, PaymentStatus, Payments, Wallets
+        from open_webui.utils.billing import billing_service
+        from open_webui.utils.wallet import wallet_service
+
+        now = int(time.time())
+        wallet = wallet_service.get_or_create_wallet("1", "RUB")
+
+        payment = PaymentModel(
+            id="payment_reconcile_local_owner",
+            provider="yookassa",
+            status=PaymentStatus.PENDING.value,
+            kind=PaymentKind.TOPUP.value,
+            amount_kopeks=19900,
+            currency="RUB",
+            idempotency_key="idem_reconcile_local_owner",
+            provider_payment_id="pay_reconcile_local_owner",
+            payment_method_id=None,
+            status_details=None,
+            metadata_json={},
+            raw_payload_json=None,
+            user_id="1",
+            wallet_id=wallet.id,
+            subscription_id=None,
+            created_at=now,
+            updated_at=now,
+        )
+        Payments.create_payment(payment)
+
+        # Simulate partial provider payload without metadata fields.
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_reconcile_local_owner",
+            status="succeeded",
+            metadata={},
+            amount_value="199.00",
+            currency="RUB",
+            paid=True,
+        )
+
+        result = await billing_service.reconcile_topup_payment(
+            user_id="1",
+            payment_id="pay_reconcile_local_owner",
+        )
+
+        assert result["credited"] is True
+        assert result["payment_status"] == PaymentStatus.SUCCEEDED.value
+
+        updated_wallet = Wallets.get_wallet_by_id(wallet.id)
+        assert updated_wallet is not None
+        assert updated_wallet.balance_topup_kopeks == 19900
+
+    @pytest.mark.asyncio
+    async def test_reconcile_topup_rejects_when_owner_cannot_be_verified(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        from open_webui.models.billing import Payments
+        from open_webui.utils.billing import billing_service
+
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_no_owner",
+            status="succeeded",
+            metadata={"kind": "topup"},
+            amount_value="199.00",
+            currency="RUB",
+            paid=True,
+        )
+
+        with pytest.raises(PermissionError):
+            await billing_service.reconcile_topup_payment(
+                user_id="1",
+                payment_id="pay_no_owner",
+            )
+
+        created_payment = Payments.get_payment_by_provider_id("pay_no_owner")
+        assert created_payment is None
 
     @pytest.mark.asyncio
     async def test_topup_webhook_canceled_updates_status(
