@@ -20,6 +20,12 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[REFACTOR][OPS]** Cleanup `.env`: sync with `.env.example`, remove unused, add clear comments
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-10__refactor__env-cleanup-clarify.md`
+  - Owner: Codex
+  - Done: 2026-02-10
+  - Summary: Re-structure `.env` for the current deployment (no Ollama, OpenAI via UI, dev overlay used, SMTP enabled); drop overlay-only vars; add RU comments.
+
 - [x] **[BUG][UI][BILLING][ADMIN]** Admin wallet adjustment: RU copy + RUB deltas
   - Spec: `meta/memory_bank/specs/work_items/2026-02-10__bugfix__admin-wallet-adjustment-ui-rub-input.md`
   - Owner: Codex
