@@ -1,0 +1,9 @@
+- [x] **[BUG][BILLING][YOOKASSA]** Surface top-up failure reasons from provider/backend
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-11__bugfix__billing-topup-yookassa-error-visibility.md`
+  - Owner: Codex
+  - Branch: `HEAD (no branch)`
+  - Done: 2026-02-11
+  - Summary: Add explicit YooKassa error mapping in backend and show detailed top-up failure reason in `/billing/balance`.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_billing_topup.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run src/routes/\(app\)/billing/balance/billing-balance.test.ts"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npx eslint src/routes/\(app\)/billing/balance/+page.svelte src/routes/\(app\)/billing/balance/billing-balance.test.ts"`, `python -m py_compile backend/open_webui/utils/yookassa.py backend/open_webui/routers/billing.py backend/open_webui/test/apps/webui/routers/test_billing_topup.py`
+  - Manual smoke: blocked in this worktree session (no configured dev/staging YooKassa credentials to intentionally trigger provider credential failure in live flow).
+  - Risks: Low-Medium (error handling behavior visible to end users)

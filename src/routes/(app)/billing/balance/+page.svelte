@@ -403,7 +403,8 @@
 			toast.error($i18n.t('Failed to create topup'));
 		} catch (error) {
 			console.error('Failed to create topup:', error);
-			toast.error($i18n.t('Failed to create topup'));
+			const errorDetail = extractApiErrorDetail(error);
+			toast.error($i18n.t(errorDetail ?? 'Failed to create topup'));
 		} finally {
 			creatingTopupAmount = null;
 		}
@@ -557,6 +558,23 @@
 			return null;
 		}
 		return Math.round(parsed * 100);
+	};
+
+	const extractApiErrorDetail = (error: unknown): string | null => {
+		if (typeof error === 'string') {
+			const trimmed = error.trim();
+			return trimmed.length > 0 ? trimmed : null;
+		}
+
+		if (error && typeof error === 'object') {
+			const maybeDetail = (error as { detail?: unknown }).detail;
+			if (typeof maybeDetail === 'string') {
+				const trimmed = maybeDetail.trim();
+				return trimmed.length > 0 ? trimmed : null;
+			}
+		}
+
+		return null;
 	};
 
 	const scrollToTopup = () => {

@@ -23,6 +23,20 @@ log.setLevel(SRC_LOG_LEVELS.get("YOOKASSA", logging.INFO))
 DEFAULT_TIMEOUT = aiohttp.ClientTimeout(total=15)
 
 
+class YooKassaRequestError(Exception):
+    """Error returned when a YooKassa API request fails."""
+
+    def __init__(
+        self,
+        message: str,
+        status_code: Optional[int] = None,
+        response_text: str = "",
+    ) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+        self.response_text = response_text
+
+
 class YooKassaConfig:
     """YooKassa configuration"""
 
@@ -78,16 +92,28 @@ class YooKassaClient:
 
                     if response.status >= 400:
                         log.error(f"YooKassa error {response.status}: {response_text}")
-                        response.raise_for_status()
+                        raise YooKassaRequestError(
+                            f"YooKassa request failed with status {response.status}",
+                            status_code=response.status,
+                            response_text=response_text,
+                        )
 
                     return json.loads(response_text) if response_text else {}
 
+        except YooKassaRequestError:
+            raise
         except aiohttp.ClientError as e:
             log.exception(f"YooKassa request failed: {e}")
-            raise
+            raise YooKassaRequestError(
+                "YooKassa network request failed",
+                response_text=str(e),
+            ) from e
         except Exception as e:
             log.exception(f"Unexpected error in YooKassa request: {e}")
-            raise
+            raise YooKassaRequestError(
+                "Unexpected YooKassa request error",
+                response_text=str(e),
+            ) from e
 
     async def create_payment(
         self,

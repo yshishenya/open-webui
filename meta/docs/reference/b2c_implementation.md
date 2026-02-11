@@ -44,6 +44,22 @@ Public pricing pages use backend-provided data:
 
 See `meta/docs/guides/billing_setup.md` for the full billing + YooKassa configuration.
 
+### YooKassa top-up error troubleshooting contract
+
+For `/api/v1/billing/topup` and `/api/v1/billing/payment`, provider failures are normalized to user-safe `502` messages:
+
+| YooKassa signal | API `status` | API `detail` |
+| --- | --- | --- |
+| `401` / `403` | `502` | `Payment provider credentials are invalid` |
+| `400` | `502` | `Payment provider rejected the payment request` |
+| `429` | `502` | `Payment provider is rate-limiting requests` |
+| `>=500` or unexpected provider/network failure | `502` | `Payment provider is temporarily unavailable` |
+
+Notes:
+- Raw provider payloads remain in backend logs only.
+- UI toast on `/billing/balance` shows API `detail` when present, otherwise falls back to `Failed to create topup`.
+- Validation errors (invalid amount/package) remain `400` with existing messages.
+
 ## Environment Variables
 
 Note: OAuth and SMTP settings are defined as persistent configs in `backend/open_webui/config.py` and default from environment variables.
@@ -92,4 +108,6 @@ The script writes a timestamped backup (`.env.bak.<timestamp>`) and never prints
   - `POST /api/v1/auths/reset-password` updates password and consumes token
 - Billing:
   - `/pricing` loads public rate cards + lead magnet quotas when enabled
-  - Wallet topup flow works when YooKassa credentials are configured
+  - Wallet top-up succeeds and opens provider confirmation URL when YooKassa credentials are valid
+  - With intentionally invalid YooKassa credentials, `/billing/balance` shows an actionable localized message (not only `Failed to create topup`)
+  - Verify fallback behavior by forcing a non-detailed failure and confirming generic `Failed to create topup` toast
