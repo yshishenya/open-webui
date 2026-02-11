@@ -1,0 +1,8 @@
+- [x] **[BUG][BILLING][YOOKASSA][54-FZ]** Add mandatory receipt payload for all payment flows
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-11__bugfix__yookassa-receipt-54fz-all-payments.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/yookassa-receipt-54fz`
+  - Done: 2026-02-11
+  - Summary: Fix provider rejection (`receipt missing or illegal`) by adding receipt payload and configurable fiscal fields for top-up/subscription/auto-topup.
+  - Tests: `python -m py_compile backend/open_webui/env.py backend/open_webui/utils/billing.py backend/open_webui/utils/yookassa.py backend/open_webui/routers/billing.py`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_billing_topup.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check backend/open_webui/env.py backend/open_webui/utils/yookassa.py backend/open_webui/utils/billing.py backend/open_webui/test/apps/webui/routers/test_billing_topup.py"`
+  - Risks: Medium (payment creation path; tax field config must match legal/accounting setup)

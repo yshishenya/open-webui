@@ -122,6 +122,7 @@ class YooKassaClient:
         description: str = "",
         return_url: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        receipt: Optional[Dict[str, object]] = None,
         capture: bool = True,
         payment_method_id: Optional[str] = None,
         save_payment_method: Optional[bool] = None,
@@ -161,6 +162,8 @@ class YooKassaClient:
 
         if metadata:
             payment_data["metadata"] = metadata
+        if receipt:
+            payment_data["receipt"] = receipt
         if payment_method_id:
             payment_data["payment_method_id"] = payment_method_id
         if save_payment_method is not None:

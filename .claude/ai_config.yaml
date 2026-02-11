@@ -14,6 +14,14 @@ sdd-plan-review:
       - claude
       - opencode
 
+sdd-render:
+  tool_priority:
+    - codex
+    - opencode
+  models:
+    codex: gpt-5.3-codex
+    opencode: openrouter/moonshotai/kimi-k2.5:free
+
 sdd-fidelity-review:
   consultation:
     timeout_seconds: 600
@@ -22,7 +30,7 @@ sdd-fidelity-review:
     - opencode
   models:
     # Use the real Codex model id (provider has fallback to other models on access errors).
-    codex: gpt-5.2-codex
+    codex: gpt-5.3-codex
     # Prefer a free OpenRouter model via OpenCode; the OpenCode provider has a local fallback
     # for common auth errors (e.g. 401) to `opencode/big-pickle`.
     #
