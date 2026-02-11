@@ -10,6 +10,7 @@
 		getBalance,
 		getLeadMagnetInfo,
 		getPublicPricingConfig,
+		reconcileTopup,
 		updateAutoTopup,
 		updateBillingSettings
 	} from '$lib/apis/billing';
@@ -212,6 +213,13 @@
 	};
 
 	const handleTopupReturnRefresh = async (): Promise<void> => {
+		if (topupFlow?.payment_id) {
+			try {
+				await reconcileTopup(localStorage.token, topupFlow.payment_id);
+			} catch (error) {
+				console.warn('Failed to reconcile topup on manual refresh:', error);
+			}
+		}
 		await loadBalance({ showLoader: false });
 		const latestTotal = getTotalBalanceKopeks(balance);
 		if (topupFlow && latestTotal > topupFlow.previous_total_kopeks) {
@@ -244,6 +252,13 @@
 		}
 		topupReturnTimer = setTimeout(async () => {
 			topupReturnAttempts += 1;
+			if (topupFlow?.payment_id) {
+				try {
+					await reconcileTopup(localStorage.token, topupFlow.payment_id);
+				} catch (error) {
+					console.warn('Failed to reconcile topup during polling:', error);
+				}
+			}
 			await loadBalance({ showLoader: false });
 			if (!topupFlow) return;
 			const latestTotal = getTotalBalanceKopeks(balance);

@@ -1020,6 +1020,108 @@ class BillingService:
 
         return None
 
+    async def reconcile_topup_payment(
+        self,
+        user_id: str,
+        payment_id: str,
+    ) -> Dict[str, object]:
+        """
+        Reconcile a topup payment status directly with YooKassa.
+
+        This is used as a fallback when webhook delivery is delayed or failed.
+        """
+        payment_id_clean = payment_id.strip()
+        if not payment_id_clean:
+            raise ValueError("payment_id is required")
+
+        local_payment = self.payments.get_payment_by_provider_id(payment_id_clean)
+        if local_payment and local_payment.user_id != user_id:
+            raise PermissionError("Payment does not belong to the current user")
+
+        yookassa = get_yookassa_client()
+        if not yookassa:
+            raise RuntimeError("YooKassa client not initialized")
+
+        provider_payment = await yookassa.get_payment(payment_id_clean)
+        if not isinstance(provider_payment, dict):
+            raise RuntimeError("Provider payment payload invalid")
+
+        provider_status_value = provider_payment.get("status")
+        provider_status = (
+            str(provider_status_value) if isinstance(provider_status_value, str) else ""
+        )
+        amount_obj = provider_payment.get("amount")
+        amount_value = amount_obj.get("value") if isinstance(amount_obj, dict) else None
+        currency_value = (
+            amount_obj.get("currency") if isinstance(amount_obj, dict) else None
+        )
+        metadata_value = provider_payment.get("metadata", {})
+        metadata = metadata_value if isinstance(metadata_value, dict) else {}
+        effective_metadata: Dict[str, object] = dict(metadata)
+
+        # YooKassa metadata can be missing/partial in some legacy/manual flows.
+        # When we have a local payment record, treat it as authoritative for ownership/context.
+        if local_payment:
+            if "kind" not in effective_metadata and local_payment.kind:
+                effective_metadata["kind"] = local_payment.kind
+            if "user_id" not in effective_metadata and local_payment.user_id:
+                effective_metadata["user_id"] = local_payment.user_id
+            if "wallet_id" not in effective_metadata and local_payment.wallet_id:
+                effective_metadata["wallet_id"] = local_payment.wallet_id
+            if (
+                "amount_kopeks" not in effective_metadata
+                and local_payment.amount_kopeks is not None
+            ):
+                effective_metadata["amount_kopeks"] = local_payment.amount_kopeks
+
+        metadata_user_id_value = effective_metadata.get("user_id")
+        metadata_user_id = (
+            str(metadata_user_id_value)
+            if isinstance(metadata_user_id_value, str)
+            else None
+        )
+        ownership_verified = bool(local_payment and local_payment.user_id == user_id)
+        if not ownership_verified and metadata_user_id == user_id:
+            ownership_verified = True
+        if not ownership_verified:
+            raise PermissionError("Payment does not belong to the current user")
+
+        event_by_status: Dict[str, str] = {
+            "succeeded": "payment.succeeded",
+            "canceled": "payment.canceled",
+            "waiting_for_capture": "payment.waiting_for_capture",
+        }
+        event_type = event_by_status.get(provider_status)
+
+        if event_type and effective_metadata.get("kind") == PaymentKind.TOPUP.value:
+            trusted_webhook_data: Dict[str, object] = {
+                "event_type": event_type,
+                "payment_id": payment_id_clean,
+                "status": provider_status,
+                "amount": amount_value,
+                "currency": currency_value,
+                "metadata": effective_metadata,
+            }
+            self._process_topup_webhook(
+                event_type=event_type,
+                payment_id=payment_id_clean,
+                webhook_data=trusted_webhook_data,
+            )
+
+        updated_payment = self.payments.get_payment_by_provider_id(payment_id_clean)
+        if updated_payment and updated_payment.user_id != user_id:
+            raise PermissionError("Payment does not belong to the current user")
+
+        payment_status = updated_payment.status if updated_payment else None
+        credited = payment_status == PaymentStatus.SUCCEEDED.value
+
+        return {
+            "payment_id": payment_id_clean,
+            "provider_status": provider_status or None,
+            "payment_status": payment_status,
+            "credited": credited,
+        }
+
     def _process_topup_webhook(
         self,
         event_type: Optional[str],

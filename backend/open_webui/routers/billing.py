@@ -101,6 +101,17 @@ def _payment_gateway_http_error(error: YooKassaRequestError, action: str) -> HTT
     return HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail)
 
 
+def _payment_system_http_error(error: RuntimeError, action: str) -> HTTPException:
+    message = str(error)
+    detail = "Payment system temporarily unavailable"
+
+    if "YooKassa client not initialized" in message:
+        detail = "Payment system is not configured"
+
+    log.error("Payment system %s failed: %s", action, message)
+    return HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
+
+
 def _require_subscriptions_enabled() -> None:
     if not ENABLE_BILLING_SUBSCRIPTIONS:
         raise HTTPException(
@@ -149,6 +160,17 @@ class TopupResponse(BaseModel):
     payment_id: str
     confirmation_url: str
     status: str
+
+
+class TopupReconcileRequest(BaseModel):
+    payment_id: str
+
+
+class TopupReconcileResponse(BaseModel):
+    payment_id: str
+    provider_status: Optional[str] = None
+    payment_status: Optional[str] = None
+    credited: bool
 
 
 class CreatePlanRequest(BaseModel):
@@ -725,16 +747,52 @@ async def create_topup(
     except YooKassaRequestError as e:
         raise _payment_gateway_http_error(e, action="topup") from e
     except RuntimeError as e:
-        log.error(f"Topup system error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Payment system temporarily unavailable",
-        )
+        raise _payment_system_http_error(e, action="topup") from e
     except Exception as e:
         log.exception(f"Error creating topup: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create topup",
+        )
+
+
+@router.post("/topup/reconcile", response_model=TopupReconcileResponse)
+async def reconcile_topup(
+    request: TopupReconcileRequest,
+    user=Depends(get_verified_user),
+):
+    """Force topup status reconciliation with YooKassa for current user."""
+    if not ENABLE_BILLING_WALLET:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Billing wallet is disabled",
+        )
+
+    try:
+        result = await billing_service.reconcile_topup_payment(
+            user_id=user.id,
+            payment_id=request.payment_id,
+        )
+        return TopupReconcileResponse(**result)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    except YooKassaRequestError as e:
+        raise _payment_gateway_http_error(e, action="topup reconcile") from e
+    except RuntimeError as e:
+        raise _payment_system_http_error(e, action="topup reconcile") from e
+    except Exception as e:
+        log.exception(f"Error reconciling topup: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reconcile topup",
         )
 
 
@@ -760,11 +818,7 @@ async def create_payment(
     except YooKassaRequestError as e:
         raise _payment_gateway_http_error(e, action="payment") from e
     except RuntimeError as e:
-        log.error(f"Payment system error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Payment system temporarily unavailable",
-        )
+        raise _payment_system_http_error(e, action="payment") from e
     except Exception as e:
         log.exception(f"Error creating payment: {e}")
         raise HTTPException(
