@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2026-02-05T20:32:07.412220Z",
-    "generated_at_commit": "7e19d3d46a49cfe16a178d7098c1e55f4eaa9109",
+    "generated_at": "2026-02-11T10:32:24.357588Z",
+    "generated_at_commit": "621eee7a72a5167d9af75b857f079a95f0607005",
     "languages": [
       "css",
       "html",
@@ -13,34 +13,34 @@
     "schema_version": "2.0"
   },
   "statistics": {
-    "total_files": 125,
-    "total_lines": 37108,
-    "total_classes": 4,
-    "total_functions": 92,
-    "avg_complexity": 2.89,
+    "total_files": 209,
+    "total_lines": 47143,
+    "total_classes": 6,
+    "total_functions": 156,
+    "avg_complexity": 2.45,
     "max_complexity": 9,
     "high_complexity_functions": [],
     "by_language": {
       "css": {
         "files": 2,
-        "lines": 883,
+        "lines": 894,
         "classes": 0,
         "functions": 0,
         "avg_complexity": 0
       },
       "html": {
         "files": 1,
-        "lines": 245,
+        "lines": 243,
         "classes": 0,
         "functions": 0,
         "avg_complexity": 0
       },
       "typescript": {
-        "files": 114,
-        "lines": 34112,
-        "classes": 4,
-        "functions": 92,
-        "avg_complexity": 2.89
+        "files": 198,
+        "lines": 44138,
+        "classes": 6,
+        "functions": 156,
+        "avg_complexity": 2.45
       },
       "javascript": {
         "files": 8,
@@ -68,7 +68,7 @@
       ],
       "imports": [],
       "exports": [],
-      "lines": 809,
+      "lines": 820,
       "selector_counts": {
         "class": 154,
         "id": 4,
@@ -122,7 +122,7 @@
       "functions": [],
       "imports": [],
       "exports": [],
-      "lines": 245,
+      "lines": 243,
       "element_counts": {},
       "htmx_usage": [],
       "custom_attributes": [],
@@ -138,7 +138,25 @@
       "functions": [],
       "imports": [],
       "exports": [],
-      "lines": 12
+      "lines": 33
+    },
+    {
+      "name": "billing",
+      "file": "src/lib/apis/admin/billing.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [
+        "ApiRequestError"
+      ],
+      "functions": [
+        "apiRequest",
+        "apiRequestBlob"
+      ],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 917
     },
     {
       "name": "index",
@@ -154,6 +172,19 @@
       "lines": 196
     },
     {
+      "name": "email_verification",
+      "file": "src/lib/apis/auths/email_verification.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 44
+    },
+    {
       "name": "index",
       "file": "src/lib/apis/auths/index.ts",
       "language": "typescript",
@@ -164,7 +195,36 @@
         "$lib/constants"
       ],
       "exports": [],
-      "lines": 850
+      "lines": 862
+    },
+    {
+      "name": "password_reset",
+      "file": "src/lib/apis/auths/password_reset.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 119
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/billing/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "apiRequest",
+        "publicApiRequest"
+      ],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 677
     },
     {
       "name": "index",
@@ -299,7 +359,7 @@
         "./openai"
       ],
       "exports": [],
-      "lines": 1709
+      "lines": 1710
     },
     {
       "name": "index",
@@ -313,6 +373,19 @@
       ],
       "exports": [],
       "lines": 513
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/legal/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 130
     },
     {
       "name": "index",
@@ -375,10 +448,11 @@
       "classes": [],
       "functions": [],
       "imports": [
-        "$lib/constants"
+        "$lib/constants",
+        "$lib/utils/airis/openai"
       ],
       "exports": [],
-      "lines": 424
+      "lines": 425
     },
     {
       "name": "index",
@@ -463,6 +537,24 @@
       ],
       "exports": [],
       "lines": 181
+    },
+    {
+      "name": "UnifiedTimeline.test",
+      "file": "src/lib/components/billing/UnifiedTimeline.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "flushPromises",
+        "createContext"
+      ],
+      "imports": [
+        "vitest",
+        "svelte",
+        "./UnifiedTimeline.svelte"
+      ],
+      "exports": [],
+      "lines": 155
     },
     {
       "name": "AutoCompletion",
@@ -580,6 +672,64 @@
       "lines": 127
     },
     {
+      "name": "index",
+      "file": "src/lib/components/landing/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 12
+    },
+    {
+      "name": "welcomeData",
+      "file": "src/lib/components/landing/welcomeData.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "applyPresetPrompt"
+      ],
+      "imports": [
+        "$lib/data/features"
+      ],
+      "exports": [],
+      "lines": 456
+    },
+    {
+      "name": "welcomeNavigation.test",
+      "file": "src/lib/components/landing/welcomeNavigation.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "parseUrl"
+      ],
+      "imports": [
+        "vitest",
+        "./welcomeNavigation"
+      ],
+      "exports": [],
+      "lines": 142
+    },
+    {
+      "name": "welcomeNavigation",
+      "file": "src/lib/components/landing/welcomeNavigation.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$app/environment",
+        "$app/navigation",
+        "svelte/store",
+        "$lib/stores"
+      ],
+      "exports": [],
+      "lines": 64
+    },
+    {
       "name": "utils",
       "file": "src/lib/components/notes/utils.ts",
       "language": "typescript",
@@ -617,6 +767,20 @@
       ],
       "exports": [],
       "lines": 103
+    },
+    {
+      "name": "features",
+      "file": "src/lib/data/features.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "./features-page.json",
+        "./presets.json"
+      ],
+      "exports": [],
+      "lines": 78
     },
     {
       "name": "dayjs",
@@ -825,7 +989,7 @@
         "$lib/emoji-shortcodes.json"
       ],
       "exports": [],
-      "lines": 305
+      "lines": 306
     },
     {
       "name": "index",
@@ -837,6 +1001,17 @@
       "imports": [],
       "exports": [],
       "lines": 15
+    },
+    {
+      "name": "vkid.d",
+      "file": "src/lib/types/vkid.d.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 111
     },
     {
       "name": "_template_old",
@@ -853,6 +1028,317 @@
       "lines": 66
     },
     {
+      "name": "admin_billing_models_page_compile.test",
+      "file": "src/lib/utils/airis/admin_billing_models_page_compile.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "createStore"
+      ],
+      "imports": [
+        "vitest"
+      ],
+      "exports": [],
+      "lines": 66
+    },
+    {
+      "name": "admin_billing_user_wallet.test",
+      "file": "src/lib/utils/airis/admin_billing_user_wallet.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "jsonResponse"
+      ],
+      "imports": [
+        "vitest",
+        "$lib/apis/admin/billing",
+        "./admin_billing_user_wallet"
+      ],
+      "exports": [],
+      "lines": 178
+    },
+    {
+      "name": "admin_billing_user_wallet",
+      "file": "src/lib/utils/airis/admin_billing_user_wallet.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "stripWhitespaceSeparators",
+        "isValidInteger"
+      ],
+      "imports": [
+        "$lib/apis/admin/billing"
+      ],
+      "exports": [],
+      "lines": 141
+    },
+    {
+      "name": "auth_login_regressions.test",
+      "file": "src/lib/utils/airis/auth_login_regressions.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "readText"
+      ],
+      "imports": [
+        "node:fs/promises",
+        "vitest"
+      ],
+      "exports": [],
+      "lines": 36
+    },
+    {
+      "name": "billing_block",
+      "file": "src/lib/utils/airis/billing_block.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "isRecord",
+        "parseNumber",
+        "parseString"
+      ],
+      "imports": [
+        "$lib/utils/airis/return_to"
+      ],
+      "exports": [],
+      "lines": 108
+    },
+    {
+      "name": "chat.test",
+      "file": "src/lib/utils/airis/chat.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "./chat"
+      ],
+      "exports": [],
+      "lines": 135
+    },
+    {
+      "name": "chat",
+      "file": "src/lib/utils/airis/chat.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "isRecord"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 85
+    },
+    {
+      "name": "model_pricing_audit.test",
+      "file": "src/lib/utils/airis/model_pricing_audit.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "$lib/utils/airis/rate_cards",
+        "./model_pricing_audit"
+      ],
+      "exports": [],
+      "lines": 57
+    },
+    {
+      "name": "model_pricing_audit",
+      "file": "src/lib/utils/airis/model_pricing_audit.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/utils/airis/rate_cards"
+      ],
+      "exports": [],
+      "lines": 58
+    },
+    {
+      "name": "model_pricing_completeness.test",
+      "file": "src/lib/utils/airis/model_pricing_completeness.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "$lib/utils/airis/rate_cards",
+        "./model_pricing_completeness"
+      ],
+      "exports": [],
+      "lines": 43
+    },
+    {
+      "name": "model_pricing_completeness",
+      "file": "src/lib/utils/airis/model_pricing_completeness.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/utils/airis/rate_cards",
+        "$lib/utils/airis/model_pricing_audit"
+      ],
+      "exports": [],
+      "lines": 60
+    },
+    {
+      "name": "openai.test",
+      "file": "src/lib/utils/airis/openai.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "./openai"
+      ],
+      "exports": [],
+      "lines": 79
+    },
+    {
+      "name": "openai",
+      "file": "src/lib/utils/airis/openai.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "isRecord"
+      ],
+      "imports": [
+        "uuid"
+      ],
+      "exports": [],
+      "lines": 32
+    },
+    {
+      "name": "rate_cards.test",
+      "file": "src/lib/utils/airis/rate_cards.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "buildRateCard"
+      ],
+      "imports": [
+        "vitest",
+        "$lib/apis/admin/billing",
+        "$lib/utils/rate-card-models",
+        "./rate_cards"
+      ],
+      "exports": [],
+      "lines": 81
+    },
+    {
+      "name": "rate_cards",
+      "file": "src/lib/utils/airis/rate_cards.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "normalizeKopeks",
+        "getLatestActive"
+      ],
+      "imports": [
+        "$lib/apis/admin/billing",
+        "$lib/utils/rate-card-models"
+      ],
+      "exports": [],
+      "lines": 71
+    },
+    {
+      "name": "return_to.test",
+      "file": "src/lib/utils/airis/return_to.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "./return_to"
+      ],
+      "exports": [],
+      "lines": 42
+    },
+    {
+      "name": "return_to",
+      "file": "src/lib/utils/airis/return_to.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 17
+    },
+    {
+      "name": "vkid",
+      "file": "src/lib/utils/airis/vkid.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "getOAuthName",
+        "isAuthResponse",
+        "loadVkIdSdk",
+        "initVkIdConfig"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 96
+    },
+    {
+      "name": "ws_billing_block.test",
+      "file": "src/lib/utils/airis/ws_billing_block.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "$lib/utils/airis/ws_billing_block"
+      ],
+      "exports": [],
+      "lines": 42
+    },
+    {
+      "name": "ws_billing_block",
+      "file": "src/lib/utils/airis/ws_billing_block.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "isRecord",
+        "tryParseJsonTail"
+      ],
+      "imports": [
+        "$lib/utils/airis/billing_block"
+      ],
+      "exports": [],
+      "lines": 59
+    },
+    {
+      "name": "analytics",
+      "file": "src/lib/utils/analytics.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 21
+    },
+    {
       "name": "audio",
       "file": "src/lib/utils/audio.ts",
       "language": "typescript",
@@ -864,6 +1350,17 @@
         "AudioQueue"
       ],
       "lines": 73
+    },
+    {
+      "name": "billing-formatters",
+      "file": "src/lib/utils/billing-formatters.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 103
     },
     {
       "name": "index",
@@ -899,7 +1396,7 @@
       ],
       "imports": [],
       "exports": [],
-      "lines": 212
+      "lines": 213
     },
     {
       "name": "index",
@@ -1055,6 +1552,36 @@
       "lines": 453
     },
     {
+      "name": "rate-card-models.test",
+      "file": "src/lib/utils/rate-card-models.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "buildRateCard"
+      ],
+      "imports": [
+        "vitest",
+        "$lib/apis/admin/billing",
+        "./rate-card-models"
+      ],
+      "exports": [],
+      "lines": 83
+    },
+    {
+      "name": "rate-card-models",
+      "file": "src/lib/utils/rate-card-models.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/apis/admin/billing"
+      ],
+      "exports": [],
+      "lines": 79
+    },
+    {
       "name": "text-scale",
       "file": "src/lib/utils/text-scale.ts",
       "language": "typescript",
@@ -1125,6 +1652,52 @@
       "lines": 176
     },
     {
+      "name": "billing-balance.test",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "flushPromises",
+        "createBalance",
+        "createLeadMagnetInfo",
+        "createContext"
+      ],
+      "imports": [
+        "vitest",
+        "svelte",
+        "./+page.svelte"
+      ],
+      "exports": [],
+      "lines": 268
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/(app)/billing/dashboard/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit"
+      ],
+      "exports": [],
+      "lines": 5
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/(app)/billing/settings/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit"
+      ],
+      "exports": [],
+      "lines": 5
+    },
+    {
       "name": "+layout",
       "file": "src/routes/+layout.js",
       "language": "javascript",
@@ -1134,6 +1707,48 @@
       "imports": [],
       "exports": [],
       "lines": 16
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/documents/contract/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit",
+        "./$types"
+      ],
+      "exports": [],
+      "lines": 7
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/documents/privacy/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit",
+        "./$types"
+      ],
+      "exports": [],
+      "lines": 7
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/prices/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit",
+        "./$types"
+      ],
+      "exports": [],
+      "lines": 7
     },
     {
       "name": "app.d",
@@ -1144,7 +1759,25 @@
       "functions": [],
       "imports": [],
       "exports": [],
-      "lines": 12
+      "lines": 33
+    },
+    {
+      "name": "billing",
+      "file": "src/lib/apis/admin/billing.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [
+        "ApiRequestError"
+      ],
+      "functions": [
+        "apiRequest",
+        "apiRequestBlob"
+      ],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 917
     },
     {
       "name": "index",
@@ -1160,6 +1793,19 @@
       "lines": 196
     },
     {
+      "name": "email_verification",
+      "file": "src/lib/apis/auths/email_verification.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 44
+    },
+    {
       "name": "index",
       "file": "src/lib/apis/auths/index.ts",
       "language": "typescript",
@@ -1170,7 +1816,36 @@
         "$lib/constants"
       ],
       "exports": [],
-      "lines": 850
+      "lines": 862
+    },
+    {
+      "name": "password_reset",
+      "file": "src/lib/apis/auths/password_reset.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 119
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/billing/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "apiRequest",
+        "publicApiRequest"
+      ],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 677
     },
     {
       "name": "index",
@@ -1305,7 +1980,7 @@
         "./openai"
       ],
       "exports": [],
-      "lines": 1709
+      "lines": 1710
     },
     {
       "name": "index",
@@ -1319,6 +1994,19 @@
       ],
       "exports": [],
       "lines": 513
+    },
+    {
+      "name": "index",
+      "file": "src/lib/apis/legal/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/constants"
+      ],
+      "exports": [],
+      "lines": 130
     },
     {
       "name": "index",
@@ -1381,10 +2069,11 @@
       "classes": [],
       "functions": [],
       "imports": [
-        "$lib/constants"
+        "$lib/constants",
+        "$lib/utils/airis/openai"
       ],
       "exports": [],
-      "lines": 424
+      "lines": 425
     },
     {
       "name": "index",
@@ -1469,6 +2158,24 @@
       ],
       "exports": [],
       "lines": 181
+    },
+    {
+      "name": "UnifiedTimeline.test",
+      "file": "src/lib/components/billing/UnifiedTimeline.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "flushPromises",
+        "createContext"
+      ],
+      "imports": [
+        "vitest",
+        "svelte",
+        "./UnifiedTimeline.svelte"
+      ],
+      "exports": [],
+      "lines": 155
     },
     {
       "name": "AutoCompletion",
@@ -1586,6 +2293,64 @@
       "lines": 127
     },
     {
+      "name": "index",
+      "file": "src/lib/components/landing/index.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 12
+    },
+    {
+      "name": "welcomeData",
+      "file": "src/lib/components/landing/welcomeData.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "applyPresetPrompt"
+      ],
+      "imports": [
+        "$lib/data/features"
+      ],
+      "exports": [],
+      "lines": 456
+    },
+    {
+      "name": "welcomeNavigation.test",
+      "file": "src/lib/components/landing/welcomeNavigation.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "parseUrl"
+      ],
+      "imports": [
+        "vitest",
+        "./welcomeNavigation"
+      ],
+      "exports": [],
+      "lines": 142
+    },
+    {
+      "name": "welcomeNavigation",
+      "file": "src/lib/components/landing/welcomeNavigation.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$app/environment",
+        "$app/navigation",
+        "svelte/store",
+        "$lib/stores"
+      ],
+      "exports": [],
+      "lines": 64
+    },
+    {
       "name": "utils",
       "file": "src/lib/components/notes/utils.ts",
       "language": "typescript",
@@ -1623,6 +2388,20 @@
       ],
       "exports": [],
       "lines": 103
+    },
+    {
+      "name": "features",
+      "file": "src/lib/data/features.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "./features-page.json",
+        "./presets.json"
+      ],
+      "exports": [],
+      "lines": 78
     },
     {
       "name": "dayjs",
@@ -1831,7 +2610,7 @@
         "$lib/emoji-shortcodes.json"
       ],
       "exports": [],
-      "lines": 305
+      "lines": 306
     },
     {
       "name": "index",
@@ -1843,6 +2622,17 @@
       "imports": [],
       "exports": [],
       "lines": 15
+    },
+    {
+      "name": "vkid.d",
+      "file": "src/lib/types/vkid.d.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 111
     },
     {
       "name": "_template_old",
@@ -1859,6 +2649,317 @@
       "lines": 66
     },
     {
+      "name": "admin_billing_models_page_compile.test",
+      "file": "src/lib/utils/airis/admin_billing_models_page_compile.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "createStore"
+      ],
+      "imports": [
+        "vitest"
+      ],
+      "exports": [],
+      "lines": 66
+    },
+    {
+      "name": "admin_billing_user_wallet.test",
+      "file": "src/lib/utils/airis/admin_billing_user_wallet.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "jsonResponse"
+      ],
+      "imports": [
+        "vitest",
+        "$lib/apis/admin/billing",
+        "./admin_billing_user_wallet"
+      ],
+      "exports": [],
+      "lines": 178
+    },
+    {
+      "name": "admin_billing_user_wallet",
+      "file": "src/lib/utils/airis/admin_billing_user_wallet.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "stripWhitespaceSeparators",
+        "isValidInteger"
+      ],
+      "imports": [
+        "$lib/apis/admin/billing"
+      ],
+      "exports": [],
+      "lines": 141
+    },
+    {
+      "name": "auth_login_regressions.test",
+      "file": "src/lib/utils/airis/auth_login_regressions.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "readText"
+      ],
+      "imports": [
+        "node:fs/promises",
+        "vitest"
+      ],
+      "exports": [],
+      "lines": 36
+    },
+    {
+      "name": "billing_block",
+      "file": "src/lib/utils/airis/billing_block.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "isRecord",
+        "parseNumber",
+        "parseString"
+      ],
+      "imports": [
+        "$lib/utils/airis/return_to"
+      ],
+      "exports": [],
+      "lines": 108
+    },
+    {
+      "name": "chat.test",
+      "file": "src/lib/utils/airis/chat.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "./chat"
+      ],
+      "exports": [],
+      "lines": 135
+    },
+    {
+      "name": "chat",
+      "file": "src/lib/utils/airis/chat.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "isRecord"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 85
+    },
+    {
+      "name": "model_pricing_audit.test",
+      "file": "src/lib/utils/airis/model_pricing_audit.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "$lib/utils/airis/rate_cards",
+        "./model_pricing_audit"
+      ],
+      "exports": [],
+      "lines": 57
+    },
+    {
+      "name": "model_pricing_audit",
+      "file": "src/lib/utils/airis/model_pricing_audit.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/utils/airis/rate_cards"
+      ],
+      "exports": [],
+      "lines": 58
+    },
+    {
+      "name": "model_pricing_completeness.test",
+      "file": "src/lib/utils/airis/model_pricing_completeness.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "$lib/utils/airis/rate_cards",
+        "./model_pricing_completeness"
+      ],
+      "exports": [],
+      "lines": 43
+    },
+    {
+      "name": "model_pricing_completeness",
+      "file": "src/lib/utils/airis/model_pricing_completeness.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/utils/airis/rate_cards",
+        "$lib/utils/airis/model_pricing_audit"
+      ],
+      "exports": [],
+      "lines": 60
+    },
+    {
+      "name": "openai.test",
+      "file": "src/lib/utils/airis/openai.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "./openai"
+      ],
+      "exports": [],
+      "lines": 79
+    },
+    {
+      "name": "openai",
+      "file": "src/lib/utils/airis/openai.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "isRecord"
+      ],
+      "imports": [
+        "uuid"
+      ],
+      "exports": [],
+      "lines": 32
+    },
+    {
+      "name": "rate_cards.test",
+      "file": "src/lib/utils/airis/rate_cards.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "buildRateCard"
+      ],
+      "imports": [
+        "vitest",
+        "$lib/apis/admin/billing",
+        "$lib/utils/rate-card-models",
+        "./rate_cards"
+      ],
+      "exports": [],
+      "lines": 81
+    },
+    {
+      "name": "rate_cards",
+      "file": "src/lib/utils/airis/rate_cards.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "normalizeKopeks",
+        "getLatestActive"
+      ],
+      "imports": [
+        "$lib/apis/admin/billing",
+        "$lib/utils/rate-card-models"
+      ],
+      "exports": [],
+      "lines": 71
+    },
+    {
+      "name": "return_to.test",
+      "file": "src/lib/utils/airis/return_to.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "./return_to"
+      ],
+      "exports": [],
+      "lines": 42
+    },
+    {
+      "name": "return_to",
+      "file": "src/lib/utils/airis/return_to.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 17
+    },
+    {
+      "name": "vkid",
+      "file": "src/lib/utils/airis/vkid.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "getOAuthName",
+        "isAuthResponse",
+        "loadVkIdSdk",
+        "initVkIdConfig"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 96
+    },
+    {
+      "name": "ws_billing_block.test",
+      "file": "src/lib/utils/airis/ws_billing_block.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "$lib/utils/airis/ws_billing_block"
+      ],
+      "exports": [],
+      "lines": 42
+    },
+    {
+      "name": "ws_billing_block",
+      "file": "src/lib/utils/airis/ws_billing_block.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "isRecord",
+        "tryParseJsonTail"
+      ],
+      "imports": [
+        "$lib/utils/airis/billing_block"
+      ],
+      "exports": [],
+      "lines": 59
+    },
+    {
+      "name": "analytics",
+      "file": "src/lib/utils/analytics.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 21
+    },
+    {
       "name": "audio",
       "file": "src/lib/utils/audio.ts",
       "language": "typescript",
@@ -1870,6 +2971,17 @@
         "AudioQueue"
       ],
       "lines": 73
+    },
+    {
+      "name": "billing-formatters",
+      "file": "src/lib/utils/billing-formatters.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [],
+      "exports": [],
+      "lines": 103
     },
     {
       "name": "index",
@@ -1905,7 +3017,7 @@
       ],
       "imports": [],
       "exports": [],
-      "lines": 212
+      "lines": 213
     },
     {
       "name": "index",
@@ -2061,6 +3173,36 @@
       "lines": 453
     },
     {
+      "name": "rate-card-models.test",
+      "file": "src/lib/utils/rate-card-models.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "buildRateCard"
+      ],
+      "imports": [
+        "vitest",
+        "$lib/apis/admin/billing",
+        "./rate-card-models"
+      ],
+      "exports": [],
+      "lines": 83
+    },
+    {
+      "name": "rate-card-models",
+      "file": "src/lib/utils/rate-card-models.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "$lib/apis/admin/billing"
+      ],
+      "exports": [],
+      "lines": 79
+    },
+    {
       "name": "text-scale",
       "file": "src/lib/utils/text-scale.ts",
       "language": "typescript",
@@ -2131,6 +3273,52 @@
       "lines": 176
     },
     {
+      "name": "billing-balance.test",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "flushPromises",
+        "createBalance",
+        "createLeadMagnetInfo",
+        "createContext"
+      ],
+      "imports": [
+        "vitest",
+        "svelte",
+        "./+page.svelte"
+      ],
+      "exports": [],
+      "lines": 268
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/(app)/billing/dashboard/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit"
+      ],
+      "exports": [],
+      "lines": 5
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/(app)/billing/settings/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit"
+      ],
+      "exports": [],
+      "lines": 5
+    },
+    {
       "name": "+layout",
       "file": "src/routes/+layout.js",
       "language": "javascript",
@@ -2140,9 +3328,65 @@
       "imports": [],
       "exports": [],
       "lines": 16
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/documents/contract/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit",
+        "./$types"
+      ],
+      "exports": [],
+      "lines": 7
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/documents/privacy/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit",
+        "./$types"
+      ],
+      "exports": [],
+      "lines": 7
+    },
+    {
+      "name": "+page",
+      "file": "src/routes/prices/+page.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "@sveltejs/kit",
+        "./$types"
+      ],
+      "exports": [],
+      "lines": 7
     }
   ],
   "classes": [
+    {
+      "name": "ApiRequestError",
+      "file": "src/lib/apis/admin/billing.ts",
+      "line": 282,
+      "language": "typescript",
+      "docstring": null,
+      "bases": [],
+      "methods": [
+        "constructor"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true
+    },
     {
       "name": "SimpleAwareness",
       "file": "src/lib/components/common/RichTextInput/Collaboration.ts",
@@ -2182,6 +3426,20 @@
         "getSharepointUrl",
         "getSharepointTenantId",
         "getBaseUrl"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "ApiRequestError",
+      "file": "src/lib/apis/admin/billing.ts",
+      "line": 282,
+      "language": "typescript",
+      "docstring": null,
+      "bases": [],
+      "methods": [
+        "constructor"
       ],
       "properties": [],
       "is_exported": false,
@@ -2234,6 +3492,121 @@
   ],
   "functions": [
     {
+      "name": "apiRequest",
+      "file": "src/lib/apis/admin/billing.ts",
+      "line": 294,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 5,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "apiRequestBlob",
+      "file": "src/lib/apis/admin/billing.ts",
+      "line": 320,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "apiRequest",
+      "file": "src/lib/apis/billing/index.ts",
+      "line": 273,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "publicApiRequest",
+      "file": "src/lib/apis/billing/index.ts",
+      "line": 293,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
       "name": "sleep",
       "file": "src/lib/apis/streaming/index.ts",
       "line": 142,
@@ -2254,12 +3627,80 @@
       "is_public": true
     },
     {
+      "name": "flushPromises",
+      "file": "src/lib/components/billing/UnifiedTimeline.test.ts",
+      "line": 75,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createContext",
+      "file": "src/lib/components/billing/UnifiedTimeline.test.ts",
+      "line": 80,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
       "name": "generateUserColor",
       "file": "src/lib/components/common/RichTextInput/Collaboration.ts",
       "line": 28,
       "language": "typescript",
       "docstring": null,
       "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "applyPresetPrompt",
+      "file": "src/lib/components/landing/welcomeData.ts",
+      "line": 53,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "item",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parseUrl",
+      "file": "src/lib/components/landing/welcomeNavigation.test.ts",
+      "line": 36,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        }
+      ],
       "return_type": null,
       "complexity": 1,
       "decorators": [],
@@ -2341,6 +3782,410 @@
       ],
       "return_type": null,
       "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createStore",
+      "file": "src/lib/utils/airis/admin_billing_models_page_compile.test.ts",
+      "line": 6,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "jsonResponse",
+      "file": "src/lib/utils/airis/admin_billing_user_wallet.test.ts",
+      "line": 18,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "body",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "stripWhitespaceSeparators",
+      "file": "src/lib/utils/airis/admin_billing_user_wallet.ts",
+      "line": 15,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isValidInteger",
+      "file": "src/lib/utils/airis/admin_billing_user_wallet.ts",
+      "line": 113,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "readText",
+      "file": "src/lib/utils/airis/auth_login_regressions.test.ts",
+      "line": 4,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "path",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isRecord",
+      "file": "src/lib/utils/airis/billing_block.ts",
+      "line": 41,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parseNumber",
+      "file": "src/lib/utils/airis/billing_block.ts",
+      "line": 44,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parseString",
+      "file": "src/lib/utils/airis/billing_block.ts",
+      "line": 47,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isRecord",
+      "file": "src/lib/utils/airis/chat.ts",
+      "line": 14,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isRecord",
+      "file": "src/lib/utils/airis/openai.ts",
+      "line": 3,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "buildRateCard",
+      "file": "src/lib/utils/airis/rate_cards.test.ts",
+      "line": 8,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "overrides",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "normalizeKopeks",
+      "file": "src/lib/utils/airis/rate_cards.ts",
+      "line": 12,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "getLatestActive",
+      "file": "src/lib/utils/airis/rate_cards.ts",
+      "line": 17,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "modelEntries",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "modality",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "unit",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "getOAuthName",
+      "file": "src/lib/utils/airis/vkid.ts",
+      "line": 8,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "sdk",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "provider",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isAuthResponse",
+      "file": "src/lib/utils/airis/vkid.ts",
+      "line": 19,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "loadVkIdSdk",
+      "file": "src/lib/utils/airis/vkid.ts",
+      "line": 25,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "initVkIdConfig",
+      "file": "src/lib/utils/airis/vkid.ts",
+      "line": 42,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "sdk",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "appId",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "redirectUrl",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isRecord",
+      "file": "src/lib/utils/airis/ws_billing_block.ts",
+      "line": 3,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "tryParseJsonTail",
+      "file": "src/lib/utils/airis/ws_billing_block.ts",
+      "line": 6,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 4,
       "decorators": [],
       "is_async": false,
       "is_exported": false,
@@ -2517,7 +4362,7 @@
     {
       "name": "initialize",
       "file": "src/lib/utils/google-drive-picker.ts",
-      "line": 98,
+      "line": 99,
       "language": "typescript",
       "docstring": null,
       "parameters": [],
@@ -2823,7 +4668,13 @@
       "line": 80,
       "language": "typescript",
       "docstring": null,
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "_options",
+          "type": null,
+          "default": null
+        }
+      ],
       "return_type": null,
       "complexity": 1,
       "decorators": [],
@@ -3146,6 +4997,26 @@
       "is_public": true
     },
     {
+      "name": "buildRateCard",
+      "file": "src/lib/utils/rate-card-models.test.ts",
+      "line": 6,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "overrides",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
       "name": "loadPyodideAndPackages",
       "file": "src/lib/workers/pyodide.worker.ts",
       "line": 16,
@@ -3186,6 +5057,189 @@
       "is_public": true
     },
     {
+      "name": "flushPromises",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "line": 126,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createBalance",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "line": 131,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "overrides",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createLeadMagnetInfo",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "line": 147,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "enabled = true",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createContext",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "line": 157,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "apiRequest",
+      "file": "src/lib/apis/admin/billing.ts",
+      "line": 294,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 5,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "apiRequestBlob",
+      "file": "src/lib/apis/admin/billing.ts",
+      "line": 320,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "apiRequest",
+      "file": "src/lib/apis/billing/index.ts",
+      "line": 273,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "token",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "publicApiRequest",
+      "file": "src/lib/apis/billing/index.ts",
+      "line": 293,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "options",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
       "name": "sleep",
       "file": "src/lib/apis/streaming/index.ts",
       "line": 142,
@@ -3206,12 +5260,80 @@
       "is_public": true
     },
     {
+      "name": "flushPromises",
+      "file": "src/lib/components/billing/UnifiedTimeline.test.ts",
+      "line": 75,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createContext",
+      "file": "src/lib/components/billing/UnifiedTimeline.test.ts",
+      "line": 80,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
       "name": "generateUserColor",
       "file": "src/lib/components/common/RichTextInput/Collaboration.ts",
       "line": 28,
       "language": "typescript",
       "docstring": null,
       "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "applyPresetPrompt",
+      "file": "src/lib/components/landing/welcomeData.ts",
+      "line": 53,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "item",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parseUrl",
+      "file": "src/lib/components/landing/welcomeNavigation.test.ts",
+      "line": 36,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "url",
+          "type": null,
+          "default": null
+        }
+      ],
       "return_type": null,
       "complexity": 1,
       "decorators": [],
@@ -3293,6 +5415,410 @@
       ],
       "return_type": null,
       "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createStore",
+      "file": "src/lib/utils/airis/admin_billing_models_page_compile.test.ts",
+      "line": 6,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "jsonResponse",
+      "file": "src/lib/utils/airis/admin_billing_user_wallet.test.ts",
+      "line": 18,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "body",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "stripWhitespaceSeparators",
+      "file": "src/lib/utils/airis/admin_billing_user_wallet.ts",
+      "line": 15,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isValidInteger",
+      "file": "src/lib/utils/airis/admin_billing_user_wallet.ts",
+      "line": 113,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "readText",
+      "file": "src/lib/utils/airis/auth_login_regressions.test.ts",
+      "line": 4,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "path",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isRecord",
+      "file": "src/lib/utils/airis/billing_block.ts",
+      "line": 41,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parseNumber",
+      "file": "src/lib/utils/airis/billing_block.ts",
+      "line": 44,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "parseString",
+      "file": "src/lib/utils/airis/billing_block.ts",
+      "line": 47,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isRecord",
+      "file": "src/lib/utils/airis/chat.ts",
+      "line": 14,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isRecord",
+      "file": "src/lib/utils/airis/openai.ts",
+      "line": 3,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "buildRateCard",
+      "file": "src/lib/utils/airis/rate_cards.test.ts",
+      "line": 8,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "overrides",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "normalizeKopeks",
+      "file": "src/lib/utils/airis/rate_cards.ts",
+      "line": 12,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "getLatestActive",
+      "file": "src/lib/utils/airis/rate_cards.ts",
+      "line": 17,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "modelEntries",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "modality",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "unit",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "getOAuthName",
+      "file": "src/lib/utils/airis/vkid.ts",
+      "line": 8,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "sdk",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "provider",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isAuthResponse",
+      "file": "src/lib/utils/airis/vkid.ts",
+      "line": 19,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "loadVkIdSdk",
+      "file": "src/lib/utils/airis/vkid.ts",
+      "line": 25,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "initVkIdConfig",
+      "file": "src/lib/utils/airis/vkid.ts",
+      "line": 42,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "sdk",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "appId",
+          "type": null,
+          "default": null
+        },
+        {
+          "name": "redirectUrl",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "isRecord",
+      "file": "src/lib/utils/airis/ws_billing_block.ts",
+      "line": 3,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "tryParseJsonTail",
+      "file": "src/lib/utils/airis/ws_billing_block.ts",
+      "line": 6,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "value",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 4,
       "decorators": [],
       "is_async": false,
       "is_exported": false,
@@ -3469,7 +5995,7 @@
     {
       "name": "initialize",
       "file": "src/lib/utils/google-drive-picker.ts",
-      "line": 98,
+      "line": 99,
       "language": "typescript",
       "docstring": null,
       "parameters": [],
@@ -3775,7 +6301,13 @@
       "line": 80,
       "language": "typescript",
       "docstring": null,
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "_options",
+          "type": null,
+          "default": null
+        }
+      ],
       "return_type": null,
       "complexity": 1,
       "decorators": [],
@@ -4098,6 +6630,26 @@
       "is_public": true
     },
     {
+      "name": "buildRateCard",
+      "file": "src/lib/utils/rate-card-models.test.ts",
+      "line": 6,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "overrides",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
       "name": "loadPyodideAndPackages",
       "file": "src/lib/workers/pyodide.worker.ts",
       "line": 16,
@@ -4132,6 +6684,74 @@
       ],
       "return_type": null,
       "complexity": 9,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "flushPromises",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "line": 126,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createBalance",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "line": 131,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "overrides",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createLeadMagnetInfo",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "line": 147,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "enabled = true",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "createContext",
+      "file": "src/routes/(app)/billing/balance/billing-balance.test.ts",
+      "line": 157,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [],
+      "return_type": null,
+      "complexity": 1,
       "decorators": [],
       "is_async": false,
       "is_exported": false,
@@ -4139,11 +6759,27 @@
     }
   ],
   "dependencies": {
+    "src/lib/apis/admin/billing.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
     "src/lib/apis/audio/index.ts": [
       "$lib/constants",
       "$lib/constants"
     ],
+    "src/lib/apis/auths/email_verification.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
     "src/lib/apis/auths/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/auths/password_reset.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
+    "src/lib/apis/billing/index.ts": [
       "$lib/constants",
       "$lib/constants"
     ],
@@ -4201,6 +6837,10 @@
       "$lib/constants",
       "$lib/constants"
     ],
+    "src/lib/apis/legal/index.ts": [
+      "$lib/constants",
+      "$lib/constants"
+    ],
     "src/lib/apis/memories/index.ts": [
       "$lib/constants",
       "$lib/constants"
@@ -4221,7 +6861,9 @@
     ],
     "src/lib/apis/openai/index.ts": [
       "$lib/constants",
-      "$lib/constants"
+      "$lib/utils/airis/openai",
+      "$lib/constants",
+      "$lib/utils/airis/openai"
     ],
     "src/lib/apis/prompts/index.ts": [
       "$lib/constants",
@@ -4250,6 +6892,14 @@
     "src/lib/apis/utils/index.ts": [
       "$lib/constants",
       "$lib/constants"
+    ],
+    "src/lib/components/billing/UnifiedTimeline.test.ts": [
+      "vitest",
+      "svelte",
+      "./UnifiedTimeline.svelte",
+      "vitest",
+      "svelte",
+      "./UnifiedTimeline.svelte"
     ],
     "src/lib/components/common/RichTextInput/AutoCompletion.js": [
       "@tiptap/core",
@@ -4303,6 +6953,26 @@
       "svelte/legacy",
       "tippy.js"
     ],
+    "src/lib/components/landing/welcomeData.ts": [
+      "$lib/data/features",
+      "$lib/data/features"
+    ],
+    "src/lib/components/landing/welcomeNavigation.test.ts": [
+      "vitest",
+      "./welcomeNavigation",
+      "vitest",
+      "./welcomeNavigation"
+    ],
+    "src/lib/components/landing/welcomeNavigation.ts": [
+      "$app/environment",
+      "$app/navigation",
+      "svelte/store",
+      "$lib/stores",
+      "$app/environment",
+      "$app/navigation",
+      "svelte/store",
+      "$lib/stores"
+    ],
     "src/lib/components/notes/utils.ts": [
       "dompurify",
       "svelte-sonner",
@@ -4314,6 +6984,12 @@
     "src/lib/constants.ts": [
       "$app/environment",
       "$app/environment"
+    ],
+    "src/lib/data/features.ts": [
+      "./features-page.json",
+      "./presets.json",
+      "./features-page.json",
+      "./presets.json"
     ],
     "src/lib/dayjs.js": [
       "dayjs",
@@ -4561,6 +7237,106 @@
       "$lib/utils/index",
       "vitest"
     ],
+    "src/lib/utils/airis/admin_billing_models_page_compile.test.ts": [
+      "vitest",
+      "vitest"
+    ],
+    "src/lib/utils/airis/admin_billing_user_wallet.test.ts": [
+      "vitest",
+      "$lib/apis/admin/billing",
+      "./admin_billing_user_wallet",
+      "vitest",
+      "$lib/apis/admin/billing",
+      "./admin_billing_user_wallet"
+    ],
+    "src/lib/utils/airis/admin_billing_user_wallet.ts": [
+      "$lib/apis/admin/billing",
+      "$lib/apis/admin/billing"
+    ],
+    "src/lib/utils/airis/auth_login_regressions.test.ts": [
+      "node:fs/promises",
+      "vitest",
+      "node:fs/promises",
+      "vitest"
+    ],
+    "src/lib/utils/airis/billing_block.ts": [
+      "$lib/utils/airis/return_to",
+      "$lib/utils/airis/return_to"
+    ],
+    "src/lib/utils/airis/chat.test.ts": [
+      "vitest",
+      "./chat",
+      "vitest",
+      "./chat"
+    ],
+    "src/lib/utils/airis/model_pricing_audit.test.ts": [
+      "vitest",
+      "$lib/utils/airis/rate_cards",
+      "./model_pricing_audit",
+      "vitest",
+      "$lib/utils/airis/rate_cards",
+      "./model_pricing_audit"
+    ],
+    "src/lib/utils/airis/model_pricing_audit.ts": [
+      "$lib/utils/airis/rate_cards",
+      "$lib/utils/airis/rate_cards"
+    ],
+    "src/lib/utils/airis/model_pricing_completeness.test.ts": [
+      "vitest",
+      "$lib/utils/airis/rate_cards",
+      "./model_pricing_completeness",
+      "vitest",
+      "$lib/utils/airis/rate_cards",
+      "./model_pricing_completeness"
+    ],
+    "src/lib/utils/airis/model_pricing_completeness.ts": [
+      "$lib/utils/airis/rate_cards",
+      "$lib/utils/airis/model_pricing_audit",
+      "$lib/utils/airis/rate_cards",
+      "$lib/utils/airis/model_pricing_audit"
+    ],
+    "src/lib/utils/airis/openai.test.ts": [
+      "vitest",
+      "./openai",
+      "vitest",
+      "./openai"
+    ],
+    "src/lib/utils/airis/openai.ts": [
+      "uuid",
+      "uuid"
+    ],
+    "src/lib/utils/airis/rate_cards.test.ts": [
+      "vitest",
+      "$lib/apis/admin/billing",
+      "$lib/utils/rate-card-models",
+      "./rate_cards",
+      "vitest",
+      "$lib/apis/admin/billing",
+      "$lib/utils/rate-card-models",
+      "./rate_cards"
+    ],
+    "src/lib/utils/airis/rate_cards.ts": [
+      "$lib/apis/admin/billing",
+      "$lib/utils/rate-card-models",
+      "$lib/apis/admin/billing",
+      "$lib/utils/rate-card-models"
+    ],
+    "src/lib/utils/airis/return_to.test.ts": [
+      "vitest",
+      "./return_to",
+      "vitest",
+      "./return_to"
+    ],
+    "src/lib/utils/airis/ws_billing_block.test.ts": [
+      "vitest",
+      "$lib/utils/airis/ws_billing_block",
+      "vitest",
+      "$lib/utils/airis/ws_billing_block"
+    ],
+    "src/lib/utils/airis/ws_billing_block.ts": [
+      "$lib/utils/airis/billing_block",
+      "$lib/utils/airis/billing_block"
+    ],
     "src/lib/utils/characters/index.ts": [
       "crc-32",
       "crc-32"
@@ -4601,6 +7377,18 @@
       "@azure/msal-browser",
       "uuid"
     ],
+    "src/lib/utils/rate-card-models.test.ts": [
+      "vitest",
+      "$lib/apis/admin/billing",
+      "./rate-card-models",
+      "vitest",
+      "$lib/apis/admin/billing",
+      "./rate-card-models"
+    ],
+    "src/lib/utils/rate-card-models.ts": [
+      "$lib/apis/admin/billing",
+      "$lib/apis/admin/billing"
+    ],
     "src/lib/utils/transitions/index.ts": [
       "svelte/easing",
       "svelte/transition",
@@ -4620,6 +7408,40 @@
     "src/lib/workers/pyodide.worker.ts": [
       "pyodide",
       "pyodide"
+    ],
+    "src/routes/(app)/billing/balance/billing-balance.test.ts": [
+      "vitest",
+      "svelte",
+      "./+page.svelte",
+      "vitest",
+      "svelte",
+      "./+page.svelte"
+    ],
+    "src/routes/(app)/billing/dashboard/+page.ts": [
+      "@sveltejs/kit",
+      "@sveltejs/kit"
+    ],
+    "src/routes/(app)/billing/settings/+page.ts": [
+      "@sveltejs/kit",
+      "@sveltejs/kit"
+    ],
+    "src/routes/documents/contract/+page.ts": [
+      "@sveltejs/kit",
+      "./$types",
+      "@sveltejs/kit",
+      "./$types"
+    ],
+    "src/routes/documents/privacy/+page.ts": [
+      "@sveltejs/kit",
+      "./$types",
+      "@sveltejs/kit",
+      "./$types"
+    ],
+    "src/routes/prices/+page.ts": [
+      "@sveltejs/kit",
+      "./$types",
+      "@sveltejs/kit",
+      "./$types"
     ]
   }
 }

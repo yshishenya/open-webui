@@ -1,0 +1,26 @@
+{
+  "metadata": {
+    "project_name": "sdd",
+    "version": "1.0.0",
+    "generated_at": "2026-02-11T10:56:05.411107Z",
+    "generated_at_commit": "621eee7a72a5167d9af75b857f079a95f0607005",
+    "languages": [
+      "unknown"
+    ],
+    "schema_version": "2.0"
+  },
+  "statistics": {
+    "total_files": 0,
+    "total_lines": 0,
+    "total_classes": 0,
+    "total_functions": 0,
+    "avg_complexity": 0,
+    "max_complexity": 0,
+    "high_complexity_functions": [],
+    "by_language": {}
+  },
+  "modules": [],
+  "classes": [],
+  "functions": [],
+  "dependencies": {}
+}
