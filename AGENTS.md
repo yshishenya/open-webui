@@ -267,6 +267,11 @@ This repo is **Docker Compose-first** (especially for Codex Actions).
 ## Git Workflow
 
 - Branch naming: `feature/...`, `bugfix/...`, `refactor/...`, `docs/...` (optionally prefixed with `codex/`)
+- **Working integration branch**: `airis_b2c`
+- **Do not work directly with `main`**:
+  - Do not create feature/bugfix/refactor branches from `main`
+  - Do not open PRs to `main` from working branches
+  - Use `airis_b2c` as the default base branch and PR target
 - Before committing:
   - Backend tests + format: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest && black ."`
   - Backend lint (ruff): use Codex Action `ruff (docker)` or run `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check backend"`
