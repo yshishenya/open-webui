@@ -1,0 +1,111 @@
+name: Billing Canary
+
+on:
+  schedule:
+    - cron: "30 4 * * *"
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Target base URL for canary probe"
+        required: false
+        default: ""
+      check_health:
+        description: "Run GET /health check during probe"
+        required: true
+        default: true
+        type: boolean
+      enforce_gate:
+        description: "Fail workflow when probe fails"
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  billing-canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Resolve canary configuration
+        id: config
+        shell: bash
+        env:
+          SECRET_BASE_URL: ${{ secrets.BILLING_CANARY_BASE_URL }}
+        run: |
+          set -euo pipefail
+          event_name="${{ github.event_name }}"
+
+          if [[ "$event_name" == "workflow_dispatch" && -n "${{ inputs.base_url }}" ]]; then
+            base_url="${{ inputs.base_url }}"
+          elif [[ -n "${SECRET_BASE_URL}" ]]; then
+            base_url="${SECRET_BASE_URL}"
+          else
+            base_url="http://localhost:8080"
+          fi
+
+          if [[ "$event_name" == "workflow_dispatch" ]]; then
+            check_health="${{ inputs.check_health }}"
+            enforce_gate="${{ inputs.enforce_gate }}"
+          else
+            check_health="true"
+            enforce_gate="true"
+          fi
+
+          run_id="${{ github.run_id }}-${{ github.run_attempt }}"
+          run_dir="artifacts/billing-canary/${run_id}"
+
+          echo "base_url=$base_url" >> "$GITHUB_OUTPUT"
+          echo "check_health=$check_health" >> "$GITHUB_OUTPUT"
+          echo "enforce_gate=$enforce_gate" >> "$GITHUB_OUTPUT"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "run_dir=$run_dir" >> "$GITHUB_OUTPUT"
+
+      - name: Run billing synthetic canary probe
+        id: probe
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          run_dir="${{ steps.config.outputs.run_dir }}"
+          mkdir -p "$run_dir"
+
+          cmd=(
+            python scripts/ops/billing_synthetic_probe.py
+            --mode staging
+            --base-url "${{ steps.config.outputs.base_url }}"
+            --max-amount-rub 10
+            --require-sandbox
+            --output-json "$run_dir/billing-canary-report.json"
+            --output-md "$run_dir/billing-canary-report.md"
+          )
+
+          if [[ "${{ steps.config.outputs.check_health }}" == "true" ]]; then
+            cmd+=(--check-health)
+          fi
+
+          "${cmd[@]}" | tee "$run_dir/probe.stdout.log"
+
+      - name: Upload canary artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: billing-canary-${{ steps.config.outputs.run_id }}
+          path: ${{ steps.config.outputs.run_dir }}/
+          if-no-files-found: warn
+
+      - name: Enforce canary gate
+        if: ${{ steps.config.outputs.enforce_gate == 'true' && steps.probe.outcome != 'success' }}
+        shell: bash
+        run: |
+          echo "Billing canary probe failed."
+          echo "See uploaded billing-canary artifacts for details."
+          exit 1
+
+      - name: Soft-fail notice for manual run
+        if: ${{ steps.config.outputs.enforce_gate != 'true' && steps.probe.outcome != 'success' }}
+        shell: bash
+        run: |
+          echo "Billing canary probe failed but enforce_gate=false; workflow left green."

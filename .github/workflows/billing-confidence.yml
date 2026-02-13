@@ -1,0 +1,125 @@
+name: Billing Confidence
+
+on:
+  pull_request:
+    branches:
+      - airis_b2c
+    paths:
+      - ".github/workflows/billing-confidence.yml"
+      - "backend/**"
+      - "src/**"
+      - "e2e/**"
+      - "scripts/ci/**"
+      - "docker-compose.yaml"
+      - "docker-compose.dev.yaml"
+      - ".codex/docker-compose.codex.yaml"
+      - "package.json"
+  push:
+    branches:
+      - airis_b2c
+    paths:
+      - ".github/workflows/billing-confidence.yml"
+      - "backend/**"
+      - "src/**"
+      - "e2e/**"
+      - "scripts/ci/**"
+      - "docker-compose.yaml"
+      - "docker-compose.dev.yaml"
+      - ".codex/docker-compose.codex.yaml"
+      - "package.json"
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: "Confidence tier to run"
+        required: true
+        default: "release-heavy"
+        type: choice
+        options:
+          - pr-fast
+          - merge-medium
+          - release-heavy
+      enforce_gate:
+        description: "Fail workflow when confidence runner fails"
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  billing-confidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    concurrency:
+      group: billing-confidence-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Resolve tier and gate mode
+        id: config
+        shell: bash
+        run: |
+          set -euo pipefail
+          event_name="${{ github.event_name }}"
+
+          if [[ "$event_name" == "pull_request" ]]; then
+            tier="pr-fast"
+            enforce_gate="true"
+          elif [[ "$event_name" == "push" ]]; then
+            tier="merge-medium"
+            enforce_gate="true"
+          else
+            tier="${{ inputs.tier }}"
+            enforce_gate="${{ inputs.enforce_gate }}"
+          fi
+
+          run_id="${{ github.run_id }}-${{ github.run_attempt }}-${tier}"
+          artifact_root="artifacts/billing-confidence"
+
+          echo "event_name=$event_name" >> "$GITHUB_OUTPUT"
+          echo "tier=$tier" >> "$GITHUB_OUTPUT"
+          echo "enforce_gate=$enforce_gate" >> "$GITHUB_OUTPUT"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "artifact_root=$artifact_root" >> "$GITHUB_OUTPUT"
+
+      - name: Run billing confidence suites
+        id: runner
+        shell: bash
+        continue-on-error: true
+        env:
+          BILLING_CONFIDENCE_TIER: ${{ steps.config.outputs.tier }}
+          BILLING_CONFIDENCE_RUN_ID: ${{ steps.config.outputs.run_id }}
+          BILLING_CONFIDENCE_ARTIFACT_DIR: ${{ steps.config.outputs.artifact_root }}
+          BILLING_COVERAGE_MIN_ROUTERS_LINE: "85"
+          BILLING_COVERAGE_MIN_ROUTERS_BRANCH: "65"
+          BILLING_COVERAGE_MIN_UTILS_LINE: "85"
+          BILLING_COVERAGE_MIN_UTILS_BRANCH: "70"
+        run: |
+          set -euo pipefail
+          scripts/ci/run_billing_confidence.sh
+
+      - name: Upload billing confidence artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: billing-confidence-${{ steps.config.outputs.run_id }}
+          path: |
+            ${{ steps.config.outputs.artifact_root }}/${{ steps.config.outputs.run_id }}/
+            ${{ steps.config.outputs.artifact_root }}/latest/
+          if-no-files-found: warn
+
+      - name: Enforce confidence gate
+        if: ${{ steps.config.outputs.enforce_gate == 'true' && steps.runner.outcome != 'success' }}
+        shell: bash
+        run: |
+          echo "Billing confidence gate failed for tier=${{ steps.config.outputs.tier }}."
+          echo "Inspect uploaded artifacts for logs/summary.json."
+          exit 1
+
+      - name: Soft-fail notice for manual run
+        if: ${{ steps.config.outputs.enforce_gate != 'true' && steps.runner.outcome != 'success' }}
+        shell: bash
+        run: |
+          echo "Billing confidence run failed, but enforce_gate=false so workflow remains green."
+          echo "Use uploaded artifacts to triage failures."
