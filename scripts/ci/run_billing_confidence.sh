@@ -23,6 +23,8 @@ EOF
 TIER="${BILLING_CONFIDENCE_TIER:-pr-fast}"
 DRY_RUN="false"
 DEFAULT_TIMEOUT_SECONDS="${BILLING_CONFIDENCE_TIMEOUT_SECONDS:-1800}"
+BACKEND_CRITICAL_TIMEOUT_SECONDS="${BILLING_CONF_BACKEND_CRITICAL_TIMEOUT_SECONDS:-$DEFAULT_TIMEOUT_SECONDS}"
+E2E_TIMEOUT_SECONDS="${BILLING_CONF_E2E_TIMEOUT_SECONDS:-$DEFAULT_TIMEOUT_SECONDS}"
 ARTIFACT_ROOT="${BILLING_CONFIDENCE_ARTIFACT_DIR:-$ROOT_DIR/artifacts/billing-confidence}"
 RUN_ID="${BILLING_CONFIDENCE_RUN_ID:-}"
 OUTPUT_DIR=""
@@ -147,22 +149,22 @@ add_suite() {
 
 case "$TIER" in
   pr-fast)
-    add_suite "backend_billing_critical" "$DEFAULT_TIMEOUT_SECONDS" "junit/backend_billing_critical.xml" "" "$BACKEND_CRITICAL_CMD"
+    add_suite "backend_billing_critical" "$BACKEND_CRITICAL_TIMEOUT_SECONDS" "junit/backend_billing_critical.xml" "" "$BACKEND_CRITICAL_CMD"
     add_suite "frontend_billing_balance" "$DEFAULT_TIMEOUT_SECONDS" "" "" "$FRONTEND_BALANCE_CMD"
-    add_suite "e2e_billing_wallet" "$DEFAULT_TIMEOUT_SECONDS" "junit/e2e_billing_wallet.xml" "traces/e2e_billing_wallet" "$E2E_WALLET_CMD"
+    add_suite "e2e_billing_wallet" "$E2E_TIMEOUT_SECONDS" "junit/e2e_billing_wallet.xml" "traces/e2e_billing_wallet" "$E2E_WALLET_CMD"
     ;;
   merge-medium)
-    add_suite "backend_billing_critical" "$DEFAULT_TIMEOUT_SECONDS" "junit/backend_billing_critical.xml" "" "$BACKEND_CRITICAL_CMD"
+    add_suite "backend_billing_critical" "$BACKEND_CRITICAL_TIMEOUT_SECONDS" "junit/backend_billing_critical.xml" "" "$BACKEND_CRITICAL_CMD"
     add_suite "backend_billing_coverage" "$DEFAULT_TIMEOUT_SECONDS" "junit/backend_billing_coverage.xml" "" "$BACKEND_COVERAGE_CMD"
     add_suite "frontend_billing_balance" "$DEFAULT_TIMEOUT_SECONDS" "" "" "$FRONTEND_BALANCE_CMD"
-    add_suite "e2e_billing_wallet" "$DEFAULT_TIMEOUT_SECONDS" "junit/e2e_billing_wallet.xml" "traces/e2e_billing_wallet" "$E2E_WALLET_CMD"
+    add_suite "e2e_billing_wallet" "$E2E_TIMEOUT_SECONDS" "junit/e2e_billing_wallet.xml" "traces/e2e_billing_wallet" "$E2E_WALLET_CMD"
     ;;
   release-heavy)
-    add_suite "backend_billing_critical" "$DEFAULT_TIMEOUT_SECONDS" "junit/backend_billing_critical.xml" "" "$BACKEND_CRITICAL_CMD"
+    add_suite "backend_billing_critical" "$BACKEND_CRITICAL_TIMEOUT_SECONDS" "junit/backend_billing_critical.xml" "" "$BACKEND_CRITICAL_CMD"
     add_suite "backend_billing_coverage" "$DEFAULT_TIMEOUT_SECONDS" "junit/backend_billing_coverage.xml" "" "$BACKEND_COVERAGE_CMD"
     add_suite "backend_billing_full_pack" "$DEFAULT_TIMEOUT_SECONDS" "junit/backend_billing_full_pack.xml" "" "$BACKEND_FULL_PACK_CMD"
     add_suite "frontend_billing_balance" "$DEFAULT_TIMEOUT_SECONDS" "" "" "$FRONTEND_BALANCE_CMD"
-    add_suite "e2e_billing_wallet" "$DEFAULT_TIMEOUT_SECONDS" "junit/e2e_billing_wallet.xml" "traces/e2e_billing_wallet" "$E2E_WALLET_CMD"
+    add_suite "e2e_billing_wallet" "$E2E_TIMEOUT_SECONDS" "junit/e2e_billing_wallet.xml" "traces/e2e_billing_wallet" "$E2E_WALLET_CMD"
     ;;
   *)
     echo "[billing-confidence] unsupported tier: $TIER"
