@@ -116,7 +116,7 @@ test.describe('Billing wallet recovery (smoke)', () => {
 
 		await expect(page.getByRole('heading', { name: 'Wallet' })).toBeVisible();
 		await expect(page.getByText('Low balance')).toBeVisible();
-		await expect(page.getByText('Wallet balance is low. Free limit:')).toBeVisible();
+		await expect(page.getByText('Wallet is low but free limit is available')).toBeVisible();
 		const heroHeading = page.getByRole('heading', { name: 'Wallet' });
 		const heroRow = heroHeading.locator('xpath=../../..');
 		await expect(heroRow.getByRole('button', { name: 'Top up' })).toBeVisible();
