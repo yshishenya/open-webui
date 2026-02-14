@@ -52,7 +52,7 @@ on:
 jobs:
   billing-confidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
     concurrency:
       group: billing-confidence-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
@@ -113,6 +113,7 @@ jobs:
           BILLING_COVERAGE_MIN_ROUTERS_BRANCH: "65"
           BILLING_COVERAGE_MIN_UTILS_LINE: "85"
           BILLING_COVERAGE_MIN_UTILS_BRANCH: "70"
+          BILLING_CONF_BACKEND_CRITICAL_TIMEOUT_SECONDS: "2700"
         run: |
           set -euo pipefail
           scripts/ci/run_billing_confidence.sh
