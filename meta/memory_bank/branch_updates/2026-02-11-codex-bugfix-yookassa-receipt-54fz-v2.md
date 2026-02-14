@@ -1,0 +1,8 @@
+- [x] **[BUG][BILLING][YOOKASSA]** Reconcile topup on return when webhook is delayed/missed
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-11__bugfix__billing-topup-reconcile-on-return.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/yookassa-receipt-54fz-v2`
+  - Done: 2026-02-11
+  - Summary: Added `/billing/topup/reconcile` + return-flow polling call to sync provider payment status and credit wallet even when webhook delivery is not immediate; hardened ownership checks for partial provider metadata using local payment as authoritative fallback.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_billing_topup.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check backend/open_webui/routers/billing.py backend/open_webui/utils/billing.py backend/open_webui/test/apps/webui/routers/test_billing_topup.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; npx eslint src/lib/apis/billing/index.ts 'src/routes/(app)/billing/balance/+page.svelte'"`
+  - Risks: Low-Medium (adds provider polling on return checks; idempotent wallet credit path preserved)

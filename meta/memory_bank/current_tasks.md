@@ -44,6 +44,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
   - Tests: `python -m py_compile` (Codex/OpenCode providers), `opencode models`, `meta/tools/sdd list-review-tools --json`
   - Risks: Low (config/tooling-only)
 
+- [x] **[REFACTOR][ENV]** Audit + document `.env`/`.env.example` variables
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-10__refactor__env-files-audit-and-documentation.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-02-10
+  - Summary: Упорядочить и прокомментировать `.env*`, сверить переменные с кодом/compose и починить passthrough для Compose.
+  - Tests: `docker compose -f docker-compose.yaml config`
+  - Risks: Low (config/docs-only; tiny Compose env passthrough changes)
+
 - [x] **[BUG][AUTH]** VKID one-click login + Telegram icon hitbox + official Yandex/VK icons on `/auth`
   - Spec: `meta/memory_bank/specs/work_items/2026-02-09__bugfix__auth-vkid-direct-login-telegram-hitbox-yandex-icons.md`
   - Owner: Codex

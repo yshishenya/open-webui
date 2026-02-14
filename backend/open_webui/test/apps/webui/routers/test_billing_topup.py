@@ -12,6 +12,25 @@ from test.util.mock_user import mock_webui_user
 class TestBillingTopup(AbstractPostgresTest):
     BASE_PATH = "/api/v1/billing"
 
+    def _ensure_user(
+        self,
+        user_id: str,
+        email: str = "user@example.com",
+        info: Optional[dict[str, object]] = None,
+    ) -> None:
+        from open_webui.models.users import Users
+
+        if not Users.get_user_by_id(user_id):
+            Users.insert_new_user(
+                id=user_id,
+                name=f"User {user_id}",
+                email=email,
+                role="user",
+            )
+
+        if info is not None:
+            Users.update_user_by_id(user_id, {"info": info})
+
     def _mock_yookassa_get_payment(
         self,
         monkeypatch: MonkeyPatch,
@@ -441,6 +460,208 @@ class TestBillingTopup(AbstractPostgresTest):
         assert response.status_code == 400
         assert response.json()["detail"] == "Invalid return_url"
 
+    def test_payment_maps_uninitialized_payment_system_error(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_SUBSCRIPTIONS", True)
+
+        async def fake_create_payment(**_: object) -> dict[str, object]:
+            raise RuntimeError("YooKassa client not initialized")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "create_payment",
+            fake_create_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/payment"),
+                json={
+                    "plan_id": "plan_basic",
+                    "return_url": "https://example.com/return",
+                },
+            )
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Payment system is not configured"
+
+    def test_topup_maps_uninitialized_payment_system_error(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
+
+        async def fake_create_topup_payment(**_: object) -> dict[str, object]:
+            raise RuntimeError("YooKassa client not initialized")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "create_topup_payment",
+            fake_create_topup_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/topup"),
+                json={
+                    "amount_kopeks": 100000,
+                    "return_url": "https://example.com/return",
+                },
+            )
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Payment system is not configured"
+
+    def test_reconcile_topup_success(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
+
+        async def fake_reconcile_topup_payment(
+            user_id: str,
+            payment_id: str,
+        ) -> dict[str, object]:
+            assert user_id == "1"
+            assert payment_id == "pay_sync_1"
+            return {
+                "payment_id": payment_id,
+                "provider_status": "succeeded",
+                "payment_status": "succeeded",
+                "credited": True,
+            }
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "reconcile_topup_payment",
+            fake_reconcile_topup_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/topup/reconcile"),
+                json={"payment_id": "pay_sync_1"},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["credited"] is True
+        assert response.json()["payment_status"] == "succeeded"
+
+    def test_reconcile_topup_forbidden(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
+
+        async def fake_reconcile_topup_payment(
+            user_id: str,
+            payment_id: str,
+        ) -> dict[str, object]:
+            raise PermissionError("Payment does not belong to the current user")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "reconcile_topup_payment",
+            fake_reconcile_topup_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/topup/reconcile"),
+                json={"payment_id": "pay_sync_other"},
+            )
+
+        assert response.status_code == 403
+        assert (
+            response.json()["detail"] == "Payment does not belong to the current user"
+        )
+
+    @pytest.mark.asyncio
+    async def test_create_subscription_payment_includes_receipt(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        from open_webui.models.billing import PlanModel, Plans
+        from open_webui.utils.billing import billing_service
+        import open_webui.utils.billing as billing_utils
+
+        self._ensure_user(
+            user_id="receipt-sub",
+            email="receipt-sub@example.com",
+            info={"billing_contact_phone": "+79000000000"},
+        )
+        now = int(time.time())
+        plan = Plans.create_plan(
+            PlanModel(
+                id="plan_receipt_sub",
+                name="Receipt plan",
+                price=199.0,
+                currency="RUB",
+                interval="month",
+                quotas={},
+                features=[],
+                is_active=True,
+                display_order=1,
+                created_at=now,
+                updated_at=now,
+            ).model_dump()
+        )
+
+        class FakeYooKassaClient:
+            def __init__(self) -> None:
+                self.last_receipt: Optional[dict[str, object]] = None
+
+            async def create_payment(
+                self,
+                amount: Decimal,
+                currency: str,
+                description: str,
+                return_url: str,
+                metadata: dict[str, object],
+                receipt: Optional[dict[str, object]] = None,
+                payment_method_id: Optional[str] = None,
+                save_payment_method: Optional[bool] = None,
+            ) -> dict[str, object]:
+                self.last_receipt = receipt
+                return {
+                    "id": "pay_sub_receipt",
+                    "status": "pending",
+                    "confirmation": {"confirmation_url": "https://example.com/confirm"},
+                }
+
+        fake_client = FakeYooKassaClient()
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: fake_client)
+        monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_ENABLED", True)
+        monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_VAT_CODE", 1)
+        monkeypatch.setattr(
+            billing_utils,
+            "BILLING_RECEIPT_PAYMENT_MODE",
+            "full_payment",
+        )
+        monkeypatch.setattr(
+            billing_utils,
+            "BILLING_RECEIPT_PAYMENT_SUBJECT",
+            "service",
+        )
+        monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_TAX_SYSTEM_CODE", None)
+
+        result = await billing_service.create_payment(
+            user_id="receipt-sub",
+            plan_id=plan.id,
+            return_url="https://example.com/return",
+        )
+
+        assert result["payment_id"] == "pay_sub_receipt"
+        assert fake_client.last_receipt is not None
+        customer = fake_client.last_receipt.get("customer")
+        assert isinstance(customer, dict)
+        assert customer.get("email") == "receipt-sub@example.com"
+        assert customer.get("phone") == "+79000000000"
+        items = fake_client.last_receipt.get("items")
+        assert isinstance(items, list)
+        assert len(items) == 1
+
     @pytest.mark.asyncio
     async def test_create_topup_payment_creates_payment_record(
         self, monkeypatch: MonkeyPatch
@@ -450,11 +671,14 @@ class TestBillingTopup(AbstractPostgresTest):
         from open_webui.utils.wallet import wallet_service
         import open_webui.utils.billing as billing_utils
 
+        self._ensure_user("1", email="topup-user@example.com")
+
         class FakeYooKassaClient:
             def __init__(self) -> None:
                 self.last_amount: Optional[Decimal] = None
                 self.last_metadata: Optional[dict[str, object]] = None
                 self.last_payment_method_id: Optional[str] = None
+                self.last_receipt: Optional[dict[str, object]] = None
 
             async def create_payment(
                 self,
@@ -463,12 +687,14 @@ class TestBillingTopup(AbstractPostgresTest):
                 description: str,
                 return_url: str,
                 metadata: dict[str, object],
+                receipt: Optional[dict[str, object]] = None,
                 payment_method_id: Optional[str] = None,
                 save_payment_method: Optional[bool] = None,
             ) -> dict[str, object]:
                 self.last_amount = amount
                 self.last_metadata = metadata
                 self.last_payment_method_id = payment_method_id
+                self.last_receipt = receipt
                 return {
                     "id": "pay_stub",
                     "status": "pending",
@@ -479,6 +705,19 @@ class TestBillingTopup(AbstractPostgresTest):
         fake_client = FakeYooKassaClient()
         monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: fake_client)
         monkeypatch.setattr(billing_utils, "BILLING_TOPUP_PACKAGES_KOPEKS", [19900])
+        monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_ENABLED", True)
+        monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_VAT_CODE", 1)
+        monkeypatch.setattr(
+            billing_utils,
+            "BILLING_RECEIPT_PAYMENT_MODE",
+            "full_payment",
+        )
+        monkeypatch.setattr(
+            billing_utils,
+            "BILLING_RECEIPT_PAYMENT_SUBJECT",
+            "service",
+        )
+        monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_TAX_SYSTEM_CODE", None)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
 
@@ -494,6 +733,10 @@ class TestBillingTopup(AbstractPostgresTest):
         assert fake_client.last_amount == Decimal("199.00")
         assert isinstance(fake_client.last_metadata, dict)
         assert fake_client.last_metadata.get("wallet_id") == wallet.id
+        assert isinstance(fake_client.last_receipt, dict)
+        customer = fake_client.last_receipt.get("customer")
+        assert isinstance(customer, dict)
+        assert customer.get("email") == "topup-user@example.com"
 
         payment = Payments.get_payment_by_provider_id("pay_stub")
         assert payment is not None
@@ -516,10 +759,13 @@ class TestBillingTopup(AbstractPostgresTest):
         from open_webui.utils.wallet import wallet_service
         import open_webui.utils.billing as billing_utils
 
+        self._ensure_user("1", email="auto-topup-user@example.com")
+
         class FakeYooKassaClient:
             def __init__(self) -> None:
                 self.last_payment_method_id: Optional[str] = None
                 self.last_metadata: Optional[dict[str, object]] = None
+                self.last_receipt: Optional[dict[str, object]] = None
 
             async def create_payment(
                 self,
@@ -528,11 +774,13 @@ class TestBillingTopup(AbstractPostgresTest):
                 description: str,
                 return_url: Optional[str] = None,
                 metadata: Optional[dict[str, object]] = None,
+                receipt: Optional[dict[str, object]] = None,
                 payment_method_id: Optional[str] = None,
                 save_payment_method: Optional[bool] = None,
             ) -> dict[str, object]:
                 self.last_payment_method_id = payment_method_id
                 self.last_metadata = metadata
+                self.last_receipt = receipt
                 return {
                     "id": "pay_auto",
                     "status": "pending",
@@ -542,6 +790,19 @@ class TestBillingTopup(AbstractPostgresTest):
         fake_client = FakeYooKassaClient()
         monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: fake_client)
         monkeypatch.setattr(billing_utils, "BILLING_TOPUP_PACKAGES_KOPEKS", [19900])
+        monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_ENABLED", True)
+        monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_VAT_CODE", 1)
+        monkeypatch.setattr(
+            billing_utils,
+            "BILLING_RECEIPT_PAYMENT_MODE",
+            "full_payment",
+        )
+        monkeypatch.setattr(
+            billing_utils,
+            "BILLING_RECEIPT_PAYMENT_SUBJECT",
+            "service",
+        )
+        monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_TAX_SYSTEM_CODE", None)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(
@@ -591,11 +852,59 @@ class TestBillingTopup(AbstractPostgresTest):
         assert result.attempted is True
         assert result.status == "created"
         assert fake_client.last_payment_method_id == "pm_saved"
+        assert isinstance(fake_client.last_receipt, dict)
+        customer = fake_client.last_receipt.get("customer")
+        assert isinstance(customer, dict)
+        assert customer.get("email") == "auto-topup-user@example.com"
 
         auto_payment = Payments.get_payment_by_provider_id("pay_auto")
         assert auto_payment is not None
         assert auto_payment.metadata_json is not None
         assert auto_payment.metadata_json.get("auto_topup") is True
+
+    @pytest.mark.asyncio
+    async def test_create_topup_payment_requires_receipt_contact(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        from open_webui.models.users import Users
+        from open_webui.utils.billing import billing_service
+        from open_webui.utils.wallet import wallet_service
+        import open_webui.utils.billing as billing_utils
+
+        class FakeYooKassaClient:
+            async def create_payment(self, **_: object) -> dict[str, object]:
+                return {
+                    "id": "unused",
+                    "status": "pending",
+                    "confirmation": {"confirmation_url": "https://example.com/confirm"},
+                }
+
+        Users.insert_new_user(
+            id="no-contact-user",
+            name="No Contact",
+            email="",
+            role="user",
+        )
+        Users.update_user_by_id("no-contact-user", {"info": {}})
+
+        monkeypatch.setattr(billing_utils, "BILLING_TOPUP_PACKAGES_KOPEKS", [19900])
+        monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_ENABLED", True)
+        monkeypatch.setattr(
+            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
+        )
+
+        wallet = wallet_service.get_or_create_wallet("no-contact-user", "RUB")
+
+        with pytest.raises(
+            ValueError,
+            match="Set billing contact email or phone in billing settings to issue a payment receipt",
+        ):
+            await billing_service.create_topup_payment(
+                user_id="no-contact-user",
+                wallet_id=wallet.id,
+                amount_kopeks=19900,
+                return_url="https://example.com/return",
+            )
 
     @pytest.mark.asyncio
     async def test_auto_topup_missing_payment_method_skips(
@@ -922,6 +1231,204 @@ class TestBillingTopup(AbstractPostgresTest):
             entry.type == "topup" and entry.reference_id == "pay_new"
             for entry in ledger_entries
         )
+
+    @pytest.mark.asyncio
+    async def test_reconcile_topup_rejects_foreign_payment_without_local_record(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        from open_webui.models.billing import Payments, Wallets
+        from open_webui.utils.billing import billing_service
+        from open_webui.utils.wallet import wallet_service
+
+        wallet = wallet_service.get_or_create_wallet("1", "RUB")
+
+        foreign_metadata = {
+            "kind": "topup",
+            "user_id": "foreign-user",
+            "wallet_id": wallet.id,
+            "amount_kopeks": 19900,
+        }
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_foreign",
+            status="succeeded",
+            metadata=foreign_metadata,
+            amount_value="199.00",
+            currency="RUB",
+            paid=True,
+        )
+
+        with pytest.raises(PermissionError):
+            await billing_service.reconcile_topup_payment(
+                user_id="1",
+                payment_id="pay_foreign",
+            )
+
+        created_payment = Payments.get_payment_by_provider_id("pay_foreign")
+        assert created_payment is None
+
+        updated_wallet = Wallets.get_wallet_by_id(wallet.id)
+        assert updated_wallet is not None
+        assert updated_wallet.balance_topup_kopeks == 0
+
+    @pytest.mark.asyncio
+    async def test_reconcile_topup_uses_local_owner_when_provider_metadata_missing(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        from open_webui.models.billing import (
+            PaymentKind,
+            PaymentModel,
+            PaymentStatus,
+            Payments,
+            Wallets,
+        )
+        from open_webui.utils.billing import billing_service
+        from open_webui.utils.wallet import wallet_service
+
+        now = int(time.time())
+        wallet = wallet_service.get_or_create_wallet("1", "RUB")
+
+        payment = PaymentModel(
+            id="payment_reconcile_local_owner",
+            provider="yookassa",
+            status=PaymentStatus.PENDING.value,
+            kind=PaymentKind.TOPUP.value,
+            amount_kopeks=19900,
+            currency="RUB",
+            idempotency_key="idem_reconcile_local_owner",
+            provider_payment_id="pay_reconcile_local_owner",
+            payment_method_id=None,
+            status_details=None,
+            metadata_json={},
+            raw_payload_json=None,
+            user_id="1",
+            wallet_id=wallet.id,
+            subscription_id=None,
+            created_at=now,
+            updated_at=now,
+        )
+        Payments.create_payment(payment)
+
+        # Simulate partial provider payload without metadata fields.
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_reconcile_local_owner",
+            status="succeeded",
+            metadata={},
+            amount_value="199.00",
+            currency="RUB",
+            paid=True,
+        )
+
+        result = await billing_service.reconcile_topup_payment(
+            user_id="1",
+            payment_id="pay_reconcile_local_owner",
+        )
+
+        assert result["credited"] is True
+        assert result["payment_status"] == PaymentStatus.SUCCEEDED.value
+
+        updated_wallet = Wallets.get_wallet_by_id(wallet.id)
+        assert updated_wallet is not None
+        assert updated_wallet.balance_topup_kopeks == 19900
+
+    @pytest.mark.asyncio
+    async def test_reconcile_topup_overrides_conflicting_provider_wallet_context(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        from open_webui.models.billing import (
+            PaymentKind,
+            PaymentModel,
+            PaymentStatus,
+            Payments,
+            Wallets,
+        )
+        from open_webui.utils.billing import billing_service
+        from open_webui.utils.wallet import wallet_service
+
+        self._ensure_user("2", email="other-user@example.com")
+        now = int(time.time())
+        owner_wallet = wallet_service.get_or_create_wallet("1", "RUB")
+        foreign_wallet = wallet_service.get_or_create_wallet("2", "RUB")
+
+        payment = PaymentModel(
+            id="payment_reconcile_wallet_override",
+            provider="yookassa",
+            status=PaymentStatus.PENDING.value,
+            kind=PaymentKind.TOPUP.value,
+            amount_kopeks=19900,
+            currency="RUB",
+            idempotency_key="idem_reconcile_wallet_override",
+            provider_payment_id="pay_reconcile_wallet_override",
+            payment_method_id=None,
+            status_details=None,
+            metadata_json={},
+            raw_payload_json=None,
+            user_id="1",
+            wallet_id=owner_wallet.id,
+            subscription_id=None,
+            created_at=now,
+            updated_at=now,
+        )
+        Payments.create_payment(payment)
+
+        # Provider payload may carry stale/conflicting wallet metadata.
+        # Reconcile must use local payment wallet context for locally owned payment.
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_reconcile_wallet_override",
+            status="succeeded",
+            metadata={
+                "kind": "topup",
+                "wallet_id": foreign_wallet.id,
+                "amount_kopeks": 9900,
+            },
+            amount_value="99.00",
+            currency="RUB",
+            paid=True,
+        )
+
+        result = await billing_service.reconcile_topup_payment(
+            user_id="1",
+            payment_id="pay_reconcile_wallet_override",
+        )
+
+        assert result["credited"] is True
+        assert result["payment_status"] == PaymentStatus.SUCCEEDED.value
+
+        updated_owner_wallet = Wallets.get_wallet_by_id(owner_wallet.id)
+        assert updated_owner_wallet is not None
+        assert updated_owner_wallet.balance_topup_kopeks == 19900
+
+        updated_foreign_wallet = Wallets.get_wallet_by_id(foreign_wallet.id)
+        assert updated_foreign_wallet is not None
+        assert updated_foreign_wallet.balance_topup_kopeks == 0
+
+    @pytest.mark.asyncio
+    async def test_reconcile_topup_rejects_when_owner_cannot_be_verified(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        from open_webui.models.billing import Payments
+        from open_webui.utils.billing import billing_service
+
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_no_owner",
+            status="succeeded",
+            metadata={"kind": "topup"},
+            amount_value="199.00",
+            currency="RUB",
+            paid=True,
+        )
+
+        with pytest.raises(PermissionError):
+            await billing_service.reconcile_topup_payment(
+                user_id="1",
+                payment_id="pay_no_owner",
+            )
+
+        created_payment = Payments.get_payment_by_provider_id("pay_no_owner")
+        assert created_payment is None
 
     @pytest.mark.asyncio
     async def test_topup_webhook_canceled_updates_status(

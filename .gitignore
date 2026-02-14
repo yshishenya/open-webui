@@ -345,3 +345,5 @@ backend/artifacts/
 
 # SDD review outputs (generated)
 meta/sdd/specs/.reviews/
+!.env.etalon
+!.env.etalon.example

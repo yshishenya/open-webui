@@ -12,6 +12,7 @@ from decimal import Decimal
 
 from fastapi.concurrency import run_in_threadpool
 
+from open_webui.models.users import Users
 from open_webui.models.billing import (
     Plans,
     Subscriptions,
@@ -34,6 +35,11 @@ from open_webui.models.billing import (
 from open_webui.utils.yookassa import get_yookassa_client
 from open_webui.env import (
     BILLING_DEFAULT_CURRENCY,
+    BILLING_RECEIPT_ENABLED,
+    BILLING_RECEIPT_PAYMENT_MODE,
+    BILLING_RECEIPT_PAYMENT_SUBJECT,
+    BILLING_RECEIPT_TAX_SYSTEM_CODE,
+    BILLING_RECEIPT_VAT_CODE,
     BILLING_TOPUP_PACKAGES_KOPEKS,
     BILLING_TOPUP_TTL_DAYS,
     SRC_LOG_LEVELS,
@@ -424,6 +430,78 @@ class BillingService:
                 f"Quota exceeded for {metric}. Please upgrade your plan."
             )
 
+    @staticmethod
+    def _clean_contact(value: object) -> Optional[str]:
+        if not isinstance(value, str):
+            return None
+        cleaned = value.strip()
+        return cleaned if cleaned else None
+
+    def _resolve_receipt_customer(self, user_id: str) -> Dict[str, str]:
+        user = Users.get_user_by_id(user_id)
+        if not user:
+            log.warning("Unable to load user for receipt generation: %s", user_id)
+            raise ValueError(
+                "Set billing contact email or phone in billing settings to issue a payment receipt"
+            )
+
+        user_info = user.info if isinstance(user.info, dict) else {}
+
+        contact_email = self._clean_contact(user_info.get("billing_contact_email"))
+        if not contact_email:
+            contact_email = self._clean_contact(user.email)
+
+        contact_phone = self._clean_contact(user_info.get("billing_contact_phone"))
+
+        customer: Dict[str, str] = {}
+        if contact_email:
+            customer["email"] = contact_email
+        if contact_phone:
+            customer["phone"] = contact_phone
+
+        if customer:
+            return customer
+
+        raise ValueError(
+            "Set billing contact email or phone in billing settings to issue a payment receipt"
+        )
+
+    def _build_receipt(
+        self,
+        user_id: str,
+        amount: Decimal,
+        currency: str,
+        description: str,
+    ) -> Optional[Dict[str, object]]:
+        if not BILLING_RECEIPT_ENABLED:
+            return None
+
+        receipt_description = description.strip() or "AIris payment"
+        receipt_description = receipt_description[:128]
+        rounded_amount = amount.quantize(Decimal("0.01"))
+
+        receipt_item: Dict[str, object] = {
+            "description": receipt_description,
+            "quantity": "1.00",
+            "amount": {
+                "value": str(rounded_amount),
+                "currency": currency,
+            },
+            "vat_code": BILLING_RECEIPT_VAT_CODE,
+            "payment_mode": BILLING_RECEIPT_PAYMENT_MODE,
+            "payment_subject": BILLING_RECEIPT_PAYMENT_SUBJECT,
+        }
+
+        receipt: Dict[str, object] = {
+            "customer": self._resolve_receipt_customer(user_id),
+            "items": [receipt_item],
+        }
+
+        if BILLING_RECEIPT_TAX_SYSTEM_CODE is not None:
+            receipt["tax_system_code"] = BILLING_RECEIPT_TAX_SYSTEM_CODE
+
+        return receipt
+
     # ==================== Payment Processing ====================
 
     async def create_payment(
@@ -469,10 +547,18 @@ class BillingService:
             self.transactions.create_transaction,
             transaction,
         )
+        payment_amount = Decimal(str(plan.price))
+        receipt = await run_in_threadpool(
+            self._build_receipt,
+            user_id,
+            payment_amount,
+            plan.currency,
+            transaction.description or f"Subscription: {plan.name}",
+        )
 
         # Create payment via YooKassa
         payment = await yookassa.create_payment(
-            amount=Decimal(str(plan.price)),
+            amount=payment_amount,
             currency=plan.currency,
             description=transaction.description,
             return_url=return_url,
@@ -481,6 +567,7 @@ class BillingService:
                 "plan_id": plan_id,
                 "transaction_id": created_transaction.id,
             },
+            receipt=receipt,
         )
 
         # Update transaction with YooKassa payment ID
@@ -548,13 +635,23 @@ class BillingService:
             "wallet_id": wallet_id,
             "amount_kopeks": amount_kopeks,
         }
+        topup_description = (
+            f"Top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
+        )
+        receipt = self._build_receipt(
+            user_id=user_id,
+            amount=amount_rub,
+            currency=BILLING_DEFAULT_CURRENCY,
+            description=topup_description,
+        )
 
         payment = await yookassa.create_payment(
             amount=amount_rub,
             currency=BILLING_DEFAULT_CURRENCY,
-            description=f"Top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}",
+            description=topup_description,
             return_url=return_url,
             metadata=metadata,
+            receipt=receipt,
             save_payment_method=save_payment_method,
         )
 
@@ -677,12 +774,22 @@ class BillingService:
             "auto_topup": True,
             "auto_topup_reason": reason,
         }
+        auto_topup_description = (
+            f"Auto top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
+        )
+        receipt = self._build_receipt(
+            user_id=user_id,
+            amount=amount_rub,
+            currency=BILLING_DEFAULT_CURRENCY,
+            description=auto_topup_description,
+        )
 
         payment = await yookassa.create_payment(
             amount=amount_rub,
             currency=BILLING_DEFAULT_CURRENCY,
-            description=f"Auto top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}",
+            description=auto_topup_description,
             metadata=metadata,
+            receipt=receipt,
             payment_method_id=payment_method_id,
         )
 
@@ -963,6 +1070,106 @@ class BillingService:
             )
 
         return None
+
+    async def reconcile_topup_payment(
+        self,
+        user_id: str,
+        payment_id: str,
+    ) -> Dict[str, object]:
+        """
+        Reconcile a topup payment status directly with YooKassa.
+
+        This is used as a fallback when webhook delivery is delayed or failed.
+        """
+        payment_id_clean = payment_id.strip()
+        if not payment_id_clean:
+            raise ValueError("payment_id is required")
+
+        local_payment = self.payments.get_payment_by_provider_id(payment_id_clean)
+        if local_payment and local_payment.user_id != user_id:
+            raise PermissionError("Payment does not belong to the current user")
+
+        yookassa = get_yookassa_client()
+        if not yookassa:
+            raise RuntimeError("YooKassa client not initialized")
+
+        provider_payment = await yookassa.get_payment(payment_id_clean)
+        if not isinstance(provider_payment, dict):
+            raise RuntimeError("Provider payment payload invalid")
+
+        provider_status_value = provider_payment.get("status")
+        provider_status = (
+            str(provider_status_value) if isinstance(provider_status_value, str) else ""
+        )
+        amount_obj = provider_payment.get("amount")
+        amount_value = amount_obj.get("value") if isinstance(amount_obj, dict) else None
+        currency_value = (
+            amount_obj.get("currency") if isinstance(amount_obj, dict) else None
+        )
+        metadata_value = provider_payment.get("metadata", {})
+        metadata = metadata_value if isinstance(metadata_value, dict) else {}
+        effective_metadata: Dict[str, object] = dict(metadata)
+
+        # YooKassa metadata can be missing/partial in some legacy/manual flows.
+        # When we have a local payment record, treat it as authoritative for
+        # ownership and wallet context to avoid applying topup to a stale/conflicting wallet.
+        if local_payment:
+            if local_payment.kind:
+                effective_metadata["kind"] = local_payment.kind
+            if local_payment.user_id:
+                effective_metadata["user_id"] = local_payment.user_id
+            if local_payment.wallet_id:
+                effective_metadata["wallet_id"] = local_payment.wallet_id
+            if local_payment.amount_kopeks is not None:
+                effective_metadata["amount_kopeks"] = local_payment.amount_kopeks
+
+        metadata_user_id_value = effective_metadata.get("user_id")
+        metadata_user_id = (
+            str(metadata_user_id_value)
+            if isinstance(metadata_user_id_value, str)
+            else None
+        )
+        ownership_verified = bool(local_payment and local_payment.user_id == user_id)
+        if not ownership_verified and metadata_user_id == user_id:
+            ownership_verified = True
+        if not ownership_verified:
+            raise PermissionError("Payment does not belong to the current user")
+
+        event_by_status: Dict[str, str] = {
+            "succeeded": "payment.succeeded",
+            "canceled": "payment.canceled",
+            "waiting_for_capture": "payment.waiting_for_capture",
+        }
+        event_type = event_by_status.get(provider_status)
+
+        if event_type and effective_metadata.get("kind") == PaymentKind.TOPUP.value:
+            trusted_webhook_data: Dict[str, object] = {
+                "event_type": event_type,
+                "payment_id": payment_id_clean,
+                "status": provider_status,
+                "amount": amount_value,
+                "currency": currency_value,
+                "metadata": effective_metadata,
+            }
+            self._process_topup_webhook(
+                event_type=event_type,
+                payment_id=payment_id_clean,
+                webhook_data=trusted_webhook_data,
+            )
+
+        updated_payment = self.payments.get_payment_by_provider_id(payment_id_clean)
+        if updated_payment and updated_payment.user_id != user_id:
+            raise PermissionError("Payment does not belong to the current user")
+
+        payment_status = updated_payment.status if updated_payment else None
+        credited = payment_status == PaymentStatus.SUCCEEDED.value
+
+        return {
+            "payment_id": payment_id_clean,
+            "provider_status": provider_status or None,
+            "payment_status": payment_status,
+            "credited": credited,
+        }
 
     def _process_topup_webhook(
         self,
