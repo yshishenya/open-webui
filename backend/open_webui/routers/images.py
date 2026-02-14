@@ -1152,6 +1152,8 @@ async def image_edits(
                     data["n"] = form_data.n
                 if size is not None:
                     data["size"] = size
+                # Keep non-Gemini providers on b64 output for predictable upload flow.
+                data["response_format"] = "b64_json"
 
             files = []
             if isinstance(form_data.image, str):
