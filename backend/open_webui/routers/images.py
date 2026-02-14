@@ -1132,17 +1132,21 @@ async def image_edits(
             if ENABLE_FORWARD_USER_INFO_HEADERS:
                 headers = include_user_info_headers(headers, user)
 
+            # NOTE: For non-OpenAI image models proxied behind an OpenAI-compatible API
+            # (e.g., Gemini via LiteLLM), extra OpenAI-specific params like `n`, `size`,
+            # and `response_format` often cause provider-side validation errors.
+            # Keep the payload minimal unless we're targeting an OpenAI-native image model.
             data = {
                 "model": model,
                 "prompt": form_data.prompt,
-                **({"n": form_data.n} if form_data.n else {}),
-                **({"size": size} if size else {}),
-                **(
-                    {}
-                    if request.app.state.config.IMAGE_EDIT_MODEL.startswith("gpt-image")
-                    else {"response_format": "b64_json"}
-                ),
             }
+
+            is_gemini_model = model.startswith("gemini/") or model.startswith("gemini-")
+            if not is_gemini_model:
+                if form_data.n:
+                    data["n"] = form_data.n
+                if size:
+                    data["size"] = size
 
             files = []
             if isinstance(form_data.image, str):
