@@ -873,6 +873,8 @@ async def image_edits(
         if form_data.model is None
         else form_data.model
     )
+    if not isinstance(model, str) or not model.strip():
+        raise HTTPException(status_code=400, detail="Invalid model format.")
 
     try:
 
@@ -938,17 +940,23 @@ async def image_edits(
             if ENABLE_FORWARD_USER_INFO_HEADERS:
                 headers = include_user_info_headers(headers, user)
 
+            # NOTE: For non-OpenAI image models proxied behind an OpenAI-compatible API
+            # (e.g., Gemini via LiteLLM), extra OpenAI-specific params like `n`, `size`,
+            # and `response_format` often cause provider-side validation errors.
+            # Keep the payload minimal unless we're targeting an OpenAI-native image model.
             data = {
                 "model": model,
                 "prompt": form_data.prompt,
-                **({"n": form_data.n} if form_data.n else {}),
-                **({"size": size} if size else {}),
-                **(
-                    {}
-                    if request.app.state.config.IMAGE_EDIT_MODEL.startswith("gpt-image")
-                    else {"response_format": "b64_json"}
-                ),
             }
+
+            is_gemini_model = model.startswith("gemini/") or model.startswith("gemini-")
+            if not is_gemini_model:
+                if hasattr(form_data, "n") and form_data.n is not None:
+                    data["n"] = form_data.n
+                if size is not None:
+                    data["size"] = size
+                # Keep non-Gemini providers on b64 output for predictable upload flow.
+                data["response_format"] = "b64_json"
 
             files = []
             if isinstance(form_data.image, str):
