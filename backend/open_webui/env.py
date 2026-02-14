@@ -998,6 +998,9 @@ YOOKASSA_WEBHOOK_TOKEN = os.environ.get("YOOKASSA_WEBHOOK_TOKEN", "")
 YOOKASSA_API_URL = os.environ.get("YOOKASSA_API_URL", "https://api.yookassa.ru/v3")
 
 # Optional webhook hardening (recommended if your app receives webhooks directly from YooKassa).
+YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE = (
+    os.environ.get("YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE", "False").lower() == "true"
+)
 YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST = (
     os.environ.get("YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST", "False").lower() == "true"
 )

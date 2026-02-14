@@ -32,3 +32,23 @@ sdd-fidelity-review:
     # - openrouter/arcee-ai/trinity-large-preview:free
     # - opencode/big-pickle
     opencode: openrouter/moonshotai/kimi-k2.5:free
+
+sdd-render:
+  rendering:
+    agent_priority:
+      - codex
+    timeout_seconds: 300
+    narrative_timeout_seconds: 300
+  tools:
+    codex:
+      enabled: true
+    gemini:
+      enabled: false
+    cursor-agent:
+      enabled: false
+    claude:
+      enabled: false
+    opencode:
+      enabled: false
+  models:
+    codex: gpt-5.2-codex

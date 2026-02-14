@@ -40,6 +40,8 @@ services:
       dockerfile: .codex/e2e.Dockerfile
     image: airis-e2e:playwright-1.57-node22
     working_dir: /work
+    depends_on:
+      - airis-e2e
     environment:
       # In this compose project network, "airis-e2e" resolves to the backend container.
       - PLAYWRIGHT_BASE_URL=http://airis-e2e:8080

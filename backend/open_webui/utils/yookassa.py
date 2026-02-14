@@ -4,6 +4,7 @@ Documentation: https://yookassa.ru/developers/api
 """
 
 import json
+import asyncio
 import logging
 import uuid
 import hashlib
@@ -21,6 +22,10 @@ log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS.get("YOOKASSA", logging.INFO))
 
 DEFAULT_TIMEOUT = aiohttp.ClientTimeout(total=15)
+RETRYABLE_HTTP_STATUS_CODES = {408, 409, 425, 429, 500, 502, 503, 504}
+MAX_RETRY_ATTEMPTS = 2
+RETRY_BASE_DELAY_SECONDS = 0.25
+RETRY_MAX_DELAY_SECONDS = 1.5
 
 
 class YooKassaRequestError(Exception):
@@ -31,10 +36,17 @@ class YooKassaRequestError(Exception):
         message: str,
         status_code: Optional[int] = None,
         response_text: str = "",
+        *,
+        retryable: bool = False,
+        error_code: Optional[str] = None,
+        source: str = "provider",
     ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.response_text = response_text
+        self.retryable = retryable
+        self.error_code = error_code
+        self.source = source
 
 
 class YooKassaConfig:
@@ -60,6 +72,31 @@ class YooKassaClient:
         self.config = config
         self.auth = aiohttp.BasicAuth(config.shop_id, config.secret_key)
 
+    @staticmethod
+    def _extract_error_code(response_text: str) -> Optional[str]:
+        if not response_text:
+            return None
+        try:
+            payload = json.loads(response_text)
+        except (TypeError, ValueError):
+            return None
+        if not isinstance(payload, dict):
+            return None
+        code = payload.get("code")
+        return code if isinstance(code, str) and code else None
+
+    @staticmethod
+    def _retry_delay_seconds(attempt: int) -> float:
+        return min(RETRY_MAX_DELAY_SECONDS, RETRY_BASE_DELAY_SECONDS * (2 ** (attempt - 1)))
+
+    @staticmethod
+    def _supports_retry(method: str, idempotence_key: Optional[str]) -> bool:
+        method_upper = method.upper()
+        if method_upper in {"GET", "HEAD", "OPTIONS"}:
+            return True
+        # For writes retry only when provider idempotency key is present.
+        return method_upper == "POST" and bool(idempotence_key)
+
     async def _request(
         self,
         method: str,
@@ -69,6 +106,7 @@ class YooKassaClient:
     ) -> Dict[str, Any]:
         """Make API request to YooKassa"""
         url = f"{self.config.api_url}/{endpoint}"
+        method_upper = method.upper()
         headers = {
             "Content-Type": "application/json",
         }
@@ -77,43 +115,107 @@ class YooKassaClient:
         if idempotence_key:
             headers["Idempotence-Key"] = idempotence_key
 
-        try:
-            log.debug(f"YooKassa {method} {url}")
-            async with aiohttp.ClientSession(auth=self.auth) as session:
-                async with session.request(
-                    method,
+        supports_retry = self._supports_retry(method_upper, idempotence_key)
+        max_attempts = 1 + MAX_RETRY_ATTEMPTS if supports_retry else 1
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                log.debug(
+                    "YooKassa %s %s (attempt %s/%s)",
+                    method_upper,
                     url,
-                    json=data,
-                    headers=headers,
-                    timeout=DEFAULT_TIMEOUT,
-                ) as response:
-                    response_text = await response.text()
-                    log.debug(f"YooKassa response: {response_text}")
+                    attempt,
+                    max_attempts,
+                )
+                async with aiohttp.ClientSession(auth=self.auth) as session:
+                    async with session.request(
+                        method_upper,
+                        url,
+                        json=data,
+                        headers=headers,
+                        timeout=DEFAULT_TIMEOUT,
+                    ) as response:
+                        response_text = await response.text()
+                        log.debug("YooKassa response: %s", response_text)
 
-                    if response.status >= 400:
-                        log.error(f"YooKassa error {response.status}: {response_text}")
-                        raise YooKassaRequestError(
-                            f"YooKassa request failed with status {response.status}",
-                            status_code=response.status,
-                            response_text=response_text,
-                        )
+                        if response.status >= 400:
+                            raise YooKassaRequestError(
+                                f"YooKassa request failed with status {response.status}",
+                                status_code=response.status,
+                                response_text=response_text,
+                                retryable=response.status in RETRYABLE_HTTP_STATUS_CODES,
+                                error_code=self._extract_error_code(response_text),
+                                source="provider",
+                            )
 
-                    return json.loads(response_text) if response_text else {}
+                        if not response_text:
+                            return {}
+                        try:
+                            return json.loads(response_text)
+                        except json.JSONDecodeError as e:
+                            raise YooKassaRequestError(
+                                "YooKassa returned malformed JSON payload",
+                                status_code=response.status,
+                                response_text=response_text,
+                                source="provider",
+                            ) from e
 
-        except YooKassaRequestError:
-            raise
-        except aiohttp.ClientError as e:
-            log.exception(f"YooKassa request failed: {e}")
-            raise YooKassaRequestError(
-                "YooKassa network request failed",
-                response_text=str(e),
-            ) from e
-        except Exception as e:
-            log.exception(f"Unexpected error in YooKassa request: {e}")
-            raise YooKassaRequestError(
-                "Unexpected YooKassa request error",
-                response_text=str(e),
-            ) from e
+            except asyncio.TimeoutError as e:
+                request_error = YooKassaRequestError(
+                    "YooKassa request timed out",
+                    retryable=True,
+                    response_text=str(e),
+                    source="timeout",
+                )
+            except aiohttp.ClientError as e:
+                request_error = YooKassaRequestError(
+                    "YooKassa network request failed",
+                    retryable=True,
+                    response_text=str(e),
+                    source="network",
+                )
+            except YooKassaRequestError as e:
+                request_error = e
+            except Exception as e:
+                log.exception("Unexpected error in YooKassa request")
+                raise YooKassaRequestError(
+                    "Unexpected YooKassa request error",
+                    response_text=str(e),
+                    source="unexpected",
+                ) from e
+
+            if request_error.retryable and attempt < max_attempts:
+                delay = self._retry_delay_seconds(attempt)
+                log.warning(
+                    "Retryable YooKassa error during %s %s (source=%s, status=%s, code=%s), retrying in %.2fs (%s/%s)",
+                    method_upper,
+                    endpoint,
+                    request_error.source,
+                    request_error.status_code,
+                    request_error.error_code,
+                    delay,
+                    attempt,
+                    max_attempts,
+                )
+                await asyncio.sleep(delay)
+                continue
+
+            log.error(
+                "YooKassa request failed for %s %s (source=%s, status=%s, code=%s): %s",
+                method_upper,
+                endpoint,
+                request_error.source,
+                request_error.status_code,
+                request_error.error_code,
+                request_error.response_text,
+            )
+            raise request_error
+
+        # Defensive fallback: loop should always return or raise.
+        raise YooKassaRequestError(
+            "YooKassa request failed after retry attempts",
+            source="unexpected",
+        )
 
     async def create_payment(
         self,

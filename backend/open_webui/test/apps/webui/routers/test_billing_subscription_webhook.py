@@ -230,6 +230,419 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         )
         assert response_ok.status_code == 200
 
+    def test_yookassa_webhook_trust_signature_required_when_secret_configured(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+
+        class FakeYooKassaClient:
+            def __init__(self) -> None:
+                self.config = type("Config", (), {"webhook_secret": "whsec"})()
+
+            def verify_webhook(self, _: str, signature: str) -> bool:
+                return signature == "valid_signature"
+
+        async def _noop_process_webhook(_: dict[str, object]) -> None:
+            return None
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "process_payment_webhook",
+            _noop_process_webhook,
+        )
+        monkeypatch.setattr(
+            billing_router,
+            "get_yookassa_client",
+            lambda: FakeYooKassaClient(),
+        )
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_TOKEN", "")
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST", False)
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE", True)
+
+        payload = {
+            "event": "payment.succeeded",
+            "object": {
+                "id": "pay_sig_1",
+                "status": "succeeded",
+                "amount": {"value": "100.00", "currency": "RUB"},
+                "metadata": {},
+            },
+        }
+        current_timestamp = str(int(time.time()))
+
+        response_missing = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            json=payload,
+        )
+        assert response_missing.status_code == 401
+        assert response_missing.json()["detail"] == "Missing signature"
+
+        response_bad = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            json=payload,
+            headers={
+                "X-YooKassa-Signature": "bad_signature",
+                "X-YooKassa-Timestamp": current_timestamp,
+            },
+        )
+        assert response_bad.status_code == 401
+        assert response_bad.json()["detail"] == "Invalid signature"
+
+        response_stale = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            json=payload,
+            headers={
+                "X-YooKassa-Signature": "valid_signature",
+                "X-YooKassa-Timestamp": "1",
+            },
+        )
+        assert response_stale.status_code == 401
+        assert (
+            response_stale.json()["detail"]
+            == "Signature timestamp is outside allowed window"
+        )
+
+        response_ok = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            json=payload,
+            headers={
+                "X-YooKassa-Signature": "valid_signature",
+                "X-YooKassa-Timestamp": current_timestamp,
+            },
+        )
+        assert response_ok.status_code == 200
+
+    def test_yookassa_webhook_trust_replay_short_circuit_for_topup(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+        from open_webui.models.billing import (
+            PaymentKind,
+            PaymentModel,
+            PaymentStatus,
+            Payments,
+        )
+        from open_webui.utils.wallet import wallet_service
+
+        now = int(time.time())
+        wallet = wallet_service.get_or_create_wallet("user_replay", "RUB")
+
+        Payments.create_payment(
+            PaymentModel(
+                id="payment_replay",
+                provider="yookassa",
+                status=PaymentStatus.SUCCEEDED.value,
+                kind=PaymentKind.TOPUP.value,
+                amount_kopeks=10000,
+                currency="RUB",
+                idempotency_key="idem_replay",
+                provider_payment_id="pay_replay_1",
+                payment_method_id=None,
+                status_details={"yookassa_status": "succeeded"},
+                metadata_json={
+                    "kind": PaymentKind.TOPUP.value,
+                    "user_id": "user_replay",
+                    "wallet_id": wallet.id,
+                    "amount_kopeks": 10000,
+                },
+                raw_payload_json=None,
+                user_id="user_replay",
+                wallet_id=wallet.id,
+                subscription_id=None,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+        async def _fail_if_called(_: dict[str, object]) -> None:
+            raise AssertionError("process_payment_webhook should not run for replay")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "process_payment_webhook",
+            _fail_if_called,
+        )
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_TOKEN", "")
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST", False)
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE", False)
+        monkeypatch.setattr(billing_router, "get_yookassa_client", lambda: None)
+
+        payload = {
+            "event": "payment.succeeded",
+            "object": {
+                "id": "pay_replay_1",
+                "status": "succeeded",
+                "amount": {"value": "100.00", "currency": "RUB"},
+                "metadata": {
+                    "kind": PaymentKind.TOPUP.value,
+                    "user_id": "user_replay",
+                    "wallet_id": wallet.id,
+                },
+            },
+        }
+
+        response = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            json=payload,
+        )
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok", "replayed": True}
+
+    def test_yookassa_webhook_returns_503_for_retryable_processing_errors(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+        from open_webui.utils.billing import WebhookRetryableError
+
+        async def _retryable(_: dict[str, object]) -> None:
+            raise WebhookRetryableError("Provider status mismatch")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "process_payment_webhook",
+            _retryable,
+        )
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_TOKEN", "")
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST", False)
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE", False)
+        monkeypatch.setattr(billing_router, "get_yookassa_client", lambda: None)
+
+        payload = {
+            "event": "payment.succeeded",
+            "object": {
+                "id": "pay_retryable",
+                "status": "succeeded",
+                "amount": {"value": "100.00", "currency": "RUB"},
+                "metadata": {"transaction_id": "tx_retryable"},
+            },
+        }
+
+        response = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            json=payload,
+        )
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Temporary error processing webhook"
+
+    def test_yookassa_webhook_rejects_invalid_body_encoding(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_TOKEN", "")
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST", False)
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE", False)
+        monkeypatch.setattr(billing_router, "get_yookassa_client", lambda: None)
+
+        response = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            data=b"\xff\xfe\xfd",
+            headers={"Content-Type": "application/json"},
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Invalid request body encoding"
+
+    def test_yookassa_webhook_rejects_invalid_json_payload(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_TOKEN", "")
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST", False)
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE", False)
+        monkeypatch.setattr(billing_router, "get_yookassa_client", lambda: None)
+
+        response = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            data="{invalid_json",
+            headers={"Content-Type": "application/json"},
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Invalid JSON payload"
+
+    def test_yookassa_webhook_signature_with_unavailable_client_returns_503(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_TOKEN", "")
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST", False)
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE", True)
+        monkeypatch.setattr(billing_router, "get_yookassa_client", lambda: None)
+
+        payload = {
+            "event": "payment.succeeded",
+            "object": {
+                "id": "pay_sig_missing_client",
+                "status": "succeeded",
+                "amount": {"value": "100.00", "currency": "RUB"},
+                "metadata": {},
+            },
+        }
+
+        response = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            json=payload,
+            headers={
+                "X-YooKassa-Signature": "sig",
+                "X-YooKassa-Timestamp": str(int(time.time())),
+            },
+        )
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Payment system temporarily unavailable"
+
+    def test_yookassa_webhook_rejects_non_integer_signature_timestamp(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+
+        class FakeYooKassaClient:
+            def __init__(self) -> None:
+                self.config = type("Config", (), {"webhook_secret": "whsec"})()
+
+            def verify_webhook(self, _: str, signature: str) -> bool:
+                return signature == "valid_signature"
+
+        monkeypatch.setattr(
+            billing_router,
+            "get_yookassa_client",
+            lambda: FakeYooKassaClient(),
+        )
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_TOKEN", "")
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST", False)
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE", True)
+
+        payload = {
+            "event": "payment.succeeded",
+            "object": {
+                "id": "pay_bad_ts",
+                "status": "succeeded",
+                "amount": {"value": "100.00", "currency": "RUB"},
+                "metadata": {},
+            },
+        }
+
+        response = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            json=payload,
+            headers={
+                "X-YooKassa-Signature": "valid_signature",
+                "X-YooKassa-Timestamp": "not_an_int",
+            },
+        )
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Invalid signature timestamp"
+
+    def test_yookassa_webhook_returns_400_on_parse_error(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+
+        def _raise_parse_error(_: dict[str, object]) -> dict[str, object]:
+            raise ValueError("bad webhook shape")
+
+        monkeypatch.setattr(
+            billing_router.YooKassaWebhookHandler,
+            "parse_webhook",
+            staticmethod(_raise_parse_error),
+        )
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_TOKEN", "")
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST", False)
+        monkeypatch.setattr(billing_router, "get_yookassa_client", lambda: None)
+
+        payload = {
+            "event": "payment.succeeded",
+            "object": {
+                "id": "pay_bad_parse",
+                "status": "succeeded",
+                "amount": {"value": "100.00", "currency": "RUB"},
+                "metadata": {},
+            },
+        }
+
+        response = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            json=payload,
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Invalid webhook payload"
+
+    def test_yookassa_webhook_returns_400_on_verification_error(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+        from open_webui.utils.billing import WebhookVerificationError
+
+        async def _verification_error(_: dict[str, object]) -> None:
+            raise WebhookVerificationError("verification failed")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "process_payment_webhook",
+            _verification_error,
+        )
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_TOKEN", "")
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST", False)
+        monkeypatch.setattr(billing_router, "get_yookassa_client", lambda: None)
+
+        payload = {
+            "event": "payment.succeeded",
+            "object": {
+                "id": "pay_verification_error",
+                "status": "succeeded",
+                "amount": {"value": "100.00", "currency": "RUB"},
+                "metadata": {"transaction_id": "tx_123"},
+            },
+        }
+
+        response = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            json=payload,
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Webhook verification failed"
+
+    def test_yookassa_webhook_returns_500_on_unexpected_processing_error(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+
+        async def _boom(_: dict[str, object]) -> None:
+            raise RuntimeError("unexpected webhook failure")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "process_payment_webhook",
+            _boom,
+        )
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_TOKEN", "")
+        monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST", False)
+        monkeypatch.setattr(billing_router, "get_yookassa_client", lambda: None)
+
+        payload = {
+            "event": "payment.succeeded",
+            "object": {
+                "id": "pay_unexpected_error",
+                "status": "succeeded",
+                "amount": {"value": "100.00", "currency": "RUB"},
+                "metadata": {"transaction_id": "tx_999"},
+            },
+        }
+
+        response = self.fast_api_client.post(
+            self.create_url("/webhook/yookassa"),
+            json=payload,
+        )
+
+        assert response.status_code == 500
+        assert response.json()["detail"] == "Failed to process webhook"
+
     @pytest.mark.asyncio
     async def test_subscription_webhook_renews_from_now_if_expired(
         self, monkeypatch: MonkeyPatch

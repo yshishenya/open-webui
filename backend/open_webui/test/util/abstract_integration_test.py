@@ -7,12 +7,12 @@ import pkgutil
 from typing import Mapping, Optional
 from urllib.parse import urlencode
 
-QueryParams = Mapping[str, str | list[str]]
-
 from fastapi.testclient import TestClient
 
-from open_webui.internal.db import Base, engine
+from open_webui.internal.db import Base, ScopedSession, engine
 from open_webui.main import app
+
+QueryParams = Mapping[str, str | list[str]]
 
 
 def _import_all_models() -> None:
@@ -40,8 +40,12 @@ class AbstractPostgresTest:
 
     def _reset_database(self) -> None:
         _import_all_models()
+        # Some tests query through ScopedSession directly and may leave an open transaction.
+        # Ensure the scoped session is fully removed before DDL reset.
+        ScopedSession.remove()
         Base.metadata.drop_all(bind=engine)
         Base.metadata.create_all(bind=engine)
+        ScopedSession.remove()
 
     def create_url(self, path: str, query_params: Optional[QueryParams] = None) -> str:
         base = self.BASE_PATH.rstrip("/")

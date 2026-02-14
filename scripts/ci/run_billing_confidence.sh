@@ -26,6 +26,9 @@ DEFAULT_TIMEOUT_SECONDS="${BILLING_CONFIDENCE_TIMEOUT_SECONDS:-1800}"
 ARTIFACT_ROOT="${BILLING_CONFIDENCE_ARTIFACT_DIR:-$ROOT_DIR/artifacts/billing-confidence}"
 RUN_ID="${BILLING_CONFIDENCE_RUN_ID:-}"
 OUTPUT_DIR=""
+CI_WEBUI_SECRET_KEY="${BILLING_CI_WEBUI_SECRET_KEY:-ci-test-secret-key}"
+CI_WEBUI_AUTH="${BILLING_CI_WEBUI_AUTH:-true}"
+BACKEND_TEST_RUN_PREFIX="docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e WEBUI_AUTH=$CI_WEBUI_AUTH -e WEBUI_SECRET_KEY=$CI_WEBUI_SECRET_KEY"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -68,6 +71,7 @@ done
 if [[ "$ARTIFACT_ROOT" != /* ]]; then
   ARTIFACT_ROOT="$ROOT_DIR/$ARTIFACT_ROOT"
 fi
+mkdir -p "$ARTIFACT_ROOT"
 
 if [[ -n "$OUTPUT_DIR" ]]; then
   if [[ "$OUTPUT_DIR" != /* ]]; then
@@ -108,15 +112,15 @@ else:
 PY
 )"
 
-BACKEND_CRITICAL_CMD="${BILLING_CONF_BACKEND_CRITICAL_CMD:-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc \"pytest -q --junitxml=__JUNIT_PATH__ open_webui/test/apps/webui/routers/test_billing_topup.py open_webui/test/apps/webui/routers/test_billing_subscription.py open_webui/test/apps/webui/routers/test_billing_subscription_webhook.py open_webui/test/apps/webui/utils/test_billing_integration.py\"}"
+BACKEND_CRITICAL_CMD="${BILLING_CONF_BACKEND_CRITICAL_CMD:-$BACKEND_TEST_RUN_PREFIX airis bash -lc \"pytest -q --junitxml=__JUNIT_PATH__ open_webui/test/apps/webui/routers/test_billing_topup.py open_webui/test/apps/webui/routers/test_billing_subscription.py open_webui/test/apps/webui/routers/test_billing_subscription_webhook.py open_webui/test/apps/webui/utils/test_billing_integration.py\"}"
 
-BACKEND_COVERAGE_CMD="${BILLING_CONF_BACKEND_COVERAGE_CMD:-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e DATABASE_URL= airis bash -lc \"python -m pip install -q pytest-cov && cd /app/backend && pytest -q --maxfail=1 --disable-warnings --junitxml=__JUNIT_PATH__ --cov=open_webui.routers.billing --cov=open_webui.utils.billing --cov-branch --cov-report=term-missing:skip-covered --cov-report=json:__COVERAGE_JSON_PATH__ open_webui/test/apps/webui/routers/test_billing_topup.py open_webui/test/apps/webui/routers/test_billing_subscription.py open_webui/test/apps/webui/routers/test_billing_subscription_webhook.py open_webui/test/apps/webui/routers/test_billing_webhook_direct_path.py open_webui/test/apps/webui/routers/test_billing_core_paths.py open_webui/test/apps/webui/routers/test_billing_router_expanded_paths.py open_webui/test/apps/webui/routers/test_billing_router_additional_paths.py open_webui/test/apps/webui/routers/test_billing_public_pricing.py open_webui/test/apps/webui/utils/test_billing_integration.py open_webui/test/apps/webui/utils/test_billing_quota.py open_webui/test/apps/webui/utils/test_billing_service_core.py open_webui/test/apps/webui/utils/test_billing_service_extended.py open_webui/test/apps/webui/utils/test_billing_service_webhook_statuses.py open_webui/test/apps/webui/routers/test_openai_chat_billing.py open_webui/test/apps/webui/routers/test_openai_chat_billing_lead_magnet.py open_webui/test/apps/webui/routers/test_openai_chat_billing_streaming.py open_webui/test/apps/webui/routers/test_billing_lead_magnet.py open_webui/test/apps/webui/routers/test_images_billing.py open_webui/test/apps/webui/routers/test_openai_speech_billing.py open_webui/test/apps/webui/routers/test_audio_billing.py\" && python3 scripts/ci/check_billing_module_coverage.py --coverage-json __HOST_COVERAGE_JSON_PATH__ --routers-line-min ${BILLING_COVERAGE_MIN_ROUTERS_LINE:-85} --routers-branch-min ${BILLING_COVERAGE_MIN_ROUTERS_BRANCH:-65} --utils-line-min ${BILLING_COVERAGE_MIN_UTILS_LINE:-85} --utils-branch-min ${BILLING_COVERAGE_MIN_UTILS_BRANCH:-70}}"
+BACKEND_COVERAGE_CMD="${BILLING_CONF_BACKEND_COVERAGE_CMD:-$BACKEND_TEST_RUN_PREFIX -e DATABASE_URL= airis bash -lc \"python -m pip install -q pytest-cov && cd /app/backend && pytest -q --maxfail=1 --disable-warnings --junitxml=__JUNIT_PATH__ --cov=open_webui.routers.billing --cov=open_webui.utils.billing --cov-branch --cov-report=term-missing:skip-covered --cov-report=json:__COVERAGE_JSON_PATH__ open_webui/test/apps/webui/routers/test_billing_topup.py open_webui/test/apps/webui/routers/test_billing_subscription.py open_webui/test/apps/webui/routers/test_billing_subscription_webhook.py open_webui/test/apps/webui/routers/test_billing_webhook_direct_path.py open_webui/test/apps/webui/routers/test_billing_core_paths.py open_webui/test/apps/webui/routers/test_billing_router_expanded_paths.py open_webui/test/apps/webui/routers/test_billing_router_additional_paths.py open_webui/test/apps/webui/routers/test_billing_public_pricing.py open_webui/test/apps/webui/utils/test_billing_integration.py open_webui/test/apps/webui/utils/test_billing_quota.py open_webui/test/apps/webui/utils/test_billing_service_core.py open_webui/test/apps/webui/utils/test_billing_service_extended.py open_webui/test/apps/webui/utils/test_billing_service_webhook_statuses.py open_webui/test/apps/webui/routers/test_billing_router_helpers.py open_webui/test/apps/webui/routers/test_openai_chat_billing.py open_webui/test/apps/webui/routers/test_openai_chat_billing_lead_magnet.py open_webui/test/apps/webui/routers/test_openai_chat_billing_streaming.py open_webui/test/apps/webui/routers/test_billing_lead_magnet.py open_webui/test/apps/webui/routers/test_images_billing.py open_webui/test/apps/webui/routers/test_openai_speech_billing.py open_webui/test/apps/webui/routers/test_audio_billing.py\" && python3 scripts/ci/check_billing_module_coverage.py --coverage-json __HOST_COVERAGE_JSON_PATH__ --routers-line-min ${BILLING_COVERAGE_MIN_ROUTERS_LINE:-85} --routers-branch-min ${BILLING_COVERAGE_MIN_ROUTERS_BRANCH:-65} --utils-line-min ${BILLING_COVERAGE_MIN_UTILS_LINE:-85} --utils-branch-min ${BILLING_COVERAGE_MIN_UTILS_BRANCH:-70}}"
 
-BACKEND_FULL_PACK_CMD="${BILLING_CONF_BACKEND_FULL_PACK_CMD:-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc \"pytest -q --junitxml=__JUNIT_PATH__ open_webui/test/apps/webui/routers/test_billing_topup.py open_webui/test/apps/webui/routers/test_billing_subscription.py open_webui/test/apps/webui/routers/test_billing_subscription_webhook.py open_webui/test/apps/webui/routers/test_billing_webhook_direct_path.py open_webui/test/apps/webui/routers/test_billing_core_paths.py open_webui/test/apps/webui/routers/test_billing_router_expanded_paths.py open_webui/test/apps/webui/routers/test_billing_router_additional_paths.py open_webui/test/apps/webui/routers/test_billing_lead_magnet.py open_webui/test/apps/webui/routers/test_billing_public_pricing.py open_webui/test/apps/webui/routers/test_openai_chat_billing.py open_webui/test/apps/webui/routers/test_openai_chat_billing_streaming.py open_webui/test/apps/webui/routers/test_openai_chat_billing_lead_magnet.py open_webui/test/apps/webui/routers/test_images_billing.py open_webui/test/apps/webui/routers/test_audio_billing.py open_webui/test/apps/webui/routers/test_openai_speech_billing.py open_webui/test/apps/webui/routers/test_admin_billing_wallet_adjust.py open_webui/test/apps/webui/utils/test_billing_integration.py open_webui/test/apps/webui/utils/test_billing_quota.py open_webui/test/apps/webui/utils/test_billing_service_core.py open_webui/test/apps/webui/utils/test_billing_service_extended.py open_webui/test/apps/webui/utils/test_billing_service_webhook_statuses.py open_webui/test/apps/webui/utils/test_billing_seed.py open_webui/test/apps/webui/utils/test_wallet_service.py\"}"
+BACKEND_FULL_PACK_CMD="${BILLING_CONF_BACKEND_FULL_PACK_CMD:-$BACKEND_TEST_RUN_PREFIX airis bash -lc \"pytest -q --junitxml=__JUNIT_PATH__ open_webui/test/apps/webui/routers/test_billing_topup.py open_webui/test/apps/webui/routers/test_billing_subscription.py open_webui/test/apps/webui/routers/test_billing_subscription_webhook.py open_webui/test/apps/webui/routers/test_billing_webhook_direct_path.py open_webui/test/apps/webui/routers/test_billing_core_paths.py open_webui/test/apps/webui/routers/test_billing_router_expanded_paths.py open_webui/test/apps/webui/routers/test_billing_router_additional_paths.py open_webui/test/apps/webui/routers/test_billing_lead_magnet.py open_webui/test/apps/webui/routers/test_billing_public_pricing.py open_webui/test/apps/webui/routers/test_openai_chat_billing.py open_webui/test/apps/webui/routers/test_openai_chat_billing_streaming.py open_webui/test/apps/webui/routers/test_openai_chat_billing_lead_magnet.py open_webui/test/apps/webui/routers/test_images_billing.py open_webui/test/apps/webui/routers/test_audio_billing.py open_webui/test/apps/webui/routers/test_openai_speech_billing.py open_webui/test/apps/webui/routers/test_admin_billing_wallet_adjust.py open_webui/test/apps/webui/utils/test_billing_integration.py open_webui/test/apps/webui/utils/test_billing_quota.py open_webui/test/apps/webui/utils/test_billing_service_core.py open_webui/test/apps/webui/utils/test_billing_service_extended.py open_webui/test/apps/webui/utils/test_billing_service_webhook_statuses.py open_webui/test/apps/webui/routers/test_billing_router_helpers.py open_webui/test/apps/webui/utils/test_billing_seed.py open_webui/test/apps/webui/utils/test_wallet_service.py\"}"
 
 FRONTEND_BALANCE_CMD="${BILLING_CONF_FRONTEND_BALANCE_CMD:-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc \"if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run src/routes/\\\\(app\\\\)/billing/balance/billing-balance.test.ts\"}"
 
-E2E_WALLET_CMD="${BILLING_CONF_E2E_WALLET_CMD:-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps e2e \"npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 && PLAYWRIGHT_JUNIT_OUTPUT_FILE=__JUNIT_PATH__ npm run test:e2e -- --trace retain-on-failure --reporter=line,junit --output=__TRACE_DIR__ e2e/billing_wallet.spec.ts e2e/billing_wallet_recovery.spec.ts e2e/billing_lead_magnet.spec.ts\"}"
+E2E_WALLET_CMD="${BILLING_CONF_E2E_WALLET_CMD:-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm e2e \"if [ ! -x node_modules/.bin/playwright ] || [ package-lock.json -nt node_modules/.billing-ci-install-fingerprint ] || [ package.json -nt node_modules/.billing-ci-install-fingerprint ]; then NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false NODE_OPTIONS=--max-old-space-size=2048 timeout ${BILLING_E2E_NPM_TIMEOUT:-420} npm ci --prefer-offline --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 --legacy-peer-deps || NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false NODE_OPTIONS=--max-old-space-size=2048 npm install --prefer-offline --legacy-peer-deps || exit 1; touch node_modules/.billing-ci-install-fingerprint; fi && PLAYWRIGHT_JUNIT_OUTPUT_FILE=__JUNIT_PATH__ npm run test:e2e -- --trace retain-on-failure --reporter=line,junit --output=__TRACE_DIR__ e2e/billing_wallet.spec.ts e2e/billing_wallet_recovery.spec.ts e2e/billing_lead_magnet.spec.ts\"}"
 
 declare -a SUITE_NAMES=()
 declare -a SUITE_TIMEOUTS=()
@@ -207,8 +211,12 @@ run_suite() {
     coverage_cmd_path="$RUN_DIR_CMD_PATH/$coverage_rel"
     host_coverage_cmd_path="$coverage_cmd_path"
     if [[ "$suite" == backend_* ]]; then
-      host_coverage_cmd_path="backend/$coverage_cmd_path"
-      backend_artifact_base="$ROOT_DIR/backend/$RUN_DIR_CMD_PATH"
+      if [[ "$RUN_DIR_CMD_PATH" == /* ]]; then
+        host_coverage_cmd_path="$coverage_cmd_path"
+      else
+        host_coverage_cmd_path="backend/$coverage_cmd_path"
+        backend_artifact_base="$ROOT_DIR/backend/$RUN_DIR_CMD_PATH"
+      fi
     fi
     command="${command//__COVERAGE_JSON_PATH__/$coverage_cmd_path}"
     command="${command//__HOST_COVERAGE_JSON_PATH__/$host_coverage_cmd_path}"
@@ -226,6 +234,9 @@ run_suite() {
     exit_code=0
   else
     set +e
+    if [[ "$RUN_DIR_CMD_PATH" == /* ]]; then
+      command="${command/run --rm/run --rm -v $ARTIFACT_ROOT:$ARTIFACT_ROOT}"
+    fi
     if [[ -n "$TIMEOUT_BIN" ]]; then
       "$TIMEOUT_BIN" "$timeout_seconds" bash -lc "$command" >"$log_abs" 2>&1
       exit_code=$?
@@ -266,6 +277,12 @@ run_suite() {
     status="timeout"
   else
     status="fail"
+  fi
+
+  if [[ "$status" == "pass" && -n "$junit_rel" && ! -f "$RUN_DIR/$junit_rel" ]]; then
+    status="fail"
+    exit_code=2
+    echo "[billing-confidence] suite=$suite failure reason=missing junit artifact: $RUN_DIR/$junit_rel"
   fi
 
   printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
