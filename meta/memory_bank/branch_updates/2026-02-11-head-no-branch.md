@@ -7,3 +7,71 @@
   - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_billing_topup.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run src/routes/\(app\)/billing/balance/billing-balance.test.ts"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npx eslint src/routes/\(app\)/billing/balance/+page.svelte src/routes/\(app\)/billing/balance/billing-balance.test.ts"`, `python -m py_compile backend/open_webui/utils/yookassa.py backend/open_webui/routers/billing.py backend/open_webui/test/apps/webui/routers/test_billing_topup.py`
   - Manual smoke: blocked in this worktree session (no configured dev/staging YooKassa credentials to intentionally trigger provider credential failure in live flow).
   - Risks: Low-Medium (error handling behavior visible to end users)
+
+- [x] **[DOCS][REVIEW][PRELAUNCH]** Global billing confidence audit and release pipeline
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-11__docs__prelaunch-global-code-review-confidence-pipeline.md`
+  - Owner: Codex
+  - Branch: `HEAD (no branch)`
+  - Done: 2026-02-11
+  - Summary: Performed global billing-focused code review, ran backend/frontend/e2e checks, captured a failing recovery e2e path, and defined a practical release confidence pipeline.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_billing_topup.py open_webui/test/apps/webui/routers/test_billing_subscription.py open_webui/test/apps/webui/routers/test_billing_subscription_webhook.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e DATABASE_URL= airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_openai_chat_billing.py open_webui/test/apps/webui/routers/test_openai_chat_billing_lead_magnet.py open_webui/test/apps/webui/routers/test_openai_chat_billing_streaming.py open_webui/test/apps/webui/routers/test_billing_lead_magnet.py open_webui/test/apps/webui/routers/test_images_billing.py open_webui/test/apps/webui/routers/test_openai_speech_billing.py open_webui/test/apps/webui/routers/test_audio_billing.py"`, `docker exec airis bash -lc "cd /app/backend && python -m pip install -q pytest-cov && pytest -q --maxfail=1 --disable-warnings --cov=open_webui.routers.billing --cov=open_webui.utils.billing --cov-report=term-missing:skip-covered open_webui/test/apps/webui/routers/test_billing_topup.py open_webui/test/apps/webui/routers/test_billing_subscription.py open_webui/test/apps/webui/routers/test_billing_subscription_webhook.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps e2e "npm ci && npm run test:e2e -- e2e/billing_wallet.spec.ts e2e/billing_wallet_recovery.spec.ts e2e/billing_lead_magnet.spec.ts"`
+  - Risks: Medium (launch confidence currently limited by failing e2e scenario and non-operational static gates: `npm run check`, `npm run lint:frontend`, `ruff check backend`).
+
+- [x] **[FEATURE][BILLING][QA]** Billing launch confidence program (SDD planning + execution)
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-11__feature__billing-launch-confidence-program.md`
+  - Owner: Codex
+  - Branch: `HEAD (no branch)`
+  - Done: 2026-02-11
+  - Summary: Полностью выполнен SDD-спек (49/49): стабилизирован billing integration reset lock, усилены topup/webhook guardrails, внедрён tiered confidence runner + GitHub workflows (`billing-confidence`, `billing-canary`), добавлены synthetic probe и release runbook.
+  - SDD Spec: `meta/sdd/specs/completed/billing-launch-confidence-program-2026-02-11-001.json`
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_billing_topup.py open_webui/test/apps/webui/routers/test_billing_subscription.py open_webui/test/apps/webui/routers/test_billing_subscription_webhook.py open_webui/test/apps/webui/utils/test_billing_integration.py"` (62 passed), `bash scripts/ci/run_billing_confidence.sh --tier pr-fast --dry-run`, `bash scripts/ci/run_billing_confidence.sh --tier pr-fast`, `bash scripts/ci/run_billing_confidence.sh --tier pr-fast --output-dir artifacts/billing-confidence/check && jq -e '.suite_results and .artifact_index' artifacts/billing-confidence/check/summary.json`, `python scripts/ops/billing_synthetic_probe.py --mode mock --base-url http://localhost:8080`, `python scripts/ops/billing_synthetic_probe.py --mode staging --max-amount-rub 10 --require-sandbox`
+  - Risks: Medium (fidelity reviews for phases 3/4/5 остались `partial`; coverage gate `>=85%` по `routers.billing/utils.billing` не достигнут, нужен отдельный этап расширения покрытия/пересмотра метрики).
+
+- [x] **[DOCS][SDD]** Restore corrupted completed SDD spec after concurrent update writes
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-11__feature__billing-launch-confidence-program.md`
+  - Owner: Codex
+  - Branch: `HEAD (no branch)`
+  - Done: 2026-02-11
+  - Summary: Repaired malformed JSON fragments in `meta/sdd/specs/completed/billing-launch-confidence-program-2026-02-11-001.json`, revalidated parseability (`jq`) and SDD status consistency (49/49 complete), and recorded revision/journal deviation. Process guard: use sequential `meta/tools/sdd` updates for this spec.
+  - Checks: `jq -e meta/sdd/specs/completed/billing-launch-confidence-program-2026-02-11-001.json`, `meta/tools/sdd validate meta/sdd/specs/completed/billing-launch-confidence-program-2026-02-11-001.json --json`, `meta/tools/sdd check-journaling billing-launch-confidence-program-2026-02-11-001 --json`
+  - Risks: Low (documentation/spec integrity only; no runtime code changes)
+- [ ] **[SDD][VERIFY][BILLING]** verify-4-1 manual smoke remains blocked in local worktree
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-11__bugfix__billing-topup-yookassa-error-visibility.md`
+  - Owner: Codex
+  - Branch: `HEAD (no branch)`
+  - Started: 2026-02-11
+  - Summary: Attempted to run manual top-up error smoke for `verify-4-1`, but current local env is not suitable: `airis` container unhealthy, `/api/config` unreachable, and runtime logs show DB schema mismatch (`relation "model" does not exist`); container env also has empty `YOOKASSA_SHOP_ID/YOOKASSA_SECRET_KEY`.
+  - Next: Run the smoke in healthy staging/dev environment with configured YooKassa credentials, then unblock/complete `verify-4-1`.
+- [x] **[SDD][VERIFY][BILLING]** verify-4-1 manual smoke confirmed and closed
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-11__bugfix__billing-topup-yookassa-error-visibility.md`
+  - Owner: Codex
+  - Branch: `HEAD (no branch)`
+  - Done: 2026-02-11
+  - Summary: User confirmed manual payment check is successful. Unblocked and completed `verify-4-1` in `billing-topup-yookassa-error-hardening-2026-02-11-001`; phase verification moved to complete and spec progress is now 29/29 (100%).
+
+- [x] **[FEATURE][BILLING][QA]** Billing coverage gate hardening (module-scoped + artifact integrity)
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-12__feature__billing-coverage-gate-hardening.md`
+  - SDD Spec: `meta/sdd/specs/completed/billing-coverage-gate-hardenin-2026-02-12-0102.json`
+  - Owner: Codex
+  - Branch: `HEAD (no branch)`
+  - Done: 2026-02-12
+  - Summary: Wired module line+branch coverage gate into billing confidence CI, fixed backend-container artifact path normalization, and validated repeat stable confidence runs with complete artifact index.
+  - Tests: `python3 scripts/ci/check_billing_module_coverage.py --coverage-json backend/artifacts/billing-coverage-baseline/coverage-billing-after-task3.json`, `scripts/ci/run_billing_confidence.sh --tier pr-fast --run-id local-pr-fast-sync-check`, `scripts/ci/run_billing_confidence.sh --tier merge-medium --run-id local-merge-medium-gate-check-2`, `scripts/ci/run_billing_confidence.sh --tier merge-medium --run-id local-merge-medium-gate-check-3`
+  - Risks: Medium (thresholds are currently non-regression floors; additional high-signal tests are still required to move confidently toward >=85% module coverage).
+
+- [x] **[FEATURE][BILLING][QA]** Enforce hard coverage gate `>=85%` with useful webhook fault-path tests
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-13__feature__billing-confidence-hard-gate-85.md`
+  - Owner: Codex
+  - Branch: `HEAD (no branch)`
+  - Done: 2026-02-13
+  - Summary: Raised billing module gate to release-level thresholds (`routers line>=85/branch>=65`, `utils line>=85/branch>=70`), added direct webhook negative/replay/error-mapping tests, and improved e2e npm install resilience with fetch retries to reduce transient network flakes.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "cd /app/backend && pytest -q open_webui/test/apps/webui/routers/test_billing_webhook_direct_path.py"`, `python3 -m py_compile scripts/ci/check_billing_module_coverage.py`, `bash -n scripts/ci/run_billing_confidence.sh`, `scripts/ci/run_billing_confidence.sh --tier merge-medium --run-id local-merge-medium-hard-gate-85`, `scripts/ci/run_billing_confidence.sh --tier release-heavy --run-id local-release-heavy-hard-gate-85`
+  - Evidence: `local-merge-medium-hard-gate-85` -> overall `pass` (`4/4`), `local-release-heavy-hard-gate-85` -> overall `pass` (`5/5`); `open_webui/routers/billing.py` line `90.67%`/branch `75.26%`, `open_webui/utils/billing.py` line `86.43%`/branch `78.05%`.
+- [x] **[BUG][CI][BILLING]** Fix billing confidence suite bootstrap in CI (`WEBUI_SECRET_KEY` and e2e backend reachability)
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-13__feature__billing-confidence-hard-gate-85.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/billing-confidence-ci`
+  - Done: 2026-02-13
+  - Summary: Added deterministic CI env overrides for backend billing suites (`WEBUI_AUTH`, `WEBUI_SECRET_KEY`) and allowed `e2e_billing_wallet` to start the `airis-e2e` dependency from `.codex/docker-compose.codex.yaml`.
+  - Tests: `BILLING_CONFIDENCE_TIER=pr-fast BILLING_CONFIDENCE_RUN_ID=local-pr-fast BILLING_CONFIDENCE_ARTIFACT_DIR=/tmp/bc-local scripts/ci/run_billing_confidence.sh`, `jq -r '.overall_status' /tmp/bc-local/local-pr-fast/summary.json`
+  - Risks: Low (CI reliability improvement; runtime behavior unchanged)

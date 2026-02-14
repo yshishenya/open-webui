@@ -338,3 +338,10 @@ cypress/screenshots
 
 # Local docker client config (do not commit)
 .docker/
+
+# Billing confidence artifacts (generated)
+artifacts/
+backend/artifacts/
+
+# SDD review outputs (generated)
+meta/sdd/specs/.reviews/

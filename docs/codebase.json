@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2026-02-11T10:32:24.357588Z",
-    "generated_at_commit": "621eee7a72a5167d9af75b857f079a95f0607005",
+    "generated_at": "2026-02-11T22:15:29.441616Z",
+    "generated_at_commit": "56ba74dc131100a881ba45c27415ebcda7cf136d",
     "languages": [
       "css",
       "html",
@@ -13,11 +13,11 @@
     "schema_version": "2.0"
   },
   "statistics": {
-    "total_files": 209,
-    "total_lines": 47143,
+    "total_files": 213,
+    "total_lines": 47787,
     "total_classes": 6,
-    "total_functions": 156,
-    "avg_complexity": 2.45,
+    "total_functions": 160,
+    "avg_complexity": 2.48,
     "max_complexity": 9,
     "high_complexity_functions": [],
     "by_language": {
@@ -36,11 +36,11 @@
         "avg_complexity": 0
       },
       "typescript": {
-        "files": 198,
-        "lines": 44138,
+        "files": 202,
+        "lines": 44782,
         "classes": 6,
-        "functions": 156,
-        "avg_complexity": 2.45
+        "functions": 160,
+        "avg_complexity": 2.48
       },
       "javascript": {
         "files": 8,
@@ -554,7 +554,7 @@
         "./UnifiedTimeline.svelte"
       ],
       "exports": [],
-      "lines": 155
+      "lines": 250
     },
     {
       "name": "AutoCompletion",
@@ -1107,6 +1107,34 @@
       ],
       "exports": [],
       "lines": 108
+    },
+    {
+      "name": "billing_return_url.test",
+      "file": "src/lib/utils/airis/billing_return_url.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "./billing_return_url"
+      ],
+      "exports": [],
+      "lines": 55
+    },
+    {
+      "name": "billing_return_url",
+      "file": "src/lib/utils/airis/billing_return_url.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "normalizeBasePath",
+        "ensureLeadingSlash"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 106
     },
     {
       "name": "chat.test",
@@ -1669,7 +1697,7 @@
         "./+page.svelte"
       ],
       "exports": [],
-      "lines": 268
+      "lines": 334
     },
     {
       "name": "+page",
@@ -2175,7 +2203,7 @@
         "./UnifiedTimeline.svelte"
       ],
       "exports": [],
-      "lines": 155
+      "lines": 250
     },
     {
       "name": "AutoCompletion",
@@ -2728,6 +2756,34 @@
       ],
       "exports": [],
       "lines": 108
+    },
+    {
+      "name": "billing_return_url.test",
+      "file": "src/lib/utils/airis/billing_return_url.test.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "vitest",
+        "./billing_return_url"
+      ],
+      "exports": [],
+      "lines": 55
+    },
+    {
+      "name": "billing_return_url",
+      "file": "src/lib/utils/airis/billing_return_url.ts",
+      "language": "typescript",
+      "docstring": null,
+      "classes": [],
+      "functions": [
+        "normalizeBasePath",
+        "ensureLeadingSlash"
+      ],
+      "imports": [],
+      "exports": [],
+      "lines": 106
     },
     {
       "name": "chat.test",
@@ -3290,7 +3346,7 @@
         "./+page.svelte"
       ],
       "exports": [],
-      "lines": 268
+      "lines": 334
     },
     {
       "name": "+page",
@@ -3947,6 +4003,46 @@
       ],
       "return_type": null,
       "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "normalizeBasePath",
+      "file": "src/lib/utils/airis/billing_return_url.ts",
+      "line": 12,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "basePath",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "ensureLeadingSlash",
+      "file": "src/lib/utils/airis/billing_return_url.ts",
+      "line": 30,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "pathname",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
       "decorators": [],
       "is_async": false,
       "is_exported": false,
@@ -5580,6 +5676,46 @@
       ],
       "return_type": null,
       "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "normalizeBasePath",
+      "file": "src/lib/utils/airis/billing_return_url.ts",
+      "line": 12,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "basePath",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true
+    },
+    {
+      "name": "ensureLeadingSlash",
+      "file": "src/lib/utils/airis/billing_return_url.ts",
+      "line": 30,
+      "language": "typescript",
+      "docstring": null,
+      "parameters": [
+        {
+          "name": "pathname",
+          "type": null,
+          "default": null
+        }
+      ],
+      "return_type": null,
+      "complexity": 3,
       "decorators": [],
       "is_async": false,
       "is_exported": false,
@@ -7262,6 +7398,12 @@
     "src/lib/utils/airis/billing_block.ts": [
       "$lib/utils/airis/return_to",
       "$lib/utils/airis/return_to"
+    ],
+    "src/lib/utils/airis/billing_return_url.test.ts": [
+      "vitest",
+      "./billing_return_url",
+      "vitest",
+      "./billing_return_url"
     ],
     "src/lib/utils/airis/chat.test.ts": [
       "vitest",

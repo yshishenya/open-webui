@@ -1,0 +1,17 @@
+- [x] **[BUG][CI][BILLING]** Persist billing-confidence smoke artifacts + add smoke-only workflow_dispatch
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-14__bugfix__billing-confidence-smoke-artifacts.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/billing-confidence-ci`
+  - Done: 2026-02-14
+  - Summary: Smoke guard now writes outputs into workflow artifacts; manual `workflow_dispatch` supports `smoke_only` for fast debug without full suites.
+  - Tests: `npm run billing:confidence:smoke`, `ruby -e "require 'yaml'; YAML.load_file('.github/workflows/billing-confidence.yml'); puts 'YAML_OK'"`, `scripts/ci/run_billing_confidence.sh --tier pr-fast`, `scripts/ci/run_billing_confidence.sh --tier merge-medium`
+  - Risks: Low (CI-only behavior)
+
+- [x] **[BUG][BILLING][WEBHOOK][PERF]** Explicit webhook signature enforcement + async safety hardening
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-14__bugfix__billing-webhook-signature-enforcement-async-safety.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/billing-confidence-ci`
+  - Done: 2026-02-14
+  - Summary: Avoid the signature-required foot-gun (secret no longer implies enforcement), add `YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE`, and ensure billing router/service avoid blocking the event loop on sync DB calls.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "cd /app/backend && pytest -q open_webui/test/apps/webui/routers/test_billing_webhook_direct_path.py open_webui/test/apps/webui/routers/test_billing_subscription_webhook.py"`, `scripts/ci/run_billing_confidence.sh --tier pr-fast --run-id local-pr-fast-final-20260214T175350Z`, `scripts/ci/run_billing_confidence.sh --tier merge-medium --run-id local-merge-medium-post-webhook-policy-20260214T174610Z`, `scripts/ci/run_billing_confidence.sh --tier release-heavy --run-id local-release-heavy-post-webhook-policy-20260214T174742Z`
+  - Risks: Medium (touches webhook + async runtime); mitigated with explicit flag + confidence tiers evidence.
