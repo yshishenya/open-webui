@@ -88,7 +88,12 @@ class TestBillingServiceCore:
                     },
                 }
 
-        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
+        monkeypatch.setattr(
+            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
+        )
+        # Receipt generation needs a real user/contact in the DB. This unit-style
+        # test focuses on payment wiring + transaction updates.
+        monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_ENABLED", False)
 
         updates: list[tuple[str, dict[str, object]]] = []
 
