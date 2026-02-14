@@ -1188,6 +1188,7 @@ class TestBillingIntegration(AbstractPostgresTest):
     async def test_topup_creation_contract_provider_envelope(self, monkeypatch):
         import open_webui.utils.billing as billing_utils
         from open_webui.models.billing import PaymentKind, Payments
+        from open_webui.models.users import Users
         from open_webui.utils.billing import billing_service
         from open_webui.utils.wallet import wallet_service
 
@@ -1201,6 +1202,7 @@ class TestBillingIntegration(AbstractPostgresTest):
                 description: str,
                 return_url: str,
                 metadata: dict[str, object],
+                receipt: dict[str, object] | None = None,
                 payment_method_id: str | None = None,
                 save_payment_method: bool | None = None,
             ) -> dict[str, object]:
@@ -1209,6 +1211,7 @@ class TestBillingIntegration(AbstractPostgresTest):
                 captured["description"] = description
                 captured["return_url"] = return_url
                 captured["metadata"] = dict(metadata)
+                captured["receipt"] = receipt
                 captured["save_payment_method"] = save_payment_method
                 return {
                     "id": "pay_contract_1",
@@ -1223,6 +1226,13 @@ class TestBillingIntegration(AbstractPostgresTest):
             billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
         )
         monkeypatch.setattr(billing_utils, "BILLING_TOPUP_PACKAGES_KOPEKS", [1500])
+
+        Users.insert_new_user(
+            id="contract_user",
+            name="Contract User",
+            email="contract_user@example.com",
+            role="user",
+        )
 
         wallet = wallet_service.get_or_create_wallet("contract_user", "RUB")
 
