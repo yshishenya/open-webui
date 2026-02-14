@@ -35,6 +35,8 @@ services:
       - codex-airis-e2e-data:/app/backend/data
 
   e2e:
+    depends_on:
+      - airis-e2e
     build:
       context: .
       dockerfile: .codex/e2e.Dockerfile

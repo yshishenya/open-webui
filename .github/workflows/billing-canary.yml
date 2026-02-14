@@ -46,6 +46,12 @@ jobs:
             base_url="http://localhost:8080"
           fi
 
+          if [[ ! "$base_url" =~ ^https?:// ]]; then
+            echo "Invalid base_url format: $base_url"
+            echo "Expected base_url with http:// or https:// prefix."
+            exit 1
+          fi
+
           if [[ "$event_name" == "workflow_dispatch" ]]; then
             check_health="${{ inputs.check_health }}"
             enforce_gate="${{ inputs.enforce_gate }}"

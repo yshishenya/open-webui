@@ -124,7 +124,7 @@ BACKEND_FULL_PACK_CMD="${BILLING_CONF_BACKEND_FULL_PACK_CMD:-docker compose -f d
 
 FRONTEND_BALANCE_CMD="${BILLING_CONF_FRONTEND_BALANCE_CMD:-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc \"if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run src/routes/\\\\(app\\\\)/billing/balance/billing-balance.test.ts\"}"
 
-E2E_WALLET_CMD="${BILLING_CONF_E2E_WALLET_CMD:-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps e2e \"npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 && PLAYWRIGHT_JUNIT_OUTPUT_FILE=__JUNIT_PATH__ npm run test:e2e -- --trace retain-on-failure --reporter=line,junit --output=__TRACE_DIR__ e2e/billing_wallet.spec.ts e2e/billing_wallet_recovery.spec.ts e2e/billing_lead_magnet.spec.ts\"}"
+E2E_WALLET_CMD="${BILLING_CONF_E2E_WALLET_CMD:-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm e2e \"npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 && PLAYWRIGHT_JUNIT_OUTPUT_FILE=__JUNIT_PATH__ npm run test:e2e -- --trace retain-on-failure --reporter=line,junit --output=__TRACE_DIR__ e2e/billing_wallet.spec.ts e2e/billing_wallet_recovery.spec.ts e2e/billing_lead_magnet.spec.ts\"}"
 
 declare -a SUITE_NAMES=()
 declare -a SUITE_TIMEOUTS=()
