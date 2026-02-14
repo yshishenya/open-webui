@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from typing import Optional, Dict, List
 from decimal import Decimal
 
+from fastapi.concurrency import run_in_threadpool
+
 from open_webui.models.users import Users
 from open_webui.models.billing import (
     Plans,
@@ -519,7 +521,7 @@ class BillingService:
         Returns:
             Payment data with confirmation URL
         """
-        plan = self.get_plan(plan_id)
+        plan = await run_in_threadpool(self.get_plan, plan_id)
         if not plan:
             raise ValueError(f"Plan {plan_id} not found")
 
@@ -541,13 +543,17 @@ class BillingService:
             updated_at=int(time.time()),
         )
 
-        created_transaction = self.transactions.create_transaction(transaction)
+        created_transaction = await run_in_threadpool(
+            self.transactions.create_transaction,
+            transaction,
+        )
         payment_amount = Decimal(str(plan.price))
-        receipt = self._build_receipt(
-            user_id=user_id,
-            amount=payment_amount,
-            currency=plan.currency,
-            description=transaction.description or f"Subscription: {plan.name}",
+        receipt = await run_in_threadpool(
+            self._build_receipt,
+            user_id,
+            payment_amount,
+            plan.currency,
+            transaction.description or f"Subscription: {plan.name}",
         )
 
         # Create payment via YooKassa
@@ -565,7 +571,8 @@ class BillingService:
         )
 
         # Update transaction with YooKassa payment ID
-        self.transactions.update_transaction(
+        await run_in_threadpool(
+            self.transactions.update_transaction,
             created_transaction.id,
             {
                 "yookassa_payment_id": payment["id"],
@@ -610,7 +617,10 @@ class BillingService:
             raise ValueError("Invalid topup amount")
 
         save_payment_method = None
-        wallet = self.wallets.get_wallet_by_id(wallet_id)
+        wallet = await run_in_threadpool(
+            self.wallets.get_wallet_by_id,
+            wallet_id,
+        )
         if wallet and wallet.auto_topup_enabled:
             save_payment_method = True
 
@@ -670,7 +680,10 @@ class BillingService:
             created_at=now,
             updated_at=now,
         )
-        self.payments.create_payment(payment_record)
+        await run_in_threadpool(
+            self.payments.create_payment,
+            payment_record,
+        )
 
         return {
             "payment_id": payment["id"],
@@ -805,7 +818,10 @@ class BillingService:
             created_at=now,
             updated_at=now,
         )
-        self.payments.create_payment(payment_record)
+        await run_in_threadpool(
+            self.payments.create_payment,
+            payment_record,
+        )
 
         return {
             "payment_id": payment.get("id"),
@@ -821,7 +837,10 @@ class BillingService:
         reason: str,
     ) -> AutoTopupResult:
         """Attempt auto-topup when balance drops below threshold."""
-        wallet = self.wallets.get_wallet_by_id(wallet_id)
+        wallet = await run_in_threadpool(
+            self.wallets.get_wallet_by_id,
+            wallet_id,
+        )
         if not wallet:
             return AutoTopupResult(attempted=False, status="wallet_missing")
 
@@ -837,10 +856,14 @@ class BillingService:
             return AutoTopupResult(attempted=False, status="above_threshold")
 
         if wallet.auto_topup_fail_count >= AUTO_TOPUP_MAX_FAILURES:
-            self.wallets.update_wallet(wallet_id, {"auto_topup_enabled": False})
+            await run_in_threadpool(
+                self.wallets.update_wallet,
+                wallet_id,
+                {"auto_topup_enabled": False},
+            )
             return AutoTopupResult(attempted=False, status="fail_limit")
 
-        if self._has_pending_topup(wallet_id):
+        if await run_in_threadpool(self._has_pending_topup, wallet_id):
             return AutoTopupResult(attempted=False, status="pending")
 
         if (
@@ -849,7 +872,10 @@ class BillingService:
         ):
             return AutoTopupResult(attempted=False, status="invalid_amount")
 
-        payment_method_id = self._get_latest_payment_method_id(wallet_id)
+        payment_method_id = await run_in_threadpool(
+            self._get_latest_payment_method_id,
+            wallet_id,
+        )
         if not payment_method_id:
             return AutoTopupResult(attempted=True, status="missing_payment_method")
 
@@ -862,7 +888,11 @@ class BillingService:
                 reason=reason,
             )
         except Exception as e:
-            self._record_auto_topup_failure(wallet_id, wallet.auto_topup_fail_count)
+            await run_in_threadpool(
+                self._record_auto_topup_failure,
+                wallet_id,
+                wallet.auto_topup_fail_count,
+            )
             return AutoTopupResult(
                 attempted=True,
                 status="failed",
@@ -947,7 +977,12 @@ class BillingService:
                 "currency": currency_value,
                 "metadata": metadata,
             }
-            self._process_topup_webhook(event_type, payment_id, trusted_webhook_data)
+            await run_in_threadpool(
+                self._process_topup_webhook,
+                event_type,
+                payment_id,
+                trusted_webhook_data,
+            )
             return None
 
         # Find transaction
@@ -956,7 +991,10 @@ class BillingService:
             log.error("Transaction ID not found in webhook metadata")
             return None
 
-        transaction = self.transactions.get_transaction_by_id(transaction_id)
+        transaction = await run_in_threadpool(
+            self.transactions.get_transaction_by_id,
+            transaction_id,
+        )
         if not transaction:
             log.error(f"Transaction {transaction_id} not found")
             return None
@@ -974,7 +1012,8 @@ class BillingService:
 
         # Update transaction status
         if event_type == "payment.succeeded":
-            self.transactions.update_transaction(
+            await run_in_threadpool(
+                self.transactions.update_transaction,
                 transaction_id,
                 {
                     "status": TransactionStatus.SUCCEEDED,
@@ -991,17 +1030,28 @@ class BillingService:
                 return None
 
             # Check if user already has a subscription
-            existing_subscription = self.get_user_subscription(user_id)
+            existing_subscription = await run_in_threadpool(
+                self.get_user_subscription,
+                user_id,
+            )
 
             if existing_subscription:
                 # Renew existing subscription
-                return self.renew_subscription(existing_subscription.id)
+                return await run_in_threadpool(
+                    self.renew_subscription,
+                    existing_subscription.id,
+                )
             else:
                 # Create new subscription
-                return self.create_subscription(user_id, plan_id)
+                return await run_in_threadpool(
+                    self.create_subscription,
+                    user_id,
+                    plan_id,
+                )
 
         elif event_type == "payment.canceled":
-            self.transactions.update_transaction(
+            await run_in_threadpool(
+                self.transactions.update_transaction,
                 transaction_id,
                 {
                     "status": TransactionStatus.CANCELED,
@@ -1011,7 +1061,8 @@ class BillingService:
 
         elif event_type == "payment.waiting_for_capture":
             # Payment authorized but not captured yet
-            self.transactions.update_transaction(
+            await run_in_threadpool(
+                self.transactions.update_transaction,
                 transaction_id,
                 {
                     "yookassa_status": provider_status,

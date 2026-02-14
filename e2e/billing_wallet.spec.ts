@@ -124,7 +124,16 @@ test.describe('Billing Wallet', () => {
 		const topupRequest = page.waitForRequest('**/api/v1/billing/topup');
 		await topupSection.getByTestId('topup-preset').first().click();
 		await topupSection.getByTestId('topup-proceed').click();
-		await topupRequest;
+		const request = await topupRequest;
+		const body = JSON.parse(request.postData() ?? '{}');
+		expect(body).toHaveProperty('amount_kopeks');
+		expect(body).toHaveProperty('return_url');
+		const returnUrl = new URL(String(body.return_url));
+		expect(['http:', 'https:']).toContain(returnUrl.protocol);
+		expect(returnUrl.origin).toBe(new URL(page.url()).origin);
+		expect(returnUrl.pathname.endsWith('/billing/balance')).toBeTruthy();
+		expect(returnUrl.searchParams.get('topup_return')).toBe('1');
+		expect(returnUrl.hash).toBe('');
 
 		await expect(page).toHaveURL(/\/billing\/balance\?topup=1/);
 	});

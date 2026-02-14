@@ -45,6 +45,26 @@ const leadMagnetInfoResponse = {
 	config_version: 1
 };
 
+const leadMagnetModelsResponse = {
+	data: [
+		{
+			id: 'free-model-1',
+			name: 'Free Model',
+			info: { meta: { lead_magnet: true } }
+		}
+	]
+};
+
+const paidOnlyModelsResponse = {
+	data: [
+		{
+			id: 'paid-model-1',
+			name: 'Paid Model',
+			info: { meta: { lead_magnet: false } }
+		}
+	]
+};
+
 test.describe('Billing wallet recovery (smoke)', () => {
 	test.beforeEach(async ({ page }) => {
 		await page.route('**/api/v1/legal/status', async (route) => {
@@ -77,6 +97,10 @@ test.describe('Billing wallet recovery (smoke)', () => {
 			});
 		});
 
+		await page.route('**/api/models**', async (route) => {
+			await route.fulfill({ json: paidOnlyModelsResponse });
+		});
+
 		await page.route('**/api/v1/billing/balance', async (route) => {
 			await route.fulfill({ json: lowBalanceResponse });
 		});
@@ -103,8 +127,13 @@ test.describe('Billing wallet recovery (smoke)', () => {
 		});
 	});
 
-	test('shows low-balance UX, lead magnet section, and topup wiring works', async ({ page }) => {
+	test('shows low-balance free-limit hint when lead magnet models are available', async ({ page }) => {
+		await page.route('**/api/models**', async (route) => {
+			await route.fulfill({ json: leadMagnetModelsResponse });
+		});
+
 		await page.goto('/billing/balance');
+		await page.waitForResponse('**/api/models**');
 		await page.waitForResponse('**/api/v1/billing/balance');
 		await page.waitForResponse('**/api/v1/billing/lead-magnet');
 
@@ -116,13 +145,30 @@ test.describe('Billing wallet recovery (smoke)', () => {
 
 		await expect(page.getByRole('heading', { name: 'Wallet' })).toBeVisible();
 		await expect(page.getByText('Low balance')).toBeVisible();
-		await expect(page.getByText('Wallet balance is low. Free limit:')).toBeVisible();
+		await expect(page.getByTestId('wallet-low-balance-hint-free')).toBeVisible();
+		await expect(page.getByTestId('wallet-low-balance-free-limit-link')).toBeVisible();
 		const heroHeading = page.getByRole('heading', { name: 'Wallet' });
 		const heroRow = heroHeading.locator('xpath=../../..');
 		await expect(heroRow.getByRole('button', { name: 'Top up' })).toBeVisible();
 
 		const leadMagnetSection = page.getByTestId('lead-magnet-section');
 		await expect(leadMagnetSection.getByText('Free limit')).toBeVisible();
+
+		await expect(page.getByTestId('wallet-low-balance-hint-topup')).toHaveCount(0);
+	});
+
+	test('shows low-balance top-up hint when free models are unavailable and keeps topup wiring', async ({
+		page
+	}) => {
+		await page.goto('/billing/balance');
+		await page.waitForResponse('**/api/models**');
+		await page.waitForResponse('**/api/v1/billing/balance');
+		await page.waitForResponse('**/api/v1/billing/lead-magnet');
+
+		await expect(page.getByText('Low balance')).toBeVisible();
+		await expect(page.getByTestId('wallet-low-balance-hint-topup')).toBeVisible();
+		await expect(page.getByTestId('wallet-low-balance-hint-free')).toHaveCount(0);
+		await expect(page.getByTestId('wallet-low-balance-free-limit-link')).toHaveCount(0);
 
 		const topupSection = page.locator('#topup-section');
 		const topupRequest = page.waitForRequest('**/api/v1/billing/topup');
@@ -133,6 +179,12 @@ test.describe('Billing wallet recovery (smoke)', () => {
 		const body = JSON.parse(request.postData() ?? '{}');
 		expect(body).toHaveProperty('amount_kopeks');
 		expect(body).toHaveProperty('return_url');
+		const returnUrl = new URL(String(body.return_url));
+		expect(['http:', 'https:']).toContain(returnUrl.protocol);
+		expect(returnUrl.origin).toBe(new URL(page.url()).origin);
+		expect(returnUrl.pathname.endsWith('/billing/balance')).toBeTruthy();
+		expect(returnUrl.searchParams.get('topup_return')).toBe('1');
+		expect(returnUrl.hash).toBe('');
 
 		await expect(page).toHaveURL(/\/billing\/balance\?topup=1/);
 	});

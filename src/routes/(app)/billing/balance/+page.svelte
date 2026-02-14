@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount, getContext, tick } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
 
@@ -29,6 +30,11 @@
 	import WalletHowItWorksModal from '$lib/components/billing/WalletHowItWorksModal.svelte';
 	import InfoCircle from '$lib/components/icons/InfoCircle.svelte';
 	import { trackEvent } from '$lib/utils/analytics';
+	import {
+		buildTopupReturnUrl,
+		normalizeBillingReturnPath,
+		withBasePath
+	} from '$lib/utils/airis/billing_return_url';
 	import { sanitizeReturnTo } from '$lib/utils/airis/return_to';
 
 	const i18n = getContext('i18n');
@@ -53,6 +59,7 @@
 	let balance: Balance | null = null;
 	let errorMessage: string | null = null;
 	let returnTo: string | null = null;
+	let normalizedReturnTo: string | null = null;
 	let focusHint: 'topup' | 'limits' | 'auto_topup' | null = null;
 	let topupPackages = DEFAULT_TOPUP_PACKAGES_KOPEKS;
 	let allowCustomTopup = true;
@@ -93,6 +100,10 @@
 	let howItWorksOpen = false;
 
 	$: returnTo = sanitizeReturnTo($page.url.searchParams.get('return_to'));
+	$: normalizedReturnTo = normalizeBillingReturnPath(returnTo, {
+		origin: $page.url.origin,
+		basePath: base
+	});
 	$: requiredKopeksHint = (() => {
 		const raw = $page.url.searchParams.get('required_kopeks');
 		if (!raw) return null;
@@ -384,12 +395,11 @@
 			} else {
 				trackEvent('billing_wallet_topup_custom_submit', { amount_kopeks: amountKopeks });
 			}
-			const params = new URLSearchParams();
-			params.set('topup_return', '1');
-			if (returnTo) {
-				params.set('return_to', returnTo);
-			}
-			const returnUrl = `${window.location.origin}/billing/balance?${params.toString()}`;
+			const returnUrl = buildTopupReturnUrl({
+				origin: window.location.origin,
+				basePath: base,
+				returnTo
+			});
 			const result = await createTopup(localStorage.token, amountKopeks, returnUrl);
 			if (result?.confirmation_url) {
 				try {
@@ -645,10 +655,11 @@
 	};
 
 	const buildBillingPath = (pathname: string): string => {
-		if (!returnTo) return pathname;
+		const prefixedPath = withBasePath(pathname, base);
+		if (!normalizedReturnTo) return prefixedPath;
 		const params = new URLSearchParams();
-		params.set('return_to', returnTo);
-		return `${pathname}?${params.toString()}`;
+		params.set('return_to', normalizedReturnTo);
+		return `${prefixedPath}?${params.toString()}`;
 	};
 
 	const handleHistoryClick = async (event: MouseEvent): Promise<void> => {
@@ -667,7 +678,7 @@
 	};
 
 	const handleReturnToClick = async (event: MouseEvent): Promise<void> => {
-		if (!returnTo) return;
+		if (!normalizedReturnTo) return;
 		if (
 			event.metaKey ||
 			event.ctrlKey ||
@@ -679,7 +690,7 @@
 		}
 		event.preventDefault();
 		trackEvent('billing_wallet_return_to_chat_click');
-		await goto(returnTo);
+		await goto(normalizedReturnTo);
 	};
 
 	const formatDateTime = (timestamp: number | null | undefined): string => {
@@ -826,9 +837,9 @@
 								{refreshing ? $i18n.t('Loading…') : $i18n.t('Refresh')}
 							</button>
 						{/if}
-						{#if returnTo}
+						{#if normalizedReturnTo}
 							<a
-								href={returnTo}
+								href={normalizedReturnTo}
 								on:click={handleReturnToClick}
 								class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
 							>
@@ -878,9 +889,9 @@
 						</div>
 					</div>
 					<div class="flex items-center gap-2">
-						{#if returnTo}
+						{#if normalizedReturnTo}
 							<a
-								href={returnTo}
+								href={normalizedReturnTo}
 								on:click={handleReturnToClick}
 								class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
 							>
@@ -936,18 +947,26 @@
 						{/if}
 					</div>
 					{#if isLowBalance}
-						<div class="text-xs text-amber-700 dark:text-amber-300 mt-2">
+						<div
+							class="text-xs text-amber-700 dark:text-amber-300 mt-2"
+							data-testid="wallet-low-balance-hint"
+						>
 							{#if freeUsageAvailable}
-								{$i18n.t('Wallet is low but free limit is available')}{' '}
+								<span data-testid="wallet-low-balance-hint-free">
+									{$i18n.t('Wallet is low but free limit is available')}
+								</span>{' '}
 								<button
 									type="button"
+									data-testid="wallet-low-balance-free-limit-link"
 									class="underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100 transition"
 									on:click={scrollToFreeLimit}
 								>
 									{$i18n.t('Free limit')}
 								</button>
 							{:else}
-								{$i18n.t('Top up to keep working')}
+								<span data-testid="wallet-low-balance-hint-topup">
+									{$i18n.t('Top up to keep working')}
+								</span>
 							{/if}
 						</div>
 					{/if}

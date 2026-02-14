@@ -6,9 +6,11 @@ Handles subscription plans, payments, usage, and webhooks
 import logging
 import time
 import hmac
+import json
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional, Dict, List
+from urllib.parse import urlsplit, urlunsplit
 from pydantic import BaseModel
 
 from fastapi import (
@@ -36,6 +38,7 @@ from open_webui.models.billing import (
     UsageEventModel,
     UsageEvents,
     TransactionModel,
+    TransactionStatus,
     UsageMetric,
     Wallets,
     RateCards,
@@ -68,6 +71,7 @@ from open_webui.env import (
     PUBLIC_PRICING_RATE_CARD_MODEL_LIMIT,
     YOOKASSA_WEBHOOK_ALLOWED_IP_RANGES,
     YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST,
+    YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE,
     YOOKASSA_WEBHOOK_TOKEN,
     YOOKASSA_WEBHOOK_TRUST_X_FORWARDED_FOR,
 )
@@ -79,26 +83,94 @@ log.setLevel(SRC_LOG_LEVELS.get("BILLING", logging.INFO))
 
 router = APIRouter()
 pricing_service = PricingService()
+MAX_RETURN_URL_LENGTH = 2048
 
 
 def _payment_gateway_http_error(error: YooKassaRequestError, action: str) -> HTTPException:
     status_code = error.status_code
     detail = "Payment provider is temporarily unavailable"
+    response_status = (
+        status.HTTP_503_SERVICE_UNAVAILABLE
+        if error.retryable
+        else status.HTTP_502_BAD_GATEWAY
+    )
 
-    if status_code in {401, 403}:
+    if status_code in {401, 403} or error.error_code == "invalid_credentials":
         detail = "Payment provider credentials are invalid"
+        response_status = status.HTTP_502_BAD_GATEWAY
     elif status_code == 400:
         detail = "Payment provider rejected the payment request"
+        response_status = status.HTTP_502_BAD_GATEWAY
     elif status_code == 429:
         detail = "Payment provider is rate-limiting requests"
 
     log.error(
-        "YooKassa %s failed (status=%s): %s",
+        "YooKassa %s failed (status=%s, source=%s, code=%s, retryable=%s): %s",
         action,
         status_code,
+        error.source,
+        error.error_code,
+        error.retryable,
         error.response_text,
     )
-    return HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail)
+    return HTTPException(status_code=response_status, detail=detail)
+
+
+def _sanitize_payment_return_url(return_url: str) -> str:
+    candidate = return_url.strip()
+    if not candidate:
+        raise ValueError("Invalid return_url")
+    if len(candidate) > MAX_RETURN_URL_LENGTH:
+        raise ValueError("Invalid return_url")
+
+    parsed = urlsplit(candidate)
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError("Invalid return_url")
+    if not parsed.netloc:
+        raise ValueError("Invalid return_url")
+    if parsed.username or parsed.password:
+        raise ValueError("Invalid return_url")
+    if parsed.fragment:
+        raise ValueError("Invalid return_url")
+
+    normalized_path = parsed.path if parsed.path else "/"
+    return urlunsplit(
+        (parsed.scheme, parsed.netloc, normalized_path, parsed.query, "")
+    )
+
+
+def _is_webhook_replay(parsed_data: Dict[str, object]) -> bool:
+    event_type = parsed_data.get("event_type")
+    payment_id = parsed_data.get("payment_id")
+    if not isinstance(event_type, str) or not isinstance(payment_id, str):
+        return False
+
+    expected_payment_status = {
+        "payment.succeeded": PaymentStatus.SUCCEEDED.value,
+        "payment.canceled": PaymentStatus.CANCELED.value,
+        "payment.waiting_for_capture": PaymentStatus.PENDING.value,
+    }.get(event_type)
+
+    if expected_payment_status:
+        payment = Payments.get_payment_by_provider_id(payment_id)
+        if payment and payment.status == expected_payment_status:
+            return True
+
+    metadata = parsed_data.get("metadata")
+    if not isinstance(metadata, dict):
+        return False
+
+    transaction_id = metadata.get("transaction_id")
+    if (
+        event_type == "payment.succeeded"
+        and isinstance(transaction_id, str)
+        and transaction_id
+    ):
+        transaction = billing_service.transactions.get_transaction_by_id(transaction_id)
+        if transaction and transaction.status == TransactionStatus.SUCCEEDED.value:
+            return True
+
+    return False
 
 
 def _payment_system_http_error(error: RuntimeError, action: str) -> HTTPException:
@@ -331,7 +403,7 @@ class PublicPlanResponse(BaseModel):
 
 
 @router.get("/plans/public", response_model=List[PublicPlanResponse])
-async def get_public_plans():
+def get_public_plans():
     """
     Get all active billing plans for public display.
     No authentication required.
@@ -374,7 +446,7 @@ async def get_public_plans():
 
 
 @router.get("/balance", response_model=BalanceResponse)
-async def get_balance(user=Depends(get_verified_user)):
+def get_balance(user=Depends(get_verified_user)):
     """Get wallet balance and limits for current user."""
     if not ENABLE_BILLING_WALLET:
         raise HTTPException(
@@ -413,7 +485,7 @@ async def get_balance(user=Depends(get_verified_user)):
 
 
 @router.get("/ledger", response_model=List[LedgerEntryModel])
-async def get_ledger(
+def get_ledger(
     limit: int = 50,
     skip: int = 0,
     user=Depends(get_verified_user),
@@ -436,7 +508,7 @@ async def get_ledger(
 
 
 @router.get("/usage-events", response_model=List[UsageEventModel])
-async def get_usage_events(
+def get_usage_events(
     limit: int = 50,
     skip: int = 0,
     billing_source: Optional[str] = None,
@@ -474,7 +546,7 @@ async def get_usage_events(
 
 
 @router.post("/auto-topup")
-async def update_auto_topup(
+def update_auto_topup(
     request: AutoTopupRequest,
     user=Depends(get_verified_user),
 ):
@@ -523,7 +595,7 @@ async def update_auto_topup(
 
 
 @router.post("/settings")
-async def update_billing_settings(
+def update_billing_settings(
     request: BillingSettingsRequest,
     user=Depends(get_verified_user),
 ):
@@ -582,7 +654,7 @@ async def update_billing_settings(
 
 
 @router.get("/plans", response_model=List[PlanModel])
-async def get_plans(user=Depends(get_admin_user)):
+def get_plans(user=Depends(get_admin_user)):
     """Get all active subscription plans (admin only)"""
     _require_subscriptions_enabled()
     try:
@@ -597,7 +669,7 @@ async def get_plans(user=Depends(get_admin_user)):
 
 
 @router.get("/plans/{plan_id}", response_model=PlanModel)
-async def get_plan(plan_id: str, user=Depends(get_verified_user)):
+def get_plan(plan_id: str, user=Depends(get_verified_user)):
     """Get specific plan by ID"""
     _require_subscriptions_enabled()
     plan = billing_service.get_plan(plan_id)
@@ -610,7 +682,7 @@ async def get_plan(plan_id: str, user=Depends(get_verified_user)):
 
 
 @router.post("/plans", response_model=PlanModel)
-async def create_plan(
+def create_plan(
     request: CreatePlanRequest,
     user=Depends(get_admin_user),
 ):
@@ -645,7 +717,7 @@ async def create_plan(
 
 
 @router.get("/subscription", response_model=Optional[SubscriptionModel])
-async def get_my_subscription(user=Depends(get_verified_user)):
+def get_my_subscription(user=Depends(get_verified_user)):
     """Get current user's subscription"""
     _require_subscriptions_enabled()
     subscription = billing_service.get_user_subscription(user.id)
@@ -653,7 +725,7 @@ async def get_my_subscription(user=Depends(get_verified_user)):
 
 
 @router.post("/subscription/cancel", response_model=SubscriptionModel)
-async def cancel_my_subscription(
+def cancel_my_subscription(
     request: CancelSubscriptionRequest,
     user=Depends(get_verified_user),
 ):
@@ -680,7 +752,7 @@ async def cancel_my_subscription(
 
 
 @router.post("/subscription/resume", response_model=SubscriptionModel)
-async def resume_my_subscription(user=Depends(get_verified_user)):
+def resume_my_subscription(user=Depends(get_verified_user)):
     """Resume current user's subscription if cancellation is scheduled"""
     _require_subscriptions_enabled()
     subscription = billing_service.get_user_subscription(user.id)
@@ -729,14 +801,19 @@ async def create_topup(
             detail="Billing wallet is disabled",
         )
 
-    wallet = wallet_service.get_or_create_wallet(user.id, BILLING_DEFAULT_CURRENCY)
+    wallet = await run_in_threadpool(
+        wallet_service.get_or_create_wallet,
+        user.id,
+        BILLING_DEFAULT_CURRENCY,
+    )
 
     try:
+        normalized_return_url = _sanitize_payment_return_url(request.return_url)
         payment_data = await billing_service.create_topup_payment(
             user_id=user.id,
             wallet_id=wallet.id,
             amount_kopeks=request.amount_kopeks,
-            return_url=request.return_url,
+            return_url=normalized_return_url,
         )
         return TopupResponse(**payment_data)
     except ValueError as e:
@@ -804,10 +881,11 @@ async def create_payment(
     """Create payment for subscription"""
     _require_subscriptions_enabled()
     try:
+        normalized_return_url = _sanitize_payment_return_url(request.return_url)
         payment_data = await billing_service.create_payment(
             user_id=user.id,
             plan_id=request.plan_id,
-            return_url=request.return_url,
+            return_url=normalized_return_url,
         )
         return CreatePaymentResponse(**payment_data)
     except ValueError as e:
@@ -828,7 +906,7 @@ async def create_payment(
 
 
 @router.get("/transactions", response_model=List[TransactionModel])
-async def get_my_transactions(
+def get_my_transactions(
     limit: int = 50,
     skip: int = 0,
     user=Depends(get_verified_user),
@@ -853,7 +931,7 @@ async def get_my_transactions(
 
 
 @router.get("/usage/{metric}")
-async def get_my_usage(
+def get_my_usage(
     metric: str,
     user=Depends(get_verified_user),
 ):
@@ -899,7 +977,7 @@ async def get_my_usage(
 
 
 @router.post("/usage/check", response_model=CheckQuotaResponse)
-async def check_quota(
+def check_quota(
     request: CheckQuotaRequest,
     user=Depends(get_verified_user),
 ):
@@ -952,7 +1030,7 @@ async def check_quota(
 
 
 @router.get("/me")
-async def get_my_billing_info(user=Depends(get_verified_user)):
+def get_my_billing_info(user=Depends(get_verified_user)):
     """Get complete billing information for current user"""
     try:
         billing_info = billing_service.get_user_billing_info(user.id)
@@ -966,7 +1044,7 @@ async def get_my_billing_info(user=Depends(get_verified_user)):
 
 
 @router.get("/lead-magnet", response_model=LeadMagnetInfoResponse)
-async def get_lead_magnet_info(user=Depends(get_verified_user)):
+def get_lead_magnet_info(user=Depends(get_verified_user)):
     """Get lead magnet status and usage for current user."""
     try:
         billing_info = billing_service.get_user_billing_info(user.id)
@@ -1016,7 +1094,7 @@ async def get_lead_magnet_info(user=Depends(get_verified_user)):
 
 
 @router.get("/public/lead-magnet", response_model=PublicLeadMagnetResponse)
-async def get_public_lead_magnet_config(request: Request) -> PublicLeadMagnetResponse:
+def get_public_lead_magnet_config(request: Request) -> PublicLeadMagnetResponse:
     """Expose lead magnet configuration for public pages."""
     config = request.app.state.config
     quotas = _normalize_public_lead_magnet_quotas(config.LEAD_MAGNET_QUOTAS or {})
@@ -1029,7 +1107,7 @@ async def get_public_lead_magnet_config(request: Request) -> PublicLeadMagnetRes
 
 
 @router.get("/public/pricing-config", response_model=PublicPricingConfigResponse)
-async def get_public_pricing_config(request: Request) -> PublicPricingConfigResponse:
+def get_public_pricing_config(request: Request) -> PublicPricingConfigResponse:
     """Expose pricing config for public pages (topups, free limits, popular/recommended)."""
     config = request.app.state.config
     quotas = _normalize_public_lead_magnet_quotas(config.LEAD_MAGNET_QUOTAS or {})
@@ -1248,6 +1326,7 @@ async def get_public_rate_cards(
 async def yookassa_webhook(
     request: Request,
     x_yookassa_signature: Optional[str] = Header(None, alias="X-YooKassa-Signature"),
+    x_yookassa_timestamp: Optional[str] = Header(None, alias="X-YooKassa-Timestamp"),
     token: Optional[str] = Query(None),
 ):
     """
@@ -1291,9 +1370,44 @@ async def yookassa_webhook(
             detail="Invalid request body encoding",
         )
 
-    # Optional signature check (best-effort).
     yookassa = get_yookassa_client()
-    if yookassa and x_yookassa_signature:
+    signature_enforced = bool(YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE)
+    signature_supported = bool(
+        yookassa and getattr(getattr(yookassa, "config", None), "webhook_secret", None)
+    )
+
+    if signature_enforced and not signature_supported:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Payment system temporarily unavailable",
+        )
+
+    if signature_enforced and not x_yookassa_signature:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing signature",
+        )
+
+    if signature_enforced:
+        if not x_yookassa_timestamp:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid signature timestamp",
+            )
+        try:
+            signature_timestamp = int(x_yookassa_timestamp)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid signature timestamp",
+            )
+
+        if abs(int(time.time()) - signature_timestamp) > 300:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Signature timestamp is outside allowed window",
+            )
+
         is_valid = yookassa.verify_webhook(body_str, x_yookassa_signature)
         if not is_valid:
             log.warning("Invalid webhook signature")
@@ -1303,8 +1417,6 @@ async def yookassa_webhook(
             )
 
     try:
-        import json
-
         webhook_data = json.loads(body_str)
     except Exception:
         raise HTTPException(
@@ -1319,6 +1431,16 @@ async def yookassa_webhook(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid webhook payload",
+        )
+
+    if await run_in_threadpool(_is_webhook_replay, parsed_data):
+        log.info(
+            "Ignoring replayed webhook for payment %s",
+            parsed_data.get("payment_id"),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"status": "ok", "replayed": True},
         )
 
     try:

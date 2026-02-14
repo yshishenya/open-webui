@@ -142,6 +142,133 @@ class TestBillingTopup(AbstractPostgresTest):
             response.json()["detail"] == "Payment provider rejected the payment request"
         )
 
+    def test_topup_maps_retryable_provider_error(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.routers.billing as billing_router
+        from open_webui.utils.yookassa import YooKassaRequestError
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
+
+        async def fake_create_topup_payment(**_: object) -> dict[str, object]:
+            raise YooKassaRequestError(
+                "YooKassa request failed with status 503",
+                status_code=503,
+                response_text='{"type":"error","code":"service_unavailable"}',
+                retryable=True,
+                error_code="service_unavailable",
+                source="provider",
+            )
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "create_topup_payment",
+            fake_create_topup_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/topup"),
+                json={
+                    "amount_kopeks": 100000,
+                    "return_url": "https://example.com/return",
+                },
+            )
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Payment provider is temporarily unavailable"
+
+    def test_topup_maps_runtime_error_to_503(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
+
+        async def fake_create_topup_payment(**_: object) -> dict[str, object]:
+            raise RuntimeError("gateway temporarily unavailable")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "create_topup_payment",
+            fake_create_topup_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/topup"),
+                json={
+                    "amount_kopeks": 100000,
+                    "return_url": "https://example.com/return",
+                },
+            )
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Payment system temporarily unavailable"
+
+    def test_topup_maps_unexpected_error_to_500(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
+
+        async def fake_create_topup_payment(**_: object) -> dict[str, object]:
+            raise Exception("unexpected failure")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "create_topup_payment",
+            fake_create_topup_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/topup"),
+                json={
+                    "amount_kopeks": 100000,
+                    "return_url": "https://example.com/return",
+                },
+            )
+
+        assert response.status_code == 500
+        assert response.json()["detail"] == "Failed to create topup"
+
+    @pytest.mark.parametrize(
+        "invalid_return_url",
+        [
+            "javascript:alert(1)",
+            "https:///broken",
+            "https://user:pass@example.com/return",
+            "https://example.com/return#fragment",
+            "ftp://example.com/return",
+            "   ",
+        ],
+    )
+    def test_topup_rejects_unsafe_return_url_payloads(
+        self, monkeypatch: MonkeyPatch, invalid_return_url: str
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+        import open_webui.utils.billing as billing_utils
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
+        monkeypatch.setattr(billing_utils, "BILLING_TOPUP_PACKAGES_KOPEKS", [1000])
+
+        async def fake_create_topup_payment(**_: object) -> dict[str, object]:
+            raise AssertionError("create_topup_payment should not be called")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "create_topup_payment",
+            fake_create_topup_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/topup"),
+                json={
+                    "amount_kopeks": 1000,
+                    "return_url": invalid_return_url,
+                },
+            )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Invalid return_url"
+
     def test_payment_maps_provider_auth_error(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
         from open_webui.utils.yookassa import YooKassaRequestError
@@ -208,33 +335,130 @@ class TestBillingTopup(AbstractPostgresTest):
             response.json()["detail"] == "Payment provider rejected the payment request"
         )
 
-    def test_topup_maps_uninitialized_payment_system_error(
+    def test_payment_maps_retryable_provider_error(
         self, monkeypatch: MonkeyPatch
     ) -> None:
         import open_webui.routers.billing as billing_router
+        from open_webui.utils.yookassa import YooKassaRequestError
 
-        monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_SUBSCRIPTIONS", True)
 
-        async def fake_create_topup_payment(**_: object) -> dict[str, object]:
-            raise RuntimeError("YooKassa client not initialized")
+        async def fake_create_payment(**_: object) -> dict[str, object]:
+            raise YooKassaRequestError(
+                "YooKassa request timed out",
+                response_text="timeout",
+                retryable=True,
+                source="timeout",
+            )
 
         monkeypatch.setattr(
             billing_router.billing_service,
-            "create_topup_payment",
-            fake_create_topup_payment,
+            "create_payment",
+            fake_create_payment,
         )
 
         with mock_webui_user(id="1"):
             response = self.fast_api_client.post(
-                self.create_url("/topup"),
+                self.create_url("/payment"),
                 json={
-                    "amount_kopeks": 100000,
+                    "plan_id": "plan_basic",
                     "return_url": "https://example.com/return",
                 },
             )
 
         assert response.status_code == 503
-        assert response.json()["detail"] == "Payment system is not configured"
+        assert response.json()["detail"] == "Payment provider is temporarily unavailable"
+
+    def test_payment_maps_runtime_error_to_503(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_SUBSCRIPTIONS", True)
+
+        async def fake_create_payment(**_: object) -> dict[str, object]:
+            raise RuntimeError("payment backend temporarily unavailable")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "create_payment",
+            fake_create_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/payment"),
+                json={
+                    "plan_id": "plan_basic",
+                    "return_url": "https://example.com/return",
+                },
+            )
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Payment system temporarily unavailable"
+
+    def test_payment_maps_unexpected_error_to_500(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_SUBSCRIPTIONS", True)
+
+        async def fake_create_payment(**_: object) -> dict[str, object]:
+            raise Exception("unexpected payment error")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "create_payment",
+            fake_create_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/payment"),
+                json={
+                    "plan_id": "plan_basic",
+                    "return_url": "https://example.com/return",
+                },
+            )
+
+        assert response.status_code == 500
+        assert response.json()["detail"] == "Failed to create payment"
+
+    @pytest.mark.parametrize(
+        "invalid_return_url",
+        [
+            "javascript:alert(1)",
+            "https:///broken",
+            "https://user:pass@example.com/return",
+            "https://example.com/return#fragment",
+            "ftp://example.com/return",
+            "   ",
+        ],
+    )
+    def test_payment_rejects_unsafe_return_url_payloads(
+        self, monkeypatch: MonkeyPatch, invalid_return_url: str
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_SUBSCRIPTIONS", True)
+
+        async def fake_create_payment(**_: object) -> dict[str, object]:
+            raise AssertionError("create_payment should not be called")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "create_payment",
+            fake_create_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/payment"),
+                json={
+                    "plan_id": "plan_basic",
+                    "return_url": invalid_return_url,
+                },
+            )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Invalid return_url"
 
     def test_payment_maps_uninitialized_payment_system_error(
         self, monkeypatch: MonkeyPatch
@@ -257,6 +481,34 @@ class TestBillingTopup(AbstractPostgresTest):
                 self.create_url("/payment"),
                 json={
                     "plan_id": "plan_basic",
+                    "return_url": "https://example.com/return",
+                },
+            )
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Payment system is not configured"
+
+    def test_topup_maps_uninitialized_payment_system_error(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
+
+        async def fake_create_topup_payment(**_: object) -> dict[str, object]:
+            raise RuntimeError("YooKassa client not initialized")
+
+        monkeypatch.setattr(
+            billing_router.billing_service,
+            "create_topup_payment",
+            fake_create_topup_payment,
+        )
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.post(
+                self.create_url("/topup"),
+                json={
+                    "amount_kopeks": 100000,
                     "return_url": "https://example.com/return",
                 },
             )
