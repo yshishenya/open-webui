@@ -1031,6 +1031,11 @@ async def image_edits(
         if form_data.model is None
         else form_data.model
     )
+    if not isinstance(model, str) or not model.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid image edit model configuration",
+        )
     billing_width = width or 1024
     billing_height = height or 1024
     if form_data.size == "auto" or request.app.state.config.IMAGE_EDIT_SIZE == "auto":
@@ -1143,9 +1148,9 @@ async def image_edits(
 
             is_gemini_model = model.startswith("gemini/") or model.startswith("gemini-")
             if not is_gemini_model:
-                if form_data.n:
+                if hasattr(form_data, "n") and form_data.n:
                     data["n"] = form_data.n
-                if size:
+                if size is not None:
                     data["size"] = size
 
             files = []
