@@ -1148,7 +1148,7 @@ async def image_edits(
 
             is_gemini_model = model.startswith("gemini/") or model.startswith("gemini-")
             if not is_gemini_model:
-                if hasattr(form_data, "n") and form_data.n:
+                if hasattr(form_data, "n") and form_data.n is not None:
                     data["n"] = form_data.n
                 if size is not None:
                     data["size"] = size
