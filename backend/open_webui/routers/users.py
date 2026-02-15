@@ -21,7 +21,6 @@ from open_webui.models.users import (
     UserGroupIdsListResponse,
     UserInfoResponse,
     UserInfoListResponse,
-    UserRoleUpdateForm,
     UserStatus,
     Users,
     UserSettings,
@@ -44,6 +43,20 @@ from open_webui.utils.access_control import get_permissions, has_permission
 log = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _normalize_profile_image_url_for_list(
+    user_id: str, profile_image_url: Optional[str]
+) -> Optional[str]:
+    if not profile_image_url:
+        return profile_image_url
+    if (
+        profile_image_url.startswith("http")
+        or profile_image_url.startswith("data:image")
+        or profile_image_url.startswith(f"/api/v1/users/{user_id}/profile/image")
+    ):
+        return profile_image_url
+    return f"/api/v1/users/{user_id}/profile/image"
 
 
 ############################
@@ -92,6 +105,9 @@ async def get_users(
             UserGroupIdsModel(
                 **{
                     **user.model_dump(),
+                    "profile_image_url": _normalize_profile_image_url_for_list(
+                        user.id, user.profile_image_url
+                    ),
                     "group_ids": [group.id for group in user_groups.get(user.id, [])],
                 }
             )
@@ -541,7 +557,7 @@ def get_user_profile_image_by_id(user_id: str, user=Depends(get_verified_user)):
                         media_type=media_type,
                         headers={"Content-Disposition": "inline"},
                     )
-                except Exception as e:
+                except Exception:
                     pass
         return FileResponse(f"{STATIC_DIR}/user.png")
     else:
@@ -638,7 +654,12 @@ async def update_user_by_id(
         )
 
         if updated_user:
-            return updated_user
+            return {
+                **updated_user.model_dump(),
+                "profile_image_url": _normalize_profile_image_url_for_list(
+                    updated_user.id, updated_user.profile_image_url
+                ),
+            }
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

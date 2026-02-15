@@ -3,14 +3,18 @@ import uuid
 from typing import Optional
 
 from sqlalchemy.orm import Session
-from open_webui.internal.db import Base, JSONField, get_db, get_db_context
+from open_webui.internal.db import Base, get_db_context
 from open_webui.models.groups import Groups
 from open_webui.models.users import Users, UserResponse
 from open_webui.models.prompt_history import PromptHistories
-from open_webui.models.access_grants import AccessGrantModel, AccessGrants
+from open_webui.models.access_grants import (
+    AccessGrantModel,
+    AccessGrants,
+    access_control_to_grants,
+)
 
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 from sqlalchemy import BigInteger, Boolean, Column, String, Text, JSON, or_, func, cast
 
 ####################
@@ -39,7 +43,10 @@ class PromptModel(BaseModel):
     id: Optional[str] = None
     command: str
     user_id: str
-    name: str
+    name: str = Field(
+        validation_alias=AliasChoices("name", "title"),
+        serialization_alias="title",
+    )
     content: str
     data: Optional[dict] = None
     meta: Optional[dict] = None
@@ -79,12 +86,14 @@ class PromptAccessListResponse(BaseModel):
 class PromptForm(BaseModel):
 
     command: str
-    name: str  # Changed from title
+    name: str = Field(validation_alias=AliasChoices("name", "title"))
+    # Keep title alias for backward compatibility with older clients/tests.
     content: str
     data: Optional[dict] = None
     meta: Optional[dict] = None
     tags: Optional[list[str]] = None
     access_grants: Optional[list[dict]] = None
+    access_control: Optional[dict] = None
     version_id: Optional[str] = None  # Active version
     commit_message: Optional[str] = None  # For history tracking
     is_production: Optional[bool] = True  # Whether to set new version as production
@@ -133,7 +142,12 @@ class PromptsTable:
                 db.commit()
                 db.refresh(result)
                 AccessGrants.set_access_grants(
-                    "prompt", prompt_id, form_data.access_grants, db=db
+                    "prompt",
+                    prompt_id,
+                    form_data.access_grants
+                    if form_data.access_grants is not None
+                    else access_control_to_grants("prompt", prompt_id, form_data.access_control),
+                    db=db,
                 )
 
                 if result:
@@ -200,7 +214,7 @@ class PromptsTable:
         with get_db_context(db) as db:
             all_prompts = (
                 db.query(Prompt)
-                .filter(Prompt.is_active == True)
+                .filter(Prompt.is_active.is_(True))
                 .order_by(Prompt.updated_at.desc())
                 .all()
             )
@@ -259,7 +273,7 @@ class PromptsTable:
 
             # Join with User table for user filtering and sorting
             query = db.query(Prompt, User).outerjoin(User, User.id == Prompt.user_id)
-            query = query.filter(Prompt.is_active == True)
+            query = query.filter(Prompt.is_active.is_(True))
 
             if filter:
                 query_key = filter.get("query")

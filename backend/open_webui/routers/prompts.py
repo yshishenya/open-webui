@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 
 from open_webui.models.prompts import (
     PromptForm,
-    PromptUserResponse,
     PromptAccessResponse,
     PromptAccessListResponse,
     PromptModel,
@@ -17,7 +16,7 @@ from open_webui.models.prompt_history import (
     PromptHistoryResponse,
 )
 from open_webui.constants import ERROR_MESSAGES
-from open_webui.utils.auth import get_admin_user, get_verified_user
+from open_webui.utils.auth import get_verified_user
 from open_webui.utils.access_control import has_permission
 from open_webui.config import BYPASS_ADMIN_ACCESS_CONTROL
 from open_webui.internal.db import get_session
@@ -38,6 +37,10 @@ class PromptMetadataForm(BaseModel):
 router = APIRouter()
 
 PAGE_ITEM_COUNT = 30
+
+
+def _normalize_prompt_command(command: str) -> str:
+    return command if command.startswith("/") else f"/{command}"
 
 
 ############################
@@ -197,7 +200,7 @@ async def create_new_prompt(
 async def get_prompt_by_command(
     command: str, user=Depends(get_verified_user), db: Session = Depends(get_session)
 ):
-    prompt = Prompts.get_prompt_by_command(command, db=db)
+    prompt = Prompts.get_prompt_by_command(_normalize_prompt_command(command), db=db)
 
     if prompt:
         if (
@@ -230,6 +233,94 @@ async def get_prompt_by_command(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=ERROR_MESSAGES.NOT_FOUND,
     )
+
+
+@router.post("/command/{command}/update", response_model=Optional[PromptModel])
+async def update_prompt_by_command(
+    command: str,
+    form_data: PromptForm,
+    user=Depends(get_verified_user),
+    db: Session = Depends(get_session),
+):
+    normalized_command = _normalize_prompt_command(command)
+    prompt = Prompts.get_prompt_by_command(normalized_command, db=db)
+
+    if not prompt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ERROR_MESSAGES.NOT_FOUND,
+        )
+
+    # Is the user the original creator, in a group with write access, or an admin
+    if (
+        prompt.user_id != user.id
+        and not AccessGrants.has_access(
+            user_id=user.id,
+            resource_type="prompt",
+            resource_id=prompt.id,
+            permission="write",
+            db=db,
+        )
+        and user.role != "admin"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
+        )
+
+    # Check for command collision if command is being changed
+    if form_data.command != prompt.command:
+        existing_prompt = Prompts.get_prompt_by_command(form_data.command, db=db)
+        if existing_prompt and existing_prompt.id != prompt.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Command '/{form_data.command}' is already in use by another prompt",
+            )
+
+    # Use the normalized command from path to avoid slash mismatches
+    updated_prompt = Prompts.update_prompt_by_command(
+        normalized_command, form_data, user.id, db=db
+    )
+    if updated_prompt:
+        return updated_prompt
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ERROR_MESSAGES.DEFAULT(),
+        )
+
+
+@router.delete("/command/{command}/delete", response_model=bool)
+async def delete_prompt_by_command(
+    command: str, user=Depends(get_verified_user), db: Session = Depends(get_session)
+):
+    normalized_command = _normalize_prompt_command(command)
+    prompt = Prompts.get_prompt_by_command(normalized_command, db=db)
+
+    if not prompt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ERROR_MESSAGES.NOT_FOUND,
+        )
+
+    if (
+        prompt.user_id != user.id
+        and not AccessGrants.has_access(
+            user_id=user.id,
+            resource_type="prompt",
+            resource_id=prompt.id,
+            permission="write",
+            db=db,
+        )
+        and user.role != "admin"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
+        )
+
+    result = Prompts.delete_prompt_by_command(normalized_command, db=db)
+    return result
 
 
 ############################

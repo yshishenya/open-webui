@@ -1,6 +1,6 @@
-from typing import Optional, Set, Union, List, Dict, Any
-from open_webui.models.users import Users, UserModel
+from typing import Any, Optional, Set, List, Dict
 from open_webui.models.groups import Groups
+from open_webui.models.access_grants import access_control_to_grants
 
 
 from open_webui.config import DEFAULT_USER_PERMISSIONS
@@ -109,10 +109,14 @@ def has_permission(
 
 def has_access(
     user_id: str,
-    permission: str = "read",
-    access_grants: Optional[list] = None,
+    type: str = "write",
+    access_control: Optional[dict] = None,
     user_group_ids: Optional[Set[str]] = None,
+    strict: bool = True,
     db: Optional[Any] = None,
+    access_grants: Optional[list] = None,
+    permission: Optional[str] = None,
+    **_: Any,
 ) -> bool:
     """
     Check if a user has the specified permission using an in-memory access_grants list.
@@ -121,10 +125,26 @@ def has_access(
     access control as JSON in PersistentConfig rather than in the access_grant DB table.
 
     Semantics:
-    - None or []  → private (owner-only, deny all)
-    - [{"principal_type": "user", "principal_id": "*", "permission": "read"}] → public read
-    - Specific grants → check user/group membership
+    - None with strict=True → public read
+    - None with strict=False → public access
+    - [{} and explicit grants] → private unless matching grant exists
     """
+    if permission is not None:
+        type = permission
+
+    if access_grants is None and access_control is None:
+        return type == "read" if strict else True
+    elif isinstance(access_control, list) and access_grants is None:
+        access_grants = access_control
+        access_control = None
+
+    elif access_grants is None and access_control is not None:
+        access_grants = [
+            grant
+            for grant in access_control_to_grants("model", "", access_control)
+            if isinstance(grant, dict)
+        ]
+
     if not access_grants:
         return False
 
@@ -135,7 +155,7 @@ def has_access(
     for grant in access_grants:
         if not isinstance(grant, dict):
             continue
-        if grant.get("permission") != permission:
+        if grant.get("permission") != type:
             continue
         principal_type = grant.get("principal_type")
         principal_id = grant.get("principal_id")

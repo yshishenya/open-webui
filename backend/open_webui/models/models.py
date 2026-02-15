@@ -3,19 +3,21 @@ import time
 from typing import Optional
 
 from sqlalchemy.orm import Session
-from open_webui.internal.db import Base, JSONField, get_db, get_db_context
+from open_webui.internal.db import Base, JSONField, get_db_context
 
 from open_webui.models.groups import Groups
 from open_webui.models.users import User, UserModel, Users, UserResponse
-from open_webui.models.access_grants import AccessGrantModel, AccessGrants
+from open_webui.models.access_grants import (
+    AccessGrantModel,
+    AccessGrants,
+    access_control_to_grants,
+    grants_to_access_control,
+)
 
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from sqlalchemy import String, cast, or_, and_, func
-from sqlalchemy.dialects import postgresql, sqlite
-
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import String, cast, or_, func
 from sqlalchemy import BigInteger, Column, Text, Boolean
 
 log = logging.getLogger(__name__)
@@ -93,6 +95,7 @@ class ModelModel(BaseModel):
     meta: ModelMeta
 
     access_grants: list[AccessGrantModel] = Field(default_factory=list)
+    access_control: Optional[dict] = None
 
     is_active: bool
     updated_at: int  # timestamp in epoch
@@ -135,6 +138,7 @@ class ModelForm(BaseModel):
     meta: ModelMeta
     params: ModelParams
     access_grants: Optional[list[dict]] = None
+    access_control: Optional[dict] = None
     is_active: bool = True
 
 
@@ -149,6 +153,9 @@ class ModelsTable:
             exclude={"access_grants"}
         )
         model_data["access_grants"] = self._get_access_grants(model_data["id"], db=db)
+        model_data["access_control"] = grants_to_access_control(
+            model_data["access_grants"]
+        )
         return ModelModel.model_validate(model_data)
 
     def insert_new_model(
@@ -158,7 +165,7 @@ class ModelsTable:
             with get_db_context(db) as db:
                 result = Model(
                     **{
-                        **form_data.model_dump(exclude={"access_grants"}),
+                        **form_data.model_dump(exclude={"access_grants", "access_control"}),
                         "user_id": user_id,
                         "created_at": int(time.time()),
                         "updated_at": int(time.time()),
@@ -168,7 +175,12 @@ class ModelsTable:
                 db.commit()
                 db.refresh(result)
                 AccessGrants.set_access_grants(
-                    "model", result.id, form_data.access_grants, db=db
+                    "model",
+                    result.id,
+                    form_data.access_grants
+                    if form_data.access_grants is not None
+                    else access_control_to_grants("model", result.id, form_data.access_control),
+                    db=db,
                 )
 
                 if result:
@@ -187,7 +199,7 @@ class ModelsTable:
 
     def get_models(self, db: Optional[Session] = None) -> list[ModelUserResponse]:
         with get_db_context(db) as db:
-            all_models = db.query(Model).filter(Model.base_model_id != None).all()
+            all_models = db.query(Model).filter(Model.base_model_id.is_not(None)).all()
 
             user_ids = list(set(model.user_id for model in all_models))
 
@@ -211,7 +223,7 @@ class ModelsTable:
         with get_db_context(db) as db:
             return [
                 self._to_model_model(model, db=db)
-                for model in db.query(Model).filter(Model.base_model_id == None).all()
+                for model in db.query(Model).filter(Model.base_model_id.is_(None)).all()
             ]
 
     def get_models_by_user_id(
@@ -256,7 +268,7 @@ class ModelsTable:
         with get_db_context(db) as db:
             # Join GroupMember so we can order by group_id when requested
             query = db.query(Model, User).outerjoin(User, User.id == Model.user_id)
-            query = query.filter(Model.base_model_id != None)
+            query = query.filter(Model.base_model_id.is_not(None))
 
             if filter:
                 query_key = filter.get("query")
@@ -384,13 +396,25 @@ class ModelsTable:
         try:
             with get_db_context(db) as db:
                 # update only the fields that are present in the model
-                data = model.model_dump(exclude={"id", "access_grants"})
-                result = db.query(Model).filter_by(id=id).update(data)
+                data = model.model_dump(
+                    exclude={"id", "access_grants", "access_control"}
+                )
+                db.query(Model).filter_by(id=id).update(data)
 
                 db.commit()
-                if model.access_grants is not None:
+                if (
+                    model.access_grants is not None
+                    or "access_control" in model.model_fields_set
+                ):
                     AccessGrants.set_access_grants(
-                        "model", id, model.access_grants, db=db
+                        "model",
+                        id,
+                        model.access_grants
+                        if model.access_grants is not None
+                        else access_control_to_grants(
+                            "model", id, model.access_control
+                        ),
+                        db=db,
                     )
 
                 return self.get_model_by_id(id, db=db)
@@ -439,7 +463,9 @@ class ModelsTable:
                     if model.id in existing_ids:
                         db.query(Model).filter_by(id=model.id).update(
                             {
-                                **model.model_dump(exclude={"access_grants"}),
+                                **model.model_dump(
+                                    exclude={"access_grants", "access_control"}
+                                ),
                                 "user_id": user_id,
                                 "updated_at": int(time.time()),
                             }
@@ -447,7 +473,9 @@ class ModelsTable:
                     else:
                         new_model = Model(
                             **{
-                                **model.model_dump(exclude={"access_grants"}),
+                                **model.model_dump(
+                                    exclude={"access_grants", "access_control"}
+                                ),
                                 "user_id": user_id,
                                 "updated_at": int(time.time()),
                             }
