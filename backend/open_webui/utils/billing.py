@@ -638,11 +638,12 @@ class BillingService:
         topup_description = (
             f"Top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
         )
-        receipt = self._build_receipt(
-            user_id=user_id,
-            amount=amount_rub,
-            currency=BILLING_DEFAULT_CURRENCY,
-            description=topup_description,
+        receipt = await run_in_threadpool(
+            self._build_receipt,
+            user_id,
+            amount_rub,
+            BILLING_DEFAULT_CURRENCY,
+            topup_description,
         )
 
         payment = await yookassa.create_payment(
@@ -777,11 +778,12 @@ class BillingService:
         auto_topup_description = (
             f"Auto top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
         )
-        receipt = self._build_receipt(
-            user_id=user_id,
-            amount=amount_rub,
-            currency=BILLING_DEFAULT_CURRENCY,
-            description=auto_topup_description,
+        receipt = await run_in_threadpool(
+            self._build_receipt,
+            user_id,
+            amount_rub,
+            BILLING_DEFAULT_CURRENCY,
+            auto_topup_description,
         )
 
         payment = await yookassa.create_payment(
@@ -1085,7 +1087,10 @@ class BillingService:
         if not payment_id_clean:
             raise ValueError("payment_id is required")
 
-        local_payment = self.payments.get_payment_by_provider_id(payment_id_clean)
+        local_payment = await run_in_threadpool(
+            self.payments.get_payment_by_provider_id,
+            payment_id_clean,
+        )
         if local_payment and local_payment.user_id != user_id:
             raise PermissionError("Payment does not belong to the current user")
 
@@ -1151,13 +1156,17 @@ class BillingService:
                 "currency": currency_value,
                 "metadata": effective_metadata,
             }
-            self._process_topup_webhook(
-                event_type=event_type,
-                payment_id=payment_id_clean,
-                webhook_data=trusted_webhook_data,
+            await run_in_threadpool(
+                self._process_topup_webhook,
+                event_type,
+                payment_id_clean,
+                trusted_webhook_data,
             )
 
-        updated_payment = self.payments.get_payment_by_provider_id(payment_id_clean)
+        updated_payment = await run_in_threadpool(
+            self.payments.get_payment_by_provider_id,
+            payment_id_clean,
+        )
         if updated_payment and updated_payment.user_id != user_id:
             raise PermissionError("Payment does not belong to the current user")
 
