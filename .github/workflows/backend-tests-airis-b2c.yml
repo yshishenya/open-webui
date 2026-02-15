@@ -49,7 +49,7 @@ jobs:
           docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm \
             -e WEBUI_AUTH="$WEBUI_AUTH" \
             -e WEBUI_SECRET_KEY="$WEBUI_SECRET_KEY" \
-            airis bash -lc "pytest --junitxml=artifacts/backend-tests/${run_id}/pytest.xml"
+            airis bash -lc "python -m pip install -q aiosmtplib email-validator pytest-asyncio 'moto[s3]>=5.0.26' && pytest --junitxml=artifacts/backend-tests/${run_id}/pytest.xml"
 
       - name: Upload pytest artifacts
         if: always()
@@ -58,4 +58,3 @@ jobs:
           name: backend-tests-${{ github.run_id }}-${{ github.run_attempt }}
           path: backend/artifacts/backend-tests/${{ github.run_id }}-${{ github.run_attempt }}/
           if-no-files-found: warn
-
