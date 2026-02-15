@@ -498,10 +498,10 @@ class UsersTable:
         with get_db_context(db) as db:
             return db.query(db.query(User).exists()).scalar()
 
-    def get_first_user(self, db: Optional[Session] = None) -> UserModel:
+    def get_first_user(self, db: Optional[Session] = None) -> Optional[UserModel]:
         try:
             with get_db_context(db) as db:
-                user = db.query(User).order_by(User.created_at).first()
+                user = db.query(User).order_by(User.created_at, User.id).first()
                 return UserModel.model_validate(user)
         except Exception:
             return None
