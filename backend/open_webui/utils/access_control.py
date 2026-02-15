@@ -72,8 +72,8 @@ def get_permissions(
 def has_permission(
     user_id: str,
     permission_key: str,
-    default_permissions: Dict[str, Any] = {},
-    db: Optional[Any] = None,
+    default_permissions: dict[str, object] | None = None,
+    db: object | None = None,
 ) -> bool:
     """
     Check if a user has a specific permission by checking the group permissions
@@ -81,6 +81,8 @@ def has_permission(
 
     Permission keys can be hierarchical and separated by dots ('.').
     """
+    if default_permissions is None:
+        default_permissions = {}
 
     def get_permission(permissions: Dict[str, Any], keys: List[str]) -> bool:
         """Traverse permissions dict using a list of keys (from dot-split permission_key)."""
