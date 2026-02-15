@@ -19,6 +19,7 @@ from open_webui.config import CACHE_DIR
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import ENABLE_FORWARD_USER_INFO_HEADERS, SRC_LOG_LEVELS
 from open_webui.models.billing import UsageMetric
+from open_webui.retrieval.web.utils import validate_url
 from open_webui.models.chats import Chats
 from open_webui.routers.files import upload_file_handler, get_file_content_by_id
 from open_webui.utils.auth import get_admin_user, get_verified_user
@@ -1031,6 +1032,8 @@ async def image_edits(
         if form_data.model is None
         else form_data.model
     )
+    if not isinstance(model, str) or not model.strip():
+        raise HTTPException(status_code=400, detail="Invalid model format.")
     billing_width = width or 1024
     billing_height = height or 1024
     if form_data.size == "auto" or request.app.state.config.IMAGE_EDIT_SIZE == "auto":
@@ -1071,6 +1074,8 @@ async def image_edits(
                 return data
 
             if data.startswith("http://") or data.startswith("https://"):
+                # Validate URL to prevent SSRF attacks against local/private networks
+                validate_url(data)
                 r = await asyncio.to_thread(requests.get, data)
                 r.raise_for_status()
 
@@ -1100,7 +1105,10 @@ async def image_edits(
         if isinstance(form_data.image, str):
             form_data.image = await load_url_image(form_data.image)
         elif isinstance(form_data.image, list):
-            form_data.image = [await load_url_image(img) for img in form_data.image]
+            # Load all images in parallel for better performance
+            form_data.image = list(
+                await asyncio.gather(*[load_url_image(img) for img in form_data.image])
+            )
     except Exception as e:
         await release_single_rate_hold(
             billing_context,
@@ -1135,14 +1143,15 @@ async def image_edits(
             data = {
                 "model": model,
                 "prompt": form_data.prompt,
-                **({"n": form_data.n} if form_data.n else {}),
-                **({"size": size} if size else {}),
-                **(
-                    {}
-                    if request.app.state.config.IMAGE_EDIT_MODEL.startswith("gpt-image")
-                    else {"response_format": "b64_json"}
-                ),
             }
+
+            is_gemini_model = model.startswith("gemini/") or model.startswith("gemini-")
+            if not is_gemini_model:
+                if form_data.n is not None:
+                    data["n"] = form_data.n
+                if size is not None:
+                    data["size"] = size
+                data["response_format"] = "b64_json"
 
             files = []
             if isinstance(form_data.image, str):
