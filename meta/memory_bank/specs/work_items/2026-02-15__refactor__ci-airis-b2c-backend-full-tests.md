@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: refactor
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: `codex/ci/airis-b2c-backend-full-tests`
 - SDD Spec (JSON, required for non-trivial): N/A
@@ -20,10 +20,10 @@ PR/push improves launch confidence with minimal CI cost.
 
 ## Goal / Acceptance Criteria
 
-- [ ] On PRs to `airis_b2c`, run full backend `pytest` in Docker Compose (same as local standard command).
-- [ ] On pushes to `airis_b2c` (post-merge), run the same backend suite.
-- [ ] Upload JUnit artifact for triage on failures.
-- [ ] Keep triggers path-scoped to backend/compose/CI-related changes to avoid unnecessary runs.
+- [x] On PRs to `airis_b2c`, run full backend `pytest` in Docker Compose (same as local standard command).
+- [x] On pushes to `airis_b2c` (post-merge), run the same backend suite.
+- [x] Upload JUnit artifact for triage on failures.
+- [x] Keep triggers path-scoped to backend/compose/CI-related changes to avoid unnecessary runs.
 
 ## Non-goals
 
@@ -56,11 +56,11 @@ PR/push improves launch confidence with minimal CI cost.
 
 ## Task Entry (for branch_updates/current_tasks)
 
-- [ ] **[REFACTOR][CI]** Add full backend pytest gate for `airis_b2c`
+- [x] **[REFACTOR][CI]** Add full backend pytest gate for `airis_b2c`
   - Spec: `meta/memory_bank/specs/work_items/2026-02-15__refactor__ci-airis-b2c-backend-full-tests.md`
   - Owner: Codex
-  - Branch: `codex/ci/airis-b2c-backend-full-tests`
-  - Started: 2026-02-15
+  - Branch: `airis_b2c`
+  - Done: 2026-02-15
   - Summary: Run full backend pytest on PR/push to `airis_b2c` and upload JUnit artifacts for triage.
   - Tests: `npm run docker:test:backend`
   - Risks: Low (CI-only)
@@ -71,4 +71,3 @@ PR/push improves launch confidence with minimal CI cost.
   - Longer CI time on `airis_b2c` PRs/pushes (expected ~1–3 minutes for the current backend suite).
 - Rollback plan:
   - Revert the workflow file to disable the job.
-
