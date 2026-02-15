@@ -312,7 +312,7 @@ DATABASE_SCHEMA = os.environ.get("DATABASE_SCHEMA", None)
 
 DATABASE_POOL_SIZE = os.environ.get("DATABASE_POOL_SIZE", None)
 
-if DATABASE_POOL_SIZE != None:
+if DATABASE_POOL_SIZE is not None:
     try:
         DATABASE_POOL_SIZE = int(DATABASE_POOL_SIZE)
     except Exception:
@@ -1014,6 +1014,16 @@ def _parse_str_list(value: str) -> list[str]:
     return items
 
 
+def _parse_optional_int(value: str) -> int | None:
+    raw = value.strip()
+    if not raw:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        return None
+
+
 ENABLE_BILLING_WALLET = (
     os.environ.get("ENABLE_BILLING_WALLET", "False").lower() == "true"
 )
@@ -1036,6 +1046,23 @@ BILLING_TOPUP_PACKAGES_KOPEKS = _parse_int_list(
         "BILLING_TOPUP_PACKAGES_KOPEKS",
         "100000,150000,500000,1000000",
     )
+)
+BILLING_RECEIPT_ENABLED = (
+    os.environ.get("BILLING_RECEIPT_ENABLED", "True").lower() == "true"
+)
+BILLING_RECEIPT_VAT_CODE = (
+    _parse_optional_int(os.environ.get("BILLING_RECEIPT_VAT_CODE", "1")) or 1
+)
+BILLING_RECEIPT_PAYMENT_MODE = (
+    os.environ.get("BILLING_RECEIPT_PAYMENT_MODE", "full_payment").strip()
+    or "full_payment"
+)
+BILLING_RECEIPT_PAYMENT_SUBJECT = (
+    os.environ.get("BILLING_RECEIPT_PAYMENT_SUBJECT", "service").strip()
+    or "service"
+)
+BILLING_RECEIPT_TAX_SYSTEM_CODE = _parse_optional_int(
+    os.environ.get("BILLING_RECEIPT_TAX_SYSTEM_CODE", "")
 )
 
 PUBLIC_PRICING_POPULAR_MODELS = _parse_str_list(
@@ -1061,6 +1088,9 @@ YOOKASSA_WEBHOOK_TOKEN = os.environ.get("YOOKASSA_WEBHOOK_TOKEN", "")
 YOOKASSA_API_URL = os.environ.get("YOOKASSA_API_URL", "https://api.yookassa.ru/v3")
 
 # Optional webhook hardening (recommended if your app receives webhooks directly from YooKassa).
+YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE = (
+    os.environ.get("YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE", "False").lower() == "true"
+)
 YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST = (
     os.environ.get("YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST", "False").lower() == "true"
 )

@@ -4,6 +4,7 @@
 
 - Read [Memory Bank](../../memory_bank/README.md) and follow its mandatory reading sequence.
 - Pick the appropriate workflow from `meta/memory_bank/workflows/` (new feature / bugfix / refactor / code review).
+- Branch policy: use `airis_b2c` as the default base/PR target for active work; do not open direct work PRs to `main`.
 
 ## 2) Keep upstream diffs small
 

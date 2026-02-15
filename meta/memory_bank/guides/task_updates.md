@@ -71,10 +71,11 @@ During consolidation on the integration branch, copy the entry into `meta/memory
 ## 2) On the integration branch (e.g. `airis_b2c`)
 
 1. Merge your feature branch as usual.
-2. Open each `meta/memory_bank/branch_updates/*.md` file.
-3. Copy the entries into `meta/memory_bank/current_tasks.md` (correct section + status) and keep the `Spec:` link.
-4. Delete the processed `branch_updates` files.
-5. Commit the consolidation.
+2. Keep `airis_b2c` as the default PR target for day-to-day work; do not open direct feature/bugfix/refactor/docs PRs to `main`.
+3. Open each `meta/memory_bank/branch_updates/*.md` file.
+4. Copy the entries into `meta/memory_bank/current_tasks.md` (correct section + status) and keep the `Spec:` link.
+5. Delete the processed `branch_updates` files.
+6. Commit the consolidation.
 
 ## Why this works
 

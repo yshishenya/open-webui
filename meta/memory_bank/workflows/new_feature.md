@@ -4,7 +4,7 @@
 
 ### 1.1 Branch Setup
 
-- [ ] Create a branch from the base branch (usually the integration branch `airis_b2c`) following one of:
+- [ ] Create a branch from the integration branch `airis_b2c` (do not branch from `main`) following one of:
   - `feature/short-description`
   - `codex/feature/short-description`
   - Example: `feature/add-public-pricing-config`
@@ -57,4 +57,4 @@
 - [ ] Log task status update per **[../guides/task_updates.md](../guides/task_updates.md)** to "Done"
 - [ ] Use detailed commit message template from **[../guides/commit_messages.md](../guides/commit_messages.md)**
 - [ ] Create commit(s) with Conventional Commits messages (`feat: ...`, `docs: ...`)
-- [ ] Push branch and open PR
+- [ ] Push branch and open PR to `airis_b2c` (do not target `main` directly)

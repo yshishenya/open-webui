@@ -161,6 +161,7 @@ describe('Billing balance page', () => {
 	let target: HTMLDivElement | null = null;
 
 	beforeEach(() => {
+		mocks.createTopupMock.mockReset().mockResolvedValue({ confirmation_url: '/billing/balance' });
 		mocks.getBalanceMock.mockReset();
 		mocks.getLeadMagnetInfoMock.mockReset().mockResolvedValue({ enabled: false });
 		mocks.getPublicPricingConfigMock.mockReset().mockResolvedValue(null);
@@ -168,6 +169,8 @@ describe('Billing balance page', () => {
 			billing_contact_email: '',
 			billing_contact_phone: ''
 		});
+		mocks.toast.error.mockReset();
+		mocks.toast.success.mockReset();
 		mocks.modelsStore.set([]);
 		mocks.pageStore.set({ url: new URL('http://localhost/billing/balance') });
 		localStorage.token = 'test-token';
@@ -224,6 +227,8 @@ describe('Billing balance page', () => {
 
 		expect(root.textContent).not.toContain('Wallet is low but free limit is available');
 		expect(root.textContent).toContain('Top up to keep working');
+		expect(root.querySelector('[data-testid="wallet-low-balance-hint-free"]')).toBeNull();
+		expect(root.querySelector('[data-testid="wallet-low-balance-hint-topup"]')).toBeTruthy();
 	});
 
 	it('shows free-limit hint when free models are available', async () => {
@@ -241,5 +246,89 @@ describe('Billing balance page', () => {
 		await flushPromises();
 
 		expect(root.textContent).toContain('Wallet is low but free limit is available');
+		expect(root.querySelector('[data-testid="wallet-low-balance-hint-free"]')).toBeTruthy();
+		expect(root.querySelector('[data-testid="wallet-low-balance-hint-topup"]')).toBeNull();
+	});
+
+	it('sends normalized return_url for top-up when return_to is valid', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		mocks.createTopupMock.mockResolvedValue({ confirmation_url: '' });
+		mocks.pageStore.set({
+			url: new URL('http://localhost/billing/balance?return_to=%2Fc%2F123%3Ffocus%3Dtopup')
+		});
+
+		const root = renderPage();
+		await flushPromises();
+
+		const preset = root.querySelector('[data-testid="topup-preset"]') as HTMLButtonElement | null;
+		expect(preset).toBeTruthy();
+		preset?.click();
+		await flushPromises();
+
+		const proceed = root.querySelector('[data-testid="topup-proceed"]') as HTMLButtonElement | null;
+		expect(proceed).toBeTruthy();
+		proceed?.click();
+		await flushPromises();
+
+		expect(mocks.createTopupMock).toHaveBeenCalled();
+		const call = mocks.createTopupMock.mock.calls.at(-1);
+		expect(call).toBeTruthy();
+
+		const returnUrl = new URL(String(call?.[2] ?? ''));
+		expect(returnUrl.origin).toBe(window.location.origin);
+		expect(returnUrl.pathname).toBe('/billing/balance');
+		expect(returnUrl.searchParams.get('topup_return')).toBe('1');
+		expect(returnUrl.searchParams.get('return_to')).toBe('/c/123?focus=topup');
+		expect(returnUrl.hash).toBe('');
+	});
+
+	it('omits return_to in top-up return_url when input is invalid', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		mocks.createTopupMock.mockResolvedValue({ confirmation_url: '' });
+		mocks.pageStore.set({
+			url: new URL('http://localhost/billing/balance?return_to=https%3A%2F%2Fevil.example%2Fpath')
+		});
+
+		const root = renderPage();
+		await flushPromises();
+
+		const preset = root.querySelector('[data-testid="topup-preset"]') as HTMLButtonElement | null;
+		expect(preset).toBeTruthy();
+		preset?.click();
+		await flushPromises();
+
+		const proceed = root.querySelector('[data-testid="topup-proceed"]') as HTMLButtonElement | null;
+		expect(proceed).toBeTruthy();
+		proceed?.click();
+		await flushPromises();
+
+		expect(mocks.createTopupMock).toHaveBeenCalled();
+		const call = mocks.createTopupMock.mock.calls.at(-1);
+		expect(call).toBeTruthy();
+
+		const returnUrl = new URL(String(call?.[2] ?? ''));
+		expect(returnUrl.searchParams.get('topup_return')).toBe('1');
+		expect(returnUrl.searchParams.get('return_to')).toBeNull();
+		expect(returnUrl.hash).toBe('');
+	});
+
+	it('shows provider error detail when top-up creation fails', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		mocks.createTopupMock.mockRejectedValue('Payment provider credentials are invalid');
+
+		const root = renderPage();
+		await flushPromises();
+
+		const preset = root.querySelector('[data-testid="topup-preset"]') as HTMLButtonElement | null;
+		expect(preset).toBeTruthy();
+		preset?.click();
+		await flushPromises();
+
+		const proceed = root.querySelector('[data-testid="topup-proceed"]') as HTMLButtonElement | null;
+		expect(proceed).toBeTruthy();
+		proceed?.click();
+		await flushPromises();
+
+		expect(mocks.toast.error).toHaveBeenCalledWith('Payment provider credentials are invalid');
 	});
 });

@@ -14,6 +14,7 @@ meta/sdd/specs/.backups/
 meta/sdd/specs/.reports/
 meta/sdd/specs/.human-readable/
 meta/sdd/specs/.fidelity-reviews/
+meta/sdd/docs/
 # Local fidelity review outputs outside the specs tree
 meta/sdd/.fidelity-reviews/
 .fidelity-reviews/
@@ -337,3 +338,12 @@ cypress/screenshots
 
 # Local docker client config (do not commit)
 .docker/
+
+# Billing confidence artifacts (generated)
+artifacts/
+backend/artifacts/
+
+# SDD review outputs (generated)
+meta/sdd/specs/.reviews/
+!.env.etalon
+!.env.etalon.example

@@ -10,6 +10,9 @@ from dataclasses import dataclass
 from typing import Optional, Dict, List
 from decimal import Decimal
 
+from fastapi.concurrency import run_in_threadpool
+
+from open_webui.models.users import Users
 from open_webui.models.billing import (
     Plans,
     Subscriptions,
@@ -32,6 +35,11 @@ from open_webui.models.billing import (
 from open_webui.utils.yookassa import get_yookassa_client
 from open_webui.env import (
     BILLING_DEFAULT_CURRENCY,
+    BILLING_RECEIPT_ENABLED,
+    BILLING_RECEIPT_PAYMENT_MODE,
+    BILLING_RECEIPT_PAYMENT_SUBJECT,
+    BILLING_RECEIPT_TAX_SYSTEM_CODE,
+    BILLING_RECEIPT_VAT_CODE,
     BILLING_TOPUP_PACKAGES_KOPEKS,
     BILLING_TOPUP_TTL_DAYS,
     SRC_LOG_LEVELS,
@@ -422,6 +430,78 @@ class BillingService:
                 f"Quota exceeded for {metric}. Please upgrade your plan."
             )
 
+    @staticmethod
+    def _clean_contact(value: object) -> Optional[str]:
+        if not isinstance(value, str):
+            return None
+        cleaned = value.strip()
+        return cleaned if cleaned else None
+
+    def _resolve_receipt_customer(self, user_id: str) -> Dict[str, str]:
+        user = Users.get_user_by_id(user_id)
+        if not user:
+            log.warning("Unable to load user for receipt generation: %s", user_id)
+            raise ValueError(
+                "Set billing contact email or phone in billing settings to issue a payment receipt"
+            )
+
+        user_info = user.info if isinstance(user.info, dict) else {}
+
+        contact_email = self._clean_contact(user_info.get("billing_contact_email"))
+        if not contact_email:
+            contact_email = self._clean_contact(user.email)
+
+        contact_phone = self._clean_contact(user_info.get("billing_contact_phone"))
+
+        customer: Dict[str, str] = {}
+        if contact_email:
+            customer["email"] = contact_email
+        if contact_phone:
+            customer["phone"] = contact_phone
+
+        if customer:
+            return customer
+
+        raise ValueError(
+            "Set billing contact email or phone in billing settings to issue a payment receipt"
+        )
+
+    def _build_receipt(
+        self,
+        user_id: str,
+        amount: Decimal,
+        currency: str,
+        description: str,
+    ) -> Optional[Dict[str, object]]:
+        if not BILLING_RECEIPT_ENABLED:
+            return None
+
+        receipt_description = description.strip() or "AIris payment"
+        receipt_description = receipt_description[:128]
+        rounded_amount = amount.quantize(Decimal("0.01"))
+
+        receipt_item: Dict[str, object] = {
+            "description": receipt_description,
+            "quantity": "1.00",
+            "amount": {
+                "value": str(rounded_amount),
+                "currency": currency,
+            },
+            "vat_code": BILLING_RECEIPT_VAT_CODE,
+            "payment_mode": BILLING_RECEIPT_PAYMENT_MODE,
+            "payment_subject": BILLING_RECEIPT_PAYMENT_SUBJECT,
+        }
+
+        receipt: Dict[str, object] = {
+            "customer": self._resolve_receipt_customer(user_id),
+            "items": [receipt_item],
+        }
+
+        if BILLING_RECEIPT_TAX_SYSTEM_CODE is not None:
+            receipt["tax_system_code"] = BILLING_RECEIPT_TAX_SYSTEM_CODE
+
+        return receipt
+
     # ==================== Payment Processing ====================
 
     async def create_payment(
@@ -441,7 +521,7 @@ class BillingService:
         Returns:
             Payment data with confirmation URL
         """
-        plan = self.get_plan(plan_id)
+        plan = await run_in_threadpool(self.get_plan, plan_id)
         if not plan:
             raise ValueError(f"Plan {plan_id} not found")
 
@@ -463,11 +543,22 @@ class BillingService:
             updated_at=int(time.time()),
         )
 
-        created_transaction = self.transactions.create_transaction(transaction)
+        created_transaction = await run_in_threadpool(
+            self.transactions.create_transaction,
+            transaction,
+        )
+        payment_amount = Decimal(str(plan.price))
+        receipt = await run_in_threadpool(
+            self._build_receipt,
+            user_id,
+            payment_amount,
+            plan.currency,
+            transaction.description or f"Subscription: {plan.name}",
+        )
 
         # Create payment via YooKassa
         payment = await yookassa.create_payment(
-            amount=Decimal(str(plan.price)),
+            amount=payment_amount,
             currency=plan.currency,
             description=transaction.description,
             return_url=return_url,
@@ -476,10 +567,12 @@ class BillingService:
                 "plan_id": plan_id,
                 "transaction_id": created_transaction.id,
             },
+            receipt=receipt,
         )
 
         # Update transaction with YooKassa payment ID
-        self.transactions.update_transaction(
+        await run_in_threadpool(
+            self.transactions.update_transaction,
             created_transaction.id,
             {
                 "yookassa_payment_id": payment["id"],
@@ -524,7 +617,10 @@ class BillingService:
             raise ValueError("Invalid topup amount")
 
         save_payment_method = None
-        wallet = self.wallets.get_wallet_by_id(wallet_id)
+        wallet = await run_in_threadpool(
+            self.wallets.get_wallet_by_id,
+            wallet_id,
+        )
         if wallet and wallet.auto_topup_enabled:
             save_payment_method = True
 
@@ -539,13 +635,23 @@ class BillingService:
             "wallet_id": wallet_id,
             "amount_kopeks": amount_kopeks,
         }
+        topup_description = (
+            f"Top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
+        )
+        receipt = self._build_receipt(
+            user_id=user_id,
+            amount=amount_rub,
+            currency=BILLING_DEFAULT_CURRENCY,
+            description=topup_description,
+        )
 
         payment = await yookassa.create_payment(
             amount=amount_rub,
             currency=BILLING_DEFAULT_CURRENCY,
-            description=f"Top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}",
+            description=topup_description,
             return_url=return_url,
             metadata=metadata,
+            receipt=receipt,
             save_payment_method=save_payment_method,
         )
 
@@ -574,7 +680,10 @@ class BillingService:
             created_at=now,
             updated_at=now,
         )
-        self.payments.create_payment(payment_record)
+        await run_in_threadpool(
+            self.payments.create_payment,
+            payment_record,
+        )
 
         return {
             "payment_id": payment["id"],
@@ -665,12 +774,22 @@ class BillingService:
             "auto_topup": True,
             "auto_topup_reason": reason,
         }
+        auto_topup_description = (
+            f"Auto top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
+        )
+        receipt = self._build_receipt(
+            user_id=user_id,
+            amount=amount_rub,
+            currency=BILLING_DEFAULT_CURRENCY,
+            description=auto_topup_description,
+        )
 
         payment = await yookassa.create_payment(
             amount=amount_rub,
             currency=BILLING_DEFAULT_CURRENCY,
-            description=f"Auto top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}",
+            description=auto_topup_description,
             metadata=metadata,
+            receipt=receipt,
             payment_method_id=payment_method_id,
         )
 
@@ -699,7 +818,10 @@ class BillingService:
             created_at=now,
             updated_at=now,
         )
-        self.payments.create_payment(payment_record)
+        await run_in_threadpool(
+            self.payments.create_payment,
+            payment_record,
+        )
 
         return {
             "payment_id": payment.get("id"),
@@ -715,7 +837,10 @@ class BillingService:
         reason: str,
     ) -> AutoTopupResult:
         """Attempt auto-topup when balance drops below threshold."""
-        wallet = self.wallets.get_wallet_by_id(wallet_id)
+        wallet = await run_in_threadpool(
+            self.wallets.get_wallet_by_id,
+            wallet_id,
+        )
         if not wallet:
             return AutoTopupResult(attempted=False, status="wallet_missing")
 
@@ -731,10 +856,14 @@ class BillingService:
             return AutoTopupResult(attempted=False, status="above_threshold")
 
         if wallet.auto_topup_fail_count >= AUTO_TOPUP_MAX_FAILURES:
-            self.wallets.update_wallet(wallet_id, {"auto_topup_enabled": False})
+            await run_in_threadpool(
+                self.wallets.update_wallet,
+                wallet_id,
+                {"auto_topup_enabled": False},
+            )
             return AutoTopupResult(attempted=False, status="fail_limit")
 
-        if self._has_pending_topup(wallet_id):
+        if await run_in_threadpool(self._has_pending_topup, wallet_id):
             return AutoTopupResult(attempted=False, status="pending")
 
         if (
@@ -743,7 +872,10 @@ class BillingService:
         ):
             return AutoTopupResult(attempted=False, status="invalid_amount")
 
-        payment_method_id = self._get_latest_payment_method_id(wallet_id)
+        payment_method_id = await run_in_threadpool(
+            self._get_latest_payment_method_id,
+            wallet_id,
+        )
         if not payment_method_id:
             return AutoTopupResult(attempted=True, status="missing_payment_method")
 
@@ -756,7 +888,11 @@ class BillingService:
                 reason=reason,
             )
         except Exception as e:
-            self._record_auto_topup_failure(wallet_id, wallet.auto_topup_fail_count)
+            await run_in_threadpool(
+                self._record_auto_topup_failure,
+                wallet_id,
+                wallet.auto_topup_fail_count,
+            )
             return AutoTopupResult(
                 attempted=True,
                 status="failed",
@@ -841,7 +977,12 @@ class BillingService:
                 "currency": currency_value,
                 "metadata": metadata,
             }
-            self._process_topup_webhook(event_type, payment_id, trusted_webhook_data)
+            await run_in_threadpool(
+                self._process_topup_webhook,
+                event_type,
+                payment_id,
+                trusted_webhook_data,
+            )
             return None
 
         # Find transaction
@@ -850,7 +991,10 @@ class BillingService:
             log.error("Transaction ID not found in webhook metadata")
             return None
 
-        transaction = self.transactions.get_transaction_by_id(transaction_id)
+        transaction = await run_in_threadpool(
+            self.transactions.get_transaction_by_id,
+            transaction_id,
+        )
         if not transaction:
             log.error(f"Transaction {transaction_id} not found")
             return None
@@ -868,7 +1012,8 @@ class BillingService:
 
         # Update transaction status
         if event_type == "payment.succeeded":
-            self.transactions.update_transaction(
+            await run_in_threadpool(
+                self.transactions.update_transaction,
                 transaction_id,
                 {
                     "status": TransactionStatus.SUCCEEDED,
@@ -885,17 +1030,28 @@ class BillingService:
                 return None
 
             # Check if user already has a subscription
-            existing_subscription = self.get_user_subscription(user_id)
+            existing_subscription = await run_in_threadpool(
+                self.get_user_subscription,
+                user_id,
+            )
 
             if existing_subscription:
                 # Renew existing subscription
-                return self.renew_subscription(existing_subscription.id)
+                return await run_in_threadpool(
+                    self.renew_subscription,
+                    existing_subscription.id,
+                )
             else:
                 # Create new subscription
-                return self.create_subscription(user_id, plan_id)
+                return await run_in_threadpool(
+                    self.create_subscription,
+                    user_id,
+                    plan_id,
+                )
 
         elif event_type == "payment.canceled":
-            self.transactions.update_transaction(
+            await run_in_threadpool(
+                self.transactions.update_transaction,
                 transaction_id,
                 {
                     "status": TransactionStatus.CANCELED,
@@ -905,7 +1061,8 @@ class BillingService:
 
         elif event_type == "payment.waiting_for_capture":
             # Payment authorized but not captured yet
-            self.transactions.update_transaction(
+            await run_in_threadpool(
+                self.transactions.update_transaction,
                 transaction_id,
                 {
                     "yookassa_status": provider_status,
@@ -913,6 +1070,106 @@ class BillingService:
             )
 
         return None
+
+    async def reconcile_topup_payment(
+        self,
+        user_id: str,
+        payment_id: str,
+    ) -> Dict[str, object]:
+        """
+        Reconcile a topup payment status directly with YooKassa.
+
+        This is used as a fallback when webhook delivery is delayed or failed.
+        """
+        payment_id_clean = payment_id.strip()
+        if not payment_id_clean:
+            raise ValueError("payment_id is required")
+
+        local_payment = self.payments.get_payment_by_provider_id(payment_id_clean)
+        if local_payment and local_payment.user_id != user_id:
+            raise PermissionError("Payment does not belong to the current user")
+
+        yookassa = get_yookassa_client()
+        if not yookassa:
+            raise RuntimeError("YooKassa client not initialized")
+
+        provider_payment = await yookassa.get_payment(payment_id_clean)
+        if not isinstance(provider_payment, dict):
+            raise RuntimeError("Provider payment payload invalid")
+
+        provider_status_value = provider_payment.get("status")
+        provider_status = (
+            str(provider_status_value) if isinstance(provider_status_value, str) else ""
+        )
+        amount_obj = provider_payment.get("amount")
+        amount_value = amount_obj.get("value") if isinstance(amount_obj, dict) else None
+        currency_value = (
+            amount_obj.get("currency") if isinstance(amount_obj, dict) else None
+        )
+        metadata_value = provider_payment.get("metadata", {})
+        metadata = metadata_value if isinstance(metadata_value, dict) else {}
+        effective_metadata: Dict[str, object] = dict(metadata)
+
+        # YooKassa metadata can be missing/partial in some legacy/manual flows.
+        # When we have a local payment record, treat it as authoritative for
+        # ownership and wallet context to avoid applying topup to a stale/conflicting wallet.
+        if local_payment:
+            if local_payment.kind:
+                effective_metadata["kind"] = local_payment.kind
+            if local_payment.user_id:
+                effective_metadata["user_id"] = local_payment.user_id
+            if local_payment.wallet_id:
+                effective_metadata["wallet_id"] = local_payment.wallet_id
+            if local_payment.amount_kopeks is not None:
+                effective_metadata["amount_kopeks"] = local_payment.amount_kopeks
+
+        metadata_user_id_value = effective_metadata.get("user_id")
+        metadata_user_id = (
+            str(metadata_user_id_value)
+            if isinstance(metadata_user_id_value, str)
+            else None
+        )
+        ownership_verified = bool(local_payment and local_payment.user_id == user_id)
+        if not ownership_verified and metadata_user_id == user_id:
+            ownership_verified = True
+        if not ownership_verified:
+            raise PermissionError("Payment does not belong to the current user")
+
+        event_by_status: Dict[str, str] = {
+            "succeeded": "payment.succeeded",
+            "canceled": "payment.canceled",
+            "waiting_for_capture": "payment.waiting_for_capture",
+        }
+        event_type = event_by_status.get(provider_status)
+
+        if event_type and effective_metadata.get("kind") == PaymentKind.TOPUP.value:
+            trusted_webhook_data: Dict[str, object] = {
+                "event_type": event_type,
+                "payment_id": payment_id_clean,
+                "status": provider_status,
+                "amount": amount_value,
+                "currency": currency_value,
+                "metadata": effective_metadata,
+            }
+            self._process_topup_webhook(
+                event_type=event_type,
+                payment_id=payment_id_clean,
+                webhook_data=trusted_webhook_data,
+            )
+
+        updated_payment = self.payments.get_payment_by_provider_id(payment_id_clean)
+        if updated_payment and updated_payment.user_id != user_id:
+            raise PermissionError("Payment does not belong to the current user")
+
+        payment_status = updated_payment.status if updated_payment else None
+        credited = payment_status == PaymentStatus.SUCCEEDED.value
+
+        return {
+            "payment_id": payment_id_clean,
+            "provider_status": provider_status or None,
+            "payment_status": payment_status,
+            "credited": credited,
+        }
 
     def _process_topup_webhook(
         self,

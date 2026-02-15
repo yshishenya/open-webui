@@ -20,6 +20,12 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[REFACTOR][OPS]** Cleanup `.env`: sync with `.env.example`, remove unused, add clear comments
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-10__refactor__env-cleanup-clarify.md`
+  - Owner: Codex
+  - Done: 2026-02-10
+  - Summary: Re-structure `.env` for the current deployment (no Ollama, OpenAI via UI, dev overlay used, SMTP enabled); drop overlay-only vars; add RU comments.
+
 - [x] **[BUG][UI][BILLING][ADMIN]** Admin wallet adjustment: RU copy + RUB deltas
   - Spec: `meta/memory_bank/specs/work_items/2026-02-10__bugfix__admin-wallet-adjustment-ui-rub-input.md`
   - Owner: Codex
@@ -37,6 +43,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
   - Summary: Настроен приоритет `codex` → `opencode` для `sdd-fidelity-review`, с моделью `gpt-5.2-codex` и `openrouter/moonshotai/kimi-k2.5:free` (fallback на `opencode/big-pickle` при 401).
   - Tests: `python -m py_compile` (Codex/OpenCode providers), `opencode models`, `meta/tools/sdd list-review-tools --json`
   - Risks: Low (config/tooling-only)
+
+- [x] **[REFACTOR][ENV]** Audit + document `.env`/`.env.example` variables
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-10__refactor__env-files-audit-and-documentation.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-02-10
+  - Summary: Упорядочить и прокомментировать `.env*`, сверить переменные с кодом/compose и починить passthrough для Compose.
+  - Tests: `docker compose -f docker-compose.yaml config`
+  - Risks: Low (config/docs-only; tiny Compose env passthrough changes)
 
 - [x] **[BUG][AUTH]** VKID one-click login + Telegram icon hitbox + official Yandex/VK icons on `/auth`
   - Spec: `meta/memory_bank/specs/work_items/2026-02-09__bugfix__auth-vkid-direct-login-telegram-hitbox-yandex-icons.md`

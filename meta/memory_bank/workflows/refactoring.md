@@ -4,7 +4,7 @@
 
 - [ ] Define the refactoring goal and non-goals
 - [ ] Identify what must NOT change (public behavior, API contracts, data model)
-- [ ] Create a branch from the base branch (usually the integration branch `airis_b2c`):
+- [ ] Create a branch from the integration branch `airis_b2c` (do not branch from `main`):
   - `refactor/short-description` or `codex/refactor/short-description`
 - [ ] Log task update per **[../guides/task_updates.md](../guides/task_updates.md)**
 - [ ] For non-trivial refactors:
@@ -46,6 +46,7 @@
 - [ ] Create commit(s) with Conventional Commits messages (`refactor: ...`)
 - [ ] Push the branch: `git push -u origin refactor/short-description`
 - [ ] Open a PR with:
+  - Target branch: `airis_b2c` (do not open direct PRs to `main`)
   - Motivation (why refactor)
   - Scope (what changed)
   - Proof behavior is unchanged (tests + any manual checks)

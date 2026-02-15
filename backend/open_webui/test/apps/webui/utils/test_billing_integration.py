@@ -1183,3 +1183,501 @@ class TestBillingIntegration(AbstractPostgresTest):
         updated_wallet = Wallets.get_wallet_by_id(wallet.id)
         assert updated_wallet is not None
         assert updated_wallet.balance_topup_kopeks == 1000
+
+    @pytest.mark.asyncio
+    async def test_topup_creation_contract_provider_envelope(self, monkeypatch):
+        import open_webui.utils.billing as billing_utils
+        from open_webui.models.billing import PaymentKind, Payments
+        from open_webui.models.users import Users
+        from open_webui.utils.billing import billing_service
+        from open_webui.utils.wallet import wallet_service
+
+        captured: dict[str, object] = {}
+
+        class FakeYooKassaClient:
+            async def create_payment(
+                self,
+                amount: Decimal,
+                currency: str,
+                description: str,
+                return_url: str,
+                metadata: dict[str, object],
+                receipt: dict[str, object] | None = None,
+                payment_method_id: str | None = None,
+                save_payment_method: bool | None = None,
+            ) -> dict[str, object]:
+                captured["amount"] = amount
+                captured["currency"] = currency
+                captured["description"] = description
+                captured["return_url"] = return_url
+                captured["metadata"] = dict(metadata)
+                captured["receipt"] = receipt
+                captured["save_payment_method"] = save_payment_method
+                return {
+                    "id": "pay_contract_1",
+                    "status": "pending",
+                    "confirmation": {
+                        "confirmation_url": "https://example.com/confirm/pay_contract_1"
+                    },
+                    "payment_method": {"id": "pm_contract_1"},
+                }
+
+        monkeypatch.setattr(
+            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
+        )
+        monkeypatch.setattr(billing_utils, "BILLING_TOPUP_PACKAGES_KOPEKS", [1500])
+
+        Users.insert_new_user(
+            id="contract_user",
+            name="Contract User",
+            email="contract_user@example.com",
+            role="user",
+        )
+
+        wallet = wallet_service.get_or_create_wallet("contract_user", "RUB")
+
+        result = await billing_service.create_topup_payment(
+            user_id="contract_user",
+            wallet_id=wallet.id,
+            amount_kopeks=1500,
+            return_url="https://example.com/billing/return?topup_return=1",
+        )
+
+        assert result == {
+            "payment_id": "pay_contract_1",
+            "confirmation_url": "https://example.com/confirm/pay_contract_1",
+            "status": "pending",
+        }
+        assert captured["amount"] == Decimal("15.00")
+        assert captured["currency"] == "RUB"
+        assert captured["return_url"] == "https://example.com/billing/return?topup_return=1"
+        assert isinstance(captured["metadata"], dict)
+        assert captured["metadata"]["kind"] == PaymentKind.TOPUP.value
+        assert captured["metadata"]["user_id"] == "contract_user"
+        assert captured["metadata"]["wallet_id"] == wallet.id
+        assert captured["metadata"]["amount_kopeks"] == 1500
+
+        payment = Payments.get_payment_by_provider_id("pay_contract_1")
+        assert payment is not None
+        assert payment.kind == PaymentKind.TOPUP.value
+        assert payment.payment_method_id == "pm_contract_1"
+
+    @pytest.mark.asyncio
+    async def test_yookassa_post_retry_reuses_idempotence_key(self, monkeypatch):
+        import open_webui.utils.yookassa as yookassa_utils
+
+        attempts: list[dict[str, str]] = []
+
+        class FakeResponse:
+            def __init__(self, status: int, body: str) -> None:
+                self.status = status
+                self._body = body
+
+            async def text(self) -> str:
+                return self._body
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return False
+
+        class FakeSession:
+            def __init__(self, *args, **kwargs) -> None:  # pragma: no cover - ctor shape only
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return False
+
+            def request(
+                self,
+                method: str,
+                url: str,
+                json: object,
+                headers: dict[str, str],
+                timeout: object,
+            ):
+                attempts.append(dict(headers))
+                if len(attempts) == 1:
+                    return FakeResponse(503, '{"code":"service_unavailable"}')
+                return FakeResponse(200, '{"id":"pay_retry","status":"pending"}')
+
+        async def _no_sleep(_: float) -> None:
+            return None
+
+        monkeypatch.setattr(yookassa_utils.aiohttp, "ClientSession", FakeSession)
+        monkeypatch.setattr(yookassa_utils.asyncio, "sleep", _no_sleep)
+
+        client = yookassa_utils.YooKassaClient(
+            yookassa_utils.YooKassaConfig("shop_id", "secret")
+        )
+
+        result = await client._request(
+            "POST",
+            "payments",
+            data={"amount": {"value": "10.00", "currency": "RUB"}},
+            idempotence_key="idem-retry-1",
+        )
+
+        assert result["id"] == "pay_retry"
+        assert len(attempts) == 2
+        assert attempts[0].get("Idempotence-Key") == "idem-retry-1"
+        assert attempts[1].get("Idempotence-Key") == "idem-retry-1"
+
+    @pytest.mark.asyncio
+    async def test_topup_webhook_idempotent_duplicate_crediting_integration(
+        self, monkeypatch
+    ):
+        import open_webui.utils.billing as billing_utils
+        from open_webui.models.billing import (
+            LedgerEntries,
+            PaymentKind,
+            PaymentModel,
+            PaymentStatus,
+            Payments,
+            Wallets,
+        )
+        from open_webui.utils.billing import billing_service
+        from open_webui.utils.wallet import wallet_service
+
+        class FakeYooKassaClient:
+            async def get_payment(self, provider_payment_id: str) -> dict[str, object]:
+                assert provider_payment_id == "pay_dup_1"
+                return {
+                    "id": "pay_dup_1",
+                    "status": "succeeded",
+                    "paid": True,
+                    "amount": {"value": "10.00", "currency": "RUB"},
+                    "metadata": {
+                        "kind": PaymentKind.TOPUP.value,
+                        "user_id": "dup_user",
+                        "wallet_id": wallet.id,
+                        "amount_kopeks": 1000,
+                    },
+                }
+
+        wallet = wallet_service.get_or_create_wallet("dup_user", "RUB")
+        Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 0})
+
+        now = int(time.time())
+        Payments.create_payment(
+            PaymentModel(
+                id="payment_dup_1",
+                provider="yookassa",
+                status=PaymentStatus.PENDING.value,
+                kind=PaymentKind.TOPUP.value,
+                amount_kopeks=1000,
+                currency="RUB",
+                idempotency_key="idem_dup_1",
+                provider_payment_id="pay_dup_1",
+                payment_method_id=None,
+                status_details={"yookassa_status": "pending"},
+                metadata_json={
+                    "kind": PaymentKind.TOPUP.value,
+                    "user_id": "dup_user",
+                    "wallet_id": wallet.id,
+                    "amount_kopeks": 1000,
+                },
+                raw_payload_json=None,
+                user_id="dup_user",
+                wallet_id=wallet.id,
+                subscription_id=None,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+        monkeypatch.setattr(
+            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
+        )
+
+        webhook_data = {
+            "event_type": "payment.succeeded",
+            "payment_id": "pay_dup_1",
+            "status": "succeeded",
+            "amount": "10.00",
+            "currency": "RUB",
+            "metadata": {
+                "kind": PaymentKind.TOPUP.value,
+                "user_id": "dup_user",
+                "wallet_id": wallet.id,
+                "amount_kopeks": 1000,
+            },
+        }
+
+        await billing_service.process_payment_webhook(webhook_data)
+        await billing_service.process_payment_webhook(webhook_data)
+
+        updated_wallet = Wallets.get_wallet_by_id(wallet.id)
+        assert updated_wallet is not None
+        assert updated_wallet.balance_topup_kopeks == 1000
+
+        topup_entries = [
+            entry
+            for entry in LedgerEntries.get_entries_by_user("dup_user")
+            if entry.type == "topup" and entry.reference_id == "pay_dup_1"
+        ]
+        assert len(topup_entries) == 1
+
+    @pytest.mark.asyncio
+    async def test_process_payment_webhook_rejects_provider_status_mismatch(
+        self, monkeypatch
+    ):
+        import open_webui.utils.billing as billing_utils
+        from open_webui.utils.billing import WebhookRetryableError, billing_service
+
+        class FakeYooKassaClient:
+            async def get_payment(self, provider_payment_id: str) -> dict[str, object]:
+                assert provider_payment_id == "pay_status_mismatch"
+                return {
+                    "id": provider_payment_id,
+                    "status": "canceled",
+                    "paid": False,
+                    "amount": {"value": "10.00", "currency": "RUB"},
+                    "metadata": {"transaction_id": "tx_status_mismatch"},
+                }
+
+        monkeypatch.setattr(
+            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
+        )
+
+        with pytest.raises(WebhookRetryableError, match="Provider status mismatch"):
+            await billing_service.process_payment_webhook(
+                {
+                    "event_type": "payment.succeeded",
+                    "payment_id": "pay_status_mismatch",
+                    "metadata": {"transaction_id": "tx_status_mismatch"},
+                }
+            )
+
+    @pytest.mark.asyncio
+    async def test_process_payment_webhook_rejects_unpaid_succeeded_event(
+        self, monkeypatch
+    ):
+        import open_webui.utils.billing as billing_utils
+        from open_webui.utils.billing import WebhookRetryableError, billing_service
+
+        class FakeYooKassaClient:
+            async def get_payment(self, provider_payment_id: str) -> dict[str, object]:
+                assert provider_payment_id == "pay_unpaid"
+                return {
+                    "id": provider_payment_id,
+                    "status": "succeeded",
+                    "paid": False,
+                    "amount": {"value": "10.00", "currency": "RUB"},
+                    "metadata": {"transaction_id": "tx_unpaid"},
+                }
+
+        monkeypatch.setattr(
+            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
+        )
+
+        with pytest.raises(WebhookRetryableError, match="not marked as paid"):
+            await billing_service.process_payment_webhook(
+                {
+                    "event_type": "payment.succeeded",
+                    "payment_id": "pay_unpaid",
+                    "metadata": {"transaction_id": "tx_unpaid"},
+                }
+            )
+
+    @pytest.mark.asyncio
+    async def test_process_payment_webhook_returns_none_without_transaction_id(
+        self, monkeypatch
+    ):
+        import open_webui.utils.billing as billing_utils
+        from open_webui.utils.billing import billing_service
+
+        class FakeYooKassaClient:
+            async def get_payment(self, provider_payment_id: str) -> dict[str, object]:
+                assert provider_payment_id == "pay_no_tx"
+                return {
+                    "id": provider_payment_id,
+                    "status": "canceled",
+                    "paid": False,
+                    "amount": {"value": "10.00", "currency": "RUB"},
+                    "metadata": {},
+                }
+
+        monkeypatch.setattr(
+            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
+        )
+
+        result = await billing_service.process_payment_webhook(
+            {
+                "event_type": "payment.canceled",
+                "payment_id": "pay_no_tx",
+                "metadata": {},
+            }
+        )
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_topup_webhook_missing_amount_does_not_credit_wallet(
+        self, monkeypatch
+    ):
+        import open_webui.utils.billing as billing_utils
+        from open_webui.models.billing import (
+            LedgerEntries,
+            PaymentKind,
+            PaymentModel,
+            PaymentStatus,
+            Payments,
+            Wallets,
+        )
+        from open_webui.utils.billing import billing_service
+        from open_webui.utils.wallet import wallet_service
+
+        class FakeYooKassaClient:
+            async def get_payment(self, provider_payment_id: str) -> dict[str, object]:
+                assert provider_payment_id == "pay_missing_amount"
+                return {
+                    "id": provider_payment_id,
+                    "status": "succeeded",
+                    "paid": True,
+                    "amount": None,
+                    "metadata": {
+                        "kind": PaymentKind.TOPUP.value,
+                        "user_id": "missing_amount_user",
+                        "wallet_id": wallet.id,
+                    },
+                }
+
+        wallet = wallet_service.get_or_create_wallet("missing_amount_user", "RUB")
+        Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 0})
+        now = int(time.time())
+
+        Payments.create_payment(
+            PaymentModel(
+                id="payment_missing_amount",
+                provider="yookassa",
+                status=PaymentStatus.PENDING.value,
+                kind=PaymentKind.TOPUP.value,
+                amount_kopeks=1000,
+                currency="RUB",
+                idempotency_key="idem_missing_amount",
+                provider_payment_id="pay_missing_amount",
+                payment_method_id=None,
+                status_details={"yookassa_status": "pending"},
+                metadata_json={
+                    "kind": PaymentKind.TOPUP.value,
+                    "user_id": "missing_amount_user",
+                    "wallet_id": wallet.id,
+                },
+                raw_payload_json=None,
+                user_id="missing_amount_user",
+                wallet_id=wallet.id,
+                subscription_id=None,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+        monkeypatch.setattr(
+            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
+        )
+
+        await billing_service.process_payment_webhook(
+            {
+                "event_type": "payment.succeeded",
+                "payment_id": "pay_missing_amount",
+                "metadata": {
+                    "kind": PaymentKind.TOPUP.value,
+                    "user_id": "missing_amount_user",
+                    "wallet_id": wallet.id,
+                },
+            }
+        )
+
+        updated_wallet = Wallets.get_wallet_by_id(wallet.id)
+        assert updated_wallet is not None
+        assert updated_wallet.balance_topup_kopeks == 0
+
+        updated_payment = Payments.get_payment_by_provider_id("pay_missing_amount")
+        assert updated_payment is not None
+        assert updated_payment.status == PaymentStatus.PENDING.value
+
+        topup_entries = [
+            entry
+            for entry in LedgerEntries.get_entries_by_user("missing_amount_user")
+            if entry.type == "topup" and entry.reference_id == "pay_missing_amount"
+        ]
+        assert len(topup_entries) == 0
+
+    @pytest.mark.asyncio
+    async def test_topup_webhook_missing_wallet_id_does_not_credit_wallet(
+        self, monkeypatch
+    ):
+        import open_webui.utils.billing as billing_utils
+        from open_webui.models.billing import (
+            PaymentKind,
+            PaymentModel,
+            PaymentStatus,
+            Payments,
+        )
+        from open_webui.utils.billing import billing_service
+
+        class FakeYooKassaClient:
+            async def get_payment(self, provider_payment_id: str) -> dict[str, object]:
+                assert provider_payment_id == "pay_missing_wallet"
+                return {
+                    "id": provider_payment_id,
+                    "status": "succeeded",
+                    "paid": True,
+                    "amount": {"value": "10.00", "currency": "RUB"},
+                    "metadata": {
+                        "kind": PaymentKind.TOPUP.value,
+                        "user_id": "missing_wallet_user",
+                        "amount_kopeks": 1000,
+                    },
+                }
+
+        now = int(time.time())
+        Payments.create_payment(
+            PaymentModel(
+                id="payment_missing_wallet",
+                provider="yookassa",
+                status=PaymentStatus.PENDING.value,
+                kind=PaymentKind.TOPUP.value,
+                amount_kopeks=1000,
+                currency="RUB",
+                idempotency_key="idem_missing_wallet",
+                provider_payment_id="pay_missing_wallet",
+                payment_method_id=None,
+                status_details={"yookassa_status": "pending"},
+                metadata_json={
+                    "kind": PaymentKind.TOPUP.value,
+                    "user_id": "missing_wallet_user",
+                    "amount_kopeks": 1000,
+                },
+                raw_payload_json=None,
+                user_id="missing_wallet_user",
+                wallet_id=None,
+                subscription_id=None,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+        monkeypatch.setattr(
+            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
+        )
+
+        await billing_service.process_payment_webhook(
+            {
+                "event_type": "payment.succeeded",
+                "payment_id": "pay_missing_wallet",
+                "metadata": {
+                    "kind": PaymentKind.TOPUP.value,
+                    "user_id": "missing_wallet_user",
+                    "amount_kopeks": 1000,
+                },
+            }
+        )
+
+        updated_payment = Payments.get_payment_by_provider_id("pay_missing_wallet")
+        assert updated_payment is not None
+        assert updated_payment.status == PaymentStatus.PENDING.value
