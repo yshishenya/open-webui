@@ -10,10 +10,11 @@
 	import PromptEditor from '$lib/components/workspace/Prompts/PromptEditor.svelte';
 
 	let prompt: {
-		title: string;
+		name: string;
 		command: string;
 		content: string;
-		access_control: any | null;
+		tags: string[];
+		access_grants: any[];
 	} | null = null;
 
 	let clone = false;
@@ -49,10 +50,11 @@
 
 			clone = true;
 			prompt = {
-				title: _prompt.title,
+				name: _prompt.name || _prompt.title || 'Prompt',
 				command: _prompt.command,
 				content: _prompt.content,
-				access_control: _prompt.access_control !== undefined ? _prompt.access_control : {}
+				tags: _prompt.tags || [],
+				access_grants: _prompt.access_grants !== undefined ? _prompt.access_grants : []
 			};
 		});
 
@@ -68,10 +70,11 @@
 
 			clone = true;
 			prompt = {
-				title: _prompt.title,
+				name: _prompt.name || _prompt.title || 'Prompt',
 				command: _prompt.command,
 				content: _prompt.content,
-				access_control: _prompt.access_control !== undefined ? _prompt.access_control : {}
+				tags: _prompt.tags || [],
+				access_grants: _prompt.access_grants !== undefined ? _prompt.access_grants : []
 			};
 		}
 	});

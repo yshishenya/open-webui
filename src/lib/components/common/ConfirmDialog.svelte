@@ -49,6 +49,8 @@
 
 		if (event.key === 'Enter') {
 			console.log('Enter');
+			event.preventDefault();
+			event.stopPropagation();
 			confirmHandler();
 		}
 	};
@@ -84,6 +86,7 @@
 
 	onDestroy(() => {
 		show = false;
+		window.removeEventListener('keydown', handleKeyDown);
 		if (focusTrap) {
 			focusTrap.deactivate();
 		}
