@@ -1,0 +1,60 @@
+name: Backend Tests (airis_b2c)
+
+on:
+  pull_request:
+    branches:
+      - airis_b2c
+    paths:
+      - ".github/workflows/backend-tests-airis-b2c.yml"
+      - "backend/**"
+      - "docker-compose.yaml"
+      - "docker-compose.dev.yaml"
+      - "pyproject.toml"
+      - "uv.lock"
+  push:
+    branches:
+      - airis_b2c
+    paths:
+      - ".github/workflows/backend-tests-airis-b2c.yml"
+      - "backend/**"
+      - "docker-compose.yaml"
+      - "docker-compose.dev.yaml"
+      - "pyproject.toml"
+      - "uv.lock"
+  workflow_dispatch: {}
+
+jobs:
+  backend-pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: backend-tests-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Run backend pytest (docker compose)
+        shell: bash
+        env:
+          WEBUI_AUTH: "true"
+          WEBUI_SECRET_KEY: ci-test-secret-key
+        run: |
+          set -euo pipefail
+          run_id="${{ github.run_id }}-${{ github.run_attempt }}"
+          out_dir="backend/artifacts/backend-tests/${run_id}"
+          mkdir -p "$out_dir"
+
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm \
+            -e WEBUI_AUTH="$WEBUI_AUTH" \
+            -e WEBUI_SECRET_KEY="$WEBUI_SECRET_KEY" \
+            airis bash -lc "python -m pip install -q aiosmtplib email-validator pytest-asyncio 'moto[s3]>=5.0.26' gcp-storage-emulator==2024.8.3 && pytest --junitxml=artifacts/backend-tests/${run_id}/pytest.xml"
+
+      - name: Upload pytest artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-tests-${{ github.run_id }}-${{ github.run_attempt }}
+          path: backend/artifacts/backend-tests/${{ github.run_id }}-${{ github.run_attempt }}/
+          if-no-files-found: warn
