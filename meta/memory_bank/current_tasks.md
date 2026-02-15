@@ -28,6 +28,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
   - Summary: Restore backward compatibility in shared access checks so legacy `access_control` payloads continue to work for prompts/models/billing after upstream sync changes.
   - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest open_webui/test/apps/webui/routers/test_openai_chat_billing.py -q"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest open_webui/test/apps/webui/routers/test_openai_chat_billing.py open_webui/test/apps/webui/routers/test_openai_chat_billing_lead_magnet.py open_webui/test/apps/webui/routers/test_openai_chat_billing_streaming.py -q"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest open_webui/test/apps/webui/routers/test_prompts.py open_webui/test/apps/webui/routers/test_users.py -q"`
 
+- [x] **[REFACTOR][CI]** Add full backend pytest gate for `airis_b2c`
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-15__refactor__ci-airis-b2c-backend-full-tests.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-02-15
+  - Summary: Run full backend pytest on PR/push to `airis_b2c` and upload JUnit artifacts for triage.
+  - Tests: `npm run docker:test:backend`, GitHub Actions (Backend Tests (airis_b2c))
+  - Risks: Low (CI-only)
+
 - [x] **[REFACTOR][OPS]** Cleanup `.env`: sync with `.env.example`, remove unused, add clear comments
   - Spec: `meta/memory_bank/specs/work_items/2026-02-10__refactor__env-cleanup-clarify.md`
   - Owner: Codex
