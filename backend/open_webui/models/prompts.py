@@ -135,6 +135,20 @@ class PromptsTable:
     def get_prompts_by_user_id(
         self, user_id: str, permission: str = "write", db: Optional[Session] = None
     ) -> list[PromptUserResponse]:
+        """Retrieve prompts associated with a specific user ID.
+        
+        This function fetches all prompts from the database and filters them  based on
+        the provided user ID. It also checks if the user has access  to prompts that
+        are controlled by access permissions, utilizing the  user's group memberships
+        to determine access rights. The function  relies on the `get_prompts` method to
+        retrieve prompts and the  `get_groups_by_member_id` method to obtain the user's
+        group IDs.
+        
+        Args:
+            user_id (str): The ID of the user for whom prompts are being retrieved.
+            permission (str?): The permission level required to access certain prompts. Defaults to "write".
+            db (Optional[Session]?): The database session to use for queries. Defaults to None.
+        """
         prompts = self.get_prompts(db=db)
         user_group_ids = {
             group.id for group in Groups.get_groups_by_member_id(user_id, db=db)
@@ -150,6 +164,7 @@ class PromptsTable:
     def update_prompt_by_command(
         self, command: str, form_data: PromptForm, db: Optional[Session] = None
     ) -> Optional[PromptModel]:
+        """Update a prompt in the database based on the given command and form data."""
         try:
             with get_db_context(db) as db:
                 prompt = db.query(Prompt).filter_by(command=command).first()
