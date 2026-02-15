@@ -19,6 +19,7 @@ def test_sanitize_payment_return_url_rejects_unsafe_values() -> None:
         "http:///example.com",
         "ftp://example.com",
         "not-a-url",
+        "https://example.com/" + ("a" * 3000),
     ]
 
     for return_url in invalid_urls:
@@ -147,5 +148,32 @@ def test_is_webhook_replay_does_not_replay_other_statuses(monkeypatch: MonkeyPat
             "event_type": "payment.succeeded",
             "payment_id": "pay_1",
             "metadata": {"transaction_id": "tx_1"},
+        }
+    )
+
+
+def test_is_webhook_replay_returns_false_for_invalid_payload_shapes(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    import open_webui.routers.billing as billing_router
+
+    monkeypatch.setattr(
+        billing_router.Payments,
+        "get_payment_by_provider_id",
+        lambda *_: None,
+    )
+
+    assert not billing_router._is_webhook_replay({})
+    assert not billing_router._is_webhook_replay(
+        {"event_type": "payment.succeeded", "payment_id": 123}
+    )
+    assert not billing_router._is_webhook_replay(
+        {"event_type": 123, "payment_id": "pay_1"}
+    )
+    assert not billing_router._is_webhook_replay(
+        {
+            "event_type": "payment.succeeded",
+            "payment_id": "pay_1",
+            "metadata": "not-a-dict",
         }
     )

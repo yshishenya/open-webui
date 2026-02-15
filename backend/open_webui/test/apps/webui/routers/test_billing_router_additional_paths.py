@@ -98,6 +98,17 @@ class TestBillingRouterAdditionalPaths(AbstractPostgresTest):
         assert events_error_response.status_code == 500
         assert events_error_response.json()["detail"] == "Failed to get usage events"
 
+    def test_ledger_returns_404_when_wallet_disabled(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.routers.billing as billing_router
+
+        monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", False)
+
+        with mock_webui_user(id="1"):
+            response = self.fast_api_client.get(self.create_url("/ledger"))
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Billing wallet is disabled"
+
     def test_public_lead_magnet_config_endpoint(self) -> None:
         response = self.fast_api_client.get(self.create_url("/public/lead-magnet"))
 
