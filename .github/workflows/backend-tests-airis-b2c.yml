@@ -49,7 +49,7 @@ jobs:
           docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm \
             -e WEBUI_AUTH="$WEBUI_AUTH" \
             -e WEBUI_SECRET_KEY="$WEBUI_SECRET_KEY" \
-            airis bash -lc "python -m pip install -q aiosmtplib email-validator pytest-asyncio 'moto[s3]>=5.0.26' && pytest --junitxml=artifacts/backend-tests/${run_id}/pytest.xml"
+            airis bash -lc "python -m pip install -q aiosmtplib email-validator pytest-asyncio 'moto[s3]>=5.0.26' gcp-storage-emulator==2024.8.3 && pytest --junitxml=artifacts/backend-tests/${run_id}/pytest.xml"
 
       - name: Upload pytest artifacts
         if: always()
