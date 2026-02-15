@@ -58,3 +58,15 @@ jobs:
           name: backend-tests-${{ github.run_id }}-${{ github.run_attempt }}
           path: backend/artifacts/backend-tests/${{ github.run_id }}-${{ github.run_attempt }}/
           if-no-files-found: warn
+
+      - name: Assert no git-tracked files were mutated
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git diff --exit-code; then
+            echo "::error::Git-tracked files were modified during tests."
+            git status --porcelain=v1 || true
+            git diff || true
+            exit 1
+          fi

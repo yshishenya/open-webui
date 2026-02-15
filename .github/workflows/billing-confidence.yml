@@ -128,6 +128,18 @@ jobs:
             ${{ steps.config.outputs.artifact_root }}/latest/
           if-no-files-found: warn
 
+      - name: Assert no git-tracked files were mutated
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git diff --exit-code; then
+            echo "::error::Git-tracked files were modified during billing confidence runs."
+            git status --porcelain=v1 || true
+            git diff || true
+            exit 1
+          fi
+
       - name: Enforce confidence gate
         if: ${{ steps.config.outputs.smoke_only != 'true' && steps.config.outputs.enforce_gate == 'true' && steps.runner.outcome != 'success' }}
         shell: bash
