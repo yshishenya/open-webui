@@ -162,6 +162,7 @@ class ModelsTable:
     def insert_new_model(
         self, form_data: ModelForm, user_id: str, db: Optional[Session] = None
     ) -> Optional[ModelModel]:
+        """Inserts a new model into the database."""
         model = ModelModel(
             **{
                 **form_data.model_dump(),
@@ -221,6 +222,21 @@ class ModelsTable:
     def get_models_by_user_id(
         self, user_id: str, permission: str = "write", db: Optional[Session] = None
     ) -> list[ModelUserResponse]:
+        """Retrieve models associated with a specific user ID.
+        
+        This function fetches all models from the database and filters them based on
+        the provided  user_id. It also checks if the user has the necessary access
+        permissions by evaluating  the user's group memberships and access control
+        settings. The function utilizes  `Groups.get_groups_by_member_id` to obtain the
+        user's group IDs and the  `has_access` function to determine access rights.
+        
+        Args:
+            user_id (str): The ID of the user for whom models are being retrieved.
+            permission (str?): The permission level required to access the models.
+                Defaults to "write".
+            db (Optional[Session]?): The database session to use. If None, a default
+                session will be used.
+        """
         models = self.get_models(db=db)
         user_group_ids = {
             group.id for group in Groups.get_groups_by_member_id(user_id, db=db)
@@ -233,6 +249,19 @@ class ModelsTable:
         ]
 
     def _has_permission(self, db, query, filter: dict, permission: str = "read"):
+        """def _has_permission(self, db, query, filter: dict, permission: str = "read"):
+        Check and apply permission filters to a query.  This function constructs a set
+        of conditions based on the provided  `filter` dictionary, which may include
+        `group_ids` and `user_id`.  It applies public access conditions if any group
+        IDs or user ID are  present. Additionally, it adds user-level and group-level
+        permissions  based on the specified `permission` type and the database dialect
+        being used. The final query is returned with the applied filters.
+        
+        Args:
+            db: The database connection object.
+            query: The query object to which filters will be applied.
+            filter (dict): A dictionary containing `group_ids` and `user_id`.
+            permission (str?): The type of permission to check. Defaults to "read"."""
         group_ids = filter.get("group_ids", [])
         user_id = filter.get("user_id")
 
@@ -408,6 +437,16 @@ class ModelsTable:
     def update_model_by_id(
         self, id: str, model: ModelForm, db: Optional[Session] = None
     ) -> Optional[ModelModel]:
+        """Update a model in the database by its ID.
+        
+        Args:
+            id (str): The ID of the model to update.
+            model (ModelForm): The model data to update.
+            db (Optional[Session]?): The database session. Defaults to None.
+        
+        Returns:
+            Optional[ModelModel]: The updated model or None if the update failed.
+        """
         try:
             with get_db_context(db) as db:
                 # update only the fields that are present in the model
@@ -446,6 +485,21 @@ class ModelsTable:
     def sync_models(
         self, user_id: str, models: list[ModelModel], db: Optional[Session] = None
     ) -> list[ModelModel]:
+        """Synchronize models with the database.
+        
+        This function updates existing models or inserts new ones based on the provided
+        list of models. It first retrieves all existing models from the database and
+        prepares a set of their IDs. For each model in the input list, it checks if the
+        model ID exists in the database; if it does, the model is updated, otherwise, a
+        new model is created and added. Finally, any models that are no longer present
+        in the input list are deleted from the database. The function commits the
+        changes and returns the updated list of models.
+        
+        Args:
+            user_id (str): The ID of the user associated with the models.
+            models (list[ModelModel]): A list of models to sync with the database.
+            db (Optional[Session]?): The database session to use. Defaults to None.
+        """
         try:
             with get_db_context(db) as db:
                 # Get existing models
