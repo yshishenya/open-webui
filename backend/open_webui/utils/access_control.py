@@ -110,6 +110,7 @@ def has_permission(
 def get_permitted_group_and_user_ids(
     type: str = "write", access_control: Optional[dict] = None
 ) -> Union[Dict[str, List[str]], None]:
+    """Retrieve permitted group and user IDs based on access control."""
     if access_control is None:
         return None
 
@@ -131,6 +132,27 @@ def has_access(
     strict: bool = True,
     db: Optional[Any] = None,
 ) -> bool:
+    """Check if a user has the specified access rights.
+    
+    This function determines if a user identified by user_id has the  necessary
+    access rights based on the provided access_control  dictionary. If
+    access_control is not provided, the function will  return True or False based
+    on the strict parameter and the type of  access requested. If user_group_ids is
+    not provided, it retrieves  the user's groups from the database. The function
+    then checks if  the user or their groups are permitted access based on the
+    access_control settings.
+    
+    Args:
+        user_id (str): The ID of the user whose access is being checked.
+        type (str?): The type of access being requested. Defaults to "write".
+        access_control (Optional[dict]?): A dictionary defining access rules. Defaults to None.
+        user_group_ids (Optional[Set[str]]?): A set of group IDs the user belongs to. Defaults to None.
+        strict (bool?): Determines if strict access checks are enforced. Defaults to True.
+        db (Optional[Any]?): The database connection to use for retrieving user groups. Defaults to None.
+    
+    Returns:
+        bool: True if the user has access, False otherwise.
+    """
     if access_control is None:
         if strict:
             return type == "read"
@@ -157,6 +179,7 @@ def has_access(
 def get_users_with_access(
     type: str = "write", access_control: Optional[dict] = None, db: Optional[Any] = None
 ) -> list[UserModel]:
+    """Retrieve users with access to a resource based on specified permissions."""
     if access_control is None:
         result = Users.get_users(filter={"roles": ["!pending"]}, db=db)
         return result.get("users", [])
