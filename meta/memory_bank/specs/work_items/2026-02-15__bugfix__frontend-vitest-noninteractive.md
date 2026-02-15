@@ -30,7 +30,8 @@ When executed under `docker compose run` (TTY attached by default), Vitest enter
 ## Scope (what changes)
 
 - Frontend:
-  - Update `package.json` `test:frontend` to include `--run` so it always exits.
+  - Update `package.json` `test:frontend` to force non-interactive mode via `CI=1`
+    (so `npm run test:frontend -- --run ...` callers don't fail on duplicated `--run`).
 
 ## Upstream impact
 
@@ -44,6 +45,7 @@ When executed under `docker compose run` (TTY attached by default), Vitest enter
 ## Verification
 
 - Frontend tests: `npm run docker:test:frontend`
+- Targeted run (CI suite parity): `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run src/routes/\\(app\\)/billing/balance/billing-balance.test.ts"`
 
 ## Task Entry (for branch_updates/current_tasks)
 
