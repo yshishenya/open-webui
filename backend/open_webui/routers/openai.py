@@ -380,24 +380,53 @@ async def speech(request: Request, user=Depends(get_verified_user)):
         )
 
         r = None
-        try:
+        tmp_file_path = SPEECH_CACHE_DIR.joinpath(f"{name}.mp3.tmp")
+        tmp_body_path = SPEECH_CACHE_DIR.joinpath(f"{name}.json.tmp")
+
+        def download_speech_to_cache() -> None:
+            nonlocal r
+
             r = requests.post(
                 url=f"{url}/audio/speech",
                 data=body,
                 headers=headers,
                 cookies=cookies,
                 stream=True,
+                timeout=AIOHTTP_CLIENT_TIMEOUT,
             )
 
             r.raise_for_status()
 
-            # Save the streaming content to a file
-            with open(file_path, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
+            try:
+                # Write to tmp files first so a failure never creates a false cache hit.
+                with open(tmp_file_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
 
-            with open(file_body_path, "w") as f:
-                json.dump(payload, f)
+                with open(tmp_body_path, "w") as f:
+                    json.dump(payload, f)
+
+                tmp_body_path.replace(file_body_path)
+                tmp_file_path.replace(file_path)
+            except Exception:
+                try:
+                    tmp_file_path.unlink(missing_ok=True)
+                except Exception:
+                    pass
+                try:
+                    tmp_body_path.unlink(missing_ok=True)
+                except Exception:
+                    pass
+                raise
+            finally:
+                try:
+                    r.close()
+                except Exception:
+                    pass
+
+        try:
+            await asyncio.to_thread(download_speech_to_cache)
 
             measured_units = {
                 "char_count": char_count,
