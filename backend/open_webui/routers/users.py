@@ -64,6 +64,14 @@ async def get_users(
     user=Depends(get_admin_user),
     db: Session = Depends(get_session),
 ):
+    """Fetches a list of users along with their associated group IDs.
+    
+    This function retrieves users from the database based on optional filtering
+    parameters such as  query, order_by, and direction. It calculates pagination
+    using the provided page number and  limits the results accordingly.
+    Additionally, it optimizes the retrieval of user groups by  fetching all groups
+    for the users in a single query, thus avoiding the N+1 query problem.
+    """
     limit = PAGE_ITEM_COUNT
 
     page = max(1, page)
@@ -107,6 +115,7 @@ async def get_all_users(
     user=Depends(get_admin_user),
     db: Session = Depends(get_session),
 ):
+    """Retrieve all users from the database."""
     return Users.get_users(db=db)
 
 
@@ -559,6 +568,29 @@ async def update_user_by_id(
     db: Session = Depends(get_session),
 ):
     # Prevent modification of the primary admin user by other admins
+    """Update user information by user ID.
+    
+    This function handles the update of user details, including email and password,
+    while enforcing restrictions on modifying the primary admin user. It checks if
+    the user attempting the update is the primary admin and prevents unauthorized
+    changes. Additionally, it validates the new email and password, ensuring that
+    the email is not already taken and that the password meets security
+    requirements.
+    
+    Args:
+        user_id (str): The ID of the user to be updated.
+        form_data (UserUpdateForm): The form data containing the updated user information.
+        session_user: The user making the request, obtained through dependency injection.
+        db (Session): The database session, obtained through dependency injection.
+    
+    Returns:
+        Optional[UserModel]: The updated user model if the update is successful.
+    
+    Raises:
+        HTTPException: If the user is not found, if the email is already taken, if the primary admin
+            is being modified improperly, or if there is an error during the update
+            process.
+    """
     try:
         first_user = Users.get_first_user(db=db)
         if first_user:
@@ -640,6 +672,15 @@ async def delete_user_by_id(
     user_id: str, user=Depends(get_admin_user), db: Session = Depends(get_session)
 ):
     # Prevent deletion of the primary admin user
+    """Delete a user by their ID.
+    
+    This function handles the deletion of a user specified by the user_id
+    parameter.  It first checks if the user attempting to delete is the primary
+    admin user and  prevents their deletion. If the user is not the primary admin
+    and is not trying  to delete themselves, it proceeds to delete the user's
+    authentication record.  If any checks fail or an error occurs during the
+    process, appropriate HTTP  exceptions are raised.
+    """
     try:
         first_user = Users.get_first_user(db=db)
         if first_user and user_id == first_user.id:
