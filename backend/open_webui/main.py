@@ -516,7 +516,6 @@ from open_webui.utils.chat import (
 from open_webui.utils.actions import chat_action as chat_action_handler
 from open_webui.utils.embeddings import generate_embeddings
 from open_webui.utils.middleware import (
-    build_chat_response_context,
     process_chat_payload,
     process_chat_response,
 )
@@ -1788,11 +1787,16 @@ async def chat_completion(
                 except:
                     pass
 
-            ctx = build_chat_response_context(
-                request, form_data, user, model, metadata, tasks, events
+            return await process_chat_response(
+                request,
+                response,
+                form_data,
+                user,
+                metadata,
+                model,
+                events,
+                tasks,
             )
-
-            return await process_chat_response(response, ctx)
         except asyncio.CancelledError:
             log.info("Chat processing was cancelled")
             try:
