@@ -21,7 +21,6 @@ from typing import Optional
 from aiocache import cached
 import aiohttp
 import anyio.to_thread
-import requests
 from redis import Redis
 
 
@@ -98,6 +97,7 @@ from open_webui.routers import (
 )
 
 from open_webui.utils.airis.app_bootstrap import bootstrap_airis, extend_airis_app_config
+from open_webui.utils.airis.manifest import fetch_external_manifest
 
 from open_webui.routers.retrieval import (
     get_embedding_function,
@@ -2425,7 +2425,7 @@ async def oauth_login_callback(
 @app.get("/manifest.json")
 async def get_manifest_json():
     if app.state.EXTERNAL_PWA_MANIFEST_URL:
-        return requests.get(app.state.EXTERNAL_PWA_MANIFEST_URL).json()
+        return await fetch_external_manifest(app.state.EXTERNAL_PWA_MANIFEST_URL)
     else:
         return {
             "name": app.state.WEBUI_NAME,
