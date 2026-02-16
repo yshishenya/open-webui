@@ -1,0 +1,41 @@
+[sddkit]
+locale = "en"
+safe_mode = true
+profile = "airis"
+
+[project]
+name = "open-webui"
+integration_branch = "airis_b2c"
+is_fork = false
+upstream_project = "Open WebUI"
+
+[paths]
+docs_root = "docs"
+specs_root = "specs"
+memory_bank_root = "meta/memory_bank"
+meta_tools_root = "meta/tools"
+meta_sdd_root = "meta/sdd"
+codex_root = ".codex"
+
+[manage]
+agents_md = true
+github_workflow = true
+docs_scaffold = false
+specs_scaffold = false
+memory_bank = true
+meta_tools = true
+meta_sdd = true
+codex_scaffold = false
+
+[skills]
+default_pack = "codex"
+default_install_to = "project"
+
+[github]
+kit_path = ".tooling/sdd-workflow-kit"
+config = ".sddkit/config.toml"
+fail_on_missing_config = false
+
+[detection]
+languages = "node,python"
+package_managers = "npm,uv"

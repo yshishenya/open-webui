@@ -1,0 +1,23 @@
+# managed-by: sdd-workflow-kit
+# kit-version: 0.1.0
+# template: github/workflows/sdd-kit-check.yml.tmpl
+
+name: sdd-kit
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - name: sdd-kit check
+        uses: ./.tooling/sdd-workflow-kit
+        with:
+          project_root: .
+          config: .sddkit/config.toml
+          fail_on_missing_config: "false"
