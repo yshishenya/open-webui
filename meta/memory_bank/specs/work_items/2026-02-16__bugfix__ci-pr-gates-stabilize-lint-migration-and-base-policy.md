@@ -27,6 +27,7 @@ This made the CI signal noisy and blocked merges for non-code changes.
 - [x] Migration check validates forward migration health with idempotent `upgrade head -> upgrade head` on a clean Postgres DB.
 - [x] Backend/frontend lint gates are incremental for PRs and do not fail on unrelated legacy debt.
 - [x] Lint jobs still enforce quality on changed files.
+- [x] Changed-file lint targets are passed to linters without unsafe shell interpolation.
 
 ## Non-goals
 
@@ -63,6 +64,7 @@ This made the CI signal noisy and blocked merges for non-code changes.
 - Edge cases:
   - First push (`github.event.before` all-zero SHA) handled via fallback to repository root commit.
   - Non-code PRs now skip lint jobs cleanly with success status.
+  - Changed file lists are handed off to linters as NUL-delimited args via `xargs -0` to avoid filename-based shell injection in CI.
   - Legacy historical graph has multiple heads/branch merges and non-reversible segments on modern Postgres; CI now validates forward migration safety instead of downgrade traversal.
 
 ## Upstream impact

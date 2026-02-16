@@ -14,6 +14,6 @@
   - Owner: Codex
   - Branch: `codex/ci-gates-clean-2026-02-16`
   - Done: 2026-02-16
-  - Summary: Added base-branch edit trigger for branch policy, fixed Alembic config/env, made migration-check validate upgrade-head idempotency (`head -> head`), and switched lint gates to incremental changed-file checks.
+  - Summary: Added base-branch edit trigger for branch policy, fixed Alembic config/env, made migration-check validate upgrade-head idempotency (`head -> head`), switched lint gates to incremental changed-file checks, and hardened lint file argument passing against shell injection.
   - Tests: `N/A (workflow-only fix; verification through GitHub Actions checks/logs)`
   - Risks: Low-Medium (PR lint is incremental by design to avoid legacy debt noise)

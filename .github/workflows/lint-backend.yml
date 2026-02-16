@@ -61,5 +61,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          FILES="$(echo "${{ steps.changed.outputs.files }}" | tr '\n' ' ')"
-          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check ${FILES}"
+          mapfile -t FILES < <(printf '%s\n' "${{ steps.changed.outputs.files }}" | sed '/^$/d')
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "No backend Python changes detected after normalization."
+            exit 0
+          fi
+          printf '%s\0' "${FILES[@]}" \
+            | docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps -T pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && xargs -0 ruff check"
