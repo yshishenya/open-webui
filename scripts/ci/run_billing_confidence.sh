@@ -30,6 +30,7 @@ RUN_ID="${BILLING_CONFIDENCE_RUN_ID:-}"
 OUTPUT_DIR=""
 CI_WEBUI_SECRET_KEY="${BILLING_CI_WEBUI_SECRET_KEY:-ci-test-secret-key}"
 CI_WEBUI_AUTH="${BILLING_CI_WEBUI_AUTH:-true}"
+BILLING_CONF_E2E_WORKER_FLAG="${BILLING_CONF_E2E_WORKERS:+--workers=$BILLING_CONF_E2E_WORKERS}"
 BACKEND_TEST_RUN_PREFIX="docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e WEBUI_AUTH=$CI_WEBUI_AUTH -e WEBUI_SECRET_KEY=$CI_WEBUI_SECRET_KEY"
 
 while [[ $# -gt 0 ]]; do
@@ -128,7 +129,7 @@ BACKEND_FULL_PACK_CMD="${BILLING_CONF_BACKEND_FULL_PACK_CMD:-docker compose -f d
 
 FRONTEND_BALANCE_CMD="${BILLING_CONF_FRONTEND_BALANCE_CMD:-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc \"if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run src/routes/\\\\(app\\\\)/billing/balance/billing-balance.test.ts\"}"
 
-E2E_WALLET_CMD="${BILLING_CONF_E2E_WALLET_CMD:-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm e2e \"if [ ! -x node_modules/.bin/playwright ] || [ package-lock.json -nt node_modules/.billing-ci-install-fingerprint ] || [ package.json -nt node_modules/.billing-ci-install-fingerprint ]; then NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false NODE_OPTIONS=--max-old-space-size=2048 timeout ${BILLING_E2E_NPM_TIMEOUT:-420} npm ci --prefer-offline --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 --legacy-peer-deps || NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false NODE_OPTIONS=--max-old-space-size=2048 npm install --prefer-offline --legacy-peer-deps || exit 1; touch node_modules/.billing-ci-install-fingerprint; fi && PLAYWRIGHT_JUNIT_OUTPUT_FILE=__JUNIT_PATH__ npm run test:e2e -- --trace retain-on-failure --reporter=line,junit --output=__TRACE_DIR__ e2e/billing_wallet.spec.ts e2e/billing_wallet_recovery.spec.ts e2e/billing_lead_magnet.spec.ts\"}"
+E2E_WALLET_CMD="${BILLING_CONF_E2E_WALLET_CMD:-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm e2e \"if [ ! -x node_modules/.bin/playwright ] || [ package-lock.json -nt node_modules/.billing-ci-install-fingerprint ] || [ package.json -nt node_modules/.billing-ci-install-fingerprint ]; then NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false NODE_OPTIONS=--max-old-space-size=2048 timeout ${BILLING_E2E_NPM_TIMEOUT:-420} npm ci --prefer-offline --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 --legacy-peer-deps || NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false NODE_OPTIONS=--max-old-space-size=2048 npm install --prefer-offline --legacy-peer-deps || exit 1; touch node_modules/.billing-ci-install-fingerprint; fi && PLAYWRIGHT_JUNIT_OUTPUT_FILE=__JUNIT_PATH__ npm run test:e2e -- --trace retain-on-failure --reporter=line,junit --output=__TRACE_DIR__ ${BILLING_CONF_E2E_WORKER_FLAG} e2e/billing_wallet.spec.ts e2e/billing_wallet_recovery.spec.ts e2e/billing_lead_magnet.spec.ts\"}"
 
 declare -a SUITE_NAMES=()
 declare -a SUITE_TIMEOUTS=()
