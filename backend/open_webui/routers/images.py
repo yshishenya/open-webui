@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 from urllib.parse import quote
+import httpx
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
@@ -47,6 +48,7 @@ log = logging.getLogger(__name__)
 
 IMAGE_CACHE_DIR = CACHE_DIR / "image" / "generations"
 IMAGE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+IMAGE_VERIFY_REQUEST_TIMEOUT_SECONDS = 10.0
 
 router = APIRouter()
 
@@ -353,15 +355,19 @@ def get_automatic1111_api_auth(request: Request):
 
 @router.get("/config/url/verify")
 async def verify_url(request: Request, user=Depends(get_admin_user)):
+    async def _verify(target_url: str, headers: Optional[dict[str, str]] = None) -> None:
+        async with httpx.AsyncClient(timeout=IMAGE_VERIFY_REQUEST_TIMEOUT_SECONDS) as client:
+            response = await client.get(url=target_url, headers=headers)
+            response.raise_for_status()
+
     if request.app.state.config.IMAGE_GENERATION_ENGINE == "automatic1111":
         try:
-            r = requests.get(
-                url=f"{request.app.state.config.AUTOMATIC1111_BASE_URL}/sdapi/v1/options",
+            await _verify(
+                f"{request.app.state.config.AUTOMATIC1111_BASE_URL}/sdapi/v1/options",
                 headers={"authorization": get_automatic1111_api_auth(request)},
             )
-            r.raise_for_status()
             return True
-        except Exception:
+        except httpx.HTTPError:
             request.app.state.config.ENABLE_IMAGE_GENERATION = False
             raise HTTPException(status_code=400, detail=ERROR_MESSAGES.INVALID_URL)
     elif request.app.state.config.IMAGE_GENERATION_ENGINE == "comfyui":
@@ -371,13 +377,12 @@ async def verify_url(request: Request, user=Depends(get_admin_user)):
                 "Authorization": f"Bearer {request.app.state.config.COMFYUI_API_KEY}"
             }
         try:
-            r = requests.get(
-                url=f"{request.app.state.config.COMFYUI_BASE_URL}/object_info",
+            await _verify(
+                f"{request.app.state.config.COMFYUI_BASE_URL}/object_info",
                 headers=headers,
             )
-            r.raise_for_status()
             return True
-        except Exception:
+        except httpx.HTTPError:
             request.app.state.config.ENABLE_IMAGE_GENERATION = False
             raise HTTPException(status_code=400, detail=ERROR_MESSAGES.INVALID_URL)
     else:
