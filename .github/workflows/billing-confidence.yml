@@ -104,7 +104,7 @@ jobs:
         if: ${{ steps.config.outputs.smoke_only != 'true' }}
         run: |
           set -euo pipefail
-          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps e2e "NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false NODE_OPTIONS=--max-old-space-size=2048 npm ci --prefer-offline --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 --legacy-peer-deps"
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps e2e "NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false NODE_OPTIONS=--max-old-space-size=2048 npm ci --prefer-offline --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 --legacy-peer-deps || NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false NODE_OPTIONS=--max-old-space-size=2048 npm install --prefer-offline --legacy-peer-deps || exit 1; touch node_modules/.billing-ci-install-fingerprint"
 
       - name: Run billing confidence suites
         id: runner
