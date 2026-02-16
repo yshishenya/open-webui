@@ -1,0 +1,8 @@
+- [x] **[BUG][CI][BILLING]** Speed up billing-confidence E2E suite without reducing quality
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-16__bugfix__billing-confidence-ci-e2e-speedup.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/post-merge-validation-fixes`
+  - Done: 2026-02-16
+  - Summary: Add preinstall + controlled parallelism for `e2e_billing_wallet` in CI and keep assertions/artifacts untouched.
+  - Tests: `ruby -e "require 'yaml'; YAML.load_file('.github/workflows/billing-confidence.yml'); puts 'YAML_OK'"`, `bash -n scripts/ci/run_billing_confidence.sh`
+  - Risks: Low (CI runtime-only optimization; potential flake risk from higher worker count)

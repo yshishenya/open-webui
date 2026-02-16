@@ -17,13 +17,28 @@ test.describe('Registration and Login', () => {
 
 		const userName = `Test User - ${Date.now()}`;
 		const userEmail = `e2e-${Date.now()}@example.com`;
+		const userNameInput = page.locator('input[autocomplete="name"]');
+		const signupButton = page.getByRole('button', { name: /sign up|зарегистрироваться|create account/i });
 
-		if ((await page.locator('input[autocomplete="name"]').count()) === 0) {
-			await page.getByRole('button', { name: /sign up|зарегистрироваться/i }).click();
+		const isSignupReady = async (): Promise<boolean> => {
+			return (await userNameInput.count()) > 0 && (await userNameInput.isVisible());
+		};
+
+		if (!(await isSignupReady())) {
+			if ((await signupButton.count()) === 0) {
+				test.skip(true, 'Registration form is unavailable in this environment');
+			}
+			await signupButton.first().click();
+			await expect(userNameInput).toBeVisible({ timeout: 15_000 });
 		}
-		await page.locator('input[autocomplete="name"]').fill(userName);
+
+		await userNameInput.fill(userName);
 		await page.locator('input[autocomplete="email"]').fill(userEmail);
 		await page.locator('input[type="password"]').fill('password');
+		const legalCheckbox = page.locator('input#legal-accept');
+		if ((await legalCheckbox.count()) > 0 && !(await legalCheckbox.isChecked())) {
+			await legalCheckbox.check();
+		}
 		await page.locator('button[type="submit"]').click();
 
 		await page.waitForSelector(

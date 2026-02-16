@@ -35,12 +35,24 @@ const waitForBackend = async (requestContext: APIRequestContext): Promise<void> 
 };
 
 const acceptLegalGateIfPresent = async (page: import('@playwright/test').Page): Promise<void> => {
-	const gateHeading = page.getByText('Примите условия, чтобы продолжить');
-	if ((await gateHeading.count()) === 0) {
+	const deadline = Date.now() + 30_000;
+	const gateContainer = page.getByText('Примите условия, чтобы продолжить');
+
+	while (Date.now() < deadline) {
+		if ((await gateContainer.count()) > 0) {
+			break;
+		}
+		await sleep(250);
+	}
+
+	if ((await gateContainer.count()) === 0) {
 		return;
 	}
 
-	const checkboxes = page.locator('input[type="checkbox"][id^="legal-"]');
+	const legalGate = page
+		.locator('.fixed.w-full.h-full.flex')
+		.filter({ has: gateContainer });
+	const checkboxes = legalGate.locator('input[type="checkbox"]');
 	const checkboxCount = await checkboxes.count();
 	for (let i = 0; i < checkboxCount; i++) {
 		const checkbox = checkboxes.nth(i);
@@ -49,12 +61,14 @@ const acceptLegalGateIfPresent = async (page: import('@playwright/test').Page): 
 		}
 	}
 
-	const acceptButton = page.getByRole('button', { name: /Принять и продолжить|Accept and continue/i });
+	const acceptButton = legalGate.getByRole('button', {
+		name: /Принять и продолжить|Accept and continue/i
+	});
 	if ((await acceptButton.count()) > 0) {
 		await acceptButton.first().click();
 	}
 
-	await gateHeading.waitFor({ state: 'detached', timeout: 30_000 }).catch(() => undefined);
+	await gateContainer.waitFor({ state: 'detached', timeout: 30_000 }).catch(() => undefined);
 };
 
 const globalSetup = async (): Promise<void> => {

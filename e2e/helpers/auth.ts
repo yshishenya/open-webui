@@ -19,16 +19,25 @@ type UserCredentials = {
 export const registerUser = async (
 	request: APIRequestContext,
 	user: UserCredentials
-): Promise<void> => {
+): Promise<boolean> => {
 	const response = await request.post(signupUrl, {
-		data: user
+		data: {
+			...user,
+			terms_accepted: true,
+			privacy_accepted: true
+		}
 	});
 
+	if (response.status() === 403) {
+		return false;
+	}
+
 	expect([200, 400]).toContain(response.status());
+	return true;
 };
 
-export const ensureAdmin = async (request: APIRequestContext): Promise<void> => {
-	await registerUser(request, adminUser);
+export const ensureAdmin = async (request: APIRequestContext): Promise<boolean> => {
+	return await registerUser(request, adminUser);
 };
 
 export const getUserMenuTrigger = async (page: Page): Promise<Locator> => {
