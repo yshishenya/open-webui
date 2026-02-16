@@ -45,7 +45,7 @@ This made the CI signal noisy and blocked merges for non-code changes.
   - N/A
 - CI:
   - `airis-branch-policy.yml`: add `pull_request` activity types including `edited`.
-  - `migration-check.yml`: run Alembic from `backend/open_webui` with explicit config file.
+  - `migration-check.yml`: run Alembic from `backend/open_webui` with explicit config file and CI-safe `WEBUI_SECRET_KEY`.
   - `lint-backend.yml`: lint only changed `backend/**/*.py` files.
   - `lint-frontend.yml`: lint only changed frontend lint targets.
 
