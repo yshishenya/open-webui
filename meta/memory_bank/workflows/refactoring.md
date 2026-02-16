@@ -7,10 +7,12 @@
 - [ ] Create a branch from the integration branch `airis_b2c` (do not branch from `main`):
   - `refactor/short-description` or `codex/refactor/short-description`
 - [ ] Log task update per **[../guides/task_updates.md](../guides/task_updates.md)**
+- [ ] Create a **work item spec** in `../specs/work_items/` (see `../specs/README.md`) and reference it from your branch update entry
 - [ ] For non-trivial refactors:
-  - Create a **work item spec** in `../specs/work_items/` (see `../specs/README.md`) and reference it from your branch update entry
-  - Create an SDD spec (JSON) under `meta/sdd/specs/{pending,active,completed}/` and cross-link it from the work item spec
-    (and set `metadata.work_item_spec` in the SDD spec to point back)
+  - Create an SDD spec (JSON) under `meta/sdd/specs/{pending,active,completed}/` via `meta/tools/sdd ...`
+  - Cross-link both directions:
+    - Work item spec includes `SDD Spec: ...`
+    - SDD spec includes `metadata.work_item_spec`
 
 ## 2. Safety Net
 
@@ -41,6 +43,7 @@
 
 ## 7. Completion
 
+- [ ] For non-trivial work with SDD: close the linked SDD spec (`meta/tools/sdd check-complete <spec_id> --json` then `meta/tools/sdd complete-spec <spec_id> --json`)
 - [ ] Log task status update per **[../guides/task_updates.md](../guides/task_updates.md)** to "Done"
 - [ ] Use detailed commit message template from **[../guides/commit_messages.md](../guides/commit_messages.md)**
 - [ ] Create commit(s) with Conventional Commits messages (`refactor: ...`)

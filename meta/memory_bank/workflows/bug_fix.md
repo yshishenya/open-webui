@@ -15,12 +15,14 @@
 - [ ] Log task status update per **[../guides/task_updates.md](../guides/task_updates.md)** to "In Progress"
 - [ ] Add `[BUG]` label to the task for visual distinction
 
-### 1.2.1 Work Item Spec (recommended)
+### 1.2.1 Work Item Spec (required)
 
+- [ ] Create a **work item spec** in `../specs/work_items/` (see `../specs/README.md`) and reference it from your branch update entry
 - [ ] For non-trivial bugs:
-  - Create a **work item spec** in `../specs/work_items/` (see `../specs/README.md`) and reference it from your branch update entry
-  - Create an SDD spec (JSON) under `meta/sdd/specs/{pending,active,completed}/` and cross-link it from the work item spec
-    (and set `metadata.work_item_spec` in the SDD spec to point back)
+  - Create an SDD spec (JSON) under `meta/sdd/specs/{pending,active,completed}/` via `meta/tools/sdd ...`
+  - Cross-link both directions:
+    - Work item spec includes `SDD Spec: ...`
+    - SDD spec includes `metadata.work_item_spec`
 
 ### 1.3 Bug Analysis
 
@@ -122,6 +124,7 @@ Note: `mypy`/`ruff` may be used ad-hoc where configured, but are not wired as re
 
 ### 6.1 Task Status Update
 
+- [ ] For non-trivial work with SDD: close the linked SDD spec (`meta/tools/sdd check-complete <spec_id> --json` then `meta/tools/sdd complete-spec <spec_id> --json`)
 - [ ] Log task status update per **[../guides/task_updates.md](../guides/task_updates.md)** to "Done"
 - [ ] Add a brief description of the solution to the task
 

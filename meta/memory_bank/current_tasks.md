@@ -2,7 +2,7 @@
 
 This file tracks active development tasks for the Airis project.
 
-**Worktree/branch rule:** do **not** edit this file on feature/bugfix/refactor branches. Use `meta/memory_bank/branch_updates/*` and consolidate on the integration branch per `meta/memory_bank/guides/task_updates.md`.
+**Worktree/branch rule:** do **not** edit this file on non-integration branches (`feature/*`, `bugfix/*`, `refactor/*`, `docs/*`, `codex/*`). Use `meta/memory_bank/branch_updates/*` and consolidate on the integration branch per `meta/memory_bank/guides/task_updates.md`.
 
 For non-trivial work items, each entry should include a `Spec:` link to a work item spec under `meta/memory_bank/specs/work_items/` (see `meta/memory_bank/specs/README.md`).
 

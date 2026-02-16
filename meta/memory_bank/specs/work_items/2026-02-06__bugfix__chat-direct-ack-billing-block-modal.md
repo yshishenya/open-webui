@@ -6,6 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: bugfix/chat-direct-ack-billing-block
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/chat-billing-direct-guards-2026-02-06-001.json`
 - Created: 2026-02-06
 - Updated: 2026-02-06
 
@@ -78,4 +79,3 @@ Manual:
   - Summary: Harden direct Socket.IO ack contract to avoid `NoneType.get` crashes; show BillingBlockedModal for billing blocks delivered via websocket errors.
   - Tests: `pytest (targeted)` + `vitest (targeted)`
   - Risks: Medium (touches chat UX + error propagation); minimized via additive Airis helpers and thin hooks.
-

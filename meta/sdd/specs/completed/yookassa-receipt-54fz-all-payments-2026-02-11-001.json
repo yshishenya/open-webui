@@ -115,7 +115,6 @@
       "total_tasks": 2,
       "completed_tasks": 2,
       "metadata": {
-        "file_path": "meta/memory_bank/specs/work_items/2026-02-11__bugfix__yookassa-receipt-54fz-all-payments.md",
         "task_category": "decision",
         "estimated_hours": 0.5,
         "needs_journaling": true,

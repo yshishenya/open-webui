@@ -1,0 +1,135 @@
+name: SDD Validate
+
+on:
+  pull_request:
+    branches:
+      - airis_b2c
+  push:
+    branches:
+      - airis_b2c
+
+permissions:
+  contents: read
+
+jobs:
+  sdd-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install validation dependencies
+        run: |
+          python -m pip install --disable-pip-version-check --quiet jsonschema==4.26.0
+
+      - name: Validate SDD specs (schema + policy)
+        run: |
+          python - <<'PY'
+          import glob
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          from jsonschema import Draft7Validator
+
+          schema_path = Path("meta/sdd/schema/sdd-spec-schema.json")
+          if not schema_path.exists():
+              print(f"[ERROR] Missing schema: {schema_path}", file=sys.stderr)
+              sys.exit(2)
+
+          with schema_path.open("r", encoding="utf-8") as handle:
+              schema = json.load(handle)
+
+          validator = Draft7Validator(schema)
+          spec_id_pattern = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*-\d{4}-\d{2}-\d{2}-\d{3}$")
+          spec_paths = sorted(glob.glob("meta/sdd/specs/*/*.json"))
+          if not spec_paths:
+              print("[ERROR] No SDD spec files found under meta/sdd/specs/*/*.json", file=sys.stderr)
+              sys.exit(2)
+
+          total_errors = 0
+          total_warnings = 0
+          entries: list[dict[str, object]] = []
+
+          for spec_path in spec_paths:
+              spec_file = Path(spec_path)
+              entry: dict[str, object] = {
+                  "spec": spec_path,
+                  "errors": [],
+                  "warnings": [],
+              }
+
+              try:
+                  with spec_file.open("r", encoding="utf-8") as handle:
+                      spec_data = json.load(handle)
+              except json.JSONDecodeError as exc:
+                  entry["errors"] = [f"Invalid JSON: {exc}"]
+                  spec_data = None
+
+              if isinstance(spec_data, dict):
+                  schema_errors = []
+                  for issue in validator.iter_errors(spec_data):
+                      location = "/".join(str(part) for part in issue.path) or "<root>"
+                      schema_errors.append(f"Schema violation at '{location}': {issue.message}")
+                  entry["errors"].extend(schema_errors)
+
+                  spec_id = spec_data.get("spec_id")
+                  if not isinstance(spec_id, str) or not spec_id.strip():
+                      entry["errors"].append("Missing non-empty spec_id")
+                  else:
+                      if spec_file.stem != spec_id:
+                          entry["errors"].append(
+                              f"File name '{spec_file.stem}' must match spec_id '{spec_id}'"
+                          )
+                      if spec_id_pattern.fullmatch(spec_id) is None:
+                          entry["warnings"].append(
+                              f"spec_id '{spec_id}' should follow {{feature}}-{{YYYY-MM-DD}}-{{NNN}} format"
+                          )
+
+                  metadata = spec_data.get("metadata")
+                  if not isinstance(metadata, dict):
+                      entry["errors"].append("metadata object is required")
+                  else:
+                      work_item_spec = metadata.get("work_item_spec")
+                      if not isinstance(work_item_spec, str) or not work_item_spec.strip():
+                          entry["errors"].append("metadata.work_item_spec is required")
+                      elif not Path(work_item_spec).exists():
+                          entry["errors"].append(
+                              f"metadata.work_item_spec path does not exist: {work_item_spec}"
+                          )
+
+              error_count = len(entry["errors"])
+              warning_count = len(entry["warnings"])
+              total_errors += error_count
+              total_warnings += warning_count
+              entry["error_count"] = error_count
+              entry["warning_count"] = warning_count
+              entry["status"] = (
+                  "valid"
+                  if error_count == 0 and warning_count == 0
+                  else ("errors" if error_count > 0 else "warnings")
+              )
+              entries.append(entry)
+
+          summary = {
+              "errors": total_errors,
+              "warnings": total_warnings,
+              "spec_count": len(spec_paths),
+              "results": entries,
+          }
+          with open("sdd-validate-summary.json", "w", encoding="utf-8") as handle:
+              json.dump(summary, handle, ensure_ascii=False, indent=2)
+
+          print(json.dumps(summary, ensure_ascii=False))
+          sys.exit(0 if total_errors == 0 and total_warnings == 0 else 1)
+          PY
+
+      - name: Print SDD validation summary
+        if: always()
+        run: cat sdd-validate-summary.json

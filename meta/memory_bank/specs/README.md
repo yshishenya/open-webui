@@ -10,16 +10,17 @@ This folder contains **design docs** and **work item specs**.
 
 ## Two kinds of docs
 
-### 1) Work item specs (preferred for day-to-day work)
+### 1) Work item specs (required on non-integration branches)
 
-- **Use when**: implementing a feature/bugfix/refactor that is more than a trivial one-liner.
+- **Use when**: implementing any feature/bugfix/refactor/docs task on non-integration branches.
 - **Location**: `meta/memory_bank/specs/work_items/`
 - **Conflict rule**: create a **new file per work item** (don’t reuse/overwrite a shared “plan” doc).
 - **Lifecycle**:
   - Draft/Active: update freely while on the same branch.
   - Done: mark as Done and avoid further edits; follow-ups get a new work item spec.
+  - If an SDD spec is linked: close it before marking done (`meta/tools/sdd check-complete <spec_id> --json` + `meta/tools/sdd complete-spec <spec_id> --json`).
 - **SDD (for non-trivial work)**: create an SDD spec JSON under `meta/sdd/specs/{pending,active,completed}/` (use the wrapper: `meta/tools/sdd ...`).
-- **Cross-link**: link MD <-> JSON (`SDD Spec:` in the work item spec, and `metadata.work_item_spec` in the SDD spec).
+- **Cross-link (for non-trivial work)**: link MD <-> JSON (`SDD Spec:` in the work item spec, and `metadata.work_item_spec` in the SDD spec).
 
 **Naming**
 

@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: airis_b2c
-- SDD Spec: `meta/sdd/specs/completed/yandex-oauth-login-2026-02-05-1722.json`
+- SDD Spec: `meta/sdd/specs/completed/yandex-oauth-login-2026-02-05-722.json`
 - Created: 2026-02-05
 - Updated: 2026-02-05
 

@@ -1,8 +1,14 @@
 # Work Item: Refactor .env (Cleanup + Clarify)
 
-- Type: Refactor
-- Date: 2026-02-10
+## Meta
+
+- Type: refactor
+- Status: done
 - Owner: Codex
+- Branch: airis_b2c
+- SDD Spec (JSON, required for non-trivial): N/A
+- Created: 2026-02-10
+- Updated: 2026-02-10
 
 ## Goal
 
@@ -40,4 +46,3 @@ Make `.env` easier to operate by:
 ## Notes / Ops
 
 - Runtime requires a container restart to pick up `.env` changes.
-

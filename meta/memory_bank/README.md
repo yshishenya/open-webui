@@ -117,8 +117,8 @@ Step-by-step instructions for standard tasks. Choose the appropriate workflow fo
   - Created when planning major features
   - Include requirements, design, API contracts
   - Reference from workflows
-  - **Work item specs (recommended)**: use `meta/memory_bank/specs/work_items/` and the rules in `meta/memory_bank/specs/README.md`
-  - **SDD specs (JSON, recommended for non-trivial work)**: use `meta/sdd/specs/{pending,active,completed}/` (via wrapper `meta/tools/sdd`) and cross-link MD <-> JSON
+  - **Work item specs (required on non-integration branches)**: use `meta/memory_bank/specs/work_items/` and the rules in `meta/memory_bank/specs/README.md`
+  - **SDD specs (JSON, required for non-trivial work)**: use `meta/sdd/specs/{pending,active,completed}/` (via wrapper `meta/tools/sdd`) and cross-link MD <-> JSON
     (`SDD Spec:` in the work item spec, and `metadata.work_item_spec` in the SDD spec)
 
 ---
@@ -182,12 +182,13 @@ Before starting work on a task, always check `current_tasks.md` and log task sta
 - Add new tasks as they arise
 
 **Branch workflow (avoid conflicts):**
-- On any non-integration branch (`feature/*`, `bugfix/*`, `refactor/*`, `docs/*`) **do not edit** `meta/memory_bank/current_tasks.md`.
+- On any non-integration branch (`feature/*`, `bugfix/*`, `refactor/*`, `docs/*`, `codex/*`) **do not edit** `meta/memory_bank/current_tasks.md`.
 - Create a **work item spec** in `meta/memory_bank/specs/work_items/` and link it from your branch update (`Spec: ...`).
 - Append updates to `meta/memory_bank/branch_updates/<YYYY-MM-DD>-<branch-slug>.md` instead (use a filesystem-safe branch slug; see task_updates).
+- For non-trivial tasks linked to SDD: keep task statuses up to date and close the spec before marking work done (`meta/tools/sdd check-complete <spec_id> --json` then `meta/tools/sdd complete-spec <spec_id> --json`).
 - Only on the integration branch (e.g. `airis_b2c`), consolidate these updates into
   `meta/memory_bank/current_tasks.md`, then delete the processed `branch_updates` file(s).
-- Branch policy: `airis_b2c` is the working integration branch for day-to-day development; do not target `main` directly from feature/bugfix/refactor/docs branches.
+- Branch policy: `airis_b2c` is the working integration branch for day-to-day development; do not target `main` directly from non-integration branches (`feature/*`, `bugfix/*`, `refactor/*`, `docs/*`, `codex/*`).
 
 ### Rule 3: Follow Established Patterns
 
@@ -297,10 +298,10 @@ All external integrations must be documented and follow API standards:
 ```bash
 1. Read workflows/new_feature.md
 2. Create work item spec in meta/memory_bank/specs/work_items/
-   (and for non-trivial work: create SDD spec JSON in meta/sdd/specs/ via meta/tools/sdd)
+   (and for non-trivial work: create SDD spec JSON in meta/sdd/specs/ via meta/tools/sdd and cross-link both ways)
 3. Log task update per guides/task_updates.md (set to "In Progress")
 4. Implement following coding_standards.md
-5. Write tests (minimum 80% coverage)
+5. Write tests (focus on meaningful coverage on critical paths)
 6. Update relevant documentation
 7. Request code review
 8. Log task update per guides/task_updates.md (set to "Done")

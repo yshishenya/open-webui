@@ -6,6 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: airis_b2c
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/pending/welcome-pricing-rate-cards-2026-02-05-001.json`
 - Created: 2026-02-05
 - Updated: 2026-02-05
 

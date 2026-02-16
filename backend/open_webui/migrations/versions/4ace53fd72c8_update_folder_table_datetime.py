@@ -55,6 +55,7 @@ def downgrade():
             type_=sa.DateTime(),
             existing_type=sa.BigInteger(),
             existing_nullable=False,
+            postgresql_using="to_timestamp(created_at)::timestamp without time zone",
             server_default=sa.func.now(),  # Restoring server default on downgrade
         )
         batch_op.alter_column(
@@ -62,6 +63,7 @@ def downgrade():
             type_=sa.DateTime(),
             existing_type=sa.BigInteger(),
             existing_nullable=False,
+            postgresql_using="to_timestamp(updated_at)::timestamp without time zone",
             server_default=sa.func.now(),  # Restoring server default on downgrade
             onupdate=sa.func.now(),  # Restoring onupdate behavior if it was there
         )

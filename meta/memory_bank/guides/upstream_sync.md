@@ -39,5 +39,6 @@ For every non-trivial work item:
 2. Integrate upstream changes (merge or rebase per team policy).
 3. Resolve conflicts by preserving upstream intent and re-applying Airis changes via thin hooks where possible.
 4. Run the fastest meaningful verification (Docker Compose-first).
-5. Record a short entry in `meta/memory_bank/current_tasks.md` describing the sync and any high-risk conflict resolutions.
-
+5. Record progress per task tracking rules:
+   - on non-integration branches: append entry to `meta/memory_bank/branch_updates/<YYYY-MM-DD>-<branch-slug>.md`
+   - on integration branch (`airis_b2c`): consolidate into `meta/memory_bank/current_tasks.md`

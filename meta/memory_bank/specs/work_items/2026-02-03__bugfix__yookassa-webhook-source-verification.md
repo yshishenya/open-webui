@@ -1,8 +1,14 @@
 # Work Item Spec: YooKassa webhook source verification (IP allowlist)
 
+## Meta
+
 - Type: bugfix
-- Date: 2026-02-03
+- Status: done
 - Owner: Codex
+- Branch: legacy-unknown
+- SDD Spec (JSON, required for non-trivial): N/A
+- Created: 2026-02-03
+- Updated: 2026-02-03
 - Scope: backend
 
 ## Problem
@@ -51,4 +57,3 @@ but it is easy to misinterpret as an official security mechanism.
     - request with allowed IP passes (200)
     - request with non-allowed IP fails (401)
 - Run via Docker Compose: `pytest -q`
-

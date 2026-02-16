@@ -37,6 +37,10 @@ Structure:
 
 Use for any **non-trivial** change.
 
+Airis repo override (mandatory): on non-integration branches
+(`feature/*`, `bugfix/*`, `refactor/*`, `docs/*`, `codex/*`) create a work item spec
+for every task, even if it is trivial.
+
 Contains:
 - Context + goal
 - Acceptance criteria
@@ -66,8 +70,11 @@ Append to a per-branch (or per-day) log and consolidate on integration/mainline 
 
 ### Trivial (low risk)
 
-- No spec required
+- No additional SDD spec required by default
 - Still: small diff + at least one relevant check (unit test, lint, or manual verification)
+
+Airis repo override: work item spec is still required on non-integration branches;
+only SDD JSON can be skipped for trivial work.
 
 ### Non-trivial (default)
 

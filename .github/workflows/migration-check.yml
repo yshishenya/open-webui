@@ -1,0 +1,23 @@
+name: Migration Check
+
+on:
+  pull_request:
+    branches:
+      - airis_b2c
+  push:
+    branches:
+      - airis_b2c
+
+permissions:
+  contents: read
+
+jobs:
+  migration-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Alembic migrations (upgrade-head idempotency)
+        run: |
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e WEBUI_SECRET_KEY=ci-migration-secret airis bash -lc "cd open_webui && alembic -c alembic.ini upgrade head && alembic -c alembic.ini upgrade head"
