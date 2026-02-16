@@ -36,13 +36,13 @@ This made the CI signal noisy and blocked merges for non-code changes.
 ## Scope (what changes)
 
 - Backend:
-  - N/A
+  - Fix legacy downgrade casting in `4ace53fd72c8` migration for PostgreSQL (`BigInteger -> DateTime`) using explicit `postgresql_using`.
 - Frontend:
   - N/A
 - Config/Env:
   - N/A
 - Data model / migrations:
-  - N/A
+  - Migration compatibility fix only (no schema intent changes; downgrade SQL made explicit for Postgres).
 - CI:
   - `airis-branch-policy.yml`: add `pull_request` activity types including `edited`.
   - `migration-check.yml`: run Alembic from `backend/open_webui` with explicit config file and CI-safe `WEBUI_SECRET_KEY`.
@@ -52,6 +52,7 @@ This made the CI signal noisy and blocked merges for non-code changes.
 ## Implementation Notes
 
 - Key files/entrypoints:
+  - `backend/open_webui/migrations/versions/4ace53fd72c8_update_folder_table_datetime.py`
   - `.github/workflows/airis-branch-policy.yml`
   - `.github/workflows/migration-check.yml`
   - `.github/workflows/lint-backend.yml`
@@ -61,12 +62,14 @@ This made the CI signal noisy and blocked merges for non-code changes.
 - Edge cases:
   - First push (`github.event.before` all-zero SHA) handled via fallback to repository root commit.
   - Non-code PRs now skip lint jobs cleanly with success status.
+  - Full Postgres downgrade now avoids implicit cast failure on `folder.created_at/updated_at`.
 
 ## Upstream impact
 
 If this work touches upstream-owned files, list them here and explain why (and how the diff is minimized):
 
 - Upstream-owned files touched:
+  - `backend/open_webui/migrations/versions/4ace53fd72c8_update_folder_table_datetime.py`
   - `.github/workflows/airis-branch-policy.yml`
   - `.github/workflows/migration-check.yml`
   - `.github/workflows/lint-backend.yml`
