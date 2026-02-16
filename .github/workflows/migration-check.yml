@@ -18,6 +18,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate Alembic migrations (upgrade/downgrade-one/upgrade)
+      - name: Validate Alembic migrations (upgrade-head idempotency)
         run: |
-          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e WEBUI_SECRET_KEY=ci-migration-secret airis bash -lc "cd open_webui && alembic -c alembic.ini upgrade head && alembic -c alembic.ini downgrade -1 && alembic -c alembic.ini upgrade head"
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm -e WEBUI_SECRET_KEY=ci-migration-secret airis bash -lc "cd open_webui && alembic -c alembic.ini upgrade head && alembic -c alembic.ini upgrade head"

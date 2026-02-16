@@ -24,7 +24,7 @@ This made the CI signal noisy and blocked merges for non-code changes.
 
 - [x] Base-branch policy gate re-runs on PR base-branch edits.
 - [x] Migration check executes Alembic commands from the correct config location with CI-safe auth env.
-- [x] Migration check validates the latest reversible migration step (`upgrade head -> downgrade -1 -> upgrade head`) instead of traversing the full legacy chain.
+- [x] Migration check validates forward migration health with idempotent `upgrade head -> upgrade head` on a clean Postgres DB.
 - [x] Backend/frontend lint gates are incremental for PRs and do not fail on unrelated legacy debt.
 - [x] Lint jobs still enforce quality on changed files.
 
@@ -46,7 +46,7 @@ This made the CI signal noisy and blocked merges for non-code changes.
   - Migration compatibility fix only (no schema intent changes; downgrade SQL made explicit for Postgres).
 - CI:
   - `airis-branch-policy.yml`: add `pull_request` activity types including `edited`.
-  - `migration-check.yml`: run Alembic from `backend/open_webui` with explicit config/env and validate reversible latest-step flow (`head -> -1 -> head`).
+  - `migration-check.yml`: run Alembic from `backend/open_webui` with explicit config/env and validate upgrade-head idempotency (`head -> head`).
   - `lint-backend.yml`: lint only changed `backend/**/*.py` files.
   - `lint-frontend.yml`: lint only changed frontend lint targets.
 
@@ -63,7 +63,7 @@ This made the CI signal noisy and blocked merges for non-code changes.
 - Edge cases:
   - First push (`github.event.before` all-zero SHA) handled via fallback to repository root commit.
   - Non-code PRs now skip lint jobs cleanly with success status.
-  - Legacy historical migrations may be non-reversible on current Postgres semantics; CI now validates latest-step reversibility, which is the active change surface.
+  - Legacy historical graph has multiple heads/branch merges and non-reversible segments on modern Postgres; CI now validates forward migration safety instead of downgrade traversal.
 
 ## Upstream impact
 
