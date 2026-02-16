@@ -179,6 +179,7 @@ Before starting any task, determine its type and choose the corresponding workfl
 6. **Don't store secrets** in code - only via environment variables
 7. **Don't write SQL manually** - use ORM or parameterized queries
 8. **Don't ignore errors** through empty `except` blocks
+9. **Don't use lagging library versions without approval**: introducing/replacing dependencies below the latest stable without explicit technical justification is forbidden.
 
 ---
 
@@ -190,9 +191,12 @@ Before writing code ALWAYS check:
 
    - Which libraries are allowed for this task?
    - Which practices are forbidden?
-   - **Docs freshness**: assume dependencies may move fast and your built-in knowledge may be stale.
+   - **Dependency recency (mandatory)**: assume dependencies may move fast and your built-in knowledge may be stale.
      Before building a new module/component (or using an unfamiliar library/provider), confirm the repo-pinned version and read the official docs/release notes for that version
-     (or latest docs + release notes if docs aren't versioned). See `meta/memory_bank/tech_stack.md`, `package.json`, `pyproject.toml`, `uv.lock`.
+     (or latest docs + release notes if docs aren't versioned).
+     Verify that this version is the latest stable. Use that latest stable version as the default choice for new integrations.
+     Non-latest usage is allowed only with documented compatibility constraints and an explicit upgrade path.
+     See `meta/memory_bank/tech_stack.md`, `package.json`, `pyproject.toml`, `uv.lock`.
 
 2. **Existing Components**:
 
