@@ -15,7 +15,6 @@ from typing import Optional, Union
 from urllib.parse import urlparse
 import aiohttp
 from aiocache import cached
-import requests
 
 from open_webui.utils.headers import include_user_info_headers
 from open_webui.models.chats import Chats
@@ -46,6 +45,11 @@ from open_webui.internal.db import get_session
 from open_webui.models.models import Models
 from open_webui.utils.misc import (
     calculate_sha256,
+)
+from open_webui.utils.airis.ollama_upload import (
+    create_model,
+    persist_upload_file,
+    upload_blob,
 )
 from open_webui.utils.payload import (
     apply_model_params_to_body_ollama,
@@ -1743,13 +1747,8 @@ async def upload_model(
 
     # --- P1: save file locally ---
     chunk_size = 1024 * 1024 * 2  # 2 MB chunks
-    with open(file_path, "wb") as out_f:
-        while True:
-            chunk = file.file.read(chunk_size)
-            # log.info(f"Chunk: {str(chunk)}") # DEBUG
-            if not chunk:
-                break
-            out_f.write(chunk)
+    await persist_upload_file(file.file, file_path, chunk_size)
+    await file.close()
 
     async def file_process_stream():
         nonlocal ollama_url
@@ -1757,7 +1756,7 @@ async def upload_model(
         log.info(f"Total Model Size: {str(total_size)}")  # DEBUG
 
         # --- P2: SSE progress + calculate sha256 hash ---
-        file_hash = calculate_sha256(file_path, chunk_size)
+        file_hash = await asyncio.to_thread(calculate_sha256, file_path, chunk_size)
         log.info(f"Model Hash: {str(file_hash)}")  # DEBUG
         try:
             with open(file_path, "rb") as f:
@@ -1773,9 +1772,7 @@ async def upload_model(
                     yield f"data: {json.dumps(data_msg)}\n\n"
 
             # --- P3: Upload to ollama /api/blobs ---
-            with open(file_path, "rb") as f:
-                url = f"{ollama_url}/api/blobs/sha256:{file_hash}"
-                response = requests.post(url, data=f)
+            response = await upload_blob(ollama_url, file_path, file_hash)
 
             if response.ok:
                 log.info(f"Uploaded to /api/blobs")  # DEBUG
@@ -1795,10 +1792,10 @@ async def upload_model(
 
                 # Call ollama /api/create
                 # https://github.com/ollama/ollama/blob/main/docs/api.md#create-a-model
-                create_resp = requests.post(
-                    url=f"{ollama_url}/api/create",
-                    headers={"Content-Type": "application/json"},
-                    data=json.dumps(create_payload),
+                model_name, create_resp = await create_model(
+                    ollama_url,
+                    filename,
+                    file_hash,
                 )
 
                 if create_resp.ok:
