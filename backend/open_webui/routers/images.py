@@ -54,6 +54,7 @@ router = APIRouter()
 
 
 def set_image_model(request: Request, model: str):
+    """Set the image generation model in the application state."""
     log.info(f"Setting image model to {model}")
     request.app.state.config.IMAGE_GENERATION_MODEL = model
     if request.app.state.config.IMAGE_GENERATION_ENGINE in ["", "automatic1111"]:
@@ -355,6 +356,14 @@ def get_automatic1111_api_auth(request: Request):
 
 @router.get("/config/url/verify")
 async def verify_url(request: Request, user=Depends(get_admin_user)):
+    """Verify the URL for the specified image generation engine.
+
+    This function checks the validity of the URL based on the configured  image
+    generation engine. It handles two engines: "automatic1111" and  "comfyui". For
+    each engine, it makes a GET request to the respective  API endpoint and raises
+    an HTTPException if the request fails, while  also disabling image generation
+    in the application state.
+    """
     async def _verify(target_url: str, headers: Optional[dict[str, str]] = None) -> None:
         async with httpx.AsyncClient(timeout=IMAGE_VERIFY_REQUEST_TIMEOUT_SECONDS) as client:
             response = await client.get(url=target_url, headers=headers)
@@ -391,6 +400,24 @@ async def verify_url(request: Request, user=Depends(get_admin_user)):
 
 @router.get("/models")
 def get_models(request: Request, user=Depends(get_verified_user)):
+    """Retrieve available image generation models based on the configured engine.
+    
+    The function checks the application's configuration to determine which image
+    generation engine is in use.  It then retrieves the corresponding models either
+    from predefined lists or by making API calls to external services.  In case of
+    an error during the process, it disables image generation and raises an
+    HTTPException with an error message.
+    
+    Args:
+        request (Request): The request object containing application state and configuration.
+        user: The verified user dependency.
+    
+    Returns:
+        list: A list of dictionaries containing model IDs and names.
+    
+    Raises:
+        HTTPException: If an error occurs during the retrieval of models.
+    """
     try:
         if request.app.state.config.IMAGE_GENERATION_ENGINE == "openai":
             return [
