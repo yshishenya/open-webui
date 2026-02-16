@@ -10,8 +10,9 @@
 
 - **Assume fast-moving dependencies**: your built-in knowledge of library APIs may be stale.
 - **Source of truth**: repo-pinned versions (lockfiles) + this document.
-- **Stay fresh, stay safe**: prefer keeping dependencies close to the latest stable releases, but do upgrades as explicit work items:
-  read release notes, update versions incrementally, and run the full verification suite.
+- **Dependency currency rule**: always validate the latest stable release for any dependency you introduce or replace; default to the latest stable version unless a compatibility exception is explicitly documented.
+- **Upgrade path**: when current pinned versions are behind, run upgrades as explicit work items:
+  read release notes, update versions incrementally where needed, and run the full verification suite.
 
 ## Core Stack
 
