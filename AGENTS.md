@@ -58,10 +58,11 @@ See `meta/memory_bank/guides/upstream_sync.md`.
 
 **CRITICALLY IMPORTANT:**
 
-- All I/O operations (HTTP requests, database queries) MUST be asynchronous
-- Use `async def` and `await` for all functions with I/O
-- For HTTP requests use **httpx**, NOT requests
-- **FORBIDDEN** to block event loop with synchronous calls
+- All network/external I/O MUST be asynchronous.
+- Use `async def` and `await` for all functions with I/O.
+- For new HTTP requests use **httpx** (async). `requests` is legacy-only and must not be introduced in app runtime paths.
+- New database access in request paths should be async-first; legacy sync model helpers may be used only via existing project boundaries and without adding new blocking patterns.
+- **FORBIDDEN** to block the event loop with synchronous network/file calls.
 
 Correct approach example:
 
@@ -205,7 +206,7 @@ Before writing code ALWAYS check:
 
 4. **Current Tasks + Task Updates** (`meta/memory_bank/current_tasks.md`, `meta/memory_bank/guides/task_updates.md`):
    - Does my task conflict with others?
-   - Log status updates per task_updates (branch_updates on feature/bugfix; consolidate on integration).
+   - Log status updates per task_updates (branch_updates on non-integration branches; consolidate on integration).
 
 ---
 

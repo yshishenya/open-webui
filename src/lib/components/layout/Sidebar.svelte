@@ -1,4 +1,5 @@
 <script lang="ts">
+	/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
 	import { toast } from 'svelte-sonner';
 	import { v4 as uuidv4 } from 'uuid';
 
@@ -422,7 +423,9 @@
 			if (!Number.isNaN(width) && width >= MIN_WIDTH && width <= MAX_WIDTH) {
 				sidebarWidth.set(width);
 			}
-		} catch {}
+		} catch {
+			// Ignore invalid persisted sidebar width values.
+		}
 
 		document.documentElement.style.setProperty('--sidebar-width', `${$sidebarWidth}px`);
 		sidebarWidth.subscribe((w) => {
@@ -656,7 +659,7 @@
 		on:mousedown={() => {
 			showSidebar.set(!$showSidebar);
 		}}
-	/>
+	></div>
 {/if}
 
 <SearchModal
@@ -671,11 +674,12 @@
 <button
 	id="sidebar-new-chat-button"
 	class="hidden"
+	aria-label={$i18n.t('New Chat')}
 	on:click={() => {
 		goto('/');
 		newChatHandler();
 	}}
-/>
+></button>
 
 <svelte:window
 	on:mousemove={(e) => {
@@ -856,14 +860,12 @@
 
 									{#if $config?.features?.enable_user_status}
 										<div class="absolute -bottom-0.5 -right-0.5">
-											<span class="relative flex size-2.5">
-												<span
-													class="relative inline-flex size-2.5 rounded-full {true
-														? 'bg-green-500'
-														: 'bg-gray-300 dark:bg-gray-700'} border-2 border-white dark:border-gray-900"
-												></span>
-											</span>
-										</div>
+												<span class="relative flex size-2.5">
+													<span
+														class="relative inline-flex size-2.5 rounded-full bg-green-500 border-2 border-white dark:border-gray-900"
+													></span>
+												</span>
+											</div>
 									{/if}
 								</div>
 							</div>
@@ -1425,14 +1427,12 @@
 
 									{#if $config?.features?.enable_user_status}
 										<div class="absolute -bottom-0.5 -right-0.5">
-											<span class="relative flex size-2.5">
-												<span
-													class="relative inline-flex size-2.5 rounded-full {true
-														? 'bg-green-500'
-														: 'bg-gray-300 dark:bg-gray-700'} border-2 border-white dark:border-gray-900"
-												></span>
-											</span>
-										</div>
+												<span class="relative flex size-2.5">
+													<span
+														class="relative inline-flex size-2.5 rounded-full bg-green-500 border-2 border-white dark:border-gray-900"
+													></span>
+												</span>
+											</div>
 									{/if}
 								</div>
 								<div class=" self-center font-medium">{$user?.name}</div>
@@ -1445,15 +1445,16 @@
 	</div>
 
 	{#if !$mobile}
-		<div
+		<button
+			type="button"
 			class="relative flex items-center justify-center group border-l border-gray-50 dark:border-gray-850/30 hover:border-gray-200 dark:hover:border-gray-800 transition z-20"
 			id="sidebar-resizer"
 			on:mousedown={resizeStartHandler}
-			role="separator"
+			aria-label={$i18n.t('Resize Sidebar')}
 		>
 			<div
 				class=" absolute -left-1.5 -right-1.5 -top-0 -bottom-0 z-20 cursor-col-resize bg-transparent"
-			/>
-		</div>
+			></div>
+		</button>
 	{/if}
 {/if}

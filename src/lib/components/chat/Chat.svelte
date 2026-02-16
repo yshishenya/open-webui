@@ -1,4 +1,5 @@
 <script lang="ts">
+	/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
 	import { v4 as uuidv4 } from 'uuid';
 	import { toast } from 'svelte-sonner';
 	import { PaneGroup, Pane, PaneResizer } from 'paneforge';
@@ -235,7 +236,9 @@
 							messageQueue = restoredQueue;
 						}
 					}
-				} catch (e) {}
+				} catch {
+					// Ignore invalid queued message snapshot from session storage.
+				}
 			}
 
 			if (storageChatInput) {
@@ -251,7 +254,9 @@
 						imageGenerationEnabled = input.imageGenerationEnabled;
 						codeInterpreterEnabled = input.codeInterpreterEnabled;
 					}
-				} catch (e) {}
+				} catch {
+					// Ignore malformed chat input snapshot and keep defaults.
+				}
 			} else {
 				await setDefaults();
 			}
@@ -612,7 +617,9 @@
 		try {
 			speechSynthesis.cancel();
 			$audioQueue.stop();
-		} catch {}
+		} catch {
+			// Ignore browser speech API failures.
+		}
 	};
 
 	onMount(async () => {
@@ -664,7 +671,9 @@
 					imageGenerationEnabled = input.imageGenerationEnabled;
 					codeInterpreterEnabled = input.codeInterpreterEnabled;
 				}
-			} catch (e) {}
+			} catch {
+				// Ignore malformed chat input snapshot and keep defaults.
+			}
 		}
 
 		showControlsSubscribe = showControls.subscribe(async (value) => {
@@ -725,7 +734,7 @@
 			name: fileData.name,
 			url: fileData.url,
 			headers: {
-				Authorization: `Bearer ${token}`
+				Authorization: `Bearer ${localStorage.token}`
 			}
 		});
 
@@ -880,7 +889,7 @@
 
 				files = [...files];
 			} catch (e) {
-				files = files.filter((f) => f.name !== url);
+				files = files.filter((f) => f.name !== fileItem.url);
 				toast.error(`${e}`);
 			}
 		}
@@ -2108,12 +2117,12 @@
 					...$settings?.params,
 					...params,
 					stop:
-						(params?.stop ?? $settings?.params?.stop ?? undefined)
-							? (params?.stop.split(',').map((token) => token.trim()) ?? $settings.params.stop).map(
-									(str) => decodeURIComponent(JSON.parse('"' + str.replace(/\"/g, '\\"') + '"'))
-								)
-							: undefined
-				},
+							(params?.stop ?? $settings?.params?.stop ?? undefined)
+								? (params?.stop.split(',').map((token) => token.trim()) ?? $settings.params.stop).map(
+										(str) => decodeURIComponent(JSON.parse('"' + str.replace(/"/g, '\\"') + '"'))
+									)
+								: undefined
+					},
 
 				files: (files?.length ?? 0) > 0 ? files : undefined,
 
@@ -2600,26 +2609,26 @@
 >
 	{#if !loading}
 		<div in:fade={{ duration: 50 }} class="w-full h-full flex flex-col">
-			{#if $selectedFolder && $selectedFolder?.meta?.background_image_url}
-				<div
-					class="absolute top-0 left-0 w-full h-full bg-cover bg-center bg-no-repeat"
-					style="background-image: url({$selectedFolder?.meta?.background_image_url})  "
-				/>
+				{#if $selectedFolder && $selectedFolder?.meta?.background_image_url}
+					<div
+						class="absolute top-0 left-0 w-full h-full bg-cover bg-center bg-no-repeat"
+						style="background-image: url({$selectedFolder?.meta?.background_image_url})  "
+					></div>
 
-				<div
-					class="absolute top-0 left-0 w-full h-full bg-linear-to-t from-white to-white/85 dark:from-gray-900 dark:to-gray-900/90 z-0"
-				/>
-			{:else if $settings?.backgroundImageUrl ?? $config?.license_metadata?.background_image_url ?? null}
-				<div
-					class="absolute top-0 left-0 w-full h-full bg-cover bg-center bg-no-repeat"
-					style="background-image: url({$settings?.backgroundImageUrl ??
-						$config?.license_metadata?.background_image_url})  "
-				/>
+					<div
+						class="absolute top-0 left-0 w-full h-full bg-linear-to-t from-white to-white/85 dark:from-gray-900 dark:to-gray-900/90 z-0"
+					></div>
+				{:else if $settings?.backgroundImageUrl ?? $config?.license_metadata?.background_image_url ?? null}
+					<div
+						class="absolute top-0 left-0 w-full h-full bg-cover bg-center bg-no-repeat"
+						style="background-image: url({$settings?.backgroundImageUrl ??
+							$config?.license_metadata?.background_image_url})  "
+					></div>
 
-				<div
-					class="absolute top-0 left-0 w-full h-full bg-linear-to-t from-white to-white/85 dark:from-gray-900 dark:to-gray-900/90 z-0"
-				/>
-			{/if}
+					<div
+						class="absolute top-0 left-0 w-full h-full bg-linear-to-t from-white to-white/85 dark:from-gray-900 dark:to-gray-900/90 z-0"
+					></div>
+				{/if}
 
 			<PaneGroup direction="horizontal" class="w-full h-full">
 				<Pane defaultSize={50} minSize={30} class="h-full flex relative max-w-full flex-col">

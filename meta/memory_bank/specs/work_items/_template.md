@@ -83,3 +83,9 @@ Use this snippet in `meta/memory_bank/branch_updates/<YYYY-MM-DD>-<branch-slug>.
   - …
 - Rollback plan:
   - …
+
+## Completion Checklist
+
+- [ ] If SDD spec is linked: `meta/tools/sdd check-complete <spec_id> --json`
+- [ ] If SDD spec is linked: `meta/tools/sdd complete-spec <spec_id> --json`
+- [ ] Branch update entry moved to `Done` with required fields (`Spec`, `Owner`, `Summary`, `Done`)

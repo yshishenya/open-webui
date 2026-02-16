@@ -69,9 +69,5 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t FILES < <(printf '%s\n' "${{ steps.changed.outputs.files }}" | sed '/^$/d')
-          if [ "${#FILES[@]}" -eq 0 ]; then
-            echo "No frontend lint targets detected after normalization."
-            exit 0
-          fi
-          printf '%s\0' "${FILES[@]}" | xargs -0 bunx eslint
+          FILES="$(echo "${{ steps.changed.outputs.files }}" | tr '\n' ' ')"
+          bunx eslint ${FILES}

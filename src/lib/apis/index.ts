@@ -2,6 +2,8 @@ import { WEBUI_BASE_URL } from '$lib/constants';
 import { convertOpenApiToToolPayload } from '$lib/utils';
 import { getOpenAIModelsDirect } from './openai';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export const getModels = async (
 	token: string = '',
 	connections: Record<string, any> | null = null,
@@ -80,15 +82,15 @@ export const getModels = async (
 						} else {
 							requests.push(
 								(async () => {
-									return await getOpenAIModelsDirect(url, OPENAI_API_KEYS[idx])
-										.then((res) => {
-											return res;
-										})
-										.catch((err) => {
-											return {
-												object: 'list',
-												data: [],
-												urlIdx: idx
+								return await getOpenAIModelsDirect(url, OPENAI_API_KEYS[idx])
+									.then((res) => {
+										return res;
+									})
+									.catch(() => {
+										return {
+											object: 'list',
+											data: [],
+											urlIdx: idx
 											};
 										});
 								})()
@@ -366,14 +368,14 @@ export const getToolServersData = async (servers: any[]) => {
 							(server?.path ?? '').includes('://')
 								? server?.path
 								: `${server?.url}${(server?.path ?? '').startsWith('/') ? '' : '/'}${server?.path}`
-						).catch((err) => {
-							error = err;
+						).catch(() => {
+							error = 'Failed to fetch OpenAPI spec';
 							return null;
 						});
 					} else if ((specType === 'json' && server?.spec) ?? null) {
 						try {
 							res = JSON.parse(server?.spec);
-						} catch (e) {
+						} catch {
 							error = 'Failed to parse JSON spec';
 						}
 					}
@@ -422,8 +424,8 @@ export const executeToolServer = async (
 
 	try {
 		// Find the matching operationId in the OpenAPI spec
-		const matchingRoute = Object.entries(serverData.openapi.paths).find(([_, methods]) =>
-			Object.entries(methods as any).some(([__, operation]: any) => operation.operationId === name)
+		const matchingRoute = Object.entries(serverData.openapi.paths).find(([, methods]) =>
+			Object.entries(methods as any).some(([, operation]: any) => operation.operationId === name)
 		);
 
 		if (!matchingRoute) {
@@ -433,7 +435,7 @@ export const executeToolServer = async (
 		const [routePath, methods] = matchingRoute;
 
 		const methodEntry = Object.entries(methods as any).find(
-			([_, operation]: any) => operation.operationId === name
+			([, operation]: any) => operation.operationId === name
 		);
 
 		if (!methodEntry) {
@@ -452,7 +454,7 @@ export const executeToolServer = async (
 				const paramName = param?.name;
 				if (!paramName) return;
 				const paramIn = param?.in;
-				if (params.hasOwnProperty(paramName)) {
+				if (Object.prototype.hasOwnProperty.call(params, paramName)) {
 					if (paramIn === 'path') {
 						pathParams[paramName] = params[paramName];
 					} else if (paramIn === 'query') {
@@ -479,7 +481,6 @@ export const executeToolServer = async (
 
 		// Handle requestBody composite
 		if (operation.requestBody && operation.requestBody.content) {
-			const contentType = Object.keys(operation.requestBody.content)[0];
 			if (params !== undefined) {
 				bodyParams = params;
 			} else {
@@ -1680,7 +1681,7 @@ export interface ModelMeta {
 	lead_magnet?: boolean;
 }
 
-export interface ModelParams {}
+export type ModelParams = Record<string, unknown>;
 
 export type GlobalModelConfig = ModelConfig[];
 

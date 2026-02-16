@@ -533,5 +533,8 @@
         "expected": "Frontend reads structured detail and opens BillingBlockedModal; message history stores user-friendly content"
       }
     }
+  },
+  "metadata": {
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-02-06__bugfix__chat-direct-ack-billing-block-modal.md"
   }
 }

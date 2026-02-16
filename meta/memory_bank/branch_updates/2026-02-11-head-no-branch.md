@@ -51,7 +51,7 @@
 
 - [x] **[FEATURE][BILLING][QA]** Billing coverage gate hardening (module-scoped + artifact integrity)
   - Spec: `meta/memory_bank/specs/work_items/2026-02-12__feature__billing-coverage-gate-hardening.md`
-  - SDD Spec: `meta/sdd/specs/completed/billing-coverage-gate-hardenin-2026-02-12-0102.json`
+  - SDD Spec: `meta/sdd/specs/completed/billing-coverage-gate-hardenin-2026-02-12-102.json`
   - Owner: Codex
   - Branch: `HEAD (no branch)`
   - Done: 2026-02-12

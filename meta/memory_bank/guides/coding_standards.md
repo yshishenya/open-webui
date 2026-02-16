@@ -151,7 +151,7 @@ class PlanResponse(BaseModel):
 ### Async/Await Best Practices
 
 ```python
-# Good - async for all I/O operations
+# Good - async for network/file I/O operations
 async def fetch_payment_status(payment_id: str) -> dict[str, object]:
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{YOOKASSA_API}/payments/{payment_id}")
@@ -163,6 +163,11 @@ async def fetch_payment_status_bad(payment_id: str) -> dict[str, object]:
     response = requests.get(f"{YOOKASSA_API}/payments/{payment_id}")  # BLOCKS!
     return response.json()
 ```
+
+Note on legacy persistence:
+- Parts of this repo still use synchronous Peewee/SQLAlchemy helpers.
+- Do not introduce new blocking network/file calls in async request paths.
+- For legacy sync DB helpers, keep usage behind existing model/service boundaries and avoid expanding synchronous hotspots.
 
 ### Database Access Patterns
 

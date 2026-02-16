@@ -211,5 +211,8 @@
         "expected": "URL-store driven filter updates activate the expected chip without triggering goto."
       }
     }
+  },
+  "metadata": {
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-02-11__bugfix__billing-history-filters-not-working.md"
   }
 }

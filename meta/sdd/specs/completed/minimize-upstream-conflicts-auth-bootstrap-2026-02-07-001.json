@@ -1136,6 +1136,7 @@
     "progress_percentage": 100,
     "status": "completed",
     "current_phase": "phase-4",
-    "completed_date": "2026-02-07T23:32:10.459621Z"
+    "completed_date": "2026-02-07T23:32:10.459621Z",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-02-07__refactor__minimize-upstream-conflicts-auth-bootstrap.md"
   }
 }

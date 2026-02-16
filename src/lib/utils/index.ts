@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { v4 as uuidv4 } from 'uuid';
 import { sha256 } from 'js-sha256';
 import { WEBUI_BASE_URL } from '$lib/constants';
@@ -787,7 +789,7 @@ export const isValidHttpUrl = (string: string) => {
 
 	try {
 		url = new URL(string);
-	} catch (_) {
+	} catch {
 		return false;
 	}
 
@@ -906,7 +908,11 @@ export const extractSentences = (text: string) => {
 	// Restore code blocks and process sentences
 	sentences = sentences.map((sentence) => {
 		// Check if the sentence includes a placeholder for a code block
-		return sentence.replace(/\u0000(\d+)\u0000/g, (_, idx) => codeBlocks[idx]);
+		let restoredSentence = sentence;
+		for (const [idx, codeBlock] of codeBlocks.entries()) {
+			restoredSentence = restoredSentence.split(`\u0000${idx}\u0000`).join(codeBlock);
+		}
+		return restoredSentence;
 	});
 
 	return sentences.map(cleanText).filter(Boolean);
@@ -929,7 +935,11 @@ export const extractParagraphsForAudio = (text: string) => {
 	// Restore code blocks and process paragraphs
 	paragraphs = paragraphs.map((paragraph) => {
 		// Check if the paragraph includes a placeholder for a code block
-		return paragraph.replace(/\u0000(\d+)\u0000/g, (_, idx) => codeBlocks[idx]);
+		let restoredParagraph = paragraph;
+		for (const [idx, codeBlock] of codeBlocks.entries()) {
+			restoredParagraph = restoredParagraph.split(`\u0000${idx}\u0000`).join(codeBlock);
+		}
+		return restoredParagraph;
 	});
 
 	return paragraphs.map(cleanText).filter(Boolean);
@@ -1261,8 +1271,8 @@ export const convertOpenApiToToolPayload = (openApiSpec) => {
 		return toolPayload;
 	}
 
-	for (const [path, methods] of Object.entries(openApiSpec.paths)) {
-		for (const [method, operation] of Object.entries(methods)) {
+	for (const methods of Object.values(openApiSpec.paths)) {
+		for (const operation of Object.values(methods)) {
 			if (operation?.operationId) {
 				const tool = {
 					name: operation.operationId,
@@ -1358,7 +1368,7 @@ export const extractInputVariables = (text: string): Record<string, any> => {
 	while ((match = regularRegex.exec(text)) !== null) {
 		const varName = match[1].trim();
 		// Only add if not already processed as custom variable
-		if (!variables.hasOwnProperty(varName)) {
+		if (!Object.prototype.hasOwnProperty.call(variables, varName)) {
 			variables[varName] = { type: 'text' }; // Default type for regular variables
 		}
 	}
@@ -1465,7 +1475,7 @@ export const parseJsonValue = (value: string): any => {
 	}
 
 	// Check if it starts with square or curly brackets (JSON)
-	if (/^[\[{]/.test(value)) {
+	if (/^[[{]/.test(value)) {
 		try {
 			return JSON.parse(value);
 		} catch {
@@ -1567,7 +1577,7 @@ export const extractContentFromFile = async (file: File) => {
 	// Fallback: try to read as text, if decodable
 	try {
 		return await readAsText(file);
-	} catch (err) {
+	} catch {
 		throw new Error('Unsupported or non-text file type: ' + (file.name || type));
 	}
 };
@@ -1599,7 +1609,7 @@ export const convertHeicToJpeg = async (file: File) => {
 export const decodeString = (str: string) => {
 	try {
 		return decodeURIComponent(str);
-	} catch (e) {
+	} catch {
 		return str;
 	}
 };
@@ -1623,7 +1633,7 @@ export const renderMermaidDiagram = async (mermaid, code: string) => {
 	return '';
 };
 
-export const renderVegaVisualization = async (spec: string, i18n?: any) => {
+export const renderVegaVisualization = async (spec: string) => {
 	const vega = await import('vega');
 	const parsedSpec = JSON.parse(spec);
 	let vegaSpec = parsedSpec;

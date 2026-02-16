@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: HEAD (no branch)
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/billing-coverage-gate-hardenin-2026-02-12-0102.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/billing-coverage-gate-hardenin-2026-02-12-102.json`
 - Created: 2026-02-12
 - Updated: 2026-02-12
 

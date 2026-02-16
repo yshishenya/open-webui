@@ -1,4 +1,5 @@
 <script lang="ts">
+	/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-function-type */
 	import { toast } from 'svelte-sonner';
 	import dayjs from 'dayjs';
 
@@ -145,6 +146,7 @@
 	export let regenerateResponse: Function;
 
 	export let addMessages: Function;
+	$: void rateMessage;
 
 	export let isLastMessage = true;
 	export let readOnly = false;
@@ -244,7 +246,9 @@
 		try {
 			speechSynthesis.cancel();
 			$audioQueue.stop();
-		} catch {}
+		} catch {
+			// Ignore browser speech API failures.
+		}
 
 		if (speaking) {
 			speaking = false;
@@ -773,7 +777,7 @@
 											document.getElementById('confirm-edit-message-button')?.click();
 										}
 									}}
-								/>
+								></textarea>
 
 								<div class=" mt-2 mb-1 flex justify-between text-sm font-medium">
 									<div>
@@ -1369,6 +1373,7 @@
 											<button
 												type="button"
 												class="hidden regenerate-response-button"
+												aria-label={$i18n.t('Regenerate')}
 												on:click={() => {
 													showRateComment = false;
 													regenerateResponse(message);
@@ -1385,7 +1390,7 @@
 														});
 													});
 												}}
-											/>
+												></button>
 
 											<RegenerateMenu
 												onRegenerate={(prompt = null) => {

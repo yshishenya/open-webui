@@ -100,7 +100,9 @@ test.describe('Welcome Hero', () => {
 			email: `preset-${timestamp}@example.com`,
 			password: 'password'
 		};
-		await registerUser(request, user);
+		if (!(await registerUser(request, user))) {
+			test.skip(true, 'Registration is disabled in this environment');
+		}
 
 		await page.addInitScript(() => {
 			window.localStorage.setItem('locale', 'en-US');
@@ -128,7 +130,9 @@ test.describe('Welcome Hero', () => {
 			email: `preset-auth-${timestamp}@example.com`,
 			password: 'password'
 		};
-		await registerUser(request, user);
+		if (!(await registerUser(request, user))) {
+			test.skip(true, 'Registration is disabled in this environment');
+		}
 
 		await page.addInitScript(() => {
 			window.localStorage.setItem('locale', 'en-US');

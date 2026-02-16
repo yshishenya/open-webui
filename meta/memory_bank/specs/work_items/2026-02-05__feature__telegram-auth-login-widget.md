@@ -6,6 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: airis_b2c
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/telegram-authentication-2026-02-05-039.json`
 - Created: 2026-02-05
 - Updated: 2026-02-05
 

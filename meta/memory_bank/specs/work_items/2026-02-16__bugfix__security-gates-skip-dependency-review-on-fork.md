@@ -5,7 +5,7 @@
 - Type: bugfix
 - Status: done
 - Owner: Codex
-- Branch: codex/ci-gates-clean-2026-02-16
+- Branch: codex/ci-remote-run-2026-02-16
 - SDD Spec (JSON, required for non-trivial): N/A
 - Created: 2026-02-16
 - Updated: 2026-02-16
@@ -75,7 +75,7 @@ Use this snippet in `meta/memory_bank/branch_updates/<YYYY-MM-DD>-<branch-slug>.
 - [x] **[BUG][CI]** Skip unsupported dependency-review on fork repositories
   - Spec: `meta/memory_bank/specs/work_items/2026-02-16__bugfix__security-gates-skip-dependency-review-on-fork.md`
   - Owner: Codex
-  - Branch: `codex/ci-gates-clean-2026-02-16`
+  - Branch: `codex/ci-remote-run-2026-02-16`
   - Done: 2026-02-16
   - Summary: Guard `dependency-review` with `!github.event.repository.fork` so Security Gates no longer fails on unsupported fork repos.
   - Tests: `N/A (workflow-only fix; verification through GitHub Actions run logs)`

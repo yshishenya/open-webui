@@ -5,7 +5,7 @@
 - Type: bugfix
 - Status: done
 - Owner: Codex
-- Branch: codex/ci-gates-clean-2026-02-16
+- Branch: codex/ci-remote-run-2026-02-16
 - SDD Spec (JSON, required for non-trivial): N/A
 - Created: 2026-02-16
 - Updated: 2026-02-16
@@ -27,7 +27,6 @@ This made the CI signal noisy and blocked merges for non-code changes.
 - [x] Migration check validates forward migration health with idempotent `upgrade head -> upgrade head` on a clean Postgres DB.
 - [x] Backend/frontend lint gates are incremental for PRs and do not fail on unrelated legacy debt.
 - [x] Lint jobs still enforce quality on changed files.
-- [x] Changed-file lint targets are passed to linters without unsafe shell interpolation.
 
 ## Non-goals
 
@@ -64,7 +63,6 @@ This made the CI signal noisy and blocked merges for non-code changes.
 - Edge cases:
   - First push (`github.event.before` all-zero SHA) handled via fallback to repository root commit.
   - Non-code PRs now skip lint jobs cleanly with success status.
-  - Changed file lists are handed off to linters as NUL-delimited args via `xargs -0` to avoid filename-based shell injection in CI.
   - Legacy historical graph has multiple heads/branch merges and non-reversible segments on modern Postgres; CI now validates forward migration safety instead of downgrade traversal.
 
 ## Upstream impact
@@ -99,7 +97,7 @@ Use this snippet in `meta/memory_bank/branch_updates/<YYYY-MM-DD>-<branch-slug>.
 - [x] **[BUG][CI]** Stabilize PR gates: lint, migration-check, and base-policy rechecks
   - Spec: `meta/memory_bank/specs/work_items/2026-02-16__bugfix__ci-pr-gates-stabilize-lint-migration-and-base-policy.md`
   - Owner: Codex
-  - Branch: `codex/ci-gates-clean-2026-02-16`
+  - Branch: `codex/ci-remote-run-2026-02-16`
   - Done: 2026-02-16
   - Summary: Made CI gates deterministic for PRs by adding base-branch edit rechecks, fixing Alembic config path usage, and switching lint jobs to incremental changed-file checks.
   - Tests: `N/A (workflow-only fix; verification through GitHub Actions checks/logs)`
