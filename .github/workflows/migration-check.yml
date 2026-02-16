@@ -20,4 +20,4 @@ jobs:
 
       - name: Validate Alembic migrations (upgrade/downgrade/upgrade)
         run: |
-          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "alembic upgrade head && alembic downgrade base && alembic upgrade head"
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "cd open_webui && alembic -c alembic.ini upgrade head && alembic -c alembic.ini downgrade base && alembic -c alembic.ini upgrade head"
