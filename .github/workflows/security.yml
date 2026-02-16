@@ -17,7 +17,8 @@ permissions:
 
 jobs:
   dependency-review:
-    if: github.event_name == 'pull_request'
+    # Dependency Review action is not supported for fork repositories.
+    if: github.event_name == 'pull_request' && !github.event.repository.fork
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
