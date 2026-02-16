@@ -177,6 +177,8 @@
         "expected": "Build succeeds"
       }
     }
+  },
+  "metadata": {
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-02-10__bugfix__chat-responsemessage-generatingimage-referenceerror.md"
   }
 }
-

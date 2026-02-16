@@ -6,6 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: `codex/feature/billing-scenarios-e2e-tests`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/billing-scenarios-2026-02-05-001.json`
 - Created: 2026-02-05
 - Updated: 2026-02-05
 

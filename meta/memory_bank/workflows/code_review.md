@@ -268,8 +268,8 @@
 ### 6.1 Test Coverage
 
 - [ ] All new functions are covered by unit tests
-- [ ] Code coverage >= 80% for new code
-- [ ] Critical business logic has 100% coverage
+- [ ] Coverage is meaningful on critical paths (target: 80%+ where applicable)
+- [ ] Critical business logic includes happy path + negative + edge cases
 
 ### 6.2 Test Quality
 
@@ -289,7 +289,7 @@
 
 - [ ] All tests pass (Docker Compose-first): see `../guides/testing_strategy.md`
 - [ ] No warnings in tests
-- [ ] Tests execute quickly (<5 minutes for entire suite)
+- [ ] Test runtime is appropriate for the selected CI tier (PR fast vs merge/release tiers)
 
 ### 6.4 Edge Cases
 
@@ -449,7 +449,7 @@
 - [ ] Architectural patterns from **[../patterns/](../patterns/)** are followed
 - [ ] Error handling follows **[../patterns/error_handling.md](../patterns/error_handling.md)**
 - [ ] Technology stack complies with **[../tech_stack.md](../tech_stack.md)**
-- [ ] All tests pass with coverage >= 80% (Docker Compose-first)
+- [ ] All required tests pass (Docker Compose-first), with meaningful coverage on critical paths
 - [ ] Documentation is updated
 - [ ] No security issues
 - [ ] No performance problems

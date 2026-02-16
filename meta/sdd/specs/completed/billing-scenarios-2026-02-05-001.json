@@ -712,7 +712,8 @@
     "activated_date": "2026-02-05T15:32:05.441027Z",
     "progress_percentage": 100,
     "current_phase": "phase-5",
-    "completed_date": "2026-02-06T18:32:45.931389Z"
+    "completed_date": "2026-02-06T18:32:45.931389Z",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-02-05__feature__billing-scenarios-e2e-tests.md"
   },
   "journal": [
     {

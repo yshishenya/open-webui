@@ -6,7 +6,7 @@ This directory stores backup copies of specification files created before modifi
 
 The `.backups/` directory is a hidden directory used to store:
 - Automatic backups created before spec file modifications
-- Safety copies created by `sdd-validate fix` before applying fixes
+- Safety copies created by `meta/tools/sdd fix` before applying fixes
 - Historical snapshots of spec files before updates
 - Recovery points for spec file restoration
 
@@ -26,7 +26,7 @@ Backups are automatically created when:
 
 ```bash
 # Before applying validation fixes
-sdd validate <spec-file> --fix
+meta/tools/sdd fix <spec-file>
 
 # Before any spec file modifications (handled internally)
 ```
@@ -37,7 +37,7 @@ The toolkit automatically creates this directory and README when needed - no man
 
 Backups follow this naming convention:
 ```
-specs/.backups/
+meta/sdd/specs/.backups/
 ├── README.md                          # This file
 ├── <spec-id>.backup                   # Default backup
 ├── <spec-id>.backup2                  # Additional backup with custom suffix
@@ -52,7 +52,7 @@ Backups can accumulate over time. To clean old backups:
 
 ```bash
 # Remove backups older than 30 days
-find specs/.backups -name "*.backup*" -mtime +30 -delete
+find meta/sdd/specs/.backups -name "*.backup*" -mtime +30 -delete
 
 # Or keep only the most recent 5 backups per spec
 # (implement custom cleanup script as needed)
@@ -64,7 +64,7 @@ Consider adding this directory to `.gitignore` if you don't want to track backup
 
 ```
 # In .gitignore
-specs/.backups/
+meta/sdd/specs/.backups/
 ```
 
 Backups are safety nets for local modifications and typically don't need to be shared via version control.
@@ -75,16 +75,16 @@ If you need to restore a spec from backup:
 
 ```bash
 # Copy backup back to active directory
-cp specs/.backups/<spec-id>.backup specs/active/<spec-id>.json
+cp meta/sdd/specs/.backups/<spec-id>.backup meta/sdd/specs/active/<spec-id>.json
 
 # Or use version control if backups are tracked
-git checkout HEAD -- specs/active/<spec-id>.json
+git checkout HEAD -- meta/sdd/specs/active/<spec-id>.json
 ```
 
 ## Directory Structure
 
 ```
-specs/.backups/
+meta/sdd/specs/.backups/
 ├── README.md                                    # This file
 ├── <spec-id>.backup                            # Most recent backup
 ├── <spec-id>.backup2                           # Additional backup copy
@@ -93,7 +93,7 @@ specs/.backups/
 
 ## Related Tools
 
-- **sdd-validate** - Creates backups before applying fixes
+- **meta/tools/sdd fix** - Creates backups before applying fixes
 - **sdd-update** - May create backups before updates
 - **sdd-plan** - Creates new specs (no backup needed)
 - **sdd-next** - Reads specs (no backup created)
