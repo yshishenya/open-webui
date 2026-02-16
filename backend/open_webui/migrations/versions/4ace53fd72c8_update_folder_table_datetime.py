@@ -49,6 +49,7 @@ def upgrade():
 
 def downgrade():
     # Downgrade: Convert columns back to DateTime and restore defaults
+    """Downgrade the database schema by converting columns to DateTime."""
     with op.batch_alter_table("folder", schema=None) as batch_op:
         batch_op.alter_column(
             "created_at",
