@@ -23,3 +23,12 @@ Spec: meta/memory_bank/specs/work_items/2026-02-18__bugfix__model-access-control
   - changed `except Exception as e:` to `except Exception:`
 - Local check: `ruff check backend/open_webui/routers/models.py`.
 Spec: meta/memory_bank/specs/work_items/2026-02-18__bugfix__model-access-control-attributeerror-recheck.md
+
+## 2026-02-18 16:08 — Bot-feedback refactor pass
+- Applied non-behavioral refactor to reduce duplicated access fallback construction.
+- Added helper `get_model_access_kwargs(...)` in:
+  - `backend/open_webui/routers/models.py`
+  - `backend/open_webui/routers/openai.py`
+- Replaced repeated inline fallback dict blocks with helper calls in touched access-check paths.
+- Rationale: address maintainability bot feedback while preserving legacy access semantics.
+Spec: meta/memory_bank/specs/work_items/2026-02-18__bugfix__model-access-control-attributeerror-recheck.md

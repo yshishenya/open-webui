@@ -79,6 +79,16 @@ log = logging.getLogger(__name__)
 ##########################################
 
 
+def get_model_access_kwargs(model: object) -> dict[str, object | None]:
+    if hasattr(model, "access_control"):
+        return {"access_control": getattr(model, "access_control", None)}
+
+    return {
+        "access_control": None,
+        "access_grants": getattr(model, "access_grants", None),
+    }
+
+
 async def send_get_request(url, key=None, user: UserModel = None):
     timeout = aiohttp.ClientTimeout(total=AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST)
     try:
@@ -595,11 +605,7 @@ async def get_filtered_models(models, user, db=None):
     for model in models.get("data", []):
         model_info = Models.get_model_by_id(model["id"], db=db)
         if model_info:
-            access_kwargs = (
-                {"access_control": getattr(model_info, "access_control", None)}
-                if hasattr(model_info, "access_control")
-                else {"access_control": None, "access_grants": getattr(model_info, "access_grants", None)}
-            )
+            access_kwargs = get_model_access_kwargs(model_info)
             if user.id == model_info.user_id or has_access(
                 user.id,
                 type="read",
@@ -993,11 +999,7 @@ async def generate_chat_completion(
 
         # Check if user has access to the model
         if not bypass_filter and user.role == "user":
-            access_kwargs = (
-                {"access_control": getattr(model_info, "access_control", None)}
-                if hasattr(model_info, "access_control")
-                else {"access_control": None, "access_grants": getattr(model_info, "access_grants", None)}
-            )
+            access_kwargs = get_model_access_kwargs(model_info)
             if not (
                 user.id == model_info.user_id
                 or has_access(

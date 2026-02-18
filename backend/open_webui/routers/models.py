@@ -42,6 +42,16 @@ def is_valid_model_id(model_id: str) -> bool:
     return model_id and len(model_id) <= 256
 
 
+def get_model_access_kwargs(model: object) -> dict[str, object | None]:
+    if hasattr(model, "access_control"):
+        return {"access_control": getattr(model, "access_control", None)}
+
+    return {
+        "access_control": None,
+        "access_grants": getattr(model, "access_grants", None),
+    }
+
+
 ###########################
 # GetModels
 ###########################
@@ -99,17 +109,8 @@ async def get_models(
                     or has_access(
                         user.id,
                         "write",
-                        access_control=(
-                            getattr(model, "access_control", None)
-                            if hasattr(model, "access_control")
-                            else None
-                        ),
-                        access_grants=(
-                            None
-                            if hasattr(model, "access_control")
-                            else getattr(model, "access_grants", None)
-                        ),
                         db=db,
+                        **get_model_access_kwargs(model),
                     )
                 ),
             )
@@ -324,11 +325,7 @@ async def get_model_by_id(
 ):
     model = Models.get_model_by_id(id, db=db)
     if model:
-        access_kwargs = (
-            {"access_control": getattr(model, "access_control", None)}
-            if hasattr(model, "access_control")
-            else {"access_control": None, "access_grants": getattr(model, "access_grants", None)}
-        )
+        access_kwargs = get_model_access_kwargs(model)
         if (
             (user.role == "admin" and BYPASS_ADMIN_ACCESS_CONTROL)
             or model.user_id == user.id
@@ -419,11 +416,7 @@ async def toggle_model_by_id(
 ):
     model = Models.get_model_by_id(id, db=db)
     if model:
-        access_kwargs = (
-            {"access_control": getattr(model, "access_control", None)}
-            if hasattr(model, "access_control")
-            else {"access_control": None, "access_grants": getattr(model, "access_grants", None)}
-        )
+        access_kwargs = get_model_access_kwargs(model)
         if (
             user.role == "admin"
             or model.user_id == user.id
@@ -473,11 +466,7 @@ async def update_model_by_id(
             detail=ERROR_MESSAGES.NOT_FOUND,
         )
 
-    access_kwargs = (
-        {"access_control": getattr(model, "access_control", None)}
-        if hasattr(model, "access_control")
-        else {"access_control": None, "access_grants": getattr(model, "access_grants", None)}
-    )
+    access_kwargs = get_model_access_kwargs(model)
     if (
         model.user_id != user.id
         and not has_access(
@@ -517,11 +506,7 @@ async def delete_model_by_id(
             detail=ERROR_MESSAGES.NOT_FOUND,
         )
 
-    access_kwargs = (
-        {"access_control": getattr(model, "access_control", None)}
-        if hasattr(model, "access_control")
-        else {"access_control": None, "access_grants": getattr(model, "access_grants", None)}
-    )
+    access_kwargs = get_model_access_kwargs(model)
     if (
         user.role != "admin"
         and model.user_id != user.id
