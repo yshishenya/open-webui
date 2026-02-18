@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: airis_b2c
-- SDD Spec (JSON, required for non-trivial): meta/sdd/specs/completed/model-access-control-attribute-2026-02-18-1529.json
+- SDD Spec (JSON, required for non-trivial): meta/sdd/specs/completed/model-access-control-2026-02-18-001.json
 - Created: 2026-02-18
 - Updated: 2026-02-18
 
