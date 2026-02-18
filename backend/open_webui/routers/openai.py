@@ -595,8 +595,16 @@ async def get_filtered_models(models, user, db=None):
     for model in models.get("data", []):
         model_info = Models.get_model_by_id(model["id"], db=db)
         if model_info:
+            access_kwargs = (
+                {"access_control": getattr(model_info, "access_control", None)}
+                if hasattr(model_info, "access_control")
+                else {"access_control": None, "access_grants": getattr(model_info, "access_grants", None)}
+            )
             if user.id == model_info.user_id or has_access(
-                user.id, type="read", access_control=model_info.access_control, db=db
+                user.id,
+                type="read",
+                db=db,
+                **access_kwargs,
             ):
                 filtered_models.append(model)
     return filtered_models
@@ -985,13 +993,18 @@ async def generate_chat_completion(
 
         # Check if user has access to the model
         if not bypass_filter and user.role == "user":
+            access_kwargs = (
+                {"access_control": getattr(model_info, "access_control", None)}
+                if hasattr(model_info, "access_control")
+                else {"access_control": None, "access_grants": getattr(model_info, "access_grants", None)}
+            )
             if not (
                 user.id == model_info.user_id
                 or has_access(
                     user.id,
                     type="read",
-                    access_control=model_info.access_control,
                     db=db,
+                    **access_kwargs,
                 )
             ):
                 raise HTTPException(

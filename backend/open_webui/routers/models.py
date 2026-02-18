@@ -99,7 +99,21 @@ async def get_models(
                 write_access=(
                     (user.role == "admin" and BYPASS_ADMIN_ACCESS_CONTROL)
                     or user.id == model.user_id
-                    or has_access(user.id, "write", model.access_control, db=db)
+                    or has_access(
+                        user.id,
+                        "write",
+                        access_control=(
+                            getattr(model, "access_control", None)
+                            if hasattr(model, "access_control")
+                            else None
+                        ),
+                        access_grants=(
+                            None
+                            if hasattr(model, "access_control")
+                            else getattr(model, "access_grants", None)
+                        ),
+                        db=db,
+                    )
                 ),
             )
             for model in result.items
@@ -313,17 +327,32 @@ async def get_model_by_id(
 ):
     model = Models.get_model_by_id(id, db=db)
     if model:
+        access_kwargs = (
+            {"access_control": getattr(model, "access_control", None)}
+            if hasattr(model, "access_control")
+            else {"access_control": None, "access_grants": getattr(model, "access_grants", None)}
+        )
         if (
             (user.role == "admin" and BYPASS_ADMIN_ACCESS_CONTROL)
             or model.user_id == user.id
-            or has_access(user.id, "read", model.access_control, db=db)
+            or has_access(
+                user.id,
+                "read",
+                db=db,
+                **access_kwargs,
+            )
         ):
             return ModelAccessResponse(
                 **model.model_dump(),
                 write_access=(
                     (user.role == "admin" and BYPASS_ADMIN_ACCESS_CONTROL)
                     or user.id == model.user_id
-                    or has_access(user.id, "write", model.access_control, db=db)
+                    or has_access(
+                        user.id,
+                        "write",
+                        db=db,
+                        **access_kwargs,
+                    )
                 ),
             )
         else:
@@ -393,10 +422,20 @@ async def toggle_model_by_id(
 ):
     model = Models.get_model_by_id(id, db=db)
     if model:
+        access_kwargs = (
+            {"access_control": getattr(model, "access_control", None)}
+            if hasattr(model, "access_control")
+            else {"access_control": None, "access_grants": getattr(model, "access_grants", None)}
+        )
         if (
             user.role == "admin"
             or model.user_id == user.id
-            or has_access(user.id, "write", model.access_control, db=db)
+            or has_access(
+                user.id,
+                "write",
+                db=db,
+                **access_kwargs,
+            )
         ):
             model = Models.toggle_model_by_id(id, db=db)
 
@@ -437,9 +476,19 @@ async def update_model_by_id(
             detail=ERROR_MESSAGES.NOT_FOUND,
         )
 
+    access_kwargs = (
+        {"access_control": getattr(model, "access_control", None)}
+        if hasattr(model, "access_control")
+        else {"access_control": None, "access_grants": getattr(model, "access_grants", None)}
+    )
     if (
         model.user_id != user.id
-        and not has_access(user.id, "write", model.access_control, db=db)
+        and not has_access(
+            user.id,
+            "write",
+            db=db,
+            **access_kwargs,
+        )
         and user.role != "admin"
     ):
         raise HTTPException(
@@ -471,10 +520,20 @@ async def delete_model_by_id(
             detail=ERROR_MESSAGES.NOT_FOUND,
         )
 
+    access_kwargs = (
+        {"access_control": getattr(model, "access_control", None)}
+        if hasattr(model, "access_control")
+        else {"access_control": None, "access_grants": getattr(model, "access_grants", None)}
+    )
     if (
         user.role != "admin"
         and model.user_id != user.id
-        and not has_access(user.id, "write", model.access_control, db=db)
+        and not has_access(
+            user.id,
+            "write",
+            db=db,
+            **access_kwargs,
+        )
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
