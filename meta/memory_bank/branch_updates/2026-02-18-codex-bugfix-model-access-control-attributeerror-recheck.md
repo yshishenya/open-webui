@@ -15,3 +15,11 @@
 - Updated work item spec reference to the renamed SDD file.
 - Next: push fix and re-check PR bot results after wait window.
 Spec: meta/memory_bank/specs/work_items/2026-02-18__bugfix__model-access-control-attributeerror-recheck.md
+
+## 2026-02-18 16:27 — Lint follow-up
+- CI `Lint Backend` still failed due to 4 Ruff findings in `backend/open_webui/routers/models.py`.
+- Applied minimal lint-only cleanup:
+  - removed unused imports: `json`, `asyncio`, `ModelListResponse`
+  - changed `except Exception as e:` to `except Exception:`
+- Local check: `ruff check backend/open_webui/routers/models.py`.
+Spec: meta/memory_bank/specs/work_items/2026-02-18__bugfix__model-access-control-attributeerror-recheck.md

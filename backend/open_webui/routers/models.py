@@ -1,8 +1,6 @@
 from typing import Optional
 import io
 import base64
-import json
-import asyncio
 import logging
 
 from open_webui.models.groups import Groups
@@ -10,7 +8,6 @@ from open_webui.models.models import (
     ModelForm,
     ModelModel,
     ModelResponse,
-    ModelListResponse,
     ModelAccessListResponse,
     ModelAccessResponse,
     Models,
@@ -403,7 +400,7 @@ def get_model_profile_image(
                         media_type=media_type,
                         headers=headers,
                     )
-                except Exception as e:
+                except Exception:
                     pass
 
         return FileResponse(f"{STATIC_DIR}/favicon.png")
