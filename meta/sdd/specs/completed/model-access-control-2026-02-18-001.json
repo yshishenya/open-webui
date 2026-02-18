@@ -1,0 +1,276 @@
+{
+  "spec_id": "model-access-control-2026-02-18-001",
+  "title": "model-access-control-attributeerror-recheck",
+  "generated": "2026-02-18T12:29:23.937825Z",
+  "last_updated": "2026-02-18T12:34:50.164974Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "investigation",
+    "status": "completed",
+    "activated_date": "2026-02-18T12:29:27.943071Z",
+    "progress_percentage": 100,
+    "current_phase": "phase-3",
+    "completed_date": "2026-02-18T12:34:35.622359Z",
+    "title": "Model access_control AttributeError recheck and regression validation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-02-18__bugfix__model-access-control-attributeerror-recheck.md"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "model-access-control-attributeerror-recheck",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 4,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-18T12:33:51.572204Z",
+        "journaled_at": "2026-02-18T12:33:51.574282Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-18T12:33:56.911667Z",
+        "journaled_at": "2026-02-18T12:33:56.913947Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-02-18T12:34:23.738994Z",
+        "journaled_at": "2026-02-18T12:34:23.741631Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce AttributeError in user access path",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 0.3,
+        "completed_at": "2026-02-18T12:33:51.571972Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-18T12:33:51.573193Z"
+      },
+      "description": "Reproduce failure when model object lacks access_control during user read checks."
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Run regression test pass for touched routers",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [
+        "task-3-1-1",
+        "task-3-1-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "estimated_hours": 0.8,
+        "completed_at": "2026-02-18T12:34:24.177616Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-18T12:34:24.179188Z"
+      },
+      "description": "Execute focused pytest suite and syntax checks for openai/ollama/models/billing routes."
+    },
+    "task-3-1-1": {
+      "type": "verify",
+      "title": "Compile-check modified routers",
+      "status": "completed",
+      "parent": "task-3-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 0.1,
+        "verification_result": {
+          "date": "2026-02-18T12:34:15.506275Z",
+          "status": "PASSED",
+          "command": "python -m py_compile backend/open_webui/routers/openai.py backend/open_webui/routers/ollama.py backend/open_webui/routers/models.py backend/open_webui/routers/billing.py",
+          "output": "py_compile passed",
+          "notes": "Syntax validation succeeded for all modified router files."
+        },
+        "completed_at": "2026-02-18T12:34:23.308306Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-18T12:34:23.309555Z"
+      },
+      "description": "Run python -m py_compile for modified router modules."
+    },
+    "task-3-1-2": {
+      "type": "verify",
+      "title": "Run targeted pytest regression suite",
+      "status": "completed",
+      "parent": "task-3-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 0.6,
+        "verification_type": "manual",
+        "command": ".venv/bin/pytest backend/open_webui/test/apps/webui/routers/test_models.py backend/open_webui/test/apps/webui/routers/test_billing_public_pricing.py backend/open_webui/test/apps/webui/routers/test_openai_chat_billing.py backend/open_webui/test/apps/webui/routers/test_openai_chat_billing_lead_magnet.py backend/open_webui/test/apps/webui/routers/test_openai_chat_billing_streaming.py",
+        "completed_at": "2026-02-18T12:34:23.738786Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-18T12:34:23.740121Z"
+      },
+      "description": "Execute focused router billing/openai/model tests to guard regression."
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Validate access fallback and user recreation hypothesis",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 0.4,
+        "completed_at": "2026-02-18T12:33:56.911477Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-02-18T12:33:56.912627Z"
+      },
+      "description": "Confirm fallback behavior via access_grants and verify recreating user does not remove root cause."
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-02-18T12:33:51.573185Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduction",
+      "author": "claude-code",
+      "content": "Reproduced failure path where user access check raises AttributeError when model object lacks access_control. Confirmed owner/admin short-circuit can hide issue while normal users fail.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-02-18T12:33:51.574278Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: [To Be Defined]",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-02-18T12:33:56.912621Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Root-cause validation",
+      "author": "claude-code",
+      "content": "Validated that fallback should use access_grants only when access_control attribute is absent. Confirmed recreating user alone does not resolve the AttributeError root cause.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-02-18T12:33:56.913939Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: [To Be Defined]",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-02-18T12:34:23.309550Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Compile verification",
+      "author": "claude-code",
+      "content": "Executed py_compile for modified routers; syntax check passed.",
+      "metadata": {},
+      "task_id": "task-3-1-1"
+    },
+    {
+      "timestamp": "2026-02-18T12:34:23.740116Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Pytest regression",
+      "author": "claude-code",
+      "content": "Executed targeted pytest suite for models/billing/openai chat routes; all tests passed (14/14).",
+      "metadata": {},
+      "task_id": "task-3-1-2"
+    },
+    {
+      "timestamp": "2026-02-18T12:34:23.741623Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 3: [To Be Defined]",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    },
+    {
+      "timestamp": "2026-02-18T12:34:24.179181Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Regression pass",
+      "author": "claude-code",
+      "content": "Completed verification pass and confirmed no remaining failing targeted regressions.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    }
+  ]
+}

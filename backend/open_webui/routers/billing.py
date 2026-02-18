@@ -77,6 +77,7 @@ from open_webui.env import (
 )
 from open_webui.models.users import Users
 from open_webui.models.models import Models
+from open_webui.models.access_grants import has_public_read_access_grant
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS.get("BILLING", logging.INFO))
@@ -1172,9 +1173,16 @@ async def get_public_rate_cards(
         if not model.is_active:
             excluded_model_ids.add(model.id)
             continue
-        if model.access_control is not None:
-            excluded_model_ids.add(model.id)
-            continue
+        model_access_control = getattr(model, "access_control", None)
+        if hasattr(model, "access_control"):
+            if model_access_control is not None:
+                excluded_model_ids.add(model.id)
+                continue
+        else:
+            model_access_grants = getattr(model, "access_grants", None)
+            if not has_public_read_access_grant(model_access_grants):
+                excluded_model_ids.add(model.id)
+                continue
         if model.meta and getattr(model.meta, "hidden", False):
             excluded_model_ids.add(model.id)
             continue

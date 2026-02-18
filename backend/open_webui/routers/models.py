@@ -1,8 +1,6 @@
 from typing import Optional
 import io
 import base64
-import json
-import asyncio
 import logging
 
 from open_webui.models.groups import Groups
@@ -10,7 +8,6 @@ from open_webui.models.models import (
     ModelForm,
     ModelModel,
     ModelResponse,
-    ModelListResponse,
     ModelAccessListResponse,
     ModelAccessResponse,
     Models,
@@ -43,6 +40,16 @@ router = APIRouter()
 
 def is_valid_model_id(model_id: str) -> bool:
     return model_id and len(model_id) <= 256
+
+
+def get_model_access_kwargs(model: object) -> dict[str, object | None]:
+    if hasattr(model, "access_control"):
+        return {"access_control": getattr(model, "access_control", None)}
+
+    return {
+        "access_control": None,
+        "access_grants": getattr(model, "access_grants", None),
+    }
 
 
 ###########################
@@ -99,7 +106,12 @@ async def get_models(
                 write_access=(
                     (user.role == "admin" and BYPASS_ADMIN_ACCESS_CONTROL)
                     or user.id == model.user_id
-                    or has_access(user.id, "write", model.access_control, db=db)
+                    or has_access(
+                        user.id,
+                        "write",
+                        db=db,
+                        **get_model_access_kwargs(model),
+                    )
                 ),
             )
             for model in result.items
@@ -313,17 +325,28 @@ async def get_model_by_id(
 ):
     model = Models.get_model_by_id(id, db=db)
     if model:
+        access_kwargs = get_model_access_kwargs(model)
         if (
             (user.role == "admin" and BYPASS_ADMIN_ACCESS_CONTROL)
             or model.user_id == user.id
-            or has_access(user.id, "read", model.access_control, db=db)
+            or has_access(
+                user.id,
+                "read",
+                db=db,
+                **access_kwargs,
+            )
         ):
             return ModelAccessResponse(
                 **model.model_dump(),
                 write_access=(
                     (user.role == "admin" and BYPASS_ADMIN_ACCESS_CONTROL)
                     or user.id == model.user_id
-                    or has_access(user.id, "write", model.access_control, db=db)
+                    or has_access(
+                        user.id,
+                        "write",
+                        db=db,
+                        **access_kwargs,
+                    )
                 ),
             )
         else:
@@ -374,7 +397,7 @@ def get_model_profile_image(
                         media_type=media_type,
                         headers=headers,
                     )
-                except Exception as e:
+                except Exception:
                     pass
 
         return FileResponse(f"{STATIC_DIR}/favicon.png")
@@ -393,10 +416,16 @@ async def toggle_model_by_id(
 ):
     model = Models.get_model_by_id(id, db=db)
     if model:
+        access_kwargs = get_model_access_kwargs(model)
         if (
             user.role == "admin"
             or model.user_id == user.id
-            or has_access(user.id, "write", model.access_control, db=db)
+            or has_access(
+                user.id,
+                "write",
+                db=db,
+                **access_kwargs,
+            )
         ):
             model = Models.toggle_model_by_id(id, db=db)
 
@@ -437,9 +466,15 @@ async def update_model_by_id(
             detail=ERROR_MESSAGES.NOT_FOUND,
         )
 
+    access_kwargs = get_model_access_kwargs(model)
     if (
         model.user_id != user.id
-        and not has_access(user.id, "write", model.access_control, db=db)
+        and not has_access(
+            user.id,
+            "write",
+            db=db,
+            **access_kwargs,
+        )
         and user.role != "admin"
     ):
         raise HTTPException(
@@ -471,10 +506,16 @@ async def delete_model_by_id(
             detail=ERROR_MESSAGES.NOT_FOUND,
         )
 
+    access_kwargs = get_model_access_kwargs(model)
     if (
         user.role != "admin"
         and model.user_id != user.id
-        and not has_access(user.id, "write", model.access_control, db=db)
+        and not has_access(
+            user.id,
+            "write",
+            db=db,
+            **access_kwargs,
+        )
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
