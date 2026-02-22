@@ -25,3 +25,12 @@
     - Validation:
       - `npx eslint src/routes/welcome/+page.svelte` ✅
       - `npx svelte-check --no-tsconfig --workspace src/routes/welcome --diagnostic-sources 'svelte,css' --threshold warning` ✅
+
+- [x] **[BUG][DEV][DOCKER]** Sync backend dependencies before dev backend startup
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-22__bugfix__docker-dev-backend-deps-sync.md`
+  - Owner: Codex
+  - Branch: `codex/feature/welcome-landing-figma-copy`
+  - Done: 2026-02-22
+  - Summary: Fix Docker dev startup crash (`ModuleNotFoundError: aiosmtplib`) caused by mounted backend code diverging from base image deps; auto-install `backend/requirements.txt` by hash before `start.sh`.
+  - Validation:
+    - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml config` ✅
