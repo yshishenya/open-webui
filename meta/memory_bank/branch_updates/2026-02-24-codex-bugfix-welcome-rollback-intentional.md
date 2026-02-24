@@ -1,0 +1,8 @@
+- [x] **[BUG][WELCOME]** Keep intentional /welcome rollback and restore TS lint compliance
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-24__bugfix__welcome-intentional-rollback-typing.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/welcome-rollback-intentional`
+  - Done: 2026-02-24
+  - Summary: Preserved intentional rollback for `/welcome` and removed `any` usage in Telegram callback typing so frontend lint stays green.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; node_modules/.bin/eslint src/routes/welcome/+page.svelte"`
+  - Risks: Medium (landing-page UX/content changed by rollback).
