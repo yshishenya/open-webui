@@ -1179,10 +1179,11 @@ async def get_public_rate_cards(
                 excluded_model_ids.add(model.id)
                 continue
         else:
-            model_access_grants = getattr(model, "access_grants", None)
-            if not has_public_read_access_grant(model_access_grants):
-                excluded_model_ids.add(model.id)
-                continue
+            if hasattr(model, "access_grants"):
+                model_access_grants = getattr(model, "access_grants", None)
+                if not has_public_read_access_grant(model_access_grants):
+                    excluded_model_ids.add(model.id)
+                    continue
         if model.meta and getattr(model.meta, "hidden", False):
             excluded_model_ids.add(model.id)
             continue

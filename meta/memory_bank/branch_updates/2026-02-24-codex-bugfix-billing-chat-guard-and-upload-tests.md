@@ -1,0 +1,8 @@
+- [x] **[BUG][BILLING][CHAT]** Harden legacy model guard and upload logging safety
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-24__bugfix__billing-chat-legacy-guards-upload-tests.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/billing-chat-guard-and-upload-tests`
+  - Done: 2026-02-24
+  - Summary: Added legacy-safe access_grants handling in billing public rate cards, removed raw auth header value from chat upload diagnostics, and added Ollama upload helper tests.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/util/test_ollama_upload.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/apps/webui/routers/test_billing_public_pricing.py"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; node_modules/.bin/eslint src/lib/components/chat/Chat.svelte"`
+  - Risks: Low-Medium (touches billing visibility/filtering path).
