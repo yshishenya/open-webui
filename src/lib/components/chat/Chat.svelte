@@ -733,9 +733,7 @@
 			id: fileData.id,
 			name: fileData.name,
 			url: fileData.url,
-			headers: {
-				Authorization: `Bearer ${localStorage.token}`
-			}
+			hasAuthorizationHeader: Boolean(fileData?.headers?.Authorization)
 		});
 
 		// Validate input
