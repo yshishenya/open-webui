@@ -3,6 +3,6 @@
   - Owner: Codex
   - Branch: `codex/bugfix/review-findings-fixes-2026-02-24`
   - Done: 2026-02-24
-  - Summary: Remove frontend/backend dev port mismatch, prevent accidental TLS key commits, and fix deploy SSH key hint fallback.
-  - Tests: `bash -n scripts/deploy_prod.sh scripts/dev_stack.sh`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml config`, `npx eslint src/lib/constants.ts` (failed in sandbox due DNS/network to npm registry)
+  - Summary: Removed frontend/backend dev port mismatch, prevented accidental TLS key commits, fixed deploy SSH key hint fallback, and aligned CTA click handler typing with event-based usage.
+  - Tests: `bash -n scripts/deploy_prod.sh scripts/dev_stack.sh`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml config`, `npx eslint src/lib/constants.ts` (failed in sandbox due DNS/network to npm registry), `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; node_modules/.bin/eslint src/lib/constants.ts src/lib/components/landing/CTASection.svelte"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run src/lib/components/landing/welcomeNavigation.test.ts"`
   - Risks: Low-Medium (touches dev bootstrap and deploy helper docs/scripts).
