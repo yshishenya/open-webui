@@ -1,0 +1,64 @@
+{
+  "spec_id": "welcome-landing-figma-copy-2026-02-22-0336",
+  "title": "welcome landing figma copy",
+  "generated": "2026-02-22T00:36:58.188625Z",
+  "last_updated": "2026-02-22T00:49:29.754811Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "status": "completed",
+    "activated_date": "2026-02-22T00:37:47.486631Z",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-02-22__feature__welcome-landing-figma-copy.md",
+    "completed_date": "2026-02-22T00:49:29.754517Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "welcome landing figma copy",
+      "status": "pending",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 0,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Build desktop section structure",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [],
+      "total_tasks": 0,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Add mobile adaptation and polish",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [],
+      "total_tasks": 0,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: Verify, lint, and document",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [],
+      "total_tasks": 0,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  }
+}

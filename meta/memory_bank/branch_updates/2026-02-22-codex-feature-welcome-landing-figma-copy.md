@@ -1,0 +1,36 @@
+- [x] **[UI][LANDING]** Implement `/welcome` from Figma landing design copy
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-22__feature__welcome-landing-figma-copy.md`
+  - Owner: Codex
+  - Branch: `codex/feature/welcome-landing-figma-copy`
+  - Done: 2026-02-22
+  - Summary: Rebuild `/welcome` from Figma file `LjyMJoCtriqmVLCBOKWBwJ` (desktop + mobile), preserving auth redirect and CTA flows.
+  - Tests: `vitest` (targeted), `eslint` (targeted), `svelte-check` (targeted workspace); full-repo frontend checks fail on pre-existing baseline issues.
+  - Risks: Medium (major public landing UI rewrite).
+  - Validation update (2026-02-22): sequential full frontend checks executed in Docker:
+    - `npm run test:frontend` ✅ pass (`15` files, `78` tests)
+    - `npm run check` ❌ fail on baseline (`8524` errors, `265` warnings across `340` files)
+    - `npm run lint:frontend` ❌ fail on baseline (`1810` errors)
+    - `npm run build:vite` ❌ fail with Node OOM (`Allocation failed - JavaScript heap out of memory`)
+  - Design conformity review (2026-02-22):
+    - Scope: compare current `/welcome` implementation with Figma file `LjyMJoCtriqmVLCBOKWBwJ` via canvas screenshots (Figma MCP quota exceeded).
+    - Result: ⚠️ Partial match, major visual mismatches remain in hero composition, examples cards richness, and steps block structure.
+    - Follow-up: align `src/routes/welcome/+page.svelte` with Figma section structure before marking pixel-fidelity complete.
+  - Review-fixes pass (2026-02-22):
+    - Fixed all raised findings in `src/routes/welcome/+page.svelte`:
+      - hero simplified to a single primary CTA and removed hero preset chips;
+      - hero pills now use explicit SVG icons (no placeholder squares);
+      - hero stats received a decorative burst layer behind cards;
+      - examples cards now include richer per-card preview content;
+      - steps section restructured to heading + three cards row + full-width video.
+    - Validation:
+      - `npx eslint src/routes/welcome/+page.svelte` ✅
+      - `npx svelte-check --no-tsconfig --workspace src/routes/welcome --diagnostic-sources 'svelte,css' --threshold warning` ✅
+
+- [x] **[BUG][DEV][DOCKER]** Sync backend dependencies before dev backend startup
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-22__bugfix__docker-dev-backend-deps-sync.md`
+  - Owner: Codex
+  - Branch: `codex/feature/welcome-landing-figma-copy`
+  - Done: 2026-02-22
+  - Summary: Fix Docker dev startup crash (`ModuleNotFoundError: aiosmtplib`) caused by mounted backend code diverging from base image deps; auto-install `backend/requirements.txt` by hash before `start.sh`.
+  - Validation:
+    - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml config` ✅

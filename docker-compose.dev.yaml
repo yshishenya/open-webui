@@ -15,7 +15,23 @@ services:
       # Frontend dev server runs on :5173 and calls backend API on :8080.
       - CORS_ALLOW_ORIGIN=http://localhost:5173;http://localhost:8080
     working_dir: /app/backend
-    command: ['bash', 'start.sh', '--reload', '--reload-dir', '/app/backend']
+    command:
+      - bash
+      - -lc
+      - |
+        set -e
+        REQ_FILE="/app/backend/requirements.txt"
+        REQ_STAMP="/app/backend/data/.requirements.sha256"
+        CURRENT_REQ_HASH="$$(sha256sum "$${REQ_FILE}" | awk '{print $$1}')"
+        INSTALLED_REQ_HASH="$$(cat "$${REQ_STAMP}" 2>/dev/null || true)"
+
+        if [ "$${CURRENT_REQ_HASH}" != "$${INSTALLED_REQ_HASH}" ]; then
+          echo "Syncing backend Python dependencies from $${REQ_FILE}..."
+          python -m pip install --no-cache-dir -r "$${REQ_FILE}"
+          echo "$${CURRENT_REQ_HASH}" > "$${REQ_STAMP}"
+        fi
+
+        exec bash start.sh --reload --reload-dir /app/backend
     volumes:
       - ./backend:/app/backend
       - airis:/app/backend/data
