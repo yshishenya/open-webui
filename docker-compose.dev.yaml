@@ -5,15 +5,15 @@ services:
 
   airis:
     ports:
-      - ${OPEN_WEBUI_API_PORT-8080}:8080
+      - ${OPEN_WEBUI_API_PORT-8081}:8080
     environment:
       - ENV=dev
       # Prevent backend static sync from mutating git-tracked files on the host (./backend bind mount).
       - STATIC_DIR=/app/backend/data/static
       # Hot reload can miss FS events on Docker Desktop (macOS/Windows).
       - WATCHFILES_FORCE_POLLING=true
-      # Frontend dev server runs on :5173 and calls backend API on :8080.
-      - CORS_ALLOW_ORIGIN=http://localhost:5173;http://localhost:8080
+      # Frontend dev server runs on :5173 and calls backend API on OPEN_WEBUI_API_PORT.
+      - CORS_ALLOW_ORIGIN=http://localhost:5173;http://localhost:8081
     working_dir: /app/backend
     command:
       - bash
@@ -43,6 +43,8 @@ services:
     environment:
       # Hot reload can miss FS events on Docker Desktop (macOS/Windows).
       - CHOKIDAR_USEPOLLING=true
+      # Keep frontend dev API target aligned with backend port mapping.
+      - PUBLIC_OPEN_WEBUI_API_PORT=${OPEN_WEBUI_API_PORT-8081}
     command:
       - sh
       - -lc

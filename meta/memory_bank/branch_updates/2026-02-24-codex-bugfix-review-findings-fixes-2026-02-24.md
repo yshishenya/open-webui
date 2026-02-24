@@ -1,8 +1,8 @@
-- [ ] **[BUG][DEV][SEC]** Fix review findings for dev port sync and key safety
+- [x] **[BUG][DEV][SEC]** Fix review findings for dev port sync and key safety
   - Spec: `meta/memory_bank/specs/work_items/2026-02-24__bugfix__code-review-findings-fixes.md`
   - Owner: Codex
   - Branch: `codex/bugfix/review-findings-fixes-2026-02-24`
-  - Started: 2026-02-24
+  - Done: 2026-02-24
   - Summary: Remove frontend/backend dev port mismatch, prevent accidental TLS key commits, and fix deploy SSH key hint fallback.
-  - Tests: Not run yet (docs/task bootstrap commit first, per request).
+  - Tests: `bash -n scripts/deploy_prod.sh scripts/dev_stack.sh`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml config`, `npx eslint src/lib/constants.ts` (failed in sandbox due DNS/network to npm registry)
   - Risks: Low-Medium (touches dev bootstrap and deploy helper docs/scripts).

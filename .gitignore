@@ -348,3 +348,6 @@ backend/artifacts/
 meta/sdd/specs/.reviews/
 !.env.etalon
 !.env.etalon.example
+
+# Local TLS artifacts (never commit private keys/certs)
+nginx/certs/
