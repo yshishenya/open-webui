@@ -38,6 +38,7 @@ Host airis-prod
 PROD_HOST=airis-prod
 PROD_PATH=/opt/projects/open-webui
 IMAGE_REPO=yshishenya/yshishenya
+PROD_SSH_KEY=~/.ssh/airis_prod
 # PROD_SSH_PORT=22
 # PROD_GIT_PULL=1
 # POST_DEPLOY_STATUS=1
@@ -97,6 +98,24 @@ scripts/deploy_prod.sh --interactive
 scripts/deploy_prod.sh --non-interactive
 ```
 
+Optional: skip interactive prompts in one command and run immediately:
+
+```bash
+scripts/deploy_prod.sh --yes --non-interactive --force-recreate
+```
+
+Optional: skip only SSH precheck when you already verified key access:
+
+```bash
+scripts/deploy_prod.sh --yes --non-interactive --skip-precheck
+```
+
+Optional: run a no-op preview without executing:
+
+```bash
+scripts/deploy_prod.sh --yes --non-interactive --dry-run
+```
+
 Tagging behavior (when no tag is provided):
 
 - Clean working tree: tag is `<short-sha>`
@@ -132,6 +151,16 @@ docker compose down -v
 ## Troubleshooting
 
 - Auth error on pull: run `docker login` on prod.
+- SSH auth error on deploy: add deploy key to prod `authorized_keys`.
+  - Run on dev:
+  ```bash
+  ssh-copy-id -i "${PROD_SSH_KEY:-$HOME/.ssh/airis_prod}.pub" "${PROD_HOST}"
+  ```
+  - Or run:
+  ```bash
+  cat "${PROD_SSH_KEY:-$HOME/.ssh/airis_prod}.pub" | ssh "${PROD_HOST}" "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys"
+  ```
+- If you see `scripts/deploy_prod.sh: ...: when: command not found`, check `.env.deploy` for non `KEY=VALUE` lines — only assignments are valid now.
 - Container fails to start:
   ```bash
   ssh airis-prod "cd /opt/projects/open-webui && docker compose -f docker-compose.yaml -f docker-compose.prod.yml logs -f airis"

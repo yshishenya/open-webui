@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: `codex/feature/welcome-landing-figma-copy`
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/welcome-landing-figma-copy-2026-02-22-0336.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/welcome-landing-figma-copy-2026-02-22-336.json`
 - Created: 2026-02-22
 - Updated: 2026-02-22
 

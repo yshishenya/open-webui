@@ -3,7 +3,7 @@
 	export let description: string = 'Присоединяйтесь к пользователям, которые уже используют AIris';
 	export let buttonText: string = 'Начать бесплатно';
 	export let buttonHref: string = '/api/v1/oauth/vk/login';
-	export let onClick: (() => void) | null = null;
+	export let onClick: ((event: MouseEvent) => void) | null = null;
 	export let tone: 'light' | 'dark' = 'light';
 
 	$: containerClass =

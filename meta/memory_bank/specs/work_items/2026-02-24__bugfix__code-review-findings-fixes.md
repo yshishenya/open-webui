@@ -1,0 +1,120 @@
+# Fix Review Findings: Dev Port, Key Safety, Deploy Hints
+
+## Meta
+
+- Type: bugfix
+- Status: done
+- Owner: Codex
+- Branch: codex/bugfix/review-findings-fixes-2026-02-24
+- SDD Spec (JSON, required for non-trivial): N/A
+- Created: 2026-02-24
+- Updated: 2026-02-24
+
+## Context
+
+Detailed review on `airis_b2c` found issues that can break local dev flow and create security risk:
+- Dev backend port changed to `8081`, but frontend dev API base still hardcoded to `8080`.
+- Local TLS private key is present under `nginx/certs/*` and can be accidentally committed.
+- Deploy troubleshooting tips around `ssh-copy-id` can be misleading when `PROD_SSH_KEY` is unset.
+- `.env.deploy` parser truncates values at `#` and keeps quote chars as literals for quoted values.
+- PR gate `sdd-validate` fails on SDD spec-id policy warning (`...-0336` suffix format).
+
+## Goal / Acceptance Criteria
+
+- [x] Frontend dev API target aligns with backend dev port mapping and no hardcoded mismatch remains.
+- [x] Private key/cert artifacts under `nginx/certs/` are ignored by git by default.
+- [x] Deploy script/docs use safe fallback examples for SSH key path.
+- [x] Deploy env-file parser correctly handles quoted values and inline comments.
+- [x] Deploy script remains portable when `python3` is absent but `python` exists.
+- [x] Targeted checks run for touched scripts/config/frontend constants (with noted environment limitation).
+- [x] Frontend CTA callback typing is aligned with actual event-based usage in `/welcome`.
+- [x] `sdd-validate` policy warning source is removed (spec id normalized to 3-digit suffix).
+
+## Non-goals
+
+- Full redesign/refactor of deploy workflow.
+- Rotation of already-generated local cert files outside repository process.
+- Broad cleanup of unrelated local working-tree changes.
+
+## Scope (what changes)
+
+- Backend:
+  - No backend runtime logic changes.
+- Frontend:
+  - Align dev API port derivation in `src/lib/constants.ts` with dev compose mapping.
+- Config/Env:
+  - Add `.gitignore` rule for `nginx/certs/`.
+  - Keep compose/docs/script hints consistent for dev/deploy path handling.
+  - Ensure backend CORS dev origin follows configured API port mapping.
+- Documentation/SDD:
+  - Fix manual `authorized_keys` fallback command in deploy docs (actually pipes `.pub` content).
+  - Normalize one SDD spec-id/file suffix to satisfy SDD validation policy.
+- Data model / migrations:
+  - None.
+
+## Implementation Notes
+
+- Key files/entrypoints:
+  - `src/lib/constants.ts`
+  - `docker-compose.dev.yaml`
+  - `.env.example`
+  - `.gitignore`
+  - `scripts/deploy_prod.sh`
+  - `docs/DEPLOY_PROD.md`
+  - `meta/sdd/specs/completed/welcome-landing-figma-copy-2026-02-22-336.json`
+  - `meta/memory_bank/specs/work_items/2026-02-22__feature__welcome-landing-figma-copy.md`
+- API changes:
+  - None.
+- Edge cases:
+  - Frontend dev should still work when a custom API port is provided.
+  - Deploy helper output should stay copy/paste-safe with/without explicit `PROD_SSH_KEY`.
+  - `.env.deploy` values containing `#` inside quotes should not be truncated.
+  - Environments with `python` but without `python3` should still parse `.env.deploy`.
+
+## Upstream impact
+
+If this work touches upstream-owned files, list them here and explain why (and how the diff is minimized):
+
+- Upstream-owned files touched:
+  - `src/lib/constants.ts`
+  - `docker-compose.dev.yaml`
+- Why unavoidable:
+  - Port mismatch sits at frontend constants/dev overlay boundary.
+- Minimization strategy (thin hooks / additive modules / guarded behavior):
+  - Small, localized edits only; no contract changes.
+
+## Verification
+
+Docker Compose-first commands (adjust if needed):
+
+- Frontend lint (targeted): `npx eslint src/lib/constants.ts` (failed in sandbox due DNS/network to npm registry)
+- Compose config sanity: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml config`
+- Script syntax: `bash -n scripts/deploy_prod.sh scripts/dev_stack.sh`
+- Frontend lint (docker targeted): `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; node_modules/.bin/eslint src/lib/constants.ts src/lib/components/landing/CTASection.svelte"`
+- Frontend tests (docker targeted): `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run src/lib/components/landing/welcomeNavigation.test.ts"`
+- Deploy parser smoke: `DEPLOY_ENV_FILE=/tmp/.env.deploy.parser-smoke scripts/deploy_prod.sh --help`
+- SDD policy parity check (local equivalent of spec-id/work_item path gate): `python - <<'PY' ... PY` (errors=0, warnings=0 across `meta/sdd/specs/*/*.json`)
+
+## Task Entry (for branch_updates/current_tasks)
+
+Use this snippet in `meta/memory_bank/branch_updates/<YYYY-MM-DD>-<branch-slug>.md` and later in `meta/memory_bank/current_tasks.md`:
+
+- [ ] **[BUG][DEV][SEC]** Fix review findings for dev port sync and key safety
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-24__bugfix__code-review-findings-fixes.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/review-findings-fixes-2026-02-24`
+  - Started: 2026-02-24
+  - Summary: Remove frontend/backend dev port mismatch, prevent accidental TLS key commits, and fix deploy SSH key hint fallback.
+  - Tests: `npx eslint src/lib/constants.ts`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml config`, `bash -n scripts/deploy_prod.sh scripts/dev_stack.sh`
+  - Risks: Low-Medium (touches dev bootstrap and deploy helper docs/scripts).
+
+## Risks / Rollback
+
+- Risks:
+  - Minor dev bootstrap behavior changes if custom local setups depend on old defaults.
+- Rollback plan:
+  - Revert this branch commit(s) and restore previous port/config behavior.
+
+## Completion Checklist
+
+- [x] Branch update entry moved to `Done` with required fields (`Spec`, `Owner`, `Summary`, `Done`)

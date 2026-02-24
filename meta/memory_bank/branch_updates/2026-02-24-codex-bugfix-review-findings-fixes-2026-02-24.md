@@ -1,0 +1,8 @@
+- [x] **[BUG][DEV][SEC]** Fix review findings for dev port sync and key safety
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-24__bugfix__code-review-findings-fixes.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/review-findings-fixes-2026-02-24`
+  - Done: 2026-02-24
+  - Summary: Removed frontend/backend dev port mismatch, prevented accidental TLS key commits, hardened `.env.deploy` parser for quoted values/inline comments, added `python3`/`python` fallback for deploy parser portability, fixed deploy docs SSH key fallback + manual `authorized_keys` piping command, aligned dev CORS origin with configured API port, aligned CTA click handler typing with event-based usage, and normalized SDD spec-id suffix to remove `sdd-validate` policy warning.
+  - Tests: `bash -n scripts/deploy_prod.sh scripts/dev_stack.sh`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml config`, `DEPLOY_ENV_FILE=/tmp/.env.deploy.parser-smoke scripts/deploy_prod.sh --help`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; node_modules/.bin/eslint src/lib/constants.ts src/lib/components/landing/CTASection.svelte"`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run src/lib/components/landing/welcomeNavigation.test.ts"`, `python - <<'PY' ... PY` (SDD policy parity check: errors=0, warnings=0)
+  - Risks: Low-Medium (touches dev bootstrap and deploy helper docs/scripts).

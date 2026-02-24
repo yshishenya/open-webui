@@ -17,6 +17,8 @@ Options:
   --pull                Always attempt to pull newer base layers during build.
   --force-recreate      Force container recreation on prod (even if config is unchanged).
   --dry-run             Print commands, do not execute them.
+  -y, --yes            Skip confirmation prompts and run with selected/default options.
+  --skip-precheck       Skip SSH connectivity precheck (use only if SSH is already verified).
   -h, --help            Show this help.
 
 Tagging behavior (default when no tag is provided):
@@ -27,6 +29,7 @@ Environment (can be set in .env.deploy):
   - PROD_HOST (default: airis-prod)
   - PROD_PATH (default: /opt/projects/open-webui)
   - PROD_SSH_PORT (optional)
+  - PROD_SSH_KEY (optional, full path to private key)
   - PROD_GIT_PULL (default: 1)
   - POST_DEPLOY_STATUS (default: 1)
   - IMAGE_REPO (default: yshishenya/yshishenya)
@@ -35,17 +38,99 @@ EOF
 }
 
 DEPLOY_ENV_FILE="${DEPLOY_ENV_FILE:-.env.deploy}"
-if [[ -f "${DEPLOY_ENV_FILE}" ]]; then
-  # shellcheck source=/dev/null
-  set -a
-  . "${DEPLOY_ENV_FILE}"
-  set +a
+resolve_python_cmd() {
+  if command -v python3 >/dev/null 2>&1; then
+    echo "python3"
+    return 0
+  fi
+
+  if command -v python >/dev/null 2>&1; then
+    echo "python"
+    return 0
+  fi
+
+  return 1
+}
+
+PYTHON_CMD="$(resolve_python_cmd || true)"
+if [[ -z "${PYTHON_CMD}" ]]; then
+  echo "Required command not found: python3 (or python)" >&2
+  exit 1
 fi
+
+load_deploy_env() {
+  local key
+  local value
+
+  if [[ ! -f "${DEPLOY_ENV_FILE}" ]]; then
+    return 0
+  fi
+
+  while IFS= read -r -d '' key && IFS= read -r -d '' value; do
+    export "${key}=${value}"
+  done < <(
+    "${PYTHON_CMD}" - "${DEPLOY_ENV_FILE}" <<'PY'
+import re
+import shlex
+import sys
+
+path = sys.argv[1]
+assignment_re = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$")
+
+with open(path, "r", encoding="utf-8") as env_file:
+    for line_no, raw_line in enumerate(env_file, start=1):
+        stripped_line = raw_line.strip()
+        if not stripped_line or stripped_line.startswith("#"):
+            continue
+
+        match = assignment_re.match(raw_line.rstrip("\n"))
+        if match is None:
+            print(
+                f"Ignoring invalid line in {path}:{line_no}: {raw_line.rstrip()}",
+                file=sys.stderr,
+            )
+            continue
+
+        key = match.group(1)
+        value_source = match.group(2)
+
+        lexer = shlex.shlex(value_source, posix=True)
+        lexer.whitespace_split = True
+        lexer.commenters = "#"
+
+        try:
+            tokens = list(lexer)
+        except ValueError as exc:
+            print(
+                f"Ignoring invalid value in {path}:{line_no}: {exc}",
+                file=sys.stderr,
+            )
+            continue
+
+        if not tokens:
+            value = ""
+        elif len(tokens) == 1:
+            value = tokens[0]
+        else:
+            print(
+                f"Ignoring invalid value in {path}:{line_no}: {raw_line.rstrip()}",
+                file=sys.stderr,
+            )
+            continue
+
+        sys.stdout.write(f"{key}\0{value}\0")
+PY
+  )
+}
+
+load_deploy_env
 
 IMAGE_REPO="${IMAGE_REPO:-yshishenya/yshishenya}"
 PROD_HOST="${PROD_HOST:-airis-prod}"
 PROD_PATH="${PROD_PATH:-/opt/projects/open-webui}"
 PROD_SSH_PORT="${PROD_SSH_PORT:-}"
+PROD_SSH_KEY="${PROD_SSH_KEY:-}"
+SSH_KEY_HINT="${PROD_SSH_KEY:-~/.ssh/airis_prod}"
 PROD_GIT_PULL="${PROD_GIT_PULL:-1}"
 POST_DEPLOY_STATUS="${POST_DEPLOY_STATUS:-1}"
 COMPOSE_FILES="-f docker-compose.yaml -f docker-compose.prod.yml"
@@ -58,6 +143,8 @@ FORCE_RECREATE=0
 DRY_RUN=0
 INTERACTIVE=0
 NON_INTERACTIVE=0
+AUTO_APPROVE=0
+SKIP_SSH_PRECHECK=0
 
 if [[ $# -gt 0 && "${1:0:1}" != "-" ]]; then
   TAG="$1"
@@ -96,6 +183,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --dry-run)
       DRY_RUN=1
+      shift
+      ;;
+    -y|--yes)
+      AUTO_APPROVE=1
+      shift
+      ;;
+    --skip-precheck)
+      SKIP_SSH_PRECHECK=1
       shift
       ;;
     -h|--help)
@@ -148,6 +243,36 @@ prompt_choice() {
   done
 }
 
+require_command() {
+  local name="$1"
+  if ! command -v "${name}" >/dev/null 2>&1; then
+    echo "Required command not found: ${name}" >&2
+    exit 1
+  fi
+}
+
+show_runtime_settings() {
+  echo ""
+  echo "Resolved deploy settings:"
+  echo "  IMAGE_REPO=${IMAGE_REPO}"
+  echo "  PROD_HOST=${PROD_HOST}"
+  echo "  PROD_PATH=${PROD_PATH}"
+  echo "  PROD_SSH_PORT=${PROD_SSH_PORT:-<default:22>}"
+  echo "  PROD_GIT_PULL=${PROD_GIT_PULL}"
+  echo "  POST_DEPLOY_STATUS=${POST_DEPLOY_STATUS}"
+  echo "  FORCE_RECREATE=${FORCE_RECREATE}"
+  echo "  NO_CACHE=${NO_CACHE}"
+  echo "  PULL_BASE=${PULL_BASE}"
+  echo "  UNIQUE_TAG=${UNIQUE_TAG}"
+  echo "  DRY_RUN=${DRY_RUN}"
+  echo "  TAG=${TAG}"
+  echo ""
+}
+
+if [[ "${AUTO_APPROVE}" == "1" ]]; then
+  NON_INTERACTIVE=1
+fi
+
 compute_default_tag() {
   local sha dirty_tag diff_hash ts
   sha="$(git rev-parse --short HEAD)"
@@ -159,7 +284,7 @@ compute_default_tag() {
         git diff --no-ext-diff
         git diff --cached --no-ext-diff
         git status --porcelain
-      } | python3 -c 'import hashlib,sys;print(hashlib.sha256(sys.stdin.buffer.read()).hexdigest()[:8])'
+      } | "${PYTHON_CMD}" -c 'import hashlib,sys;print(hashlib.sha256(sys.stdin.buffer.read()).hexdigest()[:8])'
     )"
     dirty_tag="-dirty-${diff_hash}"
   fi
@@ -282,9 +407,14 @@ if [[ "${should_prompt}" == "1" ]]; then
   interactive_dialog
 fi
 
+require_command docker
+require_command git
+
 if [[ -z "${TAG}" ]]; then
   TAG="$(compute_default_tag)"
 fi
+
+show_runtime_settings
 
 run() {
   if [[ "${DRY_RUN}" == "1" ]]; then
@@ -295,6 +425,24 @@ run() {
   fi
   "$@"
 }
+
+normalize_ssh_key_path() {
+  local key_path="$1"
+  if [[ "${key_path}" == "~/"* ]]; then
+    echo "${HOME}${key_path#"~"}"
+    return 0
+  fi
+  echo "${key_path}"
+}
+
+if [[ -n "${PROD_SSH_KEY}" ]]; then
+  PROD_SSH_KEY="$(normalize_ssh_key_path "${PROD_SSH_KEY}")"
+  SSH_KEY_HINT="${PROD_SSH_KEY}"
+  if [[ ! -f "${PROD_SSH_KEY}" ]]; then
+    echo "PROD_SSH_KEY file not found: ${PROD_SSH_KEY}" >&2
+    exit 1
+  fi
+fi
 
 q() {
   printf '%q' "$1"
@@ -318,6 +466,23 @@ if [[ -n "${PROD_SSH_PORT}" ]]; then
   SSH_PORT_ARGS=(-p "${PROD_SSH_PORT}")
 fi
 
+SSH_KEY_ARGS=()
+if [[ -n "${PROD_SSH_KEY}" ]]; then
+  SSH_KEY_ARGS=(-i "${PROD_SSH_KEY}")
+fi
+
+if [[ "${DRY_RUN}" == "0" && "${SKIP_SSH_PRECHECK}" == "0" ]]; then
+  echo "Checking SSH access to ${PROD_HOST}..."
+  if ! ssh "${SSH_KEY_ARGS[@]}" "${SSH_PORT_ARGS[@]}" -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "${PROD_HOST}" "echo deploy-ready" >/dev/null 2>&1; then
+    echo "SSH check failed. Please configure key-based auth for ${PROD_HOST}."
+    echo "Verify the key exists and is added to ~/.ssh/authorized_keys on the target host."
+    echo "Tip: make sure your public key (${SSH_KEY_HINT}) is in ~/.ssh/authorized_keys on the target host."
+    echo "Example:"
+    echo "  ssh-copy-id -i ${SSH_KEY_HINT}.pub ${PROD_HOST}"
+    exit 1
+  fi
+fi
+
 echo "Deploying to ${PROD_HOST}..."
 REMOTE_CMD="cd $(q "${PROD_PATH}") && "
 if [[ "${PROD_GIT_PULL}" == "1" ]]; then
@@ -332,4 +497,4 @@ if [[ "${POST_DEPLOY_STATUS}" == "1" ]]; then
   REMOTE_CMD+=" && WEBUI_IMAGE=$(q "${IMAGE_REPO}") WEBUI_DOCKER_TAG=$(q "${TAG}") docker compose ${COMPOSE_FILES} ps"
 fi
 
-run ssh "${SSH_PORT_ARGS[@]}" "${PROD_HOST}" "bash -lc $(q "${REMOTE_CMD}")"
+run ssh "${SSH_KEY_ARGS[@]}" "${SSH_PORT_ARGS[@]}" "${PROD_HOST}" "bash -lc $(q "${REMOTE_CMD}")"
