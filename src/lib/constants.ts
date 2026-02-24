@@ -3,7 +3,7 @@ import { browser, dev } from '$app/environment';
 
 export const APP_NAME = 'AIris';
 
-const DEFAULT_DEV_API_PORT = '8080';
+const DEFAULT_DEV_API_PORT = '8081';
 const devApiPortEnv = import.meta.env.PUBLIC_OPEN_WEBUI_API_PORT?.trim();
 const DEV_API_PORT =
 	devApiPortEnv && /^\d+$/.test(devApiPortEnv) ? devApiPortEnv : DEFAULT_DEV_API_PORT;

@@ -38,6 +38,26 @@ EOF
 }
 
 DEPLOY_ENV_FILE="${DEPLOY_ENV_FILE:-.env.deploy}"
+resolve_python_cmd() {
+  if command -v python3 >/dev/null 2>&1; then
+    echo "python3"
+    return 0
+  fi
+
+  if command -v python >/dev/null 2>&1; then
+    echo "python"
+    return 0
+  fi
+
+  return 1
+}
+
+PYTHON_CMD="$(resolve_python_cmd || true)"
+if [[ -z "${PYTHON_CMD}" ]]; then
+  echo "Required command not found: python3 (or python)" >&2
+  exit 1
+fi
+
 load_deploy_env() {
   local key
   local value
@@ -49,7 +69,7 @@ load_deploy_env() {
   while IFS= read -r -d '' key && IFS= read -r -d '' value; do
     export "${key}=${value}"
   done < <(
-    python3 - "${DEPLOY_ENV_FILE}" <<'PY'
+    "${PYTHON_CMD}" - "${DEPLOY_ENV_FILE}" <<'PY'
 import re
 import shlex
 import sys
@@ -264,7 +284,7 @@ compute_default_tag() {
         git diff --no-ext-diff
         git diff --cached --no-ext-diff
         git status --porcelain
-      } | python3 -c 'import hashlib,sys;print(hashlib.sha256(sys.stdin.buffer.read()).hexdigest()[:8])'
+      } | "${PYTHON_CMD}" -c 'import hashlib,sys;print(hashlib.sha256(sys.stdin.buffer.read()).hexdigest()[:8])'
     )"
     dirty_tag="-dirty-${diff_hash}"
   fi

@@ -158,7 +158,7 @@ docker compose down -v
   ```
   - Or run:
   ```bash
-  ssh "${PROD_HOST}" "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys"
+  cat "${PROD_SSH_KEY:-$HOME/.ssh/airis_prod}.pub" | ssh "${PROD_HOST}" "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys"
   ```
 - If you see `scripts/deploy_prod.sh: ...: when: command not found`, check `.env.deploy` for non `KEY=VALUE` lines — only assignments are valid now.
 - Container fails to start:

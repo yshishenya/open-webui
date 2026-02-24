@@ -17,6 +17,7 @@ Detailed review on `airis_b2c` found issues that can break local dev flow and cr
 - Local TLS private key is present under `nginx/certs/*` and can be accidentally committed.
 - Deploy troubleshooting tips around `ssh-copy-id` can be misleading when `PROD_SSH_KEY` is unset.
 - `.env.deploy` parser truncates values at `#` and keeps quote chars as literals for quoted values.
+- PR gate `sdd-validate` fails on SDD spec-id policy warning (`...-0336` suffix format).
 
 ## Goal / Acceptance Criteria
 
@@ -24,8 +25,10 @@ Detailed review on `airis_b2c` found issues that can break local dev flow and cr
 - [x] Private key/cert artifacts under `nginx/certs/` are ignored by git by default.
 - [x] Deploy script/docs use safe fallback examples for SSH key path.
 - [x] Deploy env-file parser correctly handles quoted values and inline comments.
+- [x] Deploy script remains portable when `python3` is absent but `python` exists.
 - [x] Targeted checks run for touched scripts/config/frontend constants (with noted environment limitation).
 - [x] Frontend CTA callback typing is aligned with actual event-based usage in `/welcome`.
+- [x] `sdd-validate` policy warning source is removed (spec id normalized to 3-digit suffix).
 
 ## Non-goals
 
@@ -43,6 +46,9 @@ Detailed review on `airis_b2c` found issues that can break local dev flow and cr
   - Add `.gitignore` rule for `nginx/certs/`.
   - Keep compose/docs/script hints consistent for dev/deploy path handling.
   - Ensure backend CORS dev origin follows configured API port mapping.
+- Documentation/SDD:
+  - Fix manual `authorized_keys` fallback command in deploy docs (actually pipes `.pub` content).
+  - Normalize one SDD spec-id/file suffix to satisfy SDD validation policy.
 - Data model / migrations:
   - None.
 
@@ -55,12 +61,15 @@ Detailed review on `airis_b2c` found issues that can break local dev flow and cr
   - `.gitignore`
   - `scripts/deploy_prod.sh`
   - `docs/DEPLOY_PROD.md`
+  - `meta/sdd/specs/completed/welcome-landing-figma-copy-2026-02-22-336.json`
+  - `meta/memory_bank/specs/work_items/2026-02-22__feature__welcome-landing-figma-copy.md`
 - API changes:
   - None.
 - Edge cases:
   - Frontend dev should still work when a custom API port is provided.
   - Deploy helper output should stay copy/paste-safe with/without explicit `PROD_SSH_KEY`.
   - `.env.deploy` values containing `#` inside quotes should not be truncated.
+  - Environments with `python` but without `python3` should still parse `.env.deploy`.
 
 ## Upstream impact
 
@@ -84,6 +93,7 @@ Docker Compose-first commands (adjust if needed):
 - Frontend lint (docker targeted): `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; node_modules/.bin/eslint src/lib/constants.ts src/lib/components/landing/CTASection.svelte"`
 - Frontend tests (docker targeted): `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run src/lib/components/landing/welcomeNavigation.test.ts"`
 - Deploy parser smoke: `DEPLOY_ENV_FILE=/tmp/.env.deploy.parser-smoke scripts/deploy_prod.sh --help`
+- SDD policy parity check (local equivalent of spec-id/work_item path gate): `python - <<'PY' ... PY` (errors=0, warnings=0 across `meta/sdd/specs/*/*.json`)
 
 ## Task Entry (for branch_updates/current_tasks)
 
