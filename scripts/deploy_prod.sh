@@ -39,8 +39,6 @@ EOF
 
 DEPLOY_ENV_FILE="${DEPLOY_ENV_FILE:-.env.deploy}"
 load_deploy_env() {
-  local line
-  local line_no=0
   local key
   local value
 
@@ -48,32 +46,61 @@ load_deploy_env() {
     return 0
   fi
 
-  # shellcheck disable=SC1091
-  set -a
-  while IFS= read -r line || [[ -n "${line}" ]]; do
-    line_no=$((line_no + 1))
-    line="${line%%#*}"
-    line="$(printf '%s' "${line}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-    if [[ -z "${line}" ]]; then
-      continue
-    fi
-
-    if [[ "${line}" != *"="* ]]; then
-      echo "Ignoring invalid line in ${DEPLOY_ENV_FILE}:${line_no}: ${line}" >&2
-      continue
-    fi
-
-    key="${line%%=*}"
-    value="${line#*=}"
-
-    if [[ ! "${key}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
-      echo "Ignoring invalid variable name in ${DEPLOY_ENV_FILE}:${line_no}: ${key}" >&2
-      continue
-    fi
-
+  while IFS= read -r -d '' key && IFS= read -r -d '' value; do
     export "${key}=${value}"
-  done < "${DEPLOY_ENV_FILE}"
-  set +a
+  done < <(
+    python3 - "${DEPLOY_ENV_FILE}" <<'PY'
+import re
+import shlex
+import sys
+
+path = sys.argv[1]
+assignment_re = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$")
+
+with open(path, "r", encoding="utf-8") as env_file:
+    for line_no, raw_line in enumerate(env_file, start=1):
+        stripped_line = raw_line.strip()
+        if not stripped_line or stripped_line.startswith("#"):
+            continue
+
+        match = assignment_re.match(raw_line.rstrip("\n"))
+        if match is None:
+            print(
+                f"Ignoring invalid line in {path}:{line_no}: {raw_line.rstrip()}",
+                file=sys.stderr,
+            )
+            continue
+
+        key = match.group(1)
+        value_source = match.group(2)
+
+        lexer = shlex.shlex(value_source, posix=True)
+        lexer.whitespace_split = True
+        lexer.commenters = "#"
+
+        try:
+            tokens = list(lexer)
+        except ValueError as exc:
+            print(
+                f"Ignoring invalid value in {path}:{line_no}: {exc}",
+                file=sys.stderr,
+            )
+            continue
+
+        if not tokens:
+            value = ""
+        elif len(tokens) == 1:
+            value = tokens[0]
+        else:
+            print(
+                f"Ignoring invalid value in {path}:{line_no}: {raw_line.rstrip()}",
+                file=sys.stderr,
+            )
+            continue
+
+        sys.stdout.write(f"{key}\0{value}\0")
+PY
+  )
 }
 
 load_deploy_env

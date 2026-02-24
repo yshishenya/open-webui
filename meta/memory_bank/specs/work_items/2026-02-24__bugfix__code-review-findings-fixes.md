@@ -16,12 +16,14 @@ Detailed review on `airis_b2c` found issues that can break local dev flow and cr
 - Dev backend port changed to `8081`, but frontend dev API base still hardcoded to `8080`.
 - Local TLS private key is present under `nginx/certs/*` and can be accidentally committed.
 - Deploy troubleshooting tips around `ssh-copy-id` can be misleading when `PROD_SSH_KEY` is unset.
+- `.env.deploy` parser truncates values at `#` and keeps quote chars as literals for quoted values.
 
 ## Goal / Acceptance Criteria
 
 - [x] Frontend dev API target aligns with backend dev port mapping and no hardcoded mismatch remains.
 - [x] Private key/cert artifacts under `nginx/certs/` are ignored by git by default.
 - [x] Deploy script/docs use safe fallback examples for SSH key path.
+- [x] Deploy env-file parser correctly handles quoted values and inline comments.
 - [x] Targeted checks run for touched scripts/config/frontend constants (with noted environment limitation).
 - [x] Frontend CTA callback typing is aligned with actual event-based usage in `/welcome`.
 
@@ -40,6 +42,7 @@ Detailed review on `airis_b2c` found issues that can break local dev flow and cr
 - Config/Env:
   - Add `.gitignore` rule for `nginx/certs/`.
   - Keep compose/docs/script hints consistent for dev/deploy path handling.
+  - Ensure backend CORS dev origin follows configured API port mapping.
 - Data model / migrations:
   - None.
 
@@ -57,6 +60,7 @@ Detailed review on `airis_b2c` found issues that can break local dev flow and cr
 - Edge cases:
   - Frontend dev should still work when a custom API port is provided.
   - Deploy helper output should stay copy/paste-safe with/without explicit `PROD_SSH_KEY`.
+  - `.env.deploy` values containing `#` inside quotes should not be truncated.
 
 ## Upstream impact
 
@@ -79,6 +83,7 @@ Docker Compose-first commands (adjust if needed):
 - Script syntax: `bash -n scripts/deploy_prod.sh scripts/dev_stack.sh`
 - Frontend lint (docker targeted): `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; node_modules/.bin/eslint src/lib/constants.ts src/lib/components/landing/CTASection.svelte"`
 - Frontend tests (docker targeted): `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run src/lib/components/landing/welcomeNavigation.test.ts"`
+- Deploy parser smoke: `DEPLOY_ENV_FILE=/tmp/.env.deploy.parser-smoke scripts/deploy_prod.sh --help`
 
 ## Task Entry (for branch_updates/current_tasks)
 

@@ -154,7 +154,7 @@ docker compose down -v
 - SSH auth error on deploy: add deploy key to prod `authorized_keys`.
   - Run on dev:
   ```bash
-  ssh-copy-id -i "${PROD_SSH_KEY:-~/.ssh/airis_prod}.pub" "${PROD_HOST}"
+  ssh-copy-id -i "${PROD_SSH_KEY:-$HOME/.ssh/airis_prod}.pub" "${PROD_HOST}"
   ```
   - Or run:
   ```bash

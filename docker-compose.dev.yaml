@@ -13,7 +13,7 @@ services:
       # Hot reload can miss FS events on Docker Desktop (macOS/Windows).
       - WATCHFILES_FORCE_POLLING=true
       # Frontend dev server runs on :5173 and calls backend API on OPEN_WEBUI_API_PORT.
-      - CORS_ALLOW_ORIGIN=http://localhost:5173;http://localhost:8081
+      - CORS_ALLOW_ORIGIN=http://localhost:5173;http://localhost:${OPEN_WEBUI_API_PORT-8081}
     working_dir: /app/backend
     command:
       - bash
