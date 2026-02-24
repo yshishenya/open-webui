@@ -16,12 +16,14 @@ Dev/ops local changes include:
 - `scripts/dev_stack.sh` still printing backend default as `8080` while dev overlay default already moved to `8081`.
 - Nginx SSL session cache zone in `airis.2brain.pro.conf` needed explicit unique name.
 - New dedicated nginx vhost config for `dev.chat.airis.you` is present locally and needs tracked delivery.
+- Follow-up review found hardcoded repo-local certificate paths in `nginx/dev.chat.airis.you.conf`, which is invalid for split dev/prod hosts.
 
 ## Goal / Acceptance Criteria
 
 - [x] Dev stack helper output matches current dev backend default port.
 - [x] Existing nginx prod config keeps unique SSL session cache namespace.
 - [x] New dev-domain nginx vhost config is added to repository.
+- [x] Dev-domain nginx vhost uses host-managed Let's Encrypt paths (no hardcoded repo-local cert paths).
 
 ## Non-goals
 
@@ -71,6 +73,7 @@ Docker Compose-first commands (adjust if needed):
 - Script syntax: `bash -n scripts/dev_stack.sh`
 - Nginx binary availability check: `command -v nginx`
 - Manual config review for touched nginx files (paths/directives)
+- Cert path check: `rg -n "ssl_certificate /etc/letsencrypt/live/dev.chat.airis.you/fullchain.pem|ssl_certificate_key /etc/letsencrypt/live/dev.chat.airis.you/privkey.pem" nginx/dev.chat.airis.you.conf`
 
 ## Task Entry (for branch_updates/current_tasks)
 
@@ -81,8 +84,8 @@ Use this snippet in `meta/memory_bank/branch_updates/<YYYY-MM-DD>-<branch-slug>.
   - Owner: Codex
   - Branch: `codex/refactor/dev-stack-nginx-config-sync`
   - Started: 2026-02-24
-  - Summary: Align dev helper backend port output with current defaults and add/adjust nginx configs for prod/dev hostnames.
-  - Tests: `bash -n scripts/dev_stack.sh`, manual nginx config review
+  - Summary: Align dev helper backend port output with current defaults and add/adjust nginx configs for prod/dev hostnames, including host-based TLS cert paths for `dev.chat.airis.you`.
+  - Tests: `bash -n scripts/dev_stack.sh`, manual nginx config review, cert path grep in `nginx/dev.chat.airis.you.conf`
   - Risks: Low-Medium (ops config changes require host deployment validation).
 
 ## Risks / Rollback
