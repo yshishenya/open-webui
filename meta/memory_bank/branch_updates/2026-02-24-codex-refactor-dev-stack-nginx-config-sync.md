@@ -1,0 +1,8 @@
+- [x] **[REFACTOR][DEVOPS]** Sync dev helper and nginx config updates
+  - Spec: `meta/memory_bank/specs/work_items/2026-02-24__refactor__dev-stack-nginx-config-sync.md`
+  - Owner: Codex
+  - Branch: `codex/refactor/dev-stack-nginx-config-sync`
+  - Done: 2026-02-24
+  - Summary: Aligned `dev_stack.sh` backend default display with 8081, set unique SSL session cache namespace in prod nginx config, added `dev.chat.airis.you` nginx vhost config, and switched dev host TLS cert paths to host-managed `/etc/letsencrypt/live/...`.
+  - Tests: `bash -n scripts/dev_stack.sh`, `command -v nginx`, `rg -n "ssl_certificate /etc/letsencrypt/live/dev.chat.airis.you/fullchain.pem|ssl_certificate_key /etc/letsencrypt/live/dev.chat.airis.you/privkey.pem" nginx/dev.chat.airis.you.conf`, manual review of `nginx/*.conf` directives
+  - Risks: Low-Medium (ops config changes require host deployment validation).

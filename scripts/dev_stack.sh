@@ -39,7 +39,7 @@ confirm() {
 print_header() {
   echo "Airis dev stack helper"
   echo "Compose files: $BASE_FILE + $DEV_FILE"
-  echo "Backend: http://localhost:${OPEN_WEBUI_API_PORT-8080}"
+  echo "Backend: http://localhost:${OPEN_WEBUI_API_PORT-8081}"
   echo "Frontend: http://localhost:${AIRIS_FRONTEND_PORT-5173}"
   echo
 }
