@@ -368,7 +368,7 @@ DATABASE_ENABLE_SESSION_SHARING = (
     os.environ.get("DATABASE_ENABLE_SESSION_SHARING", "False").lower() == "true"
 )
 
-# Enable public visibility of active user count (when disabled, only admins can see it)
+# Show "Active Users" in profile menu for non-admin users; admins always see it.
 ENABLE_PUBLIC_ACTIVE_USERS_COUNT = (
     os.environ.get("ENABLE_PUBLIC_ACTIVE_USERS_COUNT", "True").lower() == "true"
 )

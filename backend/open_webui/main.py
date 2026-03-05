@@ -2024,6 +2024,7 @@ async def get_app_config(request: Request):
             "enable_login_form": app.state.config.ENABLE_LOGIN_FORM,
             "enable_websocket": ENABLE_WEBSOCKET_SUPPORT,
             "enable_version_update_check": ENABLE_VERSION_UPDATE_CHECK,
+            # Controls "Active Users" visibility in user menu for non-admin users.
             "enable_public_active_users_count": ENABLE_PUBLIC_ACTIVE_USERS_COUNT,
             "enable_easter_eggs": ENABLE_EASTER_EGGS,
             **(
