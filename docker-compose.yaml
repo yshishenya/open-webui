@@ -52,7 +52,7 @@ services:
       - 'WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}'
       - 'WEBUI_AUTH=${WEBUI_AUTH:-true}'
       # Show/hide public "Active Users" in the profile menu (admins always see it).
-      - 'ENABLE_PUBLIC_ACTIVE_USERS_COUNT=${ENABLE_PUBLIC_ACTIVE_USERS_COUNT:-true}'
+      - 'ENABLE_PUBLIC_ACTIVE_USERS_COUNT=${ENABLE_PUBLIC_ACTIVE_USERS_COUNT:-false}'
       - 'WEBUI_URL=${WEBUI_URL:-}'
       - 'DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER-airis}:${POSTGRES_PASSWORD-airis_password}@postgres:5432/${POSTGRES_DB-airis}}'
       # User registration settings
