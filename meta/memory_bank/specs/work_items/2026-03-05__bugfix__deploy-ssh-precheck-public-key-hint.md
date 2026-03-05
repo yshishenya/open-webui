@@ -18,6 +18,7 @@ During production deploy, `scripts/deploy_prod.sh` can fail on SSH precheck and 
 
 - [x] SSH precheck failure hint points to an actual public key path (`.pub`).
 - [x] Copy/paste example remains correct when custom key/port are configured.
+- [x] SSH precheck output includes underlying SSH diagnostic (e.g. hostname resolution failure).
 - [x] Script behavior for successful deploy flow stays unchanged.
 
 ## Non-goals
@@ -68,8 +69,8 @@ During production deploy, `scripts/deploy_prod.sh` can fail on SSH precheck and 
   - Owner: Codex
   - Branch: `bugfix/deploy-ssh-precheck-public-key-hint`
   - Done: 2026-03-05
-  - Summary: SSH precheck hint now always references the public key path (`.pub`) and prints a copy/paste-safe `ssh-copy-id` command that also includes custom SSH port when set.
-  - Tests: `bash -n scripts/deploy_prod.sh`, `scripts/deploy_prod.sh --help`
+  - Summary: SSH precheck now shows exact SSH error, points to `.pub` key path, and prints a copy/paste-safe `ssh-copy-id` command (including custom SSH port when configured).
+  - Tests: `bash -n scripts/deploy_prod.sh`, `scripts/deploy_prod.sh --help`, `PROD_HOST=airis-prod PROD_SSH_KEY=~/.ssh/airis_prod scripts/deploy_prod.sh --yes --non-interactive --dry-run --skip-precheck`
   - Risks: Low (error-message only in deploy script)
 
 ## Risks / Rollback
