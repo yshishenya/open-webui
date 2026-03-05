@@ -1,0 +1,8 @@
+- [x] **[BUG][DEPLOY]** Fix misleading public key hint in deploy SSH precheck
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-05__bugfix__deploy-ssh-precheck-public-key-hint.md`
+  - Owner: Codex
+  - Branch: `bugfix/deploy-ssh-precheck-public-key-hint`
+  - Done: 2026-03-05
+  - Summary: SSH precheck now prints the underlying SSH diagnostic, references the `.pub` key path, and shows a copy/paste-safe `ssh-copy-id` command (with custom SSH port when configured).
+  - Tests: `bash -n scripts/deploy_prod.sh`, `scripts/deploy_prod.sh --help`, `PROD_HOST=airis-prod PROD_SSH_KEY=~/.ssh/airis_prod scripts/deploy_prod.sh --yes --non-interactive --dry-run --skip-precheck`
+  - Risks: Low (error-message only in deploy script)
