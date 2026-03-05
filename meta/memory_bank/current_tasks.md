@@ -20,6 +20,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG][BILLING]** Top-up presets remained old due `.env` override
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-05__bugfix__billing-topup-packages-env-override.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-03-05
+  - Summary: Updated env sources overriding runtime billing presets and restarted service so `/billing/balance` shows `100/500/1000/2000`.
+  - Tests: `docker compose up -d airis`, `docker compose exec -T airis python - <<'PY' ... /api/v1/billing/public/pricing-config ... PY` (result: `[100, 500, 1000, 2000]`)
+  - Risks: Low (config-only change).
+
 - [x] **[BUG][ACCESS]** Restore access control compatibility for model and prompt flows
   - Spec: `meta/memory_bank/specs/work_items/2026-02-15__bugfix__model-access-control-regression.md`
   - Owner: Codex
