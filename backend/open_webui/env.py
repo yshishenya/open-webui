@@ -370,7 +370,7 @@ DATABASE_ENABLE_SESSION_SHARING = (
 
 # Show "Active Users" in profile menu for non-admin users; admins always see it.
 ENABLE_PUBLIC_ACTIVE_USERS_COUNT = (
-    os.environ.get("ENABLE_PUBLIC_ACTIVE_USERS_COUNT", "True").lower() == "true"
+    os.environ.get("ENABLE_PUBLIC_ACTIVE_USERS_COUNT", "False").lower() == "true"
 )
 
 RESET_CONFIG_ON_START = (

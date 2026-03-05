@@ -1,0 +1,8 @@
+- [x] **[BUG][CONFIG][UI]** Hide public active-users counter by default
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-05__bugfix__active-users-counter-default-hidden.md`
+  - Owner: Codex
+  - Branch: `bugfix/active-users-counter-visibility`
+  - Done: 2026-03-05
+  - Summary: Switched `ENABLE_PUBLIC_ACTIVE_USERS_COUNT` defaults to `false` in backend, compose fallback, and env templates so non-admins do not see the counter if env wiring is absent.
+  - Tests: `rg -n "ENABLE_PUBLIC_ACTIVE_USERS_COUNT" backend/open_webui/env.py docker-compose.yaml .env.example .env.etalon .env.etalon.example`; `docker compose -f docker-compose.yaml config | rg -n "ENABLE_PUBLIC_ACTIVE_USERS_COUNT"`; `python -c "import ast, pathlib; ast.parse(pathlib.Path('backend/open_webui/env.py').read_text()); print('OK')"`
+  - Risks: Low (config-only defaults; admins still see counter by design).
