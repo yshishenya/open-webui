@@ -94,14 +94,12 @@
 				</Tooltip>
 			</div>
 
-			<div class=" shrink-0 flex items-center gap-2">
-				{#if item.model?.info?.meta?.lead_magnet}
-					<Tooltip content={$i18n.t('Lead magnet (free)')}>
+				<div class=" shrink-0 flex items-center gap-2">
+					{#if item.model?.info?.meta?.lead_magnet}
 						<div class="translate-y-[1px]">
 							<Badge type="success" content={$i18n.t('Free')} />
 						</div>
-					</Tooltip>
-				{/if}
+					{/if}
 
 				{#if item.model.owned_by === 'ollama'}
 					{#if (item.model.ollama?.details?.parameter_size ?? '') !== ''}

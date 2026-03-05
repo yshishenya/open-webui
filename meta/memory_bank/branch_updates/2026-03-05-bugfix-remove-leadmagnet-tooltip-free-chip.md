@@ -1,0 +1,8 @@
+- [x] **[BUG][UI]** Remove `лидмагнит` from free model chip tooltip
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-05__bugfix__remove-leadmagnet-tooltip-free-chip.md`
+  - Owner: Codex
+  - Branch: `bugfix/remove-leadmagnet-tooltip-free-chip`
+  - Done: 2026-03-05
+  - Summary: Removed tooltip wrapper from the `Free` badge so the free chip no longer shows any hover hint.
+  - Tests: `COMPOSE_DISABLE_ENV_FILE=1 docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; npx eslint src/lib/components/chat/ModelSelector/ModelItem.svelte"` (fails due pre-existing lint issues in file unrelated to this change)
+  - Risks: Low (copy-only UI change)
