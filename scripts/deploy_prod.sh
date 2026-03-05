@@ -27,6 +27,7 @@ Tagging behavior (default when no tag is provided):
 
 Environment (can be set in .env.deploy):
   - PROD_HOST (default: airis-prod)
+  - PROD_SSH_USER (optional, SSH user; e.g. yan)
   - PROD_PATH (default: /opt/projects/open-webui)
   - PROD_SSH_PORT (optional)
   - PROD_SSH_KEY (optional, full path to private key)
@@ -127,6 +128,7 @@ load_deploy_env
 
 IMAGE_REPO="${IMAGE_REPO:-yshishenya/yshishenya}"
 PROD_HOST="${PROD_HOST:-airis-prod}"
+PROD_SSH_USER="${PROD_SSH_USER:-}"
 PROD_PATH="${PROD_PATH:-/opt/projects/open-webui}"
 PROD_SSH_PORT="${PROD_SSH_PORT:-}"
 PROD_SSH_KEY="${PROD_SSH_KEY:-}"
@@ -256,6 +258,7 @@ show_runtime_settings() {
   echo "Resolved deploy settings:"
   echo "  IMAGE_REPO=${IMAGE_REPO}"
   echo "  PROD_HOST=${PROD_HOST}"
+  echo "  PROD_SSH_USER=${PROD_SSH_USER:-<default:ssh current user>}"
   echo "  PROD_PATH=${PROD_PATH}"
   echo "  PROD_SSH_PORT=${PROD_SSH_PORT:-<default:22>}"
   echo "  PROD_GIT_PULL=${PROD_GIT_PULL}"
@@ -455,6 +458,10 @@ if [[ -n "${PROD_SSH_KEY}" ]]; then
 fi
 
 SSH_PUBLIC_KEY_HINT="$(derive_ssh_public_key_path "${SSH_KEY_HINT}")"
+SSH_TARGET="${PROD_HOST}"
+if [[ -n "${PROD_SSH_USER}" ]]; then
+  SSH_TARGET="${PROD_SSH_USER}@${PROD_HOST}"
+fi
 
 q() {
   printf '%q' "$1"
@@ -489,11 +496,11 @@ if [[ "${DRY_RUN}" == "0" && "${SKIP_SSH_PRECHECK}" == "0" ]]; then
   if [[ -n "${PROD_SSH_PORT}" ]]; then
     SSH_COPY_ID_EXAMPLE+=(-p "${PROD_SSH_PORT}")
   fi
-  SSH_COPY_ID_EXAMPLE+=("${PROD_HOST}")
+  SSH_COPY_ID_EXAMPLE+=("${SSH_TARGET}")
 
   echo "Checking SSH access to ${PROD_HOST}..."
   if ! SSH_CHECK_OUTPUT="$(
-    ssh "${SSH_KEY_ARGS[@]}" "${SSH_PORT_ARGS[@]}" -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "${PROD_HOST}" "echo deploy-ready" 2>&1
+    ssh "${SSH_KEY_ARGS[@]}" "${SSH_PORT_ARGS[@]}" -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "${SSH_TARGET}" "echo deploy-ready" 2>&1
   )"; then
     echo "SSH check failed. Please configure key-based auth for ${PROD_HOST}."
     if [[ -n "${SSH_CHECK_OUTPUT}" ]]; then
@@ -534,4 +541,4 @@ if [[ "${POST_DEPLOY_STATUS}" == "1" ]]; then
   REMOTE_CMD+=" && WEBUI_IMAGE=$(q "${IMAGE_REPO}") WEBUI_DOCKER_TAG=$(q "${TAG}") docker compose ${COMPOSE_FILES} ps"
 fi
 
-run ssh "${SSH_KEY_ARGS[@]}" "${SSH_PORT_ARGS[@]}" "${PROD_HOST}" "bash -lc $(q "${REMOTE_CMD}")"
+run ssh "${SSH_KEY_ARGS[@]}" "${SSH_PORT_ARGS[@]}" "${SSH_TARGET}" "bash -lc $(q "${REMOTE_CMD}")"

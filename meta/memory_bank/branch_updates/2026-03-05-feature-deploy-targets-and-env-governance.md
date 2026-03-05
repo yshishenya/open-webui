@@ -1,0 +1,8 @@
+- [x] **[FEATURE][DEPLOY][ENV]** Multi-target deploy and env governance tooling
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-05__feature__deploy-targets-env-governance.md`
+  - Owner: Codex
+  - Branch: `feature/deploy-targets-and-env-governance`
+  - Done: 2026-03-05
+  - Summary: Added target-based deploy wrapper (`deploy_target.sh`), remote env drift tooling (`env_target_manager.py`), target templates, and updated deploy runbook for demo/prod promotion with env governance.
+  - Tests: `bash -n scripts/deploy_prod.sh scripts/deploy_target.sh`, `python3 -m py_compile scripts/env_target_manager.py`, `scripts/deploy_target.sh --help`, `scripts/deploy_target.sh --list-targets`, `scripts/deploy_target.sh --target demo --yes --non-interactive --dry-run --skip-precheck`, `scripts/deploy_target.sh --target prod --yes --non-interactive --dry-run --skip-precheck`, `python3 scripts/env_target_manager.py --help`, `python3 scripts/env_target_manager.py list`, `python3 scripts/env_target_manager.py check --target prod --allow-drift`, `python3 scripts/env_target_manager.py sync --target prod --dry-run`, `python3 scripts/env_target_manager.py sync --target prod --dry-run --allow-template-mismatch`, `ssh -i ~/.ssh/airis_prod -o IdentitiesOnly=yes -o BatchMode=yes yan@185.130.212.71 'echo prod-ssh-ok'`, `ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new yan@dev.chat.airis.you 'echo demo-ssh-ok'`
+  - Risks: Low-Medium (operator tooling behavior)
