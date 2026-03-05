@@ -1,0 +1,8 @@
+- [x] **[BUG][DEPLOY]** Fix misleading public key hint in deploy SSH precheck
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-05__bugfix__deploy-ssh-precheck-public-key-hint.md`
+  - Owner: Codex
+  - Branch: `bugfix/deploy-ssh-precheck-public-key-hint`
+  - Done: 2026-03-05
+  - Summary: SSH precheck hint now always references the public key path (`.pub`) and prints a copy/paste-safe `ssh-copy-id` command that also includes custom SSH port when set.
+  - Tests: `bash -n scripts/deploy_prod.sh`, `scripts/deploy_prod.sh --help`
+  - Risks: Low (error-message only in deploy script)

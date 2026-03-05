@@ -130,7 +130,7 @@ PROD_HOST="${PROD_HOST:-airis-prod}"
 PROD_PATH="${PROD_PATH:-/opt/projects/open-webui}"
 PROD_SSH_PORT="${PROD_SSH_PORT:-}"
 PROD_SSH_KEY="${PROD_SSH_KEY:-}"
-SSH_KEY_HINT="${PROD_SSH_KEY:-~/.ssh/airis_prod}"
+SSH_KEY_HINT="${PROD_SSH_KEY:-${HOME}/.ssh/airis_prod}"
 PROD_GIT_PULL="${PROD_GIT_PULL:-1}"
 POST_DEPLOY_STATUS="${POST_DEPLOY_STATUS:-1}"
 COMPOSE_FILES="-f docker-compose.yaml -f docker-compose.prod.yml"
@@ -435,6 +435,16 @@ normalize_ssh_key_path() {
   echo "${key_path}"
 }
 
+derive_ssh_public_key_path() {
+  local key_path="$1"
+  if [[ "${key_path}" == *.pub ]]; then
+    echo "${key_path}"
+    return 0
+  fi
+
+  echo "${key_path}.pub"
+}
+
 if [[ -n "${PROD_SSH_KEY}" ]]; then
   PROD_SSH_KEY="$(normalize_ssh_key_path "${PROD_SSH_KEY}")"
   SSH_KEY_HINT="${PROD_SSH_KEY}"
@@ -443,6 +453,8 @@ if [[ -n "${PROD_SSH_KEY}" ]]; then
     exit 1
   fi
 fi
+
+SSH_PUBLIC_KEY_HINT="$(derive_ssh_public_key_path "${SSH_KEY_HINT}")"
 
 q() {
   printf '%q' "$1"
@@ -472,13 +484,21 @@ if [[ -n "${PROD_SSH_KEY}" ]]; then
 fi
 
 if [[ "${DRY_RUN}" == "0" && "${SKIP_SSH_PRECHECK}" == "0" ]]; then
+  SSH_COPY_ID_EXAMPLE=(ssh-copy-id -i "${SSH_PUBLIC_KEY_HINT}")
+  if [[ -n "${PROD_SSH_PORT}" ]]; then
+    SSH_COPY_ID_EXAMPLE+=(-p "${PROD_SSH_PORT}")
+  fi
+  SSH_COPY_ID_EXAMPLE+=("${PROD_HOST}")
+
   echo "Checking SSH access to ${PROD_HOST}..."
   if ! ssh "${SSH_KEY_ARGS[@]}" "${SSH_PORT_ARGS[@]}" -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "${PROD_HOST}" "echo deploy-ready" >/dev/null 2>&1; then
     echo "SSH check failed. Please configure key-based auth for ${PROD_HOST}."
     echo "Verify the key exists and is added to ~/.ssh/authorized_keys on the target host."
-    echo "Tip: make sure your public key (${SSH_KEY_HINT}) is in ~/.ssh/authorized_keys on the target host."
+    echo "Tip: make sure your public key (${SSH_PUBLIC_KEY_HINT}) is in ~/.ssh/authorized_keys on the target host."
     echo "Example:"
-    echo "  ssh-copy-id -i ${SSH_KEY_HINT}.pub ${PROD_HOST}"
+    printf '  '
+    printf '%q ' "${SSH_COPY_ID_EXAMPLE[@]}"
+    printf '\n'
     exit 1
   fi
 fi
