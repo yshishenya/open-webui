@@ -1563,6 +1563,26 @@ async def chat_completion(
     form_data: dict,
     user=Depends(get_verified_user),
 ):
+    """Handle chat completion requests and process chat metadata.
+    
+    This function manages the chat completion process by verifying the user's
+    access to the specified model, gathering necessary metadata, and processing the
+    chat payload. It checks for model existence, handles custom model fallbacks,
+    and manages chat ownership verification. The function also initiates
+    asynchronous processing of the chat and handles any errors that may arise
+    during the process.
+    
+    Args:
+        request (Request): The HTTP request object.
+        form_data (dict): The form data containing chat parameters.
+        user: The verified user making the request.
+    
+    Returns:
+        dict: A dictionary containing the status and task ID if applicable.
+    
+    Raises:
+        HTTPException: If there are issues with model access, chat ownership, or processing errors.
+    """
     if not request.app.state.MODELS:
         await get_all_models(request, user=user)
 
