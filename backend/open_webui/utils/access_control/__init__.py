@@ -1,6 +1,7 @@
 from typing import Any, Optional, Set, List, Dict
 from open_webui.models.groups import Groups
 from open_webui.models.access_grants import access_control_to_grants
+from open_webui.models.users import UserModel
 
 
 from open_webui.config import DEFAULT_USER_PERMISSIONS
