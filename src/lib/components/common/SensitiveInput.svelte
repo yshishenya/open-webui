@@ -8,12 +8,11 @@
 	export let type = 'text';
 	export let required = true;
 	export let readOnly = false;
-	export let autocomplete: string = 'off';
-	export let name: string | undefined = undefined;
 	export let outerClassName = 'flex flex-1 bg-transparent';
 	export let inputClassName = 'w-full text-sm py-0.5 bg-transparent';
 	export let showButtonClassName = 'pl-1.5  transition bg-transparent';
 	export let screenReader = true;
+	export let autocomplete = 'off';
 
 	let show = false;
 </script>
@@ -24,17 +23,13 @@
 	{/if}
 	<input
 		{id}
-		{name}
 		class={`${inputClassName} ${show ? '' : 'password'} ${($settings?.highContrastMode ?? false) ? 'placeholder:text-gray-700 dark:placeholder:text-gray-100' : ' outline-hidden placeholder:text-gray-300 dark:placeholder:text-gray-600'}`}
 		{placeholder}
 		type={type === 'password' && !show ? 'password' : 'text'}
-		{value}
-		{autocomplete}
+		bind:value
 		required={required && !readOnly}
 		disabled={readOnly}
-		on:input={(e) => {
-			value = (e.target as HTMLInputElement).value;
-		}}
+		{autocomplete}
 	/>
 	<button
 		class={showButtonClassName}

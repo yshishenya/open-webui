@@ -3,35 +3,50 @@
 
 	import { onDestroy } from 'svelte';
 
-	import tippy from 'tippy.js';
-	import type { Instance, Placement, Props } from 'tippy.js';
+	import tippy, {
+		type Instance as TippyInstance,
+		type Placement as TippyPlacement,
+		type Props as TippyProps
+	} from 'tippy.js';
 
 	export let elementId = '';
 
 	export let as = 'div';
 	export let className = 'flex';
 
-	export let placement: Placement = 'top';
+	export let placement: TippyPlacement = 'top';
 	export let content = `I'm a tooltip!`;
-	export let touch: Props['touch'] = true;
+	export let touch = true;
 	export let theme = '';
-	export let offset: [number, number] = [0, 4];
-	export let allowHTML: Props['allowHTML'] = true;
-	export let tippyOptions: Partial<Props> = {};
+	export let offset: TippyProps['offset'] = [0, 4];
+	export let allowHTML = true;
+	export let tippyOptions: Partial<TippyProps> = {};
 	export let interactive = false;
 
 	export let onClick = () => {};
 
 	let tooltipElement: HTMLElement | null = null;
-	let tooltipInstance: Instance | null = null;
+	let tooltipInstance: TippyInstance | null = null;
+
+	function destroyInstance() {
+		if (tooltipInstance) {
+			tooltipInstance.destroy();
+			tooltipInstance = null;
+		}
+	}
 
 	$: if (tooltipElement && (content || elementId)) {
-		let tooltipContent: string | Element | null = null;
+		let tooltipContent: string | Element | DocumentFragment | null = null;
 
 		if (elementId) {
-			tooltipContent = document.getElementById(`${elementId}`);
+			tooltipContent = document.getElementById(elementId);
 		} else {
 			tooltipContent = DOMPurify.sanitize(content);
+		}
+
+		// After the element changes, the old instance must be destroyed, otherwise the detached tippy floating DOM will be left behind
+		if (tooltipInstance && tooltipInstance.reference !== tooltipElement) {
+			destroyInstance();
 		}
 
 		if (tooltipInstance) {
@@ -52,15 +67,11 @@
 			}
 		}
 	} else if (tooltipInstance && content === '') {
-		if (tooltipInstance) {
-			tooltipInstance.destroy();
-		}
+		destroyInstance();
 	}
 
 	onDestroy(() => {
-		if (tooltipInstance) {
-			tooltipInstance.destroy();
-		}
+		destroyInstance();
 	});
 </script>
 

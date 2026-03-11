@@ -2,16 +2,15 @@
 	import DOMPurify from 'dompurify';
 
 	import { onMount, getContext, createEventDispatcher, onDestroy, tick } from 'svelte';
-	import type { Readable } from 'svelte/store';
-	import type { i18n as i18nType } from 'i18next';
 	import * as FocusTrap from 'focus-trap';
 
-	const i18n = getContext<Readable<i18nType>>('i18n');
+	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
 	import { fade } from 'svelte/transition';
 	import { flyAndScale } from '$lib/utils/transitions';
 	import { marked } from 'marked';
+	import SensitiveInput from './SensitiveInput.svelte';
 
 	export let title = '';
 	export let message = '';
@@ -20,11 +19,11 @@
 	export let confirmLabel = $i18n.t('Confirm');
 
 	export let onConfirm = () => {};
-	export let confirmDisabled = false;
 
 	export let input = false;
 	export let inputPlaceholder = '';
 	export let inputValue = '';
+	export let inputType = '';
 
 	export let show = false;
 
@@ -32,7 +31,7 @@
 		init();
 	}
 
-	let modalElement: HTMLElement | null = null;
+	let modalElement = null;
 	let mounted = false;
 
 	let focusTrap: FocusTrap.FocusTrap | null = null;
@@ -75,7 +74,7 @@
 			window.addEventListener('keydown', handleKeyDown);
 			document.body.style.overflow = 'hidden';
 		} else if (modalElement) {
-			focusTrap?.deactivate();
+			focusTrap.deactivate();
 
 			window.removeEventListener('keydown', handleKeyDown);
 			document.body.removeChild(modalElement);
@@ -108,7 +107,7 @@
 		}}
 	>
 		<div
-			class="modal-content m-auto max-w-full w-[32rem] mx-2 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm rounded-4xl max-h-[100dvh] shadow-3xl border border-white dark:border-gray-900"
+			class=" m-auto max-w-full w-[32rem] mx-2 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm rounded-4xl max-h-[100dvh] shadow-3xl border border-white dark:border-gray-900"
 			in:flyAndScale
 			on:mousedown={(e) => {
 				e.stopPropagation();
@@ -133,13 +132,28 @@
 						{/if}
 
 						{#if input}
-							<textarea
-								bind:value={inputValue}
-								placeholder={inputPlaceholder ? inputPlaceholder : $i18n.t('Enter your message')}
-								class="w-full mt-2 rounded-lg px-4 py-2 text-sm dark:text-gray-300 dark:bg-gray-900 outline-hidden resize-none"
-								rows="3"
-								required
-							></textarea>
+							{#if inputType === 'password'}
+								<div
+									class="w-full mt-2 rounded-lg px-4 py-2 text-sm dark:text-gray-300 dark:bg-gray-900"
+								>
+									<SensitiveInput
+										id="event-confirm-input"
+										placeholder={inputPlaceholder
+											? inputPlaceholder
+											: $i18n.t('Enter your message')}
+										bind:value={inputValue}
+										required={true}
+									/>
+								</div>
+							{:else}
+								<textarea
+									bind:value={inputValue}
+									placeholder={inputPlaceholder ? inputPlaceholder : $i18n.t('Enter your message')}
+									class="w-full mt-2 rounded-lg px-4 py-2 text-sm dark:text-gray-300 dark:bg-gray-900 outline-hidden resize-none"
+									rows="3"
+									required
+								/>
+							{/if}
 						{/if}
 					</div>
 				</slot>
@@ -156,8 +170,7 @@
 						{cancelLabel}
 					</button>
 					<button
-						class="text-sm bg-gray-900 hover:bg-gray-850 text-gray-100 dark:bg-gray-100 dark:hover:bg-white dark:text-gray-800 font-medium w-full py-2 rounded-3xl transition disabled:opacity-50 disabled:cursor-not-allowed"
-						disabled={confirmDisabled}
+						class="text-sm bg-gray-900 hover:bg-gray-850 text-gray-100 dark:bg-gray-100 dark:hover:bg-white dark:text-gray-800 font-medium w-full py-2 rounded-3xl transition"
 						on:click={() => {
 							confirmHandler();
 						}}
@@ -174,7 +187,6 @@
 <style>
 	.modal-content {
 		animation: scaleUp 0.1s ease-out forwards;
-		will-change: transform, opacity;
 	}
 
 	@keyframes scaleUp {

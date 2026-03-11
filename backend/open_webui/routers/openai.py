@@ -67,6 +67,7 @@ from open_webui.utils.lead_magnet import estimate_tts_seconds
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.access_control import has_access
 from open_webui.utils.headers import include_user_info_headers
+from open_webui.utils.anthropic import is_anthropic_url, get_anthropic_models
 
 
 log = logging.getLogger(__name__)
@@ -120,6 +121,12 @@ async def cleanup_response(
         response.close()
     if session:
         await session.close()
+
+
+async def get_models_request(url, key=None, user: UserModel = None):
+    if is_anthropic_url(url):
+        return await get_anthropic_models(url, key, user=user)
+    return await send_get_request(f"{url}/models", key, user=user)
 
 
 def openai_reasoning_model_handler(payload):
@@ -488,37 +495,32 @@ async def get_all_models_responses(request: Request, user: UserModel) -> list:
     if not request.app.state.config.ENABLE_OPENAI_API:
         return []
 
+    api_base_urls = request.app.state.config.OPENAI_API_BASE_URLS
+    api_keys = list(request.app.state.config.OPENAI_API_KEYS)
+    api_configs = request.app.state.config.OPENAI_API_CONFIGS
+
     # Check if API KEYS length is same than API URLS length
-    num_urls = len(request.app.state.config.OPENAI_API_BASE_URLS)
-    num_keys = len(request.app.state.config.OPENAI_API_KEYS)
+    num_urls = len(api_base_urls)
+    num_keys = len(api_keys)
 
     if num_keys != num_urls:
         # if there are more keys than urls, remove the extra keys
         if num_keys > num_urls:
-            new_keys = request.app.state.config.OPENAI_API_KEYS[:num_urls]
-            request.app.state.config.OPENAI_API_KEYS = new_keys
+            api_keys = api_keys[:num_urls]
+            request.app.state.config.OPENAI_API_KEYS = api_keys
         # if there are more urls than keys, add empty keys
         else:
-            request.app.state.config.OPENAI_API_KEYS += [""] * (num_urls - num_keys)
+            api_keys += [""] * (num_urls - num_keys)
+            request.app.state.config.OPENAI_API_KEYS = api_keys
 
     request_tasks = []
-    for idx, url in enumerate(request.app.state.config.OPENAI_API_BASE_URLS):
-        if (str(idx) not in request.app.state.config.OPENAI_API_CONFIGS) and (
-            url not in request.app.state.config.OPENAI_API_CONFIGS  # Legacy support
-        ):
-            request_tasks.append(
-                send_get_request(
-                    f"{url}/models",
-                    request.app.state.config.OPENAI_API_KEYS[idx],
-                    user=user,
-                )
-            )
+    for idx, url in enumerate(api_base_urls):
+        if (str(idx) not in api_configs) and (url not in api_configs):  # Legacy support
+            request_tasks.append(get_models_request(url, api_keys[idx], user=user))
         else:
-            api_config_value = request.app.state.config.OPENAI_API_CONFIGS.get(
+            api_config_value = api_configs.get(
                 str(idx),
-                request.app.state.config.OPENAI_API_CONFIGS.get(
-                    url, {}
-                ),  # Legacy support
+                api_configs.get(url, {}),  # Legacy support
             )
             api_config = api_config_value if isinstance(api_config_value, dict) else {}
 
@@ -528,11 +530,7 @@ async def get_all_models_responses(request: Request, user: UserModel) -> list:
             if enable:
                 if len(model_ids) == 0:
                     request_tasks.append(
-                        send_get_request(
-                            f"{url}/models",
-                            request.app.state.config.OPENAI_API_KEYS[idx],
-                            user=user,
-                        )
+                        get_models_request(url, api_keys[idx], user=user)
                     )
                 else:
                     model_list = {
@@ -722,6 +720,10 @@ async def get_models(
                         "data": api_config.get("model_ids", []) or [],
                         "object": "list",
                     }
+                elif is_anthropic_url(url):
+                    models = await get_anthropic_models(url, key, user=user)
+                    if models is None:
+                        raise Exception("Failed to connect to Anthropic API")
                 else:
                     async with session.get(
                         f"{url}/models",
@@ -730,7 +732,6 @@ async def get_models(
                         ssl=AIOHTTP_CLIENT_SESSION_SSL,
                     ) as r:
                         if r.status != 200:
-                            # Extract response error details if available
                             error_detail = f"HTTP Error: {r.status}"
                             res = await r.json()
                             if "error" in res:
@@ -739,9 +740,7 @@ async def get_models(
 
                         response_data = await r.json()
 
-                        # Check if we're calling OpenAI API based on the URL
                         if "api.openai.com" in url:
-                            # Filter models according to the specified conditions
                             response_data["data"] = [
                                 model
                                 for model in response_data.get("data", [])
@@ -832,6 +831,15 @@ async def verify_connection(
                             )
 
                     return response_data
+            elif is_anthropic_url(url):
+                result = await get_anthropic_models(url, key)
+                if result is None:
+                    raise HTTPException(
+                        status_code=500, detail="Failed to connect to Anthropic API"
+                    )
+                if "error" in result:
+                    raise HTTPException(status_code=500, detail=result["error"])
+                return result
             else:
                 async with session.get(
                     f"{url}/models",
@@ -1252,7 +1260,10 @@ async def embeddings(request: Request, form_data: dict, user):
         request, url, key, api_config, user=user
     )
     try:
-        session = aiohttp.ClientSession(trust_env=True)
+        session = aiohttp.ClientSession(
+            trust_env=True,
+            timeout=aiohttp.ClientTimeout(total=AIOHTTP_CLIENT_TIMEOUT),
+        )
         r = await session.request(
             method="POST",
             url=f"{url}/embeddings",
@@ -1343,7 +1354,10 @@ async def proxy(path: str, request: Request, user=Depends(get_verified_user)):
         else:
             request_url = f"{url}/{path}"
 
-        session = aiohttp.ClientSession(trust_env=True)
+        session = aiohttp.ClientSession(
+            trust_env=True,
+            timeout=aiohttp.ClientTimeout(total=AIOHTTP_CLIENT_TIMEOUT),
+        )
         r = await session.request(
             method=request.method,
             url=request_url,

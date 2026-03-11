@@ -37,6 +37,7 @@ from open_webui.env import (
     WEBSOCKET_SERVER_PING_INTERVAL,
     WEBSOCKET_SERVER_LOGGING,
     WEBSOCKET_SERVER_ENGINEIO_LOGGING,
+    WEBSOCKET_EVENT_CALLER_TIMEOUT,
 )
 from open_webui.utils.auth import decode_token
 from open_webui.socket.utils import RedisDict, RedisLock, YdocManager
@@ -99,6 +100,7 @@ else:
 
 # Timeout duration in seconds
 TIMEOUT_DURATION = 3
+SESSION_POOL_TIMEOUT = 120  # seconds without heartbeat before session is reaped
 
 # Dictionary to maintain the user pool
 
@@ -147,6 +149,17 @@ if WEBSOCKET_MANAGER == "redis":
     aquire_func = clean_up_lock.aquire_lock
     renew_func = clean_up_lock.renew_lock
     release_func = clean_up_lock.release_lock
+
+    session_cleanup_lock = RedisLock(
+        redis_url=WEBSOCKET_REDIS_URL,
+        lock_name=f"{REDIS_KEY_PREFIX}:session_cleanup_lock",
+        timeout_secs=WEBSOCKET_REDIS_LOCK_TIMEOUT,
+        redis_sentinels=redis_sentinels,
+        redis_cluster=WEBSOCKET_REDIS_CLUSTER,
+    )
+    session_aquire_func = session_cleanup_lock.aquire_lock
+    session_renew_func = session_cleanup_lock.renew_lock
+    session_release_func = session_cleanup_lock.release_lock
 else:
     MODELS = {}
 
@@ -154,12 +167,38 @@ else:
     USAGE_POOL = {}
 
     aquire_func = release_func = renew_func = lambda: True
+    session_aquire_func = session_release_func = session_renew_func = lambda: True
 
 
 YDOC_MANAGER = YdocManager(
     redis=REDIS,
     redis_key_prefix=f"{REDIS_KEY_PREFIX}:ydoc:documents",
 )
+
+
+async def periodic_session_pool_cleanup():
+    """Reap orphaned SESSION_POOL entries that missed heartbeats (e.g. crashed instance)."""
+    if not session_aquire_func():
+        log.debug("Session cleanup lock held by another node. Skipping.")
+        return
+
+    try:
+        while True:
+            if not session_renew_func():
+                log.error("Unable to renew session cleanup lock. Exiting.")
+                return
+
+            now = int(time.time())
+            for sid in list(SESSION_POOL.keys()):
+                entry = SESSION_POOL.get(sid)
+                if entry and now - entry.get("last_seen_at", 0) > SESSION_POOL_TIMEOUT:
+                    log.warning(
+                        f"Reaping orphaned session {sid} (user {entry.get('id')})"
+                    )
+                    del SESSION_POOL[sid]
+            await asyncio.sleep(SESSION_POOL_TIMEOUT)
+    finally:
+        session_release_func()
 
 
 async def periodic_usage_pool_cleanup():
@@ -313,15 +352,18 @@ async def connect(sid, environ, auth):
             user = Users.get_user_by_id(data["id"])
 
         if user:
-            SESSION_POOL[sid] = user.model_dump(
-                exclude=[
-                    "profile_image_url",
-                    "profile_banner_image_url",
-                    "date_of_birth",
-                    "bio",
-                    "gender",
-                ]
-            )
+            SESSION_POOL[sid] = {
+                **user.model_dump(
+                    exclude=[
+                        "profile_image_url",
+                        "profile_banner_image_url",
+                        "date_of_birth",
+                        "bio",
+                        "gender",
+                    ]
+                ),
+                "last_seen_at": int(time.time()),
+            }
             await sio.enter_room(sid, f"user:{user.id}")
 
 
@@ -340,15 +382,18 @@ async def user_join(sid, data):
     if not user:
         return
 
-    SESSION_POOL[sid] = user.model_dump(
-        exclude=[
-            "profile_image_url",
-            "profile_banner_image_url",
-            "date_of_birth",
-            "bio",
-            "gender",
-        ]
-    )
+    SESSION_POOL[sid] = {
+        **user.model_dump(
+            exclude=[
+                "profile_image_url",
+                "profile_banner_image_url",
+                "date_of_birth",
+                "bio",
+                "gender",
+            ]
+        ),
+        "last_seen_at": int(time.time()),
+    }
 
     await sio.enter_room(sid, f"user:{user.id}")
 
@@ -366,6 +411,7 @@ async def user_join(sid, data):
 async def heartbeat(sid, data):
     user = SESSION_POOL.get(sid)
     if user:
+        SESSION_POOL[sid] = {**user, "last_seen_at": int(time.time())}
         Users.update_last_active_by_id(user["id"])
 
 
@@ -466,6 +512,8 @@ async def channel_events(sid, data):
 async def ydoc_document_join(sid, data):
     """Handle user joining a document"""
     user = SESSION_POOL.get(sid)
+    if not user:
+        return
 
     try:
         document_id = data["document_id"]
@@ -638,11 +686,13 @@ async def yjs_document_update(sid, data):
             skip_sid=sid,
         )
 
+        user = SESSION_POOL.get(sid)
+        if not user:
+            return
+
         async def debounced_save():
             await asyncio.sleep(0.5)
-            await document_save_handler(
-                document_id, data.get("data", {}), SESSION_POOL.get(sid)
-            )
+            await document_save_handler(document_id, data.get("data", {}), user)
 
         if data.get("data"):
             await create_task(REDIS, debounced_save(), document_id)
@@ -709,6 +759,17 @@ async def disconnect(sid):
     if sid in SESSION_POOL:
         user = SESSION_POOL[sid]
         del SESSION_POOL[sid]
+
+        # Clean up USAGE_POOL entries for this session
+        for model_id in list(USAGE_POOL.keys()):
+            connections = USAGE_POOL.get(model_id)
+            if connections and sid in connections:
+                del connections[sid]
+                if not connections:
+                    del USAGE_POOL[model_id]
+                else:
+                    USAGE_POOL[model_id] = connections
+
         await YDOC_MANAGER.remove_user_from_all_documents(sid)
     else:
         pass
@@ -730,21 +791,26 @@ def get_event_emitter(request_info, update_db=True):
             },
             room=f"user:{user_id}",
         )
+
         if (
             update_db
             and message_id
             and not request_info.get("chat_id", "").startswith("local:")
         ):
 
-            if "type" in event_data and event_data["type"] == "status":
-                Chats.add_message_status_to_chat_by_id_and_message_id(
+            event_type = event_data.get("type")
+
+            if event_type == "status":
+                await asyncio.to_thread(
+                    Chats.add_message_status_to_chat_by_id_and_message_id,
                     request_info["chat_id"],
                     request_info["message_id"],
                     event_data.get("data", {}),
                 )
 
-            if "type" in event_data and event_data["type"] == "message":
-                message = Chats.get_message_by_id_and_message_id(
+            elif event_type == "message":
+                message = await asyncio.to_thread(
+                    Chats.get_message_by_id_and_message_id,
                     request_info["chat_id"],
                     request_info["message_id"],
                 )
@@ -753,7 +819,8 @@ def get_event_emitter(request_info, update_db=True):
                     content = message.get("content", "")
                     content += event_data.get("data", {}).get("content", "")
 
-                    Chats.upsert_message_to_chat_by_id_and_message_id(
+                    await asyncio.to_thread(
+                        Chats.upsert_message_to_chat_by_id_and_message_id,
                         request_info["chat_id"],
                         request_info["message_id"],
                         {
@@ -761,10 +828,11 @@ def get_event_emitter(request_info, update_db=True):
                         },
                     )
 
-            if "type" in event_data and event_data["type"] == "replace":
+            elif event_type == "replace":
                 content = event_data.get("data", {}).get("content", "")
 
-                Chats.upsert_message_to_chat_by_id_and_message_id(
+                await asyncio.to_thread(
+                    Chats.upsert_message_to_chat_by_id_and_message_id,
                     request_info["chat_id"],
                     request_info["message_id"],
                     {
@@ -772,8 +840,9 @@ def get_event_emitter(request_info, update_db=True):
                     },
                 )
 
-            if "type" in event_data and event_data["type"] == "embeds":
-                message = Chats.get_message_by_id_and_message_id(
+            elif event_type == "embeds":
+                message = await asyncio.to_thread(
+                    Chats.get_message_by_id_and_message_id,
                     request_info["chat_id"],
                     request_info["message_id"],
                 )
@@ -781,7 +850,8 @@ def get_event_emitter(request_info, update_db=True):
                 embeds = event_data.get("data", {}).get("embeds", [])
                 embeds.extend(message.get("embeds", []))
 
-                Chats.upsert_message_to_chat_by_id_and_message_id(
+                await asyncio.to_thread(
+                    Chats.upsert_message_to_chat_by_id_and_message_id,
                     request_info["chat_id"],
                     request_info["message_id"],
                     {
@@ -789,8 +859,9 @@ def get_event_emitter(request_info, update_db=True):
                     },
                 )
 
-            if "type" in event_data and event_data["type"] == "files":
-                message = Chats.get_message_by_id_and_message_id(
+            elif event_type == "files":
+                message = await asyncio.to_thread(
+                    Chats.get_message_by_id_and_message_id,
                     request_info["chat_id"],
                     request_info["message_id"],
                 )
@@ -798,7 +869,8 @@ def get_event_emitter(request_info, update_db=True):
                 files = event_data.get("data", {}).get("files", [])
                 files.extend(message.get("files", []))
 
-                Chats.upsert_message_to_chat_by_id_and_message_id(
+                await asyncio.to_thread(
+                    Chats.upsert_message_to_chat_by_id_and_message_id,
                     request_info["chat_id"],
                     request_info["message_id"],
                     {
@@ -806,10 +878,11 @@ def get_event_emitter(request_info, update_db=True):
                     },
                 )
 
-            if event_data.get("type") in ["source", "citation"]:
+            elif event_type in ("source", "citation"):
                 data = event_data.get("data", {})
-                if data.get("type") == None:
-                    message = Chats.get_message_by_id_and_message_id(
+                if data.get("type") is None:
+                    message = await asyncio.to_thread(
+                        Chats.get_message_by_id_and_message_id,
                         request_info["chat_id"],
                         request_info["message_id"],
                     )
@@ -817,7 +890,8 @@ def get_event_emitter(request_info, update_db=True):
                     sources = message.get("sources", [])
                     sources.append(data)
 
-                    Chats.upsert_message_to_chat_by_id_and_message_id(
+                    await asyncio.to_thread(
+                        Chats.upsert_message_to_chat_by_id_and_message_id,
                         request_info["chat_id"],
                         request_info["message_id"],
                         {
@@ -845,6 +919,7 @@ def get_event_call(request_info):
                 "data": event_data,
             },
             to=request_info["session_id"],
+            timeout=WEBSOCKET_EVENT_CALLER_TIMEOUT,
         )
         return response
 

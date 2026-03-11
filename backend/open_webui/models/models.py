@@ -148,11 +148,20 @@ class ModelsTable:
     ) -> list[AccessGrantModel]:
         return AccessGrants.get_grants_by_resource("model", model_id, db=db)
 
-    def _to_model_model(self, model: Model, db: Optional[Session] = None) -> ModelModel:
+    def _to_model_model(
+        self,
+        model: Model,
+        access_grants: Optional[list[AccessGrantModel]] = None,
+        db: Optional[Session] = None,
+    ) -> ModelModel:
         model_data = ModelModel.model_validate(model).model_dump(
             exclude={"access_grants"}
         )
-        model_data["access_grants"] = self._get_access_grants(model_data["id"], db=db)
+        model_data["access_grants"] = (
+            access_grants
+            if access_grants is not None
+            else self._get_access_grants(model_data["id"], db=db)
+        )
         model_data["access_control"] = grants_to_access_control(
             model_data["access_grants"]
         )
@@ -193,8 +202,14 @@ class ModelsTable:
 
     def get_all_models(self, db: Optional[Session] = None) -> list[ModelModel]:
         with get_db_context(db) as db:
+            all_models = db.query(Model).all()
+            model_ids = [model.id for model in all_models]
+            grants_map = AccessGrants.get_grants_by_resources("model", model_ids, db=db)
             return [
-                self._to_model_model(model, db=db) for model in db.query(Model).all()
+                self._to_model_model(
+                    model, access_grants=grants_map.get(model.id, []), db=db
+                )
+                for model in all_models
             ]
 
     def get_models(self, db: Optional[Session] = None) -> list[ModelUserResponse]:
@@ -202,9 +217,11 @@ class ModelsTable:
             all_models = db.query(Model).filter(Model.base_model_id.is_not(None)).all()
 
             user_ids = list(set(model.user_id for model in all_models))
+            model_ids = [model.id for model in all_models]
 
             users = Users.get_users_by_user_ids(user_ids, db=db) if user_ids else []
             users_dict = {user.id: user for user in users}
+            grants_map = AccessGrants.get_grants_by_resources("model", model_ids, db=db)
 
             models = []
             for model in all_models:
@@ -212,7 +229,11 @@ class ModelsTable:
                 models.append(
                     ModelUserResponse.model_validate(
                         {
-                            **self._to_model_model(model, db=db).model_dump(),
+                            **self._to_model_model(
+                                model,
+                                access_grants=grants_map.get(model.id, []),
+                                db=db,
+                            ).model_dump(),
                             "user": user.model_dump() if user else None,
                         }
                     )
@@ -221,9 +242,14 @@ class ModelsTable:
 
     def get_base_models(self, db: Optional[Session] = None) -> list[ModelModel]:
         with get_db_context(db) as db:
+            all_models = db.query(Model).filter(Model.base_model_id.is_(None)).all()
+            model_ids = [model.id for model in all_models]
+            grants_map = AccessGrants.get_grants_by_resources("model", model_ids, db=db)
             return [
-                self._to_model_model(model, db=db)
-                for model in db.query(Model).filter(Model.base_model_id.is_(None)).all()
+                self._to_model_model(
+                    model, access_grants=grants_map.get(model.id, []), db=db
+                )
+                for model in all_models
             ]
 
     def get_models_by_user_id(
@@ -337,11 +363,18 @@ class ModelsTable:
 
             items = query.all()
 
+            model_ids = [model.id for model, _ in items]
+            grants_map = AccessGrants.get_grants_by_resources("model", model_ids, db=db)
+
             models = []
             for model, user in items:
                 models.append(
                     ModelUserResponse(
-                        **self._to_model_model(model, db=db).model_dump(),
+                        **self._to_model_model(
+                            model,
+                            access_grants=grants_map.get(model.id, []),
+                            db=db,
+                        ).model_dump(),
                         user=(
                             UserResponse(**UserModel.model_validate(user).model_dump())
                             if user
@@ -368,7 +401,18 @@ class ModelsTable:
         try:
             with get_db_context(db) as db:
                 models = db.query(Model).filter(Model.id.in_(ids)).all()
-                return [self._to_model_model(model, db=db) for model in models]
+                model_ids = [model.id for model in models]
+                grants_map = AccessGrants.get_grants_by_resources(
+                    "model", model_ids, db=db
+                )
+                return [
+                    self._to_model_model(
+                        model,
+                        access_grants=grants_map.get(model.id, []),
+                        db=db,
+                    )
+                    for model in models
+                ]
         except Exception:
             return []
 
@@ -493,9 +537,18 @@ class ModelsTable:
 
                 db.commit()
 
+                all_models = db.query(Model).all()
+                model_ids = [model.id for model in all_models]
+                grants_map = AccessGrants.get_grants_by_resources(
+                    "model", model_ids, db=db
+                )
                 return [
-                    self._to_model_model(model, db=db)
-                    for model in db.query(Model).all()
+                    self._to_model_model(
+                        model,
+                        access_grants=grants_map.get(model.id, []),
+                        db=db,
+                    )
+                    for model in all_models
                 ]
         except Exception as e:
             log.exception(f"Error syncing models for user {user_id}: {e}")

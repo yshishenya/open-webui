@@ -92,8 +92,8 @@ async def process_pipeline_inlet_filter(request, payload, user, models):
                     json=request_data,
                     ssl=AIOHTTP_CLIENT_SESSION_SSL,
                 ) as response:
-                    payload = await response.json()
                     response.raise_for_status()
+                    payload = await response.json()
             except aiohttp.ClientResponseError as e:
                 res = (
                     await response.json()
@@ -145,8 +145,8 @@ async def process_pipeline_outlet_filter(request, payload, user, models):
                     json=request_data,
                     ssl=AIOHTTP_CLIENT_SESSION_SSL,
                 ) as response:
-                    payload = await response.json()
                     response.raise_for_status()
+                    payload = await response.json()
             except aiohttp.ClientResponseError as e:
                 try:
                     res = (
@@ -228,22 +228,23 @@ async def upload_pipeline(
         headers = {"Authorization": f"Bearer {key}"}
 
         async with aiohttp.ClientSession(trust_env=True) as session:
-            form_data = aiohttp.FormData()
-            form_data.add_field(
-                "file",
-                open(file_path, "rb"),
-                filename=filename,
-                content_type="application/octet-stream",
-            )
+            with open(file_path, "rb") as f:
+                form_data = aiohttp.FormData()
+                form_data.add_field(
+                    "file",
+                    f,
+                    filename=filename,
+                    content_type="application/octet-stream",
+                )
 
-            async with session.post(
-                f"{url}/pipelines/upload",
-                headers=headers,
-                data=form_data,
-                ssl=AIOHTTP_CLIENT_SESSION_SSL,
-            ) as response:
-                response.raise_for_status()
-                data = await response.json()
+                async with session.post(
+                    f"{url}/pipelines/upload",
+                    headers=headers,
+                    data=form_data,
+                    ssl=AIOHTTP_CLIENT_SESSION_SSL,
+                ) as response:
+                    response.raise_for_status()
+                    data = await response.json()
 
         return {**data}
     except Exception as e:

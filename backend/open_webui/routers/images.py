@@ -715,7 +715,10 @@ async def image_generations(
 
             for image in res["data"]:
                 if image_url := image.get("url", None):
-                    image_data, content_type = get_image_data(image_url, headers)
+                    image_data, content_type = get_image_data(
+                        image_url,
+                        {k: v for k, v in headers.items() if k != "Content-Type"},
+                    )
                 else:
                     image_data, content_type = get_image_data(image["b64_json"])
 
@@ -1035,6 +1038,7 @@ class EditImageForm(BaseModel):
     size: Optional[str] = None
     n: Optional[int] = None
     negative_prompt: Optional[str] = None
+    background: Optional[str] = None
 
 
 @router.post("/edit")
@@ -1175,6 +1179,19 @@ async def image_edits(
             data = {
                 "model": model,
                 "prompt": form_data.prompt,
+                **({"n": form_data.n} if form_data.n else {}),
+                **({"size": size} if size else {}),
+                **(
+                    {"background": form_data.background} if form_data.background else {}
+                ),
+                **(
+                    {}
+                    if re.match(
+                        IMAGE_URL_RESPONSE_MODELS_REGEX_PATTERN,
+                        request.app.state.config.IMAGE_EDIT_MODEL,
+                    )
+                    else {"response_format": "b64_json"}
+                ),
             }
 
             is_gemini_model = model.startswith("gemini/") or model.startswith("gemini-")
@@ -1211,7 +1228,10 @@ async def image_edits(
             images = []
             for image in res["data"]:
                 if image_url := image.get("url", None):
-                    image_data, content_type = get_image_data(image_url, headers)
+                    image_data, content_type = get_image_data(
+                        image_url,
+                        {k: v for k, v in headers.items() if k != "Content-Type"},
+                    )
                 else:
                     image_data, content_type = get_image_data(image["b64_json"])
 
