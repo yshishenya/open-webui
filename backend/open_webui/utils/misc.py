@@ -14,6 +14,7 @@ import mimeparse
 
 import collections.abc
 from open_webui.env import CHAT_STREAM_RESPONSE_CHUNK_MAX_BUFFER_SIZE
+from open_webui.utils.airis.safe_get import deep_get_bool, deep_get_mapping
 
 log = logging.getLogger(__name__)
 
