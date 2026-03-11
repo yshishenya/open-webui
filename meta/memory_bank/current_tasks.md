@@ -20,6 +20,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG][DEPLOY][PROD]** Restore prod boot after upstream sync deploy
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-11__bugfix__prod-deploy-runtime-import-hotfix.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-03-11
+  - Summary: Fixed broken prod image build (`ddgs` pin + fail-fast Docker install) and two runtime import regressions so the freshly deployed prod container reaches `healthy`.
+  - Tests: `cd backend && uv pip install --system -r requirements.txt --dry-run`, `git diff --check`, prod `docker inspect airis --format "{{json .State.Health}}"`, prod `curl -fsS http://localhost:3000/health`
+  - Risks: Medium (runtime/build path touched in upstream-owned files; mitigated by narrow fixes and live prod verification).
+
 - [x] **[BUG][BILLING]** Top-up presets remained old due `.env` override
   - Spec: `meta/memory_bank/specs/work_items/2026-03-05__bugfix__billing-topup-packages-env-override.md`
   - Owner: Codex
