@@ -4,6 +4,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
+	import HeaderBillingAccess from '$lib/components/airis/HeaderBillingAccess.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 	import ChatBubbles from '$lib/components/icons/ChatBubbles.svelte';
 	import { sanitizeReturnTo } from '$lib/utils/airis/return_to';
@@ -121,8 +122,10 @@
 					</div>
 				</div>
 
-				{#if returnTo}
-					<div class="ml-auto">
+				<div class="ml-auto flex items-center gap-2">
+					<HeaderBillingAccess />
+
+					{#if returnTo}
 						<a
 							href={returnTo}
 							on:click={handleReturnToClick}
@@ -132,8 +135,8 @@
 							<span class="hidden sm:inline">{$i18n.t('Back to chat')}</span>
 							<span class="sm:hidden">{$i18n.t('Back')}</span>
 						</a>
-					</div>
-				{/if}
+					{/if}
+				</div>
 			</div>
 		</nav>
 
