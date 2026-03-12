@@ -49,7 +49,6 @@ const mocks = vi.hoisted(() => {
 	return {
 		getBalanceMock: vi.fn(),
 		pageStore: createStore({ url: new URL('http://localhost/c/123') }),
-		mobileStore: createStore(false),
 		i18nStore: createStore<I18nValue>({
 			locale: 'en',
 			t: (key: string) => key
@@ -59,7 +58,6 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('$lib/apis/billing', () => ({ getBalance: mocks.getBalanceMock }), { virtual: true });
 vi.mock('$app/stores', () => ({ page: mocks.pageStore }), { virtual: true });
-vi.mock('$lib/stores', () => ({ mobile: mocks.mobileStore }), { virtual: true });
 
 const flushPromises = async (): Promise<void> => {
 	await Promise.resolve();
@@ -86,7 +84,6 @@ describe('HeaderBillingAccess', () => {
 
 	beforeEach(() => {
 		localStorage.token = 'test-token';
-		mocks.mobileStore.set(false);
 		mocks.pageStore.set({ url: new URL('http://localhost/c/123?focus=topup') });
 		mocks.getBalanceMock.mockReset().mockResolvedValue(createBalance());
 		consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -128,6 +125,9 @@ describe('HeaderBillingAccess', () => {
 		const topupLink = root.querySelector('[data-testid="header-billing-topup"]');
 
 		expect(amount?.textContent).toContain('300');
+		expect(root.textContent).not.toContain('Balance');
+		expect(root.textContent).not.toContain('Top up');
+		expect(topupLink?.getAttribute('aria-label')).toBe('Top up');
 
 		const walletUrl = new URL(balanceLink?.getAttribute('href') ?? '', 'http://localhost');
 		expect(walletUrl.pathname).toBe('/billing/balance');
@@ -187,7 +187,7 @@ describe('HeaderBillingAccess', () => {
 		);
 
 		expect(access?.getAttribute('data-state')).toBe('error');
-		expect(amount?.textContent).toContain('Wallet');
+		expect(amount?.textContent).toContain('--');
 		expect(topupUrl.pathname).toBe('/billing/balance');
 		expect(topupUrl.searchParams.get('focus')).toBe('topup');
 		expect(topupUrl.searchParams.get('return_to')).toBeNull();

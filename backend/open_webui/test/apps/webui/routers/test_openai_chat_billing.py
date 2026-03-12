@@ -147,7 +147,10 @@ class TestOpenAIChatBilling(AbstractPostgresTest):
         with mock_webui_user(id="1"):
             response = self.fast_api_client.post(self.create_url("/chat/completions"), json=payload)
 
-        assert response.status_code == 200
+        # Regression: `main.py` must pass a context dict into
+        # `process_chat_response(response, ctx)` for non-streaming completions.
+        assert response.status_code == 200, response.text
+        assert response.json()["choices"][0]["message"]["content"] == "ok"
 
         hold_entry = get_ledger_entry(self.request_id, "chat_completion", LedgerEntryType.HOLD)
         assert hold_entry is not None

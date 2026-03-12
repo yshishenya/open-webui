@@ -20,6 +20,24 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[UI][BILLING]** Simplify header wallet chip copy and density
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-12__bugfix__header-billing-access-laconic-copy.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-03-12
+  - Summary: Reduced header billing access to card icon + amount + icon-only `+`, removed visible `Balance` / `Top up` copy, and deployed the same clean release image to demo and prod.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run src/lib/components/airis/HeaderBillingAccess.test.ts"`; `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; npx eslint src/lib/components/airis/HeaderBillingAccess.svelte src/lib/components/airis/HeaderBillingAccess.test.ts"`; `git diff --check`; demo `docker inspect airis`; demo `curl -sS https://dev.chat.airis.you/health`; prod `docker inspect airis`; prod `curl -sS http://localhost:3000/health`; prod `curl -sS https://chat.airis.you/health`
+  - Risks: Low-Medium (shared header UI changed on both environments; mitigated by live deploy verification).
+
+- [x] **[BUG][CHAT][LLM]** Fix `process_chat_response` arity mismatch
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-12__bugfix__chat-process-chat-response-arity.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-03-12
+  - Summary: Restored the `process_chat_response(response, ctx)` contract in the main chat entrypoint so non-streaming LLM requests no longer crash after payload processing.
+  - Tests: `docker compose exec -T airis bash -lc "pytest open_webui/test/apps/webui/routers/test_openai_chat_billing.py -q -k test_payg_success_creates_hold_charge_usage_event"`, `docker compose exec -T airis bash -lc "python -m py_compile open_webui/main.py open_webui/test/apps/webui/routers/test_openai_chat_billing.py"`, `git diff --check -- backend/open_webui/main.py backend/open_webui/test/apps/webui/routers/test_openai_chat_billing.py meta/memory_bank/specs/work_items/2026-03-12__bugfix__chat-process-chat-response-arity.md meta/memory_bank/current_tasks.md`
+  - Risks: Low-Medium (touches core chat completion path; mitigated by reusing existing middleware context builder and route-level regression coverage).
+
 - [x] **[BUG][DEPLOY][PROD]** Restore prod boot after upstream sync deploy
   - Spec: `meta/memory_bank/specs/work_items/2026-03-11__bugfix__prod-deploy-runtime-import-hotfix.md`
   - Owner: Codex
@@ -1044,7 +1062,14 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Blocked
 
-_No blocked tasks currently_
+- [ ] **[OPS][DEPLOY][DEMO]** Restore demo deploy access for `dev.chat.airis.you`
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-12__ops__deploy-demo-prod-88138a18d.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Started: 2026-03-12
+  - Summary: Built and pushed image `yshishenya/yshishenya:88138a18d`; deployed the same tag to prod successfully, but demo deploy is blocked because no authorized local SSH key is available for `yan@dev.chat.airis.you`.
+  - Tests: local `docker build -t yshishenya/yshishenya:88138a18d .`, local `docker push yshishenya/yshishenya:88138a18d`, prod remote `docker compose -f docker-compose.yaml -f docker-compose.prod.yml pull`, prod remote `docker compose -f docker-compose.yaml -f docker-compose.prod.yml up -d --remove-orphans --no-build --force-recreate`, prod `docker inspect airis --format "status={{.State.Status}} health={{.State.Health.Status}} restarts={{.RestartCount}}"`, prod `curl -sS http://localhost:3000/health`, demo SSH probes via `~/.ssh/airis_prod`, `~/.ssh/id_rsa`, `~/.ssh/github_ed25519`
+  - Blocker: demo host requires a separate authorized SSH key (expected `~/.ssh/airis_demo` or equivalent), which is not present/unlocked in this environment.
 
 ---
 

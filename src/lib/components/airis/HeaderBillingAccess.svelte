@@ -4,7 +4,6 @@
 	import { page } from '$app/stores';
 
 	import { getBalance, type Balance } from '$lib/apis/billing';
-	import { mobile } from '$lib/stores';
 	import CreditCard from '$lib/components/icons/CreditCard.svelte';
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import { buildBillingBalanceHref } from '$lib/utils/airis/billing_block';
@@ -31,7 +30,6 @@
 	let isLowBalance = false;
 	let balanceHref = '/billing/balance';
 	let topupHref = '/billing/balance?focus=topup';
-	let balanceLabel = '';
 	let amountLabel = '';
 
 	const formatMoney = (kopeks: number, currencyCode: string): string => {
@@ -117,13 +115,12 @@
 		focus: 'topup',
 		src: 'header_topup'
 	});
-	$: balanceLabel = isLowBalance ? $i18n.t('Low balance') : $i18n.t('Balance');
 	$: amountLabel =
 		balance !== null
 			? formatMoney(totalBalanceKopeks, currency)
 			: loading
-				? '…'
-				: $i18n.t('Wallet');
+				? '...'
+				: '--';
 </script>
 
 <div
@@ -132,56 +129,44 @@
 	data-state={isLowBalance ? 'low' : hasError ? 'error' : 'normal'}
 >
 	<div
-		class="flex items-center rounded-2xl border border-gray-200/80 bg-white/85 p-1 shadow-sm shadow-black/[0.03] backdrop-blur-xl dark:border-gray-800 dark:bg-gray-900/80"
+		class="flex items-center rounded-full border border-gray-200/80 bg-white/85 p-1 shadow-sm shadow-black/[0.03] backdrop-blur-xl dark:border-gray-800 dark:bg-gray-900/80"
 	>
 		<a
 			href={balanceHref}
-			class="group flex min-w-0 items-center gap-2 rounded-[15px] px-2 py-1.5 text-left transition hover:bg-gray-100/80 dark:hover:bg-gray-800/80 {$mobile
-				? 'pr-1.5'
-				: 'pr-2'}"
+			class="group flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-left transition hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
 			data-testid="header-billing-balance"
 			aria-label={$i18n.t('Open wallet')}
 		>
 			<div
-				class="flex size-8 shrink-0 items-center justify-center rounded-xl transition {isLowBalance
+				class="flex size-7 shrink-0 items-center justify-center rounded-full transition {isLowBalance
 					? 'bg-amber-500/12 text-amber-700 dark:bg-amber-400/14 dark:text-amber-200'
 					: 'bg-sky-500/10 text-sky-700 dark:bg-sky-400/14 dark:text-sky-200'}"
 			>
 				<CreditCard className="size-4" strokeWidth="1.7" />
 			</div>
 
-			<div class="min-w-0 leading-none">
-				<div
-					class="hidden text-[10px] font-medium uppercase tracking-[0.12em] lg:block {isLowBalance
-						? 'text-amber-700/80 dark:text-amber-200/80'
-						: 'text-gray-500 dark:text-gray-400'}"
-				>
-					{balanceLabel}
-				</div>
-				<div
-					class="truncate text-sm font-semibold text-gray-900 dark:text-gray-50"
-					data-testid="header-billing-amount"
-				>
-					{amountLabel}
-					{#if refreshing}
-						<span class="ml-1 text-[11px] font-medium text-gray-400 dark:text-gray-500">•</span>
-					{/if}
-				</div>
+			<div
+				class="min-w-0 truncate tabular-nums text-[13px] font-semibold leading-none {isLowBalance
+					? 'text-amber-800 dark:text-amber-100'
+					: 'text-gray-900 dark:text-gray-50'}"
+				data-testid="header-billing-amount"
+			>
+				{amountLabel}
+				{#if refreshing}
+					<span class="ml-1 text-[11px] font-medium text-gray-400 dark:text-gray-500">•</span>
+				{/if}
 			</div>
 		</a>
 
-		<div class="mx-1 h-6 w-px shrink-0 bg-gray-200 dark:bg-gray-800"></div>
+		<div class="mx-0.5 h-5 w-px shrink-0 bg-gray-200/80 dark:bg-gray-800"></div>
 
 		<a
 			href={topupHref}
-			class="flex shrink-0 items-center gap-1.5 rounded-[15px] bg-black px-2.5 py-1.5 text-sm font-medium text-white transition hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 {$mobile
-				? 'pr-2.5'
-				: 'pr-3'}"
+			class="flex size-8 shrink-0 items-center justify-center rounded-full bg-black text-white transition hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
 			data-testid="header-billing-topup"
 			aria-label={$i18n.t('Top up')}
 		>
 			<Plus className="size-4" strokeWidth="2.2" />
-			<span class={$mobile ? 'sr-only' : 'hidden sm:inline'}>{$i18n.t('Top up')}</span>
 		</a>
 	</div>
 </div>
