@@ -20,6 +20,24 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG][UI][BILLING]** Unify header billing chip height with adjacent buttons
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-12__bugfix__header-billing-access-height-unify.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-03-12
+  - Summary: Reduced the header billing chip to a single `34px` outlined pill with `card + amount + divider + plus`, removing the separate circular top-up button and aligning its height with neighboring navbar controls. Preview deployed to demo only.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run src/lib/components/airis/HeaderBillingAccess.test.ts"`; `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; npx eslint src/lib/components/airis/HeaderBillingAccess.svelte src/lib/components/airis/HeaderBillingAccess.test.ts"`; `git diff --check -- src/lib/components/airis/HeaderBillingAccess.svelte src/lib/components/airis/HeaderBillingAccess.test.ts`; `docker build -t airis:header-billing-height-unify .`; local `WEBUI_IMAGE=airis WEBUI_DOCKER_TAG=header-billing-height-unify docker compose -f docker-compose.yaml -f docker-compose.prod.yml up -d --remove-orphans --no-build --force-recreate`; local `docker inspect airis`; local `curl -sS http://localhost:3000/health`; external `curl -sS https://dev.chat.airis.you/health`
+  - Risks: Low-Medium (shared header control layout changed again; mitigated by demo-only preview before prod promotion).
+
+- [x] **[OPS][DEPLOY]** Promote merged release `47ff7292a` to demo/prod
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-12__ops__deploy-demo-prod-47ff7292a.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-03-12
+  - Summary: Built and pushed the merged PR #81 release image, then deployed the same `47ff7292a` tag to both demo and prod for deterministic rollout.
+  - Tests: `docker build -t yshishenya/yshishenya:47ff7292a .`; `docker push yshishenya/yshishenya:47ff7292a`; local `WEBUI_IMAGE=yshishenya/yshishenya WEBUI_DOCKER_TAG=47ff7292a docker compose -f docker-compose.yaml -f docker-compose.prod.yml up -d --remove-orphans --no-build --force-recreate`; local `docker inspect airis`; remote `git pull --ff-only`; remote `WEBUI_IMAGE=yshishenya/yshishenya WEBUI_DOCKER_TAG=47ff7292a docker compose -f docker-compose.yaml -f docker-compose.prod.yml pull`; remote `WEBUI_IMAGE=yshishenya/yshishenya WEBUI_DOCKER_TAG=47ff7292a docker compose -f docker-compose.yaml -f docker-compose.prod.yml up -d --remove-orphans --no-build --force-recreate`; external `curl -sS https://dev.chat.airis.you/health`; remote `curl -sS http://localhost:3000/health`; external `curl -sS https://chat.airis.you/health`
+  - Risks: Low-Medium (container recreate causes a short availability blip; mitigated by same-tag promotion and post-deploy health checks).
+
 - [x] **[UI][BILLING]** Simplify header wallet chip copy and density
   - Spec: `meta/memory_bank/specs/work_items/2026-03-12__bugfix__header-billing-access-laconic-copy.md`
   - Owner: Codex

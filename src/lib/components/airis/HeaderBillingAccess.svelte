@@ -129,21 +129,21 @@
 	data-state={isLowBalance ? 'low' : hasError ? 'error' : 'normal'}
 >
 	<div
-		class="flex items-center rounded-full border border-gray-200/80 bg-white/85 p-1 shadow-sm shadow-black/[0.03] backdrop-blur-xl dark:border-gray-800 dark:bg-gray-900/80"
+		class="flex h-[34px] items-stretch overflow-hidden rounded-xl border border-gray-200/80 bg-white/85 shadow-sm shadow-black/[0.03] backdrop-blur-xl dark:border-gray-800 dark:bg-gray-900/80"
+		data-testid="header-billing-shell"
 	>
 		<a
 			href={balanceHref}
-			class="group flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-left transition hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+			class="group flex h-full min-w-0 items-center gap-1.5 px-2.5 text-left transition hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
 			data-testid="header-billing-balance"
 			aria-label={$i18n.t('Open wallet')}
 		>
-			<div
-				class="flex size-7 shrink-0 items-center justify-center rounded-full transition {isLowBalance
-					? 'bg-amber-500/12 text-amber-700 dark:bg-amber-400/14 dark:text-amber-200'
-					: 'bg-sky-500/10 text-sky-700 dark:bg-sky-400/14 dark:text-sky-200'}"
-			>
-				<CreditCard className="size-4" strokeWidth="1.7" />
-			</div>
+			<CreditCard
+				className="size-4 shrink-0 {isLowBalance
+					? 'text-amber-700 dark:text-amber-200'
+					: 'text-gray-500 dark:text-gray-400'}"
+				strokeWidth="1.7"
+			/>
 
 			<div
 				class="min-w-0 truncate tabular-nums text-[13px] font-semibold leading-none {isLowBalance
@@ -158,15 +158,15 @@
 			</div>
 		</a>
 
-		<div class="mx-0.5 h-5 w-px shrink-0 bg-gray-200/80 dark:bg-gray-800"></div>
+		<div class="my-auto h-4 w-px shrink-0 bg-gray-200/80 dark:bg-gray-800"></div>
 
 		<a
 			href={topupHref}
-			class="flex size-8 shrink-0 items-center justify-center rounded-full bg-black text-white transition hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+			class="flex h-full shrink-0 items-center justify-center px-2 text-gray-700 transition hover:bg-gray-100/80 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800/80 dark:hover:text-gray-50"
 			data-testid="header-billing-topup"
 			aria-label={$i18n.t('Top up')}
 		>
-			<Plus className="size-4" strokeWidth="2.2" />
+			<Plus className="size-3.5" strokeWidth="2.2" />
 		</a>
 	</div>
 </div>
