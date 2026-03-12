@@ -20,6 +20,25 @@ cd /opt/projects/open-webui
 docker login
 ```
 
+4. Use an SSH deploy key for the target repo remote, not HTTPS.
+   Automated deploy runs `git pull --ff-only` on the target host; HTTPS remotes are brittle there and may fail with `gnutls_handshake()`.
+
+Recommended target setup:
+
+```bash
+ssh-keygen -t ed25519 -C "airis-prod-open-webui" -N "" -f ~/.ssh/open_webui_deploy
+gh repo deploy-key add ~/.ssh/open_webui_deploy.pub --repo yshishenya/open-webui --title "airis-prod-open-webui"
+cat >> ~/.ssh/config <<'EOF'
+Host github-openwebui
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/open_webui_deploy
+  IdentitiesOnly yes
+EOF
+git -C /opt/projects/open-webui remote set-url origin git@github-openwebui:yshishenya/open-webui.git
+git -C /opt/projects/open-webui checkout -B airis_b2c origin/airis_b2c
+```
+
 ## One-time setup (dev server)
 
 1. Ensure SSH access works for demo/prod hosts:
@@ -221,4 +240,8 @@ docker compose down -v
   ```bash
   ssh airis-prod "cd /opt/projects/open-webui && docker compose -f docker-compose.yaml -f docker-compose.prod.yml logs -f airis"
   ```
+- If target `git pull` fails with `gnutls_handshake()` or the target repo still uses `https://github.com/...`:
+  - switch the target repo to an SSH deploy key remote as shown above
+  - verify with `ssh -T git@github-openwebui`
+  - then run `git -C /opt/projects/open-webui pull --ff-only`
 - Compose changes on dev: update prod repo manually (e.g. `git pull`) before deploy.

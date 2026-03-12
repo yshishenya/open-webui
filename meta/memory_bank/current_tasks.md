@@ -24,9 +24,9 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
   - Spec: `meta/memory_bank/specs/work_items/2026-03-11__bugfix__prod-deploy-runtime-import-hotfix.md`
   - Owner: Codex
   - Branch: `airis_b2c`
-  - Done: 2026-03-11
-  - Summary: Fixed broken prod image build (`ddgs` pin + fail-fast Docker install) and two runtime import regressions so the freshly deployed prod container reaches `healthy`.
-  - Tests: `cd backend && uv pip install --system -r requirements.txt --dry-run`, `git diff --check`, prod `docker inspect airis --format "{{json .State.Health}}"`, prod `curl -fsS http://localhost:3000/health`
+  - Done: 2026-03-12
+  - Summary: Fixed the broken prod image build, restored the import contracts that crashed startup, re-enabled automated prod deploy via SSH deploy key, and added targeted regression tests for the affected modules.
+  - Tests: `cd backend && uv pip install --system -r requirements.txt --dry-run`, `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest -q open_webui/test/util/test_safe_get.py open_webui/test/util/test_access_control_mutable_default.py"`, `git diff --check`, `scripts/deploy_target.sh --target prod --yes --non-interactive`, prod `docker inspect airis --format "{{json .State.Health}}"`, prod `curl -fsS http://localhost:3000/health`
   - Risks: Medium (runtime/build path touched in upstream-owned files; mitigated by narrow fixes and live prod verification).
 
 - [x] **[BUG][BILLING]** Top-up presets remained old due `.env` override
