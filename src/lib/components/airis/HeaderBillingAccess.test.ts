@@ -177,6 +177,22 @@ describe('HeaderBillingAccess', () => {
 		expect(access?.getAttribute('data-state')).toBe('low');
 	});
 
+	it('keeps zero balance visible in the compact chip', async () => {
+		mocks.getBalanceMock.mockResolvedValue(
+			createBalance({ balance_topup_kopeks: 0, balance_included_kopeks: 0 })
+		);
+
+		const root = renderComponent();
+		await flushPromises();
+
+		const amount = root.querySelector('[data-testid="header-billing-amount"]');
+
+		expect(amount?.textContent).toContain('0');
+		expect(amount?.className).toContain('min-w-[2.6rem]');
+		expect(amount?.className).toContain('max-w-[6rem]');
+		expect(amount?.getAttribute('title')).toContain('0');
+	});
+
 	it('keeps top-up usable when balance loading fails', async () => {
 		mocks.pageStore.set({ url: new URL('http://localhost/workspace') });
 		mocks.getBalanceMock.mockRejectedValue(new Error('boom'));

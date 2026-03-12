@@ -1,0 +1,8 @@
+- [x] **[BUG][BILLING][IMAGES]** Preserve billing block UX for chat image generation
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-12__bugfix__image-generation-insufficient-funds-copy.md`
+  - Owner: Codex
+  - Branch: `bugfix/image-generation-insufficient-funds-copy`
+  - Done: 2026-03-12
+  - Summary: Preserved structured billing-block exceptions across chat image generation and builtin image tools so insufficient-funds now routes into the existing top-up UX instead of model-authored generic image error copy.
+  - Tests: `python -m py_compile ...`; `git diff --check`; targeted pytest attempted in Docker and local env but blocked by container-name conflict / missing `typer`
+  - Risks: Low-Medium (touches shared chat middleware before completion dispatch)
