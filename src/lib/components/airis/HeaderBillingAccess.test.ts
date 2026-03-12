@@ -123,11 +123,16 @@ describe('HeaderBillingAccess', () => {
 		const amount = root.querySelector('[data-testid="header-billing-amount"]');
 		const balanceLink = root.querySelector('[data-testid="header-billing-balance"]');
 		const topupLink = root.querySelector('[data-testid="header-billing-topup"]');
+		const shell = root.querySelector('[data-testid="header-billing-shell"]');
 
 		expect(amount?.textContent).toContain('300');
 		expect(root.textContent).not.toContain('Balance');
 		expect(root.textContent).not.toContain('Top up');
 		expect(topupLink?.getAttribute('aria-label')).toBe('Top up');
+		expect(shell?.className).toContain('h-[34px]');
+		expect(shell?.className).toContain('rounded-xl');
+		expect(topupLink?.className).not.toContain('rounded-full');
+		expect(topupLink?.className).not.toContain('bg-black');
 
 		const walletUrl = new URL(balanceLink?.getAttribute('href') ?? '', 'http://localhost');
 		expect(walletUrl.pathname).toBe('/billing/balance');
