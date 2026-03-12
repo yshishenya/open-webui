@@ -139,6 +139,9 @@ from open_webui.env import (
     FORWARD_SESSION_INFO_HEADER_MESSAGE_ID,
 )
 from open_webui.utils.headers import include_user_info_headers
+from open_webui.utils.airis.task_error_payload import (
+    is_billing_block_http_exception,
+)
 from open_webui.constants import TASKS
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
@@ -1315,6 +1318,9 @@ async def chat_completion_tools_handler(
                         tool_result = await tool_function(**tool_function_params)
 
                 except Exception as e:
+                    if is_billing_block_http_exception(e):
+                        raise
+
                     tool_result = str(e)
 
                 tool_result, tool_result_files, tool_result_embeds = (
@@ -1780,6 +1786,9 @@ async def chat_image_generation_handler(
 
             system_message_content = "<context>The requested image has been edited and created and is now being shown to the user. Let them know that it has been generated.</context>"
         except Exception as e:
+            if is_billing_block_http_exception(e):
+                raise
+
             log.debug(e)
 
             error_message = ""
@@ -1869,6 +1878,9 @@ async def chat_image_generation_handler(
 
             system_message_content = "<context>The requested image has been created by the system successfully and is now being shown to the user. Let the user know that the image they requested has been generated and is now shown in the chat.</context>"
         except Exception as e:
+            if is_billing_block_http_exception(e):
+                raise
+
             log.debug(e)
 
             error_message = ""
@@ -4368,6 +4380,9 @@ async def streaming_chat_response_handler(response, ctx):
                                     )
 
                             except Exception as e:
+                                if is_billing_block_http_exception(e):
+                                    raise
+
                                 tool_result = str(e)
 
                         tool_result, tool_result_files, tool_result_embeds = (

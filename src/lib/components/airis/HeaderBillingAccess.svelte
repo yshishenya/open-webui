@@ -146,10 +146,11 @@
 			/>
 
 			<div
-				class="min-w-0 truncate tabular-nums text-[13px] font-semibold leading-none {isLowBalance
+				class="min-w-[2.6rem] max-w-[6rem] shrink-0 overflow-hidden text-ellipsis whitespace-nowrap tabular-nums text-[13px] font-semibold leading-none {isLowBalance
 					? 'text-amber-800 dark:text-amber-100'
 					: 'text-gray-900 dark:text-gray-50'}"
 				data-testid="header-billing-amount"
+				title={amountLabel}
 			>
 				{amountLabel}
 				{#if refreshing}

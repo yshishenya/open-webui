@@ -24,6 +24,22 @@ def _billing_inline_message(error_code: str) -> str:
     return "Request blocked"
 
 
+def is_billing_block_http_exception(exc: Exception) -> bool:
+    """Return True when the exception carries structured billing-block details."""
+    if not isinstance(exc, HTTPException):
+        return False
+
+    detail_value = exc.detail
+    if not isinstance(detail_value, dict):
+        return False
+
+    error_code_value = detail_value.get("error")
+    return (
+        isinstance(error_code_value, str)
+        and error_code_value in _BILLING_BLOCK_ERROR_CODES
+    )
+
+
 def build_task_ws_error_payload(exc: Exception) -> Optional[dict[str, object]]:
     """Convert exceptions raised inside async chat tasks to a websocket-safe payload.
 
@@ -33,19 +49,13 @@ def build_task_ws_error_payload(exc: Exception) -> Optional[dict[str, object]]:
     Returns a dict shaped like {content: str, detail?: dict, status_code?: int},
     or None if the exception is not recognized.
     """
-    if not isinstance(exc, HTTPException):
+    if not is_billing_block_http_exception(exc):
         return None
 
     detail_value = exc.detail
-    if not isinstance(detail_value, dict):
-        return None
-
+    assert isinstance(detail_value, dict)
     error_code_value = detail_value.get("error")
-    if not isinstance(error_code_value, str):
-        return None
-
-    if error_code_value not in _BILLING_BLOCK_ERROR_CODES:
-        return None
+    assert isinstance(error_code_value, str)
 
     # No secrets in payload; detail is already a user-level business error.
     return {

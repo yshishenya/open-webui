@@ -38,6 +38,9 @@ from open_webui.models.messages import Messages, Message
 from open_webui.models.groups import Groups
 from open_webui.models.memories import Memories
 from open_webui.retrieval.vector.factory import VECTOR_DB_CLIENT
+from open_webui.utils.airis.task_error_payload import (
+    is_billing_block_http_exception,
+)
 from open_webui.utils.sanitize import sanitize_code
 
 log = logging.getLogger(__name__)
@@ -279,6 +282,9 @@ async def generate_image(
 
         return json.dumps({"status": "success", "images": images}, ensure_ascii=False)
     except Exception as e:
+        if is_billing_block_http_exception(e):
+            raise
+
         log.exception(f"generate_image error: {e}")
         return json.dumps({"error": str(e)})
 
@@ -346,6 +352,9 @@ async def edit_image(
 
         return json.dumps({"status": "success", "images": images}, ensure_ascii=False)
     except Exception as e:
+        if is_billing_block_http_exception(e):
+            raise
+
         log.exception(f"edit_image error: {e}")
         return json.dumps({"error": str(e)})
 

@@ -1,0 +1,35 @@
+- [x] **[BUG][UI][BILLING]** Keep zero-balance amount visible in header chip
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-12__bugfix__header-billing-zero-balance-visibility.md`
+  - Owner: Codex
+  - Branch: `bugfix/header-billing-zero-balance-visibility`
+  - Done: 2026-03-12
+  - Summary: Prevent the compact header wallet amount from collapsing away in dense navbars so ordinary users still see `0` instead of an empty chip.
+  - Tests: Targeted vitest + eslint for `HeaderBillingAccess`; `git diff --check`; demo preview deploy + internal/public health checks
+  - Risks: Low (small shared header UI tweak)
+
+- [x] **[BUG][OPS][VPN]** Restore working LiteLLM VPN commands with user-space Xray
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-12__bugfix__litellm-vpn-user-space-vless-update.md`
+  - Owner: Codex
+  - Branch: `bugfix/header-billing-zero-balance-visibility`
+  - Done: 2026-03-12
+  - Summary: Updated the LiteLLM host to use the provided `grpc + reality` VLESS config through the existing user-space Xray client and refreshed `vpn` / `vpn-on` so they show direct vs proxy route correctly without `sudo`.
+  - Tests: Remote `vpn-on`, `vpn`, `vpn-test`, and a fresh login-shell `vpn` check on `yan@142.252.220.116`
+  - Risks: Low-Medium (remote shell override now contains two generations of VPN helpers; latest block wins and was verified live)
+
+- [x] **[BUG][OPS][VPN]** Replace current server `systemctl` VPN wrapper with user-space Xray
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-12__bugfix__current-server-vpn-user-space-vless-activation.md`
+  - Owner: Codex
+  - Branch: `bugfix/header-billing-zero-balance-visibility`
+  - Done: 2026-03-12
+  - Summary: Installed user-space Xray with the provided `grpc + reality` VLESS config on the current server and replaced the broken `systemctl xray` shell wrappers with the same `vpn` UX used on LiteLLM.
+  - Tests: Local `vpn-on`, `vpn`, `vpn-test`, plus a fresh login-shell `vpn` check
+  - Risks: Low-Medium (existing open terminals keep old function definitions until shell reload)
+
+- [x] **[BUG][OPS][VPN]** Add user-space VLESS VPN flow on `airis-prod`
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-12__bugfix__airis-prod-vpn-user-space-vless-activation.md`
+  - Owner: Codex
+  - Branch: `bugfix/header-billing-zero-balance-visibility`
+  - Done: 2026-03-12
+  - Summary: Added a user-space Xray client on `airis-prod` using the provided `grpc + reality` VLESS link and overrode `vpn` / `vpn-on` to use ports `2080/2081` because the legacy root service still occupies `1080/1081`.
+  - Tests: Remote `vpn-on`, `vpn`, `vpn-test`, and a fresh login-shell `vpn` check on `yan@185.130.212.71`
+  - Risks: Low-Medium (legacy root-managed Xray remains installed in parallel; shell helpers now target the user-space client instead)

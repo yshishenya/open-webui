@@ -1,0 +1,8 @@
+- [x] **[BUG][BUNDLE]** Consolidate pending header, image billing, and VPN docs into one PR
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-12__bugfix__bundle-header-zero-balance-image-billing.md`
+  - Owner: Codex
+  - Branch: `bugfix/header-zero-balance-image-billing-bundle`
+  - Done: 2026-03-12
+  - Summary: Collected the zero-balance header fix, the image-generation billing-block propagation fix, and the pending VPN Memory Bank artifacts into one clean branch from `airis_b2c` so the full pending set could be verified and merged together.
+  - Tests: `python -m py_compile ...`; `git diff --check`; frontend targeted `docker compose ... airis-frontend ...` passed; backend targeted docker pytest blocked by missing `postgres` in `--no-deps` mode and by absent `pytest_asyncio` in the current test image
+  - Risks: Low-Medium (single PR bundles both shared backend middleware and shared header UI changes)
