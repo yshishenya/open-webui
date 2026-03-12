@@ -1,0 +1,8 @@
+- [x] **[UI][BILLING]** Header quick access for balance and top-up
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-12__feature__header-billing-quick-access.md`
+  - Owner: Codex
+  - Branch: `feature/header-billing-quick-access`
+  - Done: 2026-03-12
+  - Summary: Added a reusable split header control that surfaces current balance and a focused top-up CTA across the main logged-in app headers while preserving safe chat return links.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run test:frontend -- --run src/lib/components/airis/HeaderBillingAccess.test.ts"`; `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npx eslint src/lib/components/airis/HeaderBillingAccess.svelte src/lib/components/airis/HeaderBillingAccess.test.ts"`; `git diff --check`; `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run check"` (fails due pre-existing repo-wide `svelte-check` errors outside this work item)
+  - Risks: Medium (touches shared navigation on desktop/mobile)

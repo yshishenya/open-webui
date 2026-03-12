@@ -13,6 +13,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
+	import HeaderBillingAccess from '$lib/components/airis/HeaderBillingAccess.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 
 	const i18n = getContext('i18n');
@@ -147,7 +148,9 @@
 					</div>
 				</div>
 
-				<!-- <div class="flex items-center text-xl font-medium">{$i18n.t('Workspace')}</div> -->
+				<div class="ml-auto flex items-center">
+					<HeaderBillingAccess />
+				</div>
 			</div>
 		</nav>
 

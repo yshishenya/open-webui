@@ -10,6 +10,7 @@
 
 	import { createNoteHandler } from '$lib/components/notes/utils';
 
+	import HeaderBillingAccess from '$lib/components/airis/HeaderBillingAccess.svelte';
 	import UserMenu from '$lib/components/layout/Sidebar/UserMenu.svelte';
 	import Notes from '$lib/components/notes/Notes.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -80,6 +81,8 @@
 
 					<div class=" self-center flex items-center gap-1">
 						{#if $user !== undefined && $user !== null}
+							<HeaderBillingAccess />
+
 							<UserMenu
 								className="max-w-[240px]"
 								role={$user?.role}

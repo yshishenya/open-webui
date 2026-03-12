@@ -9,6 +9,7 @@
 
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
+	import HeaderBillingAccess from '$lib/components/airis/HeaderBillingAccess.svelte';
 	import UserMenu from '$lib/components/layout/Sidebar/UserMenu.svelte';
 	import PencilSquare from '../icons/PencilSquare.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
@@ -193,6 +194,8 @@
 				{/if}
 
 				{#if $user !== undefined}
+					<HeaderBillingAccess />
+
 					<UserMenu
 						className="max-w-[240px]"
 						role={$user?.role}

@@ -23,6 +23,7 @@
 	import ShareChatModal from '../chat/ShareChatModal.svelte';
 	import ModelSelector from '../chat/ModelSelector.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
+	import HeaderBillingAccess from '$lib/components/airis/HeaderBillingAccess.svelte';
 	import Menu from '$lib/components/layout/Navbar/Menu.svelte';
 	import UserMenu from '$lib/components/layout/Sidebar/UserMenu.svelte';
 	import AdjustmentsHorizontal from '../icons/AdjustmentsHorizontal.svelte';
@@ -229,6 +230,8 @@
 					{/if}
 
 					{#if $user !== undefined && $user !== null}
+						<HeaderBillingAccess className="ml-0.5" />
+
 						<UserMenu
 							className="max-w-[240px]"
 							role={$user?.role}
