@@ -35,14 +35,14 @@ with suppress(ImportError):
 
 
 def migrate(migrator: Migrator, database: pw.Database, *, fake=False):
-    """Write your migrations here."""
 
+    """Add fields to the chat model."""
     migrator.add_fields(
         "chat", share_id=pw.CharField(max_length=255, null=True, unique=True)
     )
 
 
 def rollback(migrator: Migrator, database: pw.Database, *, fake=False):
-    """Write your rollback migrations here."""
 
+    """Remove the 'share_id' field from the 'chat' table."""
     migrator.remove_fields("chat", "share_id")

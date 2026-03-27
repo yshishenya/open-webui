@@ -57,6 +57,19 @@ log = logging.getLogger(__name__)
 
 
 def get_function_module_by_id(request: Request, pipe_id: str):
+    """def get_function_module_by_id(request: Request, pipe_id: str):
+    Retrieve a function module by its ID and configure its valves.  This function
+    first attempts to get the function module from the cache  using the provided
+    `request` and `pipe_id`. It checks if the function  module has attributes
+    `valves` and `Valves`. If both attributes exist,  it retrieves the valves
+    associated with the `pipe_id` using  `Functions.get_function_valves_by_id`. If
+    valves are found, it  initializes the `function_module.valves` with the non-
+    None values from  the retrieved valves. In case of an error during this
+    process, it logs  the exception and raises it.
+    
+    Args:
+        request (Request): The request object containing context for the operation.
+        pipe_id (str): The identifier for the function module to retrieve."""
     function_module, _, _ = get_function_module_from_cache(request, pipe_id)
 
     if hasattr(function_module, "valves") and hasattr(function_module, "Valves"):
@@ -158,6 +171,8 @@ async def get_function_models(request):
 async def generate_function_chat_completion(
     request, form_data, user, models: dict = {}
 ):
+    """Generates a chat completion response based on the provided request and form
+    data."""
     async def execute_pipe(pipe, params):
         if inspect.iscoroutinefunction(pipe):
             return await pipe(**params)
@@ -173,6 +188,19 @@ async def generate_function_chat_completion(
             return "".join([str(stream) async for stream in res])
 
     def process_line(form_data: dict, line):
+        """Process a line of data and format it for output.
+        
+        This function checks the type of the input `line` and processes it accordingly.
+        If `line` is an instance of BaseModel, it converts it to JSON format. If it is
+        a dictionary, it serializes it to a JSON string. The function also attempts to
+        decode the line to UTF-8. Depending on the content of the line, it either
+        returns a formatted string or processes it using the
+        `openai_chat_chunk_message_template`  function with the provided `form_data`.
+        
+        Args:
+            form_data (dict): A dictionary containing form data, including the model.
+            line: The line of data to be processed, which can be of various types.
+        """
         if isinstance(line, BaseModel):
             line = line.model_dump_json()
             line = f"data: {line}"
@@ -197,6 +225,22 @@ async def generate_function_chat_completion(
         return pipe_id
 
     def get_function_params(function_module, form_data, user, extra_params=None):
+        """Retrieve parameters for a given function from the provided data.
+        
+        This function constructs a dictionary of parameters required by the  specified
+        function in `function_module`. It begins by extracting the  pipe ID from
+        `form_data` and obtaining the function's signature.  The parameters are
+        populated with `form_data` and any additional  parameters from `extra_params`
+        that match the function's signature.  If user-specific valves are needed, it
+        retrieves them using the  `get_user_valves_by_id_and_user_id` method and
+        updates the parameters  accordingly.
+        
+        Args:
+            function_module: The module containing the function to inspect.
+            form_data: The data form used to populate the parameters.
+            user: The user object to retrieve user-specific information.
+            extra_params: Optional additional parameters to include.
+        """
         if extra_params is None:
             extra_params = {}
 
@@ -297,6 +341,17 @@ async def generate_function_chat_completion(
     if form_data.get("stream", False):
 
         async def stream_content():
+            """Stream content asynchronously from various response types.
+            
+            This function handles different types of responses from the `execute_pipe`
+            function, including `StreamingResponse`, dictionaries, strings, iterators, and
+            asynchronous generators. It yields data in a specific format, handling errors
+            gracefully by logging them and returning an error message. The function also
+            constructs finish messages for certain response types to indicate completion.
+            
+            Yields:
+                str: Formatted data or error messages based on the response type.
+            """
             try:
                 res = await execute_pipe(pipe, params)
 
