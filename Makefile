@@ -9,8 +9,13 @@ install:
 	$(DOCKER_COMPOSE) up -d
 
 remove:
-	@chmod +x confirm_remove.sh
-	@./confirm_remove.sh
+	@printf '%s\n' 'Warning: This will remove all containers and volumes, including persistent data. Continue? [Y/N]'
+	@read ans; \
+	if [ "$$ans" = "Y" ] || [ "$$ans" = "y" ]; then \
+		$(DOCKER_COMPOSE) down -v; \
+	else \
+		echo "Operation cancelled."; \
+	fi
 
 start:
 	$(DOCKER_COMPOSE) start
@@ -21,13 +26,9 @@ stop:
 	$(DOCKER_COMPOSE) stop
 
 update:
-	# Calls the LLM update script
-	chmod +x update_ollama_models.sh
-	@./update_ollama_models.sh
 	@git pull
 	$(DOCKER_COMPOSE) down
 	# Make sure the ollama-webui container is stopped before rebuilding
 	@docker stop open-webui || true
 	$(DOCKER_COMPOSE) up --build -d
 	$(DOCKER_COMPOSE) start
-

@@ -787,7 +787,13 @@ async def image_edits(
         size = form_data.size if form_data.size else request.app.state.config.IMAGE_EDIT_SIZE
         width, height = tuple(map(int, size.split('x')))
 
-    model = request.app.state.config.IMAGE_EDIT_MODEL if form_data.model is None else form_data.model
+    model = (
+        request.app.state.config.IMAGE_EDIT_MODEL
+        if form_data.model is None
+        else form_data.model
+    )
+    if not isinstance(model, str) or not model.strip():
+        raise HTTPException(status_code=400, detail="Invalid model format.")
 
     try:
 
@@ -856,21 +862,25 @@ async def image_edits(
             if ENABLE_FORWARD_USER_INFO_HEADERS:
                 headers = include_user_info_headers(headers, user)
 
+            # NOTE: For non-OpenAI image models proxied behind an OpenAI-compatible API
+            # (e.g., Gemini via LiteLLM), extra OpenAI-specific params like `n`, `size`,
+            # and `response_format` often cause provider-side validation errors.
+            # Keep the payload minimal unless we're targeting an OpenAI-native image model.
             data = {
-                'model': model,
-                'prompt': form_data.prompt,
-                **({'n': form_data.n} if form_data.n else {}),
-                **({'size': size} if size else {}),
-                **({'background': form_data.background} if form_data.background else {}),
-                **(
-                    {}
-                    if re.match(
-                        IMAGE_URL_RESPONSE_MODELS_REGEX_PATTERN,
-                        request.app.state.config.IMAGE_EDIT_MODEL,
-                    )
-                    else {'response_format': 'b64_json'}
-                ),
+                "model": model,
+                "prompt": form_data.prompt,
             }
+
+            is_gemini_model = model.startswith("gemini/") or model.startswith("gemini-")
+            if not is_gemini_model:
+                if hasattr(form_data, "n") and form_data.n is not None:
+                    data["n"] = form_data.n
+                if size is not None:
+                    data["size"] = size
+                if form_data.background:
+                    data["background"] = form_data.background
+                # Keep non-Gemini providers on b64 output for predictable upload flow.
+                data["response_format"] = "b64_json"
 
             files = []
             if isinstance(form_data.image, str):
