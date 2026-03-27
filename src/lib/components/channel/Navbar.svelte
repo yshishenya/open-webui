@@ -197,7 +197,7 @@
 					<HeaderBillingAccess />
 
 					<UserMenu
-						className="max-w-[240px]"
+						className="w-[240px]"
 						role={$user?.role}
 						profile={true}
 						help={true}

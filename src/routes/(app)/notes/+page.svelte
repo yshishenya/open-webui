@@ -84,7 +84,7 @@
 							<HeaderBillingAccess />
 
 							<UserMenu
-								className="max-w-[240px]"
+								className="w-[240px]"
 								role={$user?.role}
 								help={true}
 								on:show={(e) => {
