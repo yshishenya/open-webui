@@ -14,6 +14,7 @@ KEY_FILE = Path.cwd() / ".webui_secret_key"
 
 
 def version_callback(value: bool):
+    """Prints the Open WebUI version and exits if value is True."""
     if value:
         from open_webui.env import VERSION
 
@@ -27,6 +28,7 @@ def main(
         Optional[bool], typer.Option("--version", callback=version_callback)
     ] = None,
 ):
+    """Run the main application command."""
     pass
 
 
@@ -35,6 +37,18 @@ def serve(
     host: str = "0.0.0.0",
     port: int = 8080,
 ):
+    """Start the web application server.
+    
+    This function sets up the environment for the web application by checking  for
+    the presence of the WEBUI_SECRET_KEY and generating it if not found.  It also
+    configures CUDA support if specified, ensuring that the necessary  libraries
+    are included in the LD_LIBRARY_PATH. Finally, it runs the  application using
+    uvicorn with the specified host and port.
+    
+    Args:
+        host (str): The host address to bind the server to.
+        port (int): The port number to listen on.
+    """
     os.environ["FROM_INIT_PY"] = "true"
     if os.getenv("WEBUI_SECRET_KEY") is None:
         typer.echo(
@@ -90,6 +104,7 @@ def dev(
     port: int = 8080,
     reload: bool = True,
 ):
+    """Run the web application using uvicorn."""
     uvicorn.run(
         "open_webui.main:app",
         host=host,
