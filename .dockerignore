@@ -5,6 +5,7 @@ kubernetes
 node_modules
 /.svelte-kit
 /package
+build
 .env
 .env.*
 vite.config.js.timestamp-*
@@ -18,3 +19,8 @@ uploads
 **/*.db
 _test
 backend/data/*
+postgres-data
+open-webui-data
+open-webui-data.tar.gz
+sync-backup
+backups

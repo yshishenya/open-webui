@@ -1,0 +1,147 @@
+# Goal (критерии успеха):
+- Завершить настройку этого хоста как managed target для OpenClaw main-контура.
+- Добиться рабочей связи: удалённый nginx может достучаться до target по адресу target-хоста, внешний DNS endpoint работает, callback в main работает.
+- Подготовить более надёжную схему через central Gateway + headless node host, если доступны credential'ы central Gateway.
+- Обновить локальный checkout `/opt/projects/open-webui` из `upstream/main` без потери локальных изменений.
+
+# Constraints/Assumptions:
+- Рабочая директория: `/opt/projects/open-webui`.
+- Данные базы в локальном каталоге `postgres-data` критичны; их нельзя терять, удалять, очищать или рискованно модифицировать ради сборки/валидации.
+- `2026-03-27`: системный `bubblewrap` установлен по пути `/usr/bin/bwrap` (`bubblewrap 0.9.0`).
+- `2026-03-27`: во время `apt` surfaced системное уведомление о pending kernel upgrade; загружено ядро `6.8.0-87-generic`, ожидаемое после reboot `6.8.0-106-generic`.
+- UNCONFIRMED/STale from prior session: локальная установка OpenClaw предполагалась в `/opt/projects/openclaw`, но `2026-03-12` filesystem check не нашёл этот путь.
+- UNCONFIRMED/STale from prior session: OpenClaw предполагался запущенным через `/etc/systemd/system/openclaw.service` с `OPENCLAW_STATE_DIR=/opt/projects/openclaw` и `OPENCLAW_CONFIG_PATH=/opt/projects/openclaw/openclaw.json`; в этой сессии это не перепроверялось.
+- Внешний nginx находится на другом сервере; локально его изменить нельзя.
+- Для bootstrap headless node host к central Gateway нужен валидный remote gateway token, если central Gateway не допускает unauth pairing.
+
+# Key decisions:
+- Каноничный target-конфиг: `/opt/projects/openclaw/openclaw.json`.
+- Для текущего рабочего target здесь используется webhook ingress (`/hooks/agent`).
+- Для долгосрочной схемы управления без прямого SSH целевая архитектура: central Gateway на main + headless node host на этом сервере; текущий webhook ingress оставить как fallback.
+- Так как nginx удалённый и ходит на `10.240.61.13:18789`, target слушает на `gateway.bind=custom` и `gateway.customBindHost=10.240.61.13`.
+- `ocw_callback.sh` должен брать main token из `OPENCLAW_MAIN_HOOK_TOKEN` (с fallback на старый файл только если переменная не задана).
+- Для текущей диагностики CLI: пакет `openclaw@0.0.1` из глобального npm является placeholder-пакетом без `bin`; установка через `npm install -g openclaw` не создаёт команду `openclaw`.
+- Для runtime этого хоста актуальный Node теперь управляется через `nvm`; `2026-03-12` установлен `node v25.8.1` и alias `default -> node` обновлён.
+- Для обновления репозитория использовать безопасную схему `stash -> merge upstream/main -> stash pop`, так как рабочее дерево грязное.
+- При конфликте после `stash pop` в `backend/open_webui/main.py` сохранить локальную синхронизацию `request.app.state.BASE_MODELS = models`.
+- Для минимальной фронтенд-валидации после merge использовать `node v22.22.1` через `nvm`, так как `package.json` ограничивает Node диапазоном `>=18.13.0 <=22.x.x`, а системный active runtime сейчас `v25.8.1`.
+- Для повторной сборки после merge использовать `node v22.22.1` для frontend build; `svelte-check` и production build трактовать отдельно, так как build может проходить при шумном type-check.
+- Полный `docker build` сейчас ограничен локальным workspace state: каталог `postgres-data` имеет права `drwx------ 70:root` и не исключён из build context текущим `.dockerignore`.
+- Для устранения падения `docker build` не трогать содержимое или права `postgres-data`; предпочесть исключение каталога из build context (`.dockerignore`) или сборку из отдельного чистого context.
+- Для Docker build исключены крупные локальные data/backup артефакты из build context: `postgres-data`, `open-webui-data`, `open-webui-data.tar.gz`, `sync-backup`, `backups`, а также локальный `build`.
+- Apache Tika для document extraction на этом хосте считать неиспользуемой; отключать через persisted `rag` config в Postgres и пустые env в compose, так как `PersistentConfig` читает БД раньше env.
+- Не считать локальный merge `upstream/main` равным runtime-upgrade: пока контейнер `ghcr.io/open-webui/open-webui:main` не закреплён на нужном релизе, фактическая версия сервиса определяется образом, а не checkout в `/opt/projects/open-webui`.
+- Для реального runtime-upgrade Open WebUI на этом хосте закреплять тег через `.env` (`WEBUI_DOCKER_TAG`) и перекатывать только сервис `open-webui`, не трогая `postgres-data`.
+
+# State:
+- Done:
+  - Установлен системный пакет `bubblewrap` через `apt`; подтверждены `/usr/bin/bwrap`, `bubblewrap 0.9.0`, `dpkg` status `install ok installed`.
+  - Проверено git-состояние `2026-03-27`: локальная `main` имеет незакоммиченные изменения и расходится с `upstream/main` на `4/244` (left/right count).
+  - Выполнен `git fetch --all --prune`; обновлены `origin/*` и `upstream/main -> 9bd84258d`.
+  - Выполнен `git stash push -u -m 'codex-pre-upstream-update-2026-03-27'`; stash сохранён как `stash@{0}`.
+  - Выполнен merge `upstream/main` в локальную `main`; новый `HEAD` после merge: `3898c4b52`.
+  - Возвращены локальные незакоммиченные правки через `git stash pop --index`; возник единичный конфликт в `backend/open_webui/main.py`.
+  - Конфликт в `backend/open_webui/main.py` разрешён: оставлена локальная синхронизация `BASE_MODELS`, файл снова в нормальном modified-state.
+  - Пройдена минимальная backend syntax-проверка: `python3 -m py_compile backend/open_webui/main.py` -> OK.
+  - Установлен дополнительный runtime `node v22.22.1` через `nvm` для совместимой валидации frontend.
+  - Выполнен `nvm exec 22.22.1 npm ci`; зависимости установлены, npm сообщил `18 vulnerabilities (8 low, 8 moderate, 2 high)`.
+  - Выполнен `nvm exec 22.22.1 npm run check`; команда завершилась с ошибкой, общий итог `svelte-check found 9107 errors and 252 warnings in 363 files`.
+  - Зафиксировано, что type-check failures затрагивают и локально изменённые файлы `src/lib/components/chat/ModelSelector/Selector.svelte` и `src/routes/(app)/+layout.svelte`, но общий репозиторий после merge не находится в clean type-check state, поэтому ошибки нельзя автоматически считать регрессией только локальных правок.
+  - Выполнен `python3 -m compileall -q backend/open_webui` -> OK.
+  - Выполнен `nvm exec 22.22.1 npm run build` -> OK; production build завершился успешно, `@sveltejs/adapter-static` записал output в `build/`.
+  - Выполнен `docker compose config -q` -> OK.
+  - Выполнен `docker build -t open-webui-local-check:20260327 .` -> FAIL из-за build context: `error from sender: open postgres-data: permission denied`.
+  - Подтверждено, что `postgres-data` имеет права `drwx------ 70:root`, а текущий `.dockerignore` не исключает этот каталог из build context.
+  - Обновлён `.dockerignore`: исключены `postgres-data`, `open-webui-data`, `open-webui-data.tar.gz`, `sync-backup`, `backups`, `build`.
+  - Повторный `docker build -t open-webui-local-check:20260327 .` больше не упирается в данные БД; build context снизился примерно до `594 MB`.
+  - Новый блокер полного `docker build`: шаг `RUN npm run build` внутри Docker падает в `scripts/prepare-pyodide.js` на внешнем сетевом fetch с `UND_ERR_CONNECT_TIMEOUT` (`151.101.64.223:443`).
+  - Отключена Apache Tika для этого хоста: в Postgres config очищены `rag.CONTENT_EXTRACTION_ENGINE` и `rag.tika_server_url`; в `docker-compose.yaml` для `open-webui` зафиксированы пустые `CONTENT_EXTRACTION_ENGINE` и `TIKA_SERVER_URL`.
+  - Выполнен `docker compose up -d open-webui`; контейнер `open-webui` пересоздан и вернулся в состояние `healthy`.
+  - Проверен runtime-version endpoint `http://127.0.0.1:3287/api/version`: сервис сейчас отвечает `0.8.10`.
+  - В `.env` закреплён `WEBUI_DOCKER_TAG=0.8.12`.
+  - Выполнен `docker compose pull open-webui`; релизный образ `ghcr.io/open-webui/open-webui:0.8.12` подтянут на хост.
+  - Выполнен `docker compose up -d open-webui`; `docker compose ps` подтверждает, что сервис `open-webui` теперь запущен на образе `ghcr.io/open-webui/open-webui:0.8.12` и имеет статус `healthy`.
+  - Проверен runtime-version endpoint `http://127.0.0.1:3287/api/version`: сервис теперь отвечает `0.8.12`.
+  - Проверен рабочий конфиг `/opt/projects/openclaw/openclaw.json`.
+  - Добавлен диагностический скрипт `/opt/projects/open-webui/scripts/check-openclaw-target.sh`.
+  - Обновлён target-конфиг `/opt/projects/openclaw/openclaw.json`: `gateway.bind=custom`, `gateway.customBindHost=10.240.61.13`, `gateway.port=18789`.
+  - Перезапущен `openclaw.service`; сервис активен.
+  - Подтверждено по `systemctl status`, что gateway слушает на `ws://10.240.61.13:18789`.
+  - Проверен `curl http://10.240.61.13:18789/health`: endpoint доступен.
+  - Проверен `POST http://10.240.61.13:18789/hooks/agent` с bearer token: запрос принимается, возвращается `runId`.
+  - Повторно прогнан `/opt/projects/open-webui/scripts/check-openclaw-target.sh`; итог:
+    - local `/health` OK
+    - local `/hooks/agent` без auth -> `401`
+    - local `/hooks/agent` с token -> `200`
+    - external `https://ocw-gid3-prod.pro-4.ru/hooks/agent` без auth -> `401`
+    - external `https://ocw-gid3-prod.pro-4.ru/hooks/agent` с token -> `200`
+    - итог `pass=6 warn=1 fail=0`
+  - Исправлен `/usr/local/bin/ocw_callback.sh`: теперь он использует `OPENCLAW_MAIN_HOOK_TOKEN` и `OPENCLAW_MAIN_URL`, с fallback на `~/.openclaw/openclaw.json` только если переменная не задана.
+  - Проверена достижимость central Gateway для node-host схемы:
+    - `openclaw node run --host openclaw.2brain.pro --port 443 --tls` доходит до сервера, но получает `Unexpected server response: 401`.
+    - Повторный тест с локальным `gateway.auth.token` target (`6719...`) тоже даёт `401`.
+    - Повторный тест с локальным `hooks.token` target (`8788...`) тоже даёт `401`.
+  - Вывод: сеть до `openclaw.2brain.pro:443` есть, но локально отсутствует валидный credential central Gateway для bootstrap node host.
+  - Проверено `npm install -g openclaw` на `2026-03-12`: установлен пакет `/home/skdpu/.nvm/versions/node/v18.20.8/lib/node_modules/openclaw` версии `0.0.1` с `description: "Empty placeholder package."`.
+  - Проверено `package.json` placeholder-пакета: поле `bin` отсутствует, поэтому в `/home/skdpu/.nvm/versions/node/v18.20.8/bin` не создаётся symlink `openclaw`.
+  - Проверено `PATH`: `/home/skdpu/.nvm/versions/node/v18.20.8/bin` уже присутствует, то есть причина `command not found` не в `PATH`.
+  - Проверено `2026-03-12`: путь `/opt/projects/openclaw` сейчас отсутствует; прежние записи про локальную установку требуют переподтверждения.
+  - Установлен latest Node через `nvm install node`: `node v25.8.1`, `npm 11.11.0`, `npx 11.11.0`.
+  - Обновлён alias `nvm default -> node -> v25.8.1`.
+  - Обновлён `~/.zshrc`: после загрузки `nvm` выполняется `nvm use --silent default`, чтобы интерактивные `zsh`-сессии поднимали default-версию Node вместо унаследованного старого `PATH`.
+- Now:
+  - Подтвердить пользователю, что runtime Open WebUI уже обновлён до `0.8.12` и сервис снова `healthy`.
+- Next:
+  - При необходимости удалить сохранённый safety-stash `stash@{0}` после подтверждения, что восстановленные локальные правки корректны.
+  - При необходимости отдельно разобрать ошибки `svelte-check` в локально изменённых файлах или ограничить валидацию более узким набором целей.
+  - Если нужна успешная полная `docker build`, разбирать сетевую доступность внутри Docker build для `prepare-pyodide.js` или предусмотреть prefetch/cached pyodide artifacts.
+
+# Open questions (UNCONFIRMED если нужно):
+- UNCONFIRMED: Какой именно shared token/token bootstrap использует central Gateway `openclaw.2brain.pro` для WebSocket connect node host.
+- UNCONFIRMED: Разрешён ли на central Gateway unauth device pairing; по факту текущий ответ `401` указывает, что нет.
+- UNCONFIRMED: Где сейчас находится реальный source OpenClaw CLI для этого хоста, если он больше не лежит в `/opt/projects/openclaw`.
+- UNCONFIRMED: Нужна ли миграция/переустановка глобальных npm-пакетов со старого `v18.20.8` на `v25.8.1`.
+
+# Working set (files/ids/commands):
+- `/opt/projects/open-webui/CONTINUITY.md`
+- `/opt/projects/open-webui/scripts/check-openclaw-target.sh`
+- `/opt/projects/openclaw/openclaw.json`
+- `/usr/local/bin/ocw_callback.sh`
+- `/etc/systemd/system/openclaw.service`
+- `./scripts/check-openclaw-target.sh`
+- `env -u OPENCLAW_STATE_DIR -u OPENCLAW_CONFIG_PATH /usr/bin/node /opt/projects/openclaw/node_modules/openclaw/openclaw.mjs --profile gid3-node node run --host openclaw.2brain.pro --port 443 --tls --display-name gid3-prod`
+- `/home/skdpu/.nvm/versions/node/v18.20.8/lib/node_modules/openclaw/package.json`
+- `/home/skdpu/.nvm/versions/node/v18.20.8/bin`
+- `/home/skdpu/.zshrc`
+- `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm install node; nvm alias default node`
+- `/usr/bin/bwrap`
+- `sudo apt-get install -y bubblewrap`
+- `/usr/bin/bwrap --version`
+- `dpkg -s bubblewrap`
+- `git status --short --branch`
+- `git fetch --all --prune`
+- `git rev-list --left-right --count HEAD...upstream/main`
+- `git stash push -u -m 'codex-pre-upstream-update-2026-03-27'`
+- `git merge --no-edit upstream/main`
+- `git stash pop --index stash@{0}`
+- `python3 -m py_compile backend/open_webui/main.py`
+- `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm install 22.22.1`
+- `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm exec 22.22.1 npm ci`
+- `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm exec 22.22.1 npm run check`
+- `/tmp/openwebui-check-20260327.log`
+- `python3 -m compileall -q backend/open_webui`
+- `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm exec 22.22.1 npm run build`
+- `docker compose config -q`
+- `docker build -t open-webui-local-check:20260327 .`
+- `docker exec open-webui-postgres psql -U openwebui -d openwebui -c "select data->'rag'->>'CONTENT_EXTRACTION_ENGINE' as content_extraction_engine, data->'rag'->>'tika_server_url' as tika_server_url from config order by id desc limit 1;"`
+- `docker exec open-webui-postgres psql -U openwebui -d openwebui -c "update config set data = jsonb_set(jsonb_set(data::jsonb, '{rag,CONTENT_EXTRACTION_ENGINE}', '\"\"'::jsonb, true), '{rag,tika_server_url}', '\"\"'::jsonb, true)::json, updated_at = now() where id = (select id from config order by id desc limit 1);"`
+- `docker compose up -d open-webui`
+- `curl -fsS http://127.0.0.1:3287/api/version`
+- `docker compose pull open-webui`
+- `.env`
+- `.dockerignore`
+- `postgres-data`
+- `open-webui-data`
+- `open-webui-data.tar.gz`
+- `sync-backup`
+- `backups`
