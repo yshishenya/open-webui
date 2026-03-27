@@ -449,10 +449,27 @@ async def get_oauth_client_info_with_static_credentials(
     oauth_client_id: str,
     oauth_client_secret: str,
 ) -> OAuthClientInformationFull:
-    """
-    Build an OAuthClientInformationFull from user-provided static credentials.
-    Performs server metadata discovery to resolve authorization/token endpoints,
-    but skips dynamic client registration entirely.
+    """Build an OAuthClientInformationFull from user-provided static credentials.
+    
+    This function performs server metadata discovery to resolve authorization and
+    token endpoints,  skipping dynamic client registration. It constructs the OAuth
+    client information using the  provided client ID, secret, and the discovered
+    metadata, while handling potential errors  during the metadata retrieval
+    process.
+    
+    Args:
+        request: The request object containing application state configuration.
+        client_id (str): The unique identifier for the client.
+        oauth_server_url (str): The URL of the OAuth server for metadata discovery.
+        oauth_client_id (str): The client ID for the OAuth client.
+        oauth_client_secret (str): The client secret for the OAuth client.
+    
+    Returns:
+        OAuthClientInformationFull: The constructed OAuth client information.
+    
+    Raises:
+        Exception: If an error occurs during the metadata retrieval or client information
+            construction.
     """
     try:
         oauth_server_metadata = None
@@ -517,6 +534,21 @@ class OAuthClientManager:
         self.clients = {}
 
     def add_client(self, client_id, oauth_client_info: OAuthClientInformationFull):
+        """Add a new client to the OAuth registration.
+        
+        This method constructs a dictionary of client parameters using the provided
+        client_id and oauth_client_info. It includes essential information such as
+        client_id, client_secret, and optional parameters like scope and token
+        endpoint authentication method. If the server metadata indicates support  for
+        the 'S256' code challenge method, it is also included in the client
+        registration. Finally, the new client is registered and stored in the  clients
+        dictionary.
+        
+        Args:
+            client_id: The unique identifier for the client.
+            oauth_client_info: An instance of OAuthClientInformationFull containing
+                the client's OAuth information.
+        """
         kwargs = {
             'name': client_id,
             'client_id': oauth_client_info.client_id,
