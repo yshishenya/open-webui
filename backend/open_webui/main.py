@@ -1598,6 +1598,7 @@ async def get_models(request: Request, refresh: bool = False, user=Depends(get_v
 
 @app.get('/api/models/base')
 async def get_base_models(request: Request, user=Depends(get_admin_user)):
+    """Fetch and synchronize base models with the application state."""
     models = await get_all_base_models(request, user=user)
     # Keep the shared base-model cache in sync with the admin-facing source of truth.
     request.app.state.BASE_MODELS = models
