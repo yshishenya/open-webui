@@ -20,6 +20,33 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[REFACTOR][DEV][DOCKER]** Make default local stack match prod container layout
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-27__refactor__dev-default-prod-like-compose.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-03-27
+  - Summary: Switched the default local Docker helper to the single app-container shape used in production (`postgres + airis`), while keeping the split Vite HMR stack as explicit `docker:up:hmr` / `docker:up:dev`.
+  - Tests: `npm run docker:down`; `npm run docker:up`; `docker compose -f docker-compose.yaml ps`; `curl -sS -o /dev/null -w '%{http_code}\n' http://localhost:3000/health`; `docker compose -f docker-compose.yaml -f docker-compose.prod.yml config --services`; `npm run docker:down`; `npm run docker:up:hmr`; `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml ps`; `curl -sS -o /dev/null -w '%{http_code}\n' http://localhost:3000`; `curl -sS -o /dev/null -w '%{http_code}\n' http://localhost:8081/health`; `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc 'echo profile-run-ok'`; `npm run docker:down && npm run docker:up`
+  - Risks: Low (dev tooling only; team members now need the explicit HMR helper when they want split frontend/backend dev).
+
+- [x] **[BUG][DEV]** Normalize dev compose UI entrypoint
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-27__bugfix__dev-compose-single-ui-entrypoint.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-03-27
+  - Summary: Added a standard `npm run docker:up:dev` command that publishes the editable Vite frontend on `3000` and keeps the backend API on `8081`, avoiding confusion with the baked UI from the backend image.
+  - Tests: `npm run docker:up:dev`; `curl -sS -o /dev/null -w '%{http_code}\n' http://localhost:3000`; `curl -sS -o /dev/null -w '%{http_code}\n' http://localhost:8081/health`
+  - Risks: Low (dev-only launch helper).
+
+- [x] **[BUG][UI]** Restore user menu click actions
+  - Spec: `meta/memory_bank/specs/work_items/2026-03-27__bugfix__user-menu-click-actions.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-03-27
+  - Summary: Restored `UserMenu` interactions by explicitly marking dropdown content/items as `no-drag-region` and adding a regression test for action and route selections.
+  - Tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend -- --run src/lib/components/layout/Sidebar/UserMenu.test.ts"`; `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/eslint ]; then npm ci --legacy-peer-deps; fi; npx eslint src/lib/components/layout/Sidebar/UserMenu.svelte src/lib/components/layout/Sidebar/UserMenu.test.ts"`
+  - Risks: Low (localized menu interaction fix in a shared component).
+
 - [x] **[BUG][UI][BILLING]** Unify header billing chip height with adjacent buttons
   - Spec: `meta/memory_bank/specs/work_items/2026-03-12__bugfix__header-billing-access-height-unify.md`
   - Owner: Codex

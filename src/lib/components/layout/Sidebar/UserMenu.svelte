@@ -1,10 +1,7 @@
 <script lang="ts">
-	import { DropdownMenu } from 'bits-ui';
-	import { createEventDispatcher, getContext, onMount, tick } from 'svelte';
+	import { createEventDispatcher, getContext, tick } from 'svelte';
 
-	import { flyAndScale } from '$lib/utils/transitions';
 	import { goto } from '$app/navigation';
-	import { fade, slide } from 'svelte/transition';
 
 	import { getUsage } from '$lib/apis';
 	import { getSessionUser, userSignOut } from '$lib/apis/auths';
@@ -13,6 +10,7 @@
 
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
+	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import ArchiveBox from '$lib/components/icons/ArchiveBox.svelte';
 	import QuestionMarkCircle from '$lib/components/icons/QuestionMarkCircle.svelte';
@@ -39,7 +37,7 @@
 	export let profile = false;
 	export let help = false;
 
-	export let className = 'max-w-[240px]';
+	export let className = 'w-[240px]';
 	export let align = 'end';
 
 	export let showActiveUsers = true;
@@ -64,10 +62,30 @@
 	const handleDropdownChange = (state: boolean) => {
 		dispatch('change', state);
 
-		// Fetch usage info when dropdown opens, if user has permission
 		if (state && ($config?.features?.enable_public_active_users_count || role === 'admin')) {
 			getUsageInfo();
 		}
+	};
+
+	const closeMobileSidebar = async (): Promise<void> => {
+		if ($mobile) {
+			await tick();
+			showSidebar.set(false);
+		}
+	};
+
+	const handleInternalNavigation = async (
+		event: MouseEvent,
+		path: string
+	): Promise<void> => {
+		if (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1) {
+			return;
+		}
+
+		event.preventDefault();
+		show = false;
+		await goto(path);
+		await closeMobileSidebar();
 	};
 </script>
 
@@ -80,51 +98,45 @@
 />
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
-<DropdownMenu.Root bind:open={show} onOpenChange={handleDropdownChange}>
-	<DropdownMenu.Trigger>
-		<slot />
-	</DropdownMenu.Trigger>
+<Dropdown bind:show onOpenChange={handleDropdownChange} {align}>
+	<slot />
 
-	<slot name="content">
-		<DropdownMenu.Content
-			class="w-full {className}  rounded-2xl px-1 py-1  border border-gray-100  dark:border-gray-800 z-50 bg-white dark:bg-gray-850 dark:text-white shadow-lg text-sm"
-			sideOffset={4}
-			side="top"
-			{align}
-			transition={(e) => fade(e, { duration: 100 })}
+	<div slot="content">
+		<div
+			class="no-drag-region {className} rounded-2xl px-1 py-1 border border-gray-100 dark:border-gray-800 z-50 bg-white dark:bg-gray-850 dark:text-white shadow-lg text-sm"
 		>
 			{#if profile}
-				<div class=" flex gap-3.5 w-full p-2.5 items-center">
-					<div class=" items-center flex shrink-0">
+				<div class="flex gap-3.5 w-full p-2.5 items-center">
+					<div class="items-center flex shrink-0">
 						<img
 							src={`${WEBUI_API_BASE_URL}/users/${$user?.id}/profile/image`}
-							class=" size-10 object-cover rounded-full"
+							class="size-10 object-cover rounded-full"
 							alt="profile"
 						/>
 					</div>
 
-					<div class=" flex flex-col w-full flex-1">
+					<div class="flex flex-col w-full flex-1">
 						<div class="font-medium line-clamp-1 pr-2">
 							{$user.name}
 						</div>
 
-						<div class=" flex items-center gap-2">
+						<div class="flex items-center gap-2">
 							{#if $user?.is_active ?? true}
 								<div>
 									<span class="relative flex size-2">
-										<span class="relative inline-flex rounded-full size-2 bg-green-500" />
+										<span class="relative inline-flex rounded-full size-2 bg-green-500"></span>
 									</span>
 								</div>
 
-								<span class="text-xs"> {$i18n.t('Active')} </span>
+								<span class="text-xs">{$i18n.t('Active')}</span>
 							{:else}
 								<div>
 									<span class="relative flex size-2">
-										<span class="relative inline-flex rounded-full size-2 bg-gray-500" />
+										<span class="relative inline-flex rounded-full size-2 bg-gray-500"></span>
 									</span>
 								</div>
 
-								<span class="text-xs"> {$i18n.t('Away')} </span>
+								<span class="text-xs">{$i18n.t('Away')}</span>
 							{/if}
 						</div>
 					</div>
@@ -141,14 +153,14 @@
 							}}
 						>
 							{#if $user?.status_emoji}
-								<div class=" self-center shrink-0">
+								<div class="self-center shrink-0">
 									<Emoji className="size-4" shortCode={$user?.status_emoji} />
 								</div>
 							{/if}
 
 							<Tooltip
 								content={$user?.status_message}
-								className=" self-center line-clamp-2 flex-1 text-left"
+								className="self-center line-clamp-2 flex-1 text-left"
 							>
 								{$user?.status_message}
 							</Tooltip>
@@ -191,179 +203,158 @@
 								showUserStatusModal = true;
 							}}
 						>
-							<div class=" self-center">
+							<div class="self-center">
 								<FaceSmile className="size-4" strokeWidth="1.5" />
 							</div>
-							<div class=" self-center truncate">{$i18n.t('Update your status')}</div>
+							<div class="self-center truncate">{$i18n.t('Update your status')}</div>
 						</button>
 					</div>
 				{/if}
 
-				<hr class=" border-gray-50/30 dark:border-gray-800/30 my-1.5 p-0" />
+				<hr class="border-gray-50/30 dark:border-gray-800/30 my-1.5 p-0" />
 			{/if}
 
-			<DropdownMenu.Item
-				class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+			<button
+				data-testid="user-menu-settings"
+				class="no-drag-region flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+				type="button"
 				on:click={async () => {
 					show = false;
-
-					await showSettings.set(true);
-
-					if ($mobile) {
-						await tick();
-						showSidebar.set(false);
-					}
+					showSettings.set(true);
+					await closeMobileSidebar();
 				}}
 			>
-				<div class=" self-center mr-3">
+				<div class="self-center mr-3">
 					<Settings className="w-5 h-5" strokeWidth="1.5" />
 				</div>
-				<div class=" self-center truncate">{$i18n.t('Settings')}</div>
-			</DropdownMenu.Item>
+				<div class="self-center truncate">{$i18n.t('Settings')}</div>
+			</button>
 
-			<DropdownMenu.Item
-				as="a"
+			<a
+				data-testid="user-menu-billing"
 				href="/billing/dashboard"
-				class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition select-none"
-				on:click={async () => {
-					show = false;
-					if ($mobile) {
-						await tick();
-						showSidebar.set(false);
-					}
+				draggable="false"
+				class="no-drag-region flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+				on:click={async (event) => {
+					await handleInternalNavigation(event, '/billing/dashboard');
 				}}
 			>
-				<div class=" self-center mr-3">
+				<div class="self-center mr-3">
 					<CreditCard className="w-5 h-5" strokeWidth="1.5" />
 				</div>
-				<div class=" self-center truncate">{$i18n.t('Billing')}</div>
-			</DropdownMenu.Item>
+				<div class="self-center truncate">{$i18n.t('Billing')}</div>
+			</a>
 
-			<DropdownMenu.Item
-				class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+			<button
+				data-testid="user-menu-archived-chats"
+				class="no-drag-region flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+				type="button"
 				on:click={async () => {
 					show = false;
-
 					dispatch('show', 'archived-chat');
-
-					if ($mobile) {
-						await tick();
-
-						showSidebar.set(false);
-					}
+					await closeMobileSidebar();
 				}}
 			>
-				<div class=" self-center mr-3">
+				<div class="self-center mr-3">
 					<ArchiveBox className="size-5" strokeWidth="1.5" />
 				</div>
-				<div class=" self-center truncate">{$i18n.t('Archived Chats')}</div>
-			</DropdownMenu.Item>
+				<div class="self-center truncate">{$i18n.t('Archived Chats')}</div>
+			</button>
 
 			{#if role === 'admin'}
-				<DropdownMenu.Item
-					as="a"
+				<a
+					data-testid="user-menu-playground"
 					href="/playground"
 					draggable="false"
-					class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
-					on:click={async () => {
-						show = false;
-						if ($mobile) {
-							await tick();
-							showSidebar.set(false);
-						}
+					class="no-drag-region flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+					on:click={async (event) => {
+						await handleInternalNavigation(event, '/playground');
 					}}
 				>
-					<div class=" self-center mr-3">
+					<div class="self-center mr-3">
 						<Code className="size-5" strokeWidth="1.5" />
 					</div>
-					<div class=" self-center truncate">{$i18n.t('Playground')}</div>
-				</DropdownMenu.Item>
-				<DropdownMenu.Item
-					as="a"
+					<div class="self-center truncate">{$i18n.t('Playground')}</div>
+				</a>
+				<a
+					data-testid="user-menu-admin"
 					href="/admin"
 					draggable="false"
-					class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
-					on:click={async () => {
-						show = false;
-						if ($mobile) {
-							await tick();
-							showSidebar.set(false);
-						}
+					class="no-drag-region flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+					on:click={async (event) => {
+						await handleInternalNavigation(event, '/admin');
 					}}
 				>
-					<div class=" self-center mr-3">
+					<div class="self-center mr-3">
 						<UserGroup className="w-5 h-5" strokeWidth="1.5" />
 					</div>
-					<div class=" self-center truncate">{$i18n.t('Admin Panel')}</div>
-				</DropdownMenu.Item>
+					<div class="self-center truncate">{$i18n.t('Admin Panel')}</div>
+				</a>
 			{/if}
 
 			{#if help}
-				<hr class=" border-gray-50/30 dark:border-gray-800/30 my-1 p-0" />
-
-				<!-- {$i18n.t('Help')} -->
+				<hr class="border-gray-50/30 dark:border-gray-800/30 my-1 p-0" />
 
 				{#if $user?.role === 'admin'}
-					<DropdownMenu.Item
-						as="a"
+					<a
+						data-testid="user-menu-documentation"
 						href="https://docs.openwebui.com"
 						target="_blank"
 						draggable="false"
-						class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+						class="no-drag-region flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
 						id="chat-share-button"
 						on:click={() => {
 							show = false;
 						}}
 					>
-						<div class=" self-center mr-3">
+						<div class="self-center mr-3">
 							<QuestionMarkCircle className="size-5" />
 						</div>
-						<div class=" self-center truncate">{$i18n.t('Documentation')}</div>
-					</DropdownMenu.Item>
+						<div class="self-center truncate">{$i18n.t('Documentation')}</div>
+					</a>
 
-					<!-- Releases -->
-					<DropdownMenu.Item
-						as="a"
+					<a
+						data-testid="user-menu-releases"
 						href="https://github.com/open-webui/open-webui/releases"
 						target="_blank"
 						draggable="false"
-						class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+						class="no-drag-region flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
 						id="chat-share-button"
 						on:click={() => {
 							show = false;
 						}}
 					>
-						<div class=" self-center mr-3">
+						<div class="self-center mr-3">
 							<Map className="size-5" />
 						</div>
-						<div class=" self-center truncate">{$i18n.t('Releases')}</div>
-					</DropdownMenu.Item>
+						<div class="self-center truncate">{$i18n.t('Releases')}</div>
+					</a>
 				{/if}
 
-				<DropdownMenu.Item
-					class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+				<button
+					data-testid="user-menu-shortcuts"
+					class="no-drag-region flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+					type="button"
 					id="chat-share-button"
 					on:click={async () => {
 						show = false;
 						showShortcuts.set(!$showShortcuts);
-
-						if ($mobile) {
-							await tick();
-							showSidebar.set(false);
-						}
+						await closeMobileSidebar();
 					}}
 				>
-					<div class=" self-center mr-3">
+					<div class="self-center mr-3">
 						<Keyboard className="size-5" />
 					</div>
-					<div class=" self-center truncate">{$i18n.t('Keyboard shortcuts')}</div>
-				</DropdownMenu.Item>
+					<div class="self-center truncate">{$i18n.t('Keyboard shortcuts')}</div>
+				</button>
 			{/if}
 
-			<hr class=" border-gray-50/30 dark:border-gray-800/30 my-1 p-0" />
+			<hr class="border-gray-50/30 dark:border-gray-800/30 my-1 p-0" />
 
-			<DropdownMenu.Item
-				class="flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+			<button
+				data-testid="user-menu-signout"
+				class="no-drag-region flex rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+				type="button"
 				on:click={async () => {
 					const res = await userSignOut();
 					user.set(null);
@@ -373,15 +364,15 @@
 					show = false;
 				}}
 			>
-				<div class=" self-center mr-3">
+				<div class="self-center mr-3">
 					<SignOut className="w-5 h-5" strokeWidth="1.5" />
 				</div>
-				<div class=" self-center truncate">{$i18n.t('Sign Out')}</div>
-			</DropdownMenu.Item>
+				<div class="self-center truncate">{$i18n.t('Sign Out')}</div>
+			</button>
 
 			{#if showActiveUsers && ($config?.features?.enable_public_active_users_count || role === 'admin') && usage}
 				{#if usage?.user_count}
-					<hr class=" border-gray-50/30 dark:border-gray-800/30 my-1 p-0" />
+					<hr class="border-gray-50/30 dark:border-gray-800/30 my-1 p-0" />
 
 					<Tooltip
 						content={usage?.model_ids && usage?.model_ids.length > 0
@@ -396,17 +387,15 @@
 								}
 							}}
 						>
-							<div class=" flex items-center">
+							<div class="flex items-center">
 								<span class="relative flex size-2">
-									<span class="relative inline-flex rounded-full size-2 bg-green-500" />
+									<span class="relative inline-flex rounded-full size-2 bg-green-500"></span>
 								</span>
 							</div>
 
-							<div class=" ">
-								<span class="">
-									{$i18n.t('Active Users')}:
-								</span>
-								<span class=" font-semibold">
+							<div>
+								<span>{$i18n.t('Active Users')}:</span>
+								<span class="font-semibold">
 									{usage?.user_count}
 								</span>
 							</div>
@@ -414,10 +403,6 @@
 					</Tooltip>
 				{/if}
 			{/if}
-
-			<!-- <DropdownMenu.Item class="flex items-center py-1.5 px-3 text-sm ">
-				<div class="flex items-center">Profile</div>
-			</DropdownMenu.Item> -->
-		</DropdownMenu.Content>
-	</slot>
-</DropdownMenu.Root>
+		</div>
+	</div>
+</Dropdown>

@@ -37,10 +37,11 @@ confirm() {
 }
 
 print_header() {
-  echo "Airis dev stack helper"
+  echo "Airis split HMR dev stack helper"
   echo "Compose files: $BASE_FILE + $DEV_FILE"
-  echo "Backend: http://localhost:${OPEN_WEBUI_API_PORT-8081}"
-  echo "Frontend: http://localhost:${AIRIS_FRONTEND_PORT-5173}"
+  echo "Prod-like default launch: npm run docker:up"
+  echo "Backend API: http://localhost:${OPEN_WEBUI_API_PORT-8081}"
+  echo "Vite frontend: http://localhost:${AIRIS_FRONTEND_PORT-5173}"
   echo
 }
 
@@ -48,6 +49,8 @@ print_header
 
 print_help() {
   echo "Help"
+  echo "- This helper is for the split HMR stack only."
+  echo "- For the prod-like local stack, use: npm run docker:up"
   echo "- Dev up (foreground): run live dev stack and keep logs in this terminal."
   echo "- Dev up (detached): run live dev stack in background."
   echo "- Dev up (detached, build): rebuild images first (deps/base changes)."
@@ -65,9 +68,9 @@ print_help() {
 
 describe_action() {
   case "$1" in
-    1) echo "Run live dev stack in this terminal (fastest feedback, logs visible).";;
-    2) echo "Run live dev stack in background (use Logs to follow).";;
-    3) echo "Rebuild images then run live dev stack in background.";;
+    1) echo "Run live split HMR stack in this terminal (fastest feedback, logs visible).";;
+    2) echo "Run live split HMR stack in background (use Logs to follow).";;
+    3) echo "Rebuild images then run live split HMR stack in background.";;
     4) echo "Start only backend with auto-reload."; return 0;;
     5) echo "Start only frontend with Vite HMR."; return 0;;
     6) echo "Stream logs from selected service."; return 0;;
@@ -84,8 +87,8 @@ describe_action() {
 
 PS3="Select action: "
 select action in \
-  "Dev up (foreground, no rebuild) — live dev + logs, fastest start" \
-  "Dev up (detached, no rebuild) — live dev in background" \
+  "Dev up (foreground, no rebuild) — split HMR + logs, fastest start" \
+  "Dev up (detached, no rebuild) — split HMR in background" \
   "Dev up (detached, build) — rebuild images first (deps/base changes)" \
   "Backend only (foreground) — API with auto-reload" \
   "Frontend only (foreground) — Vite HMR dev server" \
