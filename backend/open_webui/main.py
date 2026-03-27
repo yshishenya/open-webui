@@ -469,6 +469,7 @@ from open_webui.config import (
 from open_webui.env import (
     ENABLE_CUSTOM_MODEL_FALLBACK,
     LICENSE_KEY,
+    AUDIT_INCLUDED_PATHS,
     AUDIT_EXCLUDED_PATHS,
     AUDIT_LOG_LEVEL,
     CHANGELOG,
@@ -1595,6 +1596,7 @@ if audit_level != AuditLevel.NONE:
     app.add_middleware(
         AuditLoggingMiddleware,
         audit_level=audit_level,
+        included_paths=AUDIT_INCLUDED_PATHS,
         excluded_paths=AUDIT_EXCLUDED_PATHS,
         max_body_size=MAX_BODY_LOG_SIZE,
     )

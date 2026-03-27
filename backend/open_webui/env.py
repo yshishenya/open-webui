@@ -847,6 +847,20 @@ AIOHTTP_CLIENT_SESSION_TOOL_SERVER_SSL = (
     os.environ.get("AIOHTTP_CLIENT_SESSION_TOOL_SERVER_SSL", "True").lower() == "true"
 )
 
+AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER = os.environ.get(
+    "AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER", ""
+)
+
+if AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER == "":
+    AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER = AIOHTTP_CLIENT_TIMEOUT
+else:
+    try:
+        AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER = int(
+            AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER
+        )
+    except Exception:
+        AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER = AIOHTTP_CLIENT_TIMEOUT
+
 
 RAG_EMBEDDING_TIMEOUT = os.environ.get("RAG_EMBEDDING_TIMEOUT", "")
 
@@ -954,6 +968,12 @@ try:
     MAX_BODY_LOG_SIZE = int(os.environ.get("MAX_BODY_LOG_SIZE") or 2048)
 except ValueError:
     MAX_BODY_LOG_SIZE = 2048
+
+# Comma separated list for urls to include in audit.
+# Empty value disables whitelist mode.
+AUDIT_INCLUDED_PATHS = os.getenv("AUDIT_INCLUDED_PATHS", "").split(",")
+AUDIT_INCLUDED_PATHS = [path.strip() for path in AUDIT_INCLUDED_PATHS if path.strip()]
+AUDIT_INCLUDED_PATHS = [path.lstrip("/") for path in AUDIT_INCLUDED_PATHS]
 
 # Comma separated list for urls to exclude from audit
 AUDIT_EXCLUDED_PATHS = os.getenv("AUDIT_EXCLUDED_PATHS", "/chats,/chat,/folders").split(

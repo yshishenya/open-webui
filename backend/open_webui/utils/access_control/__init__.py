@@ -246,6 +246,7 @@ def migrate_access_control(
 
 from open_webui.models.access_grants import (
     has_public_read_access_grant,
+    has_public_write_access_grant,
     has_user_access_grant,
     strip_user_access_grants,
 )

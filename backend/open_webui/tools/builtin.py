@@ -1761,6 +1761,117 @@ async def view_knowledge_file(
         return json.dumps({"error": str(e)})
 
 
+async def list_knowledge(
+    __request__: Request = None,
+    __user__: dict = None,
+    __model_knowledge__: Optional[list[dict]] = None,
+) -> str:
+    """
+    List all knowledge bases, files, and notes attached to the current model.
+    Use this first to discover what knowledge is available before querying or reading files.
+
+    :return: JSON with knowledge_bases, files, and notes attached to this model
+    """
+    if __request__ is None:
+        return json.dumps({"error": "Request context not available"})
+
+    if not __user__:
+        return json.dumps({"error": "User context not available"})
+
+    if not __model_knowledge__:
+        return json.dumps({"knowledge_bases": [], "files": [], "notes": []})
+
+    try:
+        from open_webui.models.knowledge import Knowledges
+        from open_webui.models.files import Files
+        from open_webui.models.notes import Notes
+        from open_webui.models.access_grants import AccessGrants
+
+        user_id = __user__.get("id")
+        user_role = __user__.get("role", "user")
+        user_group_ids = [group.id for group in Groups.get_groups_by_member_id(user_id)]
+
+        knowledge_bases = []
+        files = []
+        notes = []
+
+        for item in __model_knowledge__:
+            item_type = item.get("type")
+            item_id = item.get("id")
+
+            if item_type == "collection":
+                knowledge = Knowledges.get_knowledge_by_id(item_id)
+                if knowledge and (
+                    user_role == "admin"
+                    or knowledge.user_id == user_id
+                    or AccessGrants.has_access(
+                        user_id=user_id,
+                        resource_type="knowledge",
+                        resource_id=knowledge.id,
+                        permission="read",
+                        user_group_ids=set(user_group_ids),
+                    )
+                ):
+                    kb_files = Knowledges.get_files_by_id(knowledge.id)
+                    file_count = len(kb_files) if kb_files else 0
+
+                    kb_entry = {
+                        "id": knowledge.id,
+                        "name": knowledge.name,
+                        "description": knowledge.description or "",
+                        "file_count": file_count,
+                    }
+
+                    if kb_files:
+                        kb_entry["files"] = [
+                            {"id": f.id, "filename": f.filename} for f in kb_files
+                        ]
+
+                    knowledge_bases.append(kb_entry)
+
+            elif item_type == "file":
+                file = Files.get_file_by_id(item_id)
+                if file:
+                    files.append(
+                        {
+                            "id": file.id,
+                            "filename": file.filename,
+                            "updated_at": file.updated_at,
+                        }
+                    )
+
+            elif item_type == "note":
+                note = Notes.get_note_by_id(item_id)
+                if note and (
+                    user_role == "admin"
+                    or note.user_id == user_id
+                    or AccessGrants.has_access(
+                        user_id=user_id,
+                        resource_type="note",
+                        resource_id=note.id,
+                        permission="read",
+                    )
+                ):
+                    notes.append(
+                        {
+                            "id": note.id,
+                            "title": note.title,
+                        }
+                    )
+
+        return json.dumps(
+            {
+                "knowledge_bases": knowledge_bases,
+                "files": files,
+                "notes": notes,
+            },
+            ensure_ascii=False,
+        )
+    except Exception as e:
+        log.exception(f"list_knowledge error: {e}")
+        return json.dumps({"error": str(e)})
+
+
 async def query_knowledge_files(
     query: str,
     knowledge_ids: Optional[list[str]] = None,
