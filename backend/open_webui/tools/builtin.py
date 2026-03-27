@@ -1683,13 +1683,28 @@ async def view_file(
     __user__: dict = None,
     __model_knowledge__: Optional[list[dict]] = None,
 ) -> str:
-    """
-    Get the content of a file by its ID. Supports pagination for large files.
-
-    :param file_id: The ID of the file to retrieve
-    :param offset: Character offset to start reading from (default: 0)
-    :param max_chars: Maximum characters to return (default: 10000, hard cap: 100000)
-    :return: JSON with the file's id, filename, content, and pagination metadata if truncated
+    """Retrieve the content of a file by its ID with support for pagination.
+    
+    This asynchronous function fetches the content of a specified file, handling
+    pagination through character offsets and maximum character limits. It checks
+    for user access permissions and returns relevant metadata, including
+    pagination details if the content is truncated. The function also ensures  that
+    input parameters are coerced to the correct types and enforces a hard  cap on
+    the maximum characters returned.
+    
+    Args:
+        file_id (str): The ID of the file to retrieve.
+        offset (int?): Character offset to start reading from (default: 0).
+        max_chars (int?): Maximum characters to return (default:
+            DEFAULT_VIEW_FILE_MAX_CHARS, hard cap: MAX_VIEW_FILE_CHARS).
+        __request__ (Request?): The request context.
+        __user__ (dict?): The user context.
+        __model_knowledge__ (Optional[list[dict]]?): Knowledge context
+            related to the model.
+    
+    Returns:
+        str: JSON with the file's ID, filename, content, and pagination metadata
+            if truncated.
     """
     if __request__ is None:
         return json.dumps({'error': 'Request context not available'})
