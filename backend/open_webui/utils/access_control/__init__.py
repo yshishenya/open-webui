@@ -218,9 +218,24 @@ def filter_allowed_access_grants(
     public_permission_key: str,
     db: Session | None = None,
 ) -> list:
-    """
-    Checks if the user has the required permissions to grant access to a resource.
-    Returns the filtered list of access grants if permissions are missing.
+    """Filter access grants based on user permissions.
+    
+    This function checks if the user has the necessary permissions to grant access
+    to a resource.  It filters the list of access grants by removing those that the
+    user is not allowed to share,  based on their role and the permissions defined
+    in `default_permissions`.  The function also considers public access grants and
+    individual user sharing permissions.
+    
+    Args:
+        default_permissions (dict[str, Any]): A dictionary of default permissions.
+        user_id (str): The ID of the user requesting access.
+        user_role (str): The role of the user (e.g., 'admin').
+        access_grants (list): A list of access grants to be filtered.
+        public_permission_key (str): The key for public permission in the permissions dictionary.
+        db (Session | None?): The database session. Defaults to None.
+    
+    Returns:
+        list: The filtered list of access grants based on user permissions.
     """
     if user_role == 'admin' or not access_grants:
         return access_grants
