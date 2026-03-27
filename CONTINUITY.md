@@ -32,6 +32,7 @@
 - Apache Tika для document extraction на этом хосте считать неиспользуемой; отключать через persisted `rag` config в Postgres и пустые env в compose, так как `PersistentConfig` читает БД раньше env.
 - Не считать локальный merge `upstream/main` равным runtime-upgrade: пока контейнер `ghcr.io/open-webui/open-webui:main` не закреплён на нужном релизе, фактическая версия сервиса определяется образом, а не checkout в `/opt/projects/open-webui`.
 - Для реального runtime-upgrade Open WebUI на этом хосте закреплять тег через `.env` (`WEBUI_DOCKER_TAG`) и перекатывать только сервис `open-webui`, не трогая `postgres-data`.
+- Для push в `origin/main` сначала коммитить локальные tracked-изменения, затем вмерживать отставание `origin/main`, если оно есть, и только после этого делать обычный `git push` без force.
 
 # State:
 - Done:
@@ -62,6 +63,9 @@
   - Выполнен `docker compose pull open-webui`; релизный образ `ghcr.io/open-webui/open-webui:0.8.12` подтянут на хост.
   - Выполнен `docker compose up -d open-webui`; `docker compose ps` подтверждает, что сервис `open-webui` теперь запущен на образе `ghcr.io/open-webui/open-webui:0.8.12` и имеет статус `healthy`.
   - Проверен runtime-version endpoint `http://127.0.0.1:3287/api/version`: сервис теперь отвечает `0.8.12`.
+  - Локальные tracked-изменения закоммичены в `4c6894292` (`chore: update open-webui deployment and runtime defaults`).
+  - Для синхронизации с fork-remote выполнен merge `origin/main`; получен merge commit `844fbb582`.
+  - Выполнен `git push origin main`; `origin/main` обновлён до `844fbb582`.
   - Проверен рабочий конфиг `/opt/projects/openclaw/openclaw.json`.
   - Добавлен диагностический скрипт `/opt/projects/open-webui/scripts/check-openclaw-target.sh`.
   - Обновлён target-конфиг `/opt/projects/openclaw/openclaw.json`: `gateway.bind=custom`, `gateway.customBindHost=10.240.61.13`, `gateway.port=18789`.
@@ -90,11 +94,12 @@
   - Обновлён alias `nvm default -> node -> v25.8.1`.
   - Обновлён `~/.zshrc`: после загрузки `nvm` выполняется `nvm use --silent default`, чтобы интерактивные `zsh`-сессии поднимали default-версию Node вместо унаследованного старого `PATH`.
 - Now:
-  - Подтвердить пользователю, что runtime Open WebUI уже обновлён до `0.8.12` и сервис снова `healthy`.
+  - Подтвердить пользователю, что изменения уже закоммичены и отправлены в `origin/main`.
 - Next:
   - При необходимости удалить сохранённый safety-stash `stash@{0}` после подтверждения, что восстановленные локальные правки корректны.
   - При необходимости отдельно разобрать ошибки `svelte-check` в локально изменённых файлах или ограничить валидацию более узким набором целей.
   - Если нужна успешная полная `docker build`, разбирать сетевую доступность внутри Docker build для `prepare-pyodide.js` или предусмотреть prefetch/cached pyodide artifacts.
+  - При необходимости отдельно решить судьбу локальной директории `backup-tool/`, которая не вошла в root push и остаётся незатреканной в этом репозитории.
 
 # Open questions (UNCONFIRMED если нужно):
 - UNCONFIRMED: Какой именно shared token/token bootstrap использует central Gateway `openclaw.2brain.pro` для WebSocket connect node host.
@@ -138,6 +143,9 @@
 - `docker compose up -d open-webui`
 - `curl -fsS http://127.0.0.1:3287/api/version`
 - `docker compose pull open-webui`
+- `git commit -m "chore: update open-webui deployment and runtime defaults"`
+- `git merge --no-edit origin/main`
+- `git push origin main`
 - `.env`
 - `.dockerignore`
 - `postgres-data`
