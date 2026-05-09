@@ -3,6 +3,7 @@
 - Добиться рабочей связи: удалённый nginx может достучаться до target по адресу target-хоста, внешний DNS endpoint работает, callback в main работает.
 - Подготовить более надёжную схему через central Gateway + headless node host, если доступны credential'ы central Gateway.
 - Обновить локальный checkout `/opt/projects/open-webui` из `upstream/main` без потери локальных изменений.
+- Обновить Open WebUI из GitHub и безопасно перезапустить контейнер, не затрагивая `backup-tool/` и данные.
 
 # Constraints/Assumptions:
 - Рабочая директория: `/opt/projects/open-webui`.
@@ -33,6 +34,7 @@
 - Не считать локальный merge `upstream/main` равным runtime-upgrade: пока контейнер `ghcr.io/open-webui/open-webui:main` не закреплён на нужном релизе, фактическая версия сервиса определяется образом, а не checkout в `/opt/projects/open-webui`.
 - Для реального runtime-upgrade Open WebUI на этом хосте закреплять тег через `.env` (`WEBUI_DOCKER_TAG`) и перекатывать только сервис `open-webui`, не трогая `postgres-data`.
 - Для push в `origin/main` сначала коммитить локальные tracked-изменения, затем вмерживать отставание `origin/main`, если оно есть, и только после этого делать обычный `git push` без force.
+- `backup-tool/` является отдельной частью рядом с Open WebUI; при обновлении Open WebUI не удалять, не переносить и не ожидать его появления/обновления из новой версии upstream.
 
 # State:
 - Done:
@@ -63,6 +65,18 @@
   - Выполнен `docker compose pull open-webui`; релизный образ `ghcr.io/open-webui/open-webui:0.8.12` подтянут на хост.
   - Выполнен `docker compose up -d open-webui`; `docker compose ps` подтверждает, что сервис `open-webui` теперь запущен на образе `ghcr.io/open-webui/open-webui:0.8.12` и имеет статус `healthy`.
   - Проверен runtime-version endpoint `http://127.0.0.1:3287/api/version`: сервис теперь отвечает `0.8.12`.
+  - `2026-05-09`: выполнен `git fetch --all --prune`; `upstream/main -> 8dae237a0`, появились теги `v0.9.0`, `v0.9.1`, `v0.9.2`.
+  - `2026-05-09`: выполнен merge `upstream/main` в локальную `main`; merge commit `b02b436b6`.
+  - `2026-05-09`: единственный merge conflict `backend/requirements-min.txt` resolved в пользу актуального upstream-файла, так как файл присутствует в `upstream/main`.
+  - `2026-05-09`: `backup-tool/` оставлен незатреканным и не изменялся как часть обновления Open WebUI.
+  - `2026-05-09`: `.env` обновлён до `WEBUI_DOCKER_TAG=0.9.2` для runtime-upgrade контейнера.
+  - `2026-05-09`: `docker compose config -q` -> OK; compose config указывает `open-webui` на `ghcr.io/open-webui/open-webui:0.9.2`.
+  - `2026-05-09`: выполнен `docker compose pull open-webui`; образ `ghcr.io/open-webui/open-webui:0.9.2` подтянут.
+  - `2026-05-09`: выполнен `docker compose up -d open-webui`; пересоздан только `open-webui`, `postgres` остался running, `backup-tool` остался running.
+  - `2026-05-09`: при первом старте выполнены штатные Alembic migrations до версии `56359461a091`; контейнер временно был `starting/unhealthy`, затем стал `healthy`.
+  - `2026-05-09`: проверены endpoints `http://127.0.0.1:3287/api/version` -> `0.9.2` и `/health` -> `{"status":true}`.
+  - `2026-05-09`: `docker compose ps` подтверждает `open-webui` на образе `ghcr.io/open-webui/open-webui:0.9.2` со статусом `healthy`; `open-webui-backup-tool-1` продолжает работать без пересоздания.
+  - `2026-05-09`: свежие логи `open-webui` за последние 10 минут проверены на `ERROR|FATAL|Traceback|Exception|CRITICAL`; совпадений нет.
   - Локальные tracked-изменения закоммичены в `4c6894292` (`chore: update open-webui deployment and runtime defaults`).
   - Для синхронизации с fork-remote выполнен merge `origin/main`; получен merge commit `844fbb582`.
   - Выполнен `git push origin main`; `origin/main` обновлён до `844fbb582`.
@@ -94,8 +108,9 @@
   - Обновлён alias `nvm default -> node -> v25.8.1`.
   - Обновлён `~/.zshrc`: после загрузки `nvm` выполняется `nvm use --silent default`, чтобы интерактивные `zsh`-сессии поднимали default-версию Node вместо унаследованного старого `PATH`.
 - Now:
-  - Подтвердить пользователю, что изменения уже закоммичены и отправлены в `origin/main`.
+  - Коммитится и пушится результат обновления Open WebUI; `backup-tool/` остаётся незатреканным и не входит в коммит.
 - Next:
+  - После push проверить `origin/main`, git status и runtime health/version.
   - При необходимости удалить сохранённый safety-stash `stash@{0}` после подтверждения, что восстановленные локальные правки корректны.
   - При необходимости отдельно разобрать ошибки `svelte-check` в локально изменённых файлах или ограничить валидацию более узким набором целей.
   - Если нужна успешная полная `docker build`, разбирать сетевую доступность внутри Docker build для `prepare-pyodide.js` или предусмотреть prefetch/cached pyodide artifacts.
@@ -148,6 +163,12 @@
 - `git push origin main`
 - `.env`
 - `.dockerignore`
+- `docker compose ps`
+- `docker compose pull open-webui`
+- `docker compose up -d open-webui`
+- `curl -fsS http://127.0.0.1:3287/api/version`
+- `curl -fsS http://127.0.0.1:3287/health`
+- `docker logs --since=10m open-webui`
 - `postgres-data`
 - `open-webui-data`
 - `open-webui-data.tar.gz`
