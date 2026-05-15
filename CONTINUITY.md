@@ -2,8 +2,9 @@
 - Завершить настройку этого хоста как managed target для OpenClaw main-контура.
 - Добиться рабочей связи: удалённый nginx может достучаться до target по адресу target-хоста, внешний DNS endpoint работает, callback в main работает.
 - Подготовить более надёжную схему через central Gateway + headless node host, если доступны credential'ы central Gateway.
-- Обновить локальный checkout `/opt/projects/open-webui` из `upstream/main` без потери локальных изменений.
+- Обновить локальный checkout `/opt/projects/open-webui` до последней версии из `upstream/main` без потери локальных изменений.
 - Обновить Open WebUI из GitHub и безопасно перезапустить контейнер, не затрагивая `backup-tool/` и данные.
+- Диагностировать post-upgrade ошибку ответа Open WebUI: `Error: 'coroutine' object has no attribute 'chat'`, пока без изменений кода/конфига/контейнеров.
 
 # Constraints/Assumptions:
 - Рабочая директория: `/opt/projects/open-webui`.
@@ -35,9 +36,16 @@
 - Для реального runtime-upgrade Open WebUI на этом хосте закреплять тег через `.env` (`WEBUI_DOCKER_TAG`) и перекатывать только сервис `open-webui`, не трогая `postgres-data`.
 - Для push в `origin/main` сначала коммитить локальные tracked-изменения, затем вмерживать отставание `origin/main`, если оно есть, и только после этого делать обычный `git push` без force.
 - `backup-tool/` является отдельной частью рядом с Open WebUI; при обновлении Open WebUI не удалять, не переносить и не ожидать его появления/обновления из новой версии upstream.
+- Для текущей диагностики ошибки после обновления работать read-only: только логи/статус/запросы, без рестартов, правок и миграций.
+- Для исправления ошибки `openai_responses` сначала сохранить backup текущего function content из БД, затем менять только эту custom function; не трогать данные/volumes/`backup-tool`.
 
 # State:
 - Done:
+  - 2026-05-15: Выполнен merge свежего `upstream/main` в локальный `main`; HEAD `23d69e6de`, upstream/tag `3660bc00f` / `v0.9.5`.
+  - 2026-05-15: Runtime Open WebUI обновлён с Docker image `ghcr.io/open-webui/open-webui:0.9.2` до `ghcr.io/open-webui/open-webui:0.9.5`; `.env` `WEBUI_DOCKER_TAG=0.9.5`.
+  - 2026-05-15: `docker compose up -d --force-recreate --no-deps open-webui` выполнен; Postgres и `backup-tool` не пересоздавались.
+  - 2026-05-15: После обновления `/health` вернул `{"status":true}`, `/api/version` вернул `{"version":"0.9.5","deployment_id":""}`.
+  - 2026-05-15: `docker compose ps open-webui` подтвердил `ghcr.io/open-webui/open-webui:0.9.5` со статусом `healthy`.
   - Установлен системный пакет `bubblewrap` через `apt`; подтверждены `/usr/bin/bwrap`, `bubblewrap 0.9.0`, `dpkg` status `install ok installed`.
   - Проверено git-состояние `2026-03-27`: локальная `main` имеет незакоммиченные изменения и расходится с `upstream/main` на `4/244` (left/right count).
   - Выполнен `git fetch --all --prune`; обновлены `origin/*` и `upstream/main -> 9bd84258d`.
@@ -77,6 +85,19 @@
   - `2026-05-09`: проверены endpoints `http://127.0.0.1:3287/api/version` -> `0.9.2` и `/health` -> `{"status":true}`.
   - `2026-05-09`: `docker compose ps` подтверждает `open-webui` на образе `ghcr.io/open-webui/open-webui:0.9.2` со статусом `healthy`; `open-webui-backup-tool-1` продолжает работать без пересоздания.
   - `2026-05-09`: свежие логи `open-webui` за последние 10 минут проверены на `ERROR|FATAL|Traceback|Exception|CRITICAL`; совпадений нет.
+  - `2026-05-11`: read-only диагностика post-upgrade ошибки показала 4 появления `Error: 'coroutine' object has no attribute 'chat'` за последние 24h.
+  - `2026-05-11`: ошибка возникает после `POST /api/chat/completions` при работе custom pipe `function_openai_responses`; в логах рядом есть `function_openai_responses:from_completions` и `RuntimeWarning: coroutine 'ChatTable.get_chat_by_id' was never awaited`.
+  - `2026-05-11`: в БД есть одна custom function `openai_responses` (`OpenAI Responses API Manifold`, type `pipe`, active=true, updated_at `2026-03-27 20:59:11+00`).
+  - `2026-05-11`: в коде function `openai_responses` есть синхронные вызовы `Chats.get_chat_by_id(...)`, `Chats.update_chat_by_id(...)`, `Chats.upsert_message_to_chat_by_id_and_message_id(...)`; после Open WebUI `0.9.2` эти методы async.
+  - `2026-05-11`: подтверждено сравнением git tags: в `v0.8.12` `Chats.get_chat_by_id`, `update_chat_by_id`, `upsert_message_to_chat_by_id_and_message_id` были sync; в `v0.9.2` они стали `async def`.
+  - `2026-05-11`: вывод диагностики: причина не в контейнере/health, а в несовместимости локальной custom pipe `openai_responses` с async API Open WebUI `0.9.x`.
+  - `2026-05-11`: сохранён backup custom function `openai_responses` до hotfix: `/opt/projects/open-webui/backups/function-hotfix-20260511/openai_responses.before.py` (ignored by git via `backups/`).
+  - `2026-05-11`: подготовлен hotfix `/opt/projects/open-webui/backups/function-hotfix-20260511/openai_responses.after.py`: `transform_messages_to_input`, `from_completions`, `persist_openai_response_items`, `fetch_openai_response_items` стали async; вызовы `Chats.get_chat_by_id`, `Chats.update_chat_by_id`, `Chats.upsert_message_to_chat_by_id_and_message_id`, `persist_openai_response_items`, `fetch_openai_response_items`, `ResponsesBody.from_completions` переведены на `await`.
+  - `2026-05-11`: `python3 -m py_compile` для hotfix-копии и содержимого function из БД -> OK.
+  - `2026-05-11`: запись `function.id='openai_responses'` обновлена в Postgres; `updated_at=1778517541` (`2026-05-11 16:39:01+00`).
+  - `2026-05-11`: выполнен `docker compose up -d --force-recreate --no-deps open-webui`; пересоздан только `open-webui`, `postgres` и `backup-tool` не пересоздавались.
+  - `2026-05-11`: после пересоздания `open-webui` вернулся в `healthy`, `/api/version` -> `0.9.2`, `/health` -> `{"status":true}`.
+  - `2026-05-11`: свежие логи после hotfix показывают `Loaded module: function_openai_responses`; ошибок `coroutine`, `has no attribute 'chat'`, `RuntimeWarning`, `Traceback`, `ERROR`, `Exception` в окне проверки не найдено.
   - Локальные tracked-изменения закоммичены в `4c6894292` (`chore: update open-webui deployment and runtime defaults`).
   - Для синхронизации с fork-remote выполнен merge `origin/main`; получен merge commit `844fbb582`.
   - Выполнен `git push origin main`; `origin/main` обновлён до `844fbb582`.
@@ -108,9 +129,10 @@
   - Обновлён alias `nvm default -> node -> v25.8.1`.
   - Обновлён `~/.zshrc`: после загрузки `nvm` выполняется `nvm use --silent default`, чтобы интерактивные `zsh`-сессии поднимали default-версию Node вместо унаследованного старого `PATH`.
 - Now:
-  - Коммитится и пушится результат обновления Open WebUI; `backup-tool/` остаётся незатреканным и не входит в коммит.
+  - По запросу пользователя выполняется commit/push результата обновления в `origin/main`.
 - Next:
-  - После push проверить `origin/main`, git status и runtime health/version.
+  - Проверить состав незатреканного `backup-tool/`, не коммитить секреты, закоммитить безопасные tracked-изменения и запушить `main` в `origin`.
+  - Попросить пользователя проверить проблемную модель `openai_responses.*` в UI; если ошибка повторится, собрать свежие логи вокруг нового запроса.
   - При необходимости удалить сохранённый safety-stash `stash@{0}` после подтверждения, что восстановленные локальные правки корректны.
   - При необходимости отдельно разобрать ошибки `svelte-check` в локально изменённых файлах или ограничить валидацию более узким набором целей.
   - Если нужна успешная полная `docker build`, разбирать сетевую доступность внутри Docker build для `prepare-pyodide.js` или предусмотреть prefetch/cached pyodide artifacts.
@@ -169,6 +191,10 @@
 - `curl -fsS http://127.0.0.1:3287/api/version`
 - `curl -fsS http://127.0.0.1:3287/health`
 - `docker logs --since=10m open-webui`
+- `docker logs --since=<window> open-webui`
+- `docker compose up -d --force-recreate --no-deps open-webui`
+- `/opt/projects/open-webui/backups/function-hotfix-20260511/openai_responses.before.py`
+- `/opt/projects/open-webui/backups/function-hotfix-20260511/openai_responses.after.py`
 - `postgres-data`
 - `open-webui-data`
 - `open-webui-data.tar.gz`
