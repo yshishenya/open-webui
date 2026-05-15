@@ -5,6 +5,7 @@
 - Обновить локальный checkout `/opt/projects/open-webui` до последней версии из `upstream/main` без потери локальных изменений.
 - Обновить Open WebUI из GitHub и безопасно перезапустить контейнер, не затрагивая `backup-tool/` и данные.
 - Диагностировать post-upgrade ошибку ответа Open WebUI: `Error: 'coroutine' object has no attribute 'chat'`, пока без изменений кода/конфига/контейнеров.
+- Ответить на вопрос пользователя о Skills/`SKILL.md` в Open WebUI 0.9.5: можно ли использовать, где искать и как импортировать.
 
 # Constraints/Assumptions:
 - Рабочая директория: `/opt/projects/open-webui`.
@@ -41,6 +42,12 @@
 
 # State:
 - Done:
+  - 2026-05-15: `backup-tool/` обработан как отдельный git repo, синхронизирован с `origin/main`, локальные изменения сведены с remote, закоммичены в `388f1b9` (`fix: tune startup health notifications`) и запушены в `https://github.com/Fediushin/backup-tool.git`.
+  - 2026-05-15: В `backup-tool` добавлены `TOOL_STARTUP_NOTIFY_ENABLED=false`, `SCHEDULE_STARTUP_GRACE_SECONDS=60`, startup notification теперь gated; `.env.bak-*`/`*.bak-*` игнорируются.
+  - 2026-05-15: Уточнено по персональным агентам Open WebUI: поддерживается owner/access-grants слой для private workspace resources (models/knowledge/prompts/tools/skills), но отдельный per-user runtime/container для агентов не является штатной изоляцией одного инстанса.
+  - 2026-05-15: Объяснена разница Skills vs Prompts в Open WebUI: Prompt = шаблон пользовательского сообщения/быстрая вставка; Skill = reusable capability/instruction, которая добавляется как системный контекст через `$` или model-attached flow.
+  - 2026-05-15: Разница уточнена: Open WebUI Skills = markdown-инструкции в БД/UI, `$` inject полный текст, model-attached inject manifest + `view_skill`; Codex/OpenClaw-style `SKILL.md` = файловый пакет для агентного рантайма с optional resources/scripts, который не исполняется Open WebUI автоматически.
+  - 2026-05-15: По локальному коду и официальной документации подтверждено: Open WebUI 0.9.5 поддерживает Workspace Skills как markdown-инструкции; импорт принимает `.md`/`.json`, YAML frontmatter `name`/`description`, путь UI `/workspace/skills`.
   - 2026-05-15: Выполнен merge свежего `upstream/main` в локальный `main`; HEAD `23d69e6de`, upstream/tag `3660bc00f` / `v0.9.5`.
   - 2026-05-15: Runtime Open WebUI обновлён с Docker image `ghcr.io/open-webui/open-webui:0.9.2` до `ghcr.io/open-webui/open-webui:0.9.5`; `.env` `WEBUI_DOCKER_TAG=0.9.5`.
   - 2026-05-15: `docker compose up -d --force-recreate --no-deps open-webui` выполнен; Postgres и `backup-tool` не пересоздавались.
@@ -130,8 +137,10 @@
   - Обновлён alias `nvm default -> node -> v25.8.1`.
   - Обновлён `~/.zshrc`: после загрузки `nvm` выполняется `nvm use --silent default`, чтобы интерактивные `zsh`-сессии поднимали default-версию Node вместо унаследованного старого `PATH`.
 - Now:
-  - Commit/push результата обновления в `origin/main` выполнен.
+  - `backup-tool` commit/push выполнен; основной repo готов к commit/push root `.gitignore`/`CONTINUITY.md`.
 - Next:
+  - Закоммитить и запушить root `.gitignore`/`CONTINUITY.md` в основной `origin/main`, затем проверить clean status.
+  - Если пользователь захочет, импортировать/создать конкретные skills в Open WebUI или подготовить набор `.md` для импорта.
   - Если нужно версионировать `backup-tool/`, делать это отдельно как самостоятельный repo/remote; в основной Open WebUI repo он оставлен untracked из-за вложенного `.git` и `.env` файлов.
   - Попросить пользователя проверить проблемную модель `openai_responses.*` в UI; если ошибка повторится, собрать свежие логи вокруг нового запроса.
   - При необходимости удалить сохранённый safety-stash `stash@{0}` после подтверждения, что восстановленные локальные правки корректны.

@@ -10,6 +10,7 @@ node_modules
 !.env.example
 postgres-data/
 backups/
+backup-tool/
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 # Byte-compiled / optimized / DLL files
