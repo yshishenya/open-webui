@@ -46,6 +46,7 @@
   - 2026-05-15: `docker compose up -d --force-recreate --no-deps open-webui` выполнен; Postgres и `backup-tool` не пересоздавались.
   - 2026-05-15: После обновления `/health` вернул `{"status":true}`, `/api/version` вернул `{"version":"0.9.5","deployment_id":""}`.
   - 2026-05-15: `docker compose ps open-webui` подтвердил `ghcr.io/open-webui/open-webui:0.9.5` со статусом `healthy`.
+  - 2026-05-15: Результат обновления закоммичен в `45c03ee86` (`docs: record open-webui 0.9.5 upgrade`) и запушен в `origin/main` (`github.com:yshishenya/open-webui.git`).
   - Установлен системный пакет `bubblewrap` через `apt`; подтверждены `/usr/bin/bwrap`, `bubblewrap 0.9.0`, `dpkg` status `install ok installed`.
   - Проверено git-состояние `2026-03-27`: локальная `main` имеет незакоммиченные изменения и расходится с `upstream/main` на `4/244` (left/right count).
   - Выполнен `git fetch --all --prune`; обновлены `origin/*` и `upstream/main -> 9bd84258d`.
@@ -129,9 +130,9 @@
   - Обновлён alias `nvm default -> node -> v25.8.1`.
   - Обновлён `~/.zshrc`: после загрузки `nvm` выполняется `nvm use --silent default`, чтобы интерактивные `zsh`-сессии поднимали default-версию Node вместо унаследованного старого `PATH`.
 - Now:
-  - По запросу пользователя выполняется commit/push результата обновления в `origin/main`.
+  - Commit/push результата обновления в `origin/main` выполнен.
 - Next:
-  - Проверить состав незатреканного `backup-tool/`, не коммитить секреты, закоммитить безопасные tracked-изменения и запушить `main` в `origin`.
+  - Если нужно версионировать `backup-tool/`, делать это отдельно как самостоятельный repo/remote; в основной Open WebUI repo он оставлен untracked из-за вложенного `.git` и `.env` файлов.
   - Попросить пользователя проверить проблемную модель `openai_responses.*` в UI; если ошибка повторится, собрать свежие логи вокруг нового запроса.
   - При необходимости удалить сохранённый safety-stash `stash@{0}` после подтверждения, что восстановленные локальные правки корректны.
   - При необходимости отдельно разобрать ошибки `svelte-check` в локально изменённых файлах или ограничить валидацию более узким набором целей.
