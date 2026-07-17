@@ -313,7 +313,6 @@ dist
 cypress/videos
 cypress/screenshots
 .vscode/settings.json
-
 # Open WebUI local data and backups
 open-webui-data/
 sync-backup/
@@ -321,3 +320,4 @@ sync-backup/
 sync.log
 sync-quick.log
 backup.log
+.cptr
