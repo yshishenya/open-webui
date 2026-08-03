@@ -11,7 +11,6 @@ class TestLeadMagnetBilling(AbstractPostgresTest):
     def setup_method(self) -> None:
         super().setup_method()
         from open_webui.models.billing import PricingRateCardModel, RateCards
-        from open_webui.models.models import ModelForm, ModelMeta, ModelParams, Models
 
         now = int(time.time())
         self.model_id = "lead-magnet-model"
@@ -60,6 +59,9 @@ class TestLeadMagnetBilling(AbstractPostgresTest):
         RateCards.create_rate_card(rate_out.model_dump())
         RateCards.create_rate_card(tts_rate.model_dump())
 
+    async def _insert_lead_magnet_model(self) -> None:
+        from open_webui.models.models import ModelForm, ModelMeta, ModelParams, Models
+
         model_form = ModelForm(
             id=self.model_id,
             name="Lead Magnet",
@@ -69,23 +71,31 @@ class TestLeadMagnetBilling(AbstractPostgresTest):
             access_control=None,
             is_active=True,
         )
-        Models.insert_new_model(model_form, user_id="admin")
+        model = await Models.insert_new_model(model_form, user_id="admin")
+        assert model is not None
 
-    def _configure_lead_magnet(self, monkeypatch, quotas):
-        from open_webui.config import (
-            LEAD_MAGNET_CONFIG_VERSION,
-            LEAD_MAGNET_CYCLE_DAYS,
-            LEAD_MAGNET_ENABLED,
-            LEAD_MAGNET_QUOTAS,
+    def _configure_lead_magnet(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        quotas: dict[str, int],
+    ) -> None:
+        import open_webui.utils.airis.runtime_config as runtime_config
+
+        monkeypatch.setattr(
+            runtime_config,
+            '_runtime_config',
+            runtime_config.LeadMagnetRuntimeConfig(
+                enabled=True,
+                cycle_days=30,
+                quotas=quotas,
+                config_version=1,
+            ),
         )
 
-        monkeypatch.setattr(LEAD_MAGNET_ENABLED, "value", True)
-        monkeypatch.setattr(LEAD_MAGNET_CYCLE_DAYS, "value", 30)
-        monkeypatch.setattr(LEAD_MAGNET_QUOTAS, "value", quotas)
-        monkeypatch.setattr(LEAD_MAGNET_CONFIG_VERSION, "value", 1)
-
     @pytest.mark.asyncio
-    async def test_lead_magnet_text_skips_wallet_hold(self, monkeypatch):
+    async def test_lead_magnet_text_skips_wallet_hold(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        await self._insert_lead_magnet_model()
+
         from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import BillingSource, LeadMagnetStates, UsageEvent
         from open_webui.models.billing import LedgerEntry, Wallets
@@ -150,11 +160,7 @@ class TestLeadMagnetBilling(AbstractPostgresTest):
             message_id="msg_1",
         )
 
-        usage_event = (
-            Session.query(UsageEvent)
-            .filter(UsageEvent.request_id == "req_lead_text")
-            .first()
-        )
+        usage_event = Session.query(UsageEvent).filter(UsageEvent.request_id == "req_lead_text").first()
         assert usage_event is not None
         assert usage_event.billing_source == BillingSource.LEAD_MAGNET.value
         assert usage_event.cost_charged_kopeks == 0
@@ -165,7 +171,9 @@ class TestLeadMagnetBilling(AbstractPostgresTest):
         assert state.tokens_output_used == 12
 
     @pytest.mark.asyncio
-    async def test_lead_magnet_falls_back_to_payg(self, monkeypatch):
+    async def test_lead_magnet_falls_back_to_payg(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        await self._insert_lead_magnet_model()
+
         from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import BillingSource, LedgerEntry, Wallets
         from open_webui.utils.billing_integration import preflight_estimate_hold
@@ -214,7 +222,9 @@ class TestLeadMagnetBilling(AbstractPostgresTest):
         assert hold_entry is not None
 
     @pytest.mark.asyncio
-    async def test_lead_magnet_tts_consumes_quota(self, monkeypatch):
+    async def test_lead_magnet_tts_consumes_quota(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        await self._insert_lead_magnet_model()
+
         from open_webui.models.billing import BillingSource, LeadMagnetStates, Wallets
         from open_webui.utils.billing_integration import (
             preflight_single_rate_hold,

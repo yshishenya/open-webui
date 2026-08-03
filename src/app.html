@@ -71,6 +71,16 @@
 					metaThemeColorTag.setAttribute('content', '#171717');
 				}
 
+				const preloadHref = document.documentElement.classList.contains('dark')
+					? '/static/splash-dark.png'
+					: '/static/splash.png';
+				const preload = document.createElement('link');
+				preload.rel = 'preload';
+				preload.as = 'image';
+				preload.href = preloadHref;
+				preload.setAttribute('fetchpriority', 'high');
+				document.head.appendChild(preload);
+
 				window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
 					if (localStorage.theme === 'system') {
 						if (e.matches) {
@@ -84,11 +94,15 @@
 						}
 					}
 				});
+				const isDarkMode = document.documentElement.classList.contains('dark');
+
 				const logo = document.createElement('img');
 				logo.id = 'logo';
 				logo.style =
 					'position: absolute; width: auto; height: 6rem; top: 44%; left: 50%; transform: translateX(-50%); display:block;';
-				logo.src = '/static/favicon.svg';
+				logo.loading = 'eager';
+				logo.fetchPriority = 'high';
+				logo.src = isDarkMode ? '/static/splash-dark.png' : '/static/splash.png';
 
 				document.addEventListener('DOMContentLoaded', function () {
 					const splash = document.getElementById('splash-screen');
@@ -136,7 +150,9 @@
 				<img
 					id="logo-her"
 					style="width: auto; height: 13rem"
-					src="/static/favicon.svg"
+					src="/static/splash.png"
+					loading="eager"
+					fetchpriority="high"
 					class="animate-pulse-fast"
 				/>
 

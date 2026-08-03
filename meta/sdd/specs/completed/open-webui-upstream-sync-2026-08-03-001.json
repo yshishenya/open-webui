@@ -1,0 +1,278 @@
+{
+  "spec_id": "open-webui-upstream-sync-2026-08-03-001",
+  "title": "Open WebUI v0.11.0 upstream sync",
+  "generated": "2026-08-03T12:17:43Z",
+  "last_updated": "2026-08-03T17:05:00Z",
+  "metadata": {
+    "title": "Open WebUI v0.11.0 upstream sync",
+    "description": "Integrate Open WebUI v0.11.0 into Airis with migration, regression, backup, rollout, and rollback verification.",
+    "objectives": [
+      "Preserve Airis billing, authentication, deployment, and branding behavior.",
+      "Integrate the official v0.11.0 stable tag with minimal conflict-resolution overrides.",
+      "Validate migrations and application behavior before a backed-up production rollout."
+    ],
+    "complexity": "high",
+    "owner": "Codex",
+    "status": "completed",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-03__feature__open-webui-v0.11.0-upstream-sync.md",
+    "assumptions": [
+      "origin/airis_b2c at cd51aefb6 is the current integration and production baseline.",
+      "v0.11.0 at f9590b801 is the requested official stable target.",
+      "The user approved manual SDD JSON lifecycle operations because the local sdd CLI is unavailable."
+    ],
+    "revision_history": [
+      {
+        "version": "1.0",
+        "date": "2026-08-03T12:17:43Z",
+        "author": "Codex",
+        "changelog": "Created active upstream sync specification using the approved manual fallback.",
+        "modified_by": "manual JSON Schema compatible fallback"
+      },
+      {
+        "version": "1.1",
+        "date": "2026-08-03T17:05:00Z",
+        "author": "Codex",
+        "changelog": "Completed integration, migration rehearsals, verified backup, production rollout, and post-deploy smoke checks.",
+        "modified_by": "manual JSON Schema compatible fallback"
+      }
+    ]
+  },
+  "hierarchy": {
+    "spec-root": {
+      "id": "spec-root",
+      "type": "spec",
+      "title": "Open WebUI v0.11.0 upstream sync",
+      "status": "completed",
+      "parent": null,
+      "children": ["phase-1", "phase-2", "phase-3", "phase-4", "phase-5"],
+      "total_tasks": 9,
+      "completed_tasks": 9,
+      "metadata": {
+        "purpose": "Safely update the Airis fork and production deployment to Open WebUI v0.11.0.",
+        "risk_level": "high",
+        "owner": "Codex",
+        "started_at": "2026-08-03T12:17:43Z",
+        "completed_at": "2026-08-03T17:05:00Z",
+        "verification": "Single Alembic head a91c0d8e4f62; 90 backend utility/service and 87 frontend tests passed; final image and production Playwright/API smoke passed.",
+        "rollback_backup": "/opt/projects/.backups/airis/20260803-185252-open-webui-v0.11.0/"
+      }
+    },
+    "phase-1": {
+      "id": "phase-1",
+      "type": "phase",
+      "title": "Baseline and isolation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": ["task-1-1", "task-1-2"],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "purpose": "Confirm the stable target and isolate work from the dirty production checkout.",
+        "risk_level": "low",
+        "completed_at": "2026-08-03T12:17:43Z"
+      }
+    },
+    "task-1-1": {
+      "id": "task-1-1",
+      "type": "task",
+      "title": "Record current and target revisions",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "investigation",
+        "details": "Recorded Airis cd51aefb6 and upstream v0.11.0 f9590b801, release status, migration scope, and overlap.",
+        "completed_at": "2026-08-03T12:17:43Z"
+      }
+    },
+    "task-1-2": {
+      "id": "task-1-2",
+      "type": "task",
+      "title": "Create isolated worktree and workflow artifacts",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "details": "Created a dedicated branch/worktree, work-item spec, SDD fallback, and branch update without touching the dirty integration checkout.",
+        "completed_at": "2026-08-03T12:17:43Z"
+      }
+    },
+    "phase-2": {
+      "id": "phase-2",
+      "type": "phase",
+      "title": "Upstream integration",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": ["task-2-1", "task-2-2"],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "purpose": "Merge the stable upstream tag and resolve overlapping Airis behavior.",
+        "risk_level": "high",
+        "completed_at": "2026-08-03T15:15:00Z"
+      }
+    },
+    "task-2-1": {
+      "id": "task-2-1",
+      "type": "task",
+      "title": "Merge official v0.11.0 tag",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "details": "Merged official v0.11.0 at f9590b801 into the cd51aefb6 Airis baseline in an isolated worktree.",
+        "risk_level": "high",
+        "completed_at": "2026-08-03T14:00:00Z"
+      }
+    },
+    "task-2-2": {
+      "id": "task-2-2",
+      "type": "task",
+      "title": "Resolve conflicts and preserve Airis hooks",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "details": "Resolved conflicts with narrow Airis hooks and additive runtime-config, billing, bootstrap, and migration helpers.",
+        "risk_level": "high",
+        "completed_at": "2026-08-03T15:15:00Z"
+      }
+    },
+    "phase-3": {
+      "id": "phase-3",
+      "type": "phase",
+      "title": "Migration and application verification",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": ["task-3-1", "task-3-2"],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "purpose": "Validate migration graph, dependencies, build, lint, tests, and Airis regressions.",
+        "risk_level": "high",
+        "completed_at": "2026-08-03T16:50:00Z"
+      }
+    },
+    "task-3-1": {
+      "id": "task-3-1",
+      "type": "task",
+      "title": "Reconcile dependencies and migration heads",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "details": "Created merge revision a91c0d8e4f62 and upgraded fresh and restored-production PostgreSQL databases successfully.",
+        "risk_level": "high",
+        "completed_at": "2026-08-03T15:40:00Z"
+      }
+    },
+    "task-3-2": {
+      "id": "task-3-2",
+      "type": "task",
+      "title": "Run Docker build, tests, lint, and focused regressions",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "details": "Built final image, passed 90 backend utility/service and 87 frontend tests, focused lint/format checks, authenticated smoke, and Playwright desktop/mobile checks.",
+        "risk_level": "high",
+        "completed_at": "2026-08-03T16:50:00Z"
+      }
+    },
+    "phase-4": {
+      "id": "phase-4",
+      "type": "phase",
+      "title": "Backed-up production rollout",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": ["task-4-1", "task-4-2"],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "purpose": "Protect production state, deploy the verified image, and prove runtime behavior.",
+        "risk_level": "high",
+        "completed_at": "2026-08-03T17:03:00Z"
+      }
+    },
+    "task-4-1": {
+      "id": "task-4-1",
+      "type": "task",
+      "title": "Create and verify production rollback backup",
+      "status": "completed",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "details": "Verified PostgreSQL custom dump, 1.4 GB application-data archive, Compose/environment backup, manifest, and SHA256SUMS.",
+        "risk_level": "high",
+        "completed_at": "2026-08-03T16:55:00Z"
+      }
+    },
+    "task-4-2": {
+      "id": "task-4-2",
+      "type": "task",
+      "title": "Deploy and run production smoke checks",
+      "status": "completed",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "details": "Deployed image sha256:97b7929b, migrated production to a91c0d8e4f62, preserved record counts, and passed public/authenticated API plus browser smoke checks.",
+        "risk_level": "high",
+        "completed_at": "2026-08-03T17:03:00Z"
+      }
+    },
+    "phase-5": {
+      "id": "phase-5",
+      "type": "phase",
+      "title": "Completion and handoff",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": ["task-5-1"],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "purpose": "Close workflow documentation with exact verification and rollback evidence.",
+        "risk_level": "low",
+        "completed_at": "2026-08-03T17:05:00Z"
+      }
+    },
+    "task-5-1": {
+      "id": "task-5-1",
+      "type": "task",
+      "title": "Finalize specs and branch update",
+      "status": "completed",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "details": "Recorded verification, deployment, test-harness follow-up, rollback artifacts, and completed the manual SDD lifecycle.",
+        "risk_level": "low",
+        "completed_at": "2026-08-03T17:05:00Z"
+      }
+    }
+  }
+}

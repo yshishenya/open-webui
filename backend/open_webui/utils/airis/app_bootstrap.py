@@ -10,34 +10,7 @@ def bootstrap_airis(app: FastAPI) -> None:
 
     Keep this logic out of upstream-owned `main.py` to reduce merge conflicts.
     """
-    _bootstrap_airis_config(app)
     _bootstrap_airis_routers(app)
-
-
-def _bootstrap_airis_config(app: FastAPI) -> None:
-    """Attach Airis-specific PersistentConfig keys to app.state.config."""
-    from open_webui.config import (
-        ENABLE_TELEGRAM_AUTH,
-        TELEGRAM_BOT_USERNAME,
-        TELEGRAM_BOT_TOKEN,
-        TELEGRAM_AUTH_MAX_AGE_SECONDS,
-        ENABLE_TELEGRAM_SIGNUP,
-        LEAD_MAGNET_ENABLED,
-        LEAD_MAGNET_CYCLE_DAYS,
-        LEAD_MAGNET_QUOTAS,
-        LEAD_MAGNET_CONFIG_VERSION,
-    )
-
-    app.state.config.ENABLE_TELEGRAM_AUTH = ENABLE_TELEGRAM_AUTH
-    app.state.config.TELEGRAM_BOT_USERNAME = TELEGRAM_BOT_USERNAME
-    app.state.config.TELEGRAM_BOT_TOKEN = TELEGRAM_BOT_TOKEN
-    app.state.config.TELEGRAM_AUTH_MAX_AGE_SECONDS = TELEGRAM_AUTH_MAX_AGE_SECONDS
-    app.state.config.ENABLE_TELEGRAM_SIGNUP = ENABLE_TELEGRAM_SIGNUP
-
-    app.state.config.LEAD_MAGNET_ENABLED = LEAD_MAGNET_ENABLED
-    app.state.config.LEAD_MAGNET_CYCLE_DAYS = LEAD_MAGNET_CYCLE_DAYS
-    app.state.config.LEAD_MAGNET_QUOTAS = LEAD_MAGNET_QUOTAS
-    app.state.config.LEAD_MAGNET_CONFIG_VERSION = LEAD_MAGNET_CONFIG_VERSION
 
 
 def _bootstrap_airis_routers(app: FastAPI) -> None:
@@ -80,13 +53,16 @@ def extend_airis_app_config(payload: dict[str, object], request: Request) -> dic
 
     This keeps upstream-owned `main.py` close to upstream while still serving Airis UI needs.
     """
-    from open_webui.config import OAUTH_PROVIDERS
+    from open_webui.config import (
+        ENABLE_TELEGRAM_AUTH,
+        OAUTH_PROVIDERS,
+        TELEGRAM_BOT_TOKEN,
+        TELEGRAM_BOT_USERNAME,
+    )
     from open_webui.env import ENABLE_BILLING_SUBSCRIPTIONS
 
     oauth_section_obj = payload.get("oauth")
-    oauth_section: dict[str, object] | None = (
-        oauth_section_obj if isinstance(oauth_section_obj, dict) else None
-    )
+    oauth_section: dict[str, object] | None = oauth_section_obj if isinstance(oauth_section_obj, dict) else None
 
     providers: dict[str, object] = {}
     for name, config in OAUTH_PROVIDERS.items():
@@ -107,14 +83,8 @@ def extend_airis_app_config(payload: dict[str, object], request: Request) -> dic
     else:
         oauth_section["providers"] = providers
 
-    telegram_bot_username = (
-        str(request.app.state.config.TELEGRAM_BOT_USERNAME or "").strip().lstrip("@")
-    )
-    telegram_enabled = bool(
-        request.app.state.config.ENABLE_TELEGRAM_AUTH
-        and telegram_bot_username
-        and str(request.app.state.config.TELEGRAM_BOT_TOKEN or "").strip()
-    )
+    telegram_bot_username = str(TELEGRAM_BOT_USERNAME or '').strip().lstrip('@')
+    telegram_enabled = bool(ENABLE_TELEGRAM_AUTH and telegram_bot_username and str(TELEGRAM_BOT_TOKEN or '').strip())
     payload["telegram"] = {
         "enabled": telegram_enabled,
         "bot_username": telegram_bot_username,
@@ -128,4 +98,3 @@ def extend_airis_app_config(payload: dict[str, object], request: Request) -> dic
         payload["features"] = {"enable_billing_subscriptions": ENABLE_BILLING_SUBSCRIPTIONS}
 
     return payload
-

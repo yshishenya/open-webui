@@ -1,9 +1,8 @@
-from typing import Dict, List
-
 import time
 
+import anyio
 from open_webui.models.billing import Plans, RateCards
-from open_webui.models.models import Models
+from open_webui.models.models import ModelModel, Models
 from open_webui.utils.plan_templates import get_default_plans, get_promo_plans
 from open_webui.utils.rate_card_templates import build_rate_cards_for_model
 
@@ -11,7 +10,7 @@ from open_webui.utils.rate_card_templates import build_rate_cards_for_model
 def seed_default_plans_if_missing() -> int:
     """Seed default/promo plans if they don't exist. Returns count created."""
     created = 0
-    plans: List[dict[str, object]] = []
+    plans: list[dict[str, object]] = []
     plans.extend(get_default_plans())
     plans.extend(get_promo_plans())
 
@@ -27,13 +26,8 @@ def seed_default_plans_if_missing() -> int:
     return created
 
 
-def seed_default_rate_cards_if_missing() -> int:
-    """Seed default rate cards for base models if they don't exist."""
+def _seed_default_rate_cards_for_models(models: list[ModelModel]) -> int:
     created = 0
-    models = Models.get_base_models()
-    if not models:
-        return 0
-
     for model in models:
         templates = build_rate_cards_for_model(
             model.id,
@@ -55,9 +49,18 @@ def seed_default_rate_cards_if_missing() -> int:
     return created
 
 
-def seed_default_billing_if_missing() -> Dict[str, int]:
+async def seed_default_rate_cards_if_missing() -> int:
+    """Seed default rate cards for base models without blocking the event loop."""
+    models = await Models.get_base_models()
+    if not models:
+        return 0
+
+    return await anyio.to_thread.run_sync(_seed_default_rate_cards_for_models, models)
+
+
+async def seed_default_billing_if_missing() -> dict[str, int]:
     """Seed default billing data (plans + rate cards)."""
     return {
-        "plans": seed_default_plans_if_missing(),
-        "rate_cards": seed_default_rate_cards_if_missing(),
+        "plans": await anyio.to_thread.run_sync(seed_default_plans_if_missing),
+        "rate_cards": await seed_default_rate_cards_if_missing(),
     }

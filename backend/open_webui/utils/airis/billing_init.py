@@ -1,8 +1,5 @@
 import logging
 
-import anyio
-
-
 log = logging.getLogger(__name__)
 
 
@@ -15,6 +12,10 @@ async def init_billing_on_startup() -> None:
     - Initialize external billing client (YooKassa) when configured.
     - Seed default billing data (plans/rate cards) if missing.
     """
+
+    from open_webui.utils.airis.runtime_config import refresh_lead_magnet_runtime_config
+
+    await refresh_lead_magnet_runtime_config()
 
     # Initialize YooKassa billing client if configured
     from open_webui.env import (
@@ -36,14 +37,12 @@ async def init_billing_on_startup() -> None:
         init_yookassa(yookassa_config)
         log.info("YooKassa billing client initialized")
     else:
-        log.info(
-            "YooKassa billing not configured (set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY to enable)"
-        )
+        log.info("YooKassa billing not configured (set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY to enable)")
 
     try:
         from open_webui.utils.billing_seed import seed_default_billing_if_missing
 
-        created = await anyio.to_thread.run_sync(seed_default_billing_if_missing)
+        created = await seed_default_billing_if_missing()
         if created.get("plans") or created.get("rate_cards"):
             log.info(
                 "Seeded billing defaults: plans=%s rate_cards=%s",
@@ -53,4 +52,3 @@ async def init_billing_on_startup() -> None:
     except Exception as e:
         # This should never crash the app startup; log and continue.
         log.exception("Failed to seed default billing defaults: %s", e)
-

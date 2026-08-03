@@ -141,6 +141,14 @@ describe('UserMenu', () => {
 	let target: HTMLDivElement | null = null;
 
 	beforeEach(() => {
+		if (!globalThis.ResizeObserver) {
+			globalThis.ResizeObserver = class ResizeObserver {
+				observe(): void {}
+				unobserve(): void {}
+				disconnect(): void {}
+			};
+		}
+
 		localStorage.token = 'test-token';
 		mocks.gotoMock.mockReset();
 		mocks.getUsageMock.mockReset().mockResolvedValue(null);

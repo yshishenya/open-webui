@@ -1,8 +1,10 @@
+import pytest
 from test.util.abstract_integration_test import AbstractPostgresTest
 
 
 class TestBillingSeed(AbstractPostgresTest):
-    def test_seed_rate_cards_are_inactive_by_default(self) -> None:
+    @pytest.mark.asyncio
+    async def test_seed_rate_cards_are_inactive_by_default(self) -> None:
         from open_webui.env import BILLING_RATE_CARD_VERSION
         from open_webui.models.billing import RateCards
         from open_webui.models.models import ModelForm, ModelMeta, ModelParams, Models
@@ -11,7 +13,7 @@ class TestBillingSeed(AbstractPostgresTest):
 
         model_id = "seed-model"
 
-        Models.insert_new_model(
+        model = await Models.insert_new_model(
             ModelForm(
                 id=model_id,
                 name="Seed Model",
@@ -23,8 +25,9 @@ class TestBillingSeed(AbstractPostgresTest):
             ),
             user_id="admin",
         )
+        assert model is not None
 
-        created = seed_default_rate_cards_if_missing()
+        created = await seed_default_rate_cards_if_missing()
         assert created == len(DEFAULT_RATE_CARD_TEMPLATES)
 
         for template in DEFAULT_RATE_CARD_TEMPLATES:

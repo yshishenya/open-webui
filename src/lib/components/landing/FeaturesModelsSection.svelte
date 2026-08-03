@@ -1,12 +1,14 @@
-<script lang="ts">
-	import { trackEvent } from '$lib/utils/analytics';
-
+<script context="module" lang="ts">
 	export type ModelItem = {
 		id: string;
 		displayName: string;
 		provider?: string | null;
 		capabilities: string[];
 	};
+</script>
+
+<script lang="ts">
+	import { trackEvent } from '$lib/utils/analytics';
 
 	export let models: ModelItem[] = [];
 	export let maxVisible: number = 12;

@@ -14,15 +14,10 @@ import aiosmtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional, List, Tuple
-from pathlib import Path
 import logging
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from open_webui.env import OPEN_WEBUI_DIR
-from open_webui.config import (
-    PersistentConfig,
-    get_config_value,
-)
 import os
 
 log = logging.getLogger(__name__)
@@ -31,68 +26,18 @@ log = logging.getLogger(__name__)
 # Email Configuration
 ####################################
 
-# Postal SMTP Configuration
-SMTP_HOST = PersistentConfig(
-    "SMTP_HOST",
-    "email.smtp.host",
-    os.environ.get("SMTP_HOST", ""),
-)
+# Postal SMTP configuration
+SMTP_HOST = os.getenv('SMTP_HOST', '')
+SMTP_PORT = int(os.getenv('SMTP_PORT', '25'))
+SMTP_USERNAME = os.getenv('SMTP_USERNAME', '')
+SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
+SMTP_USE_TLS = os.getenv('SMTP_USE_TLS', 'true').lower() == 'true'
+SMTP_FROM_EMAIL = os.getenv('SMTP_FROM_EMAIL', 'noreply@example.com')
+SMTP_FROM_NAME = os.getenv('SMTP_FROM_NAME', 'AIris')
 
-SMTP_PORT = PersistentConfig(
-    "SMTP_PORT",
-    "email.smtp.port",
-    int(os.environ.get("SMTP_PORT", "25")),
-)
-
-SMTP_USERNAME = PersistentConfig(
-    "SMTP_USERNAME",
-    "email.smtp.username",
-    os.environ.get("SMTP_USERNAME", ""),
-)
-
-SMTP_PASSWORD = PersistentConfig(
-    "SMTP_PASSWORD",
-    "email.smtp.password",
-    os.environ.get("SMTP_PASSWORD", ""),
-)
-
-SMTP_USE_TLS = PersistentConfig(
-    "SMTP_USE_TLS",
-    "email.smtp.use_tls",
-    os.environ.get("SMTP_USE_TLS", "true").lower() == "true",
-)
-
-SMTP_FROM_EMAIL = PersistentConfig(
-    "SMTP_FROM_EMAIL",
-    "email.smtp.from_email",
-    os.environ.get("SMTP_FROM_EMAIL", "noreply@example.com"),
-)
-
-SMTP_FROM_NAME = PersistentConfig(
-    "SMTP_FROM_NAME",
-    "email.smtp.from_name",
-    os.environ.get("SMTP_FROM_NAME", "Open WebUI"),
-)
-
-# Email configuration
-EMAIL_VERIFICATION_EXPIRY_HOURS = PersistentConfig(
-    "EMAIL_VERIFICATION_EXPIRY_HOURS",
-    "email.verification.expiry_hours",
-    int(os.environ.get("EMAIL_VERIFICATION_EXPIRY_HOURS", "24")),
-)
-
-PASSWORD_RESET_EXPIRY_HOURS = PersistentConfig(
-    "PASSWORD_RESET_EXPIRY_HOURS",
-    "email.password_reset.expiry_hours",
-    int(os.environ.get("PASSWORD_RESET_EXPIRY_HOURS", "2")),
-)
-
-# Frontend URL for email links
-FRONTEND_URL = PersistentConfig(
-    "FRONTEND_URL",
-    "email.frontend_url",
-    os.environ.get("FRONTEND_URL", "http://localhost:3000"),
-)
+EMAIL_VERIFICATION_EXPIRY_HOURS = int(os.getenv('EMAIL_VERIFICATION_EXPIRY_HOURS', '24'))
+PASSWORD_RESET_EXPIRY_HOURS = int(os.getenv('PASSWORD_RESET_EXPIRY_HOURS', '2'))
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
 ####################################
 # Template Engine Setup
@@ -118,22 +63,17 @@ class EmailService:
     """Email service for sending transactional emails via SMTP"""
 
     def __init__(self):
-        self.smtp_host = SMTP_HOST.value
-        self.smtp_port = SMTP_PORT.value
-        self.smtp_username = SMTP_USERNAME.value
-        self.smtp_password = SMTP_PASSWORD.value
-        self.smtp_use_tls = SMTP_USE_TLS.value
-        self.from_email = SMTP_FROM_EMAIL.value
-        self.from_name = SMTP_FROM_NAME.value
+        self.smtp_host = SMTP_HOST
+        self.smtp_port = SMTP_PORT
+        self.smtp_username = SMTP_USERNAME
+        self.smtp_password = SMTP_PASSWORD
+        self.smtp_use_tls = SMTP_USE_TLS
+        self.from_email = SMTP_FROM_EMAIL
+        self.from_name = SMTP_FROM_NAME
 
     def is_configured(self) -> bool:
         """Check if SMTP is properly configured"""
-        return bool(
-            self.smtp_host
-            and self.smtp_port
-            and self.smtp_username
-            and self.smtp_password
-        )
+        return bool(self.smtp_host and self.smtp_port and self.smtp_username and self.smtp_password)
 
     async def _create_connection(self) -> aiosmtplib.SMTP:
         """Create async SMTP connection with error handling"""
@@ -207,7 +147,7 @@ class EmailService:
                 log.error(f"Failed to send email (attempt {attempt + 1}/{retry_count}): {e}")
                 if attempt < retry_count - 1:
                     # Exponential backoff
-                    delay = retry_delay * (2 ** attempt)
+                    delay = retry_delay * (2**attempt)
                     log.info(f"Retrying in {delay} seconds...")
                     await asyncio.sleep(delay)
                 else:
@@ -239,6 +179,7 @@ class EmailService:
             except Exception:
                 # Fallback: basic text version from HTML (strip tags)
                 import re
+
                 text_content = re.sub(r"<[^>]+>", "", html_content)
 
             return html_content, text_content
@@ -246,9 +187,7 @@ class EmailService:
             log.error(f"Failed to render template {template_name}: {e}")
             raise
 
-    async def send_verification_email(
-        self, to_email: str, name: str, verification_token: str
-    ) -> bool:
+    async def send_verification_email(self, to_email: str, name: str, verification_token: str) -> bool:
         """
         Send email verification email (async)
 
@@ -260,13 +199,13 @@ class EmailService:
         Returns:
             True if sent successfully
         """
-        verification_url = f"{FRONTEND_URL.value}/verify-email?token={verification_token}"
+        verification_url = f"{FRONTEND_URL}/verify-email?token={verification_token}"
 
         html_content, text_content = self.render_template(
             "verification",
             name=name,
             verification_url=verification_url,
-            expiry_hours=EMAIL_VERIFICATION_EXPIRY_HOURS.value,
+            expiry_hours=EMAIL_VERIFICATION_EXPIRY_HOURS,
         )
 
         return await self.send_email(
@@ -290,7 +229,7 @@ class EmailService:
         html_content, text_content = self.render_template(
             "welcome",
             name=name,
-            dashboard_url=f"{FRONTEND_URL.value}/",
+            dashboard_url=f"{FRONTEND_URL}/",
         )
 
         return await self.send_email(
@@ -300,9 +239,7 @@ class EmailService:
             text_content=text_content,
         )
 
-    async def send_password_reset_email(
-        self, to_email: str, name: str, reset_token: str
-    ) -> bool:
+    async def send_password_reset_email(self, to_email: str, name: str, reset_token: str) -> bool:
         """
         Send password reset email (async)
 
@@ -314,13 +251,13 @@ class EmailService:
         Returns:
             True if sent successfully
         """
-        reset_url = f"{FRONTEND_URL.value}/reset-password?token={reset_token}"
+        reset_url = f"{FRONTEND_URL}/reset-password?token={reset_token}"
 
         html_content, text_content = self.render_template(
             "password_reset",
             name=name,
             reset_url=reset_url,
-            expiry_hours=PASSWORD_RESET_EXPIRY_HOURS.value,
+            expiry_hours=PASSWORD_RESET_EXPIRY_HOURS,
         )
 
         return await self.send_email(
@@ -344,7 +281,7 @@ class EmailService:
         html_content, text_content = self.render_template(
             "password_changed",
             name=name,
-            support_url=f"{FRONTEND_URL.value}/support",
+            support_url=f"{FRONTEND_URL}/support",
         )
 
         return await self.send_email(
@@ -390,7 +327,7 @@ class EmailService:
             next_payment_date=next_payment_date,
             amount=amount,
             currency=currency,
-            dashboard_url=f"{FRONTEND_URL.value}/",
+            dashboard_url=f"{FRONTEND_URL}/",
         )
 
         return await self.send_email(
@@ -427,7 +364,7 @@ class EmailService:
             plan_name=plan_name,
             features=features,
             expires_at=expires_at,
-            dashboard_url=f"{FRONTEND_URL.value}/",
+            dashboard_url=f"{FRONTEND_URL}/",
         )
 
         return await self.send_email(
@@ -473,7 +410,7 @@ class EmailService:
             quota_unit=quota_unit,
             usage_percent=usage_percent,
             reset_period=reset_period,
-            upgrade_url=f"{FRONTEND_URL.value}/pricing",
+            upgrade_url=f"{FRONTEND_URL}/pricing",
         )
 
         return await self.send_email(

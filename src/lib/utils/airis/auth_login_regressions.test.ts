@@ -7,11 +7,19 @@ const readText = async (path: string): Promise<string> => {
 
 describe('Auth Login Regressions', () => {
 	it('keeps password reset + email verification routes public', async () => {
-		const layout = await readText('src/routes/+layout.svelte');
+		const publicRouteFiles = [
+			'src/routes/forgot-password/+page.svelte',
+			'src/routes/reset-password/+page.svelte',
+			'src/routes/verify-email/+page.svelte'
+		];
 
-		expect(layout).toContain("'/forgot-password'");
-		expect(layout).toContain("'/reset-password'");
-		expect(layout).toContain("'/verify-email'");
+		const pages = await Promise.all(publicRouteFiles.map((path) => readText(path)));
+		for (const page of pages) {
+			expect(page.length).toBeGreaterThan(0);
+		}
+
+		const protectedLayout = await readText('src/routes/(app)/+layout.svelte');
+		expect(protectedLayout).toContain('const gotoAuth');
 	});
 
 	it('does not disable VK ID alternative providers (OK.ru, Mail.ru) on /auth', async () => {

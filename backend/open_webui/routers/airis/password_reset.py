@@ -1,8 +1,11 @@
+import asyncio
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from open_webui.internal.db import get_async_session
 from open_webui.models.auths import Auths
 from open_webui.models.email_verification import EmailVerificationTokens
 from open_webui.models.password_reset import PasswordResetTokens
@@ -35,34 +38,34 @@ class ResendVerificationForm(BaseModel):
 
 
 @router.get("/verify-email")
-async def verify_email(token: str):
+async def verify_email(token: str, db: AsyncSession = Depends(get_async_session)):
     """Verify email address using verification token.
 
     This endpoint is called when user clicks the verification link in their email.
     On success, it marks the email as verified and sends a welcome email.
     """
-    if not EmailVerificationTokens.is_token_valid(token):
+    if not await EmailVerificationTokens.is_token_valid(token, db=db):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired verification token",
         )
 
-    token_record = EmailVerificationTokens.get_token_by_token_string(token)
+    token_record = await EmailVerificationTokens.get_token_by_token_string(token, db=db)
     if not token_record:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Verification token not found",
         )
 
-    user = Users.get_user_by_id(token_record.user_id)
+    user = await Users.get_user_by_id(token_record.user_id, db=db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
 
-    Users.update_user_by_id(user.id, {"email_verified": True})
-    EmailVerificationTokens.delete_token_by_id(token_record.id)
+    await Users.update_user_by_id(user.id, {"email_verified": True}, db=db)
+    await EmailVerificationTokens.delete_token_by_id(token_record.id, db=db)
 
     try:
         await email_service.send_welcome_email(user.email, user.name)
@@ -84,13 +87,17 @@ async def verify_email(token: str):
 
 
 @router.post("/resend-verification")
-async def resend_verification_email(form_data: ResendVerificationForm):
+async def resend_verification_email(
+    form_data: ResendVerificationForm,
+    db: AsyncSession = Depends(get_async_session),
+):
     """Resend verification email to user.
 
     Rate limited to 3 emails per hour per email address.
     """
-    if not email_verification_rate_limiter.check_rate_limit(
-        key=f"email_verification:{form_data.email}"
+    if await asyncio.to_thread(
+        email_verification_rate_limiter.is_limited,
+        f"email_verification:{form_data.email}",
     ):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -103,7 +110,7 @@ async def resend_verification_email(form_data: ResendVerificationForm):
             detail="Invalid email format",
         )
 
-    user = Users.get_user_by_email(form_data.email.lower())
+    user = await Users.get_user_by_email(form_data.email.lower(), db=db)
     if not user:
         # Don't reveal if email exists for security
         return {
@@ -117,13 +124,14 @@ async def resend_verification_email(form_data: ResendVerificationForm):
             detail="Email is already verified",
         )
 
-    existing_tokens = EmailVerificationTokens.get_tokens_by_user_id(user.id)
+    existing_tokens = await EmailVerificationTokens.get_tokens_by_user_id(user.id, db=db)
     for token_record in existing_tokens:
-        EmailVerificationTokens.delete_token_by_id(token_record.id)
+        await EmailVerificationTokens.delete_token_by_id(token_record.id, db=db)
 
-    token_record = EmailVerificationTokens.create_verification_token(
+    token_record = await EmailVerificationTokens.create_verification_token(
         user_id=user.id,
         email=user.email,
+        db=db,
     )
     if not token_record:
         raise HTTPException(
@@ -167,13 +175,17 @@ class ResetPasswordForm(BaseModel):
 
 
 @router.post("/request-password-reset")
-async def request_password_reset(form_data: RequestPasswordResetForm):
+async def request_password_reset(
+    form_data: RequestPasswordResetForm,
+    db: AsyncSession = Depends(get_async_session),
+):
     """Request password reset - sends reset email to user.
 
     Rate limited to 3 requests per hour per email address.
     """
-    if not password_reset_rate_limiter.check_rate_limit(
-        key=f"password_reset:{form_data.email}"
+    if await asyncio.to_thread(
+        password_reset_rate_limiter.is_limited,
+        f"password_reset:{form_data.email}",
     ):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -186,7 +198,7 @@ async def request_password_reset(form_data: RequestPasswordResetForm):
             detail="Invalid email format",
         )
 
-    user = Users.get_user_by_email(form_data.email.lower())
+    user = await Users.get_user_by_email(form_data.email.lower(), db=db)
     if not user:
         # Don't reveal if email exists for security
         return {
@@ -200,11 +212,11 @@ async def request_password_reset(form_data: RequestPasswordResetForm):
             detail="Email service is not configured",
         )
 
-    existing_tokens = PasswordResetTokens.get_tokens_by_user_id(user.id)
+    existing_tokens = await PasswordResetTokens.get_tokens_by_user_id(user.id, db=db)
     for token_record in existing_tokens:
-        PasswordResetTokens.delete_token_by_id(token_record.id)
+        await PasswordResetTokens.delete_token_by_id(token_record.id, db=db)
 
-    token_record = PasswordResetTokens.create_reset_token(user_id=user.id, expiry_hours=2)
+    token_record = await PasswordResetTokens.create_reset_token(user_id=user.id, expiry_hours=2, db=db)
     if not token_record:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -232,22 +244,22 @@ async def request_password_reset(form_data: RequestPasswordResetForm):
 
 
 @router.get("/validate-reset-token/{token}")
-async def validate_reset_token(token: str):
+async def validate_reset_token(token: str, db: AsyncSession = Depends(get_async_session)):
     """Validate password reset token before showing reset form."""
-    if not PasswordResetTokens.is_token_valid(token):
+    if not await PasswordResetTokens.is_token_valid(token, db=db):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired password reset token",
         )
 
-    token_record = PasswordResetTokens.get_token_by_token_string(token)
+    token_record = await PasswordResetTokens.get_token_by_token_string(token, db=db)
     if not token_record:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password reset token not found",
         )
 
-    user = Users.get_user_by_id(token_record.user_id)
+    user = await Users.get_user_by_id(token_record.user_id, db=db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -255,33 +267,34 @@ async def validate_reset_token(token: str):
         )
 
     email_parts = user.email.split("@")
-    masked_email = (
-        email_parts[0][:2] + "***@" + email_parts[1] if len(email_parts) == 2 else "***"
-    )
+    masked_email = email_parts[0][:2] + "***@" + email_parts[1] if len(email_parts) == 2 else "***"
 
     return {"valid": True, "email": masked_email}
 
 
 @router.post("/reset-password")
-async def reset_password(form_data: ResetPasswordForm):
+async def reset_password(
+    form_data: ResetPasswordForm,
+    db: AsyncSession = Depends(get_async_session),
+):
     """Reset password using reset token.
 
     Validates the token, updates the password, and sends confirmation email.
     """
-    if not PasswordResetTokens.is_token_valid(form_data.token):
+    if not await PasswordResetTokens.is_token_valid(form_data.token, db=db):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired password reset token",
         )
 
-    token_record = PasswordResetTokens.get_token_by_token_string(form_data.token)
+    token_record = await PasswordResetTokens.get_token_by_token_string(form_data.token, db=db)
     if not token_record:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password reset token not found",
         )
 
-    user = Users.get_user_by_id(token_record.user_id)
+    user = await Users.get_user_by_id(token_record.user_id, db=db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -296,22 +309,15 @@ async def reset_password(form_data: ResetPasswordForm):
             detail=str(e),
         )
 
-    hashed_password = get_password_hash(form_data.new_password)
-    auth_user = Auths.get_auth_by_id(user.id)
-    if not auth_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Authentication record not found",
-        )
-
-    success = Auths.update_user_password_by_id(user.id, hashed_password)
+    hashed_password = await get_password_hash(form_data.new_password)
+    success = await Auths.update_user_password_by_id(user.id, hashed_password, db=db)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update password",
         )
 
-    PasswordResetTokens.mark_token_as_used(token_record.id)
+    await PasswordResetTokens.mark_token_as_used(token_record.id, db=db)
 
     try:
         await email_service.send_password_changed_email(user.email, user.name)
@@ -321,4 +327,3 @@ async def reset_password(form_data: ResetPasswordForm):
     log.info(f"Password reset successfully for user {user.id} ({user.email})")
 
     return {"success": True, "message": "Password reset successfully"}
-

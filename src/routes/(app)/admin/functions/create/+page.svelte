@@ -61,6 +61,11 @@
 	};
 
 	onMount(() => {
+		if (!$config?.features?.enable_plugins) {
+			goto('/admin', { replaceState: true });
+			return;
+		}
+
 		window.addEventListener('message', async (event) => {
 			if (!['#', '#', 'http://localhost:9999'].includes(event.origin)) return;
 
@@ -86,7 +91,7 @@
 
 {#if mounted}
 	{#key func?.content}
-		<div class="px-[16px] h-full">
+		<div class="px-[16px] h-full min-w-0 overflow-x-hidden">
 			<FunctionEditor
 				id={func?.id ?? ''}
 				name={func?.name ?? ''}

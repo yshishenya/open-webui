@@ -1,7 +1,4 @@
-<script lang="ts">
-	import { trackEvent } from '$lib/utils/analytics';
-	import TopUpAmountsInline from './TopUpAmountsInline.svelte';
-
+<script context="module" lang="ts">
 	export type FaqItem = {
 		id: string;
 		question: string;
@@ -9,6 +6,11 @@
 		open?: boolean;
 		includeTopups?: boolean;
 	};
+</script>
+
+<script lang="ts">
+	import { trackEvent } from '$lib/utils/analytics';
+	import TopUpAmountsInline from './TopUpAmountsInline.svelte';
 
 	export let items: FaqItem[] = [];
 	export let topUpAmounts: number[] = [];

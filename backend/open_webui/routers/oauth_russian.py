@@ -16,24 +16,17 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 
 from open_webui.models.users import Users
-from open_webui.models.auths import Auths
 from open_webui.config import (
     VK_CLIENT_ID,
     VK_CLIENT_SECRET,
     VK_REDIRECT_URI,
     VK_OAUTH_SCOPE,
     VK_API_VERSION,
-    YANDEX_CLIENT_ID,
-    YANDEX_CLIENT_SECRET,
-    YANDEX_REDIRECT_URI,
-    YANDEX_OAUTH_SCOPE,
     TELEGRAM_BOT_TOKEN,
-    TELEGRAM_BOT_NAME,
-    TELEGRAM_AUTH_ORIGIN,
     ENABLE_OAUTH_SIGNUP,
     OAUTH_MERGE_ACCOUNTS_BY_EMAIL,
 )
-from open_webui.utils.auth import create_token, get_password_hash
+from open_webui.utils.auth import create_token
 from open_webui.utils.misc import parse_duration
 from open_webui.utils.airis.legal_acceptance import record_legal_acceptances
 from open_webui.utils.redis import get_redis_client
@@ -45,13 +38,14 @@ from open_webui.env import (
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.utils.email import email_service
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 import datetime
 import json
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from open_webui.internal.db import get_session
+from open_webui.internal.db import get_async_session
+from open_webui.models.config import Config
 
 router = APIRouter()
 
@@ -59,7 +53,7 @@ log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS.get("MAIN", logging.INFO))
 
 # Redis client for state management
-redis_client = get_redis_client()
+redis_client = get_redis_client(async_mode=True)
 
 
 ############################
@@ -72,12 +66,12 @@ def generate_oauth_state() -> str:
     return secrets.token_urlsafe(32)
 
 
-def store_oauth_state(state: str, provider: str, expiry_seconds: int = 300) -> bool:
+async def store_oauth_state(state: str, provider: str, expiry_seconds: int = 300) -> bool:
     """Store OAuth state in Redis with expiration"""
     try:
         if redis_client:
             key = f"oauth_state:{state}"
-            redis_client.setex(key, expiry_seconds, provider)
+            await redis_client.setex(key, expiry_seconds, provider)
             return True
         return False
     except Exception as e:
@@ -85,14 +79,16 @@ def store_oauth_state(state: str, provider: str, expiry_seconds: int = 300) -> b
         return False
 
 
-def validate_oauth_state(state: str, expected_provider: str) -> bool:
+async def validate_oauth_state(state: str, expected_provider: str) -> bool:
     """Validate OAuth state token"""
     try:
         if redis_client:
             key = f"oauth_state:{state}"
-            stored_provider = redis_client.get(key)
-            if stored_provider and stored_provider.decode() == expected_provider:
-                redis_client.delete(key)  # One-time use
+            stored_provider = await redis_client.get(key)
+            if isinstance(stored_provider, bytes):
+                stored_provider = stored_provider.decode()
+            if stored_provider == expected_provider:
+                await redis_client.delete(key)  # One-time use
                 return True
         return False
     except Exception as e:
@@ -107,6 +103,7 @@ def validate_oauth_state(state: str, expected_provider: str) -> bool:
 
 class VKIDAuthRequest(BaseModel):
     """Request model for VK ID SDK authentication"""
+
     code: Optional[str] = Field(None, description="Authorization code from VK ID SDK")
     device_id: Optional[str] = Field(None, description="Device ID from VK ID SDK")
     state: Optional[str] = Field(None, description="Optional state for CSRF protection")
@@ -118,6 +115,7 @@ class VKIDAuthRequest(BaseModel):
 
 class VKIDAuthResponse(BaseModel):
     """Response model for VK ID SDK authentication"""
+
     token: str
     token_type: str = "Bearer"
     expires_at: Optional[int] = None
@@ -128,43 +126,37 @@ class VKIDAuthResponse(BaseModel):
 async def vkid_callback(
     request: Request,
     response: Response,
-    auth_data: VKIDAuthRequest
+    auth_data: VKIDAuthRequest,
+    db: AsyncSession = Depends(get_async_session),
 ):
     """
     Handle VK ID SDK callback with code exchange.
     This endpoint receives the authorization code from VK ID SDK widget
     and exchanges it for access token and user info.
     """
-    if not ENABLE_OAUTH_SIGNUP.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="OAuth signup is disabled"
-        )
+    if not ENABLE_OAUTH_SIGNUP:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="OAuth signup is disabled")
 
-    if not VK_CLIENT_ID.value:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="VK ID is not configured"
-        )
+    if not VK_CLIENT_ID:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="VK ID is not configured")
 
     try:
         access_token = auth_data.access_token
         vk_user_id = str(auth_data.user_id) if auth_data.user_id else None
         email = auth_data.email
 
-        async with ClientSession() as session:
+        async with ClientSession(timeout=ClientTimeout(total=15), trust_env=True) as session:
             # If we don't have access_token, exchange code for it
             if not access_token:
                 if not auth_data.code or not auth_data.device_id:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Either access_token or code+device_id is required"
+                        detail="Either access_token or code+device_id is required",
                     )
 
-                if not VK_CLIENT_SECRET.value:
+                if not VK_CLIENT_SECRET:
                     raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="VK ID client_secret is not configured"
+                        status_code=status.HTTP_400_BAD_REQUEST, detail="VK ID client_secret is not configured"
                     )
 
                 # Exchange code for access token using VK ID API
@@ -172,10 +164,10 @@ async def vkid_callback(
                 token_data = {
                     "grant_type": "authorization_code",
                     "code": auth_data.code,
-                    "client_id": VK_CLIENT_ID.value,
-                    "client_secret": VK_CLIENT_SECRET.value,
+                    "client_id": VK_CLIENT_ID,
+                    "client_secret": VK_CLIENT_SECRET,
                     "device_id": auth_data.device_id,
-                    "redirect_uri": VK_REDIRECT_URI.value,
+                    "redirect_uri": VK_REDIRECT_URI,
                 }
 
                 headers = {
@@ -184,13 +176,11 @@ async def vkid_callback(
 
                 async with session.post(token_url, data=token_data, headers=headers) as resp:
                     token_response = await resp.json()
-                    log.debug(f"VK ID token response: {token_response}")
-
                     if "error" in token_response:
                         log.error(f"VK ID token error: {token_response}")
                         raise HTTPException(
                             status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"VK ID error: {token_response.get('error_description', token_response.get('error'))}"
+                            detail=f"VK ID error: {token_response.get('error_description', token_response.get('error'))}",
                         )
 
                 access_token = token_response.get("access_token")
@@ -198,26 +188,22 @@ async def vkid_callback(
 
             if not access_token:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Failed to get access token from VK ID"
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to get access token from VK ID"
                 )
 
             # Get user info from VK ID
             user_info_url = "https://id.vk.com/oauth2/user_info"
             user_info_data = {
                 "access_token": access_token,
-                "client_id": VK_CLIENT_ID.value,
+                "client_id": VK_CLIENT_ID,
             }
 
             async with session.post(user_info_url, data=user_info_data) as resp:
                 user_info = await resp.json()
-                log.debug(f"VK ID user info: {user_info}")
-
                 if "error" in user_info:
                     log.error(f"VK ID user info error: {user_info}")
                     raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Failed to get user info from VK ID"
+                        status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to get user info from VK ID"
                     )
 
             # Extract user data
@@ -226,7 +212,6 @@ async def vkid_callback(
             first_name = user_data.get("first_name", "")
             last_name = user_data.get("last_name", "")
             email = user_data.get("email", email or "")
-            phone = user_data.get("phone", "")
             avatar = user_data.get("avatar", "")
 
             name = f"{first_name} {last_name}".strip() or "VK User"
@@ -236,48 +221,48 @@ async def vkid_callback(
             if not email:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Email is required. Please grant email permission in VK ID settings."
+                    detail="Email is required. Please grant email permission in VK ID settings.",
                 )
             email_lower = email.lower()
 
         # Find or create user
-        user = Users.get_user_by_oauth_sub("vk", vk_user_id)
+        user = await Users.get_user_by_oauth_sub("vk", vk_user_id, db=db)
 
         if not user:
-            existing_user = Users.get_user_by_email(email_lower)
+            existing_user = await Users.get_user_by_email(email_lower, db=db)
             if existing_user:
-                if OAUTH_MERGE_ACCOUNTS_BY_EMAIL.value:
-                    Users.update_user_oauth_by_id(existing_user.id, "vk", vk_user_id)
-                    Users.update_user_by_id(existing_user.id, {"email_verified": True})
+                if OAUTH_MERGE_ACCOUNTS_BY_EMAIL:
+                    await Users.update_user_oauth_by_id(existing_user.id, "vk", vk_user_id, db=db)
+                    await Users.update_user_by_id(existing_user.id, {"email_verified": True}, db=db)
                     log.info(f"Merged VK ID account with existing user {existing_user.id}")
                     user = existing_user
                 else:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=ERROR_MESSAGES.EMAIL_TAKEN
-                    )
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERROR_MESSAGES.EMAIL_TAKEN)
 
         if not user:
             # Create new user
             user_id = str(uuid.uuid4())
-            role = "admin" if not Users.has_users() else request.app.state.config.DEFAULT_USER_ROLE
+            role = await Config.get('ui.default_user_role')
 
-            user = Users.insert_new_user(
+            user = await Users.insert_new_user(
                 id=user_id,
                 name=name,
                 email=email_lower,
                 profile_image_url=profile_image_url,
                 role=role,
-                oauth={"vk": {"sub": vk_user_id}}
+                oauth={"vk": {"sub": vk_user_id}},
+                db=db,
             )
 
             if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to create user"
-                )
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create user")
 
-            Users.update_user_by_id(user.id, {"email_verified": True})
+            if await Users.get_num_users(db=db) == 1:
+                await Users.update_user_role_by_id(user.id, 'admin', db=db)
+                user = await Users.get_user_by_id(user.id, db=db)
+                await Config.upsert({'ui.enable_signup': False})
+
+            await Users.update_user_by_id(user.id, {"email_verified": True}, db=db)
 
             if email_service.is_configured():
                 try:
@@ -288,7 +273,7 @@ async def vkid_callback(
             log.info(f"Created new user {user.id} via VK ID")
 
         # Create JWT token
-        expires_delta = parse_duration(request.app.state.config.JWT_EXPIRES_IN)
+        expires_delta = parse_duration(await Config.get('auth.jwt_expiry'))
         expires_at = None
         if expires_delta:
             expires_at = int(time.time()) + int(expires_delta.total_seconds())
@@ -302,11 +287,7 @@ async def vkid_callback(
         response.set_cookie(
             key="token",
             value=token,
-            expires=(
-                datetime.datetime.fromtimestamp(expires_at, datetime.timezone.utc)
-                if expires_at
-                else None
-            ),
+            expires=(datetime.datetime.fromtimestamp(expires_at, datetime.timezone.utc) if expires_at else None),
             httponly=True,
             samesite=WEBUI_AUTH_COOKIE_SAME_SITE,
             secure=WEBUI_AUTH_COOKIE_SECURE,
@@ -322,17 +303,14 @@ async def vkid_callback(
                 "email": user.email,
                 "role": user.role,
                 "profile_image_url": user.profile_image_url,
-            }
+            },
         )
 
     except HTTPException:
         raise
     except Exception as e:
         log.error(f"VK ID callback error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="VK ID authentication failed"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="VK ID authentication failed")
 
 
 ############################
@@ -343,35 +321,28 @@ async def vkid_callback(
 @router.get("/oauth/vk/login")
 async def vk_oauth_login(request: Request):
     """Initiate VK OAuth flow"""
-    if not ENABLE_OAUTH_SIGNUP.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="OAuth signup is disabled"
-        )
+    if not ENABLE_OAUTH_SIGNUP:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="OAuth signup is disabled")
 
-    if not VK_CLIENT_ID.value or not VK_CLIENT_SECRET.value:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="VK OAuth is not configured"
-        )
+    if not VK_CLIENT_ID or not VK_CLIENT_SECRET:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="VK OAuth is not configured")
 
     # Generate state token for CSRF protection
     state = generate_oauth_state()
-    if not store_oauth_state(state, "vk"):
+    if not await store_oauth_state(state, "vk"):
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Session storage unavailable. Please try again."
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Session storage unavailable. Please try again."
         )
 
     # Build VK authorization URL
     auth_url = (
         f"https://oauth.vk.com/authorize?"
-        f"client_id={VK_CLIENT_ID.value}&"
-        f"redirect_uri={VK_REDIRECT_URI.value}&"
-        f"scope={VK_OAUTH_SCOPE.value}&"
+        f"client_id={VK_CLIENT_ID}&"
+        f"redirect_uri={VK_REDIRECT_URI}&"
+        f"scope={VK_OAUTH_SCOPE}&"
         f"response_type=code&"
         f"state={state}&"
-        f"v={VK_API_VERSION.value}"
+        f"v={VK_API_VERSION}"
     )
 
     return RedirectResponse(url=auth_url)
@@ -384,10 +355,11 @@ async def vk_oauth_callback(
     code: Optional[str] = None,
     state: Optional[str] = None,
     error: Optional[str] = None,
-    error_description: Optional[str] = None
+    error_description: Optional[str] = None,
+    db: AsyncSession = Depends(get_async_session),
 ):
     """Handle VK OAuth callback"""
-    
+
     # Handle authorization errors
     if error:
         log.error(f"VK OAuth error: {error} - {error_description}")
@@ -395,34 +367,27 @@ async def vk_oauth_callback(
         return RedirectResponse(url=f"/auth?error=oauth_error&message={error_msg}")
 
     # Validate state token
-    if not state or not validate_oauth_state(state, "vk"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid state token - possible CSRF attack"
-        )
+    if not state or not await validate_oauth_state(state, "vk"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid state token - possible CSRF attack")
 
     if not code:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Authorization code not provided"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Authorization code not provided")
 
     try:
         # Exchange authorization code for access token
-        async with ClientSession() as session:
+        async with ClientSession(timeout=ClientTimeout(total=15), trust_env=True) as session:
             token_url = "https://oauth.vk.com/access_token"
             token_data = {
-                "client_id": VK_CLIENT_ID.value,
-                "client_secret": VK_CLIENT_SECRET.value,
+                "client_id": VK_CLIENT_ID,
+                "client_secret": VK_CLIENT_SECRET,
                 "code": code,
-                "redirect_uri": VK_REDIRECT_URI.value,
+                "redirect_uri": VK_REDIRECT_URI,
             }
-            
+
             async with session.post(token_url, data=token_data) as resp:
                 if resp.status != 200:
                     raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Failed to exchange authorization code"
+                        status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to exchange authorization code"
                     )
                 token_response = await resp.json()
 
@@ -431,15 +396,12 @@ async def vk_oauth_callback(
             email = token_response.get("email")
 
             if not access_token or not vk_user_id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid token response from VK"
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token response from VK")
 
             if not email:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Email required. Please grant email permission in VK settings"
+                    detail="Email required. Please grant email permission in VK settings",
                 )
             email_lower = email.lower()
 
@@ -449,23 +411,19 @@ async def vk_oauth_callback(
                 f"access_token={access_token}&"
                 f"user_ids={vk_user_id}&"
                 f"fields=photo_200,screen_name&"
-                f"v={VK_API_VERSION.value}"
+                f"v={VK_API_VERSION}"
             )
-            
+
             async with session.get(user_info_url) as resp:
                 if resp.status != 200:
                     raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Failed to fetch VK user profile"
+                        status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to fetch VK user profile"
                     )
                 profile_response = await resp.json()
 
             vk_response = profile_response.get("response", [])
             if not vk_response:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Empty VK profile response"
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty VK profile response")
 
             user_profile = vk_response[0]
             first_name = user_profile.get("first_name", "")
@@ -474,49 +432,49 @@ async def vk_oauth_callback(
             profile_image_url = user_profile.get("photo_200", "/user.png")
 
         # Find or create user
-        user = Users.get_user_by_oauth_sub("vk", str(vk_user_id))
+        user = await Users.get_user_by_oauth_sub("vk", str(vk_user_id), db=db)
 
         if not user:
-            existing_user = Users.get_user_by_email(email_lower)
+            existing_user = await Users.get_user_by_email(email_lower, db=db)
             if existing_user:
-                if OAUTH_MERGE_ACCOUNTS_BY_EMAIL.value:
+                if OAUTH_MERGE_ACCOUNTS_BY_EMAIL:
                     # Merge accounts: link VK to existing user
-                    Users.update_user_oauth_by_id(existing_user.id, "vk", str(vk_user_id))
+                    await Users.update_user_oauth_by_id(existing_user.id, "vk", str(vk_user_id), db=db)
                     # Update email_verified since VK verifies emails
-                    Users.update_user_by_id(existing_user.id, {"email_verified": True})
+                    await Users.update_user_by_id(existing_user.id, {"email_verified": True}, db=db)
                     log.info(f"Merged VK account with existing user {existing_user.id}")
                     user = existing_user
                     # FIXME(billing): Send account merge notification email when email templates are ready
                 else:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=ERROR_MESSAGES.EMAIL_TAKEN
-                    )
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERROR_MESSAGES.EMAIL_TAKEN)
 
         if not user:
             # Create new user
             user_id = str(uuid.uuid4())
-            role = "admin" if not Users.has_users() else request.app.state.config.DEFAULT_USER_ROLE
-            
-            user = Users.insert_new_user(
+            role = await Config.get('ui.default_user_role')
+
+            user = await Users.insert_new_user(
                 id=user_id,
                 name=name,
                 email=email_lower,
                 profile_image_url=profile_image_url,
                 role=role,
-                oauth={"vk": {"sub": str(vk_user_id)}}
+                oauth={"vk": {"sub": str(vk_user_id)}},
+                db=db,
             )
 
             if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to create user"
-                )
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create user")
 
             # Set email as verified (VK verifies emails).
             # Legal docs acceptance is collected separately in the UI gate.
-            Users.update_user_by_id(user.id, {"email_verified": True})
-            
+            if await Users.get_num_users(db=db) == 1:
+                await Users.update_user_role_by_id(user.id, 'admin', db=db)
+                user = await Users.get_user_by_id(user.id, db=db)
+                await Config.upsert({'ui.enable_signup': False})
+
+            await Users.update_user_by_id(user.id, {"email_verified": True}, db=db)
+
             # Send welcome email
             if email_service.is_configured():
                 try:
@@ -529,7 +487,7 @@ async def vk_oauth_callback(
         # Billing: lead magnet applies by default; no free plan assignment.
 
         # Create JWT token
-        expires_delta = parse_duration(request.app.state.config.JWT_EXPIRES_IN)
+        expires_delta = parse_duration(await Config.get('auth.jwt_expiry'))
         expires_at = None
         if expires_delta:
             expires_at = int(time.time()) + int(expires_delta.total_seconds())
@@ -544,11 +502,7 @@ async def vk_oauth_callback(
         response.set_cookie(
             key="token",
             value=token,
-            expires=(
-                datetime.datetime.fromtimestamp(expires_at, datetime.timezone.utc)
-                if expires_at
-                else None
-            ),
+            expires=(datetime.datetime.fromtimestamp(expires_at, datetime.timezone.utc) if expires_at else None),
             httponly=True,
             samesite=WEBUI_AUTH_COOKIE_SAME_SITE,
             secure=WEBUI_AUTH_COOKIE_SECURE,
@@ -560,10 +514,7 @@ async def vk_oauth_callback(
         raise
     except Exception as e:
         log.error(f"VK OAuth callback error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="VK authentication failed"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="VK authentication failed")
 
 
 ############################
@@ -580,11 +531,9 @@ async def yandex_oauth_login(request: Request):
 async def yandex_oauth_callback(
     request: Request,
     response: Response,
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_async_session),
 ):
-    return await request.app.state.oauth_manager.handle_callback(
-        request, "yandex", response, db=db
-    )
+    return await request.app.state.oauth_manager.handle_callback(request, "yandex", response, db=db)
 
 
 ############################
@@ -618,11 +567,7 @@ def verify_telegram_auth(auth_data: dict, bot_token: str) -> bool:
         secret_key = hashlib.sha256(bot_token.encode()).digest()
 
         # Calculate hash
-        calculated_hash = hmac.new(
-            secret_key,
-            data_check_string.encode(),
-            hashlib.sha256
-        ).hexdigest()
+        calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
         # Compare hashes
         if calculated_hash != received_hash:
@@ -643,31 +588,23 @@ def verify_telegram_auth(auth_data: dict, bot_token: str) -> bool:
 async def telegram_oauth_callback(
     request: Request,
     response: Response,
-    auth_data: TelegramAuthData
+    auth_data: TelegramAuthData,
+    db: AsyncSession = Depends(get_async_session),
 ):
     """Handle Telegram OAuth widget callback"""
-    
-    if not ENABLE_OAUTH_SIGNUP.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="OAuth signup is disabled"
-        )
 
-    if not TELEGRAM_BOT_TOKEN.value:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Telegram OAuth is not configured"
-        )
+    if not ENABLE_OAUTH_SIGNUP:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="OAuth signup is disabled")
+
+    if not TELEGRAM_BOT_TOKEN:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Telegram OAuth is not configured")
 
     # Convert to dict for verification
     auth_dict = auth_data.model_dump(exclude_none=True)
-    
+
     # Verify authentication data
-    if not verify_telegram_auth(auth_dict.copy(), TELEGRAM_BOT_TOKEN.value):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid Telegram authentication data"
-        )
+    if not verify_telegram_auth(auth_dict.copy(), TELEGRAM_BOT_TOKEN):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Telegram authentication data")
 
     try:
         telegram_id = str(auth_data.id)
@@ -679,11 +616,11 @@ async def telegram_oauth_callback(
         name = f"{first_name} {last_name}".strip() or username or f"Telegram User {telegram_id}"
 
         # Find user by Telegram ID
-        user = Users.get_user_by_oauth_sub("telegram", telegram_id)
+        user = await Users.get_user_by_oauth_sub("telegram", telegram_id, db=db)
 
         if user:
             # User exists, login directly
-            expires_delta = parse_duration(request.app.state.config.JWT_EXPIRES_IN)
+            expires_delta = parse_duration(await Config.get('auth.jwt_expiry'))
             expires_at = None
             if expires_delta:
                 expires_at = int(time.time()) + int(expires_delta.total_seconds())
@@ -703,7 +640,7 @@ async def telegram_oauth_callback(
                     "name": user.name,
                     "role": user.role,
                     "profile_image_url": user.profile_image_url,
-                }
+                },
             }
         else:
             # New user - need to collect email
@@ -715,13 +652,11 @@ async def telegram_oauth_callback(
                 "photo_url": photo_url,
                 "username": username,
             }
-            
+
             # Store in Redis for 10 minutes
             if redis_client:
-                redis_client.setex(
-                    f"telegram_temp_session:{temp_session_id}",
-                    600,  # 10 minutes
-                    json.dumps(temp_session_data)
+                await redis_client.setex(
+                    f"telegram_temp_session:{temp_session_id}", 600, json.dumps(temp_session_data)  # 10 minutes
                 )
 
             return {
@@ -734,10 +669,7 @@ async def telegram_oauth_callback(
         raise
     except Exception as e:
         log.error(f"Telegram OAuth callback error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Telegram authentication failed"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Telegram authentication failed")
 
 
 class TelegramCompleteProfileForm(BaseModel):
@@ -751,35 +683,33 @@ class TelegramCompleteProfileForm(BaseModel):
 async def telegram_complete_profile(
     request: Request,
     response: Response,
-    form_data: TelegramCompleteProfileForm
+    form_data: TelegramCompleteProfileForm,
+    db: AsyncSession = Depends(get_async_session),
 ):
     """Complete Telegram user profile with email"""
-    
+
     if not form_data.terms_accepted or not form_data.privacy_accepted:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You must accept the terms and privacy policy"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="You must accept the terms and privacy policy"
         )
 
     try:
         # Retrieve temporary session data
         if not redis_client:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Session storage not available"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Session storage not available"
             )
 
         session_key = f"telegram_temp_session:{form_data.temp_session}"
-        session_data_str = redis_client.get(session_key)
-        
+        session_data_str = await redis_client.get(session_key)
+
         if not session_data_str:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Session expired or invalid"
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Session expired or invalid")
 
         # Parse session data
-        session_data = json.loads(session_data_str.decode())
+        if isinstance(session_data_str, bytes):
+            session_data_str = session_data_str.decode()
+        session_data = json.loads(session_data_str)
 
         telegram_id = session_data["telegram_id"]
         name = session_data["name"]
@@ -787,81 +717,79 @@ async def telegram_complete_profile(
 
         # Validate email
         email = form_data.email.lower()
-        
+
         # Check for existing user with this email
-        existing_user = Users.get_user_by_email(email)
-        
-        if existing_user and OAUTH_MERGE_ACCOUNTS_BY_EMAIL.value:
+        existing_user = await Users.get_user_by_email(email, db=db)
+
+        if existing_user and OAUTH_MERGE_ACCOUNTS_BY_EMAIL:
             # Merge: Link Telegram to existing account
-            Users.update_user_oauth_by_id(existing_user.id, "telegram", telegram_id)
+            await Users.update_user_oauth_by_id(existing_user.id, "telegram", telegram_id, db=db)
             user = existing_user
             log.info(f"Merged Telegram account with existing user {user.id}")
             # FIXME(billing): Send account merge notification email when email templates are ready
         elif existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already in use"
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already in use")
         else:
             # Create new user
             user_id = str(uuid.uuid4())
-            role = "admin" if not Users.has_users() else request.app.state.config.DEFAULT_USER_ROLE
-            
-            user = Users.insert_new_user(
+            role = await Config.get('ui.default_user_role')
+
+            user = await Users.insert_new_user(
                 id=user_id,
                 name=name,
                 email=email,
                 profile_image_url=photo_url,
                 role=role,
-                oauth={"telegram": {"sub": telegram_id}}
+                oauth={"telegram": {"sub": telegram_id}},
+                db=db,
             )
 
             if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to create user"
-                )
-            
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create user")
+
+            if await Users.get_num_users(db=db) == 1:
+                await Users.update_user_role_by_id(user.id, 'admin', db=db)
+                user = await Users.get_user_by_id(user.id, db=db)
+                await Config.upsert({'ui.enable_signup': False})
+
             # Email NOT verified (Telegram doesn't verify emails)
             # Send verification email
             if email_service.is_configured():
                 try:
                     from open_webui.models.email_verification import EmailVerificationTokens
-                    
+
                     # Create verification token
-                    token_record = EmailVerificationTokens.create_verification_token(
-                        user_id=user.id,
-                        email=user.email
+                    token_record = await EmailVerificationTokens.create_verification_token(
+                        user_id=user.id, email=user.email
                     )
-                    
+
                     if token_record:
                         # Send verification email
                         await email_service.send_verification_email(
-                            to_email=user.email,
-                            name=user.name,
-                            verification_token=token_record.token
+                            to_email=user.email, name=user.name, verification_token=token_record.token
                         )
                         log.info(f"Verification email sent to new Telegram user {user.email}")
                 except Exception as e:
                     log.error(f"Failed to send verification email to {user.email}: {e}")
-            
+
             # Billing: lead magnet applies by default; no free plan assignment.
 
             log.info(f"Created new user {user.id} via Telegram OAuth")
 
         if user:
-            record_legal_acceptances(
+            await record_legal_acceptances(
                 user_id=user.id,
                 keys=["terms_offer", "privacy_policy"],
                 request=request,
                 method="telegram_complete",
+                db=db,
             )
 
         # Delete temporary session
-        redis_client.delete(session_key)
+        await redis_client.delete(session_key)
 
         # Create JWT token
-        expires_delta = parse_duration(request.app.state.config.JWT_EXPIRES_IN)
+        expires_delta = parse_duration(await Config.get('auth.jwt_expiry'))
         expires_at = None
         if expires_delta:
             expires_at = int(time.time()) + int(expires_delta.total_seconds())
@@ -881,14 +809,11 @@ async def telegram_complete_profile(
                 "name": user.name,
                 "role": user.role,
                 "profile_image_url": user.profile_image_url,
-            }
+            },
         }
 
     except HTTPException:
         raise
     except Exception as e:
         log.error(f"Telegram profile completion error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to complete profile"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to complete profile")

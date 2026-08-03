@@ -6,12 +6,12 @@ Create Date: 2024-10-09 21:02:35.241684
 
 """
 
-from alembic import op
-import sqlalchemy as sa
-from sqlalchemy import inspect
-from sqlalchemy.sql import table, select, update, column
-
 import json
+
+import sqlalchemy as sa
+from alembic import op
+from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.sql import column, select, table, update
 
 revision = '3ab32c4b8f59'
 down_revision = '1af9b942657b'
@@ -21,7 +21,7 @@ depends_on = None
 
 def upgrade():
     conn = op.get_bind()
-    inspector = inspect(conn)
+    inspector = Inspector.from_engine(conn)
 
     # Inspecting the 'tag' table constraints and structure
     existing_pk = inspector.get_pk_constraint('tag')
@@ -62,7 +62,7 @@ def upgrade():
 
 def downgrade():
     conn = op.get_bind()
-    inspector = inspect(conn)
+    inspector = Inspector.from_engine(conn)
 
     current_pk = inspector.get_pk_constraint('tag')
 

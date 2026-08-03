@@ -1,6 +1,5 @@
 import logging
 from dataclasses import dataclass
-from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -11,7 +10,7 @@ class DirectAckContext:
     channel: str
 
 
-def coerce_direct_ack(value: Any, *, context: DirectAckContext) -> dict[str, object]:
+def coerce_direct_ack(value: object, *, context: DirectAckContext) -> dict[str, object]:
     """Normalize Socket.IO ack payloads for direct connections.
 
     Upstream assumes ack is always a dict and calls `.get(...)`. In practice, client

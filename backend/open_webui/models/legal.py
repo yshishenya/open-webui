@@ -5,10 +5,10 @@ import uuid
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import BigInteger, Column, String, Text
-from sqlalchemy.orm import Session
+from sqlalchemy import BigInteger, Column, String, Text, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from open_webui.internal.db import Base, get_db_context
+from open_webui.internal.db import Base, get_async_db_context
 
 
 class LegalDocumentAcceptance(Base):
@@ -39,7 +39,7 @@ class LegalDocumentAcceptanceModel(BaseModel):
 
 
 class LegalAcceptancesTable:
-    def insert_acceptance(
+    async def insert_acceptance(
         self,
         user_id: str,
         doc_key: str,
@@ -49,9 +49,9 @@ class LegalAcceptancesTable:
         user_agent: Optional[str] = None,
         method: Optional[str] = None,
         accepted_at: Optional[int] = None,
-        db: Optional[Session] = None,
+        db: AsyncSession | None = None,
     ) -> LegalDocumentAcceptanceModel:
-        with get_db_context(db) as db:
+        async with get_async_db_context(db) as session:
             now = int(time.time()) if accepted_at is None else accepted_at
             record = LegalDocumentAcceptance(
                 id=str(uuid.uuid4()),
@@ -63,29 +63,32 @@ class LegalAcceptancesTable:
                 user_agent=user_agent,
                 method=method,
             )
-            db.add(record)
-            db.commit()
-            db.refresh(record)
+            session.add(record)
+            await session.commit()
+            await session.refresh(record)
             return LegalDocumentAcceptanceModel.model_validate(record)
 
-    def get_latest_acceptance(
+    async def get_latest_acceptance(
         self,
         user_id: str,
         doc_key: str,
         *,
-        db: Optional[Session] = None,
+        db: AsyncSession | None = None,
     ) -> Optional[LegalDocumentAcceptanceModel]:
-        with get_db_context(db) as db:
-            record = (
-                db.query(LegalDocumentAcceptance)
-                .filter_by(user_id=user_id, doc_key=doc_key)
+        async with get_async_db_context(db) as session:
+            result = await session.execute(
+                select(LegalDocumentAcceptance)
+                .where(
+                    LegalDocumentAcceptance.user_id == user_id,
+                    LegalDocumentAcceptance.doc_key == doc_key,
+                )
                 .order_by(LegalDocumentAcceptance.accepted_at.desc())
-                .first()
+                .limit(1)
             )
+            record = result.scalar_one_or_none()
             if not record:
                 return None
             return LegalDocumentAcceptanceModel.model_validate(record)
 
 
 LegalAcceptances = LegalAcceptancesTable()
-

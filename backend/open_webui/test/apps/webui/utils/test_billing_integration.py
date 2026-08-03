@@ -83,9 +83,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.pricing import PricingService
         from open_webui.utils.wallet import wallet_service
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 10000})
@@ -147,9 +145,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert updated_wallet.balance_topup_kopeks == 10000 - expected_charge
         assert updated_wallet.daily_spent_kopeks == expected_charge
 
-        usage_event = (
-            Session.query(UsageEvent).filter(UsageEvent.request_id == "req_1").first()
-        )
+        usage_event = Session.query(UsageEvent).filter(UsageEvent.request_id == "req_1").first()
         assert usage_event is not None
         assert usage_event.cost_charged_kopeks == expected_charge
         assert usage_event.cost_charged_input_kopeks == expected_input_charge
@@ -170,9 +166,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.pricing import PricingService
         from open_webui.utils.wallet import wallet_service
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 10000})
@@ -211,11 +205,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         )
         expected_charge = expected_input_charge + expected_output_charge
 
-        usage_event = (
-            Session.query(UsageEvent)
-            .filter(UsageEvent.request_id == "req_estimated")
-            .first()
-        )
+        usage_event = Session.query(UsageEvent).filter(UsageEvent.request_id == "req_estimated").first()
         assert usage_event is not None
         assert usage_event.is_estimated is True
         assert usage_event.estimate_reason == "usage_missing"
@@ -242,9 +232,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.wallet import wallet_service
         from open_webui.models.billing import Wallets
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 10000})
@@ -271,9 +259,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.wallet import wallet_service
         from open_webui.models.billing import Wallets
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 0})
@@ -309,9 +295,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert _parse_non_negative_int(None) == 0
 
     @pytest.mark.asyncio
-    async def test_text_preflight_insufficient_funds_includes_auto_topup(
-        self, monkeypatch
-    ):
+    async def test_text_preflight_insufficient_funds_includes_auto_topup(self, monkeypatch):
         from fastapi import HTTPException
         from open_webui.models.billing import Wallets
         from open_webui.utils.billing import AutoTopupResult
@@ -400,9 +384,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.wallet import wallet_service
         from open_webui.models.billing import Wallets
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         now = int(time.time())
@@ -437,9 +419,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.wallet import wallet_service
         from open_webui.models.billing import Wallets
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(
@@ -471,9 +451,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         )
         from open_webui.utils.wallet import wallet_service
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 10000})
@@ -528,9 +506,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.pricing import PricingService
         from open_webui.utils.wallet import wallet_service
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 20000})
@@ -572,20 +548,14 @@ class TestBillingIntegration(AbstractPostgresTest):
         )
 
         pricing_service = PricingService()
-        expected_charge = pricing_service.calculate_cost_kopeks(
-            units, billing_context.rate_card, 0
-        )
+        expected_charge = pricing_service.calculate_cost_kopeks(units, billing_context.rate_card, 0)
 
         updated_wallet = Wallets.get_wallet_by_id(wallet.id)
         assert updated_wallet is not None
         assert updated_wallet.balance_topup_kopeks == 20000 - expected_charge
         assert updated_wallet.daily_spent_kopeks == expected_charge
 
-        usage_event = (
-            Session.query(UsageEvent)
-            .filter(UsageEvent.request_id == "img_req_1")
-            .first()
-        )
+        usage_event = Session.query(UsageEvent).filter(UsageEvent.request_id == "img_req_1").first()
         assert usage_event is not None
         assert usage_event.cost_charged_kopeks == expected_charge
         assert usage_event.modality == "image"
@@ -600,9 +570,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.pricing import PricingService
         from open_webui.utils.wallet import wallet_service
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 5000})
@@ -644,20 +612,14 @@ class TestBillingIntegration(AbstractPostgresTest):
         )
 
         pricing_service = PricingService()
-        expected_charge = pricing_service.calculate_cost_kopeks(
-            units, billing_context.rate_card, 0
-        )
+        expected_charge = pricing_service.calculate_cost_kopeks(units, billing_context.rate_card, 0)
 
         updated_wallet = Wallets.get_wallet_by_id(wallet.id)
         assert updated_wallet is not None
         assert updated_wallet.balance_topup_kopeks == 5000 - expected_charge
         assert updated_wallet.daily_spent_kopeks == expected_charge
 
-        usage_event = (
-            Session.query(UsageEvent)
-            .filter(UsageEvent.request_id == "tts_req_1")
-            .first()
-        )
+        usage_event = Session.query(UsageEvent).filter(UsageEvent.request_id == "tts_req_1").first()
         assert usage_event is not None
         assert usage_event.cost_charged_kopeks == expected_charge
         assert usage_event.modality == "tts"
@@ -673,9 +635,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.pricing import PricingService
         from open_webui.utils.wallet import wallet_service
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 100000})
@@ -722,11 +682,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         expected_charge = expected_input_charge + expected_output_charge
         expected_overage = expected_charge - billing_context.hold_amount_kopeks
 
-        usage_event = (
-            Session.query(UsageEvent)
-            .filter(UsageEvent.request_id == "req_exceed_hold")
-            .first()
-        )
+        usage_event = Session.query(UsageEvent).filter(UsageEvent.request_id == "req_exceed_hold").first()
         assert usage_event is not None
         assert usage_event.is_estimated is False
         assert usage_event.cost_charged_kopeks == expected_charge
@@ -750,9 +706,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert overage_entry.amount_kopeks == -expected_overage
 
     @pytest.mark.asyncio
-    async def test_single_rate_settle_charge_exceeds_hold_marks_estimated(
-        self, monkeypatch
-    ):
+    async def test_single_rate_settle_charge_exceeds_hold_marks_estimated(self, monkeypatch):
         from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import LedgerEntry, UsageEvent, Wallets
         from open_webui.utils.billing_integration import (
@@ -762,9 +716,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.pricing import PricingService
         from open_webui.utils.wallet import wallet_service
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 100000})
@@ -788,16 +740,10 @@ class TestBillingIntegration(AbstractPostgresTest):
         )
 
         pricing_service = PricingService()
-        expected_charge = pricing_service.calculate_cost_kopeks(
-            Decimal(2), billing_context.rate_card, 0
-        )
+        expected_charge = pricing_service.calculate_cost_kopeks(Decimal(2), billing_context.rate_card, 0)
         expected_overage = expected_charge - billing_context.hold_amount_kopeks
 
-        usage_event = (
-            Session.query(UsageEvent)
-            .filter(UsageEvent.request_id == "img_exceed_hold")
-            .first()
-        )
+        usage_event = Session.query(UsageEvent).filter(UsageEvent.request_id == "img_exceed_hold").first()
         assert usage_event is not None
         assert usage_event.is_estimated is False
         assert usage_event.cost_charged_kopeks == expected_charge
@@ -824,9 +770,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.billing_integration import preflight_single_rate_hold
         from open_webui.utils.wallet import wallet_service
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet_service.get_or_create_wallet("1", "RUB")
 
@@ -847,9 +791,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.billing_integration import preflight_single_rate_hold
         from open_webui.utils.wallet import wallet_service
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         from open_webui.models.billing import Wallets
@@ -874,9 +816,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.billing_integration import preflight_single_rate_hold
         from open_webui.utils.wallet import wallet_service
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         from open_webui.models.billing import Wallets
@@ -895,9 +835,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert exc.value.status_code == 402
 
     @pytest.mark.asyncio
-    async def test_single_rate_hold_insufficient_funds_includes_pending_auto_topup(
-        self, monkeypatch
-    ):
+    async def test_single_rate_hold_insufficient_funds_includes_pending_auto_topup(self, monkeypatch):
         from fastapi import HTTPException
         from open_webui.models.billing import Wallets
         from open_webui.utils.billing import AutoTopupResult
@@ -954,9 +892,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.billing_integration import preflight_single_rate_hold
         from open_webui.utils.wallet import wallet_service
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         from open_webui.models.billing import Wallets
@@ -983,15 +919,11 @@ class TestBillingIntegration(AbstractPostgresTest):
             reason: str,
         ):
             called["count"] += 1
-            raise AssertionError(
-                "auto_topup should not be triggered when daily cap is exceeded"
-            )
+            raise AssertionError("auto_topup should not be triggered when daily cap is exceeded")
 
         import open_webui.utils.billing_integration as billing_integration
 
-        monkeypatch.setattr(
-            billing_integration, "_maybe_trigger_auto_topup", fake_auto_topup
-        )
+        monkeypatch.setattr(billing_integration, "_maybe_trigger_auto_topup", fake_auto_topup)
 
         with pytest.raises(HTTPException) as exc:
             await preflight_single_rate_hold(
@@ -1011,9 +943,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         from open_webui.utils.billing_integration import preflight_single_rate_hold
         from open_webui.utils.wallet import wallet_service
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         from open_webui.models.billing import Wallets
@@ -1033,15 +963,11 @@ class TestBillingIntegration(AbstractPostgresTest):
             reason: str,
         ):
             called["count"] += 1
-            raise AssertionError(
-                "auto_topup should not be triggered when max reply cost is exceeded"
-            )
+            raise AssertionError("auto_topup should not be triggered when max reply cost is exceeded")
 
         import open_webui.utils.billing_integration as billing_integration
 
-        monkeypatch.setattr(
-            billing_integration, "_maybe_trigger_auto_topup", fake_auto_topup
-        )
+        monkeypatch.setattr(billing_integration, "_maybe_trigger_auto_topup", fake_auto_topup)
 
         with pytest.raises(HTTPException) as exc:
             await preflight_single_rate_hold(
@@ -1056,16 +982,12 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert exc.value.status_code == 402
 
     @pytest.mark.asyncio
-    async def test_single_rate_hold_populates_subscription_id_without_plan(
-        self, monkeypatch
-    ):
+    async def test_single_rate_hold_populates_subscription_id_without_plan(self, monkeypatch):
 
         from open_webui.models.billing import SubscriptionModel
         from open_webui.utils.billing_integration import preflight_single_rate_hold
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         import open_webui.utils.billing_integration as billing_integration
 
@@ -1108,9 +1030,7 @@ class TestBillingIntegration(AbstractPostgresTest):
             "get_user_subscription",
             fake_get_user_subscription,
         )
-        monkeypatch.setattr(
-            billing_integration.billing_service, "get_plan", fake_get_plan
-        )
+        monkeypatch.setattr(billing_integration.billing_service, "get_plan", fake_get_plan)
 
         billing_context = await preflight_single_rate_hold(
             user_id="1",
@@ -1135,9 +1055,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         )
         from open_webui.utils.wallet import wallet_service
 
-        monkeypatch.setattr(
-            "open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True
-        )
+        monkeypatch.setattr("open_webui.utils.billing_integration.ENABLE_BILLING_WALLET", True)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 1000})
@@ -1185,7 +1103,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert updated_wallet.balance_topup_kopeks == 1000
 
     @pytest.mark.asyncio
-    async def test_topup_creation_contract_provider_envelope(self, monkeypatch):
+    async def test_topup_creation_contract_provider_envelope(self, monkeypatch: pytest.MonkeyPatch) -> None:
         import open_webui.utils.billing as billing_utils
         from open_webui.models.billing import PaymentKind, Payments
         from open_webui.models.users import Users
@@ -1216,18 +1134,14 @@ class TestBillingIntegration(AbstractPostgresTest):
                 return {
                     "id": "pay_contract_1",
                     "status": "pending",
-                    "confirmation": {
-                        "confirmation_url": "https://example.com/confirm/pay_contract_1"
-                    },
+                    "confirmation": {"confirmation_url": "https://example.com/confirm/pay_contract_1"},
                     "payment_method": {"id": "pm_contract_1"},
                 }
 
-        monkeypatch.setattr(
-            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
-        )
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
         monkeypatch.setattr(billing_utils, "BILLING_TOPUP_PACKAGES_KOPEKS", [1500])
 
-        Users.insert_new_user(
+        await Users.insert_new_user(
             id="contract_user",
             name="Contract User",
             email="contract_user@example.com",
@@ -1311,9 +1225,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         monkeypatch.setattr(yookassa_utils.aiohttp, "ClientSession", FakeSession)
         monkeypatch.setattr(yookassa_utils.asyncio, "sleep", _no_sleep)
 
-        client = yookassa_utils.YooKassaClient(
-            yookassa_utils.YooKassaConfig("shop_id", "secret")
-        )
+        client = yookassa_utils.YooKassaClient(yookassa_utils.YooKassaConfig("shop_id", "secret"))
 
         result = await client._request(
             "POST",
@@ -1328,9 +1240,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert attempts[1].get("Idempotence-Key") == "idem-retry-1"
 
     @pytest.mark.asyncio
-    async def test_topup_webhook_idempotent_duplicate_crediting_integration(
-        self, monkeypatch
-    ):
+    async def test_topup_webhook_idempotent_duplicate_crediting_integration(self, monkeypatch):
         import open_webui.utils.billing as billing_utils
         from open_webui.models.billing import (
             LedgerEntries,
@@ -1390,9 +1300,7 @@ class TestBillingIntegration(AbstractPostgresTest):
             )
         )
 
-        monkeypatch.setattr(
-            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
-        )
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
 
         webhook_data = {
             "event_type": "payment.succeeded",
@@ -1423,9 +1331,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert len(topup_entries) == 1
 
     @pytest.mark.asyncio
-    async def test_process_payment_webhook_rejects_provider_status_mismatch(
-        self, monkeypatch
-    ):
+    async def test_process_payment_webhook_rejects_provider_status_mismatch(self, monkeypatch):
         import open_webui.utils.billing as billing_utils
         from open_webui.utils.billing import WebhookRetryableError, billing_service
 
@@ -1440,9 +1346,7 @@ class TestBillingIntegration(AbstractPostgresTest):
                     "metadata": {"transaction_id": "tx_status_mismatch"},
                 }
 
-        monkeypatch.setattr(
-            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
-        )
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
 
         with pytest.raises(WebhookRetryableError, match="Provider status mismatch"):
             await billing_service.process_payment_webhook(
@@ -1454,9 +1358,7 @@ class TestBillingIntegration(AbstractPostgresTest):
             )
 
     @pytest.mark.asyncio
-    async def test_process_payment_webhook_rejects_unpaid_succeeded_event(
-        self, monkeypatch
-    ):
+    async def test_process_payment_webhook_rejects_unpaid_succeeded_event(self, monkeypatch):
         import open_webui.utils.billing as billing_utils
         from open_webui.utils.billing import WebhookRetryableError, billing_service
 
@@ -1471,9 +1373,7 @@ class TestBillingIntegration(AbstractPostgresTest):
                     "metadata": {"transaction_id": "tx_unpaid"},
                 }
 
-        monkeypatch.setattr(
-            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
-        )
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
 
         with pytest.raises(WebhookRetryableError, match="not marked as paid"):
             await billing_service.process_payment_webhook(
@@ -1485,9 +1385,7 @@ class TestBillingIntegration(AbstractPostgresTest):
             )
 
     @pytest.mark.asyncio
-    async def test_process_payment_webhook_returns_none_without_transaction_id(
-        self, monkeypatch
-    ):
+    async def test_process_payment_webhook_returns_none_without_transaction_id(self, monkeypatch):
         import open_webui.utils.billing as billing_utils
         from open_webui.utils.billing import billing_service
 
@@ -1502,9 +1400,7 @@ class TestBillingIntegration(AbstractPostgresTest):
                     "metadata": {},
                 }
 
-        monkeypatch.setattr(
-            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
-        )
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
 
         result = await billing_service.process_payment_webhook(
             {
@@ -1516,9 +1412,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_topup_webhook_missing_amount_does_not_credit_wallet(
-        self, monkeypatch
-    ):
+    async def test_topup_webhook_missing_amount_does_not_credit_wallet(self, monkeypatch):
         import open_webui.utils.billing as billing_utils
         from open_webui.models.billing import (
             LedgerEntries,
@@ -1576,9 +1470,7 @@ class TestBillingIntegration(AbstractPostgresTest):
             )
         )
 
-        monkeypatch.setattr(
-            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
-        )
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
 
         await billing_service.process_payment_webhook(
             {
@@ -1608,9 +1500,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert len(topup_entries) == 0
 
     @pytest.mark.asyncio
-    async def test_topup_webhook_missing_wallet_id_does_not_credit_wallet(
-        self, monkeypatch
-    ):
+    async def test_topup_webhook_missing_wallet_id_does_not_credit_wallet(self, monkeypatch):
         import open_webui.utils.billing as billing_utils
         from open_webui.models.billing import (
             PaymentKind,
@@ -1662,9 +1552,7 @@ class TestBillingIntegration(AbstractPostgresTest):
             )
         )
 
-        monkeypatch.setattr(
-            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
-        )
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
 
         await billing_service.process_payment_webhook(
             {

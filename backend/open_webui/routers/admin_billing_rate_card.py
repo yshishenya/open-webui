@@ -170,13 +170,11 @@ async def _get_rate_card_import_known_models(
     in the workspace DB. For import UX parity, treat provider base models as "known".
     """
 
-    db_base_models = await run_in_threadpool(Models.get_base_models)
+    db_base_models = await Models.get_base_models()
     db_base_model_ids = {model.id for model in db_base_models}
 
     known_model_ids = set(db_base_model_ids)
-    model_names_by_id: Dict[str, str] = {
-        model.id: (model.name or model.id) for model in db_base_models
-    }
+    model_names_by_id: Dict[str, str] = {model.id: (model.name or model.id) for model in db_base_models}
 
     try:
         provider_base_models = await get_all_base_models(request, user=admin_user)
@@ -201,12 +199,11 @@ async def _ensure_base_models_exist(
     owner_user_id: str,
 ) -> None:
     for model_id in sorted(model_ids):
-        existing = await run_in_threadpool(Models.get_model_by_id, model_id)
+        existing = await Models.get_model_by_id(model_id)
         if existing is not None:
             continue
 
-        await run_in_threadpool(
-            Models.insert_new_model,
+        await Models.insert_new_model(
             ModelForm(
                 id=model_id,
                 base_model_id=None,
@@ -241,10 +238,8 @@ async def export_rate_cards_xlsx(
         )
 
     try:
-        base_models = await run_in_threadpool(Models.get_base_models)
-        model_names: Dict[str, str] = {
-            model.id: (model.name or model.id) for model in base_models
-        }
+        base_models = await Models.get_base_models()
+        model_names: Dict[str, str] = {model.id: (model.name or model.id) for model in base_models}
 
         entries = await run_in_threadpool(
             RateCards.list_rate_cards_by_model_ids,
@@ -253,11 +248,7 @@ async def export_rate_cards_xlsx(
             None,
             0,
         )
-        entries = [
-            entry
-            for entry in entries
-            if entry.version == BILLING_RATE_CARD_VERSION and entry.is_active
-        ]
+        entries = [entry for entry in entries if entry.version == BILLING_RATE_CARD_VERSION and entry.is_active]
 
         content = await run_in_threadpool(
             build_export_workbook,
@@ -269,9 +260,7 @@ async def export_rate_cards_xlsx(
 
         return Response(
             content=content,
-            media_type=(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            ),
+            media_type=("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
             headers={
                 "Content-Disposition": "attachment; filename=rate-cards.xlsx",
             },
@@ -362,9 +351,7 @@ async def get_rate_card(rate_card_id: str, admin_user=Depends(get_admin_user)):
     response_model=PricingRateCardModel,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_rate_card(
-    request: RateCardCreateRequest, admin_user=Depends(get_admin_user)
-):
+async def create_rate_card(request: RateCardCreateRequest, admin_user=Depends(get_admin_user)):
     """Create a rate card entry."""
     ensure_wallet_enabled()
 
@@ -450,14 +437,10 @@ async def update_rate_card(
                 "is_active": updates.get("is_active", True),
             }
             created = await run_in_threadpool(RateCards.create_rate_card, entry_data)
-            await run_in_threadpool(
-                RateCards.update_rate_card, rate_card_id, {"is_active": False}
-            )
+            await run_in_threadpool(RateCards.update_rate_card, rate_card_id, {"is_active": False})
             return created
 
-        updated = await run_in_threadpool(
-            RateCards.update_rate_card, rate_card_id, updates
-        )
+        updated = await run_in_threadpool(RateCards.update_rate_card, rate_card_id, updates)
         if not updated:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -498,9 +481,7 @@ async def delete_rate_card(rate_card_id: str, admin_user=Depends(get_admin_user)
 
 
 @router.post("/rate-card/bulk-delete", response_model=RateCardDeleteResponse)
-async def bulk_delete_rate_cards(
-    request: RateCardBulkDeleteRequest, admin_user=Depends(get_admin_user)
-):
+async def bulk_delete_rate_cards(request: RateCardBulkDeleteRequest, admin_user=Depends(get_admin_user)):
     """Delete multiple rate card entries by ID."""
     ensure_wallet_enabled()
 
@@ -513,9 +494,7 @@ async def bulk_delete_rate_cards(
         )
 
     try:
-        deleted = await run_in_threadpool(
-            RateCards.delete_rate_cards_by_ids, rate_card_ids
-        )
+        deleted = await run_in_threadpool(RateCards.delete_rate_cards_by_ids, rate_card_ids)
         return RateCardDeleteResponse(deleted=deleted)
     except Exception as e:
         log.exception(f"Error deleting rate cards: {e}")
@@ -526,9 +505,7 @@ async def bulk_delete_rate_cards(
 
 
 @router.post("/rate-card/delete-models", response_model=RateCardDeleteResponse)
-async def delete_rate_cards_by_model_ids(
-    request: RateCardDeleteModelsRequest, admin_user=Depends(get_admin_user)
-):
+async def delete_rate_cards_by_model_ids(request: RateCardDeleteModelsRequest, admin_user=Depends(get_admin_user)):
     """Delete rate card entries for one or more models."""
     ensure_wallet_enabled()
 
@@ -541,9 +518,7 @@ async def delete_rate_cards_by_model_ids(
         )
 
     try:
-        deleted = await run_in_threadpool(
-            RateCards.delete_rate_cards_by_model_ids, model_ids
-        )
+        deleted = await run_in_threadpool(RateCards.delete_rate_cards_by_model_ids, model_ids)
         return RateCardDeleteResponse(deleted=deleted)
     except Exception as e:
         log.exception(f"Error deleting model rate cards: {e}")
@@ -554,9 +529,7 @@ async def delete_rate_cards_by_model_ids(
 
 
 @router.post("/rate-card/deactivate-models", response_model=RateCardDeactivateResponse)
-async def deactivate_rate_cards_by_model_ids(
-    request: RateCardDeleteModelsRequest, admin_user=Depends(get_admin_user)
-):
+async def deactivate_rate_cards_by_model_ids(request: RateCardDeleteModelsRequest, admin_user=Depends(get_admin_user)):
     """Deactivate rate card entries for one or more models."""
     ensure_wallet_enabled()
 
@@ -569,9 +542,7 @@ async def deactivate_rate_cards_by_model_ids(
         )
 
     try:
-        deactivated = await run_in_threadpool(
-            RateCards.deactivate_rate_cards_by_model_ids, model_ids
-        )
+        deactivated = await run_in_threadpool(RateCards.deactivate_rate_cards_by_model_ids, model_ids)
         return RateCardDeactivateResponse(deactivated=deactivated)
     except Exception as e:
         log.exception(f"Error deactivating model rate cards: {e}")
@@ -582,9 +553,7 @@ async def deactivate_rate_cards_by_model_ids(
 
 
 @router.post("/rate-card/sync-models", response_model=RateCardSyncResponse)
-async def sync_rate_cards_for_models(
-    request: RateCardSyncRequest, admin_user=Depends(get_admin_user)
-):
+async def sync_rate_cards_for_models(request: RateCardSyncRequest, admin_user=Depends(get_admin_user)):
     """Create default rate card entries for models missing pricing."""
     ensure_wallet_enabled()
 
@@ -592,15 +561,13 @@ async def sync_rate_cards_for_models(
     created_at = int(time.time())
     allowed_units = None
     if request.modality_units:
-        allowed_units = [
-            (item.modality, item.unit) for item in request.modality_units
-        ]
+        allowed_units = [(item.modality, item.unit) for item in request.modality_units]
 
     try:
         if request.model_ids:
             model_ids = request.model_ids
         else:
-            base_models = await run_in_threadpool(Models.get_base_models)
+            base_models = await Models.get_base_models()
             model_ids = [model.id for model in base_models if model.is_active]
 
         created, skipped = await run_in_threadpool(
@@ -625,7 +592,6 @@ async def sync_rate_cards_for_models(
 
 
 @router.post("/rate-card/import-xlsx/preview", response_model=RateCardXlsxImportPreviewResponse)
-
 async def import_rate_cards_xlsx_preview(
     request: Request,
     file: UploadFile = File(...),
@@ -670,9 +636,7 @@ async def import_rate_cards_xlsx_preview(
             actions_preview=[],
         )
 
-    known_model_ids, _, _ = await _get_rate_card_import_known_models(
-        request, admin_user=admin_user
-    )
+    known_model_ids, _, _ = await _get_rate_card_import_known_models(request, admin_user=admin_user)
 
     active_entries = await run_in_threadpool(
         RateCards.list_rate_cards_by_model_ids,
@@ -682,9 +646,7 @@ async def import_rate_cards_xlsx_preview(
         0,
     )
     active_entries = [
-        entry
-        for entry in active_entries
-        if entry.version == BILLING_RATE_CARD_VERSION and entry.is_active
+        entry for entry in active_entries if entry.version == BILLING_RATE_CARD_VERSION and entry.is_active
     ]
 
     summary, warnings, plan_errors, actions = await run_in_threadpool(
@@ -753,8 +715,8 @@ async def import_rate_cards_xlsx_apply(
         )
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=payload.model_dump())
 
-    known_model_ids, model_names_by_id, db_base_model_ids = (
-        await _get_rate_card_import_known_models(request, admin_user=admin_user)
+    known_model_ids, model_names_by_id, db_base_model_ids = await _get_rate_card_import_known_models(
+        request, admin_user=admin_user
     )
 
     active_entries = await run_in_threadpool(
@@ -765,9 +727,7 @@ async def import_rate_cards_xlsx_apply(
         0,
     )
     active_entries = [
-        entry
-        for entry in active_entries
-        if entry.version == BILLING_RATE_CARD_VERSION and entry.is_active
+        entry for entry in active_entries if entry.version == BILLING_RATE_CARD_VERSION and entry.is_active
     ]
 
     summary, warnings, plan_errors, actions = await run_in_threadpool(
@@ -822,11 +782,7 @@ async def import_rate_cards_xlsx_apply(
     for action in actions:
         key = f"{action.model_id}:{action.modality}:{action.unit}"
         existing_active = next(
-            (
-                entry
-                for entry in active_entries
-                if f"{entry.model_id}:{entry.modality}:{entry.unit}" == key
-            ),
+            (entry for entry in active_entries if f"{entry.model_id}:{entry.modality}:{entry.unit}" == key),
             None,
         )
 
@@ -891,11 +847,7 @@ async def import_rate_cards_xlsx_apply(
                     existing_active.id,
                     {"is_active": False},
                 )
-                active_entries = [
-                    entry
-                    for entry in active_entries
-                    if entry.id != existing_active.id
-                ]
+                active_entries = [entry for entry in active_entries if entry.id != existing_active.id]
             active_entries.append(created)
 
         elif action.action == "deactivate":
@@ -905,11 +857,7 @@ async def import_rate_cards_xlsx_apply(
                     existing_active.id,
                     {"is_active": False},
                 )
-                active_entries = [
-                    entry
-                    for entry in active_entries
-                    if entry.id != existing_active.id
-                ]
+                active_entries = [entry for entry in active_entries if entry.id != existing_active.id]
 
     return RateCardXlsxImportApplyResponse(
         summary=RateCardXlsxImportSummary(**summary.__dict__),

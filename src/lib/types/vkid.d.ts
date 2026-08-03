@@ -4,9 +4,8 @@ declare global {
 	interface Window {
 		VKIDSDK: typeof VKIDSDK;
 	}
-}
 
-declare namespace VKIDSDK {
+	namespace VKIDSDK {
 	interface ConfigOptions {
 		app: number;
 		redirectUrl: string;
@@ -83,7 +82,7 @@ declare namespace VKIDSDK {
 	}
 
 	interface WidgetInstance {
-		on(event: string, handler: (payload: any) => void): WidgetInstance;
+		on(event: string, handler: (payload: unknown) => void): WidgetInstance;
 		close(): void;
 	}
 
@@ -106,6 +105,8 @@ declare namespace VKIDSDK {
 	namespace OAuthListInternalEvents {
 		const LOGIN_SUCCESS: string;
 	}
+}
+
 }
 
 export {};

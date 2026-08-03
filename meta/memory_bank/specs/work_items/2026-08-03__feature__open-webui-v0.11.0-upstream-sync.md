@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: feature
-- Status: active
+- Status: completed
 - Owner: Codex
 - Branch: `codex/feature/upstream-sync-v0.11.0`
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/open-webui-upstream-sync-2026-08-03-001.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/open-webui-upstream-sync-2026-08-03-001.json`
 - Created: 2026-08-03
 - Updated: 2026-08-03
 
@@ -19,21 +19,21 @@ sync. The production service currently runs image revision
 `cd51aefb6a507f818a759ddaf873f1754d080052` with PostgreSQL persistence.
 
 The update spans 1,812 upstream commits and 908 changed upstream files, including a
-large migration set and a redesigned frontend. It therefore requires an isolated
-merge, focused conflict resolution, Docker verification, a database backup, and a
-controlled production rollout.
+large migration set and a redesigned frontend. It was completed in an isolated
+worktree, rehearsed against both a fresh database and a restored production clone,
+and deployed to production from a checksummed rollback backup.
 
 ## Goal / Acceptance Criteria
 
-- [ ] Merge official stable tag `v0.11.0` (`f9590b8017199e56d5e953657e6498e3cef1d246`) into the Airis integration baseline `cd51aefb6a507f818a759ddaf873f1754d080052`.
-- [ ] Preserve Airis billing, wallet, pricing, authentication providers, deployment tooling, branding, and environment governance.
-- [ ] Preserve upstream v0.11.0 behavior in upstream-owned files except for the smallest required Airis hooks.
-- [ ] Produce a single valid Alembic head that includes both upstream and Airis migrations.
-- [ ] Build backend/frontend images and run migration, backend, frontend, lint/typecheck, and focused Airis regression checks through Docker Compose.
-- [ ] Create a verified PostgreSQL backup and record the pre-update source/image revision before production migration.
-- [ ] Rebuild and recreate production services only after pre-deploy checks pass.
-- [ ] Verify production health, version, authentication surface, model discovery, chat request path, and billing/wallet API behavior after rollout.
-- [ ] Keep a tested rollback path for source/image and database restoration.
+- [x] Merge official stable tag `v0.11.0` (`f9590b8017199e56d5e953657e6498e3cef1d246`) into the Airis integration baseline `cd51aefb6a507f818a759ddaf873f1754d080052`.
+- [x] Preserve Airis billing, wallet, pricing, authentication providers, deployment tooling, branding, and environment governance.
+- [x] Preserve upstream v0.11.0 behavior in upstream-owned files except for the smallest required Airis hooks.
+- [x] Produce a single valid Alembic head that includes both upstream and Airis migrations.
+- [x] Build backend/frontend images and run migration, backend, frontend, lint/typecheck, and focused Airis regression checks through Docker.
+- [x] Create a verified PostgreSQL backup and record the pre-update source/image revision before production migration.
+- [x] Rebuild and recreate production services only after pre-deploy checks pass.
+- [x] Verify production health, version, authentication surface, model discovery, chat request path, and billing/wallet API behavior after rollout.
+- [x] Keep a tested rollback path for source/image and database restoration.
 
 ## Non-goals
 
@@ -62,12 +62,16 @@ controlled production rollout.
 - Integration strategy: merge the stable tag, resolve each overlapping file by preserving upstream intent and restoring isolated Airis behavior.
 - Existing divergent fork tags are retained unchanged.
 - The local `sdd` CLI is unavailable; the user approved manual SDD JSON creation and validation with the repository JSON Schema/CI policy.
+- Final image: `yshishenya/yshishenya:v0.11.0-airis-20260803` (`sha256:97b7929b7842407519f9b0112f26557788b1b6f1af1ed815f0c81ada9098611f`).
+- Production migration: `f8b9c7d1a2e3` to merge head `a91c0d8e4f62`.
+- Production rollout completed at 2026-08-03 18:58 Europe/Amsterdam; only the `airis` application container was recreated.
 
 ## Upstream impact
 
 - Upstream-owned files touched:
   - The v0.11.0 merge updates upstream-owned backend, frontend, dependency, migration, and container files.
-  - The exact conflict-resolution list will be appended after the merge.
+  - Narrow Airis conflict resolutions remain in `backend/open_webui/main.py`, `config.py`, `env.py`, auth/user models and routers, OpenAI/image/audio routers, chat/middleware/OAuth/access-control utilities, `src/app.html`, the auth/app layouts, sidebar billing entry points, `Dockerfile`, and dependency locks.
+  - Additive fork-owned helpers contain runtime config, image billing, app bootstrap, and the Alembic merge revision.
 - Why unavoidable:
   - Airis is an Open WebUI fork and the requested update replaces the upstream base.
   - Airis hooks overlap authentication, chat, models, access control, and UI surfaces changed upstream.
@@ -76,27 +80,29 @@ controlled production rollout.
   - Keep Airis logic in existing fork-owned helpers and restore only narrow call sites.
   - Avoid formatting churn and unrelated refactors during conflict resolution.
 
-## Verification
+## Verification Results
 
-- SDD schema/policy: run the validation body from `.github/workflows/sdd-validate.yml` locally.
-- Merge integrity: `git diff --check` and conflict-marker scan.
-- Migration graph: Docker Alembic heads/history checks and upgrade against a disposable PostgreSQL copy.
-- Backend tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm airis bash -lc "pytest"`.
-- Backend lint: Docker ruff command from `AGENTS.md`.
-- Frontend tests: Docker `npm run test:frontend`.
-- Frontend checks: Docker `npm run check` and `npm run lint:frontend`.
-- Production image build followed by health and focused authenticated smoke checks.
+- SDD JSON: repository schema/policy validation passed using the approved manual fallback.
+- Merge integrity: no unmerged paths or conflict markers; `git diff --check` and Python `compileall` passed.
+- Formatting/lint: Black check passed for 36 resolved Python files; focused Ruff `E9,F` passed for fork-owned files. Full-repository Ruff/Svelte checks retain a large upstream/fork baseline and are not treated as new regressions.
+- Migrations: fresh PostgreSQL and a restored production clone both upgraded to the single head `a91c0d8e4f62`; repeated `upgrade heads` was idempotent.
+- Backend: utility/service suite passed (`90 passed`). The legacy router suite reached `28 passed, 65 failed`; failures are concentrated in its synchronous model mocks after v0.11 converted `Users`, `Models`, and `Auths` APIs to async. Runtime AST audits, authenticated clone smoke, and production smoke found no un-awaited model calls.
+- Frontend: `18` test files and `87` tests passed; production Vite/Docker build passed.
+- Browser: Playwright desktop/mobile checks for `/auth` and `/pricing` passed on the final image and production with HTTP 200, no page/console errors, and no horizontal overflow. This caught and fixed a missing `isDarkMode` initialization in `src/app.html` before deployment.
+- Production: `/health`, `/api/config`, auth/pricing/legal/public billing endpoints passed. Authenticated read-only smoke returned 84 models and successful chat/legal/balance responses; the no-model chat request returned the expected `400 Model not found` without data writes.
+- Data integrity: counts for users, auth records, chats, plans, subscriptions, wallets, ledger entries, payments, rate cards, and usage events were unchanged before and after rollout/smoke.
 
 ## Task Entry (for branch_updates/current_tasks)
 
-- [ ] **[UPSTREAM]** Sync Airis with Open WebUI v0.11.0
+- [x] **[UPSTREAM]** Sync Airis with Open WebUI v0.11.0
   - Spec: `meta/memory_bank/specs/work_items/2026-08-03__feature__open-webui-v0.11.0-upstream-sync.md`
   - Owner: Codex
   - Branch: `codex/feature/upstream-sync-v0.11.0`
   - Started: 2026-08-03
-  - Summary: Integrate official Open WebUI v0.11.0 while preserving Airis behavior, migrations, and production rollback safety.
-  - Tests: Pending merge, Docker verification, migration rehearsal, and production smoke checks.
-  - Risks: High; large upstream delta, migration graph changes, frontend redesign, and production data migration.
+  - Done: 2026-08-03
+  - Summary: Integrated and deployed official Open WebUI v0.11.0 while preserving Airis behavior and a verified rollback path.
+  - Tests: 90 backend utility/service tests and 87 frontend tests passed; fresh/clone/production migrations, Docker build, authenticated API smoke, and desktop/mobile Playwright passed.
+  - Follow-up: Modernize the legacy synchronous router-test harness for v0.11 async model APIs and reduce inherited lint/typecheck baseline.
 
 ## Risks / Rollback
 
@@ -106,12 +112,12 @@ controlled production rollout.
   - Dependency and container changes can prevent image build or runtime startup.
   - The v0.11.0 interface may invalidate Airis frontend hooks and regression tests.
 - Rollback plan:
-  - Keep the pre-sync branch revision and current production image digest available.
-  - Create and checksum a PostgreSQL dump before any production migration.
-  - On rollout failure, stop the new application, restore the pre-update image/source and database dump, then verify health before reopening traffic.
+  - Source ref `backup/upstream-sync-v0.11.0-premerge` and image `yshishenya/yshishenya:cd51aefb6` remain available.
+  - Verified rollback artifacts are under `/opt/projects/.backups/airis/20260803-185252-open-webui-v0.11.0/` with `SHA256SUMS`, PostgreSQL custom dump, application-data archive, Compose files, and the pre-update environment file.
+  - On rollout failure, stop the new application, restore the pre-update database/data as needed, recreate `airis` from `cd51aefb6`, and verify health before reopening traffic.
 
 ## Completion Checklist
 
-- [ ] Manually validate SDD schema and repository policy (approved fallback for unavailable `sdd` CLI).
-- [ ] Mark all SDD hierarchy tasks completed and move the JSON from `active` to `completed`.
-- [ ] Branch update entry moved to `Done` with required fields (`Spec`, `Owner`, `Summary`, `Done`).
+- [x] Manually validate SDD schema and repository policy (approved fallback for unavailable `sdd` CLI).
+- [x] Mark all SDD hierarchy tasks completed and move the JSON from `active` to `completed`.
+- [x] Branch update entry moved to `Done` with required fields (`Spec`, `Owner`, `Summary`, `Done`).

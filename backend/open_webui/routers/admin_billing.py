@@ -184,11 +184,7 @@ def validate_plan_update(plan: PlanModel, update_data: Dict[str, object]) -> Non
 
             for key, new_value in new_quotas.items():
                 old_value = old_quotas.get(key)
-                if (
-                    old_value is not None
-                    and isinstance(new_value, int)
-                    and new_value < old_value
-                ):
+                if old_value is not None and isinstance(new_value, int) and new_value < old_value:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Cannot decrease quota '{key}' from {old_value} to {new_value} "
@@ -203,9 +199,7 @@ def validate_plan_update(plan: PlanModel, update_data: Dict[str, object]) -> Non
             )
 
 
-def detect_changes(
-    old_plan: PlanModel, new_data: Dict[str, object]
-) -> Dict[str, Dict[str, object]]:
+def detect_changes(old_plan: PlanModel, new_data: Dict[str, object]) -> Dict[str, Dict[str, object]]:
     """Detect what changed between old plan and new data"""
     changes = {}
 
@@ -217,16 +211,12 @@ def detect_changes(
     return changes
 
 
-def _get_user_wallet_summary(
-    user_id: str, ledger_limit: int = 20
-) -> UserWalletSummaryResponse:
+def _get_user_wallet_summary(user_id: str, ledger_limit: int = 20) -> UserWalletSummaryResponse:
     wallet = wallet_service.get_or_create_wallet(user_id, BILLING_DEFAULT_CURRENCY)
     wallet_model = WalletModel.model_validate(wallet)
     ledger_entries = [
         entry
-        for entry in LedgerEntries.get_entries_by_user(
-            user_id, limit=ledger_limit, offset=0
-        )
+        for entry in LedgerEntries.get_entries_by_user(user_id, limit=ledger_limit, offset=0)
         if entry.wallet_id == wallet.id
     ]
     return UserWalletSummaryResponse(
@@ -369,9 +359,7 @@ async def get_plan_by_id(plan_id: str, admin_user=Depends(get_admin_user)):
 
 
 @router.put("/plans/{plan_id}", response_model=PlanModel)
-async def update_plan(
-    plan_id: str, request: UpdatePlanRequest, admin_user=Depends(get_admin_user)
-):
+async def update_plan(plan_id: str, request: UpdatePlanRequest, admin_user=Depends(get_admin_user)):
     """Update existing plan"""
     try:
         # Get existing plan
@@ -483,14 +471,10 @@ async def toggle_plan_active(plan_id: str, admin_user=Depends(get_admin_user)):
 
         # Toggle status
         new_status = not plan.is_active
-        updated_plan = Plans.update_plan_by_id(
-            plan_id, {"is_active": new_status, "updated_at": int(time.time())}
-        )
+        updated_plan = Plans.update_plan_by_id(plan_id, {"is_active": new_status, "updated_at": int(time.time())})
 
         # Audit log
-        action = (
-            AuditAction.PLAN_ACTIVATED if new_status else AuditAction.PLAN_DEACTIVATED
-        )
+        action = AuditAction.PLAN_ACTIVATED if new_status else AuditAction.PLAN_DEACTIVATED
         AuditLogs.create_log(
             user_id=admin_user.id,
             action=action,
@@ -499,9 +483,7 @@ async def toggle_plan_active(plan_id: str, admin_user=Depends(get_admin_user)):
             description=f"{'Activated' if new_status else 'Deactivated'} plan '{plan.name}'",
         )
 
-        log.info(
-            f"Admin {admin_user.email} {'activated' if new_status else 'deactivated'} plan {plan_id}"
-        )
+        log.info(f"Admin {admin_user.email} {'activated' if new_status else 'deactivated'} plan {plan_id}")
         return updated_plan
 
     except HTTPException:
@@ -534,9 +516,7 @@ async def duplicate_plan(plan_id: str, admin_user=Depends(get_admin_user)):
         plan_data = {
             "id": new_id,
             "name": f"{source_plan.name} (Copy)",
-            "name_ru": (
-                f"{source_plan.name_ru} (Копия)" if source_plan.name_ru else None
-            ),
+            "name_ru": (f"{source_plan.name_ru} (Копия)" if source_plan.name_ru else None),
             "description": source_plan.description,
             "description_ru": source_plan.description_ru,
             "price": source_plan.price,
@@ -576,9 +556,7 @@ async def duplicate_plan(plan_id: str, admin_user=Depends(get_admin_user)):
 
 
 @router.get("/plans/{plan_id}/subscribers", response_model=PaginatedSubscribersResponse)
-async def get_plan_subscribers(
-    plan_id: str, page: int = 1, page_size: int = 20, admin_user=Depends(get_admin_user)
-):
+async def get_plan_subscribers(plan_id: str, page: int = 1, page_size: int = 20, admin_user=Depends(get_admin_user)):
     """Get paginated users subscribed to a plan with usage data"""
     try:
         from open_webui.internal.db import get_db
@@ -615,9 +593,11 @@ async def get_plan_subscribers(
 
         # Get user details and usage for current page
         items = []
+        users = await Users.get_users_by_user_ids(list({sub.user_id for sub in page_subscriptions}))
+        users_by_id = {user.id: user for user in users}
         with get_db() as db:
             for sub in page_subscriptions:
-                user = Users.get_user_by_id(sub.user_id)
+                user = users_by_id.get(sub.user_id)
                 if user:
                     # Get usage for current period
                     tokens_input_used = 0
@@ -687,7 +667,7 @@ async def get_user_subscription_info(user_id: str, admin_user=Depends(get_admin_
         from open_webui.internal.db import get_db
 
         # Verify user exists
-        user = Users.get_user_by_id(user_id)
+        user = await Users.get_user_by_id(user_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -728,9 +708,7 @@ async def get_user_subscription_info(user_id: str, admin_user=Depends(get_admin_
                     "used": used,
                     "limit": limit,
                     "remaining": max(0, limit - used) if limit else None,
-                    "percentage": (
-                        round((used / limit) * 100, 1) if limit and limit > 0 else None
-                    ),
+                    "percentage": (round((used / limit) * 100, 1) if limit and limit > 0 else None),
                 }
 
         return {
@@ -762,7 +740,7 @@ async def get_user_wallet_summary(
             detail="Billing wallet is disabled",
         )
 
-    user = Users.get_user_by_id(user_id)
+    user = await Users.get_user_by_id(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -797,7 +775,7 @@ async def adjust_user_wallet(
             detail="Billing wallet is disabled",
         )
 
-    user = Users.get_user_by_id(user_id)
+    user = await Users.get_user_by_id(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -819,9 +797,7 @@ async def adjust_user_wallet(
             detail="reason is required",
         )
 
-    wallet_before = wallet_service.get_or_create_wallet(
-        user_id, BILLING_DEFAULT_CURRENCY
-    )
+    wallet_before = wallet_service.get_or_create_wallet(user_id, BILLING_DEFAULT_CURRENCY)
     before_topup = int(wallet_before.balance_topup_kopeks)
     before_included = int(wallet_before.balance_included_kopeks)
 
@@ -891,16 +867,14 @@ class ChangeUserPlanRequest(BaseModel):
 
 
 @router.put("/users/{user_id}/subscription")
-async def change_user_subscription(
-    user_id: str, request: ChangeUserPlanRequest, admin_user=Depends(get_admin_user)
-):
+async def change_user_subscription(user_id: str, request: ChangeUserPlanRequest, admin_user=Depends(get_admin_user)):
     """Change user's subscription plan (admin only)"""
     try:
         from open_webui.internal.db import get_db
         from open_webui.models.billing import Subscription, SubscriptionStatus
 
         # Verify user exists
-        user = Users.get_user_by_id(user_id)
+        user = await Users.get_user_by_id(user_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -917,9 +891,7 @@ async def change_user_subscription(
 
         with get_db() as db:
             # Get or create subscription
-            subscription = (
-                db.query(Subscription).filter(Subscription.user_id == user_id).first()
-            )
+            subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
 
             current_time = int(time.time())
 
@@ -965,8 +937,7 @@ async def change_user_subscription(
                     entity_type="subscription",
                     entity_id=subscription.id,
                     description=(
-                        f"Changed subscription plan for user {user.email} "
-                        f"from {old_plan_id} to {request.plan_id}"
+                        f"Changed subscription plan for user {user.email} " f"from {old_plan_id} to {request.plan_id}"
                     ),
                     audit_metadata={
                         "target_user_id": user_id,
@@ -992,9 +963,7 @@ async def change_user_subscription(
                 db.refresh(new_subscription)
                 subscription = new_subscription
 
-                log.info(
-                    f"Admin {admin_user.email} created subscription for user {user.email}: plan {request.plan_id}"
-                )
+                log.info(f"Admin {admin_user.email} created subscription for user {user.email}: plan {request.plan_id}")
 
                 # Audit log
                 AuditLogs.create_log(
@@ -1002,10 +971,7 @@ async def change_user_subscription(
                     action=AuditAction.SUBSCRIPTION_CREATED,
                     entity_type="subscription",
                     entity_id=subscription.id,
-                    description=(
-                        f"Created subscription for user {user.email} "
-                        f"with plan {request.plan_id}"
-                    ),
+                    description=(f"Created subscription for user {user.email} " f"with plan {request.plan_id}"),
                     audit_metadata={
                         "target_user_id": user_id,
                         "plan_id": request.plan_id,

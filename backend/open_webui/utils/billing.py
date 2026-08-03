@@ -199,9 +199,7 @@ class BillingService:
         log.info(f"Created subscription {created.id} for user {user_id}")
         return created
 
-    def cancel_subscription(
-        self, subscription_id: str, immediate: bool = False
-    ) -> Optional[SubscriptionModel]:
+    def cancel_subscription(self, subscription_id: str, immediate: bool = False) -> Optional[SubscriptionModel]:
         """
         Cancel subscription
 
@@ -237,9 +235,7 @@ class BillingService:
         Returns:
             Updated subscription
         """
-        updated = self.subscriptions.update_subscription(
-            subscription_id, {"cancel_at_period_end": False}
-        )
+        updated = self.subscriptions.update_subscription(subscription_id, {"cancel_at_period_end": False})
 
         if updated:
             log.info(f"Resumed subscription {subscription_id}")
@@ -343,9 +339,7 @@ class BillingService:
         metric: Optional[UsageMetric] = None,
     ) -> List[UsageModel]:
         """Get usage records for a period"""
-        return self.usage_tracking.get_usage_for_period(
-            user_id, period_start, period_end, metric
-        )
+        return self.usage_tracking.get_usage_for_period(user_id, period_start, period_end, metric)
 
     def get_current_period_usage(self, user_id: str, metric: UsageMetric) -> int:
         """
@@ -369,9 +363,7 @@ class BillingService:
             period_start = now - (30 * 24 * 60 * 60)
             period_end = now
 
-        return self.usage_tracking.get_total_usage(
-            user_id, period_start, period_end, metric
-        )
+        return self.usage_tracking.get_total_usage(user_id, period_start, period_end, metric)
 
     def check_quota(self, user_id: str, metric: UsageMetric, amount: int = 1) -> bool:
         """
@@ -406,10 +398,7 @@ class BillingService:
         would_exceed = (current_usage + amount) > quota_limit
 
         if would_exceed:
-            log.warning(
-                f"User {user_id} would exceed {metric} quota: "
-                f"{current_usage + amount} > {quota_limit}"
-            )
+            log.warning(f"User {user_id} would exceed {metric} quota: " f"{current_usage + amount} > {quota_limit}")
 
         return not would_exceed
 
@@ -426,9 +415,7 @@ class BillingService:
             QuotaExceededError: If quota would be exceeded
         """
         if not self.check_quota(user_id, metric, amount):
-            raise QuotaExceededError(
-                f"Quota exceeded for {metric}. Please upgrade your plan."
-            )
+            raise QuotaExceededError(f"Quota exceeded for {metric}. Please upgrade your plan.")
 
     @staticmethod
     def _clean_contact(value: object) -> Optional[str]:
@@ -437,13 +424,11 @@ class BillingService:
         cleaned = value.strip()
         return cleaned if cleaned else None
 
-    def _resolve_receipt_customer(self, user_id: str) -> Dict[str, str]:
-        user = Users.get_user_by_id(user_id)
+    async def _resolve_receipt_customer(self, user_id: str) -> Dict[str, str]:
+        user = await Users.get_user_by_id(user_id)
         if not user:
             log.warning("Unable to load user for receipt generation: %s", user_id)
-            raise ValueError(
-                "Set billing contact email or phone in billing settings to issue a payment receipt"
-            )
+            raise ValueError("Set billing contact email or phone in billing settings to issue a payment receipt")
 
         user_info = user.info if isinstance(user.info, dict) else {}
 
@@ -462,11 +447,9 @@ class BillingService:
         if customer:
             return customer
 
-        raise ValueError(
-            "Set billing contact email or phone in billing settings to issue a payment receipt"
-        )
+        raise ValueError("Set billing contact email or phone in billing settings to issue a payment receipt")
 
-    def _build_receipt(
+    async def _build_receipt(
         self,
         user_id: str,
         amount: Decimal,
@@ -493,7 +476,7 @@ class BillingService:
         }
 
         receipt: Dict[str, object] = {
-            "customer": self._resolve_receipt_customer(user_id),
+            "customer": await self._resolve_receipt_customer(user_id),
             "items": [receipt_item],
         }
 
@@ -548,8 +531,7 @@ class BillingService:
             transaction,
         )
         payment_amount = Decimal(str(plan.price))
-        receipt = await run_in_threadpool(
-            self._build_receipt,
+        receipt = await self._build_receipt(
             user_id,
             payment_amount,
             plan.currency,
@@ -610,10 +592,7 @@ class BillingService:
         """
         if amount_kopeks <= 0:
             raise ValueError("Topup amount must be positive")
-        if (
-            BILLING_TOPUP_PACKAGES_KOPEKS
-            and amount_kopeks not in BILLING_TOPUP_PACKAGES_KOPEKS
-        ):
+        if BILLING_TOPUP_PACKAGES_KOPEKS and amount_kopeks not in BILLING_TOPUP_PACKAGES_KOPEKS:
             raise ValueError("Invalid topup amount")
 
         save_payment_method = None
@@ -635,11 +614,8 @@ class BillingService:
             "wallet_id": wallet_id,
             "amount_kopeks": amount_kopeks,
         }
-        topup_description = (
-            f"Top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
-        )
-        receipt = await run_in_threadpool(
-            self._build_receipt,
+        topup_description = f"Top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
+        receipt = await self._build_receipt(
             user_id,
             amount_rub,
             BILLING_DEFAULT_CURRENCY,
@@ -723,9 +699,7 @@ class BillingService:
             return None
         return payment.payment_method_id
 
-    def _record_auto_topup_failure(
-        self, wallet_id: str, fail_count: int
-    ) -> Optional[WalletModel]:
+    def _record_auto_topup_failure(self, wallet_id: str, fail_count: int) -> Optional[WalletModel]:
         now = int(time.time())
         next_count = fail_count + 1
         updates: Dict[str, object] = {
@@ -756,10 +730,7 @@ class BillingService:
         """Create an auto-topup payment using a saved payment method."""
         if amount_kopeks <= 0:
             raise ValueError("Topup amount must be positive")
-        if (
-            BILLING_TOPUP_PACKAGES_KOPEKS
-            and amount_kopeks not in BILLING_TOPUP_PACKAGES_KOPEKS
-        ):
+        if BILLING_TOPUP_PACKAGES_KOPEKS and amount_kopeks not in BILLING_TOPUP_PACKAGES_KOPEKS:
             raise ValueError("Invalid topup amount")
 
         yookassa = get_yookassa_client()
@@ -775,11 +746,8 @@ class BillingService:
             "auto_topup": True,
             "auto_topup_reason": reason,
         }
-        auto_topup_description = (
-            f"Auto top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
-        )
-        receipt = await run_in_threadpool(
-            self._build_receipt,
+        auto_topup_description = f"Auto top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
+        receipt = await self._build_receipt(
             user_id,
             amount_rub,
             BILLING_DEFAULT_CURRENCY,
@@ -868,10 +836,7 @@ class BillingService:
         if await run_in_threadpool(self._has_pending_topup, wallet_id):
             return AutoTopupResult(attempted=False, status="pending")
 
-        if (
-            BILLING_TOPUP_PACKAGES_KOPEKS
-            and amount not in BILLING_TOPUP_PACKAGES_KOPEKS
-        ):
+        if BILLING_TOPUP_PACKAGES_KOPEKS and amount not in BILLING_TOPUP_PACKAGES_KOPEKS:
             return AutoTopupResult(attempted=False, status="invalid_amount")
 
         payment_method_id = await run_in_threadpool(
@@ -908,9 +873,7 @@ class BillingService:
             payment_id=str(payment_id) if payment_id else None,
         )
 
-    async def process_payment_webhook(
-        self, webhook_data: Dict[str, object]
-    ) -> Optional[SubscriptionModel]:
+    async def process_payment_webhook(self, webhook_data: Dict[str, object]) -> Optional[SubscriptionModel]:
         """
         Process payment webhook from YooKassa
 
@@ -955,15 +918,11 @@ class BillingService:
         }
         expected_status = expected_status_map.get(event_type)
         if expected_status and provider_status != expected_status:
-            raise WebhookRetryableError(
-                f"Provider status mismatch (expected {expected_status}, got {provider_status})"
-            )
+            raise WebhookRetryableError(f"Provider status mismatch (expected {expected_status}, got {provider_status})")
         if event_type == "payment.succeeded" and provider_paid is not True:
             raise WebhookRetryableError("Provider payment not marked as paid")
 
-        metadata_value = provider_payment.get(
-            "metadata", webhook_data.get("metadata", {})
-        )
+        metadata_value = provider_payment.get("metadata", webhook_data.get("metadata", {}))
         metadata = metadata_value if isinstance(metadata_value, dict) else {}
 
         log.info(f"Processing webhook: {event_type} for payment {payment_id}")
@@ -1000,10 +959,7 @@ class BillingService:
         if not transaction:
             log.error(f"Transaction {transaction_id} not found")
             return None
-        if (
-            transaction.yookassa_payment_id
-            and transaction.yookassa_payment_id != payment_id
-        ):
+        if transaction.yookassa_payment_id and transaction.yookassa_payment_id != payment_id:
             raise WebhookVerificationError("Payment ID does not match transaction")
         if transaction.status == TransactionStatus.SUCCEEDED:
             log.info(
@@ -1103,14 +1059,10 @@ class BillingService:
             raise RuntimeError("Provider payment payload invalid")
 
         provider_status_value = provider_payment.get("status")
-        provider_status = (
-            str(provider_status_value) if isinstance(provider_status_value, str) else ""
-        )
+        provider_status = str(provider_status_value) if isinstance(provider_status_value, str) else ""
         amount_obj = provider_payment.get("amount")
         amount_value = amount_obj.get("value") if isinstance(amount_obj, dict) else None
-        currency_value = (
-            amount_obj.get("currency") if isinstance(amount_obj, dict) else None
-        )
+        currency_value = amount_obj.get("currency") if isinstance(amount_obj, dict) else None
         metadata_value = provider_payment.get("metadata", {})
         metadata = metadata_value if isinstance(metadata_value, dict) else {}
         effective_metadata: Dict[str, object] = dict(metadata)
@@ -1129,11 +1081,7 @@ class BillingService:
                 effective_metadata["amount_kopeks"] = local_payment.amount_kopeks
 
         metadata_user_id_value = effective_metadata.get("user_id")
-        metadata_user_id = (
-            str(metadata_user_id_value)
-            if isinstance(metadata_user_id_value, str)
-            else None
-        )
+        metadata_user_id = str(metadata_user_id_value) if isinstance(metadata_user_id_value, str) else None
         ownership_verified = bool(local_payment and local_payment.user_id == user_id)
         if not ownership_verified and metadata_user_id == user_id:
             ownership_verified = True
@@ -1202,9 +1150,7 @@ class BillingService:
                 )
                 return
 
-        amount_kopeks = self._extract_amount_kopeks(
-            metadata_dict, webhook_data.get("amount")
-        )
+        amount_kopeks = self._extract_amount_kopeks(metadata_dict, webhook_data.get("amount"))
         wallet_id = metadata_dict.get("wallet_id")
         user_id = metadata_dict.get("user_id")
 
@@ -1295,9 +1241,7 @@ class BillingService:
             if is_auto_topup and wallet_id:
                 wallet = self.wallets.get_wallet_by_id(wallet_id)
                 if wallet:
-                    self._record_auto_topup_failure(
-                        wallet_id, wallet.auto_topup_fail_count
-                    )
+                    self._record_auto_topup_failure(wallet_id, wallet.auto_topup_fail_count)
             return
 
         if event_type == "payment.waiting_for_capture":
@@ -1310,9 +1254,7 @@ class BillingService:
                 },
             )
 
-    def _extract_amount_kopeks(
-        self, metadata: Dict[str, object], amount_value: Optional[str]
-    ) -> Optional[int]:
+    def _extract_amount_kopeks(self, metadata: Dict[str, object], amount_value: Optional[str]) -> Optional[int]:
         if metadata.get("amount_kopeks") is not None:
             try:
                 return int(metadata.get("amount_kopeks"))
@@ -1339,9 +1281,7 @@ class BillingService:
             "status": payment.get("status"),
             "amount": payment.get("amount"),
             "currency": (
-                payment.get("amount", {}).get("currency")
-                if isinstance(payment.get("amount"), dict)
-                else None
+                payment.get("amount", {}).get("currency") if isinstance(payment.get("amount"), dict) else None
             ),
             "confirmation": sanitized_confirmation,
         }
@@ -1379,15 +1319,11 @@ class BillingService:
             for metric in UsageMetric:
                 usage[metric.value] = {
                     "current": self.get_current_period_usage(user_id, metric),
-                    "limit": (
-                        plan.quotas.get(metric.value) if plan and plan.quotas else None
-                    ),
+                    "limit": (plan.quotas.get(metric.value) if plan and plan.quotas else None),
                 }
 
         lead_magnet_config = get_lead_magnet_config()
-        lead_magnet_state = (
-            get_lead_magnet_state(user_id) if lead_magnet_config.enabled else None
-        )
+        lead_magnet_state = get_lead_magnet_state(user_id) if lead_magnet_config.enabled else None
 
         if lead_magnet_state:
             lead_magnet_usage = {
@@ -1397,9 +1333,7 @@ class BillingService:
                 "tts_seconds": lead_magnet_state.tts_seconds_used,
                 "stt_seconds": lead_magnet_state.stt_seconds_used,
             }
-            lead_magnet_remaining = calculate_remaining(
-                lead_magnet_state, lead_magnet_config.quotas
-            )
+            lead_magnet_remaining = calculate_remaining(lead_magnet_state, lead_magnet_config.quotas)
             lead_magnet = {
                 "enabled": True,
                 "cycle_start": lead_magnet_state.cycle_start,

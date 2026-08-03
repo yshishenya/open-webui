@@ -1,12 +1,14 @@
-<script lang="ts">
-	import { trackEvent } from '$lib/utils/analytics';
-
+<script context="module" lang="ts">
 	export type FeatureFaqItem = {
 		id: string;
 		question: string;
 		answer: string;
 		open?: boolean;
 	};
+</script>
+
+<script lang="ts">
+	import { trackEvent } from '$lib/utils/analytics';
 
 	export let items: FeatureFaqItem[] = [];
 

@@ -4,6 +4,7 @@ import time
 from typing import Optional
 
 from fastapi import Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from open_webui.models.legal import LegalAcceptances, LegalDocumentAcceptanceModel
 from open_webui.models.users import Users
@@ -19,12 +20,13 @@ def get_request_ip(request: Request) -> Optional[str]:
     return None
 
 
-def record_legal_acceptances(
+async def record_legal_acceptances(
     *,
     user_id: str,
     keys: list[str],
     request: Request,
     method: str,
+    db: AsyncSession | None = None,
 ) -> list[LegalDocumentAcceptanceModel]:
     requested_keys = list(dict.fromkeys(keys))
     now = int(time.time())
@@ -41,7 +43,7 @@ def record_legal_acceptances(
             continue
 
         accepted.append(
-            LegalAcceptances.insert_acceptance(
+            await LegalAcceptances.insert_acceptance(
                 user_id=user_id,
                 doc_key=doc.key,
                 doc_version=doc.version,
@@ -49,6 +51,7 @@ def record_legal_acceptances(
                 ip=ip,
                 user_agent=user_agent,
                 method=method,
+                db=db,
             )
         )
 
@@ -58,7 +61,6 @@ def record_legal_acceptances(
             user_updates["privacy_accepted_at"] = now
 
     if user_updates:
-        Users.update_user_by_id(user_id, user_updates)
+        await Users.update_user_by_id(user_id, user_updates, db=db)
 
     return accepted
-

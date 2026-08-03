@@ -60,7 +60,7 @@
 			role="tabpanel"
 			id={`features-panel-${activeTab.id}`}
 			aria-labelledby={`features-tab-${activeTab.id}`}
-			abindex="0"
+			tabindex="0"
 		>
 			<div class="space-y-6">
 				<div class="space-y-3">

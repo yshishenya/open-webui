@@ -351,3 +351,6 @@ meta/sdd/specs/.reviews/
 
 # Local TLS artifacts (never commit private keys/certs)
 nginx/certs/
+
+# Claude Code project metadata cache
+.cptr

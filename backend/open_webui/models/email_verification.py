@@ -4,8 +4,9 @@ import secrets
 import logging
 from typing import Optional
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import Column, String, BigInteger
-from open_webui.internal.db import Base, get_db
+from sqlalchemy import BigInteger, Column, String, delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from open_webui.internal.db import Base, get_async_db_context
 
 log = logging.getLogger(__name__)
 
@@ -56,14 +57,18 @@ class EmailVerificationTokensTable:
         """Generate a secure URL-safe verification token"""
         return secrets.token_urlsafe(32)
 
-    def create_verification_token(
-        self, user_id: str, email: str, expiry_hours: int = 24
+    async def create_verification_token(
+        self,
+        user_id: str,
+        email: str,
+        expiry_hours: int = 24,
+        db: AsyncSession | None = None,
     ) -> Optional[EmailVerificationTokenModel]:
         """Create a new email verification token"""
         token = self.generate_token()
         expires_at = int(time.time()) + (expiry_hours * 3600)
 
-        with get_db() as db:
+        async with get_async_db_context(db) as session:
             verification_token = EmailVerificationTokenModel(
                 **{
                     "id": str(uuid.uuid4()),
@@ -75,83 +80,85 @@ class EmailVerificationTokensTable:
                 }
             )
             result = EmailVerificationToken(**verification_token.model_dump())
-            db.add(result)
-            db.commit()
-            db.refresh(result)
+            session.add(result)
+            await session.commit()
+            await session.refresh(result)
             if result:
                 return EmailVerificationTokenModel.model_validate(result)
             else:
                 return None
 
-    def get_token_by_token_string(self, token: str) -> Optional[EmailVerificationTokenModel]:
+    async def get_token_by_token_string(
+        self, token: str, db: AsyncSession | None = None
+    ) -> Optional[EmailVerificationTokenModel]:
         """Get verification token by token string"""
         try:
-            with get_db() as db:
-                token_record = (
-                    db.query(EmailVerificationToken).filter_by(token=token).first()
+            async with get_async_db_context(db) as session:
+                result = await session.execute(
+                    select(EmailVerificationToken).where(EmailVerificationToken.token == token)
                 )
-                return (
-                    EmailVerificationTokenModel.model_validate(token_record)
-                    if token_record
-                    else None
-                )
+                token_record = result.scalar_one_or_none()
+                return EmailVerificationTokenModel.model_validate(token_record) if token_record else None
         except Exception as e:
             log.error(f"Error getting verification token: {e}")
             return None
 
-    def get_tokens_by_user_id(self, user_id: str) -> list[EmailVerificationTokenModel]:
+    async def get_tokens_by_user_id(
+        self, user_id: str, db: AsyncSession | None = None
+    ) -> list[EmailVerificationTokenModel]:
         """Get all verification tokens for a user"""
-        with get_db() as db:
-            tokens = db.query(EmailVerificationToken).filter_by(user_id=user_id).all()
+        async with get_async_db_context(db) as session:
+            result = await session.execute(
+                select(EmailVerificationToken).where(EmailVerificationToken.user_id == user_id)
+            )
+            tokens = result.scalars().all()
             return [EmailVerificationTokenModel.model_validate(t) for t in tokens]
 
-    def delete_token_by_id(self, token_id: str) -> bool:
+    async def delete_token_by_id(self, token_id: str, db: AsyncSession | None = None) -> bool:
         """Delete a verification token by ID"""
         try:
-            with get_db() as db:
-                db.query(EmailVerificationToken).filter_by(id=token_id).delete()
-                db.commit()
+            async with get_async_db_context(db) as session:
+                await session.execute(delete(EmailVerificationToken).where(EmailVerificationToken.id == token_id))
+                await session.commit()
                 return True
         except Exception as e:
             log.error(f"Error deleting verification token {token_id}: {e}")
             return False
 
-    def delete_tokens_by_user_id(self, user_id: str) -> bool:
+    async def delete_tokens_by_user_id(self, user_id: str, db: AsyncSession | None = None) -> bool:
         """Delete all verification tokens for a user"""
         try:
-            with get_db() as db:
-                db.query(EmailVerificationToken).filter_by(user_id=user_id).delete()
-                db.commit()
+            async with get_async_db_context(db) as session:
+                await session.execute(delete(EmailVerificationToken).where(EmailVerificationToken.user_id == user_id))
+                await session.commit()
                 return True
         except Exception as e:
             log.error(f"Error deleting verification tokens for user {user_id}: {e}")
             return False
 
-    def is_token_valid(self, token: str) -> bool:
+    async def is_token_valid(self, token: str, db: AsyncSession | None = None) -> bool:
         """Check if a token exists and is not expired"""
-        token_record = self.get_token_by_token_string(token)
+        token_record = await self.get_token_by_token_string(token, db=db)
         if not token_record:
             return False
-        
+
         if int(time.time()) > token_record.expires_at:
             # Token expired, delete it
-            self.delete_token_by_id(token_record.id)
+            await self.delete_token_by_id(token_record.id, db=db)
             return False
-        
+
         return True
 
-    def cleanup_expired_tokens(self) -> int:
+    async def cleanup_expired_tokens(self, db: AsyncSession | None = None) -> int:
         """Remove all expired tokens"""
         try:
-            with get_db() as db:
+            async with get_async_db_context(db) as session:
                 current_time = int(time.time())
-                deleted_count = (
-                    db.query(EmailVerificationToken)
-                    .filter(EmailVerificationToken.expires_at < current_time)
-                    .delete()
+                result = await session.execute(
+                    delete(EmailVerificationToken).where(EmailVerificationToken.expires_at < current_time)
                 )
-                db.commit()
-                return deleted_count
+                await session.commit()
+                return result.rowcount or 0
         except Exception as e:
             log.error(f"Error cleaning up expired verification tokens: {e}")
             return 0

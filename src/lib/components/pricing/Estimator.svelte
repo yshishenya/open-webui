@@ -1,7 +1,4 @@
-<script lang="ts">
-	import { trackEvent } from '$lib/utils/analytics';
-	import type { PublicRateCardResponse, PublicRateCardModel } from '$lib/apis/billing';
-
+<script context="module" lang="ts">
 	type TextBucket = { label: string; tokens: number };
 	type ReplyMultiplier = { label: string; value: number };
 	type TextPreset = {
@@ -35,6 +32,11 @@
 			default: { mode: 'tts' | 'stt'; chars: number; minutes: number };
 		};
 	};
+</script>
+
+<script lang="ts">
+	import { trackEvent } from '$lib/utils/analytics';
+	import type { PublicRateCardResponse, PublicRateCardModel } from '$lib/apis/billing';
 
 	export let config: PricingEstimatorConfig;
 	export let rateCard: PublicRateCardResponse | null = null;

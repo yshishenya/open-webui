@@ -52,6 +52,7 @@ from open_webui.utils.billing import (
 from open_webui.utils.pricing import PricingService
 from open_webui.utils.models import get_all_base_models
 from open_webui.utils.wallet import wallet_service, WalletError
+from open_webui.utils.airis.runtime_config import get_lead_magnet_runtime_config
 from open_webui.utils.yookassa import (
     YooKassaWebhookHandler,
     YooKassaRequestError,
@@ -90,11 +91,7 @@ MAX_RETURN_URL_LENGTH = 2048
 def _payment_gateway_http_error(error: YooKassaRequestError, action: str) -> HTTPException:
     status_code = error.status_code
     detail = "Payment provider is temporarily unavailable"
-    response_status = (
-        status.HTTP_503_SERVICE_UNAVAILABLE
-        if error.retryable
-        else status.HTTP_502_BAD_GATEWAY
-    )
+    response_status = status.HTTP_503_SERVICE_UNAVAILABLE if error.retryable else status.HTTP_502_BAD_GATEWAY
 
     if status_code in {401, 403} or error.error_code == "invalid_credentials":
         detail = "Payment provider credentials are invalid"
@@ -135,9 +132,7 @@ def _sanitize_payment_return_url(return_url: str) -> str:
         raise ValueError("Invalid return_url")
 
     normalized_path = parsed.path if parsed.path else "/"
-    return urlunsplit(
-        (parsed.scheme, parsed.netloc, normalized_path, parsed.query, "")
-    )
+    return urlunsplit((parsed.scheme, parsed.netloc, normalized_path, parsed.query, ""))
 
 
 def _is_webhook_replay(parsed_data: Dict[str, object]) -> bool:
@@ -162,11 +157,7 @@ def _is_webhook_replay(parsed_data: Dict[str, object]) -> bool:
         return False
 
     transaction_id = metadata.get("transaction_id")
-    if (
-        event_type == "payment.succeeded"
-        and isinstance(transaction_id, str)
-        and transaction_id
-    ):
+    if event_type == "payment.succeeded" and isinstance(transaction_id, str) and transaction_id:
         transaction = billing_service.transactions.get_transaction_by_id(transaction_id)
         if transaction and transaction.status == TransactionStatus.SUCCEEDED.value:
             return True
@@ -572,10 +563,7 @@ def update_auto_topup(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Auto-topup threshold and amount must be positive",
             )
-        if (
-            BILLING_TOPUP_PACKAGES_KOPEKS
-            and request.amount_kopeks not in BILLING_TOPUP_PACKAGES_KOPEKS
-        ):
+        if BILLING_TOPUP_PACKAGES_KOPEKS and request.amount_kopeks not in BILLING_TOPUP_PACKAGES_KOPEKS:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid auto-topup amount",
@@ -596,7 +584,7 @@ def update_auto_topup(
 
 
 @router.post("/settings")
-def update_billing_settings(
+async def update_billing_settings(
     request: BillingSettingsRequest,
     user=Depends(get_verified_user),
 ):
@@ -607,13 +595,14 @@ def update_billing_settings(
             detail="Billing wallet is disabled",
         )
 
-    wallet = wallet_service.get_or_create_wallet(user.id, BILLING_DEFAULT_CURRENCY)
+    wallet = await run_in_threadpool(
+        wallet_service.get_or_create_wallet,
+        user.id,
+        BILLING_DEFAULT_CURRENCY,
+    )
     updates: Dict[str, object] = {}
     if "max_reply_cost_kopeks" in request.model_fields_set:
-        if (
-            request.max_reply_cost_kopeks is not None
-            and request.max_reply_cost_kopeks < 0
-        ):
+        if request.max_reply_cost_kopeks is not None and request.max_reply_cost_kopeks < 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="max_reply_cost_kopeks must be non-negative",
@@ -628,7 +617,7 @@ def update_billing_settings(
         updates["daily_cap_kopeks"] = request.daily_cap_kopeks
 
     if updates:
-        updated = Wallets.update_wallet(wallet.id, updates)
+        updated = await run_in_threadpool(Wallets.update_wallet, wallet.id, updates)
         if not updated:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -644,7 +633,7 @@ def update_billing_settings(
     if contact_updates:
         info = user.info or {}
         info.update(contact_updates)
-        Users.update_user_by_id(user.id, {"info": info})
+        await Users.update_user_by_id(user.id, {"info": info})
 
     return {"status": "ok"}
 
@@ -739,9 +728,7 @@ def cancel_my_subscription(
             detail="No active subscription found",
         )
 
-    updated = billing_service.cancel_subscription(
-        subscription.id, immediate=request.immediate
-    )
+    updated = billing_service.cancel_subscription(subscription.id, immediate=request.immediate)
 
     if not updated:
         raise HTTPException(
@@ -914,9 +901,7 @@ def get_my_transactions(
 ):
     """Get current user's transaction history"""
     try:
-        transactions = billing_service.transactions.get_transactions_by_user(
-            user.id, limit=limit, skip=skip
-        )
+        transactions = billing_service.transactions.get_transactions_by_user(user.id, limit=limit, skip=skip)
         return transactions
     except Exception as e:
         log.exception(f"Error getting transactions: {e}")
@@ -1097,28 +1082,24 @@ def get_lead_magnet_info(user=Depends(get_verified_user)):
 @router.get("/public/lead-magnet", response_model=PublicLeadMagnetResponse)
 def get_public_lead_magnet_config(request: Request) -> PublicLeadMagnetResponse:
     """Expose lead magnet configuration for public pages."""
-    config = request.app.state.config
-    quotas = _normalize_public_lead_magnet_quotas(config.LEAD_MAGNET_QUOTAS or {})
+    config = get_lead_magnet_runtime_config()
+    quotas = _normalize_public_lead_magnet_quotas(config.quotas)
     return PublicLeadMagnetResponse(
-        enabled=bool(config.LEAD_MAGNET_ENABLED),
-        cycle_days=int(config.LEAD_MAGNET_CYCLE_DAYS),
+        enabled=config.enabled,
+        cycle_days=config.cycle_days,
         quotas=PublicLeadMagnetQuotas(**quotas),
-        config_version=int(config.LEAD_MAGNET_CONFIG_VERSION),
+        config_version=config.config_version,
     )
 
 
 @router.get("/public/pricing-config", response_model=PublicPricingConfigResponse)
 def get_public_pricing_config(request: Request) -> PublicPricingConfigResponse:
     """Expose pricing config for public pages (topups, free limits, popular/recommended)."""
-    config = request.app.state.config
-    quotas = _normalize_public_lead_magnet_quotas(config.LEAD_MAGNET_QUOTAS or {})
+    config = get_lead_magnet_runtime_config()
+    quotas = _normalize_public_lead_magnet_quotas(config.quotas)
 
     topup_amounts_rub = sorted(
-        {
-            int(amount / 100)
-            for amount in BILLING_TOPUP_PACKAGES_KOPEKS
-            if isinstance(amount, int) and amount > 0
-        }
+        {int(amount / 100) for amount in BILLING_TOPUP_PACKAGES_KOPEKS if isinstance(amount, int) and amount > 0}
     )
 
     def _nullable(value: str) -> Optional[str]:
@@ -1131,12 +1112,8 @@ def get_public_pricing_config(request: Request) -> PublicPricingConfigResponse:
             text_in=quotas["tokens_input"],
             text_out=quotas["tokens_output"],
             images=quotas["images"],
-            tts_minutes=(
-                int(quotas["tts_seconds"] / 60) if quotas["tts_seconds"] > 0 else 0
-            ),
-            stt_minutes=(
-                int(quotas["stt_seconds"] / 60) if quotas["stt_seconds"] > 0 else 0
-            ),
+            tts_minutes=(int(quotas["tts_seconds"] / 60) if quotas["tts_seconds"] > 0 else 0),
+            stt_minutes=(int(quotas["stt_seconds"] / 60) if quotas["stt_seconds"] > 0 else 0),
         ),
         popular_model_ids=PUBLIC_PRICING_POPULAR_MODELS,
         recommended_model_ids=PublicPricingRecommendedModels(
@@ -1165,7 +1142,7 @@ async def get_public_rate_cards(
     }
 
     model_limit = min(max(PUBLIC_PRICING_RATE_CARD_MODEL_LIMIT, 1), 50)
-    workspace_base_models = await run_in_threadpool(Models.get_base_models)
+    workspace_base_models = await Models.get_base_models()
 
     excluded_model_ids = set()
     merged_models_by_id: Dict[str, Dict[str, Optional[str]]] = {}
@@ -1313,9 +1290,7 @@ async def get_public_rate_cards(
         if len(models) >= model_limit:
             break
 
-    updated_at_value = datetime.fromtimestamp(
-        updated_at_ts or int(time.time()), tz=timezone.utc
-    ).isoformat()
+    updated_at_value = datetime.fromtimestamp(updated_at_ts or int(time.time()), tz=timezone.utc).isoformat()
     if updated_at_value.endswith("+00:00"):
         updated_at_value = updated_at_value.replace("+00:00", "Z")
 
@@ -1344,9 +1319,7 @@ async def yookassa_webhook(
     """
     # Optional app-level shared secret protection (independent of YooKassa auth):
     # configure webhook URL as `...?token=...` and set YOOKASSA_WEBHOOK_TOKEN.
-    if YOOKASSA_WEBHOOK_TOKEN and (
-        not token or not hmac.compare_digest(token, YOOKASSA_WEBHOOK_TOKEN)
-    ):
+    if YOOKASSA_WEBHOOK_TOKEN and (not token or not hmac.compare_digest(token, YOOKASSA_WEBHOOK_TOKEN)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid webhook token",
@@ -1381,9 +1354,7 @@ async def yookassa_webhook(
 
     yookassa = get_yookassa_client()
     signature_enforced = bool(YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE)
-    signature_supported = bool(
-        yookassa and getattr(getattr(yookassa, "config", None), "webhook_secret", None)
-    )
+    signature_supported = bool(yookassa and getattr(getattr(yookassa, "config", None), "webhook_secret", None))
 
     if signature_enforced and not signature_supported:
         raise HTTPException(

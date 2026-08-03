@@ -6,14 +6,10 @@ from dataclasses import dataclass
 from typing import Dict, Optional
 import math
 
-from open_webui.config import (
-    LEAD_MAGNET_CONFIG_VERSION,
-    LEAD_MAGNET_CYCLE_DAYS,
-    LEAD_MAGNET_ENABLED,
-    LEAD_MAGNET_QUOTAS,
-)
+from open_webui.internal.db import get_db
 from open_webui.models.billing import LeadMagnetStateModel, LeadMagnetStates
-from open_webui.models.models import Models
+from open_webui.models.models import Model
+from open_webui.utils.airis.runtime_config import get_lead_magnet_runtime_config
 
 
 @dataclass(frozen=True)
@@ -32,16 +28,18 @@ class LeadMagnetDecision:
 
 
 def get_lead_magnet_config() -> LeadMagnetConfig:
+    runtime_config = get_lead_magnet_runtime_config()
     return LeadMagnetConfig(
-        enabled=bool(LEAD_MAGNET_ENABLED.value),
-        cycle_days=max(1, int(LEAD_MAGNET_CYCLE_DAYS.value)),
-        quotas=_normalize_quotas(LEAD_MAGNET_QUOTAS.value),
-        config_version=int(LEAD_MAGNET_CONFIG_VERSION.value),
+        enabled=runtime_config.enabled,
+        cycle_days=runtime_config.cycle_days,
+        quotas=runtime_config.quotas.copy(),
+        config_version=runtime_config.config_version,
     )
 
 
 def is_lead_magnet_model(model_id: str) -> bool:
-    model = Models.get_model_by_id(model_id)
+    with get_db() as db:
+        model = db.get(Model, model_id)
     if not model or not model.meta:
         return False
     meta = model.meta
@@ -98,9 +96,7 @@ def consume_lead_magnet_usage(
     return updated_state or state
 
 
-def get_lead_magnet_state(
-    user_id: str, now: Optional[int] = None
-) -> Optional[LeadMagnetStateModel]:
+def get_lead_magnet_state(user_id: str, now: Optional[int] = None) -> Optional[LeadMagnetStateModel]:
     config = get_lead_magnet_config()
     if not config.enabled:
         return None
@@ -113,9 +109,7 @@ def get_lead_magnet_state(
     return _refresh_state(state, config, now_value)
 
 
-def calculate_remaining(
-    state: LeadMagnetStateModel, quotas: Dict[str, int]
-) -> Dict[str, int]:
+def calculate_remaining(state: LeadMagnetStateModel, quotas: Dict[str, int]) -> Dict[str, int]:
     remaining: Dict[str, int] = {}
     for key, limit in _normalize_quotas(quotas).items():
         used = _get_used_value(state, key)
@@ -123,9 +117,7 @@ def calculate_remaining(
     return remaining
 
 
-def _get_or_create_state(
-    user_id: str, config: LeadMagnetConfig, now_value: int
-) -> LeadMagnetStateModel:
+def _get_or_create_state(user_id: str, config: LeadMagnetConfig, now_value: int) -> LeadMagnetStateModel:
     state = LeadMagnetStates.get_state_by_user(user_id)
     if not state:
         return _create_state(user_id, config, now_value)
@@ -134,9 +126,7 @@ def _get_or_create_state(
     return refreshed_state
 
 
-def _create_state(
-    user_id: str, config: LeadMagnetConfig, now_value: int
-) -> LeadMagnetStateModel:
+def _create_state(user_id: str, config: LeadMagnetConfig, now_value: int) -> LeadMagnetStateModel:
     cycle_end = now_value + (config.cycle_days * 86400)
     state = LeadMagnetStateModel(
         id=str(uuid.uuid4()),

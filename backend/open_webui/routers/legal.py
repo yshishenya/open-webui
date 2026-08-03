@@ -52,12 +52,12 @@ class AcceptLegalDocsResponse(BaseModel):
     status: LegalStatusResponse
 
 
-def _build_status_for_user(user: UserModel) -> LegalStatusResponse:
+async def _build_status_for_user(user: UserModel) -> LegalStatusResponse:
     docs: list[LegalDocStatusResponse] = []
     needs_accept = False
 
     for doc in LEGAL_DOCS:
-        latest = LegalAcceptances.get_latest_acceptance(user.id, doc.key)
+        latest = await LegalAcceptances.get_latest_acceptance(user.id, doc.key)
         accepted_at = latest.accepted_at if latest else None
         accepted_version = latest.doc_version if latest else None
 
@@ -98,7 +98,7 @@ async def get_legal_requirements() -> LegalRequirementsResponse:
 
 @router.get("/status", response_model=LegalStatusResponse)
 async def get_legal_status(user=Depends(get_current_user)) -> LegalStatusResponse:
-    return _build_status_for_user(user)
+    return await _build_status_for_user(user)
 
 
 @router.post("/accept", response_model=AcceptLegalDocsResponse)
@@ -121,15 +121,15 @@ async def accept_legal_docs(
             detail=f"Unknown document keys: {', '.join(unknown)}",
         )
 
-    accepted = record_legal_acceptances(
+    accepted = await record_legal_acceptances(
         user_id=user.id,
         keys=requested_keys,
         request=request,
         method=form_data.method or "ui",
     )
 
-    refreshed_user = Users.get_user_by_id(user.id) or user
+    refreshed_user = await Users.get_user_by_id(user.id) or user
     return AcceptLegalDocsResponse(
         accepted=accepted,
-        status=_build_status_for_user(refreshed_user),
+        status=await _build_status_for_user(refreshed_user),
     )
