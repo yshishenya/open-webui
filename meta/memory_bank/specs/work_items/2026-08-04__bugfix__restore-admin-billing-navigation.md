@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: codex/bugfix/restore-admin-billing-navigation
 - SDD Spec (JSON, required for non-trivial): N/A (scoped one-file navigation regression)
@@ -16,11 +16,11 @@ After the v0.11.0 frontend rollout, the admin billing pages remained available b
 
 ## Goal / Acceptance Criteria
 
-- [ ] Admin navigation exposes `Analytics` when `enable_admin_analytics` is enabled or unspecified.
-- [ ] Admin navigation exposes `Billing Plans`, `Model Pricing`, and `Lead magnet`.
-- [ ] Direct routes for model pricing and lead magnet still render for an admin.
-- [ ] Existing authenticated chat loader behavior remains intact.
-- [ ] No backend, database, dependency, or configuration changes are introduced.
+- [x] Admin navigation exposes `Analytics` when `enable_admin_analytics` is enabled or unspecified.
+- [x] Admin navigation exposes `Billing Plans`, `Model Pricing`, and `Lead magnet`.
+- [x] Direct routes for model pricing and lead magnet still render for an admin.
+- [x] Existing authenticated chat loader behavior remains intact.
+- [x] No backend, database, dependency, or configuration changes are introduced.
 
 ## Non-goals
 
@@ -67,20 +67,23 @@ If this work touches upstream-owned files, list them here and explain why (and h
 
 Docker Compose-first commands (adjust if needed):
 
-- Frontend tests: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "if [ ! -e node_modules/.bin/vitest ]; then npm ci --legacy-peer-deps; fi; npm run test:frontend"`
-- Frontend typecheck: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run check"`
-- Frontend lint: `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm --no-deps airis-frontend sh -lc "npm run lint:frontend"`
-- Production browser smoke: authenticated Playwright check of admin navigation and billing routes.
+- Frontend tests: Docker Compose Vitest passed, 19 files and 88 tests.
+- Regression test: `admin_navigation_regressions.test.ts` passed.
+- Targeted lint/format: ESLint and Prettier passed for changed files.
+- Frontend typecheck: `check:rate-card` reported 39 pre-existing diagnostics in shared files; no diagnostic referenced the changed layout or regression test.
+- Production build: Vite build passed in 3m42s with temporary 6 GiB swap; swap was removed after the build.
+- Production browser smoke: authenticated Playwright found all four admin links, received HTTP 200 for the three billing pages, confirmed no page errors or failed requests, and confirmed the chat loader rendered with zero loading nodes.
+- Production image: `airis:admin-nav-v011-20260804`, digest `sha256:fdae375f2ff882a6bdc6bd635227548f155ce03cb38abf07f63719e4d42c6b68`.
 
 ## Task Entry (for branch_updates/current_tasks)
 
-- [ ] **[BUG]** Restore admin billing navigation
+- [x] **[BUG]** Restore admin billing navigation
   - Spec: `meta/memory_bank/specs/work_items/2026-08-04__bugfix__restore-admin-billing-navigation.md`
   - Owner: Codex
   - Branch: `codex/bugfix/restore-admin-billing-navigation`
-  - Started: 2026-08-04
-  - Summary: Restore missing Analytics and Airis billing links in the v0.11.0 admin navigation while preserving the deployed loader fix.
-  - Tests: Pending
+  - Done: 2026-08-04
+  - Summary: Restored Analytics and Airis billing links in the v0.11.0 admin navigation while preserving the deployed loader fix.
+  - Tests: 19 frontend files / 88 tests passed; production browser smoke passed; typecheck baseline remains documented.
   - Risks: Frontend-only admin layout change; rollback is an image tag switch.
 
 ## Risks / Rollback
@@ -92,6 +95,6 @@ Docker Compose-first commands (adjust if needed):
 
 ## Completion Checklist
 
-- [ ] Run focused and Docker Compose frontend verification.
-- [ ] Build and deploy a tagged production image only after validation.
-- [ ] Update this spec and its branch update entry to Done.
+- [x] Run focused and Docker Compose frontend verification.
+- [x] Build and deploy a tagged production image only after validation.
+- [x] Update this spec and its branch update entry to Done.
