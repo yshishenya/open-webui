@@ -73,6 +73,16 @@
 							href="/admin">{$i18n.t('Users')}</a
 						>
 
+						{#if $config?.features.enable_admin_analytics ?? true}
+							<a
+								draggable="false"
+								class="min-w-fit px-1 text-sm {$page.url.pathname.includes('/admin/analytics')
+									? ''
+									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
+								href="/admin/analytics">{$i18n.t('Analytics')}</a
+							>
+						{/if}
+
 						<a
 							draggable="false"
 							class="min-w-fit px-1 text-sm {$page.url.pathname.includes('/admin/evaluations')
@@ -90,6 +100,32 @@
 								href="/admin/functions">{$i18n.t('Functions')}</a
 							>
 						{/if}
+
+						<a
+							draggable="false"
+							class="min-w-fit px-1 text-sm {$page.url.pathname.includes('/admin/billing/plans')
+								? ''
+								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
+							href="/admin/billing/plans">{$i18n.t('Billing Plans')}</a
+						>
+
+						<a
+							draggable="false"
+							class="min-w-fit px-1 text-sm {$page.url.pathname.includes('/admin/billing/models')
+								? ''
+								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
+							href="/admin/billing/models">{$i18n.t('Model Pricing')}</a
+						>
+
+						<a
+							draggable="false"
+							class="min-w-fit px-1 text-sm {$page.url.pathname.includes(
+								'/admin/billing/lead-magnet'
+							)
+								? ''
+								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
+							href="/admin/billing/lead-magnet">{$i18n.t('Lead magnet')}</a
+						>
 
 						<a
 							draggable="false"
