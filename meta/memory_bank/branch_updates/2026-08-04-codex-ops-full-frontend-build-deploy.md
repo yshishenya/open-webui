@@ -7,4 +7,5 @@
 - Status: blocked by host memory capacity
 - Summary: Ran the complete frontend build in isolated, bounded containers. The first attempt hit Node heap OOM at 1.5 GiB; the second reached the client bundle but reduced host headroom to about 100 MiB and was stopped before production was affected.
 - Verification: production `airis` stayed healthy with zero restarts; PostgreSQL and persistent volumes were not recreated or modified; temporary builder and dependency volume were removed.
-- Pending: explicit approval for temporary scoped swap or a larger build host, then rerun, package, backup, deploy only `airis`, and complete frontend/model/billing smoke checks.
+- Pending: build on the user's local computer or a larger CI host, then package, backup, deploy only `airis`, and complete frontend/model/billing smoke checks.
+- Git handoff: fast-forward push to `origin/airis_b2c` was attempted, but the server's GitHub deploy key is read-only; a write-capable credential is required.
