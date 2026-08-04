@@ -89,7 +89,7 @@ class ToolForm(BaseModel):
     name: str
     content: str
     meta: ToolMeta
-    access_grants: list[dict | None] = None
+    access_grants: list[dict | None] | None = None
 
 
 class ToolValves(BaseModel):

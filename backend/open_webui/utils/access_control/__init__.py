@@ -222,11 +222,11 @@ async def filter_allowed_access_grants(
     default_permissions: dict[str, Any],
     user_id: str,
     user_role: str,
-    access_grants: list,
+    access_grants: list | None,
     public_permission_key: str,
     anyone_permission_key: str | None = None,
     db: AsyncSession | None = None,
-) -> list:
+) -> list | None:
     """
     Checks if the user has the required permissions to grant access to a resource.
     Returns the filtered list of access grants if permissions are missing.

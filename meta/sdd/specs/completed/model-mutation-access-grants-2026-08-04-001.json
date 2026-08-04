@@ -1,0 +1,121 @@
+{
+  "spec_id": "model-mutation-access-grants-2026-08-04-001",
+  "title": "Harden nullable access grants in model mutations",
+  "generated": "2026-08-04T16:30:00Z",
+  "last_updated": "2026-08-04T17:05:00Z",
+  "metadata": {
+    "title": "Harden nullable access grants in model mutations",
+    "description": "Prevent Pydantic failures when admin model metadata updates include null access grants and avoid revoking existing ACLs.",
+    "objectives": [
+      "Accept explicit null access_grants for metadata-only model updates.",
+      "Preserve existing grants when access_grants is omitted or null.",
+      "Normalize frontend mutation payloads and related optional list schemas.",
+      "Add backend and frontend regression coverage."
+    ],
+    "complexity": "medium",
+    "estimated_hours": 3,
+    "owner": "Codex",
+    "status": "completed",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-04__bugfix__lead-magnet-access-grants-null.md"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Harden nullable access grants in model mutations",
+      "status": "completed",
+      "parent": null,
+      "children": ["phase-1", "phase-2"],
+      "total_tasks": 6,
+      "completed_tasks": 6,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Backend request contract and preservation semantics",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": ["task-1-1", "task-1-2", "verify-1-1"],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Make optional list schemas explicitly nullable",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {"task_category": "implementation"}
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Preserve ACLs when updating model metadata",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {"task_category": "implementation"}
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Backend nullable-form regression tests",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "pytest -q open_webui/test/apps/webui/routers/test_model_forms.py",
+        "expected": "2 passed"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Frontend normalization and regression coverage",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": ["task-2-1", "task-2-2", "verify-2-1"],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Add shared model mutation payload builder",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {"file_path": "src/lib/utils/airis/model_payload.ts", "task_category": "implementation"}
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Use normalized payload for model create and update",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {"file_path": "src/lib/apis/models/index.ts", "task_category": "implementation"}
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Frontend payload regression tests",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "npx vitest run src/lib/apis/models/index.test.ts",
+        "expected": "2 passed"
+      }
+    }
+  }
+}

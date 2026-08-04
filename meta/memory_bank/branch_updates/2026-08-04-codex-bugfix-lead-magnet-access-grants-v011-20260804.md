@@ -1,0 +1,9 @@
+- [x] **[BUGFIX]** Accept nullable access grants during lead-magnet model updates
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-04__bugfix__lead-magnet-access-grants-null.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/lead-magnet-access-grants-v011-20260804`
+  - Started: 2026-08-04
+  - Done: 2026-08-04
+  - Summary: Fixed the model mutation contract so explicit null ACLs do not trigger Pydantic validation failures and metadata-only updates preserve existing sharing rules. Hardened analogous optional-list schemas and centralized frontend payload normalization.
+  - Tests: Backend `test_model_forms.py` (2 passed); frontend `src/lib/apis/models/index.test.ts` (2 passed). Full model router test attempted but blocked by pre-existing async/sync test-helper incompatibility in the production-parity branch.
+  - Risks: Production smoke test and deployment are pending; no schema/data migration is required.

@@ -177,7 +177,7 @@ class ModelForm(BaseModel):
     name: str
     meta: ModelMeta
     params: ModelParams
-    access_grants: list[dict | None] = None
+    access_grants: list[dict | None] | None = None
     is_active: bool = True
 
 

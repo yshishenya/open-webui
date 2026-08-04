@@ -741,13 +741,17 @@ async def update_model_by_id(
     if 'profile_image_url' not in form_data.meta.model_fields_set:
         form_data.meta.profile_image_url = model.meta.profile_image_url
 
-    form_data.access_grants = await filter_allowed_access_grants(
-        await Config.get('user.permissions'),
-        user.id,
-        user.role,
-        form_data.access_grants,
-        'sharing.public_models',
-    )
+    # ``None`` means that access grants were not part of this mutation. Keep
+    # that distinction so updating metadata (for example lead-magnet flags)
+    # does not accidentally replace existing sharing rules.
+    if form_data.access_grants is not None:
+        form_data.access_grants = await filter_allowed_access_grants(
+            await Config.get('user.permissions'),
+            user.id,
+            user.role,
+            form_data.access_grants,
+            'sharing.public_models',
+        )
 
     model = await Models.update_model_by_id(form_data.id, ModelForm(**form_data.model_dump()), db=db)
     if model:

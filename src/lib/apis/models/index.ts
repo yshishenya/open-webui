@@ -1,4 +1,7 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
+import { buildModelMutationPayload } from '$lib/utils/airis/model_payload';
+
+export { buildModelMutationPayload } from '$lib/utils/airis/model_payload';
 
 export const getModelItems = async (
 	token: string = '',
@@ -188,8 +191,7 @@ export const getBaseModels = async (token: string = '', tag: string = '') => {
 export const createNewModel = async (token: string, model: object) => {
 	let error = null;
 
-	const { id, base_model_id, name, meta, params, access_grants, is_active } = model as any;
-	const payload = { id, base_model_id, name, meta, params, access_grants, is_active };
+	const payload = buildModelMutationPayload(model);
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/models/create`, {
 		method: 'POST',
@@ -290,8 +292,7 @@ export const toggleModelById = async (token: string, id: string) => {
 export const updateModelById = async (token: string, id: string, model: object) => {
 	let error = null;
 
-	const { base_model_id, name, meta, params, access_grants, is_active } = model as any;
-	const payload = { id, base_model_id, name, meta, params, access_grants, is_active };
+	const payload = buildModelMutationPayload(model, id);
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/models/model/update`, {
 		method: 'POST',
@@ -327,7 +328,7 @@ export const updateModelAccessGrants = async (
 	token: string,
 	id: string,
 	name: string,
-	accessGrants: any[]
+	accessGrants: Record<string, unknown>[]
 ) => {
 	let error = null;
 
