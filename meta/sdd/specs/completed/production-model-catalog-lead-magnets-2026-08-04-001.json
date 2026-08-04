@@ -1,0 +1,117 @@
+{
+  "spec_id": "production-model-catalog-lead-magnets-2026-08-04-001",
+  "title": "Restore production model catalog and configure LiteLLM lead magnets",
+  "generated": "2026-08-04T18:30:00Z",
+  "last_updated": "2026-08-04T18:35:00Z",
+  "metadata": {
+    "title": "Restore production model catalog and configure LiteLLM lead magnets",
+    "description": "Restore verified live PostgreSQL data additively, configure working LiteLLM model routes and billing rates, and expose exactly three lead magnets.",
+    "complexity": "medium",
+    "estimated_hours": 3,
+    "owner": "Codex",
+    "status": "completed",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-04__ops__restore-production-model-catalog-and-lead-magnets.md"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Production model catalog and lead magnets",
+      "status": "completed",
+      "parent": null,
+      "children": ["phase-1", "phase-2", "phase-3"],
+      "total_tasks": 7,
+      "completed_tasks": 7,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Safe data recovery",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": ["task-1-1", "verify-1-1"],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Back up and restore domain data without destructive schema operations",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {"task_category": "operations"}
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Compare restored core row counts and service health",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {"verification_type": "manual"}
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "LiteLLM model and pricing configuration",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": ["task-2-1", "task-2-2"],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Configure provider settings and working model routes",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {"task_category": "configuration"}
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Create active token rate cards with rounded kopeks",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {"task_category": "billing"}
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Lead-magnet access and verification",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": ["task-3-1", "verify-3-1"],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Expose exactly three lead magnets with public read grants",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {"task_category": "access-control"}
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Exercise LiteLLM routes and billing cost calculations",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {"verification_type": "manual"}
+    }
+  }
+}
