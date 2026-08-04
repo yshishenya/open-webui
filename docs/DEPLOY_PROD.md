@@ -173,6 +173,34 @@ What the script does:
 5. `docker compose up -d --remove-orphans --no-build` on target
 6. `docker compose ps` on target (optional, `POST_DEPLOY_STATUS=1`)
 
+## Guarded production rollout
+
+For a production release use an immutable, already-built image tag with the guarded engine:
+
+```bash
+PROD_HOST=185.130.212.71 PROD_SSH_USER=yan \
+  scripts/deploy_guarded.sh --tag <git-sha> --yes
+```
+
+The guarded engine performs these gates in order:
+
+1. Checks SSH, target disk headroom, running `airis`, and healthy PostgreSQL.
+2. Creates `/opt/backups/airis/<timestamp>-<tag>/` containing `pg_dump`, globals, application data, checksums, and restore-list verification.
+3. Pulls the immutable image (or uses a preloaded image with `--no-pull`) and verifies `linux/amd64`.
+4. Runs `python -m alembic -c alembic.ini upgrade head` directly in the candidate image. A migration error stops the rollout before `airis` is recreated.
+5. Recreates only `airis`, waits for `/health` to report `{"status":true}`, and checks the active image plus Alembic version.
+
+If the new container fails its health gate, the previous image is restored automatically. Volumes are never removed. The database is not automatically downgraded: after a successful migration, any schema rollback requires an explicit incident decision and the preserved backup.
+
+Offline/preloaded image flow (only after verifying the imported tag locally on the target):
+
+```bash
+PROD_HOST=185.130.212.71 PROD_SSH_USER=yan \
+  scripts/deploy_guarded.sh --tag <preloaded-tag> --no-pull --yes
+```
+
+Do not use `docker compose down -v`, `docker volume prune`, or `docker system prune --volumes` on production.
+
 Underlying engine remains `scripts/deploy_prod.sh`; `scripts/deploy_target.sh` only selects target config.
 
 ## Recommended release flow
@@ -191,6 +219,8 @@ Redeploy the previous tag:
 ```bash
 scripts/deploy_target.sh --target prod <previous-tag>
 ```
+
+For a guarded rollout, use the backup directory printed at completion and the previous image retained by the script. Do not run `alembic downgrade` or restore `airis.dump` automatically; stop traffic, inspect compatibility, and make that database decision explicitly.
 
 ## .env governance (avoid drift)
 

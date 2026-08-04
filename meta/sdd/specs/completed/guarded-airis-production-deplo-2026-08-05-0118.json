@@ -1,0 +1,208 @@
+{
+  "spec_id": "guarded-airis-production-deplo-2026-08-05-0118",
+  "title": "Guarded Airis production deployment",
+  "generated": "2026-08-04T22:18:10.481546Z",
+  "last_updated": "2026-08-04T23:08:46.193139Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-05__refactor__guarded-airis-deploy.md",
+    "status": "completed",
+    "activated_date": "2026-08-04T22:18:16.721483Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-08-04T23:07:46.522840Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Guarded Airis production deployment",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Backups and hard migration gate",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-04T23:07:34.604978Z",
+        "journaled_at": "2026-08-04T23:07:34.607135Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Safe rollout and rollback",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-04T23:07:37.925133Z",
+        "journaled_at": "2026-08-04T23:07:37.927493Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: Documentation and verification",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-04T23:07:38.387792Z",
+        "journaled_at": "2026-08-04T23:07:38.390103Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Phase 1: Backups and hard migration gate",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 6.0,
+        "completed_at": "2026-08-04T23:07:34.604825Z",
+        "needs_journaling": false,
+        "status_note": "Backup verification and direct Alembic gate passed locally and on the target; production schema remained at a91c0d8e4f62.",
+        "journaled_at": "2026-08-04T23:07:34.605905Z",
+        "file_path": "scripts/deploy_guarded.sh"
+      },
+      "description": "Add immutable release preflight, PostgreSQL/application-data backup verification, and direct Alembic migration gate."
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Phase 2: Safe rollout and rollback",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 5.0,
+        "completed_at": "2026-08-04T23:07:37.924988Z",
+        "needs_journaling": false,
+        "status_note": "Candidate c48a79e8b was deployed after the gate; production health is true, restart count is zero, and previous image/volumes were retained.",
+        "journaled_at": "2026-08-04T23:07:37.926073Z",
+        "file_path": "scripts/deploy_guarded.sh"
+      },
+      "description": "Add health/smoke gates and image-only rollback without destructive volume or automatic database restore."
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Phase 3: Documentation and verification",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 3.0,
+        "completed_at": "2026-08-04T23:07:38.387610Z",
+        "needs_journaling": false,
+        "status_note": "Guarded deploy script and production runbook were added; syntax, dry-run, isolated rehearsal, backup verification, and production smoke checks passed.",
+        "journaled_at": "2026-08-04T23:07:38.388852Z",
+        "file_path": "docs/DEPLOY_PROD.md"
+      },
+      "description": "Document production runbook, required environment, recovery procedure, and runnable shell checks."
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-08-04T23:07:34.605900Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Phase 1: Backups and hard migration gate",
+      "author": "Codex",
+      "content": "Task task-1-1 marked as completed. \nNote: Backup verification and direct Alembic gate passed locally and on the target; production schema remained at a91c0d8e4f62.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-08-04T23:07:34.607130Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: Backups and hard migration gate",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-08-04T23:07:37.926067Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Phase 2: Safe rollout and rollback",
+      "author": "Codex",
+      "content": "Task task-2-1 marked as completed. \nNote: Candidate c48a79e8b was deployed after the gate; production health is true, restart count is zero, and previous image/volumes were retained.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-08-04T23:07:37.927484Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: Safe rollout and rollback",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-08-04T23:07:38.388847Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Phase 3: Documentation and verification",
+      "author": "Codex",
+      "content": "Task task-3-1 marked as completed. \nNote: Guarded deploy script and production runbook were added; syntax, dry-run, isolated rehearsal, backup verification, and production smoke checks passed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-08-04T23:07:38.390099Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 3: Documentation and verification",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

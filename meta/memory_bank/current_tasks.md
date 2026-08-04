@@ -20,6 +20,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[OPS][DEPLOY][PROD]** Guarded rollout of latest `airis_b2c` image with verified backup and migration gate
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-05__refactor__guarded-airis-deploy.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-08-05
+  - Summary: Built `c48a79e8b` from the latest origin source, rehearsed Alembic against a restored PostgreSQL copy, verified application health, and deployed to production without removing persistent volumes.
+  - Tests: `bash -n scripts/deploy_guarded.sh`; guarded production backup with SHA256/`pg_restore --list`/tar verification; isolated restore + `alembic upgrade head`; isolated candidate `/health`; production `/health`; production DB revision and user count; production image/volume/restart checks.
+  - Risks: Medium (schema migration and container recreate); mitigated by immutable image, pre/post backup, hard migration gate, health gate, preserved previous image, and no automatic database downgrade.
+
 - [x] **[REFACTOR][DEV][DOCKER]** Make default local stack match prod container layout
   - Spec: `meta/memory_bank/specs/work_items/2026-03-27__refactor__dev-default-prod-like-compose.md`
   - Owner: Codex
