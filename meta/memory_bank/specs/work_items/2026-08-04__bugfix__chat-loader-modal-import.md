@@ -3,7 +3,7 @@
 ## Metadata
 
 - **Type:** Bug fix
-- **Status:** Active
+- **Status:** Completed
 - **Owner:** Codex
 - **Branch:** `codex/bugfix/chat-loader-modal-v011`
 - **Created:** 2026-08-04
@@ -43,10 +43,22 @@ One upstream-owned frontend file is touched because the missing import is in the
 
 - [x] Reproduce the authenticated loader failure in a real browser.
 - [x] Confirm API, asset, container, and reverse-proxy health are not the cause.
-- [ ] Run focused frontend checks and production image build.
-- [ ] Deploy a uniquely tagged image with the existing production Compose configuration.
-- [ ] Re-run authenticated browser smoke test and verify there is no client page error or loading-only state.
-- [ ] Verify health endpoints, container state, and recent logs after rollout.
+- [x] Run focused frontend checks and production image build.
+- [x] Deploy a uniquely tagged image with the existing production Compose configuration.
+- [x] Re-run authenticated browser smoke test and verify there is no client page error or loading-only state.
+- [x] Verify health endpoints, container state, and recent logs after rollout.
+
+## Verification results
+
+- Frontend Vitest passed: 18 files and 87 tests.
+- Full `svelte-check` reported 8,430 existing diagnostics across 351 files; the result is a repository baseline failure, not an import-specific failure.
+- Focused ESLint for `Chat.svelte` reported 16 existing errors (`no-undef`, empty block, and Svelte self-closing markup); no error was introduced for the new import.
+- `npm run build:vite` completed successfully in 18m53s with sourcemaps disabled and a temporary 6 GiB swap file. The swap was disabled and removed after the build.
+- The deploy image was built from the existing production image without changing backend layers or data volumes: `airis:chat-loader-v011-20260804`, digest `sha256:91eb5c1b8fcc06b0f214fe498fe71ccdc7d6d71e211713e28b222729a6537515`.
+- Production was recreated for only the `airis` service with `--pull never`; Postgres and persistent volumes were left unchanged. The container is healthy with zero restarts.
+- Public Playwright smoke test at `https://chat.airis.you/` completed with `readyState=complete`, a rendered main element, zero loading nodes, no page errors, and no failed requests.
+
+Two earlier full Docker build attempts were stopped after host memory pressure (one reached the Node heap limit and one was SIGKILLed). The production service was recovered on the original image before the successful isolated frontend build; the original image remains available for rollback.
 
 ## Rollback
 
