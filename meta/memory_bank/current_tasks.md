@@ -20,6 +20,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG][DEPLOY][PROD]** Force production clients to detect the current frontend build
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-05__bugfix__frontend-build-version-cache-bust.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-08-05
+  - Summary: Replaced production's `dev-build` frontend version marker with immutable `fb13512cd`, allowing stale tabs to detect the new bundle and reload instead of remaining on the chat loader.
+  - Tests: Guarded production backup with SHA256/`pg_restore --list`/tar verification; hard Alembic gate; production `/health`; public version marker; PostgreSQL user/chat counts; image/volume/restart checks.
+  - Risks: Low-Medium (short app-container recreate; previous image retained for rollback and no database/volume changes).
+
 - [x] **[OPS][DEPLOY][PROD]** Guarded rollout of latest `airis_b2c` image with verified backup and migration gate
   - Spec: `meta/memory_bank/specs/work_items/2026-08-05__refactor__guarded-airis-deploy.md`
   - Owner: Codex
