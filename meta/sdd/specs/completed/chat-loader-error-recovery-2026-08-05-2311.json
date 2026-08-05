@@ -2,7 +2,7 @@
   "spec_id": "chat-loader-error-recovery-2026-08-05-2311",
   "title": "Chat loader error recovery",
   "generated": "2026-08-05T20:11:52.194710Z",
-  "last_updated": "2026-08-05T20:12:17.930752Z",
+  "last_updated": "2026-08-05T20:45:07.472651Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -11,8 +11,9 @@
     "security_sensitive": false,
     "default_category": "implementation",
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-05__bugfix__chat-loader-error-recovery.md",
-    "status": "active",
-    "activated_date": "2026-08-05T20:12:17.930487Z"
+    "status": "completed",
+    "activated_date": "2026-08-05T20:12:17.930487Z",
+    "completed_date": "2026-08-05T20:45:07.472278Z"
   },
   "hierarchy": {
     "spec-root": {

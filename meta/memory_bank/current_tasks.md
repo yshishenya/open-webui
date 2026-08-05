@@ -20,6 +20,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG][CHAT][PROD]** Recover chat loading and message entry after client-side response errors
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-05__bugfix__chat-loader-error-recovery.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-08-05
+  - Summary: Preserved chat API failures instead of swallowing them, added loader recovery, and deployed `airis:020f83e03` through a guarded backup/migration/health workflow.
+  - Tests: Full frontend Vitest suite (21 files, 92 tests); local linux/amd64 image smoke test; production backup SHA256/`pg_restore --list`/tar verification; hard Alembic gate; public health/version; public chat GET; DB revision/counts; image/volume/restart checks.
+  - Risks: Medium (shared chat loader and app-container recreate); mitigated by automatic rollback, retained previous image, verified backup, transactional migration gate, and no volume deletion.
+
 - [x] **[BUG][DEPLOY][PROD]** Force production clients to detect the current frontend build
   - Spec: `meta/memory_bank/specs/work_items/2026-08-05__bugfix__frontend-build-version-cache-bust.md`
   - Owner: Codex
@@ -916,14 +925,7 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## In Progress
 
-- [ ] **[BUG][CHAT][PROD]** Recover chat loading and message entry after client-side response errors
-  - Spec: `meta/memory_bank/specs/work_items/2026-08-05__bugfix__chat-loader-error-recovery.md`
-  - Owner: Codex
-  - Branch: `airis_b2c`
-  - Started: 2026-08-05
-  - Summary: Preserve chat API errors instead of converting them to `null`, and always clear the chat navigation loader; production rebuild and guarded rollout are in progress.
-  - Tests: Frontend regression test and full frontend Vitest suite pass; production verification pending.
-  - Risks: Medium (shared chat loader and production container rollout; database/volumes are out of scope and protected by guarded backup).
+- No active task for this incident.
 
 ### High Priority
 

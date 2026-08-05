@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: airis_b2c
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/chat-loader-error-recovery-2026-08-05-2311.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/chat-loader-error-recovery-2026-08-05-2311.json`
 - Created: 2026-08-05
 - Updated: 2026-08-05
 
@@ -16,10 +16,10 @@ Opening an existing chat could leave the frontend spinner running forever, and s
 
 ## Goal / Acceptance Criteria
 
-- [ ] Chat load errors remain observable and do not become a successful `null` result.
-- [ ] Chat navigation always clears the loading state after a failure.
-- [ ] Existing chat loading and message submission work after deployment.
-- [ ] Production rollout preserves PostgreSQL data and has a verified rollback image.
+- [x] Chat load errors remain observable and do not become a successful `null` result.
+- [x] Chat navigation always clears the loading state after a failure.
+- [x] Existing chat loading and message submission work after deployment.
+- [x] Production rollout preserves PostgreSQL data and has a verified rollback image.
 
 ## Non-goals
 
@@ -45,6 +45,14 @@ Opening an existing chat could leave the frontend spinner running forever, and s
 - `npm run test:frontend`
 - Targeted lint/build checks for changed frontend paths.
 - Guarded production backup, migration gate, health checks, DB counts/revision, and post-deploy chat API checks.
+
+## Result
+
+- Fixed in commit `020f83e03`; built as `airis:020f83e03` for `linux/amd64` and deployed to `airis`.
+- The first health-gated attempt rolled back automatically because the fresh image was still warming its embedding cache; the second guarded rollout completed successfully.
+- Backup `/opt/backups/airis/20260805T203839Z-020f83e03/` passed SHA256, `pg_restore --list`, and data-archive verification.
+- The hard Alembic gate passed without changing the schema. Production remains on `a91c0d8e4f62`; PostgreSQL and the persistent `open-webui_airis` volume were retained.
+- Production verification: public `/health` is healthy, version marker is `020f83e03`, app restarts are `0`, public chat GET returns `200` with the existing chat and 2 messages, and no new application traceback/error was logged.
 
 ## Upstream impact
 
