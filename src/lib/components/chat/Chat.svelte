@@ -553,90 +553,102 @@
 
 	const navigateHandler = async () => {
 		noteChatDebug('navigateHandler start');
-		// Mark the outgoing chat as read before loading the new one.
-		// $chatId still holds the previous chat here — loadChat() updates it.
-		if ($chatId && $chatId !== chatIdProp && !$temporaryChatEnabled) {
-			noteChatDebug('marking outgoing chat read', { outgoingChatId: $chatId });
-			updateLastReadAt($chatId);
-		}
-
-		clearTimeout(saveControlsTimer);
-		await saveControls();
-		loading = true;
-
-		// Save current queue to sessionStorage before navigating away
-		if (messageQueue.length > 0 && $chatId) {
-			sessionStorage.setItem(`chat-queue-${$chatId}`, JSON.stringify(messageQueue));
-		}
-
-		prompt = '';
-		messageInput?.setText('');
-
-		files = [];
-		messageQueue = [];
-		selectedToolIds = [];
-		selectedSkillIds = [];
-		selectedFilterIds = [];
-		webSearchEnabled = false;
-		imageGenerationEnabled = false;
-
-		const storageChatInput = sessionStorage.getItem(
-			`chat-input${chatIdProp ? `-${chatIdProp}` : ''}`
-		);
-
-		const loaded = chatIdProp ? await loadChat() : false;
-		noteChatDebug('loadChat completed inside navigateHandler', { loaded });
-		if (loaded) {
-			await tick();
-			loading = false;
-			noteChatDebug('embedded chat loading false');
-			window.setTimeout(() => scrollToBottom(), 0);
-
-			await tick();
-
-			// Mark chat read when initially loading it
-			if (chatIdProp && !$temporaryChatEnabled) {
-				updateLastReadAt(chatIdProp);
+		try {
+			// Mark the outgoing chat as read before loading the new one.
+			// $chatId still holds the previous chat here — loadChat() updates it.
+			if ($chatId && $chatId !== chatIdProp && !$temporaryChatEnabled) {
+				noteChatDebug('marking outgoing chat read', { outgoingChatId: $chatId });
+				updateLastReadAt($chatId);
 			}
 
-			// Process any queued requests if the chat is idle
-			const lastMessage = history.currentId ? history.messages[history.currentId] : null;
-			const isIdle = !lastMessage || lastMessage.role !== 'assistant' || lastMessage.done;
-			if (isIdle) {
-				await processNextInQueue(chatIdProp);
+			clearTimeout(saveControlsTimer);
+			await saveControls();
+			loading = true;
+
+			// Save current queue to sessionStorage before navigating away
+			if (messageQueue.length > 0 && $chatId) {
+				sessionStorage.setItem(`chat-queue-${$chatId}`, JSON.stringify(messageQueue));
 			}
 
-			if (storageChatInput) {
-				try {
-					const input = JSON.parse(storageChatInput);
+			prompt = '';
+			messageInput?.setText('');
 
-					if (!$temporaryChatEnabled) {
-						messageInput?.setText(input.prompt);
-						files = input.files;
-						selectedToolIds = input.selectedToolIds;
-						selectedSkillIds = input.selectedSkillIds ?? [];
-						selectedFilterIds = input.selectedFilterIds;
-						webSearchEnabled = input.webSearchEnabled;
-						imageGenerationEnabled = input.imageGenerationEnabled;
-						codeInterpreterEnabled = input.codeInterpreterEnabled;
-					}
-				} catch {
-					// Ignore malformed chat input snapshot and keep defaults.
+			files = [];
+			messageQueue = [];
+			selectedToolIds = [];
+			selectedSkillIds = [];
+			selectedFilterIds = [];
+			webSearchEnabled = false;
+			imageGenerationEnabled = false;
+
+			const storageChatInput = sessionStorage.getItem(
+				`chat-input${chatIdProp ? `-${chatIdProp}` : ''}`
+			);
+
+			const loaded = chatIdProp ? await loadChat() : false;
+			noteChatDebug('loadChat completed inside navigateHandler', { loaded });
+			if (loaded) {
+				await tick();
+				loading = false;
+				noteChatDebug('embedded chat loading false');
+				window.setTimeout(() => scrollToBottom(), 0);
+
+				await tick();
+
+				// Mark chat read when initially loading it
+				if (chatIdProp && !$temporaryChatEnabled) {
+					updateLastReadAt(chatIdProp);
 				}
-			} else {
-				await setDefaults();
-			}
 
-			const chatInput = document.getElementById('chat-input');
-			chatInput?.focus();
-		} else if (!embedded) {
-			await goto('/');
-		} else {
-			loading = false;
-			console.warn('[note-chat] embedded load failed; clearing spinner', {
+				// Process any queued requests if the chat is idle
+				const lastMessage = history.currentId ? history.messages[history.currentId] : null;
+				const isIdle = !lastMessage || lastMessage.role !== 'assistant' || lastMessage.done;
+				if (isIdle) {
+					await processNextInQueue(chatIdProp);
+				}
+
+				if (storageChatInput) {
+					try {
+						const input = JSON.parse(storageChatInput);
+
+						if (!$temporaryChatEnabled) {
+							messageInput?.setText(input.prompt);
+							files = input.files;
+							selectedToolIds = input.selectedToolIds;
+							selectedSkillIds = input.selectedSkillIds ?? [];
+							selectedFilterIds = input.selectedFilterIds;
+							webSearchEnabled = input.webSearchEnabled;
+							imageGenerationEnabled = input.imageGenerationEnabled;
+							codeInterpreterEnabled = input.codeInterpreterEnabled;
+						}
+					} catch {
+						// Ignore malformed chat input snapshot and keep defaults.
+					}
+				} else {
+					await setDefaults();
+				}
+
+				const chatInput = document.getElementById('chat-input');
+				chatInput?.focus();
+			} else if (!embedded) {
+				await goto('/');
+			} else {
+				console.warn('[note-chat] embedded load failed; clearing spinner', {
+					chatIdProp,
+					activeChatId: $chatId
+				});
+			}
+		} catch (error) {
+			console.error('[note-chat] navigateHandler failed', {
 				chatIdProp,
-				activeChatId: $chatId
+				activeChatId: $chatId,
+				error
 			});
+			if (!embedded) {
+				await goto('/');
+			}
+		} finally {
+			loading = false;
 		}
 	};
 
@@ -1982,16 +1994,13 @@
 			temporaryChatEnabled.set(false);
 		}
 
-		chat = await getChatById(localStorage.token, $chatId).catch(async (error) => {
+		chat = await getChatById(localStorage.token, $chatId).catch((error) => {
 			console.error('[note-chat] getChatById failed', {
 				chatIdProp,
 				activeChatId: $chatId,
 				error
 			});
-			if (!embedded) {
-				await goto('/');
-			}
-			return null;
+			throw error;
 		});
 		noteChatDebug('getChatById completed', {
 			found: !!chat,

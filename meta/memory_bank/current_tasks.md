@@ -916,6 +916,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## In Progress
 
+- [ ] **[BUG][CHAT][PROD]** Recover chat loading and message entry after client-side response errors
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-05__bugfix__chat-loader-error-recovery.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Started: 2026-08-05
+  - Summary: Preserve chat API errors instead of converting them to `null`, and always clear the chat navigation loader; production rebuild and guarded rollout are in progress.
+  - Tests: Frontend regression test and full frontend Vitest suite pass; production verification pending.
+  - Risks: Medium (shared chat loader and production container rollout; database/volumes are out of scope and protected by guarded backup).
+
 ### High Priority
 
 - [ ] **[UI][BILLING]** Wallet UX v2: return-to-chat + topup clarity

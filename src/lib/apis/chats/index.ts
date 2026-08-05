@@ -746,35 +746,26 @@ export const getChatListByTagName = async (token: string = '', tagName: string) 
 };
 
 export const getChatById = async (token: string, id: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/chats/${id}`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-
-			console.error(err);
-			return null;
+	try {
+		const res = await fetch(`${WEBUI_API_BASE_URL}/chats/${id}`, {
+			method: 'GET',
+			headers: {
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+				...(token && { authorization: `Bearer ${token}` })
+			}
 		});
 
-	if (error) {
+		if (!res.ok) {
+			const payload = await res.json().catch(() => null);
+			throw payload?.detail ?? payload ?? new Error(`Chat request failed: ${res.status}`);
+		}
+
+		return await res.json();
+	} catch (error) {
+		console.error(error);
 		throw error;
 	}
-
-	return res;
 };
 
 export const getChatByShareId = async (token: string, share_id: string) => {
