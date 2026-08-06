@@ -1155,7 +1155,9 @@ class BillingService:
             db.refresh(subscription)
             return SubscriptionModel.model_validate(subscription)
 
-    async def process_payment_webhook(self, webhook_data: Dict[str, object]) -> Optional[SubscriptionModel]:  # noqa: C901
+    async def process_payment_webhook(
+        self, webhook_data: Dict[str, object]
+    ) -> Optional[SubscriptionModel]:  # noqa: C901
         """
         Process payment webhook from YooKassa
 

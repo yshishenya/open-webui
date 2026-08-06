@@ -359,11 +359,11 @@ class BillingReportingService:
                     'last_usage_at': usage.get('last_usage_at'),
                     'successful_payment_count': len(successful),
                     'failed_payment_count': len(failed),
-                    'status': 'negative_balance'
-                    if int(wallet.balance_topup_kopeks or 0) < 0
-                    else 'healthy'
-                    if successful
-                    else 'never_paid',
+                    'status': (
+                        'negative_balance'
+                        if int(wallet.balance_topup_kopeks or 0) < 0
+                        else 'healthy' if successful else 'never_paid'
+                    ),
                 }
             )
 
