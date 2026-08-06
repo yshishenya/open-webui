@@ -10,3 +10,4 @@ export { default as NavHeader } from './NavHeader.svelte';
 export { default as PublicPageLayout } from './PublicPageLayout.svelte';
 export { default as SectionHeader } from './SectionHeader.svelte';
 export { default as WelcomePhaseOneSections } from './WelcomePhaseOneSections.svelte';
+export { default as WelcomeProductLanding } from './WelcomeProductLanding.svelte';
