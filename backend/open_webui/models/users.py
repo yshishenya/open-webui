@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import time
-from typing import Optional
+
 from open_webui.env import DATABASE_USER_ACTIVE_STATUS_UPDATE_INTERVAL
-from open_webui.internal.db import Base, JSONField, get_async_db_context
+from open_webui.internal.db import Base, get_async_db_context
 from open_webui.utils.misc import throttle
 from open_webui.utils.validate import validate_profile_image_url
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -19,7 +19,6 @@ from sqlalchemy import (
     String,
     Text,
     case,
-    cast,
     delete,
     exists,
     func,
@@ -100,7 +99,7 @@ class UserModel(BaseModel):
 
     bio: str | None = None
     gender: str | None = None
-    date_of_birth: datetime.date | None = None
+    date_of_birth: dt.date | None = None
     timezone: str | None = None
 
     presence_state: str | None = None
@@ -129,7 +128,7 @@ class UserModel(BaseModel):
     # validation schema logic
     # --- model validators ---
     @model_validator(mode='after')
-    def _ensure_profile_image(self) -> 'UserModel':
+    def _ensure_profile_image(self) -> UserModel:
         """Assign a generated avatar when no profile image is provided."""
         self.profile_image_url = self.profile_image_url or _DEFAULT_PROFILE_IMAGE_URL.format(user_id=self.id)
         return self
@@ -182,7 +181,7 @@ class UpdateProfileForm(BaseModel):
     name: str
     bio: str | None = None
     gender: str | None = None
-    date_of_birth: datetime.date | None = None
+    date_of_birth: dt.date | None = None
 
     @field_validator('profile_image_url')
     @classmethod
@@ -398,7 +397,7 @@ class UsersTable:
             row = (await session.execute(query)).scalars().first()
             return UserModel.model_validate(row) if row else None
 
-    async def get_users(
+    async def get_users(  # noqa: C901
         self,
         filter: dict | None = None,
         skip: int | None = None,
@@ -574,7 +573,7 @@ class UsersTable:
     async def get_first_user(self, db: AsyncSession | None = None) -> UserModel | None:
         """Return the earliest-created user (bootstrap admin detection)."""
         async with get_async_db_context(db) as session:
-            stmt = select(User).order_by(User.created_at).limit(1)
+            stmt = select(User).order_by(User.created_at, User.id).limit(1)
             row = (await session.execute(stmt)).scalars().first()
             return UserModel.model_validate(row) if row else None
 

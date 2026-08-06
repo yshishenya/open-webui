@@ -1,0 +1,8 @@
+- [ ] **[BUG][BILLING][RELEASE]** Restore release gates and deploy billing hardening
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-06__bugfix__billing-release-gates-production.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/billing-release-gates`
+  - Started: 2026-08-06
+  - Summary: Repaired stale async/config/network tests, restored billing singleton isolation, and made primary-admin lookup deterministic; follow-up PR and rollout remain.
+  - Tests: Local focused suites green (62 tests); full backend suite green (370 tests); billing `pr-fast` backend/frontend green, local E2E image build blocked by PyPI SSL timeouts before tests.
+  - Risks: Critical financial release; production changes only after green CI and verified backups.
