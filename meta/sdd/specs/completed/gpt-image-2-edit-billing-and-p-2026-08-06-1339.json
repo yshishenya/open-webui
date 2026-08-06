@@ -2,7 +2,7 @@
   "spec_id": "gpt-image-2-edit-billing-and-p-2026-08-06-1339",
   "title": "GPT Image 2 edit billing and production enablement",
   "generated": "2026-08-06T10:39:56.377222Z",
-  "last_updated": "2026-08-06T10:53:37.116010Z",
+  "last_updated": "2026-08-06T11:12:14.110940Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -11,15 +11,16 @@
     "security_sensitive": false,
     "default_category": "implementation",
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-06__feature__gpt-image-2-editing.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-08-06T10:41:02.101975Z",
-    "progress_percentage": 66
+    "progress_percentage": 100,
+    "completed_date": "2026-08-06T11:12:14.110640Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "GPT Image 2 edit billing and production enablement",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
@@ -27,7 +28,7 @@
         "phase-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
@@ -65,14 +66,18 @@
     "phase-3": {
       "type": "phase",
       "title": "Phase 3: Guarded production rollout",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-3"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T11:12:09.574672Z",
+        "journaled_at": "2026-08-06T11:12:09.576841Z"
+      }
     },
     "task-1": {
       "type": "task",
@@ -109,14 +114,17 @@
     "task-3": {
       "type": "task",
       "title": "Build, back up, deploy, enable, and verify production editing",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "meta/memory_bank/specs/work_items/2026-08-06__feature__gpt-image-2-editing.md",
-        "needs_journaling": false
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T11:12:09.574522Z",
+        "status_note": "Built linux/amd64 image 6d12ecccc, verified transferred rootfs, created and validated production backup 20260806T110357Z-6d12ecccc, passed Alembic gate, deployed healthy with zero restarts, enabled LiteLLM GPT Image 2 edits, and confirmed unchanged data counts, active rate, logs, public health, and authenticated UI.",
+        "journaled_at": "2026-08-06T11:12:09.575701Z"
       }
     }
   },
@@ -156,6 +164,24 @@
       "content": "All child tasks in phase phase-2 have been completed.",
       "metadata": {},
       "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-08-06T11:12:09.575696Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Build, back up, deploy, enable, and verify production editing",
+      "author": "Codex",
+      "content": "Task task-3 marked as completed. \nNote: Built linux/amd64 image 6d12ecccc, verified transferred rootfs, created and validated production backup 20260806T110357Z-6d12ecccc, passed Alembic gate, deployed healthy with zero restarts, enabled LiteLLM GPT Image 2 edits, and confirmed unchanged data counts, active rate, logs, public health, and authenticated UI.",
+      "metadata": {},
+      "task_id": "task-3"
+    },
+    {
+      "timestamp": "2026-08-06T11:12:09.576837Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 3: Guarded production rollout",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
     }
   ]
 }

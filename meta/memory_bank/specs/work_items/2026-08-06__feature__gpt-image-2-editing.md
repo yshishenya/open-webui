@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: feature / production configuration
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: codex/feature/gpt-image-2
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/gpt-image-2-edit-billing-and-p-2026-08-06-1339.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/gpt-image-2-edit-billing-and-p-2026-08-06-1339.json`
 - Created: 2026-08-06
 - Updated: 2026-08-06
 
@@ -16,12 +16,12 @@ GPT Image 2 generation is active through LiteLLM, but editing remains disabled. 
 
 ## Goal / Acceptance Criteria
 
-- [ ] Route edits to `gpt-image-2` through the existing LiteLLM base URL and credential.
-- [ ] Fix edit output at `1024x1024`, `quality=medium` for deterministic output cost.
-- [ ] Hold a conservative amount before the provider call and settle from provider `usage` when available.
-- [ ] Preserve existing generation billing and non-OpenAI edit engines.
-- [ ] Enable editing only after provider, billing, backup, migration, health, log, and UI checks pass.
-- [ ] Preserve all production database rows and persistent volumes.
+- [x] Route edits to `gpt-image-2` through the existing LiteLLM base URL and credential.
+- [x] Fix edit output at `1024x1024`, `quality=medium` for deterministic output cost.
+- [x] Hold a conservative amount before the provider call and settle from provider `usage` when available.
+- [x] Preserve existing generation billing and non-OpenAI edit engines.
+- [x] Enable editing only after provider, billing, backup, migration, health, log, and UI checks pass.
+- [x] Preserve all production database rows and persistent volumes.
 
 ## Non-goals
 
@@ -54,22 +54,26 @@ GPT Image 2 generation is active through LiteLLM, but editing remains disabled. 
 
 ## Verification
 
-- Focused image billing tests in Docker Compose.
-- Python compilation and Ruff for touched backend files.
-- Real LiteLLM edit smoke with redacted credential and usage-only output.
-- Local `linux/amd64` image build and health smoke.
-- Guarded production backup, Alembic gate, immutable image rollout, health/log/data-count checks, and authenticated UI/API verification.
+- Focused Docker test: `test_image_billing.py` passed; Black, Python compilation, focused Ruff, and diff checks passed.
+- Existing router integration tests stop in their pre-existing `app.state.config` test-harness setup before request execution.
+- Real LiteLLM edit smoke returned HTTP 200 with provider usage and one base64 image; credential remained redacted.
+- Built `airis:6d12ecccc` for `linux/amd64`; transferred rootfs matched the local image.
+- Guarded backup `/opt/backups/airis/20260806T110357Z-6d12ecccc` passed SHA-256, tar listing, and `pg_restore --list` checks.
+- Production Alembic is `a91c0d8e4f62`; container is healthy with zero restarts and no new error logs.
+- Production counts remained 82 users, 139 chats, 614 messages, 114 files, 78 wallets, 1192 usage events, and 700 ledger entries.
+- Authenticated UI loaded without console errors; a second paid edit was deliberately skipped because the real provider smoke had already passed.
 
 ## Task Entry (for branch_updates/current_tasks)
 
-- [ ] **[FEATURE][IMAGES][BILLING]** Enable GPT Image 2 editing through LiteLLM
+- [x] **[FEATURE][IMAGES][BILLING]** Enable GPT Image 2 editing through LiteLLM
   - Spec: `meta/memory_bank/specs/work_items/2026-08-06__feature__gpt-image-2-editing.md`
   - Owner: Codex
   - Branch: `codex/feature/gpt-image-2`
   - Started: 2026-08-06
   - Summary: Enable deterministic image editing while charging provider-reported input and output usage through the existing wallet rate.
-  - Tests: in progress
+  - Tests: focused billing test; Black/py_compile/Ruff; real LiteLLM edit; immutable-image/rootfs; backup/Alembic/health/log/data/UI checks.
   - Risks: provider spend and wallet correctness; guarded by conservative holds, exact usage settlement, verified backup, and rollback.
+  - Done: 2026-08-06
 
 ## Risks / Rollback
 
@@ -78,6 +82,6 @@ GPT Image 2 generation is active through LiteLLM, but editing remains disabled. 
 
 ## Completion Checklist
 
-- [ ] `meta/tools/sdd check-complete gpt-image-2-edit-billing-and-p-2026-08-06-1339 --json`
-- [ ] `meta/tools/sdd complete-spec gpt-image-2-edit-billing-and-p-2026-08-06-1339 --json`
-- [ ] Branch update entry moved to `Done` with required fields (`Spec`, `Owner`, `Summary`, `Done`)
+- [x] `meta/tools/sdd check-complete gpt-image-2-edit-billing-and-p-2026-08-06-1339 --json`
+- [x] `meta/tools/sdd complete-spec gpt-image-2-edit-billing-and-p-2026-08-06-1339 --json`
+- [x] Branch update entry moved to `Done` with required fields (`Spec`, `Owner`, `Summary`, `Done`)
