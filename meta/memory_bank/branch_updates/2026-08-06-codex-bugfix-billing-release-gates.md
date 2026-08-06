@@ -3,6 +3,6 @@
   - Owner: Codex
   - Branch: `codex/bugfix/billing-release-gates`
   - Started: 2026-08-06
-  - Summary: Repaired stale async/config/network tests, restored billing singleton isolation, and made primary-admin lookup deterministic; follow-up PR and rollout remain.
-  - Tests: Local focused suites green (62 tests); full backend suite green (370 tests); billing `pr-fast` backend/frontend green, local E2E image build blocked by PyPI SSL timeouts before tests.
+  - Summary: Repaired stale async/config/network tests, restored billing singleton isolation, made primary-admin lookup deterministic, and aligned the Playwright E2E image with the lockfile; follow-up PR and rollout remain.
+  - Tests: Local focused suites green (62 tests); full backend suite green (370 tests); billing `pr-fast` backend/frontend green; Playwright 1.62.1 Chromium launch green; local application image rebuild blocked by PyPI SSL timeouts before E2E.
   - Risks: Critical financial release; production changes only after green CI and verified backups.

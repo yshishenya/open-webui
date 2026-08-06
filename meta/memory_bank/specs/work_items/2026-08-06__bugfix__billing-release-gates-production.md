@@ -33,6 +33,7 @@ Billing hardening PR #89 was merged into `airis_b2c` while backend and billing c
 
 - Backend: update stale tests for current async APIs and restore isolation of shared billing test doubles.
 - Frontend: no product changes.
+- Test infrastructure: align the Playwright E2E image with the version resolved in `package-lock.json`.
 - Config/Env: no production secret changes.
 - Data model / migrations: use the already-merged billing migration; no additional schema change expected.
 - Operations: build an immutable image, deploy through `scripts/deploy_guarded.sh`, and verify production.
@@ -41,6 +42,7 @@ Billing hardening PR #89 was merged into `airis_b2c` while backend and billing c
 
 - Keep fixes in tests unless a real runtime defect is found.
 - Make primary-admin lookup deterministic when users share a creation timestamp.
+- Keep the Playwright browser image at `1.62.1`, matching the lockfile-resolved test runner.
 - Preserve existing line/branch coverage thresholds.
 - Use `airis_b2c` as the PR base and guarded deployment with backup and automatic image rollback.
 
@@ -55,6 +57,7 @@ Billing hardening PR #89 was merged into `airis_b2c` while backend and billing c
 - Targeted failing backend tests: 62 passed across focused runs.
 - Repository backend Docker CI: 370 passed locally.
 - Local billing `pr-fast`: backend and frontend stages passed; the E2E image build was blocked before tests by repeated PyPI SSL timeouts while installing `uv`, so GitHub CI is the authoritative E2E gate.
+- Playwright E2E image `1.62.1` built locally and launched the lockfile-matched Chromium successfully; rebuilding the separate application image remained blocked by the same PyPI `uv` timeout.
 - Billing confidence `pr-fast`, `merge-medium`, and manual `release-heavy`.
 - Migration check, backend/frontend lint, SDD validation.
 - Guarded production backup, migration, health, billing smoke, and canary.
