@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: airis_b2c
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/chat-runtime-state-recovery-2026-08-06-0730.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/chat-runtime-state-recovery-2026-08-06-0730.json`
 - Created: 2026-08-06
 - Updated: 2026-08-06
 
@@ -16,10 +16,10 @@ The previous loader recovery exposed the actual client-side failures. In an auth
 
 ## Goal / Acceptance Criteria
 
-- [ ] Existing chats open without a runtime `ReferenceError`.
-- [ ] Message submission reaches the chat API instead of stopping in the client.
-- [ ] OAuth tool state and message queues use the current upstream state model.
-- [ ] Production deployment preserves PostgreSQL and persistent volumes.
+- [x] Existing chats open without a runtime `ReferenceError`.
+- [x] Message submission reaches the chat API instead of stopping in the client.
+- [x] OAuth tool state and message queues use the current upstream state model.
+- [x] Production deployment preserves PostgreSQL and persistent volumes.
 
 ## Non-goals
 
@@ -47,10 +47,14 @@ The previous loader recovery exposed the actual client-side failures. In an auth
 
 ## Verification
 
-- Focused check rejecting undeclared chat runtime state.
-- Frontend Vitest suite and production image build.
-- Authenticated browser: open an existing chat and submit a controlled message.
-- Guarded backup/migration/health deployment checks.
+- Focused Vitest regression check passed: `Chat.runtime-state.test.ts` (1/1).
+- Full frontend Vitest suite passed: 22 files, 93 tests.
+- Fresh `linux/amd64` image `airis:c7c200151` built locally and matched the transferred server image by config/rootfs hash.
+- Guarded production deployment completed with backup `/opt/backups/airis/20260806T044320Z-c7c200151/`; dump, globals and data tar checksums passed.
+- PostgreSQL counts remained 81 users and 108 chats; Alembic stayed at `a91c0d8e4f62`.
+- Authenticated production browser opened an existing chat and submitted a controlled message in chat `9d61b3c3-629c-4a6f-a947-a282fbda919f`.
+- `/api/chat/completions` returned 200 with no client runtime exception; generation then stopped through the expected insufficient-funds flow for a zero balance.
+- Application and PostgreSQL containers are healthy; application restart count is zero.
 
 ## Risks / Rollback
 
@@ -59,6 +63,6 @@ The previous loader recovery exposed the actual client-side failures. In an auth
 
 ## Completion Checklist
 
-- [ ] `meta/tools/sdd check-complete chat-runtime-state-recovery-2026-08-06-0730 --json`
-- [ ] `meta/tools/sdd complete-spec chat-runtime-state-recovery-2026-08-06-0730 --json`
-- [ ] Move the current task entry to completed.
+- [x] `meta/tools/sdd check-complete chat-runtime-state-recovery-2026-08-06-0730 --json`
+- [x] `meta/tools/sdd complete-spec chat-runtime-state-recovery-2026-08-06-0730 --json`
+- [x] Move the current task entry to completed.

@@ -1,0 +1,79 @@
+{
+  "spec_id": "chat-runtime-state-recovery-2026-08-06-0730",
+  "title": "Chat runtime state recovery",
+  "generated": "2026-08-06T04:30:19.466871Z",
+  "last_updated": "2026-08-06T05:00:24.858425Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-06__bugfix__chat-runtime-state-recovery.md",
+    "status": "completed",
+    "activated_date": "2026-08-06T04:30:23.223856Z",
+    "completed_date": "2026-08-06T05:00:24.858163Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Chat runtime state recovery",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "completed_at": "2026-08-06T04:59:52.527294Z",
+        "needs_journaling": true,
+        "status_note": "Acceptance criteria verified in production."
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-08-06T04:59:51.750859Z",
+        "needs_journaling": true,
+        "status_note": "Root cause restored from current upstream state model; focused regression check passed."
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-08-06T04:59:52.006895Z",
+        "needs_journaling": true,
+        "status_note": "Frontend suite and linux/amd64 production image build passed."
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-08-06T04:59:52.264629Z",
+        "needs_journaling": true,
+        "status_note": "Guarded deployment, database preservation, authenticated browser open/send verification passed."
+      }
+    }
+  }
+}

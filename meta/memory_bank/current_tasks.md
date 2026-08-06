@@ -20,6 +20,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG][CHAT][PROD]** Restore missing chat runtime state after upstream merge
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-06__bugfix__chat-runtime-state-recovery.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-08-06
+  - Summary: Restored the missing OAuth pending state and shared chat request queue handling, then deployed immutable image `airis:c7c200151` through the guarded backup/migration workflow.
+  - Tests: Focused Vitest 1/1; full frontend Vitest 22 files/93 tests; linux/amd64 image identity; verified production backup; hard Alembic gate; authenticated browser old-chat load and message submit; public/container/database health and count checks.
+  - Risks: Medium (shared chat runtime and production container rollout); mitigated by current upstream state reuse, retained rollback image, verified database/data backup, unchanged schema/counts, and no volume deletion.
+
 - [x] **[BUG][CHAT][PROD]** Recover chat loading and message entry after client-side response errors
   - Spec: `meta/memory_bank/specs/work_items/2026-08-05__bugfix__chat-loader-error-recovery.md`
   - Owner: Codex
@@ -924,15 +933,6 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 ---
 
 ## In Progress
-
-- [ ] **[BUG][CHAT][PROD]** Restore missing chat runtime state after upstream merge
-  - Spec: `meta/memory_bank/specs/work_items/2026-08-06__bugfix__chat-runtime-state-recovery.md`
-  - Owner: Codex
-  - Branch: `airis_b2c`
-  - Started: 2026-08-06
-  - Summary: Fix undeclared OAuth and message queue state that prevents existing chats from opening and stops message submission before the API request.
-  - Tests: Authenticated production browser reproduction complete; implementation and deployment verification in progress.
-  - Risks: Medium (shared chat state and production app-container rollout; database and volumes protected by guarded deployment).
 
 ### High Priority
 
