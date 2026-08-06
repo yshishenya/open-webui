@@ -1,0 +1,161 @@
+{
+  "spec_id": "gpt-image-2-edit-billing-and-p-2026-08-06-1339",
+  "title": "GPT Image 2 edit billing and production enablement",
+  "generated": "2026-08-06T10:39:56.377222Z",
+  "last_updated": "2026-08-06T10:53:37.116010Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "high",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-06__feature__gpt-image-2-editing.md",
+    "status": "active",
+    "activated_date": "2026-08-06T10:41:02.101975Z",
+    "progress_percentage": 66
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "GPT Image 2 edit billing and production enablement",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Provider and billing validation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T10:41:13.208303Z",
+        "journaled_at": "2026-08-06T10:41:13.210323Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Minimal implementation and tests",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T10:53:37.113646Z",
+        "journaled_at": "2026-08-06T10:53:37.115987Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: Guarded production rollout",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1": {
+      "type": "task",
+      "title": "Verify official edit contract, prices, LiteLLM route, and current Airis flow",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-08-06__feature__gpt-image-2-editing.md",
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T10:41:13.208136Z",
+        "status_note": "Official edit endpoint and pricing verified; LiteLLM returned HTTP 200 with 1024 image-input, 21 text-input, and 1756 output tokens. Existing Airis route undercharges input usage.",
+        "journaled_at": "2026-08-06T10:41:13.209160Z"
+      }
+    },
+    "task-2": {
+      "type": "task",
+      "title": "Settle GPT Image 2 edits from provider usage and preserve existing flows",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "backend/open_webui/utils/airis/image_billing.py",
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T10:53:37.113465Z",
+        "status_note": "Minimal shared billing patch implemented. Exact LiteLLM usage drives settlement; conservative preflight and fallback estimate are covered by a focused test. Black, py_compile, Ruff on changed helper/test, and diff checks pass.",
+        "journaled_at": "2026-08-06T10:53:37.114905Z"
+      }
+    },
+    "task-3": {
+      "type": "task",
+      "title": "Build, back up, deploy, enable, and verify production editing",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-08-06__feature__gpt-image-2-editing.md",
+        "needs_journaling": false
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-08-06T10:41:13.209155Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify official edit contract, prices, LiteLLM route, and current Airis flow",
+      "author": "Codex",
+      "content": "Task task-1 marked as completed. \nNote: Official edit endpoint and pricing verified; LiteLLM returned HTTP 200 with 1024 image-input, 21 text-input, and 1756 output tokens. Existing Airis route undercharges input usage.",
+      "metadata": {},
+      "task_id": "task-1"
+    },
+    {
+      "timestamp": "2026-08-06T10:41:13.210318Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: Provider and billing validation",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-08-06T10:53:37.114895Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Settle GPT Image 2 edits from provider usage and preserve existing flows",
+      "author": "Codex",
+      "content": "Task task-2 marked as completed. \nNote: Minimal shared billing patch implemented. Exact LiteLLM usage drives settlement; conservative preflight and fallback estimate are covered by a focused test. Black, py_compile, Ruff on changed helper/test, and diff checks pass.",
+      "metadata": {},
+      "task_id": "task-2"
+    },
+    {
+      "timestamp": "2026-08-06T10:53:37.115983Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: Minimal implementation and tests",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

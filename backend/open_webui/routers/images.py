@@ -1016,6 +1016,8 @@ async def image_edits(
             width=width,
             height=height,
             auto_size=(form_data.size == 'auto' or image_config.IMAGE_EDIT_SIZE == 'auto'),
+            input_images=form_data.image,
+            prompt=form_data.prompt,
         )
     except HTTPException:
         raise
@@ -1026,9 +1028,12 @@ async def image_edits(
             detail='Billing system temporarily unavailable',
         )
 
-    async def finalize(images: list[dict[str, str]]) -> list[dict[str, str]]:
+    async def finalize(
+        images: list[dict[str, str]],
+        provider_usage: dict[str, object] | None = None,
+    ) -> list[dict[str, str]]:
         assert billing_context is not None
-        await settle_image_billing(billing_context, len(images))
+        await settle_image_billing(billing_context, len(images), provider_usage)
         return images
 
     try:
@@ -1043,6 +1048,7 @@ async def image_edits(
             data = {
                 'model': model,
                 'prompt': form_data.prompt,
+                **({} if not image_config.IMAGES_OPENAI_API_PARAMS else image_config.IMAGES_OPENAI_API_PARAMS),
             }
             is_gemini_model = model.startswith('gemini/') or model.startswith('gemini-')
             if not is_gemini_model:
@@ -1111,7 +1117,8 @@ async def image_edits(
 
                 _, url = await upload_image(request, image_data, content_type, {**data, **metadata}, user)
                 images.append({'url': url})
-            return await finalize(images)
+            usage = res.get('usage')
+            return await finalize(images, usage if isinstance(usage, dict) else None)
 
         elif image_config.IMAGE_EDIT_ENGINE == 'gemini':
             headers = {

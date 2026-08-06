@@ -1,5 +1,16 @@
 # Branch Updates: codex/feature/gpt-image-2
 
+## In Progress
+
+- [ ] **[FEATURE][IMAGES][BILLING]** Enable GPT Image 2 editing through LiteLLM
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-06__feature__gpt-image-2-editing.md`
+  - Owner: Codex
+  - Branch: `codex/feature/gpt-image-2`
+  - Started: 2026-08-06
+  - Summary: Enable deterministic image editing while charging provider-reported input and output usage through the existing wallet rate.
+  - Tests: in progress
+  - Risks: provider spend and wallet correctness; guarded by conservative holds, exact usage settlement, verified backup, and rollback.
+
 ## Done
 
 - [x] **[FEATURE][IMAGES]** Add GPT Image 2 through LiteLLM
