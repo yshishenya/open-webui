@@ -17,7 +17,7 @@ The post-merge `merge-medium` billing run passed 195 backend tests, frontend tes
 ## Goal / Acceptance Criteria
 
 - [x] Cover an existing untested billing service path without changing runtime behavior or lowering thresholds.
-- [ ] Billing coverage for `open_webui/utils/billing.py` is at least 85%.
+- [x] Billing coverage for `open_webui/utils/billing.py` is at least 85%.
 - [ ] Follow-up PR is merged before `release-heavy` and production rollout.
 
 ## Scope
@@ -33,7 +33,7 @@ The post-merge `merge-medium` billing run passed 195 backend tests, frontend tes
 ## Verification
 
 - Billing service extended suite: 10 passed in the exact production candidate image.
-- Billing coverage suite and unchanged module coverage gate.
+- Exact billing coverage suite: 196 passed; utils line 85.26%, branch 75.55%; unchanged gate passed.
 - PR checks and post-merge billing confidence.
 
 ## Risks / Rollback

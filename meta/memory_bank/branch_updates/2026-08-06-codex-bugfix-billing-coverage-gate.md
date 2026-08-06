@@ -4,5 +4,5 @@
   - Branch: `codex/bugfix/billing-coverage-gate`
   - Started: 2026-08-06
   - Summary: Add one direct test for the uncovered subscription resume path; do not change runtime code or coverage thresholds.
-  - Tests: Billing service extended suite 10 passed; Ruff and diff check passed. Coverage gate pending CI.
+  - Tests: Billing service suite 10 passed; exact coverage suite 196 passed; utils line/branch 85.26%/75.55%; unchanged gate passed; Ruff and diff check passed.
   - Risks: None to runtime behavior; production remains blocked until release-heavy is green.
