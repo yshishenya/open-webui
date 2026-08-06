@@ -1,0 +1,187 @@
+{
+  "spec_id": "current-public-model-catalog-c-2026-08-06-0920",
+  "title": "Current public model catalog cleanup",
+  "generated": "2026-08-06T06:20:24.851204Z",
+  "last_updated": "2026-08-06T06:33:46.455026Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-06__bugfix__current-model-catalog-cleanup.md",
+    "status": "completed",
+    "activated_date": "2026-08-06T06:24:36.557921Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-08-06T06:33:46.454787Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Current public model catalog cleanup",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Audit and backup",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T06:33:33.978841Z",
+        "journaled_at": "2026-08-06T06:33:33.981429Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Apply catalog transaction",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T06:33:34.231193Z",
+        "journaled_at": "2026-08-06T06:33:34.233131Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: Verify and document",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T06:33:34.488398Z",
+        "journaled_at": "2026-08-06T06:33:34.490668Z"
+      }
+    },
+    "task-1": {
+      "type": "task",
+      "title": "Audit current provider and database state; create validated pre-change backup",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-08-06__bugfix__current-model-catalog-cleanup.md",
+        "completed_at": "2026-08-06T06:33:33.978611Z",
+        "needs_journaling": false,
+        "status_note": "Provider/DB audit complete; validated pre-change dump created.",
+        "journaled_at": "2026-08-06T06:33:33.980102Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-2": {
+      "type": "task",
+      "title": "Apply the curated model, rate, access, and defaults transaction",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-08-06__bugfix__current-model-catalog-cleanup.md",
+        "completed_at": "2026-08-06T06:33:34.231011Z",
+        "needs_journaling": false,
+        "status_note": "Curated 18-model catalog committed in one ORM transaction.",
+        "journaled_at": "2026-08-06T06:33:34.232045Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-3": {
+      "type": "task",
+      "title": "Restart, verify catalog and history, take post-change backup, and close documentation",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-08-06__bugfix__current-model-catalog-cleanup.md",
+        "completed_at": "2026-08-06T06:33:34.488230Z",
+        "needs_journaling": false,
+        "status_note": "Health, public catalog, provider completion, browser UI, history counts, and post-change dump verified.",
+        "journaled_at": "2026-08-06T06:33:34.489484Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-08-06T06:33:33.980095Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Audit current provider and database state; create validated pre-change backup",
+      "author": "Codex",
+      "content": "Task task-1 marked as completed. \nNote: Provider/DB audit complete; validated pre-change dump created.",
+      "metadata": {},
+      "task_id": "task-1"
+    },
+    {
+      "timestamp": "2026-08-06T06:33:33.981423Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: Audit and backup",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-08-06T06:33:34.232040Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Apply the curated model, rate, access, and defaults transaction",
+      "author": "Codex",
+      "content": "Task task-2 marked as completed. \nNote: Curated 18-model catalog committed in one ORM transaction.",
+      "metadata": {},
+      "task_id": "task-2"
+    },
+    {
+      "timestamp": "2026-08-06T06:33:34.233125Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: Apply catalog transaction",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-08-06T06:33:34.489478Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Restart, verify catalog and history, take post-change backup, and close documentation",
+      "author": "Codex",
+      "content": "Task task-3 marked as completed. \nNote: Health, public catalog, provider completion, browser UI, history counts, and post-change dump verified.",
+      "metadata": {},
+      "task_id": "task-3"
+    },
+    {
+      "timestamp": "2026-08-06T06:33:34.490662Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 3: Verify and document",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}
