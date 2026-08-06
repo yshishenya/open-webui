@@ -45,11 +45,16 @@ The wallet top-up presets still exposed a 100 RUB option in the default/runtime 
 
 ## Verification
 
-- Focused backend tests attempted: `test_billing_topup.py` invalid amount and `test_billing_public_pricing.py` public preset response; blocked during collection because the Docker image lacks the existing `aiosmtplib` dependency.
+- Focused frontend billing test: 1 file, 7 tests passed.
+- Focused backend tests attempted: `test_billing_topup.py` invalid amount and `test_billing_public_pricing.py` public preset response; blocked during collection because the Docker image lacks the existing `aiosmtplib` dependency and PyPI installation timed out.
 - `python -m py_compile backend/open_webui/env.py`.
 - `git diff --check`.
+- Built and inspected production image `yshishenya/yshishenya:b4b52058` for `linux/amd64`; registry push was denied, so the verified image archive was transferred to production and loaded locally.
+- Guarded production deploy completed with verified database/application backups at `/opt/backups/airis/20260806T125545Z-b4b52058`, hard Alembic gate, retained rollback image, and healthy containers.
+- Production and public API verification returned `topup_amounts_rub: [500, 1000, 2000]`; `/health` returned `{"status":true}`.
 
 ## Completion Checklist
 
 - [x] SDD not required for this config-only bugfix.
 - [x] Task status updated on integration branch.
+- [x] Production rollout and public pricing verification completed.
