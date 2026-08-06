@@ -157,9 +157,13 @@
 		return applyUncertainty(total);
 	};
 
-	const computeImageEstimate = (count: number): { min: number; max: number } | null => {
-		if (!imageModel || !imageRatesAvailable) return null;
-		const rate = imageModel.rates.image_1024 ?? 0;
+	const computeImageEstimate = (
+		count: number,
+		model: PublicRateCardModel | null,
+		ratesAvailable: boolean
+	): { min: number; max: number } | null => {
+		if (!model || !ratesAvailable) return null;
+		const rate = model.rates.image_1024 ?? 0;
 		const total = Math.ceil(rate * (Number(count) || 0));
 		return applyUncertainty(total);
 	};
@@ -224,11 +228,11 @@
 
 	$: exampleImagePresets = config.image.presets.map((preset) => ({
 		...preset,
-		estimate: computeImageEstimate(preset.count)
+		estimate: computeImageEstimate(preset.count, imageModel, imageRatesAvailable)
 	}));
 
 	$: textEstimate = computeTextEstimate(textMessagesPerDay, textBucket, textReplyMultiplier);
-	$: imageEstimate = computeImageEstimate(imageCount);
+	$: imageEstimate = computeImageEstimate(imageCount, imageModel, imageRatesAvailable);
 	$: audioEstimate = computeAudioEstimate();
 </script>
 
