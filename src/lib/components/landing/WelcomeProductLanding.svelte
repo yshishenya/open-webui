@@ -334,7 +334,7 @@
 							type="button"
 							role="tab"
 							id={`demo-tab-${mode.id}`}
-							aria-controls={`demo-panel-${mode.id}`}
+							aria-controls="demo-panel"
 							aria-selected={activeDemo.id === mode.id}
 							tabindex={activeDemo.id === mode.id ? 0 : -1}
 							class:active={activeDemo.id === mode.id}
@@ -348,7 +348,7 @@
 				<div
 					class="demo__conversation"
 					role="tabpanel"
-					id={`demo-panel-${activeDemo.id}`}
+					id="demo-panel"
 					aria-labelledby={`demo-tab-${activeDemo.id}`}
 				>
 					<div class="demo__prompt">{activeDemo.prompt}</div>
@@ -401,7 +401,7 @@
 						type="button"
 						role="tab"
 						id={`scenario-group-tab-${group.id}`}
-						aria-controls={`scenario-group-panel-${group.id}`}
+						aria-controls="scenario-group-panel"
 						aria-selected={activeScenarioGroup.id === group.id}
 						tabindex={activeScenarioGroup.id === group.id ? 0 : -1}
 						class:active={activeScenarioGroup.id === group.id}
@@ -416,7 +416,7 @@
 			<div
 				class="scenario-explorer"
 				role="tabpanel"
-				id={`scenario-group-panel-${activeScenarioGroup.id}`}
+				id="scenario-group-panel"
 				aria-labelledby={`scenario-group-tab-${activeScenarioGroup.id}`}
 			>
 				<div
@@ -429,7 +429,7 @@
 							type="button"
 							role="tab"
 							id={`scenario-tab-${scenario.id}`}
-							aria-controls={`scenario-panel-${scenario.id}`}
+							aria-controls="scenario-panel"
 							aria-selected={activeScenario.id === scenario.id}
 							tabindex={activeScenario.id === scenario.id ? 0 : -1}
 							class:active={activeScenario.id === scenario.id}
@@ -445,7 +445,7 @@
 				<div
 					class="scenario-preview"
 					role="tabpanel"
-					id={`scenario-panel-${activeScenario.id}`}
+					id="scenario-panel"
 					aria-labelledby={`scenario-tab-${activeScenario.id}`}
 				>
 					<div class="scenario-preview__label">Ваш запрос</div>
