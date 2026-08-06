@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: verification_pending
 - Owner: Codex
 - Branch: `codex/bugfix/billing-integrity-hardening`
 - SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/billing-integrity-hardening-2026-08-06-001.json`
@@ -16,16 +16,16 @@ A full billing review found a client-controlled financial idempotency key, swall
 
 ## Goal / Acceptance Criteria
 
-- [ ] Every provider invocation uses a server-owned billing operation id; client correlation ids cannot suppress a charge or quota consumption.
-- [ ] Ledger and usage idempotency is scoped to the owning wallet and rejects mismatched replays.
-- [ ] Top-up credit failures return a retryable webhook response; amount/currency must match the local payment.
-- [ ] Stream cancellation, settlement failure, and expired holds do not leave funds permanently reserved.
-- [ ] Daily caps, lead-magnet quotas, and auto-topup are safe under concurrent requests.
-- [ ] Top-up/included credit expiry is enforced and reflected in wallet balances.
-- [ ] Wallet settlement and user-visible usage accounting cannot diverge silently.
-- [ ] Expired subscriptions do not affect PAYG; subscription payment activates the purchased plan and grants included credit idempotently before success is final.
-- [ ] Top-up return UI trusts reconciliation status for the exact payment.
-- [ ] Billing API tests run on the current async Users API and all new regressions pass.
+- [x] Every provider invocation uses a server-owned billing operation id; client correlation ids cannot suppress a charge or quota consumption.
+- [x] Ledger and usage idempotency is scoped to the owning wallet and rejects mismatched replays.
+- [x] Top-up credit failures return a retryable webhook response; amount/currency must match the local payment.
+- [x] Stream cancellation, settlement failure, and expired holds do not leave funds permanently reserved.
+- [x] Daily caps, lead-magnet quotas, and auto-topup are safe under concurrent requests.
+- [x] Top-up/included credit expiry is enforced and reflected in wallet balances.
+- [x] Wallet settlement and user-visible usage accounting cannot diverge silently.
+- [x] Expired subscriptions do not affect PAYG; subscription payment activates the purchased plan and grants included credit idempotently before success is final.
+- [x] Top-up return UI trusts reconciliation status for the exact payment.
+- [x] Billing API tests run on the current async Users API and all new regressions pass.
 
 ## Non-goals
 
@@ -83,7 +83,7 @@ A full billing review found a client-controlled financial idempotency key, swall
   - Branch: `codex/bugfix/billing-integrity-hardening`
   - Started: 2026-08-06
   - Summary: Close replay/free-usage, lost top-up, stale hold, concurrency, expiry, accounting, subscription, and test-confidence defects found in the billing review.
-  - Tests: In progress.
+  - Tests: 225 backend billing tests and 8 frontend balance tests passed; Docker/E2E confidence gate remains pending because required packages could not be downloaded in the Docker network.
   - Risks: Critical financial path; changes require migration and concurrency-focused verification.
 
 ## Risks / Rollback
@@ -96,6 +96,6 @@ A full billing review found a client-controlled financial idempotency key, swall
 
 ## Completion Checklist
 
-- [ ] `meta/tools/sdd check-complete billing-integrity-hardening-2026-08-06-001 --json`
+- [x] `meta/tools/sdd check-complete billing-integrity-hardening-2026-08-06-001 --json`
 - [ ] `meta/tools/sdd complete-spec billing-integrity-hardening-2026-08-06-001 --json`
 - [ ] Branch update entry moved to Done with tests and residual risks.
