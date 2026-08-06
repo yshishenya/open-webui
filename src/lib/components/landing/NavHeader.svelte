@@ -18,6 +18,11 @@
 		{ href: '/contact', label: 'Контакты' }
 	];
 
+	const welcomeNavLinks: NavLink[] = [
+		{ href: '#usecases', label: 'Возможности' },
+		{ href: '#pricing', label: 'Тарифы' }
+	];
+
 	let mobileMenuOpen = false;
 
 	function isActive(href: string): boolean {
@@ -25,6 +30,7 @@
 	}
 
 	const isWelcome = (): boolean => currentPath === '/welcome';
+	$: visibleNavLinks = isWelcome() ? welcomeNavLinks : navLinks;
 
 	const buildChatTarget = (source: string): string => `/?src=${source}`;
 
@@ -68,16 +74,24 @@
 	};
 </script>
 
-<nav class="bg-white/80 backdrop-blur-md border-b border-gray-200/70 sticky top-0 z-50">
+<nav
+	class="sticky top-0 z-50 border-b backdrop-blur-md {isWelcome()
+		? 'border-white/10 bg-[#1e1647]/95 text-white'
+		: 'border-gray-200/70 bg-white/80'}"
+>
 	<div class="container mx-auto px-4">
 		<div class="flex items-center justify-between h-16">
 			<!-- Logo -->
 			<a
 				href="/"
-				class="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2 rounded-xl"
+				class="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 rounded-xl {isWelcome()
+					? 'focus-visible:ring-[#ad93fc]'
+					: 'focus-visible:ring-black/60'}"
 			>
 				<div
-					class="w-9 h-9 bg-white rounded-lg border border-gray-200 shadow-sm flex items-center justify-center"
+					class="w-9 h-9 bg-white rounded-lg border {isWelcome()
+						? 'border-white/20'
+						: 'border-gray-200 shadow-sm'} flex items-center justify-center"
 				>
 					<img
 						src="{WEBUI_BASE_URL}/static/favicon.svg"
@@ -86,19 +100,23 @@
 						draggable="false"
 					/>
 				</div>
-				<span class="font-semibold text-lg text-gray-900 tracking-tight">AIris</span>
+				<span
+					class="font-semibold text-lg tracking-tight {isWelcome()
+						? 'text-white'
+						: 'text-gray-900'}">AIris</span
+				>
 			</a>
 
 			<!-- Desktop Navigation -->
 			<div class="hidden md:flex items-center gap-8">
-				{#each navLinks as link}
+				{#each visibleNavLinks as link}
 					<a
 						href={link.href}
-						class="text-sm font-medium transition-colors border-b-2 border-transparent pb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2 rounded-md {isActive(
-							link.href
-						)
-							? 'text-gray-900 border-gray-900'
-							: 'text-gray-500 hover:text-gray-900'}"
+						class="text-sm font-medium transition-colors border-b-2 border-transparent pb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 rounded-md {isWelcome()
+							? 'text-[#d8d2ec] hover:text-white focus-visible:ring-[#ad93fc]'
+							: isActive(link.href)
+								? 'text-gray-900 border-gray-900 focus-visible:ring-black/60'
+								: 'text-gray-500 hover:text-gray-900 focus-visible:ring-black/60'}"
 					>
 						{link.label}
 					</a>
@@ -109,14 +127,18 @@
 			<div class="hidden md:flex items-center gap-4">
 				<a
 					href="/auth"
-					class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2 rounded-lg px-2 py-1"
+					class="text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 rounded-lg px-2 py-1 {isWelcome()
+						? 'text-[#d8d2ec] hover:text-white focus-visible:ring-[#ad93fc]'
+						: 'text-gray-600 hover:text-gray-900 focus-visible:ring-black/60'}"
 					on:click={handleLoginClick}
 				>
 					Войти
 				</a>
 				<a
 					href="/signup"
-					class="inline-flex items-center justify-center h-10 px-5 bg-black hover:bg-gray-900 text-white text-sm font-semibold rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
+					class="inline-flex items-center justify-center h-10 px-5 text-white text-sm font-semibold rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 {isWelcome()
+						? 'bg-[#7132f2] hover:bg-[#6427e8] focus-visible:ring-[#ad93fc]'
+						: 'bg-black hover:bg-gray-900 focus-visible:ring-black/60'}"
 					on:click={handleHeaderCta}
 				>
 					Начать бесплатно
@@ -125,45 +147,58 @@
 
 			<!-- Mobile Actions -->
 			<div class="flex md:hidden items-center gap-2">
+				{#if isWelcome()}
+					<a
+						href="/auth"
+						class="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-[#d8d2ec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad93fc]"
+						on:click={handleLoginClick}
+					>
+						Войти
+					</a>
+				{/if}
 				<a
 					href="/signup"
-					class="inline-flex items-center justify-center h-11 px-4 bg-black text-white text-sm font-semibold rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2"
+					class="inline-flex items-center justify-center h-11 px-4 text-white text-sm font-semibold rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 {isWelcome()
+						? 'bg-[#7132f2] focus-visible:ring-[#ad93fc]'
+						: 'bg-black focus-visible:ring-black/60'}"
 					on:click={handleHeaderCta}
 				>
-					Начать бесплатно
+					{isWelcome() ? 'Начать' : 'Начать бесплатно'}
 				</a>
-				<button
-					class="p-2 text-gray-600 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2 rounded-lg"
-					on:click={() => (mobileMenuOpen = !mobileMenuOpen)}
-					aria-label="Открыть меню"
-					aria-expanded={mobileMenuOpen}
-					aria-controls="mobile-nav"
-				>
-					{#if mobileMenuOpen}
-						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M6 18L18 6M6 6l12 12"
-							/>
-						</svg>
-					{:else}
-						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M4 6h16M4 12h16M4 18h16"
-							/>
-						</svg>
-					{/if}
-				</button>
+				{#if !isWelcome()}
+					<button
+						class="p-2 text-gray-600 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 focus-visible:ring-offset-2 rounded-lg"
+						on:click={() => (mobileMenuOpen = !mobileMenuOpen)}
+						aria-label="Открыть меню"
+						aria-expanded={mobileMenuOpen}
+						aria-controls="mobile-nav"
+					>
+						{#if mobileMenuOpen}
+							<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M6 18L18 6M6 6l12 12"
+								/>
+							</svg>
+						{:else}
+							<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M4 6h16M4 12h16M4 18h16"
+								/>
+							</svg>
+						{/if}
+					</button>
+				{/if}
 			</div>
 		</div>
 
 		<!-- Mobile Menu -->
-		{#if mobileMenuOpen}
+		{#if mobileMenuOpen && !isWelcome()}
 			<div class="md:hidden py-4 border-t border-gray-200/70" id="mobile-nav">
 				<div class="flex flex-col gap-4">
 					{#each navLinks as link}

@@ -14,10 +14,14 @@
 		{ href: '/privacy', label: 'Политика конфиденциальности' }
 	];
 
-	export let copyright: string = '2025 AIris. Все права защищены.';
+	export let copyright: string = `${new Date().getFullYear()} AIris. Все права защищены.`;
+	export let tone: 'light' | 'dark' = 'light';
 </script>
 
-<div class="mt-16 pt-8 border-t border-gray-200/70 text-gray-500">
+<div
+	class:footer-dark={tone === 'dark'}
+	class="footer-links mt-16 pt-8 border-t border-gray-200/70 text-gray-500"
+>
 	<div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
 		<div class="flex flex-wrap gap-4 text-sm">
 			{#each links as link}
@@ -32,3 +36,18 @@
 		<div>ИНН 667803118920 · ОГРНИП 320665800036109</div>
 	</div>
 </div>
+
+<style>
+	.footer-dark {
+		border-color: rgb(255 255 255 / 0.12);
+		color: #a9a2c4;
+	}
+
+	.footer-dark a:hover {
+		color: #ffffff;
+	}
+
+	.footer-dark .font-semibold {
+		color: #d8d2ec;
+	}
+</style>

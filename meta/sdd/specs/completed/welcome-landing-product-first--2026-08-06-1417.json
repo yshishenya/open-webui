@@ -1,0 +1,205 @@
+{
+  "spec_id": "welcome-landing-product-first--2026-08-06-1417",
+  "title": "welcome landing product-first redesign",
+  "generated": "2026-08-06T11:17:48.452713Z",
+  "last_updated": "2026-08-06T11:48:56.491311Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-06__feature__welcome-landing-product-first-redesign.md",
+    "status": "completed",
+    "activated_date": "2026-08-06T11:18:05.221263Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-08-06T11:48:56.490991Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "welcome landing product-first redesign",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Product-first structure and content",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T11:45:39.727236Z",
+        "journaled_at": "2026-08-06T11:45:39.729722Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Responsive interaction and accessibility",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T11:45:40.224866Z",
+        "journaled_at": "2026-08-06T11:45:40.227298Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: Verification and documentation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T11:48:55.150851Z",
+        "journaled_at": "2026-08-06T11:48:55.154780Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Implement product-first IA and content",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 8.0,
+        "completed_at": "2026-08-06T11:45:39.727047Z",
+        "needs_journaling": false,
+        "status_note": "Implemented and targeted checks passed",
+        "journaled_at": "2026-08-06T11:45:39.728508Z"
+      },
+      "description": "Refactor the Airis-owned /welcome route and landing data to the approved concise information architecture while preserving existing CTA and pricing data flows."
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Add responsive interactions and accessibility",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 6.0,
+        "completed_at": "2026-08-06T11:45:40.224658Z",
+        "needs_journaling": false,
+        "status_note": "Implemented and browser QA passed",
+        "journaled_at": "2026-08-06T11:45:40.225955Z"
+      },
+      "description": "Implement demo/use-case tabs, accordion behavior, keyboard/focus states, reduced-motion support, and mobile layouts without horizontal overflow."
+    },
+    "task-3-1": {
+      "type": "verify",
+      "title": "Verify behavior, performance, and visual fidelity",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 4.0,
+        "completed_at": "2026-08-06T11:48:55.150610Z",
+        "needs_journaling": false,
+        "status_note": "All verification gates passed",
+        "journaled_at": "2026-08-06T11:48:55.152611Z"
+      },
+      "description": "Run targeted frontend tests, typecheck/lint, desktop/mobile browser QA, and document results and upstream impact."
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-08-06T11:45:39.728497Z",
+      "entry_type": "status_change",
+      "title": "Product-first landing implemented",
+      "author": "Codex",
+      "content": "Replaced the dense /welcome composition with one Airis-owned product-first component, preserved signup/preset/quota flows, and added the approved violet brand treatment.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-08-06T11:45:39.729718Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: Product-first structure and content",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-08-06T11:45:40.225949Z",
+      "entry_type": "status_change",
+      "title": "Responsive accessible interactions implemented",
+      "author": "Codex",
+      "content": "Added keyboard-operable tablists, native FAQ/pricing disclosures, focus-visible states, reduced-motion handling, and verified desktop/mobile layouts without horizontal overflow.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-08-06T11:45:40.227292Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: Responsive interaction and accessibility",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-08-06T11:48:55.152602Z",
+      "entry_type": "status_change",
+      "title": "Verification complete",
+      "author": "Codex",
+      "content": "Passed full frontend tests (93), targeted navigation tests (6), ESLint, Svelte checks, production build with an 8 GB Node heap, and desktop/mobile browser and visual fidelity QA.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-08-06T11:48:55.154774Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 3: Verification and documentation",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}
