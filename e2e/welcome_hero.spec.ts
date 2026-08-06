@@ -31,7 +31,7 @@ const loginWithRedirect = async (
 };
 
 test.describe('Welcome Hero', () => {
-	test('pricing section shows model rates preview', async ({ page }) => {
+	test('models section shows the current catalog count and real product UI', async ({ page }) => {
 		await page.route('**/api/v1/billing/public/rate-cards', async (route) => {
 			await route.fulfill({
 				status: 200,
@@ -58,39 +58,16 @@ test.describe('Welcome Hero', () => {
 			});
 		});
 
-		await page.route('**/api/v1/billing/public/pricing-config', async (route) => {
-			await route.fulfill({
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify({
-					topup_amounts_rub: [],
-					free_limits: {
-						text_in: 0,
-						text_out: 0,
-						images: 0,
-						tts_minutes: 0,
-						stt_minutes: 0
-					},
-					popular_model_ids: ['test-model'],
-					recommended_model_ids: {
-						text: 'test-model',
-						image: null,
-						audio: null
-					}
-				})
-			});
-		});
-
 		await page.goto('/welcome');
-		await page.locator('#pricing').scrollIntoViewIfNeeded();
+		await page.locator('#models').scrollIntoViewIfNeeded();
 
-		await expect(page.getByRole('heading', { name: 'Ставки по моделям' })).toBeVisible();
-		const row = page.locator('tr', { hasText: 'Test Model' });
-		await expect(row).toBeVisible();
-
-		const inputPriceCell = row.locator('td').nth(1);
-		await expect(inputPriceCell).toContainText('1,00');
-		await expect(inputPriceCell).toContainText('₽');
+		await expect(
+			page.getByRole('heading', { name: 'Меняйте модель, не меняя сервис' })
+		).toBeVisible();
+		await expect(page.getByText('Сейчас доступна 1 модель. Состав может меняться.')).toBeVisible();
+		await expect(
+			page.getByRole('img', { name: 'Интерфейс Airis с открытым каталогом доступных моделей' })
+		).toBeVisible();
 	});
 
 	test('unauth preset redirects and prefills after login', async ({ page, request }) => {
@@ -109,8 +86,7 @@ test.describe('Welcome Hero', () => {
 		});
 
 		await page.goto('/welcome');
-		const heroPresetSection = page.getByText('Попробовать задачу:').locator('..');
-		await heroPresetSection.getByRole('button', { name: 'Пост для соцсетей' }).click();
+		await page.getByRole('button', { name: 'Открыть этот пример в Airis' }).click();
 
 		await page.waitForURL(/\/auth/);
 		const redirectParam = new URL(page.url()).searchParams.get('redirect');
@@ -118,7 +94,7 @@ test.describe('Welcome Hero', () => {
 
 		await loginWithRedirect(page, user.email, user.password, redirectParam ?? '/');
 
-		await expect(page.locator('#chat-input')).toContainText('Напиши пост для соцсетей');
+		await expect(page.locator('#chat-input')).toContainText('Составь ответ на письмо');
 		const userMessages = await getUserMessages(page);
 		await expect(userMessages).toHaveCount(0);
 	});
@@ -141,11 +117,11 @@ test.describe('Welcome Hero', () => {
 		await loginWithRedirect(page, user.email, user.password, '/');
 		await page.goto('/welcome');
 
-		const heroPresetSection = page.getByText('Попробовать задачу:').locator('..');
-		await heroPresetSection.getByRole('button', { name: 'Резюме по фактам' }).click();
-		await page.waitForURL(/\?src=welcome_hero_preset/);
+		await page.getByRole('tab', { name: 'Документ' }).click();
+		await page.getByRole('button', { name: 'Открыть этот пример в Airis' }).click();
+		await page.waitForURL(/\?src=welcome_demo_preset/);
 
-		await expect(page.locator('#chat-input')).toContainText('Сделай резюме по фактам');
+		await expect(page.locator('#chat-input')).toContainText('Сделай конспект из текста');
 		const userMessages = await getUserMessages(page);
 		await expect(userMessages).toHaveCount(0);
 	});
@@ -153,7 +129,7 @@ test.describe('Welcome Hero', () => {
 	test('hero primary CTA keeps redirect source', async ({ page }) => {
 		await page.goto('/welcome');
 		const heroHeading = page.getByRole('heading', {
-			name: 'Тексты и изображения за минуты — в одном чате'
+			name: 'AI-модели без VPN — в одном чате'
 		});
 		const heroContainer = heroHeading.locator('..');
 		await heroContainer.getByRole('link', { name: 'Начать бесплатно' }).click();
@@ -177,18 +153,18 @@ test.describe('Welcome Hero', () => {
 		expect(redirectParam ?? '').toContain('src=welcome_header_cta');
 	});
 
-	test('examples CTA scrolls to scenarios section', async ({ page }) => {
+	test('secondary CTA scrolls to the real product section', async ({ page }) => {
 		await page.goto('/welcome');
-		await page.getByRole('link', { name: 'Посмотреть примеры' }).click();
+		await page.getByRole('link', { name: 'Посмотреть, как работает' }).click();
 		await page.waitForFunction(() => {
-			const target = document.getElementById('examples');
+			const target = document.getElementById('models');
 			if (!target) return false;
 			const rect = target.getBoundingClientRect();
 			return rect.top >= 0 && rect.top <= window.innerHeight * 1.2;
 		});
 
 		const inViewport = await page.evaluate(() => {
-			const target = document.getElementById('examples');
+			const target = document.getElementById('models');
 			if (!target) return false;
 			const rect = target.getBoundingClientRect();
 			return rect.top >= 0 && rect.top <= window.innerHeight * 1.2;

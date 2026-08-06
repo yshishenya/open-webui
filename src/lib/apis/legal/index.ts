@@ -41,57 +41,68 @@ export type AcceptLegalDocsResponse = {
 	status: LegalStatusResponse;
 };
 
-export const getLegalStatus = async (token: string): Promise<LegalStatusResponse> => {
-	let error: string | null = null;
+const RETRYABLE_STATUS_CODES = new Set([502, 503, 504]);
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/legal/status`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail ?? 'Failed to load legal status';
-			return null;
-		});
-
-	if (error) {
-		throw error;
+const requestLegalJson = async <ResponseBody>(
+	url: string,
+	init: RequestInit,
+	fallbackMessage: string
+): Promise<ResponseBody> => {
+	let response = await fetch(url, init);
+	if (init.method === 'GET' && RETRYABLE_STATUS_CODES.has(response.status)) {
+		response = await fetch(url, init);
 	}
 
-	return res as LegalStatusResponse;
+	if (!response.ok) {
+		let message = fallbackMessage;
+		if (response.headers.get('content-type')?.includes('application/json')) {
+			try {
+				const payload = (await response.json()) as { detail?: unknown };
+				message =
+					typeof payload.detail === 'string' && payload.detail.trim()
+						? payload.detail
+						: fallbackMessage;
+			} catch {
+				// Keep the user-safe fallback when an upstream proxy returns malformed JSON.
+			}
+		}
+		console.error(`Legal API request failed with status ${response.status}`);
+		throw new Error(message);
+	}
+
+	try {
+		return (await response.json()) as ResponseBody;
+	} catch (error) {
+		console.error('Legal API returned an invalid response', error);
+		throw new Error(fallbackMessage);
+	}
+};
+
+export const getLegalStatus = async (token: string): Promise<LegalStatusResponse> => {
+	return requestLegalJson<LegalStatusResponse>(
+		`${WEBUI_API_BASE_URL}/legal/status`,
+		{
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`
+			}
+		},
+		'Не удалось проверить юридические документы. Попробуйте ещё раз.'
+	);
 };
 
 export const getLegalRequirements = async (): Promise<LegalRequirementsResponse> => {
-	let error: string | null = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/legal/requirements`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json'
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail ?? 'Failed to load legal requirements';
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res as LegalRequirementsResponse;
+	return requestLegalJson<LegalRequirementsResponse>(
+		`${WEBUI_API_BASE_URL}/legal/requirements`,
+		{
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		},
+		'Не удалось загрузить юридические документы. Попробуйте ещё раз.'
+	);
 };
 
 export const acceptLegalDocs = async (
@@ -99,32 +110,19 @@ export const acceptLegalDocs = async (
 	keys: string[],
 	method: string = 'ui_gate'
 ): Promise<AcceptLegalDocsResponse> => {
-	let error: string | null = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/legal/accept`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
+	return requestLegalJson<AcceptLegalDocsResponse>(
+		`${WEBUI_API_BASE_URL}/legal/accept`,
+		{
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`
+			},
+			body: JSON.stringify({
+				keys,
+				method
+			})
 		},
-		body: JSON.stringify({
-			keys,
-			method
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail ?? 'Failed to accept legal documents';
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res as AcceptLegalDocsResponse;
+		'Не удалось принять документы. Попробуйте ещё раз.'
+	);
 };

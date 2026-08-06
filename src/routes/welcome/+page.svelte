@@ -3,8 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { user } from '$lib/stores';
-	import { getPublicLeadMagnetConfig } from '$lib/apis/billing';
-	import type { PublicLeadMagnetConfig } from '$lib/apis/billing';
+	import { getPublicLeadMagnetConfig, getPublicRateCards } from '$lib/apis/billing';
+	import type { PublicLeadMagnetConfig, PublicRateCardResponse } from '$lib/apis/billing';
 	import { sanitizeRedirectPath } from '$lib/utils/airis/return_to';
 	import { NavHeader, WelcomeProductLanding } from '$lib/components/landing';
 
@@ -27,18 +27,18 @@
 	};
 
 	let leadMagnetConfig: PublicLeadMagnetConfig | null = null;
+	let rateCard: PublicRateCardResponse | null = null;
 
 	// Get redirect URL from query params
 	$: redirectParam = sanitizeRedirectPath($page.url.searchParams.get('redirect'));
 	$: redirectUrl = redirectParam || '/';
 	$: shouldAutoRedirect = Boolean(redirectParam);
 
-	const loadLeadMagnetConfig = async () => {
-		try {
-			leadMagnetConfig = await getPublicLeadMagnetConfig();
-		} catch (error) {
-			console.error('Failed to load lead magnet config:', error);
-		}
+	const loadPublicLandingConfig = async (): Promise<void> => {
+		[leadMagnetConfig, rateCard] = await Promise.all([
+			getPublicLeadMagnetConfig(),
+			getPublicRateCards()
+		]);
 	};
 
 	onMount(() => {
@@ -47,7 +47,7 @@
 			goto(redirectUrl);
 			return;
 		}
-		void loadLeadMagnetConfig();
+		void loadPublicLandingConfig();
 	});
 
 	// Also check for token in localStorage (for page refresh scenarios)
@@ -89,14 +89,14 @@
 </script>
 
 <svelte:head>
-	<title>Airis — все задачи с AI в одном чате</title>
+	<title>AI-модели без VPN — в одном чате | Airis</title>
 	<meta
 		name="description"
-		content="Пишите тексты, анализируйте документы, создавайте изображения и работайте с кодом в Airis. Без VPN, с оплатой российской картой и без обязательной подписки."
+		content="GPT, Claude, Gemini и другие доступные AI-модели в Airis. Работайте без VPN, начинайте бесплатно и пополняйте баланс в рублях без обязательной подписки."
 	/>
 </svelte:head>
 
-<div class="min-h-screen bg-white text-gray-900 font-primary">
+<div class="min-h-screen bg-[#17112f] text-white font-primary">
 	<NavHeader currentPath="/welcome" />
-	<WelcomeProductLanding {leadMagnetConfig} />
+	<WelcomeProductLanding {leadMagnetConfig} {rateCard} />
 </div>
