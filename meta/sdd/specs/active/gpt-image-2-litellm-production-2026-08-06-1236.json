@@ -1,0 +1,134 @@
+{
+  "spec_id": "gpt-image-2-litellm-production-2026-08-06-1236",
+  "title": "GPT Image 2 LiteLLM production integration",
+  "generated": "2026-08-06T09:36:07.836686Z",
+  "last_updated": "2026-08-06T09:37:03.315578Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "high",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-06__feature__gpt-image-2-litellm.md",
+    "status": "active",
+    "activated_date": "2026-08-06T09:37:03.052770Z",
+    "progress_percentage": 33
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "GPT Image 2 LiteLLM production integration",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Provider, pricing, and architecture validation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T09:37:03.313674Z",
+        "journaled_at": "2026-08-06T09:37:03.315557Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Minimal code and production configuration",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: Deploy, verify, and document",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1": {
+      "type": "task",
+      "title": "Validate LiteLLM route, official pricing, and existing Airis image flow",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-08-06__feature__gpt-image-2-litellm.md",
+        "completed_at": "2026-08-06T09:37:03.313455Z",
+        "needs_journaling": false,
+        "status_note": "LiteLLM exposes gpt-image-2 in image_generation mode; medium 1024 provider smoke returned HTTP 200 with one base64 image and usage. Official pricing and existing billing path verified.",
+        "journaled_at": "2026-08-06T09:37:03.314514Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-2": {
+      "type": "task",
+      "title": "Add the catalog entry and apply guarded production configuration and pricing",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "metadata": {
+        "file_path": "backend/open_webui/routers/images.py"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "task-3": {
+      "type": "task",
+      "title": "Build and deploy if needed; verify generation, billing, UI, logs, and backups",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-08-06__feature__gpt-image-2-litellm.md"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-08-06T09:37:03.314508Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Validate LiteLLM route, official pricing, and existing Airis image flow",
+      "author": "Codex",
+      "content": "Task task-1 marked as completed. \nNote: LiteLLM exposes gpt-image-2 in image_generation mode; medium 1024 provider smoke returned HTTP 200 with one base64 image and usage. Official pricing and existing billing path verified.",
+      "metadata": {},
+      "task_id": "task-1"
+    },
+    {
+      "timestamp": "2026-08-06T09:37:03.315553Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: Provider, pricing, and architecture validation",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}
