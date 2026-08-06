@@ -143,6 +143,25 @@ class TestBillingServiceExtended:
         assert delayed_result is not None
         assert updates[-1] == {'cancel_at_period_end': True}
 
+    def test_resume_subscription_clears_scheduled_cancellation(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        service = BillingService()
+        updates: list[dict[str, object]] = []
+
+        def _update_subscription(_sub_id: str, payload: dict[str, object]) -> object:
+            updates.append(payload)
+            return SimpleNamespace(id='sub_1', **payload)
+
+        monkeypatch.setattr(
+            service.subscriptions, 'update_subscription', _update_subscription
+        )
+
+        resumed = service.resume_subscription('sub_1')
+
+        assert resumed is not None
+        assert updates == [{'cancel_at_period_end': False}]
+
     def test_get_current_period_usage_without_subscription_uses_fallback_window(
         self, monkeypatch: MonkeyPatch
     ) -> None:
