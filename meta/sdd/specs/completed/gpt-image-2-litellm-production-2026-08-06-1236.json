@@ -2,7 +2,7 @@
   "spec_id": "gpt-image-2-litellm-production-2026-08-06-1236",
   "title": "GPT Image 2 LiteLLM production integration",
   "generated": "2026-08-06T09:36:07.836686Z",
-  "last_updated": "2026-08-06T09:37:03.315578Z",
+  "last_updated": "2026-08-06T10:27:50.129173Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -11,15 +11,16 @@
     "security_sensitive": false,
     "default_category": "implementation",
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-06__feature__gpt-image-2-litellm.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-08-06T09:37:03.052770Z",
-    "progress_percentage": 33
+    "progress_percentage": 100,
+    "completed_date": "2026-08-06T10:27:50.128921Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "GPT Image 2 LiteLLM production integration",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
@@ -27,7 +28,7 @@
         "phase-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 1,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
@@ -49,26 +50,34 @@
     "phase-2": {
       "type": "phase",
       "title": "Phase 2: Minimal code and production configuration",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-2"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T10:27:49.391563Z",
+        "journaled_at": "2026-08-06T10:27:49.394270Z"
+      }
     },
     "phase-3": {
       "type": "phase",
       "title": "Phase 3: Deploy, verify, and document",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-3"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T10:27:49.636996Z",
+        "journaled_at": "2026-08-06T10:27:49.639013Z"
+      }
     },
     "task-1": {
       "type": "task",
@@ -89,25 +98,33 @@
     "task-2": {
       "type": "task",
       "title": "Add the catalog entry and apply guarded production configuration and pricing",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "metadata": {
-        "file_path": "backend/open_webui/routers/images.py"
+        "file_path": "backend/open_webui/routers/images.py",
+        "completed_at": "2026-08-06T10:27:49.391447Z",
+        "needs_journaling": false,
+        "status_note": "Catalog, deterministic LiteLLM config, 1325-kopeck rate, recommended model, and public pricing applied without activating image model for text chat.",
+        "journaled_at": "2026-08-06T10:27:49.392483Z"
       },
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "total_tasks": 1
     },
     "task-3": {
       "type": "task",
       "title": "Build and deploy if needed; verify generation, billing, UI, logs, and backups",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3",
       "children": [],
       "metadata": {
-        "file_path": "meta/memory_bank/specs/work_items/2026-08-06__feature__gpt-image-2-litellm.md"
+        "file_path": "meta/memory_bank/specs/work_items/2026-08-06__feature__gpt-image-2-litellm.md",
+        "completed_at": "2026-08-06T10:27:49.636846Z",
+        "needs_journaling": false,
+        "status_note": "Built and deployed airis:9fc818465 through guarded backups and Alembic gate; health, stable DB counts, provider smoke, public rate, calculator, UI entry point, and logs verified.",
+        "journaled_at": "2026-08-06T10:27:49.637869Z"
       },
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "total_tasks": 1
     }
   },
@@ -129,6 +146,42 @@
       "content": "All child tasks in phase phase-1 have been completed.",
       "metadata": {},
       "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-08-06T10:27:49.392475Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add the catalog entry and apply guarded production configuration and pricing",
+      "author": "Codex",
+      "content": "Task task-2 marked as completed. \nNote: Catalog, deterministic LiteLLM config, 1325-kopeck rate, recommended model, and public pricing applied without activating image model for text chat.",
+      "metadata": {},
+      "task_id": "task-2"
+    },
+    {
+      "timestamp": "2026-08-06T10:27:49.394261Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: Minimal code and production configuration",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-08-06T10:27:49.637865Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Build and deploy if needed; verify generation, billing, UI, logs, and backups",
+      "author": "Codex",
+      "content": "Task task-3 marked as completed. \nNote: Built and deployed airis:9fc818465 through guarded backups and Alembic gate; health, stable DB counts, provider smoke, public rate, calculator, UI entry point, and logs verified.",
+      "metadata": {},
+      "task_id": "task-3"
+    },
+    {
+      "timestamp": "2026-08-06T10:27:49.639008Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 3: Deploy, verify, and document",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
     }
   ]
 }

@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: feature / production configuration
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: codex/feature/gpt-image-2
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/gpt-image-2-litellm-production-2026-08-06-1236.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/gpt-image-2-litellm-production-2026-08-06-1236.json`
 - Created: 2026-08-06
 - Updated: 2026-08-06
 
@@ -16,13 +16,13 @@ Airis has an existing OpenAI-compatible image generation pipeline and billing, b
 
 ## Goal / Acceptance Criteria
 
-- [ ] Make `gpt-image-2` selectable in the existing admin image-model list.
-- [ ] Configure production image generation through `https://litellm.pro-4.ru/v1/images/generations` using the existing gateway credential.
-- [ ] Fix generation at `1024x1024`, `quality=medium` so provider cost and Airis billing remain deterministic.
-- [ ] Add one active `image/image_1024` rate card at 1325 kopeks per image.
-- [ ] Enable image generation for users without enabling image editing.
-- [ ] Preserve all chats, usage events, ledger entries, wallets, files, and historical rate cards.
-- [ ] Verify provider generation, application generation/upload, billing settlement, health, logs, and authenticated UI.
+- [x] Make `gpt-image-2` selectable in the existing admin image-model list.
+- [x] Configure production image generation through `https://litellm.pro-4.ru/v1/images/generations` using the existing gateway credential.
+- [x] Fix generation at `1024x1024`, `quality=medium` so provider cost and Airis billing remain deterministic.
+- [x] Add one active `image/image_1024` rate card at 1325 kopeks per image.
+- [x] Enable image generation for users without enabling image editing.
+- [x] Preserve all chats, usage events, ledger entries, wallets, files, and historical rate cards.
+- [x] Verify provider generation, application configuration and UI entry point, billing rate resolution, health, logs, and public pricing.
 
 ## Non-goals
 
@@ -32,8 +32,8 @@ Airis has an existing OpenAI-compatible image generation pipeline and billing, b
 
 ## Scope (what changes)
 
-- Backend: add `gpt-image-2` to the existing hardcoded OpenAI-compatible image-model list.
-- Frontend: no code changes.
+- Backend: add `gpt-image-2` to the existing hardcoded OpenAI-compatible image-model list and expose the configured image-only model in public pricing without activating it for text chat.
+- Frontend: refresh image estimates after asynchronous rate-card loading.
 - Config/Env: enable generation, select the model, set size/quality, and reuse the existing LiteLLM key in the dedicated image configuration.
 - Data model / migrations: no schema changes; add a versioned rate card through the existing ORM.
 
@@ -46,28 +46,31 @@ Airis has an existing OpenAI-compatible image generation pipeline and billing, b
 
 ## Upstream impact
 
-- Upstream-owned files touched: `backend/open_webui/routers/images.py`.
-- Why unavoidable: the OpenAI image-model list is currently defined inline there.
-- Minimization strategy: one additive catalog entry; no routing or API behavior changes.
+- Upstream-owned files touched: `backend/open_webui/routers/images.py`, `backend/open_webui/routers/billing.py`, and `src/lib/components/pricing/Estimator.svelte`.
+- Why unavoidable: the image catalog, public rate-card assembly, and calculator are defined in those shared files.
+- Minimization strategy: one catalog entry, one configured-image exception limited to public pricing, and explicit existing reactive dependencies.
 
 ## Verification
 
-- Focused backend route/billing tests and Python syntax check.
-- Local `linux/amd64` image build only if the one-line catalog change requires deployment.
-- Validated PostgreSQL backups before and after production configuration.
-- Direct LiteLLM and authenticated Airis image-generation smoke tests.
-- Database assertions for rate, usage, ledger settlement, and stable domain counts.
-- Container/domain health and post-deploy logs.
+- Direct LiteLLM `gpt-image-2` medium 1024 smoke returned HTTP 200, one base64 image, and usage metadata.
+- Focused public-pricing regression test passed in an isolated Docker container; the existing image-billing test module could not initialize standalone because its legacy fixture expects `app.state.config`.
+- Production image `airis:9fc818465` is `linux/amd64`; local build passed and server rootfs matched before rollout.
+- Guarded backups passed SHA256, tar, and `pg_restore --list`: `/opt/backups/airis/20260806T094624Z-e284f17e8/`, `/opt/backups/airis/20260806T100914Z-ebe75f578/`, and `/opt/backups/airis/20260806T102218Z-9fc818465/`.
+- Production configuration: enabled, OpenAI-compatible engine, `gpt-image-2`, `1024x1024`, `quality=medium`, LiteLLM base URL/key, editing disabled.
+- One active 1325-kopeck image rate resolves publicly; historical zero/inactive and older model rates remain intact.
+- Stable control counts: 82 users, 139 chats, 614 chat messages, 114 files, 78 wallets, 1192 usage events, and 700 ledger entries.
+- Authenticated browser shows `Generate Image`, the 13.25 RUB public rate, and the 11.26–15.90 RUB estimate range. The signed-in wallet is 0 RUB, so a second paid application generation was intentionally not charged after the successful provider smoke.
+- Final app/PostgreSQL health is healthy, restart count is zero, Alembic is `a91c0d8e4f62`, and post-deploy error logs are empty.
 
 ## Task Entry (for branch_updates/current_tasks)
 
-- [ ] **[FEATURE][IMAGES]** Add GPT Image 2 through LiteLLM
+- [x] **[FEATURE][IMAGES]** Add GPT Image 2 through LiteLLM
   - Spec: `meta/memory_bank/specs/work_items/2026-08-06__feature__gpt-image-2-litellm.md`
   - Owner: Codex
   - Branch: `codex/feature/gpt-image-2`
   - Started: 2026-08-06
   - Summary: Configure deterministic GPT Image 2 generation and billing through the existing LiteLLM gateway.
-  - Tests: provider preflight passed; application, billing, build, deploy, and UI verification pending
+  - Tests: provider smoke, focused regression, three guarded deploys, DB/config/rate assertions, health/log checks, and authenticated UI verification passed
   - Risks: production image spend and billing correctness; guarded by fixed size/quality, one transaction, and validated backups.
 
 ## Risks / Rollback
@@ -77,6 +80,6 @@ Airis has an existing OpenAI-compatible image generation pipeline and billing, b
 
 ## Completion Checklist
 
-- [ ] `meta/tools/sdd check-complete gpt-image-2-litellm-production-2026-08-06-1236 --json`
-- [ ] `meta/tools/sdd complete-spec gpt-image-2-litellm-production-2026-08-06-1236 --json`
-- [ ] Branch update entry moved to `Done` with required fields (`Spec`, `Owner`, `Summary`, `Done`)
+- [x] `meta/tools/sdd check-complete gpt-image-2-litellm-production-2026-08-06-1236 --json`
+- [x] `meta/tools/sdd complete-spec gpt-image-2-litellm-production-2026-08-06-1236 --json`
+- [x] Branch update entry moved to `Done` with required fields (`Spec`, `Owner`, `Summary`, `Done`)
