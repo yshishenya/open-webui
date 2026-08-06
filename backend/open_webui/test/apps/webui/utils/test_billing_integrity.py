@@ -1,11 +1,11 @@
 import asyncio
 import time
 import uuid
-from test.util.abstract_integration_test import AbstractPostgresTest
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from open_webui.models.billing import UsageEventModel
+from test.util.abstract_integration_test import AbstractPostgresTest
 
 
 class TestBillingIntegrity(AbstractPostgresTest):
