@@ -1,8 +1,9 @@
-- [ ] **[BUG][BILLING][RELEASE]** Restore release gates and deploy billing hardening
+- [x] **[BUG][BILLING][RELEASE]** Restore release gates and deploy billing hardening
   - Spec: `meta/memory_bank/specs/work_items/2026-08-06__bugfix__billing-release-gates-production.md`
   - Owner: Codex
   - Branch: `codex/bugfix/billing-release-gates`
   - Started: 2026-08-06
-  - Summary: Repaired stale async/config/network tests, restored billing singleton isolation, made primary-admin lookup deterministic, and aligned the Playwright E2E image with the lockfile; follow-up PR and rollout remain.
-  - Tests: Local focused suites green (62 tests); full backend suite green (370 tests); billing `pr-fast` backend/frontend green; Playwright 1.62.1 Chromium launch green; local application image rebuild blocked by PyPI SSL timeouts before E2E.
-  - Risks: Critical financial release; production changes only after green CI and verified backups.
+  - Summary: Repaired release gates, merged PRs #90/#91, and deployed immutable merge SHA `7dc62398` to production.
+  - Tests: PR #90 seven required checks green; backend 370; billing coverage 196 at 85.26% utils line; full pack 214; frontend 8; E2E 9; production health, DB, migration, pricing, and mock canary green.
+  - Deploy: Backup `/opt/backups/airis/20260806T190345Z-7dc6239898096de4a126dcc6610ba5ce50d8b380`; image `yshishenya/yshishenya:7dc6239898096de4a126dcc6610ba5ce50d8b380`; Alembic `b4c5d6e7f8a9`.
+  - Risks: GitHub Actions outage exception documented; queued jobs had zero steps, and exact local release gates replaced the unavailable hosted rerun.

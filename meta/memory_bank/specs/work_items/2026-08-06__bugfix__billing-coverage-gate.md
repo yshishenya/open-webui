@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: completed
 - Owner: Codex
 - Branch: `codex/bugfix/billing-coverage-gate`
 - Parent: `meta/memory_bank/specs/work_items/2026-08-06__bugfix__billing-release-gates-production.md`
@@ -18,7 +18,7 @@ The post-merge `merge-medium` billing run passed 195 backend tests, frontend tes
 
 - [x] Cover an existing untested billing service path without changing runtime behavior or lowering thresholds.
 - [x] Billing coverage for `open_webui/utils/billing.py` is at least 85%.
-- [ ] Follow-up PR is merged before `release-heavy` and production rollout.
+- [x] Follow-up PR is merged before `release-heavy` and production rollout.
 
 ## Scope
 
@@ -34,7 +34,7 @@ The post-merge `merge-medium` billing run passed 195 backend tests, frontend tes
 
 - Billing service extended suite: 10 passed in the exact production candidate image.
 - Exact billing coverage suite: 196 passed; utils line 85.26%, branch 75.55%; unchanged gate passed.
-- PR checks and post-merge billing confidence.
+- PR #91 merged as `7dc6239898096de4a126dcc6610ba5ce50d8b380`; exact local release confidence passed during the documented GitHub Actions outage.
 
 ## Risks / Rollback
 

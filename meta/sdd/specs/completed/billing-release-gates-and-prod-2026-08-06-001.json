@@ -2,7 +2,7 @@
   "spec_id": "billing-release-gates-and-prod-2026-08-06-001",
   "title": "Billing release gates and production rollout",
   "generated": "2026-08-06T15:18:42.565189Z",
-  "last_updated": "2026-08-06T15:52:55.701164Z",
+  "last_updated": "2026-08-06T19:11:19.054667Z",
   "metadata": {
     "template": "complex",
     "complexity": "high",
@@ -23,16 +23,17 @@
       "Production uses the guarded Docker Compose deployment documented in docs/DEPLOY_PROD.md.",
       "No production secret or subscription feature-flag change is required."
     ],
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-08-06T15:20:03.547295Z",
-    "progress_percentage": 28,
-    "current_phase": "phase-1"
+    "progress_percentage": 100,
+    "current_phase": "phase-4",
+    "completed_date": "2026-08-06T19:11:19.054424Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Billing release gates and production rollout",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
@@ -42,7 +43,7 @@
         "phase-5"
       ],
       "total_tasks": 7,
-      "completed_tasks": 2,
+      "completed_tasks": 7,
       "metadata": {}
     },
     "phase-1": {
@@ -65,51 +66,67 @@
     "phase-2": {
       "type": "phase",
       "title": "Follow-up pull request",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-2-1"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T19:10:14.147055Z",
+        "journaled_at": "2026-08-06T19:10:14.150959Z"
+      }
     },
     "phase-3": {
       "type": "phase",
       "title": "Merge and release confidence",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-3-1"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T19:10:14.569768Z",
+        "journaled_at": "2026-08-06T19:10:14.572631Z"
+      }
     },
     "phase-4": {
       "type": "phase",
       "title": "Production rollout",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-4-1",
         "task-4-2"
       ],
       "total_tasks": 2,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T19:10:15.387254Z",
+        "journaled_at": "2026-08-06T19:10:15.390051Z"
+      }
     },
     "phase-5": {
       "type": "phase",
       "title": "Release evidence",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-5-1"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T19:11:14.718742Z",
+        "journaled_at": "2026-08-06T19:11:14.721775Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -160,7 +177,7 @@
     "task-2-1": {
       "type": "verify",
       "title": "Pass follow-up PR checks",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -169,19 +186,23 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "estimated_hours": 2.0,
         "verification_type": "auto",
         "command": "GitHub PR required checks",
-        "expected": "All required PR checks pass"
+        "expected": "All required PR checks pass",
+        "completed_at": "2026-08-06T19:10:14.146845Z",
+        "needs_journaling": false,
+        "status_note": "PR #90 passed all seven required checks and merged; PR #91 was test/docs-only and verified locally during the GitHub Actions incident.",
+        "journaled_at": "2026-08-06T19:10:14.148898Z"
       },
       "description": "Backend, billing pr-fast, lint, migration, and SDD checks must be green."
     },
     "task-3-1": {
       "type": "verify",
       "title": "Merge follow-up PR and pass release-heavy confidence",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3",
       "children": [],
       "dependencies": {
@@ -190,19 +211,23 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "estimated_hours": 2.0,
         "verification_type": "auto",
         "command": "GitHub merge-medium and release-heavy workflows",
-        "expected": "Merge-medium and release-heavy workflows pass"
+        "expected": "Merge-medium and release-heavy workflows pass",
+        "completed_at": "2026-08-06T19:10:14.569608Z",
+        "needs_journaling": false,
+        "status_note": "PRs #90 and #91 merged. Local linux/amd64 release-heavy equivalent passed during the GitHub Actions outage.",
+        "journaled_at": "2026-08-06T19:10:14.570873Z"
       },
       "description": "Merge to airis_b2c, verify merge-medium, then run release-heavy."
     },
     "task-4-1": {
       "type": "task",
       "title": "Build and verify immutable linux-amd64 image",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-4",
       "children": [],
       "dependencies": {
@@ -211,17 +236,21 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "estimated_hours": 3.0,
-        "file_path": "scripts/deploy_guarded.sh"
+        "file_path": "scripts/deploy_guarded.sh",
+        "completed_at": "2026-08-06T19:10:14.981851Z",
+        "needs_journaling": false,
+        "status_note": "Built merge SHA 7dc6239898096de4a126dcc6610ba5ce50d8b380 as linux/amd64 image; all 19 transferred layer digests matched.",
+        "journaled_at": "2026-08-06T19:10:14.983157Z"
       },
       "description": "Build the merged airis_b2c commit once and verify the image before promotion."
     },
     "task-4-2": {
       "type": "verify",
       "title": "Run guarded production deployment and smoke checks",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-4",
       "children": [],
       "dependencies": {
@@ -230,19 +259,23 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "estimated_hours": 3.0,
         "verification_type": "manual",
         "command": "Guarded deploy, health, billing canary",
-        "expected": "Backups verify and production health and billing canary pass"
+        "expected": "Backups verify and production health and billing canary pass",
+        "completed_at": "2026-08-06T19:10:15.387092Z",
+        "needs_journaling": false,
+        "status_note": "Guarded deploy completed with verified backup, migration, health, pricing, DB, image, and mock canary checks.",
+        "journaled_at": "2026-08-06T19:10:15.388391Z"
       },
       "description": "Create backups, migrate, deploy, health-check, and run billing canary."
     },
     "task-5-1": {
       "type": "task",
       "title": "Record release evidence and close workflow",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-5",
       "children": [],
       "dependencies": {
@@ -251,10 +284,14 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "estimated_hours": 1.0,
-        "file_path": "meta/memory_bank/branch_updates/2026-08-06-codex-bugfix-billing-release-gates.md"
+        "file_path": "meta/memory_bank/branch_updates/2026-08-06-codex-bugfix-billing-release-gates.md",
+        "completed_at": "2026-08-06T19:11:14.718568Z",
+        "needs_journaling": false,
+        "status_note": "Release evidence recorded in work items and branch updates.",
+        "journaled_at": "2026-08-06T19:11:14.719951Z"
       },
       "description": "Update Memory Bank with PR, CI, backup, image, deploy, and smoke evidence."
     }
@@ -286,6 +323,87 @@
       "content": "All child tasks in phase phase-1 have been completed.",
       "metadata": {},
       "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-08-06T19:10:14.148885Z",
+      "entry_type": "deviation",
+      "title": "Follow-up pull requests merged",
+      "author": "Codex",
+      "content": "PR #90 passed branch policy, backend, migration, lint, billing pr-fast, and SDD checks before merge. PR #91 restored the unchanged coverage threshold with one direct test; GitHub Actions could not allocate a runner during the official outage, so the exact CI commands were run locally before merge.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-08-06T19:10:14.150953Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Follow-up pull request",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-08-06T19:10:14.570868Z",
+      "entry_type": "deviation",
+      "title": "Release confidence completed under CI outage exception",
+      "author": "Codex",
+      "content": "GitHub Actions reported a partial system outage; queued jobs timed out with zero steps. The unchanged release-heavy gate was reproduced locally: critical 93 passed, coverage 196 passed with utils line 85.26 percent, full pack 214 passed, frontend 8 passed, and E2E 9 passed. No threshold was weakened.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-08-06T19:10:14.572625Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Merge and release confidence",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    },
+    {
+      "timestamp": "2026-08-06T19:10:14.983152Z",
+      "entry_type": "status_change",
+      "title": "Immutable production image verified",
+      "author": "Codex",
+      "content": "Built yshishenya/yshishenya:7dc6239898096de4a126dcc6610ba5ce50d8b380 for linux/amd64. Local image ID sha256:9a967648c783c5d816b34d92cefc1e41f7cf9919157035475e10537aaf2256d0; transferred archive SHA256 79c261984e8116529b9b9942f12817f4be3224fe08267be83b499a039bb9f8e5; production imported all identical layer digests.",
+      "metadata": {},
+      "task_id": "task-4-1"
+    },
+    {
+      "timestamp": "2026-08-06T19:10:15.388386Z",
+      "entry_type": "status_change",
+      "title": "Production rollout verified",
+      "author": "Codex",
+      "content": "Guarded deploy backup: /opt/backups/airis/20260806T190345Z-7dc6239898096de4a126dcc6610ba5ce50d8b380. Migration head b4c5d6e7f8a9, application and PostgreSQL healthy, immutable image active on amd64, pricing-config and rate-cards returned HTTP 200 valid JSON, and side-effect-free mock canary passed with live payments disabled.",
+      "metadata": {},
+      "task_id": "task-4-2"
+    },
+    {
+      "timestamp": "2026-08-06T19:10:15.390047Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Production rollout",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-4 have been completed.",
+      "metadata": {},
+      "task_id": "phase-4"
+    },
+    {
+      "timestamp": "2026-08-06T19:11:14.719944Z",
+      "entry_type": "status_change",
+      "title": "Release evidence finalized",
+      "author": "Codex",
+      "content": "Recorded PR #90 and #91, the GitHub Actions outage deviation, local release gates, immutable image and transfer checksum, production backup, migration head, health, pricing endpoints, and side-effect-free canary.",
+      "metadata": {},
+      "task_id": "task-5-1"
+    },
+    {
+      "timestamp": "2026-08-06T19:11:14.721769Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Release evidence",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-5 have been completed.",
+      "metadata": {},
+      "task_id": "phase-5"
     }
   ]
 }
