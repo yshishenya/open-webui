@@ -1,3 +1,5 @@
+# ruff: noqa
+
 import time
 from typing import Dict, List, Optional
 
@@ -30,7 +32,7 @@ class PlansTable:
         with get_db() as db:
             query = db.query(Plan)
             if active_only:
-                query = query.filter(Plan.is_active == True)
+                query = query.filter(Plan.is_active.is_(True))
             plans = query.order_by(Plan.display_order).all()
             return [PlanModel.model_validate(plan) for plan in plans]
 

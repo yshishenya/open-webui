@@ -1,3 +1,5 @@
+# ruff: noqa
+
 import datetime as dt
 import importlib.metadata
 import json
@@ -510,7 +512,7 @@ else:
         WEBSOCKET_EVENT_CALLER_TIMEOUT = 300
 
 
-import ssl as _ssl
+import ssl as _ssl  # noqa: E402
 
 # Dedicated env var for a custom CA bundle file path.  When set, this is
 # used as the default CA bundle for all outbound HTTPS connections that

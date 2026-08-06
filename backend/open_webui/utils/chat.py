@@ -52,7 +52,7 @@ log = logging.getLogger(__name__)
 
 # When the question has been asked, let silence not be the
 # answer. But if the answer must wait, let it come honest.
-async def generate_direct_chat_completion(
+async def generate_direct_chat_completion(  # noqa: C901
     request: Request,
     form_data: dict,
     user: Any,
@@ -163,7 +163,7 @@ async def generate_direct_chat_completion(
         return res
 
 
-async def generate_chat_completion(
+async def generate_chat_completion(  # noqa: C901
     request: Request,
     form_data: dict,
     user: Any,
@@ -257,14 +257,14 @@ async def generate_chat_completion(
 
             form_data['model'] = selected_model_id
 
-            # bypass_filter recursion below skips the line-200 check; gate the resolved model here.
+            # Gate the resolved model because recursion below bypasses the line-200 check.
             if not bypass_filter and user.role == 'user':
                 selected_model = request.app.state.MODELS.get(selected_model_id)
                 if selected_model:
                     await check_model_access(user, selected_model)
 
         if selected_model_id:
-            if form_data.get('stream') == True:
+            if form_data.get('stream') is True:
 
                 async def stream_wrapper(stream):
                     yield f'data: {json.dumps({"selected_model_id": selected_model_id})}\n\n'
@@ -298,7 +298,7 @@ async def generate_chat_completion(
                 }
 
         if model.get('pipe'):
-            # Below does not require bypass_filter because this is the only route the uses this function and it is already bypassing the filter
+            # This route already bypasses the filter, so no additional bypass flag is needed.
             return await generate_function_chat_completion(request, form_data, user=user, models=models)
         if model.get('owned_by') == 'ollama':
             messages_value = form_data.get('messages', [])

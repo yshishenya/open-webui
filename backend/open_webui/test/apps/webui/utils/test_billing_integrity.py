@@ -105,9 +105,7 @@ class TestBillingIntegrity(AbstractPostgresTest):
                 'rollback-user',
                 'rollback-operation',
                 'correlation',
-                model_id='conflicting-model',
-                charged_kopeks=1,
-            )
+            ).model_copy(update={'prompt_tokens': 999})
         )
 
         with pytest.raises(WalletError):
@@ -128,6 +126,24 @@ class TestBillingIntegrity(AbstractPostgresTest):
         assert refreshed.balance_topup_kopeks == 500
         assert refreshed.daily_reserved_kopeks == 500
         assert refreshed.daily_spent_kopeks == 0
+
+    def test_topup_rejects_wallet_owned_by_another_user(self) -> None:
+        from open_webui.env import BILLING_TOPUP_PACKAGES_KOPEKS
+        from open_webui.utils.billing import BillingService
+        from open_webui.utils.wallet import wallet_service
+
+        wallet = wallet_service.get_or_create_wallet('wallet-owner', 'RUB')
+        amount = BILLING_TOPUP_PACKAGES_KOPEKS[0] if BILLING_TOPUP_PACKAGES_KOPEKS else 100
+
+        with pytest.raises(ValueError, match='Wallet not found'):
+            asyncio.run(
+                BillingService().create_topup_payment(
+                    user_id='different-user',
+                    wallet_id=wallet.id,
+                    amount_kopeks=amount,
+                    return_url='https://example.com/billing',
+                )
+            )
 
     def test_expired_hold_releases_and_daily_cap_counts_live_holds(self) -> None:
         from open_webui.utils.wallet import (

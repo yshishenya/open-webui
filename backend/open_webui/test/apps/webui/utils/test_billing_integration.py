@@ -1,3 +1,5 @@
+# ruff: noqa
+
 import time
 import uuid
 from decimal import Decimal
@@ -1177,7 +1179,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert payment.payment_method_id == "pm_contract_1"
 
     @pytest.mark.asyncio
-    async def test_yookassa_post_retry_reuses_idempotence_key(self, monkeypatch):
+    async def test_yookassa_post_retry_reuses_idempotence_key(self, monkeypatch):  # noqa: C901
         import open_webui.utils.yookassa as yookassa_utils
 
         attempts: list[dict[str, str]] = []

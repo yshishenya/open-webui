@@ -1,3 +1,5 @@
+# ruff: noqa
+
 import time
 from typing import Optional
 

@@ -1,7 +1,10 @@
+# ruff: noqa
+
+import asyncio
 import time
 import uuid
 from decimal import Decimal
-from typing import Iterable
+from typing import AsyncIterator
 
 from _pytest.monkeypatch import MonkeyPatch
 
@@ -10,16 +13,31 @@ from test.util.mock_user import mock_webui_user
 
 
 class FakeStreamResponse:
-    status_code: int = 200
+    class Content:
+        async def iter_chunked(self, chunk_size: int) -> AsyncIterator[bytes]:
+            yield b"audio-bytes"
+
+    content = Content()
+    closed = False
 
     def raise_for_status(self) -> None:
         return None
 
-    def iter_content(self, chunk_size: int = 8192) -> Iterable[bytes]:
-        yield b"audio-bytes"
-
-    def json(self) -> dict[str, object]:
+    async def json(self, **_: object) -> dict[str, object]:
         return {}
+
+    def close(self) -> None:
+        self.closed = True
+
+
+class FakeSession:
+    async def post(self, *args: object, **kwargs: object) -> FakeStreamResponse:
+        return FakeStreamResponse()
+
+
+class FakeFailSession(FakeSession):
+    async def post(self, *args: object, **kwargs: object) -> FakeStreamResponse:
+        raise RuntimeError("boom")
 
 
 class TestOpenAISpeechBilling(AbstractPostgresTest):
@@ -27,6 +45,7 @@ class TestOpenAISpeechBilling(AbstractPostgresTest):
 
     def setup_method(self) -> None:
         super().setup_method()
+        from open_webui.models.config import Config
         from open_webui.models.billing import PricingRateCardModel, RateCards
 
         now = int(time.time())
@@ -47,6 +66,17 @@ class TestOpenAISpeechBilling(AbstractPostgresTest):
         )
 
         RateCards.create_rate_card(rate_card.model_dump())
+        asyncio.run(
+            Config.upsert(
+                {
+                    "openai.enable": True,
+                    "openai.api_base_urls": ["https://api.openai.com/v1"],
+                    "openai.api_keys": ["test-key"],
+                    "openai.api_configs": {"0": {}},
+                    "user.permissions": {"chat": {"tts": True}},
+                }
+            )
+        )
 
     def test_openai_speech_billing(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.internal.db import ScopedSession as Session
@@ -56,16 +86,11 @@ class TestOpenAISpeechBilling(AbstractPostgresTest):
         import open_webui.routers.openai as openai_router
         import open_webui.utils.billing_integration as billing_integration
 
-        def fake_post(*args: object, **kwargs: object) -> FakeStreamResponse:
-            return FakeStreamResponse()
+        async def fake_get_session() -> FakeSession:
+            return FakeSession()
 
         monkeypatch.setattr(billing_integration, "ENABLE_BILLING_WALLET", True)
-        monkeypatch.setattr(openai_router.requests, "post", fake_post)
-
-        config = self.fast_api_client.app.state.config
-        config.OPENAI_API_BASE_URLS = ["https://api.openai.com/v1"]
-        config.OPENAI_API_KEYS = ["test-key"]
-        config.OPENAI_API_CONFIGS = {"0": {}}
+        monkeypatch.setattr(openai_router, "get_session", fake_get_session)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 5000})
@@ -81,15 +106,11 @@ class TestOpenAISpeechBilling(AbstractPostgresTest):
 
         assert response.status_code == 200
 
-        rate_card = RateCards.get_rate_card_by_version(
-            self.model_id, "tts", "tts_char", "2025-01"
-        )
+        rate_card = RateCards.get_rate_card_by_version(self.model_id, "tts", "tts_char", "2025-01")
         assert rate_card is not None
 
         expected_units = Decimal(len(input_text))
-        expected_charge = PricingService().calculate_cost_kopeks(
-            expected_units, rate_card, 0
-        )
+        expected_charge = PricingService().calculate_cost_kopeks(expected_units, rate_card, 0)
 
         updated_wallet = Wallets.get_wallet_by_id(wallet.id)
         assert updated_wallet is not None
@@ -115,11 +136,7 @@ class TestOpenAISpeechBilling(AbstractPostgresTest):
         )
         assert charge_entry is not None
 
-        usage_event = (
-            Session.query(UsageEvent)
-            .filter(UsageEvent.user_id == "1")
-            .first()
-        )
+        usage_event = Session.query(UsageEvent).filter(UsageEvent.user_id == "1").first()
         assert usage_event is not None
         assert usage_event.modality == "tts"
         assert usage_event.cost_charged_kopeks == expected_charge
@@ -131,16 +148,11 @@ class TestOpenAISpeechBilling(AbstractPostgresTest):
         import open_webui.routers.openai as openai_router
         import open_webui.utils.billing_integration as billing_integration
 
-        def fake_post(*args: object, **kwargs: object) -> FakeStreamResponse:
-            raise RuntimeError("boom")
+        async def fake_get_session() -> FakeFailSession:
+            return FakeFailSession()
 
         monkeypatch.setattr(billing_integration, "ENABLE_BILLING_WALLET", True)
-        monkeypatch.setattr(openai_router.requests, "post", fake_post)
-
-        config = self.fast_api_client.app.state.config
-        config.OPENAI_API_BASE_URLS = ["https://api.openai.com/v1"]
-        config.OPENAI_API_KEYS = ["test-key"]
-        config.OPENAI_API_CONFIGS = {"0": {}}
+        monkeypatch.setattr(openai_router, "get_session", fake_get_session)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 5000})

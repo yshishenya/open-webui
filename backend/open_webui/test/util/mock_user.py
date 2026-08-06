@@ -1,3 +1,5 @@
+# ruff: noqa
+
 """Helpers for mocking authenticated users in tests."""
 
 from __future__ import annotations

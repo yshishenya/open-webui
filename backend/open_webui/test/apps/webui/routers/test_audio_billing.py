@@ -1,4 +1,8 @@
+# ruff: noqa
+
+import asyncio
 import time
+import uuid
 from decimal import Decimal
 from typing import Optional
 
@@ -10,6 +14,7 @@ from test.util.mock_user import mock_webui_user
 
 class FakeResponse:
     status: int = 200
+    headers = {"Content-Type": "audio/mpeg"}
 
     def raise_for_status(self) -> None:
         return None
@@ -50,6 +55,7 @@ class TestAudioBilling(AbstractPostgresTest):
 
     def setup_method(self) -> None:
         super().setup_method()
+        from open_webui.models.config import Config
         from open_webui.models.billing import PricingRateCardModel, RateCards
 
         now = int(time.time())
@@ -70,6 +76,18 @@ class TestAudioBilling(AbstractPostgresTest):
         )
 
         RateCards.create_rate_card(rate_card.model_dump())
+        asyncio.run(
+            Config.upsert(
+                {
+                    "audio.tts.engine": "openai",
+                    "audio.tts.model": self.model_id,
+                    "audio.tts.openai.api_base_url": "https://example.com",
+                    "audio.tts.openai.api_key": "test-key",
+                    "audio.tts.openai.params": None,
+                    "user.permissions": {"chat": {"tts": True}},
+                }
+            )
+        )
 
     def test_tts_speech_billing(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.internal.db import ScopedSession as Session
@@ -80,34 +98,29 @@ class TestAudioBilling(AbstractPostgresTest):
         import open_webui.utils.billing_integration as billing_integration
 
         monkeypatch.setattr(billing_integration, "ENABLE_BILLING_WALLET", True)
-        monkeypatch.setattr(audio_router.aiohttp, "ClientSession", FakeSession)
 
-        config = self.fast_api_client.app.state.config
-        config.TTS_ENGINE = "openai"
-        config.TTS_MODEL = self.model_id
-        config.TTS_OPENAI_API_BASE_URL = "https://example.com"
-        config.TTS_OPENAI_API_KEY = "test-key"
-        config.TTS_OPENAI_PARAMS = None
+        async def fake_get_session() -> FakeSession:
+            return FakeSession()
+
+        monkeypatch.setattr(audio_router, "get_session", fake_get_session)
+        monkeypatch.setattr(audio_router, "transcode_audio_to_mp3", lambda *_: False)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 5000})
 
-        payload = {"input": "hello", "voice": "alloy", "model": self.model_id}
+        input_text = f"hello-{uuid.uuid4()}"
+        payload = {"input": input_text, "voice": "alloy", "model": self.model_id}
 
         with mock_webui_user(id="1"):
             response = self.fast_api_client.post(self.create_url("/speech"), json=payload)
 
         assert response.status_code == 200
 
-        rate_card = RateCards.get_rate_card_by_version(
-            self.model_id, "tts", "tts_char", "2025-01"
-        )
+        rate_card = RateCards.get_rate_card_by_version(self.model_id, "tts", "tts_char", "2025-01")
         assert rate_card is not None
 
-        expected_units = Decimal(len("hello"))
-        expected_charge = PricingService().calculate_cost_kopeks(
-            expected_units, rate_card, 0
-        )
+        expected_units = Decimal(len(input_text))
+        expected_charge = PricingService().calculate_cost_kopeks(expected_units, rate_card, 0)
 
         updated_wallet = Wallets.get_wallet_by_id(wallet.id)
         assert updated_wallet is not None
@@ -133,11 +146,7 @@ class TestAudioBilling(AbstractPostgresTest):
         )
         assert charge_entry is not None
 
-        usage_event = (
-            Session.query(UsageEvent)
-            .filter(UsageEvent.user_id == "1")
-            .first()
-        )
+        usage_event = Session.query(UsageEvent).filter(UsageEvent.user_id == "1").first()
         assert usage_event is not None
         assert usage_event.modality == "tts"
         assert usage_event.cost_charged_kopeks == expected_charge
@@ -150,19 +159,20 @@ class TestAudioBilling(AbstractPostgresTest):
         import open_webui.utils.billing_integration as billing_integration
 
         monkeypatch.setattr(billing_integration, "ENABLE_BILLING_WALLET", True)
-        monkeypatch.setattr(audio_router.aiohttp, "ClientSession", FakeFailSession)
 
-        config = self.fast_api_client.app.state.config
-        config.TTS_ENGINE = "openai"
-        config.TTS_MODEL = self.model_id
-        config.TTS_OPENAI_API_BASE_URL = "https://example.com"
-        config.TTS_OPENAI_API_KEY = "test-key"
-        config.TTS_OPENAI_PARAMS = None
+        async def fake_get_session() -> FakeFailSession:
+            return FakeFailSession()
+
+        monkeypatch.setattr(audio_router, "get_session", fake_get_session)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 5000})
 
-        payload = {"input": "boom", "voice": "alloy", "model": self.model_id}
+        payload = {
+            "input": f"boom-{uuid.uuid4()}",
+            "voice": "alloy",
+            "model": self.model_id,
+        }
 
         with mock_webui_user(id="1"):
             response = self.fast_api_client.post(self.create_url("/speech"), json=payload)

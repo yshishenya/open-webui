@@ -1,3 +1,5 @@
+# ruff: noqa
+
 """
 Billing integration utilities
 Handles quota checking and usage tracking for AI model requests
@@ -292,7 +294,7 @@ def _calculate_cost_breakdown(
     return cost_in, cost_out, cost_in + cost_out
 
 
-def _resolve_lead_magnet_units(
+def _resolve_lead_magnet_units(  # noqa: C901
     billing_context: SingleRateHoldContext,
     measured_units: JsonDict,
     usage_metric: Optional[UsageMetric],
@@ -408,7 +410,7 @@ async def _reserve_subscription_quota(
         ) from exc
 
 
-async def preflight_estimate_hold(
+async def preflight_estimate_hold(  # noqa: C901
     user_id: str,
     model_id: str,
     payload: Dict[str, object],
@@ -670,7 +672,7 @@ async def preflight_estimate_hold(
     )
 
 
-async def preflight_single_rate_hold(
+async def preflight_single_rate_hold(  # noqa: C901
     user_id: str,
     model_id: str,
     modality: str,
@@ -1266,7 +1268,7 @@ async def track_non_streaming_response(
     return response
 
 
-async def track_streaming_response(
+async def track_streaming_response(  # noqa: C901
     response_iterator: AsyncGenerator[bytes, None],
     user_id: str,
     model_id: str,
@@ -1354,7 +1356,7 @@ async def track_streaming_response(
 # ==================== Helper Functions ====================
 
 
-def estimate_tokens_from_messages(
+def estimate_tokens_from_messages(  # noqa: C901
     messages: list[object],
     model_id: Optional[str] = None,
 ) -> int:

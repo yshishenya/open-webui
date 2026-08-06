@@ -1,3 +1,5 @@
+# ruff: noqa
+
 import time
 from types import SimpleNamespace
 
@@ -72,9 +74,7 @@ class TestBillingCorePaths(AbstractPostgresTest):
         assert payload[0]["name_ru"] == "Базовый"
         assert payload[1]["description_ru"] == "Про описание"
 
-    def test_public_plans_returns_500_when_service_fails(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_public_plans_returns_500_when_service_fails(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         monkeypatch.setattr(billing_router, "ENABLE_BILLING_SUBSCRIPTIONS", True)
@@ -201,9 +201,7 @@ class TestBillingCorePaths(AbstractPostgresTest):
         assert response.status_code == 400
         assert response.json()["detail"] == expected_detail
 
-    def test_update_auto_topup_success_and_update_failure(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_update_auto_topup_success_and_update_failure(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
@@ -261,9 +259,7 @@ class TestBillingCorePaths(AbstractPostgresTest):
         assert failed_response.status_code == 500
         assert failed_response.json()["detail"] == "Failed to update auto-topup settings"
 
-    def test_update_billing_settings_validates_and_updates_contact(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_update_billing_settings_validates_and_updates_contact(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
@@ -281,7 +277,7 @@ class TestBillingCorePaths(AbstractPostgresTest):
 
         contact_updates: list[dict[str, object]] = []
 
-        def _update_user(_user_id: str, payload: dict[str, object]) -> object:
+        async def _update_user(_user_id: str, payload: dict[str, object]) -> object:
             contact_updates.append(payload)
             return object()
 
@@ -332,9 +328,7 @@ class TestBillingCorePaths(AbstractPostgresTest):
         assert failed_response.status_code == 500
         assert failed_response.json()["detail"] == "Failed to update billing settings"
 
-    def test_usage_and_quota_endpoints_cover_validation_and_remaining(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_usage_and_quota_endpoints_cover_validation_and_remaining(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         monkeypatch.setattr(
@@ -381,9 +375,7 @@ class TestBillingCorePaths(AbstractPostgresTest):
         assert quota.json()["allowed"] is True
         assert quota.json()["remaining"] == 7
 
-    def test_cancel_subscription_error_and_success_paths(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_cancel_subscription_error_and_success_paths(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         monkeypatch.setattr(billing_router, "ENABLE_BILLING_SUBSCRIPTIONS", True)

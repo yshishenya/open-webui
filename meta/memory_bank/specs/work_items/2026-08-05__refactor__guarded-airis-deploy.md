@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: airis_b2c
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/guarded-airis-production-deplo-2026-08-05-0118.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/guarded-airis-production-deploy-2026-08-05-001.json`
 - Created: 2026-08-05
 - Updated: 2026-08-05
 

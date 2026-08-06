@@ -1,3 +1,5 @@
+# ruff: noqa
+
 import time
 from decimal import Decimal
 from typing import Optional

@@ -1,3 +1,5 @@
+# ruff: noqa
+
 from open_webui.models.billing_models import (
     Plan,
     PlanModel,

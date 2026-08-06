@@ -3,7 +3,7 @@
 - Date: 2026-08-06
 - Branch: `codex/bugfix/billing-integrity-hardening`
 - Spec: `meta/memory_bank/specs/work_items/2026-08-06__feature__admin-billing-financial-visibility.md`
-- SDD: `meta/sdd/specs/completed/admin-billing-financial-visibi-2026-08-06-1623.json`
+- SDD: `meta/sdd/specs/completed/admin-billing-financial-visibility-2026-08-06-001.json`
 
 ## Status
 

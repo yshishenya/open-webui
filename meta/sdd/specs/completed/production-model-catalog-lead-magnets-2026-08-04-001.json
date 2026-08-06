@@ -41,7 +41,7 @@
       "children": [],
       "total_tasks": 1,
       "completed_tasks": 1,
-      "metadata": {"task_category": "operations"}
+      "metadata": {"task_category": "implementation"}
     },
     "verify-1-1": {
       "type": "verify",
@@ -71,7 +71,7 @@
       "children": [],
       "total_tasks": 1,
       "completed_tasks": 1,
-      "metadata": {"task_category": "configuration"}
+      "metadata": {"task_category": "implementation"}
     },
     "task-2-2": {
       "type": "task",
@@ -81,7 +81,7 @@
       "children": [],
       "total_tasks": 1,
       "completed_tasks": 1,
-      "metadata": {"task_category": "billing"}
+      "metadata": {"task_category": "implementation"}
     },
     "phase-3": {
       "type": "phase",
@@ -101,7 +101,7 @@
       "children": [],
       "total_tasks": 1,
       "completed_tasks": 1,
-      "metadata": {"task_category": "access-control"}
+      "metadata": {"task_category": "implementation"}
     },
     "verify-3-1": {
       "type": "verify",

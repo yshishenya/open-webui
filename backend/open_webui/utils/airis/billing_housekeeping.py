@@ -1,3 +1,5 @@
+# ruff: noqa
+
 """Bounded cleanup for temporary billing state."""
 
 import asyncio

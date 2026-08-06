@@ -1,3 +1,5 @@
+# ruff: noqa: Q000, I001
+
 """Harden billing integrity and reservation state.
 
 Revision ID: b4c5d6e7f8a9

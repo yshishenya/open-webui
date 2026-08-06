@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: airis_b2c
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/chat-runtime-state-recovery-2026-08-06-0730.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/chat-runtime-state-recovery-2026-08-06-001.json`
 - Created: 2026-08-06
 - Updated: 2026-08-06
 
@@ -63,6 +63,6 @@ The previous loader recovery exposed the actual client-side failures. In an auth
 
 ## Completion Checklist
 
-- [x] `meta/tools/sdd check-complete chat-runtime-state-recovery-2026-08-06-0730 --json`
-- [x] `meta/tools/sdd complete-spec chat-runtime-state-recovery-2026-08-06-0730 --json`
+- [x] `meta/tools/sdd check-complete chat-runtime-state-recovery-2026-08-06-001 --json`
+- [x] `meta/tools/sdd complete-spec chat-runtime-state-recovery-2026-08-06-001 --json`
 - [x] Move the current task entry to completed.

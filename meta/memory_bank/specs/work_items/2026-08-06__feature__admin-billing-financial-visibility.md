@@ -6,7 +6,7 @@
 - Status: completed
 - Owner: Codex
 - Branch: `codex/bugfix/billing-integrity-hardening`
-- SDD Spec: `meta/sdd/specs/completed/admin-billing-financial-visibi-2026-08-06-1623.json`
+- SDD Spec: `meta/sdd/specs/completed/admin-billing-financial-visibility-2026-08-06-001.json`
 - Created: 2026-08-06
 - Updated: 2026-08-06
 
