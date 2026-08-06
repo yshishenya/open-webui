@@ -1,4 +1,6 @@
-import json
+# ruff: noqa
+
+import asyncio
 import time
 import uuid
 from decimal import Decimal
@@ -9,8 +11,8 @@ from _pytest.monkeypatch import MonkeyPatch
 from test.util.abstract_integration_test import AbstractPostgresTest
 from test.util.billing_scenarios_matrix import (
     assert_wallet_topup_balance,
-    get_ledger_entry,
-    get_usage_event,
+    get_ledger_entry_by_correlation,
+    get_usage_event_by_correlation,
 )
 from test.util.mock_user import mock_webui_user
 from test.util.openai_provider_fakes import FakeAiohttpResponse, FakeAiohttpSession
@@ -35,6 +37,7 @@ class TestOpenAIChatBilling(AbstractPostgresTest):
         super().setup_method()
 
         from open_webui.models.billing import PricingRateCardModel, RateCards
+        from open_webui.models.config import Config
         from open_webui.models.models import ModelForm, ModelMeta, ModelParams, Models
 
         now = int(time.time())
@@ -72,24 +75,29 @@ class TestOpenAIChatBilling(AbstractPostgresTest):
             ).model_dump()
         )
 
-        Models.insert_new_model(
-            ModelForm(
-                id=self.model_id,
-                name="Test Billing Chat Model",
-                base_model_id=None,
-                meta=ModelMeta(lead_magnet=False),
-                params=ModelParams(),
-                access_control=None,
-                is_active=True,
-            ),
-            user_id="admin",
-        )
+        async def configure_openai() -> None:
+            await Models.insert_new_model(
+                ModelForm(
+                    id=self.model_id,
+                    name="Test Billing Chat Model",
+                    base_model_id=None,
+                    meta=ModelMeta(lead_magnet=False),
+                    params=ModelParams(),
+                    access_control=None,
+                    is_active=True,
+                ),
+                user_id="1",
+            )
+            await Config.upsert(
+                {
+                    "openai.enable": True,
+                    "openai.api_base_urls": ["https://example.com"],
+                    "openai.api_keys": ["test-key"],
+                    "openai.api_configs": {"0": {}},
+                }
+            )
 
-        config = self.fast_api_client.app.state.config
-        config.ENABLE_OPENAI_API = True
-        config.OPENAI_API_BASE_URLS = ["https://example.com"]
-        config.OPENAI_API_KEYS = ["test-key"]
-        config.OPENAI_API_CONFIGS = {"0": {}}
+        asyncio.run(configure_openai())
 
     def _mock_models_and_provider(
         self,
@@ -115,8 +123,12 @@ class TestOpenAIChatBilling(AbstractPostgresTest):
             return {"data": list(request.app.state.OPENAI_MODELS.values())}
 
         fake_session = FakeAiohttpSession(response)
+
+        async def fake_get_session() -> FakeAiohttpSession:
+            return fake_session
+
         monkeypatch.setattr(openai_router, "get_all_models", fake_get_all_models)
-        monkeypatch.setattr(openai_router.aiohttp, "ClientSession", lambda *_, **__: fake_session)
+        monkeypatch.setattr(openai_router, "get_session", fake_get_session)
 
     def test_payg_success_creates_hold_charge_usage_event(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import LedgerEntryType, Wallets
@@ -152,13 +164,13 @@ class TestOpenAIChatBilling(AbstractPostgresTest):
         assert response.status_code == 200, response.text
         assert response.json()["choices"][0]["message"]["content"] == "ok"
 
-        hold_entry = get_ledger_entry(self.request_id, "chat_completion", LedgerEntryType.HOLD)
+        hold_entry = get_ledger_entry_by_correlation(self.request_id, "chat_completion", LedgerEntryType.HOLD)
         assert hold_entry is not None
 
-        charge_entry = get_ledger_entry(self.request_id, "chat_completion", LedgerEntryType.CHARGE)
+        charge_entry = get_ledger_entry_by_correlation(self.request_id, "chat_completion", LedgerEntryType.CHARGE)
         assert charge_entry is not None
 
-        usage_event = get_usage_event(self.request_id)
+        usage_event = get_usage_event_by_correlation(self.request_id)
         assert usage_event is not None
         from open_webui.models.billing import RateCards
 
@@ -168,12 +180,8 @@ class TestOpenAIChatBilling(AbstractPostgresTest):
         assert rate_out is not None
 
         pricing = PricingService()
-        expected_input = pricing.calculate_cost_kopeks(
-            Decimal(1000) / Decimal(1000), rate_in, 0
-        )
-        expected_output = pricing.calculate_cost_kopeks(
-            Decimal(400) / Decimal(1000), rate_out, 0
-        )
+        expected_input = pricing.calculate_cost_kopeks(Decimal(1000) / Decimal(1000), rate_in, 0)
+        expected_output = pricing.calculate_cost_kopeks(Decimal(400) / Decimal(1000), rate_out, 0)
         expected_charge = expected_input + expected_output
 
         assert usage_event.cost_charged_kopeks == expected_charge
@@ -211,8 +219,8 @@ class TestOpenAIChatBilling(AbstractPostgresTest):
         assert isinstance(detail.get("required_kopeks"), int)
         assert detail.get("currency") == "RUB"
 
-        assert get_ledger_entry(self.request_id, "chat_completion", LedgerEntryType.HOLD) is None
-        assert get_usage_event(self.request_id) is None
+        assert get_ledger_entry_by_correlation(self.request_id, "chat_completion", LedgerEntryType.HOLD) is None
+        assert get_usage_event_by_correlation(self.request_id) is None
 
     def test_payg_limits_max_reply_and_daily_cap(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import Wallets
@@ -305,8 +313,13 @@ class TestOpenAIChatBilling(AbstractPostgresTest):
             async def close(self) -> None:
                 return None
 
+        fail_session = FailSession()
+
+        async def fake_get_session() -> FailSession:
+            return fail_session
+
         monkeypatch.setattr(openai_router, "get_all_models", fake_get_all_models)
-        monkeypatch.setattr(openai_router.aiohttp, "ClientSession", lambda *_, **__: FailSession())
+        monkeypatch.setattr(openai_router, "get_session", fake_get_session)
 
         payload = {
             "model": self.model_id,
@@ -320,9 +333,9 @@ class TestOpenAIChatBilling(AbstractPostgresTest):
 
         assert response.status_code == 500
 
-        assert get_ledger_entry(self.request_id, "chat_completion", LedgerEntryType.HOLD) is not None
-        assert get_ledger_entry(self.request_id, "chat_completion", LedgerEntryType.RELEASE) is not None
-        assert get_ledger_entry(self.request_id, "chat_completion", LedgerEntryType.CHARGE) is None
+        assert get_ledger_entry_by_correlation(self.request_id, "chat_completion", LedgerEntryType.HOLD) is not None
+        assert get_ledger_entry_by_correlation(self.request_id, "chat_completion", LedgerEntryType.RELEASE) is not None
+        assert get_ledger_entry_by_correlation(self.request_id, "chat_completion", LedgerEntryType.CHARGE) is None
         assert_wallet_topup_balance(wallet.id, 100000)
 
     def test_balance_depleted_then_topup_then_success(self, monkeypatch: MonkeyPatch) -> None:

@@ -1,3 +1,6 @@
+# ruff: noqa
+
+import asyncio
 import time
 import uuid
 from typing import Protocol
@@ -7,8 +10,8 @@ from _pytest.monkeypatch import MonkeyPatch
 from test.util.abstract_integration_test import AbstractPostgresTest
 from test.util.billing_scenarios_matrix import (
     assert_wallet_topup_balance,
-    get_ledger_entry,
-    get_usage_event,
+    get_ledger_entry_by_correlation,
+    get_usage_event_by_correlation,
 )
 from test.util.mock_user import mock_webui_user
 from test.util.openai_provider_fakes import FakeAiohttpResponse, FakeAiohttpSession
@@ -33,6 +36,7 @@ class TestOpenAIChatBillingLeadMagnet(AbstractPostgresTest):
         super().setup_method()
 
         from open_webui.models.billing import PricingRateCardModel, RateCards
+        from open_webui.models.config import Config
         from open_webui.models.models import ModelForm, ModelMeta, ModelParams, Models
 
         now = int(time.time())
@@ -70,24 +74,29 @@ class TestOpenAIChatBillingLeadMagnet(AbstractPostgresTest):
             ).model_dump()
         )
 
-        Models.insert_new_model(
-            ModelForm(
-                id=self.model_id,
-                name="Lead magnet billing model",
-                base_model_id=None,
-                meta=ModelMeta(lead_magnet=True),
-                params=ModelParams(),
-                access_control=None,
-                is_active=True,
-            ),
-            user_id="admin",
-        )
+        async def configure_openai() -> None:
+            await Models.insert_new_model(
+                ModelForm(
+                    id=self.model_id,
+                    name="Lead magnet billing model",
+                    base_model_id=None,
+                    meta=ModelMeta(lead_magnet=True),
+                    params=ModelParams(),
+                    access_control=None,
+                    is_active=True,
+                ),
+                user_id="1",
+            )
+            await Config.upsert(
+                {
+                    "openai.enable": True,
+                    "openai.api_base_urls": ["https://example.com"],
+                    "openai.api_keys": ["test-key"],
+                    "openai.api_configs": {"0": {}},
+                }
+            )
 
-        config = self.fast_api_client.app.state.config
-        config.ENABLE_OPENAI_API = True
-        config.OPENAI_API_BASE_URLS = ["https://example.com"]
-        config.OPENAI_API_KEYS = ["test-key"]
-        config.OPENAI_API_CONFIGS = {"0": {}}
+        asyncio.run(configure_openai())
 
     def _configure_lead_magnet(
         self,
@@ -97,17 +106,18 @@ class TestOpenAIChatBillingLeadMagnet(AbstractPostgresTest):
         cycle_days: int = 30,
         config_version: int = 1,
     ) -> None:
-        from open_webui.config import (
-            LEAD_MAGNET_CONFIG_VERSION,
-            LEAD_MAGNET_CYCLE_DAYS,
-            LEAD_MAGNET_ENABLED,
-            LEAD_MAGNET_QUOTAS,
-        )
+        import open_webui.utils.airis.runtime_config as runtime_config
 
-        monkeypatch.setattr(LEAD_MAGNET_ENABLED, "value", enabled)
-        monkeypatch.setattr(LEAD_MAGNET_CYCLE_DAYS, "value", cycle_days)
-        monkeypatch.setattr(LEAD_MAGNET_QUOTAS, "value", quotas)
-        monkeypatch.setattr(LEAD_MAGNET_CONFIG_VERSION, "value", config_version)
+        monkeypatch.setattr(
+            runtime_config,
+            "_runtime_config",
+            runtime_config.LeadMagnetRuntimeConfig(
+                enabled=enabled,
+                cycle_days=cycle_days,
+                quotas=quotas,
+                config_version=config_version,
+            ),
+        )
 
     def _mock_models_and_provider(
         self,
@@ -133,8 +143,12 @@ class TestOpenAIChatBillingLeadMagnet(AbstractPostgresTest):
             return {"data": list(request.app.state.OPENAI_MODELS.values())}
 
         fake_session = FakeAiohttpSession(response)
+
+        async def fake_get_session() -> FakeAiohttpSession:
+            return fake_session
+
         monkeypatch.setattr(openai_router, "get_all_models", fake_get_all_models)
-        monkeypatch.setattr(openai_router.aiohttp, "ClientSession", lambda *_, **__: fake_session)
+        monkeypatch.setattr(openai_router, "get_session", fake_get_session)
 
     def test_lead_magnet_allowed_does_not_charge_wallet(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import LeadMagnetStates, LedgerEntryType, Wallets
@@ -176,10 +190,10 @@ class TestOpenAIChatBillingLeadMagnet(AbstractPostgresTest):
 
         assert response.status_code == 200
 
-        assert get_ledger_entry(self.request_id, "chat_completion", LedgerEntryType.HOLD) is None
-        assert get_ledger_entry(self.request_id, "chat_completion", LedgerEntryType.CHARGE) is None
+        assert get_ledger_entry_by_correlation(self.request_id, "chat_completion", LedgerEntryType.HOLD) is None
+        assert get_ledger_entry_by_correlation(self.request_id, "chat_completion", LedgerEntryType.CHARGE) is None
 
-        usage_event = get_usage_event(self.request_id)
+        usage_event = get_usage_event_by_correlation(self.request_id)
         assert usage_event is not None
         assert usage_event.billing_source == "lead_magnet"
         assert usage_event.cost_charged_kopeks == 0

@@ -3,15 +3,12 @@ import json
 import logging
 import random
 import sys
-import time
 import uuid
-from typing import Any, Optional
+from typing import Any
 
-from aiocache import cached
 from fastapi import HTTPException, Request, status
 from open_webui.env import BYPASS_MODEL_ACCESS_CONTROL, GLOBAL_LOG_LEVEL
 from open_webui.functions import generate_function_chat_completion
-from open_webui.models.models import Models
 from open_webui.models.users import UserModel
 from open_webui.routers.ollama import (
     generate_chat_completion as generate_ollama_chat_completion,
@@ -20,7 +17,6 @@ from open_webui.routers.openai import (
     generate_chat_completion as generate_openai_chat_completion,
 )
 from open_webui.routers.pipelines import (
-    process_pipeline_inlet_filter,
     process_pipeline_outlet_filter,
 )
 from open_webui.socket.main import (
@@ -48,7 +44,7 @@ from open_webui.utils.response import (
     convert_response_ollama_to_openai,
     convert_streaming_response_ollama_to_openai,
 )
-from starlette.responses import JSONResponse, Response, StreamingResponse
+from starlette.responses import StreamingResponse
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)
@@ -56,7 +52,7 @@ log = logging.getLogger(__name__)
 
 # When the question has been asked, let silence not be the
 # answer. But if the answer must wait, let it come honest.
-async def generate_direct_chat_completion(
+async def generate_direct_chat_completion(  # noqa: C901
     request: Request,
     form_data: dict,
     user: Any,
@@ -137,7 +133,7 @@ async def generate_direct_chat_completion(
             async def background():
                 try:
                     del sio.handlers['/'][channel]
-                except Exception as e:
+                except Exception:
                     pass
 
             # Return the streaming response
@@ -167,7 +163,7 @@ async def generate_direct_chat_completion(
         return res
 
 
-async def generate_chat_completion(
+async def generate_chat_completion(  # noqa: C901
     request: Request,
     form_data: dict,
     user: Any,
@@ -261,14 +257,14 @@ async def generate_chat_completion(
 
             form_data['model'] = selected_model_id
 
-            # bypass_filter recursion below skips the line-200 check; gate the resolved model here.
+            # Gate the resolved model because recursion below bypasses the line-200 check.
             if not bypass_filter and user.role == 'user':
                 selected_model = request.app.state.MODELS.get(selected_model_id)
                 if selected_model:
                     await check_model_access(user, selected_model)
 
         if selected_model_id:
-            if form_data.get('stream') == True:
+            if form_data.get('stream') is True:
 
                 async def stream_wrapper(stream):
                     yield f'data: {json.dumps({"selected_model_id": selected_model_id})}\n\n'
@@ -302,14 +298,15 @@ async def generate_chat_completion(
                 }
 
         if model.get('pipe'):
-            # Below does not require bypass_filter because this is the only route the uses this function and it is already bypassing the filter
+            # This route already bypasses the filter, so no additional bypass flag is needed.
             return await generate_function_chat_completion(request, form_data, user=user, models=models)
         if model.get('owned_by') == 'ollama':
             messages_value = form_data.get('messages', [])
             billing_messages = messages_value if isinstance(messages_value, list) else []
-            request_id_value = metadata.get('request_id')
-            if not isinstance(request_id_value, str) or not request_id_value:
-                request_id_value = str(uuid.uuid4())
+            correlation_id_value = metadata.get('request_id')
+            if not isinstance(correlation_id_value, str) or not correlation_id_value:
+                correlation_id_value = None
+            billing_operation_id = str(uuid.uuid4())
             max_reply_cost_value = metadata.get('max_reply_cost_kopeks')
             max_reply_cost_kopeks = max_reply_cost_value if isinstance(max_reply_cost_value, int) else None
 
@@ -328,9 +325,10 @@ async def generate_chat_completion(
                     user_id=user.id,
                     model_id=model_id,
                     payload=form_data,
-                    request_id=request_id_value,
+                    request_id=billing_operation_id,
                     max_reply_cost_kopeks=max_reply_cost_kopeks,
                     lead_magnet_model_id=model_id,
+                    correlation_id=correlation_id_value,
                 )
             except HTTPException:
                 raise

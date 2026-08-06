@@ -1,3 +1,6 @@
+# ruff: noqa
+
+import asyncio
 import time
 import uuid
 
@@ -21,57 +24,34 @@ class TestBillingPublicPricing(AbstractPostgresTest):
         self.private_model_id = "pricing-private"
         self.provider_only_model_id = "pricing-provider-only"
 
-        Models.insert_new_model(
-            ModelForm(
-                id=self.text_model_id,
-                name="Pricing Text",
-                base_model_id=None,
-                meta=ModelMeta(),
-                params=ModelParams(),
-                access_control=None,
-                is_active=True,
-            ),
-            user_id="admin",
-        )
+        async def create_models() -> None:
+            public_read = [
+                {
+                    "principal_type": "user",
+                    "principal_id": "*",
+                    "permission": "read",
+                }
+            ]
+            for model_id, name, meta, access_grants in (
+                (self.text_model_id, "Pricing Text", ModelMeta(), public_read),
+                (self.audio_model_id, "Pricing Audio", ModelMeta(), public_read),
+                (self.hidden_model_id, "Pricing Hidden", ModelMeta(hidden=True), public_read),
+                (self.private_model_id, "Pricing Private", ModelMeta(), []),
+            ):
+                await Models.insert_new_model(
+                    ModelForm(
+                        id=model_id,
+                        name=name,
+                        base_model_id=None,
+                        meta=meta,
+                        params=ModelParams(),
+                        access_grants=access_grants,
+                        is_active=True,
+                    ),
+                    user_id="admin",
+                )
 
-        Models.insert_new_model(
-            ModelForm(
-                id=self.audio_model_id,
-                name="Pricing Audio",
-                base_model_id=None,
-                meta=ModelMeta(),
-                params=ModelParams(),
-                access_control=None,
-                is_active=True,
-            ),
-            user_id="admin",
-        )
-
-        Models.insert_new_model(
-            ModelForm(
-                id=self.hidden_model_id,
-                name="Pricing Hidden",
-                base_model_id=None,
-                meta=ModelMeta(hidden=True),
-                params=ModelParams(),
-                access_control=None,
-                is_active=True,
-            ),
-            user_id="admin",
-        )
-
-        Models.insert_new_model(
-            ModelForm(
-                id=self.private_model_id,
-                name="Pricing Private",
-                base_model_id=None,
-                meta=ModelMeta(),
-                params=ModelParams(),
-                access_control={},
-                is_active=True,
-            ),
-            user_id="admin",
-        )
+        asyncio.run(create_models())
 
         RateCards.create_rate_card(
             PricingRateCardModel(
@@ -195,7 +175,14 @@ class TestBillingPublicPricing(AbstractPostgresTest):
             ).model_dump()
         )
 
-    def test_public_rate_cards_payload(self) -> None:
+    def test_public_rate_cards_payload(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.routers.billing as billing_router
+
+        async def no_provider_models(request: object) -> list[dict[str, object]]:
+            return []
+
+        monkeypatch.setattr(billing_router, "get_all_base_models", no_provider_models)
+
         response = self.fast_api_client.get(self.create_url("/public/rate-cards"))
         assert response.status_code == 200
 
@@ -210,35 +197,40 @@ class TestBillingPublicPricing(AbstractPostgresTest):
         assert self.hidden_model_id not in model_ids
         assert self.private_model_id not in model_ids
 
-        text_model = next(
-            model for model in payload["models"] if model["id"] == self.text_model_id
-        )
+        text_model = next(model for model in payload["models"] if model["id"] == self.text_model_id)
         assert text_model["rates"]["text_in_1000_tokens"] is not None
         assert text_model["rates"]["text_out_1000_tokens"] is not None
         assert text_model["rates"]["image_1024"] is not None
 
     def test_public_pricing_config(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
-        from open_webui.config import LEAD_MAGNET_QUOTAS
+        import open_webui.utils.airis.runtime_config as runtime_config
 
-        monkeypatch.setattr(billing_router, "BILLING_TOPUP_PACKAGES_KOPEKS", [100000, 150000])
+        monkeypatch.setattr(billing_router, "BILLING_TOPUP_PACKAGES_KOPEKS", [50000, 100000, 200000])
         monkeypatch.setattr(billing_router, "PUBLIC_PRICING_POPULAR_MODELS", [self.text_model_id])
+        monkeypatch.setattr(billing_router, "PUBLIC_PRICING_RECOMMENDED_TEXT_MODEL", self.text_model_id)
         monkeypatch.setattr(
-            billing_router, "PUBLIC_PRICING_RECOMMENDED_TEXT_MODEL", self.text_model_id
+            runtime_config,
+            "_runtime_config",
+            runtime_config.LeadMagnetRuntimeConfig(
+                enabled=True,
+                cycle_days=30,
+                quotas={
+                    "tokens_input": 1000,
+                    "tokens_output": 2000,
+                    "images": 10,
+                    "tts_seconds": 120,
+                    "stt_seconds": 180,
+                },
+                config_version=1,
+            ),
         )
-        monkeypatch.setattr(LEAD_MAGNET_QUOTAS, "value", {
-            "tokens_input": 1000,
-            "tokens_output": 2000,
-            "images": 10,
-            "tts_seconds": 120,
-            "stt_seconds": 180
-        })
 
         response = self.fast_api_client.get(self.create_url("/public/pricing-config"))
         assert response.status_code == 200
 
         payload = response.json()
-        assert payload["topup_amounts_rub"] == [1000, 1500]
+        assert payload["topup_amounts_rub"] == [500, 1000, 2000]
         assert payload["free_limits"]["text_in"] == 1000
         assert payload["free_limits"]["text_out"] == 2000
         assert payload["free_limits"]["images"] == 10
@@ -273,10 +265,6 @@ class TestBillingPublicPricing(AbstractPostgresTest):
         assert response.status_code == 200
 
         payload = response.json()
-        provider_only = next(
-            model
-            for model in payload["models"]
-            if model["id"] == self.provider_only_model_id
-        )
+        provider_only = next(model for model in payload["models"] if model["id"] == self.provider_only_model_id)
         assert provider_only["provider"] == "openai"
         assert provider_only["rates"]["text_in_1000_tokens"] is not None

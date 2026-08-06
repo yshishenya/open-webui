@@ -34,6 +34,7 @@ type MockSet = {
 	getBalanceMock: ReturnType<typeof vi.fn>;
 	getLeadMagnetInfoMock: ReturnType<typeof vi.fn>;
 	getPublicPricingConfigMock: ReturnType<typeof vi.fn>;
+	reconcileTopupMock: ReturnType<typeof vi.fn>;
 	getLedgerMock: ReturnType<typeof vi.fn>;
 	getUsageEventsMock: ReturnType<typeof vi.fn>;
 	updateAutoTopupMock: ReturnType<typeof vi.fn>;
@@ -76,6 +77,7 @@ const mocks: MockSet = vi.hoisted(() => {
 		getBalanceMock: vi.fn(),
 		getLeadMagnetInfoMock: vi.fn().mockResolvedValue({ enabled: false }),
 		getPublicPricingConfigMock: vi.fn().mockResolvedValue(null),
+		reconcileTopupMock: vi.fn().mockResolvedValue({ credited: false }),
 		getLedgerMock: vi.fn().mockResolvedValue([]),
 		getUsageEventsMock: vi.fn().mockResolvedValue([]),
 		updateAutoTopupMock: vi.fn().mockResolvedValue({ status: 'ok' }),
@@ -105,6 +107,7 @@ vi.mock(
 		getBalance: mocks.getBalanceMock,
 		getLeadMagnetInfo: mocks.getLeadMagnetInfoMock,
 		getPublicPricingConfig: mocks.getPublicPricingConfigMock,
+		reconcileTopup: mocks.reconcileTopupMock,
 		getLedger: mocks.getLedgerMock,
 		getUsageEvents: mocks.getUsageEventsMock,
 		updateAutoTopup: mocks.updateAutoTopupMock,
@@ -165,6 +168,7 @@ describe('Billing balance page', () => {
 		mocks.getBalanceMock.mockReset();
 		mocks.getLeadMagnetInfoMock.mockReset().mockResolvedValue({ enabled: false });
 		mocks.getPublicPricingConfigMock.mockReset().mockResolvedValue(null);
+		mocks.reconcileTopupMock.mockReset().mockResolvedValue({ credited: false });
 		mocks.getUserInfoMock.mockReset().mockResolvedValue({
 			billing_contact_email: '',
 			billing_contact_phone: ''
@@ -174,6 +178,7 @@ describe('Billing balance page', () => {
 		mocks.modelsStore.set([]);
 		mocks.pageStore.set({ url: new URL('http://localhost/billing/balance') });
 		localStorage.token = 'test-token';
+		localStorage.removeItem('billing_topup_flow_v1');
 	});
 
 	afterEach(async () => {
@@ -330,5 +335,37 @@ describe('Billing balance page', () => {
 		await flushPromises();
 
 		expect(mocks.toast.error).toHaveBeenCalledWith('Payment provider credentials are invalid');
+	});
+
+	it('uses the exact payment reconciliation result for top-up success', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 50000 }));
+		localStorage.setItem(
+			'billing_topup_flow_v1',
+			JSON.stringify({
+				started_at_ms: Date.now(),
+				amount_kopeks: 15000,
+				previous_total_kopeks: 0,
+				payment_id: 'payment-under-test',
+				return_to: null
+			})
+		);
+
+		const root = renderPage();
+		await flushPromises();
+		expect(root.textContent).toContain('Checking top-up…');
+		expect(root.textContent).not.toContain('Top-up successful');
+
+		const refresh = [...root.querySelectorAll('button')].find(
+			(button) => button.textContent?.trim() === 'Refresh'
+		) as HTMLButtonElement | undefined;
+		expect(refresh).toBeTruthy();
+		refresh?.click();
+		await flushPromises();
+		expect(root.textContent).not.toContain('Top-up successful');
+
+		mocks.reconcileTopupMock.mockResolvedValue({ credited: true });
+		refresh?.click();
+		await flushPromises();
+		expect(root.textContent).toContain('Top-up successful');
 	});
 });

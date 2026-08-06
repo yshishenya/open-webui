@@ -1,3 +1,5 @@
+# ruff: noqa
+
 import datetime as dt
 import importlib.metadata
 import json
@@ -510,7 +512,7 @@ else:
         WEBSOCKET_EVENT_CALLER_TIMEOUT = 300
 
 
-import ssl as _ssl
+import ssl as _ssl  # noqa: E402
 
 # Dedicated env var for a custom CA bundle file path.  When set, this is
 # used as the default CA bundle for all outbound HTTPS connections that
@@ -874,11 +876,13 @@ LICENSE_PUBLIC_KEY = os.getenv('LICENSE_PUBLIC_KEY', '')
 
 pk = None
 if LICENSE_PUBLIC_KEY:
-    pk = serialization.load_pem_public_key(f"""
+    pk = serialization.load_pem_public_key(
+        f"""
 -----BEGIN PUBLIC KEY-----
 {LICENSE_PUBLIC_KEY}
 -----END PUBLIC KEY-----
-""".encode())
+""".encode()
+    )
 
 
 ####################################
@@ -980,7 +984,7 @@ BILLING_RATE_CARD_VERSION = os.getenv('BILLING_RATE_CARD_VERSION', '2025-01')
 BILLING_HOLD_TTL_SECONDS = int(os.getenv('BILLING_HOLD_TTL_SECONDS', '900'))
 BILLING_ESTIMATE_MAX_OUTPUT_TOKENS = int(os.getenv('BILLING_ESTIMATE_MAX_OUTPUT_TOKENS', '512'))
 BILLING_TOPUP_TTL_DAYS = int(os.getenv('BILLING_TOPUP_TTL_DAYS', '365'))
-BILLING_TOPUP_PACKAGES_KOPEKS = _parse_int_list(os.getenv('BILLING_TOPUP_PACKAGES_KOPEKS', '10000,50000,100000,200000'))
+BILLING_TOPUP_PACKAGES_KOPEKS = _parse_int_list(os.getenv('BILLING_TOPUP_PACKAGES_KOPEKS', '50000,100000,200000'))
 BILLING_RECEIPT_ENABLED = os.getenv('BILLING_RECEIPT_ENABLED', 'True').lower() == 'true'
 BILLING_RECEIPT_VAT_CODE = _parse_optional_int(os.getenv('BILLING_RECEIPT_VAT_CODE', '1')) or 1
 BILLING_RECEIPT_PAYMENT_MODE = os.getenv('BILLING_RECEIPT_PAYMENT_MODE', 'full_payment').strip() or 'full_payment'

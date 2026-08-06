@@ -1,3 +1,5 @@
+# ruff: noqa
+
 from types import SimpleNamespace
 
 import pytest
@@ -65,9 +67,7 @@ class TestBillingServiceCore:
             )
 
     @pytest.mark.asyncio
-    async def test_create_payment_updates_transaction_and_returns_payload(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_create_payment_updates_transaction_and_returns_payload(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.utils.billing as billing_utils
 
         service = BillingService()
@@ -87,13 +87,16 @@ class TestBillingServiceCore:
                 return {
                     "id": "pay_1",
                     "status": "pending",
-                    "confirmation": {
-                        "confirmation_url": "https://pay.example.com/confirm"
-                    },
+                    "confirmation": {"confirmation_url": "https://pay.example.com/confirm"},
                 }
 
         fake_client = FakeYooKassaClient()
         monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: fake_client)
+
+        async def _resolve_user_email(_user_id: str) -> None:
+            return None
+
+        monkeypatch.setattr(service, "_resolve_user_email", _resolve_user_email)
         # Receipt generation needs a real user/contact in the DB. This unit-style
         # test focuses on payment wiring + transaction updates.
         monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_ENABLED", False)

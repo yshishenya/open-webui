@@ -1,3 +1,5 @@
+# ruff: noqa
+
 from open_webui.models.billing_models import (
     Plan,
     PlanModel,
@@ -33,6 +35,8 @@ from open_webui.models.billing_wallet import (
     PricingRateCardModel,
     PromoCode,
     PromoCodeModel,
+    QuotaReservation,
+    QuotaReservationModel,
     UsageEvent,
     UsageEventModel,
     Wallet,
@@ -90,4 +94,6 @@ __all__ = [
     "PromoCode",
     "PromoCodeModel",
     "PromoCodes",
+    "QuotaReservation",
+    "QuotaReservationModel",
 ]

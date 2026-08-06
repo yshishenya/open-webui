@@ -1,3 +1,6 @@
+# ruff: noqa
+
+import asyncio
 import json
 import time
 import uuid
@@ -7,7 +10,10 @@ from typing import Protocol
 from _pytest.monkeypatch import MonkeyPatch
 
 from test.util.abstract_integration_test import AbstractPostgresTest
-from test.util.billing_scenarios_matrix import assert_wallet_topup_balance, get_usage_event
+from test.util.billing_scenarios_matrix import (
+    assert_wallet_topup_balance,
+    get_usage_event_by_correlation,
+)
 from test.util.mock_user import mock_webui_user
 from test.util.openai_provider_fakes import (
     FakeAiohttpResponse,
@@ -35,6 +41,7 @@ class TestOpenAIChatBillingStreaming(AbstractPostgresTest):
         super().setup_method()
 
         from open_webui.models.billing import PricingRateCardModel, RateCards
+        from open_webui.models.config import Config
         from open_webui.models.models import ModelForm, ModelMeta, ModelParams, Models
 
         now = int(time.time())
@@ -71,24 +78,29 @@ class TestOpenAIChatBillingStreaming(AbstractPostgresTest):
             ).model_dump()
         )
 
-        Models.insert_new_model(
-            ModelForm(
-                id=self.model_id,
-                name="Streaming billing model",
-                base_model_id=None,
-                meta=ModelMeta(lead_magnet=False),
-                params=ModelParams(),
-                access_control=None,
-                is_active=True,
-            ),
-            user_id="admin",
-        )
+        async def configure_openai() -> None:
+            await Models.insert_new_model(
+                ModelForm(
+                    id=self.model_id,
+                    name="Streaming billing model",
+                    base_model_id=None,
+                    meta=ModelMeta(lead_magnet=False),
+                    params=ModelParams(),
+                    access_control=None,
+                    is_active=True,
+                ),
+                user_id="1",
+            )
+            await Config.upsert(
+                {
+                    "openai.enable": True,
+                    "openai.api_base_urls": ["https://example.com"],
+                    "openai.api_keys": ["test-key"],
+                    "openai.api_configs": {"0": {}},
+                }
+            )
 
-        config = self.fast_api_client.app.state.config
-        config.ENABLE_OPENAI_API = True
-        config.OPENAI_API_BASE_URLS = ["https://example.com"]
-        config.OPENAI_API_KEYS = ["test-key"]
-        config.OPENAI_API_CONFIGS = {"0": {}}
+        asyncio.run(configure_openai())
 
     def _mock_models_and_provider(
         self,
@@ -114,8 +126,12 @@ class TestOpenAIChatBillingStreaming(AbstractPostgresTest):
             return {"data": list(request.app.state.OPENAI_MODELS.values())}
 
         fake_session = FakeAiohttpSession(response)
+
+        async def fake_get_session() -> FakeAiohttpSession:
+            return fake_session
+
         monkeypatch.setattr(openai_router, "get_all_models", fake_get_all_models)
-        monkeypatch.setattr(openai_router.aiohttp, "ClientSession", lambda *_, **__: fake_session)
+        monkeypatch.setattr(openai_router, "get_session", fake_get_session)
 
     def test_streaming_with_usage_settles_charge(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import RateCards, Wallets
@@ -150,14 +166,12 @@ class TestOpenAIChatBillingStreaming(AbstractPostgresTest):
         }
 
         with mock_webui_user(id="1"):
-            with self.fast_api_client.stream(
-                "POST", self.create_url("/chat/completions"), json=payload
-            ) as response:
+            with self.fast_api_client.stream("POST", self.create_url("/chat/completions"), json=payload) as response:
                 assert response.status_code == 200
                 for _ in response.iter_bytes():
                     pass
 
-        usage_event = get_usage_event(request_id)
+        usage_event = get_usage_event_by_correlation(request_id)
         assert usage_event is not None
 
         rate_in = RateCards.get_rate_card_by_id(usage_event.pricing_rate_card_input_id)
@@ -206,14 +220,12 @@ class TestOpenAIChatBillingStreaming(AbstractPostgresTest):
         }
 
         with mock_webui_user(id="1"):
-            with self.fast_api_client.stream(
-                "POST", self.create_url("/chat/completions"), json=payload
-            ) as response:
+            with self.fast_api_client.stream("POST", self.create_url("/chat/completions"), json=payload) as response:
                 assert response.status_code == 200
                 for _ in response.iter_bytes():
                     pass
 
-        usage_event = get_usage_event(request_id)
+        usage_event = get_usage_event_by_correlation(request_id)
         assert usage_event is not None
         assert usage_event.is_estimated is True
         assert usage_event.estimate_reason == "usage_missing"

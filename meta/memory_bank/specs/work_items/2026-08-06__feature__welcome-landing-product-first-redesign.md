@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: `codex/feature/welcome-landing-redesign`
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/welcome-landing-product-first--2026-08-06-1417.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/welcome-landing-product-first-2026-08-06-001.json`
 - Created: 2026-08-06
 - Updated: 2026-08-06
 
@@ -128,6 +128,6 @@ Reference plans:
 
 ## Completion Checklist
 
-- [x] `meta/tools/sdd check-complete welcome-landing-product-first--2026-08-06-1417 --json`
-- [x] `meta/tools/sdd complete-spec welcome-landing-product-first--2026-08-06-1417 --json`
+- [x] `meta/tools/sdd check-complete welcome-landing-product-first-2026-08-06-001 --json`
+- [x] `meta/tools/sdd complete-spec welcome-landing-product-first-2026-08-06-001 --json`
 - [x] Branch update entry moved to `Done` with required fields (`Spec`, `Owner`, `Summary`, `Done`).

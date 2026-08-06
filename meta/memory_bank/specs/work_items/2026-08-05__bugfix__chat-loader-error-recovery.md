@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: airis_b2c
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/chat-loader-error-recovery-2026-08-05-2311.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/chat-loader-error-recovery-2026-08-05-001.json`
 - Created: 2026-08-05
 - Updated: 2026-08-05
 

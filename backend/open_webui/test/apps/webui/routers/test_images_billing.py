@@ -1,3 +1,6 @@
+# ruff: noqa
+
+import asyncio
 import base64
 import time
 from decimal import Decimal
@@ -13,6 +16,7 @@ class TestImagesBilling(AbstractPostgresTest):
 
     def setup_method(self) -> None:
         super().setup_method()
+        from open_webui.models.config import Config
         from open_webui.models.billing import PricingRateCardModel, RateCards
 
         now = int(time.time())
@@ -33,10 +37,23 @@ class TestImagesBilling(AbstractPostgresTest):
         )
 
         RateCards.create_rate_card(rate_card.model_dump())
-
-        config = self.fast_api_client.app.state.config
-        config.ENABLE_IMAGE_GENERATION = True
-        config.USER_PERMISSIONS["features"]["image_generation"] = True
+        asyncio.run(
+            Config.upsert(
+                {
+                    "image_generation.enable": True,
+                    "image_generation.engine": "comfyui",
+                    "image_generation.model": self.model_id,
+                    "image_generation.size": "512x512",
+                    "image_generation.comfyui.base_url": "http://localhost",
+                    "image_generation.comfyui.api_key": "",
+                    "image_generation.comfyui.workflow": "{}",
+                    "image_generation.comfyui.nodes": [],
+                    "user.permissions": {
+                        "features": {"image_generation": True},
+                    },
+                }
+            )
+        )
 
     def test_image_generation_billing(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.internal.db import ScopedSession as Session
@@ -50,9 +67,7 @@ class TestImagesBilling(AbstractPostgresTest):
 
         image_payload = base64.b64encode(b"fake-image").decode("utf-8")
 
-        async def fake_comfyui_create_image(
-            *args: object, **kwargs: object
-        ) -> dict[str, list[dict[str, str]]]:
+        async def fake_comfyui_create_image(*args: object, **kwargs: object) -> dict[str, list[dict[str, str]]]:
             return {
                 "data": [
                     {"url": f"data:image/png;base64,{image_payload}"},
@@ -60,18 +75,7 @@ class TestImagesBilling(AbstractPostgresTest):
                 ]
             }
 
-        monkeypatch.setattr(
-            images_router, "comfyui_create_image", fake_comfyui_create_image
-        )
-
-        config = self.fast_api_client.app.state.config
-        config.IMAGE_GENERATION_ENGINE = "comfyui"
-        config.IMAGE_GENERATION_MODEL = self.model_id
-        config.COMFYUI_WORKFLOW = "{}"
-        config.COMFYUI_WORKFLOW_NODES = []
-        config.IMAGE_SIZE = "512x512"
-        config.COMFYUI_BASE_URL = "http://localhost"
-        config.COMFYUI_API_KEY = ""
+        monkeypatch.setattr(images_router, "comfyui_create_image", fake_comfyui_create_image)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 20000})
@@ -85,17 +89,11 @@ class TestImagesBilling(AbstractPostgresTest):
         assert response.status_code == 200
         assert len(response.json()) == 2
 
-        rate_card = RateCards.get_rate_card_by_version(
-            self.model_id, "image", "image_1024", "2025-01"
-        )
+        rate_card = RateCards.get_rate_card_by_version(self.model_id, "image", "image_1024", "2025-01")
         assert rate_card is not None
 
-        expected_units = (
-            Decimal(2) * Decimal(512 * 512) / Decimal(1024 * 1024)
-        )
-        expected_charge = PricingService().calculate_cost_kopeks(
-            expected_units, rate_card, 0
-        )
+        expected_units = Decimal(2) * Decimal(512 * 512) / Decimal(1024 * 1024)
+        expected_charge = PricingService().calculate_cost_kopeks(expected_units, rate_card, 0)
 
         updated_wallet = Wallets.get_wallet_by_id(wallet.id)
         assert updated_wallet is not None
@@ -121,11 +119,7 @@ class TestImagesBilling(AbstractPostgresTest):
         )
         assert charge_entry is not None
 
-        usage_event = (
-            Session.query(UsageEvent)
-            .filter(UsageEvent.user_id == "1")
-            .first()
-        )
+        usage_event = Session.query(UsageEvent).filter(UsageEvent.user_id == "1").first()
         assert usage_event is not None
         assert usage_event.modality == "image"
         assert usage_event.cost_charged_kopeks == expected_charge
@@ -139,23 +133,10 @@ class TestImagesBilling(AbstractPostgresTest):
 
         monkeypatch.setattr(billing_integration, "ENABLE_BILLING_WALLET", True)
 
-        async def fake_comfyui_create_image(
-            *args: object, **kwargs: object
-        ) -> dict[str, list[dict[str, str]]]:
+        async def fake_comfyui_create_image(*args: object, **kwargs: object) -> dict[str, list[dict[str, str]]]:
             raise RuntimeError("boom")
 
-        monkeypatch.setattr(
-            images_router, "comfyui_create_image", fake_comfyui_create_image
-        )
-
-        config = self.fast_api_client.app.state.config
-        config.IMAGE_GENERATION_ENGINE = "comfyui"
-        config.IMAGE_GENERATION_MODEL = self.model_id
-        config.COMFYUI_WORKFLOW = "{}"
-        config.COMFYUI_WORKFLOW_NODES = []
-        config.IMAGE_SIZE = "512x512"
-        config.COMFYUI_BASE_URL = "http://localhost"
-        config.COMFYUI_API_KEY = ""
+        monkeypatch.setattr(images_router, "comfyui_create_image", fake_comfyui_create_image)
 
         wallet = wallet_service.get_or_create_wallet("1", "RUB")
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 20000})

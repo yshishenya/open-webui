@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount, getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18nType } from 'i18next';
 	import { goto } from '$app/navigation';
 
 	import { WEBUI_NAME, config, mobile, showSettings, showSidebar, user } from '$lib/stores';
@@ -8,7 +10,7 @@
 
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18nType>>('i18n');
 
 	let loaded = false;
 
@@ -103,28 +105,10 @@
 
 						<a
 							draggable="false"
-							class="min-w-fit px-1 text-sm {$page.url.pathname.includes('/admin/billing/plans')
+							class="min-w-fit px-1 text-sm {$page.url.pathname.includes('/admin/billing')
 								? ''
 								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-							href="/admin/billing/plans">{$i18n.t('Billing Plans')}</a
-						>
-
-						<a
-							draggable="false"
-							class="min-w-fit px-1 text-sm {$page.url.pathname.includes('/admin/billing/models')
-								? ''
-								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-							href="/admin/billing/models">{$i18n.t('Model Pricing')}</a
-						>
-
-						<a
-							draggable="false"
-							class="min-w-fit px-1 text-sm {$page.url.pathname.includes(
-								'/admin/billing/lead-magnet'
-							)
-								? ''
-								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-							href="/admin/billing/lead-magnet">{$i18n.t('Lead magnet')}</a
+							href="/admin/billing">{$i18n.t('Billing')}</a
 						>
 
 						<a

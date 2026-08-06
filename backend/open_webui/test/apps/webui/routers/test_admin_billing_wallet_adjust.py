@@ -1,4 +1,8 @@
+# ruff: noqa
+
 from __future__ import annotations
+
+import asyncio
 
 from test.util.abstract_integration_test import AbstractPostgresTest
 from test.util.mock_user import mock_webui_user
@@ -12,13 +16,15 @@ class TestAdminBillingWalletAdjust(AbstractPostgresTest):
         from open_webui.models.users import Users
 
         self.target_user_id = "2"
-        if not Users.get_user_by_id(self.target_user_id):
-            Users.insert_new_user(
-                id=self.target_user_id,
-                name="Target User",
-                email="target.user@example.com",
-                profile_image_url="/user.png",
-                role="user",
+        if not asyncio.run(Users.get_user_by_id(self.target_user_id)):
+            asyncio.run(
+                Users.insert_new_user(
+                    id=self.target_user_id,
+                    name="Target User",
+                    email="target.user@example.com",
+                    profile_image_url="/user.png",
+                    role="user",
+                )
             )
 
     def test_get_user_wallet_summary(self, monkeypatch) -> None:
@@ -27,9 +33,7 @@ class TestAdminBillingWalletAdjust(AbstractPostgresTest):
         monkeypatch.setattr(admin_billing, "ENABLE_BILLING_WALLET", True)
 
         with mock_webui_user(id="admin-1", role="admin", email="admin@example.com"):
-            response = self.fast_api_client.get(
-                self.create_url(f"/users/{self.target_user_id}/wallet")
-            )
+            response = self.fast_api_client.get(self.create_url(f"/users/{self.target_user_id}/wallet"))
 
         assert response.status_code == 200
         payload = response.json()
@@ -83,17 +87,13 @@ class TestAdminBillingWalletAdjust(AbstractPostgresTest):
         assert first_json["wallet"]["balance_topup_kopeks"] == 800
         assert first_json["wallet"]["balance_included_kopeks"] == 800
         assert first_json["ledger_entry"]["type"] == "adjustment"
-        assert (
-            first_json["ledger_entry"]["metadata_json"]["reason"] == "manual correction"
-        )
+        assert first_json["ledger_entry"]["metadata_json"]["reason"] == "manual correction"
 
         assert second_json["wallet"]["balance_topup_kopeks"] == 800
         assert second_json["wallet"]["balance_included_kopeks"] == 800
         assert second_json["ledger_entry"]["id"] == first_json["ledger_entry"]["id"]
 
-        entries = LedgerEntries.get_entries_by_user(
-            self.target_user_id, limit=20, offset=0
-        )
+        entries = LedgerEntries.get_entries_by_user(self.target_user_id, limit=20, offset=0)
         adjustment_entries = [entry for entry in entries if entry.type == "adjustment"]
         assert len(adjustment_entries) == 1
 
@@ -167,9 +167,7 @@ class TestAdminBillingWalletAdjust(AbstractPostgresTest):
                 detail="Not authorized",
             )
 
-        self.fast_api_client.app.dependency_overrides[admin_billing.get_admin_user] = (
-            reject_non_admin
-        )
+        self.fast_api_client.app.dependency_overrides[admin_billing.get_admin_user] = reject_non_admin
         try:
             response = self.fast_api_client.post(
                 self.create_url(f"/users/{self.target_user_id}/wallet/adjust"),
@@ -180,9 +178,7 @@ class TestAdminBillingWalletAdjust(AbstractPostgresTest):
                 },
             )
         finally:
-            self.fast_api_client.app.dependency_overrides.pop(
-                admin_billing.get_admin_user, None
-            )
+            self.fast_api_client.app.dependency_overrides.pop(admin_billing.get_admin_user, None)
 
         assert response.status_code == 403
         assert "Not authorized" in response.json()["detail"]

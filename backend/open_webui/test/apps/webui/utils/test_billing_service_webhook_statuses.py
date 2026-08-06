@@ -1,3 +1,5 @@
+# ruff: noqa
+
 import time
 from typing import Optional
 
@@ -10,10 +12,11 @@ from open_webui.models.billing import (
     PaymentModel,
     PaymentStatus,
     Payments,
+    PlanModel,
+    Plans,
     TransactionModel,
     TransactionStatus,
     Transactions,
-    UsageMetric,
     Wallets,
 )
 from open_webui.utils.billing import (
@@ -28,6 +31,24 @@ from test.util.abstract_integration_test import AbstractPostgresTest
 class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
     def _callable(self, value: object) -> object:
         return value.__func__ if hasattr(value, "__func__") else value
+
+    def _create_plan(self, plan_id: str = "plan_1") -> None:
+        now = int(time.time())
+        Plans.create_plan(
+            PlanModel(
+                id=plan_id,
+                name="Pro",
+                price=100,
+                price_kopeks=10000,
+                currency="RUB",
+                interval="month",
+                included_kopeks_per_period=1000,
+                quotas={},
+                features=[],
+                created_at=now,
+                updated_at=now,
+            ).model_dump()
+        )
 
     @pytest.fixture(autouse=True)
     def _no_billing_singleton_mutation_guard(self) -> None:
@@ -121,14 +142,10 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
         monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: None)
 
         with pytest.raises(WebhookRetryableError, match="YooKassa client not initialized"):
-            await service.process_payment_webhook(
-                {"event_type": "payment.succeeded", "payment_id": "pay_1"}
-            )
+            await service.process_payment_webhook({"event_type": "payment.succeeded", "payment_id": "pay_1"})
 
     @pytest.mark.asyncio
-    async def test_process_payment_webhook_rejects_provider_payload_issues(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_process_payment_webhook_rejects_provider_payload_issues(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.utils.billing as billing_utils
 
         service = BillingService()
@@ -144,14 +161,13 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
                 return {"id": provider_payment_id, "status": "unknown"}
 
         monkeypatch.setattr(
-            billing_utils, "get_yookassa_client",
+            billing_utils,
+            "get_yookassa_client",
             lambda: FakeYooKassaClientInvalid(),
         )
 
         with pytest.raises(WebhookRetryableError, match="Provider payment payload invalid"):
-            await service.process_payment_webhook(
-                {"event_type": "payment.succeeded", "payment_id": "pay_invalid"}
-            )
+            await service.process_payment_webhook({"event_type": "payment.succeeded", "payment_id": "pay_invalid"})
 
         monkeypatch.setattr(
             billing_utils,
@@ -159,12 +175,12 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
             lambda: FakeYooKassaClientNotFound(),
         )
         with pytest.raises(WebhookRetryableError, match="Provider status mismatch"):
-            await service.process_payment_webhook(
-                {"event_type": "payment.succeeded", "payment_id": "pay_notfound"}
-            )
+            await service.process_payment_webhook({"event_type": "payment.succeeded", "payment_id": "pay_notfound"})
 
     @pytest.mark.asyncio
-    async def test_process_payment_webhook_rejects_status_mismatch_and_unpaid_topup(self, monkeypatch: MonkeyPatch) -> None:
+    async def test_process_payment_webhook_rejects_status_mismatch_and_unpaid_topup(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
         import open_webui.utils.billing as billing_utils
 
         service = BillingService()
@@ -248,12 +264,13 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
             )
 
     @pytest.mark.asyncio
-    async def test_process_payment_webhook_uses_existing_transaction_and_ignores_duplicate(
+    async def test_process_payment_webhook_repairs_incomplete_succeeded_transaction(
         self, monkeypatch: MonkeyPatch
     ) -> None:
         import open_webui.utils.billing as billing_utils
 
         service = BillingService()
+        self._create_plan()
         transaction_id = "tx_duplicate"
         payment_id = "pay_duplicate"
         self._create_transaction(
@@ -277,7 +294,7 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
                 }
 
         monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
-        await service.process_payment_webhook(
+        subscription = await service.process_payment_webhook(
             {
                 "event_type": "payment.succeeded",
                 "payment_id": payment_id,
@@ -292,11 +309,13 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
         updated = Transactions.get_transaction_by_id(transaction_id)
         assert updated is not None
         assert updated.status == TransactionStatus.SUCCEEDED.value
+        assert updated.subscription_id == subscription.id
+        wallet = Wallets.get_wallet_by_user("user_1", "RUB")
+        assert wallet is not None
+        assert wallet.balance_included_kopeks == 1000
 
     @pytest.mark.asyncio
-    async def test_process_payment_webhook_marks_transaction_canceled(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_process_payment_webhook_marks_transaction_canceled(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.utils.billing as billing_utils
 
         service = BillingService()
@@ -331,9 +350,7 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
         assert updated.yookassa_status == "canceled"
 
     @pytest.mark.asyncio
-    async def test_process_payment_webhook_updates_waiting_for_capture_status(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_process_payment_webhook_updates_waiting_for_capture_status(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.utils.billing as billing_utils
 
         service = BillingService()
@@ -368,12 +385,11 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
         assert updated.yookassa_status == "waiting_for_capture"
 
     @pytest.mark.asyncio
-    async def test_process_payment_webhook_succeeds_and_resets_plan_on_missing_metadata(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_process_payment_webhook_uses_local_plan_metadata(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.utils.billing as billing_utils
 
         service = BillingService()
+        self._create_plan()
         transaction_id = "tx_missing_fields"
         payment_id = "pay_missing_fields"
         self._create_transaction(
@@ -397,38 +413,39 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
 
         monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
 
-        assert (
-            await service.process_payment_webhook(
-                {
-                    "event_type": "payment.succeeded",
-                    "payment_id": payment_id,
-                    "metadata": {
-                        "transaction_id": transaction_id,
-                    },
-                }
-            )
-            is None
+        subscription = await service.process_payment_webhook(
+            {
+                "event_type": "payment.succeeded",
+                "payment_id": payment_id,
+                "metadata": {
+                    "transaction_id": transaction_id,
+                },
+            }
         )
 
         updated = Transactions.get_transaction_by_id(transaction_id)
         assert updated is not None
         assert updated.status == TransactionStatus.SUCCEEDED.value
+        assert subscription is not None
+        assert subscription.plan_id == "plan_1"
 
     def test_process_topup_webhook_returns_early_without_payment_id(self) -> None:
         service = BillingService()
-        service._process_topup_webhook(
-            event_type="payment.succeeded",
-            payment_id=None,
-            webhook_data={"metadata": {}},
-        )
+        with pytest.raises(WebhookVerificationError):
+            service._process_topup_webhook(
+                event_type="payment.succeeded",
+                payment_id=None,
+                webhook_data={"metadata": {}},
+            )
 
     def test_process_topup_webhook_returns_early_when_payment_record_missing(self) -> None:
         service = BillingService()
-        service._process_topup_webhook(
-            event_type="payment.succeeded",
-            payment_id="pay_missing",
-            webhook_data={"metadata": {}},
-        )
+        with pytest.raises(WebhookRetryableError):
+            service._process_topup_webhook(
+                event_type="payment.succeeded",
+                payment_id="pay_missing",
+                webhook_data={"metadata": {}},
+            )
 
     @pytest.mark.asyncio
     async def test_process_topup_webhook_ignores_duplicate_succeeded_payment(self) -> None:
@@ -516,6 +533,9 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
             event_type="payment.succeeded",
             payment_id="pay_reset_1",
             webhook_data={
+                "amount": "15.00",
+                "currency": "RUB",
+                "status": "succeeded",
                 "metadata": {
                     "amount_kopeks": 1500,
                     "wallet_id": wallet.id,
@@ -525,10 +545,7 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
             },
         )
 
-        assert (
-            service.wallets.get_wallet_by_id(wallet.id).auto_topup_fail_count
-            == 0
-        )
+        assert service.wallets.get_wallet_by_id(wallet.id).auto_topup_fail_count == 0
 
     @pytest.mark.asyncio
     async def test_process_topup_webhook_succeeded_path_rejects_without_amount_or_wallet(self) -> None:
@@ -564,21 +581,21 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
         original_apply_topup = wallet_service_singleton.apply_topup
         wallet_service_singleton.apply_topup = _fail_apply_topup  # type: ignore[method-assign]
         try:
-            service._process_topup_webhook(
-                event_type="payment.succeeded",
-                payment_id="pay_no_amount",
-                webhook_data={
-                    "metadata": {"wallet_id": wallet.id, "user_id": "user_incomplete"}
-                },
-            )
-            service._process_topup_webhook(
-                event_type="payment.succeeded",
-                payment_id="pay_no_wallet",
-                webhook_data={
-                    "amount": "15.00",
-                    "metadata": {"user_id": "user_incomplete"},
-                },
-            )
+            with pytest.raises(WebhookRetryableError):
+                service._process_topup_webhook(
+                    event_type="payment.succeeded",
+                    payment_id="pay_no_amount",
+                    webhook_data={"metadata": {"wallet_id": wallet.id, "user_id": "user_incomplete"}},
+                )
+            with pytest.raises(WebhookRetryableError):
+                service._process_topup_webhook(
+                    event_type="payment.succeeded",
+                    payment_id="pay_no_wallet",
+                    webhook_data={
+                        "amount": "15.00",
+                        "metadata": {"user_id": "user_incomplete"},
+                    },
+                )
             assert called["count"] == 0
         finally:
             wallet_service_singleton.apply_topup = original_apply_topup  # type: ignore[method-assign]
@@ -674,9 +691,7 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
         assert service._is_auto_topup_metadata({"auto_topup": None}) is False
         assert service._is_auto_topup_metadata(None) is False
 
-    def test_record_auto_topup_failure_resets_disabled_flag_only_at_limit(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_record_auto_topup_failure_resets_disabled_flag_only_at_limit(self, monkeypatch: MonkeyPatch) -> None:
         service = BillingService()
         updates: list[dict[str, object]] = []
 
@@ -700,17 +715,10 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
         ]
 
     @pytest.mark.asyncio
-    async def test_maybe_trigger_auto_topup_returns_statuses(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_maybe_trigger_auto_topup_returns_statuses(self, monkeypatch: MonkeyPatch) -> None:
         service = BillingService()
         monkeypatch.setattr(service.wallets, "get_wallet_by_id", lambda _: None)
-        assert (
-            (await service.maybe_trigger_auto_topup(
-                "user_x", "wallet_x", 0, 100, "insufficient"
-            )
-        ).attempted is False
-        )
+        assert (await service.maybe_trigger_auto_topup("user_x", "wallet_x", 0, 100, "insufficient")).attempted is False
 
         class FakeWallet:
             id = "wallet_1"
@@ -727,9 +735,7 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
             lambda _: FakeWallet(),
         )
         assert (
-            await service.maybe_trigger_auto_topup(
-                "user_1", "wallet_1", 10, 100, "insufficient"
-            )
+            await service.maybe_trigger_auto_topup("user_1", "wallet_1", 10, 100, "insufficient")
         ).status == "disabled"
         FakeWallet.auto_topup_enabled = True
         FakeWallet.auto_topup_threshold_kopeks = 1000
@@ -737,9 +743,7 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
         FakeWallet.auto_topup_fail_count = AUTO_TOPUP_MAX_FAILURES
         monkeypatch.setattr(service, "_has_pending_topup", lambda _: False)
         assert (
-            await service.maybe_trigger_auto_topup(
-                "user_1", "wallet_1", 900, 1000, "insufficient"
-            )
+            await service.maybe_trigger_auto_topup("user_1", "wallet_1", 900, 1000, "insufficient")
         ).status == "fail_limit"
 
     @pytest.mark.asyncio
@@ -763,9 +767,7 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
             def __getattr__(self, name: str) -> object:
                 return self._payload[name]
 
-        service.get_user_subscription = lambda *_: _Model(  # type: ignore[method-assign]
-            {"plan_id": "plan_1"}
-        )
+        service.get_user_subscription = lambda *_: _Model({"plan_id": "plan_1"})  # type: ignore[method-assign]
         service.get_plan = lambda *_: _Model(  # type: ignore[method-assign]
             {"quotas": {"tokens_input": 1000, "tokens_output": 500}}
         )

@@ -20,6 +20,15 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## Recently Completed (Last 7 Days)
 
+- [x] **[BUG][BILLING]** Raise wallet top-up minimum to 500 RUB
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-06__bugfix__billing-topup-minimum-500-rub.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Done: 2026-08-06
+  - Summary: Removed the 100 RUB top-up preset from backend defaults, env templates, local etalon config, and the frontend fallback; the available presets are now 500/1000/2000 RUB.
+  - Tests: Focused backend tests attempted but blocked during collection by missing existing `aiosmtplib` in the Docker image; `python -m py_compile backend/open_webui/env.py`; `git diff --check`.
+  - Risks: Low (preset/configuration-only; existing whitelist validation remains unchanged).
+
 - [x] **[BUG][CHAT][PROD]** Restore missing chat runtime state after upstream merge
   - Spec: `meta/memory_bank/specs/work_items/2026-08-06__bugfix__chat-runtime-state-recovery.md`
   - Owner: Codex

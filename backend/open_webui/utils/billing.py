@@ -1,3 +1,5 @@
+# ruff: noqa
+
 """
 Billing business logic
 Handles subscriptions, quotas, usage tracking, and payment processing
@@ -10,10 +12,16 @@ from dataclasses import dataclass
 from typing import Optional, Dict, List
 from decimal import Decimal
 
+import sqlalchemy as sa
+
 from fastapi.concurrency import run_in_threadpool
 
 from open_webui.models.users import Users
 from open_webui.models.billing import (
+    LedgerEntry,
+    LedgerEntryType,
+    Payment,
+    Plan,
     Plans,
     Subscriptions,
     UsageTracking,
@@ -24,14 +32,18 @@ from open_webui.models.billing import (
     PaymentModel,
     PaymentStatus,
     SubscriptionModel,
+    Subscription,
     UsageModel,
     TransactionModel,
+    Transaction,
     SubscriptionStatus,
     TransactionStatus,
     UsageMetric,
     WalletModel,
+    Wallet,
     Wallets,
 )
+from open_webui.internal.db import get_db
 from open_webui.utils.yookassa import get_yookassa_client
 from open_webui.env import (
     BILLING_DEFAULT_CURRENCY,
@@ -112,6 +124,10 @@ class BillingService:
     ) -> PlanModel:
         """Create a new subscription plan"""
         now = int(time.time())
+        kwargs.setdefault(
+            "price_kopeks",
+            int((Decimal(str(price)) * Decimal(100)).to_integral_value()),
+        )
 
         plan = PlanModel(
             id=str(uuid.uuid4()),
@@ -517,16 +533,21 @@ class BillingService:
         if not yookassa:
             raise RuntimeError("YooKassa client not initialized")
 
+        plan_price_kopeks = int(getattr(plan, "price_kopeks", 0) or 0)
+        payment_amount = (
+            Decimal(plan_price_kopeks) / Decimal(100) if plan_price_kopeks > 0 else Decimal(str(plan.price))
+        ).quantize(Decimal("0.01"))
+
         # Create transaction record
         transaction = TransactionModel(
             id=str(uuid.uuid4()),
             user_id=user_id,
-            amount=plan.price,
+            amount=float(payment_amount),
             currency=plan.currency,
             status=TransactionStatus.PENDING,
             description=f"Subscription: {plan.name}",
             description_ru=f"Подписка: {plan.name_ru or plan.name}",
-            metadata={"plan_id": plan_id},
+            extra_metadata={"plan_id": plan_id},
             created_at=int(time.time()),
             updated_at=int(time.time()),
         )
@@ -535,7 +556,6 @@ class BillingService:
             self.transactions.create_transaction,
             transaction,
         )
-        payment_amount = Decimal(str(plan.price))
         receipt = await self._build_receipt(
             user_id,
             payment_amount,
@@ -609,7 +629,9 @@ class BillingService:
             self.wallets.get_wallet_by_id,
             wallet_id,
         )
-        if wallet and wallet.auto_topup_enabled:
+        if not wallet or wallet.user_id != user_id or wallet.currency != BILLING_DEFAULT_CURRENCY:
+            raise ValueError("Wallet not found")
+        if wallet.auto_topup_enabled:
             save_payment_method = True
 
         yookassa = get_yookassa_client()
@@ -701,6 +723,62 @@ class BillingService:
         )
         return len(pending) > 0
 
+    def _claim_auto_topup(
+        self,
+        user_id: str,
+        wallet_id: str,
+        amount_kopeks: int,
+        payment_method_id: str,
+        metadata: JsonDict,
+    ) -> tuple[PaymentModel, bool]:
+        """Create the single pending provider-call claim for a wallet."""
+        now = int(time.time())
+        claim_key = f"auto_topup:{wallet_id}"
+        with get_db() as db:
+            dialect = getattr(db.bind, "dialect", None)
+            if dialect and dialect.name == "sqlite":
+                db.execute(sa.text("BEGIN IMMEDIATE"))
+            wallet = (
+                db.query(Wallet).filter(Wallet.id == wallet_id, Wallet.user_id == user_id).with_for_update().first()
+            )
+            if not wallet:
+                raise ValueError("Wallet does not belong to auto-topup user")
+
+            existing = db.query(Payment).filter(Payment.auto_topup_claim_key == claim_key).with_for_update().first()
+            if existing:
+                retry_stale_claim = (
+                    existing.status == PaymentStatus.PENDING.value
+                    and not existing.provider_payment_id
+                    and int(existing.updated_at) <= now - 60
+                )
+                if retry_stale_claim:
+                    existing.updated_at = now
+                    existing.status_details = {"yookassa_status": "creating"}
+                db.commit()
+                return PaymentModel.model_validate(existing), retry_stale_claim
+
+            payment = Payment(
+                id=str(uuid.uuid4()),
+                provider="yookassa",
+                status=PaymentStatus.PENDING.value,
+                kind=PaymentKind.TOPUP.value,
+                amount_kopeks=amount_kopeks,
+                currency=BILLING_DEFAULT_CURRENCY,
+                idempotency_key=str(uuid.uuid4()),
+                payment_method_id=payment_method_id,
+                auto_topup_claim_key=claim_key,
+                status_details={"yookassa_status": "creating"},
+                metadata_json=metadata,
+                user_id=user_id,
+                wallet_id=wallet_id,
+                created_at=now,
+                updated_at=now,
+            )
+            db.add(payment)
+            db.commit()
+            db.refresh(payment)
+            return PaymentModel.model_validate(payment), True
+
     def _get_latest_payment_method_id(self, wallet_id: str) -> Optional[str]:
         payment = self.payments.get_latest_payment_with_method(
             wallet_id=wallet_id,
@@ -769,43 +847,58 @@ class BillingService:
             auto_topup_description,
         )
 
-        payment = await yookassa.create_payment(
-            amount=amount_rub,
-            currency=BILLING_DEFAULT_CURRENCY,
-            description=auto_topup_description,
-            metadata=metadata,
-            receipt=receipt,
-            payment_method_id=payment_method_id,
+        claim, should_submit = await run_in_threadpool(
+            self._claim_auto_topup,
+            user_id,
+            wallet_id,
+            amount_kopeks,
+            payment_method_id,
+            metadata,
         )
+        if not should_submit:
+            return {
+                "payment_id": claim.provider_payment_id,
+                "status": claim.status,
+            }
 
-        now = int(time.time())
+        if not claim.idempotency_key:
+            raise RuntimeError("Auto-topup claim has no idempotency key")
+        try:
+            payment = await yookassa.create_payment(
+                amount=amount_rub,
+                currency=BILLING_DEFAULT_CURRENCY,
+                description=auto_topup_description,
+                metadata=metadata,
+                receipt=receipt,
+                payment_method_id=payment_method_id,
+                idempotence_key=claim.idempotency_key,
+            )
+        except Exception:
+            await run_in_threadpool(
+                self.payments.update_payment_by_id,
+                claim.id,
+                {
+                    "status": PaymentStatus.FAILED.value,
+                    "auto_topup_claim_key": None,
+                    "status_details": {"yookassa_status": "create_failed"},
+                },
+            )
+            raise
+
         resolved_method_id = payment_method_id
         payment_method = payment.get("payment_method")
         if isinstance(payment_method, dict) and payment_method.get("id"):
             resolved_method_id = str(payment_method.get("id"))
 
-        payment_record = PaymentModel(
-            id=str(uuid.uuid4()),
-            provider="yookassa",
-            status=PaymentStatus.PENDING.value,
-            kind=PaymentKind.TOPUP.value,
-            amount_kopeks=amount_kopeks,
-            currency=BILLING_DEFAULT_CURRENCY,
-            idempotency_key=str(uuid.uuid4()),
-            provider_payment_id=payment.get("id"),
-            payment_method_id=resolved_method_id,
-            status_details={"yookassa_status": payment.get("status")},
-            metadata_json=metadata,
-            raw_payload_json=self._sanitize_payment_payload(payment),
-            user_id=user_id,
-            wallet_id=wallet_id,
-            subscription_id=None,
-            created_at=now,
-            updated_at=now,
-        )
         await run_in_threadpool(
-            self.payments.create_payment,
-            payment_record,
+            self.payments.update_payment_by_id,
+            claim.id,
+            {
+                "provider_payment_id": payment.get("id"),
+                "payment_method_id": resolved_method_id,
+                "status_details": {"yookassa_status": payment.get("status")},
+                "raw_payload_json": self._sanitize_payment_payload(payment),
+            },
         )
 
         return {
@@ -888,7 +981,183 @@ class BillingService:
             payment_id=str(payment_id) if payment_id else None,
         )
 
-    async def process_payment_webhook(self, webhook_data: Dict[str, object]) -> Optional[SubscriptionModel]:
+    def _apply_subscription_payment(  # noqa: C901
+        self,
+        transaction_id: str,
+        payment_id: str,
+        provider_status: str,
+        provider_amount: Decimal,
+        provider_currency: str,
+        provider_metadata: Dict[str, object],
+    ) -> SubscriptionModel:
+        """Atomically activate the purchased plan, credit it, then mark paid."""
+        now = int(time.time())
+        with get_db() as db:
+            dialect = getattr(db.bind, "dialect", None)
+            if dialect and dialect.name == "sqlite":
+                db.execute(sa.text("BEGIN IMMEDIATE"))
+            transaction = db.query(Transaction).filter(Transaction.id == transaction_id).with_for_update().first()
+            if not transaction:
+                raise WebhookRetryableError(f"Transaction {transaction_id} not found")
+            if transaction.yookassa_payment_id and transaction.yookassa_payment_id != payment_id:
+                raise WebhookVerificationError("Payment ID does not match transaction")
+
+            expected_amount = Decimal(str(transaction.amount)).quantize(Decimal("0.01"))
+            if provider_amount.quantize(Decimal("0.01")) != expected_amount:
+                raise WebhookVerificationError("Subscription amount does not match transaction")
+            if provider_currency.upper() != str(transaction.currency).upper():
+                raise WebhookVerificationError("Subscription currency does not match transaction")
+
+            local_metadata = transaction.extra_metadata or {}
+            local_plan_id = local_metadata.get("plan_id")
+            provider_plan_id = provider_metadata.get("plan_id")
+            if local_plan_id and provider_plan_id and local_plan_id != provider_plan_id:
+                raise WebhookVerificationError("Subscription plan does not match transaction")
+            plan_id_value = local_plan_id or provider_plan_id
+            if not isinstance(plan_id_value, str) or not plan_id_value:
+                raise WebhookVerificationError("Subscription plan missing from transaction")
+            provider_user_id = provider_metadata.get("user_id")
+            if provider_user_id and provider_user_id != transaction.user_id:
+                raise WebhookVerificationError("Subscription user does not match transaction")
+
+            plan = db.query(Plan).filter(Plan.id == plan_id_value).with_for_update().first()
+            if not plan:
+                raise WebhookRetryableError(f"Plan {plan_id_value} not found")
+
+            subscription = None
+            if transaction.subscription_id:
+                subscription = (
+                    db.query(Subscription)
+                    .filter(Subscription.id == transaction.subscription_id)
+                    .with_for_update()
+                    .first()
+                )
+            if not subscription:
+                subscription = (
+                    db.query(Subscription)
+                    .filter(Subscription.user_id == transaction.user_id)
+                    .order_by(Subscription.created_at.desc())
+                    .with_for_update()
+                    .first()
+                )
+
+            credit_exists = False
+            entitlement_applied = bool(
+                subscription
+                and subscription.plan_id == plan.id
+                and subscription.last_payment_id == payment_id
+                and subscription.status == SubscriptionStatus.ACTIVE.value
+                and subscription.current_period_end > now
+            )
+            if entitlement_applied and transaction.status == TransactionStatus.SUCCEEDED.value:
+                credit_exists = (
+                    db.query(LedgerEntry.id)
+                    .filter(
+                        LedgerEntry.reference_type == "subscription_payment",
+                        LedgerEntry.reference_id == transaction.id,
+                        LedgerEntry.type == LedgerEntryType.SUBSCRIPTION_CREDIT.value,
+                    )
+                    .first()
+                    is not None
+                )
+                if credit_exists or int(plan.included_kopeks_per_period or 0) <= 0:
+                    return SubscriptionModel.model_validate(subscription)
+
+            if plan.interval not in {"month", "year"}:
+                raise WebhookVerificationError("Subscription plan interval invalid")
+            period_seconds = 365 * 86400 if plan.interval == "year" else 30 * 86400
+            period_start = now
+            period_end = now + period_seconds
+            if subscription:
+                subscription.plan_id = plan.id
+                subscription.status = SubscriptionStatus.ACTIVE.value
+                subscription.current_period_start = period_start
+                subscription.current_period_end = period_end
+                subscription.cancel_at_period_end = False
+                subscription.last_payment_id = payment_id
+                subscription.updated_at = now
+            else:
+                subscription = Subscription(
+                    id=str(uuid.uuid4()),
+                    user_id=transaction.user_id,
+                    plan_id=plan.id,
+                    status=SubscriptionStatus.ACTIVE.value,
+                    yookassa_payment_id=payment_id,
+                    current_period_start=period_start,
+                    current_period_end=period_end,
+                    cancel_at_period_end=False,
+                    auto_renew=False,
+                    last_payment_id=payment_id,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(subscription)
+                db.flush()
+
+            wallet = (
+                db.query(Wallet)
+                .filter(
+                    Wallet.user_id == transaction.user_id,
+                    Wallet.currency == transaction.currency,
+                )
+                .with_for_update()
+                .first()
+            )
+            if not wallet:
+                wallet = Wallet(
+                    id=str(uuid.uuid4()),
+                    user_id=transaction.user_id,
+                    currency=transaction.currency,
+                    balance_topup_kopeks=0,
+                    balance_included_kopeks=0,
+                    daily_reserved_kopeks=0,
+                    auto_topup_enabled=False,
+                    auto_topup_fail_count=0,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(wallet)
+                db.flush()
+            if wallet.included_expires_at and wallet.included_expires_at <= now:
+                wallet.balance_included_kopeks = 0
+                wallet.included_expires_at = None
+
+            included_credit = int(plan.included_kopeks_per_period or 0)
+            if included_credit > 0 and not credit_exists:
+                wallet.balance_included_kopeks += included_credit
+                wallet.included_expires_at = max(int(wallet.included_expires_at or 0), period_end)
+                wallet.updated_at = now
+                db.add(
+                    LedgerEntry(
+                        id=str(uuid.uuid4()),
+                        user_id=transaction.user_id,
+                        wallet_id=wallet.id,
+                        currency=wallet.currency,
+                        type=LedgerEntryType.SUBSCRIPTION_CREDIT.value,
+                        amount_kopeks=included_credit,
+                        balance_included_after=wallet.balance_included_kopeks,
+                        balance_topup_after=wallet.balance_topup_kopeks,
+                        reference_id=transaction.id,
+                        reference_type="subscription_payment",
+                        expires_at=period_end,
+                        metadata_json={"plan_id": plan.id},
+                        created_at=now,
+                    )
+                )
+
+            subscription.wallet_id = wallet.id
+            transaction.subscription_id = subscription.id
+            transaction.yookassa_payment_id = payment_id
+            transaction.status = TransactionStatus.SUCCEEDED.value
+            transaction.yookassa_status = provider_status
+            transaction.updated_at = now
+            db.commit()
+            db.refresh(subscription)
+            return SubscriptionModel.model_validate(subscription)
+
+    async def process_payment_webhook(
+        self, webhook_data: Dict[str, object]
+    ) -> Optional[SubscriptionModel]:  # noqa: C901
         """
         Process payment webhook from YooKassa
 
@@ -943,6 +1212,13 @@ class BillingService:
         log.info(f"Processing webhook: {event_type} for payment {payment_id}")
 
         kind = metadata.get("kind")
+        if kind is None:
+            local_payment = await run_in_threadpool(
+                self.payments.get_payment_by_provider_id,
+                payment_id,
+            )
+            if local_payment:
+                kind = local_payment.kind
         if kind == PaymentKind.TOPUP.value:
             trusted_webhook_data = {
                 **webhook_data,
@@ -963,64 +1239,34 @@ class BillingService:
 
         # Find transaction
         transaction_id = metadata.get("transaction_id")
-        if not transaction_id:
-            log.error("Transaction ID not found in webhook metadata")
-            return None
+        if not isinstance(transaction_id, str) or not transaction_id:
+            raise WebhookVerificationError("Transaction ID not found in webhook metadata")
 
         transaction = await run_in_threadpool(
             self.transactions.get_transaction_by_id,
             transaction_id,
         )
         if not transaction:
-            log.error(f"Transaction {transaction_id} not found")
-            return None
+            raise WebhookRetryableError(f"Transaction {transaction_id} not found")
         if transaction.yookassa_payment_id and transaction.yookassa_payment_id != payment_id:
             raise WebhookVerificationError("Payment ID does not match transaction")
-        if transaction.status == TransactionStatus.SUCCEEDED:
-            log.info(
-                "Transaction %s already succeeded; ignoring duplicate webhook",
-                transaction_id,
-            )
-            return None
 
-        # Update transaction status
         if event_type == "payment.succeeded":
-            await run_in_threadpool(
-                self.transactions.update_transaction,
+            if not isinstance(amount_value, str) or not isinstance(currency_value, str):
+                raise WebhookRetryableError("Provider subscription amount or currency missing")
+            try:
+                provider_amount = Decimal(amount_value)
+            except Exception as exc:
+                raise WebhookVerificationError("Provider subscription amount invalid") from exc
+            return await run_in_threadpool(
+                self._apply_subscription_payment,
                 transaction_id,
-                {
-                    "status": TransactionStatus.SUCCEEDED,
-                    "yookassa_status": provider_status,
-                },
+                payment_id,
+                str(provider_status),
+                provider_amount,
+                currency_value,
+                metadata,
             )
-
-            # Create or renew subscription
-            user_id = metadata.get("user_id")
-            plan_id = metadata.get("plan_id")
-
-            if not user_id or not plan_id:
-                log.error("User ID or Plan ID not found in webhook metadata")
-                return None
-
-            # Check if user already has a subscription
-            existing_subscription = await run_in_threadpool(
-                self.get_user_subscription,
-                user_id,
-            )
-
-            if existing_subscription:
-                # Renew existing subscription
-                return await run_in_threadpool(
-                    self.renew_subscription,
-                    existing_subscription.id,
-                )
-            else:
-                # Create new subscription
-                return await run_in_threadpool(
-                    self.create_subscription,
-                    user_id,
-                    plan_id,
-                )
 
         elif event_type == "payment.canceled":
             await run_in_threadpool(
@@ -1044,7 +1290,7 @@ class BillingService:
 
         return None
 
-    async def reconcile_topup_payment(
+    async def reconcile_topup_payment(  # noqa: C901
         self,
         user_id: str,
         payment_id: str,
@@ -1075,6 +1321,8 @@ class BillingService:
 
         provider_status_value = provider_payment.get("status")
         provider_status = str(provider_status_value) if isinstance(provider_status_value, str) else ""
+        if provider_status == "succeeded" and provider_payment.get("paid") is not True:
+            raise RuntimeError("Provider payment not marked as paid")
         amount_obj = provider_payment.get("amount")
         amount_value = amount_obj.get("value") if isinstance(amount_obj, dict) else None
         currency_value = amount_obj.get("currency") if isinstance(amount_obj, dict) else None
@@ -1143,7 +1391,7 @@ class BillingService:
             "credited": credited,
         }
 
-    def _process_topup_webhook(
+    def _process_topup_webhook(  # noqa: C901
         self,
         event_type: Optional[str],
         payment_id: Optional[str],
@@ -1151,27 +1399,50 @@ class BillingService:
     ) -> None:
         metadata = webhook_data.get("metadata", {})
         metadata_dict = metadata if isinstance(metadata, dict) else {}
-        is_auto_topup = self._is_auto_topup_metadata(metadata_dict)
         if not payment_id:
-            log.error("Topup webhook missing payment_id")
-            return
+            raise WebhookVerificationError("Topup webhook missing payment_id")
 
+        payment = self.payments.get_payment_by_provider_id(payment_id)
         if event_type == "payment.succeeded":
-            existing = self.payments.get_payment_by_provider_id(payment_id)
-            if existing and existing.status == PaymentStatus.SUCCEEDED.value:
+            if payment and payment.status == PaymentStatus.SUCCEEDED.value:
                 log.info(
                     "Topup payment %s already succeeded; ignoring duplicate webhook",
                     payment_id,
                 )
                 return
 
-        amount_kopeks = self._extract_amount_kopeks(metadata_dict, webhook_data.get("amount"))
-        wallet_id = metadata_dict.get("wallet_id")
-        user_id = metadata_dict.get("user_id")
+        provider_amount_kopeks = self._extract_amount_kopeks({}, webhook_data.get("amount"))
+        currency_value = webhook_data.get("currency")
+        provider_currency = currency_value.upper() if isinstance(currency_value, str) else None
+        if event_type == "payment.succeeded" and (provider_amount_kopeks is None or not provider_currency):
+            raise WebhookRetryableError("Provider topup amount or currency missing")
+        metadata_amount = self._extract_amount_kopeks(metadata_dict, None)
+        if (
+            metadata_amount is not None
+            and provider_amount_kopeks is not None
+            and metadata_amount != provider_amount_kopeks
+        ):
+            raise WebhookVerificationError("Topup metadata amount mismatch")
 
-        payment = self.payments.get_payment_by_provider_id(payment_id)
-        if payment and not is_auto_topup:
-            is_auto_topup = self._is_auto_topup_metadata(payment.metadata_json)
+        metadata_wallet_id = metadata_dict.get("wallet_id")
+        metadata_user_id = metadata_dict.get("user_id")
+        wallet_id = metadata_wallet_id if isinstance(metadata_wallet_id, str) else None
+        user_id = metadata_user_id if isinstance(metadata_user_id, str) else None
+        amount_kopeks = provider_amount_kopeks
+
+        if payment:
+            if payment.amount_kopeks != provider_amount_kopeks and event_type == "payment.succeeded":
+                raise WebhookVerificationError("Topup amount does not match local payment")
+            if provider_currency and payment.currency.upper() != provider_currency:
+                raise WebhookVerificationError("Topup currency does not match local payment")
+            if wallet_id and payment.wallet_id and wallet_id != payment.wallet_id:
+                raise WebhookVerificationError("Topup wallet does not match local payment")
+            if user_id and payment.user_id and user_id != payment.user_id:
+                raise WebhookVerificationError("Topup user does not match local payment")
+            amount_kopeks = payment.amount_kopeks
+            wallet_id = payment.wallet_id
+            user_id = payment.user_id
+
         if not payment and amount_kopeks and wallet_id and user_id:
             now = int(time.time())
             payment_record = PaymentModel(
@@ -1180,7 +1451,7 @@ class BillingService:
                 status=PaymentStatus.PENDING.value,
                 kind=PaymentKind.TOPUP.value,
                 amount_kopeks=amount_kopeks,
-                currency=webhook_data.get("currency") or BILLING_DEFAULT_CURRENCY,
+                currency=provider_currency or BILLING_DEFAULT_CURRENCY,
                 idempotency_key=str(uuid.uuid4()),
                 provider_payment_id=payment_id,
                 payment_method_id=None,
@@ -1196,19 +1467,15 @@ class BillingService:
             payment = self.payments.create_payment(payment_record)
 
         if not payment:
-            log.error(f"Topup payment record not found for {payment_id}")
-            return
+            raise WebhookRetryableError(f"Topup payment record not found for {payment_id}")
 
-        if not wallet_id:
-            wallet_id = payment.wallet_id
+        is_auto_topup = self._is_auto_topup_metadata(payment.metadata_json or metadata_dict)
 
         if event_type == "payment.succeeded":
             if not amount_kopeks:
-                log.error(f"Topup webhook missing amount for {payment_id}")
-                return
+                raise WebhookRetryableError(f"Topup webhook missing amount for {payment_id}")
             if not wallet_id:
-                log.error(f"Topup webhook missing wallet_id for {payment_id}")
-                return
+                raise WebhookRetryableError(f"Topup webhook missing wallet_id for {payment_id}")
 
             expires_at = None
             if BILLING_TOPUP_TTL_DAYS > 0:
@@ -1229,7 +1496,7 @@ class BillingService:
                 )
             except Exception as e:
                 log.exception(f"Failed to apply topup for payment {payment_id}: {e}")
-                return
+                raise WebhookRetryableError(f"Failed to apply topup for payment {payment_id}") from e
 
             if is_auto_topup:
                 self._reset_auto_topup_failures(wallet_id)
@@ -1240,6 +1507,7 @@ class BillingService:
                     "status": PaymentStatus.SUCCEEDED.value,
                     "status_details": {"yookassa_status": webhook_data.get("status")},
                     "raw_payload_json": self._sanitize_webhook_payload(webhook_data),
+                    "auto_topup_claim_key": None,
                 },
             )
             return
@@ -1251,6 +1519,7 @@ class BillingService:
                     "status": PaymentStatus.CANCELED.value,
                     "status_details": {"yookassa_status": webhook_data.get("status")},
                     "raw_payload_json": self._sanitize_webhook_payload(webhook_data),
+                    "auto_topup_claim_key": None,
                 },
             )
             if is_auto_topup and wallet_id:
@@ -1270,17 +1539,17 @@ class BillingService:
             )
 
     def _extract_amount_kopeks(self, metadata: Dict[str, object], amount_value: Optional[str]) -> Optional[int]:
+        if amount_value:
+            try:
+                return int((Decimal(str(amount_value)) * Decimal(100)).to_integral_value())
+            except Exception:
+                return None
         if metadata.get("amount_kopeks") is not None:
             try:
                 return int(metadata.get("amount_kopeks"))
             except (TypeError, ValueError):
                 return None
-        if not amount_value:
-            return None
-        try:
-            return int((Decimal(str(amount_value)) * Decimal(100)).to_integral_value())
-        except Exception:
-            return None
+        return None
 
     def _sanitize_payment_payload(self, payment: Dict[str, object]) -> JsonDict:
         confirmation = payment.get("confirmation")

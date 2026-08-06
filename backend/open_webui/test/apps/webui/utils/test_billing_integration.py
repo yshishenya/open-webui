@@ -1,3 +1,5 @@
+# ruff: noqa
+
 import time
 import uuid
 from decimal import Decimal
@@ -1177,7 +1179,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert payment.payment_method_id == "pm_contract_1"
 
     @pytest.mark.asyncio
-    async def test_yookassa_post_retry_reuses_idempotence_key(self, monkeypatch):
+    async def test_yookassa_post_retry_reuses_idempotence_key(self, monkeypatch):  # noqa: C901
         import open_webui.utils.yookassa as yookassa_utils
 
         attempts: list[dict[str, str]] = []
@@ -1385,9 +1387,9 @@ class TestBillingIntegration(AbstractPostgresTest):
             )
 
     @pytest.mark.asyncio
-    async def test_process_payment_webhook_returns_none_without_transaction_id(self, monkeypatch):
+    async def test_process_payment_webhook_rejects_missing_transaction_id(self, monkeypatch):
         import open_webui.utils.billing as billing_utils
-        from open_webui.utils.billing import billing_service
+        from open_webui.utils.billing import WebhookVerificationError, billing_service
 
         class FakeYooKassaClient:
             async def get_payment(self, provider_payment_id: str) -> dict[str, object]:
@@ -1402,14 +1404,14 @@ class TestBillingIntegration(AbstractPostgresTest):
 
         monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
 
-        result = await billing_service.process_payment_webhook(
-            {
-                "event_type": "payment.canceled",
-                "payment_id": "pay_no_tx",
-                "metadata": {},
-            }
-        )
-        assert result is None
+        with pytest.raises(WebhookVerificationError, match="Transaction ID not found"):
+            await billing_service.process_payment_webhook(
+                {
+                    "event_type": "payment.canceled",
+                    "payment_id": "pay_no_tx",
+                    "metadata": {},
+                }
+            )
 
     @pytest.mark.asyncio
     async def test_topup_webhook_missing_amount_does_not_credit_wallet(self, monkeypatch):
@@ -1422,7 +1424,7 @@ class TestBillingIntegration(AbstractPostgresTest):
             Payments,
             Wallets,
         )
-        from open_webui.utils.billing import billing_service
+        from open_webui.utils.billing import WebhookRetryableError, billing_service
         from open_webui.utils.wallet import wallet_service
 
         class FakeYooKassaClient:
@@ -1472,17 +1474,18 @@ class TestBillingIntegration(AbstractPostgresTest):
 
         monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
 
-        await billing_service.process_payment_webhook(
-            {
-                "event_type": "payment.succeeded",
-                "payment_id": "pay_missing_amount",
-                "metadata": {
-                    "kind": PaymentKind.TOPUP.value,
-                    "user_id": "missing_amount_user",
-                    "wallet_id": wallet.id,
-                },
-            }
-        )
+        with pytest.raises(WebhookRetryableError, match="amount or currency missing"):
+            await billing_service.process_payment_webhook(
+                {
+                    "event_type": "payment.succeeded",
+                    "payment_id": "pay_missing_amount",
+                    "metadata": {
+                        "kind": PaymentKind.TOPUP.value,
+                        "user_id": "missing_amount_user",
+                        "wallet_id": wallet.id,
+                    },
+                }
+            )
 
         updated_wallet = Wallets.get_wallet_by_id(wallet.id)
         assert updated_wallet is not None
@@ -1508,7 +1511,7 @@ class TestBillingIntegration(AbstractPostgresTest):
             PaymentStatus,
             Payments,
         )
-        from open_webui.utils.billing import billing_service
+        from open_webui.utils.billing import WebhookRetryableError, billing_service
 
         class FakeYooKassaClient:
             async def get_payment(self, provider_payment_id: str) -> dict[str, object]:
@@ -1554,17 +1557,18 @@ class TestBillingIntegration(AbstractPostgresTest):
 
         monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
 
-        await billing_service.process_payment_webhook(
-            {
-                "event_type": "payment.succeeded",
-                "payment_id": "pay_missing_wallet",
-                "metadata": {
-                    "kind": PaymentKind.TOPUP.value,
-                    "user_id": "missing_wallet_user",
-                    "amount_kopeks": 1000,
-                },
-            }
-        )
+        with pytest.raises(WebhookRetryableError, match="missing wallet_id"):
+            await billing_service.process_payment_webhook(
+                {
+                    "event_type": "payment.succeeded",
+                    "payment_id": "pay_missing_wallet",
+                    "metadata": {
+                        "kind": PaymentKind.TOPUP.value,
+                        "user_id": "missing_wallet_user",
+                        "amount_kopeks": 1000,
+                    },
+                }
+            )
 
         updated_payment = Payments.get_payment_by_provider_id("pay_missing_wallet")
         assert updated_payment is not None

@@ -1,5 +1,6 @@
+# ruff: noqa
+
 import time
-import uuid
 from typing import Dict, List, Optional
 
 from open_webui.internal.db import get_db
@@ -31,7 +32,7 @@ class PlansTable:
         with get_db() as db:
             query = db.query(Plan)
             if active_only:
-                query = query.filter(Plan.is_active == True)
+                query = query.filter(Plan.is_active.is_(True))
             plans = query.order_by(Plan.display_order).all()
             return [PlanModel.model_validate(plan) for plan in plans]
 
@@ -75,6 +76,7 @@ class PlansTable:
             db.commit()
             return True
 
+
 class SubscriptionsTable:
     def __init__(self, db=None):
         self.db = db
@@ -86,9 +88,8 @@ class SubscriptionsTable:
                 db.query(Subscription)
                 .filter(
                     Subscription.user_id == user_id,
-                    Subscription.status.in_(
-                        [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING]
-                    ),
+                    Subscription.status.in_([SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING]),
+                    Subscription.current_period_end > int(time.time()),
                 )
                 .first()
             )
@@ -97,14 +98,10 @@ class SubscriptionsTable:
     def get_subscription_by_id(self, subscription_id: str) -> Optional[SubscriptionModel]:
         """Get subscription by ID"""
         with get_db() as db:
-            subscription = (
-                db.query(Subscription).filter(Subscription.id == subscription_id).first()
-            )
+            subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
             return SubscriptionModel.model_validate(subscription) if subscription else None
 
-    def get_latest_subscription_by_user_id(
-        self, user_id: str
-    ) -> Optional[SubscriptionModel]:
+    def get_latest_subscription_by_user_id(self, user_id: str) -> Optional[SubscriptionModel]:
         """Get latest subscription for user regardless of status"""
         with get_db() as db:
             subscription = (
@@ -124,14 +121,10 @@ class SubscriptionsTable:
             db.refresh(result)
             return SubscriptionModel.model_validate(result)
 
-    def update_subscription(
-        self, subscription_id: str, updates: SubscriptionUpdates
-    ) -> Optional[SubscriptionModel]:
+    def update_subscription(self, subscription_id: str, updates: SubscriptionUpdates) -> Optional[SubscriptionModel]:
         """Update subscription"""
         with get_db() as db:
-            subscription = (
-                db.query(Subscription).filter(Subscription.id == subscription_id).first()
-            )
+            subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
             if not subscription:
                 return None
 
@@ -143,9 +136,7 @@ class SubscriptionsTable:
             db.refresh(subscription)
             return SubscriptionModel.model_validate(subscription)
 
-    def get_subscriptions_by_plan(
-        self, plan_id: str, status: Optional[str] = None
-    ) -> List[SubscriptionModel]:
+    def get_subscriptions_by_plan(self, plan_id: str, status: Optional[str] = None) -> List[SubscriptionModel]:
         """Get all subscriptions for a specific plan"""
         with get_db() as db:
             query = db.query(Subscription).filter(Subscription.plan_id == plan_id)
@@ -198,12 +189,7 @@ class SubscriptionsTable:
             total = query.count()
 
             # Apply pagination
-            results = (
-                query.order_by(Subscription.created_at.desc())
-                .offset(skip)
-                .limit(limit)
-                .all()
-            )
+            results = query.order_by(Subscription.created_at.desc()).offset(skip).limit(limit).all()
 
             subscribers: List[PlanSubscriberInfo] = []
             for sub, user in results:
@@ -254,9 +240,7 @@ class SubscriptionsTable:
 
             return {"subscribers": subscribers, "total": total}
 
-    def get_all_subscriptions_with_plans(
-        self, skip: int = 0, limit: int = 50
-    ) -> List[Dict[str, object]]:
+    def get_all_subscriptions_with_plans(self, skip: int = 0, limit: int = 50) -> List[Dict[str, object]]:
         """Get all active subscriptions with plan info for admin view"""
         with get_db() as db:
             results = (
@@ -283,6 +267,7 @@ class SubscriptionsTable:
                 }
                 for sub, plan in results
             ]
+
 
 class UsageTable:
     def __init__(self, db=None):
@@ -318,9 +303,7 @@ class UsageTable:
             usages = query.all()
             return [UsageModel.model_validate(usage) for usage in usages]
 
-    def get_total_usage(
-        self, user_id: str, period_start: int, period_end: int, metric: str
-    ) -> int:
+    def get_total_usage(self, user_id: str, period_start: int, period_end: int, metric: str) -> int:
         """Get total usage for a metric in a period"""
         from sqlalchemy import func
 
@@ -354,14 +337,10 @@ class TransactionsTable:
     def get_transaction_by_id(self, transaction_id: str) -> Optional[TransactionModel]:
         """Get transaction by ID"""
         with get_db() as db:
-            transaction = (
-                db.query(Transaction).filter(Transaction.id == transaction_id).first()
-            )
+            transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
             return TransactionModel.model_validate(transaction) if transaction else None
 
-    def get_transactions_by_user(
-        self, user_id: str, limit: int = 50, skip: int = 0
-    ) -> List[TransactionModel]:
+    def get_transactions_by_user(self, user_id: str, limit: int = 50, skip: int = 0) -> List[TransactionModel]:
         """Get user's transactions"""
         with get_db() as db:
             transactions = (
@@ -374,14 +353,10 @@ class TransactionsTable:
             )
             return [TransactionModel.model_validate(tx) for tx in transactions]
 
-    def update_transaction(
-        self, transaction_id: str, updates: Dict[str, object]
-    ) -> Optional[TransactionModel]:
+    def update_transaction(self, transaction_id: str, updates: Dict[str, object]) -> Optional[TransactionModel]:
         """Update transaction"""
         with get_db() as db:
-            transaction = (
-                db.query(Transaction).filter(Transaction.id == transaction_id).first()
-            )
+            transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
             if not transaction:
                 return None
 
