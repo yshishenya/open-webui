@@ -1,9 +1,12 @@
+import asyncio
+from copy import deepcopy
+
 from test.util.abstract_integration_test import AbstractPostgresTest
 from test.util.mock_user import mock_webui_user
 
 
 class TestModels(AbstractPostgresTest):
-    BASE_PATH = "/api/v1/models"
+    BASE_PATH = '/api/v1/models'
 
     def setup_class(cls):
         super().setup_class()
@@ -12,58 +15,61 @@ class TestModels(AbstractPostgresTest):
         cls.models = Model
 
     def test_models(self):
-        config = self.fast_api_client.app.state.config
-        config.USER_PERMISSIONS["workspace"]["models"] = True
-        with mock_webui_user(id="2"):
-            response = self.fast_api_client.get(self.create_url("/list"))
+        from open_webui.models.config import Config
+
+        permissions = deepcopy(Config.default_value('user.permissions', {}))
+        permissions.setdefault('workspace', {})['models'] = True
+        asyncio.run(Config.upsert({'user.permissions': permissions}))
+        with mock_webui_user(id='2'):
+            response = self.fast_api_client.get(self.create_url('/list'))
         assert response.status_code == 200
         payload = response.json()
-        assert payload["items"] == []
-        assert payload["total"] == 0
+        assert payload['items'] == []
+        assert payload['total'] == 0
 
-        with mock_webui_user(id="2"):
+        with mock_webui_user(id='2'):
             response = self.fast_api_client.post(
-                self.create_url("/create"),
+                self.create_url('/create'),
                 json={
-                    "id": "my-model",
-                    "base_model_id": "base-model-id",
-                    "name": "Hello World",
-                    "meta": {
-                        "profile_image_url": "/static/favicon.png",
-                        "description": "description",
-                        "capabilities": None,
-                        "model_config": {},
+                    'id': 'my-model',
+                    'base_model_id': 'base-model-id',
+                    'name': 'Hello World',
+                    'meta': {
+                        'profile_image_url': '/static/favicon.png',
+                        'description': 'description',
+                        'capabilities': None,
+                        'model_config': {},
                     },
-                    "params": {},
+                    'params': {},
                 },
             )
         assert response.status_code == 200
 
-        with mock_webui_user(id="2"):
-            response = self.fast_api_client.get(self.create_url("/list"))
+        with mock_webui_user(id='2'):
+            response = self.fast_api_client.get(self.create_url('/list'))
         assert response.status_code == 200
         payload = response.json()
-        assert len(payload["items"]) == 1
-        assert payload["total"] == 1
+        assert len(payload['items']) == 1
+        assert payload['total'] == 1
 
-        with mock_webui_user(id="2"):
+        with mock_webui_user(id='2'):
             response = self.fast_api_client.get(
-                self.create_url("/model", query_params={"id": "my-model"})
+                self.create_url('/model', query_params={'id': 'my-model'})
             )
         assert response.status_code == 200
         data = response.json()
-        assert data["id"] == "my-model"
-        assert data["name"] == "Hello World"
+        assert data['id'] == 'my-model'
+        assert data['name'] == 'Hello World'
 
-        with mock_webui_user(id="2"):
+        with mock_webui_user(id='2'):
             response = self.fast_api_client.post(
-                self.create_url("/model/delete"), json={"id": "my-model"}
+                self.create_url('/model/delete'), json={'id': 'my-model'}
             )
         assert response.status_code == 200
 
-        with mock_webui_user(id="2"):
-            response = self.fast_api_client.get(self.create_url("/list"))
+        with mock_webui_user(id='2'):
+            response = self.fast_api_client.get(self.create_url('/list'))
         assert response.status_code == 200
         payload = response.json()
-        assert payload["items"] == []
-        assert payload["total"] == 0
+        assert payload['items'] == []
+        assert payload['total'] == 0

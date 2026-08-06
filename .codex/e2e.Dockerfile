@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/playwright:v1.57.0-jammy
+FROM mcr.microsoft.com/playwright:v1.62.1-jammy
 
 # Repo uses `.npmrc` with `engine-strict=true` and requires Node <= 22.
 # The upstream Playwright image currently ships with Node 24, so we

@@ -40,7 +40,7 @@ services:
     build:
       context: .
       dockerfile: .codex/e2e.Dockerfile
-    image: airis-e2e:playwright-1.57-node22
+    image: airis-e2e:playwright-1.62.1-node22
     working_dir: /work
     environment:
       # In this compose project network, "airis-e2e" resolves to the backend container.

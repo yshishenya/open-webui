@@ -1,0 +1,291 @@
+{
+  "spec_id": "billing-release-gates-and-prod-2026-08-06-001",
+  "title": "Billing release gates and production rollout",
+  "generated": "2026-08-06T15:18:42.565189Z",
+  "last_updated": "2026-08-06T15:52:55.701164Z",
+  "metadata": {
+    "template": "complex",
+    "complexity": "high",
+    "risk_level": "high",
+    "estimated_hours": 60,
+    "security_sensitive": true,
+    "default_category": "implementation",
+    "owner": "Codex",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-06__bugfix__billing-release-gates-production.md",
+    "objectives": [
+      "Restore green backend and billing release gates without weakening tests.",
+      "Merge a focused follow-up PR into airis_b2c.",
+      "Deploy the merged immutable image through guarded production rollout.",
+      "Verify production health and billing canary evidence."
+    ],
+    "assumptions": [
+      "PR #89 is already merged into airis_b2c.",
+      "Production uses the guarded Docker Compose deployment documented in docs/DEPLOY_PROD.md.",
+      "No production secret or subscription feature-flag change is required."
+    ],
+    "status": "active",
+    "activated_date": "2026-08-06T15:20:03.547295Z",
+    "progress_percentage": 28,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Billing release gates and production rollout",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4",
+        "phase-5"
+      ],
+      "total_tasks": 7,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Repair release test gates",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T15:52:55.697951Z",
+        "journaled_at": "2026-08-06T15:52:55.701117Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Follow-up pull request",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Merge and release confidence",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-4": {
+      "type": "phase",
+      "title": "Production rollout",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-4-1",
+        "task-4-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-5": {
+      "type": "phase",
+      "title": "Release evidence",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-5-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Update stale backend tests for current async APIs",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 3.0,
+        "file_path": "backend/open_webui/test",
+        "completed_at": "2026-08-06T15:52:55.697797Z",
+        "needs_journaling": false,
+        "status_note": "Updated stale async ORM, Config, aiohttp, prompt, access-control, and direct-ack tests; focused and full backend suites pass.",
+        "journaled_at": "2026-08-06T15:52:55.698978Z"
+      },
+      "description": "Repair test mocks and configuration boundaries without changing runtime behavior."
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Restore billing singleton isolation and preserve coverage thresholds",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 3.0,
+        "file_path": "backend/open_webui/test/apps/webui/utils/test_billing_service_extended.py",
+        "completed_at": "2026-08-06T15:52:55.693334Z",
+        "needs_journaling": false,
+        "status_note": "Replaced direct assignment to shared billing table singletons with monkeypatch restoration; combined webhook sequence passes.",
+        "journaled_at": "2026-08-06T15:52:55.695602Z"
+      },
+      "description": "Restore every shared billing table method after test doubles while retaining line and branch coverage gates."
+    },
+    "task-2-1": {
+      "type": "verify",
+      "title": "Pass follow-up PR checks",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 2.0,
+        "verification_type": "auto",
+        "command": "GitHub PR required checks",
+        "expected": "All required PR checks pass"
+      },
+      "description": "Backend, billing pr-fast, lint, migration, and SDD checks must be green."
+    },
+    "task-3-1": {
+      "type": "verify",
+      "title": "Merge follow-up PR and pass release-heavy confidence",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 2.0,
+        "verification_type": "auto",
+        "command": "GitHub merge-medium and release-heavy workflows",
+        "expected": "Merge-medium and release-heavy workflows pass"
+      },
+      "description": "Merge to airis_b2c, verify merge-medium, then run release-heavy."
+    },
+    "task-4-1": {
+      "type": "task",
+      "title": "Build and verify immutable linux-amd64 image",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 3.0,
+        "file_path": "scripts/deploy_guarded.sh"
+      },
+      "description": "Build the merged airis_b2c commit once and verify the image before promotion."
+    },
+    "task-4-2": {
+      "type": "verify",
+      "title": "Run guarded production deployment and smoke checks",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 3.0,
+        "verification_type": "manual",
+        "command": "Guarded deploy, health, billing canary",
+        "expected": "Backups verify and production health and billing canary pass"
+      },
+      "description": "Create backups, migrate, deploy, health-check, and run billing canary."
+    },
+    "task-5-1": {
+      "type": "task",
+      "title": "Record release evidence and close workflow",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 1.0,
+        "file_path": "meta/memory_bank/branch_updates/2026-08-06-codex-bugfix-billing-release-gates.md"
+      },
+      "description": "Update Memory Bank with PR, CI, backup, image, deploy, and smoke evidence."
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-08-06T15:52:55.695592Z",
+      "entry_type": "status_change",
+      "title": "Billing test isolation restored",
+      "author": "Codex",
+      "content": "Root cause was persistent mutation of Plans, Subscriptions, and UsageTracking singleton methods in test_billing_service_extended.py. Pytest monkeypatch now restores each method.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-08-06T15:52:55.698971Z",
+      "entry_type": "status_change",
+      "title": "Backend CI contracts updated",
+      "author": "Codex",
+      "content": "Updated tests to current async/config/network contracts without weakening assertions. Full backend suite: 370 passed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-08-06T15:52:55.701106Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Repair release test gates",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}
