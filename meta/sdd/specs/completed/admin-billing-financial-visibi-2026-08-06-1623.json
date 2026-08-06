@@ -1,0 +1,346 @@
+{
+  "spec_id": "admin-billing-financial-visibi-2026-08-06-1623",
+  "title": "Admin billing financial visibility",
+  "generated": "2026-08-06T13:23:42.477632Z",
+  "last_updated": "2026-08-06T13:41:59.861251Z",
+  "metadata": {
+    "template": "complex",
+    "complexity": "high",
+    "risk_level": "high",
+    "estimated_hours": 60,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "description": "Admin-only financial visibility for payments, balances, wallet ledger, usage spend, and reconciliation warnings.",
+    "objectives": [
+      "Give admins a single trustworthy view of customer payments and remaining paid/bonus balances.",
+      "Keep payment, ledger, usage, and currency semantics explicit and non-overlapping.",
+      "Provide safe, accessible, filterable, exportable financial operations without exposing provider secrets.",
+      "Reuse existing billing tables and dependencies; add only fork-owned reporting surfaces."
+    ],
+    "owner": "Codex",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-06__feature__admin-billing-financial-visibility.md",
+    "assumptions": [
+      "RUB remains the default operational currency, but API aggregates never mix currencies.",
+      "Provider paid_at/refund/chargeback facts are not yet durable; processed_at is labeled as a fallback.",
+      "Existing admin authorization is the only role required for the first increment.",
+      "No new runtime dependency or reporting warehouse is introduced."
+    ],
+    "status": "completed",
+    "activated_date": "2026-08-06T13:24:15.713755Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-08-06T13:41:59.860756Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Admin billing financial visibility",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4",
+        "phase-5"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 5,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Contracts and metric semantics",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T13:40:19.402849Z",
+        "journaled_at": "2026-08-06T13:40:19.405801Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Reporting API and read service",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T13:40:19.988203Z",
+        "journaled_at": "2026-08-06T13:40:19.990790Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: Overview and customer list",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T13:40:20.539388Z",
+        "journaled_at": "2026-08-06T13:40:20.542069Z"
+      }
+    },
+    "phase-4": {
+      "type": "phase",
+      "title": "Phase 4: Customer 360 and transactions",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-4-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T13:40:21.051704Z",
+        "journaled_at": "2026-08-06T13:40:21.054737Z"
+      }
+    },
+    "phase-5": {
+      "type": "phase",
+      "title": "Phase 5: Security, accessibility, and verification",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-5-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-06T13:41:54.601129Z",
+        "journaled_at": "2026-08-06T13:41:54.604827Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Define reporting contracts and normalized financial facts",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 4.0,
+        "completed_at": "2026-08-06T13:40:19.402681Z",
+        "needs_journaling": false,
+        "status_note": "Contracts, metric semantics, data model, privacy boundaries, and quickstart added.",
+        "journaled_at": "2026-08-06T13:40:19.404425Z",
+        "file_path": "task-1-1.md",
+        "task_category": "implementation"
+      },
+      "description": "Document metric semantics, currency isolation, processed_at fallback, privacy redactions, pagination bounds, and reconciliation warning shape."
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Implement admin billing reporting read service and endpoints",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 14.0,
+        "completed_at": "2026-08-06T13:40:19.987991Z",
+        "needs_journaling": false,
+        "status_note": "Admin-only async reporting service/router added for overview, customers, Customer 360, payments, ledger, usage, and bounded CSV export.",
+        "journaled_at": "2026-08-06T13:40:19.989362Z",
+        "file_path": "task-2-1.md",
+        "task_category": "implementation"
+      },
+      "description": "Add overview, customers, customer detail, payments, ledger, usage, and CSV export with admin auth, server-side filters, stable pagination, and bounded queries."
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Add Billing Overview and Customers UI",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 12.0,
+        "completed_at": "2026-08-06T13:40:20.539171Z",
+        "needs_journaling": false,
+        "status_note": "Billing navigation, Overview, and Customers screens added with separate paid/bonus balances, accessible table fallback, loading/error/empty states, and drill-downs.",
+        "journaled_at": "2026-08-06T13:40:20.540627Z",
+        "file_path": "task-3-1.md",
+        "task_category": "implementation"
+      },
+      "description": "Create accessible admin screens with KPI definitions, customer filters, balance split, loading/error/empty states, and drill-down links."
+    },
+    "task-4-1": {
+      "type": "task",
+      "title": "Add Customer 360 and Transactions UI",
+      "status": "completed",
+      "parent": "phase-4",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 12.0,
+        "completed_at": "2026-08-06T13:40:21.051490Z",
+        "needs_journaling": false,
+        "status_note": "Customer 360 and Transactions tabs added with payment/ledger/usage views and safe authenticated CSV export.",
+        "journaled_at": "2026-08-06T13:40:21.053237Z",
+        "file_path": "task-4-1.md",
+        "task_category": "implementation"
+      },
+      "description": "Create payment/ledger/usage tabs, timeline links, filters, detail drawer, safe CSV export, and responsive accessible tables."
+    },
+    "task-5-1": {
+      "type": "verify",
+      "title": "Add regression tests and verification evidence",
+      "status": "completed",
+      "parent": "phase-5",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 10.0,
+        "started_at": "2026-08-06T13:40:21.568766Z",
+        "verification_type": "manual",
+        "command": "",
+        "expected": "",
+        "completed_at": "2026-08-06T13:41:54.600958Z",
+        "needs_journaling": false,
+        "status_note": "Targeted Docker pytest passed (3), targeted ESLint passed, Ruff and format checks passed, compile/import checks passed. Repository-wide frontend check remains blocked by pre-existing unrelated baseline errors; provider paid_at/refund/reconciliation remain explicit follow-up.",
+        "actual_hours": 0.026,
+        "journaled_at": "2026-08-06T13:41:54.602894Z"
+      },
+      "description": "Cover admin authorization, metric semantics, currency isolation, pagination, CSV injection, redaction, UI states, lint, typecheck, and targeted test runs."
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-08-06T13:40:19.404414Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Define reporting contracts and normalized financial facts",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Contracts, metric semantics, data model, privacy boundaries, and quickstart added.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-08-06T13:40:19.405796Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: Contracts and metric semantics",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-08-06T13:40:19.989357Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement admin billing reporting read service and endpoints",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Admin-only async reporting service/router added for overview, customers, Customer 360, payments, ledger, usage, and bounded CSV export.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-08-06T13:40:19.990785Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: Reporting API and read service",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-08-06T13:40:20.540620Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add Billing Overview and Customers UI",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: Billing navigation, Overview, and Customers screens added with separate paid/bonus balances, accessible table fallback, loading/error/empty states, and drill-downs.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-08-06T13:40:20.542063Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 3: Overview and customer list",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    },
+    {
+      "timestamp": "2026-08-06T13:40:21.053228Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add Customer 360 and Transactions UI",
+      "author": "claude-code",
+      "content": "Task task-4-1 marked as completed. \nNote: Customer 360 and Transactions tabs added with payment/ledger/usage views and safe authenticated CSV export.",
+      "metadata": {},
+      "task_id": "task-4-1"
+    },
+    {
+      "timestamp": "2026-08-06T13:40:21.054732Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 4: Customer 360 and transactions",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-4 have been completed.",
+      "metadata": {},
+      "task_id": "phase-4"
+    },
+    {
+      "timestamp": "2026-08-06T13:41:54.602889Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add regression tests and verification evidence",
+      "author": "claude-code",
+      "content": "Task task-5-1 marked as completed. \nNote: Targeted Docker pytest passed (3), targeted ESLint passed, Ruff and format checks passed, compile/import checks passed. Repository-wide frontend check remains blocked by pre-existing unrelated baseline errors; provider paid_at/refund/reconciliation remain explicit follow-up.",
+      "metadata": {},
+      "task_id": "task-5-1"
+    },
+    {
+      "timestamp": "2026-08-06T13:41:54.604816Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 5: Security, accessibility, and verification",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-5 have been completed.",
+      "metadata": {},
+      "task_id": "phase-5"
+    }
+  ]
+}

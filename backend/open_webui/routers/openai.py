@@ -7,7 +7,6 @@ import logging
 import re
 import uuid
 from decimal import Decimal
-from typing import Optional
 from urllib.parse import quote, urlparse
 
 import aiofiles
@@ -35,13 +34,12 @@ from open_webui.env import (
     FORWARD_SESSION_INFO_HEADER_CHAT_ID,
     MODELS_CACHE_TTL,
 )
-from open_webui.internal.db import get_async_session
 from open_webui.models.access_grants import AccessGrants
 from open_webui.models.config import Config
 from open_webui.models.groups import Groups
 from open_webui.models.models import Models
 from open_webui.models.users import UserModel
-from open_webui.utils.access_control import check_model_access, has_connection_access, has_permission
+from open_webui.utils.access_control import check_model_access, has_permission
 from open_webui.utils.anthropic import get_anthropic_models, is_anthropic_url
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.billing_integration import (
@@ -75,7 +73,6 @@ from open_webui.utils.session_pool import (
     stream_wrapper,
 )
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger(__name__)
 
@@ -1304,9 +1301,10 @@ async def generate_chat_completion(
     metadata = metadata_value if isinstance(metadata_value, dict) else {}
     chat_id = metadata.get('chat_id')
     message_id = metadata.get('message_id')
-    request_id_value = metadata.get('request_id')
-    if not isinstance(request_id_value, str) or not request_id_value:
-        request_id_value = str(uuid.uuid4())
+    correlation_id_value = metadata.get('request_id')
+    if not isinstance(correlation_id_value, str) or not correlation_id_value:
+        correlation_id_value = None
+    billing_operation_id = str(uuid.uuid4())
 
     max_reply_cost_value = metadata.get('max_reply_cost_kopeks')
     max_reply_cost_kopeks = max_reply_cost_value if isinstance(max_reply_cost_value, int) else None
@@ -1455,9 +1453,10 @@ async def generate_chat_completion(
             user_id=user.id,
             model_id=model_id,
             payload=billing_payload,
-            request_id=request_id_value,
+            request_id=billing_operation_id,
             max_reply_cost_kopeks=max_reply_cost_kopeks,
             lead_magnet_model_id=lead_magnet_model_id,
+            correlation_id=correlation_id_value,
         )
     except HTTPException:
         raise

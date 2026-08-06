@@ -1,3 +1,4 @@
+import asyncio
 import io
 import time
 import uuid
@@ -21,30 +22,22 @@ class TestAdminBillingRateCardXlsx(AbstractPostgresTest):
         self.model_b = "rate-card-model-b"
 
         # Create base models so model IDs are known to the system.
-        Models.insert_new_model(
-            ModelForm(
-                id=self.model_a,
-                base_model_id=None,
-                name="Model A",
-                meta=ModelMeta(),
-                params=ModelParams(),
-                access_control=None,
-                is_active=True,
-            ),
-            user_id="admin",
-        )
-        Models.insert_new_model(
-            ModelForm(
-                id=self.model_b,
-                base_model_id=None,
-                name="Model B",
-                meta=ModelMeta(),
-                params=ModelParams(),
-                access_control=None,
-                is_active=True,
-            ),
-            user_id="admin",
-        )
+        async def create_models() -> None:
+            for model_id, name in ((self.model_a, "Model A"), (self.model_b, "Model B")):
+                await Models.insert_new_model(
+                    ModelForm(
+                        id=model_id,
+                        base_model_id=None,
+                        name=name,
+                        meta=ModelMeta(),
+                        params=ModelParams(),
+                        access_control=None,
+                        is_active=True,
+                    ),
+                    user_id="admin",
+                )
+
+        asyncio.run(create_models())
 
         now = int(time.time())
 
@@ -121,8 +114,7 @@ class TestAdminBillingRateCardXlsx(AbstractPostgresTest):
 
         assert response.status_code == 200
         assert (
-            response.headers.get("content-type")
-            == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            response.headers.get("content-type") == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
         wb = self._read_workbook(response.content)
@@ -479,7 +471,7 @@ class TestAdminBillingRateCardXlsx(AbstractPostgresTest):
         assert payload.get("errors") == []
         assert not any(w.get("code") == "unknown_model" for w in payload.get("warnings", []))
 
-        created_model = Models.get_model_by_id(provider_model_id)
+        created_model = asyncio.run(Models.get_model_by_id(provider_model_id))
         assert created_model is not None
         assert created_model.base_model_id is None
         assert created_model.name == "Provider Only"

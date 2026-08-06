@@ -63,9 +63,7 @@ class Wallet(Base):
     """User wallet balances and limits (kopeks)"""
 
     __tablename__ = "billing_wallet"
-    __table_args__ = (
-        UniqueConstraint("user_id", "currency", name="uq_wallet_user_currency"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "currency", name="uq_wallet_user_currency"),)
 
     id = Column(String, primary_key=True, unique=True)
     user_id = Column(String, nullable=False, index=True)
@@ -73,11 +71,13 @@ class Wallet(Base):
 
     balance_topup_kopeks = Column(BigInteger, nullable=False, default=0)
     balance_included_kopeks = Column(BigInteger, nullable=False, default=0)
+    topup_expires_at = Column(BigInteger, nullable=True)
     included_expires_at = Column(BigInteger, nullable=True)
 
     max_reply_cost_kopeks = Column(BigInteger, nullable=True)
     daily_cap_kopeks = Column(BigInteger, nullable=True)
     daily_spent_kopeks = Column(BigInteger, nullable=False, default=0)
+    daily_reserved_kopeks = Column(BigInteger, nullable=False, default=0)
     daily_reset_at = Column(BigInteger, nullable=True)
 
     auto_topup_enabled = Column(Boolean, nullable=False, default=False)
@@ -99,10 +99,12 @@ class WalletModel(BaseModel):
     currency: str
     balance_topup_kopeks: int
     balance_included_kopeks: int
+    topup_expires_at: Optional[int] = None
     included_expires_at: Optional[int] = None
     max_reply_cost_kopeks: Optional[int] = None
     daily_cap_kopeks: Optional[int] = None
     daily_spent_kopeks: int = 0
+    daily_reserved_kopeks: int = 0
     daily_reset_at: Optional[int] = None
     auto_topup_enabled: bool = False
     auto_topup_threshold_kopeks: Optional[int] = None
@@ -180,7 +182,12 @@ class UsageEvent(Base):
 
     __tablename__ = "billing_usage_event"
     __table_args__ = (
-        UniqueConstraint("request_id", "modality", name="uq_usage_request_modality"),
+        UniqueConstraint(
+            "wallet_id",
+            "request_id",
+            "modality",
+            name="uq_usage_wallet_request_modality",
+        ),
     )
 
     id = Column(String, primary_key=True, unique=True)
@@ -192,6 +199,7 @@ class UsageEvent(Base):
     chat_id = Column(String, nullable=True)
     message_id = Column(String, nullable=True)
     request_id = Column(String, nullable=False)
+    correlation_id = Column(String, nullable=True, index=True)
 
     model_id = Column(String, nullable=False)
     modality = Column(String, nullable=False)
@@ -206,9 +214,7 @@ class UsageEvent(Base):
     cost_charged_kopeks = Column(BigInteger, nullable=False, default=0)
     cost_charged_input_kopeks = Column(BigInteger, nullable=True)
     cost_charged_output_kopeks = Column(BigInteger, nullable=True)
-    billing_source = Column(
-        String, nullable=False, default=BillingSource.PAYG.value
-    )
+    billing_source = Column(String, nullable=False, default=BillingSource.PAYG.value)
     is_estimated = Column(Boolean, nullable=False, default=False)
     estimate_reason = Column(Text, nullable=True)
     pricing_version = Column(String, nullable=True)
@@ -232,6 +238,7 @@ class UsageEventModel(BaseModel):
     chat_id: Optional[str] = None
     message_id: Optional[str] = None
     request_id: str
+    correlation_id: Optional[str] = None
     model_id: str
     modality: str
     provider: Optional[str] = None
@@ -266,9 +273,7 @@ class LeadMagnetState(Base):
     """Per-user lead magnet usage and cycle tracking."""
 
     __tablename__ = "billing_lead_magnet_state"
-    __table_args__ = (
-        UniqueConstraint("user_id", name="uq_lead_magnet_user"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", name="uq_lead_magnet_user"),)
 
     id = Column(String, primary_key=True, unique=True)
     user_id = Column(String, nullable=False, index=True)
@@ -315,10 +320,16 @@ class LedgerEntry(Base):
     __tablename__ = "billing_ledger_entry"
     __table_args__ = (
         UniqueConstraint(
+            "wallet_id",
             "reference_type",
             "reference_id",
             "type",
-            name="uq_ledger_reference",
+            name="uq_ledger_wallet_reference",
+        ),
+        UniqueConstraint(
+            "wallet_id",
+            "idempotency_key",
+            name="uq_ledger_wallet_idempotency",
         ),
     )
 
@@ -336,7 +347,8 @@ class LedgerEntry(Base):
 
     reference_id = Column(String, nullable=True)
     reference_type = Column(String, nullable=True)
-    idempotency_key = Column(String, nullable=True, unique=True)
+    correlation_id = Column(String, nullable=True, index=True)
+    idempotency_key = Column(String, nullable=True)
 
     hold_expires_at = Column(BigInteger, nullable=True)
     expires_at = Column(BigInteger, nullable=True)
@@ -362,6 +374,7 @@ class LedgerEntryModel(BaseModel):
     balance_topup_after: int
     reference_id: Optional[str] = None
     reference_type: Optional[str] = None
+    correlation_id: Optional[str] = None
     idempotency_key: Optional[str] = None
     hold_expires_at: Optional[int] = None
     expires_at: Optional[int] = None
@@ -391,6 +404,7 @@ class Payment(Base):
     idempotency_key = Column(String, nullable=True, unique=True)
     provider_payment_id = Column(String, nullable=True, unique=True)
     payment_method_id = Column(String, nullable=True)
+    auto_topup_claim_key = Column(String, nullable=True, unique=True)
 
     status_details = Column(JSON, nullable=True)
     metadata_json = Column(JSON, nullable=True)
@@ -418,6 +432,7 @@ class PaymentModel(BaseModel):
     idempotency_key: Optional[str] = None
     provider_payment_id: Optional[str] = None
     payment_method_id: Optional[str] = None
+    auto_topup_claim_key: Optional[str] = None
     status_details: Optional[JsonDict] = None
     metadata_json: Optional[JsonDict] = None
     raw_payload_json: Optional[JsonDict] = None
@@ -426,6 +441,44 @@ class PaymentModel(BaseModel):
     subscription_id: Optional[str] = None
     created_at: int
     updated_at: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+####################
+# Quota Reservations DB Schema
+####################
+
+
+class QuotaReservation(Base):
+    """Temporary quota reservation tied to one server billing operation."""
+
+    __tablename__ = "billing_quota_reservation"
+
+    id = Column(String, primary_key=True, unique=True)
+    operation_id = Column(String, nullable=False, unique=True)
+    user_id = Column(String, nullable=False, index=True)
+    wallet_id = Column(String, nullable=False, index=True)
+    source = Column(String, nullable=False)
+    subscription_id = Column(String, nullable=True)
+    requirements_json = Column(JSON, nullable=False)
+    expires_at = Column(BigInteger, nullable=False)
+    created_at = Column(BigInteger, nullable=False)
+
+
+Index("idx_quota_reservation_expiry", QuotaReservation.expires_at)
+
+
+class QuotaReservationModel(BaseModel):
+    id: str
+    operation_id: str
+    user_id: str
+    wallet_id: str
+    source: str
+    subscription_id: Optional[str] = None
+    requirements_json: JsonDict
+    expires_at: int
+    created_at: int
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -12,7 +12,7 @@ from test.util.mock_user import mock_webui_user
 class TestBillingTopup(AbstractPostgresTest):
     BASE_PATH = "/api/v1/billing"
 
-    def _ensure_user(
+    async def _ensure_user(
         self,
         user_id: str,
         email: str = "user@example.com",
@@ -20,8 +20,8 @@ class TestBillingTopup(AbstractPostgresTest):
     ) -> None:
         from open_webui.models.users import Users
 
-        if not Users.get_user_by_id(user_id):
-            Users.insert_new_user(
+        if not await Users.get_user_by_id(user_id):
+            await Users.insert_new_user(
                 id=user_id,
                 name=f"User {user_id}",
                 email=email,
@@ -29,7 +29,7 @@ class TestBillingTopup(AbstractPostgresTest):
             )
 
         if info is not None:
-            Users.update_user_by_id(user_id, {"info": info})
+            await Users.update_user_by_id(user_id, {"info": info})
 
     def _mock_yookassa_get_payment(
         self,
@@ -107,9 +107,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert response.status_code == 502
         assert response.json()["detail"] == "Payment provider credentials are invalid"
 
-    def test_topup_maps_provider_bad_request_error(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_topup_maps_provider_bad_request_error(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
         from open_webui.utils.yookassa import YooKassaRequestError
 
@@ -138,9 +136,7 @@ class TestBillingTopup(AbstractPostgresTest):
             )
 
         assert response.status_code == 502
-        assert (
-            response.json()["detail"] == "Payment provider rejected the payment request"
-        )
+        assert response.json()["detail"] == "Payment provider rejected the payment request"
 
     def test_topup_maps_retryable_provider_error(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
@@ -239,9 +235,7 @@ class TestBillingTopup(AbstractPostgresTest):
             "   ",
         ],
     )
-    def test_topup_rejects_unsafe_return_url_payloads(
-        self, monkeypatch: MonkeyPatch, invalid_return_url: str
-    ) -> None:
+    def test_topup_rejects_unsafe_return_url_payloads(self, monkeypatch: MonkeyPatch, invalid_return_url: str) -> None:
         import open_webui.routers.billing as billing_router
         import open_webui.utils.billing as billing_utils
 
@@ -300,9 +294,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert response.status_code == 502
         assert response.json()["detail"] == "Payment provider credentials are invalid"
 
-    def test_payment_maps_provider_bad_request_error(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_payment_maps_provider_bad_request_error(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
         from open_webui.utils.yookassa import YooKassaRequestError
 
@@ -331,13 +323,9 @@ class TestBillingTopup(AbstractPostgresTest):
             )
 
         assert response.status_code == 502
-        assert (
-            response.json()["detail"] == "Payment provider rejected the payment request"
-        )
+        assert response.json()["detail"] == "Payment provider rejected the payment request"
 
-    def test_payment_maps_retryable_provider_error(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_payment_maps_retryable_provider_error(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
         from open_webui.utils.yookassa import YooKassaRequestError
 
@@ -460,9 +448,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert response.status_code == 400
         assert response.json()["detail"] == "Invalid return_url"
 
-    def test_payment_maps_uninitialized_payment_system_error(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_payment_maps_uninitialized_payment_system_error(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         monkeypatch.setattr(billing_router, "ENABLE_BILLING_SUBSCRIPTIONS", True)
@@ -488,9 +474,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert response.status_code == 503
         assert response.json()["detail"] == "Payment system is not configured"
 
-    def test_topup_maps_uninitialized_payment_system_error(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_topup_maps_uninitialized_payment_system_error(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
@@ -574,19 +558,15 @@ class TestBillingTopup(AbstractPostgresTest):
             )
 
         assert response.status_code == 403
-        assert (
-            response.json()["detail"] == "Payment does not belong to the current user"
-        )
+        assert response.json()["detail"] == "Payment does not belong to the current user"
 
     @pytest.mark.asyncio
-    async def test_create_subscription_payment_includes_receipt(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_create_subscription_payment_includes_receipt(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import PlanModel, Plans
         from open_webui.utils.billing import billing_service
         import open_webui.utils.billing as billing_utils
 
-        self._ensure_user(
+        await self._ensure_user(
             user_id="receipt-sub",
             email="receipt-sub@example.com",
             info={"billing_contact_phone": "+79000000000"},
@@ -622,6 +602,7 @@ class TestBillingTopup(AbstractPostgresTest):
                 receipt: Optional[dict[str, object]] = None,
                 payment_method_id: Optional[str] = None,
                 save_payment_method: Optional[bool] = None,
+                idempotence_key: Optional[str] = None,
             ) -> dict[str, object]:
                 self.last_receipt = receipt
                 return {
@@ -663,15 +644,13 @@ class TestBillingTopup(AbstractPostgresTest):
         assert len(items) == 1
 
     @pytest.mark.asyncio
-    async def test_create_topup_payment_creates_payment_record(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_create_topup_payment_creates_payment_record(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import PaymentKind, PaymentStatus, Payments
         from open_webui.utils.billing import billing_service
         from open_webui.utils.wallet import wallet_service
         import open_webui.utils.billing as billing_utils
 
-        self._ensure_user("1", email="topup-user@example.com")
+        await self._ensure_user("1", email="topup-user@example.com")
 
         class FakeYooKassaClient:
             def __init__(self) -> None:
@@ -746,9 +725,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert payment.payment_method_id == "pm_1"
 
     @pytest.mark.asyncio
-    async def test_auto_topup_creates_payment_with_saved_method(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_auto_topup_creates_payment_with_saved_method(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import (
             PaymentKind,
             PaymentModel,
@@ -760,7 +737,7 @@ class TestBillingTopup(AbstractPostgresTest):
         from open_webui.utils.wallet import wallet_service
         import open_webui.utils.billing as billing_utils
 
-        self._ensure_user("1", email="auto-topup-user@example.com")
+        await self._ensure_user("1", email="auto-topup-user@example.com")
 
         class FakeYooKassaClient:
             def __init__(self) -> None:
@@ -778,6 +755,7 @@ class TestBillingTopup(AbstractPostgresTest):
                 receipt: Optional[dict[str, object]] = None,
                 payment_method_id: Optional[str] = None,
                 save_payment_method: Optional[bool] = None,
+                idempotence_key: Optional[str] = None,
             ) -> dict[str, object]:
                 self.last_payment_method_id = payment_method_id
                 self.last_metadata = metadata
@@ -864,9 +842,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert auto_payment.metadata_json.get("auto_topup") is True
 
     @pytest.mark.asyncio
-    async def test_create_topup_payment_requires_receipt_contact(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_create_topup_payment_requires_receipt_contact(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.users import Users
         from open_webui.utils.billing import billing_service
         from open_webui.utils.wallet import wallet_service
@@ -880,19 +856,17 @@ class TestBillingTopup(AbstractPostgresTest):
                     "confirmation": {"confirmation_url": "https://example.com/confirm"},
                 }
 
-        Users.insert_new_user(
+        await Users.insert_new_user(
             id="no-contact-user",
             name="No Contact",
             email="",
             role="user",
         )
-        Users.update_user_by_id("no-contact-user", {"info": {}})
+        await Users.update_user_by_id("no-contact-user", {"info": {}})
 
         monkeypatch.setattr(billing_utils, "BILLING_TOPUP_PACKAGES_KOPEKS", [19900])
         monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_ENABLED", True)
-        monkeypatch.setattr(
-            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
-        )
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
 
         wallet = wallet_service.get_or_create_wallet("no-contact-user", "RUB")
 
@@ -908,9 +882,7 @@ class TestBillingTopup(AbstractPostgresTest):
             )
 
     @pytest.mark.asyncio
-    async def test_auto_topup_missing_payment_method_skips(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_auto_topup_missing_payment_method_skips(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import Payments, Wallets
         from open_webui.utils.billing import billing_service
         from open_webui.utils.wallet import wallet_service
@@ -944,9 +916,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert len(updated) == len(existing)
 
     @pytest.mark.asyncio
-    async def test_auto_topup_canceled_increments_fail_count(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_auto_topup_canceled_increments_fail_count(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import (
             PaymentKind,
             PaymentModel,
@@ -1093,10 +1063,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert updated_wallet.balance_topup_kopeks == 19900
 
         ledger_entries = LedgerEntries.get_entries_by_user("1")
-        assert any(
-            entry.type == "topup" and entry.reference_id == "pay_123"
-            for entry in ledger_entries
-        )
+        assert any(entry.type == "topup" and entry.reference_id == "pay_123" for entry in ledger_entries)
 
         updated_payment = Payments.get_payment_by_provider_id("pay_123")
         assert updated_payment is not None
@@ -1176,17 +1143,11 @@ class TestBillingTopup(AbstractPostgresTest):
         assert updated_wallet.balance_topup_kopeks == 19900
 
         ledger_entries = LedgerEntries.get_entries_by_user("1")
-        topups = [
-            entry
-            for entry in ledger_entries
-            if entry.type == "topup" and entry.reference_id == "pay_456"
-        ]
+        topups = [entry for entry in ledger_entries if entry.type == "topup" and entry.reference_id == "pay_456"]
         assert len(topups) == 1
 
     @pytest.mark.asyncio
-    async def test_topup_webhook_creates_payment_when_missing(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_topup_webhook_creates_payment_when_missing(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import LedgerEntries, Payments, Wallets
         from open_webui.utils.billing import billing_service
         from open_webui.utils.wallet import wallet_service
@@ -1228,15 +1189,10 @@ class TestBillingTopup(AbstractPostgresTest):
         assert updated_wallet.balance_topup_kopeks == 19900
 
         ledger_entries = LedgerEntries.get_entries_by_user("1")
-        assert any(
-            entry.type == "topup" and entry.reference_id == "pay_new"
-            for entry in ledger_entries
-        )
+        assert any(entry.type == "topup" and entry.reference_id == "pay_new" for entry in ledger_entries)
 
     @pytest.mark.asyncio
-    async def test_reconcile_topup_rejects_foreign_payment_without_local_record(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_reconcile_topup_rejects_foreign_payment_without_local_record(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import Payments, Wallets
         from open_webui.utils.billing import billing_service
         from open_webui.utils.wallet import wallet_service
@@ -1334,9 +1290,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert updated_wallet.balance_topup_kopeks == 19900
 
     @pytest.mark.asyncio
-    async def test_reconcile_topup_overrides_conflicting_provider_wallet_context(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_reconcile_topup_rejects_conflicting_provider_payment_context(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import (
             PaymentKind,
             PaymentModel,
@@ -1344,10 +1298,10 @@ class TestBillingTopup(AbstractPostgresTest):
             Payments,
             Wallets,
         )
-        from open_webui.utils.billing import billing_service
+        from open_webui.utils.billing import WebhookVerificationError, billing_service
         from open_webui.utils.wallet import wallet_service
 
-        self._ensure_user("2", email="other-user@example.com")
+        await self._ensure_user("2", email="other-user@example.com")
         now = int(time.time())
         owner_wallet = wallet_service.get_or_create_wallet("1", "RUB")
         foreign_wallet = wallet_service.get_or_create_wallet("2", "RUB")
@@ -1373,8 +1327,7 @@ class TestBillingTopup(AbstractPostgresTest):
         )
         Payments.create_payment(payment)
 
-        # Provider payload may carry stale/conflicting wallet metadata.
-        # Reconcile must use local payment wallet context for locally owned payment.
+        # A provider amount/metadata mismatch must never credit either wallet.
         self._mock_yookassa_get_payment(
             monkeypatch,
             payment_id="pay_reconcile_wallet_override",
@@ -1389,26 +1342,22 @@ class TestBillingTopup(AbstractPostgresTest):
             paid=True,
         )
 
-        result = await billing_service.reconcile_topup_payment(
-            user_id="1",
-            payment_id="pay_reconcile_wallet_override",
-        )
-
-        assert result["credited"] is True
-        assert result["payment_status"] == PaymentStatus.SUCCEEDED.value
+        with pytest.raises(WebhookVerificationError):
+            await billing_service.reconcile_topup_payment(
+                user_id="1",
+                payment_id="pay_reconcile_wallet_override",
+            )
 
         updated_owner_wallet = Wallets.get_wallet_by_id(owner_wallet.id)
         assert updated_owner_wallet is not None
-        assert updated_owner_wallet.balance_topup_kopeks == 19900
+        assert updated_owner_wallet.balance_topup_kopeks == 0
 
         updated_foreign_wallet = Wallets.get_wallet_by_id(foreign_wallet.id)
         assert updated_foreign_wallet is not None
         assert updated_foreign_wallet.balance_topup_kopeks == 0
 
     @pytest.mark.asyncio
-    async def test_reconcile_topup_rejects_when_owner_cannot_be_verified(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_reconcile_topup_rejects_when_owner_cannot_be_verified(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import Payments
         from open_webui.utils.billing import billing_service
 
@@ -1432,9 +1381,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert created_payment is None
 
     @pytest.mark.asyncio
-    async def test_topup_webhook_canceled_updates_status(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_topup_webhook_canceled_updates_status(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import (
             PaymentKind,
             PaymentModel,
@@ -1509,9 +1456,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert updated_wallet.balance_topup_kopeks == 0
 
     @pytest.mark.asyncio
-    async def test_topup_webhook_waiting_for_capture_updates_status(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_topup_webhook_waiting_for_capture_updates_status(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import (
             PaymentKind,
             PaymentModel,

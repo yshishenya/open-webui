@@ -223,17 +223,23 @@
 		return (current?.balance_topup_kopeks ?? 0) + (current?.balance_included_kopeks ?? 0);
 	};
 
+	const reconcileStoredTopup = async (): Promise<boolean> => {
+		if (!topupFlow?.payment_id) return false;
+		const result = await reconcileTopup(localStorage.token, topupFlow.payment_id);
+		return result?.credited === true;
+	};
+
 	const handleTopupReturnRefresh = async (): Promise<void> => {
+		let credited = false;
 		if (topupFlow?.payment_id) {
 			try {
-				await reconcileTopup(localStorage.token, topupFlow.payment_id);
+				credited = await reconcileStoredTopup();
 			} catch (error) {
 				console.warn('Failed to reconcile topup on manual refresh:', error);
 			}
 		}
 		await loadBalance({ showLoader: false });
-		const latestTotal = getTotalBalanceKopeks(balance);
-		if (topupFlow && latestTotal > topupFlow.previous_total_kopeks) {
+		if (topupFlow && credited) {
 			topupReturnStatus = 'success';
 			clearTopupFlow();
 			if (topupReturnTimer) {
@@ -263,17 +269,17 @@
 		}
 		topupReturnTimer = setTimeout(async () => {
 			topupReturnAttempts += 1;
+			let credited = false;
 			if (topupFlow?.payment_id) {
 				try {
-					await reconcileTopup(localStorage.token, topupFlow.payment_id);
+					credited = await reconcileStoredTopup();
 				} catch (error) {
 					console.warn('Failed to reconcile topup during polling:', error);
 				}
 			}
 			await loadBalance({ showLoader: false });
 			if (!topupFlow) return;
-			const latestTotal = getTotalBalanceKopeks(balance);
-			if (latestTotal > topupFlow.previous_total_kopeks) {
+			if (credited) {
 				topupReturnStatus = 'success';
 				clearTopupFlow();
 				if (topupReturnTimer) {
@@ -291,12 +297,6 @@
 		const flow = readTopupFlowFromStorage();
 		if (!flow) return;
 		topupFlow = flow;
-		const latestTotal = getTotalBalanceKopeks(balance);
-		if (latestTotal > flow.previous_total_kopeks) {
-			topupReturnStatus = 'success';
-			clearTopupFlow();
-			return;
-		}
 		topupReturnStatus = 'checking';
 		topupReturnAttempts = 0;
 		scheduleTopupReturnCheck();

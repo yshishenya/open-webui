@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import contextmanager
 from typing import Generator, Optional
 
@@ -31,14 +32,16 @@ def mock_webui_user(
     profile_image_url: str = "/user.png",
 ) -> Generator[str, None, None]:
     """Override auth dependencies and yield a JWT for the mocked user."""
-    user = Users.get_user_by_id(id)
+    user = asyncio.run(Users.get_user_by_id(id))
     if not user:
-        user = Users.insert_new_user(
-            id=id,
-            name=name or _default_name(id),
-            email=email or _default_email(id),
-            profile_image_url=profile_image_url,
-            role=role,
+        user = asyncio.run(
+            Users.insert_new_user(
+                id=id,
+                name=name or _default_name(id),
+                email=email or _default_email(id),
+                profile_image_url=profile_image_url,
+                role=role,
+            )
         )
 
     if user is None:

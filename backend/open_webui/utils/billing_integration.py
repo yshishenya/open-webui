@@ -3,6 +3,7 @@ Billing integration utilities
 Handles quota checking and usage tracking for AI model requests
 """
 
+import asyncio
 import logging
 import json
 import time
@@ -24,9 +25,9 @@ from open_webui.env import (
 )
 from open_webui.models.billing import (
     BillingSource,
+    PlanModel,
     PricingRateCardModel,
     UsageEventModel,
-    UsageEvents,
     UsageMetric,
 )
 from open_webui.models.billing_wallet import JsonDict
@@ -37,13 +38,16 @@ from open_webui.utils.billing import (
 )
 from open_webui.utils.pricing import PricingService
 from open_webui.utils.lead_magnet import (
-    consume_lead_magnet_usage,
-    evaluate_lead_magnet,
+    finalize_lead_magnet_usage,
     estimate_tts_seconds,
+    release_quota_reservation,
+    reserve_lead_magnet_usage,
 )
 from open_webui.utils.wallet import (
+    DailyCapExceededError,
     HoldNotFoundError,
     InsufficientFundsError,
+    QuotaReservationExceededError,
     WalletError,
     wallet_service,
 )
@@ -79,6 +83,8 @@ class BillingHoldContext:
     estimated_max_output_tokens: int
     hold_amount_kopeks: int
     hold_expires_at: Optional[int]
+    correlation_id: Optional[str] = None
+    quota_reservation_id: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -97,6 +103,8 @@ class SingleRateHoldContext:
     units: Decimal
     hold_amount_kopeks: int
     hold_expires_at: Optional[int]
+    correlation_id: Optional[str] = None
+    quota_reservation_id: Optional[str] = None
 
 
 # ==================== Quota Checking ====================
@@ -119,15 +127,14 @@ async def check_and_enforce_quota(
     Raises:
         HTTPException: If quota exceeded or billing error
     """
+    if ENABLE_BILLING_WALLET:
+        # Quotas are reserved atomically together with wallet preflight below.
+        return
     try:
         # Check if user has active subscription
-        has_subscription = await run_in_threadpool(
-            billing_service.has_active_subscription, user_id
-        )
+        has_subscription = await run_in_threadpool(billing_service.has_active_subscription, user_id)
         if not has_subscription:
-            log.debug(
-                f"User {user_id} has no active subscription, skipping quota check"
-            )
+            log.debug(f"User {user_id} has no active subscription, skipping quota check")
             return
 
         # Check request quota
@@ -194,9 +201,7 @@ async def track_model_usage(
     """
     try:
         # Check if user has subscription (only track if they do)
-        has_subscription = await run_in_threadpool(
-            billing_service.has_active_subscription, user_id
-        )
+        has_subscription = await run_in_threadpool(billing_service.has_active_subscription, user_id)
         if not has_subscription:
             log.debug(f"User {user_id} has no subscription, skipping usage tracking")
             return
@@ -246,10 +251,7 @@ async def track_model_usage(
         )
         log.debug(f"Tracked 1 request for user {user_id}")
 
-        log.info(
-            f"Usage tracked for user {user_id}: "
-            f"{prompt_tokens} input + {completion_tokens} output tokens"
-        )
+        log.info(f"Usage tracked for user {user_id}: " f"{prompt_tokens} input + {completion_tokens} output tokens")
 
     except Exception as e:
         # Log but don't fail the request if tracking fails
@@ -286,9 +288,7 @@ def _calculate_cost_breakdown(
     unit_in = Decimal(prompt_tokens) / Decimal(1000)
     unit_out = Decimal(completion_tokens) / Decimal(1000)
     cost_in = pricing_service.calculate_cost_kopeks(unit_in, rate_in, discount_percent)
-    cost_out = pricing_service.calculate_cost_kopeks(
-        unit_out, rate_out, discount_percent
-    )
+    cost_out = pricing_service.calculate_cost_kopeks(unit_out, rate_out, discount_percent)
     return cost_in, cost_out, cost_in + cost_out
 
 
@@ -363,6 +363,51 @@ def _parse_non_negative_int(value: object) -> int:
     return 0
 
 
+def _subscription_quota_limits(plan: PlanModel) -> Dict[str, int]:
+    limits: Dict[str, int] = {}
+    for metric, value in (plan.quotas or {}).items():
+        if isinstance(value, int) and value >= 0:
+            limits[str(metric)] = value
+    if plan.images_per_period is not None:
+        limits[UsageMetric.IMAGES.value] = plan.images_per_period
+    if plan.tts_seconds_per_period is not None:
+        limits["tts_seconds"] = plan.tts_seconds_per_period
+    return limits
+
+
+async def _reserve_subscription_quota(
+    wallet_id: str,
+    user_id: str,
+    operation_id: str,
+    subscription_id: str,
+    requirements: Dict[str, int],
+    plan: PlanModel,
+    expires_at: int,
+) -> str:
+    try:
+        return await run_in_threadpool(
+            wallet_service.reserve_subscription_quota,
+            wallet_id,
+            user_id,
+            operation_id,
+            subscription_id,
+            requirements,
+            _subscription_quota_limits(plan),
+            expires_at,
+        )
+    except QuotaReservationExceededError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                "error": "quota_exceeded",
+                "metric": exc.metric,
+                "limit": exc.limit,
+                "used": exc.used,
+                "required": exc.required,
+            },
+        ) from exc
+
+
 async def preflight_estimate_hold(
     user_id: str,
     model_id: str,
@@ -370,6 +415,7 @@ async def preflight_estimate_hold(
     request_id: Optional[str] = None,
     max_reply_cost_kopeks: Optional[int] = None,
     lead_magnet_model_id: Optional[str] = None,
+    correlation_id: Optional[str] = None,
 ) -> Optional[BillingHoldContext]:
     """Estimate and place hold for a text request."""
     if not ENABLE_BILLING_WALLET:
@@ -377,6 +423,7 @@ async def preflight_estimate_hold(
 
     now = int(time.time())
     request_id_value = request_id or str(uuid.uuid4())
+    reservation_expires_at = now + max(BILLING_HOLD_TTL_SECONDS, 86400)
 
     messages_value = payload.get("messages", [])
     raw_messages = messages_value if isinstance(messages_value, list) else []
@@ -388,20 +435,14 @@ async def preflight_estimate_hold(
 
     max_tokens = _parse_non_negative_int(max_tokens_value)
     estimated_prompt_tokens = estimate_tokens_from_messages(messages, model_id=model_id)
-    resolved_max_output_tokens = (
-        max_tokens if max_tokens > 0 else BILLING_ESTIMATE_MAX_OUTPUT_TOKENS
-    )
+    resolved_max_output_tokens = max_tokens if max_tokens > 0 else BILLING_ESTIMATE_MAX_OUTPUT_TOKENS
     min_output_tokens = 1 if resolved_max_output_tokens > 0 else 0
     max_output_tokens = resolved_max_output_tokens
 
-    wallet = await run_in_threadpool(
-        wallet_service.get_or_create_wallet, user_id, BILLING_DEFAULT_CURRENCY
-    )
+    wallet = await run_in_threadpool(wallet_service.get_or_create_wallet, user_id, BILLING_DEFAULT_CURRENCY)
     wallet = await run_in_threadpool(wallet_service.refresh_wallet, wallet.id)
 
-    subscription = await run_in_threadpool(
-        billing_service.get_user_subscription, user_id
-    )
+    subscription = await run_in_threadpool(billing_service.get_user_subscription, user_id)
     plan = None
     if subscription:
         plan = await run_in_threadpool(billing_service.get_plan, subscription.plan_id)
@@ -415,17 +456,11 @@ async def preflight_estimate_hold(
         effective_max_reply = plan.max_reply_cost_kopeks
 
     daily_cap = (
-        wallet.daily_cap_kopeks
-        if wallet.daily_cap_kopeks is not None
-        else plan.daily_cap_kopeks if plan else None
+        wallet.daily_cap_kopeks if wallet.daily_cap_kopeks is not None else plan.daily_cap_kopeks if plan else None
     )
 
-    rate_in = await run_in_threadpool(
-        pricing_service.get_rate_card, model_id, "text", "token_in"
-    )
-    rate_out = await run_in_threadpool(
-        pricing_service.get_rate_card, model_id, "text", "token_out"
-    )
+    rate_in = await run_in_threadpool(pricing_service.get_rate_card, model_id, "text", "token_in")
+    rate_out = await run_in_threadpool(pricing_service.get_rate_card, model_id, "text", "token_out")
     if not rate_in or not rate_out:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -447,23 +482,29 @@ async def preflight_estimate_hold(
         discount_percent,
     )
 
-    lead_magnet_decision = None
     lead_magnet_model_value = lead_magnet_model_id or model_id
     try:
-        lead_magnet_decision = await run_in_threadpool(
-            evaluate_lead_magnet,
+        lead_reservation_id = await run_in_threadpool(
+            reserve_lead_magnet_usage,
             user_id,
+            wallet.id,
             lead_magnet_model_value,
+            request_id_value,
             {
                 "tokens_input": estimated_prompt_tokens,
                 "tokens_output": max_output_tokens,
             },
+            reservation_expires_at,
             now,
         )
     except Exception as e:
-        log.warning(f"Lead magnet evaluation failed: {e}")
+        log.exception("Lead-magnet quota reservation failed: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"error": "billing_temporarily_unavailable"},
+        ) from e
 
-    if lead_magnet_decision and lead_magnet_decision.allowed:
+    if lead_reservation_id:
         return BillingHoldContext(
             request_id=request_id_value,
             user_id=user_id,
@@ -483,6 +524,8 @@ async def preflight_estimate_hold(
             estimated_max_output_tokens=max_output_tokens,
             hold_amount_kopeks=0,
             hold_expires_at=None,
+            correlation_id=correlation_id,
+            quota_reservation_id=lead_reservation_id,
         )
 
     available = wallet.balance_included_kopeks + wallet.balance_topup_kopeks
@@ -497,7 +540,7 @@ async def preflight_estimate_hold(
             },
         )
 
-    if daily_cap is not None and (wallet.daily_spent_kopeks + max_cost) > daily_cap:
+    if daily_cap is not None and (wallet.daily_spent_kopeks + wallet.daily_reserved_kopeks + max_cost) > daily_cap:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={
@@ -526,9 +569,7 @@ async def preflight_estimate_hold(
             "required_kopeks": max_cost,
             "currency": wallet.currency,
         }
-        if auto_topup_result and (
-            auto_topup_result.attempted or auto_topup_result.status == "pending"
-        ):
+        if auto_topup_result and (auto_topup_result.attempted or auto_topup_result.status == "pending"):
             detail["auto_topup_status"] = auto_topup_result.status
             if auto_topup_result.payment_id:
                 detail["auto_topup_payment_id"] = auto_topup_result.payment_id
@@ -542,6 +583,22 @@ async def preflight_estimate_hold(
     if hold_amount > 0 and BILLING_HOLD_TTL_SECONDS > 0:
         hold_expires_at = now + BILLING_HOLD_TTL_SECONDS
 
+    quota_reservation_id = None
+    if subscription and plan:
+        quota_reservation_id = await _reserve_subscription_quota(
+            wallet.id,
+            user_id,
+            request_id_value,
+            subscription.id,
+            {
+                UsageMetric.REQUESTS.value: 1,
+                UsageMetric.TOKENS_INPUT.value: estimated_prompt_tokens,
+                UsageMetric.TOKENS_OUTPUT.value: max_output_tokens,
+            },
+            plan,
+            reservation_expires_at,
+        )
+
     if hold_amount > 0:
         try:
             await run_in_threadpool(
@@ -552,8 +609,25 @@ async def preflight_estimate_hold(
                 CHAT_HOLD_REFERENCE,
                 None,
                 hold_expires_at,
+                daily_cap,
+                correlation_id,
+                quota_reservation_id,
             )
+        except DailyCapExceededError as e:
+            if quota_reservation_id:
+                await run_in_threadpool(release_quota_reservation, quota_reservation_id)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail={
+                    "error": "daily_cap_exceeded",
+                    "daily_cap_kopeks": e.cap_kopeks,
+                    "daily_spent_kopeks": e.spent_kopeks,
+                    "required_kopeks": e.required_kopeks,
+                },
+            ) from e
         except InsufficientFundsError as e:
+            if quota_reservation_id:
+                await run_in_threadpool(release_quota_reservation, quota_reservation_id)
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail={
@@ -565,6 +639,8 @@ async def preflight_estimate_hold(
                 },
             )
         except WalletError as e:
+            if quota_reservation_id:
+                await run_in_threadpool(release_quota_reservation, quota_reservation_id)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail={"error": "wallet_error", "message": str(e)},
@@ -589,6 +665,8 @@ async def preflight_estimate_hold(
         estimated_max_output_tokens=max_output_tokens,
         hold_amount_kopeks=hold_amount,
         hold_expires_at=hold_expires_at,
+        correlation_id=correlation_id,
+        quota_reservation_id=quota_reservation_id,
     )
 
 
@@ -602,6 +680,7 @@ async def preflight_single_rate_hold(
     max_reply_cost_kopeks: Optional[int] = None,
     reference_type: str = IMAGE_HOLD_REFERENCE,
     lead_magnet_requirements: Optional[Dict[str, int]] = None,
+    correlation_id: Optional[str] = None,
 ) -> Optional[SingleRateHoldContext]:
     """Estimate and place hold for single-rate modalities (image/tts/stt)."""
     if not ENABLE_BILLING_WALLET:
@@ -615,15 +694,12 @@ async def preflight_single_rate_hold(
 
     now = int(time.time())
     request_id_value = request_id or str(uuid.uuid4())
+    reservation_expires_at = now + max(BILLING_HOLD_TTL_SECONDS, 86400)
 
-    wallet = await run_in_threadpool(
-        wallet_service.get_or_create_wallet, user_id, BILLING_DEFAULT_CURRENCY
-    )
+    wallet = await run_in_threadpool(wallet_service.get_or_create_wallet, user_id, BILLING_DEFAULT_CURRENCY)
     wallet = await run_in_threadpool(wallet_service.refresh_wallet, wallet.id)
 
-    subscription = await run_in_threadpool(
-        billing_service.get_user_subscription, user_id
-    )
+    subscription = await run_in_threadpool(billing_service.get_user_subscription, user_id)
     plan = None
     if subscription:
         plan = await run_in_threadpool(billing_service.get_plan, subscription.plan_id)
@@ -637,14 +713,10 @@ async def preflight_single_rate_hold(
         effective_max_reply = plan.max_reply_cost_kopeks
 
     daily_cap = (
-        wallet.daily_cap_kopeks
-        if wallet.daily_cap_kopeks is not None
-        else plan.daily_cap_kopeks if plan else None
+        wallet.daily_cap_kopeks if wallet.daily_cap_kopeks is not None else plan.daily_cap_kopeks if plan else None
     )
 
-    rate_card = await run_in_threadpool(
-        pricing_service.get_rate_card, model_id, modality, unit
-    )
+    rate_card = await run_in_threadpool(pricing_service.get_rate_card, model_id, modality, unit)
     if not rate_card:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -653,20 +725,27 @@ async def preflight_single_rate_hold(
 
     cost = pricing_service.calculate_cost_kopeks(units, rate_card, discount_percent)
 
-    lead_magnet_decision = None
+    lead_reservation_id = None
     if lead_magnet_requirements:
         try:
-            lead_magnet_decision = await run_in_threadpool(
-                evaluate_lead_magnet,
+            lead_reservation_id = await run_in_threadpool(
+                reserve_lead_magnet_usage,
                 user_id,
+                wallet.id,
                 model_id,
+                request_id_value,
                 lead_magnet_requirements,
+                reservation_expires_at,
                 now,
             )
         except Exception as e:
-            log.warning(f"Lead magnet evaluation failed: {e}")
+            log.exception("Lead-magnet quota reservation failed: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"error": "billing_temporarily_unavailable"},
+            ) from e
 
-    if lead_magnet_decision and lead_magnet_decision.allowed:
+    if lead_reservation_id:
         return SingleRateHoldContext(
             request_id=request_id_value,
             user_id=user_id,
@@ -682,6 +761,8 @@ async def preflight_single_rate_hold(
             units=units,
             hold_amount_kopeks=0,
             hold_expires_at=None,
+            correlation_id=correlation_id,
+            quota_reservation_id=lead_reservation_id,
         )
 
     available = wallet.balance_included_kopeks + wallet.balance_topup_kopeks
@@ -696,7 +777,7 @@ async def preflight_single_rate_hold(
             },
         )
 
-    if daily_cap is not None and (wallet.daily_spent_kopeks + cost) > daily_cap:
+    if daily_cap is not None and (wallet.daily_spent_kopeks + wallet.daily_reserved_kopeks + cost) > daily_cap:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={
@@ -725,9 +806,7 @@ async def preflight_single_rate_hold(
             "required_kopeks": cost,
             "currency": wallet.currency,
         }
-        if auto_topup_result and (
-            auto_topup_result.attempted or auto_topup_result.status == "pending"
-        ):
+        if auto_topup_result and (auto_topup_result.attempted or auto_topup_result.status == "pending"):
             detail["auto_topup_status"] = auto_topup_result.status
             if auto_topup_result.payment_id:
                 detail["auto_topup_payment_id"] = auto_topup_result.payment_id
@@ -740,6 +819,21 @@ async def preflight_single_rate_hold(
     if cost > 0 and BILLING_HOLD_TTL_SECONDS > 0:
         hold_expires_at = now + BILLING_HOLD_TTL_SECONDS
 
+    quota_reservation_id = None
+    if subscription and plan:
+        subscription_requirements = {UsageMetric.REQUESTS.value: 1}
+        for metric, amount in (lead_magnet_requirements or {}).items():
+            subscription_requirements[metric] = max(int(amount), 0)
+        quota_reservation_id = await _reserve_subscription_quota(
+            wallet.id,
+            user_id,
+            request_id_value,
+            subscription.id,
+            subscription_requirements,
+            plan,
+            reservation_expires_at,
+        )
+
     if cost > 0:
         try:
             await run_in_threadpool(
@@ -750,8 +844,25 @@ async def preflight_single_rate_hold(
                 reference_type,
                 None,
                 hold_expires_at,
+                daily_cap,
+                correlation_id,
+                quota_reservation_id,
             )
+        except DailyCapExceededError as e:
+            if quota_reservation_id:
+                await run_in_threadpool(release_quota_reservation, quota_reservation_id)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail={
+                    "error": "daily_cap_exceeded",
+                    "daily_cap_kopeks": e.cap_kopeks,
+                    "daily_spent_kopeks": e.spent_kopeks,
+                    "required_kopeks": e.required_kopeks,
+                },
+            ) from e
         except InsufficientFundsError as e:
+            if quota_reservation_id:
+                await run_in_threadpool(release_quota_reservation, quota_reservation_id)
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail={
@@ -763,6 +874,8 @@ async def preflight_single_rate_hold(
                 },
             )
         except WalletError as e:
+            if quota_reservation_id:
+                await run_in_threadpool(release_quota_reservation, quota_reservation_id)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail={"error": "wallet_error", "message": str(e)},
@@ -783,25 +896,37 @@ async def preflight_single_rate_hold(
         units=units,
         hold_amount_kopeks=cost,
         hold_expires_at=hold_expires_at,
+        correlation_id=correlation_id,
+        quota_reservation_id=quota_reservation_id,
     )
 
 
 async def release_billing_hold(billing_context: Optional[BillingHoldContext]) -> None:
     """Release held funds when a request fails."""
-    if not billing_context or billing_context.hold_amount_kopeks <= 0:
+    if not billing_context:
         return
 
     try:
-        await run_in_threadpool(
-            wallet_service.release_hold,
-            billing_context.wallet_id,
-            billing_context.request_id,
-            CHAT_HOLD_REFERENCE,
-        )
+        if billing_context.hold_amount_kopeks > 0:
+            await run_in_threadpool(
+                wallet_service.release_hold,
+                billing_context.wallet_id,
+                billing_context.request_id,
+                CHAT_HOLD_REFERENCE,
+            )
     except HoldNotFoundError:
-        return
+        pass
     except WalletError as e:
         log.warning(f"Failed to release hold: {e}")
+    finally:
+        if billing_context.quota_reservation_id:
+            try:
+                await run_in_threadpool(
+                    release_quota_reservation,
+                    billing_context.quota_reservation_id,
+                )
+            except Exception:
+                log.exception("Failed to release billing quota reservation")
 
 
 async def release_single_rate_hold(
@@ -809,20 +934,30 @@ async def release_single_rate_hold(
     reference_type: str = IMAGE_HOLD_REFERENCE,
 ) -> None:
     """Release held funds for single-rate modalities."""
-    if not billing_context or billing_context.hold_amount_kopeks <= 0:
+    if not billing_context:
         return
 
     try:
-        await run_in_threadpool(
-            wallet_service.release_hold,
-            billing_context.wallet_id,
-            billing_context.request_id,
-            reference_type,
-        )
+        if billing_context.hold_amount_kopeks > 0:
+            await run_in_threadpool(
+                wallet_service.release_hold,
+                billing_context.wallet_id,
+                billing_context.request_id,
+                reference_type,
+            )
     except HoldNotFoundError:
-        return
+        pass
     except WalletError as e:
         log.warning(f"Failed to release hold: {e}")
+    finally:
+        if billing_context.quota_reservation_id:
+            try:
+                await run_in_threadpool(
+                    release_quota_reservation,
+                    billing_context.quota_reservation_id,
+                )
+            except Exception:
+                log.exception("Failed to release billing quota reservation")
 
 
 async def settle_billing_usage(
@@ -842,9 +977,7 @@ async def settle_billing_usage(
     if usage_data:
         prompt_tokens = int(usage_data.get("prompt_tokens", 0) or 0)
         completion_tokens = int(usage_data.get("completion_tokens", 0) or 0)
-        total_tokens = int(
-            usage_data.get("total_tokens", prompt_tokens + completion_tokens) or 0
-        )
+        total_tokens = int(usage_data.get("total_tokens", prompt_tokens + completion_tokens) or 0)
     else:
         is_estimated = True
         estimate_reason = "usage_missing"
@@ -871,35 +1004,12 @@ async def settle_billing_usage(
         billing_context.discount_percent,
     )
 
-    charge_entry = None
-    if billing_context.billing_source == BillingSource.PAYG.value:
-        if billing_context.hold_amount_kopeks > 0:
-            try:
-                charge_entry = await run_in_threadpool(
-                    wallet_service.settle_hold,
-                    billing_context.wallet_id,
-                    billing_context.request_id,
-                    CHAT_HOLD_REFERENCE,
-                    cost_charged,
-                    cost_charged_input,
-                    cost_charged_output,
-                )
-            except WalletError as e:
-                log.exception(
-                    f"Failed to settle hold for {billing_context.request_id}: {e}"
-                )
-                return
-        else:
-            if cost_charged > 0:
-                is_estimated = True
-                estimate_reason = "hold_missing"
-                cost_charged = 0
-                cost_charged_input = 0
-                cost_charged_output = 0
-    else:
+    if billing_context.billing_source == BillingSource.LEAD_MAGNET.value:
         cost_charged = 0
         cost_charged_input = 0
         cost_charged_output = 0
+    elif billing_context.hold_amount_kopeks <= 0 and cost_charged > 0:
+        raise WalletError("Billable usage has no monetary hold")
 
     measured_units: JsonDict = {
         "prompt_tokens": prompt_tokens,
@@ -911,13 +1021,6 @@ async def settle_billing_usage(
         },
     }
 
-    wallet_snapshot: Optional[JsonDict] = None
-    if charge_entry:
-        wallet_snapshot = {
-            "balance_included_after": charge_entry.balance_included_after,
-            "balance_topup_after": charge_entry.balance_topup_after,
-        }
-
     usage_event = UsageEventModel(
         id=str(uuid.uuid4()),
         user_id=billing_context.user_id,
@@ -927,6 +1030,7 @@ async def settle_billing_usage(
         chat_id=chat_id,
         message_id=message_id,
         request_id=billing_context.request_id,
+        correlation_id=billing_context.correlation_id,
         model_id=billing_context.model_id,
         modality=billing_context.modality,
         provider=provider,
@@ -946,32 +1050,48 @@ async def settle_billing_usage(
         pricing_rate_card_id=billing_context.rate_in.id,
         pricing_rate_card_input_id=billing_context.rate_in.id,
         pricing_rate_card_output_id=billing_context.rate_out.id,
-        wallet_snapshot_json=wallet_snapshot,
         created_at=int(time.time()),
     )
 
-    await run_in_threadpool(UsageEvents.create_usage_event, usage_event)
-
     if billing_context.billing_source == BillingSource.LEAD_MAGNET.value:
+        if not billing_context.quota_reservation_id:
+            raise WalletError("Lead-magnet usage has no quota reservation")
         await run_in_threadpool(
-            consume_lead_magnet_usage,
-            billing_context.user_id,
+            finalize_lead_magnet_usage,
+            billing_context.quota_reservation_id,
             {
                 "tokens_input": prompt_tokens,
                 "tokens_output": completion_tokens,
             },
+            usage_event,
+        )
+        return
+
+    subscription_usage = {
+        UsageMetric.REQUESTS.value: 1,
+        UsageMetric.TOKENS_INPUT.value: prompt_tokens,
+        UsageMetric.TOKENS_OUTPUT.value: completion_tokens,
+    }
+    if billing_context.hold_amount_kopeks > 0:
+        await run_in_threadpool(
+            wallet_service.settle_hold,
+            billing_context.wallet_id,
+            billing_context.request_id,
+            CHAT_HOLD_REFERENCE,
+            cost_charged,
+            cost_charged_input,
+            cost_charged_output,
+            usage_event,
+            billing_context.quota_reservation_id,
+            subscription_usage,
         )
     else:
-        await track_model_usage(
-            user_id=billing_context.user_id,
-            model_id=billing_context.model_id,
-            usage_data={
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-                "total_tokens": total_tokens,
-            },
-            chat_id=chat_id,
-            message_id=message_id,
+        await run_in_threadpool(
+            wallet_service.record_usage,
+            billing_context.wallet_id,
+            usage_event,
+            billing_context.quota_reservation_id,
+            subscription_usage,
         )
 
 
@@ -993,43 +1113,15 @@ async def settle_single_rate_usage(
     is_estimated = False
     estimate_reason = None
 
-    cost_raw = pricing_service.calculate_cost_kopeks(
-        units, billing_context.rate_card, 0
-    )
+    cost_raw = pricing_service.calculate_cost_kopeks(units, billing_context.rate_card, 0)
     cost_charged = pricing_service.calculate_cost_kopeks(
         units, billing_context.rate_card, billing_context.discount_percent
     )
 
-    charge_entry = None
-    if billing_context.billing_source == BillingSource.PAYG.value:
-        if billing_context.hold_amount_kopeks > 0:
-            try:
-                charge_entry = await run_in_threadpool(
-                    wallet_service.settle_hold,
-                    billing_context.wallet_id,
-                    billing_context.request_id,
-                    reference_type,
-                    cost_charged,
-                )
-            except WalletError as e:
-                log.exception(
-                    f"Failed to settle hold for {billing_context.request_id}: {e}"
-                )
-                return
-        else:
-            if cost_charged > 0:
-                is_estimated = True
-                estimate_reason = "hold_missing"
-                cost_charged = 0
-    else:
+    if billing_context.billing_source == BillingSource.LEAD_MAGNET.value:
         cost_charged = 0
-
-    wallet_snapshot: Optional[JsonDict] = None
-    if charge_entry:
-        wallet_snapshot = {
-            "balance_included_after": charge_entry.balance_included_after,
-            "balance_topup_after": charge_entry.balance_topup_after,
-        }
+    elif billing_context.hold_amount_kopeks <= 0 and cost_charged > 0:
+        raise WalletError("Billable usage has no monetary hold")
 
     usage_event = UsageEventModel(
         id=str(uuid.uuid4()),
@@ -1040,6 +1132,7 @@ async def settle_single_rate_usage(
         chat_id=chat_id,
         message_id=message_id,
         request_id=billing_context.request_id,
+        correlation_id=billing_context.correlation_id,
         model_id=billing_context.model_id,
         modality=billing_context.modality,
         provider=provider,
@@ -1051,38 +1144,52 @@ async def settle_single_rate_usage(
         estimate_reason=estimate_reason,
         pricing_version=billing_context.rate_card.version,
         pricing_rate_card_id=billing_context.rate_card.id,
-        wallet_snapshot_json=wallet_snapshot,
         created_at=int(time.time()),
     )
 
-    await run_in_threadpool(UsageEvents.create_usage_event, usage_event)
+    increments = _resolve_lead_magnet_units(billing_context, measured_units, usage_metric, usage_amount)
 
     if billing_context.billing_source == BillingSource.LEAD_MAGNET.value:
-        increments = _resolve_lead_magnet_units(
-            billing_context, measured_units, usage_metric, usage_amount
-        )
-        if increments:
+        if not billing_context.quota_reservation_id:
+            raise WalletError("Lead-magnet usage has no quota reservation")
+        try:
             await run_in_threadpool(
-                consume_lead_magnet_usage,
-                billing_context.user_id,
+                finalize_lead_magnet_usage,
+                billing_context.quota_reservation_id,
                 increments,
+                usage_event,
             )
+        except Exception:
+            await release_single_rate_hold(billing_context, reference_type)
+            raise
         return
 
-    if usage_metric and usage_amount:
-        has_subscription = await run_in_threadpool(
-            billing_service.has_active_subscription, billing_context.user_id
-        )
-        if has_subscription:
+    subscription_usage = {UsageMetric.REQUESTS.value: 1, **increments}
+    try:
+        if billing_context.hold_amount_kopeks > 0:
             await run_in_threadpool(
-                billing_service.track_usage,
-                billing_context.user_id,
-                usage_metric,
-                usage_amount,
-                billing_context.model_id,
-                chat_id,
-                {"chat_id": chat_id, "message_id": message_id},
+                wallet_service.settle_hold,
+                billing_context.wallet_id,
+                billing_context.request_id,
+                reference_type,
+                cost_charged,
+                None,
+                None,
+                usage_event,
+                billing_context.quota_reservation_id,
+                subscription_usage,
             )
+        else:
+            await run_in_threadpool(
+                wallet_service.record_usage,
+                billing_context.wallet_id,
+                usage_event,
+                billing_context.quota_reservation_id,
+                subscription_usage,
+            )
+    except Exception:
+        await release_single_rate_hold(billing_context, reference_type)
+        raise
 
 
 # ==================== Response Wrappers ====================
@@ -1152,7 +1259,9 @@ async def track_non_streaming_response(
         else:
             log.debug(f"No usage data found in response for model {model_id}")
     except Exception as e:
-        log.error(f"Error in track_non_streaming_response: {e}")
+        log.exception("Error in track_non_streaming_response: %s", e)
+        if billing_context:
+            await release_billing_hold(billing_context)
 
     return response
 
@@ -1204,9 +1313,7 @@ async def track_streaming_response(
                             chunk_usage = extract_usage_from_response(data)
                             if chunk_usage:
                                 usage_data = chunk_usage
-                                log.debug(
-                                    f"Extracted usage from streaming chunk: {usage_data}"
-                                )
+                                log.debug(f"Extracted usage from streaming chunk: {usage_data}")
                     except json.JSONDecodeError:
                         # Not JSON, skip
                         pass
@@ -1233,13 +1340,15 @@ async def track_streaming_response(
         else:
             log.debug(f"No usage data found in streaming response for model {model_id}")
 
+    except asyncio.CancelledError:
+        if billing_context:
+            await asyncio.shield(release_billing_hold(billing_context))
+        raise
     except Exception as e:
-        log.error(f"Error in track_streaming_response: {e}")
+        log.exception("Error in track_streaming_response: %s", e)
         if billing_context:
             await release_billing_hold(billing_context)
-        # Continue yielding even if tracking fails
-        async for chunk in response_iterator:
-            yield chunk
+        raise
 
 
 # ==================== Helper Functions ====================

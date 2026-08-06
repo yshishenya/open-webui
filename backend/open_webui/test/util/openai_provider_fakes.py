@@ -27,8 +27,9 @@ class FakeAiohttpResponse:
     json_payload: Optional[dict[str, object]] = None
     text_payload: Optional[str] = None
     content: Optional[FakeAiohttpStream] = None
+    closed: bool = False
 
-    async def json(self) -> dict[str, object]:
+    async def json(self, **_: object) -> dict[str, object]:
         if self.json_payload is None:
             raise ValueError("No JSON payload configured")
         return self.json_payload
@@ -41,7 +42,7 @@ class FakeAiohttpResponse:
         return ""
 
     def close(self) -> None:
-        return None
+        self.closed = True
 
 
 class FakeAiohttpSession:

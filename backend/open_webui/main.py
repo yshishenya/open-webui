@@ -211,6 +211,7 @@ from open_webui.utils.airis.app_bootstrap import (
     extend_airis_app_config,
 )
 from open_webui.utils.airis.billing_init import init_billing_on_startup
+from open_webui.utils.airis.billing_housekeeping import billing_housekeeping_loop
 from open_webui.utils.airis.task_error_payload import build_task_ws_error_payload
 from open_webui.utils.auth import (
     create_admin_user,
@@ -376,6 +377,7 @@ async def lifespan(app: FastAPI):
 
     await init_billing_on_startup()
 
+    asyncio.create_task(billing_housekeeping_loop())
     asyncio.create_task(periodic_usage_pool_cleanup())
     asyncio.create_task(periodic_session_pool_cleanup())
 

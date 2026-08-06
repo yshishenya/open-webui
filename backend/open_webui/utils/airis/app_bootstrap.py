@@ -20,6 +20,7 @@ def _bootstrap_airis_routers(app: FastAPI) -> None:
     """
     from open_webui.routers import (
         admin_billing,
+        admin_billing_reporting,
         admin_billing_lead_magnet,
         admin_billing_rate_card,
         billing,
@@ -35,6 +36,11 @@ def _bootstrap_airis_routers(app: FastAPI) -> None:
         admin_billing.router,
         prefix="/api/v1/admin/billing",
         tags=["admin", "billing"],
+    )
+    app.include_router(
+        admin_billing_reporting.router,
+        prefix="/api/v1/admin/billing",
+        tags=["admin", "billing", "reporting"],
     )
     app.include_router(
         admin_billing_rate_card.router,

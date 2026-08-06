@@ -1,3 +1,4 @@
+import asyncio
 import time
 import uuid
 
@@ -57,7 +58,7 @@ class TestBillingLeadMagnetRoutes(AbstractPostgresTest):
             access_control=None,
             is_active=True,
         )
-        Models.insert_new_model(model_form, user_id="admin")
+        asyncio.run(Models.insert_new_model(model_form, user_id="admin"))
 
     def _configure_lead_magnet(
         self,
@@ -67,17 +68,18 @@ class TestBillingLeadMagnetRoutes(AbstractPostgresTest):
         cycle_days: int = 30,
         config_version: int = 1,
     ) -> None:
-        from open_webui.config import (
-            LEAD_MAGNET_CONFIG_VERSION,
-            LEAD_MAGNET_CYCLE_DAYS,
-            LEAD_MAGNET_ENABLED,
-            LEAD_MAGNET_QUOTAS,
-        )
+        import open_webui.utils.airis.runtime_config as runtime_config
 
-        monkeypatch.setattr(LEAD_MAGNET_ENABLED, "value", enabled)
-        monkeypatch.setattr(LEAD_MAGNET_CYCLE_DAYS, "value", cycle_days)
-        monkeypatch.setattr(LEAD_MAGNET_QUOTAS, "value", quotas)
-        monkeypatch.setattr(LEAD_MAGNET_CONFIG_VERSION, "value", config_version)
+        monkeypatch.setattr(
+            runtime_config,
+            "_runtime_config",
+            runtime_config.LeadMagnetRuntimeConfig(
+                enabled=enabled,
+                cycle_days=cycle_days,
+                quotas=quotas,
+                config_version=config_version,
+            ),
+        )
 
     def test_lead_magnet_info_includes_cycle(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.utils.lead_magnet import evaluate_lead_magnet
@@ -195,9 +197,7 @@ class TestBillingLeadMagnetRoutes(AbstractPostgresTest):
         UsageEvents.create_usage_event(payg_event)
 
         with mock_webui_user(id="1"):
-            response = self.fast_api_client.get(
-                self.create_url("/usage-events?billing_source=lead_magnet")
-            )
+            response = self.fast_api_client.get(self.create_url("/usage-events?billing_source=lead_magnet"))
 
         assert response.status_code == 200
         payload = response.json()
