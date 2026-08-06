@@ -79,7 +79,11 @@ class TestBillingServiceCore:
         )
 
         class FakeYooKassaClient:
+            def __init__(self) -> None:
+                self.metadata: dict[str, object] = {}
+
             async def create_payment(self, **_: object) -> dict[str, object]:
+                self.metadata = dict(_.get("metadata", {}))
                 return {
                     "id": "pay_1",
                     "status": "pending",
@@ -88,9 +92,8 @@ class TestBillingServiceCore:
                     },
                 }
 
-        monkeypatch.setattr(
-            billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient()
-        )
+        fake_client = FakeYooKassaClient()
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: fake_client)
         # Receipt generation needs a real user/contact in the DB. This unit-style
         # test focuses on payment wiring + transaction updates.
         monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_ENABLED", False)
@@ -120,3 +123,4 @@ class TestBillingServiceCore:
         assert updates
         assert updates[-1][1]["yookassa_payment_id"] == "pay_1"
         assert updates[-1][1]["yookassa_status"] == "pending"
+        assert "user_email" not in fake_client.metadata

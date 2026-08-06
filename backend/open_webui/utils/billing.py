@@ -449,6 +449,11 @@ class BillingService:
 
         raise ValueError("Set billing contact email or phone in billing settings to issue a payment receipt")
 
+    async def _resolve_user_email(self, user_id: str) -> Optional[str]:
+        """Return the account email for provider-side payment identification."""
+        user = await Users.get_user_by_id(user_id)
+        return self._clean_contact(user.email) if user else None
+
     async def _build_receipt(
         self,
         user_id: str,
@@ -537,6 +542,14 @@ class BillingService:
             plan.currency,
             transaction.description or f"Subscription: {plan.name}",
         )
+        metadata: JsonDict = {
+            "user_id": user_id,
+            "plan_id": plan_id,
+            "transaction_id": created_transaction.id,
+        }
+        user_email = await self._resolve_user_email(user_id)
+        if user_email:
+            metadata["user_email"] = user_email
 
         # Create payment via YooKassa
         payment = await yookassa.create_payment(
@@ -544,11 +557,7 @@ class BillingService:
             currency=plan.currency,
             description=transaction.description,
             return_url=return_url,
-            metadata={
-                "user_id": user_id,
-                "plan_id": plan_id,
-                "transaction_id": created_transaction.id,
-            },
+            metadata=metadata,
             receipt=receipt,
         )
 
@@ -614,6 +623,9 @@ class BillingService:
             "wallet_id": wallet_id,
             "amount_kopeks": amount_kopeks,
         }
+        user_email = await self._resolve_user_email(user_id)
+        if user_email:
+            metadata["user_email"] = user_email
         topup_description = f"Top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
         receipt = await self._build_receipt(
             user_id,
@@ -746,6 +758,9 @@ class BillingService:
             "auto_topup": True,
             "auto_topup_reason": reason,
         }
+        user_email = await self._resolve_user_email(user_id)
+        if user_email:
+            metadata["user_email"] = user_email
         auto_topup_description = f"Auto top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
         receipt = await self._build_receipt(
             user_id,

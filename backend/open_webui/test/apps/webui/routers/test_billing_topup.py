@@ -733,6 +733,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert fake_client.last_amount == Decimal("199.00")
         assert isinstance(fake_client.last_metadata, dict)
         assert fake_client.last_metadata.get("wallet_id") == wallet.id
+        assert fake_client.last_metadata.get("user_email") == "topup-user@example.com"
         assert isinstance(fake_client.last_receipt, dict)
         customer = fake_client.last_receipt.get("customer")
         assert isinstance(customer, dict)
