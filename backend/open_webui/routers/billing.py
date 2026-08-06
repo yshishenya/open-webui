@@ -78,6 +78,7 @@ from open_webui.env import (
 )
 from open_webui.models.users import Users
 from open_webui.models.models import Models
+from open_webui.models.config import Config
 from open_webui.models.access_grants import has_public_read_access_grant
 
 log = logging.getLogger(__name__)
@@ -1143,20 +1144,22 @@ async def get_public_rate_cards(
 
     model_limit = min(max(PUBLIC_PRICING_RATE_CARD_MODEL_LIMIT, 1), 50)
     workspace_base_models = await Models.get_base_models()
+    configured_image_model = (await Config.get("image_generation.model", "") or "").strip()
 
     excluded_model_ids = set()
     merged_models_by_id: Dict[str, Dict[str, Optional[str]]] = {}
     for model in workspace_base_models:
-        if not model.is_active:
+        is_configured_image_model = model.id == configured_image_model
+        if not model.is_active and not is_configured_image_model:
             excluded_model_ids.add(model.id)
             continue
-        model_access_control = getattr(model, "access_control", None)
-        if hasattr(model, "access_control"):
-            if model_access_control is not None:
-                excluded_model_ids.add(model.id)
-                continue
-        else:
-            if hasattr(model, "access_grants"):
+        if not is_configured_image_model:
+            model_access_control = getattr(model, "access_control", None)
+            if hasattr(model, "access_control"):
+                if model_access_control is not None:
+                    excluded_model_ids.add(model.id)
+                    continue
+            elif hasattr(model, "access_grants"):
                 model_access_grants = getattr(model, "access_grants", None)
                 if not has_public_read_access_grant(model_access_grants):
                     excluded_model_ids.add(model.id)
