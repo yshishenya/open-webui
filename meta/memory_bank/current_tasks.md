@@ -925,7 +925,14 @@ For non-trivial work items, each entry should include a `Spec:` link to a work i
 
 ## In Progress
 
-- No active task for this incident.
+- [ ] **[BUG][CHAT][PROD]** Restore missing chat runtime state after upstream merge
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-06__bugfix__chat-runtime-state-recovery.md`
+  - Owner: Codex
+  - Branch: `airis_b2c`
+  - Started: 2026-08-06
+  - Summary: Fix undeclared OAuth and message queue state that prevents existing chats from opening and stops message submission before the API request.
+  - Tests: Authenticated production browser reproduction complete; implementation and deployment verification in progress.
+  - Risks: Medium (shared chat state and production app-container rollout; database and volumes protected by guarded deployment).
 
 ### High Priority
 

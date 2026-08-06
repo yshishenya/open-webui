@@ -329,6 +329,7 @@
 	let selectedToolIds = [];
 	let selectedSkillIds = [];
 	let selectedFilterIds = [];
+	let pendingOAuthTools = [];
 
 	let imageGenerationEnabled = false;
 	let webSearchEnabled = false;
@@ -565,16 +566,10 @@
 			await saveControls();
 			loading = true;
 
-			// Save current queue to sessionStorage before navigating away
-			if (messageQueue.length > 0 && $chatId) {
-				sessionStorage.setItem(`chat-queue-${$chatId}`, JSON.stringify(messageQueue));
-			}
-
 			prompt = '';
 			messageInput?.setText('');
 
 			files = [];
-			messageQueue = [];
 			selectedToolIds = [];
 			selectedSkillIds = [];
 			selectedFilterIds = [];
@@ -678,6 +673,7 @@
 		selectedToolIds = [];
 		selectedSkillIds = [];
 		selectedFilterIds = [];
+		pendingOAuthTools = [];
 		webSearchEnabled = false;
 		imageGenerationEnabled = false;
 		codeInterpreterEnabled = false;
@@ -2767,16 +2763,15 @@
 
 		if (isGenerating) {
 			if ($settings?.enableMessageQueue ?? true) {
-				// Queue the message
+				// Enqueue the request
 				const _files = structuredClone(files);
-				messageQueue = [
-					...messageQueue,
-					{
-						id: uuidv4(),
-						prompt: userPrompt,
-						files: _files
-					}
-				];
+				chatRequestQueues.update((queues) => ({
+					...queues,
+					[$chatId]: [
+						...(queues[$chatId] ?? []),
+						{ id: uuidv4(), prompt: userPrompt, files: _files }
+					]
+				}));
 				// Clear input
 				messageInput?.setText('');
 				prompt = '';
@@ -4203,6 +4198,7 @@
 									bind:atSelectedModel
 									bind:showCommands
 									bind:dragged
+									{pendingOAuthTools}
 									toolServers={$toolServers}
 									{stopResponse}
 									{createMessagePair}
