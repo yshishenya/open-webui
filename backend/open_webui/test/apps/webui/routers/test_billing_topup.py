@@ -62,13 +62,13 @@ class TestBillingTopup(AbstractPostgresTest):
         import open_webui.utils.billing as billing_utils
 
         monkeypatch.setattr(billing_router, "ENABLE_BILLING_WALLET", True)
-        monkeypatch.setattr(billing_utils, "BILLING_TOPUP_PACKAGES_KOPEKS", [1000])
+        monkeypatch.setattr(billing_utils, "BILLING_TOPUP_PACKAGES_KOPEKS", [50000])
 
         with mock_webui_user(id="1"):
             response = self.fast_api_client.post(
                 self.create_url("/topup"),
                 json={
-                    "amount_kopeks": 2000,
+                    "amount_kopeks": 10000,
                     "return_url": "https://example.com/return",
                 },
             )

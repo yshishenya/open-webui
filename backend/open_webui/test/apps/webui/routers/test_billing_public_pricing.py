@@ -221,7 +221,7 @@ class TestBillingPublicPricing(AbstractPostgresTest):
         import open_webui.routers.billing as billing_router
         from open_webui.config import LEAD_MAGNET_QUOTAS
 
-        monkeypatch.setattr(billing_router, "BILLING_TOPUP_PACKAGES_KOPEKS", [100000, 150000])
+        monkeypatch.setattr(billing_router, "BILLING_TOPUP_PACKAGES_KOPEKS", [50000, 100000, 200000])
         monkeypatch.setattr(billing_router, "PUBLIC_PRICING_POPULAR_MODELS", [self.text_model_id])
         monkeypatch.setattr(
             billing_router, "PUBLIC_PRICING_RECOMMENDED_TEXT_MODEL", self.text_model_id
@@ -238,7 +238,7 @@ class TestBillingPublicPricing(AbstractPostgresTest):
         assert response.status_code == 200
 
         payload = response.json()
-        assert payload["topup_amounts_rub"] == [1000, 1500]
+        assert payload["topup_amounts_rub"] == [500, 1000, 2000]
         assert payload["free_limits"]["text_in"] == 1000
         assert payload["free_limits"]["text_out"] == 2000
         assert payload["free_limits"]["images"] == 10
