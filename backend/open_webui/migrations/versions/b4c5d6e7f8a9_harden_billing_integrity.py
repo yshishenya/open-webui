@@ -19,22 +19,24 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     bind = op.get_bind()
+    ledger_idempotency_metadata = next(
+        (
+            constraint
+            for constraint in sa.inspect(bind).get_unique_constraints("billing_ledger_entry")
+            if constraint.get("column_names") == ["idempotency_key"]
+        ),
+        None,
+    )
     ledger_batch_kwargs = {}
     if bind.dialect.name == "sqlite":
-        ledger_batch_kwargs["naming_convention"] = {
-            "uq": "uq_%(table_name)s_%(column_0_name)s"
-        }
-        ledger_idempotency_constraint = (
+        ledger_batch_kwargs["naming_convention"] = {"uq": "uq_%(table_name)s_%(column_0_name)s"}
+        ledger_idempotency_constraint = (ledger_idempotency_metadata or {}).get("name") or (
             "uq_billing_ledger_entry_idempotency_key"
         )
     else:
-        ledger_idempotency_constraint = next(
-            constraint["name"]
-            for constraint in sa.inspect(bind).get_unique_constraints(
-                "billing_ledger_entry"
-            )
-            if constraint["column_names"] == ["idempotency_key"]
-        )
+        if not ledger_idempotency_metadata or not ledger_idempotency_metadata.get("name"):
+            raise RuntimeError("billing_ledger_entry idempotency constraint is missing")
+        ledger_idempotency_constraint = ledger_idempotency_metadata["name"]
 
     with op.batch_alter_table("billing_wallet") as batch_op:
         batch_op.add_column(sa.Column("topup_expires_at", sa.BigInteger(), nullable=True))
@@ -60,9 +62,7 @@ def upgrade() -> None:
             unique=False,
         )
 
-    with op.batch_alter_table(
-        "billing_ledger_entry", **ledger_batch_kwargs
-    ) as batch_op:
+    with op.batch_alter_table("billing_ledger_entry", **ledger_batch_kwargs) as batch_op:
         batch_op.add_column(sa.Column("correlation_id", sa.String(), nullable=True))
         batch_op.drop_constraint("uq_ledger_reference", type_="unique")
         batch_op.drop_constraint(
