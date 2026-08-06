@@ -1,12 +1,10 @@
 <script lang="ts">
-	import type { PublicLeadMagnetConfig } from '$lib/apis/billing';
+	import type { PublicLeadMagnetConfig, PublicRateCardResponse } from '$lib/apis/billing';
 	import { presetsById } from '$lib/data/features';
 	import ArrowRight from '$lib/components/icons/ArrowRight.svelte';
 	import ArrowUpCircle from '$lib/components/icons/ArrowUpCircle.svelte';
 	import Check from '$lib/components/icons/Check.svelte';
-	import ChevronRight from '$lib/components/icons/ChevronRight.svelte';
 	import CreditCard from '$lib/components/icons/CreditCard.svelte';
-	import Folder from '$lib/components/icons/Folder.svelte';
 	import GlobeAlt from '$lib/components/icons/GlobeAlt.svelte';
 	import Sparkles from '$lib/components/icons/Sparkles.svelte';
 	import { trackEvent } from '$lib/utils/analytics';
@@ -14,9 +12,10 @@
 	import { buildSignupUrl, openCta, openPreset } from './welcomeNavigation';
 
 	export let leadMagnetConfig: PublicLeadMagnetConfig | null = null;
+	export let rateCard: PublicRateCardResponse | null = null;
 
 	type DemoMode = {
-		id: 'text' | 'document' | 'image';
+		id: 'text' | 'document' | 'compare';
 		label: string;
 		prompt: string;
 		result: string;
@@ -24,205 +23,116 @@
 		preset: string;
 	};
 
-	type ScenarioTask = {
-		id: string;
+	type Scenario = {
+		id: 'study' | 'work' | 'creative';
 		label: string;
+		title: string;
 		description: string;
 		prompt: string;
 		result: string;
 		preset: string;
 	};
 
-	type ScenarioGroup = {
-		id: 'study' | 'work' | 'creative';
-		label: string;
-		tasks: ScenarioTask[];
-	};
-
-	type QuotaItem = {
-		label: string;
-		value: number;
-	};
-
 	const demoModes: DemoMode[] = [
 		{
 			id: 'text',
-			label: 'Текст',
+			label: 'Письмо',
 			prompt: 'Сделай письмо короче и дружелюбнее',
-			result: 'Готово. Текст стал короче, сохранил смысл и звучит естественно.',
-			resultNote: 'Письмо готово к отправке',
+			result: 'Вот более короткий и дружелюбный вариант. Смысл сохранён, формулировки стали проще.',
+			resultNote: 'Пример ответа — его можно уточнить в диалоге',
 			preset: 'email_reply'
 		},
 		{
 			id: 'document',
 			label: 'Документ',
 			prompt: 'Сделай краткую сводку документа и выдели решения',
-			result: 'Короткая сводка: 4 ключевых тезиса, 2 решения и список следующих шагов.',
-			resultNote: 'Структура и выводы в одном ответе',
+			result: 'Короткая сводка: ключевые тезисы, решения и следующие шаги из документа.',
+			resultNote: 'Работа с файлами зависит от выбранной модели',
 			preset: 'summarize_notes'
 		},
 		{
-			id: 'image',
-			label: 'Изображение',
-			prompt: 'Создай спокойную обложку для статьи об AI',
-			result: 'Подготовил промпт и четыре варианта композиции для обложки.',
-			resultNote: 'Можно уточнить стиль прямо в чате',
-			preset: 'image_generate'
+			id: 'compare',
+			label: 'Сравнение',
+			prompt: 'Предложи три названия для нового образовательного проекта',
+			result: 'Выберите несколько доступных моделей в одном чате и сравните их варианты.',
+			resultNote: 'Состав доступных моделей может меняться',
+			preset: 'creative_ideas'
 		}
 	];
 
-	const scenarioGroups: ScenarioGroup[] = [
+	const scenarios: Scenario[] = [
 		{
 			id: 'study',
 			label: 'Учёба',
-			tasks: [
-				{
-					id: 'study-explain',
-					label: 'Объяснить сложную тему',
-					description: 'Простыми словами и с примерами',
-					prompt: 'Объясни квантовые вычисления простыми словами для студента первого курса.',
-					result:
-						'Квантовые вычисления используют кубиты — они могут хранить несколько состояний одновременно. Поэтому некоторые задачи можно решать иначе и быстрее, чем на обычном компьютере.',
-					preset: 'study_explain'
-				},
-				{
-					id: 'study-report',
-					label: 'Подготовить реферат',
-					description: 'План, структура и ключевые идеи',
-					prompt: 'Составь план реферата о развитии городской среды: введение, три главы и вывод.',
-					result:
-						'Готова структура из введения, трёх логичных глав и вывода. Для каждого раздела добавлены тезисы и вопросы для исследования.',
-					preset: 'report_plan'
-				},
-				{
-					id: 'study-rewrite',
-					label: 'Проверить и улучшить текст',
-					description: 'Грамматика, стиль и ясность',
-					prompt: 'Проверь мой текст, исправь ошибки и сделай формулировки яснее, не меняя смысл.',
-					result:
-						'Исправил грамматику, убрал повторы и упростил тяжёлые формулировки. Смысл и авторский тон сохранены.',
-					preset: 'rewrite_clear'
-				}
-			]
+			title: 'Разобраться в сложной теме',
+			description: 'Попросите объяснить материал простыми словами и привести пример.',
+			prompt: 'Объясни квантовые вычисления простыми словами для студента первого курса.',
+			result:
+				'Квантовые вычисления используют кубиты. В отличие от обычных битов, они позволяют иначе представить задачу и для некоторых вычислений быстрее найти решение.',
+			preset: 'study_explain'
 		},
 		{
 			id: 'work',
 			label: 'Работа',
-			tasks: [
-				{
-					id: 'work-email',
-					label: 'Ответить на письмо',
-					description: 'Вежливо, кратко и по делу',
-					prompt: 'Составь короткий деловой ответ клиенту: подтвердить сроки и предложить созвон.',
-					result:
-						'Подготовил ясный ответ: подтверждение сроков, следующий шаг и два варианта времени для созвона.',
-					preset: 'email_reply'
-				},
-				{
-					id: 'work-summary',
-					label: 'Сделать сводку встречи',
-					description: 'Решения, ответственные и сроки',
-					prompt:
-						'Преврати заметки со встречи в короткий протокол: решения, ответственные и сроки.',
-					result:
-						'Собрал решения в четыре пункта, назначил ответственных из заметок и вынес сроки в отдельный список.',
-					preset: 'summarize_notes'
-				},
-				{
-					id: 'work-resume',
-					label: 'Улучшить резюме',
-					description: 'Структура и сильные формулировки',
-					prompt: 'Перепиши опыт в резюме через результаты и измеримые достижения.',
-					result:
-						'Заменил общие обязанности на конкретные результаты, добавил сильные глаголы и выстроил единый формат.',
-					preset: 'resume'
-				}
-			]
+			title: 'Подготовить деловой текст',
+			description: 'Составьте письмо, сводку или план и уточните тон прямо в диалоге.',
+			prompt: 'Составь короткий ответ клиенту: подтвердить сроки и предложить созвон.',
+			result:
+				'Здравствуйте! Подтверждаем согласованные сроки. Предлагаю коротко созвониться и сверить следующий шаг — подскажите, когда вам удобно.',
+			preset: 'email_reply'
 		},
 		{
 			id: 'creative',
 			label: 'Творчество',
-			tasks: [
-				{
-					id: 'creative-post',
-					label: 'Написать пост',
-					description: 'Идея, текст и варианты подачи',
-					prompt:
-						'Напиши дружелюбный пост о запуске нового продукта: три варианта заголовка и основной текст.',
-					result:
-						'Готовы три заголовка и лаконичный текст поста с ясным преимуществом и призывом к действию.',
-					preset: 'social_post'
-				},
-				{
-					id: 'creative-image',
-					label: 'Создать изображение',
-					description: 'Концепция, стиль и варианты',
-					prompt:
-						'Создай обложку для подкаста о технологиях: минимализм, тёмный фон, фиолетовый акцент.',
-					result:
-						'Подготовил визуальное направление и несколько вариантов композиции, которые можно уточнить в чате.',
-					preset: 'image_generate'
-				},
-				{
-					id: 'creative-plan',
-					label: 'Развить идею',
-					description: 'От черновика до понятного плана',
-					prompt: 'Помоги превратить идею короткого видео в сценарий на 60 секунд.',
-					result:
-						'Разложил идею на хук, основную сцену, кульминацию и финальный кадр. Добавил пример реплик и темп.',
-					preset: 'presentation_plan'
-				}
-			]
+			title: 'Развить идею',
+			description: 'Получите несколько направлений и доработайте понравившееся.',
+			prompt: 'Предложи три идеи короткого видео о привычках, которые помогают сосредоточиться.',
+			result:
+				'Три направления: эксперимент на один день, разбор рабочей рутины и короткая история «до и после». Для каждого можно уточнить сценарий и тон.',
+			preset: 'creative_ideas'
 		}
 	];
 
 	const faqItems = [
 		{
+			id: 'vpn',
+			question: 'Нужен ли VPN?',
+			answer: 'Нет. Airis доступен напрямую из России без VPN.'
+		},
+		{
+			id: 'models',
+			question: 'Какие модели доступны?',
+			answer:
+				'Актуальный список показывается в Airis и обновляется вместе с продуктом. Можно выбрать одну модель или несколько для сравнения.'
+		},
+		{
 			id: 'free',
 			question: 'Что доступно бесплатно?',
 			answer:
-				'После регистрации вы получаете бесплатные лимиты на доступные возможности. Точный объём берётся из текущих настроек Airis и показывается на странице, когда он включён.'
+				'После регистрации доступны бесплатные лимиты на выбранных моделях. Карта для старта не нужна. Точный объём зависит от текущих настроек Airis.'
 		},
 		{
 			id: 'subscription',
 			question: 'Нужна ли подписка?',
 			answer:
-				'Нет. Вы можете пополнить баланс и платить только за фактическое использование без обязательного ежемесячного платежа.'
+				'Обязательной подписки и фиксированного ежемесячного платежа нет. Пополняйте баланс по мере необходимости.'
 		},
 		{
 			id: 'cost',
 			question: 'Как считается стоимость?',
 			answer:
-				'Стоимость зависит от выбранной модели и объёма задачи. Для текста учитывается объём запроса и ответа, для изображений и других функций действуют свои ставки. Актуальные цены всегда доступны на странице тарифов.'
+				'Списание зависит от выбранной модели и объёма использования. Актуальные ставки доступны на странице тарифов, расходы — в личном кабинете.'
 		},
 		{
-			id: 'payment',
-			question: 'Можно ли оплатить российской картой?',
-			answer: 'Да. Баланс можно пополнить российской банковской картой привычным способом.'
-		},
-		{
-			id: 'vpn',
-			question: 'Нужен ли VPN?',
-			answer: 'Нет. Airis доступен напрямую из России без VPN.'
+			id: 'data',
+			question: 'Как Airis работает с моими данными?',
+			answer:
+				'Запросы передаются выбранному AI-провайдеру для подготовки ответа. Подробные условия обработки и хранения данных описаны в политике конфиденциальности.'
 		}
 	];
 
-	const breadthLinks = [
-		{ label: 'Тексты', preset: 'social_post', prompt: 'Помоги написать текст.' },
-		{ label: 'Документы', preset: 'summarize_notes', prompt: 'Сделай сводку документа.' },
-		{ label: 'Изображения', preset: 'image_generate', prompt: 'Создай изображение.' },
-		{ label: 'Код', preset: 'code_help', prompt: 'Помоги разобраться с задачей по коду.' },
-		{
-			label: 'Анализ данных',
-			preset: 'data_analysis',
-			prompt: 'Проанализируй данные, найди закономерности и сформулируй выводы.'
-		},
-		{ label: 'Сводки', preset: 'summarize_notes', prompt: 'Сделай короткую сводку.' }
-	];
-
 	let activeDemo = demoModes[0];
-	let activeScenarioGroup = scenarioGroups[0];
-	let activeScenario = activeScenarioGroup.tasks[0];
+	let activeScenario = scenarios[0];
 
 	const heroHref = buildSignupUrl('welcome_hero_primary');
 	const finalHref = buildSignupUrl('welcome_final_cta');
@@ -235,15 +145,9 @@
 		trackEvent('welcome_demo_tab_select', { mode: mode.id });
 	};
 
-	const selectScenarioGroup = (group: ScenarioGroup): void => {
-		activeScenarioGroup = group;
-		activeScenario = group.tasks[0];
-		trackEvent('welcome_scenario_group_select', { group: group.id });
-	};
-
-	const selectScenario = (scenario: ScenarioTask): void => {
+	const selectScenario = (scenario: Scenario): void => {
 		activeScenario = scenario;
-		trackEvent('welcome_scenario_select', { scenario: scenario.id });
+		trackEvent('welcome_scenario_group_select', { group: scenario.id });
 	};
 
 	const handleTabKeydown = (event: KeyboardEvent): void => {
@@ -285,50 +189,87 @@
 		openPreset(source, preset, resolvePrompt(preset, fallbackPrompt));
 	};
 
-	const formatNumber = (value: number): string => new Intl.NumberFormat('ru-RU').format(value);
+	const reveal = (node: HTMLElement): { destroy: () => void } => {
+		if (
+			!('IntersectionObserver' in window) ||
+			window.matchMedia('(prefers-reduced-motion: reduce)').matches
+		) {
+			return { destroy: () => undefined };
+		}
 
-	const buildQuotaItems = (config: PublicLeadMagnetConfig | null): QuotaItem[] => {
-		if (!config?.enabled) return [];
+		node.dataset.reveal = 'pending';
+		const observer = new IntersectionObserver(
+			([entry]) => {
+				if (!entry?.isIntersecting) return;
+				node.dataset.reveal = 'visible';
+				observer.disconnect();
+			},
+			{ rootMargin: '0px 0px -8%', threshold: 0.12 }
+		);
+		observer.observe(node);
 
-		return [
-			{ label: 'токенов на запросы', value: config.quotas.tokens_input },
-			{ label: 'токенов на ответы', value: config.quotas.tokens_output },
-			{ label: 'изображений', value: config.quotas.images },
-			{ label: 'секунд озвучки', value: config.quotas.tts_seconds },
-			{ label: 'секунд распознавания', value: config.quotas.stt_seconds }
-		].filter((item) => item.value > 0);
+		return { destroy: () => observer.disconnect() };
 	};
 
-	$: quotaItems = buildQuotaItems(leadMagnetConfig);
+	const formatNumber = (value: number): string => new Intl.NumberFormat('ru-RU').format(value);
+	const formatModelCount = (value: number): string => {
+		const remainder100 = value % 100;
+		const remainder10 = value % 10;
+		const noun =
+			remainder100 >= 11 && remainder100 <= 14
+				? 'моделей'
+				: remainder10 === 1
+					? 'модель'
+					: remainder10 >= 2 && remainder10 <= 4
+						? 'модели'
+						: 'моделей';
+		return `Сейчас ${noun === 'модель' ? 'доступна' : 'доступно'} ${formatNumber(value)} ${noun}. Состав может меняться.`;
+	};
+
+	$: freeStartEnabled = leadMagnetConfig?.enabled !== false;
+	$: primaryCtaLabel = freeStartEnabled ? 'Начать бесплатно' : 'Открыть Airis';
+	$: availableModelNames = Array.from(
+		new Set(rateCard?.models.map((model) => model.display_name).filter(Boolean) ?? [])
+	);
+	$: availableModelCount = availableModelNames.length;
 </script>
 
 <main class="welcome-product">
-	<section class="hero" aria-labelledby="welcome-title">
+	<section class="hero section-screen" aria-labelledby="welcome-title">
 		<div class="shell hero__inner">
 			<div class="hero__copy">
-				<h1 id="welcome-title">Все задачи с AI —<br class="desktop-break" /> в одном чате</h1>
-				<p>
-					Пишите и улучшайте тексты, анализируйте документы, создавайте изображения и работайте с
-					кодом в одном месте.
+				<p class="eyebrow">Работает в России без VPN</p>
+				<h1 id="welcome-title">AI-модели <span>без VPN — в одном чате</span></h1>
+				<p class="hero__lead">
+					GPT, Claude, Gemini и другие доступные модели — без отдельных сервисов и сложных настроек.
+					Выбирайте модель и решайте задачи с текстом и файлами в одном месте.
 				</p>
-				<a
-					href={heroHref}
-					class="button button--primary"
-					on:click={(event) => startCta(event, 'welcome_hero_primary')}
-				>
-					Начать бесплатно
-				</a>
-				<div class="hero__facts" aria-label="Условия использования">
-					<span>Без VPN</span><span>Карты РФ</span><span>Без обязательной подписки</span>
+				<div class="hero__actions">
+					<a
+						href={heroHref}
+						class="button button--primary"
+						on:click={(event) => startCta(event, 'welcome_hero_primary')}
+					>
+						{primaryCtaLabel}
+					</a>
+					<a href="#models" class="button button--quiet">Посмотреть, как работает</a>
+				</div>
+				<div class="hero__facts" aria-label="Условия старта">
+					{#if freeStartEnabled}<span>Без карты на старте</span>{/if}
+					<span>Оплата в ₽</span>
+					<span>Без обязательной подписки</span>
 				</div>
 			</div>
 
-			<div class="demo" aria-label="Пример работы Airis">
+			<div class="demo" aria-label="Интерактивный пример Airis">
 				<div class="demo__topline">
 					<span>Попробуйте пример</span>
-					<div class="demo__brand"><span class="demo__mark">AI</span> Airis</div>
+					<div class="demo__brand">
+						<img src="/static/favicon.svg" alt="" />
+						Airis
+					</div>
 				</div>
-				<div class="tablist tablist--dark" role="tablist" aria-label="Тип задачи">
+				<div class="tablist tablist--demo" role="tablist" aria-label="Пример задачи">
 					{#each demoModes as mode}
 						<button
 							type="button"
@@ -345,251 +286,286 @@
 						</button>
 					{/each}
 				</div>
-				<div
-					class="demo__conversation"
-					role="tabpanel"
-					id="demo-panel"
-					aria-labelledby={`demo-tab-${activeDemo.id}`}
-				>
-					<div class="demo__prompt">{activeDemo.prompt}</div>
-					<div class="demo__answer">
-						<div class="demo__answer-label">Ответ Airis</div>
-						<p>{activeDemo.result}</p>
-						<span>{activeDemo.resultNote}</span>
+				{#key activeDemo.id}
+					<div
+						class="demo__conversation demo__conversation--enter"
+						role="tabpanel"
+						id="demo-panel"
+						aria-labelledby={`demo-tab-${activeDemo.id}`}
+						aria-live="polite"
+					>
+						<div class="demo__prompt">{activeDemo.prompt}</div>
+						<div class="demo__answer">
+							<div class="demo__answer-label">Пример ответа Airis</div>
+							<p>{activeDemo.result}</p>
+							<span>{activeDemo.resultNote}</span>
+						</div>
+						<button
+							type="button"
+							class="demo__composer"
+							on:click={() =>
+								startPreset('welcome_demo_preset', activeDemo.preset, activeDemo.prompt)}
+						>
+							<span>Открыть этот пример в Airis</span>
+							<ArrowUpCircle className="h-8 w-8" strokeWidth="1.7" />
+						</button>
 					</div>
-					<button
-						type="button"
-						class="demo__composer"
-						on:click={() =>
-							startPreset('welcome_demo_preset', activeDemo.preset, activeDemo.prompt)}
-					>
-						<span>Попробовать этот запрос</span>
-						<ArrowUpCircle className="h-8 w-8" strokeWidth="1.7" />
-					</button>
+				{/key}
+			</div>
+		</div>
+	</section>
+
+	<section
+		id="models"
+		class="section section-screen model-story"
+		aria-labelledby="models-title"
+		use:reveal
+	>
+		<div class="shell split-layout">
+			<div class="section-copy">
+				<p class="eyebrow">Один интерфейс</p>
+				<h2 id="models-title">Меняйте модель, не меняя сервис</h2>
+				<p class="section-lead">
+					Все доступные в Airis модели собраны в одном чате. Выбирайте одну или несколько —
+					отдельные аккаунты и вкладки не нужны.
+				</p>
+				<ul class="check-list">
+					<li><Check className="h-5 w-5" /> Сравнивайте ответы нескольких моделей</li>
+					<li><Check className="h-5 w-5" /> Сохраняйте чаты и файлы в одном месте</li>
+					<li><Check className="h-5 w-5" /> Видите актуальный каталог прямо в продукте</li>
+				</ul>
+				{#if availableModelCount}
+					<p class="model-count">{formatModelCount(availableModelCount)}</p>
+				{/if}
+				<a href="/features#models" class="text-link">
+					Все возможности <ArrowRight className="h-4 w-4" />
+				</a>
+			</div>
+
+			<figure class="product-shot">
+				<div class="product-shot__frame">
+					<img
+						src="/landing/airis-product-models.jpg"
+						alt="Интерфейс Airis с открытым каталогом доступных моделей"
+						width="820"
+						height="460"
+						loading="lazy"
+					/>
 				</div>
-			</div>
+				<figcaption>Реальный интерфейс Airis · состав моделей может меняться</figcaption>
+			</figure>
 		</div>
 	</section>
 
-	<section class="breadth" aria-labelledby="breadth-title">
-		<div class="shell breadth__inner">
-			<h2 id="breadth-title">Что можно сделать</h2>
-			<div class="breadth__links">
-				{#each breadthLinks as item}
-					<button
-						type="button"
-						on:click={() => startPreset('welcome_breadth_preset', item.preset, item.prompt)}
-					>
-						{item.label}<ChevronRight className="h-4 w-4" />
-					</button>
-				{/each}
-			</div>
-		</div>
-	</section>
-
-	<section id="usecases" class="section scenarios" aria-labelledby="scenarios-title">
+	<section
+		id="usecases"
+		class="section section-screen scenarios"
+		aria-labelledby="scenarios-title"
+		use:reveal
+	>
 		<div class="shell">
 			<div class="section-heading">
-				<p>Знакомый старт</p>
-				<h2 id="scenarios-title">Сценарии для жизни и работы</h2>
-				<span>Выберите задачу — Airis уже знает, с чего начать.</span>
+				<p class="eyebrow">Знакомые задачи</p>
+				<h2 id="scenarios-title">Начните не с модели, а со своей задачи</h2>
+				<p>Выберите знакомый сценарий — пример уже готов, его можно изменить под себя.</p>
 			</div>
 
-			<div class="tablist tablist--light" role="tablist" aria-label="Сценарии по сфере">
-				{#each scenarioGroups as group}
+			<div class="tablist tablist--scenario" role="tablist" aria-label="Сценарии Airis">
+				{#each scenarios as scenario}
 					<button
 						type="button"
 						role="tab"
-						id={`scenario-group-tab-${group.id}`}
-						aria-controls="scenario-group-panel"
-						aria-selected={activeScenarioGroup.id === group.id}
-						tabindex={activeScenarioGroup.id === group.id ? 0 : -1}
-						class:active={activeScenarioGroup.id === group.id}
-						on:click={() => selectScenarioGroup(group)}
+						id={`scenario-tab-${scenario.id}`}
+						aria-controls="scenario-panel"
+						aria-selected={activeScenario.id === scenario.id}
+						tabindex={activeScenario.id === scenario.id ? 0 : -1}
+						class:active={activeScenario.id === scenario.id}
+						on:click={() => selectScenario(scenario)}
 						on:keydown={handleTabKeydown}
 					>
-						{group.label}
+						{scenario.label}
 					</button>
 				{/each}
 			</div>
 
-			<div
-				class="scenario-explorer"
-				role="tabpanel"
-				id="scenario-group-panel"
-				aria-labelledby={`scenario-group-tab-${activeScenarioGroup.id}`}
-			>
+			{#key activeScenario.id}
 				<div
-					class="scenario-list"
-					role="tablist"
-					aria-label={`Задачи: ${activeScenarioGroup.label}`}
-				>
-					{#each activeScenarioGroup.tasks as scenario}
-						<button
-							type="button"
-							role="tab"
-							id={`scenario-tab-${scenario.id}`}
-							aria-controls="scenario-panel"
-							aria-selected={activeScenario.id === scenario.id}
-							tabindex={activeScenario.id === scenario.id ? 0 : -1}
-							class:active={activeScenario.id === scenario.id}
-							on:click={() => selectScenario(scenario)}
-							on:keydown={handleTabKeydown}
-						>
-							<span><strong>{scenario.label}</strong><small>{scenario.description}</small></span>
-							<ChevronRight className="h-5 w-5" />
-						</button>
-					{/each}
-				</div>
-
-				<div
-					class="scenario-preview"
+					class="scenario-panel scenario-panel--enter"
 					role="tabpanel"
 					id="scenario-panel"
 					aria-labelledby={`scenario-tab-${activeScenario.id}`}
+					aria-live="polite"
 				>
-					<div class="scenario-preview__label">Ваш запрос</div>
-					<p class="scenario-preview__prompt">{activeScenario.prompt}</p>
-					<div class="scenario-preview__label">Ответ Airis</div>
-					<p>{activeScenario.result}</p>
-					<button
-						type="button"
-						class="text-link"
-						on:click={() =>
-							startPreset('welcome_scenario_preset', activeScenario.preset, activeScenario.prompt)}
-					>
-						Попробовать задачу <ArrowRight className="h-4 w-4" />
-					</button>
+					<div class="scenario-panel__intro">
+						<p>{activeScenario.label}</p>
+						<h3>{activeScenario.title}</h3>
+						<span>{activeScenario.description}</span>
+						<button
+							type="button"
+							class="text-link"
+							on:click={() =>
+								startPreset(
+									'welcome_scenario_preset',
+									activeScenario.preset,
+									activeScenario.prompt
+								)}
+						>
+							Открыть пример в Airis <ArrowRight className="h-4 w-4" />
+						</button>
+					</div>
+					<div class="scenario-panel__conversation">
+						<div class="scenario-panel__label">Ваш запрос</div>
+						<p class="scenario-panel__prompt">{activeScenario.prompt}</p>
+						<div class="scenario-panel__label">Пример ответа</div>
+						<p>{activeScenario.result}</p>
+						<span>Фактический ответ зависит от модели и вашего запроса.</span>
+					</div>
+				</div>
+			{/key}
+		</div>
+	</section>
+
+	<section class="section section-screen local" aria-labelledby="local-title" use:reveal>
+		<div class="shell local__inner">
+			<p class="eyebrow">Главное преимущество</p>
+			<h2 id="local-title">Работает напрямую из России</h2>
+			<p class="local__lead">
+				Открывайте Airis без VPN. Пополняйте баланс в рублях и пользуйтесь без обязательной
+				подписки.
+			</p>
+			<div class="local__facts">
+				<div>
+					<GlobeAlt className="h-8 w-8" />
+					<strong>Без VPN</strong>
+					<span>Доступен напрямую из России</span>
+				</div>
+				<div>
+					<CreditCard className="h-8 w-8" />
+					<strong>Оплата в ₽</strong>
+					<span>Пополняйте баланс по мере необходимости</span>
+				</div>
+				<div>
+					<Sparkles className="h-8 w-8" />
+					<strong>Без обязательной подписки</strong>
+					<span>Нет фиксированного ежемесячного платежа</span>
 				</div>
 			</div>
 		</div>
 	</section>
 
-	<section class="section steps" aria-labelledby="steps-title">
+	<section class="section steps" aria-labelledby="steps-title" use:reveal>
 		<div class="shell">
-			<div class="section-heading section-heading--compact">
-				<h2 id="steps-title">Три шага до результата</h2>
+			<div class="section-heading section-heading--left">
+				<p class="eyebrow">Как начать</p>
+				<h2 id="steps-title">Три шага — как в обычном чате</h2>
 			</div>
 			<ol class="steps__list">
 				<li>
-					<span>1</span>
+					<span>01</span>
 					<div>
-						<strong>Выберите задачу</strong>
-						<p>Из списка сценариев или начните с нуля.</p>
+						<strong>Выберите модель</strong>
+						<p>Или оставьте ту, которая уже выбрана в чате.</p>
 					</div>
 				</li>
 				<li>
-					<span>2</span>
+					<span>02</span>
 					<div>
-						<strong>Добавьте контекст</strong>
-						<p>Опишите цель, вставьте текст или загрузите файл.</p>
+						<strong>Опишите задачу</strong>
+						<p>Напишите своими словами, вставьте текст или добавьте файл.</p>
 					</div>
 				</li>
 				<li>
-					<span>3</span>
+					<span>03</span>
 					<div>
-						<strong>Получите готовый результат</strong>
-						<p>Проверьте, доработайте и используйте.</p>
+						<strong>Уточните ответ</strong>
+						<p>Получите ответ или черновик и попросите доработать его.</p>
 					</div>
 				</li>
 			</ol>
 		</div>
 	</section>
 
-	<section class="trust" aria-label="Почему Airis удобно использовать">
-		<div class="shell trust__grid">
-			<div>
-				<Sparkles className="h-7 w-7" /><strong>Лучшие модели<br />в одном чате</strong>
-				<p>Выбирайте подходящую модель без смены сервиса.</p>
+	<section
+		id="pricing"
+		class="section section-screen pricing"
+		aria-labelledby="pricing-title"
+		use:reveal
+	>
+		<div class="shell pricing__inner">
+			<div class="pricing__copy">
+				<p class="eyebrow">Понятная оплата</p>
+				<h2 id="pricing-title">
+					{freeStartEnabled
+						? 'Начните бесплатно. Дальше — по использованию'
+						: 'Платите только за использование'}
+				</h2>
+				<p>
+					{freeStartEnabled
+						? 'После регистрации доступны бесплатные лимиты на выбранных моделях. Карта для старта не нужна.'
+						: 'Пополняйте баланс по мере необходимости. Списание зависит от модели и объёма использования.'}
+				</p>
+				<div class="pricing__actions">
+					<a
+						href={heroHref}
+						class="button button--dark"
+						on:click={(event) => startCta(event, 'welcome_pricing_primary')}
+					>
+						{primaryCtaLabel}
+					</a>
+					<a href="/pricing" class="button button--light-outline">Посмотреть тарифы</a>
+				</div>
 			</div>
-			<div>
-				<GlobeAlt className="h-7 w-7" /><strong>Работает<br />без VPN</strong>
-				<p>Доступен напрямую из России.</p>
-			</div>
-			<div>
-				<CreditCard className="h-7 w-7" /><strong>Оплата<br />российской картой</strong>
-				<p>Пополняйте баланс привычным способом.</p>
-			</div>
-			<div>
-				<Folder className="h-7 w-7" /><strong>История и файлы<br />в одном месте</strong>
-				<p>Возвращайтесь к задачам без лишних переключений.</p>
+
+			<div class="pricing__details">
+				<ul>
+					<li><Check className="h-5 w-5" /> Нет обязательной подписки</li>
+					<li><Check className="h-5 w-5" /> Расходы видны в личном кабинете</li>
+					<li><Check className="h-5 w-5" /> Ставки зависят от модели и объёма использования</li>
+				</ul>
 			</div>
 		</div>
 	</section>
 
-	<section id="pricing" class="section pricing" aria-labelledby="pricing-title">
-		<div class="shell">
-			<div class="section-heading">
-				<p>Без лишних обязательств</p>
-				<h2 id="pricing-title">Понятная оплата без подписки</h2>
-			</div>
-
-			<div class="pricing__grid">
-				<div class="pricing__primary">
-					<div class="pricing__icon"><CreditCard className="h-6 w-6" /></div>
-					<div>
-						<h3>Пополняйте баланс и платите только за то, чем пользуетесь</h3>
-						<p>
-							Нет автопродления и регулярных списаний с карты. Расходы видны в личном кабинете, а
-							ставки зависят от модели и типа задачи.
-						</p>
-						<a href="/pricing" class="button button--outline">Посмотреть цены</a>
-					</div>
-				</div>
-
-				<div class="pricing__free">
-					<div class="pricing__eyebrow">Бесплатно на старте</div>
-					<h3>{quotaItems.length ? 'Лимиты уже включены' : 'Попробуйте ключевые возможности'}</h3>
-					<ul>
-						<li><Check className="h-4 w-4" /> Без привязки карты</li>
-						<li><Check className="h-4 w-4" /> Без обязательной подписки</li>
-						<li><Check className="h-4 w-4" /> Доступ после регистрации</li>
-					</ul>
-					{#if quotaItems.length}
-						<details class="quota-details">
-							<summary>Что входит бесплатно</summary>
-							<ul>
-								{#each quotaItems as item}
-									<li><span>{item.label}</span><strong>{formatNumber(item.value)}</strong></li>
-								{/each}
-							</ul>
-							<p>Лимиты обновляются каждые {leadMagnetConfig?.cycle_days ?? 30} дней.</p>
-						</details>
-					{/if}
-				</div>
-			</div>
-		</div>
-	</section>
-
-	<section id="faq" class="section faq" aria-labelledby="faq-title">
-		<div class="shell faq__shell">
-			<div class="section-heading section-heading--compact">
-				<h2 id="faq-title">Частые вопросы</h2>
+	<section id="faq" class="section faq" aria-labelledby="faq-title" use:reveal>
+		<div class="shell faq__layout">
+			<div class="faq__intro">
+				<p class="eyebrow">Без мелкого шрифта</p>
+				<h2 id="faq-title">Коротко о важном</h2>
+				<p>Если ответа нет здесь, напишите в поддержку — ссылка есть внизу страницы.</p>
 			</div>
 			<div class="faq__list">
 				{#each faqItems as item, index}
 					<details id={item.id === 'cost' ? 'faq-cost' : undefined} open={index === 0}>
 						<summary>{item.question}</summary>
-						<p>{item.answer}</p>
+						<p>
+							{item.id === 'free' && !freeStartEnabled
+								? 'Бесплатный старт сейчас недоступен. Актуальные условия показаны на странице тарифов.'
+								: item.answer}
+						</p>
+						{#if item.id === 'data'}
+							<a href="/privacy">Открыть политику конфиденциальности</a>
+						{/if}
 					</details>
 				{/each}
 			</div>
 		</div>
 	</section>
 
-	<section class="final-cta" aria-labelledby="final-cta-title">
+	<section class="final-cta" aria-labelledby="final-cta-title" use:reveal>
 		<div class="shell">
 			<div class="final-cta__panel">
-				<h2 id="final-cta-title">Начните с реальной задачи</h2>
-				<p>Откройте Airis бесплатно и получите первый результат за несколько минут.</p>
+				<div>
+					<p class="eyebrow">Начните со своей задачи</p>
+					<h2 id="final-cta-title">Все доступные модели уже в Airis</h2>
+					<span>Без VPN · Оплата в ₽ · Без обязательной подписки</span>
+				</div>
 				<a
 					href={finalHref}
 					class="button button--primary"
 					on:click={(event) => startCta(event, 'welcome_final_cta')}
 				>
-					Открыть Airis бесплатно
+					{primaryCtaLabel}
 				</a>
-				<span>Без карты · Без обязательств · Можно прекратить в любой момент</span>
 			</div>
 		</div>
 	</section>
@@ -601,435 +577,683 @@
 
 <style>
 	.welcome-product {
-		--airis-ink: #171330;
-		--airis-violet: #1e1647;
-		--airis-raised: #2c2359;
+		--airis-ink: #17112f;
+		--airis-deep: #1e1647;
+		--airis-raised: #292055;
+		--airis-panel: #121021;
 		--airis-accent: #7132f2;
+		--airis-accent-strong: #803cff;
 		--airis-lavender: #ad93fc;
-		--airis-soft: #f7f5ff;
-		--airis-border: #e7e2f5;
-		background: #ffffff;
-		color: var(--airis-ink);
-		font-family: 'Noto Sans', sans-serif;
-		overflow: clip;
+		--airis-text: #fbfaff;
+		--airis-muted: #c7bfdc;
+		--airis-line: rgb(255 255 255 / 0.13);
+		background:
+			radial-gradient(900px 620px at 7% 8%, rgb(113 50 242 / 0.14), transparent 66%),
+			linear-gradient(180deg, #17112f 0%, #21184a 46%, #17112f 100%);
+		color: var(--airis-text);
+		color-scheme: dark;
+		font-family: 'Noto Sans', Arial, sans-serif;
+	}
+
+	.welcome-product :global(a),
+	.welcome-product button,
+	.welcome-product summary {
+		touch-action: manipulation;
 	}
 
 	.shell {
-		width: min(1180px, calc(100% - 40px));
+		width: min(1180px, calc(100% - 48px));
 		margin-inline: auto;
 	}
 
-	.hero {
-		background: var(--airis-violet);
-		color: #ffffff;
-		padding: 66px 0 28px;
+	.section {
+		position: relative;
+		padding: clamp(96px, 10vw, 150px) 0;
+		scroll-margin-top: 64px;
 	}
 
-	.hero__inner {
+	.section-screen {
+		min-height: min(900px, calc(100svh - 64px));
 		display: grid;
-		gap: 48px;
+		align-items: center;
 	}
 
-	.hero__copy {
-		max-width: 800px;
-		margin-inline: auto;
-		text-align: center;
+	:global([data-reveal='pending']) {
+		opacity: 0;
+		transform: translateY(26px);
+	}
+
+	:global([data-reveal='visible']) {
+		opacity: 1;
+		transform: translateY(0);
+		transition:
+			opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
+			transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.eyebrow {
+		margin: 0 0 18px;
+		color: var(--airis-lavender);
+		font-size: 0.75rem;
+		font-weight: 700;
+		letter-spacing: 0.15em;
+		text-transform: uppercase;
+	}
+
+	h1,
+	h2,
+	h3,
+	p {
+		margin-top: 0;
+	}
+
+	h1,
+	h2,
+	h3 {
+		text-wrap: balance;
 	}
 
 	h1 {
-		margin: 0;
-		font-size: clamp(40px, 5vw, 68px);
-		font-weight: 760;
-		letter-spacing: -0.045em;
-		line-height: 1.04;
+		max-width: 700px;
+		margin-bottom: 26px;
+		font-size: clamp(3rem, 5.4vw, 4.8rem);
+		font-weight: 650;
+		letter-spacing: -0.055em;
+		line-height: 1.02;
 	}
 
-	.hero__copy > p {
-		max-width: 650px;
-		margin: 22px auto 28px;
-		color: #ded8f6;
-		font-size: 17px;
-		line-height: 1.65;
+	h1 span {
+		display: block;
+		color: var(--airis-lavender);
+	}
+
+	h2 {
+		margin-bottom: 22px;
+		font-size: clamp(2.35rem, 4vw, 3.7rem);
+		font-weight: 620;
+		letter-spacing: -0.045em;
+		line-height: 1.08;
 	}
 
 	.button {
 		display: inline-flex;
-		min-height: 48px;
+		min-height: 50px;
 		align-items: center;
 		justify-content: center;
-		border-radius: 12px;
+		border: 1px solid transparent;
+		border-radius: 14px;
 		padding: 0 24px;
-		font-size: 14px;
+		font-size: 0.92rem;
 		font-weight: 700;
 		text-decoration: none;
 		transition:
 			background-color 160ms ease,
 			border-color 160ms ease,
-			transform 160ms ease;
+			box-shadow 180ms ease,
+			color 160ms ease,
+			transform 180ms ease;
+	}
+
+	.button:focus-visible,
+	.text-link:focus-visible,
+	button:focus-visible,
+	summary:focus-visible,
+	.faq__list a:focus-visible {
+		outline: 3px solid var(--airis-lavender);
+		outline-offset: 4px;
 	}
 
 	.button--primary {
 		background: var(--airis-accent);
-		color: #ffffff;
-		box-shadow: 0 12px 28px rgba(113, 50, 242, 0.26);
+		box-shadow: 0 18px 50px rgb(113 50 242 / 0.3);
+		color: #fff;
 	}
 
-	.button--outline {
-		border: 1px solid #d6cff0;
-		color: var(--airis-accent);
-		background: #ffffff;
+	.button--primary:hover {
+		background: var(--airis-accent-strong);
 	}
 
-	@media (hover: hover) {
-		.button:hover {
-			transform: translateY(-1px);
-		}
-		.button--primary:hover {
-			background: #6427e8;
-		}
-		.button--outline:hover {
-			border-color: var(--airis-accent);
-			background: var(--airis-soft);
-		}
+	.button--quiet {
+		border-color: var(--airis-line);
+		color: #e6e0f4;
 	}
 
-	.button:focus-visible,
-	button:focus-visible,
-	summary:focus-visible,
-	a:focus-visible {
-		outline: 3px solid var(--airis-lavender);
-		outline-offset: 3px;
+	.button--quiet:hover {
+		border-color: rgb(173 147 252 / 0.55);
+		background: rgb(173 147 252 / 0.08);
+	}
+
+	.button--dark {
+		background: var(--airis-ink);
+		color: #fff;
+	}
+
+	.button--dark:hover {
+		background: #241a52;
+	}
+
+	.button--light-outline {
+		border-color: rgb(23 17 47 / 0.26);
+		color: var(--airis-ink);
+	}
+
+	.button--light-outline:hover {
+		background: rgb(23 17 47 / 0.07);
+	}
+
+	.text-link {
+		display: inline-flex;
+		min-height: 44px;
+		align-items: center;
+		gap: 8px;
+		border: 0;
+		padding: 0;
+		background: transparent;
+		color: var(--airis-lavender);
+		font: inherit;
+		font-size: 0.93rem;
+		font-weight: 700;
+		text-decoration: none;
+		cursor: pointer;
+	}
+
+	.hero {
+		position: relative;
+		overflow: hidden;
+		padding: clamp(72px, 8vw, 112px) 0 clamp(96px, 10vw, 144px);
+		background:
+			radial-gradient(820px 540px at 86% 76%, rgb(113 50 242 / 0.34), transparent 68%),
+			radial-gradient(620px 520px at 88% 20%, rgb(173 147 252 / 0.16), transparent 68%),
+			radial-gradient(680px 520px at 5% 100%, rgb(91 38 219 / 0.18), transparent 72%);
+	}
+
+	.hero::after {
+		position: absolute;
+		inset: auto -10% -280px 35%;
+		height: 520px;
+		border-radius: 50%;
+		background: rgb(113 50 242 / 0.12);
+		filter: blur(100px);
+		content: '';
+		pointer-events: none;
+		animation: ambient-drift 12s ease-in-out infinite alternate;
+	}
+
+	.hero__inner {
+		position: relative;
+		z-index: 1;
+		display: grid;
+		grid-template-columns: minmax(0, 0.92fr) minmax(500px, 1.08fr);
+		gap: clamp(52px, 6vw, 88px);
+		align-items: center;
+	}
+
+	.hero__copy {
+		animation: intro-rise 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+	}
+
+	.hero__lead {
+		max-width: 620px;
+		margin-bottom: 34px;
+		color: var(--airis-muted);
+		font-size: clamp(1.05rem, 1.55vw, 1.22rem);
+		line-height: 1.65;
+	}
+
+	.hero__actions,
+	.pricing__actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px;
 	}
 
 	.hero__facts {
 		display: flex;
 		flex-wrap: wrap;
-		justify-content: center;
-		gap: 8px 18px;
-		margin-top: 18px;
-		color: #cfc7ef;
-		font-size: 13px;
+		gap: 10px 24px;
+		margin-top: 28px;
+		color: #aaa1c2;
+		font-size: 0.82rem;
 	}
 
-	.hero__facts span + span::before {
-		content: '·';
-		margin-right: 18px;
-		color: #766da0;
+	.hero__facts span {
+		position: relative;
+	}
+
+	.hero__facts span:not(:first-child)::before {
+		position: absolute;
+		top: 50%;
+		left: -14px;
+		width: 3px;
+		height: 3px;
+		border-radius: 50%;
+		background: #766d92;
+		content: '';
 	}
 
 	.demo {
-		max-width: 1080px;
-		margin-inline: auto;
-		border: 1px solid rgba(173, 147, 252, 0.3);
-		border-radius: 24px;
-		background: #151226;
-		box-shadow: 0 30px 70px rgba(8, 5, 24, 0.35);
+		border: 1px solid rgb(173 147 252 / 0.34);
+		border-radius: 28px;
+		background: rgb(13 11 27 / 0.94);
+		box-shadow: 0 40px 100px rgb(4 2 18 / 0.5);
 		overflow: hidden;
+		animation: intro-rise 720ms 90ms cubic-bezier(0.22, 1, 0.36, 1) both;
 	}
 
 	.demo__topline {
 		display: flex;
+		min-height: 66px;
 		align-items: center;
 		justify-content: space-between;
-		padding: 18px 24px 8px;
-		color: #d8d1f1;
-		font-size: 13px;
-		font-weight: 650;
+		border-bottom: 1px solid var(--airis-line);
+		padding: 0 24px;
+		color: #d8d2e9;
+		font-size: 0.78rem;
+		font-weight: 700;
 	}
 
 	.demo__brand {
-		display: flex;
+		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		color: #ffffff;
+		gap: 9px;
+		color: #fff;
 	}
-	.demo__mark {
-		display: inline-grid;
-		width: 28px;
-		height: 28px;
-		place-items: center;
-		border-radius: 50%;
-		background: #ffffff;
-		color: var(--airis-violet);
-		font-size: 10px;
-		font-weight: 800;
+
+	.demo__brand img {
+		width: 26px;
+		height: 26px;
+		border-radius: 8px;
+		background: #fff;
 	}
 
 	.tablist {
 		display: flex;
-		gap: 8px;
 	}
 
 	.tablist button {
-		min-height: 44px;
+		min-height: 46px;
 		border: 0;
 		background: transparent;
 		font: inherit;
-		font-size: 14px;
-		font-weight: 650;
+		font-weight: 700;
 		cursor: pointer;
 	}
 
-	.tablist--dark {
-		padding: 0 24px;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	.tablist--demo {
+		gap: 6px;
+		border-bottom: 1px solid var(--airis-line);
+		padding: 8px 18px 0;
 	}
-	.tablist--dark button {
-		padding: 0 18px;
-		color: #aaa3c8;
-		border-bottom: 2px solid transparent;
+
+	.tablist--demo button {
+		position: relative;
+		padding: 0 14px;
+		color: #958cae;
+		font-size: 0.82rem;
 	}
-	.tablist--dark button.active {
-		color: #ffffff;
-		border-color: var(--airis-accent);
+
+	.tablist--demo button::after {
+		position: absolute;
+		right: 10px;
+		bottom: -1px;
+		left: 10px;
+		height: 2px;
+		border-radius: 2px;
+		background: transparent;
+		content: '';
+	}
+
+	.tablist--demo button.active {
+		color: #fff;
+	}
+
+	.tablist--demo button.active::after {
+		background: var(--airis-accent-strong);
 	}
 
 	.demo__conversation {
-		max-width: 720px;
-		margin-inline: auto;
-		padding: 34px 24px 28px;
+		display: grid;
+		min-height: 360px;
+		align-content: start;
+		gap: 24px;
+		padding: 30px;
+	}
+
+	.demo__conversation--enter,
+	.scenario-panel--enter {
+		animation: content-enter 240ms ease-out both;
 	}
 
 	.demo__prompt {
-		width: fit-content;
-		max-width: 82%;
+		max-width: 76%;
 		margin-left: auto;
-		border-radius: 16px 16px 4px 16px;
-		background: var(--airis-raised);
-		padding: 14px 16px;
-		font-size: 14px;
+		border: 1px solid rgb(173 147 252 / 0.15);
+		border-radius: 18px 18px 4px 18px;
+		padding: 15px 18px;
+		background: #302465;
+		color: #fff;
+		font-size: 0.9rem;
 		line-height: 1.5;
 	}
 
 	.demo__answer {
-		margin-top: 18px;
-		border-radius: 18px;
-		background: #211d34;
-		padding: 18px;
-		color: #f6f3ff;
+		border: 1px solid var(--airis-line);
+		border-radius: 20px;
+		padding: 22px;
+		background: #1d1930;
 	}
 
 	.demo__answer-label,
-	.scenario-preview__label {
-		margin-bottom: 7px;
+	.scenario-panel__label {
+		margin-bottom: 10px;
 		color: var(--airis-lavender);
-		font-size: 11px;
-		font-weight: 750;
-		letter-spacing: 0.06em;
+		font-size: 0.7rem;
+		font-weight: 800;
+		letter-spacing: 0.11em;
 		text-transform: uppercase;
 	}
 
 	.demo__answer p {
-		margin: 0;
-		font-size: 15px;
+		margin-bottom: 12px;
+		color: #f5f1ff;
+		font-size: 0.94rem;
 		line-height: 1.6;
 	}
-	.demo__answer span {
-		display: block;
-		margin-top: 12px;
-		color: #aaa3c8;
-		font-size: 12px;
+
+	.demo__answer span,
+	.scenario-panel__conversation > span {
+		color: #9389ab;
+		font-size: 0.75rem;
 	}
 
 	.demo__composer {
 		display: flex;
-		width: 100%;
-		min-height: 54px;
-		align-items: center;
-		justify-content: space-between;
-		margin-top: 22px;
-		border: 1px solid rgba(173, 147, 252, 0.28);
-		border-radius: 15px;
-		background: #181427;
-		padding: 7px 9px 7px 17px;
-		color: #bcb5d7;
-		font: inherit;
-		font-size: 13px;
-		cursor: pointer;
-	}
-
-	.demo__composer :global(svg) {
-		color: var(--airis-lavender);
-	}
-
-	.breadth {
-		border-bottom: 1px solid var(--airis-border);
-		background: #ffffff;
-	}
-	.breadth__inner {
-		padding-block: 28px;
-	}
-	.breadth__inner > h2 {
-		display: block;
-		margin-bottom: 18px;
-		margin-top: 0;
-		font-size: 17px;
-	}
-
-	.scenarios,
-	.pricing {
-		scroll-margin-top: 80px;
-	}
-	.breadth__links {
-		display: grid;
-		grid-template-columns: repeat(6, minmax(0, 1fr));
-		gap: 10px 18px;
-	}
-	.breadth__links button {
-		display: flex;
-		min-height: 40px;
-		align-items: center;
-		justify-content: space-between;
-		border: 0;
-		background: transparent;
-		padding: 0;
-		color: var(--airis-accent);
-		font: inherit;
-		font-size: 14px;
-		font-weight: 650;
-		cursor: pointer;
-	}
-
-	.section {
-		padding-block: 88px;
-	}
-	.section-heading {
-		max-width: 680px;
-		margin-bottom: 34px;
-	}
-	.section-heading--compact {
-		margin-bottom: 30px;
-	}
-	.section-heading > p {
-		margin: 0 0 8px;
-		color: var(--airis-accent);
-		font-size: 12px;
-		font-weight: 750;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-	}
-	.section-heading h2 {
-		margin: 0;
-		font-size: clamp(30px, 3vw, 44px);
-		font-weight: 750;
-		letter-spacing: -0.035em;
-		line-height: 1.12;
-	}
-	.section-heading > span {
-		display: block;
-		margin-top: 12px;
-		color: #69647b;
-		font-size: 16px;
-		line-height: 1.6;
-	}
-
-	.scenarios {
-		background: #ffffff;
-	}
-	.tablist--light {
-		gap: 2px;
-		margin-bottom: 22px;
-		border-bottom: 1px solid var(--airis-border);
-	}
-	.tablist--light button {
-		padding: 0 18px;
-		color: #6a6578;
-		border-bottom: 2px solid transparent;
-	}
-	.tablist--light button.active {
-		color: var(--airis-accent);
-		border-color: var(--airis-accent);
-	}
-
-	.scenario-explorer {
-		display: grid;
-		grid-template-columns: 0.82fr 1.18fr;
-		border: 1px solid var(--airis-border);
-		border-radius: 20px;
-		overflow: hidden;
-	}
-	.scenario-list {
-		display: grid;
-		align-content: start;
-		border-right: 1px solid var(--airis-border);
-		background: #ffffff;
-	}
-	.scenario-list button {
-		display: flex;
-		min-height: 86px;
+		min-height: 56px;
 		align-items: center;
 		justify-content: space-between;
 		gap: 16px;
-		border: 0;
-		border-bottom: 1px solid var(--airis-border);
-		background: #ffffff;
-		padding: 17px 20px;
-		color: var(--airis-ink);
-		text-align: left;
-		font: inherit;
-		cursor: pointer;
-	}
-	.scenario-list button:last-child {
-		border-bottom: 0;
-	}
-	.scenario-list button.active {
-		background: var(--airis-soft);
-		color: var(--airis-accent);
-	}
-	.scenario-list button span {
-		min-width: 0;
-	}
-	.scenario-list strong {
-		display: block;
-		font-size: 15px;
-	}
-	.scenario-list small {
-		display: block;
-		margin-top: 5px;
-		color: #777184;
-		font-size: 12px;
-		line-height: 1.4;
-	}
-	.scenario-preview {
-		display: flex;
-		min-height: 258px;
-		flex-direction: column;
-		justify-content: center;
-		background: #faf9fe;
-		padding: 34px 40px;
-	}
-	.scenario-preview__prompt {
-		margin: 0 0 28px;
-		border-radius: 12px;
-		background: #eeeaff;
-		padding: 13px 15px;
-		font-weight: 650;
-	}
-	.scenario-preview > p {
-		color: #4f4a60;
-		font-size: 14px;
-		line-height: 1.65;
-	}
-	.text-link {
-		display: inline-flex;
-		min-height: 44px;
-		align-items: center;
-		gap: 7px;
-		align-self: flex-start;
-		margin-top: 10px;
-		border: 0;
+		border: 1px solid rgb(173 147 252 / 0.35);
+		border-radius: 16px;
+		padding: 8px 10px 8px 18px;
 		background: transparent;
-		padding: 0;
-		color: var(--airis-accent);
+		color: #ded8ed;
 		font: inherit;
-		font-size: 14px;
-		font-weight: 750;
+		font-size: 0.85rem;
+		font-weight: 700;
+		text-align: left;
 		cursor: pointer;
 	}
 
-	.steps {
-		padding-top: 18px;
+	.split-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 0.78fr) minmax(560px, 1.22fr);
+		gap: clamp(64px, 8vw, 112px);
+		align-items: center;
 	}
+
+	.model-story {
+		overflow: hidden;
+		background: radial-gradient(720px 520px at 82% 50%, rgb(113 50 242 / 0.13), transparent 72%);
+	}
+
+	.model-story::before {
+		position: absolute;
+		inset: 24% -10% 14% 48%;
+		border-radius: 50%;
+		background: rgb(128 60 255 / 0.13);
+		filter: blur(110px);
+		content: '';
+		pointer-events: none;
+	}
+
+	.model-story .shell {
+		position: relative;
+		z-index: 1;
+	}
+
+	.section-lead,
+	.section-heading > p:last-child,
+	.local__lead,
+	.faq__intro > p:last-child {
+		color: var(--airis-muted);
+		font-size: 1.08rem;
+		line-height: 1.7;
+	}
+
+	.check-list {
+		display: grid;
+		gap: 16px;
+		margin: 34px 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.check-list li {
+		display: flex;
+		align-items: flex-start;
+		gap: 12px;
+		color: #e7e2f2;
+		font-size: 0.92rem;
+		line-height: 1.5;
+	}
+
+	.check-list :global(svg) {
+		flex: 0 0 auto;
+		color: var(--airis-lavender);
+	}
+
+	.model-count {
+		margin-bottom: 18px;
+		color: #9e94b8;
+		font-size: 0.8rem;
+	}
+
+	.product-shot {
+		margin: 0;
+	}
+
+	.product-shot__frame {
+		border: 1px solid rgb(173 147 252 / 0.28);
+		border-radius: 30px;
+		background: #0f0d1c;
+		box-shadow: 0 42px 110px rgb(6 3 22 / 0.45);
+		overflow: hidden;
+		transition:
+			border-color 220ms ease,
+			box-shadow 220ms ease,
+			transform 220ms ease;
+	}
+
+	.product-shot img {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+
+	.product-shot figcaption {
+		margin-top: 14px;
+		color: #8f86a5;
+		font-size: 0.75rem;
+		text-align: right;
+	}
+
+	.scenarios {
+		background:
+			radial-gradient(680px 420px at 92% 20%, rgb(113 50 242 / 0.13), transparent 70%),
+			rgb(23 18 53 / 0.54);
+	}
+
+	.section-heading {
+		max-width: 760px;
+		margin: 0 auto 48px;
+		text-align: center;
+	}
+
+	.section-heading--left {
+		max-width: 760px;
+		margin: 0 0 56px;
+		text-align: left;
+	}
+
+	.tablist--scenario {
+		width: fit-content;
+		margin: 0 auto 22px;
+		border: 1px solid var(--airis-line);
+		border-radius: 15px;
+		padding: 4px;
+		background: rgb(12 9 28 / 0.48);
+	}
+
+	.tablist--scenario button {
+		min-width: 130px;
+		border-radius: 11px;
+		padding: 0 18px;
+		color: #968dac;
+		font-size: 0.86rem;
+	}
+
+	.tablist--scenario button.active {
+		background: var(--airis-accent);
+		color: #fff;
+	}
+
+	.scenario-panel {
+		display: grid;
+		grid-template-columns: minmax(0, 0.74fr) minmax(0, 1.26fr);
+		gap: 0;
+		border: 1px solid var(--airis-line);
+		border-radius: 30px;
+		background: rgb(13 10 30 / 0.72);
+		overflow: hidden;
+	}
+
+	.scenario-panel__intro,
+	.scenario-panel__conversation {
+		padding: clamp(30px, 4vw, 52px);
+	}
+
+	.scenario-panel__intro {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		border-right: 1px solid var(--airis-line);
+	}
+
+	.scenario-panel__intro > p {
+		margin-bottom: 16px;
+		color: var(--airis-lavender);
+		font-size: 0.75rem;
+		font-weight: 800;
+		text-transform: uppercase;
+	}
+
+	.scenario-panel__intro h3 {
+		margin-bottom: 16px;
+		font-size: clamp(1.7rem, 2.6vw, 2.5rem);
+		letter-spacing: -0.035em;
+		line-height: 1.16;
+	}
+
+	.scenario-panel__intro > span {
+		margin-bottom: 28px;
+		color: var(--airis-muted);
+		font-size: 0.95rem;
+		line-height: 1.65;
+	}
+
+	.scenario-panel__conversation {
+		background: rgb(43 32 88 / 0.24);
+	}
+
+	.scenario-panel__conversation > p {
+		font-size: 0.93rem;
+		line-height: 1.65;
+	}
+
+	.scenario-panel__prompt {
+		margin-bottom: 28px;
+		border: 1px solid rgb(173 147 252 / 0.14);
+		border-radius: 15px;
+		padding: 15px 17px;
+		background: rgb(113 50 242 / 0.12);
+		color: #f4f0fb;
+	}
+
+	.local {
+		position: relative;
+		overflow: hidden;
+		background: #1d1545;
+	}
+
+	.local::before {
+		position: absolute;
+		inset: 12% 16%;
+		border-radius: 50%;
+		background: rgb(113 50 242 / 0.22);
+		filter: blur(120px);
+		content: '';
+		pointer-events: none;
+	}
+
+	.local__inner {
+		position: relative;
+		z-index: 1;
+		text-align: center;
+	}
+
+	.local h2 {
+		max-width: 820px;
+		margin-inline: auto;
+		font-size: clamp(3rem, 6.2vw, 5.4rem);
+	}
+
+	.local__lead {
+		max-width: 680px;
+		margin: 0 auto 60px;
+	}
+
+	.local__facts {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 1px;
+		max-width: 980px;
+		margin: 0 auto;
+		border: 1px solid var(--airis-line);
+		border-radius: 24px;
+		background: var(--airis-line);
+		overflow: hidden;
+	}
+
+	.local__facts > div {
+		display: flex;
+		min-height: 190px;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		padding: 28px;
+		background: rgb(26 20 60 / 0.94);
+	}
+
+	.local__facts :global(svg) {
+		color: var(--airis-lavender);
+	}
+
+	.local__facts strong {
+		font-size: 1.02rem;
+	}
+
+	.local__facts span {
+		max-width: 230px;
+		color: #aaa2bd;
+		font-size: 0.8rem;
+		line-height: 1.55;
+	}
+
+	.steps {
+		background: rgb(13 10 29 / 0.28);
+	}
+
 	.steps__list {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
@@ -1038,495 +1262,444 @@
 		padding: 0;
 		list-style: none;
 	}
+
 	.steps__list li {
 		position: relative;
 		display: grid;
-		grid-template-columns: 46px 1fr;
-		gap: 14px;
-		padding-right: 32px;
-	}
-	.steps__list li:not(:last-child)::after {
-		content: '';
-		position: absolute;
-		top: 22px;
-		left: 46px;
-		right: 12px;
-		height: 1px;
-		background: #cfc4f3;
-	}
-	.steps__list li > span {
-		position: relative;
-		z-index: 1;
-		display: grid;
-		width: 44px;
-		height: 44px;
-		place-items: center;
-		border-radius: 50%;
-		background: var(--airis-accent);
-		color: #ffffff;
-		font-size: 15px;
-		font-weight: 750;
-	}
-	.steps__list li > div {
-		padding-top: 54px;
-		margin-left: -60px;
-	}
-	.steps__list strong {
-		font-size: 15px;
-	}
-	.steps__list p {
-		max-width: 260px;
-		margin: 8px 0 0;
-		color: #716c7f;
-		font-size: 13px;
-		line-height: 1.55;
+		gap: 34px;
+		border-top: 1px solid var(--airis-line);
+		padding: 30px 42px 0 0;
 	}
 
-	.trust {
-		border-block: 1px solid var(--airis-border);
-		background: var(--airis-soft);
-		padding-block: 44px;
+	.steps__list li:not(:last-child) {
+		margin-right: 42px;
 	}
-	.trust__grid {
-		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		gap: 28px;
+
+	.steps__list li > span {
+		color: var(--airis-lavender);
+		font-size: 0.74rem;
+		font-weight: 800;
+		letter-spacing: 0.12em;
 	}
-	.trust__grid > div {
-		display: grid;
-		grid-template-columns: 34px 1fr;
-		column-gap: 12px;
-		align-items: start;
+
+	.steps__list strong {
+		display: block;
+		margin-bottom: 10px;
+		font-size: 1.05rem;
 	}
-	.trust__grid :global(svg) {
-		color: var(--airis-accent);
-	}
-	.trust__grid strong {
-		font-size: 14px;
-		line-height: 1.35;
-	}
-	.trust__grid p {
-		grid-column: 2;
-		margin: 7px 0 0;
-		color: #716b80;
-		font-size: 12px;
-		line-height: 1.5;
+
+	.steps__list p {
+		margin-bottom: 0;
+		color: #a9a1bb;
+		font-size: 0.88rem;
+		line-height: 1.6;
 	}
 
 	.pricing {
-		background: #ffffff;
+		background:
+			radial-gradient(500px 300px at 80% 10%, rgb(255 255 255 / 0.38), transparent 70%),
+			linear-gradient(135deg, #d9ceff 0%, #b9a3fb 100%);
+		color: var(--airis-ink);
 	}
-	.pricing__grid {
+
+	.pricing .eyebrow {
+		color: #5c28cc;
+	}
+
+	.pricing__inner {
 		display: grid;
-		grid-template-columns: 1.1fr 0.9fr;
-		gap: 56px;
+		grid-template-columns: minmax(0, 0.95fr) minmax(430px, 1.05fr);
+		gap: clamp(56px, 8vw, 108px);
+		align-items: center;
 	}
-	.pricing__primary {
-		display: grid;
-		grid-template-columns: 48px 1fr;
-		gap: 18px;
-	}
-	.pricing__icon {
-		display: grid;
-		width: 46px;
-		height: 46px;
-		place-items: center;
-		border-radius: 12px;
-		background: #eee9ff;
-		color: var(--airis-accent);
-	}
-	.pricing h3 {
-		margin: 0;
-		font-size: 22px;
-		line-height: 1.35;
-		letter-spacing: -0.02em;
-	}
-	.pricing__primary p {
-		margin: 14px 0 22px;
-		color: #6c6679;
-		font-size: 14px;
+
+	.pricing__copy > p:not(.eyebrow) {
+		max-width: 590px;
+		margin-bottom: 32px;
+		color: #443868;
+		font-size: 1.08rem;
 		line-height: 1.7;
 	}
-	.pricing__free {
-		border-left: 1px solid var(--airis-border);
-		padding-left: 56px;
+
+	.pricing__details {
+		border: 1px solid rgb(23 17 47 / 0.13);
+		border-radius: 26px;
+		padding: clamp(28px, 4vw, 42px);
+		background: rgb(255 255 255 / 0.32);
+		box-shadow: 0 24px 70px rgb(72 40 145 / 0.13);
 	}
-	.pricing__eyebrow {
-		margin-bottom: 8px;
-		color: var(--airis-accent);
-		font-size: 12px;
-		font-weight: 750;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-	}
-	.pricing__free ul {
+
+	.pricing__details > ul {
 		display: grid;
-		gap: 9px;
-		margin: 20px 0 0;
+		gap: 18px;
+		margin: 0;
 		padding: 0;
 		list-style: none;
 	}
-	.pricing__free > ul li {
+
+	.pricing__details > ul li {
 		display: flex;
-		align-items: center;
-		gap: 8px;
-		color: #5f596d;
-		font-size: 13px;
-	}
-	.pricing__free > ul :global(svg) {
-		color: var(--airis-accent);
-	}
-	.quota-details {
-		margin-top: 22px;
-		border-top: 1px solid var(--airis-border);
-		padding-top: 16px;
-	}
-	.quota-details summary {
-		min-height: 44px;
-		color: var(--airis-accent);
-		font-size: 13px;
-		font-weight: 700;
-		cursor: pointer;
-	}
-	.quota-details ul {
-		margin: 8px 0;
-	}
-	.quota-details li {
-		display: flex;
-		justify-content: space-between;
-		gap: 16px;
-		color: #656071;
-		font-size: 12px;
-	}
-	.quota-details p {
-		margin: 10px 0 0;
-		color: #817b8c;
-		font-size: 11px;
+		align-items: flex-start;
+		gap: 12px;
+		color: #30264e;
+		font-size: 0.9rem;
+		line-height: 1.5;
 	}
 
-	.faq {
-		padding-top: 30px;
-		background: #ffffff;
+	.pricing__details :global(svg) {
+		flex: 0 0 auto;
+		color: #642bd5;
 	}
-	.faq__shell {
-		max-width: 920px;
+
+	.faq__layout {
+		display: grid;
+		grid-template-columns: minmax(0, 0.66fr) minmax(540px, 1.34fr);
+		gap: clamp(64px, 9vw, 126px);
+		align-items: start;
 	}
+
+	.faq__intro {
+		position: sticky;
+		top: 110px;
+	}
+
 	.faq__list {
-		border-top: 1px solid var(--airis-border);
+		border-top: 1px solid var(--airis-line);
 	}
-	.faq details {
-		border-bottom: 1px solid var(--airis-border);
+
+	.faq__list details {
+		border-bottom: 1px solid var(--airis-line);
 	}
-	.faq summary {
-		position: relative;
-		display: flex;
-		min-height: 62px;
-		align-items: center;
-		justify-content: space-between;
-		padding-right: 36px;
-		font-size: 15px;
-		font-weight: 700;
+
+	.faq__list summary {
+		min-height: 76px;
+		align-content: center;
+		color: #f8f5ff;
+		font-size: 1rem;
+		font-weight: 750;
 		cursor: pointer;
-		list-style: none;
 	}
-	.faq summary::-webkit-details-marker {
-		display: none;
+
+	.faq__list details p {
+		max-width: 680px;
+		margin: -4px 0 22px;
+		color: #a9a1bb;
+		font-size: 0.9rem;
+		line-height: 1.7;
 	}
-	.faq summary::after {
-		content: '+';
-		position: absolute;
-		right: 6px;
-		color: var(--airis-accent);
-		font-size: 22px;
-		font-weight: 400;
-	}
-	.faq details[open] summary::after {
-		content: '−';
-	}
-	.faq details p {
-		max-width: 760px;
-		margin: -3px 0 20px;
-		color: #686273;
-		font-size: 14px;
-		line-height: 1.65;
+
+	.faq__list details a {
+		display: inline-flex;
+		margin: -8px 0 24px;
+		color: var(--airis-lavender);
+		font-size: 0.82rem;
+		font-weight: 700;
 	}
 
 	.final-cta {
-		background: #ffffff;
-		padding: 40px 0 0;
+		padding: 40px 0 96px;
 	}
+
 	.final-cta__panel {
-		border-radius: 22px 22px 0 0;
-		background: var(--airis-violet);
-		padding: 58px 24px 50px;
-		color: #ffffff;
-		text-align: center;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 40px;
+		border: 1px solid rgb(173 147 252 / 0.25);
+		border-radius: 30px;
+		padding: clamp(34px, 5vw, 62px);
+		background:
+			radial-gradient(440px 220px at 80% 0%, rgb(173 147 252 / 0.17), transparent 70%), #241953;
 	}
+
 	.final-cta h2 {
-		margin: 0;
-		font-size: clamp(30px, 3vw, 42px);
-		font-weight: 750;
-		letter-spacing: -0.035em;
+		max-width: 700px;
+		margin-bottom: 14px;
+		font-size: clamp(2rem, 3.4vw, 3.2rem);
 	}
-	.final-cta p {
-		margin: 13px auto 24px;
-		color: #d8d1ef;
-		font-size: 15px;
+
+	.final-cta__panel > div > span {
+		color: #a9a0bf;
+		font-size: 0.82rem;
 	}
-	.final-cta__panel > span {
-		display: block;
-		margin-top: 16px;
-		color: #9e96be;
-		font-size: 11px;
-	}
+
 	.footer {
-		background: var(--airis-violet);
-		color: #ffffff;
-		padding-bottom: 34px;
+		padding: 0 0 48px;
+		background: #120e26;
 	}
 
-	@media (max-width: 900px) {
-		.breadth__links {
-			grid-template-columns: repeat(3, 1fr);
+	.footer :global(.footer-links) {
+		margin-top: 0;
+	}
+
+	@keyframes intro-rise {
+		from {
+			opacity: 0;
+			transform: translateY(18px);
 		}
-		.trust__grid {
-			grid-template-columns: repeat(2, 1fr);
-		}
-		.pricing__grid {
-			gap: 36px;
-		}
-		.pricing__free {
-			padding-left: 36px;
+		to {
+			opacity: 1;
+			transform: translateY(0);
 		}
 	}
 
-	@media (max-width: 700px) {
+	@keyframes content-enter {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@keyframes ambient-drift {
+		from {
+			transform: translate3d(-2%, 0, 0) scale(0.96);
+		}
+		to {
+			transform: translate3d(3%, -2%, 0) scale(1.04);
+		}
+	}
+
+	@media (hover: hover) {
+		.button:hover {
+			transform: translateY(-2px);
+		}
+
+		.product-shot__frame:hover {
+			border-color: rgb(173 147 252 / 0.44);
+			box-shadow: 0 46px 120px rgb(11 5 40 / 0.55);
+			transform: translateY(-4px);
+		}
+	}
+
+	@media (max-width: 1020px) {
+		.section-screen {
+			min-height: auto;
+		}
+
+		.hero__inner,
+		.split-layout,
+		.pricing__inner,
+		.faq__layout {
+			grid-template-columns: 1fr;
+		}
+
+		.hero__copy,
+		.section-copy,
+		.pricing__copy {
+			max-width: 760px;
+		}
+
+		.demo,
+		.product-shot {
+			width: min(100%, 780px);
+		}
+
+		.split-layout {
+			gap: 58px;
+		}
+
+		.pricing__inner,
+		.faq__layout {
+			gap: 56px;
+		}
+
+		.faq__intro {
+			position: static;
+			max-width: 680px;
+		}
+	}
+
+	@media (max-width: 760px) {
 		.shell {
 			width: min(100% - 32px, 1180px);
 		}
-		.hero {
-			padding: 42px 0 18px;
-		}
-		h1 {
-			font-size: clamp(36px, 11vw, 46px);
-		}
-		.desktop-break {
-			display: none;
-		}
-		.hero__copy > p {
-			margin-top: 18px;
-			font-size: 15px;
-			line-height: 1.55;
-		}
-		.hero__copy .button {
-			width: 100%;
-		}
-		.hero__facts {
-			gap: 6px 10px;
-			font-size: 11px;
-		}
-		.hero__facts span + span::before {
-			margin-right: 10px;
-		}
-		.hero__inner {
-			gap: 32px;
-		}
-		.demo {
-			border-radius: 18px;
-		}
-		.demo__topline {
-			padding: 14px 16px 6px;
-		}
-		.tablist--dark {
-			padding: 0 8px;
-			overflow-x: auto;
-			scrollbar-width: none;
-		}
-		.tablist--dark::-webkit-scrollbar {
-			display: none;
-		}
-		.tablist--dark button {
-			flex: 1 0 auto;
-			padding-inline: 14px;
-		}
-		.demo__conversation {
-			padding: 24px 16px 18px;
-		}
-		.demo__prompt {
-			max-width: 94%;
-		}
-		.demo__answer {
-			padding: 16px;
-		}
-		.demo__composer {
-			min-height: 52px;
-		}
-		.breadth__inner {
-			padding-block: 24px;
-		}
-		.breadth__links {
-			grid-template-columns: repeat(2, 1fr);
-			column-gap: 24px;
-		}
+
 		.section {
-			padding-block: 64px;
+			padding: 82px 0;
 		}
-		.section-heading {
-			margin-bottom: 26px;
+
+		h1 {
+			font-size: clamp(2.7rem, 12vw, 4rem);
 		}
-		.section-heading h2 {
-			font-size: 32px;
+
+		h2 {
+			font-size: clamp(2.15rem, 10vw, 3.2rem);
 		}
-		.section-heading > span {
-			font-size: 14px;
+
+		.hero {
+			padding: 64px 0 92px;
 		}
-		.tablist--light {
+
+		.hero__inner {
+			gap: 50px;
+		}
+
+		.hero__lead,
+		.section-lead,
+		.section-heading > p:last-child,
+		.local__lead,
+		.faq__intro > p:last-child,
+		.pricing__copy > p:not(.eyebrow) {
+			font-size: 1rem;
+		}
+
+		.hero__facts {
+			display: grid;
+			gap: 8px;
+		}
+
+		.hero__facts span:not(:first-child)::before {
+			display: none;
+		}
+
+		.demo__topline {
+			padding: 0 18px;
+		}
+
+		.tablist--demo {
 			overflow-x: auto;
+			padding-inline: 10px;
 			scrollbar-width: none;
 		}
-		.tablist--light button {
-			flex: 1 0 auto;
+
+		.tablist--demo::-webkit-scrollbar {
+			display: none;
 		}
-		.scenario-explorer {
-			display: block;
-			border-radius: 16px;
+
+		.demo__conversation {
+			padding: 20px;
 		}
-		.scenario-list {
-			border-right: 0;
+
+		.demo__prompt {
+			max-width: 88%;
 		}
-		.scenario-list button {
-			min-height: 76px;
-			padding: 14px 16px;
-		}
-		.scenario-preview {
-			min-height: 0;
-			border-top: 1px solid var(--airis-border);
-			padding: 24px 18px;
-		}
-		.scenario-preview__prompt {
-			margin-bottom: 22px;
-		}
-		.steps {
-			padding-top: 4px;
-		}
+
+		.scenario-panel,
+		.local__facts,
 		.steps__list {
-			display: grid;
 			grid-template-columns: 1fr;
-			gap: 22px;
 		}
-		.steps__list li {
-			min-height: 70px;
-			grid-template-columns: 40px 1fr;
-			gap: 14px;
-			padding: 0;
+
+		.section-heading {
+			margin-bottom: 36px;
+			text-align: left;
 		}
-		.steps__list li:not(:last-child)::after {
-			top: 40px;
-			bottom: -24px;
-			left: 19px;
-			width: 1px;
-			height: auto;
-		}
-		.steps__list li > span {
-			width: 40px;
-			height: 40px;
-		}
-		.steps__list li > div {
-			margin: 0;
-			padding: 1px 0 0;
-		}
-		.steps__list p {
-			margin-top: 5px;
-		}
-		.trust {
-			padding-block: 34px;
-		}
-		.trust__grid {
-			gap: 28px 20px;
-		}
-		.trust__grid > div {
-			grid-template-columns: 30px 1fr;
-			column-gap: 10px;
-		}
-		.pricing__grid {
-			grid-template-columns: 1fr;
-			gap: 32px;
-		}
-		.pricing__primary {
-			grid-template-columns: 42px 1fr;
-			gap: 14px;
-		}
-		.pricing__icon {
-			width: 42px;
-			height: 42px;
-		}
-		.pricing h3 {
-			font-size: 19px;
-		}
-		.pricing__free {
-			border-top: 1px solid var(--airis-border);
-			border-left: 0;
-			padding: 28px 0 0;
-		}
-		.faq {
-			padding-top: 14px;
-		}
-		.faq summary {
-			min-height: 60px;
-			font-size: 14px;
-		}
-		.final-cta {
-			padding-top: 24px;
-		}
-		.final-cta__panel {
-			border-radius: 18px 18px 0 0;
-			padding: 44px 20px 38px;
-		}
-		.final-cta__panel .button {
+
+		.tablist--scenario {
 			width: 100%;
-			max-width: 320px;
+			overflow-x: auto;
+			justify-content: flex-start;
+			scrollbar-width: none;
+		}
+
+		.tablist--scenario button {
+			min-width: 112px;
+		}
+
+		.scenario-panel__intro {
+			border-right: 0;
+			border-bottom: 1px solid var(--airis-line);
+		}
+
+		.local h2 {
+			font-size: clamp(2.8rem, 13vw, 4.4rem);
+		}
+
+		.local__facts {
+			gap: 0;
+		}
+
+		.local__facts > div {
+			min-height: 160px;
+			border-bottom: 1px solid var(--airis-line);
+		}
+
+		.local__facts > div:last-child {
+			border-bottom: 0;
+		}
+
+		.steps__list {
+			gap: 34px;
+		}
+
+		.steps__list li,
+		.steps__list li:not(:last-child) {
+			margin-right: 0;
+			padding-right: 0;
+		}
+
+		.pricing__details {
+			padding: 28px 22px;
+		}
+
+		.faq__list summary {
+			min-height: 68px;
+		}
+
+		.final-cta {
+			padding: 16px 0 76px;
+		}
+
+		.final-cta__panel {
+			align-items: flex-start;
+			flex-direction: column;
 		}
 	}
 
-	@media (max-width: 420px) {
-		.shell {
-			width: min(100% - 24px, 1180px);
+	@media (max-width: 520px) {
+		.hero__actions,
+		.pricing__actions {
+			flex-direction: column;
 		}
-		h1 {
-			font-size: 36px;
+
+		.button {
+			width: 100%;
 		}
-		.hero__facts {
-			gap: 6px;
+
+		.demo {
+			border-radius: 22px;
 		}
-		.hero__facts span + span::before {
-			margin-right: 6px;
+
+		.demo__conversation {
+			min-height: 390px;
 		}
-		.demo__topline > span {
-			font-size: 12px;
+
+		.demo__composer {
+			font-size: 0.78rem;
 		}
-		.breadth__links {
-			grid-template-columns: 1fr 1fr;
+
+		.product-shot__frame,
+		.scenario-panel,
+		.final-cta__panel {
+			border-radius: 22px;
 		}
-		.trust__grid {
-			grid-template-columns: 1fr;
+
+		.scenario-panel__intro,
+		.scenario-panel__conversation {
+			padding: 28px 22px;
 		}
-		.trust__grid strong br {
-			display: none;
-		}
-		.pricing__primary {
-			grid-template-columns: 1fr;
-		}
-		.final-cta h2 {
-			font-size: 30px;
+
+		.final-cta__panel {
+			padding: 30px 24px;
 		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.button {
+		.button,
+		:global([data-reveal='visible']) {
 			transition: none;
 		}
-		:global(html:focus-within) {
-			scroll-behavior: auto;
+
+		.hero__copy,
+		.demo,
+		.demo__conversation--enter,
+		.scenario-panel--enter,
+		.hero::after {
+			animation: none;
 		}
 	}
 </style>

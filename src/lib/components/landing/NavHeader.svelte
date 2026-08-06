@@ -19,7 +19,7 @@
 	];
 
 	const welcomeNavLinks: NavLink[] = [
-		{ href: '#usecases', label: 'Возможности' },
+		{ href: '#models', label: 'Модели' },
 		{ href: '#pricing', label: 'Тарифы' }
 	];
 
@@ -93,17 +93,12 @@
 						? 'border-white/20'
 						: 'border-gray-200 shadow-sm'} flex items-center justify-center"
 				>
-					<img
-						src="{WEBUI_BASE_URL}/static/favicon.svg"
-						class="w-7 h-7"
-						alt="AIris logo"
-						draggable="false"
-					/>
+					<img src="{WEBUI_BASE_URL}/static/favicon.svg" class="w-7 h-7" alt="" draggable="false" />
 				</div>
 				<span
 					class="font-semibold text-lg tracking-tight {isWelcome()
-						? 'text-white'
-						: 'text-gray-900'}">AIris</span
+						? 'bg-gradient-to-r from-white via-[#c8b6ff] to-[#8f58ff] bg-clip-text text-transparent'
+						: 'text-gray-900'}">Airis</span
 				>
 			</a>
 
