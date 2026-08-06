@@ -1,0 +1,8 @@
+- [x] **[DOCS][BILLING][RELEASE]** Record production rollout evidence
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-06__bugfix__billing-release-gates-production.md`
+  - Owner: Codex
+  - Branch: `codex/docs/billing-prod-evidence`
+  - Started: 2026-08-06
+  - Summary: Recorded merged PRs, GitHub Actions outage exception, immutable image, verified backup, guarded deploy, and production smoke evidence.
+  - Tests: SDD validation and completion checks.
+  - Risks: Documentation only.
