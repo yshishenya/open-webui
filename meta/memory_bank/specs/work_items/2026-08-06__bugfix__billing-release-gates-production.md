@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: `codex/bugfix/billing-release-gates`
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/billing-release-gates-and-prod-2026-08-06-1818.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/billing-release-gates-and-prod-2026-08-06-001.json`
 - Created: 2026-08-06
 - Updated: 2026-08-06
 
@@ -84,6 +84,6 @@ Billing hardening PR #89 was merged into `airis_b2c` while backend and billing c
 
 ## Completion Checklist
 
-- [ ] `meta/tools/sdd check-complete billing-release-gates-and-prod-2026-08-06-1818 --json`
-- [ ] `meta/tools/sdd complete-spec billing-release-gates-and-prod-2026-08-06-1818 --json`
+- [ ] `meta/tools/sdd check-complete billing-release-gates-and-prod-2026-08-06-001 --json`
+- [ ] `meta/tools/sdd complete-spec billing-release-gates-and-prod-2026-08-06-001 --json`
 - [ ] Branch update entry moved to Done with CI, deploy, backup, and smoke evidence.
