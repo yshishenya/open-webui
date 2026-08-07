@@ -1,0 +1,199 @@
+{
+  "spec_id": "public-airis-design-system-2026-08-07-001",
+  "title": "public-airis-design-system",
+  "generated": "2026-08-07T13:13:06.657206Z",
+  "last_updated": "2026-08-07T13:14:58.292205Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-07__refactor__public-airis-design-system.md",
+    "status": "completed",
+    "activated_date": "2026-08-07T13:13:22.160103Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-08-07T13:14:58.291826Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "public-airis-design-system",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Centralize public tokens and shell",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-07T13:14:33.612273Z",
+        "journaled_at": "2026-08-07T13:14:33.614995Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Migrate public and legal routes",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-07T13:14:34.236435Z",
+        "journaled_at": "2026-08-07T13:14:34.239171Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: Visual and route verification",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-07T13:14:34.801475Z",
+        "journaled_at": "2026-08-07T13:14:34.804301Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Centralize public tokens and shell",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-08-07T13:14:33.612058Z",
+        "needs_journaling": false,
+        "status_note": "Added scoped publicTheme.css and switched the shared layout/nav/footer to semantic Airis classes.",
+        "journaled_at": "2026-08-07T13:14:33.613465Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Migrate public and legal routes to the shared system",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-08-07T13:14:34.236230Z",
+        "needs_journaling": false,
+        "status_note": "All public/legal routes inherit the centralized deep-violet shell without route-copy or behavior changes.",
+        "journaled_at": "2026-08-07T13:14:34.237581Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Run visual and route verification",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-08-07T13:14:34.801238Z",
+        "needs_journaling": false,
+        "status_note": "In-app browser smoke-tested canonical and nested public/legal routes; captured feature, pricing, and terms screenshots.",
+        "journaled_at": "2026-08-07T13:14:34.802655Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-08-07T13:14:33.613458Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Centralize public tokens and shell",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Added scoped publicTheme.css and switched the shared layout/nav/footer to semantic Airis classes.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-08-07T13:14:33.614989Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: Centralize public tokens and shell",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-08-07T13:14:34.237571Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Migrate public and legal routes to the shared system",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: All public/legal routes inherit the centralized deep-violet shell without route-copy or behavior changes.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-08-07T13:14:34.239165Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: Migrate public and legal routes",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-08-07T13:14:34.802646Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run visual and route verification",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: In-app browser smoke-tested canonical and nested public/legal routes; captured feature, pricing, and terms screenshots.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-08-07T13:14:34.804295Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 3: Visual and route verification",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}
