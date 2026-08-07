@@ -41,6 +41,7 @@ type MockSet = {
 	updateBillingSettingsMock: ReturnType<typeof vi.fn>;
 	getUserInfoMock: ReturnType<typeof vi.fn>;
 	trackEventMock: ReturnType<typeof vi.fn>;
+	trackEcommercePurchaseMock: ReturnType<typeof vi.fn>;
 	gotoMock: ReturnType<typeof vi.fn>;
 	toast: { error: ReturnType<typeof vi.fn>; success: ReturnType<typeof vi.fn> };
 	webuiNameStore: MockStore<string>;
@@ -87,6 +88,7 @@ const mocks: MockSet = vi.hoisted(() => {
 			billing_contact_phone: ''
 		}),
 		trackEventMock: vi.fn(),
+		trackEcommercePurchaseMock: vi.fn(),
 		gotoMock: vi.fn(),
 		toast: { error: vi.fn(), success: vi.fn() },
 		webuiNameStore: createStore('Airis'),
@@ -116,12 +118,23 @@ vi.mock(
 	{ virtual: true }
 );
 vi.mock('$lib/apis/users', () => ({ getUserInfo: mocks.getUserInfoMock }), { virtual: true });
-vi.mock('$lib/stores', () => ({
-	WEBUI_NAME: mocks.webuiNameStore,
-	models: mocks.modelsStore,
-	settings: mocks.settingsStore
-}), { virtual: true });
-vi.mock('$lib/utils/analytics', () => ({ trackEvent: mocks.trackEventMock }), { virtual: true });
+vi.mock(
+	'$lib/stores',
+	() => ({
+		WEBUI_NAME: mocks.webuiNameStore,
+		models: mocks.modelsStore,
+		settings: mocks.settingsStore
+	}),
+	{ virtual: true }
+);
+vi.mock(
+	'$lib/utils/analytics',
+	() => ({
+		trackEvent: mocks.trackEventMock,
+		trackEcommercePurchase: mocks.trackEcommercePurchaseMock
+	}),
+	{ virtual: true }
+);
 vi.mock('$app/navigation', () => ({ goto: mocks.gotoMock }), { virtual: true });
 vi.mock('$app/stores', () => ({ page: mocks.pageStore }), { virtual: true });
 vi.mock('svelte-sonner', () => ({ toast: mocks.toast }), { virtual: true });
@@ -153,7 +166,13 @@ const createLeadMagnetInfo = (enabled = true) => ({
 	cycle_end: null,
 	usage: { tokens_input: 0, tokens_output: 0, images: 0, tts_seconds: 0, stt_seconds: 0 },
 	quotas: { tokens_input: 1000, tokens_output: 1000, images: 10, tts_seconds: 60, stt_seconds: 60 },
-	remaining: { tokens_input: 1000, tokens_output: 1000, images: 10, tts_seconds: 60, stt_seconds: 60 },
+	remaining: {
+		tokens_input: 1000,
+		tokens_output: 1000,
+		images: 10,
+		tts_seconds: 60,
+		stt_seconds: 60
+	},
 	config_version: 1
 });
 
@@ -220,6 +239,26 @@ describe('Billing balance page', () => {
 
 		const toggle = root.querySelector('button[aria-controls^="wallet-advanced-settings-"]');
 		expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+	});
+
+	it('preselects the smallest package that covers a blocked reply', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 0 }));
+		mocks.getPublicPricingConfigMock.mockResolvedValue({ topup_amounts_rub: [500, 1000, 2000] });
+		mocks.pageStore.set({
+			url: new URL('http://localhost/billing/balance?focus=topup&required_kopeks=21')
+		});
+
+		const root = renderPage();
+		await flushPromises();
+		await flushPromises();
+
+		const recommended = root.querySelector('[data-testid="topup-recommendation"]');
+		const presets = [...root.querySelectorAll('[data-testid="topup-preset"]')];
+		const proceed = root.querySelector('[data-testid="topup-proceed"]') as HTMLButtonElement | null;
+
+		expect(recommended?.textContent).toContain('Recommended top-up');
+		expect(presets[0]?.getAttribute('aria-pressed')).toBe('true');
+		expect(proceed?.disabled).toBe(false);
 	});
 
 	it('hides free-limit hint when free models are unavailable', async () => {

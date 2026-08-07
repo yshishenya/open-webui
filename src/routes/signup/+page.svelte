@@ -26,7 +26,7 @@
 </script>
 
 <svelte:head>
-	<title>AIris</title>
+	<title>Airis</title>
 </svelte:head>
 
 <div class="min-h-screen flex items-center justify-center font-primary text-gray-600">

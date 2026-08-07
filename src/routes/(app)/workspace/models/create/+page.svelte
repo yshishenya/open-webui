@@ -64,8 +64,7 @@
 		const handleMessageEvent = async (event: MessageEvent) => {
 			if (
 				![
-					'https://openwebui.com',
-					'https://www.openwebui.com',
+					window.location.origin,
 					'http://localhost:9999',
 					'http://localhost:5173'
 				].includes(event.origin)

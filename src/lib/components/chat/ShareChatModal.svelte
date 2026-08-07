@@ -39,7 +39,7 @@
 		const _chat = chat.chat;
 		console.log('share', _chat);
 
-		toast.success($i18n.t('Redirecting you to AIris Community'));
+		toast.success($i18n.t('Redirecting you to Airis Community'));
 		const url = '#';
 		// const url = 'http://localhost:5173';
 
@@ -175,7 +175,7 @@
 								shareChat();
 							}}
 						>
-							{$i18n.t('Share to Open WebUI Community')}
+							{$i18n.t('Share to Airis Community')}
 						</button>
 					{/if}
 

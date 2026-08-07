@@ -28,8 +28,9 @@
 		import OnBoarding from '$lib/components/OnBoarding.svelte';
 		import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
 		import TelegramLoginWidget from '$lib/components/auth/TelegramLoginWidget.svelte';
-		import { sanitizeRedirectPath } from '$lib/utils/airis/return_to';
-		import { vkIdLogin, type VkIdProvider } from '$lib/utils/airis/vkid';
+	import { sanitizeRedirectPath } from '$lib/utils/airis/return_to';
+	import { vkIdLogin, type VkIdProvider } from '$lib/utils/airis/vkid';
+	import { trackEvent } from '$lib/utils/analytics';
 
 	const i18n = getContext('i18n');
 
@@ -102,6 +103,9 @@
 
 	const setSessionUser = async (sessionUser, redirectPath: string | null = null) => {
 		if (sessionUser) {
+			trackEvent(mode === 'signup' ? 'signup_completed' : 'login_completed', {
+				method: 'auth'
+			});
 			toast.success($i18n.t(`You're now logged in.`));
 			if (sessionUser.token) {
 				localStorage.token = sessionUser.token;
@@ -169,6 +173,7 @@
 
 	const submitHandler = async () => {
 		if (submitting) return;
+		if (mode === 'signup') trackEvent('signup_started', { method: 'email' });
 		submitting = true;
 		try {
 			if (mode === 'ldap') {
@@ -866,7 +871,7 @@
 															bind:value={name}
 															type="text"
 															id="name"
-															class="w-full min-h-[52px] rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:border-white/20"
+																	class="ym-disable-keys w-full min-h-[52px] rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:border-white/20"
 															autocomplete="name"
 															placeholder={$i18n.t('Enter Your Full Name')}
 															required
@@ -881,7 +886,7 @@
 															bind:value={ldapUsername}
 															type="text"
 															id="username"
-															class="w-full min-h-[52px] rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:border-white/20"
+																	class="ym-disable-keys w-full min-h-[52px] rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:border-white/20"
 															autocomplete="username"
 															name="username"
 															placeholder={$i18n.t('Enter Your Username')}

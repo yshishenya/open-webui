@@ -154,7 +154,7 @@
 						e.preventDefault();
 
 						window.open(
-							`https://openwebui.com/models?q=${encodeURIComponent(model?.id ?? '')}`,
+							`${window.location.origin}/workspace/models?q=${encodeURIComponent(model?.id ?? '')}`,
 							'_blank'
 						);
 						show = false;

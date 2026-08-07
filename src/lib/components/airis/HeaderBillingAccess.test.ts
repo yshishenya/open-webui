@@ -127,8 +127,8 @@ describe('HeaderBillingAccess', () => {
 
 		expect(amount?.textContent).toContain('300');
 		expect(root.textContent).not.toContain('Balance');
-		expect(root.textContent).not.toContain('Top up');
-		expect(topupLink?.getAttribute('aria-label')).toBe('Top up');
+		expect(root.textContent).toContain('Top up balance');
+		expect(topupLink?.getAttribute('aria-label')).toBe('Top up balance');
 		expect(shell?.className).toContain('h-[34px]');
 		expect(shell?.className).toContain('rounded-xl');
 		expect(topupLink?.className).not.toContain('rounded-full');

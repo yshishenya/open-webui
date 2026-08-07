@@ -1,6 +1,6 @@
 <script lang="ts">
 	export let title: string = 'Готовы начать работу с AI?';
-	export let description: string = 'Присоединяйтесь к пользователям, которые уже используют AIris';
+	export let description: string = 'Присоединяйтесь к пользователям, которые уже используют Airis';
 	export let buttonText: string = 'Начать бесплатно';
 	export let buttonHref: string = '/api/v1/oauth/vk/login';
 	export let onClick: ((event: MouseEvent) => void) | null = null;

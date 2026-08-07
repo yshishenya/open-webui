@@ -80,6 +80,7 @@
 	import { AudioQueue } from '$lib/utils/audio';
 	import { createTemporaryChatId, isTemporaryChatId } from '$lib/utils/chatId';
 	import { getOutputText } from './Messages/structuredOutput';
+	import { trackEvent } from '$lib/utils/analytics';
 
 	import {
 		archiveChatById,
@@ -1055,7 +1056,7 @@
 
 						const inlineMessage =
 							billingBlocked.error === 'insufficient_funds'
-								? $i18n.t('Top up to keep working')
+								? $i18n.t('Top up to continue this reply')
 								: billingBlocked.error === 'daily_cap_exceeded'
 									? $i18n.t('Daily cap reached')
 									: $i18n.t('Max reply cost limit reached');
@@ -2472,6 +2473,10 @@
 		history.messages[message.id] = message;
 
 		if (done) {
+			if (!sessionStorage.getItem('airis.first_response_received')) {
+				trackEvent('first_response_received', { has_content: Boolean(message.content) });
+				sessionStorage.setItem('airis.first_response_received', '1');
+			}
 			message.done = true;
 			const visibleContent =
 				getOutputText(message?.output) || removeAllDetails(message?.content ?? '');
@@ -2523,6 +2528,10 @@
 
 	const submitPrompt = async (inputContent, inputFiles) => {
 		const _files = structuredClone(inputFiles);
+		if (!sessionStorage.getItem('airis.first_prompt_submitted')) {
+			trackEvent('first_prompt_submitted', { has_files: _files.length > 0 });
+			sessionStorage.setItem('airis.first_prompt_submitted', '1');
+		}
 
 		chatFiles.push(
 			..._files.filter(
@@ -3235,7 +3244,7 @@
 
 				const inlineMessage =
 					billingBlocked.error === 'insufficient_funds'
-						? $i18n.t('Top up to keep working')
+						? $i18n.t('Top up to continue this reply')
 						: billingBlocked.error === 'daily_cap_exceeded'
 							? $i18n.t('Daily cap reached')
 							: $i18n.t('Max reply cost limit reached');
@@ -3972,7 +3981,7 @@
 									isNearTop = messagesContainerElement.scrollTop <= 100;
 								}}
 							>
-								<div class=" h-full w-full flex flex-col">
+								<div class="ym-hide-content h-full w-full flex flex-col">
 									<Messages
 										bind:this={messagesRef}
 										chatId={$chatId}

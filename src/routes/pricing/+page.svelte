@@ -75,6 +75,7 @@
 	};
 
 	const handleEstimatorPrimary = (): void => {
+		trackEvent('pricing_estimator_primary_click');
 		if ($user) {
 			goto(buildBalanceTarget('pricing_estimator_primary'));
 			return;
@@ -86,6 +87,7 @@
 
 	const handleFreeStartCta = (event: MouseEvent): void => {
 		event.preventDefault();
+		trackEvent('pricing_free_start_click');
 		if ($user) {
 			goto(buildChatTarget('pricing_free_start'));
 			return;
@@ -211,7 +213,7 @@
 
 <PublicPageLayout
 	title="Тарифы"
-	description="Прозрачные тарифы AIris: пополнение баланса, списания только за использование и бесплатный старт."
+	description="Прозрачные тарифы Airis: пополнение баланса, списания только за использование и бесплатный старт."
 	showHero={false}
 >
 	<section class="relative overflow-hidden">

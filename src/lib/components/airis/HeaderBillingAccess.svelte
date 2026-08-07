@@ -116,11 +116,7 @@
 		src: 'header_topup'
 	});
 	$: amountLabel =
-		balance !== null
-			? formatMoney(totalBalanceKopeks, currency)
-			: loading
-				? '...'
-				: '--';
+		balance !== null ? formatMoney(totalBalanceKopeks, currency) : loading ? '...' : '--';
 </script>
 
 <div
@@ -165,9 +161,10 @@
 			href={topupHref}
 			class="flex h-full shrink-0 items-center justify-center px-2 text-gray-700 transition hover:bg-gray-100/80 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800/80 dark:hover:text-gray-50"
 			data-testid="header-billing-topup"
-			aria-label={$i18n.t('Top up')}
+			aria-label={$i18n.t('Top up balance')}
 		>
 			<Plus className="size-3.5" strokeWidth="2.2" />
+			<span class="hidden pl-1 text-xs font-medium sm:inline">{$i18n.t('Top up balance')}</span>
 		</a>
 	</div>
 </div>

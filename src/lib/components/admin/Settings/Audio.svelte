@@ -422,7 +422,7 @@
 			{:else if STT_ENGINE === ''}
 				<AdminSettingField
 					label={$i18n.t('STT Model')}
-					description={$i18n.t('Open WebUI uses faster-whisper internally.')}
+					description={$i18n.t('Airis uses faster-whisper internally.')}
 				>
 					<div class="flex w-full gap-2">
 						<input
@@ -459,11 +459,11 @@
 						</button>
 					</div>
 					<div class="mt-1 {linkedHelpClass}">
-						<a href="https://github.com/SYSTRAN/faster-whisper" target="_blank">
+						<span>
 							{$i18n.t(
 								'Click here to learn more about faster-whisper and see the available models.'
 							)}
-						</a>
+						</span>
 					</div>
 				</AdminSettingField>
 			{/if}
@@ -594,7 +594,7 @@
 			{:else if TTS_ENGINE === 'transformers'}
 				<AdminSettingField
 					label={$i18n.t('TTS Model')}
-					description={$i18n.t('Open WebUI uses SpeechT5 and CMU Arctic speaker embeddings.')}
+					description={$i18n.t('Airis uses SpeechT5 and CMU Arctic speaker embeddings.')}
 				>
 					<input
 						list="tts-transformers-model-list"
@@ -607,9 +607,9 @@
 					</datalist>
 					<div class="mt-1 {linkedHelpClass}">
 						{$i18n.t('To learn more about SpeechT5,')}
-						<a href="https://github.com/microsoft/SpeechT5" target="_blank">
+						<span>
 							{$i18n.t('click here')}.
-						</a>
+						</span>
 						{$i18n.t('To see the available CMU Arctic speaker embeddings,')}
 						<a href="https://huggingface.co/datasets/Matthijs/cmu-arctic-xvectors" target="_blank">
 							{$i18n.t('click here')}.

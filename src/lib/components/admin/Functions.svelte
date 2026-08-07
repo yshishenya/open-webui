@@ -39,7 +39,6 @@
 	import ImportModal from '../ImportModal.svelte';
 	import ViewSelector from '../workspace/common/ViewSelector.svelte';
 	import TagSelector from '../workspace/common/TagSelector.svelte';
-	import CommunityDiscover from '../workspace/common/CommunityDiscover.svelte';
 	import { capitalizeFirstLetter } from '$lib/utils';
 	import Spinner from '../common/Spinner.svelte';
 	import SplitCreateButton from '../common/SplitCreateButton.svelte';
@@ -157,7 +156,7 @@
 			return null;
 		});
 
-		toast.success($i18n.t('Redirecting you to AIris Community'));
+		toast.success($i18n.t('Redirecting you to Airis Community'));
 
 		const url = '#';
 
@@ -731,13 +730,6 @@
 	)}
 </div> -->
 
-		{#if $config?.features.enable_community_sharing}
-			<CommunityDiscover
-				href="https://openwebui.com/functions"
-				title={$i18n.t('Discover a function')}
-				description={$i18n.t('Discover, download, and explore custom functions')}
-			/>
-		{/if}
 	</div>
 
 	<DeleteConfirmDialog

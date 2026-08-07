@@ -145,15 +145,15 @@
 		? leadMagnetGroups
 		: leadMagnetGroups.slice(0, MAX_COLLAPSED_GROUPS);
 	$: hasHiddenGroups = leadMagnetGroups.length > MAX_COLLAPSED_GROUPS;
-	$: hasTokenMetrics = leadMagnetMetrics.some((metric) =>
-		metric.key === 'tokens_input' || metric.key === 'tokens_output'
+	$: hasTokenMetrics = leadMagnetMetrics.some(
+		(metric) => metric.key === 'tokens_input' || metric.key === 'tokens_output'
 	);
 	$: visibleModels = showAllModels ? models : models.slice(0, 5);
 	$: hasHiddenModels = models.length > 5;
 </script>
 
 <div
-	class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+	class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4"
 	id="free-limit-section"
 	data-testid="lead-magnet-section"
 >
@@ -161,7 +161,9 @@
 		<h3 class="text-sm font-medium">
 			{$i18n.t('Free limit')}
 		</h3>
-		<span class="px-1.5 py-0.5 text-xs font-medium rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+		<span
+			class="px-1.5 py-0.5 text-xs font-medium rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+		>
 			{$i18n.t('Free')}
 		</span>
 	</div>
@@ -230,9 +232,7 @@
 				class="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
 				on:click={() => (showModels = !showModels)}
 			>
-				{showModels
-					? $i18n.t('Hide models')
-					: `${$i18n.t('Models included')} (${models.length})`}
+				{showModels ? $i18n.t('Hide models') : `${$i18n.t('Models included')} (${models.length})`}
 			</button>
 			{#if showModels}
 				{#if !modelsReady}
@@ -240,7 +240,9 @@
 				{:else}
 					<div class="mt-2 flex flex-wrap gap-2">
 						{#each visibleModels as model}
-							<span class="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+							<span
+								class="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+							>
 								{model.name}
 							</span>
 						{/each}

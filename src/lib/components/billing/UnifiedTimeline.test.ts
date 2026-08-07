@@ -182,7 +182,7 @@ describe('UnifiedTimeline', () => {
 
 		const root = renderTimeline();
 		await flushPromises();
-		const initialCards = Array.from(root.querySelectorAll('div.rounded-2xl'));
+		const initialCards = Array.from(root.querySelectorAll('[data-testid="timeline-item"]'));
 		expect(initialCards).toHaveLength(2);
 
 		const paidButton = Array.from(root.querySelectorAll('button')).find((button) =>
@@ -193,11 +193,47 @@ describe('UnifiedTimeline', () => {
 		paidButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 		await flushPromises();
 
-		const filteredCards = Array.from(root.querySelectorAll('div.rounded-2xl'));
+		const filteredCards = Array.from(root.querySelectorAll('[data-testid="timeline-item"]'));
 		expect(filteredCards).toHaveLength(1);
 		expect(filteredCards[0].textContent).toContain('Charge');
 		expect(filteredCards[0].textContent).not.toContain('Top-up');
 		expect(paidButton?.className).toContain('bg-black');
+	});
+
+	it('groups visible activity by calendar day and exposes filter state', async () => {
+		mocks.getUsageEventsMock.mockResolvedValue([
+			{
+				id: 'usage-1',
+				request_id: 'request-1',
+				model_id: 'model-1',
+				modality: 'text',
+				billing_source: 'lead_magnet',
+				cost_charged_kopeks: 0,
+				created_at: 1_700_000_000,
+				prompt_tokens: 4,
+				completion_tokens: 8
+			},
+			{
+				id: 'usage-2',
+				request_id: 'request-2',
+				model_id: 'model-1',
+				modality: 'text',
+				billing_source: 'lead_magnet',
+				cost_charged_kopeks: 0,
+				created_at: 1_700_086_400,
+				prompt_tokens: 2,
+				completion_tokens: 3
+			}
+		]);
+
+		const root = renderTimeline();
+		await flushPromises();
+
+		expect(root.querySelectorAll('[data-testid="timeline-item"]')).toHaveLength(2);
+		expect(root.querySelectorAll('section[aria-labelledby^="timeline-"]')).toHaveLength(2);
+		expect(root.querySelector('button[aria-pressed="true"]')?.textContent).toContain(
+			'All activity'
+		);
 	});
 
 	it('updates active filter when URL filter changes after mount', async () => {

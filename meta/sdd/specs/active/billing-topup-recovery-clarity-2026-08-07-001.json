@@ -1,0 +1,180 @@
+{
+  "spec_id": "billing-topup-recovery-clarity-2026-08-07-001",
+  "title": "billing topup recovery clarity",
+  "generated": "2026-08-07T16:47:13.153781Z",
+  "last_updated": "2026-08-07T17:22:04.324906Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-07__feature__billing-topup-recovery-clarity.md",
+    "status": "active",
+    "activated_date": "2026-08-07T16:47:18.055211Z",
+    "progress_percentage": 66
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "billing topup recovery clarity",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-07T17:22:03.308413Z",
+        "journaled_at": "2026-08-07T17:22:03.310647Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-07T17:22:03.831675Z",
+        "journaled_at": "2026-08-07T17:22:03.834680Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: [To Be Defined]",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Clarify insufficient-funds recovery modal",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 3.0,
+        "completed_at": "2026-08-07T17:22:03.308235Z",
+        "needs_journaling": false,
+        "status_note": "Implemented insufficient-funds modal clarity with available, required, and shortfall amounts plus a direct wallet CTA.",
+        "journaled_at": "2026-08-07T17:22:03.309319Z"
+      },
+      "description": "Show the shortfall, explain the next step, and link back to the exact chat without dark patterns."
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Make wallet top-up action explicit",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 4.0,
+        "completed_at": "2026-08-07T17:22:03.831464Z",
+        "needs_journaling": false,
+        "status_note": "Implemented explicit wallet top-up copy, accessible package targets, contextual package preselection, and amount-specific payment CTA.",
+        "journaled_at": "2026-08-07T17:22:03.832758Z"
+      },
+      "description": "Use a clear balance CTA, larger package targets, and auto-select the contextual recommendation."
+    },
+    "task-3-1": {
+      "type": "verify",
+      "title": "Run depletion and top-up regression",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 3.0,
+        "started_at": "2026-08-07T17:22:04.324693Z",
+        "status_note": "Frontend regression passed (29 files, 109 tests); production browser verification is pending because Docker Hub push was denied and SSH/health access timed out."
+      },
+      "description": "Test frontend state transitions and verify the production blocked-chat flow in the in-app browser."
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-08-07T17:22:03.309312Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Clarify insufficient-funds recovery modal",
+      "author": "Codex",
+      "content": "Task task-1-1 marked as completed. \nNote: Implemented insufficient-funds modal clarity with available, required, and shortfall amounts plus a direct wallet CTA.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-08-07T17:22:03.310641Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: [To Be Defined]",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-08-07T17:22:03.832751Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Make wallet top-up action explicit",
+      "author": "Codex",
+      "content": "Task task-2-1 marked as completed. \nNote: Implemented explicit wallet top-up copy, accessible package targets, contextual package preselection, and amount-specific payment CTA.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-08-07T17:22:03.834670Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: [To Be Defined]",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

@@ -1,0 +1,300 @@
+{
+  "spec_id": "simplify-billing-balance-history-2026-08-07-001",
+  "title": "Simplify billing balance and transaction history UX",
+  "generated": "2026-08-07T14:44:55.329100Z",
+  "last_updated": "2026-08-07T16:30:36.873121Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "status": "completed",
+    "activated_date": "2026-08-07T14:46:31.476797Z",
+    "progress_percentage": 100,
+    "current_phase": "phase-3",
+    "completed_date": "2026-08-07T16:30:36.872716Z",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-07__feature__billing-balance-history-simplify.md"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Simplify billing balance and transaction history UX",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 7,
+      "completed_tasks": 7,
+      "metadata": {
+        "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-07__feature__billing-balance-history-simplify.md"
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Wallet hierarchy and copy",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "verify-1-1"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "risk": "medium",
+        "needs_journaling": false,
+        "completed_at": "2026-08-07T15:13:09.219608Z",
+        "journaled_at": "2026-08-07T15:13:09.223090Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Simplify wallet first viewport without changing billing behavior",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/routes/(app)/billing/balance/+page.svelte",
+        "completed_at": "2026-08-07T15:13:00.264882Z",
+        "needs_journaling": false,
+        "status_note": "Implemented compact balance page layout and reduced visual density without changing wallet behavior.",
+        "journaled_at": "2026-08-07T15:13:00.266540Z"
+      }
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Wallet actions and states remain rendered",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "npm run test:frontend -- --run src/routes/(app)/billing/balance/billing-balance.test.ts",
+        "completed_at": "2026-08-07T15:13:09.219329Z",
+        "needs_journaling": false,
+        "status_note": "Focused billing balance regression test passes.",
+        "journaled_at": "2026-08-07T15:13:09.221288Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Compact transaction history",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "verify-2-1"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "risk": "medium",
+        "needs_journaling": false,
+        "completed_at": "2026-08-07T15:13:22.332943Z",
+        "journaled_at": "2026-08-07T15:13:22.338156Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Group timeline rows by date and preserve filters/preview",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/lib/components/billing/UnifiedTimeline.svelte",
+        "completed_at": "2026-08-07T15:13:16.283183Z",
+        "needs_journaling": false,
+        "status_note": "Timeline now groups transactions by local day and renders compact accessible rows while preserving filters.",
+        "journaled_at": "2026-08-07T15:13:16.284822Z"
+      }
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Timeline filters and compact rows pass focused tests",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "npm run test:frontend -- --run src/lib/components/billing/UnifiedTimeline.test.ts",
+        "completed_at": "2026-08-07T15:13:22.332648Z",
+        "needs_journaling": false,
+        "status_note": "Focused UnifiedTimeline regression and accessibility test passes.",
+        "journaled_at": "2026-08-07T15:13:22.334817Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: Browser QA and release evidence",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1",
+        "verify-3-1",
+        "verify-3-2"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "risk": "low",
+        "needs_journaling": false,
+        "completed_at": "2026-08-07T16:30:05.808081Z",
+        "journaled_at": "2026-08-07T16:30:05.812272Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Run desktop/mobile browser flow and record evidence",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/routes/(app)/billing/history/+page.svelte",
+        "completed_at": "2026-08-07T16:30:05.107001Z",
+        "needs_journaling": false,
+        "status_note": "Production browser QA passed on https://chat.airis.you: wallet renders, preset top-up enables payment, history free filter updates URL and isolates free transactions.",
+        "journaled_at": "2026-08-07T16:30:05.109706Z"
+      }
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Full frontend regression suite",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "npm run test:frontend -- --run",
+        "completed_at": "2026-08-07T15:13:29.235839Z",
+        "needs_journaling": false,
+        "status_note": "Full frontend regression suite passes: 27 files, 104 tests.",
+        "journaled_at": "2026-08-07T15:13:29.238979Z"
+      }
+    },
+    "verify-3-2": {
+      "type": "verify",
+      "title": "Rendered production flow has no console errors",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "expected": "Wallet and history render on desktop and narrow viewport; filter changes URL and list",
+        "completed_at": "2026-08-07T16:30:05.807848Z",
+        "needs_journaling": false,
+        "status_note": "Production wallet and history rendered with no browser console errors; free filter URL/list behavior verified.",
+        "journaled_at": "2026-08-07T16:30:05.810075Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-08-07T15:13:00.266528Z",
+      "entry_type": "status_change",
+      "title": "Balance UX implemented",
+      "author": "codex",
+      "content": "Wallet first viewport simplified; top-up, free credit, and advanced settings remain wired to existing behavior.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-08-07T15:13:09.221273Z",
+      "entry_type": "status_change",
+      "title": "Balance regression verified",
+      "author": "codex",
+      "content": "npm run test:frontend -- --run src/routes/(app)/billing/balance/billing-balance.test.ts passes.",
+      "metadata": {},
+      "task_id": "verify-1-1"
+    },
+    {
+      "timestamp": "2026-08-07T15:13:09.223083Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: Wallet hierarchy and copy",
+      "author": "codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-08-07T15:13:16.284813Z",
+      "entry_type": "status_change",
+      "title": "History UX implemented",
+      "author": "codex",
+      "content": "UnifiedTimeline keeps existing filter and preview behavior; rows are grouped by day with compact spacing.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-08-07T15:13:22.334802Z",
+      "entry_type": "status_change",
+      "title": "Timeline regression verified",
+      "author": "codex",
+      "content": "UnifiedTimeline targeted test passes with grouping and filter accessibility coverage.",
+      "metadata": {},
+      "task_id": "verify-2-1"
+    },
+    {
+      "timestamp": "2026-08-07T15:13:22.338133Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: Compact transaction history",
+      "author": "codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-08-07T15:13:29.238960Z",
+      "entry_type": "status_change",
+      "title": "Frontend regression verified",
+      "author": "codex",
+      "content": "npm run test:frontend -- --run completed with 104 passing tests.",
+      "metadata": {},
+      "task_id": "verify-3-1"
+    },
+    {
+      "timestamp": "2026-08-07T16:30:05.109691Z",
+      "entry_type": "status_change",
+      "title": "Production browser flow verified",
+      "author": "codex",
+      "content": "Desktop production flow verified with browser DOM snapshots and no console errors.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-08-07T16:30:05.810060Z",
+      "entry_type": "status_change",
+      "title": "Production console verification",
+      "author": "codex",
+      "content": "https://chat.airis.you/billing/balance and /billing/history passed browser smoke; dev logs returned zero errors.",
+      "metadata": {},
+      "task_id": "verify-3-2"
+    },
+    {
+      "timestamp": "2026-08-07T16:30:05.812264Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 3: Browser QA and release evidence",
+      "author": "codex",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

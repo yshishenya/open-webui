@@ -31,8 +31,8 @@
 	</title>
 </svelte:head>
 
-<div class="w-full">
-	<div class="flex flex-col gap-1 px-1 mt-1.5 mb-3">
+<div class="w-full max-w-5xl mx-auto">
+	<div class="flex flex-col gap-1 px-1 mt-1.5 mb-4">
 		<div class="flex justify-between items-center mb-1 w-full">
 			<div class="flex items-center gap-2">
 				<h1 class="text-xl font-medium">{$i18n.t('History')}</h1>

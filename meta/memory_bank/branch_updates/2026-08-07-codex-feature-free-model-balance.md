@@ -1,0 +1,9 @@
+- [x] **[UI][BILLING][CHAT]** Restore header balance and mark free-quota models
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-07__feature__free-model-badge-restored-header-balance.md`
+  - Owner: Codex
+  - Branch: `codex/feature/free-model-balance`
+  - Started: 2026-08-07
+  - Summary: Restore the existing balance access control in the chat navbar and add an accessible informational free-quota badge to lead-magnet models.
+  - Tests: `npm run test:frontend -- --run` passed (27 files / 103 tests); `git diff --check` passed. Full check/lint retain pre-existing diagnostics; Vite build hit Node heap OOM after transforming modules.
+  - Risks: Low; narrow responsive header/model-picker changes with no billing logic changes.
+  - Status: Done

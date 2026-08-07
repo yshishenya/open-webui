@@ -38,7 +38,6 @@
 	import XMark from '../icons/XMark.svelte';
 	import ImportModal from '../ImportModal.svelte';
 	import ViewSelector from './common/ViewSelector.svelte';
-	import CommunityDiscover from './common/CommunityDiscover.svelte';
 	import Badge from '$lib/components/common/Badge.svelte';
 	import ChevronDown from '../icons/ChevronDown.svelte';
 	import ChevronUp from '../icons/ChevronUp.svelte';
@@ -177,7 +176,7 @@
 			return null;
 		});
 
-		toast.success($i18n.t('Redirecting you to AIris Community'));
+		toast.success($i18n.t('Redirecting you to Airis Community'));
 
 		const url = '#';
 
@@ -617,13 +616,6 @@
 		{/if}
 	</div>
 
-	{#if $config?.features.enable_community_sharing}
-		<CommunityDiscover
-			href="https://openwebui.com/tools"
-			title={$i18n.t('Discover a tool')}
-			description={$i18n.t('Discover, download, and explore custom tools')}
-		/>
-	{/if}
 
 	<DeleteConfirmDialog
 		bind:show={showDeleteConfirm}

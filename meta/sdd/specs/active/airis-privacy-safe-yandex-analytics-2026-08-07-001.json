@@ -1,0 +1,209 @@
+{
+  "spec_id": "airis-privacy-safe-yandex-analytics-2026-08-07-001",
+  "title": "Airis privacy-safe Yandex and Google analytics foundation",
+  "generated": "2026-08-07T16:42:04.179755Z",
+  "last_updated": "2026-08-07T17:01:17.944923Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "status": "completed",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-07__feature__privacy-safe-web-analytics.md",
+    "activated_date": "2026-08-07T16:42:11.106622Z",
+    "progress_percentage": 100,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis privacy-safe Yandex and Google analytics foundation",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 4,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Consent and provider bootstrap",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-07T17:00:10.877699Z",
+        "journaled_at": "2026-08-07T17:00:10.886458Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Add consent-safe analytics adapter",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "completed_at": "2026-08-07T17:00:09.552277Z",
+        "needs_journaling": false,
+        "status_note": "Consent storage and provider-safe event adapter implemented; Yandex Webvisor content masking added.",
+        "journaled_at": "2026-08-07T17:00:09.554433Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Bootstrap Yandex and GA4 from public config",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "completed_at": "2026-08-07T17:00:10.875915Z",
+        "needs_journaling": false,
+        "status_note": "Yandex counter 111392024 configured; GA4 remains build-time configurable pending a real G- measurement ID.",
+        "journaled_at": "2026-08-07T17:00:10.883987Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Funnel instrumentation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-07T17:00:12.316690Z",
+        "journaled_at": "2026-08-07T17:00:12.322351Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Instrument landing and product activation events",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "metadata": {
+        "completed_at": "2026-08-07T17:00:12.316352Z",
+        "needs_journaling": false,
+        "status_note": "Landing, auth, first prompt/response, and billing funnel events wired through the shared adapter.",
+        "journaled_at": "2026-08-07T17:00:12.318338Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: Verification and rollout",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-07T17:01:17.941823Z",
+        "journaled_at": "2026-08-07T17:01:17.944891Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Run build, tests, browser smoke, and document setup",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "metadata": {
+        "completed_at": "2026-08-07T17:01:17.941583Z",
+        "needs_journaling": false,
+        "status_note": "Focused tests, npm check, Vite build, targeted ESLint, diff check, and Yandex UI goal verification passed. Production tag checker remains pending deployment.",
+        "journaled_at": "2026-08-07T17:01:17.943123Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-08-07T17:00:09.554418Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add consent-safe analytics adapter",
+      "author": "Codex",
+      "content": "Task task-1-1 marked as completed. \nNote: Consent storage and provider-safe event adapter implemented; Yandex Webvisor content masking added.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-08-07T17:00:10.883964Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Bootstrap Yandex and GA4 from public config",
+      "author": "Codex",
+      "content": "Task task-1-2 marked as completed. \nNote: Yandex counter 111392024 configured; GA4 remains build-time configurable pending a real G- measurement ID.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-08-07T17:00:10.886448Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: Consent and provider bootstrap",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-08-07T17:00:12.318324Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Instrument landing and product activation events",
+      "author": "Codex",
+      "content": "Task task-2-1 marked as completed. \nNote: Landing, auth, first prompt/response, and billing funnel events wired through the shared adapter.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-08-07T17:00:12.322311Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: Funnel instrumentation",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-08-07T17:01:17.943115Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run build, tests, browser smoke, and document setup",
+      "author": "Codex",
+      "content": "Task task-3-1 marked as completed. \nNote: Focused tests, npm check, Vite build, targeted ESLint, diff check, and Yandex UI goal verification passed. Production tag checker remains pending deployment.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-08-07T17:01:17.944884Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 3: Verification and rollout",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

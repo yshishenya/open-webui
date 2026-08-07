@@ -1,5 +1,5 @@
 <script lang="ts">
-	export let title: string = 'AIris';
+	export let title: string = 'Airis';
 	export let subtitle: string = 'Интеллектуальный AI-ассистент для работы и творчества';
 	export let description: string =
 		'Работайте с лучшими AI-моделями в удобном интерфейсе. Полная поддержка русского языка, безопасность данных и гибкие тарифы.';

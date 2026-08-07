@@ -33,7 +33,7 @@ SMTP_USERNAME = os.getenv('SMTP_USERNAME', '')
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
 SMTP_USE_TLS = os.getenv('SMTP_USE_TLS', 'true').lower() == 'true'
 SMTP_FROM_EMAIL = os.getenv('SMTP_FROM_EMAIL', 'noreply@example.com')
-SMTP_FROM_NAME = os.getenv('SMTP_FROM_NAME', 'AIris')
+SMTP_FROM_NAME = os.getenv('SMTP_FROM_NAME', 'Airis')
 
 EMAIL_VERIFICATION_EXPIRY_HOURS = int(os.getenv('EMAIL_VERIFICATION_EXPIRY_HOURS', '24'))
 PASSWORD_RESET_EXPIRY_HOURS = int(os.getenv('PASSWORD_RESET_EXPIRY_HOURS', '2'))
@@ -234,7 +234,7 @@ class EmailService:
 
         return await self.send_email(
             to_email=to_email,
-            subject="Добро пожаловать в Open WebUI!",
+            subject="Добро пожаловать в Airis!",
             html_content=html_content,
             text_content=text_content,
         )

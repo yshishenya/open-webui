@@ -15,7 +15,7 @@
 	let contentId = 'wallet-advanced-settings-content';
 
 	onMount(() => {
-		const uuid = globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2, 9);
+		const uuid = window.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2, 9);
 		contentId = `wallet-advanced-settings-${uuid}`;
 	});
 
@@ -26,7 +26,9 @@
 	};
 </script>
 
-<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4">
+<div
+	class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+>
 	<button
 		type="button"
 		class="w-full text-left"

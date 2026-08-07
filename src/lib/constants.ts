@@ -1,7 +1,7 @@
 import { browser, dev } from '$app/environment';
 // import { version } from '../../package.json';
 
-export const APP_NAME = 'AIris';
+export const APP_NAME = 'AIRIS';
 
 const DEFAULT_DEV_API_PORT = '8081';
 const devApiPortEnv = import.meta.env.PUBLIC_OPEN_WEBUI_API_PORT?.trim();

@@ -26,11 +26,15 @@ ARG GID=0
 ######## WebUI frontend ########
 FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
 ARG BUILD_HASH
+ARG PUBLIC_YANDEX_METRICA_ID=
+ARG PUBLIC_GA_MEASUREMENT_ID=
 
 # Keep the Vite build within a predictable Node heap while allowing builders
 # with tighter memory limits to override it.
 ARG NODE_MAX_OLD_SPACE_SIZE=4096
 ENV NODE_OPTIONS="--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}"
+ENV PUBLIC_YANDEX_METRICA_ID=${PUBLIC_YANDEX_METRICA_ID}
+ENV PUBLIC_GA_MEASUREMENT_ID=${PUBLIC_GA_MEASUREMENT_ID}
 
 WORKDIR /app
 

@@ -15,7 +15,7 @@
 	const navLinks: NavLink[] = [
 		{ href: '/features', label: 'Возможности' },
 		{ href: '/pricing', label: 'Тарифы' },
-		{ href: '/about', label: 'О нас' },
+		{ href: '/about', label: 'О проекте' },
 		{ href: '/contact', label: 'Контакты' }
 	];
 
