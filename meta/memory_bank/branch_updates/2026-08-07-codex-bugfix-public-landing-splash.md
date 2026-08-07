@@ -1,0 +1,9 @@
+- [x] **[BUG][UI][LANDING]** Remove backend bootstrap dependency from public landing splash
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-07__bugfix__public-landing-splash.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/public-landing-splash`
+  - Started: 2026-08-07
+  - Done: 2026-08-07
+  - Summary: Public marketing routes bypass shared backend/session bootstrap so the splash cannot cover the landing page while the API is slow or unavailable; authenticated routes keep the existing path.
+  - Tests: Vitest 102 passed; targeted ESLint passed; Vite build passed; browser smoke `/welcome` and `/auth` passed; `npm run check` remains blocked by 8,355 pre-existing diagnostics.
+  - Risks: Low; guarded route allowlist only changes public marketing startup.
