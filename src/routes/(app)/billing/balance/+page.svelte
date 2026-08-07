@@ -604,22 +604,22 @@
 
 	const scrollToTopup = () => {
 		const target = document.getElementById('topup-section');
-		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
 	};
 
 	const scrollToFreeLimit = () => {
 		const target = document.getElementById('free-limit-section');
-		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
 	};
 
 	const scrollToAdvanced = () => {
 		const target = document.getElementById('advanced-settings-section');
-		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
 	};
 
 	const scrollToAutoTopup = () => {
 		const target = document.getElementById('auto-topup-section');
-		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
 	};
 
 	const applyFocusHint = (): void => {
@@ -898,12 +898,13 @@
 						</a>
 						<button
 							type="button"
+							data-testid="wallet-hero-topup"
 							on:click={scrollToTopup}
 							class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium {isLowBalance
 								? 'ring-2 ring-amber-500/40'
 								: ''}"
 						>
-							{$i18n.t('Top up')}
+							{$i18n.t('Top up balance')}
 						</button>
 					</div>
 				</div>

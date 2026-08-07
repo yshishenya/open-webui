@@ -2,7 +2,10 @@
 	import { getContext } from 'svelte';
 	import { goto } from '$app/navigation';
 	import Modal from '$lib/components/common/Modal.svelte';
-	import type { BillingBlockedDetail, BillingBlockedInsufficientFunds } from '$lib/utils/airis/billing_block';
+	import type {
+		BillingBlockedDetail,
+		BillingBlockedInsufficientFunds
+	} from '$lib/utils/airis/billing_block';
 	import { buildBillingBalanceHref } from '$lib/utils/airis/billing_block';
 
 	const i18n = getContext('i18n');
@@ -40,11 +43,15 @@
 		await goto(href);
 	};
 
-	$: insufficientFundsDetail = (detail?.error === 'insufficient_funds'
-		? (detail as BillingBlockedInsufficientFunds)
-		: null);
+	$: insufficientFundsDetail =
+		detail?.error === 'insufficient_funds' ? (detail as BillingBlockedInsufficientFunds) : null;
 	$: currency = insufficientFundsDetail?.currency ?? null;
 	$: requiredKopeks = insufficientFundsDetail?.required_kopeks ?? null;
+	$: availableKopeks = insufficientFundsDetail?.available_kopeks ?? null;
+	$: shortfallKopeks =
+		requiredKopeks !== null && availableKopeks !== null
+			? Math.max(requiredKopeks - availableKopeks, 0)
+			: null;
 	$: topupHref =
 		detail?.error === 'insufficient_funds'
 			? buildBillingBalanceHref({
@@ -54,7 +61,11 @@
 					src: 'chat_blocked'
 				})
 			: buildBillingBalanceHref({ returnTo, focus: 'limits', src: 'chat_blocked' });
-	$: autoTopupHref = buildBillingBalanceHref({ returnTo, focus: 'auto_topup', src: 'chat_blocked' });
+	$: autoTopupHref = buildBillingBalanceHref({
+		returnTo,
+		focus: 'auto_topup',
+		src: 'chat_blocked'
+	});
 	$: showAutoTopupCTA =
 		detail?.error === 'insufficient_funds' &&
 		(insufficientFundsDetail?.auto_topup_status === 'missing_payment_method' ||
@@ -70,13 +81,13 @@
 	className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-4xl"
 >
 	{#if detail}
-		<div class="p-5">
+		<div class="p-5" data-testid="billing-blocked-modal">
 			<div class="flex items-start justify-between gap-3">
 				<div>
 					{#if detail.error === 'insufficient_funds'}
-						<h2 class="text-lg font-semibold">{$i18n.t('Low balance')}</h2>
+						<h2 class="text-lg font-semibold">{$i18n.t('Insufficient funds')}</h2>
 						<div class="text-sm text-gray-500 mt-1">
-							{$i18n.t('Top up to keep working')}
+							{$i18n.t('Top up to continue this reply')}
 						</div>
 					{:else if detail.error === 'daily_cap_exceeded'}
 						<h2 class="text-lg font-semibold">{$i18n.t('Daily cap reached')}</h2>
@@ -114,15 +125,33 @@
 							{formatMoney(insufficientFundsDetail?.required_kopeks ?? null, currency)}
 						</span>
 					</div>
+					{#if shortfallKopeks !== null && shortfallKopeks > 0}
+						<div
+							class="flex items-center justify-between gap-3 rounded-xl bg-amber-500/10 px-3 py-2 text-amber-800 dark:text-amber-200"
+							data-testid="billing-blocked-shortfall"
+						>
+							<span class="font-medium">{$i18n.t('Shortfall')}</span>
+							<span class="font-semibold tabular-nums"
+								>{formatMoney(shortfallKopeks, currency)}</span
+							>
+						</div>
+					{/if}
+					<div class="mt-3 text-xs text-gray-500">
+						{$i18n.t('After payment, return to chat and try again')}
+					</div>
 
 					{#if insufficientFundsDetail?.auto_topup_status === 'created' || insufficientFundsDetail?.auto_topup_status === 'pending'}
-						<div class="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+						<div
+							class="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200"
+						>
 							{$i18n.t('Top-up is processing')}
 							<span class="mx-1">•</span>
 							{$i18n.t('This may take a minute')}
 						</div>
 					{:else if showAutoTopupCTA}
-						<div class="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+						<div
+							class="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200"
+						>
 							{$i18n.t('Enable auto-topup, then make one top-up to save your payment method')}
 							<span class="mx-1">•</span>
 							{$i18n.t("We don't store card details")}.
@@ -177,7 +206,7 @@
 					on:click={() => handleNavigate(topupHref)}
 				>
 					{#if detail.error === 'insufficient_funds'}
-						{$i18n.t('Top up')}
+						{$i18n.t('Top up balance')}
 					{:else}
 						{$i18n.t('Manage limits & auto-topup')}
 					{/if}
@@ -186,4 +215,3 @@
 		</div>
 	{/if}
 </Modal>
-

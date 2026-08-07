@@ -1053,9 +1053,9 @@
 						billingBlockedDetail = billingBlocked;
 						billingBlockedOpen = true;
 
-						const inlineMessage =
-							billingBlocked.error === 'insufficient_funds'
-								? $i18n.t('Top up to keep working')
+							const inlineMessage =
+								billingBlocked.error === 'insufficient_funds'
+									? $i18n.t('Top up to continue this reply')
 								: billingBlocked.error === 'daily_cap_exceeded'
 									? $i18n.t('Daily cap reached')
 									: $i18n.t('Max reply cost limit reached');
@@ -3235,7 +3235,7 @@
 
 				const inlineMessage =
 					billingBlocked.error === 'insufficient_funds'
-						? $i18n.t('Top up to keep working')
+						? $i18n.t('Top up to continue this reply')
 						: billingBlocked.error === 'daily_cap_exceeded'
 							? $i18n.t('Daily cap reached')
 							: $i18n.t('Max reply cost limit reached');
