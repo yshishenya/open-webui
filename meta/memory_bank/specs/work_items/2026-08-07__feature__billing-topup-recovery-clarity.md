@@ -42,6 +42,12 @@ The wallet is functional, but the payment path is easy to miss: package choices 
 - Full frontend Vitest regression.
 - In-app browser: zero-balance paid-model request opens the modal; wallet CTA opens the wallet with the originating chat preserved and a recommended package selected; console has no errors.
 
+## Current verification status
+
+- Completed: focused billing/header/websocket tests (19 tests) and full frontend regression (29 files, 109 tests).
+- Completed: authenticated production browser confirmed the zero-balance paid-model request opens the billing modal with no console errors on the currently deployed build.
+- Pending: deploy this commit and repeat the production browser path; Docker Hub rejected the image push and SSH/health access to production timed out during rollout.
+
 ## Upstream impact
 
 - UI-only changes in existing billing/chat surfaces; no new dependency and no backend contract changes.
