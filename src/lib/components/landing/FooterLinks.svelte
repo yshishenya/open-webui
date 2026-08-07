@@ -5,7 +5,7 @@
 	}
 
 	export let links: FooterLink[] = [
-		{ href: '/about', label: 'О проекте' },
+		{ href: '/about', label: 'О продукте' },
 		{ href: '/pricing', label: 'Тарифы' },
 		{ href: '/features', label: 'Возможности' },
 		{ href: '/contact', label: 'Контакты' },

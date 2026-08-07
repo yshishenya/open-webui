@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { setAnalyticsConsent } from '$lib/utils/airis/analyticsConsent';
+import { PUBLIC_YANDEX_METRICA_ID } from '$env/static/public';
 import { trackEcommercePurchase, trackEvent } from './analytics';
 
 describe('analytics adapter', () => {
@@ -30,7 +31,7 @@ describe('analytics adapter', () => {
 		trackEvent('page_view', { source: 'welcome' });
 
 		const yandexScript = document.querySelector('#airis-yandex-metrica');
-		if (import.meta.env.PUBLIC_YANDEX_METRICA_ID) {
+		if (PUBLIC_YANDEX_METRICA_ID) {
 			expect(yandexScript).toBeTruthy();
 		} else {
 			expect(yandexScript).toBeNull();
@@ -48,7 +49,7 @@ describe('analytics adapter', () => {
 		const purchase = analyticsWindow.dataLayer?.find((entry) => entry.ecommerce);
 		const purchases = analyticsWindow.dataLayer?.filter((entry) => entry.ecommerce) ?? [];
 
-		if (import.meta.env.PUBLIC_YANDEX_METRICA_ID) {
+		if (PUBLIC_YANDEX_METRICA_ID) {
 			expect(purchases).toHaveLength(1);
 			expect(purchase).toEqual({
 				ecommerce: {

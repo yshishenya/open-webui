@@ -108,9 +108,10 @@
 		return model.rates.tts_1000_chars !== null || model.rates.stt_minute !== null;
 	};
 
-	$: textModel = resolveModel(recommendedModelIdByType.text, hasTextRates);
-	$: imageModel = resolveModel(recommendedModelIdByType.image, hasImageRates);
-	$: audioModel = resolveModel(recommendedModelIdByType.audio, hasAudioRates);
+	// Keep the async rate-card dependency explicit: Svelte cannot infer reads hidden inside resolveModel.
+	$: textModel = rateCard ? resolveModel(recommendedModelIdByType.text, hasTextRates) : null;
+	$: imageModel = rateCard ? resolveModel(recommendedModelIdByType.image, hasImageRates) : null;
+	$: audioModel = rateCard ? resolveModel(recommendedModelIdByType.audio, hasAudioRates) : null;
 
 	$: textRatesAvailable = textModel ? hasTextRates(textModel) : false;
 	$: imageRatesAvailable = imageModel ? hasImageRates(imageModel) : false;
@@ -308,152 +309,160 @@
 				<p class="text-sm text-gray-500">{error}</p>
 			{/if}
 
-			<div role="tablist" class="flex flex-wrap gap-2">
-				{#each availableTabs as tab}
-					<button
-						type="button"
-						role="tab"
-						id={`estimator-tab-${tab.id}`}
-						aria-selected={activeTab === tab.id}
-						aria-controls={`estimator-panel-${tab.id}`}
-						on:click={() => handleTabChange(tab.id as 'text' | 'image' | 'audio')}
-						class={`rounded-full border px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 ${
-							activeTab === tab.id
-								? 'border-gray-900 bg-gray-900 text-white'
-								: 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-						}`}
-					>
-						{tab.label}
-					</button>
-				{/each}
-			</div>
+			{#if !availableTabs.length}
+				<p class="text-sm text-gray-500">
+					Расчёт временно недоступен: для выбранных функций пока нет актуальной ставки.
+				</p>
+			{:else}
+				<div role="tablist" class="flex flex-wrap gap-2">
+					{#each availableTabs as tab}
+						<button
+							type="button"
+							role="tab"
+							id={`estimator-tab-${tab.id}`}
+							aria-selected={activeTab === tab.id}
+							aria-controls={`estimator-panel-${tab.id}`}
+							on:click={() => handleTabChange(tab.id as 'text' | 'image' | 'audio')}
+							class={`rounded-full border px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 ${
+								activeTab === tab.id
+									? 'border-gray-900 bg-gray-900 text-white'
+									: 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+							}`}
+						>
+							{tab.label}
+						</button>
+					{/each}
+				</div>
 
-			<div class="mt-6">
-				{#if activeTab === 'text'}
-					<div
-						id="estimator-panel-text"
-						role="tabpanel"
-						aria-labelledby="estimator-tab-text"
-						class="space-y-4"
-					>
-						<div class="grid gap-4 md:grid-cols-3">
+				<div class="mt-6">
+					{#if activeTab === 'text'}
+						<div
+							id="estimator-panel-text"
+							role="tabpanel"
+							aria-labelledby="estimator-tab-text"
+							class="space-y-4"
+						>
+							<div class="grid gap-4 md:grid-cols-3">
+								<label class="text-sm text-gray-600">
+									Сообщений в день
+									<input
+										type="number"
+										min="1"
+										bind:value={textMessagesPerDay}
+										on:input={scheduleEstimatorChange}
+										class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+									/>
+								</label>
+								<label class="text-sm text-gray-600">
+									Объём запроса
+									<select
+										bind:value={textBucket}
+										on:change={scheduleEstimatorChange}
+										class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+									>
+										{#each Object.entries(config.text.buckets) as [key, bucket]}
+											<option value={key}>{bucket.label}</option>
+										{/each}
+									</select>
+								</label>
+								<label class="text-sm text-gray-600">
+									Объём ответа
+									<select
+										value={textReplyMultiplier}
+										on:change={(event) => {
+											textReplyMultiplier = Number(
+												(event.currentTarget as HTMLSelectElement).value
+											);
+											scheduleEstimatorChange();
+										}}
+										class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+									>
+										{#each config.text.replyMultipliers as option}
+											<option value={option.value}>{option.label}</option>
+										{/each}
+									</select>
+								</label>
+							</div>
+							<div class="text-lg font-semibold text-gray-900 tabular-nums">
+								≈ {formatRange(textEstimate)} / месяц
+							</div>
+						</div>
+					{:else if activeTab === 'image'}
+						<div
+							id="estimator-panel-image"
+							role="tabpanel"
+							aria-labelledby="estimator-tab-image"
+							class="space-y-4"
+						>
 							<label class="text-sm text-gray-600">
-								Сообщений в день
+								Количество изображений
 								<input
 									type="number"
 									min="1"
-									bind:value={textMessagesPerDay}
+									bind:value={imageCount}
 									on:input={scheduleEstimatorChange}
 									class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
 								/>
 							</label>
-							<label class="text-sm text-gray-600">
-								Объём запроса
-								<select
-									bind:value={textBucket}
-									on:change={scheduleEstimatorChange}
-									class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-								>
-									{#each Object.entries(config.text.buckets) as [key, bucket]}
-										<option value={key}>{bucket.label}</option>
-									{/each}
-								</select>
-							</label>
-							<label class="text-sm text-gray-600">
-								Объём ответа
-								<select
-									value={textReplyMultiplier}
-									on:change={(event) => {
-										textReplyMultiplier = Number((event.currentTarget as HTMLSelectElement).value);
-										scheduleEstimatorChange();
-									}}
-									class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-								>
-									{#each config.text.replyMultipliers as option}
-										<option value={option.value}>{option.label}</option>
-									{/each}
-								</select>
-							</label>
+							<div class="text-lg font-semibold text-gray-900 tabular-nums">
+								≈ {formatRange(imageEstimate)}
+							</div>
 						</div>
-						<div class="text-lg font-semibold text-gray-900 tabular-nums">
-							≈ {formatRange(textEstimate)} / месяц
+					{:else if activeTab === 'audio'}
+						<div
+							id="estimator-panel-audio"
+							role="tabpanel"
+							aria-labelledby="estimator-tab-audio"
+							class="space-y-4"
+						>
+							<div class="flex flex-wrap gap-2">
+								{#each audioModesAvailable as mode}
+									<button
+										type="button"
+										on:click={() => {
+											audioMode = mode.id;
+											scheduleEstimatorChange();
+										}}
+										class={`rounded-full border px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 ${
+											audioMode === mode.id
+												? 'border-gray-900 bg-gray-900 text-white'
+												: 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+										}`}
+									>
+										{mode.label}
+									</button>
+								{/each}
+							</div>
+							{#if audioMode === 'tts'}
+								<label class="text-sm text-gray-600">
+									Символов для озвучки
+									<input
+										type="number"
+										min="1"
+										bind:value={audioChars}
+										on:input={scheduleEstimatorChange}
+										class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+									/>
+								</label>
+							{:else}
+								<label class="text-sm text-gray-600">
+									Минут распознавания
+									<input
+										type="number"
+										min="1"
+										bind:value={audioMinutes}
+										on:input={scheduleEstimatorChange}
+										class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+									/>
+								</label>
+							{/if}
+							<div class="text-lg font-semibold text-gray-900 tabular-nums">
+								≈ {formatRange(audioEstimate)}
+							</div>
 						</div>
-					</div>
-				{:else if activeTab === 'image'}
-					<div
-						id="estimator-panel-image"
-						role="tabpanel"
-						aria-labelledby="estimator-tab-image"
-						class="space-y-4"
-					>
-						<label class="text-sm text-gray-600">
-							Количество изображений
-							<input
-								type="number"
-								min="1"
-								bind:value={imageCount}
-								on:input={scheduleEstimatorChange}
-								class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-							/>
-						</label>
-						<div class="text-lg font-semibold text-gray-900 tabular-nums">
-							≈ {formatRange(imageEstimate)}
-						</div>
-					</div>
-				{:else if activeTab === 'audio'}
-					<div
-						id="estimator-panel-audio"
-						role="tabpanel"
-						aria-labelledby="estimator-tab-audio"
-						class="space-y-4"
-					>
-						<div class="flex flex-wrap gap-2">
-							{#each audioModesAvailable as mode}
-								<button
-									type="button"
-									on:click={() => {
-										audioMode = mode.id;
-										scheduleEstimatorChange();
-									}}
-									class={`rounded-full border px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 ${
-										audioMode === mode.id
-											? 'border-gray-900 bg-gray-900 text-white'
-											: 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-									}`}
-								>
-									{mode.label}
-								</button>
-							{/each}
-						</div>
-						{#if audioMode === 'tts'}
-							<label class="text-sm text-gray-600">
-								Символов для озвучки
-								<input
-									type="number"
-									min="1"
-									bind:value={audioChars}
-									on:input={scheduleEstimatorChange}
-									class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-								/>
-							</label>
-						{:else}
-							<label class="text-sm text-gray-600">
-								Минут распознавания
-								<input
-									type="number"
-									min="1"
-									bind:value={audioMinutes}
-									on:input={scheduleEstimatorChange}
-									class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-								/>
-							</label>
-						{/if}
-						<div class="text-lg font-semibold text-gray-900 tabular-nums">
-							≈ {formatRange(audioEstimate)}
-						</div>
-					</div>
-				{/if}
-			</div>
+					{/if}
+				</div>
+			{/if}
 
 			<div class="mt-6 flex flex-wrap items-center gap-4">
 				<button

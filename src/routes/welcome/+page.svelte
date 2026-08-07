@@ -94,6 +94,17 @@
 		name="description"
 		content="GPT, Claude, Gemini и другие доступные AI-модели в Airis. Работайте без VPN, начинайте бесплатно и пополняйте баланс в рублях без обязательной подписки."
 	/>
+	<link rel="canonical" href="https://chat.airis.you/welcome" />
+	<meta property="og:title" content="AI-модели без VPN — в одном чате | Airis" />
+	<meta
+		property="og:description"
+		content="GPT, Claude, Gemini и другие доступные AI-модели в Airis. Работайте без VPN и начинайте бесплатно."
+	/>
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://chat.airis.you/welcome" />
+	<meta property="og:site_name" content="Airis" />
+	<meta property="og:locale" content="ru_RU" />
+	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
 <div class="min-h-screen bg-[#17112f] text-white font-primary">
