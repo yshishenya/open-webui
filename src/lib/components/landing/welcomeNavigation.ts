@@ -24,11 +24,13 @@ export const buildSignupUrl = (source: string, params: Record<string, string> = 
 	return `/signup?${searchParams.toString()}`;
 };
 
+const hasActiveSession = (): boolean => Boolean(get(user) || (browser && localStorage.token));
+
 export const openPreset = (source: string, preset: string, prompt: string): void => {
 	trackEvent('landing_preset_open', { source, preset });
 	const target = buildChatUrl(source, { preset, q: prompt, submit: 'false' });
 
-	if (get(user)) {
+	if (hasActiveSession()) {
 		goto(target);
 		return;
 	}
@@ -58,7 +60,7 @@ export const openCta = (source: string): void => {
 	trackEvent('landing_cta_open', { source });
 	const target = buildChatUrl(source);
 
-	if (get(user)) {
+	if (hasActiveSession()) {
 		goto(target);
 		return;
 	}

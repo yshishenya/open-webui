@@ -22,17 +22,34 @@
 	class:footer-dark={tone === 'dark'}
 	class="footer-links airis-public-footer-links mt-16 pt-8 border-t"
 >
-	<div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-		<div class="flex flex-wrap gap-4 text-sm">
-			{#each links as link}
-				<a href={link.href} class="hover:text-gray-900 transition-colors">{link.label}</a>
-			{/each}
+	<div class="grid gap-8 md:grid-cols-[1.2fr_1fr_1fr]">
+		<div>
+			<a href="/welcome" class="text-lg font-semibold text-inherit">Airis</a>
+			<p class="mt-2 max-w-xs text-sm leading-relaxed">AI-модели без VPN — в одном чате.</p>
 		</div>
-		<div class="text-sm">&copy; {copyright}</div>
+		<div>
+			<div class="airis-public-footer-heading">Продукт</div>
+			<div class="mt-3 flex flex-col items-start gap-2 text-sm">
+				{#each links.filter((link) => ['/features', '/pricing'].includes(link.href)) as link}
+					<a href={link.href}>{link.label}</a>
+				{/each}
+			</div>
+		</div>
+		<div>
+			<div class="airis-public-footer-heading">Компания и документы</div>
+			<div class="mt-3 flex flex-col items-start gap-2 text-sm">
+				{#each links.filter((link) => !['/features', '/pricing'].includes(link.href)) as link}
+					<a href={link.href}>{link.label}</a>
+				{/each}
+			</div>
+		</div>
 	</div>
-	<div class="mt-6 text-xs leading-relaxed">
-		<div class="font-semibold text-gray-600">Реквизиты</div>
-		<div>ИП Шишеня Ян Александрович</div>
-		<div>ИНН 667803118920 · ОГРНИП 320665800036109</div>
+	<div
+		class="mt-8 flex flex-col gap-2 border-t border-inherit pt-5 text-xs leading-relaxed md:flex-row md:items-end md:justify-between"
+	>
+		<div>
+			<div>ИП Шишеня Ян Александрович · ИНН 667803118920 · ОГРНИП 320665800036109</div>
+			<div>&copy; {copyright}</div>
+		</div>
 	</div>
 </div>

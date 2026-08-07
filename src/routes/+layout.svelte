@@ -1149,7 +1149,16 @@
 		});
 
 		initI18n(localStorage?.locale);
-		if (!isPublicMarketingRoute($page.url.pathname)) {
+		const isPublicRoute = isPublicMarketingRoute($page.url.pathname);
+		if (isPublicRoute && localStorage.token) {
+			// Hydrate an existing session without delaying the public landing page.
+			void getSessionUser(localStorage.token)
+				.then((sessionUser) => {
+					if (sessionUser) user.set(sessionUser);
+				})
+				.catch((error) => console.warn('Unable to hydrate public session:', error));
+		}
+		if (!isPublicRoute) {
 			let backendConfig = null;
 			try {
 				backendConfig = await getBackendConfig();
