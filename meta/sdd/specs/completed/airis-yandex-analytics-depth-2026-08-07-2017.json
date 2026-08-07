@@ -1,0 +1,122 @@
+{
+  "spec_id": "airis-yandex-analytics-depth-2026-08-07-2017",
+  "title": "airis-yandex-analytics-depth",
+  "generated": "2026-08-07T17:17:26.153783Z",
+  "last_updated": "2026-08-07T17:27:31.778434Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "status": "completed",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-07__feature__yandex-analytics-depth.md",
+    "activated_date": "2026-08-07T17:17:31.767110Z",
+    "completed_date": "2026-08-07T17:27:31.777714Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-yandex-analytics-depth",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 4,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Yandex ecommerce and canonical conversion signals",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-07T17:27:02.918505Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Enable Yandex dataLayer ecommerce and purchase revenue",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "completed_at": "2026-08-07T17:27:02.487351Z",
+        "needs_journaling": true,
+        "status_note": "Yandex initialized with dataLayer ecommerce and deduplicated purchase revenue payload."
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Map canonical landing CTA and scroll-depth signals",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "started_at": "2026-08-07T17:27:02.062148Z",
+        "status_note": "Canonical landing CTA and scroll-depth events implemented.",
+        "completed_at": "2026-08-07T17:27:02.918230Z",
+        "needs_journaling": true
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Verification and Yandex configuration",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-07T17:27:03.382048Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Run focused tests, build, and UI configuration checks",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "metadata": {
+        "completed_at": "2026-08-07T17:27:03.381757Z",
+        "needs_journaling": true,
+        "status_note": "Focused tests, check, build, lint, diff check, and Yandex UI goal/ecommerce verification passed."
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: Rollout handoff",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-08-07T17:27:16.945838Z",
+        "needs_journaling": true,
+        "status_note": "Rollout handoff is complete; production deploy/tag checker remains the operational follow-up."
+      }
+    }
+  }
+}
