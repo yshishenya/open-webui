@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: codex/bugfix/welcome-navigation-routes
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/public-airis-pages-redesign-2026-08-07-1247.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/public-airis-pages-redesign-2026-08-07-001.json`
 - Created: 2026-08-07
 - Updated: 2026-08-07
 
@@ -63,6 +63,6 @@ The public Airis surface is split between a dark welcome page and dense legacy-s
 
 ## Completion Checklist
 
-- [x] `meta/tools/sdd check-complete public-airis-pages-redesign-2026-08-07-1247 --json`
-- [x] `meta/tools/sdd complete-spec public-airis-pages-redesign-2026-08-07-1247 --json`
+- [x] `meta/tools/sdd check-complete public-airis-pages-redesign-2026-08-07-001 --json`
+- [x] `meta/tools/sdd complete-spec public-airis-pages-redesign-2026-08-07-001 --json`
 - [x] Branch update entry moved to `Done` with required fields.
