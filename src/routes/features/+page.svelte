@@ -124,6 +124,7 @@
 
 	const handleHowCtaClick = (event: MouseEvent) => {
 		event.preventDefault();
+		trackEvent('features_how_cta_click');
 		openCta('features_how_cta');
 	};
 

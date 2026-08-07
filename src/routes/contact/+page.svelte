@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { PublicPageLayout } from '$lib/components/landing';
 	import { page } from '$app/stores';
+	import { trackEvent } from '$lib/utils/analytics';
 
 	let formData = {
 		name: '',
@@ -36,6 +37,7 @@
 	];
 
 	const handleSubmit = (): void => {
+		trackEvent('contact_form_submit');
 		isSubmitting = true;
 		submitStatus = 'idle';
 		const subject = encodeURIComponent(formData.subject || 'Вопрос в Airis');
@@ -53,7 +55,7 @@
 
 <PublicPageLayout
 	title="Контакты"
-	description="Свяжитесь с командой AIris. Мы готовы ответить на ваши вопросы и помочь с любыми проблемами."
+	description="Свяжитесь с командой Airis. Мы готовы ответить на ваши вопросы и помочь с любыми проблемами."
 	showHero={false}
 >
 	<section class="container mx-auto px-4 pt-12 pb-12">
@@ -221,7 +223,7 @@
 											autocomplete="name"
 											bind:value={formData.name}
 											required
-											class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black/20 focus:border-gray-400 transition-shadow"
+											class="ym-disable-keys w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black/20 focus:border-gray-400 transition-shadow"
 											placeholder="Иван Иванов"
 										/>
 									</div>
@@ -236,7 +238,7 @@
 											autocomplete="email"
 											bind:value={formData.email}
 											required
-											class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black/20 focus:border-gray-400 transition-shadow"
+											class="ym-disable-keys w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black/20 focus:border-gray-400 transition-shadow"
 											placeholder="ivan@example.com"
 										/>
 									</div>
@@ -251,7 +253,7 @@
 											id="type"
 											name="type"
 											bind:value={formData.type}
-											class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black/20 focus:border-gray-400 transition-shadow"
+											class="ym-disable-keys w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black/20 focus:border-gray-400 transition-shadow"
 										>
 											{#each contactTypes as contactType}
 												<option value={contactType.value}>{contactType.label}</option>
@@ -284,7 +286,7 @@
 										bind:value={formData.message}
 										required
 										rows="6"
-										class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black/20 focus:border-gray-400 transition-shadow resize-none"
+											class="ym-disable-keys w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black/20 focus:border-gray-400 transition-shadow resize-none"
 										placeholder="Опишите ваш вопрос или проблему…"
 									></textarea>
 								</div>

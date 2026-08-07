@@ -75,6 +75,8 @@
 	import { isPublicMarketingRoute } from '$lib/utils/airis/public_routes';
 
 	import NotificationToast from '$lib/components/NotificationToast.svelte';
+	import AnalyticsBootstrap from '$lib/components/analytics/AnalyticsBootstrap.svelte';
+	import AnalyticsConsent from '$lib/components/analytics/AnalyticsConsent.svelte';
 	import AppSidebar from '$lib/components/app/AppSidebar.svelte';
 	import SyncStatsModal from '$lib/components/chat/Settings/SyncStatsModal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -539,7 +541,7 @@
 
 			if ($isLastActiveTab) {
 				if ($settings?.notificationEnabled ?? false) {
-					new Notification(`${data.title} / Open WebUI`, {
+					new Notification(`${data.title} / Airis`, {
 						body: timeStr,
 						icon: `${WEBUI_BASE_URL}/static/favicon.png`
 					});
@@ -672,7 +674,7 @@
 
 					if ($isLastActiveTab) {
 						if ($settings?.notificationEnabled ?? false) {
-							new Notification(`${displayTitle} / Open WebUI`, {
+							new Notification(`${displayTitle} / Airis`, {
 								body: contentPreview,
 								icon: `${WEBUI_BASE_URL}/static/favicon.png`
 							});
@@ -779,7 +781,7 @@
 
 				if ($isLastActiveTab) {
 					if ($settings?.notificationEnabled ?? false) {
-						new Notification(`${title} / Open WebUI`, {
+						new Notification(`${title} / Airis`, {
 							body: data?.content,
 							icon: `${WEBUI_API_BASE_URL}/users/${data?.user?.id}/profile/image`
 						});
@@ -973,7 +975,7 @@
 
 	const windowMessageEventHandler = async (event) => {
 		if (
-			!['https://openwebui.com', 'https://www.openwebui.com', 'http://localhost:9999'].includes(
+			![window.location.origin, 'http://localhost:9999'].includes(
 				event.origin
 			)
 		) {
@@ -1309,6 +1311,9 @@
 >
 	{$i18n.t('Skip to main content')}
 </a>
+
+<AnalyticsBootstrap />
+<AnalyticsConsent />
 
 {#if showRefresh}
 	<div class=" py-5">

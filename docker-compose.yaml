@@ -30,6 +30,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        PUBLIC_YANDEX_METRICA_ID: ${PUBLIC_YANDEX_METRICA_ID:-}
+        PUBLIC_GA_MEASUREMENT_ID: ${PUBLIC_GA_MEASUREMENT_ID:-}
     image: ghcr.io/open-webui/open-webui:${WEBUI_DOCKER_TAG-main}
     container_name: airis
     volumes:
@@ -60,7 +63,7 @@ services:
       # OAuth configuration
       - 'ENABLE_OAUTH_SIGNUP=${ENABLE_OAUTH_SIGNUP:-true}'
       - 'OAUTH_MERGE_ACCOUNTS_BY_EMAIL=${OAUTH_MERGE_ACCOUNTS_BY_EMAIL:-true}'
-      # GitHub OAuth (Open WebUI built-in provider)
+      # GitHub OAuth provider
       - 'GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}'
       - 'GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}'
       - 'GITHUB_CLIENT_SCOPE=${GITHUB_CLIENT_SCOPE:-user:email}'
@@ -89,7 +92,7 @@ services:
       - 'SMTP_PASSWORD=${SMTP_PASSWORD:-}'
       - 'SMTP_USE_TLS=${SMTP_USE_TLS:-true}'
       - 'SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-noreply@example.com}'
-      - 'SMTP_FROM_NAME=${SMTP_FROM_NAME:-Open WebUI}'
+      - 'SMTP_FROM_NAME=${SMTP_FROM_NAME:-Airis}'
       # Billing configuration
       - 'ENABLE_BILLING_WALLET=${ENABLE_BILLING_WALLET-true}'
       - 'ENABLE_BILLING_SUBSCRIPTIONS=${ENABLE_BILLING_SUBSCRIPTIONS-false}'

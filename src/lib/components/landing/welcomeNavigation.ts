@@ -2,6 +2,7 @@ import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 import { get } from 'svelte/store';
 import { user } from '$lib/stores';
+import { trackEvent } from '$lib/utils/analytics';
 
 export const buildChatUrl = (source: string, params: Record<string, string> = {}): string => {
 	const searchParams = new URLSearchParams({ src: source, ...params });
@@ -24,6 +25,7 @@ export const buildSignupUrl = (source: string, params: Record<string, string> = 
 };
 
 export const openPreset = (source: string, preset: string, prompt: string): void => {
+	trackEvent('landing_preset_open', { source, preset });
 	const target = buildChatUrl(source, { preset, q: prompt, submit: 'false' });
 
 	if (get(user)) {
@@ -53,6 +55,7 @@ export const openPreset = (source: string, preset: string, prompt: string): void
 };
 
 export const openCta = (source: string): void => {
+	trackEvent('landing_cta_open', { source });
 	const target = buildChatUrl(source);
 
 	if (get(user)) {

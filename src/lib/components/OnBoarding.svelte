@@ -1,5 +1,6 @@
 <script>
 	import { getContext } from 'svelte';
+	import { trackEvent } from '$lib/utils/analytics';
 	const i18n = getContext('i18n');
 
 	export let show = true;
@@ -69,7 +70,7 @@
 			<div class="flex w-full flex-col justify-end px-6 pb-8 sm:px-10 sm:pb-10 lg:px-16 lg:pb-14">
 				<div class="max-w-3xl">
 					<div class="mb-4 text-[11px] font-medium tracking-[0.18em] uppercase opacity-35">
-						Open WebUI
+						Airis
 					</div>
 
 					<h1 class="m-0 max-w-3xl text-2xl leading-[1.15] font-light tracking-tight lg:text-4xl">
@@ -87,6 +88,7 @@
 							aria-label={$i18n.t('Get started')}
 							class="group relative z-20 inline-flex min-w-40 items-center justify-center gap-2 bg-white px-8 py-3 text-sm font-normal text-black transition hover:bg-white/90 focus:ring-2 focus:ring-white/50 focus:outline-hidden"
 							on:click={() => {
+								trackEvent('onboarding_completed');
 								getStartedHandler();
 							}}
 						>
@@ -103,14 +105,6 @@
 							</svg>
 						</button>
 
-						<a
-							class="inline-flex items-center text-sm text-white/60 transition hover:text-white"
-							href="https://docs.openwebui.com/"
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							{$i18n.t('Read the docs')}
-						</a>
 					</div>
 				</div>
 			</div>

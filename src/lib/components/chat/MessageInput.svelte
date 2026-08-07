@@ -1713,7 +1713,7 @@
 
 							<div class="px-2">
 								<div
-									class="scrollbar-hidden rtl:text-right ltr:text-left bg-transparent dark:text-gray-100 outline-hidden w-full pb-0.5 px-1 resize-none h-fit max-h-96 overflow-auto {files.length ===
+									class="ym-hide-content scrollbar-hidden rtl:text-right ltr:text-left bg-transparent dark:text-gray-100 outline-hidden w-full pb-0.5 px-1 resize-none h-fit max-h-96 overflow-auto {files.length ===
 									0
 										? atSelectedModel !== undefined
 											? 'pt-1'
