@@ -1,6 +1,7 @@
 <script lang="ts">
 	import NavHeader from './NavHeader.svelte';
 	import FooterLinks from './FooterLinks.svelte';
+	import PublicBreadcrumb from './PublicBreadcrumb.svelte';
 	import { page } from '$app/stores';
 
 	export let title: string = '';
@@ -12,6 +13,8 @@
 	export let heroImage: string = '';
 	export let heroImageAlt: string = '';
 	export let tone: 'light' | 'dark' = 'dark';
+	export let showBreadcrumb: boolean = true;
+	export let breadcrumbLabel: string = '';
 </script>
 
 <svelte:head>
@@ -25,6 +28,16 @@
 
 <div class="public-page airis-public-page min-h-screen flex flex-col" data-tone={tone}>
 	<NavHeader currentPath={$page.url.pathname} {tone} />
+	{#if showBreadcrumb && $page.url.pathname !== '/welcome'}
+		<div class="airis-public-breadcrumb-wrap">
+			<div class="container mx-auto px-4">
+				<PublicBreadcrumb
+					label={breadcrumbLabel || title}
+					parentLabel={$page.url.pathname.startsWith('/documents/') ? 'Документы' : ''}
+				/>
+			</div>
+		</div>
+	{/if}
 
 	{#if showHero}
 		<section class="container mx-auto px-4 pt-14 pb-12">
@@ -69,7 +82,7 @@
 
 	<footer class="public-page__footer airis-public-footer border-t py-8">
 		<div class="container mx-auto px-4">
-			<FooterLinks tone={tone} copyright={`${new Date().getFullYear()} Airis. Все права защищены.`} />
+			<FooterLinks {tone} copyright={`${new Date().getFullYear()} Airis. Все права защищены.`} />
 		</div>
 	</footer>
 </div>

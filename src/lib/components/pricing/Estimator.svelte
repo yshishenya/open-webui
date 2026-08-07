@@ -73,7 +73,7 @@
 				style: 'currency',
 				currency
 			}).format(amount);
-		} catch (error) {
+		} catch {
 			return `${amount.toFixed(2)} ${currency}`.trim();
 		}
 	};
@@ -217,15 +217,19 @@
 		}
 	};
 
-	$: exampleTextPresets = config.text.presets.map((preset) => ({
-		...preset,
-		estimate: computeTextEstimate(preset.messagesPerDay, preset.bucket, preset.replyMultiplier)
-	}));
+	$: exampleTextPresets = config.text.presets
+		.map((preset) => ({
+			...preset,
+			estimate: computeTextEstimate(preset.messagesPerDay, preset.bucket, preset.replyMultiplier)
+		}))
+		.filter((preset) => preset.estimate !== null);
 
-	$: exampleImagePresets = config.image.presets.map((preset) => ({
-		...preset,
-		estimate: computeImageEstimate(preset.count)
-	}));
+	$: exampleImagePresets = config.image.presets
+		.map((preset) => ({
+			...preset,
+			estimate: computeImageEstimate(preset.count)
+		}))
+		.filter((preset) => preset.estimate !== null);
 
 	$: textEstimate = computeTextEstimate(textMessagesPerDay, textBucket, textReplyMultiplier);
 	$: imageEstimate = computeImageEstimate(imageCount);
@@ -235,8 +239,12 @@
 <div class="space-y-8">
 	{#if loading}
 		<div class="grid gap-6 md:grid-cols-3">
-			{#each Array.from({ length: 3 }) as _}
-				<div class="h-24 rounded-2xl bg-gray-200/70 animate-pulse" aria-hidden="true"></div>
+			{#each [0, 1, 2] as skeleton}
+				<div
+					class="h-24 rounded-2xl bg-gray-200/70 animate-pulse"
+					data-skeleton={skeleton}
+					aria-hidden="true"
+				></div>
 			{/each}
 		</div>
 	{:else}
