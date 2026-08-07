@@ -6,7 +6,7 @@
 - Status: completed
 - Owner: Codex
 - Branch: codex/feature/billing-balance-history-simplify
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/airis-yandex-analytics-depth-2026-08-07-2017.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/airis-yandex-analytics-depth-2026-08-07-001.json`
 - Created: 2026-08-07
 
 ## Goal

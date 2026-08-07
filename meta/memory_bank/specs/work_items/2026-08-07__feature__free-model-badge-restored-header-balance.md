@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: codex/feature/free-model-balance
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/free-model-badge-and-restored--2026-08-07-1630.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/free-model-badge-restored-header-2026-08-07-001.json`
 - Created: 2026-08-07
 - Updated: 2026-08-07
 

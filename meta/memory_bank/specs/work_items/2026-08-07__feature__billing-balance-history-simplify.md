@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: `codex/feature/billing-balance-history-simplify`
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/simplify-billing-balance-and-t-2026-08-07-1744.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/simplify-billing-balance-history-2026-08-07-001.json`
 - Created: 2026-08-07
 - Updated: 2026-08-07
 

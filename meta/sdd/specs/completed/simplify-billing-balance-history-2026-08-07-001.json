@@ -1,5 +1,5 @@
 {
-  "spec_id": "simplify-billing-balance-and-t-2026-08-07-1744",
+  "spec_id": "simplify-billing-balance-history-2026-08-07-001",
   "title": "Simplify billing balance and transaction history UX",
   "generated": "2026-08-07T14:44:55.329100Z",
   "last_updated": "2026-08-07T16:30:36.873121Z",
@@ -13,7 +13,8 @@
     "activated_date": "2026-08-07T14:46:31.476797Z",
     "progress_percentage": 100,
     "current_phase": "phase-3",
-    "completed_date": "2026-08-07T16:30:36.872716Z"
+    "completed_date": "2026-08-07T16:30:36.872716Z",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-07__feature__billing-balance-history-simplify.md"
   },
   "hierarchy": {
     "spec-root": {
@@ -75,7 +76,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "verification_type": "test",
+        "verification_type": "auto",
         "command": "npm run test:frontend -- --run src/routes/(app)/billing/balance/billing-balance.test.ts",
         "completed_at": "2026-08-07T15:13:09.219329Z",
         "needs_journaling": false,
@@ -126,7 +127,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "verification_type": "test",
+        "verification_type": "auto",
         "command": "npm run test:frontend -- --run src/lib/components/billing/UnifiedTimeline.test.ts",
         "completed_at": "2026-08-07T15:13:22.332648Z",
         "needs_journaling": false,
@@ -178,7 +179,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "verification_type": "test",
+        "verification_type": "auto",
         "command": "npm run test:frontend -- --run",
         "completed_at": "2026-08-07T15:13:29.235839Z",
         "needs_journaling": false,

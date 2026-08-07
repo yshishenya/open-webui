@@ -8,7 +8,7 @@
 - Branch: `codex/feature/billing-balance-history-simplify`
 - Created: 2026-08-07
 - Updated: 2026-08-07
-- SDD Spec: `meta/sdd/specs/active/billing-topup-recovery-clarity-2026-08-07-1947.json`
+- SDD Spec: `meta/sdd/specs/active/billing-topup-recovery-clarity-2026-08-07-001.json`
 
 ## Context
 

@@ -51,7 +51,7 @@
 
 - [ ] **[FEATURE][BILLING][UX]** Make top-up recovery obvious when a paid model reaches zero balance
   - Spec: `meta/memory_bank/specs/work_items/2026-08-07__feature__billing-topup-recovery-clarity.md`
-  - SDD Spec: `meta/sdd/specs/active/billing-topup-recovery-clarity-2026-08-07-1947.json`
+  - SDD Spec: `meta/sdd/specs/active/billing-topup-recovery-clarity-2026-08-07-001.json`
   - Owner: Codex
   - Branch: `codex/feature/billing-balance-history-simplify`
   - Started: 2026-08-07

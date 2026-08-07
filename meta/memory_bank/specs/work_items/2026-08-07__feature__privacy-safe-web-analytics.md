@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/feature/billing-balance-history-simplify
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/airis-privacy-safe-yandex-and--2026-08-07-1942.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/airis-privacy-safe-yandex-analytics-2026-08-07-001.json`
 - Created: 2026-08-07
 - Updated: 2026-08-07
 
