@@ -1,0 +1,52 @@
+{
+  "spec_id": "landing-ssr-and-analytics-hard-2026-08-08-0200",
+  "title": "landing SSR and analytics hardening",
+  "generated": "2026-08-07T23:00:55.337058Z",
+  "last_updated": "2026-08-07T23:01:57.684304Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-08__bugfix__landing-ssr-analytics.md",
+    "status": "completed",
+    "completed_date": "2026-08-07T23:01:57.684098Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "landing SSR and analytics hardening",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 0,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: SSR and public route safety",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [],
+      "total_tasks": 0,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Measurement and conversion verification",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [],
+      "total_tasks": 0,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  }
+}

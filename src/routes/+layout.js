@@ -3,11 +3,9 @@
 // Documentation: https://kit.svelte.dev/docs/page-options#prerender
 // export const prerender = true;
 
-// if you want to Generate a SPA
-// you have to set ssr to false.
-// This is not the case (so set as true or comment the line)
-// Documentation: https://kit.svelte.dev/docs/page-options#ssr
-export const ssr = false;
+// Keep the public marketing shell server-renderable so search engines and link
+// previews receive the actual page copy instead of the client splash screen.
+export const ssr = true;
 
 // How to manage the trailing slashes in the URLs
 // the URL for about page will be /about with 'ignore' (default)

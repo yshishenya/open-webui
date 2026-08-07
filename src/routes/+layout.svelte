@@ -108,9 +108,9 @@
 
 	setContext('i18n', i18n);
 
-	const bc = new BroadcastChannel('active-tab-channel');
+	let bc = null;
 
-	let loaded = false;
+	let loaded = isPublicMarketingRoute($page.url.pathname);
 	let tokenTimer = null;
 	let isAuthRedirectInProgress = false;
 
@@ -985,6 +985,10 @@
 	};
 
 	onMount(async () => {
+		if (typeof BroadcastChannel !== 'undefined') {
+			bc = new BroadcastChannel('active-tab-channel');
+		}
+
 		const originalFetch = window.fetch.bind(window);
 		window.fetch = async (input, init) => {
 			const response = await originalFetch(input, init);
@@ -1068,11 +1072,13 @@
 		}
 
 		// Listen for messages on the BroadcastChannel
-		bc.onmessage = (event) => {
-			if (event.data === 'active') {
-				isLastActiveTab.set(false); // Another tab became active
-			}
-		};
+		if (bc) {
+			bc.onmessage = (event) => {
+				if (event.data === 'active') {
+					isLastActiveTab.set(false); // Another tab became active
+				}
+			};
+		}
 
 		// Set yourself as the last active tab when this tab is focused
 		const handlePageHidden = () => {
@@ -1086,7 +1092,7 @@
 			lastVisibleAt = Date.now();
 
 			isLastActiveTab.set(true); // This tab is now the active tab
-			bc.postMessage('active'); // Notify other tabs that this tab is active
+			bc?.postMessage('active'); // Notify other tabs that this tab is active
 
 			// Check token expiry when the tab becomes active
 			checkTokenExpiry();
@@ -1290,8 +1296,10 @@
 	}
 
 	onDestroy(() => {
-		window.removeEventListener('message', windowMessageEventHandler);
-		bc.close();
+		if (typeof window !== 'undefined') {
+			window.removeEventListener('message', windowMessageEventHandler);
+		}
+		bc?.close();
 	});
 </script>
 
@@ -1353,9 +1361,9 @@
 	theme={$theme.includes('dark')
 		? 'dark'
 		: $theme === 'system'
-			? window.matchMedia('(prefers-color-scheme: dark)').matches
-				? 'dark'
-				: 'light'
+				? typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+					? 'dark'
+					: 'light'
 			: 'light'}
 	richColors
 	position="top-right"

@@ -1,5 +1,13 @@
 <script lang="ts">
 	import { PublicPageLayout } from '$lib/components/landing';
+	import { openCta } from '$lib/components/landing/welcomeNavigation';
+	import { trackEvent } from '$lib/utils/analytics';
+
+	const handleHeroCta = (event: MouseEvent): void => {
+		event.preventDefault();
+		trackEvent('about_hero_cta_click');
+		openCta('about_hero');
+	};
 </script>
 
 <PublicPageLayout
@@ -22,6 +30,7 @@
 					<a
 						class="airis-public-btn-primary inline-flex min-h-11 items-center justify-center rounded-xl px-6"
 						href="/signup?redirect=%2F%3Fsrc%3Dabout_hero&src=about_hero"
+						on:click={handleHeroCta}
 					>
 						Начать бесплатно
 					</a>

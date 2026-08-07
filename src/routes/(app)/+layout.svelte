@@ -14,7 +14,12 @@
 	import { getBanners } from '$lib/apis/configs';
 	import { getTerminalServers } from '$lib/apis/terminal';
 	import { getUserSettings } from '$lib/apis/users';
-	import { getLegalRequirements, getLegalStatus, type LegalStatusResponse } from '$lib/apis/legal';
+	import {
+		getLegalRequirements,
+		getLegalStatus,
+		LegalApiError,
+		type LegalStatusResponse
+	} from '$lib/apis/legal';
 	import { setTextScale } from '$lib/utils/text-scale';
 
 	import { WEBUI_VERSION, WEBUI_API_BASE_URL } from '$lib/constants';
@@ -446,6 +451,14 @@
 			}
 		} catch (error) {
 			console.error(error);
+
+			if (error instanceof LegalApiError && error.status === 401) {
+				localStorage.removeItem('token');
+				await user.set(null);
+				const redirectPath = `${$page.url.pathname}${$page.url.search}`;
+				await goto(`/auth?redirect=${encodeURIComponent(redirectPath)}`);
+				return;
+			}
 
 			// Fail closed: if status cannot be loaded, still show required documents.
 			try {
