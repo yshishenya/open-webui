@@ -94,10 +94,9 @@
 		return model.rates.tts_1000_chars !== null || model.rates.stt_minute !== null;
 	};
 
-	// Keep the async rate-card dependency explicit: Svelte cannot infer reads hidden inside resolveModel.
-	$: textModel = rateCard
-		? pickCheapestTextModel(rateCard.models, recommendedModelIdByType.text)
-		: null;
+	// Keep the async rate-card dependency explicit so the estimate recalculates after the API response.
+	$: rateCardModels = rateCard?.models ?? [];
+	$: textModel = pickCheapestTextModel(rateCardModels, recommendedModelIdByType.text);
 	$: imageModel = rateCard ? resolveModel(recommendedModelIdByType.image, hasImageRates) : null;
 	$: audioModel = rateCard ? resolveModel(recommendedModelIdByType.audio, hasAudioRates) : null;
 
@@ -193,9 +192,10 @@
 		}
 	};
 
-	$: textEstimate = computeTextEstimate(textMessagesPerDay);
-	$: imageEstimate = computeImageEstimate(imageCount);
-	$: audioEstimate = computeAudioEstimate();
+	// Keep model/rate dependencies in the reactive statements; the helpers intentionally hide their reads.
+	$: textEstimate = textRatesAvailable ? computeTextEstimate(textMessagesPerDay) : null;
+	$: imageEstimate = imageRatesAvailable ? computeImageEstimate(imageCount) : null;
+	$: audioEstimate = audioRatesAvailable ? computeAudioEstimate() : null;
 </script>
 
 <div class="space-y-8">
