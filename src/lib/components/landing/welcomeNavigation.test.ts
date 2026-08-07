@@ -39,6 +39,7 @@ describe('welcomeNavigation', () => {
 	beforeEach(() => {
 		gotoMock.mockReset();
 		sessionStorage.clear();
+		localStorage.removeItem('token');
 		userStore.set(null);
 	});
 
@@ -99,6 +100,14 @@ describe('welcomeNavigation', () => {
 		const redirect = parsed.searchParams.get('redirect');
 		const redirectUrl = parseUrl(redirect ?? '');
 		expect(redirectUrl.searchParams.get('src')).toBe('welcome_cta');
+	});
+
+	it('openCta uses an existing token before session hydration completes', () => {
+		localStorage.setItem('token', 'session-token');
+
+		openCta('welcome_cta');
+
+		expect(gotoMock).toHaveBeenCalledWith('/?src=welcome_cta');
 	});
 
 	it('openPreset stores guest prompt and redirects to signup', () => {
