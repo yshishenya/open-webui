@@ -157,6 +157,36 @@ test.describe('Billing wallet recovery (smoke)', () => {
 		await expect(page.getByTestId('wallet-low-balance-hint-topup')).toHaveCount(0);
 	});
 
+	test('keeps free-limit details collapsed until disclosed', async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.route('**/api/models**', async (route) => {
+			await route.fulfill({ json: leadMagnetModelsResponse });
+		});
+
+		await page.goto('/billing/balance');
+		await page.waitForResponse('**/api/v1/billing/lead-magnet');
+
+		const leadMagnetSection = page.getByTestId('lead-magnet-section');
+		const limitsButton = leadMagnetSection.getByRole('button', { name: 'Limits', exact: true });
+		await expect(limitsButton).toHaveAttribute('aria-expanded', 'false');
+		await expect(leadMagnetSection.locator('#free-limit-details')).toHaveCount(0);
+		await expect(page.getByTestId('topup-proceed')).toBeVisible();
+
+		const hasHorizontalOverflow = await page.evaluate(
+			() => document.documentElement.scrollWidth > document.documentElement.clientWidth
+		);
+		expect(hasHorizontalOverflow).toBe(false);
+
+		await limitsButton.focus();
+		await limitsButton.press('Enter');
+		await expect(limitsButton).toHaveAttribute('aria-expanded', 'true');
+		await expect(leadMagnetSection.locator('#free-limit-details')).toBeVisible();
+		await expect(leadMagnetSection.getByText('Input', { exact: true })).toBeVisible();
+		await expect(
+			leadMagnetSection.getByRole('button', { name: 'Models included (1)', exact: true })
+		).toBeVisible();
+	});
+
 	test('shows low-balance top-up hint when free models are unavailable and keeps topup wiring', async ({
 		page
 	}) => {
