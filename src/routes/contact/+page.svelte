@@ -11,7 +11,7 @@
 	};
 
 	let isSubmitting = false;
-	let submitStatus: 'idle' | 'success' | 'error' = 'idle';
+	let submitStatus: 'idle' | 'opened' | 'error' = 'idle';
 
 	// Get query params for pre-selecting subject
 	$: {
@@ -35,20 +35,19 @@
 		{ value: 'feedback', label: 'Отзыв о продукте' }
 	];
 
-	const handleSubmit = async () => {
+	const handleSubmit = (): void => {
 		isSubmitting = true;
 		submitStatus = 'idle';
+		const subject = encodeURIComponent(formData.subject || 'Вопрос в Airis');
+		const body = encodeURIComponent(
+			`Имя: ${formData.name}\nEmail: ${formData.email}\nТип обращения: ${formData.type}\n\n${formData.message}`
+		);
 
-		try {
-			// Simulate form submission
-			await new Promise((resolve) => setTimeout(resolve, 1500));
-			submitStatus = 'success';
-			formData = { name: '', email: '', subject: '', message: '', type: 'general' };
-		} catch (error) {
-			submitStatus = 'error';
-		} finally {
-			isSubmitting = false;
+		if (typeof window !== 'undefined') {
+			window.location.href = `mailto:support@airis.you?subject=${subject}&body=${body}`;
 		}
+		submitStatus = 'opened';
+		isSubmitting = false;
 	};
 </script>
 
@@ -75,7 +74,7 @@
 					<h1
 						class="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.05]"
 					>
-						Свяжитесь с нами
+						Свяжитесь с командой
 					</h1>
 					<p class="text-lg md:text-xl text-gray-600 max-w-xl">
 						Ответим на вопросы, поможем с настройкой и подскажем лучший путь.
@@ -101,7 +100,7 @@
 					<ul class="space-y-3 text-sm text-gray-700">
 						<li class="flex items-start gap-2">
 							<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
-							Обычно отвечаем в течение 24 часов
+							Обычно отвечаем в течение 24 часов в рабочие дни
 						</li>
 						<li class="flex items-start gap-2">
 							<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
@@ -173,7 +172,7 @@
 
 				<div class="md:col-span-2">
 					<div class="bg-white rounded-2xl border border-gray-200/70 p-8 shadow-sm">
-						{#if submitStatus === 'success'}
+						{#if submitStatus === 'opened'}
 							<div class="text-center py-12">
 								<div
 									class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6"
@@ -192,9 +191,14 @@
 										></path>
 									</svg>
 								</div>
-								<h3 class="text-2xl font-semibold text-gray-900 mb-2">Сообщение отправлено</h3>
+								<h3 class="text-2xl font-semibold text-gray-900 mb-2">Откройте письмо в почте</h3>
 								<p class="text-gray-600 mb-6">
-									Спасибо за обращение. Мы ответим вам в ближайшее время.
+									Проверьте письмо и нажмите «Отправить». Если окно почты не открылось, используйте
+									<a
+										class="font-semibold text-[#5d24d6] hover:underline"
+										href="mailto:support@airis.you">support@airis.you</a
+									>
+									напрямую.
 								</p>
 								<button
 									on:click={() => (submitStatus = 'idle')}
@@ -213,6 +217,8 @@
 										<input
 											type="text"
 											id="name"
+											name="name"
+											autocomplete="name"
 											bind:value={formData.name}
 											required
 											class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black/20 focus:border-gray-400 transition-shadow"
@@ -226,6 +232,8 @@
 										<input
 											type="email"
 											id="email"
+											name="email"
+											autocomplete="email"
 											bind:value={formData.email}
 											required
 											class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black/20 focus:border-gray-400 transition-shadow"
@@ -241,6 +249,7 @@
 										</label>
 										<select
 											id="type"
+											name="type"
 											bind:value={formData.type}
 											class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black/20 focus:border-gray-400 transition-shadow"
 										>
@@ -256,6 +265,7 @@
 										<input
 											type="text"
 											id="subject"
+											name="subject"
 											bind:value={formData.subject}
 											required
 											class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black/20 focus:border-gray-400 transition-shadow"
@@ -270,11 +280,12 @@
 									</label>
 									<textarea
 										id="message"
+										name="message"
 										bind:value={formData.message}
 										required
 										rows="6"
 										class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black/20 focus:border-gray-400 transition-shadow resize-none"
-										placeholder="Опишите ваш вопрос или проблему..."
+										placeholder="Опишите ваш вопрос или проблему…"
 									></textarea>
 								</div>
 
@@ -313,7 +324,7 @@
 												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 											></path>
 										</svg>
-										Отправка...
+										Отправка…
 									{:else}
 										Отправить сообщение
 									{/if}

@@ -11,6 +11,7 @@
 	export let heroEyebrow: string = '';
 	export let heroImage: string = '';
 	export let heroImageAlt: string = '';
+	export let tone: 'light' | 'dark' = 'light';
 </script>
 
 <svelte:head>
@@ -22,10 +23,8 @@
 	{/if}
 </svelte:head>
 
-<div
-	class="min-h-screen bg-[radial-gradient(1200px_600px_at_15%_-10%,rgba(0,0,0,0.05),transparent),radial-gradient(900px_500px_at_90%_0%,rgba(0,0,0,0.04),transparent),linear-gradient(180deg,#f7f7f8_0%,#ffffff_70%)] text-gray-900 flex flex-col font-primary"
->
-	<NavHeader currentPath={$page.url.pathname} />
+<div class="public-page min-h-screen text-gray-900 flex flex-col font-primary" data-tone={tone}>
+	<NavHeader currentPath={$page.url.pathname} {tone} />
 
 	{#if showHero}
 		<section class="container mx-auto px-4 pt-14 pb-12">
@@ -64,13 +63,13 @@
 		</section>
 	{/if}
 
-	<main class="flex-1">
+	<main id="main-content" class="flex-1">
 		<slot />
 	</main>
 
-	<footer class="bg-white/80 border-t border-gray-200/70 py-8">
+	<footer class="public-page__footer border-t border-violet-200/70 py-8">
 		<div class="container mx-auto px-4">
-			<FooterLinks copyright="2025 AIris. Все права защищены." />
+			<FooterLinks copyright={`${new Date().getFullYear()} AIris. Все права защищены.`} />
 		</div>
 	</footer>
 </div>
@@ -78,5 +77,20 @@
 <style>
 	:global(body) {
 		overflow-x: hidden;
+	}
+
+	.public-page {
+		background:
+			radial-gradient(900px 420px at 8% 0%, rgb(113 50 242 / 0.12), transparent 70%),
+			radial-gradient(760px 420px at 100% 12%, rgb(173 147 252 / 0.14), transparent 72%),
+			linear-gradient(180deg, #f8f7ff 0%, #ffffff 58%, #f7f5ff 100%);
+	}
+
+	.public-page__footer {
+		background: rgb(255 255 255 / 0.76);
+	}
+
+	:global(.public-page section[id]) {
+		scroll-margin-top: 88px;
 	}
 </style>

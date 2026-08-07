@@ -67,7 +67,12 @@
 				Юридические документы
 			</h1>
 			<p class="text-lg text-gray-600 max-w-3xl">
-				Ниже — актуальные документы, которые регулируют использование AIRIS.
+				Ниже — документы об использовании Airis, оплате и обработке данных. Если вы ищете ответ на
+				вопрос о продукте, начните с <a
+					class="font-semibold text-[#5d24d6] hover:underline"
+					href="/features">возможностей</a
+				>
+				или <a class="font-semibold text-[#5d24d6] hover:underline" href="/pricing">стоимости</a>.
 			</p>
 			<p class="text-sm text-gray-500">Последнее обновление: {lastUpdated}</p>
 		</div>
@@ -78,7 +83,7 @@
 			{#each documents as doc}
 				<a
 					href={doc.href}
-					class="group rounded-2xl border border-gray-200/70 bg-white/80 p-6 shadow-sm hover:shadow-md transition-shadow"
+					class="group rounded-2xl border border-gray-200/70 bg-white/90 p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-[#c7b3ff] hover:shadow-[0_16px_40px_rgba(89,44,180,0.10)]"
 				>
 					<div class="flex items-start justify-between gap-4">
 						<div class="space-y-2">
@@ -101,4 +106,3 @@
 		</div>
 	</section>
 </PublicPageLayout>
-

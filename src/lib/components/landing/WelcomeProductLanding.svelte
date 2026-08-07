@@ -121,7 +121,7 @@
 			id: 'cost',
 			question: 'Как считается стоимость?',
 			answer:
-				'Списание зависит от выбранной модели и объёма использования. Актуальные ставки доступны на странице тарифов, расходы — в личном кабинете.'
+				'Списание зависит от выбранной модели и объёма использования. Расходы и история списаний доступны в личном кабинете.'
 		},
 		{
 			id: 'data',
@@ -129,6 +129,17 @@
 			answer:
 				'Запросы передаются выбранному AI-провайдеру для подготовки ответа. Подробные условия обработки и хранения данных описаны в политике конфиденциальности.'
 		}
+	];
+
+	const footerLinks = [
+		{ href: '#models', label: 'Модели' },
+		{ href: '#usecases', label: 'Сценарии' },
+		{ href: '#pricing', label: 'Тарифы' },
+		{ href: '#faq', label: 'Вопросы' },
+		{ href: 'mailto:support@airis.you', label: 'Поддержка' },
+		{ href: '/documents', label: 'Документы' },
+		{ href: '/terms', label: 'Оферта' },
+		{ href: '/privacy', label: 'Политика конфиденциальности' }
 	];
 
 	let activeDemo = demoModes[0];
@@ -148,6 +159,11 @@
 	const selectScenario = (scenario: Scenario): void => {
 		activeScenario = scenario;
 		trackEvent('welcome_scenario_group_select', { group: scenario.id });
+	};
+
+	const openCostFaq = (): void => {
+		const target = document.getElementById('faq-cost');
+		if (target instanceof HTMLDetailsElement) target.open = true;
 	};
 
 	const handleTabKeydown = (event: KeyboardEvent): void => {
@@ -234,15 +250,16 @@
 	$: availableModelCount = availableModelNames.length;
 </script>
 
-<main class="welcome-product">
+<main id="main-content" class="welcome-product">
 	<section class="hero section-screen" aria-labelledby="welcome-title">
 		<div class="shell hero__inner">
 			<div class="hero__copy">
 				<p class="eyebrow">Работает в России без VPN</p>
 				<h1 id="welcome-title">AI-модели <span>без VPN — в одном чате</span></h1>
 				<p class="hero__lead">
-					GPT, Claude, Gemini и другие доступные модели — без отдельных сервисов и сложных настроек.
-					Выбирайте модель и решайте задачи с текстом и файлами в одном месте.
+					GPT, Claude, Gemini и другие доступные в Airis модели — без отдельных сервисов и сложных
+					настроек. Выбирайте модель под задачу, работайте с текстом и файлами и уточняйте ответ в
+					одном месте.
 				</p>
 				<div class="hero__actions">
 					<a
@@ -326,8 +343,8 @@
 				<p class="eyebrow">Один интерфейс</p>
 				<h2 id="models-title">Меняйте модель, не меняя сервис</h2>
 				<p class="section-lead">
-					Все доступные в Airis модели собраны в одном чате. Выбирайте одну или несколько —
-					отдельные аккаунты и вкладки не нужны.
+					Доступные в Airis модели собраны в одном чате. Выбирайте одну или несколько — отдельные
+					аккаунты и вкладки не нужны.
 				</p>
 				<ul class="check-list">
 					<li><Check className="h-5 w-5" /> Сравнивайте ответы нескольких моделей</li>
@@ -337,8 +354,8 @@
 				{#if availableModelCount}
 					<p class="model-count">{formatModelCount(availableModelCount)}</p>
 				{/if}
-				<a href="/features#models" class="text-link">
-					Все возможности <ArrowRight className="h-4 w-4" />
+				<a href="#usecases" class="text-link">
+					Посмотреть сценарии <ArrowRight className="h-4 w-4" />
 				</a>
 			</div>
 
@@ -512,7 +529,9 @@
 					>
 						{primaryCtaLabel}
 					</a>
-					<a href="/pricing" class="button button--light-outline">Посмотреть тарифы</a>
+					<a href="#faq-cost" class="button button--light-outline" on:click={openCostFaq}>
+						Как считается стоимость
+					</a>
 				</div>
 			</div>
 
@@ -556,7 +575,7 @@
 			<div class="final-cta__panel">
 				<div>
 					<p class="eyebrow">Начните со своей задачи</p>
-					<h2 id="final-cta-title">Все доступные модели уже в Airis</h2>
+					<h2 id="final-cta-title">Попробуйте Airis на своей задаче</h2>
 					<span>Без VPN · Оплата в ₽ · Без обязательной подписки</span>
 				</div>
 				<a
@@ -571,7 +590,9 @@
 	</section>
 
 	<footer class="footer">
-		<div class="shell"><FooterLinks tone="dark" copyright="2026 Airis. Все права защищены." /></div>
+		<div class="shell">
+			<FooterLinks links={footerLinks} tone="dark" copyright="2026 Airis. Все права защищены." />
+		</div>
 	</footer>
 </main>
 
@@ -1369,6 +1390,7 @@
 
 	.faq__list details {
 		border-bottom: 1px solid var(--airis-line);
+		scroll-margin-top: 96px;
 	}
 
 	.faq__list summary {
