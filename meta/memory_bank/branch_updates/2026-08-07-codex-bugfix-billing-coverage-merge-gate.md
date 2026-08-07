@@ -1,0 +1,5 @@
+- [ ] **[BUG][BILLING][TEST]** Restore merge-medium billing coverage gate after PR #93.
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-07__bugfix__billing-coverage-merge-gate.md`
+  - Owner: Codex
+  - Started: 2026-08-07
+  - Finding: `utils/billing.py` line coverage 82.88% was below the 85% merge gate; functional backend/frontend/e2e suites passed.

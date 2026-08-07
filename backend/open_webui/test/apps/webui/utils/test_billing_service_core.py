@@ -142,3 +142,130 @@ class TestBillingServiceCore:
         assert updates[-1][1]["yookassa_status"] == "pending"
         assert isinstance(fake_client.idempotence_key, str)
         assert "user_email" not in fake_client.metadata
+
+    @pytest.mark.asyncio
+    async def test_process_payment_webhook_provider_fetch_failure_is_retryable(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        import open_webui.utils.billing as billing_utils
+        from open_webui.utils.billing import WebhookRetryableError
+
+        class FailingYooKassaClient:
+            async def get_payment(self, _: str) -> dict[str, object]:
+                raise RuntimeError("provider unavailable")
+
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FailingYooKassaClient())
+
+        with pytest.raises(WebhookRetryableError, match="Failed to fetch payment"):
+            await BillingService().process_payment_webhook(
+                {"event_type": "payment.succeeded", "payment_id": "pay_fetch_failure"}
+            )
+
+    @pytest.mark.asyncio
+    async def test_reconcile_topup_guards_invalid_provider_states(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.utils.billing as billing_utils
+
+        service = BillingService()
+        with pytest.raises(ValueError, match="payment_id is required"):
+            await service.reconcile_topup_payment("user_1", " ")
+
+        monkeypatch.setattr(service.payments, "get_payment_by_provider_id", lambda _: None)
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: None)
+        with pytest.raises(RuntimeError, match="YooKassa client not initialized"):
+            await service.reconcile_topup_payment("user_1", "pay_no_client")
+
+        class FakeYooKassaClient:
+            async def get_payment(self, _: str) -> object:
+                return []
+
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
+        with pytest.raises(RuntimeError, match="Provider payment payload invalid"):
+            await service.reconcile_topup_payment("user_1", "pay_invalid_payload")
+
+        class UnpaidYooKassaClient:
+            async def get_payment(self, _: str) -> dict[str, object]:
+                return {"status": "succeeded", "paid": False}
+
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: UnpaidYooKassaClient())
+        with pytest.raises(RuntimeError, match="not marked as paid"):
+            await service.reconcile_topup_payment("user_1", "pay_unpaid")
+
+    @pytest.mark.asyncio
+    async def test_reconcile_topup_rejects_foreign_local_payment(self, monkeypatch: MonkeyPatch) -> None:
+        service = BillingService()
+        monkeypatch.setattr(
+            service.payments,
+            "get_payment_by_provider_id",
+            lambda _: SimpleNamespace(user_id="other_user"),
+        )
+
+        with pytest.raises(PermissionError, match="does not belong"):
+            await service.reconcile_topup_payment("user_1", "pay_foreign_local")
+
+    @pytest.mark.asyncio
+    async def test_process_payment_webhook_rejects_missing_topup_transaction(self, monkeypatch: MonkeyPatch) -> None:
+        import open_webui.utils.billing as billing_utils
+        from open_webui.utils.billing import WebhookRetryableError
+
+        class FakeYooKassaClient:
+            async def get_payment(self, _: str) -> dict[str, object]:
+                return {
+                    "status": "succeeded",
+                    "paid": True,
+                    "amount": {"value": "10.00", "currency": "RUB"},
+                    "metadata": {"transaction_id": "tx_missing"},
+                }
+
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: FakeYooKassaClient())
+        service = BillingService()
+        monkeypatch.setattr(service.transactions, "get_transaction_by_id", lambda _: None)
+
+        with pytest.raises(WebhookRetryableError, match="Transaction tx_missing not found"):
+            await service.process_payment_webhook(
+                {"event_type": "payment.succeeded", "payment_id": "pay_missing_transaction"}
+            )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("metadata", "amount", "currency", "match"),
+        [
+            ({"amount_kopeks": 999, "user_id": "user_1", "wallet_id": "wallet_1"}, "10.00", "RUB", "metadata amount mismatch"),
+            ({"user_id": "user_1", "wallet_id": "wallet_1"}, "20.00", "RUB", "amount does not match"),
+            ({"user_id": "user_1", "wallet_id": "wallet_1"}, "10.00", "USD", "currency does not match"),
+            ({"user_id": "user_1", "wallet_id": "wallet_2"}, "10.00", "RUB", "wallet does not match"),
+            ({"user_id": "user_2", "wallet_id": "wallet_1"}, "10.00", "RUB", "user does not match"),
+        ],
+    )
+    async def test_topup_webhook_rejects_context_mismatches(
+        self,
+        monkeypatch: MonkeyPatch,
+        metadata: dict[str, object],
+        amount: str,
+        currency: str,
+        match: str,
+    ) -> None:
+        from open_webui.utils.billing import WebhookVerificationError
+
+        service = BillingService()
+        monkeypatch.setattr(
+            service.payments,
+            "get_payment_by_provider_id",
+            lambda _: SimpleNamespace(
+                amount_kopeks=1000,
+                currency="RUB",
+                wallet_id="wallet_1",
+                user_id="user_1",
+                status="pending",
+            ),
+        )
+
+        with pytest.raises(WebhookVerificationError, match=match):
+            service._process_topup_webhook(
+                "payment.succeeded",
+                "pay_context_mismatch",
+                {
+                    "amount": amount,
+                    "currency": currency,
+                    "metadata": metadata,
+                },
+            )
