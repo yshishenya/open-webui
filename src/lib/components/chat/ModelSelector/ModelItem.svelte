@@ -16,6 +16,7 @@
 	import EllipsisHorizontal from '$lib/components/icons/EllipsisHorizontal.svelte';
 	import { toast } from 'svelte-sonner';
 	import Tag from '$lib/components/icons/Tag.svelte';
+	import SparklesSolid from '$lib/components/icons/SparklesSolid.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -53,7 +54,9 @@
 	data-testid="model-item"
 	role="option"
 	aria-selected={isSelected}
-	aria-label={$i18n.t('Select {{modelName}} model', { modelName: item.label })}
+	aria-label={`${$i18n.t('Select {{modelName}} model', { modelName: item.label })}${
+		item.model?.info?.meta?.lead_magnet ? `, ${$i18n.t('Free usage')}` : ''
+	}`}
 	class="group/item flex h-8 w-full cursor-pointer select-none items-center rounded-xl px-2 text-left text-[13px] font-normal text-gray-700 outline-hidden transition-colors duration-75 hover:bg-gray-50/40 dark:text-gray-100 dark:hover:bg-gray-800/40 {index ===
 		selectedModelIdx && !compareEnabled
 		? 'bg-gray-50/70 dark:bg-gray-800/60'
@@ -103,6 +106,19 @@
 					</div>
 				</Tooltip>
 			</div>
+
+			{#if item.model?.info?.meta?.lead_magnet}
+				<Tooltip content={$i18n.t('Free limit applies to select models')} placement="top-start">
+					<span
+						class="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-emerald-500/12 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-emerald-700 dark:bg-emerald-400/12 dark:text-emerald-300"
+						aria-label={$i18n.t('Free usage')}
+						data-testid="model-free-badge"
+					>
+						<SparklesSolid className="size-2.5" />
+						<span>{$i18n.t('Free')}</span>
+					</span>
+				</Tooltip>
+			{/if}
 
 			<div class="flex shrink-0 items-center gap-1.5">
 				{#if item.model.owned_by === 'ollama'}

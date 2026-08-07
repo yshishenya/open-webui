@@ -165,6 +165,8 @@
 				<div class="mr-1 flex flex-none items-center gap-2 self-center">
 					<!-- <div class="md:hidden flex self-center w-[1px] h-5 mx-2 bg-gray-300 dark:bg-stone-700" /> -->
 
+					<HeaderBillingAccess className="hidden sm:block" />
+
 					{#if $user?.role === 'user' ? ($user?.permissions?.chat?.temporary ?? true) && !($user?.permissions?.chat?.temporary_enforced ?? false) : true}
 						{#if !chat?.id}
 							<Tooltip content={$i18n.t(`Temporary Chat`)}>

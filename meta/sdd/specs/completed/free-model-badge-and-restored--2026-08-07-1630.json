@@ -1,0 +1,138 @@
+{
+  "spec_id": "free-model-badge-and-restored--2026-08-07-1630",
+  "title": "Free model badge and restored header balance",
+  "generated": "2026-08-07T13:30:24.888714Z",
+  "last_updated": "2026-08-07T13:40:58.430134Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "status": "completed",
+    "activated_date": "2026-08-07T13:31:40.188158Z",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-07__feature__free-model-badge-restored-header-balance.md",
+    "completed_date": "2026-08-07T13:40:58.429648Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Free model badge and restored header balance",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-07T13:40:33.027302Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-07T13:40:33.311799Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-07T13:40:33.563370Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Inspect and specify existing balance/free-model UI contracts",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 1.0,
+        "completed_at": "2026-08-07T13:40:33.027159Z",
+        "needs_journaling": true,
+        "status_note": "Inspected existing HeaderBillingAccess, lead_magnet metadata, localized strings, and responsive chat/model-picker contracts."
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Implement navbar balance and model free-quota badge",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 2.0,
+        "completed_at": "2026-08-07T13:40:33.311644Z",
+        "needs_journaling": true,
+        "status_note": "Rendered existing balance control in Navbar and added localized informational Free badge for lead_magnet models; no billing/API changes."
+      }
+    },
+    "task-3-1": {
+      "type": "verify",
+      "title": "Run focused frontend tests, typecheck, and lint",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 1.0,
+        "completed_at": "2026-08-07T13:40:33.563187Z",
+        "needs_journaling": true,
+        "status_note": "Vitest passed 27 files/103 tests; git diff check passed. svelte-check and targeted ESLint expose pre-existing repository diagnostics; Vite build reached production chunking but exited on Node heap OOM."
+      }
+    }
+  }
+}
