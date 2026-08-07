@@ -3,12 +3,12 @@
 ## Meta
 
 - Type: feature
-- Status: in_progress
+- Status: done
 - Owner: Codex
 - Branch: `codex/fix-wallet-topup-clarity`
 - Created: 2026-08-07
 - Updated: 2026-08-07
-- SDD Spec: `meta/sdd/specs/active/billing-topup-recovery-clarity-2026-08-07-001.json`
+- SDD Spec: `meta/sdd/specs/completed/billing-topup-recovery-clarity-2026-08-07-001.json`
 
 ## Context
 
@@ -46,9 +46,10 @@ The wallet is functional, but the payment path is easy to miss: package choices 
 
 ## Current verification status
 
-- Completed: focused billing/header/websocket tests (19 tests) and full frontend regression (29 files, 109 tests).
-- Completed: authenticated production browser confirmed the zero-balance paid-model request opens the billing modal with no console errors on the currently deployed build.
-- Pending: deploy this branch and repeat the production browser path.
+- Completed: focused billing/modal tests (14 tests) and full frontend regression (30 files, 116 tests).
+- Completed: targeted ESLint, Vite build with an 8 GB Node heap, and `git diff --check`.
+- Completed: `git-1a3e852` deployed with guarded backup, migration gate, health gate, and rollback image retained; production `/health` returned `{"status":true}`.
+- Completed: authenticated in-app browser verified the low-balance wallet preselects 500 ₽ and enables `Оплатить 500 ₽`; a paid Qwen 3.7 Plus request at 0 ₽ opens the insufficient-funds modal, preserves safe `return_to`, and selects the contextual package. Production console errors: none.
 
 ## Upstream impact
 

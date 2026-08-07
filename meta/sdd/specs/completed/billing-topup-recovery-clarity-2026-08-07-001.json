@@ -2,7 +2,7 @@
   "spec_id": "billing-topup-recovery-clarity-2026-08-07-001",
   "title": "billing topup recovery clarity",
   "generated": "2026-08-07T16:47:13.153781Z",
-  "last_updated": "2026-08-07T17:22:04.324906Z",
+  "last_updated": "2026-08-07T20:25:22.409142Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -11,15 +11,16 @@
     "security_sensitive": false,
     "default_category": "implementation",
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-07__feature__billing-topup-recovery-clarity.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-08-07T16:47:18.055211Z",
-    "progress_percentage": 66
+    "progress_percentage": 100,
+    "completed_date": "2026-08-07T20:25:22.408756Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "billing topup recovery clarity",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
@@ -27,7 +28,7 @@
         "phase-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
@@ -65,14 +66,18 @@
     "phase-3": {
       "type": "phase",
       "title": "Phase 3: [To Be Defined]",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-3-1"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-07T20:25:17.480487Z",
+        "journaled_at": "2026-08-07T20:25:17.484652Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -121,7 +126,7 @@
     "task-3-1": {
       "type": "verify",
       "title": "Run depletion and top-up regression",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3",
       "children": [],
       "dependencies": {
@@ -130,11 +135,15 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "estimated_hours": 3.0,
         "started_at": "2026-08-07T17:22:04.324693Z",
-        "status_note": "Frontend regression passed (29 files, 109 tests); production browser verification is pending because Docker Hub push was denied and SSH/health access timed out."
+        "status_note": "Frontend regression passed: 30 files, 116 tests. Production deployed as git-1a3e852; health returned status true. In-app browser verified low-balance wallet preselects 500 \u20bd and enables \u041e\u043f\u043b\u0430\u0442\u0438\u0442\u044c 500 \u20bd, paid Qwen 3.7 Plus at 0 \u20bd opens \u041d\u0435\u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e \u0441\u0440\u0435\u0434\u0441\u0442\u0432 modal with available/required/shortfall, safe return_to and contextual package selection; production console errors: none.",
+        "completed_at": "2026-08-07T20:25:17.480265Z",
+        "needs_journaling": false,
+        "actual_hours": 3.054,
+        "journaled_at": "2026-08-07T20:25:17.482771Z"
       },
       "description": "Test frontend state transitions and verify the production blocked-chat flow in the in-app browser."
     }
@@ -175,6 +184,24 @@
       "content": "All child tasks in phase phase-2 have been completed.",
       "metadata": {},
       "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-08-07T20:25:17.482760Z",
+      "entry_type": "status_change",
+      "title": "Production top-up recovery verified",
+      "author": "Codex",
+      "content": "Guarded deploy backup, migration gate, health gate and browser regression all passed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-08-07T20:25:17.484645Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 3: [To Be Defined]",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
     }
   ]
 }

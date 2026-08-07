@@ -1,7 +1,9 @@
-- [ ] **[BUGFIX][BILLING][UX]** Make low-balance top-up action obvious and keep fallback pricing truthful
+- [x] **[BUGFIX][BILLING][UX]** Make low-balance top-up action obvious and keep fallback pricing truthful
   - Spec: `meta/memory_bank/specs/work_items/2026-08-07__feature__billing-topup-recovery-clarity.md`
   - Owner: Codex
   - Branch: `codex/fix-wallet-topup-clarity`
   - Started: 2026-08-07
   - Summary: Preselect the first supported package for low-balance users, keep payment explicit and free usage visible, and hide custom input when pricing discovery fails.
-  - Tests: Focused billing/modal tests 14 passed; full frontend Vitest 30 files / 116 tests passed; targeted ESLint passed. Vite build reached chunk rendering but hit the local Node heap limit.
+  - Done: 2026-08-07
+  - Tests: Focused billing/modal tests 14 passed; full frontend Vitest 30 files / 116 tests passed; targeted ESLint passed; Vite build passed with `NODE_OPTIONS=--max-old-space-size=8192`; `git diff --check` passed.
+  - Production: `git-1a3e852` deployed with guarded backup, migration gate, health gate, and rollback image. Wallet CTA and blocked paid-model recovery verified in the authenticated in-app browser; console errors: none.
