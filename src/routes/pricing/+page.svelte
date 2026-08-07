@@ -146,6 +146,12 @@
 
 	$: topupAmounts = pricingConfig?.topup_amounts_rub ?? [];
 	$: hasTopupAmounts = topupAmounts.length > 0;
+	$: capabilities = new Set(rateCard?.models.flatMap((model) => model.capabilities) ?? []);
+	$: hasTextCapability = capabilities.has('text');
+	$: hasImageCapability = capabilities.has('image');
+	$: hasTtsCapability =
+		rateCard?.models.some((model) => model.rates.tts_1000_chars !== null) ?? false;
+	$: hasSttCapability = rateCard?.models.some((model) => model.rates.stt_minute !== null) ?? false;
 
 	$: popularModelIds = pricingConfig?.popular_model_ids ?? [];
 	$: recommendedModelIdByType = pricingConfig?.recommended_model_ids ?? {};
@@ -159,7 +165,14 @@
 				{ label: 'Изображения', value: freeLimits.images, suffix: '' },
 				{ label: 'Озвучка текста', value: freeLimits.tts_minutes, suffix: ' мин' },
 				{ label: 'Распознавание речи', value: freeLimits.stt_minutes, suffix: ' мин' }
-			].filter((item) => item.value > 0)
+			]
+				.filter((item) => item.value > 0)
+				.filter((item) => {
+					if (item.label.startsWith('Текст')) return hasTextCapability;
+					if (item.label === 'Изображения') return hasImageCapability;
+					if (item.label === 'Озвучка текста') return hasTtsCapability;
+					return hasSttCapability;
+				})
 		: [];
 
 	const faqItems: FaqItem[] = [
@@ -296,18 +309,11 @@
 						</li>
 					</ul>
 					<p class="text-xs text-gray-500">
-						Текст зависит от объёма запроса и ответа. Изображения и аудио — по фиксированным
-						ставкам.
+						Стоимость зависит от выбранной модели и типа задачи. Актуальные ставки показаны ниже.
 					</p>
-					{#if hasTopupAmounts}
-						<TopUpAmountsInline
-							amountsRub={topupAmounts}
-							variant="block"
-							label="Пополнение фиксированными суммами"
-						/>
-					{:else}
-						<p class="text-xs text-gray-500">Суммы пополнения временно недоступны.</p>
-					{/if}
+					<p class="text-xs text-gray-500">
+						Доступные суммы пополнения указаны в верхнем блоке и на платёжной странице.
+					</p>
 				</div>
 			</div>
 		</div>
@@ -437,19 +443,9 @@
 					>
 						{$user ? 'Пополнить баланс' : 'Начать бесплатно'}
 					</a>
-					{#if hasTopupAmounts}
-						<TopUpAmountsInline
-							amountsRub={topupAmounts}
-							variant="inline"
-							trackId="cta"
-							label="Суммы пополнения"
-							tone="dark"
-						/>
-					{:else}
-						<span class="text-xs font-medium text-gray-300">
-							Суммы пополнения временно недоступны.
-						</span>
-					{/if}
+					<span class="text-xs font-medium text-gray-300"
+						>Без обязательной подписки · оплата по использованию</span
+					>
 				</div>
 			</div>
 		</div>

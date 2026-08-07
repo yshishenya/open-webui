@@ -7,9 +7,10 @@ export type AnalyticsPurchase = {
 };
 
 import { getAnalyticsConsent } from '$lib/utils/airis/analyticsConsent';
+import { PUBLIC_GA_MEASUREMENT_ID, PUBLIC_YANDEX_METRICA_ID } from '$env/static/public';
 
-const YANDEX_METRICA_ID = import.meta.env.PUBLIC_YANDEX_METRICA_ID?.trim();
-const GA_MEASUREMENT_ID = import.meta.env.PUBLIC_GA_MEASUREMENT_ID?.trim();
+const YANDEX_METRICA_ID = PUBLIC_YANDEX_METRICA_ID?.trim();
+const GA_MEASUREMENT_ID = PUBLIC_GA_MEASUREMENT_ID?.trim();
 const SENSITIVE_KEY = /(email|name|prompt|content|message|token|secret|password|url|query)/i;
 const MAX_STRING_LENGTH = 80;
 const LANDING_CTA_EVENTS = new Set([
@@ -28,7 +29,13 @@ const LANDING_CTA_EVENTS = new Set([
 	'pricing_hero_primary_click',
 	'pricing_final_cta_click',
 	'pricing_estimator_primary_click',
-	'pricing_free_start_click'
+	'pricing_free_start_click',
+	'landing_cta_open',
+	'public_header_cta_click',
+	'features_hero_primary',
+	'features_final_cta',
+	'features_sticky_cta',
+	'features_how_cta'
 ]);
 
 type AnalyticsWindow = Window & {

@@ -15,7 +15,7 @@
 	const navLinks: NavLink[] = [
 		{ href: '/features', label: 'Возможности' },
 		{ href: '/pricing', label: 'Тарифы' },
-		{ href: '/about', label: 'О проекте' },
+		{ href: '/about', label: 'О продукте' },
 		{ href: '/contact', label: 'Контакты' }
 	];
 
@@ -44,43 +44,36 @@
 	};
 
 	const handleHeaderCta = (event: MouseEvent): void => {
-		if (!isWelcome()) {
-			return;
-		}
-
 		event.preventDefault();
-		trackEvent('welcome_header_cta_click');
+		const pageSource = currentPath.replace(/^\//, '').replace(/[^a-z0-9_-]/gi, '_') || 'page';
+		const source = isWelcome() ? 'welcome_header_cta' : `public_header_cta_${pageSource}`;
+		trackEvent(isWelcome() ? 'welcome_header_cta_click' : 'public_header_cta_click', {
+			source,
+			path: currentPath
+		});
 
-		const target = buildChatTarget('welcome_header_cta');
+		const target = buildChatTarget(source);
 		if ($user) {
 			goto(target);
 			return;
 		}
 
-		goto(buildSignupTarget('welcome_header_cta'));
+		goto(buildSignupTarget(source));
 	};
 
 	const handleLoginClick = (event: MouseEvent): void => {
-		if (!isWelcome()) {
-			return;
-		}
-
 		event.preventDefault();
-		trackEvent('welcome_login_click');
-		goto(buildLoginTarget('welcome_login'));
+		const pageSource = currentPath.replace(/^\//, '').replace(/[^a-z0-9_-]/gi, '_') || 'page';
+		const source = isWelcome() ? 'welcome_login' : `public_login_${pageSource}`;
+		trackEvent(isWelcome() ? 'welcome_login_click' : 'public_login_click', {
+			source,
+			path: currentPath
+		});
+		goto(buildLoginTarget(source));
 	};
 </script>
 
-<a
-	href="#main-content"
-	class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-gray-900 focus:shadow-lg"
->
-	Перейти к содержимому
-</a>
-
-<nav
-	class="airis-public-nav {darkSurface ? 'airis-public-nav--dark' : ''}"
->
+<nav class="airis-public-nav {darkSurface ? 'airis-public-nav--dark' : ''}">
 	<div class="container mx-auto px-4">
 		<div class="flex items-center justify-between h-16">
 			<!-- Logo -->
@@ -88,14 +81,10 @@
 				href="/welcome"
 				class="airis-public-logo flex items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#ad93fc]"
 			>
-				<div
-					class="airis-public-logo__mark w-9 h-9 rounded-lg flex items-center justify-center"
-				>
+				<div class="airis-public-logo__mark w-9 h-9 rounded-lg flex items-center justify-center">
 					<img src="{WEBUI_BASE_URL}/static/favicon.svg" class="w-7 h-7" alt="" draggable="false" />
 				</div>
-				<span
-					class="font-semibold text-lg tracking-tight">Airis</span
-				>
+				<span class="font-semibold text-lg tracking-tight">Airis</span>
 			</a>
 
 			<!-- Desktop Navigation -->
@@ -177,24 +166,19 @@
 
 		<!-- Mobile Menu -->
 		{#if mobileMenuOpen}
-			<div
-				class="airis-public-nav__mobile md:hidden py-4 border-t"
-				id="mobile-nav"
-			>
+			<div class="airis-public-nav__mobile md:hidden py-4 border-t" id="mobile-nav">
 				<div class="flex flex-col gap-4">
 					{#each navLinks as link}
 						<a
 							href={link.href}
-						aria-current={isActive(link.href) ? 'page' : undefined}
+							aria-current={isActive(link.href) ? 'page' : undefined}
 							class="airis-public-nav__link text-sm font-medium px-2 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad93fc] rounded-md"
 							on:click={() => (mobileMenuOpen = false)}
 						>
 							{link.label}
 						</a>
 					{/each}
-					<div
-						class="airis-public-nav__mobile flex flex-col gap-2 pt-4 border-t"
-					>
+					<div class="airis-public-nav__mobile flex flex-col gap-2 pt-4 border-t">
 						<a
 							href="/auth"
 							class="airis-public-nav__login text-sm font-medium px-2 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad93fc] rounded-md"

@@ -974,11 +974,7 @@
 	};
 
 	const windowMessageEventHandler = async (event) => {
-		if (
-			![window.location.origin, 'http://localhost:9999'].includes(
-				event.origin
-			)
-		) {
+		if (![window.location.origin, 'http://localhost:9999'].includes(event.origin)) {
 			return;
 		}
 
@@ -1300,18 +1296,23 @@
 </script>
 
 <svelte:head>
-	<title>{$WEBUI_NAME}</title>
-	<link crossorigin="anonymous" rel="icon" href="{WEBUI_BASE_URL}/static/favicon.svg" />
+	{#if isPublicMarketingRoute($page.url.pathname)}
+		<meta name="robots" content="index,follow" />
+	{:else}
+		<meta name="robots" content="noindex,nofollow" />
+		<title>{$WEBUI_NAME}</title>
+		<link crossorigin="anonymous" rel="icon" href="{WEBUI_BASE_URL}/static/favicon.svg" />
 
-	<meta name="apple-mobile-web-app-title" content={$WEBUI_NAME} />
-	<meta name="description" content={$WEBUI_NAME} />
-	<link
-		rel="search"
-		type="application/opensearchdescription+xml"
-		title={$WEBUI_NAME}
-		href="/opensearch.xml"
-		crossorigin="use-credentials"
-	/>
+		<meta name="apple-mobile-web-app-title" content={$WEBUI_NAME} />
+		<meta name="description" content={$WEBUI_NAME} />
+		<link
+			rel="search"
+			type="application/opensearchdescription+xml"
+			title={$WEBUI_NAME}
+			href="/opensearch.xml"
+			crossorigin="use-credentials"
+		/>
+	{/if}
 </svelte:head>
 
 <a

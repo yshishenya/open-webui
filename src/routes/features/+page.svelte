@@ -11,13 +11,15 @@
 
 	const heroImage = '/landing/airis-hero.webp';
 
-	type TaskFilter = 'all' | 'work' | 'study' | 'text';
+	type TaskFilter = 'all' | 'work' | 'study' | 'text' | 'image' | 'audio';
 
 	const filterOptions: Array<{ id: TaskFilter; label: string }> = [
 		{ id: 'all', label: 'Все задачи' },
 		{ id: 'work', label: 'Работа' },
 		{ id: 'study', label: 'Учёба' },
-		{ id: 'text', label: 'Тексты' }
+		{ id: 'text', label: 'Тексты' },
+		{ id: 'image', label: 'Изображения' },
+		{ id: 'audio', label: 'Аудио' }
 	];
 
 	const preferredTaskIds = [
@@ -26,7 +28,9 @@
 		'resume',
 		'product_desc',
 		'summarize_notes',
-		'study_explain'
+		'study_explain',
+		'image_generate',
+		'stt_transcribe'
 	];
 
 	let rateCard: PublicRateCardResponse | null = null;
@@ -49,10 +53,18 @@
 	$: capabilities = new Set(rateCard?.models.flatMap((model) => model.capabilities) ?? ['text']);
 	$: hasImage = capabilities.has('image');
 	$: hasAudio = capabilities.has('audio');
+	$: visibleFilterOptions = filterOptions.filter((option) =>
+		option.id === 'image' ? hasImage : option.id === 'audio' ? hasAudio : true
+	);
 	$: liveModels = rateCard?.models.slice(0, 5) ?? [];
 	$: baseTasks = preferredTaskIds
 		.map((id) => featurePresets.find((preset) => preset.id === id))
-		.filter(Boolean) as FeaturePreset[];
+		.filter((preset): preset is FeaturePreset => {
+			if (!preset) return false;
+			if (preset.category === 'image') return hasImage;
+			if (preset.category === 'audio') return hasAudio;
+			return true;
+		});
 	$: visibleTasks = baseTasks
 		.filter((preset) => selectedFilter === 'all' || preset.category === selectedFilter)
 		.slice(0, 4);
@@ -105,7 +117,7 @@
 						class="airis-public-btn-secondary inline-flex min-h-11 items-center justify-center rounded-xl px-6"
 						href="/pricing"
 					>
-						Посмотреть оплату
+						Посмотреть цены
 					</a>
 				</div>
 				<p class="mt-4 text-sm text-[var(--airis-muted)]">
@@ -137,7 +149,7 @@
 			</div>
 
 			<div class="mt-8 flex flex-wrap gap-2" role="group" aria-label="Фильтр задач">
-				{#each filterOptions as option}
+				{#each visibleFilterOptions as option}
 					<button
 						type="button"
 						class:airis-public-filter-active={selectedFilter === option.id}
@@ -208,9 +220,9 @@
 		<div class="container mx-auto px-4">
 			<div class="max-w-2xl">
 				<p class="airis-public-eyebrow">Что доступно сейчас</p>
-				<h2 class="airis-public-section-title">Выбирайте модель, когда это важно</h2>
+				<h2 class="airis-public-section-title">Доступные модели — в одном чате</h2>
 				<p class="airis-public-section-lead">
-					Не нужно разбираться в настройках. Но если хотите — модели доступны в одном списке.
+					Можно просто написать задачу. Если понадобится, модель можно выбрать прямо в диалоге.
 				</p>
 			</div>
 			<div class="mt-8 grid gap-4 md:grid-cols-3">
@@ -224,7 +236,7 @@
 				</div>
 				<div class="airis-public-card p-6">
 					<h3>Фактическое использование</h3>
-					<p>Пополняйте баланс и контролируйте расходы в кабинете.</p>
+					<p>Платите по тарифу выбранной модели и объёму запроса.</p>
 				</div>
 			</div>
 			{#if loadingModels}
@@ -274,7 +286,7 @@
 						<p>
 							{hasImage || hasAudio
 								? 'Доступность зависит от выбранной модели и текущего каталога.'
-								: 'Сейчас в публичном каталоге доступны текстовые модели. Актуальные возможности показываются в приложении.'}
+								: 'Сейчас в публичном каталоге доступны текстовые модели. Актуальный список показывается в приложении.'}
 						</p>
 					</details>
 				</div>

@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: refactor
-- Status: active
+- Status: completed
 - Owner: Codex
-- Branch: codex/feature/public-pages-simplify
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/public-pages-simple-ux-2026-08-07-001.json`
+- Branch: codex/fix-wallet-topup-clarity
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/public-pages-simple-ux-2026-08-07-001.json`
 - Created: 2026-08-07
 - Updated: 2026-08-07
 
@@ -21,7 +21,7 @@ The shared public shell is now visually aligned with Airis, but the secondary pa
 - [x] `/pricing` explains free start, RUB balance, and usage-based charging before advanced rates; unavailable media rates never render as `≈ —`.
 - [x] `/about` and `/contact` are concise trust/support pages with truthful CTA and no false form-success state.
 - [x] `/documents` groups user and business documents; nested legal pages have a consistent breadcrumb/back path and shared dark-violet shell.
-- [ ] All public internal links, CTA destinations, anchors, buttons, and mobile navigation paths are smoke-tested in production and in automated tests.
+- [x] All public internal links, CTA destinations, anchors, buttons, and mobile navigation paths are smoke-tested in production and in automated tests.
 - [x] `/welcome` content and behavior are not modified except for shared navigation links pointing to it.
 - [x] No new dependencies; existing design tokens and landing components are reused.
 
@@ -48,6 +48,8 @@ The shared public shell is now visually aligned with Airis, but the secondary pa
 - Use existing `welcomeNavigation.ts`, public rate-card and lead-magnet APIs, and existing icon/components.
 - Guest CTA: signup with `redirect=/?src=...`; authenticated CTA: direct chat or billing balance as appropriate.
 - Contact remains mailto-based; label it accurately and provide a copyable email fallback instead of pretending a backend submission succeeded.
+- Final audit: public layout overflow was clipped at the shared shell after a 390px audit found decorative-layer spill.
+- SEO/analytics audit: public routes are indexable with canonical/Open Graph metadata and sitemap coverage; private routes remain noindex; Yandex Metrica is loaded from `$env/static/public` only after consent.
 
 ## Upstream impact
 
@@ -60,8 +62,12 @@ The shared public shell is now visually aligned with Airis, but the secondary pa
 - `git diff --check`
 - focused Svelte/Vitest tests for public navigation/capability guards
 - `npm run check` with changed-file diagnostics reviewed (baseline errors remain outside scope)
-- Playwright production smoke across desktop and 390px mobile (production audit completed; new branch smoke pending)
-- manual in-app-browser click-through with screenshot evidence
+- `npm run build:vite`
+- Public layout metadata now avoids duplicating the app-level description on marketing routes after hydration.
+- Playwright production smoke across desktop (routes, CTAs, anchors, filters, pricing API, and links verified)
+- Playwright local production-preview screenshot and 390px responsive audit
+- Analytics consent smoke with Yandex Metrica script/request verification
+- Robots, sitemap, canonical and Open Graph metadata verification
 
 ## Risks / Rollback
 
@@ -70,6 +76,6 @@ The shared public shell is now visually aligned with Airis, but the secondary pa
 
 ## Completion Checklist
 
-- [ ] `meta/tools/sdd check-complete public-pages-simple-ux-2026-08-07-001 --json`
-- [ ] `meta/tools/sdd complete-spec public-pages-simple-ux-2026-08-07-001 --json`
-- [ ] Branch update moved to Done.
+- [x] `meta/tools/sdd check-complete public-pages-simple-ux-2026-08-07-001 --json`
+- [x] `meta/tools/sdd complete-spec public-pages-simple-ux-2026-08-07-001 --json`
+- [x] Branch update moved to Done.

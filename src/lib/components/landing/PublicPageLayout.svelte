@@ -20,10 +20,18 @@
 <svelte:head>
 	{#if title}
 		<title>{title} - Airis</title>
+		<meta property="og:title" content={`${title} - Airis`} />
 	{/if}
 	{#if description}
 		<meta name="description" content={description} />
+		<meta property="og:description" content={description} />
 	{/if}
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content="Airis" />
+	<meta property="og:locale" content="ru_RU" />
+	<link rel="canonical" href={`https://chat.airis.you${$page.url.pathname}`} />
+	<meta property="og:url" content={`https://chat.airis.you${$page.url.pathname}`} />
+	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
 <div class="public-page airis-public-page min-h-screen flex flex-col" data-tone={tone}>
@@ -90,6 +98,10 @@
 <style>
 	:global(body) {
 		overflow-x: hidden;
+	}
+
+	.airis-public-page {
+		overflow-x: clip;
 	}
 
 	.public-page__footer {

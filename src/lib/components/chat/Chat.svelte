@@ -1414,6 +1414,7 @@
 						imageGenerationEnabled = input.imageGenerationEnabled;
 						codeInterpreterEnabled = input.codeInterpreterEnabled;
 					}
+				// eslint-disable-next-line no-empty
 				} catch (e) {}
 			}
 
@@ -2474,7 +2475,10 @@
 
 		if (done) {
 			if (!sessionStorage.getItem('airis.first_response_received')) {
-				trackEvent('first_response_received', { has_content: Boolean(message.content) });
+				const source =
+					$page.url.searchParams.get('src')?.replace(/[^a-z0-9_-]/gi, '_').slice(0, 64) ||
+					'direct';
+				trackEvent('first_response_received', { has_content: Boolean(message.content), source });
 				sessionStorage.setItem('airis.first_response_received', '1');
 			}
 			message.done = true;
@@ -2529,7 +2533,10 @@
 	const submitPrompt = async (inputContent, inputFiles) => {
 		const _files = structuredClone(inputFiles);
 		if (!sessionStorage.getItem('airis.first_prompt_submitted')) {
-			trackEvent('first_prompt_submitted', { has_files: _files.length > 0 });
+			const source =
+				$page.url.searchParams.get('src')?.replace(/[^a-z0-9_-]/gi, '_').slice(0, 64) ||
+				'direct';
+			trackEvent('first_prompt_submitted', { has_files: _files.length > 0, source });
 			sessionStorage.setItem('airis.first_prompt_submitted', '1');
 		}
 
@@ -3855,21 +3862,25 @@
 	{#if !loading}
 		<div in:fade={{ duration: 50 }} class="w-full h-full flex flex-col">
 			{#if !embedded && $selectedFolder && $selectedFolder?.meta?.background_image_url}
+				<!-- svelte-ignore element_invalid_self_closing_tag -->
 				<div
 					class="absolute top-0 left-0 w-full h-full bg-cover bg-center bg-no-repeat"
 					style="background-image: url({$selectedFolder?.meta?.background_image_url})  "
 				/>
 
+				<!-- svelte-ignore element_invalid_self_closing_tag -->
 				<div
 					class="absolute top-0 left-0 w-full h-full bg-linear-to-t from-white to-white/85 dark:from-gray-900 dark:to-gray-900/90 z-0"
 				/>
 			{:else if !embedded && ($settings?.backgroundImageUrl ?? $config?.license_metadata?.background_image_url ?? null)}
+				<!-- svelte-ignore element_invalid_self_closing_tag -->
 				<div
 					class="absolute top-0 left-0 w-full h-full bg-cover bg-center bg-no-repeat"
 					style="background-image: url({$settings?.backgroundImageUrl ??
 						$config?.license_metadata?.background_image_url})  "
 				/>
 
+				<!-- svelte-ignore element_invalid_self_closing_tag -->
 				<div
 					class="absolute top-0 left-0 w-full h-full bg-linear-to-t from-white to-white/85 dark:from-gray-900 dark:to-gray-900/90 z-0"
 				/>

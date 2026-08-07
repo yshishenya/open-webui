@@ -33,6 +33,9 @@
 	import { trackEvent } from '$lib/utils/analytics';
 
 	const i18n = getContext('i18n');
+	const analyticsSource = (): string =>
+		$page.url.searchParams.get('src')?.replace(/[^a-z0-9_-]/gi, '_').slice(0, 64) ||
+		'direct';
 
 	let loaded = false;
 
@@ -104,7 +107,8 @@
 	const setSessionUser = async (sessionUser, redirectPath: string | null = null) => {
 		if (sessionUser) {
 			trackEvent(mode === 'signup' ? 'signup_completed' : 'login_completed', {
-				method: 'auth'
+				method: 'auth',
+				source: analyticsSource()
 			});
 			toast.success($i18n.t(`You're now logged in.`));
 			if (sessionUser.token) {
@@ -173,7 +177,9 @@
 
 	const submitHandler = async () => {
 		if (submitting) return;
-		if (mode === 'signup') trackEvent('signup_started', { method: 'email' });
+		if (mode === 'signup') {
+			trackEvent('signup_started', { method: 'email', source: analyticsSource() });
+		}
 		submitting = true;
 		try {
 			if (mode === 'ldap') {
@@ -605,8 +611,9 @@
 																/>
 															</div>
 
-																{#if submitting || telegramLoading || oauthRedirectingTo !== null || vkidLoadingProvider !== null}
-																	<div class="absolute inset-0 cursor-not-allowed" />
+										{#if submitting || telegramLoading || oauthRedirectingTo !== null || vkidLoadingProvider !== null}
+											<!-- svelte-ignore element_invalid_self_closing_tag -->
+											<div class="absolute inset-0 cursor-not-allowed" />
 																{/if}
 															</div>
 															{/if}

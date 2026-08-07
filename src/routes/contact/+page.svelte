@@ -21,7 +21,7 @@
 					href="mailto:support@airis.you?subject=Вопрос%20в%20Airis">Написать в поддержку</a
 				>
 				<p class="mt-4 text-sm text-[var(--airis-muted)]">
-					support@airis.you · обычно отвечаем в течение 24 часов в рабочие дни
+					support@airis.you · срок ответа зависит от нагрузки
 				</p>
 			</div>
 		</div>

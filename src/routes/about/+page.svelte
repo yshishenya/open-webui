@@ -3,8 +3,8 @@
 </script>
 
 <PublicPageLayout
-	title="О нас"
-	description="Airis объединяет доступные AI-модели в одном понятном чате."
+	title="О продукте"
+	description="Airis объединяет доступные AI-модели в одном чате, который работает в России без VPN."
 	showHero={false}
 >
 	<section class="airis-public-simple-hero">
@@ -12,16 +12,16 @@
 			class="container mx-auto grid items-center gap-10 px-4 py-16 lg:grid-cols-[1fr_0.85fr] lg:py-24"
 		>
 			<div class="max-w-2xl">
-				<p class="airis-public-eyebrow">О Airis</p>
-				<h1 class="airis-public-display mt-5">AI-модели в одном понятном чате</h1>
+				<p class="airis-public-eyebrow">О продукте Airis</p>
+				<h1 class="airis-public-display mt-5">Доступные AI-модели — в одном чате</h1>
 				<p class="airis-public-lead mt-6">
-					Мы делаем доступ к современным моделям проще для повседневных задач: без VPN, лишних
-					вкладок и отдельных сервисов.
+					Airis объединяет доступные AI-модели в одном интерфейсе. Открывайте сервис из России без
+					VPN, выбирайте модель под задачу и продолжайте диалог в одном месте.
 				</p>
 				<div class="mt-8 flex flex-col gap-3 sm:flex-row">
 					<a
 						class="airis-public-btn-primary inline-flex min-h-11 items-center justify-center rounded-xl px-6"
-						href="/signup?src=about_hero"
+						href="/signup?redirect=%2F%3Fsrc%3Dabout_hero&src=about_hero"
 					>
 						Начать бесплатно
 					</a>
@@ -64,7 +64,7 @@
 				<div class="airis-public-card p-6">
 					<span class="airis-public-card-tag">02</span>
 					<h3 class="mt-5">Без VPN</h3>
-					<p class="mt-2">Открывайте Airis напрямую из России.</p>
+					<p class="mt-2">Airis доступен из России без VPN.</p>
 				</div>
 				<div class="airis-public-card p-6">
 					<span class="airis-public-card-tag">03</span>
@@ -80,7 +80,7 @@
 			<div class="max-w-2xl">
 				<h2 class="airis-public-section-title">Начните с реальной задачи</h2>
 				<p class="airis-public-section-lead">
-					Регистрация не требует карты. Доступность функций и бесплатных лимитов зависит от текущего
+					Регистрация не требует карты. Бесплатные лимиты и отдельные функции зависят от текущего
 					каталога моделей.
 				</p>
 				<a class="airis-public-text-button mt-6 inline-flex min-h-11 items-center" href="/features"

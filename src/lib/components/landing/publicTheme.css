@@ -289,6 +289,43 @@
 	background-color: var(--airis-deep) !important;
 }
 
+.airis-public-page input,
+.airis-public-page select,
+.airis-public-page textarea {
+	border-color: var(--airis-line) !important;
+	background-color: rgb(20 15 43 / 0.86) !important;
+	color: var(--airis-ink) !important;
+}
+
+.airis-public-page input::placeholder,
+.airis-public-page textarea::placeholder {
+	color: var(--airis-muted) !important;
+}
+
+.airis-public-page table {
+	background: rgb(33 26 61 / 0.76);
+	color: var(--airis-muted-strong);
+}
+
+.airis-public-page thead,
+.airis-public-page thead th {
+	background: rgb(45 34 79 / 0.9) !important;
+	color: var(--airis-muted-strong) !important;
+}
+
+.airis-public-page tbody tr,
+.airis-public-page tbody td,
+.airis-public-page tbody td.sticky {
+	border-color: rgb(255 255 255 / 0.08) !important;
+	background: transparent !important;
+	color: var(--airis-muted-strong) !important;
+}
+
+.airis-public-page .airis-public-card h3,
+.airis-public-page .airis-public-card p {
+	color: inherit;
+}
+
 /* Feature and pricing sections have their own local styles; keep their surfaces on the same canvas. */
 .airis-public-page .features-section,
 .airis-public-page .features-section--soft {
