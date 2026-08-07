@@ -159,7 +159,8 @@
 			console.warn('Failed to load public pricing config:', error);
 		}
 		topupPackages = DEFAULT_TOPUP_PACKAGES_KOPEKS;
-		allowCustomTopup = true;
+		// Keep the UI aligned with the server allowlist when pricing discovery is unavailable.
+		allowCustomTopup = false;
 	};
 
 	const readLastTopupKopeks = (): number | null => {
@@ -913,6 +914,7 @@
 						<button
 							type="button"
 							data-testid="wallet-hero-topup"
+							aria-controls="topup-section"
 							on:click={scrollToTopup}
 							class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium {isLowBalance
 								? 'ring-2 ring-amber-500/40'
@@ -984,6 +986,7 @@
 					currency={balance.currency}
 					defaultPackages={topupPackages}
 					allowCustom={allowCustomTopup}
+					autoSelectFirst={isLowBalance}
 					{highlightedPackageKopeks}
 					{highlightedPackageLabel}
 					{creatingTopupAmount}
