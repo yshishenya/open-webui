@@ -6,7 +6,7 @@
   - Branch: `codex/fix-wallet-topup-clarity`
   - Done: 2026-08-08
   - Summary: Backend now resolves adapter-static route HTML before the SPA fallback so direct landing requests receive real prerendered content.
-  - Tests: Production smoke check pending redeploy
+  - Tests: Production `/health` 200; all eight public routes return 200 with prerendered `<h1>` in HTML; Playwright production smoke passed.
   - Risks: N/A
 
 - [x] **[BUG]** Harden public landing SSR, navigation, and analytics

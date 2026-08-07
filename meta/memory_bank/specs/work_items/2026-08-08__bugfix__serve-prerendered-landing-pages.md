@@ -60,4 +60,4 @@ The frontend build contains route-specific prerendered HTML files, but the backe
 ## Completion Checklist
 
 - [x] Implementation completed.
-- [ ] Production route smoke check completed after redeploy.
+- [x] Production route smoke check completed after redeploy.
