@@ -41,6 +41,7 @@ type MockSet = {
 	updateBillingSettingsMock: ReturnType<typeof vi.fn>;
 	getUserInfoMock: ReturnType<typeof vi.fn>;
 	trackEventMock: ReturnType<typeof vi.fn>;
+	trackEcommercePurchaseMock: ReturnType<typeof vi.fn>;
 	gotoMock: ReturnType<typeof vi.fn>;
 	toast: { error: ReturnType<typeof vi.fn>; success: ReturnType<typeof vi.fn> };
 	webuiNameStore: MockStore<string>;
@@ -87,6 +88,7 @@ const mocks: MockSet = vi.hoisted(() => {
 			billing_contact_phone: ''
 		}),
 		trackEventMock: vi.fn(),
+		trackEcommercePurchaseMock: vi.fn(),
 		gotoMock: vi.fn(),
 		toast: { error: vi.fn(), success: vi.fn() },
 		webuiNameStore: createStore('Airis'),
@@ -125,7 +127,14 @@ vi.mock(
 	}),
 	{ virtual: true }
 );
-vi.mock('$lib/utils/analytics', () => ({ trackEvent: mocks.trackEventMock }), { virtual: true });
+vi.mock(
+	'$lib/utils/analytics',
+	() => ({
+		trackEvent: mocks.trackEventMock,
+		trackEcommercePurchase: mocks.trackEcommercePurchaseMock
+	}),
+	{ virtual: true }
+);
 vi.mock('$app/navigation', () => ({ goto: mocks.gotoMock }), { virtual: true });
 vi.mock('$app/stores', () => ({ page: mocks.pageStore }), { virtual: true });
 vi.mock('svelte-sonner', () => ({ toast: mocks.toast }), { virtual: true });
