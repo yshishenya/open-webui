@@ -298,8 +298,16 @@ class SPAStaticFiles(StaticFiles):
                 if path.endswith('.js'):
                     # Return 404 for javascript files
                     raise ex
-                else:
-                    return await super().get_response('index.html', scope)
+
+                route_path = path.strip('/')
+                if route_path and '/' not in route_path and '.' not in route_path:
+                    try:
+                        return await super().get_response(f'{route_path}.html', scope)
+                    except (HTTPException, StarletteHTTPException) as route_ex:
+                        if route_ex.status_code != 404:
+                            raise route_ex
+
+                return await super().get_response('index.html', scope)
             else:
                 raise ex
 
