@@ -3,13 +3,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { setAnalyticsConsent } from '$lib/utils/airis/analyticsConsent';
 import { PUBLIC_YANDEX_METRICA_ID } from '$env/static/public';
-import { trackEcommercePurchase, trackEvent } from './analytics';
+import { captureAttribution, trackEcommercePurchase, trackEvent } from './analytics';
 
 describe('analytics adapter', () => {
 	beforeEach(() => {
 		localStorage.clear();
 		sessionStorage.clear();
 		document.head.innerHTML = '';
+		window.history.replaceState({}, '', '/welcome');
 	});
 
 	it('does not load providers before consent and removes sensitive payload keys', () => {
@@ -69,6 +70,36 @@ describe('analytics adapter', () => {
 			});
 		} else {
 			expect(purchase).toBeUndefined();
+		}
+	});
+
+	it('keeps campaign attribution bounded and emits normalized lead goals', () => {
+		window.history.replaceState(
+			{},
+			'',
+			'/welcome?utm_source=telegram&utm_campaign=summer&email=must_not_track'
+		);
+		captureAttribution();
+		setAnalyticsConsent('granted');
+		trackEvent('signup_completed', { method: 'email' });
+
+		const received: CustomEvent[] = [];
+		window.addEventListener('analytics', (event) => received.push(event as CustomEvent));
+		trackEvent('first_prompt_submitted', { prompt: 'private text' });
+
+		expect(localStorage.getItem('airis.analytics.attribution.v1')).toContain('telegram');
+		expect(received[0]?.detail).toMatchObject({
+			event: 'first_prompt_submitted',
+			utm_source: 'telegram',
+			utm_campaign: 'summer'
+		});
+		expect(received[0]?.detail.prompt).toBeUndefined();
+
+		if (PUBLIC_YANDEX_METRICA_ID) {
+			const analyticsWindow = window as Window & { ym?: { a?: unknown[][] } };
+			const queue = analyticsWindow.ym?.a ?? [];
+			expect(queue.some((args) => args.includes('lead_signup_completed'))).toBe(true);
+			expect(queue.some((args) => args.includes('activation_first_prompt'))).toBe(true);
 		}
 	});
 });

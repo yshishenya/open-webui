@@ -1,0 +1,130 @@
+{
+  "spec_id": "analytics-lead-funnel-and-depl-2026-08-08-0250",
+  "title": "Analytics lead funnel and deployment build args",
+  "generated": "2026-08-07T23:50:01.328972Z",
+  "last_updated": "2026-08-07T23:58:26.876594Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "status": "active",
+    "activated_date": "2026-08-07T23:50:06.452833Z",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-08__feature__analytics-lead-funnel.md"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Analytics lead funnel and deployment build args",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-07T23:58:26.635677Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: [To Be Defined]",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: [To Be Defined]",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Fix production analytics build inputs",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 2.0,
+        "completed_at": "2026-08-07T23:58:26.635538Z",
+        "needs_journaling": true,
+        "status_note": "Deploy dry-run now passes PUBLIC_YANDEX_METRICA_ID and linux/amd64."
+      },
+      "description": "Pass public analytics IDs and target platform through the deploy build."
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Instrument consented funnel and attribution",
+      "status": "in_progress",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 4.0,
+        "started_at": "2026-08-07T23:58:26.876411Z",
+        "status_note": "Frontend attribution and normalized goals implemented; targeted tests pass."
+      },
+      "description": "Retain campaign fields and emit normalized provider goals across signup and activation."
+    },
+    "task-3-1": {
+      "type": "verify",
+      "title": "Verify production analytics and lead path",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 3.0
+      },
+      "description": "Build, deploy, and verify provider initialization, route health, CTA navigation, and funnel queueing."
+    }
+  }
+}

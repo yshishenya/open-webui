@@ -6,11 +6,28 @@ export type AnalyticsPurchase = {
 	currency: string;
 };
 
+type StoredAttribution = {
+	values: Record<string, string>;
+	capturedAt: number;
+};
+
 import { getAnalyticsConsent } from '$lib/utils/airis/analyticsConsent';
 import { PUBLIC_GA_MEASUREMENT_ID, PUBLIC_YANDEX_METRICA_ID } from '$env/static/public';
 
 const YANDEX_METRICA_ID = PUBLIC_YANDEX_METRICA_ID?.trim();
 const GA_MEASUREMENT_ID = PUBLIC_GA_MEASUREMENT_ID?.trim();
+const ATTRIBUTION_STORAGE_KEY = 'airis.analytics.attribution.v1';
+const ATTRIBUTION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+const ATTRIBUTION_KEYS = [
+	'utm_source',
+	'utm_medium',
+	'utm_campaign',
+	'utm_content',
+	'utm_term',
+	'gclid',
+	'yclid',
+	'ymclid'
+] as const;
 const SENSITIVE_KEY = /(email|name|prompt|content|message|token|secret|password|url|query)/i;
 const MAX_STRING_LENGTH = 80;
 const LANDING_CTA_EVENTS = new Set([
@@ -39,6 +56,14 @@ const LANDING_CTA_EVENTS = new Set([
 	'features_sticky_cta',
 	'features_how_cta'
 ]);
+const FUNNEL_GOAL_EVENTS: Record<string, string> = {
+	signup_form_viewed: 'lead_signup_form_viewed',
+	signup_started: 'lead_signup_started',
+	signup_completed: 'lead_signup_completed',
+	first_prompt_submitted: 'activation_first_prompt',
+	first_response_received: 'activation_first_response',
+	billing_topup_completed: 'revenue_topup_completed'
+};
 
 type AnalyticsWindow = Window & {
 	dataLayer?: Array<Record<string, unknown>>;
@@ -65,6 +90,59 @@ const sanitizePayload = (payload: AnalyticsPayload): AnalyticsPayload => {
 		sanitized[key] = value;
 	}
 	return sanitized;
+};
+
+const normalizeAttributionValue = (value: string | null): string | null => {
+	const normalized = value?.replace(/[\r\n]/g, ' ').trim().slice(0, MAX_STRING_LENGTH);
+	return normalized || null;
+};
+
+export const captureAttribution = (): void => {
+	if (typeof window === 'undefined') return;
+
+	const values: Record<string, string> = {};
+	const params = new URLSearchParams(window.location.search);
+	for (const key of ATTRIBUTION_KEYS) {
+		const value = normalizeAttributionValue(params.get(key));
+		if (value) values[key] = value;
+	}
+	if (!Object.keys(values).length) return;
+
+	try {
+		window.localStorage.setItem(
+			ATTRIBUTION_STORAGE_KEY,
+			JSON.stringify({ values, capturedAt: Date.now() } satisfies StoredAttribution)
+		);
+	} catch {
+		// Analytics must never block navigation when storage is unavailable.
+	}
+};
+
+const readAttribution = (): AnalyticsPayload => {
+	if (typeof window === 'undefined') return {};
+
+	try {
+		const raw = window.localStorage.getItem(ATTRIBUTION_STORAGE_KEY);
+		if (!raw) return {};
+		const stored = JSON.parse(raw) as Partial<StoredAttribution>;
+		if (
+			typeof stored.capturedAt !== 'number' ||
+			Date.now() - stored.capturedAt > ATTRIBUTION_TTL_MS ||
+			typeof stored.values !== 'object' ||
+			stored.values === null
+		) {
+			window.localStorage.removeItem(ATTRIBUTION_STORAGE_KEY);
+			return {};
+		}
+		return Object.fromEntries(
+			ATTRIBUTION_KEYS.flatMap((key) => {
+				const value = normalizeAttributionValue(stored.values?.[key] ?? null);
+				return value ? [[key, value]] : [];
+			})
+		);
+	} catch {
+		return {};
+	}
 };
 
 const loadScript = (src: string, id: string): void => {
@@ -145,6 +223,7 @@ export const initializeAnalytics = (): void => {
 export const trackPageView = (): void => {
 	if (typeof window === 'undefined' || getAnalyticsConsent() !== 'granted') return;
 
+	captureAttribution();
 	initializeAnalytics();
 	const analyticsWindow = window as AnalyticsWindow;
 	const pagePath = `${window.location.pathname}${window.location.hash}`;
@@ -201,7 +280,7 @@ export const trackEvent = (event: string, payload: AnalyticsPayload = {}): void 
 		return;
 	}
 
-	const safePayload = sanitizePayload(payload);
+	const safePayload = sanitizePayload({ ...readAttribution(), ...payload });
 	const detail = { event, ...safePayload };
 	const analyticsWindow = window as AnalyticsWindow;
 	const consentGranted = getAnalyticsConsent() === 'granted';
@@ -210,10 +289,17 @@ export const trackEvent = (event: string, payload: AnalyticsPayload = {}): void 
 		initializeAnalytics();
 		analyticsWindow.dataLayer?.push(detail);
 		analyticsWindow.gtag?.('event', event, safePayload);
-		if (YANDEX_METRICA_ID) {
-			analyticsWindow.ym?.(YANDEX_METRICA_ID, 'reachGoal', event, safePayload);
-			if (LANDING_CTA_EVENTS.has(event)) {
-				analyticsWindow.ym?.(YANDEX_METRICA_ID, 'reachGoal', 'landing_cta_click');
+		const goalEvents = new Set([event]);
+		if (LANDING_CTA_EVENTS.has(event)) goalEvents.add('landing_cta_click');
+		const funnelGoal = FUNNEL_GOAL_EVENTS[event];
+		if (funnelGoal) goalEvents.add(funnelGoal);
+		for (const goalEvent of goalEvents) {
+			if (goalEvent !== event) {
+				analyticsWindow.dataLayer?.push({ event: goalEvent, ...safePayload });
+				analyticsWindow.gtag?.('event', goalEvent, safePayload);
+			}
+			if (YANDEX_METRICA_ID) {
+				analyticsWindow.ym?.(YANDEX_METRICA_ID, 'reachGoal', goalEvent, safePayload);
 			}
 		}
 		analyticsWindow.posthog?.capture?.(event, safePayload);

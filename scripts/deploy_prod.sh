@@ -34,6 +34,7 @@ Environment (can be set in .env.deploy):
   - PROD_GIT_PULL (default: 1)
   - POST_DEPLOY_STATUS (default: 1)
   - IMAGE_REPO (default: yshishenya/yshishenya)
+  - DOCKER_PLATFORM (default: linux/amd64)
   - DEPLOY_ENV_FILE (default: .env.deploy)
 EOF
 }
@@ -127,6 +128,7 @@ PY
 load_deploy_env
 
 IMAGE_REPO="${IMAGE_REPO:-yshishenya/yshishenya}"
+DOCKER_PLATFORM="${DOCKER_PLATFORM:-linux/amd64}"
 PROD_HOST="${PROD_HOST:-airis-prod}"
 PROD_SSH_USER="${PROD_SSH_USER:-}"
 PROD_PATH="${PROD_PATH:-/opt/projects/open-webui}"
@@ -257,6 +259,7 @@ show_runtime_settings() {
   echo ""
   echo "Resolved deploy settings:"
   echo "  IMAGE_REPO=${IMAGE_REPO}"
+  echo "  DOCKER_PLATFORM=${DOCKER_PLATFORM}"
   echo "  PROD_HOST=${PROD_HOST}"
   echo "  PROD_SSH_USER=${PROD_SSH_USER:-<default:ssh current user>}"
   echo "  PROD_PATH=${PROD_PATH}"
@@ -380,7 +383,7 @@ interactive_dialog() {
 
   echo ""
   echo "Plan:"
-  echo "  Build: docker build $( [[ ${PULL_BASE} == 1 ]] && printf '%s ' '--pull' )$( [[ ${NO_CACHE} == 1 ]] && printf '%s ' '--no-cache' )-t ${IMAGE_REPO}:${TAG} ."
+  echo "  Build: docker build --platform ${DOCKER_PLATFORM} $( [[ ${PULL_BASE} == 1 ]] && printf '%s ' '--pull' )$( [[ ${NO_CACHE} == 1 ]] && printf '%s ' '--no-cache' )-t ${IMAGE_REPO}:${TAG} ."
   echo "  Push:  docker push ${IMAGE_REPO}:${TAG}"
   echo "  Prod:  docker compose pull && up -d --no-build$( [[ ${FORCE_RECREATE} == 1 ]] && printf '%s' ' --force-recreate' )"
   echo ""
@@ -475,7 +478,13 @@ fi
 if [[ "${NO_CACHE}" == "1" ]]; then
   BUILD_ARGS+=(--no-cache)
 fi
-run docker build "${BUILD_ARGS[@]}" -t "${IMAGE_REPO}:${TAG}" .
+if [[ -n "${PUBLIC_YANDEX_METRICA_ID:-}" ]]; then
+  BUILD_ARGS+=(--build-arg "PUBLIC_YANDEX_METRICA_ID=${PUBLIC_YANDEX_METRICA_ID}")
+fi
+if [[ -n "${PUBLIC_GA_MEASUREMENT_ID:-}" ]]; then
+  BUILD_ARGS+=(--build-arg "PUBLIC_GA_MEASUREMENT_ID=${PUBLIC_GA_MEASUREMENT_ID}")
+fi
+run docker build --platform "${DOCKER_PLATFORM}" "${BUILD_ARGS[@]}" -t "${IMAGE_REPO}:${TAG}" .
 
 echo "Pushing ${IMAGE_REPO}:${TAG}..."
 run docker push "${IMAGE_REPO}:${TAG}"
