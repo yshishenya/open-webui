@@ -35,7 +35,6 @@
 		metrics: LeadMagnetMetric[];
 	};
 
-	const MAX_COLLAPSED_GROUPS = 2;
 	const GROUP_ORDER: LeadMagnetGroupId[] = ['text', 'images', 'voice', 'other'];
 	const KEY_TO_GROUP: Record<string, LeadMagnetGroupId> = {
 		tokens_input: 'text',
@@ -57,7 +56,8 @@
 
 	let showModels = false;
 	let showAllModels = false;
-	let showAllLimits = false;
+	// ponytail: keep secondary quota data behind one disclosure so top-up remains the primary action.
+	let showDetails = false;
 
 	const formatDateTime = (timestamp: number | null | undefined): string => {
 		if (!timestamp) return $i18n.t('Never');
@@ -141,10 +141,6 @@
 
 	$: leadMagnetMetrics = getLeadMagnetMetrics(leadMagnetInfo);
 	$: leadMagnetGroups = groupMetrics(leadMagnetMetrics);
-	$: visibleGroups = showAllLimits
-		? leadMagnetGroups
-		: leadMagnetGroups.slice(0, MAX_COLLAPSED_GROUPS);
-	$: hasHiddenGroups = leadMagnetGroups.length > MAX_COLLAPSED_GROUPS;
 	$: hasTokenMetrics = leadMagnetMetrics.some(
 		(metric) => metric.key === 'tokens_input' || metric.key === 'tokens_output'
 	);
@@ -153,11 +149,11 @@
 </script>
 
 <div
-	class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+	class="rounded-2xl border border-gray-200/60 bg-gray-50/40 p-4 dark:border-gray-800/60 dark:bg-gray-950/20"
 	id="free-limit-section"
 	data-testid="lead-magnet-section"
 >
-	<div class="flex items-start justify-between mb-3">
+	<div class="flex items-start justify-between gap-3">
 		<h3 class="text-sm font-medium">
 			{$i18n.t('Free limit')}
 		</h3>
@@ -168,108 +164,123 @@
 		</span>
 	</div>
 
-	<div class="text-xs text-gray-500 mb-3">
+	<div class="mt-2 text-xs text-gray-500">
 		{$i18n.t('Next reset')}: {formatDateTime(leadMagnetInfo.cycle_end)}
 		<span class="mx-1">•</span>
 		{$i18n.t('Free limit applies to select models')}
 	</div>
 
-	{#if leadMagnetGroups.length > 0}
-		<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-			{#each visibleGroups as group (group.id)}
-				<div class="rounded-2xl border border-gray-100/40 dark:border-gray-850/40 p-3">
-					<div class="text-xs font-semibold text-gray-700 dark:text-gray-200">{group.title}</div>
-					<div class="mt-3 space-y-3">
-						{#each group.metrics as metric (`${group.id}:${metric.key}`)}
-							<div>
-								<div class="flex items-center justify-between mb-1">
-									<span class="text-xs font-medium text-gray-600 dark:text-gray-300">
-										{getGroupMetricLabel(group.id, metric.key)}
-									</span>
-									<span class="text-xs text-gray-500">
-										{formatCompactNumber(metric.used)} / {formatCompactNumber(metric.limit)}
-									</span>
-								</div>
-								<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-									<div
-										class="{getUsageColor(metric.percentage)} h-1.5 rounded-full transition-all"
-										style="width: {metric.percentage}%"
-									></div>
-								</div>
-								<div class="text-[11px] text-gray-500 mt-1">
-									{metric.percentage}% {$i18n.t('used')}
-								</div>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/each}
-		</div>
-		{#if hasTokenMetrics}
-			<div class="text-xs text-gray-500 mt-3">
-				{$i18n.t('Tokens are counted automatically')}
-			</div>
-		{/if}
-		{#if hasHiddenGroups}
-			<button
-				type="button"
-				class="mt-3 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
-				on:click={() => (showAllLimits = !showAllLimits)}
-			>
-				{showAllLimits ? $i18n.t('Hide limits') : $i18n.t('Show all limits')}
-			</button>
-		{/if}
-	{:else}
-		<div class="text-sm text-gray-500">
-			{$i18n.t('No free limits configured')}
-		</div>
-	{/if}
+	<button
+		type="button"
+		class="mt-3 min-h-10 rounded-xl border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-900 dark:focus-visible:ring-white/30"
+		aria-expanded={showDetails}
+		aria-controls="free-limit-details"
+		on:click={() => (showDetails = !showDetails)}
+	>
+		{showDetails ? $i18n.t('Hide limits') : $i18n.t('Limits')}
+	</button>
 
-	{#if !modelsReady || models.length > 0}
-		<div class="mt-4">
-			<button
-				type="button"
-				class="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
-				on:click={() => (showModels = !showModels)}
-			>
-				{showModels ? $i18n.t('Hide models') : `${$i18n.t('Models included')} (${models.length})`}
-			</button>
-			{#if showModels}
-				{#if !modelsReady}
-					<div class="text-xs text-gray-500 mt-2">{$i18n.t('List unavailable')}</div>
-				{:else}
-					<div class="mt-2 flex flex-wrap gap-2">
-						{#each visibleModels as model}
-							<span
-								class="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
-							>
-								{model.name}
-							</span>
-						{/each}
+	{#if showDetails}
+		<div id="free-limit-details" class="mt-4">
+			{#if leadMagnetGroups.length > 0}
+				<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+					{#each leadMagnetGroups as group (group.id)}
+						<div class="rounded-2xl border border-gray-200/60 p-3 dark:border-gray-800/60">
+							<div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+								{group.title}
+							</div>
+							<div class="mt-3 space-y-3">
+								{#each group.metrics as metric (`${group.id}:${metric.key}`)}
+									<div>
+										<div class="mb-1 flex items-center justify-between">
+											<span class="text-xs font-medium text-gray-600 dark:text-gray-300">
+												{getGroupMetricLabel(group.id, metric.key)}
+											</span>
+											<span class="text-xs tabular-nums text-gray-500">
+												{formatCompactNumber(metric.used)} / {formatCompactNumber(metric.limit)}
+											</span>
+										</div>
+										<div class="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+											<div
+												class="{getUsageColor(
+													metric.percentage
+												)} h-1.5 rounded-full transition-[width,background-color] motion-reduce:transition-none"
+												style="width: {metric.percentage}%"
+											></div>
+										</div>
+										<div class="mt-1 text-[11px] text-gray-500">
+											{metric.percentage}% {$i18n.t('used')}
+										</div>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/each}
+				</div>
+				{#if hasTokenMetrics}
+					<div class="mt-3 text-xs text-gray-500">
+						{$i18n.t('Tokens are counted automatically')}
 					</div>
-					{#if hasHiddenModels}
-						<button
-							type="button"
-							class="mt-2 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
-							on:click={() => (showAllModels = !showAllModels)}
-						>
-							{showAllModels ? $i18n.t('Show less') : $i18n.t('Show all')}
-						</button>
-					{/if}
 				{/if}
+			{:else}
+				<div class="text-sm text-gray-500">
+					{$i18n.t('No free limits configured')}
+				</div>
 			{/if}
-		</div>
-	{:else}
-		<div class="text-xs text-gray-500 mt-3">
-			{$i18n.t('No free models available')}.
-			<a
-				href="/pricing"
-				target="_blank"
-				rel="noreferrer"
-				class="ml-1 underline underline-offset-2 hover:text-gray-700 dark:hover:text-gray-200 transition"
-			>
-				{$i18n.t('Pricing')}
-			</a>
+
+			{#if !modelsReady || models.length > 0}
+				<div class="mt-4">
+					<button
+						type="button"
+						class="min-h-10 text-xs text-gray-500 transition-colors hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 dark:text-gray-400 dark:hover:text-gray-200 dark:focus-visible:ring-white/30"
+						aria-expanded={showModels}
+						aria-controls="free-limit-models"
+						on:click={() => (showModels = !showModels)}
+					>
+						{showModels
+							? $i18n.t('Hide models')
+							: `${$i18n.t('Models included')} (${models.length})`}
+					</button>
+					{#if showModels}
+						<div id="free-limit-models">
+							{#if !modelsReady}
+								<div class="mt-2 text-xs text-gray-500">{$i18n.t('List unavailable')}</div>
+							{:else}
+								<div class="mt-2 flex flex-wrap gap-2">
+									{#each visibleModels as model}
+										<span
+											class="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+										>
+											{model.name}
+										</span>
+									{/each}
+								</div>
+								{#if hasHiddenModels}
+									<button
+										type="button"
+										class="mt-2 min-h-10 text-xs text-gray-500 transition-colors hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 dark:text-gray-400 dark:hover:text-gray-200 dark:focus-visible:ring-white/30"
+										on:click={() => (showAllModels = !showAllModels)}
+									>
+										{showAllModels ? $i18n.t('Show less') : $i18n.t('Show all')}
+									</button>
+								{/if}
+							{/if}
+						</div>
+					{/if}
+				</div>
+			{:else}
+				<div class="mt-3 text-xs text-gray-500">
+					{$i18n.t('No free models available')}.
+					<a
+						href="/pricing"
+						target="_blank"
+						rel="noreferrer"
+						class="ml-1 underline underline-offset-2 transition-colors hover:text-gray-700 dark:hover:text-gray-200"
+					>
+						{$i18n.t('Pricing')}
+					</a>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>
