@@ -177,7 +177,7 @@
 		if (requiredKopeksHint !== null) {
 			const sorted = [...topupPackages].sort((a, b) => a - b);
 			const match = sorted.find((amount) => amount >= requiredKopeksHint) ?? null;
-			highlightedPackageKopeks = match ?? (sorted.at(-1) ?? null);
+			highlightedPackageKopeks = match ?? sorted.at(-1) ?? null;
 			highlightedPackageLabel = $i18n.t('Recommended top-up');
 		} else if (lastTopupKopeks !== null && topupPackages.includes(lastTopupKopeks)) {
 			highlightedPackageKopeks = lastTopupKopeks;
@@ -502,9 +502,7 @@
 				const daily = parseMoneyInput(dailyCap);
 
 				if (maxReplyCost && maxReply === null) {
-					toast.error(
-						$i18n.t('Invalid value for {label}', { label: $i18n.t('Max reply cost') })
-					);
+					toast.error($i18n.t('Invalid value for {label}', { label: $i18n.t('Max reply cost') }));
 					return;
 				}
 				if (dailyCap && daily === null) {
@@ -562,7 +560,7 @@
 		}
 		const amount = kopeks / 100;
 		try {
-		return new Intl.NumberFormat($i18n.language, {
+			return new Intl.NumberFormat($i18n.language, {
 				style: 'currency',
 				currency
 			}).format(amount);
@@ -665,13 +663,7 @@
 	};
 
 	const handleHistoryClick = async (event: MouseEvent): Promise<void> => {
-		if (
-			event.metaKey ||
-			event.ctrlKey ||
-			event.shiftKey ||
-			event.altKey ||
-			event.button !== 0
-		) {
+		if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
 			return;
 		}
 		event.preventDefault();
@@ -681,13 +673,7 @@
 
 	const handleReturnToClick = async (event: MouseEvent): Promise<void> => {
 		if (!normalizedReturnTo) return;
-		if (
-			event.metaKey ||
-			event.ctrlKey ||
-			event.shiftKey ||
-			event.altKey ||
-			event.button !== 0
-		) {
+		if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
 			return;
 		}
 		event.preventDefault();
@@ -720,7 +706,10 @@
 		if (!leadMagnetInfo?.enabled) return false;
 
 		// Prefer server-provided remaining, but keep a local fallback for robustness.
-		const remaining = (leadMagnetInfo.remaining ?? {}) as unknown as Record<string, number | undefined>;
+		const remaining = (leadMagnetInfo.remaining ?? {}) as unknown as Record<
+			string,
+			number | undefined
+		>;
 		if (Object.values(remaining).some((value) => typeof value === 'number' && value > 0)) {
 			return true;
 		}
@@ -769,8 +758,8 @@
 		</div>
 	</div>
 {:else}
-	<div class="w-full">
-		<div class="space-y-4">
+	<div class="w-full max-w-5xl mx-auto">
+		<div class="space-y-3">
 			<WalletHowItWorksModal
 				bind:open={howItWorksOpen}
 				onTopup={scrollToTopup}
@@ -779,7 +768,7 @@
 
 			{#if topupReturnStatus !== 'idle' && !topupReturnDismissed && topupFlow}
 				<div
-					class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+					class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4"
 				>
 					<div class="flex items-start justify-between gap-3">
 						<div class="flex items-start gap-3">
@@ -853,7 +842,7 @@
 			{/if}
 
 			<div
-				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-5"
+				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4 sm:p-5"
 			>
 				<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 					<div>
@@ -919,7 +908,7 @@
 					</div>
 				</div>
 
-				<div class="mt-4">
+				<div class="mt-5">
 					<div class="flex items-center gap-1 text-sm text-gray-500">
 						<span>{$i18n.t('Available now')}</span>
 						<Tooltip content={$i18n.t('Available now help')} placement="top">
@@ -975,18 +964,18 @@
 				</div>
 			</div>
 
-			<div class={`grid gap-4 ${leadMagnetInfo?.enabled ? 'lg:grid-cols-2' : ''}`}>
-			<WalletTopupSection
-				currency={balance.currency}
-				defaultPackages={topupPackages}
-				allowCustom={allowCustomTopup}
-				highlightedPackageKopeks={highlightedPackageKopeks}
-				highlightedPackageLabel={highlightedPackageLabel}
-				creatingTopupAmount={creatingTopupAmount}
-				bind:customTopup
-				customTopupKopeks={customTopupKopeks}
-				onTopup={handleTopup}
-			/>
+			<div class={`grid gap-3 ${leadMagnetInfo?.enabled ? 'lg:grid-cols-2' : ''}`}>
+				<WalletTopupSection
+					currency={balance.currency}
+					defaultPackages={topupPackages}
+					allowCustom={allowCustomTopup}
+					{highlightedPackageKopeks}
+					{highlightedPackageLabel}
+					{creatingTopupAmount}
+					bind:customTopup
+					{customTopupKopeks}
+					onTopup={handleTopup}
+				/>
 
 				{#if leadMagnetInfo?.enabled}
 					<WalletLeadMagnetSection
@@ -1009,7 +998,7 @@
 							bind:autoTopupEnabled
 							bind:autoTopupThreshold
 							bind:autoTopupAmount
-							savingAutoTopup={savingAutoTopup}
+							{savingAutoTopup}
 							dirty={autoTopupDirty}
 							paymentMethodSaved={balance.auto_topup_payment_method_saved ?? false}
 							autoTopupFailCount={balance.auto_topup_fail_count ?? 0}
@@ -1025,14 +1014,14 @@
 						dailySpent={balance.daily_spent_kopeks ?? null}
 						dailyResetAt={balance.daily_reset_at ?? null}
 						currency={balance.currency}
-						savingPreferences={savingPreferences}
+						{savingPreferences}
 						dirty={limitsDirty}
 						onSave={() => handleSavePreferences('limits')}
 					/>
 					<WalletContactsSection
 						bind:contactEmail
 						bind:contactPhone
-						savingPreferences={savingPreferences}
+						{savingPreferences}
 						dirty={contactsDirty}
 						onSave={() => handleSavePreferences('contacts')}
 					/>
@@ -1040,7 +1029,7 @@
 			</div>
 
 			<div
-				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4"
 			>
 				<div class="flex items-center justify-between mb-3">
 					<div class="text-sm font-medium">{$i18n.t('Latest activity')}</div>

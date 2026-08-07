@@ -1,0 +1,153 @@
+{
+	"spec_id": "simplify-billing-balance-and-t-2026-08-07-1744",
+	"title": "Simplify billing balance and transaction history UX",
+	"generated": "2026-08-07T14:44:55.329100Z",
+	"last_updated": "2026-08-07T14:46:31.477029Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 24,
+		"security_sensitive": false,
+		"status": "active",
+		"activated_date": "2026-08-07T14:46:31.476797Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Simplify billing balance and transaction history UX",
+			"status": "pending",
+			"parent": null,
+			"children": ["phase-1", "phase-2", "phase-3"],
+			"total_tasks": 8,
+			"completed_tasks": 0,
+			"metadata": {
+				"work_item_spec": "meta/memory_bank/specs/work_items/2026-08-07__feature__billing-balance-history-simplify.md"
+			}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Phase 1: Wallet hierarchy and copy",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-1-1", "verify-1-1"],
+			"total_tasks": 2,
+			"completed_tasks": 0,
+			"metadata": {
+				"risk": "medium"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Simplify wallet first viewport without changing billing behavior",
+			"status": "pending",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"file_path": "src/routes/(app)/billing/balance/+page.svelte"
+			}
+		},
+		"verify-1-1": {
+			"type": "verify",
+			"title": "Wallet actions and states remain rendered",
+			"status": "pending",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"verification_type": "test",
+				"command": "npm run test:frontend -- --run src/routes/(app)/billing/balance/billing-balance.test.ts"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Phase 2: Compact transaction history",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-2-1", "verify-2-1"],
+			"total_tasks": 2,
+			"completed_tasks": 0,
+			"metadata": {
+				"risk": "medium"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Group timeline rows by date and preserve filters/preview",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"file_path": "src/lib/components/billing/UnifiedTimeline.svelte"
+			}
+		},
+		"verify-2-1": {
+			"type": "verify",
+			"title": "Timeline filters and compact rows pass focused tests",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"verification_type": "test",
+				"command": "npm run test:frontend -- --run src/lib/components/billing/UnifiedTimeline.test.ts"
+			}
+		},
+		"phase-3": {
+			"type": "phase",
+			"title": "Phase 3: Browser QA and release evidence",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-3-1", "verify-3-1", "verify-3-2"],
+			"total_tasks": 4,
+			"completed_tasks": 0,
+			"metadata": {
+				"risk": "low"
+			}
+		},
+		"task-3-1": {
+			"type": "task",
+			"title": "Run desktop/mobile browser flow and record evidence",
+			"status": "pending",
+			"parent": "phase-3",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"file_path": "src/routes/(app)/billing/history/+page.svelte"
+			}
+		},
+		"verify-3-1": {
+			"type": "verify",
+			"title": "Full frontend regression suite",
+			"status": "pending",
+			"parent": "phase-3",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"verification_type": "test",
+				"command": "npm run test:frontend -- --run"
+			}
+		},
+		"verify-3-2": {
+			"type": "verify",
+			"title": "Rendered production flow has no console errors",
+			"status": "pending",
+			"parent": "phase-3",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"verification_type": "manual",
+				"expected": "Wallet and history render on desktop and narrow viewport; filter changes URL and list"
+			}
+		}
+	}
+}

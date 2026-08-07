@@ -178,11 +178,17 @@
 
 	const formatDateTime = (timestamp: number): string => {
 		return new Date(timestamp * 1000).toLocaleString($i18n.locale, {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
 			hour: '2-digit',
 			minute: '2-digit'
+		});
+	};
+
+	const formatDay = (timestamp: number): string => {
+		return new Date(timestamp * 1000).toLocaleDateString($i18n.locale, {
+			weekday: 'long',
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric'
 		});
 	};
 
@@ -342,14 +348,33 @@
 		const sliceCount = maxItems ?? displayCount;
 		return filteredItems.slice(0, sliceCount);
 	})();
+	$: groupedItems = (() => {
+		const groups: { key: string; label: string; items: TimelineItem[] }[] = [];
+		for (const item of visibleItems) {
+			const date = new Date(item.createdAt * 1000);
+			const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+			const lastGroup = groups.at(-1);
+			if (lastGroup?.key === key) {
+				lastGroup.items.push(item);
+			} else {
+				groups.push({ key, label: formatDay(item.createdAt), items: [item] });
+			}
+		}
+		return groups;
+	})();
 	$: canLoadMore =
 		showLoadMore && (filteredItems.length > visibleItems.length || ledgerHasMore || usageHasMore);
 </script>
 
 {#if showFilters}
-	<div class="flex flex-wrap gap-2 mb-3">
+	<div
+		class="flex gap-2 mb-4 overflow-x-auto scrollbar-none pb-0.5"
+		role="group"
+		aria-label={$i18n.t('History filters')}
+	>
 		<button
 			type="button"
+			aria-pressed={activeFilter === 'all'}
 			on:click={() => handleFilterChange('all')}
 			class="px-3 py-1.5 rounded-full text-sm font-medium transition {activeFilter === 'all'
 				? 'bg-black text-white dark:bg-white dark:text-black'
@@ -359,6 +384,7 @@
 		</button>
 		<button
 			type="button"
+			aria-pressed={activeFilter === 'paid'}
 			on:click={() => handleFilterChange('paid')}
 			class="px-3 py-1.5 rounded-full text-sm font-medium transition {activeFilter === 'paid'
 				? 'bg-black text-white dark:bg-white dark:text-black'
@@ -368,6 +394,7 @@
 		</button>
 		<button
 			type="button"
+			aria-pressed={activeFilter === 'free'}
 			on:click={() => handleFilterChange('free')}
 			class="px-3 py-1.5 rounded-full text-sm font-medium transition {activeFilter === 'free'
 				? 'bg-black text-white dark:bg-white dark:text-black'
@@ -377,6 +404,7 @@
 		</button>
 		<button
 			type="button"
+			aria-pressed={activeFilter === 'topups'}
 			on:click={() => handleFilterChange('topups')}
 			class="px-3 py-1.5 rounded-full text-sm font-medium transition {activeFilter === 'topups'
 				? 'bg-black text-white dark:bg-white dark:text-black'
@@ -420,49 +448,55 @@
 		{/if}
 	</div>
 {:else}
-	<div class="space-y-2">
-		{#each visibleItems as item (`${item.kind}:${item.id}`)}
-			{@const amountValue = item.kind === 'usage' ? -Math.abs(item.amountKopeks ?? 0) : item.amountKopeks ?? 0}
-			<div
-				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4"
-			>
-				<div class="flex items-start justify-between gap-4">
-					<div>
-						<div class="text-sm font-medium">{item.title}</div>
-						<div class="text-xs text-gray-500 mt-0.5">
-							{item.subtitle}
-							{#if item.subtitle}
-								<span class="mx-1">•</span>
+	<div class="rounded-2xl border border-gray-100/30 dark:border-gray-850/30 overflow-hidden">
+		{#each groupedItems as group}
+			<section aria-labelledby={`timeline-${group.key}`}>
+				<h2
+					id={`timeline-${group.key}`}
+					class="px-4 pt-3 pb-2 text-xs font-medium text-gray-500 capitalize"
+				>
+					{group.label}
+				</h2>
+				<div class="divide-y divide-gray-100/30 dark:divide-gray-850/30">
+					{#each group.items as item (`${item.kind}:${item.id}`)}
+						{@const amountValue =
+							item.kind === 'usage' ? -Math.abs(item.amountKopeks ?? 0) : (item.amountKopeks ?? 0)}
+						<div
+							data-testid="timeline-item"
+							role="article"
+							aria-label={`${item.title}${item.subtitle ? `, ${item.subtitle}` : ''}, ${formatDateTime(item.createdAt)}`}
+							class="flex items-start justify-between gap-4 px-4 py-3.5 min-h-[68px]"
+						>
+							<div class="min-w-0">
+								<div class="text-sm font-medium truncate">{item.title}</div>
+								<div class="text-xs text-gray-500 mt-0.5 truncate">
+									{item.subtitle || $i18n.t('Billing activity')}
+									<span class="mx-1">•</span>{formatDateTime(item.createdAt)}
+								</div>
+								{#if item.metrics.length > 0 || item.isEstimated}
+									<div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500 mt-1.5">
+										{#each item.metrics as metric}
+											<span>{metric}</span>
+										{/each}
+										{#if item.isEstimated}
+											<span>{$i18n.t('Estimated')} • {$i18n.t('Not charged')}</span>
+										{/if}
+									</div>
+								{/if}
+							</div>
+							{#if item.kind === 'free'}
+								<div class="shrink-0 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+									{$i18n.t('Free')}
+								</div>
+							{:else}
+								<div class={`shrink-0 text-sm font-semibold ${getAmountClass(amountValue)}`}>
+									{amountValue > 0 ? '+' : ''}{formatMoney(amountValue, item.currency)}
+								</div>
 							{/if}
-							{formatDateTime(item.createdAt)}
 						</div>
-					</div>
-					{#if item.kind === 'free'}
-						<div class="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-							{$i18n.t('Free')}
-						</div>
-					{:else}
-						<div class={`text-sm font-semibold ${getAmountClass(amountValue)}`}>
-							{amountValue > 0 ? '+' : ''}
-							{formatMoney(amountValue, item.currency)}
-						</div>
-					{/if}
+					{/each}
 				</div>
-
-				{#if item.metrics.length > 0}
-					<div class="flex flex-wrap gap-3 text-xs text-gray-500 mt-2">
-						{#each item.metrics as metric}
-							<span>{metric}</span>
-						{/each}
-					</div>
-				{/if}
-
-				{#if item.isEstimated}
-					<div class="text-xs text-gray-500 mt-2">
-						{$i18n.t('Estimated')} • {$i18n.t('Not charged')}
-					</div>
-				{/if}
-			</div>
+			</section>
 		{/each}
 	</div>
 

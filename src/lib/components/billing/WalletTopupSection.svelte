@@ -11,10 +11,7 @@
 	export let creatingTopupAmount: number | null = null;
 	export let customTopup = '';
 	export let customTopupKopeks: number | null = null;
-	export let onTopup: (
-		amountKopeks: number,
-		source?: 'package' | 'custom'
-	) => void | Promise<void>;
+	export let onTopup: (amountKopeks: number, source?: 'package' | 'custom') => void | Promise<void>;
 
 	const formatMoney = (kopeks: number, currencyCode: string): string => {
 		const amount = kopeks / 100;
@@ -70,7 +67,7 @@
 </script>
 
 <div
-	class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+	class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4"
 	id="topup-section"
 >
 	<div class="flex items-center justify-between mb-3">
@@ -84,9 +81,11 @@
 				data-testid="topup-preset"
 				data-amount-kopeks={amount}
 				aria-pressed={selectedPackageKopeks === amount && !hasValidCustom}
-				class="px-3 py-1.5 rounded-xl border text-sm font-medium transition disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 {selectedPackageKopeks === amount && !hasValidCustom
+				class="px-3 py-1.5 rounded-xl border text-sm font-medium transition disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 {selectedPackageKopeks ===
+					amount && !hasValidCustom
 					? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white'
-					: 'border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'} {highlightedPackageKopeks === amount && highlightedPackageLabel
+					: 'border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'} {highlightedPackageKopeks ===
+					amount && highlightedPackageLabel
 					? 'ring-2 ring-amber-500/30'
 					: ''}"
 				disabled={creatingTopupAmount !== null}
@@ -162,12 +161,8 @@
 		</button>
 	</div>
 	<div class="text-xs text-gray-500 mt-3">
-		{$i18n.t('Top-up packages are charged in')}: {currency}
-	</div>
-	<div class="text-xs text-gray-500 mt-1">
-		{$i18n.t('You will be redirected to YooKassa')}
-	</div>
-	<div class="text-xs text-gray-500 mt-1">
-		{$i18n.t("We don't store card details")}
+		{$i18n.t('Top-up packages are charged in')}: {currency} · {$i18n.t(
+			'You will be redirected to YooKassa'
+		)} · {$i18n.t("We don't store card details")}
 	</div>
 </div>
