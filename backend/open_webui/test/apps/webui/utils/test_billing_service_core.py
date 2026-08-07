@@ -67,6 +67,18 @@ class TestBillingServiceCore:
             )
 
     @pytest.mark.asyncio
+    async def test_create_payment_rejects_inactive_plan(self) -> None:
+        service = BillingService()
+        service.get_plan = lambda *_: SimpleNamespace(is_active=False)  # type: ignore[method-assign]
+
+        with pytest.raises(ValueError, match="Plan .* not found"):
+            await service.create_payment(
+                user_id="user_1",
+                plan_id="plan_inactive",
+                return_url="https://example.com/return",
+            )
+
+    @pytest.mark.asyncio
     async def test_create_payment_updates_transaction_and_returns_payload(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.utils.billing as billing_utils
 
@@ -81,9 +93,11 @@ class TestBillingServiceCore:
         class FakeYooKassaClient:
             def __init__(self) -> None:
                 self.metadata: dict[str, object] = {}
+                self.idempotence_key: object = None
 
             async def create_payment(self, **_: object) -> dict[str, object]:
                 self.metadata = dict(_.get("metadata", {}))
+                self.idempotence_key = _.get("idempotence_key")
                 return {
                     "id": "pay_1",
                     "status": "pending",
@@ -126,4 +140,5 @@ class TestBillingServiceCore:
         assert updates
         assert updates[-1][1]["yookassa_payment_id"] == "pay_1"
         assert updates[-1][1]["yookassa_status"] == "pending"
+        assert isinstance(fake_client.idempotence_key, str)
         assert "user_email" not in fake_client.metadata

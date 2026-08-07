@@ -1,0 +1,224 @@
+{
+  "spec_id": "billing-review-remediation-2026-08-07-310",
+  "title": "Billing review remediation and regression hardening",
+  "generated": "2026-08-07T10:10:15.716477Z",
+  "last_updated": "2026-08-07T10:28:15.456734Z",
+  "metadata": {
+    "template": "complex",
+    "complexity": "high",
+    "risk_level": "high",
+    "estimated_hours": 60,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-07__bugfix__billing-review-remediation.md",
+    "default_category": "implementation",
+    "status": "completed",
+    "activated_date": "2026-08-07T10:10:23.285320Z",
+    "completed_date": "2026-08-07T10:28:15.456295Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Billing review remediation and regression hardening",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4",
+        "phase-5"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 5,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-07T10:27:55.764859Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-07T10:27:56.429252Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-07T10:27:57.053373Z"
+      }
+    },
+    "phase-4": {
+      "type": "phase",
+      "title": "Phase 4: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-4-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-07T10:27:57.465615Z"
+      }
+    },
+    "phase-5": {
+      "type": "phase",
+      "title": "Phase 5: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-5-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-07T10:27:57.839567Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Harden settlement, plan activation, payment idempotency, and top-up recovery",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 8.0,
+        "started_at": "2026-08-07T10:11:35.144910Z",
+        "status_note": "Backend hardening implemented and reviewed",
+        "completed_at": "2026-08-07T10:27:55.764451Z",
+        "needs_journaling": true,
+        "file_path": "backend/open_webui/utils/billing.py"
+      },
+      "description": "Fix fail-open non-streaming settlement, reject inactive plans, persist stable provider idempotency, and validate metadata-only wallet ownership."
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Fix reporting pagination, bounded aggregates, export scope, and CSV safety",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 8.0,
+        "completed_at": "2026-08-07T10:27:56.428828Z",
+        "needs_journaling": true,
+        "status_note": "Reporting bounds, totals, exports, and CSV safety fixed"
+        ,"file_path": "backend/open_webui/utils/airis/billing_reporting.py"
+      },
+      "description": "Return accurate payment totals, prevent silent truncation, enforce scoped ledger/usage export, and harden CSV formula neutralization."
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Align admin billing currency, filters, and accessibility",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 5.0,
+        "completed_at": "2026-08-07T10:27:57.053163Z",
+        "needs_journaling": true,
+        "status_note": "Admin filters, currency context, accessibility, and UI regression coverage fixed"
+        ,"file_path": "src/routes/(app)/admin/billing/+page.svelte"
+      },
+      "description": "Use API currency/date semantics consistently and improve keyboard and sort semantics in reporting tables."
+    },
+    "task-4-1": {
+      "type": "task",
+      "title": "Add targeted regression coverage and validate migration behavior",
+      "status": "completed",
+      "parent": "phase-4",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 6.0,
+        "completed_at": "2026-08-07T10:27:57.465372Z",
+        "needs_journaling": true,
+        "status_note": "Targeted tests and static checks completed; async image limitation documented"
+        ,"file_path": "backend/open_webui/test/apps/webui/utils/test_billing_reporting.py"
+      },
+      "description": "Cover each fixed root cause with backend/frontend tests and migration checks."
+    },
+    "task-5-1": {
+      "type": "verify",
+      "title": "Repeat independent code/security review and release validation",
+      "status": "completed",
+      "parent": "phase-5",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 4.0,
+        "completed_at": "2026-08-07T10:27:57.839337Z",
+        "needs_journaling": true,
+        "status_note": "Repeated code/security review completed,",
+        "verification_type": "auto",
+        "command": "git diff --check && python -m compileall -q backend/open_webui",
+        "expected": "Checks complete without errors"
+      },
+      "description": "Run full review, lint, typecheck, tests, and prepare merge only after all findings are closed."
+    }
+  }
+}

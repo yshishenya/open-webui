@@ -1,0 +1,8 @@
+- [x] **[BUG][BILLING][SECURITY][UI]** Remediate findings from billing code review after syncing `airis_b2c`.
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-07__bugfix__billing-review-remediation.md`
+  - SDD: `meta/sdd/specs/completed/billing-review-remediation-2026-08-07-310.json`
+  - Owner: Codex
+  - Started: 2026-08-07
+  - Summary: Fix settlement fail-open, reporting pagination/limits/export scope, inactive plan activation, provider idempotency, currency/accessibility issues, and add regression coverage.
+  - Tests: targeted frontend Vitest 10/10; ESLint, compileall, targeted Ruff, pure reporting checks, and `git diff --check` passed. Async backend tests are blocked by the local Docker image missing `pytest-asyncio`.
+  - Review: repeated code/security review completed; no new actionable findings in the changed runtime paths.

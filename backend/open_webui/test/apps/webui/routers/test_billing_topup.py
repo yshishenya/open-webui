@@ -660,6 +660,8 @@ class TestBillingTopup(AbstractPostgresTest):
                 self.last_metadata: Optional[dict[str, object]] = None
                 self.last_payment_method_id: Optional[str] = None
                 self.last_receipt: Optional[dict[str, object]] = None
+                self.last_idempotence_key: Optional[str] = None
+                self.idempotence_keys: list[Optional[str]] = []
 
             async def create_payment(
                 self,
@@ -671,11 +673,14 @@ class TestBillingTopup(AbstractPostgresTest):
                 receipt: Optional[dict[str, object]] = None,
                 payment_method_id: Optional[str] = None,
                 save_payment_method: Optional[bool] = None,
+                idempotence_key: Optional[str] = None,
             ) -> dict[str, object]:
                 self.last_amount = amount
                 self.last_metadata = metadata
                 self.last_payment_method_id = payment_method_id
                 self.last_receipt = receipt
+                self.last_idempotence_key = idempotence_key
+                self.idempotence_keys.append(idempotence_key)
                 return {
                     "id": "pay_stub",
                     "status": "pending",
@@ -712,6 +717,7 @@ class TestBillingTopup(AbstractPostgresTest):
         assert result["payment_id"] == "pay_stub"
         assert result["confirmation_url"] == "https://example.com/confirm"
         assert fake_client.last_amount == Decimal("199.00")
+        assert fake_client.last_idempotence_key
         assert isinstance(fake_client.last_metadata, dict)
         assert fake_client.last_metadata.get("wallet_id") == wallet.id
         assert fake_client.last_metadata.get("user_email") == "topup-user@example.com"
@@ -725,6 +731,18 @@ class TestBillingTopup(AbstractPostgresTest):
         assert payment.kind == PaymentKind.TOPUP.value
         assert payment.status == PaymentStatus.PENDING.value
         assert payment.payment_method_id == "pm_1"
+        assert payment.idempotency_key == fake_client.last_idempotence_key
+
+        retry_result = await billing_service.create_topup_payment(
+            user_id="1",
+            wallet_id=wallet.id,
+            amount_kopeks=19900,
+            return_url="https://example.com/return",
+        )
+        assert retry_result["payment_id"] == "pay_stub"
+        assert len(fake_client.idempotence_keys) == 2
+        assert fake_client.idempotence_keys[0] == fake_client.idempotence_keys[1]
+        assert len(Payments.list_payments_by_wallet(wallet.id, kind=PaymentKind.TOPUP.value)) == 1
 
     @pytest.mark.asyncio
     async def test_auto_topup_creates_payment_with_saved_method(self, monkeypatch: MonkeyPatch) -> None:

@@ -1264,6 +1264,12 @@ async def track_non_streaming_response(
         log.exception("Error in track_non_streaming_response: %s", e)
         if billing_context:
             await release_billing_hold(billing_context)
+            # A successful provider response must not be returned when its
+            # usage could not be settled. Returning here would turn a
+            # settlement error into an unbilled request. Callers translate
+            # this exception to their normal billing error response and
+            # perform a defensive hold release (which is idempotent).
+            raise
 
     return response
 

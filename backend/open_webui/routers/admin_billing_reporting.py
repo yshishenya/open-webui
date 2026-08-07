@@ -132,7 +132,10 @@ async def get_reporting_payments(
         user_id=user_id,
         status=status,
         kind=kind,
-        limit=min(REPORTING_EXPORT_MAX, page * size),
+        # Fetch the complete bounded reporting window so `total_pages` is
+        # stable on page one.  Deriving totals from `page * size` made every
+        # first page look like the final page and disabled pagination.
+        limit=REPORTING_EXPORT_MAX,
     )
     start_index = (page - 1) * size
     items = [BillingReportingService._payment_payload(fact) for fact in facts[start_index : start_index + size]]
@@ -248,6 +251,11 @@ async def export_reporting_data(
             )
         ]
     elif dataset == 'ledger':
+        if not user_id:
+            raise HTTPException(
+                status_code=400,
+                detail='user_id is required for ledger exports',
+            )
         rows, _ = await service.ledger_rows(
             from_ts=start,
             to_ts=end,
@@ -258,6 +266,11 @@ async def export_reporting_data(
         )
         # ponytail: keep a single bounded export request; paginated views remain available for larger datasets.
     else:
+        if not user_id:
+            raise HTTPException(
+                status_code=400,
+                detail='user_id is required for usage exports',
+            )
         rows, _ = await service.usage_rows(
             from_ts=start,
             to_ts=end,

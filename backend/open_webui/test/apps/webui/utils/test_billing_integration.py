@@ -76,6 +76,32 @@ class TestBillingIntegration(AbstractPostgresTest):
         RateCards.create_rate_card(tts_rate.model_dump())
 
     @pytest.mark.asyncio
+    async def test_non_streaming_settlement_failure_is_not_returned_as_success(self, monkeypatch):
+        import open_webui.utils.billing_integration as billing_integration
+
+        released = False
+
+        async def _fail_settlement(**_kwargs):
+            raise RuntimeError("settlement unavailable")
+
+        async def _release(_context):
+            nonlocal released
+            released = True
+
+        monkeypatch.setattr(billing_integration, "settle_billing_usage", _fail_settlement)
+        monkeypatch.setattr(billing_integration, "release_billing_hold", _release)
+
+        with pytest.raises(RuntimeError, match="settlement unavailable"):
+            await billing_integration.track_non_streaming_response(
+                {"usage": {"prompt_tokens": 1, "completion_tokens": 1}},
+                user_id="1",
+                model_id=self.model_id,
+                billing_context=object(),
+            )
+
+        assert released is True
+
+    @pytest.mark.asyncio
     async def test_hold_and_settle_creates_usage_event(self, monkeypatch):
         from open_webui.models.billing import LedgerEntry, UsageEvent, Wallets
         from open_webui.utils.billing_integration import (
@@ -1125,6 +1151,7 @@ class TestBillingIntegration(AbstractPostgresTest):
                 receipt: dict[str, object] | None = None,
                 payment_method_id: str | None = None,
                 save_payment_method: bool | None = None,
+                idempotence_key: str | None = None,
             ) -> dict[str, object]:
                 captured["amount"] = amount
                 captured["currency"] = currency
@@ -1133,6 +1160,7 @@ class TestBillingIntegration(AbstractPostgresTest):
                 captured["metadata"] = dict(metadata)
                 captured["receipt"] = receipt
                 captured["save_payment_method"] = save_payment_method
+                captured["idempotence_key"] = idempotence_key
                 return {
                     "id": "pay_contract_1",
                     "status": "pending",
@@ -1172,6 +1200,7 @@ class TestBillingIntegration(AbstractPostgresTest):
         assert captured["metadata"]["user_id"] == "contract_user"
         assert captured["metadata"]["wallet_id"] == wallet.id
         assert captured["metadata"]["amount_kopeks"] == 1500
+        assert isinstance(captured["idempotence_key"], str)
 
         payment = Payments.get_payment_by_provider_id("pay_contract_1")
         assert payment is not None
