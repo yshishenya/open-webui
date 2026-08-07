@@ -125,7 +125,7 @@
 	};
 
 	const shareHandler = async () => {
-		toast.success($i18n.t('Redirecting you to AIris Community'));
+		toast.success($i18n.t('Redirecting you to Airis Community'));
 
 		// remove snapshot from feedbacks
 		const feedbacksToShare = feedbacks.map((f) => {

@@ -21,7 +21,6 @@
 	import EmojiFaceIcon from './icons/EmojiFace.svelte';
 	import HelpCircleIcon from './icons/HelpCircle.svelte';
 	import LogOutIcon from './icons/LogOut.svelte';
-	import MapIcon from './icons/Map.svelte';
 	import NotesIcon from './icons/Notes.svelte';
 	import PinIcon from './icons/Pin.svelte';
 	import PinSlashIcon from './icons/PinSlash.svelte';
@@ -486,7 +485,7 @@
 				{#if $user?.role === 'admin'}
 					<a
 						data-testid="user-menu-documentation"
-						href="https://docs.openwebui.com"
+						href="/documents"
 						target="_blank"
 						draggable="false"
 						class="flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[13px] w-full hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none"
@@ -501,22 +500,6 @@
 						<div class="self-center truncate">{$i18n.t('Documentation')}</div>
 					</a>
 
-					<a
-						data-testid="user-menu-releases"
-						href="https://github.com/open-webui/open-webui/releases"
-						target="_blank"
-						draggable="false"
-						class="flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[13px] w-full hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none"
-						id="chat-share-button"
-						on:click={() => {
-							show = false;
-						}}
-					>
-						<div class="self-center">
-							<MapIcon className="size-3.5" />
-						</div>
-						<div class="self-center truncate">{$i18n.t('Releases')}</div>
-					</a>
 				{/if}
 
 				<button

@@ -69,7 +69,7 @@
 </script>
 
 <svelte:head>
-	<title>Завершение регистрации - Open WebUI</title>
+	<title>Завершение регистрации - Airis</title>
 </svelte:head>
 
 <div

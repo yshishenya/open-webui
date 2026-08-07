@@ -36,7 +36,6 @@
 	import GarbageBin from '../icons/GarbageBin.svelte';
 	import ViewSelector from './common/ViewSelector.svelte';
 	import TagSelector from './common/TagSelector.svelte';
-	import CommunityDiscover from './common/CommunityDiscover.svelte';
 	import Badge from '$lib/components/common/Badge.svelte';
 	import Switch from '../common/Switch.svelte';
 	import Pagination from '../common/Pagination.svelte';
@@ -194,7 +193,7 @@
 	};
 
 	const shareHandler = async (prompt) => {
-		toast.success($i18n.t('Redirecting you to AIris Community'));
+		toast.success($i18n.t('Redirecting you to Airis Community'));
 
 		const url = '#';
 
@@ -298,7 +297,7 @@
 
 		const onMessage = async (event: MessageEvent) => {
 			if (
-				!['https://openwebui.com', 'https://www.openwebui.com', 'http://localhost:9999'].includes(
+				![window.location.origin, 'http://localhost:9999'].includes(
 					event.origin
 				)
 			) {
@@ -740,13 +739,6 @@
 		{/if}
 	</div>
 
-	{#if $config?.features.enable_community_sharing}
-		<CommunityDiscover
-			href="https://openwebui.com/prompts"
-			title={$i18n.t('Discover a prompt')}
-			description={$i18n.t('Discover, download, and explore custom prompts')}
-		/>
-	{/if}
 {:else}
 	<div class="w-full h-full flex justify-center items-center">
 		<Spinner className="size-5" />

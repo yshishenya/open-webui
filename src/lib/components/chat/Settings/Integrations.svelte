@@ -143,13 +143,8 @@
 					</div>
 					<div class={helpTextClass}>
 						{$i18n.t(
-							'CORS must be properly configured by the provider to allow requests from Open WebUI.'
+							'CORS must be properly configured by the provider to allow requests from Airis.'
 						)}
-						<a
-							class="ml-1 text-gray-500 underline hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
-							href="https://github.com/open-webui/openapi-servers"
-							target="_blank">{$i18n.t('Learn more about OpenAPI tool servers.')} ↗</a
-						>
 					</div>
 				</div>
 			</UserSettingSection>
@@ -162,11 +157,6 @@
 						'Connect to Open Terminal instances to browse files and use them as always-on tools. Only one can be active at a time.'
 					)}
 				</div>
-				<a
-					class="mt-0.5 block text-[0.6875rem] text-gray-500 underline hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
-					href="https://github.com/open-webui/open-terminal"
-					target="_blank">{$i18n.t('Learn more about Open Terminal')} ↗</a
-				>
 			</UserSettingSection>
 		{:else}
 			<div class="flex h-full justify-center">
