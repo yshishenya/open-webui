@@ -25,10 +25,7 @@
 		user,
 		settings,
 		models,
-		knowledge,
 		tools,
-		functions,
-		tags,
 		banners,
 		showSettings,
 		showChangelog,
@@ -62,6 +59,15 @@
 	let legalStatus: LegalStatusResponse | null = null;
 	let legalGateOpen = false;
 
+	type EnabledTerminal = {
+		enabled?: boolean;
+		url?: string;
+		auth_type?: string;
+		key?: string;
+		path?: string;
+	};
+	type SettingsWithTerminals = { terminalServers?: EnabledTerminal[] };
+
 	let version;
 	let handledSettingsUrl = '';
 
@@ -89,7 +95,7 @@
 			if (localDBChats.length === 0) {
 				await deleteDB('Chats');
 			}
-		} catch (error) {
+		} catch {
 			// IndexedDB Not Found
 		}
 	};
@@ -146,8 +152,9 @@
 		toolServers.set(toolServersData);
 
 		// Inject enabled terminal servers as always-on tool servers
-		const enabledTerminals = (($settings as any)?.terminalServers ?? []).filter(
-			(s: any) => s.enabled || s.url === $selectedTerminalId
+		const terminalSettings = $settings as SettingsWithTerminals | null;
+		const enabledTerminals = (terminalSettings?.terminalServers ?? []).filter(
+			(s) => s.enabled || s.url === $selectedTerminalId
 		);
 
 		// Fetch terminal servers the user has access to (for FileNav + terminal_id)
@@ -156,7 +163,7 @@
 			...(enabledTerminals.length > 0
 				? (
 						await getToolServersData(
-							enabledTerminals.map((t: any) => ({
+							enabledTerminals.map((t) => ({
 								url: t.url,
 								auth_type: t.auth_type ?? 'bearer',
 								key: t.key ?? '',
@@ -482,7 +489,7 @@
 	}
 
 	const checkForVersionUpdates = async () => {
-		version = await getVersionUpdates(localStorage.token).catch((error) => {
+		version = await getVersionUpdates(localStorage.token).catch(() => {
 			return {
 				current: WEBUI_VERSION,
 				latest: WEBUI_VERSION
@@ -599,7 +606,7 @@
 {/if}
 
 <style>
-	.loading {
+	:global(.loading) {
 		display: inline-block;
 		clip-path: inset(0 1ch 0 0);
 		animation: l 1s steps(3) infinite;
@@ -612,7 +619,7 @@
 		}
 	}
 
-	pre[class*='language-'] {
+	:global(pre[class*='language-']) {
 		position: relative;
 		overflow: auto;
 
@@ -622,7 +629,7 @@
 		border-radius: 10px;
 	}
 
-	pre[class*='language-'] button {
+	:global(pre[class*='language-'] button) {
 		position: absolute;
 		top: 5px;
 		right: 5px;
@@ -636,7 +643,7 @@
 		text-shadow: #c4c4c4 0 0 2px;
 	}
 
-	pre[class*='language-'] button:hover {
+	:global(pre[class*='language-'] button:hover) {
 		cursor: pointer;
 		background-color: #bcbabb;
 	}
