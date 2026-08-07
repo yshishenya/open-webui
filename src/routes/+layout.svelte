@@ -17,7 +17,9 @@
 		WEBUI_NAME,
 		WEBUI_VERSION,
 		WEBUI_DEPLOYMENT_ID,
+		appData,
 		mobile,
+		models,
 		socket,
 		socketConnected,
 		chatId,
@@ -62,7 +64,7 @@
 		removeTerminalConnection
 	} from '$lib/utils/connections';
 
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL, WEBUI_HOSTNAME } from '$lib/constants';
+	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 	import {
 		bestMatchingLanguage,
 		cleanText,
@@ -70,14 +72,13 @@
 		getUserTimezone,
 		removeAllDetails
 	} from '$lib/utils';
-	import { setTextScale } from '$lib/utils/text-scale';
+	import { isPublicMarketingRoute } from '$lib/utils/airis/public_routes';
 
 	import NotificationToast from '$lib/components/NotificationToast.svelte';
 	import AppSidebar from '$lib/components/app/AppSidebar.svelte';
 	import SyncStatsModal from '$lib/components/chat/Settings/SyncStatsModal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import { getOutputText } from '$lib/components/chat/Messages/structuredOutput';
-	import { getUserSettings } from '$lib/apis/users';
 	import dayjs from 'dayjs';
 	import { getChannels } from '$lib/apis/channels';
 
@@ -376,9 +377,9 @@
 			worker.removeEventListener('message', onMessage);
 			worker.removeEventListener('error', onError);
 
-			data['stdout'] && (stdout = data['stdout']);
-			data['stderr'] && (stderr = data['stderr']);
-			data['result'] && (result = data['result']);
+			if (data['stdout']) stdout = data['stdout'];
+			if (data['stderr']) stderr = data['stderr'];
+			if (data['result']) result = data['result'];
 
 			if (cb) {
 				cb(
@@ -493,8 +494,6 @@
 	};
 
 	const chatEventHandler = async (event, cb) => {
-		const chat = $page.url.pathname.includes(`/c/${event.chat_id}`);
-
 		// Skip events from temporary chats that are not the current chat.
 		// This prevents notifications from being sent to other tabs/devices
 		// for privacy, since temporary chats are not meant to be persisted or visible elsewhere.
@@ -563,7 +562,7 @@
 				return;
 			} else if (type === 'request:chat:completion') {
 				console.log(data, $socket.id);
-				const { session_id, channel, form_data, model } = data;
+				const { channel, form_data, model } = data;
 
 				try {
 					const directConnections = $settings?.directConnections ?? {};
@@ -581,11 +580,7 @@
 								form_data['model'] = form_data['model'].replace(`${prefixId}.`, ``);
 							}
 
-							const [res, controller] = await chatCompletion(
-								OPENAI_API_KEY,
-								form_data,
-								OPENAI_API_URL
-							);
+							const [res] = await chatCompletion(OPENAI_API_KEY, form_data, OPENAI_API_URL);
 
 							if (res) {
 								// raise if the response is not ok
@@ -604,9 +599,11 @@
 									const decoder = new TextDecoder();
 
 									const processStream = async () => {
-										while (true) {
+										let streamDone = false;
+										while (!streamDone) {
 											// Read data chunks from the response stream
 											const { done, value } = await reader.read();
+											streamDone = done;
 											if (done) {
 												break;
 											}
@@ -710,7 +707,7 @@
 
 		// handle channel created event
 		if (event.data?.type === 'channel:created') {
-			const res = await getChannels(localStorage.token).catch(async (error) => {
+			const res = await getChannels(localStorage.token).catch(() => {
 				return null;
 			});
 
@@ -761,7 +758,7 @@
 						})
 					);
 				} else {
-					const res = await getChannels(localStorage.token).catch(async (error) => {
+					const res = await getChannels(localStorage.token).catch(() => {
 						return null;
 					});
 
@@ -1015,12 +1012,12 @@
 			return nav && (el === nav || nav.contains(el));
 		}
 
-		document.addEventListener('touchstart', (e) => {
+		const touchstartHandler = (e) => {
 			if (!isNavOrDescendant(e.target)) return;
 			touchstartY = e.touches[0].clientY;
-		});
+		};
 
-		document.addEventListener('touchmove', (e) => {
+		const touchmoveHandler = (e) => {
 			if (!isNavOrDescendant(e.target)) return;
 			const touchY = e.touches[0].clientY;
 			const touchDiff = touchY - touchstartY;
@@ -1028,15 +1025,19 @@
 				showRefresh = true;
 				e.preventDefault();
 			}
-		});
+		};
 
-		document.addEventListener('touchend', (e) => {
+		const touchendHandler = (e) => {
 			if (!isNavOrDescendant(e.target)) return;
 			if (showRefresh) {
 				showRefresh = false;
 				location.reload();
 			}
-		});
+		};
+
+		document.addEventListener('touchstart', touchstartHandler);
+		document.addEventListener('touchmove', touchmoveHandler);
+		document.addEventListener('touchend', touchendHandler);
 
 		if (typeof window !== 'undefined') {
 			if (window.applyTheme) {
@@ -1145,82 +1146,82 @@
 			}
 		});
 
-		let backendConfig = null;
-		try {
-			backendConfig = await getBackendConfig();
-			console.log('Backend config:', backendConfig);
-		} catch (error) {
-			if (error?.authRedirect) {
-				// Forward-auth proxy is redirecting to an external login page.
-				// Full-page navigation lets the browser follow the redirect natively.
-				window.location.href = '/';
-				return;
-			}
-			console.error('Error loading backend config:', error);
-		}
-		// Initialize i18n even if we didn't get a backend config,
-		// so `/error` can show something that's not `undefined`.
-
 		initI18n(localStorage?.locale);
-		if (!localStorage.locale) {
-			const languages = await getLanguages();
-			const browserLanguages = navigator.languages
-				? navigator.languages
-				: [navigator.language || navigator.userLanguage];
-			const lang = backendConfig?.default_locale
-				? backendConfig.default_locale
-				: bestMatchingLanguage(languages, browserLanguages, 'en-US');
-			changeLanguage(lang);
-			dayjs.locale(lang);
-		}
+		if (!isPublicMarketingRoute($page.url.pathname)) {
+			let backendConfig = null;
+			try {
+				backendConfig = await getBackendConfig();
+				console.log('Backend config:', backendConfig);
+			} catch (error) {
+				if (error?.authRedirect) {
+					// Forward-auth proxy is redirecting to an external login page.
+					// Full-page navigation lets the browser follow the redirect natively.
+					window.location.href = '/';
+					return;
+				}
+				console.error('Error loading backend config:', error);
+			}
 
-		if (backendConfig) {
-			// Save Backend Status to Store
-			await config.set(backendConfig);
-			await WEBUI_NAME.set(backendConfig.name);
+			if (!localStorage.locale) {
+				const languages = await getLanguages();
+				const browserLanguages = navigator.languages
+					? navigator.languages
+					: [navigator.language || navigator.userLanguage];
+				const lang = backendConfig?.default_locale
+					? backendConfig.default_locale
+					: bestMatchingLanguage(languages, browserLanguages, 'en-US');
+				changeLanguage(lang);
+				dayjs.locale(lang);
+			}
 
-			if ($config) {
-				await setupSocket($config.features?.enable_websocket ?? true);
+			if (backendConfig) {
+				// Save Backend Status to Store
+				await config.set(backendConfig);
+				await WEBUI_NAME.set(backendConfig.name);
 
-				if (localStorage.token) {
-					// Get Session User Info
-					const sessionUser = await getSessionUser(localStorage.token).catch((error) => {
-						toast.error(`${error}`);
-						return null;
-					});
+				if ($config) {
+					await setupSocket($config.features?.enable_websocket ?? true);
 
-					if (sessionUser) {
-						await user.set(sessionUser);
-						try {
-							await config.set(await getBackendConfig());
-						} catch (error) {
-							console.error('Error refreshing backend config:', error);
+					if (localStorage.token) {
+						// Get Session User Info
+						const sessionUser = await getSessionUser(localStorage.token).catch((error) => {
+							toast.error(`${error}`);
+							return null;
+						});
+
+						if (sessionUser) {
+							await user.set(sessionUser);
+							try {
+								await config.set(await getBackendConfig());
+							} catch (error) {
+								console.error('Error refreshing backend config:', error);
+							}
+
+							// Keep user timezone in sync on every app load/refresh
+							const timezone = getUserTimezone();
+							if (timezone) {
+								updateUserTimezone(localStorage.token, timezone);
+							}
+
+							// Relay auth token to desktop app for API access
+							if (window.electronAPI?.send) {
+								window.electronAPI
+									.send({
+										type: 'token:update',
+										token: localStorage.token
+									})
+									.catch(() => {});
+							}
+						} else {
+							localStorage.removeItem('token');
+							await user.set(null);
 						}
-
-						// Keep user timezone in sync on every app load/refresh
-						const timezone = getUserTimezone();
-						if (timezone) {
-							updateUserTimezone(localStorage.token, timezone);
-						}
-
-						// Relay auth token to desktop app for API access
-						if (window.electronAPI?.send) {
-							window.electronAPI
-								.send({
-									type: 'token:update',
-									token: localStorage.token
-								})
-								.catch(() => {});
-						}
-					} else {
-						localStorage.removeItem('token');
-						await user.set(null);
 					}
 				}
+			} else {
+				// Redirect to /error when Backend Not Detected
+				await goto(`/error`);
 			}
-		} else {
-			// Redirect to /error when Backend Not Detected
-			await goto(`/error`);
 		}
 
 		await tick();
