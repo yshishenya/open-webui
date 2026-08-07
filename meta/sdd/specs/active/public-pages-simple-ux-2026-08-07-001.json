@@ -1,5 +1,5 @@
 {
-  "spec_id": "simplify-public-airis-pages-ux-2026-08-07-1752",
+  "spec_id": "public-pages-simple-ux-2026-08-07-001",
   "title": "Simplify public Airis pages UX IA",
   "generated": "2026-08-07T14:52:31.486962Z",
   "last_updated": "2026-08-07T15:18:00.000000Z",
@@ -64,6 +64,8 @@
       "status": "completed",
       "parent": "phase-1",
       "children": [],
+      "total_tasks": 0,
+      "completed_tasks": 0,
       "metadata": {"evidence": "production HTTP/link/console audit and browser screenshots"}
     },
     "task-1-2": {
@@ -72,6 +74,8 @@
       "status": "completed",
       "parent": "phase-1",
       "children": [],
+      "total_tasks": 0,
+      "completed_tasks": 0,
       "metadata": {"evidence": "PublicPageLayout, PublicBreadcrumb, footer and dark-violet public tokens"}
     },
     "task-2-1": {
@@ -80,6 +84,8 @@
       "status": "completed",
       "parent": "phase-2",
       "children": [],
+      "total_tasks": 0,
+      "completed_tasks": 0,
       "metadata": {"evidence": "Task-first route with real presets and live capability/model guard"}
     },
     "task-2-2": {
@@ -88,6 +94,8 @@
       "status": "completed",
       "parent": "phase-2",
       "children": [],
+      "total_tasks": 0,
+      "completed_tasks": 0,
       "metadata": {"evidence": "Estimator filters unavailable null estimates; pricing copy simplified"}
     },
     "task-2-3": {
@@ -96,6 +104,8 @@
       "status": "completed",
       "parent": "phase-2",
       "children": [],
+      "total_tasks": 0,
+      "completed_tasks": 0,
       "metadata": {"evidence": "Concise about/contact/documents routes and nested breadcrumb"}
     },
     "task-3-1": {
@@ -104,6 +114,8 @@
       "status": "completed",
       "parent": "phase-3",
       "children": [],
+      "total_tasks": 0,
+      "completed_tasks": 0,
       "metadata": {"evidence": "Playwright public_pages_smoke plus navigation unit test"}
     },
     "task-3-2": {
@@ -112,6 +124,8 @@
       "status": "pending",
       "parent": "phase-3",
       "children": [],
+      "total_tasks": 0,
+      "completed_tasks": 0,
       "metadata": {}
     }
   }

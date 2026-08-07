@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/feature/public-pages-simplify
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/simplify-public-airis-pages-ux-2026-08-07-1752.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/public-pages-simple-ux-2026-08-07-001.json`
 - Created: 2026-08-07
 - Updated: 2026-08-07
 
@@ -70,6 +70,6 @@ The shared public shell is now visually aligned with Airis, but the secondary pa
 
 ## Completion Checklist
 
-- [ ] `meta/tools/sdd check-complete simplify-public-airis-pages-ux-2026-08-07-1752 --json`
-- [ ] `meta/tools/sdd complete-spec simplify-public-airis-pages-ux-2026-08-07-1752 --json`
+- [ ] `meta/tools/sdd check-complete public-pages-simple-ux-2026-08-07-001 --json`
+- [ ] `meta/tools/sdd complete-spec public-pages-simple-ux-2026-08-07-001 --json`
 - [ ] Branch update moved to Done.
