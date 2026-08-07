@@ -94,6 +94,9 @@ class BillingReportingService:
             payment_stmt = payment_stmt.where(Payment.status == status)
         if kind:
             payment_stmt = payment_stmt.where(Payment.kind == kind)
+        # Fetch a bounded window from each legacy store, merge deterministically,
+        # then apply the global cap below.  Callers must surface truncation when
+        # the cap is reached; this keeps reporting requests memory-bounded.
         payment_stmt = payment_stmt.order_by(Payment.created_at.desc()).limit(limit)
         payment_rows = (await self.session.execute(payment_stmt)).scalars().all()
 
@@ -388,6 +391,7 @@ class BillingReportingService:
             'from': from_ts,
             'to': to_ts,
             'as_of': int(time.time()),
+            'payment_fact_limit_reached': len(facts) >= REPORTING_EXPORT_MAX,
         }
 
     async def customer_detail(
@@ -473,6 +477,7 @@ class BillingReportingService:
             'to': to_ts,
             'as_of': int(time.time()),
             'time_semantics': 'processed_at_fallback',
+            'payment_fact_limit_reached': len(all_facts) >= REPORTING_EXPORT_MAX,
         }
 
     async def ledger_rows(
@@ -577,6 +582,10 @@ def safe_csv_cell(value: object) -> str:
     """Prevent formula execution when exported data is opened in a spreadsheet."""
 
     text = '' if value is None else str(value)
-    if text.startswith(('=', '+', '-', '@')):
+    # Spreadsheet engines may ignore leading whitespace/control characters
+    # before interpreting a formula.  Keep the original value for auditability,
+    # but prefix an apostrophe when the first meaningful character is dangerous.
+    first_meaningful = text.lstrip('\ufeff').lstrip()
+    if first_meaningful.startswith(('=', '+', '-', '@')):
         return "'" + text
     return text

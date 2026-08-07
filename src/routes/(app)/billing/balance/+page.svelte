@@ -4,6 +4,8 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18nType } from 'i18next';
 
 	import { WEBUI_NAME, models } from '$lib/stores';
 	import {
@@ -37,7 +39,7 @@
 	} from '$lib/utils/airis/billing_return_url';
 	import { sanitizeReturnTo } from '$lib/utils/airis/return_to';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18nType>>('i18n');
 
 	const DEFAULT_TOPUP_PACKAGES_KOPEKS = [50000, 100000, 200000];
 	const LOW_BALANCE_THRESHOLD_KOPEKS = 10000;
@@ -455,8 +457,8 @@
 
 			trackEvent('billing_wallet_auto_topup_save', {
 				enabled: autoTopupEnabled,
-				threshold_kopeks: autoTopupEnabled ? threshold : null,
-				amount_kopeks: autoTopupEnabled ? amount : null
+				...(autoTopupEnabled && threshold !== null ? { threshold_kopeks: threshold } : {}),
+				...(autoTopupEnabled && amount !== null ? { amount_kopeks: amount } : {})
 			});
 			toast.success($i18n.t('Auto-topup settings saved'));
 			autoTopupBaseline = {
@@ -514,8 +516,8 @@
 				payload.daily_cap_kopeks = daily;
 
 				trackEvent('billing_wallet_limits_save', {
-					max_reply_cost_kopeks: maxReply,
-					daily_cap_kopeks: daily
+					...(maxReply !== null ? { max_reply_cost_kopeks: maxReply } : {}),
+					...(daily !== null ? { daily_cap_kopeks: daily } : {})
 				});
 			} else {
 				payload.billing_contact_email = contactEmail ? contactEmail : null;
@@ -560,7 +562,7 @@
 		}
 		const amount = kopeks / 100;
 		try {
-			return new Intl.NumberFormat($i18n.locale, {
+		return new Intl.NumberFormat($i18n.language, {
 				style: 'currency',
 				currency
 			}).format(amount);
@@ -695,7 +697,7 @@
 
 	const formatDateTime = (timestamp: number | null | undefined): string => {
 		if (!timestamp) return $i18n.t('Never');
-		return new Date(timestamp * 1000).toLocaleString($i18n.locale, {
+		return new Date(timestamp * 1000).toLocaleString($i18n.language, {
 			year: 'numeric',
 			month: 'long',
 			day: 'numeric',
@@ -718,13 +720,13 @@
 		if (!leadMagnetInfo?.enabled) return false;
 
 		// Prefer server-provided remaining, but keep a local fallback for robustness.
-		const remaining = (leadMagnetInfo.remaining ?? {}) as Record<string, number | undefined>;
+		const remaining = (leadMagnetInfo.remaining ?? {}) as unknown as Record<string, number | undefined>;
 		if (Object.values(remaining).some((value) => typeof value === 'number' && value > 0)) {
 			return true;
 		}
 
-		const quotas = (leadMagnetInfo.quotas ?? {}) as Record<string, number | undefined>;
-		const usage = (leadMagnetInfo.usage ?? {}) as Record<string, number | undefined>;
+		const quotas = (leadMagnetInfo.quotas ?? {}) as unknown as Record<string, number | undefined>;
+		const usage = (leadMagnetInfo.usage ?? {}) as unknown as Record<string, number | undefined>;
 		return Object.entries(quotas).some(([key, limit]) => {
 			if (typeof limit !== 'number' || limit <= 0) return false;
 			const used = usage[key] ?? 0;
@@ -751,7 +753,7 @@
 			<div class="text-gray-500 dark:text-gray-400 text-lg">{errorMessage}</div>
 			<button
 				type="button"
-				on:click={loadBalance}
+				on:click={() => loadBalance()}
 				class="mt-4 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium"
 			>
 				{$i18n.t('Retry')}

@@ -68,6 +68,7 @@ log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS.get("BILLING", logging.INFO))
 
 AUTO_TOPUP_MAX_FAILURES = 3
+MANUAL_PAYMENT_RETRY_WINDOW_SECONDS = 24 * 60 * 60
 
 
 class QuotaExceededError(Exception):
@@ -526,7 +527,7 @@ class BillingService:
             Payment data with confirmation URL
         """
         plan = await run_in_threadpool(self.get_plan, plan_id)
-        if not plan:
+        if not plan or not bool(getattr(plan, "is_active", True)):
             raise ValueError(f"Plan {plan_id} not found")
 
         yookassa = get_yookassa_client()
@@ -538,24 +539,49 @@ class BillingService:
             Decimal(plan_price_kopeks) / Decimal(100) if plan_price_kopeks > 0 else Decimal(str(plan.price))
         ).quantize(Decimal("0.01"))
 
-        # Create transaction record
-        transaction = TransactionModel(
-            id=str(uuid.uuid4()),
-            user_id=user_id,
-            amount=float(payment_amount),
-            currency=plan.currency,
-            status=TransactionStatus.PENDING,
-            description=f"Subscription: {plan.name}",
-            description_ru=f"Подписка: {plan.name_ru or plan.name}",
-            extra_metadata={"plan_id": plan_id},
-            created_at=int(time.time()),
-            updated_at=int(time.time()),
+        # Reuse a pending transaction/key when a client retries after a
+        # provider timeout.  This keeps the provider idempotency scope stable.
+        pending_transaction = await run_in_threadpool(
+            self._find_pending_subscription_transaction,
+            user_id,
+            plan_id,
+            payment_amount,
+            plan.currency,
         )
-
-        created_transaction = await run_in_threadpool(
-            self.transactions.create_transaction,
-            transaction,
-        )
+        if pending_transaction:
+            created_transaction = pending_transaction
+            transaction = pending_transaction
+            transaction_metadata = dict(transaction.extra_metadata or {})
+            provider_idempotency_key = transaction_metadata.get('provider_idempotency_key')
+            if not isinstance(provider_idempotency_key, str) or not provider_idempotency_key:
+                provider_idempotency_key = str(uuid.uuid4())
+                transaction_metadata['provider_idempotency_key'] = provider_idempotency_key
+                await run_in_threadpool(
+                    self.transactions.update_transaction,
+                    transaction.id,
+                    {'extra_metadata': transaction_metadata},
+                )
+        else:
+            provider_idempotency_key = str(uuid.uuid4())
+            transaction = TransactionModel(
+                id=str(uuid.uuid4()),
+                user_id=user_id,
+                amount=float(payment_amount),
+                currency=plan.currency,
+                status=TransactionStatus.PENDING,
+                description=f"Subscription: {plan.name}",
+                description_ru=f"Подписка: {plan.name_ru or plan.name}",
+                extra_metadata={
+                    "plan_id": plan_id,
+                    "provider_idempotency_key": provider_idempotency_key,
+                },
+                created_at=int(time.time()),
+                updated_at=int(time.time()),
+            )
+            created_transaction = await run_in_threadpool(
+                self.transactions.create_transaction,
+                transaction,
+            )
         receipt = await self._build_receipt(
             user_id,
             payment_amount,
@@ -579,6 +605,7 @@ class BillingService:
             return_url=return_url,
             metadata=metadata,
             receipt=receipt,
+            idempotence_key=provider_idempotency_key,
         )
 
         # Update transaction with YooKassa payment ID
@@ -599,6 +626,38 @@ class BillingService:
             "confirmation_url": payment["confirmation"]["confirmation_url"],
             "status": payment["status"],
         }
+
+    def _find_pending_subscription_transaction(
+        self,
+        user_id: str,
+        plan_id: str,
+        amount: Decimal,
+        currency: str,
+    ) -> Optional[TransactionModel]:
+        """Find a recent pending subscription transaction for safe retries."""
+        cutoff = int(time.time()) - MANUAL_PAYMENT_RETRY_WINDOW_SECONDS
+        with get_db() as db:
+            candidates = (
+                db.query(Transaction)
+                .filter(
+                    Transaction.user_id == user_id,
+                    Transaction.status == TransactionStatus.PENDING.value,
+                    Transaction.currency == currency,
+                    Transaction.created_at >= cutoff,
+                )
+                .order_by(Transaction.created_at.desc())
+                .limit(20)
+                .all()
+            )
+            expected_amount = float(amount)
+            for candidate in candidates:
+                metadata = candidate.extra_metadata or {}
+                if metadata.get('plan_id') != plan_id:
+                    continue
+                if abs(float(candidate.amount) - expected_amount) > 0.0001:
+                    continue
+                return TransactionModel.model_validate(candidate)
+        return None
 
     async def create_topup_payment(
         self,
@@ -656,6 +715,14 @@ class BillingService:
             topup_description,
         )
 
+        created_payment = await run_in_threadpool(
+            self._get_or_create_manual_topup_payment,
+            user_id,
+            wallet_id,
+            amount_kopeks,
+            metadata,
+        )
+
         payment = await yookassa.create_payment(
             amount=amount_rub,
             currency=BILLING_DEFAULT_CURRENCY,
@@ -664,36 +731,23 @@ class BillingService:
             metadata=metadata,
             receipt=receipt,
             save_payment_method=save_payment_method,
+            idempotence_key=created_payment.idempotency_key,
         )
 
-        now = int(time.time())
         payment_method_id = None
         payment_method = payment.get("payment_method")
         if isinstance(payment_method, dict):
             payment_method_id = payment_method.get("id")
 
-        payment_record = PaymentModel(
-            id=str(uuid.uuid4()),
-            provider="yookassa",
-            status=PaymentStatus.PENDING.value,
-            kind=PaymentKind.TOPUP.value,
-            amount_kopeks=amount_kopeks,
-            currency=BILLING_DEFAULT_CURRENCY,
-            idempotency_key=str(uuid.uuid4()),
-            provider_payment_id=payment.get("id"),
-            payment_method_id=payment_method_id,
-            status_details={"yookassa_status": payment.get("status")},
-            metadata_json=metadata,
-            raw_payload_json=self._sanitize_payment_payload(payment),
-            user_id=user_id,
-            wallet_id=wallet_id,
-            subscription_id=None,
-            created_at=now,
-            updated_at=now,
-        )
         await run_in_threadpool(
-            self.payments.create_payment,
-            payment_record,
+            self.payments.update_payment_by_id,
+            created_payment.id,
+            {
+                "provider_payment_id": payment.get("id"),
+                "payment_method_id": payment_method_id,
+                "status_details": {"yookassa_status": payment.get("status")},
+                "raw_payload_json": self._sanitize_payment_payload(payment),
+            },
         )
 
         return {
@@ -701,6 +755,78 @@ class BillingService:
             "confirmation_url": payment["confirmation"]["confirmation_url"],
             "status": payment["status"],
         }
+
+    def _get_or_create_manual_topup_payment(
+        self,
+        user_id: str,
+        wallet_id: str,
+        amount_kopeks: int,
+        metadata: JsonDict,
+    ) -> PaymentModel:
+        """Return a retryable pending top-up record with a stable provider key.
+
+        The wallet row is locked while looking up/creating the claim.  This
+        serializes concurrent retries for one wallet and ensures a provider
+        timeout cannot cause a second YooKassa idempotency key within the
+        retry window.
+        """
+        now = int(time.time())
+        with get_db() as db:
+            wallet = (
+                db.query(Wallet)
+                .filter(Wallet.id == wallet_id, Wallet.user_id == user_id)
+                .with_for_update()
+                .first()
+            )
+            if not wallet:
+                raise ValueError("Wallet not found")
+
+            pending = (
+                db.query(Payment)
+                .filter(
+                    Payment.user_id == user_id,
+                    Payment.wallet_id == wallet_id,
+                    Payment.kind == PaymentKind.TOPUP.value,
+                    Payment.status == PaymentStatus.PENDING.value,
+                    Payment.auto_topup_claim_key.is_(None),
+                    Payment.amount_kopeks == amount_kopeks,
+                    Payment.created_at >= now - MANUAL_PAYMENT_RETRY_WINDOW_SECONDS,
+                )
+                .order_by(Payment.created_at.desc())
+                .with_for_update()
+                .first()
+            )
+            if pending:
+                if not pending.idempotency_key:
+                    pending.idempotency_key = str(uuid.uuid4())
+                    pending.updated_at = now
+                    db.commit()
+                    db.refresh(pending)
+                return PaymentModel.model_validate(pending)
+
+            payment = Payment(
+                id=str(uuid.uuid4()),
+                provider="yookassa",
+                status=PaymentStatus.PENDING.value,
+                kind=PaymentKind.TOPUP.value,
+                amount_kopeks=amount_kopeks,
+                currency=wallet.currency,
+                idempotency_key=str(uuid.uuid4()),
+                provider_payment_id=None,
+                payment_method_id=None,
+                status_details={"yookassa_status": "creating"},
+                metadata_json=metadata,
+                raw_payload_json=None,
+                user_id=user_id,
+                wallet_id=wallet_id,
+                subscription_id=None,
+                created_at=now,
+                updated_at=now,
+            )
+            db.add(payment)
+            db.commit()
+            db.refresh(payment)
+            return PaymentModel.model_validate(payment)
 
     def _is_auto_topup_metadata(self, metadata: Optional[JsonDict]) -> bool:
         if not metadata:
@@ -1023,6 +1149,8 @@ class BillingService:
             plan = db.query(Plan).filter(Plan.id == plan_id_value).with_for_update().first()
             if not plan:
                 raise WebhookRetryableError(f"Plan {plan_id_value} not found")
+            if not bool(plan.is_active):
+                raise WebhookVerificationError(f"Plan {plan_id_value} is inactive")
 
             subscription = None
             if transaction.subscription_id:
@@ -1443,7 +1571,20 @@ class BillingService:
             wallet_id = payment.wallet_id
             user_id = payment.user_id
 
-        if not payment and amount_kopeks and wallet_id and user_id:
+        if not wallet_id or not user_id:
+            raise WebhookRetryableError("Topup payment missing wallet_id or user_id")
+
+        # Provider metadata is not an ownership proof.  Resolve the wallet from
+        # our database and verify both owner and currency before creating a
+        # recovery Payment or applying any credit.
+        with get_db() as db:
+            wallet = db.query(Wallet).filter(Wallet.id == wallet_id).first()
+            if not wallet or wallet.user_id != user_id:
+                raise WebhookVerificationError("Topup wallet ownership mismatch")
+            if provider_currency and wallet.currency.upper() != provider_currency:
+                raise WebhookVerificationError("Topup wallet currency mismatch")
+
+        if not payment and amount_kopeks:
             now = int(time.time())
             payment_record = PaymentModel(
                 id=str(uuid.uuid4()),

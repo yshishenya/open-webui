@@ -1,3 +1,5 @@
+# ruff: noqa
+
 import time
 
 import pytest
@@ -145,6 +147,78 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         updated_tx = Transactions.get_transaction_by_id("tx_1")
         assert updated_tx is not None
         assert updated_tx.status == TransactionStatus.SUCCEEDED.value
+
+    @pytest.mark.asyncio
+    async def test_subscription_webhook_rejects_inactive_plan(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        from open_webui.models.billing import (
+            PlanModel,
+            Plans,
+            TransactionModel,
+            Transactions,
+            TransactionStatus,
+        )
+        from open_webui.utils.billing import WebhookVerificationError, billing_service
+
+        now = int(time.time())
+        plan_id = "plan_inactive_webhook"
+        Plans.create_plan(
+            PlanModel(
+                id=plan_id,
+                name="Inactive",
+                price=100,
+                currency="RUB",
+                interval="month",
+                quotas={},
+                features=[],
+                is_active=False,
+                display_order=0,
+                created_at=now,
+                updated_at=now,
+            ).model_dump()
+        )
+        Transactions.create_transaction(
+            TransactionModel(
+                id="tx_inactive_webhook",
+                user_id="user_1",
+                amount=100,
+                currency="RUB",
+                status=TransactionStatus.PENDING.value,
+                yookassa_payment_id="pay_inactive_webhook",
+                yookassa_status="pending",
+                description="Inactive",
+                description_ru="Inactive",
+                receipt_url=None,
+                extra_metadata={"plan_id": plan_id},
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        self._mock_yookassa_get_payment(
+            monkeypatch,
+            payment_id="pay_inactive_webhook",
+            status="succeeded",
+            metadata={
+                "user_id": "user_1",
+                "plan_id": plan_id,
+                "transaction_id": "tx_inactive_webhook",
+            },
+        )
+
+        with pytest.raises(WebhookVerificationError, match="inactive"):
+            await billing_service.process_payment_webhook(
+                {
+                    "event_type": "payment.succeeded",
+                    "payment_id": "pay_inactive_webhook",
+                    "status": "succeeded",
+                    "metadata": {
+                        "user_id": "user_1",
+                        "plan_id": plan_id,
+                        "transaction_id": "tx_inactive_webhook",
+                    },
+                }
+            )
 
     def test_yookassa_webhook_token_optional_but_enforced_when_configured(
         self, monkeypatch: MonkeyPatch
