@@ -31,7 +31,7 @@
 	import WalletAdvancedSettings from '$lib/components/billing/WalletAdvancedSettings.svelte';
 	import WalletHowItWorksModal from '$lib/components/billing/WalletHowItWorksModal.svelte';
 	import InfoCircle from '$lib/components/icons/InfoCircle.svelte';
-	import { trackEvent } from '$lib/utils/analytics';
+	import { trackEcommercePurchase, trackEvent } from '$lib/utils/analytics';
 	import {
 		buildTopupReturnUrl,
 		normalizeBillingReturnPath,
@@ -231,6 +231,17 @@
 		return result?.credited === true;
 	};
 
+	const trackTopupCompleted = (): void => {
+		if (topupFlow) {
+			trackEvent('billing_topup_completed', { amount_kopeks: topupFlow.amount_kopeks });
+			trackEcommercePurchase({
+				id: topupFlow.payment_id,
+				revenue: topupFlow.amount_kopeks / 100,
+				currency: balance?.currency ?? 'RUB'
+			});
+		}
+	};
+
 	const handleTopupReturnRefresh = async (): Promise<void> => {
 		let credited = false;
 		if (topupFlow?.payment_id) {
@@ -242,6 +253,7 @@
 		}
 		await loadBalance({ showLoader: false });
 		if (topupFlow && credited) {
+			trackTopupCompleted();
 			topupReturnStatus = 'success';
 			clearTopupFlow();
 			if (topupReturnTimer) {
@@ -282,6 +294,7 @@
 			await loadBalance({ showLoader: false });
 			if (!topupFlow) return;
 			if (credited) {
+				trackTopupCompleted();
 				topupReturnStatus = 'success';
 				clearTopupFlow();
 				if (topupReturnTimer) {
@@ -404,6 +417,7 @@
 			});
 			const result = await createTopup(localStorage.token, amountKopeks, returnUrl);
 			if (result?.confirmation_url) {
+				trackEvent('billing_topup_payment_created', { amount_kopeks: amountKopeks });
 				try {
 					localStorage.setItem('billing_last_topup_kopeks', String(amountKopeks));
 					lastTopupKopeks = amountKopeks;
