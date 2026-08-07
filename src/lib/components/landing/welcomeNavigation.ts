@@ -23,10 +23,12 @@ export const buildSignupUrl = (source: string, params: Record<string, string> = 
 	return `/signup?${searchParams.toString()}`;
 };
 
+const hasActiveSession = (): boolean => Boolean(get(user) || (browser && localStorage.token));
+
 export const openPreset = (source: string, preset: string, prompt: string): void => {
 	const target = buildChatUrl(source, { preset, q: prompt, submit: 'false' });
 
-	if (get(user)) {
+	if (hasActiveSession()) {
 		goto(target);
 		return;
 	}
@@ -55,7 +57,7 @@ export const openPreset = (source: string, preset: string, prompt: string): void
 export const openCta = (source: string): void => {
 	const target = buildChatUrl(source);
 
-	if (get(user)) {
+	if (hasActiveSession()) {
 		goto(target);
 		return;
 	}

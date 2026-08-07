@@ -2,6 +2,7 @@ const PUBLIC_MARKETING_ROUTES = new Set([
 	'/welcome',
 	'/features',
 	'/pricing',
+	'/prices',
 	'/about',
 	'/contact',
 	'/privacy',
