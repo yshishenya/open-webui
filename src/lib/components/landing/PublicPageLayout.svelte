@@ -11,19 +11,19 @@
 	export let heroEyebrow: string = '';
 	export let heroImage: string = '';
 	export let heroImageAlt: string = '';
-	export let tone: 'light' | 'dark' = 'light';
+	export let tone: 'light' | 'dark' = 'dark';
 </script>
 
 <svelte:head>
 	{#if title}
-		<title>{title} - AIris</title>
+		<title>{title} - Airis</title>
 	{/if}
 	{#if description}
 		<meta name="description" content={description} />
 	{/if}
 </svelte:head>
 
-<div class="public-page min-h-screen text-gray-900 flex flex-col font-primary" data-tone={tone}>
+<div class="public-page airis-public-page min-h-screen flex flex-col" data-tone={tone}>
 	<NavHeader currentPath={$page.url.pathname} {tone} />
 
 	{#if showHero}
@@ -67,9 +67,9 @@
 		<slot />
 	</main>
 
-	<footer class="public-page__footer border-t border-violet-200/70 py-8">
+	<footer class="public-page__footer airis-public-footer border-t py-8">
 		<div class="container mx-auto px-4">
-			<FooterLinks copyright={`${new Date().getFullYear()} AIris. Все права защищены.`} />
+			<FooterLinks tone={tone} copyright={`${new Date().getFullYear()} Airis. Все права защищены.`} />
 		</div>
 	</footer>
 </div>
@@ -79,15 +79,8 @@
 		overflow-x: hidden;
 	}
 
-	.public-page {
-		background:
-			radial-gradient(900px 420px at 8% 0%, rgb(113 50 242 / 0.12), transparent 70%),
-			radial-gradient(760px 420px at 100% 12%, rgb(173 147 252 / 0.14), transparent 72%),
-			linear-gradient(180deg, #f8f7ff 0%, #ffffff 58%, #f7f5ff 100%);
-	}
-
 	.public-page__footer {
-		background: rgb(255 255 255 / 0.76);
+		background: transparent;
 	}
 
 	:global(.public-page section[id]) {

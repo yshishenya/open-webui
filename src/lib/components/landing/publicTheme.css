@@ -1,0 +1,233 @@
+/* Shared public Airis visual language. Keep this scope outside the app shell. */
+.airis-public-page {
+	--airis-bg: #17112f;
+	--airis-bg-strong: #211545;
+	--airis-surface: #211a3d;
+	--airis-surface-soft: #1d1637;
+	--airis-ink: #f8f6ff;
+	--airis-muted: #c4bddc;
+	--airis-muted-strong: #e0daf3;
+	--airis-line: rgb(255 255 255 / 0.13);
+	--airis-deep: #211545;
+	--airis-accent: #7132f2;
+	--airis-accent-hover: #6427e8;
+	--airis-accent-soft: #eee7ff;
+	background:
+		radial-gradient(720px 360px at 8% 0%, rgb(113 50 242 / 0.24), transparent 72%),
+		radial-gradient(680px 360px at 100% 10%, rgb(173 147 252 / 0.12), transparent 72%),
+		linear-gradient(180deg, var(--airis-bg) 0%, #1b1437 52%, var(--airis-bg) 100%);
+	color: var(--airis-ink);
+	font-family: 'Inter', 'Noto Sans', system-ui, sans-serif;
+}
+
+.airis-public-page main {
+	position: relative;
+}
+
+.airis-public-page .container,
+.airis-public-page [class*='max-w-[1200px]'] {
+	max-width: 1180px;
+}
+
+.airis-public-page .text-gray-900 {
+	color: var(--airis-ink) !important;
+}
+
+.airis-public-page .text-gray-700 {
+	color: var(--airis-muted-strong) !important;
+}
+
+.airis-public-page .text-gray-600,
+.airis-public-page .text-gray-500 {
+	color: var(--airis-muted) !important;
+}
+
+.airis-public-page .text-gray-400 {
+	color: #a9a2c4 !important;
+}
+
+.airis-public-page .border-gray-200,
+.airis-public-page .border-gray-200\/70,
+.airis-public-page .border-gray-300 {
+	border-color: var(--airis-line) !important;
+}
+
+.airis-public-page .bg-white,
+.airis-public-page .bg-white\/80,
+.airis-public-page .bg-white\/90 {
+	background-color: rgb(33 26 61 / 0.94) !important;
+}
+
+.airis-public-page .bg-gray-50,
+.airis-public-page .bg-gray-100,
+.airis-public-page [class*='bg-[#f7f7f8]'],
+.airis-public-page section[class*='bg-[radial-gradient'] {
+	background: var(--airis-surface-soft) !important;
+}
+
+.airis-public-page .bg-gray-900 {
+	background-color: var(--airis-deep) !important;
+}
+
+/* Feature and pricing sections have their own local styles; keep their surfaces on the same canvas. */
+.airis-public-page .features-section,
+.airis-public-page .features-section--soft {
+	background: transparent !important;
+}
+
+.airis-public-page .features-section--cta {
+	background: var(--airis-deep) !important;
+}
+
+.airis-public-page a.bg-black,
+.airis-public-page button.bg-black {
+	background-color: var(--airis-accent) !important;
+}
+
+.airis-public-page a.bg-black:hover,
+.airis-public-page button.bg-black:hover {
+	background-color: var(--airis-accent-hover) !important;
+}
+
+.airis-public-page .text-red-600 {
+	color: #ff9eb7 !important;
+}
+
+.airis-public-page [class*='text-[#5d24d6]'],
+.airis-public-page [class*='text-[#7132f2]'] {
+	color: #c4b5fd !important;
+}
+
+.airis-public-page a:not(.airis-public-btn-primary):not(.airis-public-btn-secondary) {
+	text-underline-offset: 3px;
+}
+
+.airis-public-page .airis-public-btn-primary,
+.airis-public-btn-primary {
+	background: var(--airis-accent);
+	color: #ffffff;
+	transition: background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.airis-public-page .airis-public-btn-primary:hover,
+.airis-public-btn-primary:hover {
+	background: var(--airis-accent-hover);
+	box-shadow: 0 12px 30px rgb(89 44 180 / 0.2);
+	transform: translateY(-1px);
+}
+
+.airis-public-page .airis-public-btn-secondary,
+.airis-public-btn-secondary {
+	border: 1px solid var(--airis-line);
+	background: rgb(255 255 255 / 0.06);
+	color: #f8f6ff;
+}
+
+.airis-public-page .airis-public-btn-secondary:hover,
+.airis-public-btn-secondary:hover {
+	border-color: #c7b3ff;
+	background: var(--airis-accent-soft);
+}
+
+.airis-public-nav {
+	position: sticky;
+	top: 0;
+	z-index: 50;
+	border-bottom: 1px solid var(--airis-line);
+	background: rgb(30 22 71 / 0.92);
+	color: #ffffff;
+	backdrop-filter: blur(18px);
+}
+
+.airis-public-nav--dark {
+	border-color: rgb(255 255 255 / 0.1);
+	background: rgb(30 22 71 / 0.92);
+	color: #ffffff;
+}
+
+.airis-public-logo {
+	color: #ffffff;
+}
+
+.airis-public-nav--dark .airis-public-logo {
+	color: #ffffff;
+}
+
+.airis-public-logo__mark {
+	border: 1px solid var(--airis-line);
+	background: #ffffff;
+}
+
+.airis-public-nav__link,
+.airis-public-nav__login {
+	color: #d8d2ec;
+	transition: color 160ms ease;
+}
+
+.airis-public-nav__link:hover,
+.airis-public-nav__login:hover,
+.airis-public-nav__link[aria-current='page'] {
+	color: #ffffff;
+}
+
+.airis-public-nav__link[aria-current='page'] {
+	border-color: var(--airis-accent);
+}
+
+.airis-public-nav--dark .airis-public-nav__link,
+.airis-public-nav--dark .airis-public-nav__login {
+	color: #d8d2ec;
+}
+
+.airis-public-nav--dark .airis-public-nav__link:hover,
+.airis-public-nav--dark .airis-public-nav__login:hover,
+.airis-public-nav--dark .airis-public-nav__link[aria-current='page'] {
+	color: #ffffff;
+}
+
+.airis-public-nav__mobile {
+	border-color: var(--airis-line);
+}
+
+.airis-public-nav--dark .airis-public-nav__mobile {
+	border-color: rgb(255 255 255 / 0.1);
+}
+
+.airis-public-footer {
+	border-color: var(--airis-line);
+	background: rgb(30 22 71 / 0.66);
+}
+
+.airis-public-footer-links {
+	border-color: var(--airis-line);
+	color: var(--airis-muted);
+}
+
+.airis-public-footer-links a:hover {
+	color: #ffffff;
+}
+
+.airis-public-footer-links .font-semibold {
+	color: #d8d2ec;
+}
+
+.airis-public-footer-links.footer-dark {
+	border-color: rgb(255 255 255 / 0.12);
+	color: #a9a2c4;
+}
+
+.airis-public-footer-links.footer-dark a:hover {
+	color: #ffffff;
+}
+
+.airis-public-footer-links.footer-dark .font-semibold {
+	color: #d8d2ec;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.airis-public-page *,
+	.airis-public-nav * {
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+	}
+}
