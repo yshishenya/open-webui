@@ -6,6 +6,7 @@
 	export let currency: string;
 	export let defaultPackages: number[] = [];
 	export let allowCustom = true;
+	export let autoSelectFirst = false;
 	export let highlightedPackageKopeks: number | null = null;
 	export let highlightedPackageLabel: string | null = null;
 	export let creatingTopupAmount: number | null = null;
@@ -18,7 +19,8 @@
 		try {
 			return new Intl.NumberFormat($i18n.locale, {
 				style: 'currency',
-				currency: currencyCode
+				currency: currencyCode,
+				maximumFractionDigits: Number.isInteger(amount) ? 0 : 2
 			}).format(amount);
 		} catch (error) {
 			console.warn('Invalid currency code:', currencyCode, error);
@@ -42,10 +44,13 @@
 
 	$: if (
 		!userSelected &&
-		highlightedPackageKopeks !== null &&
-		defaultPackages.includes(highlightedPackageKopeks)
+		selectedPackageKopeks === null
 	) {
-		selectedPackageKopeks = highlightedPackageKopeks;
+		const suggestedPackage =
+			highlightedPackageKopeks ?? (autoSelectFirst ? defaultPackages[0] ?? null : null);
+		if (suggestedPackage !== null && defaultPackages.includes(suggestedPackage)) {
+			selectedPackageKopeks = suggestedPackage;
+		}
 	}
 
 	const handleSelectPackage = (amount: number): void => {

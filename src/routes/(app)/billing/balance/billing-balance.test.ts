@@ -261,6 +261,22 @@ describe('Billing balance page', () => {
 		expect(proceed?.disabled).toBe(false);
 	});
 
+	it('preselects the first package for a low balance without free usage', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 0 }));
+		mocks.getPublicPricingConfigMock.mockResolvedValue({ topup_amounts_rub: [500, 1000, 2000] });
+
+		const root = renderPage();
+		await flushPromises();
+		await flushPromises();
+
+		const presets = [...root.querySelectorAll('[data-testid="topup-preset"]')];
+		const proceed = root.querySelector('[data-testid="topup-proceed"]') as HTMLButtonElement | null;
+
+		expect(presets[0]?.getAttribute('aria-pressed')).toBe('true');
+		expect(proceed?.disabled).toBe(false);
+		expect(proceed?.textContent).toContain('Pay');
+	});
+
 	it('hides free-limit hint when free models are unavailable', async () => {
 		mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 5000 }));
 		mocks.getLeadMagnetInfoMock.mockResolvedValue(createLeadMagnetInfo(true));
@@ -292,6 +308,20 @@ describe('Billing balance page', () => {
 		expect(root.textContent).toContain('Wallet is low but free limit is available');
 		expect(root.querySelector('[data-testid="wallet-low-balance-hint-free"]')).toBeTruthy();
 		expect(root.querySelector('[data-testid="wallet-low-balance-hint-topup"]')).toBeNull();
+		const proceed = root.querySelector('[data-testid="topup-proceed"]') as HTMLButtonElement | null;
+		expect(proceed?.disabled).toBe(false);
+	});
+
+	it('keeps custom top-up hidden when pricing discovery fails', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		mocks.getPublicPricingConfigMock.mockRejectedValue(new Error('pricing unavailable'));
+
+		const root = renderPage();
+		await flushPromises();
+		await flushPromises();
+
+		expect(root.querySelector('input[name="custom_topup"]')).toBeNull();
+		expect(root.textContent).toContain('Custom top-up amounts are unavailable');
 	});
 
 	it('sends normalized return_url for top-up when return_to is valid', async () => {
