@@ -42,15 +42,16 @@
 					<h1
 						class="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.05]"
 					>
-						AIris — доступный и понятный AI
+						AI-модели без VPN — в одном чате
 					</h1>
 					<p class="text-lg md:text-xl text-gray-600 max-w-xl">
-						Мы делаем работу с AI удобной для реальных задач.
+						Airis объединяет доступные модели в одном понятном интерфейсе, чтобы можно было решать
+						рабочие и повседневные задачи без лишних переключений.
 					</p>
 					<div class="flex flex-wrap gap-3">
 						<a
-							href="/auth"
-							class="bg-black text-white px-6 py-3 rounded-full font-semibold hover:bg-gray-900 transition-colors"
+							href="/signup?src=about_hero"
+							class="bg-[#7132f2] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#6427e8] transition-colors"
 						>
 							Начать бесплатно
 						</a>
@@ -76,6 +77,8 @@
 							<img
 								src={heroImage}
 								alt="Интерфейс AIris"
+								width="2640"
+								height="1534"
 								class="h-full w-full rounded-[20px] border border-white/5 object-cover"
 								loading="lazy"
 							/>
@@ -86,6 +89,8 @@
 							<img
 								src={heroImage}
 								alt="Интерфейс AIris"
+								width="2640"
+								height="1534"
 								class="h-full w-full rounded-[20px] border border-white/5 object-cover"
 								loading="lazy"
 							/>
@@ -96,6 +101,8 @@
 							<img
 								src={heroImage}
 								alt="Интерфейс AIris"
+								width="2640"
+								height="1534"
 								class="h-full w-full rounded-[22px] border border-white/10 object-cover"
 								loading="lazy"
 							/>
@@ -117,14 +124,15 @@
 				<div>
 					<h2 class="text-2xl font-semibold text-gray-900 mb-4">Наша миссия</h2>
 					<p class="text-gray-600 leading-relaxed">
-						Сделать современные AI‑модели доступными без сложных настроек и лишних сервисов.
+						Сделать современные AI‑модели доступными из России — без VPN, отдельных подписок и
+						сложных настроек.
 					</p>
 				</div>
 				<div>
 					<h2 class="text-2xl font-semibold text-gray-900 mb-4">Наш подход</h2>
 					<p class="text-gray-600 leading-relaxed">
-						Мы проектируем продукт так, чтобы каждое действие было очевидным: выбор модели, оплата,
-						контроль данных и поддержка.
+						Мы проектируем продукт так, чтобы каждое действие было очевидным: выбрать модель,
+						написать задачу, получить ответ и контролировать расходы.
 					</p>
 				</div>
 			</div>
@@ -152,13 +160,11 @@
 			class="rounded-[32px] border border-gray-200/70 bg-white/80 p-8 md:p-10 shadow-sm text-center"
 		>
 			<h2 class="text-2xl md:text-3xl font-semibold text-gray-900 mb-3">Присоединяйтесь к AIris</h2>
-			<p class="text-gray-600 mb-6">
-				Начните бесплатно и убедитесь, что AI‑инструменты могут быть простыми.
-			</p>
+			<p class="text-gray-600 mb-6">Начните бесплатно и проверьте Airis на своей задаче.</p>
 			<div class="flex flex-wrap justify-center gap-4">
 				<a
-					href="/auth"
-					class="bg-black text-white px-6 py-3 rounded-full font-semibold hover:bg-gray-900 transition-colors"
+					href="/signup?src=about_cta"
+					class="bg-[#7132f2] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#6427e8] transition-colors"
 				>
 					Начать бесплатно
 				</a>

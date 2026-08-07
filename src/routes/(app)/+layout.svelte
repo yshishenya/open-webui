@@ -412,7 +412,9 @@
 		loaded = true;
 	};
 
-	const handleLegalAccepted = async (event: CustomEvent<{ status: LegalStatusResponse }>): Promise<void> => {
+	const handleLegalAccepted = async (
+		event: CustomEvent<{ status: LegalStatusResponse }>
+	): Promise<void> => {
 		legalStatus = event.detail.status;
 		legalGateOpen = false;
 		if (!loaded) {
@@ -437,7 +439,6 @@
 			}
 		} catch (error) {
 			console.error(error);
-			toast.error(`${error}`);
 
 			// Fail closed: if status cannot be loaded, still show required documents.
 			try {
@@ -455,7 +456,7 @@
 				return;
 			} catch (requirementsError) {
 				console.error(requirementsError);
-				toast.error(`${requirementsError}`);
+				toast.error('Не удалось загрузить юридические документы. Попробуйте обновить страницу.');
 				legalStatus = {
 					docs: [],
 					needs_accept: true,
@@ -595,7 +596,7 @@
 			{/if}
 		</div>
 	</div>
-	{/if}
+{/if}
 
 <style>
 	.loading {

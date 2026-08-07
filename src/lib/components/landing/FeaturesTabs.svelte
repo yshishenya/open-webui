@@ -20,6 +20,31 @@
 		trackEvent('features_tabs_change', { tab_id: tabId });
 	};
 
+	const handleTabKeydown = (event: KeyboardEvent): void => {
+		if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+			return;
+		}
+
+		const current = event.currentTarget;
+		if (!(current instanceof HTMLButtonElement)) return;
+		const tabs = Array.from(
+			current.closest('[role="tablist"]')?.querySelectorAll<HTMLButtonElement>('[role="tab"]') ?? []
+		);
+		if (!tabs.length) return;
+
+		event.preventDefault();
+		const currentIndex = tabs.indexOf(current);
+		const direction = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1;
+		const nextIndex =
+			event.key === 'Home'
+				? 0
+				: event.key === 'End'
+					? tabs.length - 1
+					: (currentIndex + direction + tabs.length) % tabs.length;
+		tabs[nextIndex]?.focus();
+		tabs[nextIndex]?.click();
+	};
+
 	const handleTryPreset = (tab: FeatureTabConfig, preset?: FeaturePreset) => {
 		if (!preset) return;
 		const src = `features_tabs_${tab.id}`;
@@ -42,6 +67,7 @@
 				aria-selected={activeTabId === tab.id}
 				aria-controls={`features-panel-${tab.id}`}
 				tabindex={activeTabId === tab.id ? 0 : -1}
+				on:keydown={handleTabKeydown}
 				class={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 ${
 					activeTabId === tab.id
 						? 'border-gray-900 bg-gray-900 text-white'

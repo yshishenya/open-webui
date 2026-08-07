@@ -34,7 +34,7 @@
 	const formatNumber = (value: number): string => {
 		try {
 			return new Intl.NumberFormat('ru-RU').format(value);
-		} catch (error) {
+		} catch {
 			return value.toString();
 		}
 	};
@@ -46,11 +46,6 @@
 	const buildSignupTarget = (source: string, redirectTarget: string): string => {
 		const params = new URLSearchParams({ redirect: redirectTarget, src: source });
 		return `/signup?${params.toString()}`;
-	};
-
-	const buildAuthTarget = (source: string, redirectTarget: string): string => {
-		const params = new URLSearchParams({ redirect: redirectTarget, src: source });
-		return `/auth?${params.toString()}`;
 	};
 
 	const handleHeroPrimary = (event: MouseEvent): void => {
@@ -66,11 +61,7 @@
 	const handleHeroSecondary = (event: MouseEvent): void => {
 		event.preventDefault();
 		trackEvent('pricing_hero_secondary_click');
-		if ($user) {
-			goto(buildChatTarget('pricing_hero_secondary'));
-			return;
-		}
-		goto(buildAuthTarget('pricing_hero_secondary', buildBalanceTarget('pricing_hero_secondary')));
+		document.getElementById('rates')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 	};
 
 	const handleFinalCta = (event: MouseEvent): void => {
@@ -256,11 +247,11 @@
 							{$user ? 'Пополнить баланс' : 'Начать бесплатно'}
 						</a>
 						<a
-							href={$user ? '/' : '/auth'}
+							href="#rates"
 							class="px-6 py-3 rounded-full border border-gray-300 text-gray-700 font-semibold hover:border-gray-400 hover:text-gray-900 transition-colors"
 							on:click={handleHeroSecondary}
 						>
-							{$user ? 'Перейти в чат' : 'Пополнить баланс'}
+							Посмотреть ставки
 						</a>
 					</div>
 					<div class="space-y-2">
@@ -379,7 +370,7 @@
 			<SectionHeader
 				id="rates"
 				title="Ставки по моделям"
-				subtitle="Если не хотите разбираться — используйте рекомендованный режим в чате. Если нужно точнее — выберите модель здесь."
+				subtitle="Сравните доступные модели и выберите ту, которая подходит вашей задаче. Каталог и ставки могут обновляться."
 			/>
 			<div class="mt-8">
 				<RatesTable

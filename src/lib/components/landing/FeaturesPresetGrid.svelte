@@ -26,13 +26,6 @@
 		showAll = false;
 	};
 
-	const handleCardKeydown = (event: KeyboardEvent, action: () => void) => {
-		if (event.key === 'Enter' || event.key === ' ') {
-			event.preventDefault();
-			action();
-		}
-	};
-
 	const handleTryPreset = (preset: FeaturePreset) => {
 		trackEvent('features_preset_try_click', {
 			preset_id: preset.id,
@@ -85,8 +78,12 @@
 
 	{#if loading}
 		<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-			{#each Array.from({ length: 6 }) as _, index}
-				<div class="h-40 rounded-2xl bg-gray-200/70 animate-pulse" aria-hidden="true"></div>
+			{#each [0, 1, 2, 3, 4, 5] as index}
+				<div
+					class="h-40 rounded-2xl bg-gray-200/70 animate-pulse"
+					data-index={index}
+					aria-hidden="true"
+				></div>
 			{/each}
 		</div>
 	{:else if filteredPresets.length === 0}
@@ -97,12 +94,8 @@
 		<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 			{#each visiblePresets as preset, index}
 				<div
-					class="features-card features-card--soft features-card--clickable flex h-full flex-col gap-4 p-6"
-					role="button"
-					tabindex="0"
+					class="features-card features-card--soft flex h-full flex-col gap-4 p-6"
 					data-index={index}
-					on:click={() => handleTryPreset(preset)}
-					on:keydown={(event) => handleCardKeydown(event, () => handleTryPreset(preset))}
 				>
 					<div class="flex items-start justify-between gap-3">
 						<div class="min-w-0">
@@ -117,11 +110,9 @@
 					</div>
 					<button
 						type="button"
-						class="mt-auto inline-flex w-fit items-center justify-center rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:text-gray-900"
-						on:click={(event) => {
-							event.stopPropagation();
-							handleTryPreset(preset);
-						}}
+						class="mt-auto inline-flex min-h-10 w-fit items-center justify-center rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7132f2]"
+						aria-label={`Открыть пример: ${preset.title}`}
+						on:click={() => handleTryPreset(preset)}
 					>
 						Попробовать
 					</button>

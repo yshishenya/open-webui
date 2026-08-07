@@ -1,0 +1,172 @@
+{
+  "spec_id": "public-airis-pages-redesign-2026-08-07-1247",
+  "title": "Public Airis pages redesign",
+  "generated": "2026-08-07T09:47:48.108786Z",
+  "last_updated": "2026-08-07T10:09:05.696453Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-07__feature__public-airis-pages-redesign.md",
+    "status": "completed",
+    "activated_date": "2026-08-07T09:48:44.799650Z",
+    "completed_date": "2026-08-07T10:09:05.695991Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Public Airis pages redesign",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 6,
+      "completed_tasks": 6,
+      "metadata": {
+        "completed_at": "2026-08-07T10:08:47.468311Z",
+        "needs_journaling": true,
+        "status_note": "Public Airis pages redesign implemented and verified."
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Public shell and information architecture",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-07T10:08:46.088341Z",
+        "status_note": "Phase completed."
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Page behavior and truthful content",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-07T10:08:46.536708Z",
+        "status_note": "Phase completed."
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: Verification and handoff",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1",
+        "task-3-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-07T10:08:46.989080Z",
+        "status_note": "Phase completed."
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Unify public visual shell and navigation",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "completed_at": "2026-08-07T10:08:43.558645Z",
+        "needs_journaling": true,
+        "status_note": "Implemented and verified in public pages redesign pass."
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Map page-specific hierarchy and CTAs",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "completed_at": "2026-08-07T10:08:43.916527Z",
+        "needs_journaling": true,
+        "status_note": "Implemented and verified in public pages redesign pass."
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Implement truthful page interactions and copy",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "metadata": {
+        "completed_at": "2026-08-07T10:08:44.310804Z",
+        "needs_journaling": true,
+        "status_note": "Implemented and verified in public pages redesign pass."
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Preserve guest/auth and dynamic API behavior",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "metadata": {
+        "completed_at": "2026-08-07T10:08:44.693802Z",
+        "needs_journaling": true,
+        "status_note": "Implemented and verified in public pages redesign pass."
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Run route, responsive, accessibility, and regression checks",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "metadata": {
+        "completed_at": "2026-08-07T10:08:45.083217Z",
+        "needs_journaling": true,
+        "status_note": "Implemented and verified in public pages redesign pass."
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": "Complete review and documentation",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "metadata": {
+        "completed_at": "2026-08-07T10:08:45.557414Z",
+        "needs_journaling": true,
+        "status_note": "Implemented and verified in public pages redesign pass."
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    }
+  }
+}

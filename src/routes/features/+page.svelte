@@ -41,7 +41,7 @@
 			const { tts_seconds, stt_seconds } = config.quotas;
 			return tts_seconds > 0 || stt_seconds > 0;
 		}
-		return rateCardData?.models?.some((model) => model.capabilities.includes('audio')) ?? true;
+		return rateCardData?.models?.some((model) => model.capabilities.includes('audio')) ?? false;
 	};
 
 	onMount(async () => {
@@ -87,7 +87,6 @@
 		rateCard?.models.map((model) => ({
 			id: model.id,
 			displayName: model.display_name,
-			provider: model.provider,
 			capabilities: model.capabilities
 		})) ?? [];
 
@@ -159,7 +158,7 @@
 			id: 'subscription',
 			question: 'Это подписка?',
 			answer:
-				'Нет. Без подписки и ежемесячных платежей. Пополняете баланс, списания только за использование. История списаний в кабинете.',
+				'Обязательной подписки нет. Пополняйте баланс по необходимости; списания зависят от выбранной модели и объёма использования. История расходов доступна в кабинете.',
 			open: true
 		},
 		{
@@ -171,7 +170,8 @@
 		{
 			id: 'images',
 			question: 'Можно ли генерировать изображения?',
-			answer: 'Да, по описанию можно генерировать изображения и получать несколько вариантов.'
+			answer:
+				'Если функция доступна для выбранной модели и вашего аккаунта, изображение можно создать по описанию.'
 		},
 		{
 			id: 'audio',
@@ -181,7 +181,7 @@
 		{
 			id: 'models',
 			question: 'Как выбрать модель?',
-			answer: 'Можно не выбирать: просто пишите задачу. Если хотите — выберите модель вручную.'
+			answer: 'Выберите доступную модель в чате. Для разных задач можно использовать разные модели.'
 		}
 	];
 

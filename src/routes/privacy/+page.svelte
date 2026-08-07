@@ -35,6 +35,12 @@
 				<p class="text-sm text-gray-500">
 					Версия: {docVersion} · Последнее обновление: {lastUpdated}
 				</p>
+				<nav class="flex flex-wrap gap-3 text-sm" aria-label="Навигация по документам">
+					<a class="font-semibold text-[#5d24d6] hover:underline" href="/documents">Все документы</a
+					>
+					<a class="font-semibold text-[#5d24d6] hover:underline" href="/terms">Оферта</a>
+					<a class="font-semibold text-[#5d24d6] hover:underline" href="/contact">Задать вопрос</a>
+				</nav>
 			</div>
 		</div>
 	</section>
@@ -47,13 +53,13 @@
 					<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
 					Собираем только данные, необходимые для работы сервиса.
 				</li>
-					<li class="flex items-start gap-2">
-						<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
-						Передаем данные только партнёрам, которые обеспечивают работу сервиса (перечень —
-						<a href="/documents/subprocessors" class="text-gray-900 font-medium hover:underline"
-							>subprocessors</a
-						>).
-					</li>
+				<li class="flex items-start gap-2">
+					<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+					Передаем данные только партнёрам, которые обеспечивают работу сервиса (перечень —
+					<a href="/documents/subprocessors" class="text-gray-900 font-medium hover:underline"
+						>subprocessors</a
+					>).
+				</li>
 				<li class="flex items-start gap-2">
 					<span class="mt-2 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
 					Вы можете запросить доступ, исправление или удаление данных.
@@ -127,15 +133,16 @@
 							<li>По требованию государственных органов в соответствии с законом</li>
 						</ul>
 						<p class="pt-4">
-							4.3. Актуальный перечень привлеченных поставщиков/подрядчиков, а также сведения о странах обработки
-							опубликованы на странице
+							4.3. Актуальный перечень привлеченных поставщиков/подрядчиков, а также сведения о
+							странах обработки опубликованы на странице
 							<a href="/documents/subprocessors" class="text-gray-900 font-medium hover:underline"
 								>subprocessors</a
 							>.
 						</p>
 						<p class="pt-4">
-							4.4. Все наши партнеры обязаны соблюдать стандарты защиты данных. При использовании отдельных AI‑провайдеров
-							возможно трансграничное предоставление данных (в том числе запросов и контента) в объёме, необходимом для генерации ответа.
+							4.4. Все наши партнеры обязаны соблюдать стандарты защиты данных. При использовании
+							отдельных AI‑провайдеров возможно трансграничное предоставление данных (в том числе
+							запросов и контента) в объёме, необходимом для генерации ответа.
 						</p>
 					</div>
 				</section>
@@ -159,7 +166,8 @@
 					<h2 class="text-2xl font-bold text-gray-900 mb-4">6. Хранение данных</h2>
 					<div class="space-y-4 text-gray-600 leading-relaxed">
 						<p>
-							6.0. Мы стремимся хранить персональные данные пользователей в базах данных на территории Российской Федерации.
+							6.0. Мы стремимся хранить персональные данные пользователей в базах данных на
+							территории Российской Федерации.
 						</p>
 						<p>
 							6.1. Мы храним ваши персональные данные до тех пор, пока это необходимо для
@@ -209,8 +217,9 @@
 							аккаунта.
 						</p>
 						<p class="pt-4">
-							Подробно: <a href="/documents/cookies" class="text-gray-900 font-medium hover:underline"
-								>Cookie‑политика</a
+							Подробно: <a
+								href="/documents/cookies"
+								class="text-gray-900 font-medium hover:underline">Cookie‑политика</a
 							>.
 						</p>
 					</div>
@@ -254,18 +263,14 @@
 					</ul>
 				</section>
 
-					<div class="pt-8 border-t border-gray-200 flex flex-wrap gap-4">
-						<a href="/terms" class="text-gray-900 font-medium hover:underline">
-							Оферта
-						</a>
-						<a href="/documents" class="text-gray-900 font-medium hover:underline">
-							Документы
-						</a>
-						<a href="/contact" class="text-gray-900 font-medium hover:underline">
-							Связаться с нами
-						</a>
-					</div>
+				<div class="pt-8 border-t border-gray-200 flex flex-wrap gap-4">
+					<a href="/terms" class="text-gray-900 font-medium hover:underline"> Оферта </a>
+					<a href="/documents" class="text-gray-900 font-medium hover:underline"> Документы </a>
+					<a href="/contact" class="text-gray-900 font-medium hover:underline">
+						Связаться с нами
+					</a>
 				</div>
+			</div>
 		</div>
 	</section>
 </PublicPageLayout>
