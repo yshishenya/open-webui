@@ -16,3 +16,11 @@
 - Fixed analytics build-time configuration and verified Yandex Metrica loads only after consent with counter `111392024`.
 - Enabled indexing for public routes only, added canonical/Open Graph metadata, and published a public sitemap; private application routes remain `noindex,nofollow`.
 - Verified local production build with Playwright: all public routes return 200, local links resolve, buttons are labelled, and 390px pages have no overflow. Production API/routing smoke passed; the deployed artifact still needs the current branch rollout for the overflow fix.
+
+### Production rollout verification (2026-08-08)
+
+- Merged PR #103 into `airis_b2c` as `f20468a10` and deployed image `yshishenya/yshishenya:b287550ca` built for `linux/amd64`.
+- Production container is healthy; `/welcome`, `/features`, `/pricing`, `/about`, `/contact`, `/privacy`, `/terms`, and `/documents` return 200 with canonical metadata, `index,follow`, and no 390px overflow.
+- Production consent smoke passed: before consent no provider/script; after `Разрешить`, `ym` is available, the Yandex script uses counter `111392024`, and one request reaches `mc.yandex.ru`.
+- Production API smoke passed: pricing config, lead magnet, rate cards, and legal requirements return 200; unauthenticated legal status returns the expected 401; private `/` remains `noindex,nofollow`.
+- Deployment used direct SSH image transfer because Docker Hub/GHCR credentials were unavailable; no server working-tree changes were overwritten.

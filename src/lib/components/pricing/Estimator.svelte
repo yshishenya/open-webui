@@ -1,29 +1,16 @@
 <script context="module" lang="ts">
-	type TextBucket = { label: string; tokens: number };
-	type ReplyMultiplier = { label: string; value: number };
-	type TextPreset = {
-		id: string;
-		label: string;
-		description: string;
-		messagesPerDay: number;
-		bucket: string;
-		replyMultiplier: number;
-	};
-	type ImagePreset = { id: string; label: string; description: string; count: number };
 	type AudioMode = { id: 'tts' | 'stt'; label: string };
 
 	export type PricingEstimatorConfig = {
 		uncertainty: { min: number; max: number };
 		text: {
 			enabled: boolean;
-			buckets: Record<string, TextBucket>;
-			replyMultipliers: ReplyMultiplier[];
-			presets: TextPreset[];
-			default: { messagesPerDay: number; bucket: string; replyMultiplier: number };
+			tokensInPerMessage: number;
+			tokensOutPerMessage: number;
+			default: { messagesPerDay: number };
 		};
 		image: {
 			enabled: boolean;
-			presets: ImagePreset[];
 			default: { count: number };
 		};
 		audio: {
@@ -37,6 +24,7 @@
 <script lang="ts">
 	import { trackEvent } from '$lib/utils/analytics';
 	import type { PublicRateCardResponse, PublicRateCardModel } from '$lib/apis/billing';
+	import { calculateTextEstimate, pickCheapestTextModel } from '$lib/utils/airis/pricing_estimator';
 
 	export let config: PricingEstimatorConfig;
 	export let rateCard: PublicRateCardResponse | null = null;
@@ -53,8 +41,6 @@
 
 	let activeTab: 'text' | 'image' | 'audio' = 'text';
 	let textMessagesPerDay = config.text.default.messagesPerDay;
-	let textBucket = config.text.default.bucket;
-	let textReplyMultiplier = config.text.default.replyMultiplier;
 
 	let imageCount = config.image.default.count;
 
@@ -109,7 +95,9 @@
 	};
 
 	// Keep the async rate-card dependency explicit: Svelte cannot infer reads hidden inside resolveModel.
-	$: textModel = rateCard ? resolveModel(recommendedModelIdByType.text, hasTextRates) : null;
+	$: textModel = rateCard
+		? pickCheapestTextModel(rateCard.models, recommendedModelIdByType.text)
+		: null;
 	$: imageModel = rateCard ? resolveModel(recommendedModelIdByType.image, hasImageRates) : null;
 	$: audioModel = rateCard ? resolveModel(recommendedModelIdByType.audio, hasAudioRates) : null;
 
@@ -139,23 +127,15 @@
 		audioMode = audioModesAvailable[0].id;
 	}
 
-	const computeTextEstimate = (
-		messagesPerDay: number,
-		bucketId: string,
-		replyMultiplier: number
-	): { min: number; max: number } | null => {
-		if (!textModel || !textRatesAvailable) return null;
-		const bucket = config.text.buckets[bucketId];
-		if (!bucket) return null;
-		const rateIn = textModel.rates.text_in_1000_tokens ?? 0;
-		const rateOut = textModel.rates.text_out_1000_tokens ?? 0;
-		const tokensIn = bucket.tokens;
-		const tokensOut = Math.round(bucket.tokens * replyMultiplier);
-		const costIn = Math.ceil((tokensIn / 1000) * rateIn);
-		const costOut = Math.ceil((tokensOut / 1000) * rateOut);
-		const perMessage = costIn + costOut;
-		const total = perMessage * (Number(messagesPerDay) || 0) * 30;
-		return applyUncertainty(total);
+	const computeTextEstimate = (messagesPerDay: number): { min: number; max: number } | null => {
+		if (!textRatesAvailable) return null;
+		return calculateTextEstimate(
+			textModel,
+			config.text.tokensInPerMessage,
+			config.text.tokensOutPerMessage,
+			messagesPerDay,
+			config.uncertainty
+		);
 	};
 
 	const computeImageEstimate = (count: number): { min: number; max: number } | null => {
@@ -198,11 +178,6 @@
 		}, 400);
 	};
 
-	const handlePresetClick = (presetId: string, handler: () => void): void => {
-		handler();
-		trackEvent('pricing_estimator_preset_click', { preset: presetId });
-	};
-
 	const scrollToCalculation = (): void => {
 		if (onScrollToCalculation) {
 			onScrollToCalculation();
@@ -218,87 +193,15 @@
 		}
 	};
 
-	$: exampleTextPresets = config.text.presets
-		.map((preset) => ({
-			...preset,
-			estimate: computeTextEstimate(preset.messagesPerDay, preset.bucket, preset.replyMultiplier)
-		}))
-		.filter((preset) => preset.estimate !== null);
-
-	$: exampleImagePresets = config.image.presets
-		.map((preset) => ({
-			...preset,
-			estimate: computeImageEstimate(preset.count)
-		}))
-		.filter((preset) => preset.estimate !== null);
-
-	$: textEstimate = computeTextEstimate(textMessagesPerDay, textBucket, textReplyMultiplier);
+	$: textEstimate = computeTextEstimate(textMessagesPerDay);
 	$: imageEstimate = computeImageEstimate(imageCount);
 	$: audioEstimate = computeAudioEstimate();
 </script>
 
 <div class="space-y-8">
-	{#if loading}
-		<div class="grid gap-6 md:grid-cols-3">
-			{#each [0, 1, 2] as skeleton}
-				<div
-					class="h-24 rounded-2xl bg-gray-200/70 animate-pulse"
-					data-skeleton={skeleton}
-					aria-hidden="true"
-				></div>
-			{/each}
-		</div>
-	{:else}
-		<div class="grid gap-6 md:grid-cols-3">
-			{#if config.text.enabled}
-				{#each exampleTextPresets as preset}
-					<button
-						type="button"
-						class="text-left rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm transition hover:border-gray-300"
-						on:click={() =>
-							handlePresetClick(preset.id, () => {
-								activeTab = 'text';
-								textMessagesPerDay = preset.messagesPerDay;
-								textBucket = preset.bucket;
-								textReplyMultiplier = preset.replyMultiplier;
-								scheduleEstimatorChange();
-							})}
-					>
-						<div class="text-sm font-semibold text-gray-900">{preset.label}</div>
-						<div class="mt-1 text-xs text-gray-500">{preset.description}</div>
-						<div class="mt-3 text-lg font-semibold text-gray-900 tabular-nums">
-							≈ {formatRange(preset.estimate)} / месяц
-						</div>
-					</button>
-				{/each}
-			{/if}
-
-			{#if config.image.enabled}
-				{#each exampleImagePresets as preset}
-					<button
-						type="button"
-						class="text-left rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm transition hover:border-gray-300"
-						on:click={() =>
-							handlePresetClick(preset.id, () => {
-								activeTab = 'image';
-								imageCount = preset.count;
-								scheduleEstimatorChange();
-							})}
-					>
-						<div class="text-sm font-semibold text-gray-900">{preset.label}</div>
-						<div class="mt-1 text-xs text-gray-500">{preset.description}</div>
-						<div class="mt-3 text-lg font-semibold text-gray-900 tabular-nums">
-							≈ {formatRange(preset.estimate)}
-						</div>
-					</button>
-				{/each}
-			{/if}
-		</div>
-	{/if}
-
 	<p class="text-xs text-gray-500">
-		Оценка. Реальная сумма зависит от содержания запросов и выбранной модели. Итоговые списания
-		видны в истории.
+		Ориентир для коротких сообщений и недорогой модели. Реальная сумма зависит от содержания
+		запросов и выбранной модели.
 	</p>
 
 	<div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -342,7 +245,7 @@
 							aria-labelledby="estimator-tab-text"
 							class="space-y-4"
 						>
-							<div class="grid gap-4 md:grid-cols-3">
+							<div class="grid gap-4 md:grid-cols-[minmax(0,18rem)_1fr] md:items-end">
 								<label class="text-sm text-gray-600">
 									Сообщений в день
 									<input
@@ -353,35 +256,9 @@
 										class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
 									/>
 								</label>
-								<label class="text-sm text-gray-600">
-									Объём запроса
-									<select
-										bind:value={textBucket}
-										on:change={scheduleEstimatorChange}
-										class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-									>
-										{#each Object.entries(config.text.buckets) as [key, bucket]}
-											<option value={key}>{bucket.label}</option>
-										{/each}
-									</select>
-								</label>
-								<label class="text-sm text-gray-600">
-									Объём ответа
-									<select
-										value={textReplyMultiplier}
-										on:change={(event) => {
-											textReplyMultiplier = Number(
-												(event.currentTarget as HTMLSelectElement).value
-											);
-											scheduleEstimatorChange();
-										}}
-										class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-									>
-										{#each config.text.replyMultipliers as option}
-											<option value={option.value}>{option.label}</option>
-										{/each}
-									</select>
-								</label>
+								<p class="text-xs text-gray-500">
+									В расчёте уже учтены короткий запрос и короткий ответ.
+								</p>
 							</div>
 							<div class="text-lg font-semibold text-gray-900 tabular-nums">
 								≈ {formatRange(textEstimate)} / месяц
