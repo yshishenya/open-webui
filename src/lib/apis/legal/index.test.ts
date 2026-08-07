@@ -6,7 +6,7 @@ vi.hoisted(() => {
 	(globalThis as typeof globalThis & { APP_BUILD_HASH: string }).APP_BUILD_HASH = 'test';
 });
 
-import { acceptLegalDocs, getLegalRequirements, getLegalStatus } from './index';
+import { acceptLegalDocs, getLegalRequirements, getLegalStatus, LegalApiError } from './index';
 
 const legalStatus = {
 	docs: [],
@@ -45,6 +45,22 @@ describe('legal API', () => {
 		await expect(getLegalRequirements()).rejects.toThrow(
 			'Не удалось загрузить юридические документы. Попробуйте ещё раз.'
 		);
+	});
+
+	it('preserves unauthorized status for session recovery', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue(
+				new Response(JSON.stringify({ detail: 'Unauthorized' }), {
+					status: 401,
+					headers: { 'content-type': 'application/json' }
+				})
+			)
+		);
+
+		const request = getLegalStatus('expired-token');
+		await expect(request).rejects.toBeInstanceOf(LegalApiError);
+		await expect(request).rejects.toMatchObject({ status: 401 });
 	});
 
 	it('does not retry a legal acceptance POST after an ambiguous gateway failure', async () => {

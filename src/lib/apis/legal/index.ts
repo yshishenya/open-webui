@@ -43,6 +43,16 @@ export type AcceptLegalDocsResponse = {
 
 const RETRYABLE_STATUS_CODES = new Set([502, 503, 504]);
 
+export class LegalApiError extends Error {
+	readonly status: number;
+
+	constructor(status: number, message: string) {
+		super(message);
+		this.name = 'LegalApiError';
+		this.status = status;
+	}
+}
+
 const requestLegalJson = async <ResponseBody>(
 	url: string,
 	init: RequestInit,
@@ -67,7 +77,7 @@ const requestLegalJson = async <ResponseBody>(
 			}
 		}
 		console.error(`Legal API request failed with status ${response.status}`);
-		throw new Error(message);
+		throw new LegalApiError(response.status, message);
 	}
 
 	try {

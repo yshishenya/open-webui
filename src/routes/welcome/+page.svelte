@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
 	import { user } from '$lib/stores';
 	import { getPublicLeadMagnetConfig, getPublicRateCards } from '$lib/apis/billing';
 	import type { PublicLeadMagnetConfig, PublicRateCardResponse } from '$lib/apis/billing';
@@ -29,10 +28,9 @@
 	let leadMagnetConfig: PublicLeadMagnetConfig | null = null;
 	let rateCard: PublicRateCardResponse | null = null;
 
-	// Get redirect URL from query params
-	$: redirectParam = sanitizeRedirectPath($page.url.searchParams.get('redirect'));
-	$: redirectUrl = redirectParam || '/';
-	$: shouldAutoRedirect = Boolean(redirectParam);
+	let redirectParam = '';
+	let redirectUrl = '/';
+	let shouldAutoRedirect = false;
 
 	const loadPublicLandingConfig = async (): Promise<void> => {
 		[leadMagnetConfig, rateCard] = await Promise.all([
@@ -42,6 +40,11 @@
 	};
 
 	onMount(() => {
+		redirectParam =
+			sanitizeRedirectPath(new URLSearchParams(window.location.search).get('redirect')) ?? '';
+		redirectUrl = redirectParam || '/';
+		shouldAutoRedirect = Boolean(redirectParam);
+
 		// Redirect authenticated users to their intended destination
 		if ($user && shouldAutoRedirect) {
 			goto(redirectUrl);
@@ -49,11 +52,6 @@
 		}
 		void loadPublicLandingConfig();
 	});
-
-	// Also check for token in localStorage (for page refresh scenarios)
-	$: if (typeof window !== 'undefined' && localStorage.getItem('token') && shouldAutoRedirect) {
-		goto(redirectUrl);
-	}
 
 	// Telegram widget callback
 	if (typeof window !== 'undefined') {

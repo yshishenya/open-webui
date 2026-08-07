@@ -30,6 +30,8 @@ const LANDING_CTA_EVENTS = new Set([
 	'pricing_final_cta_click',
 	'pricing_estimator_primary_click',
 	'pricing_free_start_click',
+	'about_hero_cta_click',
+	'support_contact_click',
 	'landing_cta_open',
 	'public_header_cta_click',
 	'features_hero_primary',

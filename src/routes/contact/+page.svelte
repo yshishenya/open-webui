@@ -1,5 +1,10 @@
 <script lang="ts">
 	import { PublicPageLayout } from '$lib/components/landing';
+	import { trackEvent } from '$lib/utils/analytics';
+
+	const handleSupportClick = (): void => {
+		trackEvent('support_contact_click', { source: 'contact_page' });
+	};
 </script>
 
 <PublicPageLayout
@@ -18,7 +23,8 @@
 				</p>
 				<a
 					class="airis-public-btn-primary mt-8 inline-flex min-h-11 items-center justify-center rounded-xl px-6"
-					href="mailto:support@airis.you?subject=Вопрос%20в%20Airis">Написать в поддержку</a
+					href="mailto:support@airis.you?subject=Вопрос%20в%20Airis"
+					on:click={handleSupportClick}>Написать в поддержку</a
 				>
 				<p class="mt-4 text-sm text-[var(--airis-muted)]">
 					support@airis.you · срок ответа зависит от нагрузки

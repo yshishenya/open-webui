@@ -24,7 +24,7 @@
 				style: 'currency',
 				currency
 			}).format(amount);
-		} catch (error) {
+		} catch {
 			return `${amount.toFixed(2)} ${currency}`.trim();
 		}
 	};
@@ -43,7 +43,7 @@
 				dateStyle: 'medium',
 				timeStyle: 'short'
 			}).format(parsed);
-		} catch (error) {
+		} catch {
 			return value;
 		}
 	};
@@ -132,8 +132,12 @@
 
 	{#if loading}
 		<div class="space-y-3">
-			{#each Array.from({ length: 6 }) as _, index}
-				<div class="h-12 rounded-xl bg-gray-200/70 animate-pulse" aria-hidden="true"></div>
+			{#each [0, 1, 2, 3, 4, 5] as index}
+				<div
+					class="h-12 rounded-xl bg-gray-200/70 animate-pulse"
+					data-skeleton-index={index}
+					aria-hidden="true"
+				></div>
 			{/each}
 		</div>
 	{:else if error}
@@ -175,9 +179,6 @@
 							<td class="sticky left-0 bg-white z-10 px-4 py-3 font-semibold text-gray-900">
 								<div class="flex flex-col">
 									<span>{model.display_name}</span>
-									{#if model.provider}
-										<span class="text-xs text-gray-500">{model.provider}</span>
-									{/if}
 								</div>
 							</td>
 							<td class="px-4 py-3">{formatRate(model.rates.text_in_1000_tokens)}</td>

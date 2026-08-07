@@ -6,6 +6,7 @@
 
 	const SCROLL_THRESHOLDS = [25, 50, 75, 90];
 	let trackedScrollDepths = new Set<number>();
+	let lastTrackedPagePath = '';
 
 	const resetScrollDepth = (): void => {
 		trackedScrollDepths = new Set<number>();
@@ -31,6 +32,9 @@
 
 	const syncAnalytics = (): void => {
 		if (getAnalyticsConsent() !== 'granted') return;
+		const pagePath = `${window.location.pathname}${window.location.hash}`;
+		if (pagePath === lastTrackedPagePath) return;
+		lastTrackedPagePath = pagePath;
 		initializeAnalytics();
 		trackPageView();
 	};
