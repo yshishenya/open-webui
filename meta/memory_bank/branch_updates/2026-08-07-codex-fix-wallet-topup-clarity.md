@@ -7,3 +7,12 @@
   - Done: 2026-08-07
   - Tests: Focused billing/modal tests 14 passed; full frontend Vitest 30 files / 116 tests passed; targeted ESLint passed; Vite build passed with `NODE_OPTIONS=--max-old-space-size=8192`; `git diff --check` passed.
   - Production: `git-1a3e852` deployed with guarded backup, migration gate, health gate, and rollback image. Wallet CTA and blocked paid-model recovery verified in the authenticated in-app browser; console errors: none.
+
+- [x] **[REFACTOR][PRICING][UX]** Simplify the public pricing estimator and use an affordable default model
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-08__refactor__pricing-estimator-simple-affordable.md`
+  - Owner: Codex
+  - Branch: `codex/fix-wallet-topup-clarity`
+  - Done: 2026-08-08
+  - Summary: Reduce text estimation to messages per day with a short request/reply sample and select the cheapest available text model when no explicit recommendation is configured.
+  - Tests: `npm run test:frontend -- --run` (31 files / 119 tests), `NODE_OPTIONS=--max-old-space-size=8192 npm run build:vite`, targeted ESLint, 4 pricing-estimator tests, and `git diff --check` passed; `npm run check` remains blocked by pre-existing repository diagnostics.
+  - Risks: Low (public estimate only; billing rates and charging are unchanged)
