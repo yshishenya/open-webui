@@ -178,7 +178,7 @@
 	const submitHandler = async () => {
 		if (submitting) return;
 		if (mode === 'signup') {
-			trackEvent('signup_started', { method: 'email', source: analyticsSource() });
+			trackSignupStart('email');
 		}
 		submitting = true;
 		try {
@@ -194,8 +194,13 @@
 		}
 	};
 
+	const trackSignupStart = (method: string): void => {
+		if (mode === 'signup') trackEvent('signup_started', { method, source: analyticsSource() });
+	};
+
 		const startSocialLogin = (provider: SocialProvider): void => {
 			if (oauthRedirectingTo) return;
+			trackSignupStart(provider);
 			oauthRedirectingTo = provider;
 
 		if (provider === 'yandex') {
@@ -224,6 +229,7 @@
 			}
 
 			vkidLoadingProvider = provider;
+			trackSignupStart('vkid');
 			try {
 				const { authResponse, authData } = await vkIdLogin(provider, appId, redirectUrl);
 				const callbackResponse = await fetch(`${WEBUI_BASE_URL}/api/v1/oauth/vkid/callback`, {
@@ -268,6 +274,7 @@
 				if (telegramLoading) return;
 
 			telegramLoading = true;
+			trackSignupStart('telegram');
 			try {
 				const { state } = await getTelegramAuthState();
 				const sessionUser = await telegramSignIn(state, payload);
@@ -386,6 +393,10 @@
 
 		loaded = true;
 		setLogoImage();
+		trackEvent('auth_viewed', { mode, source: analyticsSource() });
+		if (mode === 'signup') {
+			trackEvent('signup_form_viewed', { source: analyticsSource() });
+		}
 
 		if (($config?.features.auth_trusted_header ?? false) || $config?.features.auth === false) {
 			await signInHandler();
