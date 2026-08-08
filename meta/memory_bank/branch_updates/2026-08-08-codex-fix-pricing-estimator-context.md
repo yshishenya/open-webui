@@ -1,0 +1,9 @@
+- [x] **[BUGFIX][PRICING][UX]** Account for cumulative chat context in the public pricing estimator
+  - Spec: `meta/memory_bank/specs/work_items/2026-08-08__refactor__pricing-estimator-simple-affordable.md`
+  - Owner: Codex
+  - Branch: `codex/fix/pricing-estimator-context`
+  - Started: 2026-08-08
+  - Done: 2026-08-08
+  - Summary: Model one continuing chat, prefer an affordable working text model, and keep the estimator around 500–1000 ₽ for the default 10 messages per day.
+  - Tests: `npm run test:frontend -- --run` (32 files / 123 tests), `NODE_OPTIONS=--max-old-space-size=8192 npm run build:vite`, targeted ESLint, 4 pricing-estimator tests, and `git diff --check` passed.
+  - Risks: Estimate is conservative for one long chat; separate chats or shorter replies cost less.

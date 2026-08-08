@@ -5,6 +5,7 @@
 		uncertainty: { min: number; max: number };
 		text: {
 			enabled: boolean;
+			modelId?: string;
 			tokensInPerMessage: number;
 			tokensOutPerMessage: number;
 			default: { messagesPerDay: number };
@@ -96,7 +97,8 @@
 
 	// Keep the async rate-card dependency explicit so the estimate recalculates after the API response.
 	$: rateCardModels = rateCard?.models ?? [];
-	$: textModel = pickCheapestTextModel(rateCardModels, recommendedModelIdByType.text);
+	$: textModelPreference = config.text.modelId ?? recommendedModelIdByType.text;
+	$: textModel = pickCheapestTextModel(rateCardModels, textModelPreference);
 	$: imageModel = rateCard ? resolveModel(recommendedModelIdByType.image, hasImageRates) : null;
 	$: audioModel = rateCard ? resolveModel(recommendedModelIdByType.audio, hasAudioRates) : null;
 
@@ -200,8 +202,8 @@
 
 <div class="space-y-8">
 	<p class="text-xs text-gray-500">
-		Ориентир для коротких сообщений и недорогой модели. Реальная сумма зависит от содержания
-		запросов и выбранной модели.
+		Ориентир для обычного длинного чата: история сообщений тоже учитывается. Реальная сумма зависит
+		от содержания запросов и выбранной модели.
 	</p>
 
 	<div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -257,7 +259,7 @@
 									/>
 								</label>
 								<p class="text-xs text-gray-500">
-									В расчёте уже учтены короткий запрос и короткий ответ.
+									В расчёте учитывается накопление истории одного чата.
 								</p>
 							</div>
 							<div class="text-lg font-semibold text-gray-900 tabular-nums">

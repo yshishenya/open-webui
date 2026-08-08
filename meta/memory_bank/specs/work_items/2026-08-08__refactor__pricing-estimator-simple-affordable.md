@@ -5,7 +5,7 @@
 - Type: refactor
 - Status: done
 - Owner: Codex
-- Branch: codex/fix-wallet-topup-clarity
+- Branch: codex/fix/pricing-estimator-context
 - SDD Spec (JSON, required for non-trivial): N/A (small frontend-only refinement)
 - Created: 2026-08-08
 - Updated: 2026-08-08
@@ -13,15 +13,15 @@
 ## Context
 
 The public pricing estimator exposes too many text-size controls and can select the first
-rate-card model when no recommendation is configured. That makes a normal short-message
-scenario look unnecessarily expensive.
+rate-card model when no recommendation is configured. A fixed short-message sample also
+ignores that a continuing chat sends its previous context again on every request.
 
 ## Goal / Acceptance Criteria
 
 - [x] Text estimation has one primary input: messages per day.
-- [x] The default text scenario uses short requests and replies.
-- [x] Without an explicit recommended text model, the estimator uses the cheapest available
-      model with input and output text rates.
+- [x] The default text scenario uses short messages while accumulating one chat's context.
+- [x] The estimator uses an affordable working model when it is available, with a safe cheapest
+      model fallback.
 - [x] Image and audio estimates remain available and unchanged.
 - [x] No billing API, rate-card, or charged-cost behavior changes.
 
@@ -35,8 +35,8 @@ scenario look unnecessarily expensive.
 
 - Frontend:
   - simplify `Estimator.svelte` text controls and remove duplicate example cards;
-  - make the fallback text model selection price-aware;
-  - reduce the default text sample to short request/reply sizes.
+  - prefer an affordable working model and keep the cheapest-model fallback;
+  - account for accumulated context while keeping short request/reply defaults.
 - Backend: none.
 - Config/Env: none.
 - Data model / migrations: none.
@@ -48,8 +48,9 @@ scenario look unnecessarily expensive.
   - `src/lib/data/pricing-estimator.json`
 - API changes: none.
 - Edge cases: keep the current unavailable-rate fallback and honor an explicit recommended model.
-- Billing alignment: the text estimate mirrors backend per-request kopek rounding, so the live
-  cheapest model produces about 5.10–7.20 ₽ for the default 10 short messages per day.
+- Billing alignment: the text estimate mirrors backend per-request kopek rounding and sends
+  previous turns again; the current Qwen 3.7 Plus scenario produces about 623–880 ₽ for
+  10 messages per day.
 
 ## Upstream impact
 
@@ -60,7 +61,7 @@ scenario look unnecessarily expensive.
 
 ## Verification
 
-- `npm run test:frontend -- --run` — 31 files / 119 tests passed
+- `npm run test:frontend -- --run` — 32 files / 123 tests passed
 - `npm run check` — blocked by pre-existing repository diagnostics (8,357 errors in 349 files)
 - `NODE_OPTIONS=--max-old-space-size=8192 npm run build:vite` — passed
 - `npx eslint src/lib/components/pricing/Estimator.svelte src/lib/utils/airis/pricing_estimator.ts src/lib/utils/airis/pricing_estimator.test.ts` — passed
@@ -69,8 +70,8 @@ scenario look unnecessarily expensive.
 
 ## Risks / Rollback
 
-- Risks: estimate becomes lower when the catalog contains an inexpensive model; this is
-  intentional and remains explicitly an estimate.
+- Risks: a single continuously growing chat is a conservative scenario; real usage is lower when
+  users split work across multiple chats or send shorter replies.
 - Rollback plan: revert the estimator and JSON changes; no persistent state is changed.
 
 ## Completion Checklist

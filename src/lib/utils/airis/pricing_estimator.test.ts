@@ -31,13 +31,13 @@ describe('pricing estimator', () => {
 		expect(models.map((item) => item.id)).toEqual(['expensive', 'cheap']);
 	});
 
-	it('calculates a short ten-message monthly estimate', () => {
-		const estimate = calculateTextEstimate(model('cheap', 1, 3), 80, 80, 10, {
+	it('calculates a cumulative-context monthly estimate', () => {
+		const estimate = calculateTextEstimate(model('balanced', 10, 39), 80, 80, 10, {
 			min: 0.85,
 			max: 1.2
 		});
 
-		expect(estimate).toEqual({ min: 510, max: 720 });
+		expect(estimate).toEqual({ min: 62322, max: 87984 });
 	});
 
 	it('does not produce a negative estimate for invalid message counts', () => {
