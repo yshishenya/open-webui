@@ -90,6 +90,9 @@ test.describe('Billing Lead Magnet', () => {
 		const leadMagnetSection = page.getByTestId('lead-magnet-section');
 		await expect(leadMagnetSection.getByText('Free limit')).toBeVisible();
 		await expect(leadMagnetSection.getByText('Next reset')).toBeVisible();
+		const limitsButton = leadMagnetSection.locator('button[aria-controls="free-limit-details"]');
+		await expect(limitsButton).toHaveAttribute('aria-expanded', 'false');
+		await limitsButton.click();
 		await expect(leadMagnetSection.getByText('Text', { exact: true })).toBeVisible();
 		await expect(leadMagnetSection.getByText('Input', { exact: true })).toBeVisible();
 	});
@@ -101,6 +104,9 @@ test.describe('Billing Lead Magnet', () => {
 		const leadMagnetSection = page.getByTestId('lead-magnet-section');
 		await expect(leadMagnetSection.getByText('Free limit')).toBeVisible();
 		await expect(leadMagnetSection.getByText('Next reset')).toBeVisible();
+		const limitsButton = leadMagnetSection.locator('button[aria-controls="free-limit-details"]');
+		await expect(limitsButton).toHaveAttribute('aria-expanded', 'false');
+		await limitsButton.click();
 		await expect(leadMagnetSection.getByText('Output', { exact: true })).toBeVisible();
 	});
 });

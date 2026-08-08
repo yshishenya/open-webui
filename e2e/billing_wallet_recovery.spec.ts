@@ -167,7 +167,7 @@ test.describe('Billing wallet recovery (smoke)', () => {
 		await page.waitForResponse('**/api/v1/billing/lead-magnet');
 
 		const leadMagnetSection = page.getByTestId('lead-magnet-section');
-		const limitsButton = leadMagnetSection.getByRole('button', { name: 'Limits', exact: true });
+		const limitsButton = leadMagnetSection.locator('button[aria-controls="free-limit-details"]');
 		await expect(limitsButton).toHaveAttribute('aria-expanded', 'false');
 		await expect(leadMagnetSection.locator('#free-limit-details')).toHaveCount(0);
 		await expect(page.getByTestId('topup-proceed')).toBeVisible();
@@ -177,7 +177,6 @@ test.describe('Billing wallet recovery (smoke)', () => {
 		);
 		expect(hasHorizontalOverflow).toBe(false);
 
-		await limitsButton.focus();
 		await limitsButton.press('Enter');
 		await expect(limitsButton).toHaveAttribute('aria-expanded', 'true');
 		await expect(leadMagnetSection.locator('#free-limit-details')).toBeVisible();
