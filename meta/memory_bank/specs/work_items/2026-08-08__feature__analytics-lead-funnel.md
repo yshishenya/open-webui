@@ -16,11 +16,11 @@ The production landing image was built without the public Yandex Metrica ID, so 
 
 ## Goal / Acceptance Criteria
 
-- [ ] Production builds embed the configured public Yandex/GA IDs through the standard deploy script.
-- [ ] Campaign parameters are retained as first-party attribution and attached only to consented analytics events.
-- [ ] Yandex/GA receive normalized funnel goals for CTA, signup completion, first prompt, first response, and credited top-up.
-- [ ] Auth signup view/start/completion events cover email and social entry paths.
-- [ ] Production browser checks prove provider initialization, goal queueing, CTA navigation, and public route health.
+- [x] Production builds embed the configured public Yandex/GA IDs through the standard deploy script.
+- [x] Campaign parameters are retained as first-party attribution and attached only to consented analytics events.
+- [x] Yandex/GA receive normalized funnel goals for CTA, signup completion, first prompt, first response, and credited top-up.
+- [x] Auth signup view/start/completion events cover email and social entry paths.
+- [x] Production browser checks prove provider initialization, goal queueing, CTA navigation, and public route health.
 
 ## Non-goals
 
@@ -75,5 +75,5 @@ The production landing image was built without the public Yandex Metrica ID, so 
 
 ## Completion Checklist
 
-- [ ] SDD spec complete and cross-linked.
-- [ ] Production smoke checks recorded in branch update.
+- [x] SDD spec complete and cross-linked.
+- [x] Production smoke checks recorded in branch update.

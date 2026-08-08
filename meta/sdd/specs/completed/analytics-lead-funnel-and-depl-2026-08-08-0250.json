@@ -2,22 +2,23 @@
   "spec_id": "analytics-lead-funnel-and-depl-2026-08-08-0250",
   "title": "Analytics lead funnel and deployment build args",
   "generated": "2026-08-07T23:50:01.328972Z",
-  "last_updated": "2026-08-07T23:58:26.876594Z",
+  "last_updated": "2026-08-08T00:17:58.425065Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
     "risk_level": "medium",
     "estimated_hours": 24,
     "security_sensitive": false,
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-08-07T23:50:06.452833Z",
-    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-08__feature__analytics-lead-funnel.md"
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-08__feature__analytics-lead-funnel.md",
+    "completed_date": "2026-08-08T00:17:58.424769Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Analytics lead funnel and deployment build args",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
@@ -25,7 +26,7 @@
         "phase-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 1,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
@@ -46,26 +47,32 @@
     "phase-2": {
       "type": "phase",
       "title": "Phase 2: [To Be Defined]",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-2-1"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-08T00:17:36.768146Z"
+      }
     },
     "phase-3": {
       "type": "phase",
       "title": "Phase 3: [To Be Defined]",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-3-1"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-08-08T00:17:37.014320Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -91,7 +98,7 @@
     "task-2-1": {
       "type": "task",
       "title": "Instrument consented funnel and attribution",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -100,18 +107,20 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "estimated_hours": 4.0,
         "started_at": "2026-08-07T23:58:26.876411Z",
-        "status_note": "Frontend attribution and normalized goals implemented; targeted tests pass."
+        "status_note": "Implemented consent-gated attribution and normalized funnel goals; targeted Vitest and ESLint pass; production browser queue verified.",
+        "completed_at": "2026-08-08T00:17:36.767980Z",
+        "needs_journaling": true
       },
       "description": "Retain campaign fields and emit normalized provider goals across signup and activation."
     },
     "task-3-1": {
       "type": "verify",
       "title": "Verify production analytics and lead path",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3",
       "children": [],
       "dependencies": {
@@ -120,9 +129,12 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "estimated_hours": 3.0
+        "estimated_hours": 3.0,
+        "completed_at": "2026-08-08T00:17:37.014146Z",
+        "needs_journaling": true,
+        "status_note": "Production image 57a89fe78 is healthy; public routes/APIs return 200; Playwright verified Yandex ID, consent gating, attribution, CTA auth redirect, signup form/start goals."
       },
       "description": "Build, deploy, and verify provider initialization, route health, CTA navigation, and funnel queueing."
     }
