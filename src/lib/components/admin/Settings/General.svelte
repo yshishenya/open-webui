@@ -314,9 +314,9 @@
 				</AdminSettingField>
 
 				<AdminSettingField
-					label={$i18n.t('WebUI URL')}
+					label={$i18n.t('Airis URL')}
 					description={$i18n.t(
-						'Enter the public URL of your WebUI. This URL will be used to generate links in the notifications.'
+						'Enter the public URL of your Airis. This URL will be used to generate links in the notifications.'
 					)}
 				>
 					<input

@@ -611,7 +611,7 @@ async def speech(request: Request, user=Depends(get_verified_user)):  # noqa: C9
 
             raise HTTPException(
                 status_code=r.status if r else 500,
-                detail=detail if detail else 'Open WebUI: Server Connection Error',
+                detail=detail if detail else 'Airis: Server Connection Error',
             )
         finally:
             await cleanup_response(r)
@@ -868,7 +868,7 @@ async def get_models(request: Request, url_idx: int | None = None, user=Depends(
             except aiohttp.ClientError as e:
                 # ClientError covers all aiohttp requests issues
                 log.exception(f'Client error: {str(e)}')
-                raise HTTPException(status_code=500, detail='Open WebUI: Server Connection Error')
+                raise HTTPException(status_code=500, detail='Airis: Server Connection Error')
             except Exception as e:
                 log.exception(f'Unexpected error: {e}')
                 error_detail = f'Unexpected error: {str(e)}'
@@ -1083,7 +1083,7 @@ RESPONSES_ALLOWED_FIELDS: dict[str, set[str]] = {
 def _normalize_stored_item(item: dict) -> dict:
     """Strip local-only fields from a stored output item before replaying it.
 
-    Open WebUI stores extra bookkeeping fields (``id``, ``status``,
+    Airis stores extra bookkeeping fields (``id``, ``status``,
     ``started_at``, ``ended_at``, ``duration``, ``_tag_type``,
     ``attributes``, ``summary``, etc.) that the Responses API does
     not accept.  This helper returns a copy containing only the
@@ -1947,7 +1947,7 @@ async def proxy(path: str, request: Request, user=Depends(get_verified_user)):  
         log.exception(e)
         raise HTTPException(
             status_code=r.status if r else 500,
-            detail='Open WebUI: Server Connection Error',
+            detail='Airis: Server Connection Error',
         )
     finally:
         if not streaming:

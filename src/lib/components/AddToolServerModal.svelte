@@ -854,7 +854,7 @@
 
 										{#if ['', 'url'].includes(spec_type)}
 											<div class={`text-xs mt-1 text-gray-500`}>
-												{$i18n.t(`WebUI will make requests to "{{url}}"`, {
+												{$i18n.t(`Airis will make requests to "{{url}}"`, {
 													url: path.includes('://')
 														? path
 														: `${url}${path.startsWith('/') ? '' : '/'}${path}`

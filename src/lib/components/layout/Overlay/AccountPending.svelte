@@ -32,7 +32,7 @@
 						{$config.ui.pending_user_overlay_title}
 					{:else}
 						{$i18n.t('Account Activation Pending')}<br />
-						{$i18n.t('Contact Admin for WebUI Access')}
+						{$i18n.t('Contact Admin for Airis Access')}
 					{/if}
 				</div>
 
@@ -46,7 +46,7 @@
 						)}
 					{:else}
 						{$i18n.t('Your account status is currently pending activation.')}{'\n'}{$i18n.t(
-							'To access the WebUI, please reach out to the administrator. Admins can manage user statuses from the Admin Panel.'
+							'To access the Airis, please reach out to the administrator. Admins can manage user statuses from the Admin Panel.'
 						)}
 					{/if}
 				</div>
