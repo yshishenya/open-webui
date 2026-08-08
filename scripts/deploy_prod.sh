@@ -505,7 +505,8 @@ PY
   helper="docker-credential-${credential_source#helper:}"
   command -v "${helper}" >/dev/null 2>&1 || return 1
   while IFS= read -r server_url; do
-    if printf '{"ServerURL":"%s"}' "${server_url}" \
+    # Docker credential helpers read the registry URL as a plain line.
+    if printf '%s\n' "${server_url}" \
       | "${helper}" get >/dev/null 2>&1; then
       return 0
     fi
