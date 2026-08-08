@@ -208,6 +208,7 @@ test.describe('Billing Wallet', () => {
 		});
 
 		await page.goto('/billing/balance');
+		await page.waitForResponse('**/api/v1/billing/balance');
 		const heroHeading = page.getByRole('heading', { name: 'Wallet' });
 		await expect(heroHeading).toBeVisible();
 		const heroRow = heroHeading.locator('xpath=../../..');
