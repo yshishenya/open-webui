@@ -14,6 +14,8 @@ describe('analytics adapter', () => {
 	});
 
 	it('does not load providers before consent and removes sensitive payload keys', () => {
+		window.history.replaceState({}, '', '/welcome?utm_source=telegram');
+		captureAttribution();
 		const received: CustomEvent[] = [];
 		window.addEventListener('analytics', (event) => received.push(event as CustomEvent));
 

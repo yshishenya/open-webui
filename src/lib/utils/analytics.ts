@@ -280,10 +280,10 @@ export const trackEvent = (event: string, payload: AnalyticsPayload = {}): void 
 		return;
 	}
 
-	const safePayload = sanitizePayload({ ...readAttribution(), ...payload });
-	const detail = { event, ...safePayload };
 	const analyticsWindow = window as AnalyticsWindow;
 	const consentGranted = getAnalyticsConsent() === 'granted';
+	const safePayload = sanitizePayload(consentGranted ? { ...readAttribution(), ...payload } : payload);
+	const detail = { event, ...safePayload };
 
 	if (consentGranted) {
 		initializeAnalytics();
