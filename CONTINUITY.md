@@ -1,11 +1,31 @@
 # Goal (критерии успеха):
+- Убрать предупреждение Powerlevel10k при старте zsh из-за console output во время инициализации.
 - Завершить настройку этого хоста как managed target для OpenClaw main-контура.
 - Добиться рабочей связи: удалённый nginx может достучаться до target по адресу target-хоста, внешний DNS endpoint работает, callback в main работает.
 - Подготовить более надёжную схему через central Gateway + headless node host, если доступны credential'ы central Gateway.
 - Обновить локальный checkout `/opt/projects/open-webui` до последней версии из `upstream/main` без потери локальных изменений.
 - Обновить Open WebUI из GitHub и безопасно перезапустить контейнер, не затрагивая `backup-tool/` и данные.
+- Аккуратно обновить текущий runtime Open WebUI с `0.9.5` до последнего upstream release tag, сохранив `postgres-data`, `open-webui-data` и `backup-tool/`.
+- Полностью перезапустить весь `/opt/projects/open-webui` Docker Compose project без удаления bind-mounted данных/volumes.
+- Проверить/обеспечить, что у default-моделей reasoning включён на `xhigh`, а отображение reasoning включено.
+- Исправить Gemini-specific reasoning config: LiteLLM/Google AI Studio не принимает `reasoning_effort=xhigh` для Gemini; для активных Gemini-моделей нужно использовать совместимое значение.
+- Исправить stale default model config: `gemini/gemini-3-flash-preview` больше не должна считаться default-моделью, так как пользователь подтвердил, что её удалили.
+- Проверить, есть ли обновление LiteLLM и установлен ли LiteLLM внутри текущего `/opt/projects/open-webui` compose/runtime.
+- Ответить пользователю, что нового появилось в Open WebUI `0.9.6` по сравнению с предыдущей установленной `0.9.5`.
+- Дать простое пользовательское, консолидированное описание новинок Open WebUI `0.9.5` и `0.9.6` без инженерного жаргона.
+- Сохранить пользовательское описание новинок Open WebUI `0.9.5`/`0.9.6` в отдельный Markdown-файл.
+- Объяснить, почему у `gpt-5.5` не отображается reasoning-блок в Open WebUI.
+- Ответить, поддерживает ли Open WebUI Responses API и как это соотносится с текущей установкой.
+- Проверить, подхватилось ли переключение OpenAI-compatible endpoint на Responses API в интерфейсе.
+- Диагностировать ошибку LiteLLM Responses: `Invalid model name passed in model=gpt-5.5`.
+- Перепроверить, почему `gpt-5.5` через LiteLLM/Responses внезапно заработал после предыдущей ошибки.
 - Диагностировать post-upgrade ошибку ответа Open WebUI: `Error: 'coroutine' object has no attribute 'chat'`, пока без изменений кода/конфига/контейнеров.
 - Ответить на вопрос пользователя о Skills/`SKILL.md` в Open WebUI 0.9.5: можно ли использовать, где искать и как импортировать.
+- Восстановить доступ Open WebUI к выбранным моделям без потери данных БД.
+- Обновить runtime Open WebUI с `0.9.6` до последнего доступного upstream release, сохранив данные и `backup-tool`.
+- Подготовить простое пользовательское сообщение для рабочего канала: что нового после обновления и как это поможет в повседневной работе.
+- Настроить добавленные модели GPT-5.6 Luna, Terra и Sol на `reasoning_effort=xhigh`; отключить GPT-5.5; обновить сообщение для коллег с новыми моделями и рекомендациями по выбору.
+- Запушить подготовленные изменения `open-webui` в `origin/main` без force push.
 
 # Constraints/Assumptions:
 - Рабочая директория: `/opt/projects/open-webui`.
@@ -35,13 +55,41 @@
 - Apache Tika для document extraction на этом хосте считать неиспользуемой; отключать через persisted `rag` config в Postgres и пустые env в compose, так как `PersistentConfig` читает БД раньше env.
 - Не считать локальный merge `upstream/main` равным runtime-upgrade: пока контейнер `ghcr.io/open-webui/open-webui:main` не закреплён на нужном релизе, фактическая версия сервиса определяется образом, а не checkout в `/opt/projects/open-webui`.
 - Для реального runtime-upgrade Open WebUI на этом хосте закреплять тег через `.env` (`WEBUI_DOCKER_TAG`) и перекатывать только сервис `open-webui`, не трогая `postgres-data`.
+- Для текущего обновления latest определять по свежим upstream git tags/release tags, затем закреплять конкретный version tag в `.env`, а не использовать плавающий `main`.
+- Для текущего обновления не удалять `postgres-data`, `open-webui-data`, Docker volumes или `backup-tool`; обновлять только сервис `open-webui`.
 - Для push в `origin/main` сначала коммитить локальные tracked-изменения, затем вмерживать отставание `origin/main`, если оно есть, и только после этого делать обычный `git push` без force.
 - `backup-tool/` является отдельной частью рядом с Open WebUI; при обновлении Open WebUI не удалять, не переносить и не ожидать его появления/обновления из новой версии upstream.
 - Для текущей диагностики ошибки после обновления работать read-only: только логи/статус/запросы, без рестартов, правок и миграций.
 - Для исправления ошибки `openai_responses` сначала сохранить backup текущего function content из БД, затем менять только эту custom function; не трогать данные/volumes/`backup-tool`.
+- Для восстановления доступа к облачным моделям сначала разбирать persisted provider config в Postgres (`config.data.openai`) и upstream LiteLLM/локальный gateway, а не трогать каталог `postgres-data`.
+- Для полного compose restart использовать команды без удаления volumes/data; не применять `docker compose down -v` или очистку bind mount каталогов.
+- Для проверки reasoning-настроек сначала читать persisted config/model metadata из Postgres; любые изменения делать точечно и с пониманием схемы Open WebUI 0.9.6.
+- `reasoning_effort=xhigh` не универсален: для OpenAI/DeepSeek оставить `xhigh`, но для Gemini в LiteLLM/Google AI Studio использовать совместимое значение `high`.
+- Для текущего push сохранить все существующие локальные изменения, сначала создать commit, затем проверить `origin/main` и выполнить только обычный `git push origin main`.
 
 # State:
 - Done:
+  - 2026-05-15: Диагностировано предупреждение Powerlevel10k при старте zsh: `~/.zshrc` выполняет `source "/opt/projects/openclaw/completions/openclaw.zsh"`, но файл отсутствует.
+  - 2026-05-15: Исправлен `~/.zshrc`: OpenClaw completion теперь source-ится только если `/opt/projects/openclaw/completions/openclaw.zsh` существует и читается.
+  - 2026-05-15: Проверка `zsh -i -c 'exit'` через TTY больше не показывает ошибку отсутствующего OpenClaw completion или предупреждение Powerlevel10k; остаются только iTerm2 shell integration escape-последовательности.
+  - 2026-05-16: `open-webui` контейнер `Up 14 hours (healthy)`, но свежие логи показывают `psycopg.errors.InsufficientPrivilege: could not open file "base/16384/72184_vm": Permission denied`; `GET /api/config` возвращает `500`.
+  - 2026-05-16: `postgres-data` на хосте сейчас owned by `1003:1004` с `0700`; postgres container не может читать `base/...`, `global/pg_filenode.map`, `postmaster.pid`.
+  - 2026-05-16: Ownership `postgres-data` исправлен на `70:70`; postgres container прошёл crash recovery и сообщил `database system is ready to accept connections`.
+  - 2026-05-16: До исправления owner `postgres-data` был `skdpu:skdpu` (`1003:1004`).
+  - 2026-05-16: Clarification: `postgres` is the container DB user (uid/gid `70:70`); `postgres-data` is the host directory name, not the user name.
+  - 2026-05-16: Наиболее вероятная причина инцидента с `postgres-data` — bind-mounted каталог оказался с владельцем `1003:1004` вместо uid/gid postgres-контейнера `70:70`; точный триггер изменения ownership на этом шаге не установлен (UNCONFIRMED).
+  - 2026-05-16: Текущая `backup-tool/.env` не включает `postgres-data` в `BACKUP_INCLUDE_PATHS`; обычный backup/restore через backup-tool не должен менять ownership `postgres-data` напрямую.
+  - 2026-05-16: Ошибка `Authentication Error, All connection attempts failed` при отправке чата связана с выбранной моделью `gemini/gemini-3-flash-preview`; в контейнере нет видимых Gemini/Google env vars, и `OPENAI_API_KEY` пустой.
+  - 2026-05-16: `.env` содержит только `WEBUI_SECRET_KEY`, `OPEN_WEBUI_PORT`, `POSTGRES_PASSWORD`, `WEBUI_DOCKER_TAG`; `docker-compose.yaml` для `open-webui` не пробрасывает provider API keys.
+  - 2026-05-16: В runtime env контейнера есть `OPENAI_API_KEY=` и `OPENAI_API_BASE_URL=`, но нет видимых Gemini/Google/Anthropic/DeepSeek/OpenRouter credentials.
+  - 2026-05-16: Реальный provider config найден в Postgres `config.data.openai`, не в env: текущие `api_base_urls` = OpenRouter, DeepSeek, `https://litellm.pro-4.ru`; включён только индекс 2 (`litellm.pro-4.ru`).
+  - 2026-05-16: Прямой запрос к `https://litellm.pro-4.ru/models` с сохранённым в БД ключом возвращает `401 Authentication Error, All connection attempts failed`; значит Open WebUI конфиг подхватывает, но upstream LiteLLM отказывает.
+  - 2026-05-16: Старый `open-webui-data/webui.db` содержит более богатый `openai` config: `llm.pro-4.ru/v1`, OpenRouter, DeepSeek, `oneapi.pro-4.ru/v1`, `http://host.docker.internal:9099`, `litellm.pro-4.ru`; текущий Postgres config содержит только 3 endpoint'а.
+  - 2026-05-16: Старый enabled endpoint `http://host.docker.internal:9099` сейчас из контейнера `open-webui` даёт `Connection refused`; на хосте порт `9099` не слушает.
+  - 2026-05-16: `backup-tool` в `03:00` пытался выполнить `pg_dump` и получил `FATAL: could not open file "global/pg_filenode.map": Permission denied`; это выглядит как следствие уже сломанного ownership, а не как его причина.
+  - 2026-05-16: В доступных shell/journal logs не найдено прямой команды, которая меняла бы ownership `postgres-data` до поломки; backup-tool restore script не трогает `postgres-data` как каталог данных.
+  - 2026-05-16: В окне `02:45-03:10` нет systemd/cron/restore-следов, которые объясняли бы смену owner; есть только факт, что к `03:00` `postgres` уже выдавал `Permission denied`.
+  - 2026-05-15 23:42-23:45: в журнале есть sudo-операции по `rm -rf /opt/projects/openclaw`, `mkdir -p /opt/projects`, `chown -R skdpu:skdpu /opt/projects` и настройке sudoers для OpenClaw; прямого следа `postgres-data` там нет.
   - 2026-05-15: `backup-tool/` обработан как отдельный git repo, синхронизирован с `origin/main`, локальные изменения сведены с remote, закоммичены в `388f1b9` (`fix: tune startup health notifications`) и запушены в `https://github.com/Fediushin/backup-tool.git`.
   - 2026-05-15: В `backup-tool` добавлены `TOOL_STARTUP_NOTIFY_ENABLED=false`, `SCHEDULE_STARTUP_GRACE_SECONDS=60`, startup notification теперь gated; `.env.bak-*`/`*.bak-*` игнорируются.
   - 2026-05-15: Уточнено по персональным агентам Open WebUI: поддерживается owner/access-grants слой для private workspace resources (models/knowledge/prompts/tools/skills), но отдельный per-user runtime/container для агентов не является штатной изоляцией одного инстанса.
@@ -136,26 +184,104 @@
   - Установлен latest Node через `nvm install node`: `node v25.8.1`, `npm 11.11.0`, `npx 11.11.0`.
   - Обновлён alias `nvm default -> node -> v25.8.1`.
   - Обновлён `~/.zshrc`: после загрузки `nvm` выполняется `nvm use --silent default`, чтобы интерактивные `zsh`-сессии поднимали default-версию Node вместо унаследованного старого `PATH`.
+  - 2026-06-06: Перед обновлением runtime baseline: `docker compose ps` показывает `open-webui` на `ghcr.io/open-webui/open-webui:0.9.5`, `postgres` healthy, `backup-tool` running; `/api/version` -> `0.9.5`, `/health` -> `{"status":true}`.
+  - 2026-06-06: Latest upstream release tag проверен по свежим git refs/tags: `v0.9.6`; `git ls-remote --tags upstream 'refs/tags/v*'` показывает последним `v0.9.6`.
+  - 2026-06-06: Выполнен merge `upstream/main` в локальный `main`; merge commit `be6da7bfd`, конфликтов не было. Перед merge `CONTINUITY.md` был сохранён во временный stash `codex-ledger-before-openwebui-0.9.6-20260606`, затем stash успешно применён и удалён.
+  - 2026-06-06: `.env` обновлён локально: `WEBUI_DOCKER_TAG=0.9.6`; `docker compose config` подтвердил image `ghcr.io/open-webui/open-webui:0.9.6`.
+  - 2026-06-06: Выполнен `docker compose pull open-webui`; образ `ghcr.io/open-webui/open-webui:0.9.6` подтянут.
+  - 2026-06-06: Выполнен `docker compose up -d --force-recreate --no-deps open-webui`; пересоздан только контейнер `open-webui`. `postgres` и `backup-tool` не пересоздавались.
+  - 2026-06-06: После обновления `docker compose ps` показывает `open-webui` на `ghcr.io/open-webui/open-webui:0.9.6` со статусом `healthy`; `postgres` остаётся `healthy`, `backup-tool` остаётся running.
+  - 2026-06-06: После обновления `/api/version` -> `{"version":"0.9.6","deployment_id":""}`, `/health` -> `{"status":true}`.
+  - 2026-06-06: Свежие логи `open-webui` за последние 5 минут проверены на `ERROR|FATAL|Traceback|Exception|CRITICAL|coroutine|has no attribute`; совпадений нет.
+  - 2026-06-06: При старте `0.9.6` Alembic выполнил миграции `a0b1c2d3e4f5 -> 3c9b0ca343fd` (`add knowledge_directory table`) и `3c9b0ca343fd -> 461111b60977` (`add missing primary keys to legacy peewee tables`).
+  - 2026-06-06: В свежих логах после обновления есть warnings, не блокирующие запуск: `CORS_ALLOW_ORIGIN='*'`, `JWT_EXPIRES_IN=-1`/короткий HMAC key из текущего `WEBUI_SECRET_KEY`, и unset `USER_AGENT`.
+  - 2026-06-06: Перед полным compose restart `docker compose ps` показывает `open-webui` на `ghcr.io/open-webui/open-webui:0.9.6` healthy, `postgres` healthy, `backup-tool` running.
+  - 2026-06-06: Выполнен полный restart проекта через `docker compose down` затем `docker compose up -d`; volumes/bind-mounted data не удалялись.
+  - 2026-06-06: После полного compose restart все сервисы пересозданы и запущены: `open-webui` на `ghcr.io/open-webui/open-webui:0.9.6` healthy, `postgres` healthy, `backup-tool` running.
+  - 2026-06-06: После полного compose restart `/api/version` -> `{"version":"0.9.6","deployment_id":""}`, `/health` -> `{"status":true}`.
+  - 2026-06-06: Свежие логи `open-webui` после полного restart проверены на `ERROR|FATAL|Traceback|Exception|CRITICAL|coroutine|has no attribute`; совпадений нет.
+  - 2026-06-06: Перед повторным полным compose restart `docker compose ps` показывает `open-webui` на `ghcr.io/open-webui/open-webui:0.9.6` healthy, `postgres` healthy, `backup-tool` running.
+  - 2026-06-06: Повторный полный restart проекта выполнен через `docker compose down` затем `docker compose up -d`; volumes/bind-mounted data не удалялись.
+  - 2026-06-06: После повторного полного compose restart все сервисы пересозданы и запущены: `open-webui` на `ghcr.io/open-webui/open-webui:0.9.6` healthy, `postgres` healthy, `backup-tool` running.
+  - 2026-06-06: После повторного полного compose restart `/api/version` -> `{"version":"0.9.6","deployment_id":""}`, `/health` -> `{"status":true}`.
+  - 2026-06-06: Свежие логи `open-webui` после повторного полного restart проверены на `ERROR|FATAL|Traceback|Exception|CRITICAL|coroutine|has no attribute`; совпадений нет.
+  - 2026-06-06: Проверены persisted reasoning settings в Postgres. `config.data.ui.default_models` = `gemini/gemini-3-flash-preview,deepseek/deepseek-v4-pro`.
+  - 2026-06-06: До правки `config.data.models.default_params.reasoning_effort` уже был `xhigh`; у `deepseek/deepseek-v4-pro` был `reasoning_effort=xhigh`; у `gemini/gemini-3-flash-preview` явного `reasoning_effort` не было. `reasoning_tags` не был явно выставлен в global/default-model params.
+  - 2026-06-06: В Postgres точечно обновлены `config.data.models.default_params` и `model.params` для `gemini/gemini-3-flash-preview`, `deepseek/deepseek-v4-pro`: `reasoning_effort="xhigh"`, `reasoning_tags=true`.
+  - 2026-06-06: После DB update пересоздан только `open-webui` через `docker compose up -d --force-recreate --no-deps open-webui`; `postgres` и `backup-tool` не пересоздавались.
+  - 2026-06-06: Финальная проверка показала: global default params и обе default-модели имеют `{"reasoning_tags": true, "reasoning_effort": "xhigh"}` с сохранением прежнего `system` prompt у моделей.
+  - 2026-06-06: После применения reasoning-настроек `open-webui` healthy, `/api/version` -> `0.9.6`, `/health` -> `{"status":true}`; свежие логи проверены на `ERROR|FATAL|Traceback|Exception|CRITICAL|coroutine|has no attribute`, совпадений нет.
+  - 2026-06-06: Пользователь уточнил, что `gemini/gemini-3-flash-preview` больше нет/она удалена. Проверка Postgres показала stale `config.data.ui.default_models = gemini/gemini-3-flash-preview,deepseek/deepseek-v4-pro`; строка модели `gemini/gemini-3-flash-preview` есть, но `is_active=false`. Также активная кастомная `UBZ` всё ещё имеет `base_model_id=gemini/gemini-3-flash-preview` (пока не менялось).
+  - 2026-06-06: `config.data.ui.default_models` исправлен на `deepseek/deepseek-v4-pro`; у `deepseek/deepseek-v4-pro` сохранены/подтверждены `reasoning_effort=xhigh`, `reasoning_tags=true`.
+  - 2026-06-06: Ошибка LiteLLM `Unsupported value: 'reasoning_effort' does not support 'ghigh' ... Model Group=gpt-5.5` объяснена: stale typo `ghigh` была в `model.params` конкретных моделей `gpt-5.5` и `gpt-5.4-nano`, поэтому global default `xhigh` её не перебивал.
+  - 2026-06-06: Исправлены `model.params` для `gpt-5.5` и `gpt-5.4-nano`: `reasoning_effort` заменён с `ghigh` на `xhigh`; проверка `model WHERE params ILIKE '%ghigh%'` -> `0`.
+  - 2026-06-06: `UBZ` переведён с удалённой/неактивной базы `gemini/gemini-3-flash-preview` на активную `gemini/gemini-3.5-flash`; у `UBZ` выставлены `reasoning_effort=xhigh`, `reasoning_tags=true`, прежний `temperature=0.2` сохранён.
+  - 2026-06-06: Активная база `gemini/gemini-3.5-flash` подтверждена в `model` (`is_active=true`) и имеет `reasoning_effort=xhigh`, `reasoning_tags=true`.
+  - 2026-06-06: В `user.settings` stale selections `gemini/gemini-3-flash-preview` заменены на `UBZ`; обновлено 14 user rows, финальная проверка `user_old_gemini_left` -> `0`.
+  - 2026-06-06: После исправлений пересоздан только `open-webui` через `docker compose up -d --force-recreate --no-deps open-webui`; `postgres` и `backup-tool` не пересоздавались.
+  - 2026-06-06: Финальная проверка после исправлений: `open-webui` healthy, `/api/version` -> `0.9.6`, `/health` -> `{"status":true}`; свежие логи проверены на `ERROR|FATAL|Traceback|Exception|CRITICAL|BadRequest|ghigh|coroutine|has no attribute`, совпадений нет.
+  - 2026-06-06: Пользователь сообщил новую ошибку LiteLLM для `gemini/gemini-3.1-pro-preview`: `Invalid reasoning effort: xhigh`. Traceback указывает на `GoogleAIStudioGeminiConfig`/`VertexGeminiConfig._map_reasoning_effort_to_thinking_level`; вывод: Gemini не принимает `xhigh`.
+  - 2026-06-06: Перед Gemini-specific fix активные Gemini-модели с `xhigh`: `gemini/gemini-3.1-flash-lite`, `gemini/gemini-3.1-pro-preview`, `gemini/gemini-3.5-flash`, а также `UBZ` с base `gemini/gemini-3.5-flash`.
+  - 2026-06-06: Активным Gemini-моделям и `UBZ` выставлено `reasoning_effort=high`, `reasoning_tags=true`: `UBZ`, `gemini/gemini-3.1-flash-lite`, `gemini/gemini-3.1-pro-preview`, `gemini/gemini-3.5-flash`. Проверка `active_gemini_xhigh_left` -> `0`.
+  - 2026-06-06: OpenAI/DeepSeek reasoning settings не снижались: `deepseek/deepseek-v4-pro`, `gpt-5.5`, `gpt-5.4-nano` остаются на `reasoning_effort=xhigh`.
+  - 2026-06-06: После Gemini-specific fix пересоздан только `open-webui` через `docker compose up -d --force-recreate --no-deps open-webui`; `postgres` и `backup-tool` не пересоздавались.
+  - 2026-06-06: После Gemini-specific fix `open-webui` healthy, `/api/version` -> `0.9.6`, `/health` -> `{"status":true}`; свежие логи проверены на `Invalid reasoning effort|BadRequest|APIConnectionError|ERROR|FATAL|Traceback|Exception|CRITICAL|ghigh|xhigh`, совпадений нет.
+  - 2026-06-06: Проверка LiteLLM update: PyPI JSON/API и `pip index` показывают latest `litellm==1.87.1`.
+  - 2026-06-06: В контейнере `open-webui` Python package `litellm` не установлен (`importlib.metadata`/`pip show` не находят пакет).
+  - 2026-06-06: В `docker-compose.yaml`, `.env`, `backend/requirements*.txt`, `pyproject.toml`, `uv.lock` явной локальной зависимости/сервиса LiteLLM не найдено.
+  - 2026-06-06: `https://litellm.pro-4.ru/health` отвечает `401`; внешний gateway доступен, но версию без авторизованного доступа/админского контекста не раскрывает.
+  - 2026-06-06: Проверен `CHANGELOG.md`/GitHub release `v0.9.6` от 2026-06-01. Основные новинки: oikb/директории и incremental sync для Knowledge Base, папки/rename файлов KB, built-in KB filesystem tool (`ENABLE_KB_EXEC`), per-chat Skills toggle, admin access preview для users/groups, Linkup search provider, Valkey vector DB, Azure AI Foundry v1 + Entra ID, performance/security/access-control fixes и DB migrations `knowledge_directory` + legacy primary keys.
+  - 2026-06-06: Для пользовательского обзора `0.9.5` + `0.9.6` выделены понятные темы: удобнее чаты/каналы, лучше Knowledge Base, Skills гибче в чате, больше контроля прав, быстрее поиск/инструменты/загрузка, стабильнее voice/STT/TTS/files/shared chats, сильнее защита данных.
+  - 2026-06-06: Пользовательский обзор Open WebUI `0.9.5`/`0.9.6` сохранён в `/opt/projects/open-webui/docs/local/open-webui-0.9.5-0.9.6-user-summary.md`.
+  - 2026-06-06: Диагностика `gpt-5.5` reasoning display: модель активна и имеет `reasoning_effort=xhigh`, но в per-model params нет `reasoning_tags`; global default params имеют `reasoning_tags=true`. По коду Open WebUI `reasoning_tags=None` не отключает detection (`DETECT_REASONING_TAGS = reasoning_tags_param is not False`), так что отсутствие per-model `reasoning_tags` не главный blocker.
+  - 2026-06-06: Open WebUI показывает reasoning-блок только если upstream присылает `<think>`/reasoning tags, `reasoning_content`/`reasoning`/`thinking`, либо Responses API reasoning summary events/items. Обычный `gpt-5.5` у нас не `openai_responses.*` pipe-модель; raw OpenAI reasoning tokens через API не видны, а summaries надо явно запрашивать через Responses API `reasoning.summary`.
+  - 2026-06-06: Проверена Responses support в Open WebUI `0.9.6`: в `backend/open_webui/routers/openai.py` есть native `/responses` proxy, `ResponsesForm` с `reasoning` и `previous_response_id`, `convert_to_responses_payload`, routing по model к нужному OpenAI-compatible endpoint, а `AddConnectionModal.svelte` имеет `apiType='responses'`. В `routers/ollama.py` есть `/v1/responses`. В `env.py` есть experimental `ENABLE_RESPONSES_API_STATEFUL`.
+  - 2026-06-06: Текущая custom function `openai_responses` в БД существует как `OpenAI Responses API Manifold`, type `pipe`, но `is_active=false`. Модели `openai_responses.gpt-5...`, `openai_responses.gpt-5.1...`, `openai_responses.gpt-5.2...` активны; `openai_responses.gpt-5.4...` неактивны; отдельной `openai_responses.gpt-5.5...` модели нет.
+  - 2026-06-06: После переключения в UI проверен persisted `config.data.openai`: единственный enabled endpoint index `2` (`https://litellm.pro-4.ru`) теперь имеет `api_type="responses"`, `auth_type="bearer"`, `connection_type="local"`. Endpoint indexes `0` OpenRouter и `1` DeepSeek остаются disabled.
+  - 2026-06-06: `gpt-5.5` всё ещё active с `reasoning_effort=xhigh`; per-model params не содержат `reasoning.summary` или отдельного `reasoning_tags`. Свежие логи за 20 минут не содержат chat request/ошибки по `gpt-5.5` после переключения, только profile image GET; значит настройка сохранена, но реальный `/responses` вызов ещё не подтверждён тестовым сообщением.
+  - 2026-06-06: После тестового запроса Open WebUI log подтвердил ошибку `/responses: Invalid model name passed in model=gpt-5.5`. Прямой `/v1/models` к `https://litellm.pro-4.ru` тем же ключом показывает `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5-chat-latest`, но прямые минимальные запросы к `/responses`, `/v1/responses` и `/v1/chat/completions` с `gpt-5.5` возвращают `400 Invalid model name`.
+  - 2026-06-06: Прямые `/model/info` и `/v1/model/info` на `litellm.pro-4.ru` возвращают `500 LLM Model List not loaded in. Make sure you passed models in your config.yaml or on the LiteLLM Admin UI.` Вывод: проблема не в Open WebUI UI-переключателе, а во внешнем LiteLLM gateway: модель рекламируется в `/v1/models`, но model router/config не загружен или model group `gpt-5.5` не привязан к backend.
+  - 2026-06-06: Повторная проверка после сообщения пользователя "сейчас заработало": `/model/info` на `litellm.pro-4.ru` теперь возвращает `data[...]` вместо прежнего `500`, прямой `/v1/responses` с `model=gpt-5.5` возвращает `HTTP 200`, прямой `/v1/chat/completions` с `model=gpt-5.5` тоже возвращает `HTTP 200`. Значит внешний LiteLLM gateway между проверками подгрузил model_list/router config или был перезагружен/reloaded.
+  - 2026-06-06: Прямой `/v1/responses` с `gpt-5.5`, `reasoning={"effort":"xhigh","summary":"auto"}`, `max_output_tokens=200` вернул `output` с item `type=reasoning` и непустым `summary_text`; значит LiteLLM/OpenAI backend теперь способен отдавать visible reasoning summary. При `max_output_tokens=16` response был `status=incomplete`, `summary=[]`, но usage показывал reasoning tokens.
+  - 2026-06-06: Код Open WebUI `convert_to_responses_payload` конвертирует Chat Completions payload в Responses, но явного маппинга `reasoning_effort -> reasoning.summary` не найдено; для гарантированного visible summary может понадобиться передавать Responses-native `reasoning` object или доработать/настроить модель/pipe.
+  - 2026-07-17: Последний upstream release проверен через GitHub Releases: `v0.10.2` от 2026-07-01. Локальный checkout обновлён merge-коммитом `bcd50bbf9` (`Merge tag 'v0.10.2'`); при merge вручную сохранены local ignores и Gemini/LiteLLM-compatible image-edit payload, добавлены upstream changes shared folders.
+  - 2026-07-17: Runtime обновлён с `0.9.6` до `0.10.2`: `.env` содержит `WEBUI_DOCKER_TAG=0.10.2`; подтянут образ `ghcr.io/open-webui/open-webui:0.10.2`; пересоздан только сервис `open-webui`. Postgres и `backup-tool` не пересоздавались.
+  - 2026-07-17: При запуске `0.10.2` PostgreSQL migrations успешно применены: `reshape config to per key rows`, `add context summary to chat message`, `add memory type`, `add memory path and meta`. `open-webui` healthy, `/health` -> true, `/api/version` -> `0.10.2`; свежие логи без ошибок.
+  - 2026-07-17: После миграции подтверждены сохранённые настройки: default model `deepseek/deepseek-v4-pro`, default params `reasoning_effort=xhigh` и `reasoning_tags=true`, image generation enabled через OpenAI endpoint с `gpt-image-2`; `UBZ`/Gemini сохраняют `high`, GPT-5.5 сохраняет `xhigh` и Responses summary config.
+  - 2026-07-17: Новым active моделям `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol` выставлены `reasoning_effort=xhigh` и `reasoning_tags=true`; их прежние system prompts сохранены. `gpt-5.5` отключена (`is_active=false`).
+  - 2026-07-17: `ui.model_order_list` обновлён без рестарта: GPT-5.5 удалена из закреплённого списка, на её место добавлены Luna, Terra и Sol. В Open WebUI 0.10.2 `/api/models` читает этот config ключ напрямую из БД на запросе; custom models также читаются из БД.
+  - 2026-07-17: Попытка получить provider metadata для GPT-5.6 Luna/Terra/Sol через внешний LiteLLM gateway не удалась из-за `SSL_ERROR_SYSCALL`; в БД моделей нет описаний/отличий вариантов. Не приписывать им неподтверждённые специализации в пользовательском сообщении.
+  - 2026-07-17: Официальный каталог OpenAI `https://platform.openai.com/docs/models` подтверждает позиционирование GPT-5.6: Sol — flagship для сложного reasoning и кода; Terra — баланс интеллекта и стоимости; Luna — cost-sensitive/high-volume workload. У всех вариантов поддерживается `xhigh` (также есть none/low/medium/high/max).
+  - 2026-07-17: Готовый пользовательский анонс обновления, GPT-5.6 и рекомендации по выбору моделей сохранён в `docs/local/open-webui-0.10.2-user-announcement.md`.
+  - 2026-07-22: В runtime-логах `open-webui:0.10.2` повторяется `Error processing chat payload: 400` с `Got more than 131072 bytes when reading` на строке `data: {"type":"response.completed"...`; это локальная ошибка чтения SSE, а не HTTP 400 от модели/БД.
+  - 2026-07-22: `aiohttp 3.13.5` использует `read_bufsize=65536`; его `StreamReader` имеет `high_water=131072`, а обычная async-итерация читает SSE построчно и выбрасывает `LineTooLong`, если один `data:` event больше 128 KiB.
+  - 2026-07-22: Большая строка приходит от Responses API через внешний LiteLLM/custom provider и является финальным `response.completed`, который содержит полный объект response/output; ошибка возникает после генерации, при разборе/проксировании финального события.
+  - 2026-07-22: В checkout уже есть `CHAT_STREAM_RESPONSE_CHUNK_MAX_BUFFER_SIZE` и `stream_chunks_handler`, но в текущем контейнере переменная не задана (`None`), поэтому handler возвращает raw line-based stream. Compose сейчас её также не передаёт.
+  - 2026-07-22: Все compose-сервисы остаются healthy/running; PostgreSQL и данные не затронуты. Конфиг-only mitigation: передать `CHAT_STREAM_RESPONSE_CHUNK_MAX_BUFFER_SIZE` (например, `1048576` или больше) в `open-webui`; полноценный fix — читать SSE через chunk-based parser или поднять aiohttp `read_bufsize`.
+  - 2026-07-22: В `.env` добавлено `CHAT_STREAM_RESPONSE_CHUNK_MAX_BUFFER_SIZE=10485760` (10 MiB), а `docker-compose.yaml` явно передаёт эту переменную сервису `open-webui`.
+  - 2026-07-22: `docker compose config -q` прошёл; выполнено `docker compose up -d --force-recreate --no-deps open-webui`. `postgres` и `backup-tool` не пересоздавались.
+  - 2026-07-22: В новом контейнере runtime/parser видит значение `10485760`; `open-webui` healthy, `/health` -> `{"status":true}`, `/api/version` -> `0.10.2`. В свежих логах после старта нет `Got more than 131072`, `LineTooLong`, `Traceback` или application errors; остаются только прежние warnings.
 - Now:
-  - `backup-tool` commit/push выполнен; основной repo готов к commit/push root `.gitignore`/`CONTINUITY.md`.
+  - Подготовить commit и push текущих изменений в `origin/main`.
 - Next:
-  - Закоммитить и запушить root `.gitignore`/`CONTINUITY.md` в основной `origin/main`, затем проверить clean status.
-  - Если пользователь захочет, импортировать/создать конкретные skills в Open WebUI или подготовить набор `.md` для импорта.
-  - Если нужно версионировать `backup-tool/`, делать это отдельно как самостоятельный repo/remote; в основной Open WebUI repo он оставлен untracked из-за вложенного `.git` и `.env` файлов.
-  - Попросить пользователя проверить проблемную модель `openai_responses.*` в UI; если ошибка повторится, собрать свежие логи вокруг нового запроса.
-  - При необходимости удалить сохранённый safety-stash `stash@{0}` после подтверждения, что восстановленные локальные правки корректны.
-  - При необходимости отдельно разобрать ошибки `svelte-check` в локально изменённых файлах или ограничить валидацию более узким набором целей.
-  - Если нужна успешная полная `docker build`, разбирать сетевую доступность внутри Docker build для `prepare-pyodide.js` или предусмотреть prefetch/cached pyodide artifacts.
-  - При необходимости отдельно решить судьбу локальной директории `backup-tool/`, которая не вошла в root push и остаётся незатреканной в этом репозитории.
+  - Проверить remote commit и clean status после push.
 
 # Open questions (UNCONFIRMED если нужно):
+- Provider credentials для Gemini/OpenAI-compatible моделей в этой установке хранятся в Postgres `config.data.openai`; env не является основным источником для текущих chat providers.
+- UNCONFIRMED: Почему текущий Postgres `config.data.openai` потерял endpoints из старого SQLite `open-webui-data/webui.db`.
+- UNCONFIRMED: Почему `litellm.pro-4.ru` возвращает `401 Authentication Error, All connection attempts failed`: истёк/отозван gateway key, сломаны upstream keys на LiteLLM или сам LiteLLM не готов.
 - UNCONFIRMED: Какой именно shared token/token bootstrap использует central Gateway `openclaw.2brain.pro` для WebSocket connect node host.
 - UNCONFIRMED: Разрешён ли на central Gateway unauth device pairing; по факту текущий ответ `401` указывает, что нет.
 - UNCONFIRMED: Где сейчас находится реальный source OpenClaw CLI для этого хоста, если он больше не лежит в `/opt/projects/openclaw`.
 - UNCONFIRMED: Нужна ли миграция/переустановка глобальных npm-пакетов со старого `v18.20.8` на `v25.8.1`.
+- UNCONFIRMED: Точный стек/процесс, который выбросил сообщение, и полный размер SSE-строки неизвестны; по префиксу ошибки вероятен лимит line-buffer у upstream/proxy-клиента.
+- UNCONFIRMED: Точный размер `response.completed` и какая конкретно модель породила каждый эпизод неизвестны; лог обрезает содержимое исключения после первых 100 байт.
 
 # Working set (files/ids/commands):
 - `/opt/projects/open-webui/CONTINUITY.md`
+- `/opt/projects/open-webui/.env`
+- `/opt/projects/open-webui/docker-compose.yaml`
+- `/opt/projects/open-webui/docs/local/open-webui-0.9.5-0.9.6-user-summary.md`
 - `/opt/projects/open-webui/scripts/check-openclaw-target.sh`
 - `/opt/projects/openclaw/openclaw.json`
 - `/usr/local/bin/ocw_callback.sh`
@@ -172,6 +298,15 @@
 - `dpkg -s bubblewrap`
 - `git status --short --branch`
 - `git fetch --all --prune`
+- `git fetch --all --prune --tags`
+- `git ls-remote --tags upstream 'refs/tags/v*'`
+- `git merge --no-edit upstream/main`
+- `docker compose pull open-webui`
+- `docker compose up -d --force-recreate --no-deps open-webui`
+- `docker compose down`
+- `docker compose up -d`
+- `curl -fsS http://127.0.0.1:3287/api/version`
+- `curl -fsS http://127.0.0.1:3287/health`
 - `git rev-list --left-right --count HEAD...upstream/main`
 - `git stash push -u -m 'codex-pre-upstream-update-2026-03-27'`
 - `git merge --no-edit upstream/main`
