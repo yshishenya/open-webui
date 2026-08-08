@@ -262,8 +262,9 @@
   - 2026-07-22: `docker compose config -q` прошёл; выполнено `docker compose up -d --force-recreate --no-deps open-webui`. `postgres` и `backup-tool` не пересоздавались.
   - 2026-07-22: В новом контейнере runtime/parser видит значение `10485760`; `open-webui` healthy, `/health` -> `{"status":true}`, `/api/version` -> `0.10.2`. В свежих логах после старта нет `Got more than 131072`, `LineTooLong`, `Traceback` или application errors; остаются только прежние warnings.
   - 2026-08-08: Подготовленные изменения закоммичены в `5e3807183` (`chore: finalize open-webui runtime updates`) и запушены в `origin/main` обычным non-force push.
+  - 2026-08-08: Финальная проверка после публикации: `HEAD` и `origin/main` совпадают на `258e6c6b8`; рабочее дерево чистое.
 - Now:
-  - Выполнить финальную проверку remote commit и clean status.
+  - Активной задачи нет.
 - Next:
   - Пользователь может продолжить с новой задачей; предыдущий Responses API тест остаётся отдельным незавершённым runtime-вопросом.
 
