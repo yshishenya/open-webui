@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/analytics-lead-funnel
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/active/analytics-lead-funnel-and-depl-2026-08-08-0250.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/analytics-lead-funnel-2026-08-08-001.json`
 - Created: 2026-08-08
 - Updated: 2026-08-08
 
