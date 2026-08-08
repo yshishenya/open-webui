@@ -432,6 +432,87 @@ run() {
   "$@"
 }
 
+registry_host_from_image() {
+  local image_repo="$1"
+  local host="${image_repo%%/*}"
+
+  if [[ "${host}" != *.* && "${host}" != *:* && "${host}" != "localhost" ]]; then
+    host="docker.io"
+  fi
+  echo "${host}"
+}
+
+registry_server_urls() {
+  local registry_host="$1"
+  if [[ "${registry_host}" == "docker.io" ]]; then
+    printf '%s\n' 'https://index.docker.io/v1/' 'https://registry-1.docker.io' 'docker.io'
+    return 0
+  fi
+  printf 'https://%s\n' "${registry_host}"
+}
+
+has_registry_credentials() {
+  local registry_host="$1"
+  local docker_config="${DOCKER_CONFIG:-${HOME}/.docker}/config.json"
+  local credential_source=""
+  local helper=""
+
+  if [[ ! -f "${docker_config}" ]]; then
+    return 1
+  fi
+
+  credential_source="$(${PYTHON_CMD} - "${docker_config}" "${registry_host}" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+config_path = Path(sys.argv[1])
+registry_host = sys.argv[2].lower().rstrip('/')
+config = json.loads(config_path.read_text(encoding='utf-8'))
+
+aliases = {registry_host}
+if registry_host == 'docker.io':
+    aliases.update({'index.docker.io', 'registry-1.docker.io'})
+
+def matches(value: str) -> bool:
+    normalized = value.lower().rstrip('/')
+    return normalized in aliases or any(
+        normalized.endswith(f'://{alias}') for alias in aliases
+    )
+
+for key, value in config.get('auths', {}).items():
+    if matches(key) and isinstance(value, dict) and (value.get('auth') or value.get('identitytoken')):
+        print('direct')
+        raise SystemExit(0)
+
+for key, value in config.get('credHelpers', {}).items():
+    if matches(key) and value:
+        print(f'helper:{value}')
+        raise SystemExit(0)
+
+if config.get('credsStore'):
+    print(f"helper:{config['credsStore']}")
+PY
+  )" || credential_source=""
+
+  if [[ "${credential_source}" == "direct" ]]; then
+    return 0
+  fi
+  if [[ "${credential_source}" != helper:* ]]; then
+    return 1
+  fi
+
+  helper="docker-credential-${credential_source#helper:}"
+  command -v "${helper}" >/dev/null 2>&1 || return 1
+  while IFS= read -r server_url; do
+    if printf '{"ServerURL":"%s"}' "${server_url}" \
+      | "${helper}" get >/dev/null 2>&1; then
+      return 0
+    fi
+  done < <(registry_server_urls "${registry_host}")
+  return 1
+}
+
 normalize_ssh_key_path() {
   local key_path="$1"
   if [[ "${key_path}" == "~/"* ]]; then
@@ -469,6 +550,22 @@ fi
 q() {
   printf '%q' "$1"
 }
+
+REGISTRY_HOST="$(registry_host_from_image "${IMAGE_REPO}")"
+if [[ "${DRY_RUN}" == "0" ]]; then
+  echo "Checking ${REGISTRY_HOST} credentials..."
+  if ! has_registry_credentials "${REGISTRY_HOST}"; then
+    echo "Registry credentials are missing for ${REGISTRY_HOST}; refusing to build before docker push." >&2
+    if [[ "${REGISTRY_HOST}" == "docker.io" ]]; then
+      echo "Run once on this build host: docker login --username <dockerhub-user> docker.io" >&2
+      echo "Use a Docker Hub PAT with write access to ${IMAGE_REPO}; never store the token in .env or git." >&2
+    else
+      echo "Authenticate this registry on the build host before deploying: docker login ${REGISTRY_HOST}" >&2
+    fi
+    echo "Credentials on the production host do not authenticate this local build host." >&2
+    exit 1
+  fi
+fi
 
 echo "Building ${IMAGE_REPO}:${TAG}..."
 BUILD_ARGS=()

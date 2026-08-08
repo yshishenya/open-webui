@@ -2,7 +2,37 @@
 
 This guide describes deploy flow from the dev server to remote targets (`demo`, `prod`).
 The dev server builds and pushes the image to Docker Hub, then triggers a target host
-to pull and restart the container.
+to pull and restart the container. Registry authentication is local to each Docker
+host: a login on prod does not authorize pushes from the dev machine.
+
+## Registry authentication (one-time prerequisite)
+
+The production image repository is `yshishenya/yshishenya` on Docker Hub. The recurring
+`denied: requested access to the resource is denied` error happens when the build host
+has no Docker Hub credential (or the credential has no repository write permission).
+Having a GHCR credential is not enough; registries do not share login sessions.
+
+On the build host, log in once with a Docker Hub access token (PAT), not your account
+password:
+
+```bash
+docker login --username <dockerhub-user> docker.io
+```
+
+The PAT must have write access to the exact repository in `IMAGE_REPO`. Never put the
+token in `.env`, `.env.deploy.*`, shell history, CI logs, or git. The deploy script now
+checks for a matching local credential before spending time on a multi-minute image
+build and prints this remediation when it is missing.
+
+Safe metadata check (prints registry names only, never secrets):
+
+```bash
+docker-credential-desktop list
+```
+
+The output must include Docker Hub (`https://index.docker.io/v1/` or equivalent). If
+the repository is private, an unauthenticated Docker Hub API request may return 404;
+that means “not visible without auth”, not necessarily “repository does not exist”.
 
 ## One-time setup (target servers)
 
@@ -166,12 +196,13 @@ Tagging behavior (when no tag is provided):
 
 What the script does:
 
-1. `docker build` on dev
-2. `docker push` to Docker Hub
-3. `git pull --ff-only` on target (optional, `PROD_GIT_PULL=1`)
-4. `docker compose pull` on target
-5. `docker compose up -d --remove-orphans --no-build` on target
-6. `docker compose ps` on target (optional, `POST_DEPLOY_STATUS=1`)
+1. Verify local registry credentials for `IMAGE_REPO`
+2. `docker build` on dev
+3. `docker push` to Docker Hub
+4. `git pull --ff-only` on target (optional, `PROD_GIT_PULL=1`)
+5. `docker compose pull` on target
+6. `docker compose up -d --remove-orphans --no-build` on target
+7. `docker compose ps` on target (optional, `POST_DEPLOY_STATUS=1`)
 
 ## Guarded production rollout
 
@@ -254,7 +285,12 @@ docker compose down -v
 
 ## Troubleshooting
 
-- Auth error on pull: run `docker login` on prod.
+- `docker push` fails with `denied: requested access to the resource is denied`:
+  - run `docker login --username <dockerhub-user> docker.io` on the build host using a Docker Hub PAT with repository write permission;
+  - verify `IMAGE_REPO` exactly matches the Docker Hub namespace/repository;
+  - do not “fix” this by changing the image repository or copying prod's credential file to the dev machine;
+  - if registry access cannot be restored immediately, use the documented offline/preloaded image flow below and keep the guarded backup/migration/health gates.
+- Auth error on pull: run `docker login` on prod. This is a separate login from the build-host login above.
 - SSH auth error on deploy:
   - Precheck now prints `SSH diagnostic` with the underlying error (DNS/auth/etc.).
   - If you see `Permission denied (publickey,password)`, set `PROD_SSH_KEY=...` in `.env.deploy.<target>.local` or authorize your default SSH key on the target host.
