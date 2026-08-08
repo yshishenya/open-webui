@@ -32,11 +32,21 @@ export const calculateTextEstimate = (
 ): EstimateRange | null => {
 	if (!model || !hasTextRates(model)) return null;
 
-	// Billing rounds input and output to whole kopeks for each request; keep the estimate aligned with charges.
-	const costIn = Math.ceil((tokensInPerMessage / 1000) * (model.rates.text_in_1000_tokens ?? 0));
-	const costOut = Math.ceil((tokensOutPerMessage / 1000) * (model.rates.text_out_1000_tokens ?? 0));
 	const safeMessagesPerDay = Math.max(0, Math.floor(Number(messagesPerDay) || 0));
-	const total = (costIn + costOut) * safeMessagesPerDay * 30;
+	const totalMessages = safeMessagesPerDay * 30;
+	const rateIn = model.rates.text_in_1000_tokens ?? 0;
+	const rateOut = model.rates.text_out_1000_tokens ?? 0;
+	let total = 0;
+
+	for (let messageIndex = 0; messageIndex < totalMessages; messageIndex += 1) {
+		// Each request sends the previous conversation turns again; billing rounds each request to kopeks.
+		const contextTokens =
+			tokensInPerMessage + messageIndex * (tokensInPerMessage + tokensOutPerMessage);
+		const costIn = Math.ceil((contextTokens / 1000) * rateIn);
+		const costOut = Math.ceil((tokensOutPerMessage / 1000) * rateOut);
+		total += costIn + costOut;
+	}
+
 	return {
 		min: Math.floor(total * uncertainty.min),
 		max: Math.ceil(total * uncertainty.max)
