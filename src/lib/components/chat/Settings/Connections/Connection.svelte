@@ -43,7 +43,7 @@
 <div class="flex w-full items-center gap-3">
 	<Tooltip
 		className="w-full relative"
-		content={$i18n.t(`WebUI will make requests to "{{url}}/chat/completions"`, {
+		content={$i18n.t(`Airis will make requests to "{{url}}/chat/completions"`, {
 			url
 		})}
 		placement="top-start"
