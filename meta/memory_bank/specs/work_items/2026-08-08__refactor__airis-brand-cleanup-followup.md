@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: refactor
-- Status: active
+- Status: completed
 - Owner: Codex
 - Branch: codex/refactor/airis-brand-cleanup-followup
 - SDD Spec (JSON, required for non-trivial): N/A (mechanical branding cleanup)
@@ -18,11 +18,11 @@ localizations, backend error messages, and outbound user-agent labels.
 
 ## Goal / Acceptance Criteria
 
-- [ ] Replace remaining user-facing Open WebUI/WebUI labels with Airis.
-- [ ] Keep translation keys and values consistent across supported locales.
-- [ ] Preserve compatibility identifiers, package/module names, environment variables,
+- [x] Replace remaining user-facing Open WebUI/WebUI labels with Airis.
+- [x] Keep translation keys and values consistent across supported locales.
+- [x] Preserve compatibility identifiers, package/module names, environment variables,
       headers, MIME types, third-party product names, legal files, and historical records.
-- [ ] Verify the frontend, backend syntax, diff quality, PR, merge, and production health.
+- [x] Verify the frontend, backend syntax, diff quality, PR, merge, and production health.
 
 ## Non-goals
 
@@ -71,6 +71,6 @@ localizations, backend error messages, and outbound user-agent labels.
 
 ## Completion Checklist
 
-- [ ] Branch update entry completed.
-- [ ] PR merged into `airis_b2c`.
-- [ ] Production image deployed and health verified.
+- [x] Branch update entry completed.
+- [x] PR merged into `airis_b2c`.
+- [x] Production image deployed and health verified.
