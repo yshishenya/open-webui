@@ -87,14 +87,6 @@ test.describe('Billing Lead Magnet', () => {
 		await page.waitForURL(/\/billing\/balance/);
 		await page.waitForResponse('**/api/v1/billing/lead-magnet');
 
-		await page
-			.getByRole('dialog')
-			.filter({ hasText: /аналитики|analytics/i })
-			.getByRole('button', { name: /Не сейчас|Not now|No thanks|Later/i })
-			.first()
-			.click({ timeout: 30_000 })
-			.catch(() => undefined);
-
 		const leadMagnetSection = page.getByTestId('lead-magnet-section');
 		await expect(leadMagnetSection.getByText('Free limit')).toBeVisible();
 		await expect(leadMagnetSection.getByText('Next reset')).toBeVisible();

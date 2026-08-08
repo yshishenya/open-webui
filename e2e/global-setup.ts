@@ -141,6 +141,7 @@ const globalSetup = async (): Promise<void> => {
 		await page.addInitScript((authToken: string) => {
 			window.localStorage.setItem('token', authToken);
 			window.localStorage.setItem('locale', 'en-US');
+			window.localStorage.setItem('airis.analytics.consent.v1', 'denied');
 		}, retryToken);
 
 		await page.goto(new URL('/', baseURL).toString());
@@ -172,6 +173,7 @@ const globalSetup = async (): Promise<void> => {
 	await page.addInitScript((authToken: string) => {
 		window.localStorage.setItem('token', authToken);
 		window.localStorage.setItem('locale', 'en-US');
+		window.localStorage.setItem('airis.analytics.consent.v1', 'denied');
 	}, token);
 
 	await page.goto(new URL('/', baseURL).toString());

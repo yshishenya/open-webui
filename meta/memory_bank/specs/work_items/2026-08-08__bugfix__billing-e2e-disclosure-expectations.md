@@ -35,6 +35,7 @@ The wallet UX now keeps free-limit details collapsed by default. The billing con
 ## Implementation Notes
 
 - Use `button[aria-controls="free-limit-details"]` because its accessible label changes from `Limits` to `Hide limits` after activation.
+- Seed the E2E storage state with denied analytics consent so first-run UI cannot intercept billing interactions.
 - Existing summary tests now explicitly activate the disclosure before checking metric labels.
 
 ## Upstream impact
