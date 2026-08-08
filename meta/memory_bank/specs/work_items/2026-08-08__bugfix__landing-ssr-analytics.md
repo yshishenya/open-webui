@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: codex/fix-wallet-topup-clarity
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/landing-ssr-and-analytics-hard-2026-08-08-0200.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/landing-ssr-analytics-2026-08-08-001.json`
 - Created: 2026-08-08
 - Updated: 2026-08-08
 
