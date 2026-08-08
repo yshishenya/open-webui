@@ -71,6 +71,15 @@ const acceptLegalGateIfPresent = async (page: import('@playwright/test').Page): 
 	await gateContainer.waitFor({ state: 'detached', timeout: 30_000 }).catch(() => undefined);
 };
 
+const dismissChangelogIfPresent = async (page: import('@playwright/test').Page): Promise<void> => {
+	const changelogDialog = page.getByRole('dialog').filter({ hasText: "What's New" });
+	const dismissButton = changelogDialog.getByRole('button', {
+		name: /Okay, Let's Go!|Close/
+	});
+
+	await dismissButton.first().click({ timeout: 30_000 }).catch(() => undefined);
+};
+
 const globalSetup = async (): Promise<void> => {
 	const requestContext = await request.newContext({ baseURL });
 	await waitForBackend(requestContext);
@@ -145,10 +154,7 @@ const globalSetup = async (): Promise<void> => {
 		}, retryToken);
 
 		await page.goto(new URL('/', baseURL).toString());
-		const changelogButton = page.getByRole('button', { name: "Okay, Let's Go!" });
-		if ((await changelogButton.count()) > 0) {
-			await changelogButton.click();
-		}
+		await dismissChangelogIfPresent(page);
 
 		await context.storageState({ path: storageStatePath });
 		await browser.close();
@@ -177,15 +183,7 @@ const globalSetup = async (): Promise<void> => {
 	}, token);
 
 	await page.goto(new URL('/', baseURL).toString());
-	const changelogButton = page.getByRole('button', { name: "Okay, Let's Go!" });
-	if ((await changelogButton.count()) > 0) {
-		await changelogButton.click();
-	}
-	const whatsNewDialog = page.getByRole('dialog').filter({ hasText: "What's New" });
-	const whatsNewCloseButton = whatsNewDialog.getByRole('button', { name: 'Close' });
-	if ((await whatsNewCloseButton.count()) > 0) {
-		await whatsNewCloseButton.first().click();
-	}
+	await dismissChangelogIfPresent(page);
 	await acceptLegalGateIfPresent(page);
 
 	await context.storageState({ path: storageStatePath });

@@ -36,6 +36,7 @@ The wallet UX now keeps free-limit details collapsed by default. The billing con
 
 - Use `button[aria-controls="free-limit-details"]` because its accessible label changes from `Limits` to `Hide limits` after activation.
 - Seed the E2E storage state with denied analytics consent so first-run UI cannot intercept billing interactions.
+- Dismiss the asynchronous release-notes modal during shared E2E setup and wait for the balance response before wallet hero assertions.
 - Existing summary tests now explicitly activate the disclosure before checking metric labels.
 
 ## Upstream impact
@@ -44,7 +45,7 @@ The wallet UX now keeps free-limit details collapsed by default. The billing con
 
 ## Verification
 
-- `npx esbuild@0.25.0 e2e/billing_wallet_recovery.spec.ts e2e/billing_lead_magnet.spec.ts --bundle --platform=node --format=esm --external:@playwright/test --outdir=/tmp/billing-e2e-disclosure`
+- `npx esbuild@0.25.0 e2e/global-setup.ts e2e/billing_wallet_recovery.spec.ts e2e/billing_lead_magnet.spec.ts e2e/billing_wallet.spec.ts --bundle --platform=node --format=esm --external:@playwright/test --outdir=/tmp/billing-e2e-disclosure`
 - `git diff --check`
 - Billing confidence E2E suite (GitHub Actions) after push.
 
