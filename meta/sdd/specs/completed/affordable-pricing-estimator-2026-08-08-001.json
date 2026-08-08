@@ -1,0 +1,196 @@
+{
+  "spec_id": "affordable-pricing-estimator-2026-08-08-001",
+  "title": "Affordable pricing estimator with cumulative chat context",
+  "generated": "2026-08-08T05:05:33.545193Z",
+  "last_updated": "2026-08-08T05:08:33.840345Z",
+  "metadata": {
+    "title": "Affordable pricing estimator with cumulative chat context",
+    "description": "Keep the public estimator simple while modeling a continuing chat with affordable working model rates.",
+    "template": "small",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 2,
+    "owner": "Codex",
+    "status": "completed",
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-08__refactor__pricing-estimator-simple-affordable.md",
+    "activated_date": "2026-08-08T05:06:50.556687Z",
+    "completed_date": "2026-08-08T05:06:50.806010Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Affordable pricing estimator with cumulative chat context",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 6,
+      "completed_tasks": 6,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Estimator behavior",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "verify-1-1"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Release validation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "verify-2-1"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Production rollout",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1",
+        "verify-3-1"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Use one simple daily-message input and cumulative chat context",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "file_path": "task-1-1.md"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Keep the default estimate near 500\u20131000 \u20bd per month",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "command": "",
+        "expected": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Merge the immutable release and build the production image",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "file_path": "task-2-1.md"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Run frontend tests, targeted lint, and Vite build",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "command": "",
+        "expected": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Deploy the preloaded linux/amd64 image with guarded backup and migration gate",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "file_path": "task-3-1.md"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Check production health, active image, and public endpoint",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "verification_type": "manual",
+        "command": "",
+        "expected": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-08-08T05:07:25.618243Z",
+      "entry_type": "note",
+      "title": "Production deployment verified",
+      "author": "Codex",
+      "content": "PR #110 merged as 4c65d0b6dfeae10f6a2ceff1fdf2fa5cf3d16bd4. Guarded deploy used image yshishenya/yshishenya:4c65d0b6dfeae10f6a2ceff1fdf2fa5cf3d16bd4 with backup /opt/backups/airis/20260808T050020Z-4c65d0b6dfeae10f6a2ceff1fdf2fa5cf3d16bd4; checksum and pg_restore list checks passed, hard Alembic migration passed, airis is healthy on the tag, and https://chat.airis.you/health returned {\"status\":true} with public root HTTP 200.",
+      "metadata": {}
+    }
+  ]
+}

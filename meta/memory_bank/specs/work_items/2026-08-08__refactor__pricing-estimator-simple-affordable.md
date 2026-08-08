@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: codex/fix/pricing-estimator-context
-- SDD Spec (JSON, required for non-trivial): N/A (small frontend-only refinement)
+- SDD Spec (JSON): `meta/sdd/specs/completed/affordable-pricing-estimator-2026-08-08-001.json`
 - Created: 2026-08-08
 - Updated: 2026-08-08
 
@@ -67,6 +67,16 @@ ignores that a continuing chat sends its previous context again on every request
 - `npx eslint src/lib/components/pricing/Estimator.svelte src/lib/utils/airis/pricing_estimator.ts src/lib/utils/airis/pricing_estimator.test.ts` — passed
 - `npx vitest --config vitest.config.ts run src/lib/utils/airis/pricing_estimator.test.ts` — 4 passed
 - `git diff --check` — passed
+
+## Production Evidence
+
+- PR #110 merged into `airis_b2c` as `4c65d0b6dfeae10f6a2ceff1fdf2fa5cf3d16bd4`.
+- Deployed `yshishenya/yshishenya:4c65d0b6dfeae10f6a2ceff1fdf2fa5cf3d16bd4` with the guarded script.
+- Backup: `/opt/backups/airis/20260808T050020Z-4c65d0b6dfeae10f6a2ceff1fdf2fa5cf3d16bd4`;
+  checksums and `pg_restore.list` validation passed.
+- Hard Alembic migration passed; `airis` is healthy on the immutable tag.
+- Production smoke: `https://chat.airis.you/health` returned `{"status":true}` and the
+  public root returned HTTP 200.
 
 ## Risks / Rollback
 

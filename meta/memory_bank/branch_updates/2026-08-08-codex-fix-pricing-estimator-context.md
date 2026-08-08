@@ -6,4 +6,5 @@
   - Done: 2026-08-08
   - Summary: Model one continuing chat, prefer an affordable working text model, and keep the estimator around 500–1000 ₽ for the default 10 messages per day.
   - Tests: `npm run test:frontend -- --run` (32 files / 123 tests), `NODE_OPTIONS=--max-old-space-size=8192 npm run build:vite`, targeted ESLint, 4 pricing-estimator tests, and `git diff --check` passed.
+  - Production: PR #110 merged as `4c65d0b6dfeae10f6a2ceff1fdf2fa5cf3d16bd4`; guarded deploy completed with backup `/opt/backups/airis/20260808T050020Z-4c65d0b6dfeae10f6a2ceff1fdf2fa5cf3d16bd4`, checksum/restore-list validation, hard Alembic migration, healthy immutable image, public health `{"status":true}`, and root HTTP 200.
   - Risks: Estimate is conservative for one long chat; separate chats or shorter replies cost less.
