@@ -10,6 +10,13 @@ from open_webui.utils.billing import BillingService
 
 
 class TestBillingServiceCore:
+    def test_provider_payment_description_contains_email(self) -> None:
+        service = BillingService()
+
+        assert service._provider_payment_description("Top-up wallet 100 RUB", "payer@example.com") == (
+            "Top-up wallet 100 RUB | payer: payer@example.com"
+        )
+
     def test_check_quota_unlimited_without_subscription(self) -> None:
         service = BillingService()
         service.get_user_subscription = lambda *_: None  # type: ignore[method-assign]
@@ -93,10 +100,12 @@ class TestBillingServiceCore:
         class FakeYooKassaClient:
             def __init__(self) -> None:
                 self.metadata: dict[str, object] = {}
+                self.description = ""
                 self.idempotence_key: object = None
 
             async def create_payment(self, **_: object) -> dict[str, object]:
                 self.metadata = dict(_.get("metadata", {}))
+                self.description = str(_.get("description", ""))
                 self.idempotence_key = _.get("idempotence_key")
                 return {
                     "id": "pay_1",
@@ -107,8 +116,8 @@ class TestBillingServiceCore:
         fake_client = FakeYooKassaClient()
         monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: fake_client)
 
-        async def _resolve_user_email(_user_id: str) -> None:
-            return None
+        async def _resolve_user_email(_user_id: str) -> str:
+            return "payer@example.com"
 
         monkeypatch.setattr(service, "_resolve_user_email", _resolve_user_email)
         # Receipt generation needs a real user/contact in the DB. This unit-style
@@ -141,7 +150,8 @@ class TestBillingServiceCore:
         assert updates[-1][1]["yookassa_payment_id"] == "pay_1"
         assert updates[-1][1]["yookassa_status"] == "pending"
         assert isinstance(fake_client.idempotence_key, str)
-        assert "user_email" not in fake_client.metadata
+        assert fake_client.metadata["user_email"] == "payer@example.com"
+        assert fake_client.description == "Subscription: Pro | payer: payer@example.com"
 
     @pytest.mark.asyncio
     async def test_process_payment_webhook_provider_fetch_failure_is_retryable(

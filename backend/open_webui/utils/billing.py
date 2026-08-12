@@ -471,6 +471,15 @@ class BillingService:
         user = await Users.get_user_by_id(user_id)
         return self._clean_contact(user.email) if user else None
 
+    @staticmethod
+    def _provider_payment_description(description: str, user_email: Optional[str]) -> str:
+        """Include the payer email in the provider-visible payment description."""
+        if not user_email:
+            return description
+
+        suffix = f" | payer: {user_email}"
+        return f"{description[: max(0, 128 - len(suffix))]}{suffix}"[:128]
+
     async def _build_receipt(
         self,
         user_id: str,
@@ -596,12 +605,13 @@ class BillingService:
         user_email = await self._resolve_user_email(user_id)
         if user_email:
             metadata["user_email"] = user_email
+        provider_description = self._provider_payment_description(transaction.description, user_email)
 
         # Create payment via YooKassa
         payment = await yookassa.create_payment(
             amount=payment_amount,
             currency=plan.currency,
-            description=transaction.description,
+            description=provider_description,
             return_url=return_url,
             metadata=metadata,
             receipt=receipt,
@@ -708,6 +718,7 @@ class BillingService:
         if user_email:
             metadata["user_email"] = user_email
         topup_description = f"Top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
+        provider_description = self._provider_payment_description(topup_description, user_email)
         receipt = await self._build_receipt(
             user_id,
             amount_rub,
@@ -726,7 +737,7 @@ class BillingService:
         payment = await yookassa.create_payment(
             amount=amount_rub,
             currency=BILLING_DEFAULT_CURRENCY,
-            description=topup_description,
+            description=provider_description,
             return_url=return_url,
             metadata=metadata,
             receipt=receipt,
@@ -966,6 +977,7 @@ class BillingService:
         if user_email:
             metadata["user_email"] = user_email
         auto_topup_description = f"Auto top-up wallet {amount_rub} {BILLING_DEFAULT_CURRENCY}"
+        provider_description = self._provider_payment_description(auto_topup_description, user_email)
         receipt = await self._build_receipt(
             user_id,
             amount_rub,
@@ -993,7 +1005,7 @@ class BillingService:
             payment = await yookassa.create_payment(
                 amount=amount_rub,
                 currency=BILLING_DEFAULT_CURRENCY,
-                description=auto_topup_description,
+                description=provider_description,
                 metadata=metadata,
                 receipt=receipt,
                 payment_method_id=payment_method_id,
