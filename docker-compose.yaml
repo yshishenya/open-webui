@@ -39,8 +39,8 @@ services:
     restart: unless-stopped
   backup-tool:
     build:
-      context: .
-      dockerfile: backup-tool/Dockerfile
+      context: ./backup-tool
+      dockerfile: Dockerfile
     env_file:
       - ./.env
       - ./backup-tool/.env
