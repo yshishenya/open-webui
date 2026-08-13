@@ -1,0 +1,4 @@
+[submodule "backup-tool"]
+	path = backup-tool
+	url = https://github.com/Fediushin/backup-tool.git
+	branch = main
