@@ -52,5 +52,6 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     working_dir: /workspace
-    command: ["schedule", "--env", "/workspace/.env", "--project-dir", "/workspace"]
+    entrypoint: ["python", "/workspace/backup-tool/backup-scripts/open_webui_backup.py"]
+    command: ["schedule", "--env", "/workspace/backup-tool/.env", "--project-dir", "/workspace"]
     restart: unless-stopped
