@@ -14,6 +14,8 @@
 
 - Fix deployed 2026-08-15: added RFC-standard `Date`, `Message-ID`, and safe `From` formatting to the SMTP service. Production test `98ae936e68db` scored `0.00` in Rspamd, had DKIM signing, and was accepted by Yandex with SMTP `250 2.0.0 Ok`.
 
+- DNS and Microsoft follow-up 2026-08-15: hardened SPF from `~all` to `-all` and verified the public record. Microsoft self-service delisting reported no block, but a live `MAIL FROM` probe still returned `550 5.7.1 S3140`; submitted sender-support request `01M02BX72RT0W7HWEN74RAETM1`. Keep Microsoft-domain bulk delivery paused until support responds and the SMTP probe passes.
+
 - [x] **[OPS-BILLING]** Remove Claude Haiku 4.5 and Gemini 3.5 Flash Light from production promo models
   - Spec: `meta/memory_bank/specs/work_items/2026-08-15__refactor__production-promo-models.md`
   - Owner: Codex
