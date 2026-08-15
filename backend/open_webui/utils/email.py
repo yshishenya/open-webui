@@ -13,6 +13,7 @@ import asyncio
 import aiosmtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formataddr, formatdate, make_msgid
 from typing import Optional, List, Tuple
 import logging
 
@@ -123,8 +124,10 @@ class EmailService:
 
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"] = f"{self.from_name} <{self.from_email}>"
+        msg["From"] = formataddr((self.from_name, self.from_email))
         msg["To"] = to_email
+        msg["Date"] = formatdate(usegmt=True)
+        msg["Message-ID"] = make_msgid(domain=self.from_email.rsplit("@", 1)[-1])
 
         # Add plain text version if provided
         if text_content:
