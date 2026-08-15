@@ -44,6 +44,8 @@ services:
     env_file:
       - ./.env
       - ./backup-tool/.env
+    environment:
+      TELEGRAM_PROXY_URL: http://host.docker.internal:18081
     volumes:
       - ./:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
