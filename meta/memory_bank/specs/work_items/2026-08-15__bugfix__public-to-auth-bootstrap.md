@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: `codex/bugfix/public-to-auth-bootstrap`
 - SDD Spec (JSON, required for non-trivial): N/A (single navigation guard and regression test)
@@ -20,7 +20,7 @@ Public marketing pages intentionally skip backend/session bootstrap to keep firs
 - [x] Public-to-product navigation performs the existing product bootstrap.
 - [x] `/welcome` → `Войти` requests `/api/config` and renders the auth page from configured state.
 - [x] Public-to-public and product-internal navigation remain SPA navigation.
-- [ ] Production health and the direct `/auth` flow remain healthy after rollout.
+- [x] Production health and the direct `/auth` flow remain healthy after rollout.
 
 ## Non-goals
 
@@ -59,16 +59,21 @@ Results:
 - `npx eslint src/routes/+layout.svelte e2e/public_pages_smoke.spec.ts` — passed.
 - Direct local Playwright smoke — initial `/welcome` made zero config requests; crossing into `/auth` made one request and rendered `#auth-page`.
 - `npm run check` — blocked by the existing repository baseline (8,362 errors across 352 files); no changed-file ESLint errors.
+- Production image `yshishenya/yshishenya:33c909b9acf707689107cdbe2b42c444cb25e97f` (`sha256:e71361a282936b9d891d41926e55072dcab5703e09faeb78f389c32eb8681c8c`) deployed with the existing production runtime and the frontend built from merge commit `33c909b9acf707689107cdbe2b42c444cb25e97f`.
+- Guarded deploy passed the PostgreSQL backup, application-data backup, checksum, and hard Alembic migration gates. Backup: `/opt/backups/airis/20260815T140753Z-33c909b9acf707689107cdbe2b42c444cb25e97f`.
+- Production Playwright smoke — initial `/welcome` made zero `/api/config` requests; `Войти` made exactly one successful request and rendered Яндекс, VK, OK, Mail.ru, and email; direct `/auth` rendered the same providers.
+- Production `/health` returned `{"status":true}`; container was `healthy`, running the expected image digest, with zero restarts.
 
 ## Task Entry (for branch_updates/current_tasks)
 
-- [ ] **[BUGFIX]** Restore auth bootstrap after public-page navigation
+- [x] **[BUGFIX]** Restore auth bootstrap after public-page navigation
   - Spec: `meta/memory_bank/specs/work_items/2026-08-15__bugfix__public-to-auth-bootstrap.md`
   - Owner: Codex
   - Branch: `codex/bugfix/public-to-auth-bootstrap`
   - Started: 2026-08-15
   - Summary: Preserve fast public landing loads while correctly bootstrapping auth and app routes after navigation.
-  - Tests: focused Vitest, changed-file ESLint, and local Playwright smoke passed; repository-wide typecheck has pre-existing failures.
+  - Tests: focused Vitest, changed-file ESLint, local and production Playwright smoke passed; repository-wide typecheck has pre-existing failures.
+  - Done: 2026-08-15
   - Risks: one full document navigation when crossing from marketing pages into the product.
 
 ## Risks / Rollback
@@ -78,4 +83,4 @@ Results:
 
 ## Completion Checklist
 
-- [ ] Branch update entry moved to Done with required fields (`Spec`, `Owner`, `Summary`, `Done`).
+- [x] Branch update entry moved to Done with required fields (`Spec`, `Owner`, `Summary`, `Done`).
