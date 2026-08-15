@@ -99,7 +99,18 @@
 	};
 
 	// handle frontend updates (https://svelte.dev/docs/kit/configuration#version)
-	beforeNavigate(async ({ willUnload, to }) => {
+	beforeNavigate(async ({ from, willUnload, to }) => {
+		if (
+			!willUnload &&
+			from?.url &&
+			to?.url &&
+			isPublicMarketingRoute(from.url.pathname) &&
+			!isPublicMarketingRoute(to.url.pathname)
+		) {
+			location.href = to.url.href;
+			return;
+		}
+
 		if (updated.current && !willUnload && to?.url) {
 			await unregisterServiceWorkers();
 			location.href = to.url.href;

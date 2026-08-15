@@ -71,6 +71,17 @@ test.describe('Public pages', () => {
 		expect(url.searchParams.get('q')).toBeTruthy();
 	});
 
+	test('login from welcome bootstraps auth configuration', async ({ page }) => {
+		await page.goto('/welcome');
+		const configResponse = page.waitForResponse(
+			(response) => new URL(response.url()).pathname === '/api/config' && response.ok()
+		);
+
+		await page.getByRole('link', { name: 'Войти' }).click();
+		await configResponse;
+		await expect(page.locator('#auth-page')).toBeVisible();
+	});
+
 	test('pricing never shows an unavailable estimate', async ({ page }) => {
 		await page.goto('/pricing');
 		await expect(
