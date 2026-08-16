@@ -136,7 +136,7 @@ describe('UnifiedTimeline', () => {
 		await flushPromises();
 
 		const paidButton = Array.from(root.querySelectorAll('button')).find((button) =>
-			button.textContent?.includes('Paid')
+			button.textContent?.includes('Charges')
 		);
 		expect(paidButton).toBeTruthy();
 
@@ -186,7 +186,7 @@ describe('UnifiedTimeline', () => {
 		expect(initialCards).toHaveLength(2);
 
 		const paidButton = Array.from(root.querySelectorAll('button')).find((button) =>
-			button.textContent?.includes('Paid')
+			button.textContent?.includes('Charges')
 		);
 		expect(paidButton).toBeTruthy();
 
@@ -258,7 +258,7 @@ describe('UnifiedTimeline', () => {
 		await flushPromises();
 
 		const paidButton = Array.from(root.querySelectorAll('button')).find((button) =>
-			button.textContent?.includes('Paid')
+			button.textContent?.includes('Charges')
 		);
 		const freeButton = Array.from(root.querySelectorAll('button')).find((button) =>
 			button.textContent?.includes('Free usage')

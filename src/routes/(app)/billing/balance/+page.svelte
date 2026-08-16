@@ -62,6 +62,7 @@
 	let errorMessage: string | null = null;
 	let returnTo: string | null = null;
 	let normalizedReturnTo: string | null = null;
+	let settingsView = false;
 	let focusHint: 'topup' | 'limits' | 'auto_topup' | null = null;
 	let topupPackages = DEFAULT_TOPUP_PACKAGES_KOPEKS;
 	let allowCustomTopup = true;
@@ -102,6 +103,9 @@
 	let howItWorksOpen = false;
 
 	$: returnTo = sanitizeReturnTo($page.url.searchParams.get('return_to'));
+	$: settingsView =
+		$page.url.pathname === '/billing/balance' &&
+		['limits', 'auto_topup'].includes($page.url.searchParams.get('focus') ?? '');
 	$: normalizedReturnTo = normalizeBillingReturnPath(returnTo, {
 		origin: $page.url.origin,
 		basePath: base
@@ -743,7 +747,7 @@
 
 <svelte:head>
 	<title>
-		{$i18n.t('Wallet')} • {$WEBUI_NAME}
+		{$i18n.t(settingsView ? 'Payment settings' : 'Balance')} • {$WEBUI_NAME}
 	</title>
 </svelte:head>
 
@@ -858,11 +862,12 @@
 
 			<div
 				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4 sm:p-5"
+				class:hidden={settingsView}
 			>
 				<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 					<div>
 						<div class="flex items-center gap-2">
-							<h1 class="text-xl font-medium">{$i18n.t('Wallet')}</h1>
+							<h1 class="text-xl font-medium">{$i18n.t('Balance')}</h1>
 							{#if isLowBalance}
 								<span
 									class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300"
@@ -981,7 +986,7 @@
 				</div>
 			</div>
 
-			<div class={`grid gap-3 ${leadMagnetInfo?.enabled ? 'lg:grid-cols-2' : ''}`}>
+			<div class={`grid gap-3 ${leadMagnetInfo?.enabled ? 'lg:grid-cols-2' : ''}`} class:hidden={settingsView}>
 				<WalletTopupSection
 					currency={balance.currency}
 					defaultPackages={topupPackages}
@@ -1005,6 +1010,14 @@
 			</div>
 
 			<div id="advanced-settings-section">
+				{#if settingsView}
+					<div class="px-1 pb-1">
+						<h1 class="text-xl font-medium">{$i18n.t('Payment settings')}</h1>
+						<div class="mt-1 text-sm text-gray-500">
+							{$i18n.t('Control spending and payment behavior')}
+						</div>
+					</div>
+				{/if}
 				<WalletAdvancedSettings
 					bind:open={advancedOpen}
 					title={$i18n.t('Manage limits & auto-topup')}
@@ -1048,6 +1061,7 @@
 
 			<div
 				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+				class:hidden={settingsView}
 			>
 				<div class="flex items-center justify-between mb-3">
 					<div class="text-sm font-medium">{$i18n.t('Latest activity')}</div>
