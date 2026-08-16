@@ -143,11 +143,11 @@ test.describe('Billing wallet recovery (smoke)', () => {
 			await whatsNewCloseButton.first().click();
 		}
 
-		await expect(page.getByRole('heading', { name: 'Wallet' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Balance' })).toBeVisible();
 		await expect(page.getByText('Low balance')).toBeVisible();
 		await expect(page.getByTestId('wallet-low-balance-hint-free')).toBeVisible();
 		await expect(page.getByTestId('wallet-low-balance-free-limit-link')).toBeVisible();
-		const heroHeading = page.getByRole('heading', { name: 'Wallet' });
+		const heroHeading = page.getByRole('heading', { name: 'Balance' });
 		const heroRow = heroHeading.locator('xpath=../../..');
 		await expect(heroRow.getByRole('button', { name: 'Top up' })).toBeVisible();
 
