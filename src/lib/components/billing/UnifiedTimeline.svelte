@@ -390,7 +390,7 @@
 				? 'bg-black text-white dark:bg-white dark:text-black'
 				: 'border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}"
 		>
-			{$i18n.t('Paid')}
+			{$i18n.t('Charges')}
 		</button>
 		<button
 			type="button"
