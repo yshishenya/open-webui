@@ -14,14 +14,22 @@
 	let loaded = false;
 	let subscriptionsEnabled = true;
 	let returnTo: string | null = null;
+	let settingsView = false;
 
 	$: subscriptionsEnabled = $config?.features?.enable_billing_subscriptions ?? true;
 	$: isAdmin = $user?.role === 'admin';
 	$: returnTo = sanitizeReturnTo($page.url.searchParams.get('return_to'));
+	$: settingsView =
+		$page.url.pathname === '/billing/balance' &&
+		['limits', 'auto_topup'].includes($page.url.searchParams.get('focus') ?? '');
 
-	const buildBillingHref = (pathname: string): string => {
-		if (!returnTo) return pathname;
+	const buildBillingHref = (pathname: string, focus?: string): string => {
 		const params = new URLSearchParams();
+		if (focus) params.set('focus', focus);
+		if (!returnTo) {
+			const query = params.toString();
+			return query ? `${pathname}?${query}` : pathname;
+		}
 		params.set('return_to', returnTo);
 		return `${pathname}?${params.toString()}`;
 	};
@@ -90,14 +98,15 @@
 						class="flex gap-1 scrollbar-none overflow-x-auto w-fit text-center text-sm font-medium rounded-full bg-transparent py-1 touch-auto pointer-events-auto"
 					>
 						<a
-							class="min-w-fit p-1.5 {$page.url.pathname === '/billing/balance' ||
+							class="min-w-fit p-1.5 {($page.url.pathname === '/billing/balance' &&
+								!settingsView) ||
 							$page.url.pathname === '/billing/dashboard' ||
 							$page.url.pathname === '/billing/settings'
 								? ''
 								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
 							href={buildBillingHref('/billing/balance')}
 						>
-							{$i18n.t('Wallet')}
+							{$i18n.t('Balance')}
 						</a>
 
 						<a
@@ -107,6 +116,15 @@
 							href={buildBillingHref('/billing/history')}
 						>
 							{$i18n.t('History')}
+						</a>
+
+						<a
+							class="min-w-fit p-1.5 {settingsView
+								? ''
+								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
+							href={buildBillingHref('/billing/balance', 'limits')}
+						>
+							{$i18n.t('Settings')}
 						</a>
 
 						{#if subscriptionsEnabled && isAdmin}
