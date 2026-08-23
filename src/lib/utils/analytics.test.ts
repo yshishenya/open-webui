@@ -1,9 +1,17 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { setAnalyticsConsent } from '$lib/utils/airis/analyticsConsent';
-import { PUBLIC_YANDEX_METRICA_ID } from '$env/static/public';
+vi.mock('$env/dynamic/public', () => ({
+	env: {
+		PUBLIC_YANDEX_METRICA_ID: 'test-counter',
+		PUBLIC_GA_MEASUREMENT_ID: ''
+	}
+}));
+
+import { ANALYTICS_ATTRIBUTION_KEY, setAnalyticsConsent } from '$lib/utils/airis/analyticsConsent';
 import { captureAttribution, trackEcommercePurchase, trackEvent } from './analytics';
+
+const YANDEX_METRICA_ID = 'test-counter';
 
 describe('analytics adapter', () => {
 	beforeEach(() => {
@@ -26,6 +34,7 @@ describe('analytics adapter', () => {
 		});
 
 		expect(document.querySelectorAll('script').length).toBe(0);
+		expect(localStorage.getItem(ANALYTICS_ATTRIBUTION_KEY)).toBeNull();
 		expect(received[0]?.detail).toEqual({ event: 'landing_cta_click', source: 'hero' });
 	});
 
@@ -34,7 +43,7 @@ describe('analytics adapter', () => {
 		trackEvent('page_view', { source: 'welcome' });
 
 		const yandexScript = document.querySelector('#airis-yandex-metrica');
-		if (PUBLIC_YANDEX_METRICA_ID) {
+		if (YANDEX_METRICA_ID) {
 			expect(yandexScript).toBeTruthy();
 		} else {
 			expect(yandexScript).toBeNull();
@@ -52,7 +61,7 @@ describe('analytics adapter', () => {
 		const purchase = analyticsWindow.dataLayer?.find((entry) => entry.ecommerce);
 		const purchases = analyticsWindow.dataLayer?.filter((entry) => entry.ecommerce) ?? [];
 
-		if (PUBLIC_YANDEX_METRICA_ID) {
+		if (YANDEX_METRICA_ID) {
 			expect(purchases).toHaveLength(1);
 			expect(purchase).toEqual({
 				ecommerce: {
@@ -81,15 +90,15 @@ describe('analytics adapter', () => {
 			'',
 			'/welcome?utm_source=telegram&utm_campaign=summer&email=must_not_track'
 		);
-		captureAttribution();
 		setAnalyticsConsent('granted');
+		captureAttribution();
 		trackEvent('signup_completed', { method: 'email' });
 
 		const received: CustomEvent[] = [];
 		window.addEventListener('analytics', (event) => received.push(event as CustomEvent));
 		trackEvent('first_prompt_submitted', { prompt: 'private text' });
 
-		expect(localStorage.getItem('airis.analytics.attribution.v1')).toContain('telegram');
+		expect(localStorage.getItem(ANALYTICS_ATTRIBUTION_KEY)).toContain('telegram');
 		expect(received[0]?.detail).toMatchObject({
 			event: 'first_prompt_submitted',
 			utm_source: 'telegram',
@@ -97,7 +106,7 @@ describe('analytics adapter', () => {
 		});
 		expect(received[0]?.detail.prompt).toBeUndefined();
 
-		if (PUBLIC_YANDEX_METRICA_ID) {
+		if (YANDEX_METRICA_ID) {
 			const analyticsWindow = window as Window & { ym?: { a?: unknown[][] } };
 			const queue = analyticsWindow.ym?.a ?? [];
 			expect(queue.some((args) => args.includes('lead_signup_completed'))).toBe(true);

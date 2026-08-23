@@ -54,9 +54,13 @@
 </script>
 
 <div class="fixed w-full h-full flex z-999">
-	<div class="absolute w-full h-full backdrop-blur-lg bg-white/10 dark:bg-gray-900/60 flex justify-center">
+	<div
+		class="absolute w-full h-full backdrop-blur-lg bg-white/10 dark:bg-gray-900/60 flex justify-center"
+	>
 		<div class="m-auto pb-10 flex flex-col justify-center px-4">
-			<div class="max-w-lg bg-white/90 dark:bg-gray-900/80 border border-gray-200/70 dark:border-gray-700/60 rounded-2xl shadow-sm p-6 md:p-8">
+			<div
+				class="max-w-lg bg-white/90 dark:bg-gray-900/80 border border-gray-200/70 dark:border-gray-700/60 rounded-2xl shadow-sm p-6 md:p-8"
+			>
 				<div class="text-center text-2xl font-medium text-gray-900 dark:text-white">
 					Примите условия, чтобы продолжить
 				</div>
@@ -83,13 +87,12 @@
 									for={`legal-${doc.key}`}
 									class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed"
 								>
-									Я принимаю
+									{doc.key === 'personal_data_consent' ? 'Я даю согласие' : 'Я принимаю'}
 									<a
 										href={doc.url}
 										target="_blank"
 										rel="noreferrer"
-										class="text-gray-900 dark:text-white font-medium hover:underline"
-										>{doc.title}</a
+										class="text-gray-900 dark:text-white font-medium hover:underline">{doc.title}</a
 									>
 									<span class="text-gray-400"> (версия {doc.version})</span>
 								</label>
@@ -97,13 +100,17 @@
 						{/each}
 					</div>
 				{:else}
-					<div class="mt-6 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 px-4 py-3 text-sm">
+					<div
+						class="mt-6 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 px-4 py-3 text-sm"
+					>
 						Не удалось загрузить список документов. Обновите страницу и попробуйте ещё раз.
 					</div>
 				{/if}
 
 				{#if error}
-					<div class="mt-4 rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm">
+					<div
+						class="mt-4 rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm"
+					>
 						{error}
 					</div>
 				{/if}
@@ -115,7 +122,7 @@
 							disabled={!allDocsChecked || submitting}
 							on:click={handleAccept}
 						>
-							{submitting ? 'Сохраняем…' : 'Принять и продолжить'}
+							{submitting ? 'Сохраняем…' : 'Подтвердить и продолжить'}
 						</button>
 					{:else}
 						<button
@@ -137,8 +144,9 @@
 
 				<div class="mt-5 text-center text-xs text-gray-500 dark:text-gray-400">
 					Если у вас есть вопросы — напишите на
-					<a href="mailto:support@airis.you" class="text-gray-900 dark:text-white font-medium hover:underline"
-						>support@airis.you</a
+					<a
+						href="mailto:support@airis.you"
+						class="text-gray-900 dark:text-white font-medium hover:underline">support@airis.you</a
 					>.
 				</div>
 			</div>

@@ -1,0 +1,190 @@
+{
+  "spec_id": "airis-public-legal-policies-2026-08-23-001",
+  "title": "Airis public legal policies compliance 2026",
+  "generated": "2026-08-23T03:55:11.482346Z",
+  "last_updated": "2026-08-23T06:05:00.383920Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-08-23__feature__public-legal-policies-compliance.md",
+    "status": "completed",
+    "activated_date": "2026-08-23T04:00:22.937782Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-08-23T06:05:00.383685Z",
+    "actual_hours": 1.982
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis public legal policies compliance 2026",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Public legal text",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-23T06:04:46.018908Z",
+        "journaled_at": "2026-08-23T06:04:46.021208Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Align privacy, consent, cookies, vendors, and DPA",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/routes/privacy/+page.svelte",
+        "started_at": "2026-08-23T04:05:49.280936Z",
+        "status_note": "Aligned privacy, consent, cookies, subprocessors, and DPA with the verified AIRIS processing model.",
+        "completed_at": "2026-08-23T06:04:46.018709Z",
+        "needs_journaling": false,
+        "actual_hours": 1.982,
+        "journaled_at": "2026-08-23T06:04:46.020160Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: Consent boundary and versioning",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-23T06:04:46.317688Z",
+        "journaled_at": "2026-08-23T06:04:46.320033Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Keep analytics behind consent and update legal versions",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/lib/components/analytics/AnalyticsBootstrap.svelte",
+        "completed_at": "2026-08-23T06:04:46.317453Z",
+        "needs_journaling": false,
+        "status_note": "Kept analytics and attribution behind consent, added reusable settings access, and synchronized legal versions.",
+        "journaled_at": "2026-08-23T06:04:46.318806Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: Verification",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-08-23T06:04:46.622182Z",
+        "journaled_at": "2026-08-23T06:04:46.624645Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Run focused tests, checks, and browser smoke",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-08-23__feature__public-legal-policies-compliance.md",
+        "completed_at": "2026-08-23T06:04:46.621985Z",
+        "needs_journaling": false,
+        "status_note": "Focused backend and frontend tests, lint and format checks, production build, diff check, and local browser smoke passed.",
+        "journaled_at": "2026-08-23T06:04:46.623189Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-08-23T06:04:46.020156Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Align privacy, consent, cookies, vendors, and DPA",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Aligned privacy, consent, cookies, subprocessors, and DPA with the verified AIRIS processing model.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-08-23T06:04:46.021203Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: Public legal text",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-08-23T06:04:46.318796Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Keep analytics behind consent and update legal versions",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Kept analytics and attribution behind consent, added reusable settings access, and synchronized legal versions.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-08-23T06:04:46.320028Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: Consent boundary and versioning",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-08-23T06:04:46.623184Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run focused tests, checks, and browser smoke",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: Focused backend and frontend tests, lint and format checks, production build, diff check, and local browser smoke passed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-08-23T06:04:46.624639Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 3: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

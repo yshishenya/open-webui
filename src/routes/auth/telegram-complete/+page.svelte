@@ -60,8 +60,8 @@
 
 			// Redirect to home
 			goto('/home');
-		} catch (err: any) {
-			error = err.message || 'Произошла ошибка';
+		} catch (err: unknown) {
+			error = err instanceof Error ? err.message : 'Произошла ошибка';
 		} finally {
 			loading = false;
 		}
@@ -128,6 +128,10 @@
 						и
 						<a href="/privacy" class="text-purple-600 hover:underline" target="_blank"
 							>политику конфиденциальности</a
+						>
+						и даю
+						<a href="/documents/consent" class="text-purple-600 hover:underline" target="_blank"
+							>согласие на обработку персональных данных</a
 						>
 					</label>
 				</div>
