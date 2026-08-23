@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: `codex/feature/legal-policies-2026`
-- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/airis-public-legal-policies-co-2026-08-23-0855.json`
+- SDD Spec (JSON, required for non-trivial): `meta/sdd/specs/completed/airis-public-legal-policies-2026-08-23-001.json`
 - Created: 2026-08-23
 - Updated: 2026-08-23
 
@@ -136,6 +136,6 @@ and conflicts with the product path that sends chat content to a configured AI p
 
 ## Completion Checklist
 
-- [x] `meta/tools/sdd check-complete airis-public-legal-policies-co-2026-08-23-0855 --json`
-- [x] `meta/tools/sdd complete-spec airis-public-legal-policies-co-2026-08-23-0855 --json`
+- [x] `meta/tools/sdd check-complete airis-public-legal-policies-2026-08-23-001 --json`
+- [x] `meta/tools/sdd complete-spec airis-public-legal-policies-2026-08-23-001 --json`
 - [x] Branch update entry moved to `Done` with required fields (`Spec`, `Owner`, `Summary`, `Done`)
