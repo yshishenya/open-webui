@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+	ANALYTICS_ATTRIBUTION_KEY,
 	ANALYTICS_CONSENT_KEY,
 	getAnalyticsConsent,
 	setAnalyticsConsent
@@ -21,7 +22,9 @@ describe('analytics consent', () => {
 
 	it('allows a later denial without changing the storage contract', () => {
 		setAnalyticsConsent('granted');
+		localStorage.setItem(ANALYTICS_ATTRIBUTION_KEY, '{"utm_source":"test"}');
 		setAnalyticsConsent('denied');
 		expect(getAnalyticsConsent()).toBe('denied');
+		expect(localStorage.getItem(ANALYTICS_ATTRIBUTION_KEY)).toBeNull();
 	});
 });

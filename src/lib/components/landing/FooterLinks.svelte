@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { ANALYTICS_SETTINGS_EVENT } from '$lib/utils/airis/analyticsConsent';
+
 	interface FooterLink {
 		href: string;
 		label: string;
@@ -16,6 +18,10 @@
 
 	export let copyright: string = `${new Date().getFullYear()} Airis. Все права защищены.`;
 	export let tone: 'light' | 'dark' = 'light';
+
+	const openAnalyticsSettings = (): void => {
+		window.dispatchEvent(new CustomEvent(ANALYTICS_SETTINGS_EVENT));
+	};
 </script>
 
 <div
@@ -51,5 +57,12 @@
 			<div>ИП Шишеня Ян Александрович · ИНН 667803118920 · ОГРНИП 320665800036109</div>
 			<div>&copy; {copyright}</div>
 		</div>
+		<button
+			type="button"
+			class="w-fit underline hover:no-underline"
+			on:click={openAnalyticsSettings}
+		>
+			Настройки аналитики
+		</button>
 	</div>
 </div>

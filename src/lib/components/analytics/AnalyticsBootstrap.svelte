@@ -2,7 +2,12 @@
 	import { afterNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { ANALYTICS_CONSENT_EVENT, getAnalyticsConsent } from '$lib/utils/airis/analyticsConsent';
-	import { captureAttribution, initializeAnalytics, trackEvent, trackPageView } from '$lib/utils/analytics';
+	import {
+		captureAttribution,
+		initializeAnalytics,
+		trackEvent,
+		trackPageView
+	} from '$lib/utils/analytics';
 
 	const SCROLL_THRESHOLDS = [25, 50, 75, 90];
 	let trackedScrollDepths = new Set<number>();
@@ -31,8 +36,8 @@
 	};
 
 	const syncAnalytics = (): void => {
-		captureAttribution();
 		if (getAnalyticsConsent() !== 'granted') return;
+		captureAttribution();
 		const pagePath = `${window.location.pathname}${window.location.hash}`;
 		if (pagePath === lastTrackedPagePath) return;
 		lastTrackedPagePath = pagePath;

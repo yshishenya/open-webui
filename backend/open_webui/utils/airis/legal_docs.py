@@ -22,9 +22,16 @@ LEGAL_DOCS: tuple[LegalDoc, ...] = (
     ),
     LegalDoc(
         key="privacy_policy",
-        title="Политика конфиденциальности",
+        title="Политика конфиденциальности и обработки персональных данных",
         url="/privacy",
-        version="2026-02-05",
+        version="2026-08-23",
+        required=True,
+    ),
+    LegalDoc(
+        key="personal_data_consent",
+        title="Согласие на обработку персональных данных",
+        url="/documents/consent",
+        version="2026-08-23",
         required=True,
     ),
 )
@@ -39,4 +46,3 @@ def get_legal_doc(key: str) -> LegalDoc | None:
 
 def required_legal_docs() -> tuple[LegalDoc, ...]:
     return tuple(doc for doc in LEGAL_DOCS if doc.required)
-

@@ -11,12 +11,11 @@ type StoredAttribution = {
 	capturedAt: number;
 };
 
-import { getAnalyticsConsent } from '$lib/utils/airis/analyticsConsent';
-import { PUBLIC_GA_MEASUREMENT_ID, PUBLIC_YANDEX_METRICA_ID } from '$env/static/public';
+import { ANALYTICS_ATTRIBUTION_KEY, getAnalyticsConsent } from '$lib/utils/airis/analyticsConsent';
+import { env } from '$env/dynamic/public';
 
-const YANDEX_METRICA_ID = PUBLIC_YANDEX_METRICA_ID?.trim();
-const GA_MEASUREMENT_ID = PUBLIC_GA_MEASUREMENT_ID?.trim();
-const ATTRIBUTION_STORAGE_KEY = 'airis.analytics.attribution.v1';
+const YANDEX_METRICA_ID = env.PUBLIC_YANDEX_METRICA_ID?.trim();
+const GA_MEASUREMENT_ID = env.PUBLIC_GA_MEASUREMENT_ID?.trim();
 const ATTRIBUTION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 const ATTRIBUTION_KEYS = [
 	'utm_source',
@@ -93,12 +92,15 @@ const sanitizePayload = (payload: AnalyticsPayload): AnalyticsPayload => {
 };
 
 const normalizeAttributionValue = (value: string | null): string | null => {
-	const normalized = value?.replace(/[\r\n]/g, ' ').trim().slice(0, MAX_STRING_LENGTH);
+	const normalized = value
+		?.replace(/[\r\n]/g, ' ')
+		.trim()
+		.slice(0, MAX_STRING_LENGTH);
 	return normalized || null;
 };
 
 export const captureAttribution = (): void => {
-	if (typeof window === 'undefined') return;
+	if (typeof window === 'undefined' || getAnalyticsConsent() !== 'granted') return;
 
 	const values: Record<string, string> = {};
 	const params = new URLSearchParams(window.location.search);
@@ -110,7 +112,7 @@ export const captureAttribution = (): void => {
 
 	try {
 		window.localStorage.setItem(
-			ATTRIBUTION_STORAGE_KEY,
+			ANALYTICS_ATTRIBUTION_KEY,
 			JSON.stringify({ values, capturedAt: Date.now() } satisfies StoredAttribution)
 		);
 	} catch {
@@ -122,7 +124,7 @@ const readAttribution = (): AnalyticsPayload => {
 	if (typeof window === 'undefined') return {};
 
 	try {
-		const raw = window.localStorage.getItem(ATTRIBUTION_STORAGE_KEY);
+		const raw = window.localStorage.getItem(ANALYTICS_ATTRIBUTION_KEY);
 		if (!raw) return {};
 		const stored = JSON.parse(raw) as Partial<StoredAttribution>;
 		if (
@@ -131,7 +133,7 @@ const readAttribution = (): AnalyticsPayload => {
 			typeof stored.values !== 'object' ||
 			stored.values === null
 		) {
-			window.localStorage.removeItem(ATTRIBUTION_STORAGE_KEY);
+			window.localStorage.removeItem(ANALYTICS_ATTRIBUTION_KEY);
 			return {};
 		}
 		return Object.fromEntries(
@@ -282,7 +284,9 @@ export const trackEvent = (event: string, payload: AnalyticsPayload = {}): void 
 
 	const analyticsWindow = window as AnalyticsWindow;
 	const consentGranted = getAnalyticsConsent() === 'granted';
-	const safePayload = sanitizePayload(consentGranted ? { ...readAttribution(), ...payload } : payload);
+	const safePayload = sanitizePayload(
+		consentGranted ? { ...readAttribution(), ...payload } : payload
+	);
 	const detail = { event, ...safePayload };
 
 	if (consentGranted) {
