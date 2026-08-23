@@ -41,6 +41,7 @@ and conflicts with the product path that sends chat content to a configured AI p
 
 - Backend:
   - Update the tracked privacy-policy version.
+  - Ensure signup and Telegram completion record all required legal documents.
 - Frontend:
   - Rewrite `/privacy`, `/documents/consent`, `/documents/cookies`,
     `/documents/subprocessors`, and `/documents/dpa`.
@@ -64,6 +65,9 @@ and conflicts with the product path that sends chat content to a configured AI p
   - Foreign AI providers receive request content, not AIRIS account/payment records
     automatically; user-entered content can nevertheless contain personal data.
   - Google Analytics remains inactive while its public measurement ID is empty.
+- Signup and Telegram consent checkboxes explicitly link the personal-data consent
+  document; the shared acceptance recorder stores that required document with the
+  existing terms/privacy acceptance.
 - The full residential postal address was added after the user's explicit approval on
   2026-08-23.
 - Public policies intentionally describe infrastructure and external services by functional
@@ -82,7 +86,7 @@ and conflicts with the product path that sends chat content to a configured AI p
 
 ## Verification
 
-- Backend legal pytest with isolated SQLite database: 3 passed.
+- Focused backend signup/legal pytest with isolated SQLite database: 4 passed.
 - Focused Vitest suite for legal-policy and analytics behavior: 3 files, 9 tests passed.
 - The regression suite verifies the approved operator postal address in the privacy policy,
   consent, and DPA, plus the generalized infrastructure categories, the cross-border warning,
@@ -122,7 +126,7 @@ and conflicts with the product path that sends chat content to a configured AI p
   - Branch: `codex/feature/legal-policies-2026`
   - Done: 2026-08-23
   - Summary: Align the public legal pack with current data flows, Russian localization, analytics consent, and category-level recipient disclosures without publishing infrastructure details.
-  - Tests: Backend pytest 3 passed; Vitest 3 files/9 tests; ESLint, Prettier, Black,
+  - Tests: Focused backend pytest 4 passed; Vitest 3 files/9 tests; ESLint, Prettier, Black,
     focused Ruff, production build, `git diff --check`, and five-route browser smoke passed.
   - Risks: Legal wording and Roskomnadzor cross-border disclosures require final factual/legal approval.
 

@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 import time
-from typing import Optional
 
 from fastapi import Request
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from open_webui.models.legal import LegalAcceptances, LegalDocumentAcceptanceModel
 from open_webui.models.users import Users
 from open_webui.utils.airis.legal_docs import get_legal_doc
+from sqlalchemy.ext.asyncio import AsyncSession
+
+_SIGNUP_LEGAL_METHODS: frozenset[str] = frozenset({'signup', 'telegram_signup', 'telegram_complete'})
 
 
-def get_request_ip(request: Request) -> Optional[str]:
-    forwarded_for = request.headers.get("x-forwarded-for")
+def get_request_ip(request: Request) -> str | None:
+    forwarded_for = request.headers.get('x-forwarded-for')
     if forwarded_for:
-        return forwarded_for.split(",")[0].strip() or None
+        return forwarded_for.split(',')[0].strip() or None
     if request.client:
         return request.client.host
     return None
@@ -29,10 +29,16 @@ async def record_legal_acceptances(
     db: AsyncSession | None = None,
 ) -> list[LegalDocumentAcceptanceModel]:
     requested_keys = list(dict.fromkeys(keys))
+    if (
+        method in _SIGNUP_LEGAL_METHODS
+        and 'privacy_policy' in requested_keys
+        and 'personal_data_consent' not in requested_keys
+    ):
+        requested_keys.append('personal_data_consent')
     now = int(time.time())
 
     ip = get_request_ip(request)
-    user_agent = request.headers.get("user-agent")
+    user_agent = request.headers.get('user-agent')
 
     accepted: list[LegalDocumentAcceptanceModel] = []
     user_updates: dict[str, object] = {}
@@ -55,10 +61,10 @@ async def record_legal_acceptances(
             )
         )
 
-        if doc.key == "terms_offer":
-            user_updates["terms_accepted_at"] = now
-        if doc.key == "privacy_policy":
-            user_updates["privacy_accepted_at"] = now
+        if doc.key == 'terms_offer':
+            user_updates['terms_accepted_at'] = now
+        if doc.key == 'privacy_policy':
+            user_updates['privacy_accepted_at'] = now
 
     if user_updates:
         await Users.update_user_by_id(user_id, user_updates, db=db)

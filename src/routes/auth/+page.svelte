@@ -998,9 +998,17 @@
 																	target="_blank"
 																	rel="noreferrer"
 																	class="text-white/90 font-semibold hover:underline"
-																	>{$i18n.t('Privacy Policy')}</a
-																>
-																.
+											>{$i18n.t('Privacy Policy')}</a
+										>
+										{$i18n.t('and')} {$i18n.t('give consent to')}
+										<a
+											href="/documents/consent"
+											target="_blank"
+											rel="noreferrer"
+											class="text-white/90 font-semibold hover:underline"
+											>{$i18n.t('personal data processing')}</a
+										>
+										.
 															</label>
 														</div>
 												</div>
