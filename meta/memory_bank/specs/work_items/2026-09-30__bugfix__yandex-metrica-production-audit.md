@@ -201,7 +201,7 @@ rollback на сохранённый baseline; контейнер healthy, ис�
   Frontend billing 11/11 и e2e billing 10/10 прошли. Полный typecheck и
   отсутствие preflight остаются согласованными ограничениями.
 - GitHub Release v2026.09.30.1 создан как draft до устранения CI/слияния:
-  https://github.com/yshishenya/open-webui/releases/tag/untagged-bab7a6dde8ef603eaccf
+  https://github.com/yshishenya/open-webui/releases
 - SDD live task completed, check-complete и complete-spec успешно выполнены.
   Слияние PR и публикация release остаются pending; техническая выкладка
   и проверка Метрики завершены. Tilda/airis.you/Chatra не изменялись.
