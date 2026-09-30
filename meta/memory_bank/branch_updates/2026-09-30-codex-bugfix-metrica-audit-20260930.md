@@ -39,3 +39,9 @@
   - Owner: Codex local
   - Started: 2026-09-30
   - Summary: Frontend собран на Mac; compiled ID/version и linux/amd64 подтверждены. 8/8 Vitest и scoped ESLint прошли повторно через Docker Compose. Cabinet ID/domain/filters/ecommerce проверены; создана только отсутствующая цель просмотра регистрации. Публикация образа выполняется; rollout ещё не начат.
+
+- [ ] **[BUG][PRIVACY][METRICA]** Защитить служебный URL инициализации
+  - Spec: `meta/memory_bank/specs/work_items/2026-09-30__bugfix__yandex-metrica-production-audit.md`
+  - Owner: Codex local
+  - Started: 2026-09-30
+  - Summary: Live smoke выявил query leak в deferred settings request; первый candidate откатан на healthy baseline. Общая инициализация теперь получает очищенные url/referrer. Regression доказан; повторная сборка и live acceptance выполняются.

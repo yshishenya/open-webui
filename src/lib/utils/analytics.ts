@@ -168,6 +168,16 @@ const loadScript = (src: string, id: string): void => {
 	document.head.appendChild(script);
 };
 
+const analyticsPagePath = (): string => {
+	const campaignQuery = new URLSearchParams(entryAttribution).toString();
+	return `${window.location.pathname}${campaignQuery ? `?${campaignQuery}` : ''}`;
+};
+
+const analyticsReferrer = (): string => {
+	const referrer = document.referrer ? new URL(document.referrer) : null;
+	return referrer ? `${referrer.origin}${referrer.pathname}` : '';
+};
+
 const initializeYandex = (analyticsWindow: AnalyticsWindow): void => {
 	if (!YANDEX_METRICA_ID || analyticsWindow.__airisAnalyticsScripts?.yandex) return;
 
@@ -185,6 +195,9 @@ const initializeYandex = (analyticsWindow: AnalyticsWindow): void => {
 	analyticsWindow.ym(YANDEX_METRICA_ID, 'init', {
 		// SPA views are sent explicitly; automatic collection can expose private product data.
 		defer: true,
+		// Even deferred init sends a settings request; its URL must also be safe.
+		url: `${window.location.origin}${analyticsPagePath()}`,
+		referrer: analyticsReferrer(),
 		webvisor: false,
 		clickmap: true,
 		trackLinks: false,
@@ -244,11 +257,8 @@ export const trackPageView = (): void => {
 	initializeAnalytics();
 	const analyticsWindow = window as AnalyticsWindow;
 	// Keep campaign attribution in the first hit without auth/query data or private fragments.
-	const campaignParams = new URLSearchParams(entryAttribution);
-	const campaignQuery = campaignParams.toString();
-	const pagePath = `${window.location.pathname}${campaignQuery ? `?${campaignQuery}` : ''}`;
-	const referrer = document.referrer ? new URL(document.referrer) : null;
-	const referer = previousPageUrl || (referrer ? `${referrer.origin}${referrer.pathname}` : '');
+	const pagePath = analyticsPagePath();
+	const referer = previousPageUrl || analyticsReferrer();
 	if (YANDEX_METRICA_ID) analyticsWindow.ym?.(YANDEX_METRICA_ID, 'hit', pagePath, { referer });
 	previousPageUrl = `${window.location.origin}${pagePath}`;
 	if (GA_MEASUREMENT_ID) {

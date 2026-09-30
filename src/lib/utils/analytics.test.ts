@@ -15,6 +15,7 @@ const YANDEX_METRICA_ID = 'test-counter';
 
 describe('analytics adapter', () => {
 	beforeEach(() => {
+		vi.restoreAllMocks();
 		setAnalyticsConsent('denied');
 		captureAttribution();
 		localStorage.clear();
@@ -35,6 +36,9 @@ describe('analytics adapter', () => {
 
 	it('sends explicit views after consent with campaign tags and without private URL data', () => {
 		window.history.replaceState({}, '', '/auth?token=private&utm_source=telegram#private');
+		vi.spyOn(document, 'referrer', 'get').mockReturnValue(
+			'https://example.com/source?token=private#private'
+		);
 		const ym = vi.fn();
 		Object.assign(window, { ym });
 
@@ -50,13 +54,20 @@ describe('analytics adapter', () => {
 				'init',
 				expect.objectContaining({
 					defer: true,
+					url: `${window.location.origin}/auth?utm_source=telegram`,
+					referrer: 'https://example.com/source',
 					sendTitle: false,
 					webvisor: false,
 					trackLinks: false,
 					trackHash: false
 				})
 			],
-			[YANDEX_METRICA_ID, 'hit', '/auth?utm_source=telegram', { referer: '' }]
+			[
+				YANDEX_METRICA_ID,
+				'hit',
+				'/auth?utm_source=telegram',
+				{ referer: 'https://example.com/source' }
+			]
 		]);
 
 		window.history.replaceState({}, '', '/billing/balance?payment_id=private');

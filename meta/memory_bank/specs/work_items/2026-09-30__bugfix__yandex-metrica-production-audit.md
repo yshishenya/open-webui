@@ -146,3 +146,14 @@ Chatra и цели. Отсутствие доступа к Tilda не блоки
 - Production env/config comparison: нет различий ключей окружения; stale image tag в .env не равен running image. Rollback использует running image.
 - Disk calculation: 6.4 GiB available; app data 1.55 GiB (верхняя оценка backup), existing build 186 MiB; frontend-only layer около 186 MiB, backend layers уже на сервере. MIN_FREE_GB=5 для этой выкладки обоснован резервом более 3 GiB после backup/layer; gate остаётся включён. Чужие ресурсы не удаляются.
 - Пользователь разрешил PR с отсутствующей `npm run preflight` и известными ошибками полного typecheck; ограничения перечислить явно.
+
+### Browser выявил дополнительный дефект; выполнен откат
+
+Первый candidate опубликован и прошёл backup/migration/health, но network smoke
+нашёл приватный query в init settings request (`nohit`), включая redirect /watch/ID/1.
+`defer` отключает просмотр, но не служебную доставку URL. Выполнен service-only
+rollback на сохранённый baseline; контейнер healthy, исходный backend сохранён.
+В общем initializeYandex добавлены безопасные `url`/`referrer`, использующие те же
+правила, что явный hit. Regression на init URL упал до исправления (1 failed/5 passed),
+после — 8/8 analytics/consent и scoped ESLint passed. При подсчёте PageView нужно
+отличать nohit settings и их HTTP redirect от просмотра с browser-info pv:1.
