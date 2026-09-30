@@ -55,3 +55,10 @@
 остаётся healthy после отката первого кандидата. Regression сначала упал
 (1 failed / 7 passed), после изменения 8/8 tests, scoped ESLint и Prettier
 прошли через Docker Compose. Следующий кандидат проходит preview до rollout.
+
+
+- [x] [BUG] Метрика продукта собрана на Mac, выложена и проверена.
+  - Spec: meta/memory_bank/specs/work_items/2026-09-30__bugfix__yandex-metrica-production-audit.md
+  - Owner: Codex
+  - Done: 2026-10-01
+  - Summary: source 041343b4b4f1a7587c94055d366e9e4ff22357d0, digest a22be5ea8e29d5f864d60fc32bbf6ca319acaa2bd0c1968acabbdc457630765b; guarded rollout и live privacy/consent/SPA/CTA/revoke прошли; кабинет подтвердил финальную кампанию (1 визит, 5 просмотров). SDD закрыт. PR #129 открыт, release draft; backend billing CI не собирается из-за отсутствующего langchain_community. Tilda/Chatra не изменялись.

@@ -1,8 +1,8 @@
 # Метрика: сборка на Mac, выкладка готового Docker-образа
 
-Сборка должна выполняться на компьютере пользователя. Команды этого чата
-сейчас исполняются на production-сервере; локальный executor недоступен.
-Локальный проект: `/Users/yshishenya/Documents/projects/open-webui`.
+Сборка выполняется на Mac пользователя через Docker Desktop в отдельном
+контексте из точного commit. Рабочий каталог:
+`/Users/yshishenya/Documents/projects/open-webui-metrica`.
 
 ## Локальная сборка и публикация
 
@@ -20,11 +20,11 @@ production digest. Итоговый образ — `linux/amd64`, в том чи
 set -euo pipefail
 cd /Users/yshishenya/Documents/projects/open-webui
 git fetch origin codex/bugfix/metrica-audit-20260930
-metrica_revision=a5ccb3c8717a05ab7fd1409e7e74209715f7729d
+metrica_revision=041343b4b4f1a7587c94055d366e9e4ff22357d0
 metrica_context=$(mktemp -d "${TMPDIR:-/tmp}/airis-metrica.XXXXXX")
 git archive "$metrica_revision" | tar -x -C "$metrica_context"
-metrica_frontend=airis-metrica-frontend:a5ccb3c87
-metrica_image=yshishenya/yshishenya:a5ccb3c87-metrica-20260930
+metrica_frontend=airis-metrica-frontend:041343b4b
+metrica_image=yshishenya/yshishenya:041343b4b-metrica-20260930
 
 docker build --platform linux/amd64 --target build \
   --build-arg BUILD_HASH="$metrica_revision" \

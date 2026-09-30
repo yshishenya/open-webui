@@ -213,3 +213,40 @@ w[c] = w[c] || function () {
 остаётся healthy после отката первого кандидата. Regression сначала упал
 (1 failed / 7 passed), после изменения 8/8 tests, scoped ESLint и Prettier
 прошли через Docker Compose. Следующий кандидат проходит preview до rollout.
+
+
+## Итоговая проверка — 2026-10-01 (UTC 2026-09-30)
+
+- Frontend собран на Mac из `041343b4b4f1a7587c94055d366e9e4ff22357d0`.
+- `linux/amd64` образ `yshishenya/yshishenya:041343b4b-metrica-20260930`,
+  digest `sha256:a22be5ea8e29d5f864d60fc32bbf6ca319acaa2bd0c1968acabbdc457630765b`.
+  Backend base, все его слои, Env и Cmd сохранены.
+- Guarded service-only rollout завершён после fresh backup, checksum/tar/pg_restore
+  и hard Alembic gates; revision `b4c5d6e7f8a9` не изменилась.
+  Backup `/opt/backups/airis/20260930T210510Z-041343b4b-metrica-20260930`;
+  предыдущий образ сохранён для отката. Порог диска 4 GiB обоснован: перед gate
+  около 4.5 GiB, backup около 1.5 GiB, после rollout около 3.1 GiB.
+- Public env.js ID 111392024 и version.json exact source SHA подтверждены.
+  Docker healthy, restart 0, health true. В `.env` изменён только image tag
+  в двух существующих строках, приватная копия сохранена; Compose/running env
+  совпадают, том `open-webui_airis` сохранён.
+- Строгие preview и live browser проверки прошли: consent, один initial hit,
+  UTM, anchor dedup, SPA, CTA, только campaign query во всех просмотрах,
+  отсутствие private query/hash во всех provider requests, отсутствие
+  clmap/webvisor, provider 200, revoke+reload+no delivery+attribution cleared.
+- Кабинет ID/domain/IP/robot filters/ecommerce сверены. Создана только цель
+  `lead_signup_form_viewed` (666115354). В отчёте финальной live-кампании
+  `rollout_20260930_live_v3` — 1 визит, 5 просмотров, 1 посетитель, 26 секунд.
+  CTA и просмотр формы также имеют достижения в отчёте конверсий.
+- В браузере пользователя восстановлен исходный отказ: UI подтверждает
+  «Сейчас аналитика запрещена». Фиктивных пользователей и покупок не создавали.
+- PR https://github.com/yshishenya/open-webui/pull/129 открыт на `airis_b2c`.
+  Source-SHA CI lint/migration/SDD/CodeQL/gitleaks прошёл; billing-confidence
+  имеет ошибку collection backend: отсутствует `langchain_community`.
+  Frontend billing 11/11 и e2e billing 10/10 прошли. Полный typecheck и
+  отсутствие preflight остаются согласованными ограничениями.
+- GitHub Release v2026.09.30.1 создан как draft до устранения CI/слияния:
+  https://github.com/yshishenya/open-webui/releases/tag/untagged-bab7a6dde8ef603eaccf
+- SDD live task completed, check-complete и complete-spec успешно выполнены.
+  Слияние PR и публикация release остаются pending; техническая выкладка
+  и проверка Метрики завершены. Tilda/airis.you/Chatra не изменялись.
