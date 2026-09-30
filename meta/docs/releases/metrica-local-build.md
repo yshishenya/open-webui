@@ -83,7 +83,8 @@ docker image inspect --format '{{json .RepoDigests}}' "$metrica_image"
    дождаться healthy и проверить публичный `/health`.
 5. В браузере проверить consent, один initial PageView, SPA transitions,
    UTM и отсутствие приватных query/hash/title, отзыв согласия.
-6. Отдельно подключить и перепубликовать Tilda; проверить domain filters, цели,
-   ecommerce и появление данных в авторизованном кабинете Метрики.
+6. При наличии доступа проверить domain filters продукта, цели, ecommerce
+   и данные в авторизованном кабинете Метрики. **Tilda не трогать**: пользователь
+   исключил её из scope. Полная задача: `meta/docs/releases/metrica-local-task.md`.
 
 До выполнения этих шагов rollout и восстановление статистики не подтверждены.

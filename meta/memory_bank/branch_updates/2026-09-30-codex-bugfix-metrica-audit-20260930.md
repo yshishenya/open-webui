@@ -19,3 +19,11 @@
   Готовы команды в `meta/docs/releases/metrica-local-build.md`.
 - Tilda, кабинет Метрики, GitHub API и реальный local build требуют доступа.
   Release notes — черновик; live task и SDD остаются незавершёнными.
+
+## 2026-09-30 — Tilda исключена, подготовлена локальная задача
+
+- Spec: `meta/memory_bank/specs/work_items/2026-09-30__bugfix__yandex-metrica-production-audit.md`
+- Пользователь: Tilda не трогать; создать локальный чат open-webui_local и передать задачу.
+- Подтверждён local project; в tools отсутствуют create_thread/handoff/send_message.
+  Чат не создан. Полный handoff сохранён в `meta/docs/releases/metrica-local-task.md`.
+- Product image прежний, healthy, restart count1; live task pending.
