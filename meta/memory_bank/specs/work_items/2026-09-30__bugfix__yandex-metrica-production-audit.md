@@ -157,3 +157,13 @@ rollback на сохранённый baseline; контейнер healthy, ис�
 правила, что явный hit. Regression на init URL упал до исправления (1 failed/5 passed),
 после — 8/8 analytics/consent и scoped ESLint passed. При подсчёте PageView нужно
 отличать nohit settings и их HTTP redirect от просмотра с browser-info pv:1.
+
+
+### Дополнительная проверка карты кликов на Mac
+
+Предварительный browser smoke образа e36e97e59 до переключения production
+выявил `clmap` с полным URL, включая диагностические private query/hash.
+Карта кликов отключена в общем adapter (`clickmap:false`); исходный production
+остаётся healthy после отката первого кандидата. Regression сначала упал
+(1 failed / 7 passed), после изменения 8/8 tests, scoped ESLint и Prettier
+прошли через Docker Compose. Следующий кандидат проходит preview до rollout.

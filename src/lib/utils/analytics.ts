@@ -199,7 +199,7 @@ const initializeYandex = (analyticsWindow: AnalyticsWindow): void => {
 		url: `${window.location.origin}${analyticsPagePath()}`,
 		referrer: analyticsReferrer(),
 		webvisor: false,
-		clickmap: true,
+		clickmap: false,
 		trackLinks: false,
 		accurateTrackBounce: true,
 		ecommerce: 'dataLayer',

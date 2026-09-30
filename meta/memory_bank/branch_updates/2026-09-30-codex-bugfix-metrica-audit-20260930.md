@@ -45,3 +45,13 @@
   - Owner: Codex local
   - Started: 2026-09-30
   - Summary: Live smoke выявил query leak в deferred settings request; первый candidate откатан на healthy baseline. Общая инициализация теперь получает очищенные url/referrer. Regression доказан; повторная сборка и live acceptance выполняются.
+
+
+### Дополнительная проверка карты кликов на Mac
+
+Предварительный browser smoke образа e36e97e59 до переключения production
+выявил `clmap` с полным URL, включая диагностические private query/hash.
+Карта кликов отключена в общем adapter (`clickmap:false`); исходный production
+остаётся healthy после отката первого кандидата. Regression сначала упал
+(1 failed / 7 passed), после изменения 8/8 tests, scoped ESLint и Prettier
+прошли через Docker Compose. Следующий кандидат проходит preview до rollout.

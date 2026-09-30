@@ -58,6 +58,7 @@ describe('analytics adapter', () => {
 					referrer: 'https://example.com/source',
 					sendTitle: false,
 					webvisor: false,
+					clickmap: false,
 					trackLinks: false,
 					trackHash: false
 				})
