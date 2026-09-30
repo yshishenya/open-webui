@@ -2,7 +2,7 @@
   "spec_id": "yandex-metrica-production-audit-2026-09-30-001",
   "title": "Yandex Metrica production audit 20260930",
   "generated": "2026-09-30T17:56:09.415003Z",
-  "last_updated": "2026-09-30T18:26:17.518099Z",
+  "last_updated": "2026-09-30T20:19:51.665831Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -59,7 +59,6 @@
       "completed_tasks": 1,
       "metadata": {
         "needs_journaling": false,
-        "completed_at": "2026-09-30T18:25:23.209290Z",
         "journaled_at": "2026-09-30T18:25:23.214665Z"
       }
     },
@@ -111,8 +110,8 @@
     },
     "task-2-2": {
       "type": "task",
-      "title": "Подтвердить ID и настройки кабинета, опубликовать оба сайта и проверить live данные",
-      "status": "pending",
+      "title": "Собрать на Mac, выложить продукт и проверить Метрику",
+      "status": "in_progress",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -124,9 +123,10 @@
       "completed_tasks": 0,
       "metadata": {
         "category": "investigation",
-        "file_path": "meta/memory_bank/guides/yandex_metrica.md"
+        "file_path": "meta/memory_bank/guides/yandex_metrica.md",
+        "started_at": "2026-09-30T20:19:51.665481Z"
       },
-      "description": "Нужны доступ к Tilda/Метрике и подтверждённый ID; проверить settings, goals, consent, rebuild/deploy и отчёт. Не выполнено данным аудитом."
+      "description": "Tilda исключена пользователем. Локальная сборка, immutable backend overlay, guarded service-only rollout, consent/SPA/CTA/privacy/revoke, кабинет счётчика и отчёт."
     }
   },
   "journal": [

@@ -131,3 +131,18 @@ Chatra и цели. Отсутствие доступа к Tilda не блоки
 подтверждён через app. Инструменты create_thread/handoff_thread/send_message_to_thread
 не предоставлены этой сессии: чат не создан и задача не запущена. Сборка, публикация
 и rollout также остаются pending.
+
+## Локальное продолжение — 2026-09-30
+
+- Worktree: `/Users/yshishenya/Documents/projects/open-webui-metrica`; исходный грязный checkout сохранён.
+- Runtime source `a5ccb3c8717a05ab7fd1409e7e74209715f7729d`: между ним и текущей веткой нет изменений frontend/build inputs.
+- Frontend stage успешно собран на Mac: compiled ID `111392024`, version marker равен полному source SHA; build размер 186 MiB.
+- Повторные focused Vitest: 8/8 passed; scoped ESLint passed; Docker Compose повторяет проверку в собранном frontend image.
+- GitHub repository variable `PUBLIC_YANDEX_METRICA_ID=111392024` задана и перечитана.
+- Кабинет доступен: Airis — chat.airis.you, ID 111392024; адрес `chat.airis.you`, только указанный домен, без поддоменов.
+- Фильтр: оставить URL сайта и дополнительных адресов. IP-фильтров нет; собственные визиты не исключены, фильтрация роботов по поведению выключена.
+- Ecommerce включён, контейнер `dataLayer`. Основные цели существуют по исходным событиям: CTA, signup started/completed, login, first prompt/response, topup created/completed, onboarding. Код отправляет исходные события и aliases; дубли целей не создавались.
+- Добавлена недостающая цель `lead_signup_form_viewed`, ID 666115354, название «Просмотр формы регистрации».
+- Production env/config comparison: нет различий ключей окружения; stale image tag в .env не равен running image. Rollback использует running image.
+- Disk calculation: 6.4 GiB available; app data 1.55 GiB (верхняя оценка backup), existing build 186 MiB; frontend-only layer около 186 MiB, backend layers уже на сервере. MIN_FREE_GB=5 для этой выкладки обоснован резервом более 3 GiB после backup/layer; gate остаётся включён. Чужие ресурсы не удаляются.
+- Пользователь разрешил PR с отсутствующей `npm run preflight` и известными ошибками полного typecheck; ограничения перечислить явно.

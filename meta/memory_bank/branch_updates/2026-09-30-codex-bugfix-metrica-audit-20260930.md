@@ -27,3 +27,15 @@
 - Подтверждён local project; в tools отсутствуют create_thread/handoff/send_message.
   Чат не создан. Полный handoff сохранён в `meta/docs/releases/metrica-local-task.md`.
 - Product image прежний, healthy, restart count1; live task pending.
+
+- [ ] **[BUG][OPS][METRICA]** Локальная сборка и защищённая выкладка продукта
+  - Spec: `meta/memory_bank/specs/work_items/2026-09-30__bugfix__yandex-metrica-production-audit.md`
+  - Owner: Codex local
+  - Started: 2026-09-30
+  - Summary: Создан отдельный локальный worktree; пользовательские изменения сохранены. Production digest подтверждён, healthy; свободно 6.4 GiB. Первая локальная сборка остановилась на Docker Hub metadata timeout до npm/build; выполняется отдельный pull базового Node image. Tilda исключена из работы.
+
+- [ ] **[BUG][METRICA]** Подготовлен production-образ и подтверждён кабинет
+  - Spec: `meta/memory_bank/specs/work_items/2026-09-30__bugfix__yandex-metrica-production-audit.md`
+  - Owner: Codex local
+  - Started: 2026-09-30
+  - Summary: Frontend собран на Mac; compiled ID/version и linux/amd64 подтверждены. 8/8 Vitest и scoped ESLint прошли повторно через Docker Compose. Cabinet ID/domain/filters/ecommerce проверены; создана только отсутствующая цель просмотра регистрации. Публикация образа выполняется; rollout ещё не начат.
