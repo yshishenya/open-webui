@@ -1,0 +1,170 @@
+{
+  "spec_id": "yandex-metrica-production-audit-2026-09-30-001",
+  "title": "Yandex Metrica production audit 20260930",
+  "generated": "2026-09-30T17:56:09.415003Z",
+  "last_updated": "2026-09-30T18:26:17.518099Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "investigation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-09-30__bugfix__yandex-metrica-production-audit.md",
+    "status": "active",
+    "activated_date": "2026-09-30T17:59:17.381947Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-2"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Yandex Metrica production audit 20260930",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Проверка опубликованных сайтов и официальной документации",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-09-30T18:01:48.512075Z",
+        "journaled_at": "2026-09-30T18:01:48.515954Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Исправление сборки и просмотров, проверки и рекомендации",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-09-30T18:25:23.209290Z",
+        "journaled_at": "2026-09-30T18:25:23.214665Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Проверить подключение и причины отсутствия статистики",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-09-30T18:01:48.512002Z",
+        "needs_journaling": false,
+        "status_note": "Read-only HTTPS/Docker confirms missing landing tag and empty compiled product ID; official SPA documentation reviewed.",
+        "journaled_at": "2026-09-30T18:01:48.513673Z",
+        "category": "investigation",
+        "file_path": "meta/memory_bank/guides/yandex_metrica.md"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Подготовить исправления, проверить и документировать live настройку",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2026-09-30T18:01:49.246949Z",
+        "category": "implementation",
+        "file_path": "src/lib/utils/analytics.ts",
+        "completed_at": "2026-09-30T18:25:23.209206Z",
+        "needs_journaling": false,
+        "status_note": "7 scoped tests pass (regression failed before fix); ESLint and source Prettier pass; CI YAML parsed. Full typecheck fails across 350 files, none of the modified analytics files. Guide documents public evidence and provider-access limits.",
+        "actual_hours": 0.393,
+        "journaled_at": "2026-09-30T18:25:23.212294Z"
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Подтвердить ID и настройки кабинета, опубликовать оба сайта и проверить live данные",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "category": "investigation",
+        "file_path": "meta/memory_bank/guides/yandex_metrica.md"
+      },
+      "description": "Нужны доступ к Tilda/Метрике и подтверждённый ID; проверить settings, goals, consent, rebuild/deploy и отчёт. Не выполнено данным аудитом."
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-09-30T18:01:48.513647Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Проверить подключение и причины отсутствия статистики",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Read-only HTTPS/Docker confirms missing landing tag and empty compiled product ID; official SPA documentation reviewed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-09-30T18:01:48.515936Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Проверка опубликованных сайтов и официальной документации",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-09-30T18:25:23.212274Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Подготовить исправления, проверить и документировать live настройку",
+      "author": "Codex",
+      "content": "Task task-2-1 marked as completed. \nNote: 7 scoped tests pass (regression failed before fix); ESLint and source Prettier pass; CI YAML parsed. Full typecheck fails across 350 files, none of the modified analytics files. Guide documents public evidence and provider-access limits.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-09-30T18:25:23.214647Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Исправление сборки и просмотров, проверки и рекомендации",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

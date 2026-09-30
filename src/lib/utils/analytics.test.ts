@@ -9,16 +9,84 @@ vi.mock('$env/dynamic/public', () => ({
 }));
 
 import { ANALYTICS_ATTRIBUTION_KEY, setAnalyticsConsent } from '$lib/utils/airis/analyticsConsent';
-import { captureAttribution, trackEcommercePurchase, trackEvent } from './analytics';
+import { captureAttribution, trackEcommercePurchase, trackEvent, trackPageView } from './analytics';
 
 const YANDEX_METRICA_ID = 'test-counter';
 
 describe('analytics adapter', () => {
 	beforeEach(() => {
+		setAnalyticsConsent('denied');
+		captureAttribution();
 		localStorage.clear();
 		sessionStorage.clear();
 		document.head.innerHTML = '';
 		window.history.replaceState({}, '', '/welcome');
+		const analyticsWindow = window as Window & {
+			ym?: unknown;
+			dataLayer?: unknown;
+			__airisAnalyticsInitialized?: boolean;
+			__airisAnalyticsScripts?: { yandex?: boolean; google?: boolean };
+		};
+		delete analyticsWindow.ym;
+		delete analyticsWindow.dataLayer;
+		delete analyticsWindow.__airisAnalyticsInitialized;
+		delete analyticsWindow.__airisAnalyticsScripts;
+	});
+
+	it('sends explicit views after consent with campaign tags and without private URL data', () => {
+		window.history.replaceState({}, '', '/auth?token=private&utm_source=telegram#private');
+		const ym = vi.fn();
+		Object.assign(window, { ym });
+
+		trackPageView();
+		expect(ym).not.toHaveBeenCalled();
+		expect(document.querySelector('#airis-yandex-metrica')).toBeNull();
+
+		setAnalyticsConsent('granted');
+		trackPageView();
+		expect(ym.mock.calls).toEqual([
+			[
+				YANDEX_METRICA_ID,
+				'init',
+				expect.objectContaining({
+					defer: true,
+					sendTitle: false,
+					webvisor: false,
+					trackLinks: false,
+					trackHash: false
+				})
+			],
+			[YANDEX_METRICA_ID, 'hit', '/auth?utm_source=telegram', { referer: '' }]
+		]);
+
+		window.history.replaceState({}, '', '/billing/balance?payment_id=private');
+		trackPageView();
+		expect(ym).toHaveBeenLastCalledWith(
+			YANDEX_METRICA_ID,
+			'hit',
+			'/billing/balance?utm_source=telegram',
+			{ referer: `${window.location.origin}/auth?utm_source=telegram` }
+		);
+		expect(ym.mock.calls.filter((args) => args[1] === 'init')).toHaveLength(1);
+	});
+
+	it('preserves campaign tags through a redirect before consent without persisting them', () => {
+		window.history.replaceState({}, '', '/?utm_source=telegram&yclid=123&token=private');
+		captureAttribution();
+		expect(localStorage.getItem(ANALYTICS_ATTRIBUTION_KEY)).toBeNull();
+		window.history.replaceState({}, '', '/auth');
+		captureAttribution();
+		const ym = vi.fn();
+		Object.assign(window, { ym });
+		setAnalyticsConsent('granted');
+		trackPageView();
+		expect(ym).toHaveBeenLastCalledWith(
+			YANDEX_METRICA_ID,
+			'hit',
+			'/auth?utm_source=telegram&yclid=123',
+			{ referer: '' }
+		);
+		expect(localStorage.getItem(ANALYTICS_ATTRIBUTION_KEY)).toContain('telegram');
 	});
 
 	it('does not load providers before consent and removes sensitive payload keys', () => {

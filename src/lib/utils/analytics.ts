@@ -29,6 +29,8 @@ const ATTRIBUTION_KEYS = [
 ] as const;
 const SENSITIVE_KEY = /(email|name|prompt|content|message|token|secret|password|url|query)/i;
 const MAX_STRING_LENGTH = 80;
+let entryAttribution: Record<string, string> = {};
+let previousPageUrl = '';
 const LANDING_CTA_EVENTS = new Set([
 	'welcome_header_cta_click',
 	'welcome_how_cta_click',
@@ -100,7 +102,12 @@ const normalizeAttributionValue = (value: string | null): string | null => {
 };
 
 export const captureAttribution = (): void => {
-	if (typeof window === 'undefined' || getAnalyticsConsent() !== 'granted') return;
+	if (typeof window === 'undefined') return;
+	const consent = getAnalyticsConsent();
+	if (consent === 'denied') {
+		entryAttribution = {};
+		return;
+	}
 
 	const values: Record<string, string> = {};
 	const params = new URLSearchParams(window.location.search);
@@ -108,12 +115,17 @@ export const captureAttribution = (): void => {
 		const value = normalizeAttributionValue(params.get(key));
 		if (value) values[key] = value;
 	}
-	if (!Object.keys(values).length) return;
+	if (Object.keys(values).length) entryAttribution = values;
+	// Keep the entry campaign in memory across SPA redirects; persist only after consent.
+	if (consent !== 'granted' || !Object.keys(entryAttribution).length) return;
 
 	try {
 		window.localStorage.setItem(
 			ANALYTICS_ATTRIBUTION_KEY,
-			JSON.stringify({ values, capturedAt: Date.now() } satisfies StoredAttribution)
+			JSON.stringify({
+				values: entryAttribution,
+				capturedAt: Date.now()
+			} satisfies StoredAttribution)
 		);
 	} catch {
 		// Analytics must never block navigation when storage is unavailable.
@@ -171,12 +183,14 @@ const initializeYandex = (analyticsWindow: AnalyticsWindow): void => {
 		'airis-yandex-metrica'
 	);
 	analyticsWindow.ym(YANDEX_METRICA_ID, 'init', {
-		webvisor: true,
+		// SPA views are sent explicitly; automatic collection can expose private product data.
+		defer: true,
+		webvisor: false,
 		clickmap: true,
-		trackLinks: true,
+		trackLinks: false,
 		accurateTrackBounce: true,
 		ecommerce: 'dataLayer',
-		trackHash: true,
+		trackHash: false,
 		sendTitle: false
 	});
 	analyticsWindow.__airisAnalyticsScripts = {
@@ -217,6 +231,7 @@ export const initializeAnalytics = (): void => {
 
 	const analyticsWindow = window as AnalyticsWindow;
 	if (analyticsWindow.__airisAnalyticsInitialized) return;
+	previousPageUrl = '';
 	initializeYandex(analyticsWindow);
 	initializeGoogle(analyticsWindow);
 	analyticsWindow.__airisAnalyticsInitialized = true;
@@ -228,8 +243,14 @@ export const trackPageView = (): void => {
 	captureAttribution();
 	initializeAnalytics();
 	const analyticsWindow = window as AnalyticsWindow;
-	const pagePath = `${window.location.pathname}${window.location.hash}`;
-	if (YANDEX_METRICA_ID) analyticsWindow.ym?.(YANDEX_METRICA_ID, 'hit', pagePath);
+	// Keep campaign attribution in the first hit without auth/query data or private fragments.
+	const campaignParams = new URLSearchParams(entryAttribution);
+	const campaignQuery = campaignParams.toString();
+	const pagePath = `${window.location.pathname}${campaignQuery ? `?${campaignQuery}` : ''}`;
+	const referrer = document.referrer ? new URL(document.referrer) : null;
+	const referer = previousPageUrl || (referrer ? `${referrer.origin}${referrer.pathname}` : '');
+	if (YANDEX_METRICA_ID) analyticsWindow.ym?.(YANDEX_METRICA_ID, 'hit', pagePath, { referer });
+	previousPageUrl = `${window.location.origin}${pagePath}`;
 	if (GA_MEASUREMENT_ID) {
 		analyticsWindow.gtag?.('event', 'page_view', {
 			page_path: pagePath

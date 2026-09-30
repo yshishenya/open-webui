@@ -1,0 +1,8 @@
+- [ ] **[BUG][ANALYTICS]** Аудит и восстановление подключения Яндекс Метрики
+  - Spec: `meta/memory_bank/specs/work_items/2026-09-30__bugfix__yandex-metrica-production-audit.md`
+  - Owner: Codex
+  - Branch: codex/bugfix/metrica-audit-20260930
+  - Started: 2026-09-30
+  - Summary: Аудит завершён, подготовлены CI build args и исправления SPA/privacy/UTM. Live восстановление требует настроек Tilda/Метрики, подтверждённого ID, пересборки и публикации; SDD остаётся active.
+  - Tests: Read-only HTTPS/Docker; 7/7 scoped Vitest, ESLint, source Prettier и diff-check passed; CI YAML parsed. Full typecheck failed (8363 errors / 226 warnings вне изменённых analytics файлов), YAML formatting также failing на исходном HEAD.
+  - Risks: Provider settings/report delivery и deploy не проверены; данные до восстановления тега невозможно получить из frontend задним числом.

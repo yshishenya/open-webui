@@ -36,9 +36,9 @@
 	};
 
 	const syncAnalytics = (): void => {
-		if (getAnalyticsConsent() !== 'granted') return;
 		captureAttribution();
-		const pagePath = `${window.location.pathname}${window.location.hash}`;
+		if (getAnalyticsConsent() !== 'granted') return;
+		const pagePath = window.location.pathname;
 		if (pagePath === lastTrackedPagePath) return;
 		lastTrackedPagePath = pagePath;
 		initializeAnalytics();
