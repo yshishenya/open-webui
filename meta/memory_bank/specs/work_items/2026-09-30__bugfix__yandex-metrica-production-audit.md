@@ -69,17 +69,18 @@ Tilda-лендинг `airis.you` и продукт `chat.airis.you`, актуа�
 ### Результаты
 
 - Регрессионный тест до исправления: 1 failed / 6 passed (нет `defer: true`).
-- После исправления: 7/7 tests passed в `analytics.test.ts` и `analyticsConsent.test.ts`.
+- После исправления и regression проверки campaign redirect: 8/8 tests passed в `analytics.test.ts` и `analyticsConsent.test.ts`.
 - Scoped ESLint, Prettier для всех изменённых TS/Svelte и `git diff --check`: passed.
 - CI YAML parsed через js-yaml; оба measurement build args присутствуют.
 - Prettier всего `.github/workflows/docker.yaml`: failed; исходная версия HEAD
   также не проходит. Файл не переформатирован, diff ограничен двумя строками.
 - Полный `npm run check`: failed, 8363 errors / 226 warnings в 350 файлах;
   диагностик для изменённых analytics файлов нет. Это не full-green validation.
-- Backend/БД не изменены, backend tests не запускались; build/e2e/network delivery
-  после применения ID не выполнены, нужна отдельная публикация и live проверка.
-- Во время full typecheck обнаружено высокое потребление RAM; дальнейшие тяжёлые
-  проверки на хосте с работающим продуктом не запускались. После нагрузки
+- Backend/БД не изменены, backend tests не запускались. Browser baseline обоих сайтов выполнен:
+  тега/запросов нет даже при granted consent продукта. Network delivery нового
+  образа ещё не проверена: сборка и публикация не завершены.
+- Во время full typecheck обнаружено высокое потребление RAM; две последующие bounded
+  frontend build попытки на сервере завершились OOM (exit 134 / 137). После нагрузки
   `/health` отвечает успешно, Docker health healthy. Деплой вручную не запускался.
 
 ## Guide
@@ -94,3 +95,26 @@ Production rebuild/deploy и Tilda publish ещё не выполнены. Дл�
 настройки нужны подтверждённый счётчик, доступ к настройкам Яндекса и Tilda,
 repository variable и публикация образа с заполненным ID. Guide фиксирует точный
 порядок. Откат: revert patch и пересборка; согласие остаётся обязательным.
+
+## Уточнение сборки и rollout — 2026-09-30
+
+- Пользователь требует собирать на своём компьютере, выкатывать готовый Docker-образ.
+  После уточнения серверные сборки не запускались. Временный swap отключён и удалён.
+- Production не переключался: image `a78b95932936c97651baefe9955f7b8dfdb42d86`,
+  digest `sha256:67360084aec6e582998835285b68704af278dd1c165886f6f56f3697882558c7`,
+  Docker healthy, публичный `/health` возвращает `{"status":true}`.
+- Код исправлений: `a5ccb3c8717a05ab7fd1409e7e74209715f7729d`, pushed.
+- Локальный проект найден через app: `/Users/yshishenya/Documents/projects/open-webui`;
+  инструменты этого чата исполняют команды только на remote host AIris. Нет
+  callable local executor/handoff. Доступ к Tilda/Метрике также отсутствует.
+- В `deploy/targets/prod.env.example` предусмотрен счётчик 111392024. Management
+  API без авторизации отвечает 401; настройки и отчёты не проверены.
+- `meta/docs/releases/metrica-local-build.md` содержит команды локальной сборки
+  существующего frontend stage и overlay над immutable production backend,
+  архитектуру linux/amd64, проверки compiled ID и порядок guarded rollout.
+  Команды проверены синтаксически; локальная сборка ещё не исполнялась.
+- `meta/docs/releases/v2026.09.30.1.md` — черновик release notes, не опубликованный
+  релиз. Tag, GitHub Release, PR, image push и rollout ещё не выполнены.
+- Дополнительно найден сломанный inline Chatra script в Tilda: инструкция
+  исправления в guide, опубликованный лендинг пока не изменён.
+- Live task остаётся pending; SDD не закрывать до rollout и provider evidence.
