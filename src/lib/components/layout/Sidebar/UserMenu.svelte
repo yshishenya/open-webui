@@ -97,20 +97,6 @@
 			showSidebar.set(false);
 		}
 	};
-
-	const handleInternalNavigation = async (
-		event: MouseEvent,
-		path: string
-	): Promise<void> => {
-		if (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1) {
-			return;
-		}
-
-		event.preventDefault();
-		show = false;
-		await goto(path);
-		await closeMobileSidebar();
-	};
 </script>
 
 <svelte:window
@@ -165,6 +151,7 @@
 									: $i18n.t('Active Users')}
 							>
 								<div
+									role="group"
 									class="ml-auto flex shrink-0 items-center justify-end gap-1 rounded-full px-1.5 py-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400"
 									on:mouseenter={() => {
 										if ($config?.features?.enable_public_active_users_count || role === 'admin') {
@@ -172,7 +159,7 @@
 										}
 									}}
 								>
-									<span class="size-1.5 rounded-full bg-green-500" />
+									<span class="size-1.5 rounded-full bg-green-500"></span>
 									<span>{usage.user_count}</span>
 								</div>
 							</Tooltip>
@@ -481,6 +468,18 @@
 				<hr class="border-gray-50/30 dark:border-gray-800/30 my-0.5 mx-1 p-0" />
 
 				<!-- {$i18n.t('Help')} -->
+				<a
+					data-testid="user-menu-guide"
+					href="/guide"
+					target="_blank"
+					rel="noopener noreferrer"
+					draggable="false"
+					class="flex min-h-11 items-center gap-2 rounded-xl px-2 text-[13px] w-full hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none"
+					on:click={() => (show = false)}
+				>
+					<HelpCircleIcon className="size-3.5" />
+					<span>Руководство AIRIS</span>
+				</a>
 
 				{#if $user?.role === 'admin'}
 					<a

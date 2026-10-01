@@ -2338,6 +2338,7 @@
 	"Select a group": "",
 	"Select a language": "",
 	"Select a mode": "",
+	"The requested model is unavailable. Choose another model and check its cost before sending.": "The requested model is unavailable. Choose another model and check its cost before sending.",
 	"Select a model": "",
 	"Select a model (optional)": "",
 	"Select a pipeline": "",

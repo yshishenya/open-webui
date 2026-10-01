@@ -24,11 +24,24 @@ export const buildSignupUrl = (source: string, params: Record<string, string> = 
 	return `/signup?${searchParams.toString()}`;
 };
 
-const hasActiveSession = (): boolean => Boolean(get(user) || (browser && localStorage.token));
+const hasActiveSession = (): boolean => {
+	if (get(user)) return true;
+	try {
+		return Boolean(browser && localStorage.token);
+	} catch {
+		return false;
+	}
+};
 
-export const openPreset = (source: string, preset: string, prompt: string): void => {
+export const openPreset = (
+	source: string,
+	preset: string,
+	prompt: string,
+	model?: string
+): void => {
 	trackEvent('landing_preset_open', { source, preset });
-	const target = buildChatUrl(source, { preset, q: prompt, submit: 'false' });
+	const params = { preset, q: prompt, submit: 'false', ...(model ? { model } : {}) };
+	const target = buildChatUrl(source, params);
 
 	if (hasActiveSession()) {
 		goto(target);
@@ -36,24 +49,17 @@ export const openPreset = (source: string, preset: string, prompt: string): void
 	}
 
 	if (browser) {
-		sessionStorage.setItem(
-			'welcome_preset_prompt',
-			JSON.stringify({
-				preset,
-				prompt,
-				source,
-				createdAt: Date.now()
-			})
-		);
+		try {
+			sessionStorage.setItem(
+				'welcome_preset_prompt',
+				JSON.stringify({ preset, prompt, source, createdAt: Date.now() })
+			);
+		} catch {
+			// The redirect URL carries the draft when storage is unavailable.
+		}
 	}
 
-	goto(
-		buildSignupUrl(source, {
-			preset,
-			q: prompt,
-			submit: 'false'
-		})
-	);
+	goto(buildSignupUrl(source, params));
 };
 
 export const openCta = (source: string): void => {

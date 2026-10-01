@@ -671,10 +671,13 @@ export const getLeadMagnetInfo = async (token: string): Promise<LeadMagnetInfo |
 	}
 };
 
-export const getPublicLeadMagnetConfig = async (): Promise<PublicLeadMagnetConfig | null> => {
+export const getPublicLeadMagnetConfig = async (
+	signal?: AbortSignal
+): Promise<PublicLeadMagnetConfig | null> => {
 	try {
 		return await publicApiRequest<PublicLeadMagnetConfig>(
-			`${WEBUI_API_BASE_URL}/billing/public/lead-magnet`
+			`${WEBUI_API_BASE_URL}/billing/public/lead-magnet`,
+			{ signal }
 		);
 	} catch (error) {
 		console.error('Failed to get public lead magnet config:', error);
@@ -682,10 +685,13 @@ export const getPublicLeadMagnetConfig = async (): Promise<PublicLeadMagnetConfi
 	}
 };
 
-export const getPublicPricingConfig = async (): Promise<PublicPricingConfig | null> => {
+export const getPublicPricingConfig = async (
+	signal?: AbortSignal
+): Promise<PublicPricingConfig | null> => {
 	try {
 		return await publicApiRequest<PublicPricingConfig>(
-			`${WEBUI_API_BASE_URL}/billing/public/pricing-config`
+			`${WEBUI_API_BASE_URL}/billing/public/pricing-config`,
+			{ signal }
 		);
 	} catch (error) {
 		console.error('Failed to get public pricing config:', error);
