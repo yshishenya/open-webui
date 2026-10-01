@@ -29,7 +29,7 @@
 	};
 
 	const trackScrollDepth = (): void => {
-		if (getAnalyticsConsent() !== 'granted') return;
+		if (window.location.pathname === '/unsubscribe' || getAnalyticsConsent() !== 'granted') return;
 
 		const documentHeight = Math.max(
 			document.body.scrollHeight,
@@ -47,6 +47,7 @@
 	};
 
 	const syncAnalytics = (): void => {
+		if (window.location.pathname === '/unsubscribe') return;
 		captureAttribution();
 		if (getAnalyticsConsent() !== 'granted') return;
 		const pagePath = window.location.pathname;

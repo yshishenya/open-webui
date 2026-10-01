@@ -895,7 +895,7 @@ async def signup(
     response: Response,
     form_data: SignupForm,
     db: AsyncSession = Depends(get_async_session),
-):
+) -> dict[str, object]:
     has_users = await Users.has_users(db=db)
 
     if WEBUI_AUTH:
@@ -935,6 +935,9 @@ async def signup(
             form_data.profile_image_url,
             db=db,
         )
+        from open_webui.models.email_preferences import set_product_preference
+
+        await set_product_preference(user.id, form_data.product_emails_opt_in, 'signup', db=db)
         await record_legal_acceptances(
             user_id=user.id,
             keys=['terms_offer', 'privacy_policy'],

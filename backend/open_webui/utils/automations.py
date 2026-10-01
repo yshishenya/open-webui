@@ -215,10 +215,14 @@ async def scheduler_worker_loop(app) -> None:
         f'scheduler poll interval: {SCHEDULER_POLL_INTERVAL}s)'
     )
     next_scheduler_poll = 0.0
+    from open_webui.models.email_preferences import cleanup_product_email_if_due
+
+    next_email_cleanup = 0.0
 
     while True:
         try:
             now = time.monotonic()
+            next_email_cleanup = await cleanup_product_email_if_due(next_email_cleanup, now)
             # ── Timers ──
             try:
                 from open_webui.utils.timers import claim_due_timers, execute_due_timer

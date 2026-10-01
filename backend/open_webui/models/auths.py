@@ -10,7 +10,7 @@ import bcrypt
 from open_webui.internal.db import Base, JSONField, get_async_db_context
 from open_webui.models.users import User, UserModel, UserProfileImageResponse, Users
 from open_webui.utils.validate import validate_profile_image_url
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, StrictBool, field_validator
 from sqlalchemy import Boolean, Column, String, Text, delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -84,6 +84,7 @@ class SignupForm(BaseModel):
     profile_image_url: str | None = '/user.png'
     terms_accepted: bool = False
     privacy_accepted: bool = False
+    product_emails_opt_in: StrictBool = False
 
     @field_validator('profile_image_url')
     @classmethod
@@ -206,10 +207,7 @@ class AuthsTable:
             auth_row = await session.get(Auth, user_id)
             if auth_row is None:
                 return False
-            auth_row.email = email
-            await session.commit()
-            await Users.update_user_by_id(user_id, {'email': email}, db=session)
-            return True
+            return await Users.update_user_by_id(user_id, {'email': email}, db=session) is not None
         # --- password modification ---
 
     async def update_user_password_by_id(

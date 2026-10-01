@@ -8,22 +8,22 @@ test.describe('Settings', () => {
 		await page.goto('/');
 		const userMenuButton = await getUserMenuTrigger(page);
 		await userMenuButton.first().click();
-		await page.getByRole('menuitem', { name: 'Settings' }).click();
-		await page.getByRole('tab', { name: 'General' }).waitFor();
+		await page.getByRole('button', { name: 'Settings', exact: true }).click();
+		await page.locator('[role="tab"][aria-controls="tab-general"]').waitFor();
 	});
 
 	test('user can open the General modal and hit save', async ({ page }) => {
-		await page.getByRole('tab', { name: 'General' }).click();
+		await page.locator('[role="tab"][aria-controls="tab-general"]').click();
 		await page.getByRole('button', { name: 'Save' }).click();
 	});
 
 	test('user can open the Interface modal and hit save', async ({ page }) => {
-		await page.getByRole('tab', { name: 'Interface' }).click();
+		await page.locator('[role="tab"][aria-controls="tab-interface"]').click();
 		await page.getByRole('button', { name: 'Save' }).click();
 	});
 
 	test('user can open the Audio modal and hit save', async ({ page }) => {
-		await page.getByRole('tab', { name: 'Audio' }).click();
+		await page.locator('[role="tab"][aria-controls="tab-audio"]').click();
 		await page.getByRole('button', { name: 'Save' }).click();
 	});
 

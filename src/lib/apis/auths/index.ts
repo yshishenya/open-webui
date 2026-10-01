@@ -346,7 +346,8 @@ export const userSignUp = async (
 	email: string,
 	password: string,
 	profile_image_url: string,
-	legalAccepted: boolean
+	legalAccepted: boolean,
+	productEmailsOptIn: boolean = false
 ) => {
 	let error = null;
 
@@ -362,7 +363,8 @@ export const userSignUp = async (
 			password: password,
 			profile_image_url: profile_image_url,
 			terms_accepted: legalAccepted,
-			privacy_accepted: legalAccepted
+			privacy_accepted: legalAccepted,
+			product_emails_opt_in: productEmailsOptIn
 		})
 	})
 		.then(async (res) => {

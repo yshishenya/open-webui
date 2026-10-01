@@ -11,9 +11,12 @@ This module provides email sending capabilities using configured SMTP service wi
 
 import logging
 import os
+from collections.abc import Awaitable, Callable
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr, formatdate, make_msgid
+from html import escape
+from urllib.parse import urlsplit
 
 import aiosmtplib
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -35,6 +38,7 @@ SMTP_USE_TLS = os.getenv('SMTP_USE_TLS', 'true').lower() == 'true'
 SMTP_FROM_EMAIL = os.getenv('SMTP_FROM_EMAIL', 'noreply@example.com')
 SMTP_FROM_NAME = os.getenv('SMTP_FROM_NAME', 'Airis')
 SMTP_REPLY_TO = os.getenv('SMTP_REPLY_TO', '')
+AIRIS_PRODUCT_EMAILS_ENABLED = os.getenv('AIRIS_PRODUCT_EMAILS_ENABLED', 'false').lower() == 'true'
 
 EMAIL_VERIFICATION_EXPIRY_HOURS = int(os.getenv('EMAIL_VERIFICATION_EXPIRY_HOURS', '24'))
 PASSWORD_RESET_EXPIRY_HOURS = int(os.getenv('PASSWORD_RESET_EXPIRY_HOURS', '2'))
@@ -124,6 +128,8 @@ class EmailService:
         retry_delay: int = 2,
         *,
         message_id: str | None = None,
+        unsubscribe_url: str | None = None,
+        before_submit: Callable[[], Awaitable[bool]] | None = None,
     ) -> EmailSendResult:
         """
         Submit email, returning accepted, failed or unknown (async).
@@ -151,6 +157,7 @@ class EmailService:
             self.from_name,
             self.reply_to,
             message_id or '',
+            unsubscribe_url or '',
         )
         if any('\r' in value or '\n' in value for value in headers) or retry_count < 1 or retry_delay < 0:
             log.warning('SMTP submission failed: invalid headers or retry settings')
@@ -161,6 +168,16 @@ class EmailService:
             log.warning('SMTP submission failed: invalid Message-ID')
             return EmailSendResult('failed', '', 0)
 
+        if unsubscribe_url is not None:
+            parsed = urlsplit(unsubscribe_url)
+            if (
+                parsed.scheme != 'https'
+                or not parsed.netloc
+                or parsed.username
+                or any(c.isspace() for c in unsubscribe_url)
+            ):
+                return EmailSendResult('failed', '', 0)
+
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
         msg['From'] = formataddr((self.from_name, self.from_email))
@@ -169,6 +186,10 @@ class EmailService:
         msg['Message-ID'] = message_id or make_msgid(domain=self.from_email.rsplit('@', 1)[-1])
         if self.reply_to:
             msg['Reply-To'] = self.reply_to
+
+        if unsubscribe_url:
+            msg['List-Unsubscribe'] = f'<{unsubscribe_url}>'
+            msg['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click'
 
         # Add plain text version if provided
         if text_content:
@@ -179,7 +200,7 @@ class EmailService:
         part2 = MIMEText(html_content, 'html', 'utf-8')
         msg.attach(part2)
 
-        return await submit_smtp_message(self._create_connection, msg, retry_count, retry_delay)
+        return await submit_smtp_message(self._create_connection, msg, retry_count, retry_delay, before_submit)
 
     def render_template(self, template_name: str, **context: object) -> tuple[str, str]:
         """
@@ -241,29 +262,65 @@ class EmailService:
             text_content=text_content,
         )
 
-    async def send_welcome_email(self, to_email: str, name: str) -> bool:
-        """
-        Send welcome email after successful verification (async)
+    async def send_product_email(
+        self,
+        user_id: str,
+        subject: str,
+        html_content: str,
+        text_content: str,
+        *,
+        message_id: str | None = None,
+    ) -> EmailSendResult:
+        """Every optional product message checks server-owned consent before each SMTP attempt."""
+        from open_webui.models.email_preferences import create_product_unsubscribe_token, product_email_allowed
+        from open_webui.models.users import Users
 
-        Args:
-            to_email: User email address
-            name: User name
+        if not AIRIS_PRODUCT_EMAILS_ENABLED:
+            return EmailSendResult('failed', message_id or '', 0)
+        user = await Users.get_user_by_id(user_id)
+        if not user:
+            return EmailSendResult('failed', message_id or '', 0)
+        token = await create_product_unsubscribe_token(user_id)
+        if not token:
+            return EmailSendResult('failed', message_id or '', 0)
+        base = FRONTEND_URL.rstrip('/')
+        footer_url = f'{base}/unsubscribe#token={token}'
+        one_click_url = f'{base}/api/v1/email-preferences/one-click/{token}'
+        html_content += (
+            '<p>Вы получили это письмо по вашему согласию на продуктовые письма AIRIS. '
+            f'<a href="{escape(footer_url, quote=True)}">Отписаться</a>.</p>'
+        )
+        text_content += (
+            f'\n\nВы получили это письмо по вашему согласию на продуктовые письма AIRIS. Отписаться: {footer_url}\n'
+        )
 
-        Returns:
-            True if sent successfully
-        """
+        async def still_allowed() -> bool:
+            return await product_email_allowed(user_id, user.email)
+
+        return await self.send_email_result(
+            user.email,
+            subject,
+            html_content,
+            text_content,
+            message_id=message_id,
+            unsubscribe_url=one_click_url,
+            before_submit=still_allowed,
+        )
+
+    async def send_welcome_email(self, user_id: str) -> bool:
+        """Send a welcome only to an account with explicit product consent."""
+        from open_webui.models.users import Users
+
+        user = await Users.get_user_by_id(user_id)
+        if not user:
+            return False
         html_content, text_content = self.render_template(
             'welcome',
-            name=name,
+            name=user.name,
             dashboard_url=f'{FRONTEND_URL}/',
         )
-
-        return await self.send_email(
-            to_email=to_email,
-            subject='Добро пожаловать в Airis!',
-            html_content=html_content,
-            text_content=text_content,
-        )
+        result = await self.send_product_email(user_id, 'Добро пожаловать в Airis!', html_content, text_content)
+        return result.status == 'accepted'
 
     async def send_password_reset_email(self, to_email: str, name: str, reset_token: str) -> bool:
         """

@@ -54,6 +54,7 @@ async def submit_smtp_message(
     message: MIMEMultipart,
     retry_count: int,
     retry_delay: int,
+    before_submit: Callable[[], Awaitable[bool]] | None = None,
 ) -> EmailSendResult:
     """Retry proven temporary failures, never cleanup or uncertain acceptance.
 
@@ -68,6 +69,8 @@ async def submit_smtp_message(
         result = EmailSendResult('failed', message_id, attempt)
         try:
             smtp = await create_connection()
+            if before_submit is not None and not await before_submit():
+                return result
             submitting = True
             await smtp.send_message(message)
             result = EmailSendResult('accepted', message_id, attempt)

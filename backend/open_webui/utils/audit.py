@@ -233,6 +233,12 @@ class AuditLoggingMiddleware:
     )
 
     def _should_skip_auditing(self, request: Request) -> bool:
+        from open_webui.utils.airis.email_log_privacy import is_email_preference_path
+
+        # Consent has its own durable audit; these requests can contain unsubscribe secrets.
+        if is_email_preference_path(request.url.path):
+            return True
+
         if AUDIT_LOG_LEVEL == 'NONE':
             return True
 

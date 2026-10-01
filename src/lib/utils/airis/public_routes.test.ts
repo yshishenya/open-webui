@@ -5,6 +5,8 @@ describe('isPublicMarketingRoute', () => {
 	it('allows public marketing routes and legacy prices alias', () => {
 		expect(isPublicMarketingRoute('/welcome')).toBe(true);
 		expect(isPublicMarketingRoute('/guide')).toBe(true);
+		expect(isPublicMarketingRoute('/unsubscribe')).toBe(true);
+		expect(isPublicMarketingRoute('/documents/product-email-consent')).toBe(true);
 		expect(isPublicMarketingRoute('/pricing')).toBe(true);
 		expect(isPublicMarketingRoute('/prices')).toBe(true);
 		expect(isPublicMarketingRoute('/documents/example')).toBe(true);
