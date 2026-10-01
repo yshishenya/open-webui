@@ -17,3 +17,10 @@
   - Summary: Accepted отделён от QUIT, unknown не повторяется вслепую, повтор ограничен доказанными временными сбоями. Добавлены Date/Message-ID, optional Reply-To, закрытие соединений и безопасные логи; сохранён bool API. В плане закрыты 13 подтверждённых пунктов подготовки и кода.
   - Tests: До фикса три регрессии failed; после — 20 почтовых passed и полный backend 407 passed; после форматирования email/auth 32 passed. Ruff/Black изменённых файлов, py_compile, diff --check и SDD проходят.
   - Risks: Общий backend Ruff имеет 6743 прежние ошибки вне изменённых файлов. Frontend: 119 passed, один suite collection error; check 8363 errors, ESLint existing plugin crash. Server rollout, настоящий Reply-To и Inbox пока не подтверждены; весь выпуск A остаётся активным.
+
+- [ ] **[BUG][CI]** Восстановить зависимости для backend-pytest
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-01__bugfix__onboarding-smtp-safety.md`
+  - Owner: Codex
+  - Started: 2026-10-01
+  - Summary: GitHub CI обходит dev startup и устанавливает неполный набор пакетов в upstream-образ; pytest падает на collection. Перед тестами устанавливается существующий requirements.txt, без изменения зависимостей.
+  - Tests: Проверка Compose и повторный GitHub CI.
