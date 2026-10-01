@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/bugfix/streaming-usage-accounting
-- SDD Spec: meta/sdd/specs/active/airis-streaming-usage-accounti-2026-10-02-0102.json
+- SDD Spec: meta/sdd/specs/active/airis-streaming-usage-2026-10-02-001.json
 - Created: 2026-10-02
 - Updated: 2026-10-02
 
@@ -43,4 +43,4 @@ A wrong field mapping can undercount or overcount both free quota and paid usage
 
 ## Source verification
 
-Before the change, Responses and normalized-field streaming regressions failed, while Chat Completions passed. After the fix, the full backend suite passed: 418 tests. The focused free/paid/string-stream checks passed. Black with the repository configuration (120 columns, skip string normalization) and ruff on all four changed Python files passed. Repository-wide ruff still reports 6,757 existing violations. npm run preflight is unavailable in this repository; the documented Docker backend checks were used instead. SDD validation has no errors, with a generated-ID format warning. Self-review found no outstanding correctness issue. Production acceptance remains pending and must compare a fresh saved provider measurement against its settled usage event.
+Before the change, Responses and normalized-field streaming regressions failed, while Chat Completions passed. After the fix, the full backend suite passed: 418 tests. The focused free/paid/string-stream checks passed. Black with the repository configuration (120 columns, skip string normalization) and ruff on all four changed Python files passed. Repository-wide ruff still reports 6,757 existing violations. npm run preflight is unavailable in this repository; the documented Docker backend checks were used instead. SDD validation has no errors or warnings; the generated ID was normalized to the required three-digit sequence. Self-review found no outstanding correctness issue. Production acceptance remains pending and must compare a fresh saved provider measurement against its settled usage event.
