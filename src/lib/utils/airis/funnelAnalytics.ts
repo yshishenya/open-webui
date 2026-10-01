@@ -206,6 +206,8 @@ export const browserTracksPayments = async (): Promise<boolean> => {
 	if (getAnalyticsConsent() !== 'granted') return false;
 	try {
 		await queue.catch(() => undefined);
+		// Payment routing must recheck destination readiness after a server configuration change.
+		contextFingerprint = '';
 		await syncContext();
 		return identity?.server_payment_tracking === false;
 	} catch {

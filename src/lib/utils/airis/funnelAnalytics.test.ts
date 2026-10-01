@@ -135,6 +135,27 @@ describe('consent-bound product funnel', () => {
 		expect(await api.browserTracksPayments()).toBe(false);
 	});
 
+	it('refreshes payment routing when server delivery is enabled in an open tab', async () => {
+		let serverTracking = false;
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation(
+				async () =>
+					new Response(
+						JSON.stringify({
+							analytics_user_id: 'opaque',
+							server_payment_tracking: serverTracking
+						})
+					)
+			)
+		);
+		const api = await import('./funnelAnalytics');
+		setAnalyticsConsent('granted');
+		expect(await api.browserTracksPayments()).toBe(true);
+		serverTracking = true;
+		expect(await api.browserTracksPayments()).toBe(false);
+	});
+
 	it('purges unknown stored properties before linking the context', async () => {
 		const api = await import('./funnelAnalytics');
 		setAnalyticsConsent('granted');
@@ -156,20 +177,18 @@ describe('consent-bound product funnel', () => {
 		let signupAt = Math.floor(Date.now() / 1000);
 		vi.stubGlobal(
 			'fetch',
-			vi
-				.fn()
-				.mockImplementation(
-					async () =>
-						new Response(
-							JSON.stringify({
-								analytics_user_id: 'opaque',
-								server_payment_tracking: false,
-								server_signup_tracking: serverTracking,
-								signup_completed_at: signupAt,
-								accepted: true
-							})
-						)
-				)
+			vi.fn().mockImplementation(
+				async () =>
+					new Response(
+						JSON.stringify({
+							analytics_user_id: 'opaque',
+							server_payment_tracking: false,
+							server_signup_tracking: serverTracking,
+							signup_completed_at: signupAt,
+							accepted: true
+						})
+					)
+			)
 		);
 		const api = await import('./funnelAnalytics');
 		setAnalyticsConsent('granted');
