@@ -76,6 +76,7 @@ webhook требует отдельной сверки; обработчик н�
 делением месячных оплат на месячные визиты.
 
 Официальные источники:
+
 - https://yandex.ru/support/metrica/ru/data/offline-conversion-data
 - https://yandex.ru/dev/metrika/ru/data-import/measurement-about
 - https://yandex.ru/support/metrica/ru/objects/set-user-id
@@ -97,14 +98,14 @@ production платежами. Окончательные 30-дневные по
 
 ## Цели счётчика 111392024, проверенные 2026-10-01
 
-| Название | Идентификатор | ID цели |
-|---|---|---|
-| Оплата подтверждена сервером | revenue_topup_completed | 666640766 |
-| Первая подтверждённая оплата | revenue_first_payment | 666643235 |
-| Подтверждённый возврат | revenue_refund_confirmed | 666654562 |
-| Просмотр кошелька | billing_wallet_view | 666654747 |
-| Выбор пакета пополнения | billing_wallet_topup_package_click | 666654847 |
-| Пополнение на свою сумму | billing_wallet_topup_custom_submit | 666655014 |
+| Название                     | Идентификатор                      | ID цели   |
+| ---------------------------- | ---------------------------------- | --------- |
+| Оплата подтверждена сервером | revenue_topup_completed            | 666640766 |
+| Первая подтверждённая оплата | revenue_first_payment              | 666643235 |
+| Подтверждённый возврат       | revenue_refund_confirmed           | 666654562 |
+| Просмотр кошелька            | billing_wallet_view                | 666654747 |
+| Выбор пакета пополнения      | billing_wallet_topup_package_click | 666654847 |
+| Пополнение на свою сумму     | billing_wallet_topup_custom_submit | 666655014 |
 
 Сохранение каждой цели проверено в авторизованном кабинете. Наличие цели не
 доказывает получение события; серверная отправка требует приватной конфигурации.
@@ -137,3 +138,7 @@ QueryRunner без ошибок. До выкладки они показываю
 не подходит. При отсутствии готового направления сохраняется браузерный
 запасной путь оплаты/подтверждённой сервером регистрации, без обещания полной
 оплаты без возврата браузера во внешнем кабинете.
+
+### Metrica offline goal conditions
+
+Server offline conversion goals must use exact identifier matching (`exact`), as required by [the official guide](https://yandex.ru/dev/metrika/ru/management/offline-conv). The server registration goal is `lead_signup_completed`; `signup_completed` is the legacy browser goal. `analytics_delivery_check` is a technical diagnostic goal, excluded from the product/payment funnel. Upload acceptance is distinct from `PROCESSED` and report attribution; processing may take up to three hours.

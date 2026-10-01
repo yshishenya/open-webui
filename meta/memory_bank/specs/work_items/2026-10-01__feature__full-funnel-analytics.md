@@ -78,7 +78,7 @@ records and internal financial facts. Migration rollback only after data export.
 ## Progress
 
 - Implementation and independent review complete. Local tests and migration passed.
-- Production rollout and PostHog setup/delivery verified on 2026-10-01. Metrica server delivery awaits OAuth authorization.
+- Production rollout and PostHog setup/delivery verified on 2026-10-01. Metrica OAuth authorized and connected; packaged server conversion upload accepted, processing acceptance remains open.
 - AC01–12/14 checked against isolated automated checks; real-money/provider delivery is not claimed.
   AC13/15 remain open for external delivery and production acceptance.
 
@@ -90,4 +90,6 @@ records and internal financial facts. Migration rollback only after data export.
 - Previous image retained for rollback. Deployment recreated only Airis. Analytics configuration persists in `/opt/projects/airis-analytics-runtime/compose.yaml` and private provider.env; production .env image/COMPOSE_FILE updated without discarding other settings.
 - Published-image tests: 19 new analytics and 95 existing billing tests pass. Fresh production PostgreSQL dump restored locally and migrated successfully before rollout.
 - Actual production browser: no Metrica script while denied, one after consent; welcome→pricing works. First visit with diagnostic UTM saved and delivered; event found in PostHog Team 2. Revoke removes internal events/attribution. Public report denies unauthenticated requests (401); deployed report computes 7/30-day windows.
-- Metrica OAuth form prepared for metrika:read/write, not submitted pending action-time confirmation required by browser security policy. No real payments/refunds or fake production accounts created. AC13/15 remain open for this provider gate and full signed-in acceptance.
+- Metrica OAuth application created after explicit action-time approval, metrika:read/write token persisted in private runtime configuration. Counter/goals/uploadings API access verified; restart healthy, zero restarts. No real payments/refunds or fake production accounts created. AC13/15 remain open for processed provider delivery and signed-in acceptance.
+- Added exact server signup goal `lead_signup_completed` (666687214) and technical delivery goal `analytics_delivery_check` (666687215). Changed four server offline goals to exact conditions preserving their IDs, as required by official offline conversion documentation.
+- Actual packaged `deliver_metrica` uploaded one technical conversion for a genuine consenting browser ClientID, using an isolated in-memory database. Upload 1211156457 accepted (`UPLOADED`); no fake registration/payment or production financial event inserted. Final processing/report linkage remains pending.

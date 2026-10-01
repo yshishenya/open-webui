@@ -43,3 +43,6 @@
 - Deployed source edbd07e149c4d340b84dfa031c714adf73e19fef; registry digest 24273c0692f2c6ce98f4a29964307e79db20e11b39cfb819d4e6409b7617e99a. Service-only rollout/migration/health/public version passed.
 - Live consent, first-visit attribution, durable PostHog delivery and warehouse receipt, revoke purge, unauthenticated report denial, 7/30-day report calculation passed.
 - Metrica OAuth prepared; create/permission grant awaits required browser action-time confirmation. Signed-in/full real financial acceptance remains unproven; SDD verification task stays in progress.
+
+- 2026-10-01: Metrica OAuth authorized/connected; production healthy after restart. Added missing exact signup and technical goals; corrected four offline goal conditions preserving IDs. Packaged transport accepted genuine technical conversion upload 1211156457; processing/report linkage and signed-in acceptance remain open.
+  Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
