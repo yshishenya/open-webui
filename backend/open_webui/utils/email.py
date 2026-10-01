@@ -1,24 +1,24 @@
 """
-Email Service - SMTP integration with Postal for transactional emails
+Email Service - SMTP integration for transactional emails
 
-This module provides email sending capabilities using Postal SMTP service with:
+This module provides email sending capabilities using configured SMTP service with:
 - HTML and plain text email templates
 - Retry logic with exponential backoff
-- Rate limiting integration
+- Explicit accepted, failed and unknown submission results
 - Template rendering for Russian language
 - Async operations using aiosmtplib
 """
 
-import asyncio
-import aiosmtplib
+import logging
+import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Optional, List, Tuple
-import logging
+from email.utils import formataddr, formatdate, make_msgid
 
+import aiosmtplib
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from open_webui.env import OPEN_WEBUI_DIR
-import os
+from open_webui.utils.airis.email_delivery import EmailSendResult, submit_smtp_message
 
 log = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 # Email Configuration
 ####################################
 
-# Postal SMTP configuration
+# SMTP configuration (Mailu in the current production deployment)
 SMTP_HOST = os.getenv('SMTP_HOST', '')
 SMTP_PORT = int(os.getenv('SMTP_PORT', '25'))
 SMTP_USERNAME = os.getenv('SMTP_USERNAME', '')
@@ -34,6 +34,7 @@ SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
 SMTP_USE_TLS = os.getenv('SMTP_USE_TLS', 'true').lower() == 'true'
 SMTP_FROM_EMAIL = os.getenv('SMTP_FROM_EMAIL', 'noreply@example.com')
 SMTP_FROM_NAME = os.getenv('SMTP_FROM_NAME', 'Airis')
+SMTP_REPLY_TO = os.getenv('SMTP_REPLY_TO', '')
 
 EMAIL_VERIFICATION_EXPIRY_HOURS = int(os.getenv('EMAIL_VERIFICATION_EXPIRY_HOURS', '24'))
 PASSWORD_RESET_EXPIRY_HOURS = int(os.getenv('PASSWORD_RESET_EXPIRY_HOURS', '2'))
@@ -44,12 +45,12 @@ FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 ####################################
 
 # Setup Jinja2 environment for email templates
-template_dir = OPEN_WEBUI_DIR / "templates" / "email"
+template_dir = OPEN_WEBUI_DIR / 'templates' / 'email'
 template_dir.mkdir(parents=True, exist_ok=True)
 
 jinja_env = Environment(
     loader=FileSystemLoader(str(template_dir)),
-    autoescape=select_autoescape(["html", "xml"]),
+    autoescape=select_autoescape(['html', 'xml']),
     trim_blocks=True,
     lstrip_blocks=True,
 )
@@ -62,7 +63,7 @@ jinja_env = Environment(
 class EmailService:
     """Email service for sending transactional emails via SMTP"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.smtp_host = SMTP_HOST
         self.smtp_port = SMTP_PORT
         self.smtp_username = SMTP_USERNAME
@@ -70,6 +71,7 @@ class EmailService:
         self.smtp_use_tls = SMTP_USE_TLS
         self.from_email = SMTP_FROM_EMAIL
         self.from_name = SMTP_FROM_NAME
+        self.reply_to = SMTP_REPLY_TO
 
     def is_configured(self) -> bool:
         """Check if SMTP is properly configured"""
@@ -77,21 +79,22 @@ class EmailService:
 
     async def _create_connection(self) -> aiosmtplib.SMTP:
         """Create async SMTP connection with error handling"""
+        smtp = aiosmtplib.SMTP(
+            hostname=self.smtp_host,
+            port=self.smtp_port,
+            timeout=10,
+            start_tls=self.smtp_use_tls,
+        )
         try:
-            smtp = aiosmtplib.SMTP(
-                hostname=self.smtp_host,
-                port=self.smtp_port,
-                timeout=10,
-                start_tls=self.smtp_use_tls,
-            )
             await smtp.connect()
 
             if self.smtp_username and self.smtp_password:
                 await smtp.login(self.smtp_username, self.smtp_password)
 
             return smtp
-        except Exception as e:
-            log.error(f"Failed to create SMTP connection: {e}")
+        except BaseException:
+            # Includes cancellation during connect/AUTH; no message was submitted.
+            smtp.close()
             raise
 
     async def send_email(
@@ -99,64 +102,86 @@ class EmailService:
         to_email: str,
         subject: str,
         html_content: str,
-        text_content: Optional[str] = None,
+        text_content: str | None = None,
         retry_count: int = 3,
         retry_delay: int = 2,
     ) -> bool:
+        """Return True for SMTP acceptance. False includes unknown submission.
+
+        Durable callers must use send_email_result to distinguish unknown from
+        proven failure and must not retry False blindly.
         """
-        Send email with retry logic (async)
+        result = await self.send_email_result(to_email, subject, html_content, text_content, retry_count, retry_delay)
+        return result.status == 'accepted'
+
+    async def send_email_result(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+        text_content: str | None = None,
+        retry_count: int = 3,
+        retry_delay: int = 2,
+        *,
+        message_id: str | None = None,
+    ) -> EmailSendResult:
+        """
+        Submit email, returning accepted, failed or unknown (async).
 
         Args:
             to_email: Recipient email address
             subject: Email subject
             html_content: HTML email content
             text_content: Plain text email content (optional)
-            retry_count: Number of retry attempts
+            retry_count: Maximum total attempts, including the first
             retry_delay: Initial delay between retries in seconds
+            message_id: Stable identity supplied by a durable queue (optional)
 
         Returns:
-            True if email sent successfully, False otherwise
+            SMTP submission result. Acceptance does not prove recipient delivery.
         """
         if not self.is_configured():
-            log.error("SMTP is not configured. Cannot send email.")
-            return False
+            log.error('SMTP is not configured. Cannot send email.')
+            return EmailSendResult('failed', message_id or '', 0)
 
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = f"{self.from_name} <{self.from_email}>"
-        msg["To"] = to_email
+        headers = (
+            to_email,
+            subject,
+            self.from_email,
+            self.from_name,
+            self.reply_to,
+            message_id or '',
+        )
+        if any('\r' in value or '\n' in value for value in headers) or retry_count < 1 or retry_delay < 0:
+            log.warning('SMTP submission failed: invalid headers or retry settings')
+            return EmailSendResult('failed', '', 0)
+        if message_id is not None and (
+            not message_id.startswith('<') or not message_id.endswith('>') or any(c.isspace() for c in message_id)
+        ):
+            log.warning('SMTP submission failed: invalid Message-ID')
+            return EmailSendResult('failed', '', 0)
+
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = formataddr((self.from_name, self.from_email))
+        msg['To'] = to_email
+        msg['Date'] = formatdate(usegmt=True)
+        msg['Message-ID'] = message_id or make_msgid(domain=self.from_email.rsplit('@', 1)[-1])
+        if self.reply_to:
+            msg['Reply-To'] = self.reply_to
 
         # Add plain text version if provided
         if text_content:
-            part1 = MIMEText(text_content, "plain", "utf-8")
+            part1 = MIMEText(text_content, 'plain', 'utf-8')
             msg.attach(part1)
 
         # Add HTML version
-        part2 = MIMEText(html_content, "html", "utf-8")
+        part2 = MIMEText(html_content, 'html', 'utf-8')
         msg.attach(part2)
 
-        # Retry loop with exponential backoff
-        for attempt in range(retry_count):
-            try:
-                smtp = await self._create_connection()
-                await smtp.send_message(msg)
-                await smtp.quit()
-                log.info(f"Email sent successfully to {to_email}")
-                return True
-            except Exception as e:
-                log.error(f"Failed to send email (attempt {attempt + 1}/{retry_count}): {e}")
-                if attempt < retry_count - 1:
-                    # Exponential backoff
-                    delay = retry_delay * (2**attempt)
-                    log.info(f"Retrying in {delay} seconds...")
-                    await asyncio.sleep(delay)
-                else:
-                    log.error(f"Failed to send email to {to_email} after {retry_count} attempts")
-                    return False
+        return await submit_smtp_message(self._create_connection, msg, retry_count, retry_delay)
 
-        return False
-
-    def render_template(self, template_name: str, **context) -> Tuple[str, str]:
+    def render_template(self, template_name: str, **context: object) -> tuple[str, str]:
         """
         Render email template (both HTML and text versions)
 
@@ -167,24 +192,25 @@ class EmailService:
         Returns:
             Tuple of (html_content, text_content)
         """
+        context['support_reply_to'] = self.reply_to
         try:
             # Render HTML template
-            html_template = jinja_env.get_template(f"{template_name}.html")
+            html_template = jinja_env.get_template(f'{template_name}.html')
             html_content = html_template.render(**context)
 
             # Try to render text template, fallback to basic text version
             try:
-                text_template = jinja_env.get_template(f"{template_name}.txt")
+                text_template = jinja_env.get_template(f'{template_name}.txt')
                 text_content = text_template.render(**context)
             except Exception:
                 # Fallback: basic text version from HTML (strip tags)
                 import re
 
-                text_content = re.sub(r"<[^>]+>", "", html_content)
+                text_content = re.sub(r'<[^>]+>', '', html_content)
 
             return html_content, text_content
         except Exception as e:
-            log.error(f"Failed to render template {template_name}: {e}")
+            log.error(f'Failed to render template {template_name}: {e}')
             raise
 
     async def send_verification_email(self, to_email: str, name: str, verification_token: str) -> bool:
@@ -199,10 +225,10 @@ class EmailService:
         Returns:
             True if sent successfully
         """
-        verification_url = f"{FRONTEND_URL}/verify-email?token={verification_token}"
+        verification_url = f'{FRONTEND_URL}/verify-email?token={verification_token}'
 
         html_content, text_content = self.render_template(
-            "verification",
+            'verification',
             name=name,
             verification_url=verification_url,
             expiry_hours=EMAIL_VERIFICATION_EXPIRY_HOURS,
@@ -210,7 +236,7 @@ class EmailService:
 
         return await self.send_email(
             to_email=to_email,
-            subject="Подтвердите ваш email",
+            subject='Подтвердите ваш email',
             html_content=html_content,
             text_content=text_content,
         )
@@ -227,14 +253,14 @@ class EmailService:
             True if sent successfully
         """
         html_content, text_content = self.render_template(
-            "welcome",
+            'welcome',
             name=name,
-            dashboard_url=f"{FRONTEND_URL}/",
+            dashboard_url=f'{FRONTEND_URL}/',
         )
 
         return await self.send_email(
             to_email=to_email,
-            subject="Добро пожаловать в Airis!",
+            subject='Добро пожаловать в Airis!',
             html_content=html_content,
             text_content=text_content,
         )
@@ -251,10 +277,10 @@ class EmailService:
         Returns:
             True if sent successfully
         """
-        reset_url = f"{FRONTEND_URL}/reset-password?token={reset_token}"
+        reset_url = f'{FRONTEND_URL}/reset-password?token={reset_token}'
 
         html_content, text_content = self.render_template(
-            "password_reset",
+            'password_reset',
             name=name,
             reset_url=reset_url,
             expiry_hours=PASSWORD_RESET_EXPIRY_HOURS,
@@ -262,7 +288,7 @@ class EmailService:
 
         return await self.send_email(
             to_email=to_email,
-            subject="Сброс пароля",
+            subject='Сброс пароля',
             html_content=html_content,
             text_content=text_content,
         )
@@ -279,14 +305,14 @@ class EmailService:
             True if sent successfully
         """
         html_content, text_content = self.render_template(
-            "password_changed",
+            'password_changed',
             name=name,
-            support_url=f"{FRONTEND_URL}/support",
+            support_url=f'{FRONTEND_URL}/support',
         )
 
         return await self.send_email(
             to_email=to_email,
-            subject="Ваш пароль был изменен",
+            subject='Ваш пароль был изменен',
             html_content=html_content,
             text_content=text_content,
         )
@@ -300,7 +326,7 @@ class EmailService:
         payment_date: str,
         next_payment_date: str,
         amount: str,
-        currency: str = "RUB",
+        currency: str = 'RUB',
     ) -> bool:
         """
         Send payment confirmation email (async)
@@ -319,7 +345,7 @@ class EmailService:
             True if sent successfully
         """
         html_content, text_content = self.render_template(
-            "payment_confirmation",
+            'payment_confirmation',
             name=name,
             plan_name=plan_name,
             transaction_id=transaction_id,
@@ -327,12 +353,12 @@ class EmailService:
             next_payment_date=next_payment_date,
             amount=amount,
             currency=currency,
-            dashboard_url=f"{FRONTEND_URL}/",
+            dashboard_url=f'{FRONTEND_URL}/',
         )
 
         return await self.send_email(
             to_email=to_email,
-            subject="Подтверждение оплаты",
+            subject='Подтверждение оплаты',
             html_content=html_content,
             text_content=text_content,
         )
@@ -342,7 +368,7 @@ class EmailService:
         to_email: str,
         name: str,
         plan_name: str,
-        features: List[str],
+        features: list[str],
         expires_at: str,
     ) -> bool:
         """
@@ -359,17 +385,17 @@ class EmailService:
             True if sent successfully
         """
         html_content, text_content = self.render_template(
-            "subscription_activated",
+            'subscription_activated',
             name=name,
             plan_name=plan_name,
             features=features,
             expires_at=expires_at,
-            dashboard_url=f"{FRONTEND_URL}/",
+            dashboard_url=f'{FRONTEND_URL}/',
         )
 
         return await self.send_email(
             to_email=to_email,
-            subject=f"Подписка {plan_name} активирована",
+            subject=f'Подписка {plan_name} активирована',
             html_content=html_content,
             text_content=text_content,
         )
@@ -381,8 +407,8 @@ class EmailService:
         quota_type: str,
         used: int,
         limit: int,
-        quota_unit: str = "запросов",
-        reset_period: str = "ежемесячно",
+        quota_unit: str = 'запросов',
+        reset_period: str = 'ежемесячно',
     ) -> bool:
         """
         Send quota usage alert email (async)
@@ -402,7 +428,7 @@ class EmailService:
         usage_percent = min(int((used / limit) * 100), 100) if limit and limit > 0 else 100
 
         html_content, text_content = self.render_template(
-            "quota_alert",
+            'quota_alert',
             name=name,
             quota_type=quota_type,
             used=used,
@@ -410,12 +436,12 @@ class EmailService:
             quota_unit=quota_unit,
             usage_percent=usage_percent,
             reset_period=reset_period,
-            upgrade_url=f"{FRONTEND_URL}/pricing",
+            upgrade_url=f'{FRONTEND_URL}/pricing',
         )
 
         return await self.send_email(
             to_email=to_email,
-            subject=f"Внимание: {quota_type} израсходовано на {usage_percent}%",
+            subject=f'Внимание: {quota_type} израсходовано на {usage_percent}%',
             html_content=html_content,
             text_content=text_content,
         )

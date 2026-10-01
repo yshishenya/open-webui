@@ -1,0 +1,144 @@
+{
+  "spec_id": "onboarding-smtp-safety-2026-10-01-001",
+  "title": "AIRIS SMTP safety: accepted, failed and unknown outcomes",
+  "generated": "2026-10-01T18:15:02.044497Z",
+  "last_updated": "2026-10-01T18:32:37.410292Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 3,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-01__bugfix__onboarding-smtp-safety.md",
+    "owner": "Codex",
+    "status": "completed",
+    "activated_date": "2026-10-01T18:18:32.589010Z",
+    "progress_percentage": 100,
+    "scope": "SMTP implementation and local verification only. Production rollout, Inbox acceptance and remaining onboarding work are not completed.",
+    "completed_date": "2026-10-01T18:32:37.409905Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS SMTP safety: accepted, failed and unknown outcomes",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "completed_at": "2026-10-01T18:32:35.755584Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-01T18:32:35.755584Z"
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and implement safe SMTP transport",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "completed_at": "2026-10-01T18:32:35.755584Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-01T18:32:35.755584Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Docker verification and documentation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-01T18:32:35.755584Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-01T18:32:35.755584Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce duplicate on QUIT and missing standard headers",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "investigation",
+        "completed_at": "2026-10-01T18:32:35.755584Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-01T18:32:35.755584Z"
+      },
+      "dependencies": {
+        "blocked_by": [],
+        "depends": [],
+        "blocks": []
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Implement safe retry classification and explicit delivery outcome",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "implementation",
+        "file_path": "backend/open_webui/utils/airis/email_delivery.py",
+        "completed_at": "2026-10-01T18:32:35.755584Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-01T18:32:35.755584Z"
+      },
+      "dependencies": {
+        "blocked_by": [],
+        "depends": [],
+        "blocks": []
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Run Docker regression checks, review and update plan evidence",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "investigation",
+        "completed_at": "2026-10-01T18:32:35.755584Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-01T18:32:35.755584Z"
+      },
+      "dependencies": {
+        "blocked_by": [],
+        "depends": [],
+        "blocks": []
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-01T18:32:35.755584Z",
+      "entry_type": "status_change",
+      "title": "SMTP safety verified",
+      "author": "Codex",
+      "content": "Three regressions reproduced before fix; 20 mail tests and 407 backend tests passed after fix; post-format email/auth tests 32 passed. Ruff/Black for changed files pass. Existing frontend and repository lint failures are documented. No real emails or production changes.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    }
+  ]
+}
