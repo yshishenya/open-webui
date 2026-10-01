@@ -2,7 +2,7 @@
   "spec_id": "airis-streaming-usage-2026-10-02-001",
   "title": "airis-streaming-usage-accounting-2026-10-02",
   "generated": "2026-10-01T22:02:06.914957Z",
-  "last_updated": "2026-10-01T22:14:18.193471Z",
+  "last_updated": "2026-10-01T22:36:08.559130Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -11,22 +11,24 @@
     "security_sensitive": false,
     "default_category": "investigation",
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__streaming-usage-accounting.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-01T22:05:40.619253Z",
-    "progress_percentage": 33
+    "progress_percentage": 100,
+    "current_phase": "phase-2",
+    "completed_date": "2026-10-01T22:36:08.558747Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "airis-streaming-usage-accounting-2026-10-02",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
         "phase-2"
       ],
       "total_tasks": 3,
-      "completed_tasks": 1,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
@@ -48,15 +50,19 @@
     "phase-2": {
       "type": "phase",
       "title": "Verify source and production accounting",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-2-1",
         "task-2-2"
       ],
       "total_tasks": 2,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-01T22:36:08.003943Z",
+        "journaled_at": "2026-10-01T22:36:08.006142Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -83,7 +89,7 @@
     "task-2-1": {
       "type": "task",
       "title": "Validate billing paths and submit reviewed source",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -92,18 +98,22 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "estimated_hours": 2.0,
         "description": "Run full backend checks, review and open PR",
         "file_path": "backend/open_webui/test/apps/webui/routers/test_openai_chat_billing_streaming.py",
-        "task_category": "implementation"
+        "task_category": "implementation",
+        "completed_at": "2026-10-01T22:29:33.182540Z",
+        "needs_journaling": false,
+        "status_note": "418 backend tests, image byte proof and exact-head CI passed; reviewed PR 133 merged",
+        "journaled_at": "2026-10-01T22:29:33.185308Z"
       }
     },
     "task-2-2": {
       "type": "task",
       "title": "Release guarded runtime and verify fresh free measured usage",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -112,12 +122,16 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "estimated_hours": 1.0,
         "file_path": "scripts/deploy_guarded.sh",
         "task_category": "implementation",
-        "verification_type": "manual"
+        "verification_type": "manual",
+        "completed_at": "2026-10-01T22:36:08.003773Z",
+        "needs_journaling": false,
+        "status_note": "Guarded release healthy; fresh free provider input/output equals usage event and quota deltas, non-estimated, zero charge; historical events unchanged",
+        "journaled_at": "2026-10-01T22:36:08.005001Z"
       }
     }
   },
@@ -139,6 +153,33 @@
       "content": "All child tasks in phase phase-1 have been completed.",
       "metadata": {},
       "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-01T22:29:33.185280Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Validate billing paths and submit reviewed source",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: 418 backend tests, image byte proof and exact-head CI passed; reviewed PR 133 merged",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-01T22:36:08.004995Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Release guarded runtime and verify fresh free measured usage",
+      "author": "claude-code",
+      "content": "Task task-2-2 marked as completed. \nNote: Guarded release healthy; fresh free provider input/output equals usage event and quota deltas, non-estimated, zero charge; historical events unchanged",
+      "metadata": {},
+      "task_id": "task-2-2"
+    },
+    {
+      "timestamp": "2026-10-01T22:36:08.006138Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify source and production accounting",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
     }
   ]
 }
