@@ -1,0 +1,6 @@
+- [x] **[DOCS]** Record measured streaming usage acceptance
+  - Spec: meta/memory_bank/specs/work_items/2026-10-02__docs__streaming-usage-acceptance.md
+  - Owner: Codex
+  - Done: 2026-10-02
+  - Summary: Record merged source and fresh released free usage verification; close linked bug SDD. No runtime changes or historical reconciliation.
+  - Tests: SDD validation has no errors or warnings; whitespace check passed. Runtime checks are recorded in the related bug work item.
