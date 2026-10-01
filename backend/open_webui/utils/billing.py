@@ -1318,18 +1318,18 @@ class BillingService:
         if not isinstance(payment_id, str) or not payment_id:
             raise WebhookVerificationError("Missing payment_id")
 
-        if event_type == "refund.succeeded":
+        if event_type == 'refund.succeeded':
             from open_webui.utils.airis.analytics_payments import record_verified_refund
 
-            refund_id = webhook_data.get("refund_id")
+            refund_id = webhook_data.get('refund_id')
             if not isinstance(refund_id, str) or not refund_id:
-                raise WebhookVerificationError("Missing refund_id")
+                raise WebhookVerificationError('Missing refund_id')
             try:
                 await record_verified_refund(refund_id, payment_id)
             except ValueError as exc:
-                raise WebhookVerificationError("Refund verification failed") from exc
+                raise WebhookVerificationError('Refund verification failed') from exc
             except Exception as exc:
-                raise WebhookRetryableError("Refund processing temporarily unavailable") from exc
+                raise WebhookRetryableError('Refund processing temporarily unavailable') from exc
             return None
 
         yookassa = get_yookassa_client()
@@ -1393,7 +1393,7 @@ class BillingService:
                 payment_id,
                 trusted_webhook_data,
             )
-            if event_type == "payment.succeeded":
+            if event_type == 'payment.succeeded':
                 from open_webui.utils.airis.analytics_payments import safely_record_confirmed_payment
 
                 await safely_record_confirmed_payment(payment_id)

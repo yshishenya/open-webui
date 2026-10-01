@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/feature/full-funnel-analytics-20261001
-- SDD Spec: meta/sdd/specs/active/airis-full-funnel-analytics-2026-10-01-2015.json
+- SDD Spec: meta/sdd/specs/active/airis-full-funnel-analytics-2026-10-01-001.json
 - Created: 2026-10-01
 
 ## Goal

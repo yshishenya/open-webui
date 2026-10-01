@@ -1414,10 +1414,10 @@ async def yookassa_webhook(
         )
 
     if await run_in_threadpool(_is_webhook_replay, parsed_data):
-        if parsed_data.get("event_type") == "payment.succeeded":
+        if parsed_data.get('event_type') == 'payment.succeeded':
             from open_webui.utils.airis.analytics_payments import safely_record_confirmed_payment
 
-            await safely_record_confirmed_payment(str(parsed_data["payment_id"]))
+            await safely_record_confirmed_payment(str(parsed_data['payment_id']))
         log.info(
             "Ignoring replayed webhook for payment %s",
             parsed_data.get("payment_id"),
