@@ -834,3 +834,67 @@ class TestBillingServiceWebhookStatuses(AbstractPostgresTest):
         assert no_sub["plan"] is None
         assert no_sub["usage"] == {}
         assert no_sub["lead_magnet"]["enabled"] is False
+
+
+@pytest.mark.asyncio
+async def test_refund_webhook_delegates_without_payment_or_wallet_mutation(monkeypatch: MonkeyPatch) -> None:
+    from unittest.mock import AsyncMock, Mock
+    from open_webui.utils.airis import analytics_payments
+
+    verified_refund = AsyncMock(return_value=True)
+    monkeypatch.setattr(analytics_payments, 'record_verified_refund', verified_refund)
+    provider_lookup = Mock(side_effect=AssertionError('Refund must use refund verification, not payment processing'))
+    monkeypatch.setattr(billing_utils, 'get_yookassa_client', provider_lookup)
+    wallet_credit = Mock(side_effect=AssertionError('Refund analytics must not credit a wallet'))
+    wallet_adjustment = Mock(side_effect=AssertionError('Refund analytics must not adjust a wallet'))
+    monkeypatch.setattr(billing_utils.wallet_service, 'apply_topup', wallet_credit)
+    monkeypatch.setattr(billing_utils.wallet_service, 'adjust_balances', wallet_adjustment)
+
+    result = await BillingService().process_payment_webhook(
+        {'event_type': 'refund.succeeded', 'payment_id': 'payment-refund-test', 'refund_id': 'refund-test'}
+    )
+
+    assert result is None
+    verified_refund.assert_awaited_once_with('refund-test', 'payment-refund-test')
+    provider_lookup.assert_not_called()
+    wallet_credit.assert_not_called()
+    wallet_adjustment.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('refund_id', [None, '', 123])
+async def test_refund_webhook_rejects_missing_or_invalid_refund_id(monkeypatch: MonkeyPatch, refund_id: object) -> None:
+    from unittest.mock import AsyncMock
+    from open_webui.utils.airis import analytics_payments
+
+    verified_refund = AsyncMock()
+    monkeypatch.setattr(analytics_payments, 'record_verified_refund', verified_refund)
+    with pytest.raises(WebhookVerificationError, match='Missing refund_id'):
+        await BillingService().process_payment_webhook(
+            {'event_type': 'refund.succeeded', 'payment_id': 'payment-refund-test', 'refund_id': refund_id}
+        )
+    verified_refund.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ('failure', 'expected', 'detail'),
+    [
+        (ValueError('Refund payment mismatch'), WebhookVerificationError, 'Refund verification failed'),
+        (TimeoutError('Provider timed out'), WebhookRetryableError, 'Refund processing temporarily unavailable'),
+    ],
+)
+async def test_refund_webhook_preserves_validation_and_retry_classification(
+    monkeypatch: MonkeyPatch, failure: Exception, expected: type[Exception], detail: str
+) -> None:
+    from unittest.mock import AsyncMock
+    from open_webui.utils.airis import analytics_payments
+
+    verified_refund = AsyncMock(side_effect=failure)
+    monkeypatch.setattr(analytics_payments, 'record_verified_refund', verified_refund)
+    with pytest.raises(expected, match=detail) as raised:
+        await BillingService().process_payment_webhook(
+            {'event_type': 'refund.succeeded', 'payment_id': 'payment-refund-test', 'refund_id': 'refund-test'}
+        )
+    assert raised.value.__cause__ is failure
+    verified_refund.assert_awaited_once_with('refund-test', 'payment-refund-test')

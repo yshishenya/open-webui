@@ -92,3 +92,20 @@
 - Owner: Codex
 - Started: 2026-10-02
 - Summary: AddedAC16 for the original mandatory PR/release tail found during objective audit. Prepared current CalVer notesv2026.10.02.1, superseding unpublished initial draft; no public release claimed. Integration conflict resolved; PR130 now MERGEABLE, baseline Ruff338errors remains, merged-source backend/billing/security still running. Metrica upload still UPLOADED on direct read21:39UTC.
+
+## External receipt and runtime provenance — 2026-10-02
+
+- Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
+- Owner: Codex
+- Started: 2026-10-02
+- Summary: AC13 confirmed by PROCESSED upload1211156457/linked1 and statAPI1visit/1technical goal, sampledfalse at21:58UTC. AC15 accepted with explicit composed-image/browser limits:11backend files and all4836build context files match current runtime; frontend analytics sources match PRa472. Prior admin7/30/YooKassa cabinet acceptance retained; fresh browser member session cannot reaccept admin UI. No privilege change, repeat POST or real financial action.
+- Tests:440backend/143frontend/pr-fast3suites passed; mock/staging safety+health probes pass. Enforced release-heavy36933103407 running; AC16 pending merge/release.
+
+## Release coverage gap — 2026-10-02
+
+- Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
+- Owner: Codex
+- Started: 2026-10-02
+- Summary: PR130/129 are MERGED in b3838f705. Enforced release-heavy36933103407 has4/5 suites passed:209coverage tests themselves pass, utils line84.50<85 fails gate. New refund BillingService delegation/error branches need targeted checks; thresholds/runtime stay unchanged. AC14 reopened, AC16 pending. Bug-fix workflow on codex/bugfix/full-funnel-release-coverage-20261002, existing active SDD tracks final gate.
+
+- Coverage correction verification:6refund delegation/input/error checks passed. Docker Compose full coverage pack215passed; routers line91.58/branch79.21, utils line85.85/branch76.62, unchanged thresholds pass. No runtime/dependency/config change; enforced CI rerun pending.
