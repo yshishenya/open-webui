@@ -10,6 +10,7 @@
 		{ href: '/about', label: 'О продукте' },
 		{ href: '/pricing', label: 'Тарифы' },
 		{ href: '/features', label: 'Возможности' },
+		{ href: '/guide', label: 'Руководство' },
 		{ href: '/contact', label: 'Контакты' },
 		{ href: '/documents', label: 'Документы' },
 		{ href: '/terms', label: 'Оферта' },
@@ -36,7 +37,7 @@
 		<div>
 			<div class="airis-public-footer-heading">Продукт</div>
 			<div class="mt-3 flex flex-col items-start gap-2 text-sm">
-				{#each links.filter((link) => ['/features', '/pricing'].includes(link.href)) as link}
+				{#each links.filter((link) => ['/features', '/pricing', '/guide'].includes(link.href)) as link}
 					<a href={link.href}>{link.label}</a>
 				{/each}
 			</div>
@@ -44,7 +45,7 @@
 		<div>
 			<div class="airis-public-footer-heading">Компания и документы</div>
 			<div class="mt-3 flex flex-col items-start gap-2 text-sm">
-				{#each links.filter((link) => !['/features', '/pricing'].includes(link.href)) as link}
+				{#each links.filter((link) => !['/features', '/pricing', '/guide'].includes(link.href)) as link}
 					<a href={link.href}>{link.label}</a>
 				{/each}
 			</div>

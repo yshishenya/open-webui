@@ -72,8 +72,16 @@
 
 ## Current implementation acceptance audit — 2026-10-02
 
-- Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
+- Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
 - Owner: Codex
 - Started: 2026-10-02
 - Summary: All11 changed backend runtime files freshly match source; c448 implementation CI has440 backend tests passed/136warnings, all3billing suites pass with exit_code0. Security/migration/frontend lint/SDD passed; Ruff retains338baseline violations. SDD verification note refreshed with packaged26tests and genuine PostHog recovery.
 - Evidence: backendrun36927584479, billingrun36927584448, lintrun36927584489; local runtime-source-hashes.json refreshed. PR description rewritten around final deployed behavior and explicit limits. AC13/15 remain open for the same Metrica upload1211156457 processing/report receipt; no duplicate upload or financial operation.
+
+## Integration branch refresh — 2026-10-02
+
+- Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
+- Owner: Codex
+- Started: 2026-10-02
+- Summary: Merge latest airis_b2c98cef2542, preserving concurrent SMTP and first-task guide changes. Only conflict was welcomeNavigation.test.ts mock declarations; integrated version retains analytics mock and all navigation/model/storage checks. Published analytics runtime is unchanged by this source integration.
+- Tests: Integrated frontend143/143 passed; scoped ESLint/Prettier and diff check passed. Independent merged-hook/config audit found no mandatory defects. CI will rerun on merge source. Original PR129/release draft still require final completion; Metrica upload1211156457 still waiting under the existing watcher.

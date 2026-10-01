@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+	resolveRequestedModels,
 	clearWelcomePresetPrompt,
 	consumeWelcomePresetPrompt,
 	setTextWithRetries,
@@ -133,3 +134,18 @@ describe('airis/chat', () => {
 	});
 });
 
+describe('resolveRequestedModels', () => {
+	it('retains the requested model or requires an explicit choice, without a fallback', () => {
+		expect(resolveRequestedModels(new URLSearchParams('model=free'), ['paid', 'free'])).toEqual([
+			'free'
+		]);
+		expect(resolveRequestedModels(new URLSearchParams('model=missing'), ['paid'])).toEqual(['']);
+		expect(
+			resolveRequestedModels(new URLSearchParams('models=free,missing'), ['free', 'paid'])
+		).toEqual(['']);
+		expect(
+			resolveRequestedModels(new URLSearchParams('models=free,paid'), ['free', 'paid'])
+		).toEqual(['free', 'paid']);
+		expect(resolveRequestedModels(new URLSearchParams(), ['paid'])).toBeNull();
+	});
+});

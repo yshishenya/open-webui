@@ -67,6 +67,7 @@
 		displayFileHandler
 	} from '$lib/utils';
 	import {
+		resolveRequestedModels,
 		clearWelcomePresetPrompt,
 		consumeWelcomePresetPrompt,
 		setTextWithRetries,
@@ -1772,7 +1773,9 @@
 
 		const defaultModels = $config?.default_models ? $config?.default_models.split(',') : [];
 
-		if ($page.url.searchParams.get('models') || $page.url.searchParams.get('model')) {
+		const requestedModels = resolveRequestedModels($page.url.searchParams, availableModels);
+		if (requestedModels) {
+			selectedModels = requestedModels;
 			const urlModels = (
 				$page.url.searchParams.get('models') ||
 				$page.url.searchParams.get('model') ||
@@ -1780,7 +1783,7 @@
 			)?.split(',');
 
 			if (urlModels.length === 1) {
-				if (!$models.find((m) => m.id === urlModels[0])) {
+				if (!availableModels.includes(urlModels[0])) {
 					// Model not found; open model selector and prefill
 					const modelSelectorButton = document.getElementById('model-selector-0-button');
 					if (modelSelectorButton) {
@@ -1794,19 +1797,13 @@
 							modelSelectorInput.dispatchEvent(new Event('input'));
 						}
 					}
-				} else {
-					// Model found; set it as selected
-					selectedModels = urlModels;
 				}
-			} else {
-				// Multiple models; set as selected
-				selectedModels = urlModels;
 			}
-
-			// Unavailable models filtering
-			selectedModels = selectedModels.filter((modelId) =>
-				$models.map((m) => m.id).includes(modelId)
-			);
+			if (requestedModels.includes('')) {
+				toast.info(
+					$i18n.t('The requested model is unavailable. Choose another model and check its cost before sending.')
+				);
+			}
 		} else {
 			if ($selectedFolder?.data?.model_ids) {
 				// Set from folder model IDs
@@ -1832,7 +1829,10 @@
 		}
 
 		// Ensure at least one model is selected
-		if (selectedModels.length === 0 || (selectedModels.length === 1 && selectedModels[0] === '')) {
+		if (
+			!requestedModels &&
+			(selectedModels.length === 0 || (selectedModels.length === 1 && selectedModels[0] === ''))
+		) {
 			if (availableModels.length > 0) {
 				if (defaultModels && defaultModels.length > 0) {
 					selectedModels = defaultModels.filter((modelId) => availableModels.includes(modelId));

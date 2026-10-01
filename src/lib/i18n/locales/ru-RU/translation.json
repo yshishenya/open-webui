@@ -2364,6 +2364,7 @@
 	"Select a group": "Выбрать группу",
 	"Select a language": "Выберите язык",
 	"Select a mode": "Выберите режим",
+	"The requested model is unavailable. Choose another model and check its cost before sending.": "Указанная модель недоступна. Выберите другую модель и проверьте её стоимость перед отправкой.",
 	"Select a model": "Выберите модель",
 	"Select a model (optional)": "Выберите модель (необязательно)",
 	"Select a pipeline": "Выберите конвейер",

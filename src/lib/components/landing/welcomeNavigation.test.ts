@@ -27,11 +27,10 @@ const { gotoMock, userStore } = vi.hoisted(() => {
 	return { gotoMock, userStore };
 });
 
+vi.mock('$app/navigation', () => ({ goto: gotoMock }));
+vi.mock('$app/environment', () => ({ browser: true }));
+vi.mock('$lib/stores', () => ({ user: userStore }));
 vi.mock('$lib/utils/analytics', () => ({ trackEvent: vi.fn() }));
-
-vi.mock('$app/navigation', () => ({ goto: gotoMock }), { virtual: true });
-vi.mock('$app/environment', () => ({ browser: true }), { virtual: true });
-vi.mock('$lib/stores', () => ({ user: userStore }), { virtual: true });
 
 import { buildChatUrl, buildSignupUrl, openCta, openPreset } from './welcomeNavigation';
 
@@ -149,5 +148,38 @@ describe('welcomeNavigation', () => {
 		expect(parsed.searchParams.get('preset')).toBe('summarize_notes');
 		expect(parsed.searchParams.get('q')).toBe(prompt);
 		expect(parsed.searchParams.get('submit')).toBe('false');
+	});
+	it('preserves an explicit model and an unsent draft through signup', () => {
+		openPreset('guide_examples', 'letter', 'Письмо & план?', 'gpt-5.6-luna');
+		const signup = parseUrl(gotoMock.mock.calls[0][0] as string);
+		const redirect = parseUrl(signup.searchParams.get('redirect') ?? '');
+		expect(signup.searchParams.get('model')).toBe('gpt-5.6-luna');
+		expect(redirect.searchParams.get('model')).toBe('gpt-5.6-luna');
+		expect(redirect.searchParams.get('q')).toBe('Письмо & план?');
+		expect(redirect.searchParams.get('submit')).toBe('false');
+	});
+
+	it('opens the same explicit model for an existing session', () => {
+		userStore.set({ id: 'user_1' });
+		openPreset('guide_examples', 'plan', 'Составь план', 'gpt-5.6-luna');
+		const target = parseUrl(gotoMock.mock.calls[0][0] as string);
+		expect(target.pathname).toBe('/');
+		expect(target.searchParams.get('model')).toBe('gpt-5.6-luna');
+		expect(target.searchParams.get('submit')).toBe('false');
+	});
+
+	it('keeps navigation functional when browser storage is blocked', () => {
+		const storage = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+			throw new DOMException('Storage blocked', 'SecurityError');
+		});
+		try {
+			openPreset('guide_examples', 'topic', 'Объясни тему', 'gpt-5.6-luna');
+			const signup = parseUrl(gotoMock.mock.calls[0][0] as string);
+			const redirect = parseUrl(signup.searchParams.get('redirect') ?? '');
+			expect(redirect.searchParams.get('q')).toBe('Объясни тему');
+			expect(redirect.searchParams.get('model')).toBe('gpt-5.6-luna');
+		} finally {
+			storage.mockRestore();
+		}
 	});
 });
