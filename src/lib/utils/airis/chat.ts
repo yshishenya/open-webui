@@ -1,3 +1,14 @@
+/** An explicit model link must never silently fall back to a different model. */
+export const resolveRequestedModels = (
+	searchParams: URLSearchParams,
+	availableModelIds: string[]
+): string[] | null => {
+	const requested = searchParams.get('models') || searchParams.get('model');
+	if (!requested) return null;
+	const modelIds = requested.split(',');
+	return modelIds.every((id) => availableModelIds.includes(id)) ? modelIds : [''];
+};
+
 type MessageInputLike = {
 	setText: (text: string) => void;
 };
@@ -35,7 +46,9 @@ export const consumeWelcomePresetPrompt = (nowMs: number = Date.now()): string |
 		return null;
 	}
 
-	const payload: WelcomePresetPromptPayload = isRecord(parsed) ? (parsed as WelcomePresetPromptPayload) : {};
+	const payload: WelcomePresetPromptPayload = isRecord(parsed)
+		? (parsed as WelcomePresetPromptPayload)
+		: {};
 	const prompt = typeof payload.prompt === 'string' ? payload.prompt : '';
 	const source = typeof payload.source === 'string' ? payload.source : '';
 	const createdAt = typeof payload.createdAt === 'number' ? payload.createdAt : null;

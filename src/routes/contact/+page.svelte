@@ -64,10 +64,10 @@
 					<p class="mt-2">Посмотрите ставки, способы пополнения и расчёт использования.</p>
 					<span class="airis-public-text-button mt-5 inline-flex">Открыть тарифы →</span></a
 				>
-				<a class="airis-public-card p-6 transition hover:-translate-y-0.5" href="/features"
-					><h3>Хотите понять возможности?</h3>
-					<p class="mt-2">Откройте готовые задачи и запустите пример в настоящем Airis.</p>
-					<span class="airis-public-text-button mt-5 inline-flex">Посмотреть возможности →</span></a
+				<a class="airis-public-card p-6 transition hover:-translate-y-0.5" href="/guide"
+					><h3>С чего начать?</h3>
+					<p class="mt-2">Выберите одну из трёх задач и узнайте, как уточнить ответ.</p>
+					<span class="airis-public-text-button mt-5 inline-flex">Открыть руководство →</span></a
 				>
 			</div>
 		</div>

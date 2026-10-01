@@ -14,6 +14,7 @@
 
 	const navLinks: NavLink[] = [
 		{ href: '/features', label: 'Возможности' },
+		{ href: '/guide', label: 'Руководство' },
 		{ href: '/pricing', label: 'Тарифы' },
 		{ href: '/about', label: 'О продукте' },
 		{ href: '/contact', label: 'Контакты' }
@@ -88,7 +89,7 @@
 			</a>
 
 			<!-- Desktop Navigation -->
-			<div class="hidden md:flex items-center gap-8">
+			<div class="hidden lg:flex items-center gap-8">
 				{#each visibleNavLinks as link}
 					<a
 						href={link.href}
@@ -101,7 +102,7 @@
 			</div>
 
 			<!-- Auth Buttons -->
-			<div class="hidden md:flex items-center gap-4">
+			<div class="hidden lg:flex items-center gap-4">
 				<a
 					href="/auth"
 					class="airis-public-nav__login text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad93fc] rounded-lg px-2 py-1"
@@ -119,7 +120,7 @@
 			</div>
 
 			<!-- Mobile Actions -->
-			<div class="flex md:hidden items-center gap-2">
+			<div class="flex lg:hidden items-center gap-2">
 				<a
 					href="/auth"
 					class="airis-public-nav__login inline-flex min-h-11 items-center px-1 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad93fc]"
@@ -132,7 +133,7 @@
 					class="airis-public-btn-primary inline-flex items-center justify-center h-11 px-4 text-sm font-semibold rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad93fc]"
 					on:click={handleHeaderCta}
 				>
-					{isWelcome() ? 'Начать' : 'Начать бесплатно'}
+					{isWelcome() || currentPath === '/guide' ? 'Начать' : 'Начать бесплатно'}
 				</a>
 				<button
 					class="airis-public-nav__login p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad93fc] rounded-lg"
@@ -166,7 +167,7 @@
 
 		<!-- Mobile Menu -->
 		{#if mobileMenuOpen}
-			<div class="airis-public-nav__mobile md:hidden py-4 border-t" id="mobile-nav">
+			<div class="airis-public-nav__mobile lg:hidden py-4 border-t" id="mobile-nav">
 				<div class="flex flex-col gap-4">
 					{#each navLinks as link}
 						<a
