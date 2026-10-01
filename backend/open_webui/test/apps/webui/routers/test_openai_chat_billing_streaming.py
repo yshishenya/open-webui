@@ -7,6 +7,8 @@ import uuid
 from decimal import Decimal
 from typing import Protocol
 
+import pytest
+
 from _pytest.monkeypatch import MonkeyPatch
 
 from test.util.abstract_integration_test import AbstractPostgresTest
@@ -133,7 +135,8 @@ class TestOpenAIChatBillingStreaming(AbstractPostgresTest):
         monkeypatch.setattr(openai_router, "get_all_models", fake_get_all_models)
         monkeypatch.setattr(openai_router, "get_session", fake_get_session)
 
-    def test_streaming_with_usage_settles_charge(self, monkeypatch: MonkeyPatch) -> None:
+    @pytest.mark.parametrize("usage_format", ["chat", "responses", "normalized"])
+    def test_streaming_with_usage_settles_charge(self, monkeypatch: MonkeyPatch, usage_format: str) -> None:
         from open_webui.models.billing import RateCards, Wallets
         from open_webui.utils.pricing import PricingService
         from open_webui.utils.wallet import wallet_service
@@ -144,9 +147,23 @@ class TestOpenAIChatBillingStreaming(AbstractPostgresTest):
         Wallets.update_wallet(wallet.id, {"balance_topup_kopeks": 100000})
 
         usage = {"prompt_tokens": 1000, "completion_tokens": 400, "total_tokens": 1400}
+        measured_usage = {
+            "input_tokens": 1000,
+            "output_tokens": 400,
+            "total_tokens": 1400,
+        }
+        event: dict[str, object] = {"usage": usage}
+        if usage_format == "responses":
+            event = {
+                "type": "response.completed",
+                "response": {"usage": measured_usage},
+            }
+        elif usage_format == "normalized":
+            event = {"usage": measured_usage}
         chunks = [
             b"data: " + json.dumps({"choices": [{"delta": {"content": "hi"}}]}).encode() + b"\n\n",
-            b"data: " + json.dumps({"usage": usage}).encode() + b"\n\n",
+            (b"event: response.completed\n" if usage_format == "responses" else b": keepalive\n"),
+            b"data: " + json.dumps(event).encode() + b"\n\n",
             b"data: [DONE]\n\n",
         ]
 
@@ -187,6 +204,10 @@ class TestOpenAIChatBillingStreaming(AbstractPostgresTest):
         )
         expected_charge = expected_input + expected_output
 
+        assert usage_event.prompt_tokens == 1000
+        assert usage_event.completion_tokens == 400
+        assert usage_event.is_estimated is False
+        assert usage_event.estimate_reason is None
         assert usage_event.cost_charged_kopeks == expected_charge
         assert_wallet_topup_balance(wallet.id, 100000 - expected_charge)
 
