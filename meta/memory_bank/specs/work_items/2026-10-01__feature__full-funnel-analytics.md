@@ -25,7 +25,7 @@
 - [x] AC04: создание аккаунта определяется сервером, повторный вход не считается регистрацией.
 - [x] AC05: принятый запрос и успешный непустой ответ считаются один раз за жизнь аккаунта; ошибка/отклонение не активируют.
 - [x] AC06: оплата без возврата в браузер фиксируется после подтверждения провайдером и зачисления; повторы webhook/reconcile не дублируют факт.
-- [ ] AC07: пропущенный при сбое факт оплаты восстанавливается; очередь переживает рестарт; повторная доставка имеет стабильный ключ.
+- [x] AC07: пропущенный при сбое факт оплаты восстанавливается; очередь переживает рестарт; повторная доставка имеет стабильный ключ.
 - [x] AC08: первая/повторная оплата определяется стабильно при одновременных платежах.
 - [x] AC09: подтверждённые частичные/полные возвраты дедуплицируются, проверяются через провайдера и учитываются в net revenue без изменения кошелька этой задачей.
 - [x] AC10: отзыв согласия очищает клиентскую идентичность и прекращает ожидающую внешнюю доставку; старые события не воспроизводятся при новом согласии.
@@ -110,4 +110,14 @@ records and internal financial facts. Migration rollback only after data export.
 
 ## Accepted-upload retry correction — 2026-10-01
 
-A 4xx while reading Metrica upload status/reconciliation changed `uploaded` or `uncertain` to `pending`, allowing a duplicate POST after access recovered. Reproduced with six isolated checks (401/404/429 for both states), all failing before correction. Minimal fix allows reset to pending only for an explicitly rejected POST; failed GET preserves the existing state/upload ID. After correction all 25 analytics tests pass. No new dependencies, API/schema/frontend changes. AC07 is reopened until the corrected module is deployed and verified, preserving the currently deployed SMTP layer.
+A 4xx while reading Metrica upload status/reconciliation changed `uploaded` or `uncertain` to `pending`, allowing a duplicate POST after access recovered. Reproduced with six isolated checks (401/404/429 for both states), all failing before correction. Minimal fix allows reset to pending only for an explicitly rejected POST; failed GET preserves the existing state/upload ID. After correction all 25 analytics tests pass. No new dependencies, API/schema/frontend changes. Corrected module deployed and verified in the image below; AC07 closed again. The existing SMTP layer is preserved.
+
+### Retry correction rollout evidence
+
+- Delta source: `360f62478188db480bad84a56d58c6f9896f19da`; only runtime change is the POST-method guard in analytics.py.
+- Image built on Mac: `yshishenya/yshishenya:360f62478-metrica-retry-20261001`; registry/running digest `sha256:02a53a23bd08aeb829ff5c8c4cbaa39b5de878e9a4841db239c137691ce828b0`, linux/amd64. Immutable parent is the current SMTP image digest `sha256:02640f9e28dfa34bae60b32e7428a1fe19612eba0c652d200c335c025bfb67d1`; copied only analytics.py. Frontend version remains edbd07e149c4d340b84dfa031c714adf73e19fef; SMTP source label remains 3f89137fc4668b6b9adb6be34f328bf8e60f6fbb.
+- All 25 analytics tests passed inside the packaged image. Scoped Ruff and project-config Black passed. Six regression cases fail before the guard and pass after.
+- Source/image/production analytics.py SHA256: `711fca922bbde36bb6c8455287bd2fc82e9a9eeb120b422389e1b9828374a170`.
+- Earlier own backup 20261001T190853Z-edbd07e14-funnel-20261001 moved to Mac after full SHA256/archive/pg_restore-list validation. Latest SMTP backup retained on server; 10 GiB pre-rollout disk gate passed.
+- Fresh backup `/opt/backups/airis/20261001T200208Z-360f62478-metrica-retry-20261001` verified, permissions restricted. Alembic head a10f20261001 checked, service-only guarded rollout completed, previous SMTP image retained for rollback. Persistent image tag updated preserving all other .env bytes.
+- Production healthy/restarts0; all provider settings present after restart. Metrica technical visit appears in stat API as one visit without sampling, while technical goal reaches remain zero and upload1211156457 remains UPLOADED. AC13/15 remain open for final offline processing/report receipt.

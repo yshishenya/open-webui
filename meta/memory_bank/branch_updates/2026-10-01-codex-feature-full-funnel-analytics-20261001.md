@@ -1,10 +1,10 @@
 - [ ] **[ANALYTICS]** Полная воронка Airis
-  - Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
   - Owner: Codex
   - Branch: codex/feature/full-funnel-analytics-20261001
   - Started: 2026-10-01
-  - Summary: Определены критерии приёмки; выполняется согласование модели, событий, финансового подтверждения и доставки.
-  - Tests: Pending
+  - Summary: Реализация и выкладка выполнены; приёмка PostHog, отчёта администратора и уведомлений YooKassa подтверждена. Ожидается обработка контрольной конверсии Метрикой.
+  - Tests: 25 analytics + 95 billing; 139 frontend; 2 browser; migration/build passed. Existing CI/typecheck limitations documented in spec.
 
 - Реализованы согласие/отзыв, привязка устройств и аккаунта, lifetime-маркеры,
   серверные финансовые события/возвраты, постоянная очередь и отчёт 7/30 дней.
@@ -38,20 +38,22 @@
 
 ### Production rollout and live checks
 
-- Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
+- Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
 - All seven backups transferred/validated; authorized duplicate deletion freed required disk. Latest backup and fresh rollout backup retained.
 - Deployed source edbd07e149c4d340b84dfa031c714adf73e19fef; registry digest 24273c0692f2c6ce98f4a29964307e79db20e11b39cfb819d4e6409b7617e99a. Service-only rollout/migration/health/public version passed.
 - Live consent, first-visit attribution, durable PostHog delivery and warehouse receipt, revoke purge, unauthenticated report denial, 7/30-day report calculation passed.
 - Metrica OAuth prepared; create/permission grant awaits required browser action-time confirmation. Signed-in/full real financial acceptance remains unproven; SDD verification task stays in progress.
 
 - 2026-10-01: Metrica OAuth authorized/connected; production healthy after restart. Added missing exact signup and technical goals; corrected four offline goal conditions preserving IDs. Packaged transport accepted genuine technical conversion upload 1211156457; processing/report linkage and signed-in acceptance remain open.
-  Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
+  Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
 
 - 2026-10-01: Existing-account linking/wallet smoke passed; non-admin access correctly denied. Concurrent SMTP deployment lost runtime provider environment; restored override preserving new image, verified healthy and matching analytics module hashes. Metrica processing, admin report and YooKassa refund notification setting remain open.
-  Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
+  Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
 
 - 2026-10-01: User supplied administrator and merchant sessions. Production 7/30-day report and existing-account exclusion verified. Correct YooKassa endpoint and refund.succeeded subscription confirmed in cabinet; no mutation needed. Metrica processed/report receipt and signed-in provider ClientID acceptance remain pending.
-  Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
+  Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
 
-- [ ] [BUG] 2026-10-01: Prevent duplicate Metrica upload after status/reconciliation 4xx. Six regression cases fail before one-line request-method guard; 25 analytics checks pass after. Deployment pending; AC07 reopened until runtime verification.
-      Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
+- [x] [BUG] 2026-10-01: Prevent duplicate Metrica upload after status/reconciliation 4xx. Six regression cases fail before one-line request-method guard; 25 analytics checks pass after. Deployed as 360f62478-metrica-retry-20261001 preserving SMTP; exact module hash and healthy runtime verified. AC07 closed.
+  - Owner: Codex
+  - Done: 2026-10-01
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
