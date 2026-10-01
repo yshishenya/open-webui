@@ -142,3 +142,5 @@ QueryRunner без ошибок. До выкладки они показываю
 ### Metrica offline goal conditions
 
 Server offline conversion goals must use exact identifier matching (`exact`), as required by [the official guide](https://yandex.ru/dev/metrika/ru/management/offline-conv). The server registration goal is `lead_signup_completed`; `signup_completed` is the legacy browser goal. `analytics_delivery_check` is a technical diagnostic goal, excluded from the product/payment funnel. Upload acceptance is distinct from `PROCESSED` and report attribution; processing may take up to three hours.
+
+Production deployment must include `/opt/projects/airis-analytics-runtime/compose.yaml`. The persisted COMPOSE_FILE contains it; explicit `docker compose -f ...` overrides COMPOSE_FILE, so every explicit file list must also include the runtime override. Verify provider environment presence after every service recreation without printing values.

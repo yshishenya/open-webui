@@ -46,3 +46,9 @@
 
 - 2026-10-01: Metrica OAuth authorized/connected; production healthy after restart. Added missing exact signup and technical goals; corrected four offline goal conditions preserving IDs. Packaged transport accepted genuine technical conversion upload 1211156457; processing/report linkage and signed-in acceptance remain open.
   Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
+
+- 2026-10-01: Existing-account linking/wallet smoke passed; non-admin access correctly denied. Concurrent SMTP deployment lost runtime provider environment; restored override preserving new image, verified healthy and matching analytics module hashes. Metrica processing, admin report and YooKassa refund notification setting remain open.
+  Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
+
+- 2026-10-01: User supplied administrator and merchant sessions. Production 7/30-day report and existing-account exclusion verified. Correct YooKassa endpoint and refund.succeeded subscription confirmed in cabinet; no mutation needed. Metrica processed/report receipt and signed-in provider ClientID acceptance remain pending.
+  Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
