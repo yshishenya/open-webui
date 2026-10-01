@@ -136,6 +136,26 @@ async def test_reply_to(service: EmailService, smtp: AsyncMock) -> None:
     assert smtp.send_message.await_args.args[0]['Reply-To'] == 'help@example.test'
 
 
+@pytest.mark.parametrize(
+    'template',
+    [
+        'verification',
+        'welcome',
+        'password_reset',
+        'password_changed',
+        'payment_confirmation',
+        'subscription_activated',
+        'quota_alert',
+    ],
+)
+def test_reply_guidance_requires_configured_address(service: EmailService, template: str) -> None:
+    for reply_to in ['', 'help@example.test']:
+        service.reply_to = reply_to
+        for content in service.render_template(template, name='Тест', features=[]):
+            assert ('Если нужна помощь, ответьте на это письмо.' in content) == bool(reply_to)
+            assert 'не отвечайте' not in content
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize('field', ['subject', 'to_email', 'reply_to', 'message_id'])
 async def test_header_injection_rejected(service: EmailService, smtp: AsyncMock, field: str) -> None:

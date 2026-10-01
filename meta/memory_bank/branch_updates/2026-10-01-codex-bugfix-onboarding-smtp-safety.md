@@ -30,3 +30,9 @@
   - Owner: Codex
   - Done: 2026-10-01
   - Summary: Добавлен отсутствующий mapping ENV; пустой default сохраняет существующее поведение. Проверяется цепочка Compose → EmailService → MIME Header без SMTP.
+
+- [x] **[BUG][SMTP]** Тексты шаблонов согласованы с настроенным каналом ответов
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-01__bugfix__onboarding-smtp-safety.md`
+  - Owner: Codex
+  - Done: 2026-10-01
+  - Summary: Убран запрет отвечать в 14 шаблонах; приглашение ответить появляется при настроенном Reply-To. Общий renderer передаёт настройку; 27 почтовых тестов проходят.

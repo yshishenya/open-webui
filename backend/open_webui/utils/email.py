@@ -192,6 +192,7 @@ class EmailService:
         Returns:
             Tuple of (html_content, text_content)
         """
+        context['support_reply_to'] = self.reply_to
         try:
             # Render HTML template
             html_template = jinja_env.get_template(f'{template_name}.html')
