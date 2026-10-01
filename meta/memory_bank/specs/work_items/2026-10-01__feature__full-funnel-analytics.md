@@ -25,7 +25,7 @@
 - [x] AC04: создание аккаунта определяется сервером, повторный вход не считается регистрацией.
 - [x] AC05: принятый запрос и успешный непустой ответ считаются один раз за жизнь аккаунта; ошибка/отклонение не активируют.
 - [x] AC06: оплата без возврата в браузер фиксируется после подтверждения провайдером и зачисления; повторы webhook/reconcile не дублируют факт.
-- [x] AC07: пропущенный при сбое факт оплаты восстанавливается; очередь переживает рестарт; повторная доставка имеет стабильный ключ.
+- [ ] AC07: пропущенный при сбое факт оплаты восстанавливается; очередь переживает рестарт; повторная доставка имеет стабильный ключ.
 - [x] AC08: первая/повторная оплата определяется стабильно при одновременных платежах.
 - [x] AC09: подтверждённые частичные/полные возвраты дедуплицируются, проверяются через провайдера и учитываются в net revenue без изменения кошелька этой задачей.
 - [x] AC10: отзыв согласия очищает клиентскую идентичность и прекращает ожидающую внешнюю доставку; старые события не воспроизводятся при новом согласии.
@@ -128,3 +128,11 @@ A 4xx while reading Metrica upload status/reconciliation changed `uploaded` or `
 - [billing-confidence run 36918174131](https://github.com/yshishenya/open-webui/actions/runs/36918174131) passed backend critical, frontend balance and browser wallet suites. Backend lint remains failing on baseline violations; full frontend typecheck/preflight limitations remain documented. New docs commits trigger their own checks; do not reuse previous success as their exact-head CI proof.
 - Independent final review found no missing required provider configuration in the agreed scope. Updated guide removes stale claims about missing Metrica OAuth/project access, documents current cabinets, browser limitations and accepted-upload recovery.
 - Live runtime rechecked after docs commit: current retry image, analytics module SHA256 match, healthy/restarts0, public health true; frontend remains edbd07e149c4d340b84dfa031c714adf73e19fef. AC13/15 and SDD verification remain open for processed offline conversion and linked report receipt.
+
+## Missing delivery after runtime configuration outage — 2026-10-02
+
+Live read-only audit found a consented post-cutoff billing_wallet_view without PostHog delivery, while three first-visit deliveries exist. Root cause: destinations are selected only during first event insertion; duplicate-event recovery exits before creating missing delivery. Configuration restore cannot repair these gaps. AC07 reopened until bounded recovery is tested/deployed and the genuine missing wallet event is delivered. Existing delivery states/upload IDs must remain intact; no synthetic financial facts or reset of accepted uploads.
+
+Recovery rollout capacity: server available9515836KiB (~9.08GiB), current backup ~1.5GiB and module delta <1MiB. Use explicit8GiB minimum for this rollout; expected remaining >7GiB after backup. The disk gate stays enabled. Previous SMTP backup is being copied to Mac; original remains on server until complete validation, so rollout does not depend on deleting it. Latest prior runtime backup preserved.
+
+Recovery implementation: bounded anti-exists repair with current consent/grant/cutoff, existing identity locks/unique destination constraint and Metrica goal allowlist. Disabled destination skips transmission/attempts and pending query excludes unavailable destinations. One regression fails on immutable previous image (attempts4→5); corrected overlay runs26analytics tests successfully. Scoped Ruff/Black passed. No schema/frontend/dependency changes. Deployment and genuine missing-event receipt pending.

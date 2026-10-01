@@ -317,6 +317,7 @@ async def deliver_one(delivery_id: str, client: httpx.AsyncClient) -> None:
             delivery is None
             or delivery.state not in {'pending', 'uploaded', 'uncertain'}
             or delivery.available_at > int(time.time())
+            or delivery.destination not in destinations()
         ):
             return
         event = await db.get(AnalyticsEvent, delivery.event_id)
@@ -383,9 +384,79 @@ async def deliver_one(delivery_id: str, client: httpx.AsyncClient) -> None:
         await db.commit()
 
 
+async def repair_missing_deliveries(batch_size: int = 100) -> None:
+    """Backfill missing jobs after configuration recovery without replaying sent jobs."""
+    cutoff = enabled_at()
+    for destination in destinations():
+        async with get_async_db_context() as db:
+            query = (
+                select(AnalyticsEvent)
+                .join(AnalyticsIdentity, AnalyticsIdentity.id == AnalyticsEvent.identity_id)
+                .where(
+                    AnalyticsIdentity.consent.is_(True),
+                    AnalyticsEvent.occurred_at >= cutoff,
+                    AnalyticsEvent.occurred_at >= AnalyticsIdentity.granted_at,
+                    ~select(AnalyticsDelivery.id)
+                    .where(
+                        AnalyticsDelivery.event_id == AnalyticsEvent.id,
+                        AnalyticsDelivery.destination == destination,
+                    )
+                    .exists(),
+                )
+            )
+            if destination == 'metrica':
+                query = query.where(AnalyticsEvent.event_name.in_(METRICA_GOALS))
+            events = (
+                (
+                    await db.execute(
+                        query.order_by(AnalyticsEvent.occurred_at, AnalyticsEvent.id).limit(
+                            max(1, min(batch_size, 500))
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            for event in events:
+                # Same identity lock as revoke; the unique pair resolves competing workers.
+                identity = (
+                    await db.execute(
+                        select(AnalyticsIdentity).where(AnalyticsIdentity.id == event.identity_id).with_for_update()
+                    )
+                ).scalar_one_or_none()
+                if (
+                    identity is None
+                    or not identity.consent
+                    or event.occurred_at < max(cutoff, identity.granted_at)
+                    or (
+                        await db.execute(select(AnalyticsEvent.id).where(AnalyticsEvent.id == event.id))
+                    ).scalar_one_or_none()
+                    is None
+                ):
+                    continue
+                try:
+                    async with db.begin_nested():
+                        db.add(
+                            AnalyticsDelivery(
+                                id=str(uuid.uuid4()),
+                                event_id=event.id,
+                                destination=destination,
+                                state='pending',
+                                attempts=0,
+                                available_at=0,
+                            )
+                        )
+                        await db.flush()
+                except IntegrityError:
+                    # Existing delivery is authoritative, including terminal/ambiguous states.
+                    continue
+            await db.commit()
+
+
 async def dispatch_pending() -> None:
     if enabled_at() <= 0:
         return
+    await repair_missing_deliveries()
     async with get_async_db_context() as db:
         ids = list(
             (
@@ -393,6 +464,7 @@ async def dispatch_pending() -> None:
                     select(AnalyticsDelivery.id)
                     .where(
                         AnalyticsDelivery.state.in_(['pending', 'uploaded', 'uncertain']),
+                        AnalyticsDelivery.destination.in_(destinations()),
                         AnalyticsDelivery.available_at <= int(time.time()),
                     )
                     .limit(100)

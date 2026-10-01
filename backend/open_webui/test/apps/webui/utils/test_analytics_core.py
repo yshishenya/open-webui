@@ -356,3 +356,109 @@ def test_server_tracking_requires_configured_destination(run_case, monkeypatch):
         assert not response.server_payment_tracking and not response.server_signup_tracking
 
     run_case(case)
+
+
+def test_delivery_configuration_recovery(run_case, monkeypatch):
+    async def case(factory):
+        for key in ('AIRIS_POSTHOG_KEY', 'AIRIS_POSTHOG_HOST', 'AIRIS_METRICA_OAUTH_TOKEN'):
+            monkeypatch.delenv(key, raising=False)
+        async with factory() as db:
+            identity = AnalyticsIdentity(
+                id='recovery',
+                anonymous_id='recovery',
+                client_id='1234567890123456789',
+                consent=True,
+                granted_at=10,
+                first_touch={},
+                last_touch={},
+                lifetime={},
+            )
+            db.add(identity)
+            await db.flush()
+            assert await core.add_event(db, identity, 'billing_wallet_view', 'wallet', {}, 20)
+            assert await core.add_event(db, identity, 'payment_confirmed', 'payment', {}, 20)
+            for state in ('uploaded', 'uncertain', 'delivered'):
+                event_id = f'recovery:{state}'
+                db.add(
+                    AnalyticsEvent(
+                        id=event_id,
+                        identity_id=identity.id,
+                        event_name='payment_confirmed',
+                        occurred_at=20,
+                        properties={},
+                    )
+                )
+                db.add(
+                    AnalyticsDelivery(
+                        id=state,
+                        event_id=event_id,
+                        destination='metrica',
+                        state=state,
+                        attempts=4,
+                        available_at=0 if state == 'uploaded' else 99,
+                        upload_id='accepted',
+                    )
+                )
+            db.add(
+                AnalyticsIdentity(
+                    id='denied',
+                    anonymous_id='denied',
+                    consent=False,
+                    granted_at=10,
+                    first_touch={},
+                    last_touch={},
+                    lifetime={},
+                )
+            )
+            for event_id, owner, timestamp in [
+                ('denied-event', 'denied', 20),
+                ('before-grant', 'recovery', 5),
+                ('before-cutoff', 'recovery', 0),
+            ]:
+                db.add(
+                    AnalyticsEvent(
+                        id=event_id,
+                        identity_id=owner,
+                        event_name='payment_confirmed',
+                        occurred_at=timestamp,
+                        properties={},
+                    )
+                )
+            await db.commit()
+
+        def unexpected_request(request: httpx.Request) -> httpx.Response:
+            raise AssertionError('Disabled destination must not send HTTP requests')
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(unexpected_request)) as client:
+            await core.deliver_one('uploaded', client)
+        async with factory() as db:
+            guarded = await db.get(AnalyticsDelivery, 'uploaded')
+            assert (guarded.state, guarded.attempts) == ('uploaded', 4)
+        monkeypatch.setenv('AIRIS_POSTHOG_KEY', 'test')
+        monkeypatch.setenv('AIRIS_POSTHOG_HOST', 'https://analytics.example.com')
+        monkeypatch.setenv('AIRIS_METRICA_OAUTH_TOKEN', 'test')
+        monkeypatch.setenv('AIRIS_METRICA_COUNTER_ID', '123')
+        await core.repair_missing_deliveries(batch_size=2)
+        await core.repair_missing_deliveries()
+        await core.repair_missing_deliveries()
+        async with factory() as db:
+            jobs = (await db.execute(select(AnalyticsDelivery))).scalars().all()
+            assert len(jobs) == 9  # Five PostHog, four allowed Metrica events.
+            assert not any(job.event_id in {'denied-event', 'before-grant', 'before-cutoff'} for job in jobs)
+            assert not any(job.event_id == 'recovery:wallet' and job.destination == 'metrica' for job in jobs)
+            for state in ('uploaded', 'uncertain', 'delivered'):
+                job = await db.get(AnalyticsDelivery, state)
+                assert (job.state, job.attempts, job.available_at, job.upload_id) == (
+                    state,
+                    4,
+                    0 if state == 'uploaded' else 99,
+                    'accepted',
+                )
+            identity = await db.get(AnalyticsIdentity, 'recovery')
+            await core.purge_identity(db, identity)
+            await db.commit()
+        await core.repair_missing_deliveries()
+        async with factory() as db:
+            assert not (await db.execute(select(AnalyticsDelivery))).scalars().all()
+
+    run_case(case)

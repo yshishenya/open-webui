@@ -60,3 +60,8 @@
 
 - 2026-10-01: Final independent audit found no further required PostHog settings. Updated operational guide with connected OAuth, verified admin/merchant cabinets and local ORB limitation. CI for PR source head 360f62478 now passes 439 backend tests and all three billing-confidence suites; baseline backend lint remains red. Goal and SDD verification remain active pending Metrica processing/report receipt.
   Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
+
+- [ ] [BUG] 2026-10-02: Repair missing external delivery after provider configuration outage. Production wallet-view event exists without PostHog delivery. Independent source audit confirms recovery gap. Implementing consent/cutoff-bound repair, preserving existing delivery states and accepted upload IDs.
+  - Owner: Codex
+  - Started: 2026-10-02
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
