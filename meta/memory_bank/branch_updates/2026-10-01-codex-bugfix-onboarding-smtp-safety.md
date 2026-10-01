@@ -24,3 +24,9 @@
   - Started: 2026-10-01
   - Summary: GitHub CI обходит dev startup и устанавливает неполный набор пакетов в upstream-образ; pytest падает на collection. Перед тестами устанавливается существующий requirements.txt, без изменения зависимостей.
   - Tests: Проверка Compose и повторный GitHub CI.
+
+- [x] **[BUG][SMTP]** Compose передаёт SMTP_REPLY_TO в контейнер
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-01__bugfix__onboarding-smtp-safety.md`
+  - Owner: Codex
+  - Done: 2026-10-01
+  - Summary: Добавлен отсутствующий mapping ENV; пустой default сохраняет существующее поведение. Проверяется цепочка Compose → EmailService → MIME Header без SMTP.

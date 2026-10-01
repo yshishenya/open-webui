@@ -43,7 +43,7 @@
 
 ## Upstream impact
 
-`backend/open_webui/utils/email.py`: общий вызов AIRIS-обработчика, MIME-заголовки и совместимый result-метод. Изменение необходимо, потому что все шаблоны используют этот отправщик; логика повторов вынесена в fork-owned helper. Другие маршруты и публичные API не меняются. `.env.example`: только описание optional SMTP_REPLY_TO.
+`backend/open_webui/utils/email.py`: общий вызов AIRIS-обработчика, MIME-заголовки и совместимый result-метод. Изменение необходимо, потому что все шаблоны используют этот отправщик; логика повторов вынесена в fork-owned helper. Другие маршруты и публичные API не меняются. `.env.example`: описание optional SMTP_REPLY_TO; `docker-compose.yaml`: передача этого ENV в контейнер. Без mapping переменная из .env не попадает в EmailService.
 
 ## Verification
 
@@ -72,3 +72,5 @@ Unknown не означает failed; существующие bool-вызовы
 ## Уточнение окружения GitHub CI
 
 Первый backend-pytest не дошёл до тестов: upstream-образ не содержит `langchain_community`, а команда CI заменяет dev startup и пропускает синхронизацию requirements. Workflow устанавливал только несколько тестовых пакетов. Исправление: перед pytest установить существующий `backend/requirements.txt`; состав и версии зависимостей не меняются. Upstream impact: AIRIS workflow `.github/workflows/backend-tests-airis-b2c.yml`, одна команда. Повторная проверка на GitHub ожидается; локальные 407 passed не заменяют результат CI.
+
+Проверка конфигурационного пути выявила отсутствующий Compose mapping для SMTP_REPLY_TO. Он добавлен; разрешённое значение задаётся при развёртывании, универсальный default остаётся пустым. Проверка разрешённого Compose environment и MIME Reply-To выполняется без реальной отправки.
