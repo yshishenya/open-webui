@@ -39,6 +39,7 @@ from open_webui.utils.billing import (
     QuotaExceededError,
 )
 from open_webui.utils.pricing import PricingService
+from open_webui.utils.response import normalize_usage
 from open_webui.utils.lead_magnet import (
     finalize_lead_magnet_usage,
     estimate_tts_seconds,
@@ -1209,15 +1210,21 @@ def extract_usage_from_response(
     Returns:
         Usage data dict or None
     """
-    if isinstance(response, dict):
-        usage_value = response.get("usage")
-        if isinstance(usage_value, dict):
-            return {
-                "prompt_tokens": int(usage_value.get("prompt_tokens", 0) or 0),
-                "completion_tokens": int(usage_value.get("completion_tokens", 0) or 0),
-                "total_tokens": int(usage_value.get("total_tokens", 0) or 0),
-            }
-    return None
+    usage_value = response.get("usage")
+    # Responses streams nest measured usage in their terminal event.
+    if response.get("type") == "response.completed":
+        completed_response = response.get("response")
+        if isinstance(completed_response, dict):
+            usage_value = completed_response.get("usage")
+    if not isinstance(usage_value, dict) or not usage_value:
+        return None
+
+    usage = normalize_usage(usage_value)
+    return {
+        "prompt_tokens": usage["input_tokens"],
+        "completion_tokens": usage["output_tokens"],
+        "total_tokens": usage["total_tokens"],
+    }
 
 
 async def track_non_streaming_response(
@@ -1275,13 +1282,13 @@ async def track_non_streaming_response(
 
 
 async def track_streaming_response(  # noqa: C901
-    response_iterator: AsyncGenerator[bytes, None],
+    response_iterator: AsyncGenerator[bytes | str, None],
     user_id: str,
     model_id: str,
     chat_id: Optional[str] = None,
     message_id: Optional[str] = None,
     billing_context: Optional[BillingHoldContext] = None,
-) -> AsyncGenerator[bytes, None]:
+) -> AsyncGenerator[bytes | str, None]:
     """
     Wrapper for streaming responses to track usage
     Intercepts the final chunk that contains usage data
@@ -1303,31 +1310,22 @@ async def track_streaming_response(  # noqa: C901
             # Yield chunk first (passthrough)
             yield chunk
 
-            # Try to extract usage from chunk
-            # Streaming responses send usage in the last chunk
-            try:
-                # Chunks are in format: "data: {...}\n\n"
-                if chunk.startswith(b"data: "):
-                    data_str = chunk[6:].strip()  # Remove "data: " prefix
-
-                    # Skip [DONE] marker
-                    if data_str == b"[DONE]":
-                        continue
-
-                    # Parse JSON
-                    try:
-                        data = json.loads(data_str)
-                        if isinstance(data, dict) and "usage" in data:
-                            chunk_usage = extract_usage_from_response(data)
-                            if chunk_usage:
-                                usage_data = chunk_usage
-                                log.debug(f"Extracted usage from streaming chunk: {usage_data}")
-                    except json.JSONDecodeError:
-                        # Not JSON, skip
-                        pass
-            except Exception as e:
-                log.debug(f"Error parsing chunk for usage: {e}")
-                continue
+            # OpenAI yields bytes; the Ollama adapter yields text SSE lines.
+            for line in chunk.splitlines():
+                prefix = b"data:" if isinstance(line, bytes) else "data:"
+                if not line.startswith(prefix):
+                    continue
+                data_str = line[5:].strip()
+                if data_str in (b"[DONE]", "[DONE]"):
+                    continue
+                try:
+                    data = json.loads(data_str)
+                    if isinstance(data, dict):
+                        chunk_usage = extract_usage_from_response(data)
+                        if chunk_usage is not None:
+                            usage_data = chunk_usage
+                except (ValueError, TypeError):
+                    log.debug("Ignoring non-usage streaming data for model %s", model_id)
 
         # After iterator is exhausted, track usage if found
         if billing_context:

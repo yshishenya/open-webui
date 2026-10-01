@@ -1,0 +1,144 @@
+{
+  "spec_id": "airis-streaming-usage-accounti-2026-10-02-0102",
+  "title": "airis-streaming-usage-accounting-2026-10-02",
+  "generated": "2026-10-01T22:02:06.914957Z",
+  "last_updated": "2026-10-01T22:14:18.193471Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "medium",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "investigation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__streaming-usage-accounting.md",
+    "status": "active",
+    "activated_date": "2026-10-01T22:05:40.619253Z",
+    "progress_percentage": 33
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-streaming-usage-accounting-2026-10-02",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and fix provider usage extraction",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-01T22:11:14.286149Z",
+        "journaled_at": "2026-10-01T22:11:14.288831Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify source and production accounting",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce and fix nested Responses usage with regression",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 1.0,
+        "completed_at": "2026-10-01T22:11:14.285969Z",
+        "needs_journaling": false,
+        "status_note": "Confirmed nested Responses usage mismatch; regression failed before fix and passed after normalization; preserve byte/text streams",
+        "journaled_at": "2026-10-01T22:11:14.287550Z",
+        "file_path": "backend/open_webui/utils/billing_integration.py"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Validate billing paths and submit reviewed source",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 2.0,
+        "description": "Run full backend checks, review and open PR",
+        "file_path": "backend/open_webui/test/apps/webui/routers/test_openai_chat_billing_streaming.py",
+        "task_category": "implementation"
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Release guarded runtime and verify fresh free measured usage",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 1.0,
+        "file_path": "scripts/deploy_guarded.sh",
+        "task_category": "implementation",
+        "verification_type": "manual"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-01T22:11:14.287539Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce and fix nested Responses usage with regression",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Confirmed nested Responses usage mismatch; regression failed before fix and passed after normalization; preserve byte/text streams",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-01T22:11:14.288826Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: [To Be Defined]",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}

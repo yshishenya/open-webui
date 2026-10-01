@@ -1,9 +1,12 @@
 # ruff: noqa
 
 import asyncio
+import json
 import time
 import uuid
 from typing import Protocol
+
+import pytest
 
 from _pytest.monkeypatch import MonkeyPatch
 
@@ -14,7 +17,7 @@ from test.util.billing_scenarios_matrix import (
     get_usage_event_by_correlation,
 )
 from test.util.mock_user import mock_webui_user
-from test.util.openai_provider_fakes import FakeAiohttpResponse, FakeAiohttpSession
+from test.util.openai_provider_fakes import FakeAiohttpResponse, FakeAiohttpSession, FakeAiohttpStream
 
 
 class _OpenAIState(Protocol):
@@ -150,7 +153,8 @@ class TestOpenAIChatBillingLeadMagnet(AbstractPostgresTest):
         monkeypatch.setattr(openai_router, "get_all_models", fake_get_all_models)
         monkeypatch.setattr(openai_router, "get_session", fake_get_session)
 
-    def test_lead_magnet_allowed_does_not_charge_wallet(self, monkeypatch: MonkeyPatch) -> None:
+    @pytest.mark.parametrize("responses_stream", [False, True])
+    def test_lead_magnet_allowed_does_not_charge_wallet(self, monkeypatch: MonkeyPatch, responses_stream: bool) -> None:
         from open_webui.models.billing import LeadMagnetStates, LedgerEntryType, Wallets
         from open_webui.utils.wallet import wallet_service
 
@@ -172,9 +176,35 @@ class TestOpenAIChatBillingLeadMagnet(AbstractPostgresTest):
             json_payload={
                 "id": "chatcmpl_lm_1",
                 "choices": [{"index": 0, "message": {"role": "assistant", "content": "ok"}}],
-                "usage": {"prompt_tokens": 1200, "completion_tokens": 800, "total_tokens": 2000},
+                "usage": {
+                    "prompt_tokens": 1200,
+                    "completion_tokens": 800,
+                    "total_tokens": 2000,
+                },
             },
         )
+        if responses_stream:
+            event = {
+                "type": "response.completed",
+                "response": {
+                    "usage": {
+                        "input_tokens": 1200,
+                        "output_tokens": 800,
+                        "total_tokens": 2000,
+                    }
+                },
+            }
+            provider_response = FakeAiohttpResponse(
+                status=200,
+                headers={"Content-Type": "text/event-stream"},
+                content=FakeAiohttpStream(
+                    [
+                        b"event: response.completed\n",
+                        b"data: " + json.dumps(event).encode() + b"\n\n",
+                        b"data: [DONE]\n\n",
+                    ]
+                ),
+            )
         self._mock_models_and_provider(monkeypatch, provider_response)
 
         with mock_webui_user(id="1"):
@@ -184,6 +214,7 @@ class TestOpenAIChatBillingLeadMagnet(AbstractPostgresTest):
                     "model": self.model_id,
                     "messages": [{"role": "user", "content": "hello"}],
                     "max_tokens": 500,
+                    "stream": responses_stream,
                     "metadata": {"request_id": self.request_id},
                 },
             )
@@ -197,6 +228,8 @@ class TestOpenAIChatBillingLeadMagnet(AbstractPostgresTest):
         assert usage_event is not None
         assert usage_event.billing_source == "lead_magnet"
         assert usage_event.cost_charged_kopeks == 0
+        assert usage_event.is_estimated is False
+        assert usage_event.estimate_reason is None
 
         assert_wallet_topup_balance(wallet.id, 0)
 
