@@ -78,6 +78,16 @@ records and internal financial facts. Migration rollback only after data export.
 ## Progress
 
 - Implementation and independent review complete. Local tests and migration passed.
-- Production rollout, PostHog project setup and observed provider delivery remain open.
+- Production rollout and PostHog setup/delivery verified on 2026-10-01. Metrica server delivery awaits OAuth authorization.
 - AC01–12/14 checked against isolated automated checks; real-money/provider delivery is not claimed.
   AC13/15 remain open for external delivery and production acceptance.
+
+## Production evidence — 2026-10-01
+
+- User authorized remaining work; seven copied/verified old backup duplicates were removed. Latest prior backup was preserved, free disk gate passed.
+- Fresh rollout backup: `/opt/backups/airis/20261001T190853Z-edbd07e14-funnel-20261001`; checksums, archive reading and dump listing passed.
+- Deployed application source: `edbd07e149c4d340b84dfa031c714adf73e19fef`, image digest `sha256:24273c0692f2c6ce98f4a29964307e79db20e11b39cfb819d4e6409b7617e99a`, linux/amd64. Migration head `a10f20261001`. Public version.json matches source; health true; container healthy with zero restarts.
+- Previous image retained for rollback. Deployment recreated only Airis. Analytics configuration persists in `/opt/projects/airis-analytics-runtime/compose.yaml` and private provider.env; production .env image/COMPOSE_FILE updated without discarding other settings.
+- Published-image tests: 19 new analytics and 95 existing billing tests pass. Fresh production PostgreSQL dump restored locally and migrated successfully before rollout.
+- Actual production browser: no Metrica script while denied, one after consent; welcome→pricing works. First visit with diagnostic UTM saved and delivered; event found in PostHog Team 2. Revoke removes internal events/attribution. Public report denies unauthenticated requests (401); deployed report computes 7/30-day windows.
+- Metrica OAuth form prepared for metrika:read/write, not submitted pending action-time confirmation required by browser security policy. No real payments/refunds or fake production accounts created. AC13/15 remain open for this provider gate and full signed-in acceptance.

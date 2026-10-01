@@ -1,5 +1,5 @@
 - [ ] **[ANALYTICS]** Полная воронка Airis
-  - Spec: meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md
+  - Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
   - Owner: Codex
   - Branch: codex/feature/full-funnel-analytics-20261001
   - Started: 2026-10-01
@@ -35,3 +35,11 @@
 
 - При платежном событии готовность server transport обновляется даже в уже открытой
   вкладке; regression на изменение false→true passed, весь frontend 139/139.
+
+### Production rollout and live checks
+
+- Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
+- All seven backups transferred/validated; authorized duplicate deletion freed required disk. Latest backup and fresh rollout backup retained.
+- Deployed source edbd07e149c4d340b84dfa031c714adf73e19fef; registry digest 24273c0692f2c6ce98f4a29964307e79db20e11b39cfb819d4e6409b7617e99a. Service-only rollout/migration/health/public version passed.
+- Live consent, first-visit attribution, durable PostHog delivery and warehouse receipt, revoke purge, unauthenticated report denial, 7/30-day report calculation passed.
+- Metrica OAuth prepared; create/permission grant awaits required browser action-time confirmation. Signed-in/full real financial acceptance remains unproven; SDD verification task stays in progress.
