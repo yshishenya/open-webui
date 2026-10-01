@@ -136,6 +136,8 @@ jobs:
           sbom: true
           build-args: |
             BUILD_HASH=${{ github.sha }}
+            PUBLIC_YANDEX_METRICA_ID=${{ vars.PUBLIC_YANDEX_METRICA_ID }}
+            PUBLIC_GA_MEASUREMENT_ID=${{ vars.PUBLIC_GA_MEASUREMENT_ID }}
             ${{ matrix.variant.build_args }}
 
       - name: Export digest

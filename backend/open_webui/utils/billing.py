@@ -761,6 +761,10 @@ class BillingService:
             },
         )
 
+        from open_webui.utils.airis.analytics_payments import safely_record_created_payment
+
+        await safely_record_created_payment(created_payment.id)
+
         return {
             "payment_id": payment["id"],
             "confirmation_url": payment["confirmation"]["confirmation_url"],
@@ -1314,6 +1318,20 @@ class BillingService:
         if not isinstance(payment_id, str) or not payment_id:
             raise WebhookVerificationError("Missing payment_id")
 
+        if event_type == 'refund.succeeded':
+            from open_webui.utils.airis.analytics_payments import record_verified_refund
+
+            refund_id = webhook_data.get('refund_id')
+            if not isinstance(refund_id, str) or not refund_id:
+                raise WebhookVerificationError('Missing refund_id')
+            try:
+                await record_verified_refund(refund_id, payment_id)
+            except ValueError as exc:
+                raise WebhookVerificationError('Refund verification failed') from exc
+            except Exception as exc:
+                raise WebhookRetryableError('Refund processing temporarily unavailable') from exc
+            return None
+
         yookassa = get_yookassa_client()
         if not yookassa:
             raise WebhookRetryableError("YooKassa client not initialized")
@@ -1375,6 +1393,10 @@ class BillingService:
                 payment_id,
                 trusted_webhook_data,
             )
+            if event_type == 'payment.succeeded':
+                from open_webui.utils.airis.analytics_payments import safely_record_confirmed_payment
+
+                await safely_record_confirmed_payment(payment_id)
             return None
 
         # Find transaction
@@ -1523,6 +1545,10 @@ class BillingService:
 
         payment_status = updated_payment.status if updated_payment else None
         credited = payment_status == PaymentStatus.SUCCEEDED.value
+        if credited:
+            from open_webui.utils.airis.analytics_payments import safely_record_confirmed_payment
+
+            await safely_record_confirmed_payment(payment_id_clean)
 
         return {
             "payment_id": payment_id_clean,

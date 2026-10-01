@@ -10,8 +10,12 @@ const isBrowser = (): boolean => typeof window !== 'undefined';
 export const getAnalyticsConsent = (): AnalyticsConsent => {
 	if (!isBrowser()) return null;
 
-	const value = window.localStorage.getItem(ANALYTICS_CONSENT_KEY);
-	return value === 'granted' || value === 'denied' ? value : null;
+	try {
+		const value = window.localStorage.getItem(ANALYTICS_CONSENT_KEY);
+		return value === 'granted' || value === 'denied' ? value : null;
+	} catch {
+		return 'denied';
+	}
 };
 
 export const setAnalyticsConsent = (consent: Exclude<AnalyticsConsent, null>): void => {

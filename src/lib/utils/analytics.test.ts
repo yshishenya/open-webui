@@ -8,17 +8,103 @@ vi.mock('$env/dynamic/public', () => ({
 	}
 }));
 
+vi.mock('$lib/utils/airis/funnelAnalytics', () => ({
+	configureFunnelProviders: vi.fn(),
+	browserTracksPayments: async () => true,
+	trackFunnelEvent: () => Promise.resolve(true)
+}));
+
 import { ANALYTICS_ATTRIBUTION_KEY, setAnalyticsConsent } from '$lib/utils/airis/analyticsConsent';
-import { captureAttribution, trackEcommercePurchase, trackEvent } from './analytics';
+import { captureAttribution, trackEcommercePurchase, trackEvent, trackPageView } from './analytics';
 
 const YANDEX_METRICA_ID = 'test-counter';
 
 describe('analytics adapter', () => {
 	beforeEach(() => {
+		vi.restoreAllMocks();
+		setAnalyticsConsent('denied');
+		captureAttribution();
 		localStorage.clear();
 		sessionStorage.clear();
 		document.head.innerHTML = '';
 		window.history.replaceState({}, '', '/welcome');
+		const analyticsWindow = window as Window & {
+			ym?: unknown;
+			dataLayer?: unknown;
+			__airisAnalyticsInitialized?: boolean;
+			__airisAnalyticsScripts?: { yandex?: boolean; google?: boolean };
+		};
+		delete analyticsWindow.ym;
+		delete analyticsWindow.dataLayer;
+		delete analyticsWindow.__airisAnalyticsInitialized;
+		delete analyticsWindow.__airisAnalyticsScripts;
+	});
+
+	it('sends explicit views after consent with campaign tags and without private URL data', () => {
+		window.history.replaceState({}, '', '/auth?token=private&utm_source=telegram#private');
+		vi.spyOn(document, 'referrer', 'get').mockReturnValue(
+			'https://example.com/source?token=private#private'
+		);
+		const ym = vi.fn();
+		Object.assign(window, { ym });
+
+		trackPageView();
+		expect(ym).not.toHaveBeenCalled();
+		expect(document.querySelector('#airis-yandex-metrica')).toBeNull();
+
+		setAnalyticsConsent('granted');
+		trackPageView();
+		expect(ym.mock.calls).toEqual([
+			[
+				YANDEX_METRICA_ID,
+				'init',
+				expect.objectContaining({
+					defer: true,
+					url: `${window.location.origin}/auth?utm_source=telegram`,
+					referrer: 'https://example.com/source',
+					sendTitle: false,
+					webvisor: false,
+					clickmap: false,
+					trackLinks: false,
+					trackHash: false
+				})
+			],
+			[
+				YANDEX_METRICA_ID,
+				'hit',
+				'/auth?utm_source=telegram',
+				{ referer: 'https://example.com/source' }
+			]
+		]);
+
+		window.history.replaceState({}, '', '/billing/balance?payment_id=private');
+		trackPageView();
+		expect(ym).toHaveBeenLastCalledWith(
+			YANDEX_METRICA_ID,
+			'hit',
+			'/billing/balance?utm_source=telegram',
+			{ referer: `${window.location.origin}/auth?utm_source=telegram` }
+		);
+		expect(ym.mock.calls.filter((args) => args[1] === 'init')).toHaveLength(1);
+	});
+
+	it('preserves campaign tags through a redirect before consent without persisting them', () => {
+		window.history.replaceState({}, '', '/?utm_source=telegram&yclid=123&token=private');
+		captureAttribution();
+		expect(localStorage.getItem(ANALYTICS_ATTRIBUTION_KEY)).toBeNull();
+		window.history.replaceState({}, '', '/auth');
+		captureAttribution();
+		const ym = vi.fn();
+		Object.assign(window, { ym });
+		setAnalyticsConsent('granted');
+		trackPageView();
+		expect(ym).toHaveBeenLastCalledWith(
+			YANDEX_METRICA_ID,
+			'hit',
+			'/auth?utm_source=telegram&yclid=123',
+			{ referer: '' }
+		);
+		expect(localStorage.getItem(ANALYTICS_ATTRIBUTION_KEY)).toContain('telegram');
 	});
 
 	it('does not load providers before consent and removes sensitive payload keys', () => {
@@ -84,7 +170,7 @@ describe('analytics adapter', () => {
 		}
 	});
 
-	it('keeps campaign attribution bounded and emits normalized lead goals', () => {
+	it('keeps campaign attribution bounded and emits normalized lead goals', async () => {
 		window.history.replaceState(
 			{},
 			'',
@@ -92,11 +178,12 @@ describe('analytics adapter', () => {
 		);
 		setAnalyticsConsent('granted');
 		captureAttribution();
-		trackEvent('signup_completed', { method: 'email' });
+		trackEvent('signup_form_viewed', { method: 'email' });
 
 		const received: CustomEvent[] = [];
 		window.addEventListener('analytics', (event) => received.push(event as CustomEvent));
 		trackEvent('first_prompt_submitted', { prompt: 'private text' });
+		await Promise.resolve();
 
 		expect(localStorage.getItem(ANALYTICS_ATTRIBUTION_KEY)).toContain('telegram');
 		expect(received[0]?.detail).toMatchObject({
@@ -109,8 +196,25 @@ describe('analytics adapter', () => {
 		if (YANDEX_METRICA_ID) {
 			const analyticsWindow = window as Window & { ym?: { a?: unknown[][] } };
 			const queue = analyticsWindow.ym?.a ?? [];
-			expect(queue.some((args) => args.includes('lead_signup_completed'))).toBe(true);
+			expect(queue.some((args) => args.includes('lead_signup_form_viewed'))).toBe(true);
 			expect(queue.some((args) => args.includes('activation_first_prompt'))).toBe(true);
 		}
+	});
+	it('does not infer completed signup from the frontend form mode', () => {
+		const ym = vi.fn();
+		Object.assign(window, { ym });
+		setAnalyticsConsent('granted');
+		trackEvent('signup_completed', { method: 'auth' });
+		expect(ym.mock.calls.filter((args) => args[1] === 'reachGoal')).toEqual([]);
+	});
+
+	it('stops delayed lifetime goal delivery if consent was revoked before acknowledgement', async () => {
+		const ym = vi.fn();
+		Object.assign(window, { ym });
+		setAnalyticsConsent('granted');
+		trackEvent('first_response_received', { has_content: true });
+		setAnalyticsConsent('denied');
+		await Promise.resolve();
+		expect(ym.mock.calls.filter((args) => args[1] === 'reachGoal')).toEqual([]);
 	});
 });

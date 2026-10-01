@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { browserTracksPayments } from '$lib/utils/airis/funnelAnalytics';
 	import { onDestroy, onMount, getContext, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -237,14 +238,19 @@
 	};
 
 	const trackTopupCompleted = (): void => {
-		if (topupFlow) {
-			trackEvent('billing_topup_completed', { amount_kopeks: topupFlow.amount_kopeks });
+		if (!topupFlow) return;
+		const completed = { ...topupFlow };
+		const currency = balance?.currency ?? 'RUB';
+		// Resolve the authoritative transport before emitting; analytics never delays wallet UI.
+		void browserTracksPayments().then((browserEnabled) => {
+			if (!browserEnabled) return;
+			trackEvent('billing_topup_completed', { amount_kopeks: completed.amount_kopeks });
 			trackEcommercePurchase({
-				id: topupFlow.payment_id,
-				revenue: topupFlow.amount_kopeks / 100,
-				currency: balance?.currency ?? 'RUB'
+				id: completed.payment_id,
+				revenue: completed.amount_kopeks / 100,
+				currency
 			});
-		}
+		});
 	};
 
 	const handleTopupReturnRefresh = async (): Promise<void> => {
@@ -422,7 +428,9 @@
 			});
 			const result = await createTopup(localStorage.token, amountKopeks, returnUrl);
 			if (result?.confirmation_url) {
-				trackEvent('billing_topup_payment_created', { amount_kopeks: amountKopeks });
+				void browserTracksPayments().then((browserEnabled) => {
+					if (browserEnabled) trackEvent('billing_topup_payment_created', { amount_kopeks: amountKopeks });
+				});
 				try {
 					localStorage.setItem('billing_last_topup_kopeks', String(amountKopeks));
 					lastTopupKopeks = amountKopeks;

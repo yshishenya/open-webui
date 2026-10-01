@@ -7,6 +7,10 @@
 		type AnalyticsConsent
 	} from '$lib/utils/airis/analyticsConsent';
 
+	import { FUNNEL_REVOKE_KEY, revokeFunnelConsent } from '$lib/utils/airis/funnelAnalytics';
+	let saving = false;
+	let revokeFailed = false;
+
 	let consent: AnalyticsConsent = null;
 	let settingsOpen = false;
 
@@ -16,16 +20,37 @@
 
 	onMount(() => {
 		consent = getAnalyticsConsent();
+		if (localStorage.getItem(FUNNEL_REVOKE_KEY)) {
+			settingsOpen = true;
+			revokeFailed = true;
+		}
 		window.addEventListener(ANALYTICS_SETTINGS_EVENT, openSettings);
 		return () => window.removeEventListener(ANALYTICS_SETTINGS_EVENT, openSettings);
 	});
 
-	const choose = (value: Exclude<AnalyticsConsent, null>): void => {
+	const choose = async (value: Exclude<AnalyticsConsent, null>): Promise<void> => {
+		if (saving) return;
 		const shouldReload = consent === 'granted' && value === 'denied';
-		consent = value;
-		settingsOpen = false;
-		setAnalyticsConsent(value);
-		if (shouldReload) window.location.reload();
+		saving = true;
+		revokeFailed = false;
+		try {
+			if (value === 'denied' || localStorage.getItem(FUNNEL_REVOKE_KEY)) {
+				// Stop browser delivery immediately, then confirm the server has purged pending delivery.
+				consent = 'denied';
+				setAnalyticsConsent('denied');
+				await revokeFunnelConsent();
+			}
+			consent = value;
+			setAnalyticsConsent(value);
+			settingsOpen = false;
+		} catch {
+			revokeFailed = true;
+			settingsOpen = true;
+		} finally {
+			saving = false;
+			// Remove already-loaded provider scripts even when server confirmation needs a retry.
+			if (shouldReload) window.location.reload();
+		}
 	};
 </script>
 
@@ -37,7 +62,10 @@
 		aria-label="Настройки аналитики"
 	>
 		<p class="leading-relaxed">
-			{#if consent === null}
+			{#if revokeFailed}
+				Аналитика в браузере остановлена. Не удалось подтвердить отзыв на сервере. Нажмите
+				«Запретить», чтобы повторить.
+			{:else if consent === null}
 				Разрешить продуктовую аналитику, чтобы мы улучшали Airis? Основные функции работают без неё.
 			{:else}
 				Сейчас аналитика {consent === 'granted' ? 'разрешена' : 'запрещена'}. Вы можете изменить
@@ -51,6 +79,7 @@
 			{#if settingsOpen && consent !== null}
 				<button
 					type="button"
+					disabled={saving}
 					class="rounded-xl px-3 py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
 					on:click={() => (settingsOpen = false)}
 				>
@@ -59,6 +88,7 @@
 			{/if}
 			<button
 				type="button"
+				disabled={saving}
 				class="rounded-xl px-3 py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
 				on:click={() => choose('denied')}
 			>
@@ -66,6 +96,7 @@
 			</button>
 			<button
 				type="button"
+				disabled={saving}
 				class="rounded-xl bg-gray-900 px-3 py-2 font-medium text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
 				on:click={() => choose('granted')}
 			>
