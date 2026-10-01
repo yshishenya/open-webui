@@ -25,7 +25,7 @@
 - [x] AC04: создание аккаунта определяется сервером, повторный вход не считается регистрацией.
 - [x] AC05: принятый запрос и успешный непустой ответ считаются один раз за жизнь аккаунта; ошибка/отклонение не активируют.
 - [x] AC06: оплата без возврата в браузер фиксируется после подтверждения провайдером и зачисления; повторы webhook/reconcile не дублируют факт.
-- [ ] AC07: пропущенный при сбое факт оплаты восстанавливается; очередь переживает рестарт; повторная доставка имеет стабильный ключ.
+- [x] AC07: пропущенный при сбое факт оплаты восстанавливается; очередь переживает рестарт; повторная доставка имеет стабильный ключ.
 - [x] AC08: первая/повторная оплата определяется стабильно при одновременных платежах.
 - [x] AC09: подтверждённые частичные/полные возвраты дедуплицируются, проверяются через провайдера и учитываются в net revenue без изменения кошелька этой задачей.
 - [x] AC10: отзыв согласия очищает клиентскую идентичность и прекращает ожидающую внешнюю доставку; старые события не воспроизводятся при новом согласии.
@@ -136,3 +136,12 @@ Live read-only audit found a consented post-cutoff billing_wallet_view without P
 Recovery rollout capacity: server available9515836KiB (~9.08GiB), current backup ~1.5GiB and module delta <1MiB. Use explicit8GiB minimum for this rollout; expected remaining >7GiB after backup. The disk gate stays enabled. Previous SMTP backup is being copied to Mac; original remains on server until complete validation, so rollout does not depend on deleting it. Latest prior runtime backup preserved.
 
 Recovery implementation: bounded anti-exists repair with current consent/grant/cutoff, existing identity locks/unique destination constraint and Metrica goal allowlist. Disabled destination skips transmission/attempts and pending query excludes unavailable destinations. One regression fails on immutable previous image (attempts4→5); corrected overlay runs26analytics tests successfully. Scoped Ruff/Black passed. No schema/frontend/dependency changes. Deployment and genuine missing-event receipt pending.
+
+## Configuration recovery live acceptance — 2026-10-02
+
+- Source `c4484454a95c5d0d3a978a19d25518a836d8ed48`; Mac-built linux/amd64 image `yshishenya/yshishenya:c4484454a-delivery-recovery-20261002`, digest `sha256:610c1a3347baa97f2392160029e6aadc6ffcb87ac364efd6b613eee780bdb8ea`. Immutable parent is prior retry digest02a53a23…, only analytics.py copied. Public frontend remains edbd07e149c4d340b84dfa031c714adf73e19fef.
+- Source/image/live module SHA256 `a5cece1af1edbd962420bc2ecafd48a719348a0af9d9355eb72b6e8e9d5a9fe0`. All26analytics tests pass in actual packaged image; existing guard regression fails on previous image. Scoped Ruff/Black passed; no schema/frontend/dependency changes.
+- Fresh backup `/opt/backups/airis/20261001T211731Z-c4484454a-delivery-recovery-20261002` passed SHA256/archive/pg_restore-list; Alembic a10f20261001 unchanged. Service-only guarded rollout completed, previous image retained. Explicit8GiB preflight capacity gate passed. Existing image-tag lines persisted without modifying other env bytes; private backup retained.
+- Production healthy/restarts0/healthtrue; both destination settings restored. Previously missing wallet delivery now delivered: four PostHog deliveries, no pending/error jobs. Warehouse query for actual billing_wallet_view: before rollout no rows; after rollout one row, errornull. AC07 closed on actual recovery evidence, not only mocked tests.
+- Previous SMTP backup copied to `/Users/yshishenya/Documents/Airis-production-backups/2026-10-02-transfer/20261001T193209Z-smtp-3f89137fc-funnel-20261001`; all3hashes,735archive members and pg_restore-list verified. Deleted only verified server duplicate after manifest equality; both newer runtime backups retained.
+- Metrica upload1211156457 is still under read-only watch; AC13/15 remain open until processed/report receipt. No new conversion upload or synthetic financial event produced by this recovery.
