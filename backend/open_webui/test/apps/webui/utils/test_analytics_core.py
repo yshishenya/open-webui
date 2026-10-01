@@ -3,6 +3,7 @@
 import asyncio
 import time
 import uuid
+from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
@@ -17,7 +18,7 @@ from open_webui.models.analytics import (
 from open_webui.routers import airis_analytics as router
 from open_webui.utils.airis import analytics as core
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 
 @pytest.fixture
@@ -228,6 +229,59 @@ def test_metrica_ambiguous_upload_never_blindly_repeats(run_case, monkeypatch):
                 await db.commit()
             await core.deliver_one(delivery_id, client)
         assert methods == ['POST', 'GET']
+
+    run_case(case)
+
+
+@pytest.mark.parametrize('state', ['uploaded', 'uncertain'])
+@pytest.mark.parametrize('status', [401, 404, 429])
+def test_metrica_status_errors_never_restart_upload(
+    run_case: Callable[[Callable[[async_sessionmaker[AsyncSession]], Awaitable[None]]], None],
+    monkeypatch: pytest.MonkeyPatch,
+    state: str,
+    status: int,
+) -> None:
+    monkeypatch.delenv('AIRIS_POSTHOG_KEY', raising=False)
+    monkeypatch.setenv('AIRIS_METRICA_OAUTH_TOKEN', 'test-token')
+    monkeypatch.setenv('AIRIS_METRICA_COUNTER_ID', '1234')
+
+    async def case(factory: async_sessionmaker[AsyncSession]) -> None:
+        anonymous = uuid.uuid4()
+        user = SimpleNamespace(id='financial-account', created_at=1)
+        await router.set_context(router.ContextForm(consent='granted', anonymous_id=anonymous, client_id='123'), user)
+        await core.record_account_event(
+            user.id, 'payment_confirmed', 'payment:1', {'amount_kopeks': 10000}, int(time.time())
+        )
+        async with factory() as db:
+            delivery = (await db.execute(select(AnalyticsDelivery))).scalar_one()
+            delivery.state = state
+            delivery.upload_id = 'accepted-upload' if state == 'uploaded' else None
+            delivery_id, event_id, upload_id = delivery.id, delivery.event_id, delivery.upload_id
+            await db.commit()
+        methods: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            methods.append(request.method)
+            if len(methods) == 1:
+                return httpx.Response(status)
+            if state == 'uploaded':
+                return httpx.Response(200, json={'uploading': {'status': 'PROCESSED'}})
+            comment = str(uuid.uuid5(uuid.NAMESPACE_URL, event_id))
+            return httpx.Response(200, json={'uploadings': [{'id': 'accepted-upload', 'comment': comment}]})
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            await core.deliver_one(delivery_id, client)
+            async with factory() as db:
+                delivery = await db.get(AnalyticsDelivery, delivery_id)
+                assert delivery.state == state and delivery.upload_id == upload_id
+                delivery.available_at = 0
+                await db.commit()
+            await core.deliver_one(delivery_id, client)
+        assert methods == ['GET', 'GET']
+        async with factory() as db:
+            delivery = await db.get(AnalyticsDelivery, delivery_id)
+            assert delivery.state == ('delivered' if state == 'uploaded' else 'uploaded')
+            assert delivery.upload_id == 'accepted-upload'
 
     run_case(case)
 

@@ -25,7 +25,7 @@
 - [x] AC04: создание аккаунта определяется сервером, повторный вход не считается регистрацией.
 - [x] AC05: принятый запрос и успешный непустой ответ считаются один раз за жизнь аккаунта; ошибка/отклонение не активируют.
 - [x] AC06: оплата без возврата в браузер фиксируется после подтверждения провайдером и зачисления; повторы webhook/reconcile не дублируют факт.
-- [x] AC07: пропущенный при сбое факт оплаты восстанавливается; очередь переживает рестарт; повторная доставка имеет стабильный ключ.
+- [ ] AC07: пропущенный при сбое факт оплаты восстанавливается; очередь переживает рестарт; повторная доставка имеет стабильный ключ.
 - [x] AC08: первая/повторная оплата определяется стабильно при одновременных платежах.
 - [x] AC09: подтверждённые частичные/полные возвраты дедуплицируются, проверяются через провайдера и учитываются в net revenue без изменения кошелька этой задачей.
 - [x] AC10: отзыв согласия очищает клиентскую идентичность и прекращает ожидающую внешнюю доставку; старые события не воспроизводятся при новом согласии.
@@ -107,3 +107,7 @@ records and internal financial facts. Migration rollback only after data export.
 - Two existing accounts linked to consenting first-party analytics identities. Signed-in ClientID is still absent in local browser sessions; do not claim cross-provider signed-in identity acceptance. Genuine server-browser ClientID worked for the isolated technical upload. Real financial end-to-end acceptance remains unperformed.
 
 - CDP network observation diagnosed local signed-in ClientID limitation: `https://mc.yandex.ru/metrika/tag.js` fails as Script with `net::ERR_BLOCKED_BY_ORB`. No browser security bypass attempted. First-party authenticated linking/report works; independent genuine server browser loaded the counter and supplied the technical conversion ClientID.
+
+## Accepted-upload retry correction — 2026-10-01
+
+A 4xx while reading Metrica upload status/reconciliation changed `uploaded` or `uncertain` to `pending`, allowing a duplicate POST after access recovered. Reproduced with six isolated checks (401/404/429 for both states), all failing before correction. Minimal fix allows reset to pending only for an explicitly rejected POST; failed GET preserves the existing state/upload ID. After correction all 25 analytics tests pass. No new dependencies, API/schema/frontend changes. AC07 is reopened until the corrected module is deployed and verified, preserving the currently deployed SMTP layer.

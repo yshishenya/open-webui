@@ -366,6 +366,7 @@ async def deliver_one(delivery_id: str, client: httpx.AsyncClient) -> None:
             if (
                 delivery.destination == 'metrica'
                 and isinstance(exc, httpx.HTTPStatusError)
+                and exc.request.method == 'POST'
                 and 400 <= exc.response.status_code < 500
             ):
                 delivery.state = 'pending'

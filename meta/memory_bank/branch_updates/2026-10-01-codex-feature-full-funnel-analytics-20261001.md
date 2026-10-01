@@ -52,3 +52,6 @@
 
 - 2026-10-01: User supplied administrator and merchant sessions. Production 7/30-day report and existing-account exclusion verified. Correct YooKassa endpoint and refund.succeeded subscription confirmed in cabinet; no mutation needed. Metrica processed/report receipt and signed-in provider ClientID acceptance remain pending.
   Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
+
+- [ ] [BUG] 2026-10-01: Prevent duplicate Metrica upload after status/reconciliation 4xx. Six regression cases fail before one-line request-method guard; 25 analytics checks pass after. Deployment pending; AC07 reopened until runtime verification.
+      Spec: meta/memory_bank/specs/work_items/2026-10-01**feature**full-funnel-analytics.md
