@@ -57,3 +57,6 @@
   - Owner: Codex
   - Done: 2026-10-01
   - Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
+
+- 2026-10-01: Final independent audit found no further required PostHog settings. Updated operational guide with connected OAuth, verified admin/merchant cabinets and local ORB limitation. CI for PR source head 360f62478 now passes 439 backend tests and all three billing-confidence suites; baseline backend lint remains red. Goal and SDD verification remain active pending Metrica processing/report receipt.
+  Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
