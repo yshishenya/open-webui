@@ -36,3 +36,9 @@
   - Owner: Codex
   - Done: 2026-10-01
   - Summary: Убран запрет отвечать в 14 шаблонах; приглашение ответить появляется при настроенном Reply-To. Общий renderer передаёт настройку; 27 почтовых тестов проходят.
+
+- [x] **[BUG][CI]** Общий набор зависимостей применяется и к backend-проверкам биллинга
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-01__bugfix__onboarding-smtp-safety.md`
+  - Owner: Codex
+  - Done: 2026-10-01
+  - Summary: Одна общая переменная устанавливает requirements для critical/coverage/full billing pytest. Syntax, существующий smoke guard и dry-run всех трёх команд проходят. Итог настоящего GitHub billing-confidence ещё ожидается.
