@@ -34,6 +34,7 @@
 - [ ] AC13: Метрика и PostHog получают разрешённые события; недоступность провайдера не ломает продукт; ограничения атрибуции Метрики явно отражены.
 - [x] AC14: миграция, целевые backend/frontend/E2E проверки и контрольное прохождение подтверждены; реальные деньги не используются без отдельного разрешения.
 - [ ] AC15: текущие настройки целей/отчётов сверены в кабинетах и опубликованный продукт проверен на том же SHA; непройденные проверки указаны явно.
+- [ ] AC16: исходный PR/release workflow завершён: изменения интегрированы в `airis_b2c`, PR129 слит или закрыт как замещённый PR130, CalVer-релиз опубликован с проверенными артефактами и явными ограничениями.
 
 ## Contract and scope
 
@@ -145,3 +146,7 @@ Recovery implementation: bounded anti-exists repair with current consent/grant/c
 - Production healthy/restarts0/healthtrue; both destination settings restored. Previously missing wallet delivery now delivered: four PostHog deliveries, no pending/error jobs. Warehouse query for actual billing_wallet_view: before rollout no rows; after rollout one row, errornull. AC07 closed on actual recovery evidence, not only mocked tests.
 - Previous SMTP backup copied to `/Users/yshishenya/Documents/Airis-production-backups/2026-10-02-transfer/20261001T193209Z-smtp-3f89137fc-funnel-20261001`; all3hashes,735archive members and pg_restore-list verified. Deleted only verified server duplicate after manifest equality; both newer runtime backups retained.
 - Metrica upload1211156457 is still under read-only watch; AC13/15 remain open until processed/report receipt. No new conversion upload or synthetic financial event produced by this recovery.
+
+## Original release workflow acceptance — 2026-10-02
+
+Final objective audit found the original attachment step7 still has an open release tail: PR129 and PR130 are open; v2026.09.30.1 remains draft, target041343b4b. Source PR129 HEAD91f8136e4 is an ancestor of the full-funnel branch, verified by git merge-base. AC16 records this existing requirement rather than treating PR creation as release completion. Latest integration98cef2542 merged into the full-funnel branch; only navigation-test conflict resolved, preserving analytics and concurrent guide/SMTP changes.143frontend tests and scoped lint/format pass; independent combined-hook/config audit found no mandatory defect. No new production deployment from this source integration has been performed.

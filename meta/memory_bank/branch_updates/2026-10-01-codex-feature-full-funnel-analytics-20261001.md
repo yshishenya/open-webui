@@ -85,3 +85,10 @@
 - Started: 2026-10-02
 - Summary: Merge latest airis_b2c98cef2542, preserving concurrent SMTP and first-task guide changes. Only conflict was welcomeNavigation.test.ts mock declarations; integrated version retains analytics mock and all navigation/model/storage checks. Published analytics runtime is unchanged by this source integration.
 - Tests: Integrated frontend143/143 passed; scoped ESLint/Prettier and diff check passed. Independent merged-hook/config audit found no mandatory defects. CI will rerun on merge source. Original PR129/release draft still require final completion; Metrica upload1211156457 still waiting under the existing watcher.
+
+## Original release tail tracking — 2026-10-02
+
+- Spec: `meta/memory_bank/specs/work_items/2026-10-01__feature__full-funnel-analytics.md`
+- Owner: Codex
+- Started: 2026-10-02
+- Summary: AddedAC16 for the original mandatory PR/release tail found during objective audit. Prepared current CalVer notesv2026.10.02.1, superseding unpublished initial draft; no public release claimed. Integration conflict resolved; PR130 now MERGEABLE, baseline Ruff338errors remains, merged-source backend/billing/security still running. Metrica upload still UPLOADED on direct read21:39UTC.
