@@ -27,6 +27,8 @@ const { gotoMock, userStore } = vi.hoisted(() => {
 	return { gotoMock, userStore };
 });
 
+vi.mock('$lib/utils/analytics', () => ({ trackEvent: vi.fn() }));
+
 vi.mock('$app/navigation', () => ({ goto: gotoMock }), { virtual: true });
 vi.mock('$app/environment', () => ({ browser: true }), { virtual: true });
 vi.mock('$lib/stores', () => ({ user: userStore }), { virtual: true });

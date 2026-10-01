@@ -386,6 +386,9 @@ async def lifespan(app: FastAPI):  # noqa: C901
 
     await init_billing_on_startup()
 
+    from open_webui.utils.airis.analytics import delivery_loop
+
+    analytics_task = asyncio.create_task(delivery_loop())
     asyncio.create_task(billing_housekeeping_loop())
     asyncio.create_task(periodic_usage_pool_cleanup())
     asyncio.create_task(periodic_session_pool_cleanup())
@@ -464,6 +467,9 @@ async def lifespan(app: FastAPI):  # noqa: C901
     yield
 
     await publish_event(app, EVENTS.SYSTEM_SHUTDOWN_STARTED, source='system')
+
+    analytics_task.cancel()
+    await asyncio.gather(analytics_task, return_exceptions=True)
 
     # Shutdown: clean up shared resources
     from open_webui.utils.session_pool import close_session
@@ -839,6 +845,10 @@ app.include_router(functions.router, prefix='/api/v1/functions', tags=['function
 app.include_router(evaluations.router, prefix='/api/v1/evaluations', tags=['evaluations'])
 if ENABLE_ADMIN_ANALYTICS:
     app.include_router(analytics.router, prefix='/api/v1/analytics', tags=['analytics'])
+from open_webui.routers import airis_analytics, airis_analytics_reports
+
+app.include_router(airis_analytics.router, prefix='/api/v1/analytics', tags=['analytics'])
+app.include_router(airis_analytics_reports.router, prefix='/api/v1/analytics', tags=['analytics'])
 app.include_router(utils.router, prefix='/api/v1/utils', tags=['utils'])
 app.include_router(terminals.router, prefix='/api/v1/terminals', tags=['terminals'])
 app.include_router(automations.router, prefix='/api/v1/automations', tags=['automations'])

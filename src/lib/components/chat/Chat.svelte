@@ -2474,12 +2474,11 @@
 		history.messages[message.id] = message;
 
 		if (done) {
-			if (!sessionStorage.getItem('airis.first_response_received')) {
+			if (!message.error && Boolean((getOutputText(message?.output) || removeAllDetails(message?.content ?? '')).trim())) {
 				const source =
 					$page.url.searchParams.get('src')?.replace(/[^a-z0-9_-]/gi, '_').slice(0, 64) ||
 					'direct';
-				trackEvent('first_response_received', { has_content: Boolean(message.content), source });
-				sessionStorage.setItem('airis.first_response_received', '1');
+				trackEvent('first_response_received', { has_content: true, source });
 			}
 			message.done = true;
 			const visibleContent =
@@ -2532,14 +2531,6 @@
 
 	const submitPrompt = async (inputContent, inputFiles) => {
 		const _files = structuredClone(inputFiles);
-		if (!sessionStorage.getItem('airis.first_prompt_submitted')) {
-			const source =
-				$page.url.searchParams.get('src')?.replace(/[^a-z0-9_-]/gi, '_').slice(0, 64) ||
-				'direct';
-			trackEvent('first_prompt_submitted', { has_files: _files.length > 0, source });
-			sessionStorage.setItem('airis.first_prompt_submitted', '1');
-		}
-
 		chatFiles.push(
 			..._files.filter(
 				(item) =>
@@ -3296,6 +3287,7 @@
 			if (res.error) {
 				await handleOpenAIError(res.error, responseMessage);
 			} else {
+				trackEvent('first_prompt_submitted', { has_files: (userMessage?.files?.length ?? 0) > 0 });
 				// Backend returns task_ids (multi-model) or task_id (single model)
 				const newTaskIds = res.task_ids ?? (res.task_id ? [res.task_id] : []);
 				if (newTaskIds.length > 0) {

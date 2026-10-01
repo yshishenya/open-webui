@@ -13,6 +13,11 @@ type StoredAttribution = {
 
 import { ANALYTICS_ATTRIBUTION_KEY, getAnalyticsConsent } from '$lib/utils/airis/analyticsConsent';
 import { env } from '$env/dynamic/public';
+import {
+	browserTracksPayments,
+	configureFunnelProviders,
+	trackFunnelEvent
+} from '$lib/utils/airis/funnelAnalytics';
 
 const YANDEX_METRICA_ID = env.PUBLIC_YANDEX_METRICA_ID?.trim();
 const GA_MEASUREMENT_ID = env.PUBLIC_GA_MEASUREMENT_ID?.trim();
@@ -70,7 +75,6 @@ type AnalyticsWindow = Window & {
 	dataLayer?: Array<Record<string, unknown>>;
 	gtag?: (...args: unknown[]) => void;
 	ym?: (counterId: string, method: string, ...args: unknown[]) => void;
-	posthog?: { capture?: (...args: unknown[]) => void };
 	__airisAnalyticsInitialized?: boolean;
 	__airisAnalyticsScripts?: { yandex?: boolean; google?: boolean };
 };
@@ -248,6 +252,34 @@ export const initializeAnalytics = (): void => {
 	initializeYandex(analyticsWindow);
 	initializeGoogle(analyticsWindow);
 	analyticsWindow.__airisAnalyticsInitialized = true;
+	configureFunnelProviders(
+		(id: string | null): void => {
+			if (YANDEX_METRICA_ID && getAnalyticsConsent() === 'granted') {
+				analyticsWindow.ym?.(YANDEX_METRICA_ID, 'setUserID', id ?? '');
+			}
+		},
+		(): Promise<string | null> =>
+			new Promise((resolve) => {
+				if (!YANDEX_METRICA_ID || !analyticsWindow.ym) {
+					resolve(null);
+					return;
+				}
+				const timeout = window.setTimeout(() => resolve(null), 1000);
+				analyticsWindow.ym(YANDEX_METRICA_ID, 'getClientID', (id: string): void => {
+					window.clearTimeout(timeout);
+					resolve(/^\d{1,32}$/.test(String(id)) ? String(id) : null);
+				});
+			}),
+		(): void => {
+			if (getAnalyticsConsent() !== 'granted') return;
+			const payload = { ...readAttribution(), method: 'server' };
+			for (const name of ['signup_completed', 'lead_signup_completed']) {
+				analyticsWindow.dataLayer?.push({ event: name, ...payload });
+				analyticsWindow.gtag?.('event', name, payload);
+				if (YANDEX_METRICA_ID) analyticsWindow.ym?.(YANDEX_METRICA_ID, 'reachGoal', name, payload);
+			}
+		}
+	);
 };
 
 export const trackPageView = (): void => {
@@ -322,22 +354,37 @@ export const trackEvent = (event: string, payload: AnalyticsPayload = {}): void 
 
 	if (consentGranted) {
 		initializeAnalytics();
-		analyticsWindow.dataLayer?.push(detail);
-		analyticsWindow.gtag?.('event', event, safePayload);
-		const goalEvents = new Set([event]);
-		if (LANDING_CTA_EVENTS.has(event)) goalEvents.add('landing_cta_click');
-		const funnelGoal = FUNNEL_GOAL_EVENTS[event];
-		if (funnelGoal) goalEvents.add(funnelGoal);
-		for (const goalEvent of goalEvents) {
-			if (goalEvent !== event) {
-				analyticsWindow.dataLayer?.push({ event: goalEvent, ...safePayload });
-				analyticsWindow.gtag?.('event', goalEvent, safePayload);
+		const accepted = trackFunnelEvent(
+			LANDING_CTA_EVENTS.has(event) ? 'landing_cta_click' : event,
+			event === 'first_response_received' ? payload.has_content === true : undefined
+		);
+		const deliver = (): void => {
+			if (getAnalyticsConsent() !== 'granted' || event === 'signup_completed') return;
+			analyticsWindow.dataLayer?.push(detail);
+			analyticsWindow.gtag?.('event', event, safePayload);
+			const goalEvents = new Set([event]);
+			if (LANDING_CTA_EVENTS.has(event)) goalEvents.add('landing_cta_click');
+			const funnelGoal = FUNNEL_GOAL_EVENTS[event];
+			if (funnelGoal) goalEvents.add(funnelGoal);
+			for (const goalEvent of goalEvents) {
+				if (goalEvent !== event) {
+					analyticsWindow.dataLayer?.push({ event: goalEvent, ...safePayload });
+					analyticsWindow.gtag?.('event', goalEvent, safePayload);
+				}
+				if (YANDEX_METRICA_ID) {
+					analyticsWindow.ym?.(YANDEX_METRICA_ID, 'reachGoal', goalEvent, safePayload);
+				}
 			}
-			if (YANDEX_METRICA_ID) {
-				analyticsWindow.ym?.(YANDEX_METRICA_ID, 'reachGoal', goalEvent, safePayload);
-			}
-		}
-		analyticsWindow.posthog?.capture?.(event, safePayload);
+		};
+		if (event === 'first_prompt_submitted' || event === 'first_response_received') {
+			void accepted.then((recorded) => {
+				if (recorded) deliver();
+			});
+		} else if (event === 'billing_topup_payment_created') {
+			void browserTracksPayments().then((browserEnabled) => {
+				if (browserEnabled) deliver();
+			});
+		} else deliver();
 	}
 	window.dispatchEvent(new CustomEvent('analytics', { detail }));
 };

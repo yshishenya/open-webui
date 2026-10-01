@@ -8,6 +8,12 @@ vi.mock('$env/dynamic/public', () => ({
 	}
 }));
 
+vi.mock('$lib/utils/airis/funnelAnalytics', () => ({
+	configureFunnelProviders: vi.fn(),
+	browserTracksPayments: async () => true,
+	trackFunnelEvent: () => Promise.resolve(true)
+}));
+
 import { ANALYTICS_ATTRIBUTION_KEY, setAnalyticsConsent } from '$lib/utils/airis/analyticsConsent';
 import { captureAttribution, trackEcommercePurchase, trackEvent, trackPageView } from './analytics';
 
@@ -164,7 +170,7 @@ describe('analytics adapter', () => {
 		}
 	});
 
-	it('keeps campaign attribution bounded and emits normalized lead goals', () => {
+	it('keeps campaign attribution bounded and emits normalized lead goals', async () => {
 		window.history.replaceState(
 			{},
 			'',
@@ -172,11 +178,12 @@ describe('analytics adapter', () => {
 		);
 		setAnalyticsConsent('granted');
 		captureAttribution();
-		trackEvent('signup_completed', { method: 'email' });
+		trackEvent('signup_form_viewed', { method: 'email' });
 
 		const received: CustomEvent[] = [];
 		window.addEventListener('analytics', (event) => received.push(event as CustomEvent));
 		trackEvent('first_prompt_submitted', { prompt: 'private text' });
+		await Promise.resolve();
 
 		expect(localStorage.getItem(ANALYTICS_ATTRIBUTION_KEY)).toContain('telegram');
 		expect(received[0]?.detail).toMatchObject({
@@ -189,8 +196,25 @@ describe('analytics adapter', () => {
 		if (YANDEX_METRICA_ID) {
 			const analyticsWindow = window as Window & { ym?: { a?: unknown[][] } };
 			const queue = analyticsWindow.ym?.a ?? [];
-			expect(queue.some((args) => args.includes('lead_signup_completed'))).toBe(true);
+			expect(queue.some((args) => args.includes('lead_signup_form_viewed'))).toBe(true);
 			expect(queue.some((args) => args.includes('activation_first_prompt'))).toBe(true);
 		}
+	});
+	it('does not infer completed signup from the frontend form mode', () => {
+		const ym = vi.fn();
+		Object.assign(window, { ym });
+		setAnalyticsConsent('granted');
+		trackEvent('signup_completed', { method: 'auth' });
+		expect(ym.mock.calls.filter((args) => args[1] === 'reachGoal')).toEqual([]);
+	});
+
+	it('stops delayed lifetime goal delivery if consent was revoked before acknowledgement', async () => {
+		const ym = vi.fn();
+		Object.assign(window, { ym });
+		setAnalyticsConsent('granted');
+		trackEvent('first_response_received', { has_content: true });
+		setAnalyticsConsent('denied');
+		await Promise.resolve();
+		expect(ym.mock.calls.filter((args) => args[1] === 'reachGoal')).toEqual([]);
 	});
 });
