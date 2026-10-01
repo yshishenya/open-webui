@@ -31,9 +31,9 @@
 - [x] AC10: отзыв согласия очищает клиентскую идентичность и прекращает ожидающую внешнюю доставку; старые события не воспроизводятся при новом согласии.
 - [x] AC11: внешние payload содержат только разрешённые события/поля; без текста чатов, email, токенов, произвольных URL, автосбора и записи сессий.
 - [x] AC12: отчёт показывает 7/30-дневные когорты уникальных первых посетителей, переходы, задержку оплаты, источники, устройства, суммы/возвраты, повторные оплаты и незрелые когорты.
-- [ ] AC13: Метрика и PostHog получают разрешённые события; недоступность провайдера не ломает продукт; ограничения атрибуции Метрики явно отражены.
-- [x] AC14: миграция, целевые backend/frontend/E2E проверки и контрольное прохождение подтверждены; реальные деньги не используются без отдельного разрешения.
-- [ ] AC15: текущие настройки целей/отчётов сверены в кабинетах и опубликованный продукт проверен на том же SHA; непройденные проверки указаны явно.
+- [x] AC13: Метрика и PostHog получают разрешённые события; недоступность провайдера не ломает продукт; ограничения атрибуции Метрики явно отражены.
+- [ ] AC14: миграция, целевые backend/frontend/E2E проверки и контрольное прохождение подтверждены; реальные деньги не используются без отдельного разрешения.
+- [x] AC15: текущие настройки целей/отчётов сверены в кабинетах и опубликованный продукт проверен на том же SHA; непройденные проверки указаны явно.
 - [ ] AC16: исходный PR/release workflow завершён: изменения интегрированы в `airis_b2c`, PR129 слит или закрыт как замещённый PR130, CalVer-релиз опубликован с проверенными артефактами и явными ограничениями.
 
 ## Contract and scope
@@ -79,9 +79,9 @@ records and internal financial facts. Migration rollback only after data export.
 ## Progress
 
 - Implementation and independent review complete. Local tests and migration passed.
-- Production rollout and PostHog setup/delivery verified on 2026-10-01. Metrica OAuth authorized and connected; packaged server conversion upload accepted, processing acceptance remains open.
+- Production rollout and PostHog setup/delivery verified on 2026-10-01. Metrica OAuth connected; technical upload PROCESSED and linked report receipt verified at21:58UTC.
 - AC01–12/14 checked against isolated automated checks; real-money/provider delivery is not claimed.
-  AC13/15 remain open for external delivery and production acceptance.
+  AC13/15 accepted with explicit composed-image/browser limits below; AC16 remains pending publication.
 
 ## Production evidence — 2026-10-01
 
@@ -150,3 +150,43 @@ Recovery implementation: bounded anti-exists repair with current consent/grant/c
 ## Original release workflow acceptance — 2026-10-02
 
 Final objective audit found the original attachment step7 still has an open release tail: PR129 and PR130 are open; v2026.09.30.1 remains draft, target041343b4b. Source PR129 HEAD91f8136e4 is an ancestor of the full-funnel branch, verified by git merge-base. AC16 records this existing requirement rather than treating PR creation as release completion. Latest integration98cef2542 merged into the full-funnel branch; only navigation-test conflict resolved, preserving analytics and concurrent guide/SMTP changes.143frontend tests and scoped lint/format pass; independent combined-hook/config audit found no mandatory defect. No new production deployment from this source integration has been performed.
+
+## Итог внешней доставки и сверки — 2026-10-02
+
+- AC13: загрузка Метрики `1211156457` получила `PROCESSED` в 21:58 UTC
+  2026-10-01, `linked_quantity=1`. API отчёта: 1 визит, 1 достижение технической
+  цели `666687215`, `sampled=false`. Повторный POST не выполнялся. PostHog
+  подтверждён настоящими событиями и восстановлением пропущенного wallet view.
+  Техническая цель не является регистрацией или покупкой.
+- AC15 принят с явными границами: настройки целей/PostHog/YooKassa и прежняя
+  admin-проверка 7/30 дней подтверждены. Текущий составной digest `f2de…` сохраняет
+  все 11 backend-файлов из PR и все 4836 файлов контекста frontend build,
+  включая 931 immutable, без различий. Исходники frontend аналитики совпали
+  с PR `a472…`. Это не образ всего репозитория из единственного SHA. Повторная
+  admin UI проверка после guide overlay не подтверждена: прежняя вкладка
+  недоступна CUA, свежий сеанс обычный и перенаправляется с `/admin/analytics`.
+  Привилегии не менялись.
+- Публичный health HTTP 200 / status true, контейнер healthy/restarts 0 и frontend
+  marker `guide-7c419a9d3-on-360f62478` повторно проверены в 22:08 UTC. Mock и
+  staging safety/health probes прошли; staging probe не совершает платёж.
+- Текущий код `a472…` прошёл 440 backend-тестов и все 3 набора pr-fast.
+  PR130 слит в `b3838f705309e13cb54dd2cdf8b9e95f277183f7`; дерево merge commit
+  полностью совпало с `a472…`. GitHub автоматически отметил PR129 как MERGED.
+  Расширенный release-heavy `36933103407` запущен с enforce_gate=true;
+  merge-medium `36933548202` запущен на интеграционном commit. Их результат
+  не объявляется успешным заранее. AC16 остаётся открытым до публикации.
+
+## Release coverage correction — 2026-10-02
+
+Enforced release-heavy36933103407: four suites passed. Coverage pack209tests
+passed, but utils/billing line84.50% failed required85% (branch75.65% passed).
+The new refund.succeeded BillingService boundary is absent from this pack's
+executed lines. Add focused delegation/validation/error tests in the existing
+webhook status test file, without runtime edits or threshold changes. AC14
+reopened until coverage and enforced release checks pass. Workflow: bug_fix;
+branch codex/bugfix/full-funnel-release-coverage-20261002 from merged b3838f705.
+
+Correction implemented:6targeted refund boundary checks pass. Full local
+Docker Compose coverage pack215tests passes; unchanged checker reports
+routers91.58%line/79.21%branch and utils85.85%line/76.62%branch, gatePASS.
+No runtime changes, dependencies or threshold reduction. CI rerun pending.
