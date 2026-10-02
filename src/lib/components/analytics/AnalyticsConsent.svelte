@@ -14,6 +14,7 @@
 	import { FUNNEL_REVOKE_KEY, revokeFunnelConsent } from '$lib/utils/airis/funnelAnalytics';
 	let saving = false;
 	let revokeFailed = false;
+	let saveFailed = false;
 
 	let consent: AnalyticsConsent = null;
 	let settingsOpen = false;
@@ -31,7 +32,7 @@
 				consent === 'granted' &&
 				getAnalyticsConsentChoice() === null &&
 				localStorage.getItem(ANALYTICS_NOTICE_KEY) !== 'dismissed';
-			revokeFailed = Boolean(localStorage.getItem(FUNNEL_REVOKE_KEY));
+			if (!saving) revokeFailed = Boolean(localStorage.getItem(FUNNEL_REVOKE_KEY));
 		} catch {
 			revokeFailed = false;
 		}
@@ -70,26 +71,47 @@
 
 	const choose = async (value: Exclude<AnalyticsConsent, null>): Promise<void> => {
 		if (saving) return;
-		const shouldReload = consent === 'granted' && value === 'denied';
+		const shouldReload = value === 'denied';
+		const retryRevoke = revokeFailed;
+		let denialSaved = false;
 		saving = true;
 		revokeFailed = false;
+		saveFailed = false;
 		try {
-			if (value === 'denied' || localStorage.getItem(FUNNEL_REVOKE_KEY)) {
+			if (value === 'denied' || retryRevoke || localStorage.getItem(FUNNEL_REVOKE_KEY)) {
 				// Stop browser delivery immediately, then confirm the server has purged pending delivery.
 				consent = 'denied';
-				setAnalyticsConsent('denied');
-				await revokeFunnelConsent();
+				try {
+					setAnalyticsConsent('denied');
+					denialSaved = true;
+				} catch {
+					saveFailed = true;
+				}
+				try {
+					await revokeFunnelConsent();
+				} catch {
+					revokeFailed = true;
+				}
+				// Revocation frees analytics storage; retry persisting the refusal before any reload.
+				if (!denialSaved) {
+					setAnalyticsConsent('denied');
+					denialSaved = true;
+					saveFailed = false;
+				}
+				if (revokeFailed) return;
 			}
 			consent = value;
 			setAnalyticsConsent(value);
 			settingsOpen = false;
 		} catch {
-			revokeFailed = true;
+			saveFailed = true;
 			settingsOpen = true;
 		} finally {
 			saving = false;
+			if (saveFailed || revokeFailed) settingsOpen = true;
 			// Remove already-loaded provider scripts even when server confirmation needs a retry.
-			if (shouldReload) window.location.reload();
+			if (shouldReload && denialSaved && (!revokeFailed || localStorage.getItem(FUNNEL_REVOKE_KEY)))
+				window.location.reload();
 		}
 	};
 </script>
@@ -101,7 +123,10 @@
 		aria-label="Настройки аналитики"
 	>
 		<p class="leading-relaxed">
-			{#if revokeFailed}
+			{#if saveFailed}
+				Сбор аналитики на этой странице остановлен, но запрет не удалось сохранить. Нажмите
+				«Запретить», чтобы повторить. Не обновляйте страницу до сохранения запрета.
+			{:else if revokeFailed}
 				Аналитика в браузере остановлена. Не удалось подтвердить отзыв на сервере. Нажмите
 				«Запретить», чтобы повторить.
 			{:else if initialNotice}

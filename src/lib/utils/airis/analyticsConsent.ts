@@ -8,9 +8,11 @@ export const ANALYTICS_CONSENT_EVENT = 'airis:analytics-consent-changed';
 export const ANALYTICS_SETTINGS_EVENT = 'airis:analytics-settings-open';
 
 const isBrowser = (): boolean => typeof window !== 'undefined';
+let unsavedDenial = false;
 
 export const getAnalyticsConsentChoice = (): AnalyticsConsent => {
 	if (!isBrowser()) return null;
+	if (unsavedDenial) return 'denied';
 
 	try {
 		const value = window.localStorage.getItem(ANALYTICS_CONSENT_KEY);
@@ -35,7 +37,15 @@ export const getAnalyticsConsent = (): AnalyticsConsent => {
 export const setAnalyticsConsent = (consent: Exclude<AnalyticsConsent, null>): void => {
 	if (!isBrowser()) return;
 
-	window.localStorage.setItem(ANALYTICS_CONSENT_KEY, consent);
-	if (consent === 'denied') window.localStorage.removeItem(ANALYTICS_ATTRIBUTION_KEY);
-	window.dispatchEvent(new CustomEvent(ANALYTICS_CONSENT_EVENT, { detail: consent }));
+	unsavedDenial = true;
+	try {
+		if (consent === 'denied') window.localStorage.removeItem(ANALYTICS_ATTRIBUTION_KEY);
+		window.localStorage.setItem(ANALYTICS_CONSENT_KEY, consent);
+		unsavedDenial = false;
+	} finally {
+		// Stop this page even when persistence fails; callers must not reload an unsaved denial.
+		window.dispatchEvent(
+			new CustomEvent(ANALYTICS_CONSENT_EVENT, { detail: getAnalyticsConsent() })
+		);
+	}
 };

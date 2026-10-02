@@ -16,6 +16,8 @@ describe('analytics consent', () => {
 	});
 	afterEach(() => {
 		vi.restoreAllMocks();
+		setAnalyticsConsent('granted');
+		localStorage.clear();
 	});
 
 	it('allows analytics by default without recording an explicit choice', () => {
@@ -56,6 +58,29 @@ describe('analytics consent', () => {
 		vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
 			throw new Error('blocked');
 		});
+		expect(getAnalyticsConsent()).toBe('denied');
+	});
+
+	it('stops delivery immediately when persisting a denial fails and permits a later retry', () => {
+		const changed = vi.spyOn(window, 'dispatchEvent');
+		const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+			throw new DOMException('storage is full', 'QuotaExceededError');
+		});
+		expect(() => setAnalyticsConsent('denied')).toThrow('storage is full');
+		expect(localStorage.getItem(ANALYTICS_CONSENT_KEY)).toBeNull();
+		expect(getAnalyticsConsent()).toBe('denied');
+		expect(changed).toHaveBeenCalledWith(expect.objectContaining({ detail: 'denied' }));
+		write.mockRestore();
+		setAnalyticsConsent('denied');
+		expect(localStorage.getItem(ANALYTICS_CONSENT_KEY)).toBe('denied');
+		setAnalyticsConsent('granted');
+		expect(getAnalyticsConsent()).toBe('granted');
+	});
+	it('keeps delivery stopped if a requested grant cannot be saved', () => {
+		vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+			throw new DOMException('storage is full', 'QuotaExceededError');
+		});
+		expect(() => setAnalyticsConsent('granted')).toThrow();
 		expect(getAnalyticsConsent()).toBe('denied');
 	});
 });

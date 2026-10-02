@@ -46,6 +46,7 @@ let providerIdentity: ((id: string | null) => void) | null = null;
 let deliverSignup: (() => void) | null = null;
 const signupMarkers = new Set<string>();
 let clientId: (() => Promise<string | null>) | null = null;
+let pendingRevoke: string | null = null;
 
 const device = (): 'phone' | 'tablet' | 'desktop' => {
 	const agent = navigator.userAgent;
@@ -252,20 +253,26 @@ export const revokeFunnelConsent = async (): Promise<void> => {
 	identity = null;
 	contextFingerprint = '';
 	signupMarkers.clear();
-	for (const key of Object.keys(localStorage)) {
-		if (key.startsWith('airis.analytics.signup.')) localStorage.removeItem(key);
-	}
 	providerIdentity?.(null);
-	const stored =
-		state ?? (JSON.parse(localStorage.getItem(FUNNEL_STORAGE_KEY) || 'null') as FunnelState | null);
-	const pending = localStorage.getItem(FUNNEL_REVOKE_KEY);
-	const anonymousId = stored?.anonymous_id ?? pending;
+	pendingRevoke ??= state?.anonymous_id ?? null;
+	try {
+		const stored = JSON.parse(
+			localStorage.getItem(FUNNEL_STORAGE_KEY) || 'null'
+		) as FunnelState | null;
+		pendingRevoke ??= stored?.anonymous_id ?? localStorage.getItem(FUNNEL_REVOKE_KEY);
+		for (const key of Object.keys(localStorage)) {
+			if (key.startsWith('airis.analytics.signup.')) localStorage.removeItem(key);
+		}
+		localStorage.removeItem(FUNNEL_STORAGE_KEY);
+		if (pendingRevoke) localStorage.setItem(FUNNEL_REVOKE_KEY, pendingRevoke);
+	} catch {
+		// Storage failure must not prevent the server purge; retain the visitor in memory for retry.
+	}
 	state = null;
-	localStorage.removeItem(FUNNEL_STORAGE_KEY);
-	if (!anonymousId) return;
-	localStorage.setItem(FUNNEL_REVOKE_KEY, anonymousId);
+	if (!pendingRevoke) return;
 	// Finish any already-started consent request before revoking, so its late response cannot restore server consent.
 	await queue.catch(() => undefined);
-	await post('context', { consent: 'denied', anonymous_id: anonymousId });
+	await post('context', { consent: 'denied', anonymous_id: pendingRevoke });
 	localStorage.removeItem(FUNNEL_REVOKE_KEY);
+	pendingRevoke = null;
 };

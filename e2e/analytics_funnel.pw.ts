@@ -84,6 +84,83 @@ test('default analytics starts without interaction and an opt-out persists', asy
 	expect(externalLoads).toBe(blockedLoads);
 });
 
+for (const failure of ['all-writes', 'revoke-marker-and-offline'] as const) {
+	test(`${failure}: a failed storage write preserves the refusal and server revoke retry`, async ({
+		page
+	}) => {
+		const contexts: Array<Record<string, unknown>> = [];
+		await page.route('**/mc.yandex.ru/**', (route) =>
+			route.fulfill({ status: 200, contentType: 'application/javascript', body: '' })
+		);
+		await page.route('**/api/v1/analytics/context', async (route) => {
+			const body = route.request().postDataJSON();
+			contexts.push(body);
+			if (
+				failure === 'revoke-marker-and-offline' &&
+				body.consent === 'denied' &&
+				contexts.filter((item) => item.consent === 'denied').length === 1
+			) {
+				await route.abort('failed');
+				return;
+			}
+			await route.fulfill({
+				json: { analytics_user_id: 'test-opaque', server_payment_tracking: true }
+			});
+		});
+		await page.route('**/api/v1/analytics/events', (route) =>
+			route.fulfill({ json: { accepted: true } })
+		);
+		await page.goto('/welcome');
+		const settings = page.getByRole('dialog', { name: 'Настройки аналитики' });
+		await expect(settings).toBeVisible();
+		await expect.poll(() => contexts.some((context) => context.consent === 'granted')).toBe(true);
+		await page.evaluate((failure) => {
+			const original = Storage.prototype.setItem;
+			let fail = true;
+			Storage.prototype.setItem = function (key, value) {
+				if (
+					fail &&
+					((failure === 'all-writes' && key === 'airis.analytics.consent.v1') ||
+						key === 'airis.analytics.revoke.v1')
+				)
+					throw new DOMException('storage is full', 'QuotaExceededError');
+				return original.call(this, key, value);
+			};
+			window.addEventListener('test:restore-storage', () => {
+				fail = false;
+			});
+		}, failure);
+		let navigations = 0;
+		page.on('framenavigated', (frame) => {
+			if (frame === page.mainFrame()) navigations++;
+		});
+		await settings.getByRole('button', { name: 'Запретить', exact: true }).click();
+		await expect.poll(() => contexts.some((context) => context.consent === 'denied')).toBe(true);
+		await expect(settings).toContainText(
+			failure === 'all-writes'
+				? 'запрет не удалось сохранить'
+				: 'Не удалось подтвердить отзыв на сервере'
+		);
+		expect(navigations).toBe(0);
+		expect(await page.evaluate(() => localStorage.getItem('airis.analytics.consent.v1'))).toBe(
+			failure === 'all-writes' ? null : 'denied'
+		);
+		await page.evaluate(() => window.dispatchEvent(new Event('test:restore-storage')));
+		await settings.getByRole('button', { name: 'Запретить', exact: true }).click();
+		await expect.poll(() => navigations).toBe(1);
+		await expect
+			.poll(async () =>
+				page.evaluate(() => localStorage.getItem('airis.analytics.consent.v1')).catch(() => null)
+			)
+			.toBe('denied');
+		if (failure === 'revoke-marker-and-offline') {
+			const denials = contexts.filter((item) => item.consent === 'denied');
+			expect(denials).toHaveLength(2);
+			expect(denials[1].anonymous_id).toBe(denials[0].anonymous_id);
+		}
+	});
+}
+
 for (const mode of ['saved-denial', 'pending-revoke'] as const) {
 	test(`${mode} blocks default collection and can be explicitly enabled again`, async ({
 		page

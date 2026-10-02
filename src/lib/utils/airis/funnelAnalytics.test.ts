@@ -132,6 +132,27 @@ describe('consent-bound product funnel', () => {
 			JSON.parse(fetchMock.mock.calls[1][1].body)
 		);
 	});
+	it('purges the server and retries the same visitor when storage writes fail', async () => {
+		const api = await import('./funnelAnalytics');
+		const consent = await import('./analyticsConsent');
+		api.captureFunnelTouch();
+		const visitor = JSON.parse(localStorage.getItem(api.FUNNEL_STORAGE_KEY) || '{}').anonymous_id;
+		const fetchMock = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('offline'))
+			.mockResolvedValue(new Response('{}'));
+		vi.stubGlobal('fetch', fetchMock);
+		vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+			throw new DOMException('storage is full', 'QuotaExceededError');
+		});
+		expect(() => consent.setAnalyticsConsent('denied')).toThrow();
+		await expect(api.revokeFunnelConsent()).rejects.toThrow('offline');
+		expect(await api.trackFunnelEvent('product_first_visit')).toBe(false);
+		await api.revokeFunnelConsent();
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		for (const [, options] of fetchMock.mock.calls)
+			expect(JSON.parse(options.body)).toEqual({ consent: 'denied', anonymous_id: visitor });
+	});
 	it('rejects duplicate lifetime acknowledgement and keeps browser purchases disabled for server transport', async () => {
 		const fetchMock = vi.fn().mockImplementation(
 			async () =>
