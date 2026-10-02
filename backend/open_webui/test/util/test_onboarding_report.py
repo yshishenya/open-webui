@@ -185,6 +185,122 @@ async def test_distinct_paid_users_vs_payment_count_and_immature_payments(
 
 
 @pytest.mark.asyncio
+async def test_attempt_funnel_current_states_exact_credit_and_private_unknowns(
+    database: async_sessionmaker[AsyncSession],
+) -> None:
+    cases = [
+        ('credited', 'succeeded'),
+        ('not-applied', 'succeeded'),
+        ('canceled', 'canceled'),
+        ('creating', 'pending'),
+        ('failed', 'failed'),
+        ('unknown', 'failed'),
+        ('future', 'succeeded'),
+    ]
+    for name, status in cases:
+        await queue_tests.payment_fact(database, name, status, REGISTERED + 1, credit=name == 'credited')
+    async with database() as db:
+        await db.execute(
+            update(Payment).where(Payment.id == 'creating').values(status_details={'yookassa_status': 'creating'})
+        )
+        await db.execute(
+            update(Payment).where(Payment.id == 'failed').values(status_details={'yookassa_status': 'create_failed'})
+        )
+        await db.execute(
+            update(Payment)
+            .where(Payment.id == 'unknown')
+            .values(status_details={'yookassa_status': 'private-secret@example.com'})
+        )
+        await db.execute(update(Payment).where(Payment.id == 'future').values(updated_at=NOW + 1))
+        await db.commit()
+    first = await snapshot()
+    funnel = first.cohorts[0].payment_attempts_14d_mature
+    assert funnel.created_attempts == 7 and funnel.users_with_attempts == 1
+    assert funnel.credited_attempts == 1 and funnel.credited_users == 1
+    assert funnel.attempt_to_credit_fraction == 1 / 7 and funnel.user_to_credit_fraction == 1
+    assert funnel.states_now == {
+        'credited': 1,
+        'succeeded_without_window_credit': 1,
+        'canceled': 1,
+        'processing': 1,
+        'local_create_failed': 1,
+        'unresolved': 2,
+    }
+    assert sum(funnel.states_now.values()) == funnel.created_attempts
+    assert funnel.cancellation_reason is None and funnel.status_snapshot_at == NOW
+    assert 'private-secret' not in first.model_dump_json()
+    assert (await snapshot()).model_dump() == first.model_dump()
+    empty = first.cohorts[1].payment_attempts_14d_mature
+    assert empty.created_attempts == 0 and empty.attempt_to_credit_fraction is None
+    assert empty.user_to_credit_fraction is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'attempt_offset,credit_offset,expected_attempts,expected_credit',
+    [
+        (-1, 1, 0, 0),
+        (0, 0, 1, 1),
+        (14 * DAY - 1, 14 * DAY - 1, 1, 1),
+        (14 * DAY, 14 * DAY, 0, 0),
+        (1, 14 * DAY, 1, 0),
+        (1, -1, 1, 0),
+    ],
+)
+async def test_attempt_funnel_half_open_creation_and_ledger_windows(
+    database: async_sessionmaker[AsyncSession],
+    attempt_offset: int,
+    credit_offset: int,
+    expected_attempts: int,
+    expected_credit: int,
+) -> None:
+    await queue_tests.payment_fact(database, 'boundary', 'succeeded', REGISTERED + attempt_offset, credit=True)
+    async with database() as db:
+        await db.execute(
+            update(LedgerEntry).where(LedgerEntry.id == 'credit-boundary').values(created_at=REGISTERED + credit_offset)
+        )
+        await db.commit()
+    funnel = (await snapshot()).cohorts[0].payment_attempts_14d_mature
+    assert funnel.created_attempts == expected_attempts and funnel.credited_attempts == expected_credit
+
+
+@pytest.mark.asyncio
+async def test_attempt_funnel_separates_users_immaturity_and_mismatched_credit(
+    database: async_sessionmaker[AsyncSession],
+) -> None:
+    for name in ['one', 'two', 'cross-wallet', 'immature']:
+        await queue_tests.payment_fact(database, name, 'succeeded', NOW - 1, credit=True)
+    async with database() as db:
+        await db.execute(
+            update(LedgerEntry).where(LedgerEntry.id == 'credit-cross-wallet').values(wallet_id='foreign-wallet')
+        )
+        await db.execute(update(Payment).where(Payment.id == 'immature').values(user_id='2'))
+        await db.execute(update(LedgerEntry).where(LedgerEntry.id == 'credit-immature').values(user_id='2'))
+        await db.commit()
+    mature, immature = (await snapshot()).cohorts
+    funnel = mature.payment_attempts_14d_mature
+    assert funnel.created_attempts == 3 and funnel.credited_attempts == 2
+    assert funnel.users_with_attempts == funnel.credited_users == 1
+    assert funnel.attempt_to_credit_fraction == 2 / 3 and funnel.user_to_credit_fraction == 1
+    assert immature.payment_attempts_14d_mature.created_attempts == 0
+
+
+@pytest.mark.asyncio
+async def test_empty_provider_id_cannot_prove_credit_even_with_matching_ledger(
+    database: async_sessionmaker[AsyncSession],
+) -> None:
+    await queue_tests.payment_fact(database, 'empty-provider', 'succeeded', NOW - 1, credit=True)
+    async with database() as db:
+        await db.execute(update(Payment).where(Payment.id == 'empty-provider').values(provider_payment_id=''))
+        await db.execute(update(LedgerEntry).where(LedgerEntry.id == 'credit-empty-provider').values(reference_id=''))
+        await db.commit()
+    cohort = (await snapshot()).cohorts[0]
+    assert cohort.paid_users_14d.count == cohort.confirmed_payments_14d_mature == 0
+    assert cohort.payment_attempts_14d_mature.credited_attempts == 0
+    assert cohort.payment_attempts_14d_mature.states_now == {'unresolved': 1}
+
+
+@pytest.mark.asyncio
 async def test_current_consent_suppression_and_mail_outcomes_do_not_invent_delivery(
     database: async_sessionmaker[AsyncSession],
 ) -> None:

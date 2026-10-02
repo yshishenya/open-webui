@@ -21,11 +21,12 @@ from open_webui.models.email_preferences import (
 )
 from open_webui.models.task_success import TaskSuccess
 from open_webui.models.users import User
-from open_webui.utils.airis.email_scenarios import DAY, credited_condition
+from open_webui.utils.airis.email_scenarios import DAY, canceled_condition, credited_condition
 from pydantic import BaseModel
 from sqlalchemy import and_, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import load_only
+from sqlalchemy.sql.elements import ColumnElement
 
 REPORT_VERSION = 'registration-v1'
 MAX_ACCOUNTS = 10000
@@ -51,6 +52,18 @@ class MailOutcome(BaseModel):
     complaint_records: int
 
 
+class PaymentFunnel(BaseModel):
+    status_snapshot_at: int
+    created_attempts: int
+    users_with_attempts: int
+    credited_attempts: int
+    credited_users: int
+    attempt_to_credit_fraction: float | None
+    user_to_credit_fraction: float | None
+    states_now: dict[str, int]
+    cancellation_reason: None = None
+
+
 class RegistrationCohort(BaseModel):
     date: str
     consent_segment: Literal['current_opt_in', 'no_current_opt_in']
@@ -64,6 +77,7 @@ class RegistrationCohort(BaseModel):
     return_7d: MatureRate
     paid_users_14d: MatureRate
     confirmed_payments_14d_mature: int
+    payment_attempts_14d_mature: PaymentFunnel
     mail_outcomes: list[MailOutcome]
 
 
@@ -188,6 +202,93 @@ async def payment_counts(session: AsyncSession, ids: list[str], now: int) -> dic
         )
     ).all()
     return dict(rows)
+
+
+def attempt_state(now: int) -> ColumnElement[str]:
+    """Classify only recorded provider and exact in-window credit facts."""
+    credit_at = (
+        select(func.min(LedgerEntry.created_at))
+        .where(
+            LedgerEntry.user_id == Payment.user_id,
+            LedgerEntry.wallet_id == Payment.wallet_id,
+            LedgerEntry.reference_type == 'payment',
+            LedgerEntry.reference_id == Payment.provider_payment_id,
+            LedgerEntry.type == 'topup',
+            LedgerEntry.amount_kopeks == Payment.amount_kopeks,
+            LedgerEntry.currency == Payment.currency,
+        )
+        .correlate(Payment)
+        .scalar_subquery()
+    )
+    return case(
+        (Payment.updated_at > now, 'unresolved'),
+        (
+            and_(credited_condition(), credit_at >= User.created_at, credit_at < User.created_at + 14 * DAY),
+            'credited',
+        ),
+        (
+            and_(
+                Payment.status == 'succeeded',
+                Payment.provider_payment_id.is_not(None),
+                Payment.provider_payment_id != '',
+                Payment.status_details['yookassa_status'].as_string() == 'succeeded',
+            ),
+            'succeeded_without_window_credit',
+        ),
+        (canceled_condition(), 'canceled'),
+        (
+            and_(Payment.status == 'failed', Payment.status_details['yookassa_status'].as_string() == 'create_failed'),
+            'local_create_failed',
+        ),
+        (
+            and_(
+                Payment.status.in_(['created', 'pending']),
+                Payment.status_details['yookassa_status']
+                .as_string()
+                .in_(['creating', 'pending', 'waiting_for_capture']),
+            ),
+            'processing',
+        ),
+        else_='unresolved',
+    )
+
+
+async def payment_funnel(session: AsyncSession, ids: list[str], now: int) -> PaymentFunnel:
+    """Group current outcomes of attempts initiated inside fully mature registration windows."""
+    attempts = (
+        select(Payment.user_id.label('account'), attempt_state(now).label('state'))
+        .join(User, User.id == Payment.user_id)
+        .where(
+            Payment.user_id.in_(ids),
+            User.created_at + 14 * DAY <= now,
+            Payment.provider == 'yookassa',
+            Payment.kind == 'topup',
+            Payment.created_at >= User.created_at,
+            Payment.created_at < User.created_at + 14 * DAY,
+        )
+        .subquery()
+    )
+    total, users, credited, credited_users = (
+        await session.execute(
+            select(
+                func.count(),
+                func.count(func.distinct(attempts.c.account)),
+                func.count(case((attempts.c.state == 'credited', 1))),
+                func.count(func.distinct(case((attempts.c.state == 'credited', attempts.c.account)))),
+            ).select_from(attempts)
+        )
+    ).one()
+    states = dict((await session.execute(select(attempts.c.state, func.count()).group_by(attempts.c.state))).all())
+    return PaymentFunnel(
+        status_snapshot_at=now,
+        created_attempts=total,
+        users_with_attempts=users,
+        credited_attempts=credited,
+        credited_users=credited_users,
+        attempt_to_credit_fraction=credited / total if total else None,
+        user_to_credit_fraction=credited_users / users if users else None,
+        states_now=states,
+    )
 
 
 async def account_facts(session: AsyncSession, ids: list[str], now: int) -> list[AccountFact]:
@@ -320,6 +421,7 @@ async def registration_cohort(
             account.paid_count for account in accounts if account.registered_at + 14 * DAY <= now
         ),
         mail_outcomes=await mail_outcomes(session, ids, now),
+        payment_attempts_14d_mature=await payment_funnel(session, ids, now),
         **cohort_metrics(accounts, now, timezone),
     )
 
@@ -357,6 +459,8 @@ async def registration_report(
                 'Events use half-open windows; immature accounts are excluded from final fractions.',
                 'Return requires a foreground success on a different calendar day within registration+7d.',
                 'Credit needs provider proof and applied ledger funds; gross conversion is not retained revenue.',
+                'Attempt funnel uses attempts initiated in registration+14d for mature accounts; statuses are current.',
+                'Detailed cancellation causes are not retained; local create_failed is a separate observation.',
                 'Queue acceptance is SMTP acceptance; receipt/bounce/complaint counts are recorded observations only.',
                 'Delivery/Inbox rates, response usefulness, email clicks and causal effects are unavailable.',
             ],

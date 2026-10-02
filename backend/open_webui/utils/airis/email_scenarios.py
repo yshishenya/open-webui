@@ -78,6 +78,7 @@ def credited_condition(credited_since: int | None = None) -> ColumnElement[bool]
         Payment.kind == 'topup',
         Payment.status == 'succeeded',
         Payment.provider_payment_id.is_not(None),
+        Payment.provider_payment_id != '',
         Payment.amount_kopeks > 0,
         Payment.status_details['yookassa_status'].as_string() == 'succeeded',
         exists(

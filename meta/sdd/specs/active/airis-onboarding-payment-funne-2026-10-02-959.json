@@ -1,0 +1,234 @@
+{
+	"spec_id": "airis-onboarding-payment-funne-2026-10-02-959",
+	"title": "AIRIS onboarding payment funnel",
+	"generated": "2026-10-02T06:59:12.955588Z",
+	"last_updated": "2026-10-02T07:04:49.276090Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 24,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__onboarding-payment-funnel.md",
+		"status": "active",
+		"activated_date": "2026-10-02T07:00:56.506950Z",
+		"progress_percentage": 66,
+		"current_phase": "phase-2"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS onboarding payment funnel",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2", "phase-3"],
+			"total_tasks": 6,
+			"completed_tasks": 4,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace existing report and exact credit",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T07:04:48.768482Z",
+				"journaled_at": "2026-10-02T07:04:48.777979Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Add bounded read-only payment aggregates",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T07:04:49.273711Z",
+				"journaled_at": "2026-10-02T07:04:49.276061Z"
+			}
+		},
+		"phase-3": {
+			"type": "phase",
+			"title": "Freeze and verify release",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-3-1", "task-3-2"],
+			"total_tasks": 2,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Define mature attempt windows and source limits",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T07:04:48.524726Z",
+				"needs_journaling": false,
+				"status_note": "Mature half-open creation/ledger windows, separate attempt/user denominators and current-status snapshot defined.",
+				"journaled_at": "2026-10-02T07:04:48.526019Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Read current status and reuse verified credit predicates",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T07:04:48.768322Z",
+				"needs_journaling": false,
+				"status_note": "Reused report and verified credit/canceled predicates; detailed cancellation cause absent in source sanitization, remains null.",
+				"journaled_at": "2026-10-02T07:04:48.770150Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Extend report with attempts, users, states and conversion",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T07:04:49.020480Z",
+				"needs_journaling": false,
+				"status_note": "One fork-owned report module; aggregate async ORM, no route/schema/dependency or money mutation.",
+				"journaled_at": "2026-10-02T07:04:49.021629Z"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Check boundaries, missing credit and privacy",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T07:04:49.273510Z",
+				"needs_journaling": false,
+				"status_note": "Focused27 checks passed: mature boundaries, distinct users/attempts, late/missing/cross-wallet credit, unknown strings, future updates, no identifiers/replay mutations.",
+				"journaled_at": "2026-10-02T07:04:49.274671Z"
+			}
+		},
+		"task-3-1": {
+			"type": "task",
+			"title": "Source/image/PostgreSQL/CI and compatible rollback",
+			"status": "pending",
+			"parent": "phase-3",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-3-2": {
+			"type": "task",
+			"title": "Guarded release and independent live aggregation",
+			"status": "pending",
+			"parent": "phase-3",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-02T07:04:48.526013Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Define mature attempt windows and source limits",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Mature half-open creation/ledger windows, separate attempt/user denominators and current-status snapshot defined.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-02T07:04:48.770145Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Read current status and reuse verified credit predicates",
+			"author": "claude-code",
+			"content": "Task task-1-2 marked as completed. \nNote: Reused report and verified credit/canceled predicates; detailed cancellation cause absent in source sanitization, remains null.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-02T07:04:48.777974Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace existing report and exact credit",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-02T07:04:49.021624Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Extend report with attempts, users, states and conversion",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: One fork-owned report module; aggregate async ORM, no route/schema/dependency or money mutation.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-02T07:04:49.274666Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Check boundaries, missing credit and privacy",
+			"author": "claude-code",
+			"content": "Task task-2-2 marked as completed. \nNote: Focused27 checks passed: mature boundaries, distinct users/attempts, late/missing/cross-wallet credit, unknown strings, future updates, no identifiers/replay mutations.",
+			"metadata": {},
+			"task_id": "task-2-2"
+		},
+		{
+			"timestamp": "2026-10-02T07:04:49.276055Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Add bounded read-only payment aggregates",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
