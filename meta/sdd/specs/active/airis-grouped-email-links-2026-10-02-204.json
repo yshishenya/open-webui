@@ -1,0 +1,138 @@
+{
+	"spec_id": "airis-grouped-email-links-2026-10-02-204",
+	"title": "AIRIS grouped email links",
+	"generated": "2026-10-02T09:04:51.426605Z",
+	"last_updated": "2026-10-02T09:08:32.850905Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__email-group-links.md",
+		"status": "active",
+		"activated_date": "2026-10-02T09:05:27.608560Z",
+		"progress_percentage": 66,
+		"current_phase": "phase-1"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS grouped email links",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace and implement grouped links",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T09:08:32.849139Z",
+				"journaled_at": "2026-10-02T09:08:32.850881Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify frozen release",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce missing group labels and preserve safe destinations",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T09:07:01.203797Z",
+				"needs_journaling": false,
+				"status_note": "Before-change regression fails: missing four group fields; existing navigation links restrict origin; no personal attribution needed.",
+				"journaled_at": "2026-10-02T09:07:01.205523Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Append fixed group metadata using existing context and validate source",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T09:08:32.848968Z",
+				"needs_journaling": false,
+				"status_note": "Shared context adds four group fields to six safe destinations; regression covers all6 email types, preserves query/fragments, excludes private identifiers. Full source614/3 skips, PostgreSQL90, Black/Ruff passed; no dependency/frontend/control change.",
+				"journaled_at": "2026-10-02T09:08:32.849904Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Freeze image, complete CI and verify guarded release",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-02T09:07:01.205514Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce missing group labels and preserve safe destinations",
+			"author": "Codex",
+			"content": "Task task-1-1 marked as completed. \nNote: Before-change regression fails: missing four group fields; existing navigation links restrict origin; no personal attribution needed.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-02T09:08:32.849899Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Append fixed group metadata using existing context and validate source",
+			"author": "Codex",
+			"content": "Task task-1-2 marked as completed. \nNote: Shared context adds four group fields to six safe destinations; regression covers all6 email types, preserves query/fragments, excludes private identifiers. Full source614/3 skips, PostgreSQL90, Black/Ruff passed; no dependency/frontend/control change.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-02T09:08:32.850877Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace and implement grouped links",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}
