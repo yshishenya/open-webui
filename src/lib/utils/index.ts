@@ -175,13 +175,13 @@ export function unescapeHtml(html: string): string {
 	return decode(html);
 }
 
-export const capitalizeFirstLetter = (string) => {
+export const capitalizeFirstLetter = (string: string): string => {
 	return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-export const splitStream = (splitOn) => {
+export const splitStream = (splitOn: string | RegExp): TransformStream<string, string> => {
 	let buffer = '';
-	return new TransformStream({
+	return new TransformStream<string, string>({
 		transform(chunk, controller) {
 			buffer += chunk;
 			const parts = buffer.split(splitOn);
@@ -397,7 +397,11 @@ async function resizeImageToDataURL(
 	return Promise.resolve(toDataURL());
 }
 
-export const compressImage = async (imageUrl, maxWidth, maxHeight) => {
+export const compressImage = async (
+	imageUrl: string,
+	maxWidth: number | null | undefined,
+	maxHeight: number | null | undefined
+): Promise<string> => {
 	return new Promise((resolve, reject) => {
 		const img = new Image();
 		img.onload = async () => {
@@ -485,7 +489,7 @@ export const generateInitialsImage = (name) => {
 	return canvas.toDataURL();
 };
 
-export const formatDate = (inputDate) => {
+export const formatDate = (inputDate: dayjs.ConfigType): string => {
 	const date = dayjs(inputDate);
 
 	if (date.isToday()) {
@@ -497,12 +501,12 @@ export const formatDate = (inputDate) => {
 	}
 };
 
-const messageTimestampDate = (inputDate) => {
+const messageTimestampDate = (inputDate: number): Date | null => {
 	const date = new Date(inputDate < 1_000_000_000_000 ? inputDate * 1000 : inputDate);
 	return Number.isNaN(date.getTime()) ? null : date;
 };
 
-export const formatMessageTimestamp = (inputDate) =>
+export const formatMessageTimestamp = (inputDate: number): string =>
 	messageTimestampDate(inputDate)?.toLocaleString(undefined, {
 		month: 'short',
 		day: 'numeric',
@@ -510,7 +514,7 @@ export const formatMessageTimestamp = (inputDate) =>
 		minute: '2-digit'
 	}) ?? '';
 
-export const formatMessageTimestampFull = (inputDate) =>
+export const formatMessageTimestampFull = (inputDate: number): string =>
 	messageTimestampDate(inputDate)?.toLocaleString(undefined, {
 		weekday: 'long',
 		year: 'numeric',
@@ -520,13 +524,17 @@ export const formatMessageTimestampFull = (inputDate) =>
 		minute: '2-digit'
 	}) ?? '';
 
-export const copyToClipboard = async (text, html = null, formatted = false) => {
+export const copyToClipboard = async (
+	text: string,
+	html: string | null = null,
+	formatted = false
+): Promise<boolean> => {
 	if (formatted) {
 		let styledHtml = '';
 		if (!html) {
 			const options = {
 				throwOnError: false,
-				highlight: function (code, lang) {
+				highlight: function (code: string, lang: string): string {
 					const language = hljs.getLanguage(lang) ? lang : 'plaintext';
 					return hljs.highlight(code, { language }).value;
 				}
@@ -656,7 +664,7 @@ export const copyToClipboard = async (text, html = null, formatted = false) => {
 	}
 };
 
-export const compareVersion = (latest, current) => {
+export const compareVersion = (latest: string, current: string): boolean => {
 	return current === '0.0.0'
 		? false
 		: current.localeCompare(latest, undefined, {
@@ -682,13 +690,13 @@ export const extractCurlyBraceWords = (text) => {
 	return matches;
 };
 
-export const removeLastWordFromString = (inputString, wordString) => {
+export const removeLastWordFromString = (inputString: string, wordString: string): string => {
 	console.log('inputString', inputString);
 	// Split the string by newline characters to handle lines separately
 	const lines = inputString.split('\n');
 
 	// Take the last line to operate only on it
-	const lastLine = lines.pop();
+	const lastLine = lines.pop()!;
 
 	// Split the last line into an array of words
 	const words = lastLine.split(' ');
@@ -715,7 +723,7 @@ export const removeLastWordFromString = (inputString, wordString) => {
 	return resultString;
 };
 
-export const removeFirstHashWord = (inputString) => {
+export const removeFirstHashWord = (inputString: string): string => {
 	// Split the string into an array of words
 	const words = inputString.split(' ');
 
@@ -733,7 +741,7 @@ export const removeFirstHashWord = (inputString) => {
 	return resultString;
 };
 
-export const transformFileName = (fileName) => {
+export const transformFileName = (fileName: string): string => {
 	// Convert to lowercase
 	const lowerCaseFileName = fileName.toLowerCase();
 
@@ -746,7 +754,7 @@ export const transformFileName = (fileName) => {
 	return finalFileName;
 };
 
-export const calculateSHA256 = async (file) => {
+export const calculateSHA256 = async (file: Blob): Promise<string> => {
 	// Create a FileReader to read the file asynchronously
 	const reader = new FileReader();
 
@@ -1034,7 +1042,7 @@ export const cleanText = (content: string) => {
 	return removeFormattings(removeEmojis(content.trim()));
 };
 
-export const removeDetails = (content, types) => {
+export const removeDetails = (content: string, types: readonly string[]): string => {
 	return replaceOutsideCode(content, (segment) => {
 		for (const type of types) {
 			segment = segment.replace(
@@ -1046,7 +1054,7 @@ export const removeDetails = (content, types) => {
 	}).trim();
 };
 
-export const removeAllDetails = (content) => {
+export const removeAllDetails = (content: string): string => {
 	// First pass: strip <details> blocks on the full string before code-fence
 	// splitting, so blocks whose body contains triple backticks are caught.
 	// (replaceOutsideCode splits on ``` fences, which breaks the <details>
@@ -1058,7 +1066,7 @@ export const removeAllDetails = (content) => {
 	}).trim();
 };
 
-export const processDetails = (content) => {
+export const processDetails = (content: string): string => {
 	content = removeDetails(content, ['reasoning', 'code_interpreter']);
 
 	// This regex matches <details> tags with type="tool_calls" and captures their attributes to convert them to a string
@@ -1198,7 +1206,7 @@ export const getMessageContentParts = (content: string, splitOn: string = 'punct
 	return messageContentParts;
 };
 
-export const blobToFile = (blob, fileName) => {
+export const blobToFile = (blob: Blob, fileName: string): File => {
 	// Create a new File object from the Blob
 	const file = new File([blob], fileName, { type: blob.type });
 	return file;
@@ -1329,8 +1337,8 @@ export const getTimeRange = (timestamp) => {
  * @param content {string} - The content string with potential frontmatter.
  * @returns {Object} - The extracted frontmatter as a dictionary.
  */
-export const extractFrontmatter = (content) => {
-	const frontmatter = {};
+export const extractFrontmatter = (content: string): Record<string, string> => {
+	const frontmatter: Record<string, string> = {};
 	let frontmatterStarted = false;
 	let frontmatterEnded = false;
 	const frontmatterPattern = /^\s*([a-z_]+):\s*(.*)\s*$/i;
@@ -1426,7 +1434,7 @@ export const createMessagesList = (history, messageId) => {
 	return list.reverse();
 };
 
-export const formatFileSize = (size) => {
+export const formatFileSize = (size: unknown): string => {
 	if (size == null) return 'Unknown size';
 	if (typeof size !== 'number' || size < 0) return 'Invalid size';
 	if (size === 0) return '0 B';
@@ -1440,7 +1448,7 @@ export const formatFileSize = (size) => {
 	return `${size.toFixed(1)} ${units[unitIndex]}`;
 };
 
-export const getLineCount = (text) => {
+export const getLineCount = (text: string | null | undefined): number => {
 	console.log(typeof text);
 	return text ? text.split('\n').length : 0;
 };
@@ -1533,15 +1541,20 @@ const OPENAPI_HTTP_METHODS = new Set([
 ]);
 
 // Main conversion function
-export const convertOpenApiToToolPayload = (openApiSpec) => {
-	const toolPayload = [];
+export const convertOpenApiToToolPayload = (
+	openApiSpec:
+		| { paths?: Record<string, unknown>; components?: Record<string, unknown> }
+		| null
+		| undefined
+): Record<string, unknown>[] => {
+	const toolPayload: Record<string, unknown>[] = [];
 
 	// Guard against invalid or non-OpenAPI specs (e.g., MCP-style configs)
 	if (!openApiSpec || !openApiSpec.paths) {
 		return toolPayload;
 	}
 
-	for (const [path, methods] of Object.entries(openApiSpec.paths)) {
+	for (const [, methods] of Object.entries(openApiSpec.paths)) {
 		if (!methods || typeof methods !== 'object') continue;
 
 		// Path-level parameters apply to all operations under this path
@@ -1928,7 +1941,7 @@ export const extractContentFromFile = async (file: File) => {
 	}
 };
 
-export const getAge = (birthDate) => {
+export const getAge = (birthDate: string | number | Date): string => {
 	const today = new Date();
 	const bDate = new Date(birthDate);
 	let age = today.getFullYear() - bDate.getFullYear();
@@ -2038,7 +2051,7 @@ export const renderMermaidDiagram = async (
 	}
 };
 
-export const renderVegaVisualization = async (spec: string, lang: string = '', i18n?: any) => {
+export const renderVegaVisualization = async (spec: string, lang: string = ''): Promise<string> => {
 	const vega = await import('vega');
 	const parsedSpec = JSON.parse(spec);
 	const hasVegaLiteKeys =
@@ -2092,7 +2105,7 @@ export const getCodeBlockContents = (content: string): object => {
 	// This preserves the existing behaviour for "dumb" models that output
 	// separate html/css/js blocks meant to form a single page, while also
 	// allowing multiple distinct HTML blocks to produce separate artifacts.
-	let htmlGroups: Array<{ html: string; css: string; js: string }> = [];
+	const htmlGroups: Array<{ html: string; css: string; js: string }> = [];
 
 	const initDefaultGroup = () => {
 		if (htmlGroups.length === 0) {
@@ -2171,10 +2184,10 @@ export const getCodeBlockContents = (content: string): object => {
 			}))
 	};
 };
-export const parseFrontmatter = (content) => {
+export const parseFrontmatter = (content: string): Record<string, string> => {
 	const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
 	if (match) {
-		const frontmatter = {};
+		const frontmatter: Record<string, string> = {};
 		match[1].split('\n').forEach((line) => {
 			const [key, ...value] = line.split(':');
 			if (key && value) {
@@ -2189,7 +2202,7 @@ export const parseFrontmatter = (content) => {
 	return {};
 };
 
-export const formatSkillName = (name) => {
+export const formatSkillName = (name: string): string => {
 	return name.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
