@@ -2,7 +2,7 @@
   "spec_id": "airis-shared-utility-types-2026-10-02-212",
   "title": "Airis shared utility types 2026-10-02",
   "generated": "2026-10-02T15:06:24.452704Z",
-  "last_updated": "2026-10-02T15:23:18.992309Z",
+  "last_updated": "2026-10-02T15:42:36.946561Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -10,28 +10,29 @@
     "estimated_hours": 24,
     "security_sensitive": false,
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__shared-utility-types.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-02T15:08:18.862960Z",
-    "progress_percentage": 66,
-    "current_phase": "phase-1"
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-02T15:42:36.946193Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Airis shared utility types 2026-10-02",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
       "type": "phase",
       "title": "Repair utility contracts with preserved runtime behavior",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-1-1",
@@ -39,8 +40,12 @@
         "task-1-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
-      "metadata": {}
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-02T15:42:36.468125Z",
+        "journaled_at": "2026-10-02T15:42:36.470215Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -85,7 +90,7 @@
     "task-1-3": {
       "type": "task",
       "title": "Run Docker checks and accept exact-source CI/merge",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1",
       "children": [],
       "dependencies": {
@@ -94,9 +99,13 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "file_path": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__shared-utility-types.md"
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__shared-utility-types.md",
+        "completed_at": "2026-10-02T15:42:36.467907Z",
+        "needs_journaling": false,
+        "status_note": "Docker 166/166, ESLint utility clean, exact head b174357f60c7217df9b385d2542ff7b897eba6c4 CI and PR170 merge accepted. Existing global check/lint debt and final combined production release remain open.",
+        "journaled_at": "2026-10-02T15:42:36.469073Z"
       }
     }
   },
@@ -118,6 +127,24 @@
       "content": "Task task-1-2 marked as completed.",
       "metadata": {},
       "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-02T15:42:36.469063Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run Docker checks and accept exact-source CI/merge",
+      "author": "claude-code",
+      "content": "Task task-1-3 marked as completed. \nNote: Docker 166/166, ESLint utility clean, exact head b174357f60c7217df9b385d2542ff7b897eba6c4 CI and PR170 merge accepted. Existing global check/lint debt and final combined production release remain open.",
+      "metadata": {},
+      "task_id": "task-1-3"
+    },
+    {
+      "timestamp": "2026-10-02T15:42:36.470207Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Repair utility contracts with preserved runtime behavior",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
     }
   ]
 }
