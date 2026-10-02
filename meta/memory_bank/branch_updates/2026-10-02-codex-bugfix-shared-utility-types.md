@@ -1,0 +1,8 @@
+- [ ] **[BUG][TYPES]** Restore concrete shared utility contracts
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__shared-utility-types.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/shared-utility-types`
+  - Started: 2026-10-02
+  - Summary: Annotate existing helper inputs/outputs while requiring identical emitted JavaScript and no new caller diagnostics.
+  - Tests: Baseline and callers identified; Docker checks pending.
+  - Risks: New caller diagnostics must be addressed; no runtime rollout for byte-identical output.
