@@ -45,3 +45,5 @@ Docker Compose-first backend and dedicated PostgreSQL concurrency tests, SMTP re
 ## Local verification (before source freeze)
 
 Backend543 passed, three PostgreSQL-only skips covered by dedicated PostgreSQL74 passed. Frontend147 passed; full typecheck remains the unchanged8360 errors/224 warnings and the existing full ESLint crash. Frontend source/tree is unchanged. New queue files pass Black/Ruff; changed-file lint compared to the exact integration baseline. SQLite/PostgreSQL schemas, FK, unique/indexes, downgrade/reupgrade and idempotent upgrade pass. Frozen CI, image and production gates remain pending.
+
+CI follow-up: minimally corrected the ten inherited scheduler Ruff findings; existing feature polling moved into one typed helper, rule interval and model-default payload behavior retained. Five scheduler/clock checks added; full backend548 passed. No suppression or CI configuration changes.
