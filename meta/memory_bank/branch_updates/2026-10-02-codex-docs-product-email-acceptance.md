@@ -1,0 +1,6 @@
+- [x] **[DOCS][MAIL]** Record completed product email preference acceptance
+  - Spec: meta/memory_bank/specs/work_items/2026-10-02__feature__product-email-preferences.md
+  - Owner: Codex
+  - Done: 2026-10-02
+  - Summary: PR #137 source accepted and guarded release verified; delivered DKIM, ordinary account choice, controlled valid-token unsubscribe and proxy privacy pass. Product sending remains off until queue and pilot.
+  - Validation: Completed SDD; existing global lint/type debt explicitly retained in the feature spec. Documentation-only follow-up.
