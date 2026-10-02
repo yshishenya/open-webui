@@ -340,11 +340,12 @@ export const getGravatarURL = (email) => {
 	return `https://www.gravatar.com/avatar/${hash}`;
 };
 
-export const canvasPixelTest = () => {
+export const canvasPixelTest = (): boolean => {
 	// Test a 1x1 pixel to potentially identify browser/plugin fingerprint blocking or spoofing
 	// Inspiration: https://github.com/kkapsner/CanvasBlocker/blob/master/test/detectionTest.js
 	const canvas = document.createElement('canvas');
 	const ctx = canvas.getContext('2d');
+	if (!ctx) return false;
 	canvas.height = 1;
 	canvas.width = 1;
 	const imageData = new ImageData(canvas.width, canvas.height);
@@ -478,13 +479,13 @@ export const compressImage = async (
 		img.src = imageUrl;
 	});
 };
-export const generateInitialsImage = (name) => {
+export const generateInitialsImage = (name: string | null | undefined): string => {
 	const canvas = document.createElement('canvas');
 	const ctx = canvas.getContext('2d');
 	canvas.width = 100;
 	canvas.height = 100;
 
-	if (!canvasPixelTest()) {
+	if (!ctx || !canvasPixelTest()) {
 		console.log(
 			'generateInitialsImage: failed pixel test, fingerprint evasion is likely. Using default image.'
 		);
@@ -499,7 +500,7 @@ export const generateInitialsImage = (name) => {
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
 
-	const sanitizedName = name.trim();
+	const sanitizedName = (name ?? '').trim();
 	const initials =
 		sanitizedName.length > 0
 			? sanitizedName[0] +
