@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
+from urllib.parse import parse_qsl, urlsplit
 
 import pytest
 import pytest_asyncio
@@ -21,7 +22,7 @@ from open_webui.utils import email
 from open_webui.utils.airis import email_queue as worker
 from open_webui.utils.airis import email_scenarios as scenarios
 from open_webui.utils.airis import social_account as social
-from open_webui.utils.airis.email_onboarding import first_email_context
+from open_webui.utils.airis.email_onboarding import first_email_context, onboarding_context
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from starlette.requests import Request
@@ -30,6 +31,36 @@ from test.util import test_email_delivery_queue as queue_tests
 from test.util.test_email_delivery_queue import config
 
 queue_database = queue_tests.database
+
+
+@pytest.mark.asyncio
+async def test_queued_links_share_group_metadata_without_identity_and_preserve_destinations(
+    database: async_sessionmaker[AsyncSession],
+) -> None:
+    await queue_tests.payment_fact(database, 'private-payment-id', 'succeeded', int(time.time()), credit=True)
+    for kind in ['welcome', 'activation_24h', 'topup_credited', 'paid_value_72h', 'payment_help_72h', 'feedback_14d']:
+        job_id = await queue_tests.enqueue(database, kind, 'private-payment-id')
+        job = await queue_tests.state(database, job_id)
+        async with database() as session:
+            user = await session.get(User, '1')
+            context = await onboarding_context(session, user, job, 'https://chat.airis.you')
+        for key, value in context.items():
+            if not key.endswith('_url'):
+                continue
+            parsed = urlsplit(value)
+            assert parsed.scheme == 'https' and parsed.netloc == 'chat.airis.you'
+            query = dict(parse_qsl(parsed.query))
+            assert query == {
+                **({'filter': 'topups'} if key == 'history_url' else {}),
+                'utm_source': 'airis',
+                'utm_medium': 'email',
+                'utm_campaign': job.template_version,
+                'utm_content': kind,
+            }
+            assert 'private-payment-id' not in value and job.id not in value and user.email not in value
+        assert urlsplit(context['first_task_url']).fragment == 'example-letter'
+        assert urlsplit(context['paid_example_url']).fragment == 'costs'
+        assert urlsplit(context['pricing_url']).fragment == 'calculation'
 
 
 @pytest_asyncio.fixture

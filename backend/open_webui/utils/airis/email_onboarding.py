@@ -1,6 +1,6 @@
 """First-cycle mail uses the existing public guide and its prepared task."""
 
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit
 
 from open_webui.models.billing_wallet import Payment
 from open_webui.models.email_delivery import DeliveryView
@@ -63,4 +63,13 @@ async def onboarding_context(session: AsyncSession, user: User, job: DeliveryVie
         )
         context['activity'] = 'started' if started else 'not_started'
         context['payment'] = 'credited' if credited else 'no_credit'
+    for key in ('first_task_url', 'guide_url', 'dashboard_url', 'history_url', 'pricing_url', 'paid_example_url'):
+        parsed = urlsplit(context[key])
+        query = parse_qsl(parsed.query) + [
+            ('utm_source', 'airis'),
+            ('utm_medium', 'email'),
+            ('utm_campaign', job.template_version),
+            ('utm_content', job.type),
+        ]
+        context[key] = parsed._replace(query=urlencode(query)).geturl()
     return context

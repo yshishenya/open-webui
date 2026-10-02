@@ -62,3 +62,9 @@ For immediate stop, set `AIRIS_EMAIL_QUEUE_ENABLED=false` and `AIRIS_PRODUCT_EMA
 Migration `q1c020261002` adds only the queue/capacity tables. Back up before upgrade. A rollback image must retain the migration file even if old runtime does not use the new tables. Do not downgrade a populated journal during ordinary rollback.
 
 Run Compose backend checks and the queue suite against isolated PostgreSQL with `EMAIL_DELIVERY_TEST_DATABASE_URL`. Coverage includes repeated events, concurrent claims/account permission, pre/post-submission crashes, retries/expiry, opt-out during AUTH, quota headroom/direct service calls, confirmed ledger facts, late account/payment reconstruction and restricted administrative access. Calendar pilot windows remain real-time evidence and are not replaced by controlled test clocks.
+
+## Grouped navigation links
+
+The existing onboarding context appends only `utm_source=airis`, `utm_medium=email`, `utm_campaign=<template_version>` and `utm_content=<type>` to its six AIRIS navigation links. Existing history filters and guide/pricing fragments are preserved. Type/version are server-owned queue fields; user, email, payment and delivery identifiers are never placed in those links. Unsubscribe URLs remain separate, bound permission actions.
+
+This reuses the existing consent-aware funnel capture. Declining external analytics does not change queue conditions, foreground success or billing. There is no individual delivery click token, login token or click-to-account attribution. Forwarding a link cannot create a return for the original recipient; cohort return still requires that account's later authenticated foreground success. Grouped clicks and chronological success are not causal proof.
