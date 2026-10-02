@@ -12,6 +12,8 @@ An expired lease with no submission marker is safely recoverable. A persisted ma
 
 Explicit temporary failures retry after 5, 30 and 120 minutes, then stop; explicit terminal failures stop immediately. Accepted and unknown cannot use the administrative retry endpoint. A proven-unsent temporary terminal job may be retried after repairing transport. Every attempt rechecks current permissions and source facts.
 
+Shared-capacity refusal before DATA waits five minutes without consuming an SMTP retry. This applies also to database unavailability in the capacity guard. Only the same claim with no submission marker can return to pending; expiry still applies, and the next attempt rechecks consent. Accepted/unknown/submitted or changed-owner jobs are never reset by quota deferral.
+
 ## Permission and source facts
 
 Optional mail requires an active ordinary account, a trusted verified non-technical address, current address-bound product consent, no complaint/hard-bounce suppression and a current scenario window. Final permission serializes on the account row. The shared rolling 24-hour limit includes welcome. An unknown/in-flight submission conservatively reserves the full bounded submission interval. Payment help also has a rolling seven-day limit and uses only the latest appropriate terminal attempt.
@@ -38,10 +40,16 @@ All new switches are passed by `docker-compose.yaml` and documented in `.env.exa
 | `AIRIS_EMAIL_CREDITED_START_AT`   | 0       | Credit source cutoff; 0 disables service reconstruction     |
 | `AIRIS_EMAIL_SMTP_PER_MINUTE`     | 60      | Shared fixed-minute transport capacity                      |
 | `AIRIS_EMAIL_PRODUCT_PER_MINUTE`  | 40      | Optional capacity, strictly below total                     |
+| `AIRIS_EMAIL_SMTP_PER_DAY`        | 100     | Shared fixed UTC-day transport capacity                     |
+| `AIRIS_EMAIL_PRODUCT_PER_DAY`     | 50      | Optional UTC-day capacity, strictly below total             |
 
 `AIRIS_PRODUCT_EMAILS_ENABLED` must also be true to submit optional mail. Never enable a release before its templates and scenario acceptance are complete. The infrastructure release stays default-off. Use explicit source cutoffs to avoid accidentally backfilling historical accounts/payments. Do not translate the service cutoff into a seven-day expiry.
 
-Capacity is shared by transport host/port/login hash across all instances, queue jobs and existing direct service calls. Product messages cannot consume reserved service headroom. This is a fixed-minute quota: an adjacent-minute burst can use both windows. Lower the configured limit if a provider imposes a stricter rolling limit; introduce rolling transport accounting only when its contract requires it.
+Capacity is shared by transport host/port/login hash across all instances, queue jobs and existing direct service calls. Minute and UTC-day reservations commit together; a rejected reservation rolls back both. Product messages cannot consume reserved service headroom. Both are fixed windows: adjacent minutes/days can use both budgets. Defaults bound any rolling24h to at most200 app reservations/100 product reservations, including uncertain and refused submissions after reservation. Other clients of the same SMTP account are outside app accounting. Verify the provider limit and outside usage before a pilot; lower budgets when needed.
+
+The existing transport table stores both windows without migration: the original hash key retains minutes and its `:day` namespace holds UTC-day buckets in the legacy `minute` column. Cleanup is restricted to one key and its window units, preserving current/previous days. Persisted counters survive process/sender restart. Direct account/password email reports refusal through its existing result contract; only queued jobs get durable quota deferral.
+
+The first daily bucket includes that transport's existing current-day minute reservations, so a midday rollout does not reset the budget. A full existing day rejects the new reservation and rolls back its minute increment. This is a conservative count of reservations, not a claim of delivered messages.
 
 For immediate stop, set `AIRIS_EMAIL_QUEUE_ENABLED=false` and `AIRIS_PRODUCT_EMAILS_ENABLED=false` in the private deployment environment and recreate only the application using its complete production Compose set. Account/password verification service mail continues through the shared quota. Preserve pending/unknown rows for investigation. Existing SMTP credentials and Reply-To stay private.
 

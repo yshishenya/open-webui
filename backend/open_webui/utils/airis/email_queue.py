@@ -14,6 +14,7 @@ from open_webui.models.email_delivery import (
     DeliveryView,
     EmailDelivery,
     claim_email,
+    defer_email_capacity,
     finish_email,
     reserve_transport,
 )
@@ -50,11 +51,9 @@ async def take_transport_capacity(host: str, port: int, username: str, product: 
     key = hashlib.sha256(f'{host.lower()}:{port}:{username.lower()}'.encode()).hexdigest()
     total = int(os.getenv('AIRIS_EMAIL_SMTP_PER_MINUTE', '60'))
     product_limit = int(os.getenv('AIRIS_EMAIL_PRODUCT_PER_MINUTE', '40'))
-    if not 1 <= total <= 10000 or not 0 <= product_limit < total:
-        raise ValueError('Invalid shared SMTP capacity')
-    if product and product_limit == 0:
-        return False
-    return await reserve_transport(key, product, total, product_limit, int(time.time()))
+    daily_total = int(os.getenv('AIRIS_EMAIL_SMTP_PER_DAY', '100'))
+    daily_product = int(os.getenv('AIRIS_EMAIL_PRODUCT_PER_DAY', '50'))
+    return await reserve_transport(key, product, total, product_limit, int(time.time()), daily_total, daily_product)
 
 
 @dataclass(frozen=True)
@@ -241,7 +240,10 @@ async def execute_email(job: DeliveryView, config: EmailQueueConfig) -> None:
             row = await session.get(EmailDelivery, job.id)
             submitting = bool(row and row.submitted_at is not None)
         result = EmailSendResult('unknown' if submitting else 'failed', job.provider_id, 1, not submitting)
-    await finish_email(job, result.status, result.retryable, int(time.time()))
+    if result.status == 'failed' and result.reason == 'TransportCapacityUnavailable':
+        await defer_email_capacity(job, int(time.time()))
+    else:
+        await finish_email(job, result.status, result.retryable, int(time.time()))
 
 
 async def drain_email_queue(config: EmailQueueConfig) -> None:
