@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/feature/foreground-success
-- SDD Spec: meta/sdd/specs/active/airis-foreground-success-2026-10-02-0343.json
+- SDD Spec: meta/sdd/specs/active/airis-foreground-success-2026-10-02-343.json
 - Created: 2026-10-02
 - Updated: 2026-10-02
 
