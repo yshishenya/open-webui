@@ -67,6 +67,7 @@ async def database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIter
     monkeypatch.setattr(scenarios, '_payment_cursor', (0, ''))
     monkeypatch.setattr(email, 'AIRIS_PRODUCT_EMAILS_ENABLED', True)
     monkeypatch.setattr(email, 'FRONTEND_URL', 'https://chat.airis.you')
+    monkeypatch.setenv('FRONTEND_URL', 'https://chat.airis.you')
     async with factory() as session:
         now = int(time.time())
         for number in ['1', '2']:
