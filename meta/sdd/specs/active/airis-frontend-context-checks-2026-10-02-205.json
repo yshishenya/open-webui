@@ -1,0 +1,146 @@
+{
+	"spec_id": "airis-frontend-context-checks-2026-10-02-205",
+	"title": "AIRIS exact translation context typing",
+	"generated": "2026-10-02T09:54:43.771050Z",
+	"last_updated": "2026-10-02T09:59:39.115945Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "investigation",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-context-checks.md",
+		"status": "active",
+		"activated_date": "2026-10-02T09:56:48.818440Z",
+		"progress_percentage": 66,
+		"current_phase": "phase-1"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS exact translation context typing",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace and repair shared type/lint blockers",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T09:59:39.113195Z",
+				"journaled_at": "2026-10-02T09:59:39.115923Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify minimal repair and publish source",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce unknown translation context and unused reactive crash",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-context-checks.md",
+				"completed_at": "2026-10-02T09:56:49.077929Z",
+				"needs_journaling": false,
+				"status_note": "Reproduced pinned/latest ComputedVariable crash; exact3 unread pure definitions found. Scratch actual-store type removes i18n-store errors, baseline8360 to4893; callers traced.",
+				"journaled_at": "2026-10-02T09:56:49.079265Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Type the exact existing store without runtime changes",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"file_path": "src/lib/utils/airis/i18n_context.d.ts",
+				"completed_at": "2026-10-02T09:59:39.112981Z",
+				"needs_journaling": false,
+				"status_note": "Fork-owned literal-key overload reuses exact exported store. Strict positive/negative tsc passed; generic and unknown contexts retained. No runtime/component/config/dependency changes; broader lint cleanup separate.",
+				"journaled_at": "2026-10-02T09:59:39.114552Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Check types, full diagnostic baseline, unit tests and CI",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"category": "implementation",
+				"file_path": "src/lib/utils/airis/i18n_context.typecheck.ts"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-02T09:56:49.079259Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce unknown translation context and unused reactive crash",
+			"author": "Codex",
+			"content": "Task task-1-1 marked as completed. \nNote: Reproduced pinned/latest ComputedVariable crash; exact3 unread pure definitions found. Scratch actual-store type removes i18n-store errors, baseline8360 to4893; callers traced.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-02T09:59:39.114542Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Type the exact existing store without runtime changes",
+			"author": "Codex",
+			"content": "Task task-1-2 marked as completed. \nNote: Fork-owned literal-key overload reuses exact exported store. Strict positive/negative tsc passed; generic and unknown contexts retained. No runtime/component/config/dependency changes; broader lint cleanup separate.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-02T09:59:39.115917Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace and repair shared type/lint blockers",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}
