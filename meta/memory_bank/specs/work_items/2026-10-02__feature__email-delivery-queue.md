@@ -1,26 +1,26 @@
 # Durable AIRIS email delivery
 
-Status: In Progress
+Status: Done
 Owner: Codex
 Started: 2026-10-02
-SDD Spec: `meta/sdd/specs/active/airis-email-delivery-queue-2026-10-02-501.json`
+SDD Spec: `meta/sdd/specs/completed/airis-email-delivery-queue-2026-10-02-501.json`
 
 ## Outcome and measurable acceptance
 
 Optional onboarding and credited-payment notices survive restarts without blind SMTP retries. This work implements delivery infrastructure; scenario copy and pilot acceptance remain separately tracked.
 
-- [ ] One row per account/type/scenario; 12 concurrent inserts create one job.
-- [ ] Two workers cannot submit the same job or two optional messages within rolling 24 hours.
-- [ ] Expired pre-submission leases recover; uncertain submission becomes unknown and never automatically retries.
-- [ ] Explicit temporary refusal retries at 5/30/120 minutes, at most three retries; permanent refusal stops.
-- [ ] Opt-out, address change, complaint and account removal cancel waiting optional mail in the same persistence boundary.
-- [ ] Every SMTP attempt, including existing direct service calls, consumes shared transport capacity; service capacity is reserved.
-- [ ] Final checks enforce active account, trusted address, consent, current scenario facts and expiry.
-- [ ] Candidate reconciliation recovers missing welcome/payment jobs using existing facts, without altering money.
-- [ ] A/B default off, dry-run sends zero messages, pilot only reaches explicitly listed account IDs.
-- [ ] Administrator-only views expose compact content-free outcomes; unknown/accepted jobs cannot be blindly requeued.
-- [ ] PostgreSQL and SQLite upgrade/downgrade/reupgrade and concurrency checks pass.
-- [ ] Frozen-source tests, public PR and default-off production acceptance recorded before completion.
+- [x] One row per account/type/scenario; 12 concurrent inserts create one job.
+- [x] Two workers cannot submit the same job or two optional messages within rolling 24 hours.
+- [x] Expired pre-submission leases recover; uncertain submission becomes unknown and never automatically retries.
+- [x] Explicit temporary refusal retries at 5/30/120 minutes, at most three retries; permanent refusal stops.
+- [x] Opt-out, address change, complaint and account removal cancel waiting optional mail in the same persistence boundary.
+- [x] Every SMTP attempt, including existing direct service calls, consumes shared transport capacity; service capacity is reserved.
+- [x] Final checks enforce active account, trusted address, consent, current scenario facts and expiry.
+- [x] Candidate reconciliation recovers missing welcome/payment jobs using existing facts, without altering money.
+- [x] A/B default off, dry-run sends zero messages, pilot only reaches explicitly listed account IDs.
+- [x] Administrator-only views expose compact content-free outcomes; unknown/accepted jobs cannot be blindly requeued.
+- [x] PostgreSQL and SQLite upgrade/downgrade/reupgrade and concurrency checks pass.
+- [x] Frozen-source tests, public PR and default-off production acceptance recorded before completion.
 
 ## Implementation
 
@@ -47,3 +47,13 @@ Docker Compose-first backend and dedicated PostgreSQL concurrency tests, SMTP re
 Backend543 passed, three PostgreSQL-only skips covered by dedicated PostgreSQL74 passed. Frontend147 passed; full typecheck remains the unchanged8360 errors/224 warnings and the existing full ESLint crash. Frontend source/tree is unchanged. New queue files pass Black/Ruff; changed-file lint compared to the exact integration baseline. SQLite/PostgreSQL schemas, FK, unique/indexes, downgrade/reupgrade and idempotent upgrade pass. Frozen CI, image and production gates remain pending.
 
 CI follow-up: minimally corrected the ten inherited scheduler Ruff findings; existing feature polling moved into one typed helper, rule interval and model-default payload behavior retained. Five scheduler/clock checks added; full backend548 passed. No suppression or CI configuration changes.
+
+## Production acceptance
+
+Frozen source `9f46bd90e69ed06af5a50e3f28fb77529c9ad4cf`; PR [#141](https://github.com/yshishenya/open-webui/pull/141) merged as `9706c09c2402cbba7480a63e666150759b01fbdc`. All exact-head CI checks passed without suppressions or check changes. Candidate image backend548 and PostgreSQL79 checks passed. Current database copy upgrade preserves existing business data; compatible old runtime imports after the additive migration.
+
+Released image digest `sha256:200106fcddadaa37db6b6cf5fc2ddf609c95cc99804a4cee1560f461d1f1a00d`; migration `q1c020261002`. Source manifest verifies400 backend and7006 frozen frontend files. The backend static webmanifest is validated against the frozen frontend copy that normal startup installs. The frontend retains its previous source version because this release changes backend only. Checked backups, migration gate, compatible rollback and live health passed; other runtime configuration and neighboring containers are preserved.
+
+Twelve live controls passed: default-off flags,12 concurrent inserts/one job, two independent worker processes/one claim, recovery after worker exit, unknown/no blind retry, opt-out preserving service mail, shared concurrent quota/service headroom, two optional jobs/one final permission, opt-out retaining uncertain submission semantics, real HTTP administrator/ordinary/anonymous access, fixture cleanup and direct service SMTP acceptance. Optional messages submitted:0. The service control was located once in the recipient Inbox with the configured Reply-To; transport acceptance and recipient delivery remain separate observations. Private evidence and recipient details remain outside Git.
+
+Queue infrastructure is complete. Scenario templates, release enabling, pilot calendar windows and cohort acceptance remain separately open. Full frontend typecheck/parser failures recorded above are inherited and were not weakened; all applicable GitHub checks for this backend source passed.
