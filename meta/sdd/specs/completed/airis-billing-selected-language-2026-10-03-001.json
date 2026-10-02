@@ -2,7 +2,7 @@
   "spec_id": "airis-billing-selected-language-2026-10-03-001",
   "title": "Respect selected AIRIS language for money and dates",
   "generated": "2026-10-02T22:17:05.844864Z",
-  "last_updated": "2026-10-02T22:32:22.972939Z",
+  "last_updated": "2026-10-02T23:19:06.803914Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -10,36 +10,42 @@
     "estimated_hours": 24,
     "security_sensitive": false,
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__bugfix__billing-selected-language.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-02T22:18:36.039878Z",
-    "progress_percentage": 50,
-    "current_phase": "phase-1"
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-02T23:18:41.902102Z",
+    "actual_hours": 0.23
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Respect selected AIRIS language for money and dates",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1"
       ],
       "total_tasks": 2,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {}
     },
     "phase-1": {
       "type": "phase",
       "title": "Reproduce and fix selected-language formatting",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-1-1",
         "task-1-2"
       ],
       "total_tasks": 2,
-      "completed_tasks": 1,
-      "metadata": {}
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-02T23:18:05.943999Z",
+        "journaled_at": "2026-10-02T23:18:05.945782Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -62,18 +68,22 @@
     "task-1-2": {
       "type": "task",
       "title": "Verify presentation, switching, fallback and unchanged financial values",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "dependencies": {
         "depends": [
           "task-1-1"
         ]
       },
       "metadata": {
-        "file_path": "src/lib/components/billing/UnifiedTimeline.test.ts"
+        "file_path": "src/lib/components/billing/UnifiedTimeline.test.ts",
+        "completed_at": "2026-10-02T23:18:05.943856Z",
+        "needs_journaling": false,
+        "status_note": "208 frontend tests; changed files lint clean; exact-head CI10 successful; candidate/live language switching;5759frontend hashes and476 immutable live backend hashes plus matching site.webmanifest; financial values preserved.",
+        "journaled_at": "2026-10-02T23:19:06.803873Z"
       }
     }
   },
@@ -86,6 +96,33 @@
       "content": "Task task-1-1 marked as completed. \nNote: Reproduced environment locale mismatch; supported i18next language helper and explicit timeline/header reactivity implemented; no financial changes.",
       "metadata": {},
       "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-02T23:18:05.944739Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify presentation, switching, fallback and unchanged financial values",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed. \nNote: 208 frontend tests; changed files lint clean; exact-head CI10 successful; Russian-English-Russian candidate/live browser acceptance;5759 frontend and477 immutable backend hashes; financial values unchanged.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-02T23:18:05.945777Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce and fix selected-language formatting",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-02T23:19:06.803864Z",
+      "entry_type": "note",
+      "title": "Clarify live backend hash count",
+      "author": "Codex",
+      "content": "Candidate comparison covers477 backend files. Live immutable comparison excludes dynamic site.webmanifest, giving476 immutable backend files; the manifest separately matches the5759-file frontend. Earlier task journal count477 refers to the full candidate manifest.",
+      "metadata": {},
+      "task_id": "task-1-2"
     }
   ]
 }

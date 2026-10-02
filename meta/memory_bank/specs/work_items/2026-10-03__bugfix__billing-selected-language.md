@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: completed
 - Owner: Codex
 - Branch: `codex/bugfix/billing-selected-language`
-- SDD Spec: `meta/sdd/specs/active/airis-billing-selected-language-2026-10-03-001.json`
+- SDD Spec: `meta/sdd/specs/completed/airis-billing-selected-language-2026-10-03-001.json`
 - Created: 2026-10-03 (Europe/Istanbul)
 
 ## Context
@@ -79,3 +79,12 @@ All changed caller/test/helper files now pass ESLint with 0 messages. Full front
 Browser acceptance on the first SHA-tagged candidate exposed a second indirect dependency: timeline changed correctly, but wallet total, package display and repeat amount retained the previous locale. Added a real-i18next page regression; before the correction 16 tests passed and the new switching test failed. Afterward all 17 wallet tests passed, with one balance fetch and no payment creation.
 
 The selected locale is now an explicit formatter argument at 55 calls across 14 affected caller files, including nested formatOptionalDate forwarding. Intl formatters accept a typed locale parameter; defaults retain existing script callers. This avoids hidden template dependencies, preserves amounts and dates, and keeps the existing component layout. Browser acceptance and new immutable candidate required before release.
+
+## Final implementation and production acceptance — 2026-10-03
+
+- Final runtime source: `5408816725ad6d89c5c1f96cd920936dbb34294f`; PR187 merged as `ffbb23bd7229fa1ef9972f45022f438e73c5b285` after 10 successful exact-head checks. Dependency review skipped by CI; CodeRabbit review disabled for this base.
+- Full Compose frontend suite: 208/208 in 47 files. Changed callers/tests/helper ESLint: zero messages. Global strict check: 4631 errors /179 warnings, 37 removed /0 added errors against baseline; full lint: 1548 errors, 52 fewer. Earlier counts above are historical.
+- Candidate Russian → English → Russian switching updates wallet total, all packages, repeat amount, dates/time and credits without reload. Read-only balance stays 150000 kopeks /3 credits, zero payment creations.
+- Production registry digest: `sha256:3bdfd3df987930b798f1907e705fd0b35918af433c15dd680210d38ea98df09c`. 5759 live frontend hashes match; 476 immutable backend hashes preserved; site.webmanifest matches frontend copy. ENV, mounts, networks, ports, command, restart policy and 13 neighboring container identities preserved; application healthy with zero restarts.
+- Fresh backup, checksum/readability checks, hard migration gate and rollback image completed before recreation. Production public health/version and ordinary-account language switching accepted; no new financial operations requested.
+- Global G14 /13.11 remains open: project-wide type/lint/Ruff debt and external product acceptance are separate obligations. Static general-settings and Never-reset translation text is a separate observed translation limitation.
