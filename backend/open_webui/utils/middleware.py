@@ -4230,6 +4230,7 @@ async def streaming_chat_response_handler(response: StreamingResponse, ctx: dict
 
                 async def stream_body_handler(response: StreamingResponse, form_data: dict) -> None:
                     success_stream.completed = False
+                    success_stream.failed |= response.status_code >= 400
                     nonlocal content_parts
                     nonlocal usage
                     nonlocal output
@@ -5694,6 +5695,7 @@ async def streaming_chat_response_handler(response: StreamingResponse, ctx: dict
 
             assistant_message = {}
             source_stream = CompletionStreamState()
+            source_stream.failed = response.status_code >= 400
             success_stream = CompletionStreamState()
             filter_context = FilterContext()
             has_api_outlet_filters = ENABLE_API_OUTLET_FILTERS and bool(filter_functions)

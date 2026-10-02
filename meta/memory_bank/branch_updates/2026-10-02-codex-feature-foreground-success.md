@@ -8,7 +8,9 @@
 ### Local implementation and verification
 
 - Content-free success journal and trusted pending checkpoints implemented; one request UUID across model fanout, server terminal guards and independent bounded recovery. No historical message inference or new dependency.
-- Backend 514 pass, two PostgreSQL-only skips covered by 93 passing PostgreSQL/SMTP checks; frontend 147 pass; migrations upgrade/downgrade/reupgrade on SQLite and restored PostgreSQL structure pass. New source files Ruff/Black clean; global Ruff has zero added diagnostics. Typecheck baseline/current identical 8360 errors and 224 warnings.
+- Backend 520 pass, two PostgreSQL-only skips covered by 93 passing PostgreSQL/SMTP checks; frontend 147 pass; migrations upgrade/downgrade/reupgrade on SQLite and restored PostgreSQL structure pass. New source files Ruff/Black clean; global Ruff has zero added diagnostics. Typecheck baseline/current identical 8360 errors and 224 warnings.
 - Frozen-source CI, rollback and production acceptance remain pending; product mail remains disabled.
 
 Spec: meta/memory_bank/specs/work_items/2026-10-02**feature**foreground-success.md
+
+- Review correction: HTTP error streams are excluded in both emitter/API paths; six additional handler cases pass. Compose backend: 520 pass / two PostgreSQL-only skips. CI Ruff baseline 182/current181, zero new findings.

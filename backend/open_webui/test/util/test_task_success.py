@@ -245,8 +245,9 @@ def test_terminal_and_error_signals_survive_byte_fragmentation(tail: str, expect
         (True, 'data: {"error":"failed"}\n\ndata: [DONE]\n\n', False),
     ],
 )
+@pytest.mark.parametrize('http_status', [200, 500])
 async def test_real_stream_handlers_use_common_completion_boundary(
-    monkeypatch: pytest.MonkeyPatch, with_emitter: bool, tail: str, expected: bool
+    monkeypatch: pytest.MonkeyPatch, with_emitter: bool, tail: str, expected: bool, http_status: int
 ) -> None:
     from open_webui.utils import middleware
 
@@ -269,7 +270,7 @@ async def test_real_stream_handlers_use_common_completion_boundary(
         if tail:
             yield tail.encode()
 
-    response = StreamingResponse(chunks(), media_type='text/event-stream')
+    response = StreamingResponse(chunks(), media_type='text/event-stream', status_code=http_status)
     ctx = {
         'request': SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(MODELS={})), state=SimpleNamespace()),
         'form_data': {'model': 'test', 'messages': [{'role': 'user', 'content': 'test'}]},
@@ -285,7 +286,7 @@ async def test_real_stream_handlers_use_common_completion_boundary(
         async for _ in result.body_iterator:
             pass
     assert recorded.await_count == 1
-    assert bool(recorded.await_args.args[1]) is expected
+    assert bool(recorded.await_args.args[1]) is (expected and http_status < 400)
 
 
 @pytest.mark.asyncio

@@ -42,8 +42,8 @@ Compose-first backend and frontend checks, new targeted SQLite and PostgreSQL ch
 
 ## Local verification
 
-- Backend: 514 pass / two PostgreSQL-only skips, covered by dedicated PostgreSQL checks. PostgreSQL: 93 pass, including concurrent checkpoint append/clear. SQLite and PostgreSQL upgrade, account foreign key, downgrade/reupgrade and idempotent upgrade pass.
+- Backend: 520 pass / two PostgreSQL-only skips, covered by dedicated PostgreSQL checks. PostgreSQL: 93 pass, including concurrent checkpoint append/clear. SQLite and PostgreSQL upgrade, account foreign key, downgrade/reupgrade and idempotent upgrade pass.
 - Frontend: 147 pass. Baseline and current diagnostics are identical: 8360 errors / 224 warnings, zero added or removed. Existing failures are not reported as green.
 - Ruff baseline comparison adds no findings; one inherited unused import is resolved by the required Response type annotation. New model/rules/migration/test files pass Ruff/Black. Thin changed ranges are formatted without reformatting upstream files.
-- Controlled paths cover stream/nonstream/temp/API, cancellation, failure hidden by a filter, reasoning-only/tool-call-only output, local owned artifact availability, continuation without new content, all saved modes, concurrent replay, 12 PostgreSQL checkpoint appends and recovery after exhausted writes.
+- Controlled paths cover HTTP error status, stream/nonstream/temp/API, cancellation, failure hidden by a filter, reasoning-only/tool-call-only output, local owned artifact availability, continuation without new content, all saved modes, concurrent replay, 12 PostgreSQL checkpoint appends and recovery after exhausted writes.
 - Native Node 22 build succeeds; frozen-SHA rebuild, CI, compatible rollback and production acceptance remain pending. Email sequence remains off.
