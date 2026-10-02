@@ -1,0 +1,163 @@
+{
+	"spec_id": "airis-guide-walkthrough-video-2026-10-02-206",
+	"title": "AIRIS guide walkthrough video",
+	"generated": "2026-10-02T10:30:02.385033Z",
+	"last_updated": "2026-10-02T10:31:47.754846Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__guide-walkthrough-video.md",
+		"status": "active",
+		"activated_date": "2026-10-02T10:31:47.225909Z",
+		"progress_percentage": 50,
+		"current_phase": "phase-1"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS guide walkthrough video",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 4,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Prepare accessible recording",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T10:31:47.752116Z",
+				"journaled_at": "2026-10-02T10:31:47.754820Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify source and production delivery",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Verify recording, captions and privacy",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"file_path": "static/airis/guide/first-task-20261002.mp4",
+				"completed_at": "2026-10-02T10:31:47.493402Z",
+				"needs_journaling": false,
+				"status_note": "Actual CDP recording70.24s H.2641280x720,1649 source frames; shortened static pauses, omitted file panel, profile photograph hidden; VTT/SRT and text available. No fabricated UI or payment.",
+				"journaled_at": "2026-10-02T10:31:47.494810Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Add native player and accessible transcript",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"file_path": "src/routes/guide/+page.svelte",
+				"completed_at": "2026-10-02T10:31:47.751921Z",
+				"needs_journaling": false,
+				"status_note": "Reuse public guide; native controls/playsinline/preload none with default Russian captions and text link; all media same-origin; no dependency/API/runtime configuration changes.",
+				"journaled_at": "2026-10-02T10:31:47.753224Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Run source checks, guide E2E and accept PR",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"category": "implementation",
+				"file_path": "e2e/guide.spec.ts"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Release and verify production player and assets",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"category": "implementation",
+				"file_path": "src/routes/guide/+page.svelte"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-02T10:31:47.494798Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify recording, captions and privacy",
+			"author": "Codex",
+			"content": "Task task-1-1 marked as completed. \nNote: Actual CDP recording70.24s H.2641280x720,1649 source frames; shortened static pauses, omitted file panel, profile photograph hidden; VTT/SRT and text available. No fabricated UI or payment.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-02T10:31:47.753216Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Add native player and accessible transcript",
+			"author": "Codex",
+			"content": "Task task-1-2 marked as completed. \nNote: Reuse public guide; native controls/playsinline/preload none with default Russian captions and text link; all media same-origin; no dependency/API/runtime configuration changes.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-02T10:31:47.754815Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Prepare accessible recording",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}

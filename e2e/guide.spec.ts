@@ -39,6 +39,21 @@ test.describe('public guide', () => {
 		});
 		await page.route('**/api/config', (route) => route.abort());
 		await page.goto('/guide');
+		const video = page.locator('video');
+		await expect(video).toHaveAttribute('preload', 'none');
+		await expect(video).not.toHaveAttribute('autoplay');
+		await expect(video).toHaveAttribute('controls', '');
+		await expect(video.locator('track')).toHaveAttribute('srclang', 'ru');
+		await expect(video.locator('track')).toHaveAttribute('default', '');
+		const media = await page.request.get('/airis/guide/first-task-20261002.mp4', {
+			headers: { Range: 'bytes=0-31' }
+		});
+		expect([200, 206]).toContain(media.status());
+		expect(media.headers()['content-type']).toContain('video/mp4');
+		const captions = await page.request.get('/airis/guide/first-task-20261002.vtt');
+		expect(captions.ok()).toBe(true);
+		expect(await captions.text()).toContain('WEBVTT');
+		await expect(page.getByRole('link', { name: 'Все действия текстом →' })).toBeVisible();
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Начните с одной задачи');
 		await expect(
 			page.getByText('Лимиты обновляются каждые 30 дней.', { exact: false })
