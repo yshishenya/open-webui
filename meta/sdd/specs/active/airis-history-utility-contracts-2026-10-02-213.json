@@ -1,0 +1,123 @@
+{
+  "spec_id": "airis-history-utility-contracts-2026-10-02-213",
+  "title": "Airis history utility contracts 2026-10-02",
+  "generated": "2026-10-02T17:08:00Z",
+  "last_updated": "2026-10-02T17:18:31.177079Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 2,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__history-utility-contracts.md",
+    "status": "active",
+    "activated_date": "2026-10-02T17:10:45.702612Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis history utility contracts 2026-10-02",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Declare existing history graph contracts without runtime changes",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace every history caller and record existing diagnostics",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-02T17:10:45.966259Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-02T17:10:45.967352Z",
+        "file_path": "src/lib/utils/index.ts"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Declare concrete graph types and verify unchanged emitted JavaScript",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-02T17:18:31.175644Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-02T17:18:31.176548Z",
+        "file_path": "src/lib/utils/index.ts"
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Accept Docker tests, diagnostic delta and exact-source CI merge",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/history-utility-contracts.test.ts"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-02T17:10:45.967343Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace every history caller and record existing diagnostics",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-02T17:18:31.176542Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Declare concrete graph types and verify unchanged emitted JavaScript",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    }
+  ]
+}
