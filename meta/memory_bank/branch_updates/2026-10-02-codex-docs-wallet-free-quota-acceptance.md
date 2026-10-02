@@ -1,0 +1,7 @@
+- [x] **[BUG][BILLING]** Accept optional payment guidance with available free quota
+  - Spec: meta/memory_bank/specs/work_items/2026-10-02**bugfix**wallet-free-quota-guidance.md
+  - Owner: Codex
+  - Done: 2026-10-02
+  - Summary: PR167 source7ab4e81285350538924616dc42372321166cd4c0 accepted and released; ordinary free account has no low-balance warning or selected payment. SDD2103/3.
+  - Tests: Docker frontend166; candidate E2E12; exact-source billing CI95 backend/12 wallet/10 browser; live file/environment/neighbor checks.
+  - Risks: Inherited full frontend diagnostics and real financial/calendar acceptance stay open; no billing calculation, database or dependency changes.
