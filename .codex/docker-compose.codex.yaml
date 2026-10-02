@@ -45,6 +45,8 @@ services:
     environment:
       # In this compose project network, "airis-e2e" resolves to the backend container.
       - PLAYWRIGHT_BASE_URL=http://airis-e2e:8080
+      # Consume the lockfile with the same peer mode as frontend Compose installs.
+      - NPM_CONFIG_LEGACY_PEER_DEPS=true
     volumes:
       - ./:/work
       - codex-e2e-node-modules:/work/node_modules

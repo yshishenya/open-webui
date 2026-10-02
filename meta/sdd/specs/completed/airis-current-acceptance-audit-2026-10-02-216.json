@@ -1,0 +1,149 @@
+{
+  "spec_id": "airis-current-acceptance-audit-2026-10-02-216",
+  "title": "Airis current acceptance audit 2026-10-02",
+  "generated": "2026-10-02T19:16:00.586831Z",
+  "last_updated": "2026-10-02T19:45:38.525821Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 2,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__e2e-clean-install.md",
+    "status": "completed",
+    "activated_date": "2026-10-02T19:18:17.920651Z",
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-02T19:45:38.525484Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis current acceptance audit 2026-10-02",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Verify current acceptance evidence and remaining gates",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-02T19:45:37.949663Z",
+        "journaled_at": "2026-10-02T19:45:37.952864Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Freeze current source and audit mandatory scenarios",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__e2e-clean-install.md",
+        "completed_at": "2026-10-02T19:25:23.164759Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-02T19:25:23.166707Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Run full backend and PostgreSQL concurrency controls",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__e2e-clean-install.md",
+        "completed_at": "2026-10-02T19:25:23.429457Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-02T19:25:23.430570Z"
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Accept complete E2E controls and document remaining gates",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__e2e-clean-install.md",
+        "completed_at": "2026-10-02T19:45:37.949454Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-02T19:45:37.951308Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-02T19:25:23.166698Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Freeze current source and audit mandatory scenarios",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-02T19:25:23.430565Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run full backend and PostgreSQL concurrency controls",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-02T19:45:37.951298Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Accept complete E2E controls and document remaining gates",
+      "author": "claude-code",
+      "content": "Task task-1-3 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-3"
+    },
+    {
+      "timestamp": "2026-10-02T19:45:37.952858Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify current acceptance evidence and remaining gates",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}

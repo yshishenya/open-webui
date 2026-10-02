@@ -1,0 +1,8 @@
+- [x] **[BUG][TEST]** Restore reproducible complete E2E acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__e2e-clean-install.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/e2e-clean-install`
+  - Done: 2026-10-02
+  - Summary: Match lockfile peer mode, restore ordinary signup prerequisites after test admin bootstrap, recognize the empty model catalog and scope document navigation precisely.
+  - Tests: Full Docker E2E42 passed/4 no-provider skips/0 failures; backend615 passed/3 PostgreSQL-only skips, PostgreSQL134 passed/0 skipped; frontend197/197; changed E2E ESLint/syntax checks, Markdown and SDD pass.
+  - Risks: Test environment only. Global typecheck4668 errors/215 warnings, frontend lint1600 and backend Ruff6476 remain open; no overall acceptance or real-provider/pilot completion claimed.
