@@ -1,0 +1,8 @@
+- [x] **[DOCS]** Record accepted channel input fix
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__channel-input-variables.md`
+  - Owner: Codex
+  - Branch: `codex/docs/channel-input-acceptance`
+  - Done: 2026-10-02
+  - Summary: Close the existing bug record against accepted source, browser checks and deployed immutable files; retain outstanding global-quality limitations.
+  - Tests: Markdown links and SDD validation; source171/171, candidate12+1 browser checks and live file proof reused without claiming new source validation.
+  - Risks: Documentation only; no runtime change.
