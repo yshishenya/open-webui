@@ -6,7 +6,7 @@
 - Status: completed (implementation and automated verification; rollout pending)
 - Owner: Codex
 - Branch: `codex/bugfix/wallet-credit-activity`
-- SDD Spec: `meta/sdd/specs/completed/airis-wallet-credit-activity-2-2026-10-03-0029.json`
+- SDD Spec: `meta/sdd/specs/completed/airis-wallet-credit-activity-2026-10-03-001.json`
 - Created: 2026-10-03
 - Updated: 2026-10-03
 

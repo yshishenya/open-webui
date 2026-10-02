@@ -1,5 +1,5 @@
 {
-  "spec_id": "airis-wallet-credit-activity-2-2026-10-03-0029",
+  "spec_id": "airis-wallet-credit-activity-2026-10-03-001",
   "title": "airis-wallet-credit-activity-2026-10-03",
   "generated": "2026-10-02T21:29:20.113670Z",
   "last_updated": "2026-10-02T21:44:41.017516Z",
@@ -77,7 +77,8 @@
         "needs_journaling": false,
         "status_note": "Reproduced automatic/manual stale ledger before fix; shared credited-only revision refresh implemented.",
         "actual_hours": 0.149,
-        "journaled_at": "2026-10-02T21:44:40.274510Z"
+        "journaled_at": "2026-10-02T21:44:40.274510Z",
+        "file_path": "src/routes/(app)/billing/balance/+page.svelte"
       },
       "total_tasks": 1,
       "completed_tasks": 1
@@ -97,7 +98,8 @@
         "completed_at": "2026-10-02T21:44:40.523994Z",
         "needs_journaling": false,
         "status_note": "Compose: 202 frontend tests passed, focused ESLint and test formatting passed. Strict project check/lint remain failing at documented baseline; no rules weakened.",
-        "journaled_at": "2026-10-02T21:44:40.525268Z"
+        "journaled_at": "2026-10-02T21:44:40.525268Z",
+        "file_path": "src/routes/(app)/billing/balance/billing-balance.test.ts"
       },
       "total_tasks": 1,
       "completed_tasks": 1
