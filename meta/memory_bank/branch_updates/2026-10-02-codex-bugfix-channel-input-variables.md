@@ -1,0 +1,8 @@
+- [ ] **[BUG]** Inspect channel editor content for template variables
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__channel-input-variables.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/channel-input-variables`
+  - Started: 2026-10-02
+  - Summary: Replace the accidental browser prompt reference with current editor content; type the existing parser.
+  - Tests: Two channel failures reproduced; three channel/chat controls passed before the fix. Docker final checks pending.
+  - Risks: Existing editor update/tick boundaries must remain intact; production acceptance separate.

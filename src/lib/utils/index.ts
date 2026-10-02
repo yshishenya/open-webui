@@ -674,9 +674,11 @@ export const compareVersion = (latest: string, current: string): boolean => {
 			}) < 0;
 };
 
-export const extractCurlyBraceWords = (text) => {
+export const extractCurlyBraceWords = (
+	text: string
+): { word: string; startIndex: number; endIndex: number }[] => {
 	const regex = /\{\{([^}]+)\}\}/g;
-	const matches = [];
+	const matches: { word: string; startIndex: number; endIndex: number }[] = [];
 	let match;
 
 	while ((match = regex.exec(text)) !== null) {

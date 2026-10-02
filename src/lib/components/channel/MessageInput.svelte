@@ -271,7 +271,7 @@
 		chatInputElement?.replaceCommandWithText(text);
 	};
 
-	const insertTextAtCursor = async (text: string) => {
+	const insertTextAtCursor = async (text: string): Promise<void> => {
 		const chatInput = document.getElementById('chat-input');
 		if (!chatInput) return;
 
@@ -297,10 +297,9 @@
 			chatInput.focus();
 			chatInput.dispatchEvent(new Event('input'));
 
-			const words = extractCurlyBraceWords(prompt);
+			const words = extractCurlyBraceWords(content);
 
 			if (words.length > 0) {
-				const word = words.at(0);
 				await tick();
 			} else {
 				chatInput.scrollTop = chatInput.scrollHeight;
