@@ -1,9 +1,9 @@
 # Grouped campaign links in onboarding email
 
-Status: In Progress
+Status: Done
 Owner: Codex
 Branch: `codex/feature/email-group-links`
-SDD Spec: `meta/sdd/specs/active/airis-grouped-email-links-2026-10-02-204.json`
+SDD Spec: `meta/sdd/specs/completed/airis-grouped-email-links-2026-10-02-204.json`
 
 ## Goal and scope
 
@@ -14,8 +14,8 @@ Complete the existing plan's grouped email-source requirement without individual
 - [x] All six queued email types produce grouped campaign metadata; no user/email/payment/job identifier in navigation links.
 - [x] Existing history filter and guide/pricing anchors survive; destinations remain HTTPS AIRIS.
 - [x] HTML/plain-text templates remain usable and current permission/content checks stay unchanged.
-- [ ] Existing backend and PostgreSQL suites, format/lint/CI pass; frozen image and guarded live acceptance follow before enabling any pilot.
-- [x] External analytics remain governed by the existing separate consent. A click is neither an authenticated return nor proof of causality.
+- [x] Existing backend and PostgreSQL suites, format/lint/CI pass; frozen image and guarded live acceptance follow before enabling any pilot.
+- [x] External analytics retain their existing independent preference handling. A click is neither an authenticated return nor proof of causality.
 
 ## Upstream impact and rollback
 
@@ -23,4 +23,4 @@ Fork-owned email context, existing test file and documentation only. No dependen
 
 ## Source verification
 
-The regression failed before the change (missing four campaign fields) and passes after it. Compose full backend614 passed/3 PostgreSQL-only skips; PostgreSQL mail/report suites90 passed; touched-file Black/Ruff passed. Frozen image, required CI and live release remain pending.
+The regression failed before the change (missing four campaign fields) and passes after it. Compose full backend614 passed/3 PostgreSQL-only skips; PostgreSQL mail/report suites90 passed; touched-file Black/Ruff passed. Frozen image, required CI and live release passed; see [release acceptance](2026-10-02__docs__email-group-links-release-acceptance.md).

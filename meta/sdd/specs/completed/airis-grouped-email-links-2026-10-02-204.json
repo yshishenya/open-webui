@@ -2,7 +2,7 @@
 	"spec_id": "airis-grouped-email-links-2026-10-02-204",
 	"title": "AIRIS grouped email links",
 	"generated": "2026-10-02T09:04:51.426605Z",
-	"last_updated": "2026-10-02T09:08:32.850905Z",
+	"last_updated": "2026-10-02T09:47:51.070832Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "low",
@@ -10,20 +10,21 @@
 		"estimated_hours": 8,
 		"security_sensitive": false,
 		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__email-group-links.md",
-		"status": "active",
+		"status": "completed",
 		"activated_date": "2026-10-02T09:05:27.608560Z",
-		"progress_percentage": 66,
-		"current_phase": "phase-1"
+		"progress_percentage": 100,
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-02T09:47:51.070493Z"
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
 			"title": "AIRIS grouped email links",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2"],
 			"total_tasks": 3,
-			"completed_tasks": 2,
+			"completed_tasks": 3,
 			"metadata": {}
 		},
 		"phase-1": {
@@ -43,12 +44,16 @@
 		"phase-2": {
 			"type": "phase",
 			"title": "Verify frozen release",
-			"status": "pending",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-2-1"],
 			"total_tasks": 1,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T09:47:50.543681Z",
+				"journaled_at": "2026-10-02T09:47:50.545844Z"
+			}
 		},
 		"task-1-1": {
 			"type": "task",
@@ -67,7 +72,8 @@
 				"completed_at": "2026-10-02T09:07:01.203797Z",
 				"needs_journaling": false,
 				"status_note": "Before-change regression fails: missing four group fields; existing navigation links restrict origin; no personal attribution needed.",
-				"journaled_at": "2026-10-02T09:07:01.205523Z"
+				"journaled_at": "2026-10-02T09:07:01.205523Z",
+				"file_path": "backend/open_webui/test/util/test_onboarding_first_emails.py"
 			}
 		},
 		"task-1-2": {
@@ -87,13 +93,14 @@
 				"completed_at": "2026-10-02T09:08:32.848968Z",
 				"needs_journaling": false,
 				"status_note": "Shared context adds four group fields to six safe destinations; regression covers all6 email types, preserves query/fragments, excludes private identifiers. Full source614/3 skips, PostgreSQL90, Black/Ruff passed; no dependency/frontend/control change.",
-				"journaled_at": "2026-10-02T09:08:32.849904Z"
+				"journaled_at": "2026-10-02T09:08:32.849904Z",
+				"file_path": "backend/open_webui/utils/airis/email_onboarding.py"
 			}
 		},
 		"task-2-1": {
 			"type": "task",
 			"title": "Freeze image, complete CI and verify guarded release",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-2",
 			"children": [],
 			"dependencies": {
@@ -102,8 +109,14 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T09:47:50.543530Z",
+				"needs_journaling": false,
+				"status_note": "PR154 CI passed; frozen integration15aba5209, exact image614 backend/90 PostgreSQL; combined frontend156. Candidate and previous image preserve71 tables/15315 rows. Guarded live release hash416/7262,6 contexts/12 template formats, unchanged controls and15 neighbors; no pilot claimed.",
+				"journaled_at": "2026-10-02T09:47:50.544687Z",
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-02__docs__email-group-links-release-acceptance.md"
+			}
 		}
 	},
 	"journal": [
@@ -133,6 +146,24 @@
 			"content": "All child tasks in phase phase-1 have been completed.",
 			"metadata": {},
 			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-02T09:47:50.544683Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Freeze image, complete CI and verify guarded release",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: PR154 CI passed; frozen integration15aba5209, exact image614 backend/90 PostgreSQL; combined frontend156. Candidate and previous image preserve71 tables/15315 rows. Guarded live release hash416/7262,6 contexts/12 template formats, unchanged controls and15 neighbors; no pilot claimed.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-02T09:47:50.545840Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify frozen release",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
 		}
 	]
 }
