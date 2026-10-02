@@ -4,3 +4,9 @@
   - Branch: `codex/feature/onboarding-payment-funnel`
   - Started: 2026-10-02
   - Summary: Aggregate created attempts and exact applied credit using existing protected report; preserve unknown cancellation causes and snapshot limits.
+
+- [x] **[FEATURE][REPORT]** Mature payment funnel released and accepted
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__feature__onboarding-payment-funnel.md`
+  - Owner: Codex
+  - Done: 2026-10-02
+  - Summary: Source/image/PostgreSQL/CI/rollback and independent live counts verified; no new observation cohort or pilot claimed.

@@ -2,7 +2,7 @@
 	"spec_id": "airis-onboarding-payment-funne-2026-10-02-959",
 	"title": "AIRIS onboarding payment funnel",
 	"generated": "2026-10-02T06:59:12.955588Z",
-	"last_updated": "2026-10-02T07:04:49.276090Z",
+	"last_updated": "2026-10-02T07:42:03.558867Z",
 	"metadata": {
 		"template": "medium",
 		"complexity": "medium",
@@ -10,20 +10,21 @@
 		"estimated_hours": 24,
 		"security_sensitive": false,
 		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__onboarding-payment-funnel.md",
-		"status": "active",
+		"status": "completed",
 		"activated_date": "2026-10-02T07:00:56.506950Z",
-		"progress_percentage": 66,
-		"current_phase": "phase-2"
+		"progress_percentage": 100,
+		"current_phase": "phase-3",
+		"completed_date": "2026-10-02T07:42:03.558548Z"
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
 			"title": "AIRIS onboarding payment funnel",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2", "phase-3"],
 			"total_tasks": 6,
-			"completed_tasks": 4,
+			"completed_tasks": 6,
 			"metadata": {}
 		},
 		"phase-1": {
@@ -57,12 +58,16 @@
 		"phase-3": {
 			"type": "phase",
 			"title": "Freeze and verify release",
-			"status": "pending",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-3-1", "task-3-2"],
 			"total_tasks": 2,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T07:42:03.033560Z",
+				"journaled_at": "2026-10-02T07:42:03.036770Z"
+			}
 		},
 		"task-1-1": {
 			"type": "task",
@@ -147,7 +152,7 @@
 		"task-3-1": {
 			"type": "task",
 			"title": "Source/image/PostgreSQL/CI and compatible rollback",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-3",
 			"children": [],
 			"dependencies": {
@@ -156,13 +161,18 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T07:42:02.721819Z",
+				"needs_journaling": false,
+				"status_note": "Source and frozen image604 checks, PostgreSQL80; required CI passed; rollback copy71 tables15282 rows unchanged.",
+				"journaled_at": "2026-10-02T07:42:02.723470Z"
+			}
 		},
 		"task-3-2": {
 			"type": "task",
 			"title": "Guarded release and independent live aggregation",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-3",
 			"children": [],
 			"dependencies": {
@@ -171,8 +181,13 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T07:42:03.033312Z",
+				"needs_journaling": false,
+				"status_note": "Guarded release and416/7006 live hashes verified; HTTPS admin/no-store and independent15 attempt14 credited1 canceled counts match. Pilot not started.",
+				"journaled_at": "2026-10-02T07:42:03.035236Z"
+			}
 		}
 	},
 	"journal": [
@@ -229,6 +244,33 @@
 			"content": "All child tasks in phase phase-2 have been completed.",
 			"metadata": {},
 			"task_id": "phase-2"
+		},
+		{
+			"timestamp": "2026-10-02T07:42:02.723464Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Source/image/PostgreSQL/CI and compatible rollback",
+			"author": "claude-code",
+			"content": "Task task-3-1 marked as completed. \nNote: Source and frozen image604 checks, PostgreSQL80; required CI passed; rollback copy71 tables15282 rows unchanged.",
+			"metadata": {},
+			"task_id": "task-3-1"
+		},
+		{
+			"timestamp": "2026-10-02T07:42:03.035223Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Guarded release and independent live aggregation",
+			"author": "claude-code",
+			"content": "Task task-3-2 marked as completed. \nNote: Guarded release and416/7006 live hashes verified; HTTPS admin/no-store and independent15 attempt14 credited1 canceled counts match. Pilot not started.",
+			"metadata": {},
+			"task_id": "task-3-2"
+		},
+		{
+			"timestamp": "2026-10-02T07:42:03.036764Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Freeze and verify release",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-3 have been completed.",
+			"metadata": {},
+			"task_id": "phase-3"
 		}
 	]
 }

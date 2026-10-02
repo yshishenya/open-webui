@@ -1,0 +1,6 @@
+- [x] **[DOCS][REPORT]** Close payment funnel release evidence
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__docs__payment-funnel-release-acceptance.md`
+  - Owner: Codex
+  - Branch: `codex/docs/onboarding-payment-funnel-acceptance`
+  - Done: 2026-10-02
+  - Summary: Freeze source/image/CI/rollback/live aggregate evidence and distinguish legacy diagnostics from the unstarted real pilot.
