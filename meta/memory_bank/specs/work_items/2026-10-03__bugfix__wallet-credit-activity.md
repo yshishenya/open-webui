@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: completed (implementation and automated verification; rollout pending)
+- Status: completed (implementation, candidate acceptance and production verification)
 - Owner: Codex
 - Branch: `codex/bugfix/wallet-credit-activity`
 - SDD Spec: `meta/sdd/specs/completed/airis-wallet-credit-activity-2026-10-03-001.json`
@@ -49,3 +49,16 @@ A confirmed top-up triggers one additional ledger/usage fetch and briefly reload
 - Focused ESLint passed for both changed source files; test file formatting passed. Existing unrelated page formatting retained to keep upstream diff minimal.
 - Full strict check remains at 4,668 errors / 215 warnings; full frontend lint at 1,600 errors, zero warnings. Changed files have no lint findings. No rule or baseline was weakened.
 - Backend code and financial APIs are unchanged. Candidate and production acceptance remain separate release gates.
+
+## Release acceptance
+
+- PR #185 merged into `airis_b2c`: source `ecceff314164a0ad78fa2d8b042c741bba0efcce`, merge `a1e4c0929dd914371d807004761f393b22b1d21f`.
+- Ten CI checks succeeded for that source, including billing-confidence; dependency-review was skipped. CodeRabbit reported review skipped, not an independent review.
+- Immutable linux/amd64 frontend overlay passed file comparison: 5,757 frontend files matched the frozen build, all 477 backend files unchanged from the base candidate, Pyodide retained.
+- The exact candidate passed real YooKassa test checkout and ordinary return: the wallet showed 1,500 RUB and all three distinct top-ups immediately without another navigation/reload. Before diagnostic replay the API confirmed 150,000 kopeks / three ledger entries. Three repeated reconciliations kept those totals; three accepted mail jobs had one attempt each, with three distinct SMTP captures. The third test receipt succeeded.
+- Real funds and external email were not used. Test receipt registration does not prove a real fiscal receipt. Provider webhook delivery and the final cancellation path remain separate acceptance items.
+- Production registry digest: `sha256:3b416854c00fbbfb61b75a66a60240e68368c38e4a1bb3a05e0dc47fcea89c96`; image config ID: `sha256:95283050b5f0720aefedc4cef9f9972872108a0f8488691eddf80766e3349146`.
+- Guarded rollout verified fresh readable backups/checksums, retained the previous image, passed the hard Alembic gate (`q1c020261002`), recreated only the application and persisted its image selector.
+- Live verification matched all 5,757 frontend hashes and 476 immutable backend hashes. The runtime-generated site manifest matched the verified frontend copy. Environment, mounts, networks, ports, command and thirteen neighboring container IDs were preserved; restart count zero; free space exceeded 12 GiB.
+- Public health/version and the ordinary logged-in wallet passed. A transient 502 was observed during recreation and recovered after startup; no claim of uninterrupted availability.
+- The full G14 / plan 13.11 remains open because strict project-wide type/lint debt and broader product acceptance are not closed by this release.
