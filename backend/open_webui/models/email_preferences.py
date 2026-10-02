@@ -167,6 +167,10 @@ async def set_preference_in_session(session: AsyncSession, user: User, subscribe
     address_hash = email_fingerprint(user.email)
     preference = await session.get(EmailPreference, user.id, populate_existing=True)
     if preference and preference.subscribed == subscribed and preference.email_hash == address_hash:
+        if not subscribed:
+            from open_webui.models.email_delivery import cancel_optional_email
+
+            await cancel_optional_email(session, user.id, 'consent', now)
         return
     if not preference:
         preference = EmailPreference(user_id=user.id)
@@ -180,6 +184,9 @@ async def set_preference_in_session(session: AsyncSession, user: User, subscribe
         preference.withdrawn_at = None
     else:
         preference.withdrawn_at = now
+        from open_webui.models.email_delivery import cancel_optional_email
+
+        await cancel_optional_email(session, user.id, 'consent', now)
     record_event(session, user.id, address_hash, 'opt_in' if subscribed else 'opt_out', source, now)
     await session.flush()
 
@@ -250,6 +257,9 @@ async def unsubscribe_product_email(token: str, db: AsyncSession | None = None) 
 async def invalidate_product_address(session: AsyncSession, user_id: str, old_email: str) -> None:
     """Called inside the common user update transaction before its commit."""
     now = int(time.time())
+    from open_webui.models.email_delivery import cancel_optional_email
+
+    await cancel_optional_email(session, user_id, 'invalid_address', now)
     preference = await session.get(EmailPreference, user_id)
     if preference:
         preference.subscribed = False
@@ -260,6 +270,9 @@ async def invalidate_product_address(session: AsyncSession, user_id: str, old_em
 
 
 async def delete_product_preferences(session: AsyncSession, user_id: str) -> None:
+    from open_webui.models.email_delivery import delete_account_deliveries
+
+    await delete_account_deliveries(session, user_id)
     await session.execute(delete(EmailPreference).where(EmailPreference.user_id == user_id))
     await session.execute(delete(EmailUnsubscribeToken).where(EmailUnsubscribeToken.user_id == user_id))
     await session.execute(
@@ -271,7 +284,15 @@ async def suppress_product_address(
     email: str, reason: Literal['hard_bounce', 'complaint'], db: AsyncSession | None = None
 ) -> None:
     async with get_async_db_context(db) as session:
-        record_event(session, None, email_fingerprint(email), reason, 'admin', int(time.time()))
+        now = int(time.time())
+        address_hash = email_fingerprint(email)
+        record_event(session, None, address_hash, reason, 'admin', now)
+        from open_webui.models.email_delivery import cancel_optional_email
+
+        for user_id in await session.scalars(
+            select(EmailPreference.user_id).where(EmailPreference.email_hash == address_hash)
+        ):
+            await cancel_optional_email(session, user_id, 'invalid_address', now)
         await session.commit()
 
 

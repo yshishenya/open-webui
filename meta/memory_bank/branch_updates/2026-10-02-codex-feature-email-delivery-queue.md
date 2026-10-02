@@ -1,0 +1,5 @@
+- [ ] Durable email delivery
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__feature__email-delivery-queue.md`
+  - Owner: Codex
+  - Started: 2026-10-02
+  - Summary: Reuse scheduler/SMTP with durable claims, explicit unknown outcomes, account frequency checks and shared transport capacity. Default-off pilot flags; cancellation and fact reconciliation.

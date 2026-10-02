@@ -21,7 +21,7 @@ from urllib.parse import urlsplit
 import aiosmtplib
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from open_webui.env import OPEN_WEBUI_DIR
-from open_webui.utils.airis.email_delivery import EmailSendResult, submit_smtp_message
+from open_webui.utils.airis.email_delivery import EmailSendResult, guard_smtp_submission, submit_smtp_message
 
 log = logging.getLogger(__name__)
 
@@ -130,6 +130,7 @@ class EmailService:
         message_id: str | None = None,
         unsubscribe_url: str | None = None,
         before_submit: Callable[[], Awaitable[bool]] | None = None,
+        product: bool = False,
     ) -> EmailSendResult:
         """
         Submit email, returning accepted, failed or unknown (async).
@@ -200,7 +201,12 @@ class EmailService:
         part2 = MIMEText(html_content, 'html', 'utf-8')
         msg.attach(part2)
 
-        return await submit_smtp_message(self._create_connection, msg, retry_count, retry_delay, before_submit)
+        async def submission_gate() -> bool:
+            return await guard_smtp_submission(
+                self.smtp_host, self.smtp_port, self.smtp_username, product, before_submit
+            )
+
+        return await submit_smtp_message(self._create_connection, msg, retry_count, retry_delay, submission_gate)
 
     def render_template(self, template_name: str, **context: object) -> tuple[str, str]:
         """
@@ -270,6 +276,9 @@ class EmailService:
         text_content: str,
         *,
         message_id: str | None = None,
+        retry_count: int = 3,
+        before_submit: Callable[[], Awaitable[bool]] | None = None,
+        expected_email: str | None = None,
     ) -> EmailSendResult:
         """Every optional product message checks server-owned consent before each SMTP attempt."""
         from open_webui.models.email_preferences import create_product_unsubscribe_token, product_email_allowed
@@ -279,6 +288,8 @@ class EmailService:
             return EmailSendResult('failed', message_id or '', 0)
         user = await Users.get_user_by_id(user_id)
         if not user:
+            return EmailSendResult('failed', message_id or '', 0)
+        if expected_email is not None and user.email != expected_email:
             return EmailSendResult('failed', message_id or '', 0)
         token = await create_product_unsubscribe_token(user_id)
         if not token:
@@ -295,7 +306,7 @@ class EmailService:
         )
 
         async def still_allowed() -> bool:
-            return await product_email_allowed(user_id, user.email)
+            return await product_email_allowed(user_id, user.email) and (before_submit is None or await before_submit())
 
         return await self.send_email_result(
             user.email,
@@ -303,24 +314,17 @@ class EmailService:
             html_content,
             text_content,
             message_id=message_id,
+            retry_count=retry_count,
             unsubscribe_url=one_click_url,
             before_submit=still_allowed,
+            product=True,
         )
 
     async def send_welcome_email(self, user_id: str) -> bool:
-        """Send a welcome only to an account with explicit product consent."""
-        from open_webui.models.users import Users
+        """Queue a welcome; True means queued, never transport acceptance."""
+        from open_webui.utils.airis.email_scenarios import queue_welcome
 
-        user = await Users.get_user_by_id(user_id)
-        if not user:
-            return False
-        html_content, text_content = self.render_template(
-            'welcome',
-            name=user.name,
-            dashboard_url=f'{FRONTEND_URL}/',
-        )
-        result = await self.send_product_email(user_id, 'Добро пожаловать в Airis!', html_content, text_content)
-        return result.status == 'accepted'
+        return await queue_welcome(user_id)
 
     async def send_password_reset_email(self, to_email: str, name: str, reset_token: str) -> bool:
         """
