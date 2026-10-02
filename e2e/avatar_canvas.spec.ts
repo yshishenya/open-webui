@@ -31,7 +31,7 @@ test('registration reaches the signup API with the default avatar without Canvas
 	const signup = await response;
 	expect(signup.status()).toBe(200);
 	expect(signup.request().postDataJSON().profile_image_url).toBe('/user.png');
-	expect((await signup.json()).profile_image_url).toBe('/user.png');
+	expect((await signup.json()).profile_image_url).toMatch(/\/profile\/image$/);
 	await expect((await getUserMenuTrigger(page)).first()).toBeVisible();
 	expect(errors).toEqual([]);
 });
@@ -45,6 +45,7 @@ test('account name update reaches the profile API without Canvas', async ({ page
 	await page.getByRole('button', { name: 'Settings', exact: true }).click();
 	await page.getByRole('tab', { name: 'Account', exact: true }).click();
 	const name = page.getByPlaceholder('Enter your name');
+	await expect(name).toHaveValue('Admin User');
 	await name.fill('Canvas Profile');
 	const response = page.waitForResponse(
 		(res) => res.url().endsWith('/api/v1/auths/update/profile') && res.request().method() === 'POST'
