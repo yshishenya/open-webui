@@ -1,8 +1,9 @@
-- [ ] **[DOCS][FRONTEND]** Record accepted frontend linter repair
+- [x] **[DOCS][FRONTEND]** Record accepted frontend linter repair
   - Spec: `meta/memory_bank/specs/work_items/2026-10-02__docs__frontend-lint-acceptance.md`
   - Owner: Codex
   - Branch: `codex/docs/frontend-lint-acceptance`
-  - Started: 2026-10-02
+  - Done: 2026-10-02
   - Summary: Close SDD207 and record source/CI/candidate evidence for PR162; retain the open global lint/typecheck gate and real-user acceptance boundaries.
   - Tests: Completed SDD validation, touched Markdown formatting and links, diff/staged-file inspection.
   - Risks: Documentation only; no private production evidence is published.
+  - Acceptance: PR163 source `1d3d00d8b289ffeb1c288d44449645e479463ad2`, merge `85776788e7e3c4fdae6e092da8e45c8537c15301`; all 11 observed statuses satisfied.
