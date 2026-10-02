@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount, getContext, tick } from 'svelte';
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
+	import { onMount, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 
@@ -143,9 +144,16 @@
 				toast.success($i18n.t('Plan deleted successfully'));
 				await loadPlans();
 			}
-		} catch (error: any) {
+		} catch (error: unknown) {
 			console.error('Failed to delete plan:', error);
-			toast.error(error?.detail || $i18n.t('Failed to delete plan'));
+			toast.error(
+				(typeof error === 'object' &&
+					error !== null &&
+					'detail' in error &&
+					typeof error.detail === 'string' &&
+					error.detail) ||
+					$i18n.t('Failed to delete plan')
+			);
 		} finally {
 			actionInProgress = false;
 			showDeleteConfirm = false;
@@ -153,8 +161,8 @@
 		}
 	};
 
-	const formatPrice = (price: number, currency: string): string => {
-		return new Intl.NumberFormat($i18n.locale, {
+	const formatPrice = (price: number, currency: string, locale: string = getI18nLocale($i18n)): string => {
+		return new Intl.NumberFormat(locale, {
 			style: 'currency',
 			currency: currency,
 			minimumFractionDigits: 0,
@@ -162,9 +170,9 @@
 		}).format(price);
 	};
 
-	const formatMRR = (mrr: number): string => {
+	const formatMRR = (mrr: number, locale: string = getI18nLocale($i18n)): string => {
 		if (mrr === 0) return '0₽';
-		return new Intl.NumberFormat($i18n.locale, {
+		return new Intl.NumberFormat(locale, {
 			style: 'currency',
 			currency: 'RUB',
 			minimumFractionDigits: 0,
@@ -285,7 +293,7 @@
 													{formatPrice(
 														planStat.plan.price,
 														planStat.plan.currency
-													)}/{getIntervalLabel(planStat.plan.interval)}
+													, getI18nLocale($i18n))}/{getIntervalLabel(planStat.plan.interval)}
 												</div>
 											</div>
 										</Tooltip>
@@ -297,7 +305,7 @@
 											</div>
 											{#if planStat.mrr > 0}
 												<div class="text-xs text-gray-500">
-													• MRR: {formatMRR(planStat.mrr)}
+													• MRR: {formatMRR(planStat.mrr, getI18nLocale($i18n))}
 												</div>
 											{/if}
 											{#if planStat.plan.description_ru || planStat.plan.description}
@@ -326,7 +334,7 @@
 									</Tooltip>
 								{:else}
 									<Tooltip content={$i18n.t('Subscribers')}>
-										<button
+										<button aria-label={$i18n.t('Subscribers')}
 											class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
 											type="button"
 											on:click={() => goto(`/admin/billing/plans/${planStat.plan.id}/subscribers`)}
@@ -359,7 +367,7 @@
 									</Tooltip>
 
 									<Tooltip content={$i18n.t('Duplicate')}>
-										<button
+										<button aria-label={$i18n.t('Duplicate')}
 											class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
 											type="button"
 											disabled={actionInProgress}
@@ -441,7 +449,7 @@
 				>
 					<div class="text-xs text-gray-500">{$i18n.t('Total MRR')}</div>
 					<div class="text-lg font-medium">
-						{formatMRR(plansWithStats.reduce((sum, p) => sum + p.mrr, 0))}
+						{formatMRR(plansWithStats.reduce((sum, p) => sum + p.mrr, 0), getI18nLocale($i18n))}
 					</div>
 					<div class="text-xs text-gray-400">{$i18n.t('monthly')}</div>
 				</div>

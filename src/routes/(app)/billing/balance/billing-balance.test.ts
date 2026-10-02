@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount } from 'svelte';
+import { createInstance } from 'i18next';
 import type { LedgerEntry } from '$lib/apis/billing';
 
 vi.mock('$lib/utils/airis/funnelAnalytics', () => ({ browserTracksPayments: async () => true }));
@@ -23,7 +24,8 @@ type Balance = {
 };
 
 type I18nValue = {
-	locale: string;
+	language: string;
+	resolvedLanguage?: string;
 	t: (key: string, vars?: Record<string, string | number>) => string;
 };
 
@@ -99,7 +101,7 @@ const mocks: MockSet = vi.hoisted(() => {
 		settingsStore: createStore<{ highContrastMode?: boolean }>({ highContrastMode: false }),
 		pageStore: createStore({ url: new URL('http://localhost/billing/balance') }),
 		i18nStore: createStore<I18nValue>({
-			locale: 'en',
+			language: 'en-US',
 			t: (key: string) => key
 		})
 	};
@@ -190,6 +192,7 @@ describe('Billing balance page', () => {
 		mocks.modelsStore.set([]);
 		mocks.pageStore.set({ url: new URL('http://localhost/billing/balance') });
 		localStorage.token = 'test-token';
+		mocks.i18nStore.set({ language: 'en-US', t: (key: string) => key });
 		localStorage.removeItem('billing_topup_flow_v1');
 	});
 
@@ -214,6 +217,43 @@ describe('Billing balance page', () => {
 		});
 		return target;
 	};
+
+	it('updates wallet total and package amounts on language change without another balance fetch', async () => {
+		const selected = createInstance();
+		await selected.init({
+			lng: 'en-US',
+			fallbackLng: 'en-US',
+			resources: {
+				'en-US': { translation: { 'Available now': 'Available now' } },
+				'ru-RU': { translation: { 'Available now': 'Доступно сейчас' } }
+			}
+		});
+		mocks.i18nStore.set(selected);
+		mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 150000 }));
+		const root = renderPage();
+		await flushPromises();
+		expect(root.querySelector('.text-3xl')?.textContent?.trim()).toBe(
+			new Intl.NumberFormat('en-US', { style: 'currency', currency: 'RUB' }).format(1500)
+		);
+		await selected.changeLanguage('ru-RU');
+		mocks.i18nStore.set(selected);
+		await flushPromises();
+		expect(root.querySelector('.text-3xl')?.textContent?.trim()).toBe(
+			new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB' }).format(1500)
+		);
+		for (const preset of root.querySelectorAll('[data-testid="topup-preset"]')) {
+			const amount = Number(preset.getAttribute('data-amount-kopeks')) / 100;
+			expect(preset.textContent?.trim()).toBe(
+				new Intl.NumberFormat('ru-RU', {
+					style: 'currency',
+					currency: 'RUB',
+					maximumFractionDigits: 0
+				}).format(amount)
+			);
+		}
+		expect(mocks.getBalanceMock).toHaveBeenCalledTimes(1);
+		expect(mocks.createTopupMock).not.toHaveBeenCalled();
+	});
 
 	it('auto-expands advanced settings when auto-topup is enabled', async () => {
 		mocks.getBalanceMock.mockResolvedValue(createBalance({ auto_topup_enabled: true }));

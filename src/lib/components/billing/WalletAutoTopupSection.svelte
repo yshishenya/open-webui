@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { getContext } from 'svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -16,9 +17,9 @@
 	export let onSave: () => void;
 	const toggleLabelId = 'auto-topup-toggle-label';
 
-	const formatDateTime = (timestamp: number | null | undefined): string => {
+	const formatDateTime = (timestamp: number | null | undefined, locale: string = getI18nLocale($i18n)): string => {
 		if (!timestamp) return $i18n.t('Never');
-		return new Date(timestamp * 1000).toLocaleString($i18n.locale, {
+		return new Date(timestamp * 1000).toLocaleString(locale, {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric',
@@ -114,7 +115,7 @@
 
 	{#if (autoTopupFailCount ?? 0) > 0}
 		<div class="text-xs text-gray-500 mt-2">
-			{$i18n.t('Last failed')}: {formatDateTime(autoTopupLastFailedAt)}
+			{$i18n.t('Last failed')}: {formatDateTime(autoTopupLastFailedAt, getI18nLocale($i18n))}
 		</div>
 	{/if}
 </div>

@@ -1,0 +1,91 @@
+{
+  "spec_id": "airis-billing-selected-language-2026-10-03-001",
+  "title": "Respect selected AIRIS language for money and dates",
+  "generated": "2026-10-02T22:17:05.844864Z",
+  "last_updated": "2026-10-02T22:32:22.972939Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__bugfix__billing-selected-language.md",
+    "status": "active",
+    "activated_date": "2026-10-02T22:18:36.039878Z",
+    "progress_percentage": 50,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Respect selected AIRIS language for money and dates",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and fix selected-language formatting",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce locale mismatch and route formatters through supported language API",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/lib/utils/airis/i18n_locale.ts",
+        "started_at": "2026-10-02T22:18:36.282425Z",
+        "completed_at": "2026-10-02T22:32:22.971140Z",
+        "needs_journaling": false,
+        "status_note": "Reproduced environment locale mismatch; supported i18next language helper and explicit timeline/header reactivity implemented; no financial changes.",
+        "actual_hours": 0.23,
+        "journaled_at": "2026-10-02T22:32:22.972445Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Verify presentation, switching, fallback and unchanged financial values",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "dependencies": {
+        "depends": [
+          "task-1-1"
+        ]
+      },
+      "metadata": {
+        "file_path": "src/lib/components/billing/UnifiedTimeline.test.ts"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-02T22:32:22.972441Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce locale mismatch and route formatters through supported language API",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Reproduced environment locale mismatch; supported i18next language helper and explicit timeline/header reactivity implemented; no financial changes.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    }
+  ]
+}

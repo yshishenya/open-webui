@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { onMount, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
@@ -89,21 +90,21 @@
 			resuming = false;
 		}
 	};
-	const formatDate = (timestamp: number): string => {
-		return new Date(timestamp * 1000).toLocaleDateString($i18n.locale, {
+	const formatDate = (timestamp: number, locale: string = getI18nLocale($i18n)): string => {
+		return new Date(timestamp * 1000).toLocaleDateString(locale, {
 			year: 'numeric',
 			month: 'long',
 			day: 'numeric'
 		});
 	};
 
-	const formatOptionalDate = (timestamp?: number | null): string => {
+	const formatOptionalDate = (timestamp?: number | null, locale: string = getI18nLocale($i18n)): string => {
 		if (!timestamp) return $i18n.t('Not scheduled');
-		return formatDate(timestamp);
+		return formatDate(timestamp, locale);
 	};
 
-	const formatDateTime = (timestamp: number): string => {
-		return new Date(timestamp * 1000).toLocaleString($i18n.locale, {
+	const formatDateTime = (timestamp: number, locale: string = getI18nLocale($i18n)): string => {
+		return new Date(timestamp * 1000).toLocaleString(locale, {
 			year: 'numeric',
 			month: 'long',
 			day: 'numeric',
@@ -112,12 +113,12 @@
 		});
 	};
 
-	const formatPrice = (amount: number, currency: string): string => {
+	const formatPrice = (amount: number, currency: string, locale: string = getI18nLocale($i18n)): string => {
 		if (!currency) {
 			return amount.toString();
 		}
 		try {
-			return new Intl.NumberFormat($i18n.locale, {
+			return new Intl.NumberFormat(locale, {
 				style: 'currency',
 				currency: currency
 			}).format(amount);
@@ -249,7 +250,7 @@
 				</div>
 
 				<div class="text-xs text-gray-500 mb-3">
-					{$i18n.t('Next reset')}: {formatOptionalDate(billingInfo.lead_magnet.cycle_end)}
+					{$i18n.t('Next reset')}: {formatOptionalDate(billingInfo.lead_magnet.cycle_end, getI18nLocale($i18n))}
 				</div>
 
 				{#if leadMagnetMetrics.length > 0}
@@ -268,7 +269,7 @@
 									<div
 										class="{getUsageColor(metric.percentage)} h-1.5 rounded-full transition-all"
 										style="width: {metric.percentage}%"
-									/>
+									></div>
 								</div>
 								<div class="text-xs text-gray-500 mt-1">
 									{metric.percentage.toFixed(1)}% {$i18n.t('used')} •
@@ -323,13 +324,13 @@
 							<div>
 								<span class="text-gray-500">{$i18n.t('Current period start')}:</span>
 								<div class="font-medium">
-									{formatDate(billingInfo.subscription.current_period_start)}
+									{formatDate(billingInfo.subscription.current_period_start, getI18nLocale($i18n))}
 								</div>
 							</div>
 							<div>
 								<span class="text-gray-500">{$i18n.t('Current period end')}:</span>
 								<div class="font-medium">
-									{formatDate(billingInfo.subscription.current_period_end)}
+									{formatDate(billingInfo.subscription.current_period_end, getI18nLocale($i18n))}
 								</div>
 							</div>
 						</div>
@@ -415,7 +416,7 @@
 											getUsagePercent(usage)
 										)} h-1.5 rounded-full transition-all"
 										style="width: {getUsagePercent(usage)}%"
-									/>
+									></div>
 								</div>
 								<div class="text-xs text-gray-500 mt-1">
 									{getUsagePercent(usage).toFixed(1)}% {$i18n.t('used')}
@@ -465,12 +466,12 @@
 								<tr
 									class="border-b border-gray-100/30 dark:border-gray-850/30 hover:bg-black/5 dark:hover:bg-white/5"
 								>
-									<td class="px-4 py-2 text-sm">{formatDateTime(transaction.created_at)}</td>
+									<td class="px-4 py-2 text-sm">{formatDateTime(transaction.created_at, getI18nLocale($i18n))}</td>
 									<td class="px-4 py-2 text-sm"
 										>{transaction.description_ru || transaction.description || '-'}</td
 									>
 									<td class="px-4 py-2 text-sm font-medium"
-										>{formatPrice(transaction.amount, transaction.currency)}</td
+										>{formatPrice(transaction.amount, transaction.currency, getI18nLocale($i18n))}</td
 									>
 									<td class="px-4 py-2">
 										<span

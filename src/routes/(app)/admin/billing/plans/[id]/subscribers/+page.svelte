@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { onMount, getContext } from 'svelte';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
@@ -15,7 +16,6 @@
 	} from '$lib/utils/billing-formatters';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
-	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import ChevronLeft from '$lib/components/icons/ChevronLeft.svelte';
 	import ChevronRight from '$lib/components/icons/ChevronRight.svelte';
 
@@ -70,8 +70,8 @@
 		await loadSubscribers();
 	};
 
-	const formatDate = (timestamp: number): string => {
-		return new Date(timestamp * 1000).toLocaleDateString($i18n.locale, {
+	const formatDate = (timestamp: number, locale: string = getI18nLocale($i18n)): string => {
+		return new Date(timestamp * 1000).toLocaleDateString(locale, {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric'
@@ -264,10 +264,10 @@
 										{/if}
 									</td>
 									<td class="px-4 py-3 text-gray-600 dark:text-gray-400">
-										{formatDate(subscriber.subscribed_at)}
+										{formatDate(subscriber.subscribed_at, getI18nLocale($i18n))}
 									</td>
 									<td class="px-4 py-3 text-gray-600 dark:text-gray-400">
-										{formatDate(subscriber.current_period_end)}
+										{formatDate(subscriber.current_period_end, getI18nLocale($i18n))}
 									</td>
 								</tr>
 							{/each}
