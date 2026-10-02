@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { toast } from 'svelte-sonner';
 	import { onMount, getContext, tick, onDestroy } from 'svelte';
 	const i18n = getContext('i18n');
@@ -193,7 +194,7 @@
 				<div
 					class="text-xs py-[1px] px-2 rounded-xl bg-gray-100 text-black dark:bg-gray-800 dark:text-white font-normal whitespace-nowrap"
 				>
-					{new Intl.NumberFormat($i18n.locale, {
+					{new Intl.NumberFormat(getI18nLocale($i18n), {
 						notation: 'compact',
 						compactDisplay: 'short'
 					}).format(channel.unread_count)}

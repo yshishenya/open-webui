@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount } from 'svelte';
+import { createInstance } from 'i18next';
 
 import HeaderBillingAccess from './HeaderBillingAccess.svelte';
 
@@ -21,7 +22,8 @@ type Balance = {
 };
 
 type I18nValue = {
-	locale: string;
+	language: string;
+	resolvedLanguage?: string;
 	t: (key: string, vars?: Record<string, string | number>) => string;
 };
 
@@ -50,14 +52,14 @@ const mocks = vi.hoisted(() => {
 		getBalanceMock: vi.fn(),
 		pageStore: createStore({ url: new URL('http://localhost/c/123') }),
 		i18nStore: createStore<I18nValue>({
-			locale: 'en',
+			language: 'en-US',
 			t: (key: string) => key
 		})
 	};
 });
 
-vi.mock('$lib/apis/billing', () => ({ getBalance: mocks.getBalanceMock }), { virtual: true });
-vi.mock('$app/stores', () => ({ page: mocks.pageStore }), { virtual: true });
+vi.mock('$lib/apis/billing', () => ({ getBalance: mocks.getBalanceMock }));
+vi.mock('$app/stores', () => ({ page: mocks.pageStore }));
 
 const flushPromises = async (): Promise<void> => {
 	await Promise.resolve();
@@ -80,10 +82,11 @@ const createContext = (): Map<string, unknown> => new Map([['i18n', mocks.i18nSt
 describe('HeaderBillingAccess', () => {
 	let mounted: Record<string, unknown> | null = null;
 	let target: HTMLDivElement | null = null;
-	let consoleErrorSpy: ReturnType<typeof vi.spyOn> | null = null;
+	let consoleErrorSpy: { mockRestore: () => void } | null = null;
 
 	beforeEach(() => {
 		localStorage.token = 'test-token';
+		mocks.i18nStore.set({ language: 'en-US', t: (key: string) => key });
 		mocks.pageStore.set({ url: new URL('http://localhost/c/123?focus=topup') });
 		mocks.getBalanceMock.mockReset().mockResolvedValue(createBalance());
 		consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -144,6 +147,35 @@ describe('HeaderBillingAccess', () => {
 		expect(topupUrl.searchParams.get('src')).toBe('header_topup');
 		expect(topupUrl.searchParams.get('focus')).toBe('topup');
 		expect(topupUrl.searchParams.get('return_to')).toBe('/c/123?focus=topup');
+	});
+
+	it('updates the current balance format when the selected language changes without refetching', async () => {
+		const selected = createInstance();
+		await selected.init({
+			lng: 'en-US',
+			fallbackLng: 'en-US',
+			resources: {
+				'en-US': { translation: { Balance: 'Balance' } },
+				'ru-RU': { translation: { Balance: 'Баланс' } }
+			}
+		});
+		mocks.i18nStore.set(selected);
+		mocks.getBalanceMock.mockResolvedValue(
+			createBalance({ balance_topup_kopeks: 1234, currency: 'USD' })
+		);
+		const root = renderComponent();
+		await flushPromises();
+		expect(root.querySelector('[data-testid="header-billing-amount"]')?.textContent?.trim()).toBe(
+			'$12.34'
+		);
+
+		await selected.changeLanguage('ru-RU');
+		mocks.i18nStore.set(selected);
+		await flushPromises();
+		expect(root.querySelector('[data-testid="header-billing-amount"]')?.textContent?.trim()).toBe(
+			new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'USD' }).format(12.34)
+		);
+		expect(mocks.getBalanceMock).toHaveBeenCalledTimes(1);
 	});
 
 	it('preserves validated return_to on billing routes', async () => {

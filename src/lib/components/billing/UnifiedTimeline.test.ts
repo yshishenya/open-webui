@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount } from 'svelte';
+import { createInstance } from 'i18next';
+import type { LedgerEntry } from '$lib/apis/billing';
 
 import UnifiedTimeline from './UnifiedTimeline.svelte';
 
 type PageStoreValue = { url: URL };
 type Model = { id: string; name?: string };
 type I18nValue = {
-	locale: string;
+	language: string;
+	resolvedLanguage?: string;
 	t: (key: string, vars?: Record<string, string | number>) => string;
 };
 
@@ -54,23 +57,19 @@ const mocks: MockStores = vi.hoisted(() => {
 	const getLedgerMock = vi.fn().mockResolvedValue([]);
 	const getUsageEventsMock = vi.fn().mockResolvedValue([]);
 	const i18nStore = createStore<I18nValue>({
-		locale: 'en',
+		language: 'en-US',
 		t: (key: string) => key
 	});
 	return { gotoMock, pageStore, modelsStore, getLedgerMock, getUsageEventsMock, i18nStore };
 });
 
-vi.mock('$app/navigation', () => ({ goto: mocks.gotoMock }), { virtual: true });
-vi.mock('$app/stores', () => ({ page: mocks.pageStore }), { virtual: true });
-vi.mock('$lib/stores', () => ({ models: mocks.modelsStore }), { virtual: true });
-vi.mock(
-	'$lib/apis/billing',
-	() => ({
-		getLedger: mocks.getLedgerMock,
-		getUsageEvents: mocks.getUsageEventsMock
-	}),
-	{ virtual: true }
-);
+vi.mock('$app/navigation', () => ({ goto: mocks.gotoMock }));
+vi.mock('$app/stores', () => ({ page: mocks.pageStore }));
+vi.mock('$lib/stores', () => ({ models: mocks.modelsStore }));
+vi.mock('$lib/apis/billing', () => ({
+	getLedger: mocks.getLedgerMock,
+	getUsageEvents: mocks.getUsageEventsMock
+}));
 
 const flushPromises = async (): Promise<void> => {
 	await Promise.resolve();
@@ -84,6 +83,7 @@ describe('UnifiedTimeline', () => {
 	let target: HTMLDivElement | null = null;
 
 	beforeEach(() => {
+		mocks.i18nStore.set({ language: 'en-US', t: (key: string) => key });
 		mocks.gotoMock.mockReset();
 		mocks.getLedgerMock.mockReset().mockResolvedValue([]);
 		mocks.getUsageEventsMock.mockReset().mockResolvedValue([]);
@@ -100,6 +100,7 @@ describe('UnifiedTimeline', () => {
 			target.remove();
 		}
 		target = null;
+		vi.restoreAllMocks();
 	});
 
 	const renderTimeline = (props: RenderProps = {}) => {
@@ -116,6 +117,69 @@ describe('UnifiedTimeline', () => {
 		});
 		return target;
 	};
+
+	it('uses actual selected language for money and dates and reacts to a language change', async () => {
+		const selected = createInstance();
+		await selected.init({
+			lng: 'en-US',
+			fallbackLng: 'en-US',
+			resources: {
+				'en-US': { translation: { 'Top-up': 'Top-up' } },
+				'ru-RU': { translation: { 'Top-up': 'Пополнение' } }
+			}
+		});
+		mocks.i18nStore.set(selected);
+		const dateFormat = Date.prototype.toLocaleDateString;
+		const daySpy = vi.spyOn(Date.prototype, 'toLocaleDateString').mockImplementation(function (
+			this: Date,
+			locales,
+			options
+		): string {
+			// Simulate a Russian environment when the formatter omits the app language.
+			return dateFormat.call(this, locales ?? 'ru-RU', options);
+		});
+		const moneySpy = vi.spyOn(Intl, 'NumberFormat');
+		mocks.getLedgerMock.mockResolvedValue([
+			{
+				id: 'selected-language-credit',
+				balance_included_after: 0,
+				balance_topup_after: 1234,
+				user_id: 'user-1',
+				wallet_id: 'wallet-1',
+				amount_kopeks: 1234,
+				currency: 'USD',
+				type: 'topup',
+				created_at: 1_700_000_000
+			} satisfies LedgerEntry
+		]);
+		const root = renderTimeline();
+		await flushPromises();
+		const options: Intl.DateTimeFormatOptions = {
+			weekday: 'long',
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric'
+		};
+		expect(root.querySelector('h2')?.textContent).toContain(
+			dateFormat.call(new Date(1_700_000_000 * 1000), 'en-US', options)
+		);
+		expect(root.textContent).toContain('+$12.34');
+		expect(daySpy).toHaveBeenCalledWith('en-US', options);
+		expect(moneySpy).toHaveBeenCalledWith('en-US', { style: 'currency', currency: 'USD' });
+
+		await selected.changeLanguage('ru-RU');
+		mocks.i18nStore.set(selected);
+		await flushPromises();
+		expect(root.querySelector('h2')?.textContent).toContain(
+			dateFormat.call(new Date(1_700_000_000 * 1000), 'ru-RU', options)
+		);
+		expect(root.textContent).toContain(
+			'+' + new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'USD' }).format(12.34)
+		);
+		expect(root.textContent).toContain('Пополнение');
+		expect(mocks.getLedgerMock).toHaveBeenCalledTimes(1);
+		expect(mocks.getUsageEventsMock).toHaveBeenCalledTimes(1);
+	});
 
 	it('reads the initial filter from the URL when sync is enabled', async () => {
 		mocks.pageStore.set({ url: new URL('http://localhost/billing/history?filter=topups') });

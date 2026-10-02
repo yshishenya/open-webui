@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { getContext } from 'svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 
@@ -21,7 +22,7 @@
 		}
 		const amount = kopeks / 100;
 		try {
-			return new Intl.NumberFormat($i18n.locale, {
+			return new Intl.NumberFormat(getI18nLocale($i18n), {
 				style: 'currency',
 				currency: currencyCode
 			}).format(amount);
@@ -33,7 +34,7 @@
 
 	const formatDateTime = (timestamp: number | null | undefined): string => {
 		if (!timestamp) return $i18n.t('Never');
-		return new Date(timestamp * 1000).toLocaleString($i18n.locale, {
+		return new Date(timestamp * 1000).toLocaleString(getI18nLocale($i18n), {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric',

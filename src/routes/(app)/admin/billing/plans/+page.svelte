@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { onMount, getContext, tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
@@ -154,7 +155,7 @@
 	};
 
 	const formatPrice = (price: number, currency: string): string => {
-		return new Intl.NumberFormat($i18n.locale, {
+		return new Intl.NumberFormat(getI18nLocale($i18n), {
 			style: 'currency',
 			currency: currency,
 			minimumFractionDigits: 0,
@@ -164,7 +165,7 @@
 
 	const formatMRR = (mrr: number): string => {
 		if (mrr === 0) return '0₽';
-		return new Intl.NumberFormat($i18n.locale, {
+		return new Intl.NumberFormat(getI18nLocale($i18n), {
 			style: 'currency',
 			currency: 'RUB',
 			minimumFractionDigits: 0,

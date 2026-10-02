@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { getContext } from 'svelte';
 
 	const i18n = getContext('i18n');
@@ -17,7 +18,7 @@
 	const formatMoney = (kopeks: number, currencyCode: string): string => {
 		const amount = kopeks / 100;
 		try {
-			return new Intl.NumberFormat($i18n.locale, {
+			return new Intl.NumberFormat(getI18nLocale($i18n), {
 				style: 'currency',
 				currency: currencyCode,
 				maximumFractionDigits: Number.isInteger(amount) ? 0 : 2

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { onMount, getContext } from 'svelte';
 	import { derived } from 'svelte/store';
 	import { page } from '$app/stores';
@@ -166,7 +167,7 @@
 	const formatMoney = (kopeks: number, currencyCode: string): string => {
 		const amount = kopeks / 100;
 		try {
-			return new Intl.NumberFormat($i18n.locale, {
+			return new Intl.NumberFormat(getI18nLocale($i18n), {
 				style: 'currency',
 				currency: currencyCode
 			}).format(amount);
@@ -177,14 +178,14 @@
 	};
 
 	const formatDateTime = (timestamp: number): string => {
-		return new Date(timestamp * 1000).toLocaleString($i18n.locale, {
+		return new Date(timestamp * 1000).toLocaleString(getI18nLocale($i18n), {
 			hour: '2-digit',
 			minute: '2-digit'
 		});
 	};
 
 	const formatDay = (timestamp: number): string => {
-		return new Date(timestamp * 1000).toLocaleDateString($i18n.locale, {
+		return new Date(timestamp * 1000).toLocaleDateString(getI18nLocale($i18n), {
 			weekday: 'long',
 			day: 'numeric',
 			month: 'long',
@@ -341,7 +342,8 @@
 			activeFilter = $urlFilter;
 		}
 	}
-	$: mergedItems = mergeItems(ledgerEntries, usageEntries);
+	// Translation-dependent titles and day labels also need a fresh view on language change.
+	$: mergedItems = $i18n ? mergeItems(ledgerEntries, usageEntries) : [];
 	// Keep filter key explicit so Svelte tracks activeFilter as a reactive dependency.
 	$: filteredItems = filterItems(mergedItems, activeFilter);
 	$: visibleItems = (() => {

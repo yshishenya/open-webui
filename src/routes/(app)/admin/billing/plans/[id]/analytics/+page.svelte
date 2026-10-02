@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { onMount, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
@@ -145,7 +146,7 @@
 
 	const formatPrice = (price: number, currency: string = 'RUB'): string => {
 		if (price === 0) return $i18n.t('Free');
-		return new Intl.NumberFormat($i18n.locale, {
+		return new Intl.NumberFormat(getI18nLocale($i18n), {
 			style: 'currency',
 			currency: currency,
 			minimumFractionDigits: 0,
@@ -154,7 +155,7 @@
 	};
 
 	const formatDate = (timestamp: number): string => {
-		return new Date(timestamp * 1000).toLocaleDateString($i18n.locale, {
+		return new Date(timestamp * 1000).toLocaleDateString(getI18nLocale($i18n), {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric'
@@ -286,7 +287,7 @@
 							<div class="text-xs text-gray-500">{$i18n.t('Input Tokens')}</div>
 							<div class="font-medium">
 								{plan.quotas.tokens_input !== null
-									? plan.quotas.tokens_input.toLocaleString($i18n.locale)
+									? plan.quotas.tokens_input.toLocaleString(getI18nLocale($i18n))
 									: '∞'}
 							</div>
 						</div>
@@ -294,7 +295,7 @@
 							<div class="text-xs text-gray-500">{$i18n.t('Output Tokens')}</div>
 							<div class="font-medium">
 								{plan.quotas.tokens_output !== null
-									? plan.quotas.tokens_output.toLocaleString($i18n.locale)
+									? plan.quotas.tokens_output.toLocaleString(getI18nLocale($i18n))
 									: '∞'}
 							</div>
 						</div>
@@ -302,7 +303,7 @@
 							<div class="text-xs text-gray-500">{$i18n.t('Requests')}</div>
 							<div class="font-medium">
 								{plan.quotas.requests !== null
-									? plan.quotas.requests.toLocaleString($i18n.locale)
+									? plan.quotas.requests.toLocaleString(getI18nLocale($i18n))
 									: '∞'}
 							</div>
 						</div>

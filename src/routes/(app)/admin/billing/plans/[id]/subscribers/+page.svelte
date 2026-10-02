@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { onMount, getContext } from 'svelte';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
@@ -71,7 +72,7 @@
 	};
 
 	const formatDate = (timestamp: number): string => {
-		return new Date(timestamp * 1000).toLocaleDateString($i18n.locale, {
+		return new Date(timestamp * 1000).toLocaleDateString(getI18nLocale($i18n), {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric'

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { onMount, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
@@ -162,7 +163,7 @@
 
 	const formatNumber = (value: number | null): string => {
 		if (value === null) return '∞';
-		return new Intl.NumberFormat($i18n.locale).format(value);
+		return new Intl.NumberFormat(getI18nLocale($i18n)).format(value);
 	};
 </script>
 
@@ -455,7 +456,7 @@
 											{#if formData.price === 0}
 												{$i18n.t('Free')}
 											{:else}
-												{new Intl.NumberFormat($i18n.locale, {
+												{new Intl.NumberFormat(getI18nLocale($i18n), {
 													style: 'currency',
 													currency: formData.currency,
 													minimumFractionDigits: 0

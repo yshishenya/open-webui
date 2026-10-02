@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { getContext } from 'svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -18,7 +19,7 @@
 
 	const formatDateTime = (timestamp: number | null | undefined): string => {
 		if (!timestamp) return $i18n.t('Never');
-		return new Date(timestamp * 1000).toLocaleString($i18n.locale, {
+		return new Date(timestamp * 1000).toLocaleString(getI18nLocale($i18n), {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric',

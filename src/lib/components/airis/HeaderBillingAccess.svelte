@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { getContext, onDestroy, onMount } from 'svelte';
 
 	import { page } from '$app/stores';
@@ -32,10 +33,10 @@
 	let topupHref = '/billing/balance?focus=topup';
 	let amountLabel = '';
 
-	const formatMoney = (kopeks: number, currencyCode: string): string => {
+	const formatMoney = (kopeks: number, currencyCode: string, locale: string): string => {
 		const amount = kopeks / 100;
 		try {
-			return new Intl.NumberFormat($i18n.locale, {
+			return new Intl.NumberFormat(locale, {
 				style: 'currency',
 				currency: currencyCode,
 				maximumFractionDigits: Number.isInteger(amount) ? 0 : 2
@@ -116,7 +117,11 @@
 		src: 'header_topup'
 	});
 	$: amountLabel =
-		balance !== null ? formatMoney(totalBalanceKopeks, currency) : loading ? '...' : '--';
+		balance !== null
+			? formatMoney(totalBalanceKopeks, currency, getI18nLocale($i18n))
+			: loading
+				? '...'
+				: '--';
 </script>
 
 <div

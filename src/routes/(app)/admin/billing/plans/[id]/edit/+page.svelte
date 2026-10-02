@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { onMount, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
@@ -242,7 +243,7 @@
 	let subscribersExpanded = false;
 
 	const formatDate = (timestamp: number): string => {
-		return new Date(timestamp * 1000).toLocaleDateString($i18n.locale, {
+		return new Date(timestamp * 1000).toLocaleDateString(getI18nLocale($i18n), {
 			month: 'short',
 			day: 'numeric'
 		});
@@ -743,7 +744,7 @@
 												{#if formData.price === 0}
 													{$i18n.t('Free')}
 												{:else}
-													{new Intl.NumberFormat($i18n.locale, {
+													{new Intl.NumberFormat(getI18nLocale($i18n), {
 														style: 'currency',
 														currency: formData.currency || 'RUB',
 														minimumFractionDigits: 0

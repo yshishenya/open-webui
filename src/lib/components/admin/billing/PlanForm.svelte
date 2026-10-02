@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { getContext, createEventDispatcher } from 'svelte';
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
@@ -110,12 +111,12 @@
 
 	const formatNumber = (value: number | null): string => {
 		if (value === null) return '∞';
-		return new Intl.NumberFormat($i18n.locale).format(value);
+		return new Intl.NumberFormat(getI18nLocale($i18n)).format(value);
 	};
 
 	const formatPrice = (price: number): string => {
 		if (price === 0) return $i18n.t('Free');
-		return new Intl.NumberFormat($i18n.locale, {
+		return new Intl.NumberFormat(getI18nLocale($i18n), {
 			style: 'currency',
 			currency: formData.currency || 'RUB'
 		}).format(price);

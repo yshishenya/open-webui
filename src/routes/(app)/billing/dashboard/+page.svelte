@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { onMount, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
@@ -90,7 +91,7 @@
 		}
 	};
 	const formatDate = (timestamp: number): string => {
-		return new Date(timestamp * 1000).toLocaleDateString($i18n.locale, {
+		return new Date(timestamp * 1000).toLocaleDateString(getI18nLocale($i18n), {
 			year: 'numeric',
 			month: 'long',
 			day: 'numeric'
@@ -103,7 +104,7 @@
 	};
 
 	const formatDateTime = (timestamp: number): string => {
-		return new Date(timestamp * 1000).toLocaleString($i18n.locale, {
+		return new Date(timestamp * 1000).toLocaleString(getI18nLocale($i18n), {
 			year: 'numeric',
 			month: 'long',
 			day: 'numeric',
@@ -117,7 +118,7 @@
 			return amount.toString();
 		}
 		try {
-			return new Intl.NumberFormat($i18n.locale, {
+			return new Intl.NumberFormat(getI18nLocale($i18n), {
 				style: 'currency',
 				currency: currency
 			}).format(amount);

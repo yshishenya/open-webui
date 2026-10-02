@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { getContext } from 'svelte';
 	import { goto } from '$app/navigation';
 	import Modal from '$lib/components/common/Modal.svelte';
@@ -20,7 +21,7 @@
 		}
 		const amount = kopeks / 100;
 		try {
-			return new Intl.NumberFormat($i18n.locale, { style: 'currency', currency }).format(amount);
+			return new Intl.NumberFormat(getI18nLocale($i18n), { style: 'currency', currency }).format(amount);
 		} catch (error) {
 			console.warn('Invalid currency code:', currency, error);
 			return `${amount.toFixed(2)} ${currency}`.trim();
@@ -29,7 +30,7 @@
 
 	const formatDateTime = (timestamp: number | null): string => {
 		if (!timestamp) return $i18n.t('Never');
-		return new Date(timestamp * 1000).toLocaleString($i18n.locale, {
+		return new Date(timestamp * 1000).toLocaleString(getI18nLocale($i18n), {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric',
