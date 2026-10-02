@@ -1,0 +1,8 @@
+- [x] **[DOCS][BILLING]** Record wallet activity rollout acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-03__bugfix__wallet-credit-activity.md`
+  - Owner: Codex
+  - Branch: `codex/docs/wallet-activity-release`
+  - Done: 2026-10-03
+  - Summary: PR185 and immutable candidate passed confirmed-credit return acceptance; production file/runtime/public checks passed. Preserve explicit limits for real funds, external mail, fiscal receipt, webhook/cancellation and full project quality.
+  - Tests: 202 Compose frontend tests; ten source CI checks; real test checkout and three replay checks; 5,757 frontend / 476 immutable live backend hashes; healthy runtime, zero restarts.
+  - Risks: Transient 502 during recreation recovered; no financial schema/API change. Project-wide type/lint debt remains open.
