@@ -1,0 +1,6 @@
+- [x] **[DOCS][REPORT]** Record bounded registration cohort release acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__docs__cohort-release-acceptance.md`
+  - Owner: Codex
+  - Branch: `codex/docs/onboarding-cohort-acceptance`
+  - Done: 2026-10-02
+  - Summary: Close released report SDD after exact-source/image checks and independent read-only HTTPS comparison; real calendar pilot remains open.
