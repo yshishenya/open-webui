@@ -1,0 +1,6 @@
+- [ ] **[BUG][FRONTEND]** Type the existing i18n context without changing runtime
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-context-checks.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/frontend-verification-baseline`
+  - Started: 2026-10-02
+  - Summary: Reuse the exact existing store type; leave separate general lint cleanup open. Record remaining general diagnostics without weakening strictness or rules.
