@@ -1,0 +1,169 @@
+{
+	"spec_id": "airis-frontend-unused-reactive-2026-10-02-207",
+	"title": "Airis frontend unused reactive lint recovery 2026-10-02",
+	"generated": "2026-10-02T11:28:26.385413Z",
+	"last_updated": "2026-10-02T11:43:11.889927Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-unused-reactive.md",
+		"status": "active",
+		"activated_date": "2026-10-02T11:30:02.170369Z",
+		"progress_percentage": 75,
+		"current_phase": "phase-2"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis frontend unused reactive lint recovery 2026-10-02",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 4,
+			"completed_tasks": 3,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Reproduce and minimally repair affected components",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T11:36:43.448099Z",
+				"journaled_at": "2026-10-02T11:36:43.450345Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify regression, full baseline and accepted source",
+			"status": "in_progress",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 1,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce pinned ESLint crash and trace callers and HTML producers",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T11:36:43.201418Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-02T11:36:43.202447Z",
+				"file_path": "src/lib/components/chat/FileNav/FilePreview.svelte"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Remove dead reactive declarations and repair touched-file diagnostics",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T11:36:43.447914Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-02T11:36:43.449167Z",
+				"file_path": "src/lib/components/chat/MessageInput.svelte"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Run regression, Docker frontend suite, formatting and strict baseline",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "tests/frontend-lint-regression.test.ts",
+				"completed_at": "2026-10-02T11:43:11.887871Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-02T11:43:11.889096Z"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Review and accept exact source through PR and CI without claiming full baseline green",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-unused-reactive.md"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-02T11:36:43.202442Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce pinned ESLint crash and trace callers and HTML producers",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-02T11:36:43.449162Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Remove dead reactive declarations and repair touched-file diagnostics",
+			"author": "claude-code",
+			"content": "Task task-1-2 marked as completed.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-02T11:36:43.450340Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Reproduce and minimally repair affected components",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-02T11:43:11.889082Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Run regression, Docker frontend suite, formatting and strict baseline",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		}
+	]
+}
