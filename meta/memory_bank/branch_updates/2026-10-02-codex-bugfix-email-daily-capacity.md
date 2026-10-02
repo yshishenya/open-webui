@@ -1,6 +1,7 @@
-- [ ] **[BUG][EMAIL]** Add atomic daily capacity and preserve quota-delayed jobs
+- [x] **[BUG][EMAIL]** Add atomic daily capacity and preserve quota-delayed jobs
   - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__email-daily-capacity.md`
   - Owner: Codex
   - Branch: `codex/bugfix/email-daily-capacity`
-  - Started: 2026-10-02
+  - Done: 2026-10-02
   - Summary: Reuse transport windows and defer proven-unsent quota failures without consuming SMTP retries; keep global mail disabled.
+  - Verification: Frozen source/image613 passed/3 skips; PostgreSQL89 passed; CI and guarded release passed; live416/7006 hashes match, isolated queue32 passed/1 PG-only skip. SDD6/6 completed. Real pilot remains separate.
