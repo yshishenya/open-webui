@@ -2,7 +2,7 @@
   "spec_id": "airis-analytics-repeat-acceptance-2026-10-02-001",
   "title": "Airis analytics repeat acceptance",
   "generated": "2026-10-02T09:58:35.246744Z",
-  "last_updated": "2026-10-02T10:05:02.222504Z",
+  "last_updated": "2026-10-02T10:16:56.366020Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -12,33 +12,38 @@
     "default_category": "investigation",
     "status": "active",
     "activated_date": "2026-10-02T10:00:39.625509Z",
-    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__docs__analytics-repeat-acceptance.md"
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__docs__analytics-repeat-acceptance.md",
+    "progress_percentage": 33
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Airis analytics repeat acceptance",
-      "status": "pending",
+      "status": "in_progress",
       "parent": null,
       "children": [
         "phase-1",
         "phase-2"
       ],
       "total_tasks": 3,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {}
     },
     "phase-1": {
       "type": "phase",
       "title": "Source, runtime and consent verification",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-1-1"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-02T10:16:56.363434Z",
+        "journaled_at": "2026-10-02T10:16:56.365982Z"
+      }
     },
     "phase-2": {
       "type": "phase",
@@ -56,7 +61,7 @@
     "task-1-1": {
       "type": "verify",
       "title": "Verify current source, runtime and CI",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1",
       "children": [],
       "dependencies": {
@@ -65,9 +70,15 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "verification_type": "auto"
+        "verification_type": "auto",
+        "command": "python /tmp/airis-optout-verify-live-files.py",
+        "expected": "938 compiled frontend files match exact build; current CI/module review successful",
+        "completed_at": "2026-10-02T10:16:56.363274Z",
+        "needs_journaling": false,
+        "status_note": "Current938compiled frontend files and9analytics backend modules match accepted source; default allow regressions preserved; relevant CI successful.",
+        "journaled_at": "2026-10-02T10:16:56.364633Z"
       }
     },
     "task-2-1": {
@@ -84,7 +95,9 @@
       "total_tasks": 1,
       "completed_tasks": 0,
       "metadata": {
-        "verification_type": "auto"
+        "verification_type": "auto",
+        "command": "GET Metrica uploading1211156457; execute PostHog Insight19-27; authorized HTTPS report7/30",
+        "expected": "PROCESSED/linked1/report1/1;9queries executed;admin200/member401; immature conversion null"
       }
     },
     "task-2-2": {
@@ -101,8 +114,30 @@
       "total_tasks": 1,
       "completed_tasks": 0,
       "metadata": {
-        "verification_type": "auto"
+        "verification_type": "auto",
+        "command": "Docker Compose pytest test_airis_funnel_reports.py; guarded one-file rollout; HTTPS GET7/30",
+        "expected": "5passed; source/registry/live hashes match;healthy;Cache-Control no-store"
       }
     }
-  }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-02T10:16:56.364623Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify current source, runtime and CI",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Current938compiled frontend files and9analytics backend modules match accepted source; default allow regressions preserved; relevant CI successful.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-02T10:16:56.365978Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Source, runtime and consent verification",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
 }
