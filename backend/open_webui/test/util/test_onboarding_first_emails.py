@@ -32,9 +32,6 @@ from test.util.test_email_delivery_queue import config
 queue_database = queue_tests.database
 
 
-queue_database = queue_tests.database
-
-
 @pytest_asyncio.fixture
 async def database(
     queue_database: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch
@@ -362,3 +359,54 @@ async def test_oauth_rotated_signing_key_retries_once_without_client_claims(monk
     with pytest.raises(HTTPException):
         await oauth._exchange_login_token({}, client, 'yandex', request)
     assert client.authorize_access_token.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_oauth_payloads_and_provider_errors_never_enter_logs_or_redirects(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    import logging
+
+    from authlib.oauth2.rfc6749.errors import OAuth2Error
+    from open_webui.utils import oauth
+
+    marker = 'private-provider-fixture-value'
+    caplog.set_level(logging.DEBUG, logger=oauth.__name__)
+    runtime = SimpleNamespace(
+        DEFAULT_USER_ROLE='pending',
+        ENABLE_OAUTH_ROLE_MANAGEMENT=True,
+        OAUTH_ROLES_CLAIM='roles',
+        OAUTH_ALLOWED_ROLES=['member'],
+        OAUTH_ADMIN_ROLES=['owner'],
+        OAUTH_EMAIL_CLAIM='email',
+        OAUTH_USERNAME_CLAIM='name',
+        OAUTH_ALLOWED_DOMAINS=['airis.you'],
+    )
+    monkeypatch.setattr(oauth, 'get_oauth_runtime_config', AsyncMock(return_value=runtime))
+    monkeypatch.setattr(oauth.Users, 'get_num_users', AsyncMock(return_value=2))
+    manager = object.__new__(oauth.OAuthManager)
+    with pytest.raises(HTTPException):
+        await manager.get_user_role(None, {'roles': [marker]})
+    with pytest.raises(HTTPException):
+        await oauth._read_login_email(runtime, 'fixture', 'fixture', {}, {'email': marker + '@else.invalid'})
+    client = SimpleNamespace(
+        userinfo=AsyncMock(return_value=None),
+        authorize_access_token=AsyncMock(side_effect=ValueError(marker)),
+    )
+    with pytest.raises(HTTPException):
+        await oauth._read_login_claims(runtime, client, 'fixture', {'access_token': marker})
+    request = Request({'type': 'http', 'headers': [], 'method': 'GET', 'path': '/'})
+    with pytest.raises(HTTPException):
+        await oauth._exchange_login_token({}, client, 'fixture', request)
+    runtime.ENABLE_OAUTH_GROUP_CREATION = True
+    runtime.OAUTH_GROUP_DEFAULT_SHARE = False
+    monkeypatch.setattr(oauth.Groups, 'get_all_groups', AsyncMock(return_value=[]))
+    monkeypatch.setattr(oauth.Users, 'get_super_admin_user', AsyncMock(return_value=None))
+    monkeypatch.setattr(oauth.Groups, 'insert_new_group', AsyncMock(side_effect=ValueError(marker)))
+    assert await oauth._create_missing_groups(runtime, None, {}, SimpleNamespace(id='fixture'), [marker]) == []
+    assert marker not in caplog.text
+    assert not any(record.exc_info for record in caplog.records)
+    assert marker not in oauth._build_oauth_callback_error_message(ValueError(marker))
+    assert marker not in oauth._build_oauth_callback_error_message(
+        OAuth2Error(error='invalid_request', description=marker)
+    )

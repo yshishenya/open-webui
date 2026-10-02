@@ -17,7 +17,6 @@ from typing import Literal
 import aiohttp
 import jwt
 from authlib.integrations.starlette_client import OAuth, StarletteOAuth2App
-from authlib.oauth2.rfc6749.errors import OAuth2Error
 from authlib.oidc.core import UserInfo
 from cryptography.fernet import Fernet
 from fastapi import (
@@ -244,7 +243,7 @@ def _normalize_token_expiry(token: dict) -> dict:
             if exp is not None:
                 expires_at = min(expires_at, int(exp))
         except Exception as e:
-            log.debug(f'Could not read exp from id_token: {e}')
+            log.debug(f'Could not read exp from id_token: {type(e).__name__}')
 
     token['expires_at'] = expires_at
     return token
@@ -261,7 +260,7 @@ else:
 try:
     FERNET = Fernet(OAUTH_CLIENT_INFO_ENCRYPTION_KEY)
 except Exception as e:
-    log.error(f'Error initializing Fernet with provided key: {e}')
+    log.error(f'Error initializing Fernet with provided key: {type(e).__name__}')
     raise
 
 
@@ -272,7 +271,7 @@ def encrypt_data(data) -> str:
         encrypted = FERNET.encrypt(data_json.encode()).decode()
         return encrypted
     except Exception as e:
-        log.error(f'Error encrypting data: {e}')
+        log.error(f'Error encrypting data: {type(e).__name__}')
         raise
 
 
@@ -282,39 +281,17 @@ def decrypt_data(data: str):
         decrypted = FERNET.decrypt(data.encode()).decode()
         return json.loads(decrypted)
     except Exception as e:
-        log.error(f'Error decrypting data: {e}')
+        log.error(f'Error decrypting data: {type(e).__name__}')
         raise
 
 
 def _build_oauth_callback_error_message(e: Exception) -> str:
-    """
-    Produce a user-facing callback error string with actionable context.
-    Keeps the message short and strips newlines for safe redirect usage.
-    """
-    if isinstance(e, OAuth2Error):
-        parts = [p for p in [e.error, e.description] if p]
-        detail = ' - '.join(parts)
-    elif isinstance(e, HTTPException):
-        detail = e.detail if isinstance(e.detail, str) else str(e.detail)
-    elif isinstance(e, aiohttp.ClientResponseError):
-        detail = f'Upstream provider returned {e.status}: {e.message}'
-    elif isinstance(e, aiohttp.ClientError):
-        detail = str(e)
-    elif isinstance(e, KeyError):
-        missing = str(e).strip("'")
-        if missing.lower() == 'state':
-            detail = 'Missing state parameter in callback (session may have expired)'
-        else:
-            detail = f"Missing expected key '{missing}' in OAuth response"
-    else:
-        detail = str(e)
-
-    detail = detail.replace('\n', ' ').strip()
-    if not detail:
-        detail = e.__class__.__name__
-
-    message = f'OAuth callback failed: {detail}'
-    return message[:197] + '...' if len(message) > 200 else message
+    """Return actionable callback errors without provider payloads or secrets."""
+    if isinstance(e, KeyError) and e.args == ('state',):
+        return 'OAuth callback failed: session may have expired; retry sign-in'
+    if isinstance(e, aiohttp.ClientError):
+        return 'OAuth callback failed: provider is unavailable; retry sign-in'
+    return 'OAuth callback failed: retry sign-in or contact support'
 
 
 def is_in_blocked_groups(group_name: str, groups: list) -> bool:
@@ -451,10 +428,10 @@ async def get_protected_resource_metadata(server_url: str) -> ProtectedResourceM
                                     log.debug(f'Discovered authorization servers: {servers}')
                                     break
                     except Exception as e:
-                        log.debug(f'Failed to fetch resource metadata from {resource_metadata_url}: {e}')
+                        log.debug(f'Failed to fetch resource metadata from {resource_metadata_url}: {type(e).__name__}')
                         continue
     except Exception as e:
-        log.debug(f'MCP Protected Resource discovery failed: {e}')
+        log.debug(f'MCP Protected Resource discovery failed: {type(e).__name__}')
 
     return ProtectedResourceMetadata(
         resource=resource, authorization_servers=authorization_servers, scopes_supported=scopes
@@ -589,25 +566,16 @@ async def get_oauth_client_info_with_dynamic_client_registration(
                     )
                     return oauth_client_info
                 except Exception as e:
-                    error_text = None
-                    try:
-                        error_text = await oauth_client_registration_response.text()
-                        log.error(
-                            f'Dynamic client registration failed at {registration_url}: '
-                            f'{oauth_client_registration_response.status} - {error_text}'
-                        )
-                    except Exception:
-                        pass
-
-                    log.error(f'Error parsing client registration response: {e}')
-                    raise Exception(
-                        f'Dynamic client registration failed: {error_text}'
-                        if error_text
-                        else 'Error parsing client registration response'
+                    log.error(
+                        'Dynamic client registration failed with HTTP %s',
+                        oauth_client_registration_response.status,
                     )
+
+                    log.error(f'Error parsing client registration response: {type(e).__name__}')
+                    raise Exception('Dynamic client registration response could not be parsed')
         raise Exception('Dynamic client registration failed')
     except Exception as e:
-        log.error(f'Exception during dynamic client registration: {e}')
+        log.error(f'Exception during dynamic client registration: {type(e).__name__}')
         raise e
 
 
@@ -645,7 +613,7 @@ async def get_oauth_client_info_with_static_credentials(
                             oauth_server_metadata_url = url
                             break
                         except Exception as e:
-                            log.error(f'Error parsing OAuth metadata from {url}: {e}')
+                            log.error(f'Error parsing OAuth metadata from {url}: {type(e).__name__}')
                             continue
 
         # Use scopes from the Protected Resource Metadata (RFC 9728) if available.
@@ -683,7 +651,7 @@ async def get_oauth_client_info_with_static_credentials(
         )
         return oauth_client_info
     except Exception as e:
-        log.error(f'Exception building static OAuth client info: {e}')
+        log.error(f'Exception building static OAuth client info: {type(e).__name__}')
         raise e
 
 
@@ -779,7 +747,7 @@ async def recover_static_oauth_client_metadata(connection: dict, oauth_client_in
     try:
         resource_metadata = await get_protected_resource_metadata(server_url)
     except Exception as e:
-        log.debug(f'Unable to recover static OAuth metadata for {server_url}: {e}')
+        log.debug(f'Unable to recover static OAuth metadata for {server_url}: {type(e).__name__}')
         return oauth_client_info
 
     recovered = {**oauth_client_info}
@@ -886,7 +854,7 @@ class OAuthClientManager:
                 oauth_client_info = apply_connection_oauth_options(connection, oauth_client_info)
                 return self.add_client(expected_client_id, OAuthClientInformationFull(**oauth_client_info))['client']
             except Exception as e:
-                log.error(f'Failed to lazily add OAuth client {expected_client_id} from config: {e}')
+                log.error(f'Failed to lazily add OAuth client {expected_client_id} from config: {type(e).__name__}')
                 continue
 
         return None
@@ -925,7 +893,7 @@ class OAuthClientManager:
                 return True
         except Exception as e:
             log.debug(
-                f'Skipping OAuth preflight for client {client_info.client_id}: {e}',
+                f'Skipping OAuth preflight for client {client_info.client_id}: {type(e).__name__}',
             )
             return True
 
@@ -967,13 +935,12 @@ class OAuthClientManager:
                         )
                     ):
                         log.warning(
-                            f'OAuth client preflight detected invalid registration '
-                            f'for {client_info.client_id}: {error} {error_description}'
+                            f'OAuth client preflight detected invalid registration ' f'for {client_info.client_id}'
                         )
 
                         return False
         except Exception as e:
-            log.debug(f'Skipping OAuth preflight network check for client {client_info.client_id}: {e}')
+            log.debug(f'Skipping OAuth preflight network check for client {client_info.client_id}: {type(e).__name__}')
 
         return True
 
@@ -1036,7 +1003,7 @@ class OAuthClientManager:
             return session.token
 
         except Exception as e:
-            log.error(f'Error getting OAuth token for user {user_id}: {e}')
+            log.error(f'Error getting OAuth token for user {user_id}: {type(e).__name__}')
             return None
 
     async def _refresh_token(self, session) -> dict:
@@ -1063,7 +1030,7 @@ class OAuthClientManager:
                 return None
 
         except Exception as e:
-            log.error(f'Error refreshing token for session {session.id}: {e}')
+            log.error(f'Error refreshing token for session {session.id}: {type(e).__name__}')
             return None
 
     async def _perform_token_refresh(self, session: OAuthSessionModel) -> dict[str, object] | None:
@@ -1137,12 +1104,11 @@ class OAuthClientManager:
                         log.debug(f'Token refresh successful for client_id {client_id}')
                         return new_token_data
                     else:
-                        error_text = await r.text()
-                        log.error(f'Token refresh failed for client_id {client_id}: {r.status} - {error_text}')
+                        log.error(f'Token refresh failed for client_id {client_id}: HTTP {r.status}')
                         return None
 
         except Exception as e:
-            log.error(f'Exception during token refresh for client_id {client_id}: {e}')
+            log.error(f'Exception during token refresh for client_id {client_id}: {type(e).__name__}')
             return None
 
     async def handle_authorize(self, request, client_id: str) -> RedirectResponse:
@@ -1167,7 +1133,7 @@ class OAuthClientManager:
             # authorization endpoint could not be resolved from server metadata.
             # Surface a clear 400 instead of an uncaught 500 for clients that were
             # registered before discovery was validated. (#26647)
-            log.error(f'OAuth authorize failed for client {client_id}: {e}')
+            log.error(f'OAuth authorize failed for client {client_id}: {type(e).__name__}')
             raise HTTPException(
                 status_code=400,
                 detail=(
@@ -1198,9 +1164,8 @@ class OAuthClientManager:
             # Validate that we received a proper token response
             # If token exchange failed (e.g., 401), we may get an error response instead
             if token and not token.get('access_token'):
-                error_desc = token.get('error_description', token.get('error', 'Unknown error'))
-                error_message = f'Token exchange failed: {error_desc}'
-                log.error(f'Invalid token response for client_id {client_id}: {token}')
+                error_message = 'OAuth token exchange failed; retry sign-in or contact support'
+                log.error('Invalid token response for client_id %s', client_id)
                 token = None
 
             if token:
@@ -1217,7 +1182,7 @@ class OAuthClientManager:
                     log.info(f'Stored OAuth session server-side for user {user_id}, client_id {client_id}')
                 except Exception as e:
                     error_message = 'Failed to store OAuth session server-side'
-                    log.error(f'Failed to store OAuth session server-side: {e}')
+                    log.error(f'Failed to store OAuth session server-side: {type(e).__name__}')
             else:
                 if not error_message:
                     error_message = 'Failed to obtain OAuth token'
@@ -1225,11 +1190,10 @@ class OAuthClientManager:
         except Exception as e:
             error_message = _build_oauth_callback_error_message(e)
             log.warning(
-                'OAuth callback error for user_id=%s client_id=%s: %s',
+                'OAuth callback error for user_id=%s client_id=%s (%s)',
                 user_id,
                 client_id,
-                error_message,
-                exc_info=True,
+                type(e).__name__,
             )
 
         webui_url = await Config.get('webui.url')
@@ -1321,7 +1285,7 @@ class OAuthManager:
             return session.token
 
         except Exception as e:
-            log.error(f'Error getting OAuth token for user {user_id}: {e}')
+            log.error(f'Error getting OAuth token for user {user_id}: {type(e).__name__}')
             return None
 
     async def _refresh_token(self, session) -> dict:
@@ -1348,7 +1312,7 @@ class OAuthManager:
                 return None
 
         except Exception as e:
-            log.error(f'Error refreshing token for session {session.id}: {e}')
+            log.error(f'Error refreshing token for session {session.id}: {type(e).__name__}')
             return None
 
     async def _perform_token_refresh(self, session: OAuthSessionModel) -> dict[str, object] | None:
@@ -1426,12 +1390,11 @@ class OAuthManager:
                         log.debug(f'Token refresh successful for provider {provider}')
                         return new_token_data
                     else:
-                        error_text = await r.text()
-                        log.error(f'Token refresh failed for provider {provider}: {r.status} - {error_text}')
+                        log.error(f'Token refresh failed for provider {provider}: HTTP {r.status}')
                         return None
 
         except Exception as e:
-            log.error(f'Exception during token refresh for provider {provider}: {e}')
+            log.error(f'Exception during token refresh for provider {provider}: {type(e).__name__}')
             return None
 
     async def get_user_role(self, user: UserModel | None, user_data: UserInfo) -> str:
@@ -1461,7 +1424,7 @@ class OAuthManager:
             oauth_roles = await _read_role_claims(oauth_admin_roles, oauth_allowed_roles, oauth_claim, user_data)
 
             log.debug(f'Oauth Roles claim: {oauth_claim}')
-            log.debug(f'User roles from oauth: {oauth_roles}')
+            log.debug('OAuth role claims received')
             log.debug(f'Accepted user roles: {oauth_allowed_roles}')
             log.debug(f'Accepted admin roles: {oauth_admin_roles}')
 
@@ -1491,7 +1454,7 @@ class OAuthManager:
         try:
             blocked_groups = json.loads(auth_config.OAUTH_BLOCKED_GROUPS)
         except Exception as e:
-            log.exception(f'Error loading OAUTH_BLOCKED_GROUPS: {e}')
+            log.error(f'Error loading OAUTH_BLOCKED_GROUPS: {type(e).__name__}')
             blocked_groups = []
 
         user_oauth_groups = await _read_group_claims(oauth_claim, user_data)
@@ -1504,9 +1467,9 @@ class OAuthManager:
         )
 
         log.debug(f'Oauth Groups claim: {oauth_claim}')
-        log.debug(f'User oauth groups: {user_oauth_groups}')
-        log.debug(f"User's current groups: {[g.name for g in user_current_groups]}")
-        log.debug(f'All groups available in Airis: {[g.name for g in all_available_groups]}')
+        log.debug('OAuth group claims received')
+        log.debug('Loaded current user groups')
+        log.debug('Loaded available groups')
 
         # Remove groups that user is no longer a part of
         for group_model in user_current_groups:
@@ -1516,7 +1479,7 @@ class OAuthManager:
                 and not is_in_blocked_groups(group_model.name, blocked_groups)
             ):
                 # Remove group from user
-                log.debug(f'Removing user from group {group_model.name} as it is no longer in their oauth groups')
+                log.debug('Removing user from group absent in OAuth claims')
                 await Groups.remove_users_from_group(group_model.id, [user.id], db=db)
 
                 # In case a group is created, but perms are never assigned to the group by hitting "save"
@@ -1544,7 +1507,7 @@ class OAuthManager:
                 and not is_in_blocked_groups(group_model.name, blocked_groups)
             ):
                 # Add user to group
-                log.debug(f'Adding user to group {group_model.name} as it was found in their oauth groups')
+                log.debug('Adding user to group present in OAuth claims')
 
                 await Groups.add_users_to_group(group_model.id, [user.id], db=db)
 
@@ -1601,16 +1564,13 @@ class OAuthManager:
                         try:
                             return validate_profile_image_url(f'data:{upstream_mime};base64,{base64_encoded_picture}')
                         except ValueError:
-                            log.warning(
-                                f'Rejected OAuth profile picture from {picture_url}: '
-                                f'MIME {upstream_mime!r} is not allowed'
-                            )
+                            log.warning('Rejected OAuth profile picture: MIME is not allowed')
                             return '/user.png'
                     else:
-                        log.warning(f'Failed to fetch profile picture from {picture_url}')
+                        log.warning('Failed to fetch OAuth profile picture')
                         return '/user.png'
         except Exception as e:
-            log.error(f"Error processing profile picture '{picture_url}': {e}")
+            log.error('Error processing OAuth profile picture (%s)', type(e).__name__)
             return '/user.png'
 
     async def handle_login(self, request, provider):
@@ -1660,7 +1620,7 @@ class OAuthManager:
             sub_claim = auth_config.OAUTH_SUB_CLAIM or OAUTH_PROVIDERS[provider].get('sub_claim', 'sub')
             sub = user_data.get(sub_claim)
             if not sub:
-                log.warning(f'OAuth callback failed, sub is missing: {user_data}')
+                log.warning('OAuth callback failed: subject is missing')
                 raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
 
             oauth_data = {}
@@ -1693,7 +1653,7 @@ class OAuthManager:
                 )
 
         except Exception as e:
-            log.error(f'Error during OAuth process: {e}')
+            log.error(f'Error during OAuth process: {type(e).__name__}')
             error_message = (
                 e.detail
                 if isinstance(e, HTTPException) and e.detail
@@ -1746,7 +1706,7 @@ class OAuthManager:
         )
 
         if not matched_provider or not matched_client_id or not matched_jwks_uri:
-            log.warning(f'Back-channel logout: no configured provider matches issuer {token_issuer}')
+            log.warning('Back-channel logout: no configured provider matches issuer')
             return JSONResponse(
                 status_code=400,
                 content={
@@ -1771,13 +1731,13 @@ class OAuthManager:
                 },
             )
         except pyjwt.InvalidTokenError as e:
-            log.warning(f'Back-channel logout: invalid logout_token: {e}')
+            log.warning(f'Back-channel logout: invalid logout_token: {type(e).__name__}')
             return JSONResponse(
                 status_code=400,
-                content={'error': 'invalid_request', 'error_description': f'Invalid logout_token: {e}'},
+                content={'error': 'invalid_request', 'error_description': 'Invalid logout_token'},
             )
         except Exception as e:
-            log.error(f'Back-channel logout: error validating logout_token: {e}')
+            log.error(f'Back-channel logout: error validating logout_token: {type(e).__name__}')
             return JSONResponse(
                 status_code=400,
                 content={'error': 'invalid_request', 'error_description': 'Failed to validate logout_token'},
@@ -1827,7 +1787,7 @@ async def _revoke_logout_sessions(
 
         log.info(
             f'Back-channel logout: revoked sessions for user {user.id} '
-            f'(email={user.email}, provider={matched_provider}, sessions_deleted={len(sessions)})'
+            f'(provider={matched_provider}, sessions_deleted={len(sessions)})'
         )
     return revoked_count
 
@@ -1914,7 +1874,7 @@ async def _find_logout_provider(
                 matched_issuer = provider_issuer
                 break
         except Exception as e:
-            log.debug(f'Back-channel logout: error checking provider {provider_name}: {e}')
+            log.debug(f'Back-channel logout: error checking provider {provider_name}: {type(e).__name__}')
             continue
     return matched_provider, matched_client_id, matched_jwks_uri, matched_issuer
 
@@ -1944,7 +1904,7 @@ async def _update_login_email(
             if new_email and new_email.lower() != user.email.lower():
                 existing_user = await Users.get_user_by_email(new_email, db=db)
                 if existing_user:
-                    log.error(f'Cannot update email to {new_email} for user {user.id} because it is already taken.')
+                    log.error(f'Cannot update email for user {user.id}: address is already taken.')
                 else:
                     await Auths.update_email_by_id(user.id, new_email.lower(), db=db)
                     user.email = new_email.lower()
@@ -1974,7 +1934,7 @@ async def _update_login_profile(
             if new_name and new_name != user.name:
                 await Users.update_user_by_id(user.id, {'name': new_name}, db=db)
                 user.name = new_name
-                log.debug(f'Updated name for user {user.email}')
+                log.debug(f'Updated name for user {user.id}')
 
     await _update_login_email(auth_config, db, user, user_data)
 
@@ -1989,7 +1949,7 @@ async def _update_login_profile(
             processed_picture_url = await self._process_picture_url(new_picture_url, token.get('access_token'))
             if processed_picture_url != user.profile_image_url:
                 await Users.update_user_profile_image_url_by_id(user.id, processed_picture_url, db=db)
-                log.debug(f'Updated profile picture for user {user.email}')
+                log.debug(f'Updated profile picture for user {user.id}')
 
 
 async def _read_login_email(
@@ -2028,18 +1988,18 @@ async def _read_login_email(
                             log.warning('Failed to fetch GitHub email')
                             raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
             except Exception as e:
-                log.warning(f'Error fetching GitHub email: {e}')
+                log.warning(f'Error fetching GitHub email: {type(e).__name__}')
                 raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
         elif ENABLE_OAUTH_EMAIL_FALLBACK:
             email = f'{provider}@{sub}.local'
         else:
-            log.warning(f'OAuth callback failed, email is missing: {user_data}')
+            log.warning('OAuth callback failed: email is missing')
             raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
 
     email = email.lower()
     # If allowed domains are configured, check if the email domain is in the list
     if '*' not in auth_config.OAUTH_ALLOWED_DOMAINS and email.split('@')[-1] not in auth_config.OAUTH_ALLOWED_DOMAINS:
-        log.warning(f'OAuth callback failed, e-mail domain is not in the list of allowed domains: {user_data}')
+        log.warning('OAuth callback failed: email domain is not allowed')
         raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
     return email
 
@@ -2069,7 +2029,7 @@ async def _read_login_claims(
     if provider == 'yandex':
         user_data = normalize_yandex_userinfo(user_data)
     if not user_data:
-        log.warning(f'OAuth callback failed, user data is missing: {token}')
+        log.warning('OAuth callback failed: user data is missing')
         raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
     return user_data
 
@@ -2092,21 +2052,17 @@ async def _exchange_login_token(
         try:
             token = await client.authorize_access_token(request, **auth_params)
         except Exception as retry_exc:
-            detailed_error = _build_oauth_callback_error_message(retry_exc)
             log.warning(
                 'OAuth callback error during authorize_access_token retry for provider %s: %s',
                 provider,
-                detailed_error,
-                exc_info=True,
+                type(retry_exc).__name__,
             )
             raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
     except Exception as e:
-        detailed_error = _build_oauth_callback_error_message(e)
         log.warning(
             'OAuth callback error during authorize_access_token for provider %s: %s',
             provider,
-            detailed_error,
-            exc_info=True,
+            type(e).__name__,
         )
         raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
     return token
@@ -2132,7 +2088,7 @@ async def _create_missing_groups(
 
         for group_name in user_oauth_groups:
             if group_name not in all_group_names:
-                log.info(f"Group '{group_name}' not found via OAuth claim. Creating group...")
+                log.info('Creating missing OAuth group')
                 try:
                     new_group_form = GroupForm(
                         name=group_name,
@@ -2144,16 +2100,16 @@ async def _create_missing_groups(
                     created_group = await Groups.insert_new_group(creator_id, new_group_form, db=db)
                     if created_group:
                         log.info(
-                            f"Successfully created group '{group_name}' with ID "
-                            f"{created_group.id} using creator ID {creator_id}"
+                            f'Successfully created OAuth group with ID '
+                            f'{created_group.id} using creator ID {creator_id}'
                         )
                         groups_created = True
                         # Add to local set to prevent duplicate creation attempts in this run
                         all_group_names.add(group_name)
                     else:
-                        log.error(f"Failed to create group '{group_name}' via OAuth.")
+                        log.error('Failed to create OAuth group')
                 except Exception as e:
-                    log.error(f"Error creating group '{group_name}' via OAuth: {e}")
+                    log.error('Error creating OAuth group (%s)', type(e).__name__)
 
         # Refresh the list of all available groups if any were created
         if groups_created:
@@ -2204,10 +2160,7 @@ async def _match_role_claims(
                 matched = True
                 break
         if not matched:
-            log.warning(
-                f'OAuth role management enabled but user roles do not match any allowed/admin roles. '
-                f'User roles: {oauth_roles}, allowed: {oauth_allowed_roles}, admin: {oauth_admin_roles}'
-            )
+            log.warning('OAuth role claims do not match any allowed or admin role')
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN,
                 detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
@@ -2294,7 +2247,7 @@ async def _discover_registration_metadata(
 
                         break
                     except Exception as e:
-                        log.error(f'Error parsing OAuth metadata from {url}: {e}')
+                        log.error(f'Error parsing OAuth metadata from {url}: {type(e).__name__}')
                         continue
     return oauth_server_metadata, oauth_server_metadata_url
 
@@ -2305,7 +2258,7 @@ async def _read_logout_issuer(logout_token: str, pyjwt: ModuleType) -> tuple[str
         unverified_claims = pyjwt.decode(logout_token, options={'verify_signature': False})
         token_issuer = unverified_claims.get('iss')
     except Exception as e:
-        log.warning(f'Back-channel logout: cannot decode logout_token: {e}')
+        log.warning(f'Back-channel logout: cannot decode logout_token: {type(e).__name__}')
         return None, JSONResponse(
             status_code=400,
             content={'error': 'invalid_request', 'error_description': 'Malformed logout_token'},
@@ -2391,7 +2344,7 @@ async def _set_login_cookies_and_session(
         else:
             log.warning(f'Failed to create OAuth session for user {user.id}, provider {provider}')
     except Exception as e:
-        log.error(f'Failed to store OAuth session server-side: {e}')
+        log.error(f'Failed to store OAuth session server-side: {type(e).__name__}')
 
 
 async def _resolve_login_user(
@@ -2490,9 +2443,9 @@ async def _lookup_logout_users(
             users_to_logout.append(user)
 
     if not users_to_logout and sid:
-        log.debug(f'Back-channel logout: no user found by sub, sid-based lookup not yet supported (sid={sid})')
+        log.debug('Back-channel logout: subject not found; session lookup is unsupported')
 
     if not users_to_logout:
-        log.debug(f'Back-channel logout: no matching user for provider={matched_provider}, sub={sub}, sid={sid}')
+        log.debug('Back-channel logout: no matching user for provider %s', matched_provider)
         return []
     return users_to_logout
