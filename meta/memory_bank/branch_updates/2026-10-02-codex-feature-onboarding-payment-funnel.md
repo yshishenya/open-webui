@@ -1,0 +1,6 @@
+- [ ] **[FEATURE][REPORT]** Add mature payment attempt conversion to registration report
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__feature__onboarding-payment-funnel.md`
+  - Owner: Codex
+  - Branch: `codex/feature/onboarding-payment-funnel`
+  - Started: 2026-10-02
+  - Summary: Aggregate created attempts and exact applied credit using existing protected report; preserve unknown cancellation causes and snapshot limits.
