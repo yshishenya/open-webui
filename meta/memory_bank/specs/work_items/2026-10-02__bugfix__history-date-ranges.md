@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: codex/bugfix/history-date-ranges
 - SDD Spec: N/A (a local correction in the existing date classification helper; no new subsystem)
@@ -23,7 +23,7 @@ The common history helper detects Yesterday only when month/year are unchanged. 
 - [x] Future calendar days do not enter a previous-period group.
 - [x] Preserve all other existing labels and rolling 7/30-day boundaries.
 - [x] Docker tests, changed-file format/lint and exact diagnostic delta accepted.
-- [ ] Source CI/merge and candidate/live acceptance recorded separately.
+- [x] Source CI/merge and candidate/live acceptance recorded separately.
 
 ## Scope / Upstream Impact
 
@@ -39,4 +39,10 @@ Unknown is an existing translated key; missing dates should no longer masquerade
 
 ## Source verification
 
-Actual former initializer: 10 failing cases and 8 passing controls. Corrected helper: 18/18 in America/New_York and Europe/Istanbul, full Docker frontend 189/189. Changed-file Prettier/ESLint passed. Full strict 4722→4721 errors, 215 warnings retained; full ESLint 1601 retained. Zero new untouched/changed-file diagnostic messages and zero new lint messages. An initial test teardown returned the Vitest utility instead of void; strict check caught it and the final teardown uses a block, with the full suite and check repeated. Notes updated_at is a required integer; its existing nanosecond conversion is preserved. Source CI/merge and deployment remain pending.
+Actual former initializer: 10 failing cases and 8 passing controls. Corrected helper: 18/18 in America/New_York and Europe/Istanbul, full Docker frontend 189/189. Changed-file Prettier/ESLint passed. Full strict 4722→4721 errors, 215 warnings retained; full ESLint 1601 retained. Zero new untouched/changed-file diagnostic messages and zero new lint messages. An initial test teardown returned the Vitest utility instead of void; strict check caught it and the final teardown uses a block, with the full suite and check repeated. Notes updated_at is a required integer; its existing nanosecond conversion is preserved. Source CI/merge and deployment accepted below.
+
+## Accepted delivery
+
+PR173 accepted source `dcbf76a0f346f0a9433a64183d2f4e457dfda00e`, merge `af10a87956c01c0ca2bdaf040c7bc3ee8523b2a3`; all 12 observed statuses satisfied (dependency-review skipped, CodeRabbit review skipped). Self-review completed; no human review claimed. The frozen candidate passed 12 wallet/free-quota/recovery/guide browser cases and a real sidebar check with controlled calendar and synthetic chat responses: Yesterday across the month boundary, Unknown for missing timestamp and November for a future date. The private fixture explicitly opens the sidebar and returns an empty later page.
+
+The checksum-verified existing official Node22.23.3 macOS runtime built the exact source; Docker ran all code/browser checks. Frozen and live frontend matched all 5757 file hashes. Backend476 immutable files, configuration and 16 neighboring container IDs retained; health/restarts0 accepted. No migration/configuration behavior change. Full global strict/lint failures remain open (4721/215 and1601).
