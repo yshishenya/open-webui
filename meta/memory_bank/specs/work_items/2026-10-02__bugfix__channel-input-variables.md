@@ -18,10 +18,10 @@ Channel text insertion searches browser `prompt` instead of the editor content. 
 
 - [x] Trace every helper call and all channel insertion paths before editing.
 - [x] Reproduce the wrong scroll branch using the actual handler and parser (two failing cases, three passing controls).
-- [ ] Inspect current editor content after insertion and variable handling; preserve chat behavior.
-- [ ] Declare concrete helper and changed handler contracts without suppression or dependencies.
-- [ ] Regression cases pass for insertion, command replacement and variable resolution in channel and chat.
-- [ ] Docker frontend tests, formatting, lint delta and strict diagnostic delta recorded.
+- [x] Inspect current editor content after insertion and variable handling; preserve chat behavior.
+- [x] Declare concrete helper and changed handler contracts without suppression or dependencies.
+- [x] Regression cases pass for insertion, command replacement and variable resolution in channel and chat.
+- [x] Docker frontend tests, formatting, lint delta and strict diagnostic delta recorded.
 - [ ] Exact-source CI/merge accepted; production acceptance remains a separate release gate.
 
 ## Scope / Upstream Impact
@@ -35,3 +35,7 @@ Docker Compose frontend tests and svelte-check; Prettier and changed-file ESLint
 ## Risks / Rollback
 
 Low: content must reflect the editor's onChange updates before inspection. Existing tick boundaries are preserved. Revert this source change; no configuration or database changes.
+
+## Local acceptance
+
+Combined source based on accepted PR170 merge118593fea32ea3aa93742fe79e71e08c1fbc8be3: Docker171/171, regression5/5, Prettier passed. Strict check4730→4729 errors with217 warnings unchanged; ESLint1621→1620 errors/0 warnings. No new untouched-file or test diagnostics and no new lint message. Existing channel lint19 errors remain. Full strict/lint gates stay open. Shared types SDD212 completion is included as documentation of the already accepted PR170.

@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: codex/bugfix/shared-utility-types
-- SDD Spec: meta/sdd/specs/active/airis-shared-utility-types-2026-10-02-212.json
+- SDD Spec: meta/sdd/specs/completed/airis-shared-utility-types-2026-10-02-212.json
 - Created: 2026-10-02
 - Updated: 2026-10-02
 
@@ -16,12 +16,12 @@ Strict checking loses the contracts of existing shared helpers: recursive clipbo
 
 ## Goal / Acceptance Criteria
 
-- [ ] Existing callers and strict diagnostics reviewed before editing.
-- [ ] Changed helpers declare concrete inputs/outputs; no new any, rule suppression or dependency.
-- [ ] TypeScript-erased JavaScript is byte-identical after exactly three lint-only cleanups: an unused path binding/argument removed and an unreassigned array declared const.
-- [ ] Changed contracts compile correctly and reduce the diagnostic set, with no new caller diagnostics.
-- [ ] Docker frontend tests pass; strict check and lint results are recorded without claiming the remaining baseline is green.
-- [ ] Exact-source CI and merge into airis_b2c accepted; private plan/matrix updated.
+- [x] Existing callers and strict diagnostics reviewed before editing.
+- [x] Changed helpers declare concrete inputs/outputs; no new any, rule suppression or dependency.
+- [x] TypeScript-erased JavaScript is byte-identical after exactly three lint-only cleanups: an unused path binding/argument removed and an unreassigned array declared const.
+- [x] Changed contracts compile correctly and reduce the diagnostic set, with no new caller diagnostics.
+- [x] Docker frontend tests pass; strict check and lint results are recorded without claiming the remaining baseline is green.
+- [x] Exact-source CI and merge into airis_b2c accepted; private plan/matrix updated.
 
 ## Implementation / Scope
 
@@ -50,3 +50,7 @@ A narrower signature can expose real incompatible callers; compare the full diag
 ## Current verification
 
 Docker frontend166/166 passed; changed-file ESLint0 errors. Full strict check4730 errors/217 warnings, down from4783/217; shared module120→80 errors. No new diagnostic locations in untouched files. Two existing nullable/never-array errors show a more precise inferred specs type; their positions and causes are unchanged. The incomplete intermediate log is excluded from final counts. Compiler regression proof rejects the old clipboard any return and accepts six exported contracts. Emitted code matches after the three explicit lint cleanups; no other runtime change. Existing baseline and final consolidated runtime release remain open.
+
+## Accepted source
+
+PR170 accepted on b174357f60c7217df9b385d2542ff7b897eba6c4; merge118593fea32ea3aa93742fe79e71e08c1fbc8be3. All12 observed statuses satisfied, dependency review skipped; CodeRabbit review skipped rather than human-reviewed. SDD212 completed3/3. Full ESLint1621 errors/0 warnings; utility file clean. Private plan/matrix reflect the same open global checks and unchanged production.

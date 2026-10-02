@@ -22,13 +22,13 @@ const initializer = (path: string, name: string): string => {
 	throw new Error(`Missing ${name} in ${path}`);
 };
 
-it.each([
+it.each<['channel' | 'chat', boolean, string, string, boolean]>([
 	['channel', false, 'Before {{ NAME }}', ' + text', false],
 	['channel', true, '/task', '{{ NAME }}', false],
 	['channel', false, 'Before', '{{ NAME }}', true],
 	['chat', false, 'Before {{ NAME }}', ' + text', false],
 	['chat', true, '/task', '{{ NAME }}', false]
-] as const)(
+])(
 	'uses current %s editor text (command=%s, initial=%s, insertion=%s, resolve=%s)',
 	async (kind, command, initial, inserted, resolve) => {
 		const input = { scrollTop: 3, scrollHeight: 100, focus: vi.fn(), dispatchEvent: vi.fn() };

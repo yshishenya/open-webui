@@ -4,5 +4,5 @@
   - Branch: `codex/bugfix/channel-input-variables`
   - Started: 2026-10-02
   - Summary: Replace the accidental browser prompt reference with current editor content; type the existing parser.
-  - Tests: Two channel failures reproduced; three channel/chat controls passed before the fix. Docker final checks pending.
+  - Tests: Two channel failures reproduced; three channel/chat controls passed before the fix. Combined source Docker171/171 passed, strict4730→4729/217, lint1621→1620; zero new diagnostics. Exact-head CI and merge pending.
   - Risks: Existing editor update/tick boundaries must remain intact; production acceptance separate.
