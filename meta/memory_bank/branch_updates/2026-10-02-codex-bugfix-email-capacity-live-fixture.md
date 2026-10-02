@@ -1,0 +1,7 @@
+- [x] **[BUG][TEST]** Make mail capacity and priority checks independent of runtime port and elapsed setup
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__email-capacity-live-fixture.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/email-capacity-live-fixture`
+  - Done: 2026-10-02
+  - Summary: Pin synthetic SMTP port and claim at the current time after reconciliation; close verified daily-capacity release documentation.
+  - Tests: Full backend613 passed/3 skips; PostgreSQL queue33 passed; isolated live queue32 passed/1 skip; runtime unchanged.

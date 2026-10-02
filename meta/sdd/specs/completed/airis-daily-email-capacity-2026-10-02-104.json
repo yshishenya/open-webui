@@ -2,7 +2,7 @@
 	"spec_id": "airis-daily-email-capacity-2026-10-02-104",
 	"title": "AIRIS daily email capacity",
 	"generated": "2026-10-02T07:45:39.158521Z",
-	"last_updated": "2026-10-02T07:54:36.409918Z",
+	"last_updated": "2026-10-02T08:47:05.103304Z",
 	"metadata": {
 		"template": "medium",
 		"complexity": "medium",
@@ -10,20 +10,21 @@
 		"estimated_hours": 24,
 		"security_sensitive": false,
 		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__email-daily-capacity.md",
-		"status": "active",
+		"status": "completed",
 		"activated_date": "2026-10-02T07:46:47.473969Z",
-		"progress_percentage": 66,
-		"current_phase": "phase-2"
+		"progress_percentage": 100,
+		"current_phase": "phase-3",
+		"completed_date": "2026-10-02T08:47:05.102528Z"
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
 			"title": "AIRIS daily email capacity",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2", "phase-3"],
 			"total_tasks": 6,
-			"completed_tasks": 4,
+			"completed_tasks": 6,
 			"metadata": {}
 		},
 		"phase-1": {
@@ -57,12 +58,16 @@
 		"phase-3": {
 			"type": "phase",
 			"title": "Verify and release",
-			"status": "pending",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-3-1", "task-3-2"],
 			"total_tasks": 2,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T08:47:04.310140Z",
+				"journaled_at": "2026-10-02T08:47:04.313327Z"
+			}
 		},
 		"task-1-1": {
 			"type": "task",
@@ -147,32 +152,42 @@
 		"task-3-1": {
 			"type": "task",
 			"title": "Source/image/PostgreSQL/CI and rollback checks",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-3",
 			"children": [],
 			"total_tasks": 1,
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"dependencies": {
 				"blocks": [],
 				"blocked_by": [],
 				"depends": []
 			},
-			"metadata": {}
+			"metadata": {
+				"completed_at": "2026-10-02T08:47:03.951104Z",
+				"needs_journaling": false,
+				"status_note": "Frozen source/image613 passed/3 skips; PostgreSQL89 passed; required CI passed; database copy and rollback71 tables/15282 rows preserved.",
+				"journaled_at": "2026-10-02T08:47:03.953612Z"
+			}
 		},
 		"task-3-2": {
 			"type": "task",
 			"title": "Guarded rollout and isolated live checks",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-3",
 			"children": [],
 			"total_tasks": 1,
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"dependencies": {
 				"blocks": [],
 				"blocked_by": [],
 				"depends": []
 			},
-			"metadata": {}
+			"metadata": {
+				"completed_at": "2026-10-02T08:47:04.309885Z",
+				"needs_journaling": false,
+				"status_note": "Guarded release passed; live416 backend/7006 frontend hashes match; queue32 passed/1 PG-only skip on isolated live SQLite; day100/50, preserved controls and15 neighbors; no real mail; pilot remains separate.",
+				"journaled_at": "2026-10-02T08:47:04.311536Z"
+			}
 		}
 	},
 	"journal": [
@@ -229,6 +244,33 @@
 			"content": "All child tasks in phase phase-2 have been completed.",
 			"metadata": {},
 			"task_id": "phase-2"
+		},
+		{
+			"timestamp": "2026-10-02T08:47:03.953601Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Source/image/PostgreSQL/CI and rollback checks",
+			"author": "Codex",
+			"content": "Task task-3-1 marked as completed. \nNote: Frozen source/image613 passed/3 skips; PostgreSQL89 passed; required CI passed; database copy and rollback71 tables/15282 rows preserved.",
+			"metadata": {},
+			"task_id": "task-3-1"
+		},
+		{
+			"timestamp": "2026-10-02T08:47:04.311522Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Guarded rollout and isolated live checks",
+			"author": "Codex",
+			"content": "Task task-3-2 marked as completed. \nNote: Guarded release passed; live416 backend/7006 frontend hashes match; queue32 passed/1 PG-only skip on isolated live SQLite; day100/50, preserved controls and15 neighbors; no real mail; pilot remains separate.",
+			"metadata": {},
+			"task_id": "task-3-2"
+		},
+		{
+			"timestamp": "2026-10-02T08:47:04.313321Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify and release",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-3 have been completed.",
+			"metadata": {},
+			"task_id": "phase-3"
 		}
 	]
 }

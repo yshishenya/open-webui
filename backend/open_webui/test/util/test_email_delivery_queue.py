@@ -347,6 +347,7 @@ async def test_atomic_daily_and_minute_capacity_survives_cleanup_and_restart(
         assert sum(row.product for row in rows if row.transport_key.endswith(':day')) == 4
     # A fresh direct sender shares the persisted daily counter.
     service = email.EmailService()
+    service.smtp_port = 25
     service.smtp_host, service.smtp_username, service.smtp_password = 'smtp.invalid', 'test', 'unused'
     service.from_email = 'sender@airis.you'
     smtp = AsyncMock()
@@ -605,7 +606,7 @@ async def test_credited_notice_requires_both_facts_and_has_no_marketing_expiry(
             await db.scalars(select(journal.EmailDelivery).where(journal.EmailDelivery.type == 'topup_credited'))
         ).one()
         assert service.payment_id == 'applied-credit' and service.expires_at is None
-    claimed = await journal.claim_email(now)
+    claimed = await journal.claim_email(int(time.time()))
     assert claimed.id == service.id  # Service precedes older optional work.
     assert await worker.prepare_email(claimed, config())
     async with database() as db:
