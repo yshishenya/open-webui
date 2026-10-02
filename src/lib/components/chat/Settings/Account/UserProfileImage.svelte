@@ -16,7 +16,7 @@
 	export let variant = 'default';
 	export let displayName = '';
 
-	let profileImageInputElement;
+	let profileImageInputElement: HTMLInputElement;
 </script>
 
 <input
@@ -25,18 +25,23 @@
 	type="file"
 	hidden
 	accept="image/*"
-	on:change={(e) => {
-		const files = profileImageInputElement.files ?? [];
-		let reader = new FileReader();
-		reader.onload = (event) => {
-			let originalImageUrl = `${event.target.result}`;
+	on:change={(): void => {
+		const file = profileImageInputElement.files?.[0];
+		profileImageInputElement.value = '';
+		const reader = new FileReader();
+		reader.onload = (): void => {
+			const originalImageUrl = String(reader.result);
 
 			const img = new Image();
 			img.src = originalImageUrl;
 
-			img.onload = function () {
+			img.onload = function (): void {
 				const canvas = document.createElement('canvas');
 				const ctx = canvas.getContext('2d');
+				if (!ctx) {
+					toast.error($i18n.t('Failed to upload file.'));
+					return;
+				}
 
 				// Calculate the aspect ratio of the image
 				const aspectRatio = img.width / img.height;
@@ -67,16 +72,11 @@
 
 				// Display the compressed image
 				profileImageUrl = compressedSrc;
-
-				profileImageInputElement.files = null;
 			};
 		};
 
-		if (
-			files.length > 0 &&
-			['image/gif', 'image/webp', 'image/jpeg', 'image/png'].includes(files[0]['type'])
-		) {
-			reader.readAsDataURL(files[0]);
+		if (file && ['image/gif', 'image/webp', 'image/jpeg', 'image/png'].includes(file.type)) {
+			reader.readAsDataURL(file);
 		}
 	}}
 />
