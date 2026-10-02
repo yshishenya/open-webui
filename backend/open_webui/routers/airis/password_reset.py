@@ -38,7 +38,7 @@ class ResendVerificationForm(BaseModel):
 
 
 @router.get("/verify-email")
-async def verify_email(token: str, db: AsyncSession = Depends(get_async_session)):
+async def verify_email(token: str, db: AsyncSession = Depends(get_async_session)) -> dict[str, object]:
     """Verify email address using verification token.
 
     This endpoint is called when user clicks the verification link in their email.
@@ -64,11 +64,15 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_async_session)
             detail="User not found",
         )
 
-    await Users.update_user_by_id(user.id, {"email_verified": True}, db=db)
+    verified = await Users.update_user_by_id(
+        user.id, {'email_verified': True}, db=db, expected_email=token_record.email
+    )
+    if not verified:
+        raise HTTPException(status_code=400, detail='Invalid or expired verification token')
     await EmailVerificationTokens.delete_token_by_id(token_record.id, db=db)
 
     try:
-        await email_service.send_welcome_email(user.email, user.name)
+        await email_service.send_welcome_email(user.id)
     except Exception as e:
         log.error(f"Failed to send welcome email to {user.email}: {e}")
 

@@ -664,13 +664,33 @@ class UsersTable:
             await session.commit()
             return UserModel.model_validate(user)
 
-    async def update_user_by_id(self, id: str, updated: dict, db: AsyncSession | None = None) -> UserModel | None:
+    async def update_user_by_id(
+        self,
+        id: str,
+        updated: dict[str, object],
+        db: AsyncSession | None = None,
+        *,
+        expected_email: str | None = None,
+    ) -> UserModel | None:
         async with get_async_db_context(db) as session:
-            user = await session.get(User, id)
-            if not user:
+            user = await session.scalar(
+                select(User).where(User.id == id).with_for_update().execution_options(populate_existing=True)
+            )
+            if not user or (expected_email is not None and user.email.lower() != expected_email.lower()):
                 return None
+            address_changed = 'email' in updated and str(updated['email']).strip().lower() != user.email.lower()
+            if address_changed:
+                from open_webui.models.auths import Auth
+                from open_webui.models.email_preferences import invalidate_product_address
+
+                await invalidate_product_address(session, id, user.email)
+                auth = await session.get(Auth, id)
+                if auth:
+                    auth.email = str(updated['email'])
             for key, value in updated.items():
                 setattr(user, key, value)
+            if address_changed:
+                user.email_verified = False
             await session.commit()
             return UserModel.model_validate(user)
 
@@ -700,6 +720,10 @@ class UsersTable:
             deleted_chats = await Chats.delete_chats_by_user_id(id, db=session)
             if not deleted_chats:
                 return False  # chats deletion failed
+            from open_webui.models.email_preferences import delete_product_preferences
+
+            await session.scalar(select(User).where(User.id == id).with_for_update())
+            await delete_product_preferences(session, id)
             await session.execute(delete(User).where(User.id == id))
             await session.commit()
             return True

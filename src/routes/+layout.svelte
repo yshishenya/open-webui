@@ -1316,7 +1316,7 @@
 
 <svelte:head>
 	{#if isPublicMarketingRoute($page.url.pathname)}
-		<meta name="robots" content="index,follow" />
+		<meta name="robots" content={$page.url.pathname === '/unsubscribe' ? 'noindex,nofollow' : 'index,follow'} />
 	{:else}
 		<meta name="robots" content="noindex,nofollow" />
 		<title>{$WEBUI_NAME}</title>
@@ -1341,8 +1341,10 @@
 	{$i18n.t('Skip to main content')}
 </a>
 
-<AnalyticsBootstrap />
-<AnalyticsConsent />
+{#if $page.url.pathname !== '/unsubscribe'}
+	<AnalyticsBootstrap />
+	<AnalyticsConsent />
+{/if}
 
 {#if showRefresh}
 	<div class=" py-5">

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ProductEmailPreference from '$lib/components/airis/ProductEmailPreference.svelte';
 	import { toast } from 'svelte-sonner';
 	import { onMount, getContext } from 'svelte';
 
@@ -215,6 +216,7 @@
 	<div class="flex-1 min-h-0 w-full overflow-y-auto scrollbar-hover pr-1.5">
 		<h2 class="mb-4 text-sm font-medium text-gray-900 dark:text-white">{$i18n.t('Account')}</h2>
 
+		<ProductEmailPreference />
 		<UserSettingSection title={$i18n.t('Profile')} first>
 			<UserProfileImage
 				bind:profileImageUrl

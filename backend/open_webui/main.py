@@ -849,6 +849,9 @@ from open_webui.routers import airis_analytics, airis_analytics_reports
 
 app.include_router(airis_analytics.router, prefix='/api/v1/analytics', tags=['analytics'])
 app.include_router(airis_analytics_reports.router, prefix='/api/v1/analytics', tags=['analytics'])
+from open_webui.routers.airis import email_preferences
+
+app.include_router(email_preferences.router, prefix='/api/v1/email-preferences', tags=['email-preferences'])
 app.include_router(utils.router, prefix='/api/v1/utils', tags=['utils'])
 app.include_router(terminals.router, prefix='/api/v1/terminals', tags=['terminals'])
 app.include_router(automations.router, prefix='/api/v1/automations', tags=['automations'])

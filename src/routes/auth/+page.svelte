@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ProductEmailChoice from '$lib/components/airis/ProductEmailChoice.svelte';
 	import DOMPurify from 'dompurify';
 	import { marked } from 'marked';
 
@@ -56,6 +57,7 @@
 	let password = '';
 	let confirmPassword = '';
 	let legalAccepted = false;
+	let productEmailsOptIn = false;
 
 	let ldapUsername = '';
 			let panel: 'choice' | 'email' = 'choice';
@@ -158,7 +160,8 @@
 			email,
 			password,
 			generateInitialsImage(name),
-			legalAccepted
+			legalAccepted,
+			productEmailsOptIn
 		).catch((error) => {
 			toast.error(`${error}`);
 			return null;
@@ -1012,6 +1015,10 @@
 															</label>
 														</div>
 												</div>
+											{/if}
+
+											{#if mode === 'signup'}
+												<div class="py-2 text-white/60"><ProductEmailChoice bind:checked={productEmailsOptIn} disabled={submitting} /></div>
 											{/if}
 
 											<button

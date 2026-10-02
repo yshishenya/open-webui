@@ -128,7 +128,7 @@ async def vkid_callback(
     response: Response,
     auth_data: VKIDAuthRequest,
     db: AsyncSession = Depends(get_async_session),
-):
+) -> VKIDAuthResponse:
     """
     Handle VK ID SDK callback with code exchange.
     This endpoint receives the authorization code from VK ID SDK widget
@@ -266,7 +266,7 @@ async def vkid_callback(
 
             if email_service.is_configured():
                 try:
-                    await email_service.send_welcome_email(user.email, user.name)
+                    await email_service.send_welcome_email(user.id)
                 except Exception as e:
                     log.error(f"Failed to send welcome email: {e}")
 
@@ -357,7 +357,7 @@ async def vk_oauth_callback(
     error: Optional[str] = None,
     error_description: Optional[str] = None,
     db: AsyncSession = Depends(get_async_session),
-):
+) -> RedirectResponse:
     """Handle VK OAuth callback"""
 
     # Handle authorization errors
@@ -478,7 +478,7 @@ async def vk_oauth_callback(
             # Send welcome email
             if email_service.is_configured():
                 try:
-                    await email_service.send_welcome_email(user.email, user.name)
+                    await email_service.send_welcome_email(user.id)
                 except Exception as e:
                     log.error(f"Failed to send welcome email to {user.email}: {e}")
 

@@ -95,12 +95,16 @@ class InterceptHandler(logging.Handler):
     and redirects them to Loguru's logger.
     """
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         """
         Called by the standard logging module for each log event.
         It transforms the standard `LogRecord` into a format compatible with Loguru
         and passes it to Loguru's logger.
         """
+        from open_webui.utils.airis.email_log_privacy import redact_email_tokens
+
+        record.msg = redact_email_tokens(record.getMessage())
+        record.args = ()
         try:
             level = logger.level(record.levelname).name
         except ValueError:

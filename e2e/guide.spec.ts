@@ -183,7 +183,8 @@ test('draft survives new account registration', async ({ page }) => {
 		.getByRole('textbox', { name: 'Email', exact: true })
 		.fill(`guide-signup-${Date.now()}@example.com`);
 	await page.getByPlaceholder('Enter Your Password').fill('guide-test-password');
-	await page.getByRole('checkbox').check();
+	await page.locator('#legal-accept').check();
+	await expect(page.getByRole('checkbox', { name: /Хочу получать советы/ })).not.toBeChecked();
 	await page.getByRole('button', { name: 'Create Account', exact: true }).click();
 	await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toContainText(
 		redirect.searchParams.get('q') ?? ''
