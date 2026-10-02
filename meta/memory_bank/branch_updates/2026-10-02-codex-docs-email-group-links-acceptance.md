@@ -1,0 +1,6 @@
+- [x] **[DOCS][EMAIL]** Record grouped-link frozen and live release acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__docs__email-group-links-release-acceptance.md`
+  - Owner: Codex
+  - Branch: `codex/docs/email-group-links-acceptance`
+  - Done: 2026-10-02
+  - Summary: Close implementation SDD3/3 after exact-image614/90, frontend156, database-copy compatibility and guarded live416/7262 hashes. Preserve the independent analytics release and disabled optional mail; real pilot remains open.
