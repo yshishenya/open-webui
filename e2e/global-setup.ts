@@ -80,6 +80,25 @@ const dismissChangelogIfPresent = async (page: import('@playwright/test').Page):
 	await dismissButton.first().click({ timeout: 30_000 }).catch(() => undefined);
 };
 
+const prepareRegistration = async (
+	requestContext: APIRequestContext,
+	token: string
+): Promise<void> => {
+	// First-admin signup closes registration; restore ordinary-user test prerequisites.
+	const headers = { Authorization: `Bearer ${token}` };
+	const response = await requestContext.get('/api/v1/auths/admin/config', { headers });
+	if (!response.ok()) throw new Error(`Read test registration config failed: ${response.status()}`);
+	const config = (await response.json()) as Record<string, unknown>;
+	const updated = await requestContext.post('/api/v1/auths/admin/config', {
+		headers,
+		data: { ...config, ENABLE_SIGNUP: true, DEFAULT_USER_ROLE: 'user' }
+	});
+	if (!updated.ok()) throw new Error(`Prepare test registration failed: ${updated.status()}`);
+	const result = (await updated.json()) as Record<string, unknown>;
+	if (result.ENABLE_SIGNUP !== true || result.DEFAULT_USER_ROLE !== 'user')
+		throw new Error('Test registration prerequisites were not applied');
+};
+
 const globalSetup = async (): Promise<void> => {
 	const requestContext = await request.newContext({ baseURL });
 	await waitForBackend(requestContext);
@@ -139,6 +158,8 @@ const globalSetup = async (): Promise<void> => {
 			throw new Error('User signin failed after signup: missing token in response payload');
 		}
 
+		await prepareRegistration(requestContext, retryToken);
+
 		await fs.mkdir(path.dirname(storageStatePath), { recursive: true });
 		await requestContext.storageState({ path: storageStatePath });
 		await requestContext.dispose();
@@ -166,6 +187,8 @@ const globalSetup = async (): Promise<void> => {
 	if (!token) {
 		throw new Error('User signin failed: missing token in response payload');
 	}
+
+	await prepareRegistration(requestContext, token);
 
 	await fs.mkdir(path.dirname(storageStatePath), { recursive: true });
 	await requestContext.storageState({ path: storageStatePath });

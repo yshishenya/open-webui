@@ -90,15 +90,17 @@ test.describe('Public pages', () => {
 		await expect(page.getByText('≈ —')).toHaveCount(0);
 	});
 
-	test('secondary pages have one path back to the product', async ({ page }) => {
+	test('secondary pages have one path back to the product', async ({ page }): Promise<void> => {
 		for (const path of ['/about', '/contact', '/documents']) {
 			await page.goto(path);
 			await expect(page.locator('a[href="/welcome"]').first()).toBeVisible();
 		}
 		await page.goto('/documents/consent');
-		await expect(page.getByRole('link', { name: 'Документы' })).toHaveAttribute(
-			'href',
-			'/documents'
-		);
+		await expect(
+			page.getByRole('navigation', { name: 'Навигация по странице' }).getByRole('link', {
+				name: 'Документы',
+				exact: true
+			})
+		).toHaveAttribute('href', '/documents');
 	});
 });

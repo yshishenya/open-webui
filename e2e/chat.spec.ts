@@ -42,10 +42,10 @@ const getGenerateImageButton = async (page: Page) => {
 	return imageButton;
 };
 
-const selectFirstModelOrSkip = async (page: Page) => {
+const selectFirstModelOrSkip = async (page: Page): Promise<void> => {
 	await page.getByRole('button', { name: 'Select a model' }).click();
 	const modelItems = await getModelItems(page);
-	const emptyState = page.getByText('No results found');
+	const emptyState = page.getByText(/^(No results found|No models available)$/);
 
 	await Promise.race([
 		modelItems.first().waitFor({ state: 'visible', timeout: 10_000 }),
