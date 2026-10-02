@@ -113,13 +113,17 @@ def record_event(
     )
 
 
-async def preference_for_user(session: AsyncSession, user: User, now: int) -> ProductEmailPreference:
-    preference = await session.get(EmailPreference, user.id, populate_existing=True)
+def evaluate_preference(
+    user: User,
+    preference: EmailPreference | None,
+    auth_active: bool,
+    suppressed: bool = False,
+) -> ProductEmailPreference:
+    """Share the authoritative decision with bulk operational reports."""
     address_hash = email_fingerprint(user.email)
     subscribed = bool(preference and preference.subscribed and preference.email_hash == address_hash)
-    auth = await session.get(Auth, user.id, populate_existing=True)
     reason = 'ready'
-    if user.role not in {'user', 'admin'} or not auth or not auth.active:
+    if user.role not in {'user', 'admin'} or not auth_active:
         reason = 'inactive_account'
     elif not subscribed:
         reason = 'no_consent'
@@ -127,15 +131,7 @@ async def preference_for_user(session: AsyncSession, user: User, now: int) -> Pr
         reason = 'invalid_address'
     elif not user.email_verified:
         reason = 'unverified_address'
-    elif await session.scalar(
-        select(EmailPreferenceEvent.id)
-        .where(
-            EmailPreferenceEvent.email_hash == address_hash,
-            EmailPreferenceEvent.action.in_(['hard_bounce', 'complaint']),
-            EmailPreferenceEvent.created_at >= now - SUPPRESSION_DAYS * 86400,
-        )
-        .limit(1)
-    ):
+    elif suppressed:
         reason = 'suppressed_address'
     return ProductEmailPreference(
         subscribed=subscribed,
@@ -143,6 +139,23 @@ async def preference_for_user(session: AsyncSession, user: User, now: int) -> Pr
         can_receive=reason == 'ready',
         reason=reason,
     )
+
+
+async def preference_for_user(session: AsyncSession, user: User, now: int) -> ProductEmailPreference:
+    preference = await session.get(EmailPreference, user.id, populate_existing=True)
+    auth = await session.get(Auth, user.id, populate_existing=True)
+    result = evaluate_preference(user, preference, bool(auth and auth.active))
+    if result.can_receive and await session.scalar(
+        select(EmailPreferenceEvent.id)
+        .where(
+            EmailPreferenceEvent.email_hash == email_fingerprint(user.email),
+            EmailPreferenceEvent.action.in_(['hard_bounce', 'complaint']),
+            EmailPreferenceEvent.created_at >= now - SUPPRESSION_DAYS * 86400,
+        )
+        .limit(1)
+    ):
+        return evaluate_preference(user, preference, bool(auth and auth.active), suppressed=True)
+    return result
 
 
 async def get_product_preference(user_id: str, db: AsyncSession | None = None) -> ProductEmailPreference:

@@ -1,13 +1,16 @@
 """Restricted operational views of the content-free delivery journal."""
 
+import asyncio
 import logging
 import time
 from typing import Annotated, Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from open_webui.internal.db import get_async_db_context
 from open_webui.models.email_delivery import DeliveryView, EmailDelivery, requeue_email
 from open_webui.models.users import UserModel
+from open_webui.utils.airis.onboarding_report import RegistrationReport, registration_report
 from open_webui.utils.auth import get_admin_user
 from pydantic import BaseModel
 from sqlalchemy import func, select
@@ -30,6 +33,40 @@ class QueueReport(BaseModel):
     total: int
     counts: list[DeliveryCount]
     items: list[DeliveryView]
+
+
+@router.get('/cohorts', response_model=RegistrationReport)
+async def onboarding_cohorts(
+    response: Response,
+    start_at: Annotated[int, Query(ge=1, le=4102444800)],
+    end_at: Annotated[int, Query(ge=1, le=4102444800)],
+    observed_from: Annotated[int, Query(ge=1, le=4102444800)],
+    timezone: Annotated[str, Query(min_length=1, max_length=64)] = 'UTC',
+    exclude_user_id: Annotated[list[str] | None, Query(max_length=1000)] = None,
+    admin: UserModel = Depends(get_admin_user),
+) -> RegistrationReport:
+    """Operational snapshot; observation cutoff and test exclusions must be explicit."""
+    response.headers['Cache-Control'] = 'no-store'
+    now = int(time.time())
+    if end_at <= start_at or end_at - start_at > 366 * 86400 or max(start_at, observed_from) > now:
+        raise HTTPException(422, 'Invalid registration range or observation start')
+    excluded = frozenset(exclude_user_id or [])
+    if any(not value or len(value) > 128 for value in excluded):
+        raise HTTPException(422, 'Invalid test account exclusion')
+    try:
+        zone = ZoneInfo(timezone)
+    except (ZoneInfoNotFoundError, ValueError) as error:
+        raise HTTPException(422, 'Unknown IANA timezone') from error
+    try:
+        return await asyncio.wait_for(
+            registration_report(start_at, end_at, observed_from, now, zone, excluded),
+            timeout=20,
+        )
+    except OverflowError as error:
+        raise HTTPException(422, 'Report exceeds 10000 accounts; narrow the registration range') from error
+    except (SQLAlchemyError, TimeoutError) as error:
+        log.error('Registration report unavailable error_type=%s', type(error).__name__)
+        raise HTTPException(503, 'Registration report temporarily unavailable') from error
 
 
 @router.get('', response_model=QueueReport)
