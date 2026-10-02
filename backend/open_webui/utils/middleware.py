@@ -11,6 +11,7 @@ import re
 import sys
 import textwrap
 import time
+from collections.abc import AsyncIterator
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
 from uuid import uuid4
@@ -139,6 +140,16 @@ from open_webui.utils.tools import (
     get_updated_tool_function,
 )
 from starlette.responses import JSONResponse, Response, StreamingResponse
+
+from open_webui.models.task_success import record_success
+from open_webui.utils.airis.task_success import (
+    CompletionStreamState,
+    completion_checkpoint,
+    displayed_files,
+    message_row_id,
+    response_failed,
+    visible_text,
+)
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)
@@ -3586,7 +3597,7 @@ async def outlet_filter_handler(ctx):
         log.debug(f'Error running outlet filters: {e}')
 
 
-async def non_streaming_chat_response_handler(response, ctx):
+async def non_streaming_chat_response_handler(response: Response | dict, ctx: dict) -> Response | dict:
     request = ctx['request']
 
     user = ctx['user']
@@ -3644,7 +3655,7 @@ async def non_streaming_chat_response_handler(response, ctx):
             response_output = response_data.get('output')
             content = choices[0].get('message', {}).get('content') if choices else ''
 
-            if choices and (content or response_output):
+            if content or response_output:
                 if content or response_output:
                     await event_emitter(
                         {
@@ -3704,6 +3715,13 @@ async def non_streaming_chat_response_handler(response, ctx):
                     # Save message in the database
                     usage = normalize_usage(response_data.get('usage', {}) or {})
 
+                    checkpoint = await completion_checkpoint(
+                        user.id,
+                        metadata,
+                        content,
+                        response_output,
+                        failed=response_failed(response_data) or getattr(response, 'status_code', 200) >= 400,
+                    )
                     if save_to_chat:
                         await Chats.upsert_message_to_chat_by_id_and_message_id(
                             metadata['chat_id'],
@@ -3714,8 +3732,10 @@ async def non_streaming_chat_response_handler(response, ctx):
                                 'output': response_output,
                                 **({'usage': usage} if usage else {}),
                             },
+                            success_checkpoint=checkpoint,
                         )
 
+                    await record_success(user.id, checkpoint, message_row_id=message_row_id(metadata))
                     await publish_chat_finished_event(request, user, metadata, title, content, response_output)
 
                     ctx['assistant_message'] = {
@@ -3755,6 +3775,16 @@ async def non_streaming_chat_response_handler(response, ctx):
     choices = response_data.get('choices', [])
     output = response_data.get('output')
     content = choices[0].get('message', {}).get('content') if choices else ''
+    await record_success(
+        user.id,
+        await completion_checkpoint(
+            user.id,
+            metadata,
+            content,
+            output,
+            failed=response_failed(response_data) or getattr(response, 'status_code', 200) >= 400,
+        ),
+    )
     if ENABLE_API_OUTLET_FILTERS and (content or output):
         usage = normalize_usage(response_data.get('usage', {}) or {})
         ctx['assistant_message'] = {
@@ -3770,7 +3800,7 @@ async def non_streaming_chat_response_handler(response, ctx):
     return response
 
 
-async def streaming_chat_response_handler(response, ctx):
+async def streaming_chat_response_handler(response: StreamingResponse, ctx: dict) -> StreamingResponse | None:
     request = ctx['request']
 
     form_data = ctx['form_data']
@@ -3808,7 +3838,7 @@ async def streaming_chat_response_handler(response, ctx):
         model_id = form_data.get('model', '')
 
         # Handle as a background task
-        async def response_handler(response, events):
+        async def response_handler(response: StreamingResponse, events: list[dict]) -> None:
             filter_context = FilterContext()
             tag_scan_positions = {}
 
@@ -4110,6 +4140,13 @@ async def streaming_chat_response_handler(response, ctx):
                 else:
                     output = []
 
+            initial_success_text = visible_text(initial_content, existing_output)
+            initial_success_files = {
+                str(item.get('url') or '') for item in displayed_files(existing_output, (message or {}).get('files'))
+            }
+            success_files = []
+            success_stream = CompletionStreamState()
+
             usage = None
             prior_output = []
             last_response_id = None
@@ -4127,7 +4164,8 @@ async def streaming_chat_response_handler(response, ctx):
 
                 return error if isinstance(error, (str, dict)) else str(error)
 
-            async def emit_message_error(error_content):
+            async def emit_message_error(error_content: str | dict) -> None:
+                success_stream.failed = True
                 if save_to_chat:
                     await Chats.upsert_message_to_chat_by_id_and_message_id(
                         metadata['chat_id'],
@@ -4190,7 +4228,8 @@ async def streaming_chat_response_handler(response, ctx):
                             },
                         )
 
-                async def stream_body_handler(response, form_data):
+                async def stream_body_handler(response: StreamingResponse, form_data: dict) -> None:
+                    success_stream.completed = False
                     nonlocal content_parts
                     nonlocal usage
                     nonlocal output
@@ -4241,6 +4280,7 @@ async def streaming_chat_response_handler(response, ctx):
                     filter_extra_params = {'__body__': form_data, **extra_params} if filter_functions else None
 
                     async for line in response.body_iterator:
+                        success_stream.feed(line)
                         line = line.decode('utf-8', 'replace') if isinstance(line, bytes) else line
                         data = line
 
@@ -4257,6 +4297,7 @@ async def streaming_chat_response_handler(response, ctx):
                                 raw_obj = JSONCodec.loads(data)
                                 raw_error = raw_obj.get('error') if isinstance(raw_obj, dict) else None
                                 if raw_error:
+                                    success_stream.failed = True
                                     if save_to_chat:
                                         try:
                                             await Chats.upsert_message_to_chat_by_id_and_message_id(
@@ -4290,6 +4331,7 @@ async def streaming_chat_response_handler(response, ctx):
                                 )
 
                             if data:
+                                success_stream.failed |= response_failed(data)
                                 if 'event' in data and not getattr(request.state, 'direct', False):
                                     await event_emitter(data.get('event', {}))
 
@@ -4552,6 +4594,7 @@ async def streaming_chat_response_handler(response, ctx):
                                         else []
                                     )
                                     if image_urls:
+                                        success_files.extend({'url': url} for url in image_urls)
                                         image_file_list = [{'type': 'image', 'url': url} for url in image_urls]
                                         message_files = image_file_list
                                         if save_to_chat:
@@ -4991,13 +5034,15 @@ async def streaming_chat_response_handler(response, ctx):
                         tool_call.setdefault('function', {})['arguments'] = json.dumps(params)
                         return params
 
-                    async def execute_tool_call(tool_call):
+                    async def execute_tool_call(tool_call: dict) -> tuple[dict, object, dict | None, str | None, bool]:
                         name = tool_call.get('function', {}).get('name', '')
                         params = parse_tool_params(tool_call)
                         if params is None:
+                            success_stream.failed = True
                             return {}, None, None, None, False
                         tool = tools.get(name)
                         if not tool:
+                            success_stream.failed = True
                             return params, f'Error: Tool "{name}" not found.', None, None, False
                         spec = tool.get('spec', {})
                         tool_type = tool.get('type', '')
@@ -5030,6 +5075,7 @@ async def streaming_chat_response_handler(response, ctx):
                         except Exception as e:
                             if is_billing_block_http_exception(e):
                                 raise
+                            success_stream.failed = True
                             result = str(e)
                         return params, result, tool, tool_type, direct_tool
 
@@ -5537,6 +5583,18 @@ async def streaming_chat_response_handler(response, ctx):
                     **({'usage': usage} if usage else {}),
                 }
 
+                success_stream.feed(b'', final=True)
+                checkpoint = await completion_checkpoint(
+                    user.id,
+                    metadata,
+                    ''.join(content_parts),
+                    full_output(),
+                    failed=success_stream.failed,
+                    completed=success_stream.completed,
+                    files=success_files,
+                    initial_text=initial_success_text,
+                    initial_files=initial_success_files,
+                )
                 if save_to_chat:
                     if not ENABLE_REALTIME_CHAT_SAVE:
                         # Save message in the database
@@ -5548,20 +5606,24 @@ async def streaming_chat_response_handler(response, ctx):
                                 'output': output,
                                 **({'usage': usage} if usage else {}),
                             },
+                            success_checkpoint=checkpoint,
                         )
                     elif usage:
                         await Chats.upsert_message_to_chat_by_id_and_message_id(
                             metadata['chat_id'],
                             metadata['message_id'],
                             {'done': True, 'usage': usage},
+                            success_checkpoint=checkpoint,
                         )
                     else:
                         await Chats.upsert_message_to_chat_by_id_and_message_id(
                             metadata['chat_id'],
                             metadata['message_id'],
                             {'done': True},
+                            success_checkpoint=checkpoint,
                         )
 
+                await record_success(user.id, checkpoint, message_row_id=message_row_id(metadata))
                 await publish_chat_finished_event(request, user, metadata, title, ''.join(content_parts), output)
 
                 await event_emitter(
@@ -5624,11 +5686,15 @@ async def streaming_chat_response_handler(response, ctx):
 
     else:
         # Fallback to the original response
-        async def stream_wrapper(original_generator, events):
+        async def stream_wrapper(
+            original_generator: AsyncIterator[str | bytes], events: list[dict]
+        ) -> AsyncIterator[str | bytes]:
             def wrap_item(item):
                 return f'data: {item}\n\n'
 
             assistant_message = {}
+            source_stream = CompletionStreamState()
+            success_stream = CompletionStreamState()
             filter_context = FilterContext()
             has_api_outlet_filters = ENABLE_API_OUTLET_FILTERS and bool(filter_functions)
             if ENABLE_API_OUTLET_FILTERS and not has_api_outlet_filters:
@@ -5655,6 +5721,7 @@ async def streaming_chat_response_handler(response, ctx):
                     yield wrap_item(JSONCodec.dumps(event))
 
             async for data in original_generator:
+                source_stream.feed(data)
                 data, _ = await process_filter_functions(
                     request=request,
                     filter_context=filter_context,
@@ -5665,10 +5732,22 @@ async def streaming_chat_response_handler(response, ctx):
                 )
 
                 if data:
-                    if has_api_outlet_filters:
-                        update_assistant_message_from_stream(assistant_message, data)
+                    success_stream.capture(data, assistant_message, update_assistant_message_from_stream)
                     yield data
 
+            success_stream.capture(b'', assistant_message, update_assistant_message_from_stream, final=True)
+            source_stream.feed(b'', final=True)
+            await record_success(
+                user.id,
+                await completion_checkpoint(
+                    user.id,
+                    metadata,
+                    assistant_message.get('content'),
+                    assistant_message.get('output'),
+                    failed=success_stream.failed or source_stream.failed,
+                    completed=success_stream.completed and source_stream.completed,
+                ),
+            )
             if has_api_outlet_filters and assistant_message:
                 ctx['assistant_message'] = assistant_message
                 await outlet_filter_handler(ctx)

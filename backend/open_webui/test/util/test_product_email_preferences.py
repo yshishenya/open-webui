@@ -17,6 +17,7 @@ from open_webui.internal.db import Base
 from open_webui.models import auths, users
 from open_webui.models import email_preferences as prefs
 from open_webui.models.auths import Auth, SignupForm
+from open_webui.models.task_success import TaskSuccess
 from open_webui.models.users import User, UserModel
 from open_webui.routers.airis import email_preferences as routes
 from open_webui.routers.airis import password_reset
@@ -34,6 +35,7 @@ async def accounts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIter
     tables = [
         User.__table__,
         Auth.__table__,
+        TaskSuccess.__table__,
         prefs.EmailPreference.__table__,
         prefs.EmailPreferenceEvent.__table__,
         prefs.EmailUnsubscribeToken.__table__,

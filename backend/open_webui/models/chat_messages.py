@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from sqlalchemy import select, delete, func, cast, Integer, distinct
 from sqlalchemy.ext.asyncio import AsyncSession
 from open_webui.internal.db import Base, get_async_db_context
+from open_webui.models.task_success import SuccessCheckpoint, pending_checkpoints
 from open_webui.utils.response import merge_usage, normalize_usage
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import (
@@ -151,6 +152,7 @@ class ChatMessage(Base):
     meta = Column(JSON, nullable=True)
 
     # Status
+    success_checkpoints = Column(JSON(none_as_null=True), nullable=True)
     done = Column(Boolean, default=True)
     status_history = Column(JSON, nullable=True)
     error = Column(JSON, nullable=True)
@@ -166,6 +168,12 @@ class ChatMessage(Base):
     updated_at = Column(BigInteger)
 
     __table_args__ = (
+        Index(
+            'ix_chat_message_success_checkpoint',
+            'id',
+            postgresql_where=success_checkpoints.is_not(None),
+            sqlite_where=success_checkpoints.is_not(None),
+        ),
         Index('chat_message_chat_parent_idx', 'chat_id', 'parent_id'),
         Index('chat_message_model_created_idx', 'model_id', 'created_at'),
         Index('chat_message_user_created_idx', 'user_id', 'created_at'),
@@ -207,6 +215,7 @@ class ChatMessageModel(BaseModel):
 
 
 class ChatMessageTable:
+
     async def upsert_message(
         self,
         message_id: str,
@@ -214,8 +223,10 @@ class ChatMessageTable:
         user_id: str,
         data: dict,
         db: Optional[AsyncSession] = None,
+        *,
+        success_checkpoint: SuccessCheckpoint | None = None,
     ) -> Optional[ChatMessageModel]:
-        """Insert or update a chat message."""
+        """Insert or update a chat message; completion proof is a server-only keyword."""
         async with get_async_db_context(db) as db:
             now = int(time.time())
             timestamp = data.get('timestamp', now)
@@ -223,7 +234,11 @@ class ChatMessageTable:
             # Use composite ID: {chat_id}-{message_id}
             composite_id = f'{chat_id}-{message_id}'
 
-            existing = await db.get(ChatMessage, composite_id)
+            existing = (
+                await db.scalar(select(ChatMessage).where(ChatMessage.id == composite_id).with_for_update())
+                if success_checkpoint is not None
+                else await db.get(ChatMessage, composite_id)
+            )
             if existing:
                 # Update existing
                 if 'role' in data:
@@ -258,6 +273,7 @@ class ChatMessageTable:
                     existing_usage = normalize_usage(existing.usage or {}) if existing.usage else {}
                     existing.usage = existing_usage if usage == existing_usage else merge_usage(existing_usage, usage)
                 existing.updated_at = now
+                existing.success_checkpoints = pending_checkpoints(existing.success_checkpoints, success_checkpoint)
                 await db.commit()
                 return ChatMessageModel.model_validate(existing)
             else:
@@ -266,6 +282,7 @@ class ChatMessageTable:
                 usage = get_usage(data)
                 message = ChatMessage(
                     id=composite_id,
+                    success_checkpoints=pending_checkpoints(None, success_checkpoint),
                     chat_id=chat_id,
                     user_id=user_id,
                     role=data.get('role', 'user'),

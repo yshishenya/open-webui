@@ -2314,6 +2314,7 @@
 			};
 
 			const responseMessage = {
+				operation_id: crypto.randomUUID(),
 				id: responseMessageId,
 				parentId: userMessageId,
 				childrenIds: [],

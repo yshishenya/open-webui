@@ -1211,7 +1211,10 @@ async def chat_completion(  # noqa: C901
         ):
             tool_servers = None
 
+        from open_webui.utils.airis.task_success import operation_id
+
         metadata = {
+            'airis_operation_id': operation_id(form_data.pop('operation_id', None), message_ids),
             'user_id': user.id,
             'user_agent': request.headers.get('user-agent', '') or '',
             'internal': getattr(request.state, 'internal', False) is True,
