@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
-	import { onMount, getContext, tick } from 'svelte';
+	import { onMount, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 
@@ -144,9 +144,16 @@
 				toast.success($i18n.t('Plan deleted successfully'));
 				await loadPlans();
 			}
-		} catch (error: any) {
+		} catch (error: unknown) {
 			console.error('Failed to delete plan:', error);
-			toast.error(error?.detail || $i18n.t('Failed to delete plan'));
+			toast.error(
+				(typeof error === 'object' &&
+					error !== null &&
+					'detail' in error &&
+					typeof error.detail === 'string' &&
+					error.detail) ||
+					$i18n.t('Failed to delete plan')
+			);
 		} finally {
 			actionInProgress = false;
 			showDeleteConfirm = false;
@@ -327,7 +334,7 @@
 									</Tooltip>
 								{:else}
 									<Tooltip content={$i18n.t('Subscribers')}>
-										<button
+										<button aria-label={$i18n.t('Subscribers')}
 											class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
 											type="button"
 											on:click={() => goto(`/admin/billing/plans/${planStat.plan.id}/subscribers`)}
@@ -360,7 +367,7 @@
 									</Tooltip>
 
 									<Tooltip content={$i18n.t('Duplicate')}>
-										<button
+										<button aria-label={$i18n.t('Duplicate')}
 											class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
 											type="button"
 											disabled={actionInProgress}

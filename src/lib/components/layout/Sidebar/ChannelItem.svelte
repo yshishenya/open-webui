@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { toast } from 'svelte-sonner';
-	import { onMount, getContext, tick, onDestroy } from 'svelte';
+	import { getContext } from 'svelte';
 	const i18n = getContext('i18n');
 
 	import { page } from '$app/stores';
 	import { channels, mobile, showSidebar, user } from '$lib/stores';
-	import { getUserActiveStatusById } from '$lib/apis/users';
 	import { updateChannelById, updateChannelMemberActiveStatusById } from '$lib/apis/channels';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
@@ -18,7 +17,7 @@
 	import UserIcon from './icons/User.svelte';
 	import XMarkIcon from './icons/XMark.svelte';
 
-	export let onUpdate: Function = () => {};
+	export let onUpdate: () => void | Promise<void> = () => {};
 
 	export let className = '';
 	export let channel;
@@ -27,16 +26,25 @@
 
 	let itemElement;
 
-	const hasPublicReadGrant = (grants: any) =>
+	const hasPublicReadGrant = (grants: unknown): boolean =>
 		Array.isArray(grants) &&
 		grants.some(
-			(grant) =>
-				grant?.principal_type === 'user' &&
-				grant?.principal_id === '*' &&
-				grant?.permission === 'read'
+			(grant: unknown) =>
+				typeof grant === 'object' &&
+				grant !== null &&
+				'principal_type' in grant &&
+				'principal_id' in grant &&
+				'permission' in grant &&
+				grant.principal_type === 'user' &&
+				grant.principal_id === '*' &&
+				grant.permission === 'read'
 		);
 
-	const isPublicChannel = (channel: any): boolean => {
+	const isPublicChannel = (channel: {
+		type?: string;
+		is_private?: boolean | null;
+		access_grants?: unknown;
+	}): boolean => {
 		if (channel?.type === 'group') {
 			if (typeof channel?.is_private === 'boolean') {
 				return !channel.is_private;
@@ -52,7 +60,7 @@
 	{channel}
 	edit={true}
 	{onUpdate}
-	onSubmit={async (payload: any) => {
+	onSubmit={async (payload: Parameters<typeof updateChannelById>[2]) => {
 		const { name, is_private, access_grants, group_ids, user_ids } = payload ?? {};
 		const res = await updateChannelById(localStorage.token, channel.id, {
 			name,

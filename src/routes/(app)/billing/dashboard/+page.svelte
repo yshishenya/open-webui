@@ -269,7 +269,7 @@
 									<div
 										class="{getUsageColor(metric.percentage)} h-1.5 rounded-full transition-all"
 										style="width: {metric.percentage}%"
-									/>
+									></div>
 								</div>
 								<div class="text-xs text-gray-500 mt-1">
 									{metric.percentage.toFixed(1)}% {$i18n.t('used')} •
@@ -416,7 +416,7 @@
 											getUsagePercent(usage)
 										)} h-1.5 rounded-full transition-all"
 										style="width: {getUsagePercent(usage)}%"
-									/>
+									></div>
 								</div>
 								<div class="text-xs text-gray-500 mt-1">
 									{getUsagePercent(usage).toFixed(1)}% {$i18n.t('used')}

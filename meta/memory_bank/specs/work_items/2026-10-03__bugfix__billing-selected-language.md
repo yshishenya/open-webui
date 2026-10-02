@@ -67,3 +67,9 @@ Compose regression/full frontend tests, strict check and full lint; focused chec
 - `src/routes/(app)/billing/balance/+page.svelte` — narrow language formatter/import or regression test.
 - `src/routes/(app)/billing/dashboard/+page.svelte` — narrow language formatter/import or regression test.
 - `src/routes/(app)/billing/plans/+page.svelte` — narrow language formatter/import or regression test.
+
+## CI caller debt corrections
+
+The first PR CI frontend job rejected 52 preexisting violations in touched caller files. Corrected them rather than weakening the gate: connect 30 admin field labels to their actual input/select/textarea controls; close non-void textarea/div tags; add two icon-button accessible names; remove unused imports/dispatcher; replace explicit any/function types in touched code with bounded types and unknown guards.
+
+All changed caller/test/helper files now pass ESLint with 0 messages. Full frontend suite remains 207/207. Strict check remains 4631 errors, warnings reduced 215 → 179. Final whole-project lint count recorded separately; global G14 remains open. Browser independently reproduced English (US) interface with Russian timeline labels on the previous candidate.

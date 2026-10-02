@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
-	import { getContext, createEventDispatcher } from 'svelte';
+	import { getContext } from 'svelte';
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 
 	const i18n = getContext('i18n');
-	const dispatch = createEventDispatcher();
 
 	// Props
 	export let formData: {
@@ -189,12 +188,13 @@
 			<div class="space-y-4">
 				<!-- Plan ID -->
 				<div>
-					<label class="block text-sm font-medium mb-2">
+					<label for="plan-form-id" class="block text-sm font-medium mb-2">
 						{$i18n.t('Plan ID')}
 						{#if !isEditMode}<span class="text-red-500">*</span>{/if}
 					</label>
 					{#if isEditMode}
 						<input
+							id="plan-form-id"
 							type="text"
 							value={planId}
 							disabled
@@ -205,6 +205,7 @@
 						</p>
 					{:else}
 						<input
+							id="plan-form-id"
 							type="text"
 							bind:value={formData.id}
 							placeholder={$i18n.t('e.g. starter, pro, business...')}
@@ -219,11 +220,12 @@
 				<!-- Names -->
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium mb-2">
+						<label for="plan-form-name" class="block text-sm font-medium mb-2">
 							{$i18n.t('Name (English)')}
 							<span class="text-red-500">*</span>
 						</label>
 						<input
+							id="plan-form-name"
 							type="text"
 							bind:value={formData.name}
 							placeholder={$i18n.t('e.g. Starter')}
@@ -231,10 +233,11 @@
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium mb-2">
+						<label for="plan-form-name_ru" class="block text-sm font-medium mb-2">
 							{$i18n.t('Name (Russian)')}
 						</label>
 						<input
+							id="plan-form-name_ru"
 							type="text"
 							bind:value={formData.name_ru}
 							placeholder={$i18n.t('e.g. Starter')}
@@ -246,26 +249,28 @@
 				<!-- Descriptions -->
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium mb-2">
+						<label for="plan-form-description" class="block text-sm font-medium mb-2">
 							{$i18n.t('Description (English)')}
 						</label>
 						<textarea
+							id="plan-form-description"
 							bind:value={formData.description}
 							placeholder={$i18n.t('e.g. Perfect for students and hobbyists')}
 							rows="3"
 							class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-transparent"
-						/>
+						></textarea>
 					</div>
 					<div>
-						<label class="block text-sm font-medium mb-2">
+						<label for="plan-form-description_ru" class="block text-sm font-medium mb-2">
 							{$i18n.t('Description (Russian)')}
 						</label>
 						<textarea
+							id="plan-form-description_ru"
 							bind:value={formData.description_ru}
 							placeholder={$i18n.t('e.g. Perfect for students and hobbyists')}
 							rows="3"
 							class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-transparent"
-						/>
+						></textarea>
 					</div>
 				</div>
 			</div>
@@ -279,10 +284,11 @@
 				<div class="grid grid-cols-3 gap-4">
 					<!-- Price -->
 					<div class="col-span-1">
-						<label class="block text-sm font-medium mb-2">
+						<label for="plan-form-price" class="block text-sm font-medium mb-2">
 							{$i18n.t('Price')}
 						</label>
 						<input
+							id="plan-form-price"
 							type="number"
 							bind:value={formData.price}
 							min="0"
@@ -293,10 +299,11 @@
 
 					<!-- Currency -->
 					<div class="col-span-1">
-						<label class="block text-sm font-medium mb-2">
+						<label for="plan-form-currency" class="block text-sm font-medium mb-2">
 							{$i18n.t('Currency')}
 						</label>
 						<select
+							id="plan-form-currency"
 							bind:value={formData.currency}
 							class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-transparent"
 						>
@@ -308,10 +315,11 @@
 
 					<!-- Interval -->
 					<div class="col-span-1">
-						<label class="block text-sm font-medium mb-2">
+						<label for="plan-form-interval" class="block text-sm font-medium mb-2">
 							{$i18n.t('Interval')}
 						</label>
 						<select
+							id="plan-form-interval"
 							bind:value={formData.interval}
 							class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-transparent"
 						>
@@ -333,7 +341,7 @@
 				<!-- Input Tokens -->
 				<div>
 					<div class="flex items-center justify-between mb-2">
-						<label class="block text-sm font-medium">
+						<label for="plan-form-quotas-tokens_input" class="block text-sm font-medium">
 							{$i18n.t('Input Tokens')}
 						</label>
 						<label class="flex items-center gap-2 text-sm">
@@ -342,6 +350,7 @@
 						</label>
 					</div>
 					<input
+						id="plan-form-quotas-tokens_input"
 						type="number"
 						bind:value={formData.quotas.tokens_input}
 						disabled={unlimitedTokensInput}
@@ -361,7 +370,7 @@
 				<!-- Output Tokens -->
 				<div>
 					<div class="flex items-center justify-between mb-2">
-						<label class="block text-sm font-medium">
+						<label for="plan-form-quotas-tokens_output" class="block text-sm font-medium">
 							{$i18n.t('Output Tokens')}
 						</label>
 						<label class="flex items-center gap-2 text-sm">
@@ -370,6 +379,7 @@
 						</label>
 					</div>
 					<input
+						id="plan-form-quotas-tokens_output"
 						type="number"
 						bind:value={formData.quotas.tokens_output}
 						disabled={unlimitedTokensOutput}
@@ -389,7 +399,7 @@
 				<!-- Requests -->
 				<div>
 					<div class="flex items-center justify-between mb-2">
-						<label class="block text-sm font-medium">
+						<label for="plan-form-quotas-requests" class="block text-sm font-medium">
 							{$i18n.t('Requests')}
 						</label>
 						<label class="flex items-center gap-2 text-sm">
@@ -398,6 +408,7 @@
 						</label>
 					</div>
 					<input
+						id="plan-form-quotas-requests"
 						type="number"
 						bind:value={formData.quotas.requests}
 						disabled={unlimitedRequests}
@@ -484,10 +495,11 @@
 
 				<!-- Display Order -->
 				<div>
-					<label class="block text-sm font-medium mb-2">
+					<label for="plan-form-display_order" class="block text-sm font-medium mb-2">
 						{$i18n.t('Display Order')}
 					</label>
 					<input
+						id="plan-form-display_order"
 						type="number"
 						bind:value={formData.display_order}
 						min="0"

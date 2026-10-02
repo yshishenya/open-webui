@@ -11,10 +11,9 @@
 		getMySubscription,
 		resumeSubscription
 	} from '$lib/apis/billing';
-	import type { Plan, PaymentResponse, Subscription } from '$lib/apis/billing';
+	import type { Plan, Subscription } from '$lib/apis/billing';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
-	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import { trackEvent } from '$lib/utils/analytics';
 
 	const i18n = getContext('i18n');

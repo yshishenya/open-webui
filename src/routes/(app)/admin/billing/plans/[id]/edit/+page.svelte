@@ -231,9 +231,16 @@
 				toast.success($i18n.t('Plan updated successfully'));
 				goto('/admin/billing/plans');
 			}
-		} catch (error: any) {
+		} catch (error: unknown) {
 			console.error('Failed to update plan:', error);
-			toast.error(error?.detail || $i18n.t('Failed to update plan'));
+			toast.error(
+				(typeof error === 'object' &&
+					error !== null &&
+					'detail' in error &&
+					typeof error.detail === 'string' &&
+					error.detail) ||
+					$i18n.t('Failed to update plan')
+			);
 		} finally {
 			saving = false;
 		}
@@ -340,9 +347,10 @@
 							<!-- Localization -->
 							<div class="grid grid-cols-2 gap-4">
 								<div>
-									<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Name (Russian)')}</label
+									<label for="plan-edit-name_ru" class="block text-xs text-gray-500 mb-1">{$i18n.t('Name (Russian)')}</label
 									>
 									<input
+										id="plan-edit-name_ru"
 										type="text"
 										bind:value={formData.name_ru}
 										placeholder={$i18n.t('Professional')}
@@ -350,10 +358,11 @@
 									/>
 								</div>
 								<div>
-									<label class="block text-xs text-gray-500 mb-1"
+									<label for="plan-edit-description_ru" class="block text-xs text-gray-500 mb-1"
 										>{$i18n.t('Description (Russian)')}</label
 									>
 									<input
+										id="plan-edit-description_ru"
 										type="text"
 										bind:value={formData.description_ru}
 										placeholder={$i18n.t('For growing teams')}
@@ -367,8 +376,9 @@
 								<div class="text-xs text-gray-500 mb-2 font-medium">{$i18n.t('Pricing')}</div>
 								<div class="grid grid-cols-3 gap-3">
 									<div>
-										<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Price')}</label>
+										<label for="plan-edit-price" class="block text-xs text-gray-500 mb-1">{$i18n.t('Price')}</label>
 										<input
+											id="plan-edit-price"
 											type="number"
 											bind:value={formData.price}
 											min="0"
@@ -377,8 +387,9 @@
 										/>
 									</div>
 									<div>
-										<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Currency')}</label>
+										<label for="plan-edit-currency" class="block text-xs text-gray-500 mb-1">{$i18n.t('Currency')}</label>
 										<select
+											id="plan-edit-currency"
 											bind:value={formData.currency}
 											class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
 										>
@@ -388,8 +399,9 @@
 										</select>
 									</div>
 									<div>
-										<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Interval')}</label>
+										<label for="plan-edit-interval" class="block text-xs text-gray-500 mb-1">{$i18n.t('Interval')}</label>
 										<select
+											id="plan-edit-interval"
 											bind:value={formData.interval}
 											class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
 										>
@@ -408,7 +420,7 @@
 								<div class="space-y-3">
 									<div class="flex items-center gap-3">
 										<div class="flex-1">
-											<label class="block text-xs text-gray-500 mb-1">
+											<label for="plan-edit-quotas-tokens_input" class="block text-xs text-gray-500 mb-1">
 												{$i18n.t('Input Tokens')}
 												{#if hasActiveSubscribers && originalPlan?.quotas.tokens_input !== null}
 													<span class="text-gray-400"
@@ -418,6 +430,7 @@
 												{/if}
 											</label>
 											<input
+												id="plan-edit-quotas-tokens_input"
 												type="number"
 												bind:value={formData.quotas.tokens_input}
 												disabled={unlimitedTokensInput}
@@ -434,7 +447,7 @@
 
 									<div class="flex items-center gap-3">
 										<div class="flex-1">
-											<label class="block text-xs text-gray-500 mb-1">
+											<label for="plan-edit-quotas-tokens_output" class="block text-xs text-gray-500 mb-1">
 												{$i18n.t('Output Tokens')}
 												{#if hasActiveSubscribers && originalPlan?.quotas.tokens_output !== null}
 													<span class="text-gray-400"
@@ -444,6 +457,7 @@
 												{/if}
 											</label>
 											<input
+												id="plan-edit-quotas-tokens_output"
 												type="number"
 												bind:value={formData.quotas.tokens_output}
 												disabled={unlimitedTokensOutput}
@@ -460,7 +474,7 @@
 
 									<div class="flex items-center gap-3">
 										<div class="flex-1">
-											<label class="block text-xs text-gray-500 mb-1">
+											<label for="plan-edit-quotas-requests" class="block text-xs text-gray-500 mb-1">
 												{$i18n.t('Requests')}
 												{#if hasActiveSubscribers && originalPlan?.quotas.requests !== null}
 													<span class="text-gray-400"
@@ -470,6 +484,7 @@
 												{/if}
 											</label>
 											<input
+												id="plan-edit-quotas-requests"
 												type="number"
 												bind:value={formData.quotas.requests}
 												disabled={unlimitedRequests}
@@ -542,10 +557,11 @@
 										>
 									</div>
 									<div>
-										<label class="block text-xs text-gray-500 mb-1"
+										<label for="plan-edit-display_order" class="block text-xs text-gray-500 mb-1"
 											>{$i18n.t('Display Order')}</label
 										>
 										<input
+											id="plan-edit-display_order"
 											type="number"
 											bind:value={formData.display_order}
 											min="0"

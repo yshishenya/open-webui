@@ -153,9 +153,16 @@
 				toast.success($i18n.t('Plan created successfully'));
 				goto('/admin/billing/plans');
 			}
-		} catch (error: any) {
+		} catch (error: unknown) {
 			console.error('Failed to create plan:', error);
-			toast.error(error?.detail || $i18n.t('Failed to create plan'));
+			toast.error(
+				(typeof error === 'object' &&
+					error !== null &&
+					'detail' in error &&
+					typeof error.detail === 'string' &&
+					error.detail) ||
+					$i18n.t('Failed to create plan')
+			);
 		} finally {
 			saving = false;
 		}
@@ -245,8 +252,9 @@
 						<!-- Localization -->
 						<div class="grid grid-cols-2 gap-4">
 							<div>
-								<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Name (Russian)')}</label>
+								<label for="plan-new-name_ru" class="block text-xs text-gray-500 mb-1">{$i18n.t('Name (Russian)')}</label>
 								<input
+									id="plan-new-name_ru"
 									type="text"
 									bind:value={formData.name_ru}
 									placeholder={$i18n.t('Professional')}
@@ -254,10 +262,11 @@
 								/>
 							</div>
 							<div>
-								<label class="block text-xs text-gray-500 mb-1"
+								<label for="plan-new-description_ru" class="block text-xs text-gray-500 mb-1"
 									>{$i18n.t('Description (Russian)')}</label
 								>
 								<input
+									id="plan-new-description_ru"
 									type="text"
 									bind:value={formData.description_ru}
 									placeholder={$i18n.t('For growing teams')}
@@ -271,8 +280,9 @@
 							<div class="text-xs text-gray-500 mb-2 font-medium">{$i18n.t('Pricing')}</div>
 							<div class="grid grid-cols-3 gap-3">
 								<div>
-									<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Price')}</label>
+									<label for="plan-new-price" class="block text-xs text-gray-500 mb-1">{$i18n.t('Price')}</label>
 									<input
+										id="plan-new-price"
 										type="number"
 										bind:value={formData.price}
 										min="0"
@@ -281,8 +291,9 @@
 									/>
 								</div>
 								<div>
-									<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Currency')}</label>
+									<label for="plan-new-currency" class="block text-xs text-gray-500 mb-1">{$i18n.t('Currency')}</label>
 									<select
+										id="plan-new-currency"
 										bind:value={formData.currency}
 										class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
 									>
@@ -292,8 +303,9 @@
 									</select>
 								</div>
 								<div>
-									<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Interval')}</label>
+									<label for="plan-new-interval" class="block text-xs text-gray-500 mb-1">{$i18n.t('Interval')}</label>
 									<select
+										id="plan-new-interval"
 										bind:value={formData.interval}
 										class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
 									>
@@ -312,9 +324,10 @@
 							<div class="space-y-3">
 								<div class="flex items-center gap-3">
 									<div class="flex-1">
-										<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Input Tokens')}</label
+										<label for="plan-new-quotas-tokens_input" class="block text-xs text-gray-500 mb-1">{$i18n.t('Input Tokens')}</label
 										>
 										<input
+											id="plan-new-quotas-tokens_input"
 											type="number"
 											bind:value={formData.quotas.tokens_input}
 											disabled={unlimitedTokensInput}
@@ -331,10 +344,11 @@
 
 								<div class="flex items-center gap-3">
 									<div class="flex-1">
-										<label class="block text-xs text-gray-500 mb-1"
+										<label for="plan-new-quotas-tokens_output" class="block text-xs text-gray-500 mb-1"
 											>{$i18n.t('Output Tokens')}</label
 										>
 										<input
+											id="plan-new-quotas-tokens_output"
 											type="number"
 											bind:value={formData.quotas.tokens_output}
 											disabled={unlimitedTokensOutput}
@@ -351,8 +365,9 @@
 
 								<div class="flex items-center gap-3">
 									<div class="flex-1">
-										<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Requests')}</label>
+										<label for="plan-new-quotas-requests" class="block text-xs text-gray-500 mb-1">{$i18n.t('Requests')}</label>
 										<input
+											id="plan-new-quotas-requests"
 											type="number"
 											bind:value={formData.quotas.requests}
 											disabled={unlimitedRequests}
@@ -425,8 +440,9 @@
 									>
 								</div>
 								<div>
-									<label class="block text-xs text-gray-500 mb-1">{$i18n.t('Display Order')}</label>
+									<label for="plan-new-display_order" class="block text-xs text-gray-500 mb-1">{$i18n.t('Display Order')}</label>
 									<input
+										id="plan-new-display_order"
 										type="number"
 										bind:value={formData.display_order}
 										min="0"
