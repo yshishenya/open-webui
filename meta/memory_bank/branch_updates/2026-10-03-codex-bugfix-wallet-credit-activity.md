@@ -1,0 +1,8 @@
+- [x] **[BUG][BILLING]** Refresh recent activity after confirmed wallet credit
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-03__bugfix__wallet-credit-activity.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/wallet-credit-activity`
+  - Done: 2026-10-03
+  - Summary: Reproduced balance/history mismatch after confirmed credit; add a narrow wallet-local timeline refresh using existing ledger APIs.
+  - Tests: 202 frontend tests passed, including 16 wallet tests; focused ESLint/test formatting passed. Full check (4668 errors/215 warnings) and frontend lint (1600 errors) retain existing debt. Rollout pending.
+  - Risks: Low; only the small recent list reloads after authoritative credit.

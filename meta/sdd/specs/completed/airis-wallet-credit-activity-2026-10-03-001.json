@@ -1,0 +1,146 @@
+{
+  "spec_id": "airis-wallet-credit-activity-2026-10-03-001",
+  "title": "airis-wallet-credit-activity-2026-10-03",
+  "generated": "2026-10-02T21:29:20.113670Z",
+  "last_updated": "2026-10-02T21:44:41.017516Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__bugfix__wallet-credit-activity.md",
+    "status": "completed",
+    "activated_date": "2026-10-02T21:31:33.513514Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-02T21:44:41.017170Z",
+    "actual_hours": 0.149
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-wallet-credit-activity-2026-10-03",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Refresh wallet activity only after confirmed credit",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "implement"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-02T21:44:40.272891Z",
+        "journaled_at": "2026-10-02T21:44:40.275629Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify wallet return paths",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "verify"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-02T21:44:40.524257Z",
+        "journaled_at": "2026-10-02T21:44:40.526486Z"
+      }
+    },
+    "implement": {
+      "type": "task",
+      "title": "Reproduce stale activity and add narrow refresh hook",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "depends": []
+      },
+      "metadata": {
+        "started_at": "2026-10-02T21:35:43.534533Z",
+        "completed_at": "2026-10-02T21:44:40.272693Z",
+        "needs_journaling": false,
+        "status_note": "Reproduced automatic/manual stale ledger before fix; shared credited-only revision refresh implemented.",
+        "actual_hours": 0.149,
+        "journaled_at": "2026-10-02T21:44:40.274510Z",
+        "file_path": "src/routes/(app)/billing/balance/+page.svelte"
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1
+    },
+    "verify": {
+      "type": "task",
+      "title": "Verify automatic/manual success and pending/error paths",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "depends": [
+          "implement"
+        ]
+      },
+      "metadata": {
+        "completed_at": "2026-10-02T21:44:40.523994Z",
+        "needs_journaling": false,
+        "status_note": "Compose: 202 frontend tests passed, focused ESLint and test formatting passed. Strict project check/lint remain failing at documented baseline; no rules weakened.",
+        "journaled_at": "2026-10-02T21:44:40.525268Z",
+        "file_path": "src/routes/(app)/billing/balance/billing-balance.test.ts"
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-02T21:44:40.274504Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce stale activity and add narrow refresh hook",
+      "author": "Codex",
+      "content": "Task implement marked as completed. \nNote: Reproduced automatic/manual stale ledger before fix; shared credited-only revision refresh implemented.",
+      "metadata": {},
+      "task_id": "implement"
+    },
+    {
+      "timestamp": "2026-10-02T21:44:40.275624Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Refresh wallet activity only after confirmed credit",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-02T21:44:40.525263Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify automatic/manual success and pending/error paths",
+      "author": "Codex",
+      "content": "Task verify marked as completed. \nNote: Compose: 202 frontend tests passed, focused ESLint and test formatting passed. Strict project check/lint remain failing at documented baseline; no rules weakened.",
+      "metadata": {},
+      "task_id": "verify"
+    },
+    {
+      "timestamp": "2026-10-02T21:44:40.526476Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify wallet return paths",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
