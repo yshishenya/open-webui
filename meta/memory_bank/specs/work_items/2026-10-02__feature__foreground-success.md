@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: feature
-- Status: active
+- Status: completed
 - Owner: Codex
 - Branch: codex/feature/foreground-success
-- SDD Spec: meta/sdd/specs/active/airis-foreground-success-2026-10-02-343.json
+- SDD Spec: meta/sdd/specs/completed/airis-foreground-success-2026-10-02-343.json
 - Created: 2026-10-02
 - Updated: 2026-10-02
 
@@ -22,7 +22,7 @@ The server records actual completed foreground results independently of optional
 - [x] Stream failure/cancellation and content-free continuation produce zero success; one multi-model operation counts once even when output forms differ.
 - [x] Artifact-only success verifies a displayed owned server file is locally present; unsupported/external URLs are conservatively excluded instead of fetched.
 - [x] Client analytics remain optional, consent-bound funnel observations; documentation clarifies they are not authoritative activation or useful-task counts.
-- [ ] SQLite/PostgreSQL, retry/recovery, concurrency, request paths and migration checks pass; checked source merged and production accepted.
+- [x] SQLite/PostgreSQL, retry/recovery, concurrency, request paths and migration checks pass; checked source merged and production accepted.
 
 ## Design and reused components
 
@@ -42,8 +42,16 @@ Compose-first backend and frontend checks, new targeted SQLite and PostgreSQL ch
 
 ## Local verification
 
-- Backend: 520 pass / two PostgreSQL-only skips, covered by dedicated PostgreSQL checks. PostgreSQL: 93 pass, including concurrent checkpoint append/clear. SQLite and PostgreSQL upgrade, account foreign key, downgrade/reupgrade and idempotent upgrade pass.
+- Backend: 520 pass / two PostgreSQL-only skips, covered by dedicated PostgreSQL checks. PostgreSQL: 99 pass, including concurrent checkpoint append/clear. SQLite and PostgreSQL upgrade, account foreign key, downgrade/reupgrade and idempotent upgrade pass.
 - Frontend: 147 pass. Baseline and current diagnostics are identical: 8360 errors / 224 warnings, zero added or removed. Existing failures are not reported as green.
 - Ruff baseline comparison adds no findings; one inherited unused import is resolved by the required Response type annotation. New model/rules/migration/test files pass Ruff/Black. Thin changed ranges are formatted without reformatting upstream files.
 - Controlled paths cover HTTP error status, stream/nonstream/temp/API, cancellation, failure hidden by a filter, reasoning-only/tool-call-only output, local owned artifact availability, continuation without new content, all saved modes, concurrent replay, 12 PostgreSQL checkpoint appends and recovery after exhausted writes.
-- Native Node 22 build succeeds; frozen-SHA rebuild, CI, compatible rollback and production acceptance remain pending. Email sequence remains off.
+- Frozen Node 22 build and published image verified. Production acceptance below is complete; email sequence remains off.
+
+## Production acceptance
+
+Source `9450645507bfe070bc722a1995106bfff5e1ee2f`, PR #139 merged as `b33de609a2a50ffda39a40827a1c14c838a77ea5`. Backend/frontend/migration/SDD/security and billing-confidence CI pass. Changed-file Ruff retains inherited debt (baseline182/current181), with zero new findings; no check disabled or weakened.
+
+The immutable image retains `s1c020261002`. Candidate and compatible rollback import the app and pass SQLite/PostgreSQL migration checks. Ninety-nine PostgreSQL/SMTP checks run against the actual image. Verified database/data backup, hard migration gate and health gate passed; environment, mounts, networks, command, ports and twelve other containers stayed unchanged. Full5763-file source/build manifest and entire7006-file frontend match the published image, including retained immutable assets for old tabs.
+
+Two actual ordinary-account answers in saved/temporary UI chats produce exactly two operations, one of each source, with unchanged first_at. Eight owned production controls pass: concurrent replay; seven negative-result cases; temporary/API source; trusted checkpoint recovery; untrusted JSON exclusion; two independent sign-ins and invalid requests; chat deletion retains counts; account deletion removes the journal. These are controlled clients, not a claim about a second physical device. No product mail enabled.

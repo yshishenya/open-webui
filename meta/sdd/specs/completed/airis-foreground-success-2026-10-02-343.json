@@ -2,7 +2,7 @@
 	"spec_id": "airis-foreground-success-2026-10-02-343",
 	"title": "airis-foreground-success",
 	"generated": "2026-10-02T00:43:11.717231Z",
-	"last_updated": "2026-10-02T01:17:35.381869Z",
+	"last_updated": "2026-10-02T01:53:55.533559Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "medium",
@@ -11,20 +11,21 @@
 		"security_sensitive": true,
 		"default_category": "implementation",
 		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__foreground-success.md",
-		"status": "active",
+		"status": "completed",
 		"activated_date": "2026-10-02T00:44:42.251879Z",
-		"progress_percentage": 66,
-		"current_phase": "phase-2"
+		"progress_percentage": 100,
+		"current_phase": "phase-2",
+		"completed_date": "2026-10-02T01:53:55.533275Z"
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
 			"title": "airis-foreground-success",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2"],
 			"total_tasks": 6,
-			"completed_tasks": 4,
+			"completed_tasks": 6,
 			"metadata": {}
 		},
 		"phase-1": {
@@ -44,12 +45,16 @@
 		"phase-2": {
 			"type": "phase",
 			"title": "Validate and release",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-2-1", "task-2-2", "task-2-3"],
 			"total_tasks": 3,
-			"completed_tasks": 1,
-			"metadata": {}
+			"completed_tasks": 3,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T01:53:55.041644Z",
+				"journaled_at": "2026-10-02T01:53:55.043844Z"
+			}
 		},
 		"task-1-1": {
 			"type": "task",
@@ -146,7 +151,7 @@
 		"task-2-2": {
 			"type": "task",
 			"title": "Review exact source and merge checked PR",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-2",
 			"children": [],
 			"dependencies": {
@@ -155,17 +160,21 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"metadata": {
 				"estimated_hours": 2,
 				"file_path": "meta/memory_bank/specs/work_items/2026-10-02__feature__foreground-success.md",
-				"task_category": "implementation"
+				"task_category": "implementation",
+				"completed_at": "2026-10-02T01:46:05.733401Z",
+				"needs_journaling": false,
+				"status_note": "Reviewed terminal trust, account scoping, checkpoint ownership, replay and HTTP errors. Source9450645507bfe070bc722a1995106bfff5e1ee2f merged in PR139 as b33de609a2a50ffda39a40827a1c14c838a77ea5. Backend/frontend/migration/SDD/security and billing-confidence CI pass. Inherited Ruff baseline182/current181 adds zero findings; no check weakened. Candidate image passes99 PostgreSQL/SMTP checks and full5763-file source/build manifest.",
+				"journaled_at": "2026-10-02T01:46:05.734870Z"
 			}
 		},
 		"task-2-3": {
 			"type": "task",
 			"title": "Release and verify real foreground success",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-2",
 			"children": [],
 			"dependencies": {
@@ -174,11 +183,15 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"metadata": {
 				"estimated_hours": 2,
 				"file_path": "scripts/deploy_guarded.sh",
-				"task_category": "implementation"
+				"task_category": "implementation",
+				"completed_at": "2026-10-02T01:53:55.041473Z",
+				"needs_journaling": false,
+				"status_note": "Published and deployed immutable9450645507bfe070bc722a1995106bfff5e1ee2f candidate with s1c020261002 and compatible rollback. Verified backup, hard PostgreSQL upgrade, unchanged environment/mounts/networks/12 other containers, healthy/zero restarts. Full5763-file manifest and entire7006-file frontend match published image. Ordinary saved and temporary UI answers produce count2 with stable first_at;8 controlled production checks pass including independent reauthentication/replay/recovery/deletion. Product mail remains off.",
+				"journaled_at": "2026-10-02T01:53:55.042624Z"
 			}
 		}
 	},
@@ -227,6 +240,33 @@
 			"content": "Task task-2-1 marked as completed. \nNote: Backend514 pass, two PostgreSQL-only skips covered in dedicated suite; frontend147 pass. Both migration engines upgrade/downgrade/reupgrade/idempotent upgrade pass. Ruff adds zero findings; typecheck baseline/current exactly equal. CI/build frozen SHA and production remain pending.",
 			"metadata": {},
 			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-02T01:46:05.734865Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Review exact source and merge checked PR",
+			"author": "claude-code",
+			"content": "Task task-2-2 marked as completed. \nNote: Reviewed terminal trust, account scoping, checkpoint ownership, replay and HTTP errors. Source9450645507bfe070bc722a1995106bfff5e1ee2f merged in PR139 as b33de609a2a50ffda39a40827a1c14c838a77ea5. Backend/frontend/migration/SDD/security and billing-confidence CI pass. Inherited Ruff baseline182/current181 adds zero findings; no check weakened. Candidate image passes99 PostgreSQL/SMTP checks and full5763-file source/build manifest.",
+			"metadata": {},
+			"task_id": "task-2-2"
+		},
+		{
+			"timestamp": "2026-10-02T01:53:55.042620Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Release and verify real foreground success",
+			"author": "claude-code",
+			"content": "Task task-2-3 marked as completed. \nNote: Published and deployed immutable9450645507bfe070bc722a1995106bfff5e1ee2f candidate with s1c020261002 and compatible rollback. Verified backup, hard PostgreSQL upgrade, unchanged environment/mounts/networks/12 other containers, healthy/zero restarts. Full5763-file manifest and entire7006-file frontend match published image. Ordinary saved and temporary UI answers produce count2 with stable first_at;8 controlled production checks pass including independent reauthentication/replay/recovery/deletion. Product mail remains off.",
+			"metadata": {},
+			"task_id": "task-2-3"
+		},
+		{
+			"timestamp": "2026-10-02T01:53:55.043838Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Validate and release",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
 		}
 	]
 }
