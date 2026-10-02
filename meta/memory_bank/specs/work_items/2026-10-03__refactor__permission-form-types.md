@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: `codex/refactor/permission-form-types`
-- SDD Spec: `meta/sdd/specs/active/airis-permission-form-types-2026-10-03-0230.json`
+- SDD Spec: `meta/sdd/specs/active/airis-permission-form-types-2026-10-03-230.json`
 - Created: 2026-10-03 (Europe/Istanbul)
 
 ## Context and measured baseline
