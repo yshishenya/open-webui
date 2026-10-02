@@ -1,0 +1,108 @@
+{
+  "spec_id": "airis-permission-form-types-2026-10-03-0230",
+  "title": "Airis permission form types",
+  "generated": "2026-10-02T23:30:34.704679Z",
+  "last_updated": "2026-10-02T23:49:31.660215Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__refactor__permission-form-types.md",
+    "status": "active",
+    "activated_date": "2026-10-02T23:33:55.047682Z",
+    "scope_decision": "Permission form only; defer nullable group/membership ID contract to a separate item. Compiled client/server JavaScript must remain identical.",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis permission form types",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Preserve permission editing while removing invalid form types",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Measure current diagnostics and add behavior safety net",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-02T23:49:31.418969Z",
+        "needs_journaling": false,
+        "status_note": "Fresh baseline 4631/179; four behavior tests passed before production code edits.",
+        "journaled_at": "2026-10-02T23:49:31.419926Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Type permission form state and normalization without changing rights",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-02T23:49:31.658555Z",
+        "needs_journaling": false,
+        "status_note": "189 form diagnostics removed; partial prop contract preserved; no new diagnostics; client/server JS byte-identical to b0a248.",
+        "journaled_at": "2026-10-02T23:49:31.659659Z"
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Verify full checks, caller compatibility and runtime equivalence; integrate",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-02T23:49:31.419922Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Measure current diagnostics and add behavior safety net",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Fresh baseline 4631/179; four behavior tests passed before production code edits.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-02T23:49:31.659653Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Type permission form state and normalization without changing rights",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed. \nNote: 189 form diagnostics removed; partial prop contract preserved; no new diagnostics; client/server JS byte-identical to b0a248.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    }
+  ]
+}
