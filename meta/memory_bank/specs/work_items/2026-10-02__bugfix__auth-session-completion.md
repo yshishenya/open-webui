@@ -41,3 +41,15 @@ The regression test uses the installed TypeScript parser to locate the actual `s
 ## Full source checks
 
 After integrating shared config PR165, Docker165/165 tests in40 files pass. Auth route strict diagnostics are0 (before5), with0 newly introduced diagnostics: the full baseline is4791 errors /217 warnings /285 files, down from4796/217/286. Changed route/test ESLint and new-test Prettier pass. Candidate E2E, exact source/PR and guarded production release remain pending.
+
+## Candidate environment corrections
+
+The first candidate guide suite passes7/7; generic registration coverage reports one skip and one admin-login failure before the form mounts. The browser trace identifies `crypto.randomUUID is not a function` on the internal Compose HTTP origin. Run the isolated test client in the server container network and use the loopback URL. Browsers treat loopback as a secure context, exposing the same native APIs as production HTTPS. This changes only the temporary Compose test fixture; application UUID generation and checked-in test configuration stay unchanged.
+
+CodeQL identifies that the test script-extraction regex did not recognize uppercase SCRIPT tags. Use case-insensitive matching; no security rule suppression or gate bypass. Recheck the fixed parser fixture and exact new source before releasing.
+
+## Candidate behavior accepted before final source freeze
+
+The same candidate runtime passes all9 checked-in registration/guide tests after using loopback in the isolated fixture; no skips. A separate temporary diagnostic test also confirms `isSecureContext=true` and native `crypto.randomUUID`, for10/10 observed passes. It is retained as private diagnostic evidence, not additional application scaffolding. The registration test asserts profile visibility; the fixture's ordinary role is `user`, so its historical test title is not evidence of a pending-role flow.
+
+The security finding is corrected in the test regex; all3 parsed-handler regressions still pass. The final source commit and rebuilt source marker will include this correction before the production candidate is accepted. Production release remains pending.
