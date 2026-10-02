@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: `codex/bugfix/analytics-report-cache-20261002`
-- SDD Spec: `meta/sdd/specs/active/airis-analytics-repeat-accepta-2026-10-02-1258.json`
+- SDD Spec: `meta/sdd/specs/active/airis-analytics-repeat-acceptance-2026-10-02-001.json`
 - Created: 2026-10-02
 - Updated: 2026-10-02
 
