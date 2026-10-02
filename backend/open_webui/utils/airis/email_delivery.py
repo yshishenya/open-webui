@@ -22,6 +22,28 @@ class EmailSendResult:
     status: Literal['accepted', 'failed', 'unknown']
     message_id: str
     attempts: int
+    retryable: bool = False
+    reason: str | None = None
+
+
+async def guard_smtp_submission(
+    host: str,
+    port: int,
+    username: str,
+    product: bool,
+    before_submit: Callable[[], Awaitable[bool]] | None,
+) -> bool:
+    """All SMTP callers share capacity; optional final permission runs last."""
+    from open_webui.utils.airis.email_queue import TransportCapacityUnavailable, take_transport_capacity
+    from sqlalchemy.exc import SQLAlchemyError
+
+    try:
+        capacity = await take_transport_capacity(host, port, username, product)
+    except SQLAlchemyError as error:
+        raise TransportCapacityUnavailable() from error
+    if not capacity:
+        raise TransportCapacityUnavailable()
+    return before_submit is None or await before_submit()
 
 
 def _refusal_codes(error: Exception) -> list[int]:
@@ -76,8 +98,8 @@ async def submit_smtp_message(
             result = EmailSendResult('accepted', message_id, attempt)
         except Exception as error:
             status = _failure_status(error, submitting)
-            result = EmailSendResult(status, message_id, attempt)
             retry = status == 'failed' and _can_retry(error, submitting)
+            result = EmailSendResult(status, message_id, attempt, retry, type(error).__name__)
             log.warning(
                 'SMTP submission %s attempt=%d error_type=%s',
                 status,

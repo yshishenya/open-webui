@@ -16,18 +16,17 @@ Environment:
 """
 
 import asyncio
+import datetime as dt
 import logging
 import os
 import random
 import time
-from datetime import datetime, timedelta
-from typing import Optional
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from dateutil import parser as date_parser
-from dateutil.rrule import rrulestr
-from fastapi import Request
+from dateutil.rrule import rrule, rruleset, rrulestr
+from fastapi import FastAPI, Request
 from fastapi.security import HTTPAuthorizationCredentials
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.events import EVENTS, publish_event
@@ -55,7 +54,7 @@ CALENDAR_ALERT_LOOKAHEAD_MINUTES = int(os.getenv('CALENDAR_ALERT_LOOKAHEAD_MINUT
 ####################
 
 
-def _resolve_tz(tz: str = None) -> Optional[ZoneInfo]:
+def _resolve_tz(tz: str | None = None) -> ZoneInfo | None:
     """Safely resolve a timezone string to ZoneInfo.
 
     Returns None (→ server-local fallback) when *tz* is empty, None,
@@ -71,7 +70,7 @@ def _resolve_tz(tz: str = None) -> Optional[ZoneInfo]:
         return None
 
 
-def _parse_rule(s: str, now: Optional[datetime] = None):
+def _parse_rule(s: str, now: dt.datetime | None = None) -> rrule | rruleset:
     """Parse RRULE with clock-aligned DTSTART for sub-daily frequencies.
 
     SECONDLY/MINUTELY/HOURLY rules use a fixed epoch DTSTART (2000-01-01 00:00)
@@ -90,19 +89,14 @@ def _parse_rule(s: str, now: Optional[datetime] = None):
     freq = parts.get('FREQ', '')
 
     if freq in ('SECONDLY', 'MINUTELY', 'HOURLY'):
-        epoch = datetime(2000, 1, 1, 0, 0, 0)
-        anchor = now or datetime.now()
+        epoch = dt.datetime(2000, 1, 1, 0, 0, 0)
+        anchor = now or dt.datetime.now()
         rule = '\n'.join(line for line in lines if not line.upper().startswith('DTSTART')) or s
         dtstart = next((line.rsplit(':', 1)[-1] for line in lines if line.upper().startswith('DTSTART')), None)
         interval = int(parts.get('INTERVAL', '1'))
         if interval < 1:
             raise ValueError('RRULE INTERVAL must be a positive integer')
-        if freq == 'SECONDLY':
-            step = timedelta(seconds=interval)
-        elif freq == 'MINUTELY':
-            step = timedelta(minutes=interval)
-        else:
-            step = timedelta(hours=interval)
+        step = dt.timedelta(seconds=interval * {'SECONDLY': 1, 'MINUTELY': 60, 'HOURLY': 3600}[freq])
         if dtstart:
             start = date_parser.parse(dtstart, ignoretz=True)
             emitted = ((anchor - start) // step) if anchor > start else 0
@@ -117,7 +111,7 @@ def _parse_rule(s: str, now: Optional[datetime] = None):
     return rrulestr(s, ignoretz=True)
 
 
-def validate_rrule(s: str, tz: str = None) -> None:
+def validate_rrule(s: str, tz: str | None = None) -> None:
     """Raise ValueError if the RRULE is malformed or exhausted.
 
     When *tz* is provided the "now" reference uses the user's local
@@ -125,7 +119,7 @@ def validate_rrule(s: str, tz: str = None) -> None:
     on servers whose system clock is ahead (e.g. UTC vs US timezones).
     """
     zi = _resolve_tz(tz)
-    now = datetime.now(zi).replace(tzinfo=None) if zi else datetime.now()
+    now = dt.datetime.now(zi).replace(tzinfo=None) if zi else dt.datetime.now()
     try:
         rule = _parse_rule(s, now)
     except Exception as e:
@@ -134,20 +128,20 @@ def validate_rrule(s: str, tz: str = None) -> None:
         raise ValueError(ERROR_MESSAGES.AUTOMATION_NO_FUTURE_RUNS)
 
 
-def next_run_ns(s: str, tz: str = None) -> Optional[int]:
+def next_run_ns(s: str, tz: str | None = None) -> int | None:
     """Next occurrence as epoch nanoseconds, respecting user timezone."""
     zi = _resolve_tz(tz)
-    now = datetime.now(zi) if zi else datetime.now()
+    now = dt.datetime.now(zi) if zi else dt.datetime.now()
     now_naive = now.replace(tzinfo=None)
-    dt = _parse_rule(s, now_naive).after(now_naive)
-    if dt is None:
+    occurrence = _parse_rule(s, now_naive).after(now_naive)
+    if occurrence is None:
         return None
     if zi:
-        dt = dt.replace(tzinfo=zi)
-    return int(dt.timestamp() * 1_000_000_000)
+        occurrence = occurrence.replace(tzinfo=zi)
+    return int(occurrence.timestamp() * 1_000_000_000)
 
 
-def next_n_runs_ns(s: str, n: int = 5, tz: str = None) -> list[int]:
+def next_n_runs_ns(s: str, n: int = 5, tz: str | None = None) -> list[int]:
     """Compute next N occurrences for UI preview.
 
     Uses the user's timezone for the starting "now" so that the
@@ -155,22 +149,22 @@ def next_n_runs_ns(s: str, n: int = 5, tz: str = None) -> list[int]:
     """
     zi = _resolve_tz(tz)
     result = []
-    now = datetime.now(zi).replace(tzinfo=None) if zi else datetime.now()
+    now = dt.datetime.now(zi).replace(tzinfo=None) if zi else dt.datetime.now()
     rule = _parse_rule(s, now)
-    dt = now
+    occurrence = now
     for _ in range(n):
-        dt = rule.after(dt)
-        if not dt:
+        occurrence = rule.after(occurrence)
+        if not occurrence:
             break
         if zi:
-            dt_tz = dt.replace(tzinfo=zi)
+            dt_tz = occurrence.replace(tzinfo=zi)
             result.append(int(dt_tz.timestamp() * 1_000_000_000))
         else:
-            result.append(int(dt.timestamp() * 1_000_000_000))
+            result.append(int(occurrence.timestamp() * 1_000_000_000))
     return result
 
 
-def rrule_interval_seconds(s: str) -> Optional[int]:
+def rrule_interval_seconds(s: str) -> int | None:
     """Approximate interval between recurrences in seconds.
 
     Returns None for one-shot (COUNT=1) schedules or rules
@@ -178,7 +172,7 @@ def rrule_interval_seconds(s: str) -> Optional[int]:
     """
     if 'COUNT=1' in s:
         return None
-    now = datetime.now()
+    now = dt.datetime.now()
     rule = _parse_rule(s, now)
     first = rule.after(now)
     if first is None:
@@ -200,7 +194,7 @@ async def automation_worker_loop(app) -> None:
     await scheduler_worker_loop(app)
 
 
-async def scheduler_worker_loop(app) -> None:
+async def scheduler_worker_loop(app: FastAPI) -> None:
     """Unified background scheduler for all time-based work.
 
     Handles:
@@ -217,15 +211,18 @@ async def scheduler_worker_loop(app) -> None:
     next_scheduler_poll = 0.0
     from open_webui.models.email_preferences import cleanup_product_email_if_due
     from open_webui.models.task_success import reconcile_success_if_due
+    from open_webui.utils.airis.email_queue import process_email_queue_if_due
 
     next_success_reconcile = 0.0
     next_email_cleanup = 0.0
+    next_email_delivery = 0.0
 
     while True:
         try:
             now = time.monotonic()
             next_email_cleanup = await cleanup_product_email_if_due(next_email_cleanup, now)
             next_success_reconcile = await reconcile_success_if_due(next_success_reconcile, now)
+            next_email_delivery = await process_email_queue_if_due(next_email_delivery, now)
             # ── Timers ──
             try:
                 from open_webui.utils.timers import claim_due_timers, execute_due_timer
@@ -241,29 +238,34 @@ async def scheduler_worker_loop(app) -> None:
             # Jitter to spread automation/calendar load across instances; timers keep a tight poll.
             next_scheduler_poll = now + SCHEDULER_POLL_INTERVAL + random.uniform(0, 2)
 
-            # ── Automations ──
-            if await Config.get('automations.enable'):
-                try:
-                    async with get_async_db() as db:
-                        batch = await Automations.claim_due(int(time.time_ns()), limit=10, db=db)
-                    if batch:
-                        log.info(f'Claimed {len(batch)} due automation(s)')
-                    for automation in batch:
-                        asyncio.create_task(execute_automation(app, automation))
-                except Exception:
-                    log.exception('Scheduler: automation error')
-
-            # ── Calendar Alerts ──
-            if await Config.get('calendar.enable'):
-                try:
-                    await _check_calendar_alerts(app)
-                except Exception:
-                    log.exception('Scheduler: calendar alert error')
+            await _process_scheduled_features(app)
 
         except Exception:
             log.exception('Scheduler worker error')
 
         await asyncio.sleep(max(1, TIMER_POLL_INTERVAL))
+
+
+async def _process_scheduled_features(app: FastAPI) -> None:
+    """Poll enabled automations and calendar after the scheduler interval."""
+    # ── Automations ──
+    if await Config.get('automations.enable'):
+        try:
+            async with get_async_db() as db:
+                batch = await Automations.claim_due(int(time.time_ns()), limit=10, db=db)
+            if batch:
+                log.info(f'Claimed {len(batch)} due automation(s)')
+            for automation in batch:
+                asyncio.create_task(execute_automation(app, automation))
+        except Exception:
+            log.exception('Scheduler: automation error')
+
+    # ── Calendar Alerts ──
+    if await Config.get('calendar.enable'):
+        try:
+            await _check_calendar_alerts(app)
+        except Exception:
+            log.exception('Scheduler: calendar alert error')
 
 
 ##########################
@@ -272,8 +274,8 @@ async def scheduler_worker_loop(app) -> None:
 
 
 def _build_request(
-    app,
-    token: Optional[str] = None,
+    app: FastAPI,
+    token: str | None = None,
 ) -> Request:
     """Build a minimal ASGI Request for chat_completion.
 
@@ -358,7 +360,7 @@ def _resolve_model_filter_ids(app, model_id: str) -> list[str]:
     return list(filter_ids) if filter_ids else []
 
 
-def _resolve_model_terminal_id(app, model_id: str) -> Optional[str]:
+def _resolve_model_terminal_id(app: FastAPI, model_id: str) -> str | None:
     """Read model default terminal_id from model config.
 
     The frontend does this in Chat.svelte (model.info.meta.terminalId).
@@ -416,7 +418,7 @@ async def _set_terminal_cwd(app, server_id: str, user, cwd: str, chat_id: str) -
         log.warning(f'Failed to set terminal CWD: {e}')
 
 
-async def execute_automation(app, automation: AutomationModel) -> None:
+async def execute_automation(app: FastAPI, automation: AutomationModel) -> None:
     """Execute an automation through the full chat completion pipeline.
 
     Creates a real chat, then calls chat_completion exactly like the frontend:
@@ -555,14 +557,16 @@ async def execute_automation(app, automation: AutomationModel) -> None:
             'session_id': f'automation:{automation.id}',
             'background_tasks': {},
         }
-        if tool_ids:
-            form_data['tool_ids'] = tool_ids
-        if features:
-            form_data['features'] = features
-        if filter_ids:
-            form_data['filter_ids'] = filter_ids
-        if terminal_id:
-            form_data['terminal_id'] = terminal_id
+        form_data.update(
+            (key, value)
+            for key, value in {
+                'tool_ids': tool_ids,
+                'features': features,
+                'filter_ids': filter_ids,
+                'terminal_id': terminal_id,
+            }.items()
+            if value
+        )
 
         # Call the full chat completion pipeline (same as POST /api/chat/completions).
         # The handler reference is stored on app.state to avoid circular imports.
@@ -572,7 +576,7 @@ async def execute_automation(app, automation: AutomationModel) -> None:
             expires_delta = None
         token = create_token(
             data={'id': user.id, 'typ': 'automation'},
-            expires_delta=expires_delta or timedelta(hours=1),
+            expires_delta=expires_delta or dt.timedelta(hours=1),
         )
         request = _build_request(app, token=token)
         await app.state.CHAT_COMPLETION_HANDLER(request, form_data, user=user)

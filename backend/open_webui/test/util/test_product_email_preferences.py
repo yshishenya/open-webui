@@ -15,6 +15,7 @@ import pytest_asyncio
 from fastapi import FastAPI, HTTPException
 from open_webui.internal.db import Base
 from open_webui.models import auths, users
+from open_webui.models import email_delivery as delivery
 from open_webui.models import email_preferences as prefs
 from open_webui.models.auths import Auth, SignupForm
 from open_webui.models.task_success import TaskSuccess
@@ -36,6 +37,8 @@ async def accounts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIter
         User.__table__,
         Auth.__table__,
         TaskSuccess.__table__,
+        delivery.EmailDelivery.__table__,
+        delivery.EmailTransportWindow.__table__,
         prefs.EmailPreference.__table__,
         prefs.EmailPreferenceEvent.__table__,
         prefs.EmailUnsubscribeToken.__table__,
@@ -52,7 +55,7 @@ async def accounts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIter
             async with factory() as session:
                 yield session
 
-    for module in [prefs, users, auths]:
+    for module in [prefs, users, auths, delivery]:
         monkeypatch.setattr(module, 'get_async_db_context', context)
     async with factory() as session:
         for number in ['1', '2']:
@@ -229,13 +232,13 @@ async def test_product_guard_rechecks_after_connect_and_service_email_works_with
     smtp.close = Mock()
     service._create_connection = AsyncMock(return_value=smtp)
     monkeypatch.setattr(email, 'FRONTEND_URL', 'https://chat.airis.you')
-    assert not await service.send_welcome_email('1')
+    assert (await service.send_product_email('1', 'Test', '<p>Test</p>', 'Test')).status == 'failed'
     smtp.send_message.assert_not_awaited()
     assert await service.send_verification_email('person1@airis.you', 'Test', 'verification-test')
     assert 'List-Unsubscribe' not in smtp.send_message.await_args.args[0]
     smtp.reset_mock()
     await prefs.set_product_preference('1', True, 'settings')
-    assert await service.send_welcome_email('1')
+    assert (await service.send_product_email('1', 'Test', '<p>Test</p>', 'Test')).status == 'accepted'
     message = smtp.send_message.await_args.args[0]
     assert message['List-Unsubscribe-Post'] == 'List-Unsubscribe=One-Click'
     assert message['List-Unsubscribe'].startswith('<https://chat.airis.you/api/v1/email-preferences/one-click/')
@@ -247,7 +250,7 @@ async def test_product_guard_rechecks_after_connect_and_service_email_works_with
         return smtp
 
     service._create_connection = connect_then_opt_out
-    assert not await service.send_welcome_email('1')
+    assert (await service.send_product_email('1', 'Test', '<p>Test</p>', 'Test')).status == 'failed'
     smtp.send_message.assert_not_awaited()
     smtp.quit.assert_awaited_once()
 

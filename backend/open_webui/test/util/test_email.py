@@ -8,7 +8,9 @@ from open_webui.utils.email import EmailService
 
 
 @pytest.fixture
-def service() -> EmailService:
+def service(monkeypatch: pytest.MonkeyPatch) -> EmailService:
+    # Pure SMTP checks; shared database quota is exercised by test_email_delivery_queue.
+    monkeypatch.setattr('open_webui.utils.airis.email_queue.take_transport_capacity', AsyncMock(return_value=True))
     instance = EmailService()
     instance.smtp_host = 'mail.example.test'
     instance.smtp_port = 587

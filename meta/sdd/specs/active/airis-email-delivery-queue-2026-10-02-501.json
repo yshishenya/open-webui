@@ -1,0 +1,235 @@
+{
+	"spec_id": "airis-email-delivery-queue-2026-10-02-501",
+	"title": "airis-email-delivery-queue",
+	"generated": "2026-10-02T02:01:21.827189Z",
+	"last_updated": "2026-10-02T03:03:43.123795Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "medium",
+		"risk_level": "high",
+		"estimated_hours": 8,
+		"security_sensitive": true,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__email-delivery-queue.md",
+		"status": "active",
+		"activated_date": "2026-10-02T02:02:49.221506Z",
+		"progress_percentage": 66,
+		"current_phase": "phase-2"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-email-delivery-queue",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 6,
+			"completed_tasks": 4,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Build durable delivery boundary",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2", "task-1-3"],
+			"total_tasks": 3,
+			"completed_tasks": 3,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T02:58:09.977102Z",
+				"journaled_at": "2026-10-02T02:58:09.979157Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Validate and release",
+			"status": "in_progress",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2", "task-2-3"],
+			"total_tasks": 3,
+			"completed_tasks": 1,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Trace sources and document acceptance",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"task_category": "implementation",
+				"estimated_hours": 2,
+				"completed_at": "2026-10-02T02:33:12.423344Z",
+				"needs_journaling": false,
+				"status_note": "Traced SMTP/auth/consent/scheduler and confirmed-payment ledger boundaries. Recorded measurable delivery, crash, quota, privacy and default-off release criteria; reuse pinned runtime without new dependencies.",
+				"journaled_at": "2026-10-02T02:33:12.434637Z",
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-02__feature__email-delivery-queue.md"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Implement queue, lease, quota and cancellation",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"task_category": "implementation",
+				"estimated_hours": 2,
+				"started_at": "2026-10-02T02:33:12.740733Z",
+				"completed_at": "2026-10-02T02:58:09.726450Z",
+				"needs_journaling": false,
+				"status_note": "Durable queue/capacity schema, CAS/SKIP LOCKED claim, renewed 180s lease, conservative unknown recovery, 5/30/120min retries, transactional cancellation and rolling account permission implemented. Isolated PostgreSQL replay/account/capacity/fact tests pass.",
+				"actual_hours": 0.416,
+				"journaled_at": "2026-10-02T02:58:09.729226Z",
+				"file_path": "backend/open_webui/models/email_delivery.py"
+			}
+		},
+		"task-1-3": {
+			"type": "task",
+			"title": "Integrate scheduler and safe administration",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"task_category": "implementation",
+				"estimated_hours": 2,
+				"completed_at": "2026-10-02T02:58:09.976905Z",
+				"needs_journaling": false,
+				"status_note": "Scheduler owns one bounded delivery task per instance, independent of user AI automations. Default-off A/B/dry-run/pilot gates, source-fact reconciliation and protected content-free report/safe retry API integrated. Existing direct service SMTP calls share DB capacity.",
+				"journaled_at": "2026-10-02T02:58:09.978010Z",
+				"file_path": "backend/open_webui/utils/airis/email_queue.py"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Exercise SMTP crash, concurrency, facts and migrations",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"task_category": "implementation",
+				"estimated_hours": 2,
+				"started_at": "2026-10-02T02:58:10.220003Z",
+				"file_path": "backend/open_webui/test/util/test_email_delivery_queue.py",
+				"completed_at": "2026-10-02T03:03:43.120775Z",
+				"needs_journaling": false,
+				"status_note": "Backend543 and PostgreSQL74 pass, frontend147 pass. SQLite/PostgreSQL migration reversal/idempotence match ORM. Changed-file Ruff baseline10/current10, zero new; new files clean. Frontend source unchanged, typecheck8360/224 and full ESLint failure are inherited. Reviewed expiry after DB waits, SMTP/DB interruption and safe unknown recovery.",
+				"actual_hours": 0.092,
+				"journaled_at": "2026-10-02T03:03:43.123126Z"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Review frozen source and merge",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"task_category": "implementation",
+				"estimated_hours": 2,
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-02__feature__email-delivery-queue.md"
+			}
+		},
+		"task-2-3": {
+			"type": "task",
+			"title": "Release default-off and verify live queue",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"task_category": "implementation",
+				"estimated_hours": 2,
+				"file_path": "scripts/deploy_guarded.sh"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-02T02:33:12.434622Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Trace sources and document acceptance",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Traced SMTP/auth/consent/scheduler and confirmed-payment ledger boundaries. Recorded measurable delivery, crash, quota, privacy and default-off release criteria; reuse pinned runtime without new dependencies.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-02T02:58:09.729218Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Implement queue, lease, quota and cancellation",
+			"author": "claude-code",
+			"content": "Task task-1-2 marked as completed. \nNote: Durable queue/capacity schema, CAS/SKIP LOCKED claim, renewed 180s lease, conservative unknown recovery, 5/30/120min retries, transactional cancellation and rolling account permission implemented. Isolated PostgreSQL replay/account/capacity/fact tests pass.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-02T02:58:09.978002Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Integrate scheduler and safe administration",
+			"author": "claude-code",
+			"content": "Task task-1-3 marked as completed. \nNote: Scheduler owns one bounded delivery task per instance, independent of user AI automations. Default-off A/B/dry-run/pilot gates, source-fact reconciliation and protected content-free report/safe retry API integrated. Existing direct service SMTP calls share DB capacity.",
+			"metadata": {},
+			"task_id": "task-1-3"
+		},
+		{
+			"timestamp": "2026-10-02T02:58:09.979152Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Build durable delivery boundary",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-02T03:03:43.123116Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Exercise SMTP crash, concurrency, facts and migrations",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Backend543 and PostgreSQL74 pass, frontend147 pass. SQLite/PostgreSQL migration reversal/idempotence match ORM. Changed-file Ruff baseline10/current10, zero new; new files clean. Frontend source unchanged, typecheck8360/224 and full ESLint failure are inherited. Reviewed expiry after DB waits, SMTP/DB interruption and safe unknown recovery.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		}
+	]
+}
