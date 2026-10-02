@@ -1,6 +1,7 @@
 """Report semantics: mature unique cohorts, first payment and repeat payments."""
 
 from open_webui.utils.airis.analytics_reports import cohort_rows
+from pytest import MonkeyPatch
 
 
 def test_mature_denominator_and_first_payment() -> None:
@@ -196,3 +197,33 @@ def test_actual_report_excludes_existing_accounts_and_bounds_stage_window(monkey
         await engine.dispose()
 
     asyncio.run(run())
+
+
+def test_authorized_report_is_not_cached_for_both_observation_windows(monkeypatch: MonkeyPatch) -> None:
+    from types import SimpleNamespace
+
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from open_webui.routers import airis_analytics_reports as reports
+
+    async def aggregate(start: int, end: int, now: int, window_days: int, breakdown: str) -> dict[str, object]:
+        assert (start, end, now, breakdown) == (100, 500, 1000, 'week')
+        return {'window_days': window_days, 'financial': {'RUB': {'net_kopeks': 800}}, 'rows': []}
+
+    monkeypatch.setattr(reports, 'funnel_report', aggregate)
+    monkeypatch.setattr(reports.time, 'time', lambda: 1000)
+    app = FastAPI()
+    app.include_router(reports.router, prefix='/api/v1/analytics')
+    app.dependency_overrides[reports.get_admin_user] = lambda: SimpleNamespace(id='admin', role='admin')
+    with TestClient(app) as client:
+        for window_days in (7, 30):
+            response = client.get(
+                '/api/v1/analytics/funnel-report', params={'start': 100, 'end': 500, 'window_days': window_days}
+            )
+            assert response.status_code == 200
+            assert response.headers.get('Cache-Control') == 'no-store'
+            assert response.json() == {
+                'window_days': window_days,
+                'financial': {'RUB': {'net_kopeks': 800}},
+                'rows': [],
+            }
