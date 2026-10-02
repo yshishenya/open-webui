@@ -1,0 +1,152 @@
+{
+  "spec_id": "airis-frontend-config-contract-2026-10-02-208",
+  "title": "Airis frontend config contract recovery 2026-10-02",
+  "generated": "2026-10-02T12:28:18.449663Z",
+  "last_updated": "2026-10-02T12:43:20.641303Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-config-contract.md",
+    "status": "active",
+    "activated_date": "2026-10-02T12:35:32.010973Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-2"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis frontend config contract recovery 2026-10-02",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace and correct shared frontend contracts",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-02T12:43:20.394529Z",
+        "journaled_at": "2026-10-02T12:43:20.396469Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify contracts and publish reviewed source",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace producers and consumers, correct shared contracts",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-02T12:43:20.394362Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-02T12:43:20.395342Z",
+        "file_path": "src/lib/utils/airis/frontend-contracts.ts"
+      },
+      "description": "Provider objects, auth configuration, concrete store fields and permissions"
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Run compiler regression, Docker tests and lint",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-02T12:43:20.639680Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-02T12:43:20.640788Z",
+        "file_path": "tests/frontend-config-contract.test.ts"
+      },
+      "description": "Compare full diagnostics and prove type-only JavaScript equivalence"
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Publish and verify accepted source",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-config-contract.md"
+      },
+      "description": "Commit push PR checks merge and documentation closure"
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-02T12:43:20.395337Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace producers and consumers, correct shared contracts",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-02T12:43:20.396461Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace and correct shared frontend contracts",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-02T12:43:20.640784Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run compiler regression, Docker tests and lint",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    }
+  ]
+}

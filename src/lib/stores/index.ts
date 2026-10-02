@@ -4,6 +4,14 @@ import type { ModelConfig } from '$lib/apis';
 import type { Banner } from '$lib/types';
 import type { Socket } from 'socket.io-client';
 import type { AudioQueue } from '$lib/utils/audio';
+import type {
+	FrontendConfig,
+	GenerationParams,
+	ImageCompressionSize,
+	SpeechSettings,
+	StoredTerminalServer,
+	UserPermissions
+} from '$lib/utils/airis/frontend-contracts';
 
 import emojiShortCodes from '$lib/emoji-shortcodes.json';
 
@@ -15,7 +23,7 @@ export const WEBUI_NAME = writable(APP_NAME);
 export const WEBUI_VERSION = writable(null);
 export const WEBUI_DEPLOYMENT_ID = writable(null);
 
-export const config: Writable<Config | undefined> = writable(undefined);
+export const config: Writable<FrontendConfig | undefined> = writable(undefined);
 export const user: Writable<SessionUser | undefined> = writable(undefined);
 
 // Electron App
@@ -94,7 +102,7 @@ export const adminLeaderboardCount: Writable<number | null> = writable(null);
 export const adminFeedbackCount: Writable<number | null> = writable(null);
 
 export const toolServers = writable([]);
-export const terminalServers: Writable<any[] | null> = writable(null);
+export const terminalServers: Writable<StoredTerminalServer[] | null> = writable(null);
 
 // Persistent Pyodide worker for code interpreter FS
 export const pyodideWorker: Writable<Worker | null> = writable(null);
@@ -105,7 +113,7 @@ export const settings: Writable<Settings> = writable({});
 
 export const audioQueue = writable<AudioQueue | null>(null);
 export const chatRequestQueues: Writable<
-	Record<string, { id: string; prompt: string; files: any[] }[]>
+	Record<string, { id: string; prompt: string; files: Record<string, unknown>[] }[]>
 > = writable({});
 
 export const sidebarWidth = writable(245);
@@ -142,7 +150,7 @@ export const temporaryChatEnabled = writable(false);
 export type DesktopEventFile = { name: string; mimeType: string; dataUrl: string };
 export type DesktopEvent = {
 	type: string;
-	data?: any;
+	data?: { query?: string; files?: DesktopEventFile[] };
 };
 export const desktopEvent: Writable<DesktopEvent | null> = writable(null);
 
@@ -212,23 +220,22 @@ type Settings = {
 	notificationSound?: boolean;
 	notificationSoundAlways?: boolean;
 	stylizedPdfExport?: boolean;
-	notifications?: any;
 	imageCompression?: boolean;
-	imageCompressionSize?: any;
+	imageCompressionSize?: ImageCompressionSize;
 	textScale?: number;
 	widescreenMode?: null;
 	largeTextAsFile?: boolean;
 	promptAutocomplete?: boolean;
 	hapticFeedback?: boolean;
-	responseAutoCopy?: any;
+	responseAutoCopy?: boolean;
 	richTextInput?: boolean;
-	params?: any;
-	userLocation?: any;
-	webSearch?: any;
+	params?: GenerationParams;
+	userLocation?: boolean;
+	webSearch?: 'always' | null;
 	memory?: boolean;
 	autoTags?: boolean;
 	autoFollowUps?: boolean;
-	splitLargeChunks?(body: any, splitLargeChunks: any): unknown;
+	splitLargeChunks?: boolean;
 	backgroundImageUrl?: null;
 	landingPageMode?: string;
 	iframeSandboxAllowForms?: boolean;
@@ -279,8 +286,8 @@ type ModelOptions = {
 };
 
 type AudioSettings = {
-	stt: any;
-	tts: any;
+	stt?: SpeechSettings['stt'];
+	tts?: SpeechSettings['tts'];
 	STTEngine?: string;
 	TTSEngine?: string;
 	speaker?: string;
@@ -302,60 +309,8 @@ type Document = {
 	title: string;
 };
 
-type Config = {
-	license_metadata: any;
-	status: boolean;
-	name: string;
-	version: string;
-	default_locale: string;
-	default_models: string;
-	default_prompt_suggestions: PromptSuggestion[];
-	features: {
-		auth: boolean;
-		auth_trusted_header: boolean;
-		enable_api_keys: boolean;
-		enable_signup: boolean;
-		enable_login_form: boolean;
-		enable_billing_subscriptions: boolean;
-		enable_web_search?: boolean;
-		enable_web_search_confirmation?: boolean;
-		web_search_confirmation_content?: string;
-		enable_google_drive_integration: boolean;
-		enable_onedrive_integration: boolean;
-		enable_image_generation: boolean;
-		enable_admin_export: boolean;
-		enable_admin_chat_access: boolean;
-		enable_admin_analytics: boolean;
-		enable_context_compaction?: boolean;
-		enable_community_sharing: boolean;
-		enable_memories: boolean;
-		enable_plugins?: boolean;
-		enable_autocomplete_generation: boolean;
-		enable_direct_connections: boolean;
-		enable_version_update_check: boolean;
-		enable_pyodide_file_persistence?: boolean;
-		folder_max_file_count?: number;
-	};
-	oauth: {
-		providers: {
-			[key: string]: string;
-		};
-		auto_redirect?: boolean;
-	};
-	ui?: {
-		pending_user_overlay_title?: string;
-		pending_user_overlay_content?: string;
-		iframe_csp?: string;
-	};
-};
-
-type PromptSuggestion = {
-	content: string;
-	title: [string, string];
-};
-
 export type SessionUser = {
-	permissions: any;
+	permissions: UserPermissions;
 	id: string;
 	email: string;
 	name: string;
