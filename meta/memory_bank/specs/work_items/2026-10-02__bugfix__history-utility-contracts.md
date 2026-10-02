@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: codex/bugfix/history-utility-contracts
-- SDD Spec: meta/sdd/specs/active/airis-history-utility-contracts-2026-10-02-213.json
+- SDD Spec: meta/sdd/specs/completed/airis-history-utility-contracts-2026-10-02-213.json
 
 ## Cause and scope
 
@@ -19,7 +19,7 @@ Shared history helpers have untyped graph arguments and empty dictionaries infer
 - [x] Preserve conversion and repair, including nullable current ID and custom metadata.
 - [x] Emitted JavaScript of the complete module is byte-identical.
 - [x] Docker tests and changed-file formatting/lint pass; zero new caller diagnostics.
-- [ ] Exact-source CI and merge accepted; global failing checks remain explicitly open.
+- [x] Exact-source CI and merge accepted; global failing checks remain explicitly open.
 
 ## Compatibility and upstream impact
 
@@ -37,4 +37,8 @@ The ancestor list helper was investigated separately: its generic type exposes m
 
 ## Source verification
 
-Old source passes3 runtime controls and fails1 strict contract check; final source passes4/4. Full Docker frontend193/193 across43 files. Whole-module emitted JavaScript is byte-identical, including comments. Changed-file Prettier/ESLint pass. Full strict4721→4686 errors,215 warnings; full ESLint1601 errors retained. Zero new strict or lint messages, including all callers. An initial generic signature rejected metadata-only message literals; the contract test caught it and the final generic intersection retains those fields. The incomplete stdout diagnostic snapshot is excluded; the accepted strict log is captured inside Docker directly to a file and includes a verified completion footer. SDD validates with zero errors/warnings. CI/merge remains pending; no production runtime change is needed.
+Old source passes3 runtime controls and fails1 strict contract check; final source passes4/4. Full Docker frontend193/193 across43 files. Whole-module emitted JavaScript is byte-identical, including comments. Changed-file Prettier/ESLint pass. Full strict4721→4686 errors,215 warnings; full ESLint1601 errors retained. Zero new strict or lint messages, including all callers. An initial generic signature rejected metadata-only message literals; the contract test caught it and the final generic intersection retains those fields. The incomplete stdout diagnostic snapshot is excluded; the accepted strict log is captured inside Docker directly to a file and includes a verified completion footer. SDD validates with zero errors/warnings. CI/merge accepted below; no production runtime change is needed.
+
+## Accepted source
+
+PR175 accepted source `b7c23a369baf7c29dec082dea8561238ee97de87`, merge `ad82853db94629e4c28ea8c7f46893ed722ac601`; all12 observed statuses satisfied. Dependency review and CodeRabbit review skipped; self-review completed, no human review claimed. SDD213 completed3/3. Full strict4686/215 and lint1601 remain open. Production retains the accepted PR173 image because emitted JavaScript is byte-identical.

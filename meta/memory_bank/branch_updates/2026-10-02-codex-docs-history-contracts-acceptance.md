@@ -1,0 +1,8 @@
+- [x] **[DOCS]** Record accepted history utility contracts
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__history-utility-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/docs/history-contracts-acceptance`
+  - Done: 2026-10-02
+  - Summary: Close the existing work record and SDD against exact-source CI/merge and unchanged executable JavaScript evidence.
+  - Tests: Accepted Docker193/193, strict4686/215, ESLint1601; zero new diagnostics; Markdown/SDD validation.
+  - Risks: Documentation only; global strict/lint and final product acceptance remain open.
