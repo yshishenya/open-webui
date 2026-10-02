@@ -1,0 +1,8 @@
+- [ ] **[BUG]** Complete login with a not-yet-initialized socket
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__auth-session-completion.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/auth-session-completion`
+  - Started: 2026-10-02
+  - Summary: Reproduce the real completion handler, preserve session/redirect flow and fix remaining local auth type contracts.
+  - Tests: Failing-before/passing-after actual handler; Docker165/165 tests; auth0 strict diagnostics and no new diagnostics; touched ESLint passes. Candidate/release pending.
+  - Risks: Critical authentication path; verify candidate and production before closure.
