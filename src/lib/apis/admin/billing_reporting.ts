@@ -49,6 +49,7 @@ export interface BillingReportingPage<T> {
 export interface BillingReportingPayment {
 	id: string;
 	user_id: string;
+	name: string | null;
 	kind: string;
 	status: string;
 	amount_kopeks: number;

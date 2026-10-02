@@ -44,6 +44,7 @@ class PaymentFact:
     source: str
     wallet_id: str | None
     subscription_id: str | None
+    name: str | None = None
 
 
 def amount_to_kopeks(value: object) -> int:
@@ -83,10 +84,14 @@ class BillingReportingService:
         kind: str | None = None,
         limit: int = REPORTING_EXPORT_MAX,
     ) -> list[PaymentFact]:
-        payment_stmt = select(Payment).where(
-            func.coalesce(Payment.updated_at, Payment.created_at) >= from_ts,
-            func.coalesce(Payment.updated_at, Payment.created_at) <= to_ts,
-            Payment.currency == currency,
+        payment_stmt = (
+            select(Payment, User.name)
+            .outerjoin(User, User.id == Payment.user_id)
+            .where(
+                func.coalesce(Payment.updated_at, Payment.created_at) >= from_ts,
+                func.coalesce(Payment.updated_at, Payment.created_at) <= to_ts,
+                Payment.currency == currency,
+            )
         )
         if user_id:
             payment_stmt = payment_stmt.where(Payment.user_id == user_id)
@@ -98,12 +103,16 @@ class BillingReportingService:
         # then apply the global cap below.  Callers must surface truncation when
         # the cap is reached; this keeps reporting requests memory-bounded.
         payment_stmt = payment_stmt.order_by(Payment.created_at.desc()).limit(limit)
-        payment_rows = (await self.session.execute(payment_stmt)).scalars().all()
+        payment_rows = (await self.session.execute(payment_stmt)).all()
 
-        transaction_stmt = select(Transaction).where(
-            func.coalesce(Transaction.updated_at, Transaction.created_at) >= from_ts,
-            func.coalesce(Transaction.updated_at, Transaction.created_at) <= to_ts,
-            Transaction.currency == currency,
+        transaction_stmt = (
+            select(Transaction, User.name)
+            .outerjoin(User, User.id == Transaction.user_id)
+            .where(
+                func.coalesce(Transaction.updated_at, Transaction.created_at) >= from_ts,
+                func.coalesce(Transaction.updated_at, Transaction.created_at) <= to_ts,
+                Transaction.currency == currency,
+            )
         )
         if user_id:
             transaction_stmt = transaction_stmt.where(Transaction.user_id == user_id)
@@ -112,11 +121,11 @@ class BillingReportingService:
         if kind and kind != 'subscription':
             transaction_stmt = transaction_stmt.where(False)
         transaction_stmt = transaction_stmt.order_by(Transaction.created_at.desc()).limit(limit)
-        transaction_rows = (await self.session.execute(transaction_stmt)).scalars().all()
+        transaction_rows = (await self.session.execute(transaction_stmt)).all()
 
         facts: list[PaymentFact] = []
         provider_ids: set[str] = set()
-        for row in payment_rows:
+        for row, name in payment_rows:
             provider_id = row.provider_payment_id
             if provider_id:
                 provider_ids.add(provider_id)
@@ -134,10 +143,11 @@ class BillingReportingService:
                     source='billing_payment',
                     wallet_id=row.wallet_id,
                     subscription_id=row.subscription_id,
+                    name=name,
                 )
             )
 
-        for row in transaction_rows:
+        for row, name in transaction_rows:
             # A subscription can exist in both stores during migration. Do not
             # double-count it when the provider id is already canonicalized.
             if row.yookassa_payment_id and row.yookassa_payment_id in provider_ids:
@@ -156,6 +166,7 @@ class BillingReportingService:
                     source='billing_transaction',
                     wallet_id=None,
                     subscription_id=row.subscription_id,
+                    name=name,
                 )
             )
 
@@ -532,6 +543,7 @@ class BillingReportingService:
         return {
             'id': fact.id,
             'user_id': fact.user_id,
+            'name': fact.name,
             'kind': fact.kind,
             'status': fact.status,
             'amount_kopeks': fact.amount_kopeks,

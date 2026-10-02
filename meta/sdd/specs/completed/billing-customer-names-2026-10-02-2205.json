@@ -1,0 +1,133 @@
+{
+  "spec_id": "billing-customer-names-2026-10-02-2205",
+  "title": "Billing customer names",
+  "generated": "2026-10-02T19:05:38.247170Z",
+  "last_updated": "2026-10-02T19:12:37.184173Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__billing-customer-names.md",
+    "status": "completed",
+    "activated_date": "2026-10-02T19:07:01.123797Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-02T19:12:37.183901Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Billing customer names",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Expose and display customer profile names",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-1-task"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-02T19:08:29.479260Z",
+        "journaled_at": "2026-10-02T19:08:29.481198Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify regression checks and prepare PR",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "phase-2-task"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-02T19:12:36.669728Z",
+        "journaled_at": "2026-10-02T19:12:36.671748Z"
+      }
+    },
+    "phase-1-task": {
+      "type": "task",
+      "title": "Expose and display customer profile names",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "completed_at": "2026-10-02T19:08:29.479066Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-02T19:08:29.480192Z",
+        "file_path": "backend/open_webui/utils/airis/billing_reporting.py"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "phase-2-task": {
+      "type": "task",
+      "title": "Verify regression checks and prepare PR",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "metadata": {
+        "file_path": "src/routes/(app)/admin/billing/transactions/transactions.test.ts",
+        "completed_at": "2026-10-02T19:12:36.669531Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-02T19:12:36.670657Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-02T19:08:29.480183Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Expose and display customer profile names",
+      "author": "claude-code",
+      "content": "Task phase-1-task marked as completed.",
+      "metadata": {},
+      "task_id": "phase-1-task"
+    },
+    {
+      "timestamp": "2026-10-02T19:08:29.481194Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Expose and display customer profile names",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-02T19:12:36.670648Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify regression checks and prepare PR",
+      "author": "claude-code",
+      "content": "Task phase-2-task marked as completed.",
+      "metadata": {},
+      "task_id": "phase-2-task"
+    },
+    {
+      "timestamp": "2026-10-02T19:12:36.671743Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify regression checks and prepare PR",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
