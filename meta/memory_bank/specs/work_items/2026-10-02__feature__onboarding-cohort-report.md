@@ -3,7 +3,7 @@
 Status: In Progress
 Owner: Codex
 Branch: `codex/feature/onboarding-cohort-report`
-SDD Spec: `meta/sdd/specs/active/airis-registration-cohort-repo-2026-10-02-0817.json`
+SDD Spec: `meta/sdd/specs/active/airis-registration-cohort-repo-2026-10-02-817.json`
 
 ## Goal and measurable acceptance
 
