@@ -13,6 +13,7 @@ from open_webui.models.automations import AutomationRun
 from open_webui.models.chat_messages import ChatMessage, ChatMessages
 from open_webui.models.folders import Folders
 from open_webui.models.tags import Tag, TagModel, Tags
+from open_webui.models.task_success import SuccessCheckpoint
 from open_webui.utils.misc import get_output_text, sanitize_data_for_db, sanitize_text_for_db
 from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy import (
@@ -967,7 +968,13 @@ class ChatTable:
         return chat.chat.get('history', {}).get('messages', {}).get(message_id, {})
 
     async def upsert_message_to_chat_by_id_and_message_id(
-        self, id: str, message_id: str, message: dict, *, touch: bool = True
+        self,
+        id: str,
+        message_id: str,
+        message: dict,
+        *,
+        touch: bool = True,
+        success_checkpoint: SuccessCheckpoint | None = None,
     ) -> ChatModel | None:
         if not message.get('content'):
             output_text = get_output_text(message.get('output'))
@@ -1011,6 +1018,7 @@ class ChatTable:
                     chat_id=id,
                     user_id=user_id,
                     data=saved_message,
+                    success_checkpoint=success_checkpoint,
                 )
             except Exception as e:
                 log.warning(f'Failed to write to chat_message table: {e}')

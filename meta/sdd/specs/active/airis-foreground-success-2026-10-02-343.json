@@ -1,0 +1,232 @@
+{
+	"spec_id": "airis-foreground-success-2026-10-02-343",
+	"title": "airis-foreground-success",
+	"generated": "2026-10-02T00:43:11.717231Z",
+	"last_updated": "2026-10-02T01:17:35.381869Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "medium",
+		"risk_level": "high",
+		"estimated_hours": 8,
+		"security_sensitive": true,
+		"default_category": "implementation",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__foreground-success.md",
+		"status": "active",
+		"activated_date": "2026-10-02T00:44:42.251879Z",
+		"progress_percentage": 66,
+		"current_phase": "phase-2"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-foreground-success",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 6,
+			"completed_tasks": 4,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace and implement durable success",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2", "task-1-3"],
+			"total_tasks": 3,
+			"completed_tasks": 3,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T01:09:05.993078Z",
+				"journaled_at": "2026-10-02T01:09:05.995559Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Validate and release",
+			"status": "in_progress",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2", "task-2-3"],
+			"total_tasks": 3,
+			"completed_tasks": 1,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Audit terminal paths and success semantics",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"estimated_hours": 2,
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-02__feature__foreground-success.md",
+				"task_category": "implementation",
+				"completed_at": "2026-10-02T00:44:42.497985Z",
+				"needs_journaling": false,
+				"status_note": "Traced stream/nonstream, temp/API, multi-model, continuation, tool artifact, cancellation and internal/automation boundaries. Chose one success table plus server-only normalized message checkpoint; no history inference.",
+				"journaled_at": "2026-10-02T00:44:42.499028Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Implement schema, checkpoints and reconciliation",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"estimated_hours": 2,
+				"file_path": "backend/open_webui/models/task_success.py",
+				"task_category": "implementation",
+				"completed_at": "2026-10-02T01:09:05.745782Z",
+				"needs_journaling": false,
+				"status_note": "One content-free success table, unique account/operation/kind, account FK, row-locked pending completion proofs and bounded independent scheduler reconciliation implemented. Replay and saved recovery checked on SQLite/PostgreSQL.",
+				"journaled_at": "2026-10-02T01:09:05.746964Z"
+			}
+		},
+		"task-1-3": {
+			"type": "task",
+			"title": "Wire foreground completion boundaries",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"estimated_hours": 2,
+				"file_path": "backend/open_webui/utils/middleware.py",
+				"task_category": "implementation",
+				"completed_at": "2026-10-02T01:09:05.992920Z",
+				"needs_journaling": false,
+				"status_note": "Thin hooks cover ordinary/temp/API, stream/nonstream, each saved mode and multi-model shared UUID. Terminal observer excludes failure/truncation/cancel, compares continuation output and validates owned local artifacts.",
+				"journaled_at": "2026-10-02T01:09:05.994007Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Validate replay, recovery, exclusions and migration",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"estimated_hours": 2,
+				"file_path": "backend/open_webui/test/util/test_task_success.py",
+				"task_category": "implementation",
+				"completed_at": "2026-10-02T01:17:35.380216Z",
+				"needs_journaling": false,
+				"status_note": "Backend514 pass, two PostgreSQL-only skips covered in dedicated suite; frontend147 pass. Both migration engines upgrade/downgrade/reupgrade/idempotent upgrade pass. Ruff adds zero findings; typecheck baseline/current exactly equal. CI/build frozen SHA and production remain pending.",
+				"journaled_at": "2026-10-02T01:17:35.381223Z"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Review exact source and merge checked PR",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"estimated_hours": 2,
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-02__feature__foreground-success.md",
+				"task_category": "implementation"
+			}
+		},
+		"task-2-3": {
+			"type": "task",
+			"title": "Release and verify real foreground success",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"estimated_hours": 2,
+				"file_path": "scripts/deploy_guarded.sh",
+				"task_category": "implementation"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-02T00:44:42.499024Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Audit terminal paths and success semantics",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Traced stream/nonstream, temp/API, multi-model, continuation, tool artifact, cancellation and internal/automation boundaries. Chose one success table plus server-only normalized message checkpoint; no history inference.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-02T01:09:05.746958Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Implement schema, checkpoints and reconciliation",
+			"author": "claude-code",
+			"content": "Task task-1-2 marked as completed. \nNote: One content-free success table, unique account/operation/kind, account FK, row-locked pending completion proofs and bounded independent scheduler reconciliation implemented. Replay and saved recovery checked on SQLite/PostgreSQL.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-02T01:09:05.994003Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Wire foreground completion boundaries",
+			"author": "claude-code",
+			"content": "Task task-1-3 marked as completed. \nNote: Thin hooks cover ordinary/temp/API, stream/nonstream, each saved mode and multi-model shared UUID. Terminal observer excludes failure/truncation/cancel, compares continuation output and validates owned local artifacts.",
+			"metadata": {},
+			"task_id": "task-1-3"
+		},
+		{
+			"timestamp": "2026-10-02T01:09:05.995551Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace and implement durable success",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-02T01:17:35.381218Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Validate replay, recovery, exclusions and migration",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Backend514 pass, two PostgreSQL-only skips covered in dedicated suite; frontend147 pass. Both migration engines upgrade/downgrade/reupgrade/idempotent upgrade pass. Ruff adds zero findings; typecheck baseline/current exactly equal. CI/build frozen SHA and production remain pending.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		}
+	]
+}

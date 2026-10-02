@@ -724,6 +724,9 @@ class UsersTable:
 
             await session.scalar(select(User).where(User.id == id).with_for_update())
             await delete_product_preferences(session, id)
+            from open_webui.models.task_success import delete_task_success
+
+            await delete_task_success(session, id)
             await session.execute(delete(User).where(User.id == id))
             await session.commit()
             return True
