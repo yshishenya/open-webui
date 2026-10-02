@@ -2,7 +2,7 @@
 	"spec_id": "airis-guide-walkthrough-video-2026-10-02-206",
 	"title": "AIRIS guide walkthrough video",
 	"generated": "2026-10-02T10:30:02.385033Z",
-	"last_updated": "2026-10-02T10:31:47.754846Z",
+	"last_updated": "2026-10-02T11:12:34.110360Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "low",
@@ -10,20 +10,21 @@
 		"estimated_hours": 8,
 		"security_sensitive": false,
 		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__guide-walkthrough-video.md",
-		"status": "active",
+		"status": "completed",
 		"activated_date": "2026-10-02T10:31:47.225909Z",
-		"progress_percentage": 50,
-		"current_phase": "phase-1"
+		"progress_percentage": 100,
+		"current_phase": "phase-2",
+		"completed_date": "2026-10-02T11:12:34.110057Z"
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
 			"title": "AIRIS guide walkthrough video",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2"],
 			"total_tasks": 4,
-			"completed_tasks": 2,
+			"completed_tasks": 4,
 			"metadata": {}
 		},
 		"phase-1": {
@@ -43,12 +44,16 @@
 		"phase-2": {
 			"type": "phase",
 			"title": "Verify source and production delivery",
-			"status": "pending",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-2-1", "task-2-2"],
 			"total_tasks": 2,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T11:12:33.617338Z",
+				"journaled_at": "2026-10-02T11:12:33.619781Z"
+			}
 		},
 		"task-1-1": {
 			"type": "task",
@@ -97,7 +102,7 @@
 		"task-2-1": {
 			"type": "task",
 			"title": "Run source checks, guide E2E and accept PR",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-2",
 			"children": [],
 			"dependencies": {
@@ -106,16 +111,20 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"metadata": {
 				"category": "implementation",
-				"file_path": "e2e/guide.spec.ts"
+				"file_path": "e2e/guide.spec.ts",
+				"completed_at": "2026-10-02T11:05:32.865814Z",
+				"needs_journaling": false,
+				"status_note": "Frozen source f50d9db1857d620cb8aa52d694baf706eab6d0f1: touched checks and156 Vitest passed; supported Node22 native build after Docker SIGKILL;7 Docker guide E2E; actual CUA playback/captions/Space;12 observed CI statuses accepted; PR160 merged f2bfb1db11c51bcf1e7b31c6fb4631f31b58340d. General frontend debt remains open.",
+				"journaled_at": "2026-10-02T11:05:32.867251Z"
 			}
 		},
 		"task-2-2": {
 			"type": "task",
 			"title": "Release and verify production player and assets",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-2",
 			"children": [],
 			"dependencies": {
@@ -124,10 +133,14 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"metadata": {
 				"category": "implementation",
-				"file_path": "src/routes/guide/+page.svelte"
+				"file_path": "src/routes/guide/+page.svelte",
+				"completed_at": "2026-10-02T11:12:33.617241Z",
+				"needs_journaling": false,
+				"status_note": "Guarded production release accepted: frozen frontend f50d9db1857d620cb8aa52d694baf706eab6d0f1, healthy candidate immutable digest; all4903 frontend hashes match, inherited469 backend files unchanged; verified backup/migration/rollback, ENV/mounts/networks/ports/commands and17 neighboring IDs preserved; disk10813620KiB. Public3 assets hash/MIME,206 range; actual production playback10 Russian cues, Space pause,390/1440 screenshots and no horizontal overflow. Physical phone/fresh login/payment/pilot remain separate.",
+				"journaled_at": "2026-10-02T11:12:33.618498Z"
 			}
 		}
 	},
@@ -158,6 +171,33 @@
 			"content": "All child tasks in phase phase-1 have been completed.",
 			"metadata": {},
 			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-02T11:05:32.867244Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Run source checks, guide E2E and accept PR",
+			"author": "Codex",
+			"content": "Task task-2-1 marked as completed. \nNote: Frozen source f50d9db1857d620cb8aa52d694baf706eab6d0f1: touched checks and156 Vitest passed; supported Node22 native build after Docker SIGKILL;7 Docker guide E2E; actual CUA playback/captions/Space;12 observed CI statuses accepted; PR160 merged f2bfb1db11c51bcf1e7b31c6fb4631f31b58340d. General frontend debt remains open.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-02T11:12:33.618493Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Release and verify production player and assets",
+			"author": "Codex",
+			"content": "Task task-2-2 marked as completed. \nNote: Guarded production release accepted: frozen frontend f50d9db1857d620cb8aa52d694baf706eab6d0f1, healthy candidate immutable digest; all4903 frontend hashes match, inherited469 backend files unchanged; verified backup/migration/rollback, ENV/mounts/networks/ports/commands and17 neighboring IDs preserved; disk10813620KiB. Public3 assets hash/MIME,206 range; actual production playback10 Russian cues, Space pause,390/1440 screenshots and no horizontal overflow. Physical phone/fresh login/payment/pilot remain separate.",
+			"metadata": {},
+			"task_id": "task-2-2"
+		},
+		{
+			"timestamp": "2026-10-02T11:12:33.619776Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify source and production delivery",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
 		}
 	]
 }

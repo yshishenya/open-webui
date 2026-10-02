@@ -1,0 +1,6 @@
+- [x] **[DOCS][GUIDE]** Record walkthrough source and production acceptance
+  - Spec: meta/memory_bank/specs/work_items/2026-10-02**feature**guide-walkthrough-video.md
+  - Owner: Codex
+  - Branch: codex/docs/guide-video-acceptance
+  - Done: 2026-10-02
+  - Summary: Close SDD206 4/4 after exact-source CI/PR160, build/E2E and live player/assets acceptance; preserve explicit limits of fresh-login/phone/payment/pilot evidence. Documentation only; runtime stays at the accepted walkthrough release.
