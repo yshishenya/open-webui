@@ -23,7 +23,7 @@ The ordinary account has a zero cash balance, available free quota and successfu
 
 ## Scope / Upstream impact
 
-Change the existing route predicate in `src/routes/(app)/billing/balance/+page.svelte`; reuse free-usage state and paid-request recommendation. Update the existing mounted-page fixture to cover the behavior and correct its obsolete mock arguments/empty-array inference. No new helper, component, dependency, threshold, billing calculation, payment or database change.
+Change the existing route predicate in `src/routes/(app)/billing/balance/+page.svelte`; reuse free-usage state and paid-request recommendation. Update the existing mounted-page and browser recovery fixtures to cover the behavior; correct obsolete mock arguments/store inference. No new helper, component, dependency, threshold, billing calculation, payment or database change.
 
 ## Verification
 
@@ -36,3 +36,5 @@ Free quota availability is the existing wallet-wide hint, not a guarantee that a
 ## Source checks
 
 The existing mounted-page fixture fails2 cases before the single route-predicate correction and passes all12 wallet cases after it. The explicit paid recovery scenario has available free usage and still preselects the required package. Docker frontend166/166 in40 files and touched ESLint/Prettier pass. Both wallet route and fixture have0 strict diagnostics. Correcting legacy mock arguments and store inference removes8 findings and introduces0; full baseline4783 errors /217 warnings /284 files remains open. No new dependencies or payment changes. Candidate/exact-source CI and production acceptance remain pending.
+
+The existing wallet recovery browser checks now assert absent warning and unselected/disabled payment while free usage is available, including the mobile disclosure case. The unavailable-free-model top-up wiring scenario is retained. Touched browser-fixture ESLint and Prettier pass; final candidate E2E follows.
