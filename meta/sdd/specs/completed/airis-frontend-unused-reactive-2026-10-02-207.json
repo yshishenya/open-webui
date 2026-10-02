@@ -2,7 +2,7 @@
 	"spec_id": "airis-frontend-unused-reactive-2026-10-02-207",
 	"title": "Airis frontend unused reactive lint recovery 2026-10-02",
 	"generated": "2026-10-02T11:28:26.385413Z",
-	"last_updated": "2026-10-02T11:43:11.889927Z",
+	"last_updated": "2026-10-02T12:00:30.804015Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "low",
@@ -10,20 +10,21 @@
 		"estimated_hours": 8,
 		"security_sensitive": false,
 		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-unused-reactive.md",
-		"status": "active",
+		"status": "completed",
 		"activated_date": "2026-10-02T11:30:02.170369Z",
-		"progress_percentage": 75,
-		"current_phase": "phase-2"
+		"progress_percentage": 100,
+		"current_phase": "phase-2",
+		"completed_date": "2026-10-02T12:00:30.803675Z"
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
 			"title": "Airis frontend unused reactive lint recovery 2026-10-02",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2"],
 			"total_tasks": 4,
-			"completed_tasks": 3,
+			"completed_tasks": 4,
 			"metadata": {}
 		},
 		"phase-1": {
@@ -43,12 +44,16 @@
 		"phase-2": {
 			"type": "phase",
 			"title": "Verify regression, full baseline and accepted source",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-2-1", "task-2-2"],
 			"total_tasks": 2,
-			"completed_tasks": 1,
-			"metadata": {}
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T12:00:30.324411Z",
+				"journaled_at": "2026-10-02T12:00:30.326589Z"
+			}
 		},
 		"task-1-1": {
 			"type": "task",
@@ -113,7 +118,7 @@
 		"task-2-2": {
 			"type": "task",
 			"title": "Review and accept exact source through PR and CI without claiming full baseline green",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-2",
 			"children": [],
 			"dependencies": {
@@ -122,9 +127,12 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"metadata": {
-				"file_path": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-unused-reactive.md"
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-unused-reactive.md",
+				"completed_at": "2026-10-02T12:00:30.324245Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-02T12:00:30.325381Z"
 			}
 		}
 	},
@@ -164,6 +172,24 @@
 			"content": "Task task-2-1 marked as completed.",
 			"metadata": {},
 			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-02T12:00:30.325376Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Review and accept exact source through PR and CI without claiming full baseline green",
+			"author": "claude-code",
+			"content": "Task task-2-2 marked as completed.",
+			"metadata": {},
+			"task_id": "task-2-2"
+		},
+		{
+			"timestamp": "2026-10-02T12:00:30.326585Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify regression, full baseline and accepted source",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
 		}
 	]
 }
