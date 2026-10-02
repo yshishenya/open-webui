@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/bugfix/shared-utility-types
-- SDD Spec: meta/sdd/specs/active/airis-shared-utility-types-202-2026-10-02-1806.json
+- SDD Spec: meta/sdd/specs/active/airis-shared-utility-types-2026-10-02-212.json
 - Created: 2026-10-02
 - Updated: 2026-10-02
 
