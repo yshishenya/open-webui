@@ -75,6 +75,7 @@
 	let topupReturnAttempts = 0;
 	let topupReturnTimer: ReturnType<typeof setTimeout> | null = null;
 	let topupReturnDismissed = false;
+	let recentActivityRevision = 0;
 	let creatingTopupAmount: number | null = null;
 	let savingAutoTopup = false;
 	let leadMagnetInfo: LeadMagnetInfo | null = null;
@@ -234,7 +235,10 @@
 	const reconcileStoredTopup = async (): Promise<boolean> => {
 		if (!topupFlow?.payment_id) return false;
 		const result = await reconcileTopup(localStorage.token, topupFlow.payment_id);
-		return result?.credited === true;
+		const credited = result?.credited === true;
+		// The timeline mounted before reconciliation and needs fresh ledger facts.
+		if (credited) recentActivityRevision += 1;
+		return credited;
 	};
 
 	const trackTopupCompleted = (): void => {
@@ -1081,15 +1085,17 @@
 						{$i18n.t('View all activity')}
 					</a>
 				</div>
-				<UnifiedTimeline
-					pageSize={6}
-					maxItems={6}
-					showFilters={false}
-					showLoadMore={false}
-					emptyActionLabel={$i18n.t('Top up')}
-					onEmptyAction={scrollToTopup}
-					currency={balance.currency}
-				/>
+				{#key recentActivityRevision}
+					<UnifiedTimeline
+						pageSize={6}
+						maxItems={6}
+						showFilters={false}
+						showLoadMore={false}
+						emptyActionLabel={$i18n.t('Top up')}
+						onEmptyAction={scrollToTopup}
+						currency={balance.currency}
+					/>
+				{/key}
 			</div>
 		</div>
 	</div>

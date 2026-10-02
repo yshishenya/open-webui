@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount } from 'svelte';
+import type { LedgerEntry } from '$lib/apis/billing';
 
 vi.mock('$lib/utils/airis/funnelAnalytics', () => ({ browserTracksPayments: async () => true }));
 
@@ -178,6 +179,8 @@ describe('Billing balance page', () => {
 		mocks.getLeadMagnetInfoMock.mockReset().mockResolvedValue({ enabled: false });
 		mocks.getPublicPricingConfigMock.mockReset().mockResolvedValue(null);
 		mocks.reconcileTopupMock.mockReset().mockResolvedValue({ credited: false });
+		mocks.getLedgerMock.mockReset().mockResolvedValue([]);
+		mocks.getUsageEventsMock.mockReset().mockResolvedValue([]);
 		mocks.getUserInfoMock.mockReset().mockResolvedValue({
 			billing_contact_email: '',
 			billing_contact_phone: ''
@@ -194,6 +197,7 @@ describe('Billing balance page', () => {
 		if (mounted) {
 			await unmount(mounted);
 		}
+		vi.useRealTimers();
 		mounted = null;
 		if (target) {
 			target.remove();
@@ -401,6 +405,85 @@ describe('Billing balance page', () => {
 
 		expect(mocks.toast.error).toHaveBeenCalledWith('Payment provider credentials are invalid');
 	});
+
+	const ledgerTopup = (reference: string, createdAt: number): LedgerEntry => ({
+		id: reference,
+		user_id: 'wallet-user',
+		wallet_id: 'wallet',
+		currency: 'RUB',
+		type: 'topup',
+		amount_kopeks: 50000,
+		balance_included_after: 0,
+		balance_topup_after: 100000,
+		reference_type: 'payment',
+		reference_id: reference,
+		created_at: createdAt
+	});
+
+	const storeReturningTopup = (): void => {
+		localStorage.setItem(
+			'billing_topup_flow_v1',
+			JSON.stringify({
+				started_at_ms: Date.now(),
+				amount_kopeks: 50000,
+				previous_total_kopeks: 50000,
+				payment_id: 'newpay00',
+				return_to: null
+			})
+		);
+	};
+
+	it.each(['automatic', 'manual'])(
+		'refreshes recent activity after %s confirmed credit',
+		async (path) => {
+			vi.useFakeTimers();
+			storeReturningTopup();
+			const oldEntry = ledgerTopup('oldpay00', 1000);
+			const newEntry = ledgerTopup('newpay00', 2000);
+			mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 100000 }));
+			mocks.getLedgerMock.mockResolvedValueOnce([oldEntry]).mockResolvedValue([newEntry, oldEntry]);
+			mocks.reconcileTopupMock.mockResolvedValue({ credited: true });
+			const root = renderPage();
+			await vi.advanceTimersByTimeAsync(0);
+			expect(root.textContent).toContain('#oldpay00');
+			expect(root.textContent).not.toContain('#newpay00');
+			if (path === 'automatic') {
+				await vi.advanceTimersByTimeAsync(3000);
+			} else {
+				const refresh = [...root.querySelectorAll('button')].find(
+					(button) => button.textContent?.trim() === 'Refresh'
+				);
+				expect(refresh).toBeTruthy();
+				refresh?.click();
+				await vi.advanceTimersByTimeAsync(0);
+			}
+			expect(root.textContent).toContain('Top-up successful');
+			expect(root.textContent).toContain('#newpay00');
+			expect(root.textContent?.match(/#oldpay00/g)).toHaveLength(1);
+			expect(mocks.getLedgerMock).toHaveBeenCalledTimes(2);
+			await vi.advanceTimersByTimeAsync(9000);
+			expect(mocks.getLedgerMock).toHaveBeenCalledTimes(2);
+		}
+	);
+
+	it.each(['pending', 'error'])(
+		'preserves recent activity during %s reconciliation',
+		async (outcome) => {
+			vi.useFakeTimers();
+			storeReturningTopup();
+			mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 100000 }));
+			mocks.getLedgerMock.mockResolvedValue([ledgerTopup('oldpay00', 1000)]);
+			if (outcome === 'error') {
+				mocks.reconcileTopupMock.mockRejectedValue(new Error('provider unavailable'));
+			}
+			const root = renderPage();
+			await vi.advanceTimersByTimeAsync(0);
+			await vi.advanceTimersByTimeAsync(3000);
+			expect(root.textContent).toContain('#oldpay00');
+			expect(root.textContent).not.toContain('Top-up successful');
+			expect(mocks.getLedgerMock).toHaveBeenCalledTimes(1);
+		}
+	);
 
 	it('uses the exact payment reconciliation result for top-up success', async () => {
 		mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 50000 }));
