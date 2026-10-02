@@ -1,0 +1,8 @@
+- [x] **[DOCS]** Record accepted history date correction
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__history-date-ranges.md`
+  - Owner: Codex
+  - Branch: `codex/docs/history-date-acceptance`
+  - Done: 2026-10-02
+  - Summary: Close the existing local bug record against source, candidate browser and immutable live-file evidence.
+  - Tests: Markdown/SDD validation; reuse accepted Docker189/189, 18 date cases in two zones and candidate12+1 browser cases.
+  - Risks: Documentation only; global strict/lint limitations remain open.
