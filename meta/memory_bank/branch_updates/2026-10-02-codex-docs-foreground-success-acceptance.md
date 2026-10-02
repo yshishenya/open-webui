@@ -1,0 +1,5 @@
+- [x] **[DOCS][ACTIVATION]** Record checked foreground-success release
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__feature__foreground-success.md`
+  - Owner: Codex
+  - Done: 2026-10-02
+  - Summary: Closed SDD after verified source, CI, compatible migration/rollback, full image hashes, two actual UI answers and eight owned production controls; product mail stays off.
