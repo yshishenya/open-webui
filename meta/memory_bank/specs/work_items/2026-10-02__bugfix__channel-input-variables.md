@@ -38,4 +38,6 @@ Low: content must reflect the editor's onChange updates before inspection. Exist
 
 ## Local acceptance
 
-Combined source based on accepted PR170 merge118593fea32ea3aa93742fe79e71e08c1fbc8be3: Docker171/171, regression5/5, Prettier passed. Strict check4730→4729 errors with217 warnings unchanged; ESLint1621→1620 errors/0 warnings. No new untouched-file or test diagnostics and no new lint message. Existing channel lint19 errors remain. Full strict/lint gates stay open. Shared types SDD212 completion is included as documentation of the already accepted PR170.
+Combined source based on accepted PR170 merge118593fea32ea3aa93742fe79e71e08c1fbc8be3: Docker171/171, regression5/5, Prettier passed. Strict check4730→4722 errors with warnings217→215; ESLint1621→1601 errors/0 warnings. No new untouched-file or test diagnostics and no new lint message. Changed channel/helper/test files have zero lint errors. Full strict/lint gates stay open. Shared types SDD212 completion is included as documentation of the already accepted PR170.
+
+CI initially exposed all19 existing channel lint errors. Remove unused imports/callback arguments/bindings, type existing callbacks and variable maps, remove the unused showFormattingToolbar prop (no caller passes it), and preserve the caller id prop as a data-input-id DOM hook for scoped editor verification. Both callers still supply their unchanged id values. No new dependency/rule suppression; all tick, input and substitution algorithms remain.

@@ -6,7 +6,7 @@
 
 	const i18n = getContext('i18n');
 
-	import { config, mobile, settings, socket, user } from '$lib/stores';
+	import { config, mobile, settings } from '$lib/stores';
 	import {
 		convertHeicToJpeg,
 		compressImage,
@@ -44,22 +44,24 @@
 	export let placeholder = $i18n.t('Type here...');
 	export let chatInputElement;
 
-	export let id = null;
+	export let id: string | null = null;
 	export let channel = null;
 
 	export let typingUsers = [];
 	export let inputLoading = false;
 
-	export let onSubmit: Function = (e) => {};
-	export let onChange: Function = (e) => {};
-	export let onStop: Function = (e) => {};
+	export let onSubmit: (value: {
+		content: string;
+		data: { files: Record<string, unknown>[] };
+	}) => void | Promise<void> = () => {};
+	export let onChange: () => void | Promise<void> = () => {};
+	export let onStop: () => void | Promise<void> = () => {};
 
 	export let scrollEnd = true;
-	export let scrollToBottom: Function = () => {};
+	export let scrollToBottom: () => void | Promise<void> = () => {};
 
 	export let disabled = false;
 	export let acceptFiles = true;
-	export let showFormattingToolbar = true;
 
 	export let userSuggestions = false;
 	export let channelSuggestions = false;
@@ -79,9 +81,9 @@
 	let inputFiles;
 
 	let showInputVariablesModal = false;
-	let inputVariablesModalCallback: (variableValues: Record<string, any>) => void;
-	let inputVariables: Record<string, any> = {};
-	let inputVariableValues = {};
+	let inputVariablesModalCallback: (variableValues: Record<string, unknown>) => void;
+	let inputVariables: Record<string, Record<string, unknown>> = {};
+	let inputVariableValues: Record<string, unknown> = {};
 
 	const inputVariableHandler = async (text: string): Promise<string> => {
 		inputVariables = extractInputVariables(text);
@@ -105,7 +107,7 @@
 
 	const textVariableHandler = async (text: string) => {
 		if (text.includes('{{CLIPBOARD}}')) {
-			const clipboardText = await navigator.clipboard.readText().catch((err) => {
+			const clipboardText = await navigator.clipboard.readText().catch(() => {
 				toast.error($i18n.t('Failed to read clipboard contents'));
 				return '{{CLIPBOARD}}';
 			});
@@ -133,7 +135,7 @@
 			let location;
 			try {
 				location = await getUserPosition();
-			} catch (error) {
+			} catch {
 				toast.error($i18n.t('Location access not allowed'));
 				location = 'LOCATION_UNKNOWN';
 			}
@@ -222,7 +224,7 @@
 		return text;
 	};
 
-	const replaceVariables = (variables: Record<string, any>) => {
+	const replaceVariables = (variables: Record<string, unknown>): void => {
 		console.log('Replacing variables:', variables);
 
 		const chatInput = document.getElementById('chat-input');
@@ -633,7 +635,7 @@
 				},
 				render: getSuggestionRenderer(CommandSuggestionList, {
 					i18n,
-					onSelect: (e) => {
+					onSelect: () => {
 						document.getElementById('chat-input')?.focus();
 					},
 
@@ -780,7 +782,7 @@
 							}
 						}}
 						onConfirm={async (data) => {
-							const { text, filename } = data;
+							const { text } = data;
 							recording = false;
 
 							await tick();
@@ -802,6 +804,7 @@
 					>
 						<div
 							id="message-input-container"
+							data-input-id={id}
 							class="flex-1 flex flex-col relative w-full shadow-lg rounded-3xl border border-gray-50 dark:border-gray-850/30 hover:border-gray-100 focus-within:border-gray-100 hover:dark:border-gray-800 focus-within:dark:border-gray-800 transition px-0.5 bg-white/90 dark:bg-gray-400/5 dark:text-gray-100"
 							dir={$settings?.chatDirection ?? 'auto'}
 						>
@@ -924,7 +927,6 @@
 											}}
 											on:keydown={async (e) => {
 												e = e.detail.event;
-												const isCtrlPressed = e.ctrlKey || e.metaKey; // metaKey is for Cmd key on Mac
 
 												const suggestionsContainerElement =
 													document.getElementById('suggestions-container');
