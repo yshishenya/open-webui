@@ -1,8 +1,9 @@
-- [ ] **[BUG][FRONTEND]** Recover ESLint from unused Svelte computations
+- [x] **[BUG][FRONTEND]** Recover ESLint from unused Svelte computations
   - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-unused-reactive.md`
   - Owner: Codex
   - Branch: `codex/bugfix/frontend-unused-reactive`
-  - Started: 2026-10-02
-  - Summary: Reproduced pinned ESLint crash; remove three unread reactive values and address the exposed diagnostics locally.
+  - Done: 2026-10-02
+  - Summary: PR162 merged; removed three unread reactive values and resolved touched-file diagnostics with sanitized rendering and unchanged global rules.
   - Tests: Docker frontend 161/161; changed-file ESLint zero diagnostics; Prettier and diff checks pass. Full lint now completes with 1639 existing errors; strict check 4876 errors / 217 warnings / 287 files, so the global quality gate remains open.
   - Risks: Shared input and file preview; unchanged callbacks and sanitized rendering need regression checks.
+  - Acceptance: source `ca011745aa5f512c113a5f74c652123b8ff84be7`, merge `4fb52df3d2aa199b699fbd7457fd1ebb4aadd795`; 12 observed CI statuses satisfied; frozen candidate guide E2E 7/7. Automated reviewer was skipped, not human approval.
