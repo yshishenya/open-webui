@@ -1,6 +1,7 @@
-- [ ] **[FEATURE][BUG][EMAIL]** Complete PAYG and feedback mail rendering with safe financial decisions
+- [x] **[FEATURE][BUG][EMAIL]** Complete PAYG and feedback mail rendering with safe financial decisions
   - Spec: `meta/memory_bank/specs/work_items/2026-10-02__feature__onboarding-payment-feedback.md`
   - Owner: Codex
   - Branch: `codex/feature/onboarding-payment-feedback`
-  - Started: 2026-10-02
+  - Done: 2026-10-02
   - Summary: Reuse queue and credit facts; fix late-credit/unverified-failure selection and recheck current feedback before DATA. Real pilot remains separate.
+  - Verification: PR147 frozen source595 backend /71 PostgreSQL and CI passed; compatible database-copy rollback; released hashes match; four controlled SMTP HTML/text messages received once. Global optional mail remains disabled; real calendar pilot separate.
