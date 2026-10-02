@@ -1,0 +1,234 @@
+{
+	"spec_id": "airis-daily-email-capacity-2026-10-02-104",
+	"title": "AIRIS daily email capacity",
+	"generated": "2026-10-02T07:45:39.158521Z",
+	"last_updated": "2026-10-02T07:54:36.409918Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 24,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__email-daily-capacity.md",
+		"status": "active",
+		"activated_date": "2026-10-02T07:46:47.473969Z",
+		"progress_percentage": 66,
+		"current_phase": "phase-2"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS daily email capacity",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2", "phase-3"],
+			"total_tasks": 6,
+			"completed_tasks": 4,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace capacity and quota exhaustion",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T07:51:27.481228Z",
+				"journaled_at": "2026-10-02T07:51:27.483201Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Reuse journal and defer proven-unsent",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T07:54:36.404443Z",
+				"journaled_at": "2026-10-02T07:54:36.409891Z"
+			}
+		},
+		"phase-3": {
+			"type": "phase",
+			"title": "Verify and release",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-3-1", "task-3-2"],
+			"total_tasks": 2,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce premature terminal failure",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"metadata": {
+				"completed_at": "2026-10-02T07:51:27.227241Z",
+				"needs_journaling": false,
+				"status_note": "Capacity-only queue regression failed before fix: retry instead of pending and attempt consumed.",
+				"journaled_at": "2026-10-02T07:51:27.228700Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Define atomic UTC budgets and source limits",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"metadata": {
+				"completed_at": "2026-10-02T07:51:27.481027Z",
+				"needs_journaling": false,
+				"status_note": "Existing transport table reused; fixed UTC-day100/50 and minute60/40, atomic rejection rollback; outside-client limit documented.",
+				"journaled_at": "2026-10-02T07:51:27.482093Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Reserve minute/day in one transaction",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"metadata": {
+				"completed_at": "2026-10-02T07:54:35.998573Z",
+				"needs_journaling": false,
+				"status_note": "Minute/day share one transaction; bounded cleanup scoped to key and units; concurrent/headroom/midnight/rollback persistence checked.",
+				"journaled_at": "2026-10-02T07:54:36.008322Z"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Defer capacity failures without SMTP retry loss",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"metadata": {
+				"completed_at": "2026-10-02T07:54:36.396360Z",
+				"needs_journaling": false,
+				"status_note": "Capacity-only failures defer same unsent claim without losing retries; expiry/consent/owner/submission safety checked.",
+				"journaled_at": "2026-10-02T07:54:36.407840Z"
+			}
+		},
+		"task-3-1": {
+			"type": "task",
+			"title": "Source/image/PostgreSQL/CI and rollback checks",
+			"status": "pending",
+			"parent": "phase-3",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"metadata": {}
+		},
+		"task-3-2": {
+			"type": "task",
+			"title": "Guarded rollout and isolated live checks",
+			"status": "pending",
+			"parent": "phase-3",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"metadata": {}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-02T07:51:27.228693Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce premature terminal failure",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Capacity-only queue regression failed before fix: retry instead of pending and attempt consumed.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-02T07:51:27.482088Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Define atomic UTC budgets and source limits",
+			"author": "claude-code",
+			"content": "Task task-1-2 marked as completed. \nNote: Existing transport table reused; fixed UTC-day100/50 and minute60/40, atomic rejection rollback; outside-client limit documented.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-02T07:51:27.483197Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace capacity and quota exhaustion",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-02T07:54:36.008305Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reserve minute/day in one transaction",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Minute/day share one transaction; bounded cleanup scoped to key and units; concurrent/headroom/midnight/rollback persistence checked.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-02T07:54:36.407825Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Defer capacity failures without SMTP retry loss",
+			"author": "claude-code",
+			"content": "Task task-2-2 marked as completed. \nNote: Capacity-only failures defer same unsent claim without losing retries; expiry/consent/owner/submission safety checked.",
+			"metadata": {},
+			"task_id": "task-2-2"
+		},
+		{
+			"timestamp": "2026-10-02T07:54:36.409884Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Reuse journal and defer proven-unsent",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}

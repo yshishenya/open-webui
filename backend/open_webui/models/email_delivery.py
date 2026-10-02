@@ -311,41 +311,86 @@ async def finish_email(
         await session.commit()
 
 
+async def defer_email_capacity(job: DeliveryView, now: int) -> None:
+    """Only the current, proven-unsent claim can wait without losing a retry."""
+    async with get_async_db_context() as session:
+        await session.execute(
+            update(EmailDelivery)
+            .where(
+                EmailDelivery.id == job.id,
+                EmailDelivery.claim_id == job.claim_id,
+                EmailDelivery.status == 'claimed',
+                EmailDelivery.submitted_at.is_(None),
+                EmailDelivery.attempts > 0,
+            )
+            .values(
+                status=case((EmailDelivery.expires_at <= now + RETRY_SECONDS[0], 'expired'), else_='pending'),
+                reason=case(
+                    (EmailDelivery.expires_at <= now + RETRY_SECONDS[0], 'expired'), else_='transport_capacity'
+                ),
+                attempts=EmailDelivery.attempts - 1,
+                due_at=now + RETRY_SECONDS[0],
+                retryable=False,
+                claim_id=None,
+                lease_until=None,
+                updated_at=now,
+            )
+        )
+        await session.commit()
+
+
 async def reserve_transport(
     key: str,
     product: bool,
     total_limit: int,
     product_limit: int,
     now: int,
+    daily_total_limit: int = 100,
+    daily_product_limit: int = 50,
 ) -> bool:
-    """Fixed-minute shared quota; reserve service headroom without holding SMTP locks."""
-    if not 1 <= total_limit <= 10000 or not 0 <= product_limit < total_limit:
-        raise ValueError('Invalid shared SMTP capacity')
-    if product and product_limit == 0:
+    """Atomically reserve fixed-minute and UTC-day capacity; no SMTP locks."""
+    windows = [(key, 60, total_limit, product_limit), (key + ':day', 86400, daily_total_limit, daily_product_limit)]
+    for _, _, total, optional in windows:
+        if not 1 <= total <= 10000 or not 0 <= optional < total:
+            raise ValueError('Invalid shared SMTP capacity')
+    if product and (product_limit == 0 or daily_product_limit == 0):
         return False
     async with get_async_db_context() as session:
-        insert = dialect_insert(session, EmailTransportWindow)
-        result = await session.scalar(
-            insert.values(
-                transport_key=key,
-                minute=now // 60,
-                total=1,
-                product=int(product),
-            )
-            .on_conflict_do_update(
-                index_elements=['transport_key', 'minute'],
-                set_={'total': EmailTransportWindow.total + 1, 'product': EmailTransportWindow.product + int(product)},
-                where=and_(
-                    EmailTransportWindow.total < total_limit,
-                    or_(not product, EmailTransportWindow.product < product_limit),
-                ),
-            )
-            .returning(EmailTransportWindow.total)
-        )
-        old = select(EmailTransportWindow.minute).where(EmailTransportWindow.minute < now // 60 - 1440).limit(100)
-        await session.execute(delete(EmailTransportWindow).where(EmailTransportWindow.minute.in_(old)))
+        for transport_key, seconds, total, optional in windows:
+            if not await _reserve_transport_window(session, transport_key, seconds, product, total, optional, now):
+                await session.rollback()
+                return False
         await session.commit()
-        return result is not None
+        return True
+
+
+async def _reserve_transport_window(
+    session: AsyncSession, key: str, seconds: int, product: bool, total: int, optional: int, now: int
+) -> bool:
+    """Reuse the existing bucket column; namespace cleanup by key and window units."""
+    result = await session.scalar(
+        dialect_insert(session, EmailTransportWindow)
+        .values(transport_key=key, minute=now // seconds, total=1, product=int(product))
+        .on_conflict_do_update(
+            index_elements=['transport_key', 'minute'],
+            set_={'total': EmailTransportWindow.total + 1, 'product': EmailTransportWindow.product + int(product)},
+            where=and_(EmailTransportWindow.total < total, or_(not product, EmailTransportWindow.product < optional)),
+        )
+        .returning(EmailTransportWindow.total)
+    )
+    old = (
+        select(EmailTransportWindow.minute)
+        .where(
+            EmailTransportWindow.transport_key == key, EmailTransportWindow.minute < now // seconds - 86400 // seconds
+        )
+        .limit(100)
+    )
+    await session.execute(
+        delete(EmailTransportWindow).where(
+            EmailTransportWindow.transport_key == key, EmailTransportWindow.minute.in_(old)
+        )
+    )
+    return result is not None
 
 
 async def requeue_email(job_id: str, now: int) -> bool:

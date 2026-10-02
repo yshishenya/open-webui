@@ -285,6 +285,152 @@ async def test_shared_capacity_preserves_service_headroom(database: async_sessio
 
 
 @pytest.mark.asyncio
+async def test_capacity_delay_does_not_exhaust_smtp_retries(
+    database: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    now = int(time.time())
+    job_id = await enqueue(database)
+    service = email.EmailService()
+    service.smtp_host, service.smtp_username, service.smtp_password = 'smtp.invalid', 'test', 'unused'
+    service.from_email = 'sender@airis.you'
+    smtp = AsyncMock()
+    smtp.close = Mock()
+    service._create_connection = AsyncMock(return_value=smtp)
+    monkeypatch.setattr(email, 'email_service', service)
+    capacity = AsyncMock(return_value=False)
+    monkeypatch.setattr(worker, 'take_transport_capacity', capacity)
+    for _ in range(5):
+        monkeypatch.setattr(worker.time, 'time', lambda: now)
+        job = await journal.claim_email(now)
+        await worker.execute_email(job, config())
+        delayed = await state(database, job_id)
+        assert delayed.status == 'pending' and delayed.reason == 'transport_capacity'
+        assert delayed.attempts == 0 and delayed.submitted_at is None
+        assert delayed.due_at == now + worker.POLL_SECONDS
+        assert await journal.claim_email(now + 1) is None
+        now = delayed.due_at
+    smtp.send_message.assert_not_awaited()
+    monkeypatch.setattr(worker.time, 'time', lambda: now)
+    capacity.return_value = True
+    await worker.execute_email(await journal.claim_email(now), config())
+    final = await state(database, job_id)
+    assert final.status == 'accepted' and final.attempts == 1
+    smtp.send_message.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_atomic_daily_and_minute_capacity_survives_cleanup_and_restart(
+    database: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    now = 20000 * 86400 + 120
+    monkeypatch.setenv('AIRIS_EMAIL_SMTP_PER_MINUTE', '5')
+    monkeypatch.setenv('AIRIS_EMAIL_PRODUCT_PER_MINUTE', '3')
+    monkeypatch.setenv('AIRIS_EMAIL_SMTP_PER_DAY', '7')
+    monkeypatch.setenv('AIRIS_EMAIL_PRODUCT_PER_DAY', '4')
+    monkeypatch.setattr(worker.time, 'time', lambda: now)
+    results = await asyncio.gather(
+        *(worker.take_transport_capacity('SMTP.invalid', 25, 'Test', True) for _ in range(12))
+    )
+    assert sum(results) == 3
+    now += 60
+    assert await worker.take_transport_capacity('smtp.invalid', 25, 'test', True)
+    assert not await worker.take_transport_capacity('smtp.invalid', 25, 'test', True)
+    results = await asyncio.gather(
+        *(worker.take_transport_capacity('smtp.invalid', 25, 'test', False) for _ in range(10))
+    )
+    assert sum(results) == 3
+    async with database() as db:
+        rows = (await db.scalars(select(journal.EmailTransportWindow))).all()
+        assert sum(row.total for row in rows if row.transport_key.endswith(':day')) == 7
+        assert sum(row.total for row in rows if not row.transport_key.endswith(':day')) == 7
+        assert sum(row.product for row in rows if row.transport_key.endswith(':day')) == 4
+    # A fresh direct sender shares the persisted daily counter.
+    service = email.EmailService()
+    service.smtp_host, service.smtp_username, service.smtp_password = 'smtp.invalid', 'test', 'unused'
+    service.from_email = 'sender@airis.you'
+    smtp = AsyncMock()
+    smtp.close = Mock()
+    service._create_connection = AsyncMock(return_value=smtp)
+    refused = await service.send_email_result('person1@airis.you', 'Service', '<p>Test</p>', retry_count=1)
+    assert refused.reason == 'TransportCapacityUnavailable'
+    smtp.send_message.assert_not_awaited()
+    now = 20001 * 86400
+    assert await worker.take_transport_capacity('smtp.invalid', 25, 'test', True)
+    async with database() as db:
+        days = (
+            await db.scalars(
+                select(journal.EmailTransportWindow).where(journal.EmailTransportWindow.transport_key.endswith(':day'))
+            )
+        ).all()
+        assert {row.minute: row.total for row in days} == {20000: 7, 20001: 1}
+    now = 20003 * 86400
+    assert await worker.take_transport_capacity('smtp.invalid', 25, 'test', True)
+    async with database() as db:
+        days = (
+            await db.scalars(
+                select(journal.EmailTransportWindow).where(journal.EmailTransportWindow.transport_key.endswith(':day'))
+            )
+        ).all()
+        assert {row.minute: row.total for row in days} == {20003: 1}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'change', [{'claim_id': 'another-owner'}, {'status': 'unknown'}, {'status': 'accepted'}, {'submitted_at': 1}]
+)
+async def test_capacity_deferral_rejects_stale_or_submitted_jobs(
+    database: async_sessionmaker[AsyncSession], change: dict[str, object]
+) -> None:
+    job_id = await enqueue(database)
+    now = int(time.time())
+    job = await journal.claim_email(now)
+    assert await worker.prepare_email(job, config())
+    async with database() as db:
+        await db.execute(update(journal.EmailDelivery).where(journal.EmailDelivery.id == job_id).values(**change))
+        await db.commit()
+    before = await state(database, job_id)
+    await journal.defer_email_capacity(job, now)
+    assert await state(database, job_id) == before
+
+
+@pytest.mark.asyncio
+async def test_capacity_deferral_respects_expiry_and_consent(database: async_sessionmaker[AsyncSession]) -> None:
+    job_id = await enqueue(database)
+    now = int(time.time())
+    job = await journal.claim_email(now)
+    assert await worker.prepare_email(job, config())
+    await journal.defer_email_capacity(job, now)
+    await prefs.set_product_preference('1', False, 'settings')
+    assert (await state(database, job_id)).status == 'suppressed'
+    assert await journal.claim_email(now + worker.POLL_SECONDS) is None
+    await prefs.set_product_preference('1', True, 'settings')
+    job_id = await enqueue(database, key='expires-before-capacity')
+    job = await journal.claim_email(now)
+    assert await worker.prepare_email(job, config())
+    async with database() as db:
+        await db.execute(
+            update(journal.EmailDelivery).where(journal.EmailDelivery.id == job_id).values(expires_at=now + 1)
+        )
+        await db.commit()
+    await journal.defer_email_capacity(job, now)
+    expired = await state(database, job_id)
+    assert expired.status == 'expired' and expired.attempts == 0
+
+
+@pytest.mark.asyncio
+async def test_daily_zero_product_budget_and_invalid_config_fail_closed(
+    database: async_sessionmaker[AsyncSession],
+) -> None:
+    assert not await journal.reserve_transport('zero-day', True, 5, 3, 120, 7, 0)
+    assert await journal.reserve_transport('zero-day', False, 5, 3, 120, 7, 0)
+    with pytest.raises(ValueError):
+        await journal.reserve_transport('invalid-day', False, 5, 3, 120, 7, 7)
+    async with database() as db:
+        rows = (await db.scalars(select(journal.EmailTransportWindow))).all()
+        assert len(rows) == 2 and all(row.total == 1 and row.product == 0 for row in rows)
+
+
+@pytest.mark.asyncio
 async def test_reconciliation_dry_run_pilot_and_missing_jobs(database: async_sessionmaker[AsyncSession]) -> None:
     assert await scenarios.reconcile_email_candidates(replace(config(), dry_run=True)) == 4
     async with database() as db:
@@ -636,7 +782,8 @@ async def test_database_outage_before_data_and_after_acceptance_do_not_duplicate
     await worker.execute_email(await journal.claim_email(int(time.time())), config())
     smtp.send_message.assert_not_awaited()
     result = await state(database, job_id)
-    assert result.status == 'retry' and result.submitted_at is None
+    assert result.status == 'pending' and result.reason == 'transport_capacity' and result.submitted_at is None
+    assert result.attempts == 0
     monkeypatch.setattr(worker, 'take_transport_capacity', real_capacity)
     async with database() as db:
         await db.execute(
