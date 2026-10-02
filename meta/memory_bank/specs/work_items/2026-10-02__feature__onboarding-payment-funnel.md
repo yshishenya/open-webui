@@ -1,20 +1,20 @@
 # AIRIS onboarding payment attempt funnel
 
-Status: In Progress
+Status: Done
 Owner: Codex
 Branch: `codex/feature/onboarding-payment-funnel`
-SDD Spec: `meta/sdd/specs/active/airis-onboarding-payment-funne-2026-10-02-959.json`
+SDD Spec: `meta/sdd/specs/completed/airis-onboarding-payment-funne-2026-10-02-959.json`
 
 ## Goal and measurable criteria
 
 Extend the existing protected registration cohort report with payment attempts created during registration+[0,14d), counting only fully mature accounts. Reuse exact provider/ledger credit proof and async ORM; no new dependency, route, schema or financial mutation.
 
-- [ ] Attempts and users counted separately; repeated report reads never add facts. Exact matching ledger time must be inside the same14d window; future/late credit excluded from attempt conversion.
-- [ ] Status groups are disjoint and sum to total attempts: credited, provider succeeded without in-window credit, authoritative cancellation, local creation failure, processing and unresolved. Current status is explicitly a snapshot, not historical status at day14.
-- [ ] Fraction denominators are attempt/user populations respectively; zero denominators produce null. Immature account attempts remain outside mature conversion.
-- [ ] Cancellation reason is null because source sanitization lacks detailed provider cause. Local create_failed is distinguishable; no inference that every cancellation is an AIRIS failure.
-- [ ] Output contains aggregate facts only; arbitrary provider strings, payment/recipient identifiers and raw payload are not exported. Existing admin/no-store protections retained.
-- [ ] Source, frozen image, PostgreSQL, required CI, compatible rollback and guarded live read-only acceptance verified.
+- [x] Attempts and users counted separately; repeated report reads never add facts. Exact matching ledger time must be inside the same14d window; future/late credit excluded from attempt conversion.
+- [x] Status groups are disjoint and sum to total attempts: credited, provider succeeded without in-window credit, authoritative cancellation, local creation failure, processing and unresolved. Current status is explicitly a snapshot, not historical status at day14.
+- [x] Fraction denominators are attempt/user populations respectively; zero denominators produce null. Immature account attempts remain outside mature conversion.
+- [x] Cancellation reason is null because source sanitization lacks detailed provider cause. Local create_failed is distinguishable; no inference that every cancellation is an AIRIS failure.
+- [x] Output contains aggregate facts only; arbitrary provider strings, payment/recipient identifiers and raw payload are not exported. Existing admin/no-store protections retained.
+- [x] Source, frozen image, PostgreSQL, required CI, compatible rollback and guarded live read-only acceptance verified.
 
 ## Reuse and upstream impact
 
@@ -26,4 +26,4 @@ A credited user can have a payment initiated before registration; the existing g
 
 Root credit guard: a nonempty provider ID is mandatory even if a malformed empty ledger reference would otherwise match. The regression checks both existing gross paid metrics and the new attempt funnel.
 
-Source verification: empty-provider-ID regression failed before the shared guard; final full backend604 passed /3 PostgreSQL-only skips and isolated PostgreSQL80 passed. Black/Ruff and SDD schema/policy passed. Frozen image, CI, compatible rollback and live release remain pending.
+Source verification: empty-provider-ID regression failed before the shared guard; final full backend604 passed /3 PostgreSQL-only skips and isolated PostgreSQL80 passed. Black/Ruff and SDD schema/policy passed. Frozen image604 checks, isolated PostgreSQL80 and required CI passed. Compatible rollback preserved71 tables/15282 rows. Guarded release and live416/7006 file hashes passed; independent15 legacy attempts14 credited1 canceled match. No new observation cohort or pilot yet. See the release acceptance work item for bounded proof.
