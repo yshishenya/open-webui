@@ -1873,8 +1873,8 @@ async def _find_logout_provider(
                 matched_jwks_uri = oidc_config.get('jwks_uri')
                 matched_issuer = provider_issuer
                 break
-        except Exception as e:
-            log.debug(f'Back-channel logout: error checking provider {provider_name}: {type(e).__name__}')
+        except Exception:
+            log.debug('Back-channel logout: provider metadata check failed')
             continue
     return matched_provider, matched_client_id, matched_jwks_uri, matched_issuer
 

@@ -404,6 +404,16 @@ async def test_oauth_payloads_and_provider_errors_never_enter_logs_or_redirects(
     monkeypatch.setattr(oauth.Users, 'get_super_admin_user', AsyncMock(return_value=None))
     monkeypatch.setattr(oauth.Groups, 'insert_new_group', AsyncMock(side_effect=ValueError(marker)))
     assert await oauth._create_missing_groups(runtime, None, {}, SimpleNamespace(id='fixture'), [marker]) == []
+    monkeypatch.setattr(oauth, 'OAUTH_PROVIDERS', {marker: {}})
+    manager.get_server_metadata_url = lambda provider: 'https://provider.invalid/metadata'
+
+    @asynccontextmanager
+    async def unavailable_metadata(*args: object, **kwargs: object) -> AsyncIterator[SimpleNamespace]:
+        raise ValueError(marker)
+        yield SimpleNamespace()
+
+    monkeypatch.setattr(oauth.aiohttp, 'ClientSession', unavailable_metadata)
+    assert await oauth._find_logout_provider(manager, marker) == (None, None, None, None)
     assert marker not in caplog.text
     assert not any(record.exc_info for record in caplog.records)
     assert marker not in oauth._build_oauth_callback_error_message(ValueError(marker))

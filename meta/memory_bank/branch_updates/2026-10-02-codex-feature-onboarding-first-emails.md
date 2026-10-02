@@ -15,3 +15,5 @@ Start from merged queue acceptance. Trace all registration/account/verified-addr
   - Risks: Social email collision now requires the original account login; contact email alone no longer attaches a provider. Product flags stay off until controlled acceptance and cohort reporting.
 
 - 2026-10-02: OAuth security scan blocked release with ten raw-data logging findings. Remove provider payloads/errors from logs and redirects; add a regression check that fails against the previous image. Supersede the initial source/image; repeat required checks. Queue flags remain off.
+
+- Repeat scan reduced findings to one provider-metadata error log. That path now records only the failed operation; the marker regression covers provider names and metadata errors as well. Required frozen-source checks repeat before release.
