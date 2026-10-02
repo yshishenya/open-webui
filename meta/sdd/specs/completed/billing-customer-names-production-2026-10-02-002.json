@@ -1,0 +1,126 @@
+{
+	"spec_id": "billing-customer-names-production-2026-10-02-002",
+	"title": "Billing customer names production",
+	"generated": "2026-10-02T19:37:39.885805Z",
+	"last_updated": "2026-10-02T20:11:12.312440Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 1,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__ops__billing-customer-names-production.md",
+		"status": "completed",
+		"activated_date": "2026-10-02T19:38:31.060400Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-02T20:11:12.312028Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Billing customer names production",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Package and verify immutable image",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["phase-1-task"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T19:59:10.946672Z",
+				"journaled_at": "2026-10-02T19:59:10.949272Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Deploy and verify production",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["phase-2-task"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T20:11:11.704047Z",
+				"journaled_at": "2026-10-02T20:11:11.706808Z"
+			}
+		},
+		"phase-1-task": {
+			"type": "task",
+			"title": "Package and verify immutable image",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"file_path": "src/routes/(app)/admin/billing/transactions/+page.svelte",
+				"completed_at": "2026-10-02T19:59:10.946483Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-02T19:59:10.948063Z"
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1
+		},
+		"phase-2-task": {
+			"type": "task",
+			"title": "Deploy and verify production",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-02__ops__billing-customer-names-production.md",
+				"completed_at": "2026-10-02T20:11:11.703815Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-02T20:11:11.705425Z"
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-02T19:59:10.948055Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Package and verify immutable image",
+			"author": "claude-code",
+			"content": "Task phase-1-task marked as completed.",
+			"metadata": {},
+			"task_id": "phase-1-task"
+		},
+		{
+			"timestamp": "2026-10-02T19:59:10.949268Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Package and verify immutable image",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-02T20:11:11.705417Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Deploy and verify production",
+			"author": "claude-code",
+			"content": "Task phase-2-task marked as completed.",
+			"metadata": {},
+			"task_id": "phase-2-task"
+		},
+		{
+			"timestamp": "2026-10-02T20:11:11.706803Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Deploy and verify production",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
