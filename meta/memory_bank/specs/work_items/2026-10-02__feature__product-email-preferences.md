@@ -65,11 +65,13 @@ Migration adds tables without opting anyone in. A rollback image must retain the
 
 ## Verification in progress
 
-- Full backend: 471 passed / 1 PostgreSQL-only skip; dedicated PostgreSQL policy and concurrent-row checks: 49 passed. Includes the product-off regression.
+- Full backend: 472 passed / 1 PostgreSQL-only skip; dedicated PostgreSQL policy and concurrent-row checks: 50 passed. Includes the product-off regression.
 - A restored PostgreSQL copy upgrades through the prior analytics revision to e1c020261002; existing users have no product consent.
 - Frontend unit tests: 147 passed. Typecheck baseline and current each contain the same 8360 errors / 224 warnings; normalized diagnostic comparison adds/removes zero errors. Ruff adds zero findings against the base branch. Existing frontend ESLint fails in the same baseline/current no-unused-vars rule. These global checks are not reported as green.
 - Native build fallback preserves the repository-supported Node 22 line after Docker heap exhaustion. No application dependency is introduced or replaced. Native production build succeeds and 16 browser scenarios pass. Proxy-token privacy, DKIM, exact-SHA CI and production acceptance remain pending.
 - The repository has no npm preflight script; the documented Compose tests, formatting, lint comparison, migration and SDD gates are used instead.
 
-- Final local source check: 471 backend tests pass, one PostgreSQL-only skip is covered by 49 passing PostgreSQL/SMTP checks. All five new Python files pass Ruff and Black checks. Native build and 16 browser scenarios pass.
+- Final local source check: 472 backend tests pass, one PostgreSQL-only skip is covered by 50 passing PostgreSQL/SMTP checks. All five new Python files pass Ruff and Black checks. Native build and 16 browser scenarios pass.
 - Tested safe rollback: 27 service SMTP checks pass and product welcome is blocked. Proxy config is validated and synthetic raw/encoded GET/POST requests produce zero token leaks. Live application, delivered DKIM and exact-SHA CI are still pending.
+
+- Final address review: Unicode and ASCII encodings of the same domain share a canonical fingerprint, so suppression cannot be bypassed by changing spelling. Regression passes in both database suites.

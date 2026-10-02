@@ -387,3 +387,9 @@ async def test_product_mail_disabled_by_default_before_queue_release(
     result = await sender.send_product_email('1', 'Test', '<p>Test</p>', 'Test')
     assert result.status == 'failed' and result.attempts == 0
     sender._create_connection.assert_not_awaited()
+
+
+def test_international_domain_forms_share_suppression_fingerprint() -> None:
+    assert prefs.valid_product_address('person@пример.рф')
+    assert prefs.valid_product_address('person@xn--e1afmkfd.xn--p1ai')
+    assert prefs.email_fingerprint('Person@ПРИМЕР.РФ') == prefs.email_fingerprint('person@xn--e1afmkfd.xn--p1ai')

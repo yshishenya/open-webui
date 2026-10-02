@@ -71,7 +71,15 @@ class ProductEmailPreference(BaseModel):
 
 
 def email_fingerprint(email: str) -> str:
-    return hashlib.sha256(email.strip().lower().encode()).hexdigest()
+    normalized = email.strip().lower()
+    try:
+        address = validate_email(normalized, check_deliverability=False)
+    except EmailNotValidError:
+        # Invalid/technical addresses are blocked separately; keep their stable audit hash.
+        address_key = normalized
+    else:
+        address_key = f'{address.local_part.lower()}@{address.ascii_domain}'
+    return hashlib.sha256(address_key.encode()).hexdigest()
 
 
 def valid_product_address(email: str) -> bool:

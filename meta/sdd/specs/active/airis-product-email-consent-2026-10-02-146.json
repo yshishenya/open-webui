@@ -2,7 +2,7 @@
   "spec_id": "airis-product-email-consent-2026-10-02-146",
   "title": "airis-product-email-consent",
   "generated": "2026-10-01T22:46:53.049048Z",
-  "last_updated": "2026-10-01T23:54:39.655241Z",
+  "last_updated": "2026-10-02T00:08:25.265534Z",
   "metadata": {
     "template": "simple",
     "complexity": "medium",
@@ -148,12 +148,12 @@
         "estimated_hours": 2.0,
         "file_path": "backend/open_webui/test/apps/webui/routers/test_email_preferences.py",
         "task_category": "implementation",
-        "started_at": "2026-10-01T23:14:50.711814Z",
-        "status_note": "471 backend,49 PostgreSQL/SMTP,147 frontend,16 browser scenarios pass; migration/build and safe rollback pass; existing global lint/type debt unchanged; live DKIM/production pending in release task",
-        "completed_at": "2026-10-01T23:54:39.652596Z",
+        "started_at": "2026-10-02T00:07:17.982880Z",
+        "status_note": "Final Unicode/ASCII domain normalization covered; 472 backend and50 PostgreSQL/SMTP pass. Frontend147/browser16 unchanged; production pending. Targeted ESLint baseline/current5 identical;342 inherited backend lint diagnostics unchanged.",
+        "completed_at": "2026-10-02T00:08:25.263769Z",
         "needs_journaling": false,
-        "actual_hours": 0.664,
-        "journaled_at": "2026-10-01T23:54:39.654537Z"
+        "actual_hours": 0.019,
+        "journaled_at": "2026-10-02T00:08:25.265511Z"
       }
     },
     "task-2-2": {
@@ -238,6 +238,15 @@
       "title": "Task Completed: Validate consent, security, migration and SMTP paths",
       "author": "claude-code",
       "content": "Task task-2-1 marked as completed. \nNote: 471 backend,49 PostgreSQL/SMTP,147 frontend,16 browser scenarios pass; migration/build and safe rollback pass; existing global lint/type debt unchanged; live DKIM/production pending in release task",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-02T00:08:25.265506Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Validate consent, security, migration and SMTP paths",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Final Unicode/ASCII domain normalization covered; 472 backend and50 PostgreSQL/SMTP pass. Frontend147/browser16 unchanged; production pending. Targeted ESLint baseline/current5 identical;342 inherited backend lint diagnostics unchanged.",
       "metadata": {},
       "task_id": "task-2-1"
     }
