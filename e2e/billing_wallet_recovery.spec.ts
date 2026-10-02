@@ -127,7 +127,7 @@ test.describe('Billing wallet recovery (smoke)', () => {
 		});
 	});
 
-	test('shows low-balance free-limit hint when lead magnet models are available', async ({ page }) => {
+	test('keeps free usage available without payment urgency', async ({ page }) => {
 		await page.route('**/api/models**', async (route) => {
 			await route.fulfill({ json: leadMagnetModelsResponse });
 		});
@@ -144,9 +144,10 @@ test.describe('Billing wallet recovery (smoke)', () => {
 		}
 
 		await expect(page.getByRole('heading', { name: 'Balance' })).toBeVisible();
-		await expect(page.getByText('Low balance')).toBeVisible();
-		await expect(page.getByTestId('wallet-low-balance-hint-free')).toBeVisible();
-		await expect(page.getByTestId('wallet-low-balance-free-limit-link')).toBeVisible();
+		await expect(page.getByText('Low balance')).toHaveCount(0);
+		await expect(page.getByTestId('wallet-low-balance-hint')).toHaveCount(0);
+		await expect(page.getByTestId('topup-proceed')).toBeDisabled();
+		await expect(page.locator('[data-testid="topup-preset"][aria-pressed="true"]')).toHaveCount(0);
 		const heroHeading = page.getByRole('heading', { name: 'Balance' });
 		const heroRow = heroHeading.locator('xpath=../../..');
 		await expect(heroRow.getByRole('button', { name: 'Top up' })).toBeVisible();
@@ -171,6 +172,7 @@ test.describe('Billing wallet recovery (smoke)', () => {
 		await expect(limitsButton).toHaveAttribute('aria-expanded', 'false');
 		await expect(leadMagnetSection.locator('#free-limit-details')).toHaveCount(0);
 		await expect(page.getByTestId('topup-proceed')).toBeVisible();
+		await expect(page.getByTestId('topup-proceed')).toBeDisabled();
 
 		const hasHorizontalOverflow = await page.evaluate(
 			() => document.documentElement.scrollWidth > document.documentElement.clientWidth

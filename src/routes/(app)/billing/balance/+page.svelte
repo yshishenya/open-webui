@@ -721,7 +721,7 @@
 
 	$: customTopupKopeks = parseMoneyInput(customTopup);
 	$: totalBalance = getTotalBalanceKopeks(balance);
-	$: isLowBalance = totalBalance < LOW_BALANCE_THRESHOLD_KOPEKS;
+	$: isLowBalance = totalBalance < LOW_BALANCE_THRESHOLD_KOPEKS && !freeUsageAvailable;
 
 	$: leadMagnetModels =
 		$models

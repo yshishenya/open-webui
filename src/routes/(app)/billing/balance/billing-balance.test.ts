@@ -31,6 +31,12 @@ type MockStore<T> = {
 	set: (value: T) => void;
 };
 
+type WalletTestModel = {
+	id: string;
+	name?: string;
+	info?: { meta?: { lead_magnet?: boolean } };
+};
+
 type MockSet = {
 	createTopupMock: ReturnType<typeof vi.fn>;
 	getBalanceMock: ReturnType<typeof vi.fn>;
@@ -47,13 +53,7 @@ type MockSet = {
 	gotoMock: ReturnType<typeof vi.fn>;
 	toast: { error: ReturnType<typeof vi.fn>; success: ReturnType<typeof vi.fn> };
 	webuiNameStore: MockStore<string>;
-	modelsStore: MockStore<
-		{
-			id: string;
-			name?: string;
-			info?: { meta?: { lead_magnet?: boolean } };
-		}[]
-	>;
+	modelsStore: MockStore<WalletTestModel[]>;
 	settingsStore: MockStore<{ highContrastMode?: boolean }>;
 	pageStore: MockStore<{ url: URL }>;
 	i18nStore: MockStore<I18nValue>;
@@ -94,8 +94,8 @@ const mocks: MockSet = vi.hoisted(() => {
 		gotoMock: vi.fn(),
 		toast: { error: vi.fn(), success: vi.fn() },
 		webuiNameStore: createStore('Airis'),
-		modelsStore: createStore([]),
-		settingsStore: createStore({ highContrastMode: false }),
+		modelsStore: createStore<WalletTestModel[]>([]),
+		settingsStore: createStore<{ highContrastMode?: boolean }>({ highContrastMode: false }),
 		pageStore: createStore({ url: new URL('http://localhost/billing/balance') }),
 		i18nStore: createStore<I18nValue>({
 			locale: 'en',
@@ -104,42 +104,30 @@ const mocks: MockSet = vi.hoisted(() => {
 	};
 });
 
-vi.mock(
-	'$lib/apis/billing',
-	() => ({
-		createTopup: mocks.createTopupMock,
-		getBalance: mocks.getBalanceMock,
-		getLeadMagnetInfo: mocks.getLeadMagnetInfoMock,
-		getPublicPricingConfig: mocks.getPublicPricingConfigMock,
-		reconcileTopup: mocks.reconcileTopupMock,
-		getLedger: mocks.getLedgerMock,
-		getUsageEvents: mocks.getUsageEventsMock,
-		updateAutoTopup: mocks.updateAutoTopupMock,
-		updateBillingSettings: mocks.updateBillingSettingsMock
-	}),
-	{ virtual: true }
-);
-vi.mock('$lib/apis/users', () => ({ getUserInfo: mocks.getUserInfoMock }), { virtual: true });
-vi.mock(
-	'$lib/stores',
-	() => ({
-		WEBUI_NAME: mocks.webuiNameStore,
-		models: mocks.modelsStore,
-		settings: mocks.settingsStore
-	}),
-	{ virtual: true }
-);
-vi.mock(
-	'$lib/utils/analytics',
-	() => ({
-		trackEvent: mocks.trackEventMock,
-		trackEcommercePurchase: mocks.trackEcommercePurchaseMock
-	}),
-	{ virtual: true }
-);
-vi.mock('$app/navigation', () => ({ goto: mocks.gotoMock }), { virtual: true });
-vi.mock('$app/stores', () => ({ page: mocks.pageStore }), { virtual: true });
-vi.mock('svelte-sonner', () => ({ toast: mocks.toast }), { virtual: true });
+vi.mock('$lib/apis/billing', () => ({
+	createTopup: mocks.createTopupMock,
+	getBalance: mocks.getBalanceMock,
+	getLeadMagnetInfo: mocks.getLeadMagnetInfoMock,
+	getPublicPricingConfig: mocks.getPublicPricingConfigMock,
+	reconcileTopup: mocks.reconcileTopupMock,
+	getLedger: mocks.getLedgerMock,
+	getUsageEvents: mocks.getUsageEventsMock,
+	updateAutoTopup: mocks.updateAutoTopupMock,
+	updateBillingSettings: mocks.updateBillingSettingsMock
+}));
+vi.mock('$lib/apis/users', () => ({ getUserInfo: mocks.getUserInfoMock }));
+vi.mock('$lib/stores', () => ({
+	WEBUI_NAME: mocks.webuiNameStore,
+	models: mocks.modelsStore,
+	settings: mocks.settingsStore
+}));
+vi.mock('$lib/utils/analytics', () => ({
+	trackEvent: mocks.trackEventMock,
+	trackEcommercePurchase: mocks.trackEcommercePurchaseMock
+}));
+vi.mock('$app/navigation', () => ({ goto: mocks.gotoMock }));
+vi.mock('$app/stores', () => ({ page: mocks.pageStore }));
+vi.mock('svelte-sonner', () => ({ toast: mocks.toast }));
 
 const flushPromises = async (): Promise<void> => {
 	await Promise.resolve();
@@ -243,7 +231,9 @@ describe('Billing balance page', () => {
 		expect(toggle?.getAttribute('aria-expanded')).toBe('false');
 	});
 
-	it('preselects the smallest package that covers a blocked reply', async () => {
+	it('preselects the smallest package for paid recovery even with free usage', async () => {
+		mocks.getLeadMagnetInfoMock.mockResolvedValue(createLeadMagnetInfo(true));
+		mocks.modelsStore.set([{ id: 'free-model', info: { meta: { lead_magnet: true } } }]);
 		mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 0 }));
 		mocks.getPublicPricingConfigMock.mockResolvedValue({ topup_amounts_rub: [500, 1000, 2000] });
 		mocks.pageStore.set({
@@ -293,8 +283,9 @@ describe('Billing balance page', () => {
 		expect(root.querySelector('[data-testid="wallet-low-balance-hint-topup"]')).toBeTruthy();
 	});
 
-	it('shows free-limit hint when free models are available', async () => {
-		mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 5000 }));
+	it.each([0, 5000])('avoids payment urgency with free usage and cash=%s', async (cash) => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: cash }));
+		mocks.getPublicPricingConfigMock.mockResolvedValue({ topup_amounts_rub: [500, 1000, 2000] });
 		mocks.getLeadMagnetInfoMock.mockResolvedValue(createLeadMagnetInfo(true));
 		mocks.modelsStore.set([
 			{
@@ -307,11 +298,14 @@ describe('Billing balance page', () => {
 		const root = renderPage();
 		await flushPromises();
 
-		expect(root.textContent).toContain('Wallet is low but free limit is available');
-		expect(root.querySelector('[data-testid="wallet-low-balance-hint-free"]')).toBeTruthy();
-		expect(root.querySelector('[data-testid="wallet-low-balance-hint-topup"]')).toBeNull();
+		expect(root.textContent).not.toContain('Low balance');
+		expect(root.querySelector('[data-testid="wallet-low-balance-hint"]')).toBeNull();
+		expect(root.querySelector('[data-testid="lead-magnet-section"]')).toBeTruthy();
+		const presets = [...root.querySelectorAll('[data-testid="topup-preset"]')];
+		expect(presets).toHaveLength(3);
+		expect(presets.every((preset) => preset.getAttribute('aria-pressed') === 'false')).toBe(true);
 		const proceed = root.querySelector('[data-testid="topup-proceed"]') as HTMLButtonElement | null;
-		expect(proceed?.disabled).toBe(false);
+		expect(proceed?.disabled).toBe(true);
 	});
 
 	it('keeps custom top-up hidden when pricing discovery fails', async () => {

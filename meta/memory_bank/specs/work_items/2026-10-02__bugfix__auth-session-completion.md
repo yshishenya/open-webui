@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: codex/bugfix/auth-session-completion
-- SDD Spec: meta/sdd/specs/active/airis-auth-session-completion-2026-10-02-209.json
+- SDD Spec: meta/sdd/specs/completed/airis-auth-session-completion-2026-10-02-209.json
 - Created: 2026-10-02
 
 ## Context
@@ -19,8 +19,8 @@ The auth completion handler calls `emit` on the nullable socket before it sets t
 - [x] A valid session saves user/config and follows the sanitized destination with or without a socket; a present socket receives one user-join event.
 - [x] Null session is a no-op and does not report successful login.
 - [x] Auth page has0 strict diagnostics after the accepted shared config contract; touched ESLint passes and unrelated formatting is preserved.
-- [ ] Docker tests and applicable candidate E2E pass; exact source, PR checks and merge are verified.
-- [ ] Changed runtime is built and accepted on production with guarded backup/digest/files/settings/health evidence.
+- [x] Docker tests and applicable candidate E2E pass; exact source, PR checks and merge are verified.
+- [x] Changed runtime is built and accepted on production with guarded backup/digest/files/settings/health evidence.
 
 ## Scope / Upstream impact
 
@@ -57,3 +57,11 @@ The security finding is corrected in the test regex; all3 parsed-handler regress
 The final fixture uses the installed Svelte compiler to locate the component instance script, then the installed TypeScript parser to locate the actual handler. HTML extraction regexes are removed; CodeQL rules remain enabled. Docker165/165 and touched ESLint/Prettier pass after this change.
 
 Compiler compatibility: Svelte5.56.0 is already pinned/installed; npm latest stable is5.57.1 on02.10.2026. Official compiler parse documentation and release notes for both versions were reviewed. Reuse the project compiler to parse this project source; upgrading the application compiler is outside this test-only integration and requires its own lockfile/runtime regression checks. No dependency is added or replaced. The legacy instance AST is the documented Svelte5 default; migrate this extraction alongside a future Svelte6 compiler upgrade.
+
+## Accepted runtime
+
+PR166 source `948f48353a06f25c7fa8b1448e05fb067763a207`, merge `ff46f0f4912c030117cee1991d795ea07111d70a`; all14 observed statuses satisfied, including billing-confidence and CodeQL0 new alerts. Dependency review is inapplicable/skipped; automated review status does not represent a human review. Candidate165/165 frontend and9/9 registration/guide E2E pass with0 skips.
+
+Frontend overlay registry digest `sha256:a37e3648061a105377eb4c0123036626b657927b262ae9e42c435cb11a1fb279` was released with verified backup and hard PostgreSQL migration gate; revision `q1c020261002`. All4903 deployed frontend files match the frozen candidate, all476 immutable backend files match the base, and site.webmanifest matches the verified frontend static file copied by existing startup code. Settings, volumes, ports, command, networks and15 neighboring container IDs remain unchanged; restart count0, free disk above10GiB and image selector persisted.
+
+Public health and source marker pass. In the ordinary-account UI, wallet/history load and the guide opens the letter draft on GPT5.6 Luna without automatic submission. Fresh production sign-in, physical-device acceptance, real payment, pilot windows and the inherited4791 strict errors /217 warnings remain separate open product gates. SDD209 closes3/3 for this bounded fix.

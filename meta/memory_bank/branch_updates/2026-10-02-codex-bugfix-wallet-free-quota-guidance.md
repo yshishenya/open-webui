@@ -1,0 +1,8 @@
+- [ ] **[BUG]** Avoid payment urgency while free usage is available
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__wallet-free-quota-guidance.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/wallet-free-quota-guidance`
+  - Started: 2026-10-02
+  - Summary: Reuse existing free quota/model state in the common low-balance predicate; preserve explicit paid-request recovery.
+  - Tests: Mounted wallet2 failing-before/12 passing-after; Docker166/166 and touched ESLint/Prettier;0 wallet diagnostics,8 removed/0 new globally. Candidate/CI/release pending.
+  - Risks: Do not hide paid recovery or imply unlimited free usage.
