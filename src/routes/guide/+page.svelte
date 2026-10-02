@@ -136,6 +136,41 @@
 		</div>
 	</section>
 
+	<section class="airis-public-section" id="video">
+		<div class="container mx-auto px-4 max-w-4xl">
+			<h2 class="airis-public-section-title">Посмотрите один пример за минуту</h2>
+			<p class="mt-5 text-[var(--airis-muted)]">
+				Письмо, ответ, уточнение и проверка расходов. Запись от 2 октября 2026 года; вход выполнен
+				заранее. Действующие условия смотрите в кошельке.
+			</p>
+			<video
+				controls
+				playsinline
+				preload="none"
+				class="mt-6 w-full rounded-xl bg-black"
+				aria-label="Первая задача в AIRIS: письмо, уточнение и расходы"
+			>
+				<source src="/airis/guide/first-task-20261002.mp4" type="video/mp4" />
+				<track
+					kind="captions"
+					src="/airis/guide/first-task-20261002.vtt"
+					srclang="ru"
+					label="Русские пояснения"
+					default
+				/>
+				Браузер не поддерживает видео. Все действия доступны текстом ниже.
+			</video>
+			<a
+				href="/airis/guide/first-task-20261002.md"
+				class="airis-public-text-button mt-4 inline-flex min-h-11 items-center"
+				>Все действия текстом →</a
+			>
+			<p class="mt-3 text-[var(--airis-muted)]">
+				Можно начать с примеров ниже без просмотра видео.
+			</p>
+		</div>
+	</section>
+
 	<section class="airis-public-section airis-public-section-muted" id="examples">
 		<div class="container mx-auto px-4 max-w-4xl">
 			<h2 class="airis-public-section-title">Три задачи для первого разговора</h2>
