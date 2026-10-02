@@ -1,8 +1,8 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
-import { getAnalyticsConsent } from './analyticsConsent';
+import { FUNNEL_REVOKE_KEY, getAnalyticsConsent } from './analyticsConsent';
+export { FUNNEL_REVOKE_KEY } from './analyticsConsent';
 
 export const FUNNEL_STORAGE_KEY = 'airis.analytics.funnel.v1';
-export const FUNNEL_REVOKE_KEY = 'airis.analytics.revoke.v1';
 type Touch = { occurred_at: number } & Partial<Record<(typeof CAMPAIGN_KEYS)[number], string>>;
 type FunnelState = { anonymous_id: string; first_touch: Touch; last_touch: Touch };
 type ContextResult = {

@@ -12,11 +12,13 @@ const legalDocsFile = 'backend/open_webui/utils/airis/legal_docs.py';
 const legalGateFile = 'src/lib/components/layout/Overlay/LegalAcceptanceGate.svelte';
 
 describe('public legal policy regressions', () => {
-	it('keeps the public legal pack on the same version', async () => {
+	it('records the analytics policy update without changing unrelated legal versions', async () => {
 		const pages = await Promise.all(policyFiles.map((path) => readFile(path, 'utf8')));
-		for (const page of pages) {
-			expect(page).toContain("const docVersion = '2026-08-23'");
-			expect(page).toContain("const lastUpdated = '23 августа 2026'");
+		for (const [index, page] of pages.entries()) {
+			const version = policyFiles[index].includes('/cookies/') ? '2026-10-02' : '2026-08-23';
+			expect(page).toContain(`const docVersion = '${version}'`);
+			const date = policyFiles[index].includes('/cookies/') ? '2 октября 2026' : '23 августа 2026';
+			expect(page).toContain(`const lastUpdated = '${date}'`);
 		}
 	});
 
@@ -44,6 +46,11 @@ describe('public legal policy regressions', () => {
 		expect(consent).toContain('базе AIRIS на территории');
 		expect(consent).toContain('Такая передача иностранным получателям является трансграничной');
 		expect(cookies).toContain('поле сообщения');
+		expect(cookies).toContain('Аналитика включена по умолчанию');
+		expect(cookies.replace(/\s+/g, ' ')).toContain(
+			'Ранее сохранённый запрет продолжает действовать'
+		);
+		expect(cookies).toContain('Яндекс Метрику и PostHog');
 		expect(providers).toContain("name: 'Российские хостинг-провайдеры'");
 		expect(providers).toContain("name: 'Технические инфраструктурные подрядчики'");
 		expect(providers).toContain("name: 'Внешние AI‑поставщики и поставщики моделей'");
@@ -72,7 +79,6 @@ describe('public legal policy regressions', () => {
 			'OpenRouter',
 			'DuckDuckGo',
 			'YooKassa',
-			'Яндекс',
 			'VK ID',
 			'Telegram',
 			'GitHub',

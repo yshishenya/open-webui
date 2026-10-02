@@ -14,7 +14,11 @@ vi.mock('$lib/utils/airis/funnelAnalytics', () => ({
 	trackFunnelEvent: () => Promise.resolve(true)
 }));
 
-import { ANALYTICS_ATTRIBUTION_KEY, setAnalyticsConsent } from '$lib/utils/airis/analyticsConsent';
+import {
+	ANALYTICS_ATTRIBUTION_KEY,
+	FUNNEL_REVOKE_KEY,
+	setAnalyticsConsent
+} from '$lib/utils/airis/analyticsConsent';
 import { captureAttribution, trackEcommercePurchase, trackEvent, trackPageView } from './analytics';
 
 const YANDEX_METRICA_ID = 'test-counter';
@@ -40,7 +44,8 @@ describe('analytics adapter', () => {
 		delete analyticsWindow.__airisAnalyticsScripts;
 	});
 
-	it('sends explicit views after consent with campaign tags and without private URL data', () => {
+	it('sends views after a denial is lifted without private URL data', () => {
+		setAnalyticsConsent('denied');
 		window.history.replaceState({}, '', '/auth?token=private&utm_source=telegram#private');
 		vi.spyOn(document, 'referrer', 'get').mockReturnValue(
 			'https://example.com/source?token=private#private'
@@ -88,15 +93,13 @@ describe('analytics adapter', () => {
 		expect(ym.mock.calls.filter((args) => args[1] === 'init')).toHaveLength(1);
 	});
 
-	it('preserves campaign tags through a redirect before consent without persisting them', () => {
+	it('starts views by default and retains only safe campaign tags through a redirect', () => {
 		window.history.replaceState({}, '', '/?utm_source=telegram&yclid=123&token=private');
 		captureAttribution();
-		expect(localStorage.getItem(ANALYTICS_ATTRIBUTION_KEY)).toBeNull();
+		expect(localStorage.getItem(ANALYTICS_ATTRIBUTION_KEY)).toContain('telegram');
 		window.history.replaceState({}, '', '/auth');
-		captureAttribution();
 		const ym = vi.fn();
 		Object.assign(window, { ym });
-		setAnalyticsConsent('granted');
 		trackPageView();
 		expect(ym).toHaveBeenLastCalledWith(
 			YANDEX_METRICA_ID,
@@ -104,10 +107,19 @@ describe('analytics adapter', () => {
 			'/auth?utm_source=telegram&yclid=123',
 			{ referer: '' }
 		);
-		expect(localStorage.getItem(ANALYTICS_ATTRIBUTION_KEY)).toContain('telegram');
+		expect(document.querySelector('#airis-yandex-metrica')).not.toBeNull();
+		expect(JSON.stringify(ym.mock.calls)).not.toContain('private');
 	});
 
-	it('does not load providers before consent and removes sensitive payload keys', () => {
+	it('blocks providers during an unfinished revoke even without a stored choice', () => {
+		localStorage.setItem(FUNNEL_REVOKE_KEY, 'pending-visitor');
+		trackPageView();
+		expect(document.querySelectorAll('script')).toHaveLength(0);
+		expect(localStorage.getItem(ANALYTICS_ATTRIBUTION_KEY)).toBeNull();
+	});
+
+	it('does not load providers after denial and removes sensitive payload keys', () => {
+		setAnalyticsConsent('denied');
 		window.history.replaceState({}, '', '/welcome?utm_source=telegram');
 		captureAttribution();
 		const received: CustomEvent[] = [];
@@ -124,7 +136,7 @@ describe('analytics adapter', () => {
 		expect(received[0]?.detail).toEqual({ event: 'landing_cta_click', source: 'hero' });
 	});
 
-	it('loads configured providers only after explicit consent', () => {
+	it('loads configured providers after an explicit permission', () => {
 		setAnalyticsConsent('granted');
 		trackEvent('page_view', { source: 'welcome' });
 

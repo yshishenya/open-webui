@@ -30,7 +30,8 @@ describe('consent-bound product funnel', () => {
 				)
 		);
 
-	it('does not store identifiers or send events before consent', async () => {
+	it('does not store identifiers or send events after explicit denial', async () => {
+		setAnalyticsConsent('denied');
 		const fetchMock = successfulFetch();
 		vi.stubGlobal('fetch', fetchMock);
 		const api = await import('./funnelAnalytics');
@@ -39,6 +40,20 @@ describe('consent-bound product funnel', () => {
 		await settle();
 		expect(fetchMock).not.toHaveBeenCalled();
 		expect(localStorage.getItem(api.FUNNEL_STORAGE_KEY)).toBeNull();
+	});
+	it('records first visit and attribution without any choice or interaction', async () => {
+		const fetchMock = successfulFetch();
+		vi.stubGlobal('fetch', fetchMock);
+		window.history.replaceState({}, '', '/welcome?utm_source=default&token=private');
+		const api = await import('./funnelAnalytics');
+		expect(await api.trackFunnelEvent('product_first_visit')).toBe(true);
+		const contexts = fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/context'));
+		expect(JSON.parse(contexts[0][1].body)).toMatchObject({
+			consent: 'granted',
+			first_touch: { utm_source: 'default' }
+		});
+		expect(localStorage.getItem(api.FUNNEL_STORAGE_KEY)).not.toBeNull();
+		expect(JSON.stringify(fetchMock.mock.calls)).not.toContain('private');
 	});
 	it('preserves first campaign while updating last campaign and keeps it through direct return', async () => {
 		const api = await import('./funnelAnalytics');

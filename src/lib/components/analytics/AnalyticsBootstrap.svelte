@@ -49,7 +49,10 @@
 	const syncAnalytics = (): void => {
 		if (window.location.pathname === '/unsubscribe') return;
 		captureAttribution();
-		if (getAnalyticsConsent() !== 'granted') return;
+		if (getAnalyticsConsent() !== 'granted') {
+			lastTrackedPagePath = '';
+			return;
+		}
 		const pagePath = window.location.pathname;
 		if (pagePath === lastTrackedPagePath) return;
 		lastTrackedPagePath = pagePath;
@@ -60,7 +63,7 @@
 	};
 
 	const syncOtherTabConsent = (event: StorageEvent): void => {
-		if (event.key !== ANALYTICS_CONSENT_KEY) return;
+		if (event.key !== null && event.key !== ANALYTICS_CONSENT_KEY) return;
 		if (event.newValue === 'denied') {
 			void revokeFunnelConsent()
 				.catch(() => undefined)
