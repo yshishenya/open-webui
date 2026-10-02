@@ -3,13 +3,13 @@
 ## Meta
 
 - Type: feature
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: codex/feature/product-email-consent
 - Base SHA: a75a49c952bb11fe51fb88bb9bf63dc84a7759fc
 - Created: 2026-10-02
 - Updated: 2026-10-02
-- SDD Spec: meta/sdd/specs/active/airis-product-email-consent-2026-10-02-146.json
+- SDD Spec: meta/sdd/specs/completed/airis-product-email-consent-2026-10-02-146.json
 
 ## Goal and acceptance
 
@@ -21,10 +21,10 @@ Optional product emails require explicit server-recorded consent bound to the cu
 - [x] Current address must match consent, be valid and verified, and have no hard-bounce/complaint suppression.
 - [x] Old verification token never verifies a new address; address changes invalidate verification, preferences and unsubscribe tokens atomically.
 - [x] Unsubscribe GET is passive; POST is idempotent; expired/unknown token responses do not reveal an account; resubscribe requires an explicit authenticated choice.
-- [ ] Each product message has a footer and List-Unsubscribe / List-Unsubscribe-Post; DKIM and access-log redaction verified on release.
+- [x] Each product message has a footer and List-Unsubscribe / List-Unsubscribe-Post; DKIM and access-log redaction verified on release.
 - [x] Account deletion removes preferences/tokens, unlinks retained history; bounded cleanup removes expired data.
-- [ ] SQLite/PostgreSQL migration, concurrency/security tests, frontend checks and browser flow pass.
-- [ ] Reviewed exact-SHA PR merged; guarded release, rollback and live acceptance verified.
+- [x] SQLite/PostgreSQL migration, concurrency/security tests, frontend checks and browser flow pass.
+- [x] Reviewed exact-SHA PR merged; guarded release, rollback and live acceptance verified.
 
 ## Minimal data model
 
@@ -63,15 +63,12 @@ Thin hooks in signup form/router, Users address/deletion methods, scheduler, mai
 
 Migration adds tables without opting anyone in. A rollback image must retain the common consent guard or disable product mail, because returning to an unguarded welcome sender would ignore withdrawals. Service email remains available. Validate migration on a disposable PostgreSQL copy, effective configuration and current production base before release. Code/tests alone do not close live SMTP, DKIM, proxy logs or browser acceptance.
 
-## Verification in progress
+## Verification and release
 
-- Full backend: 472 passed / 1 PostgreSQL-only skip; dedicated PostgreSQL policy and concurrent-row checks: 50 passed. Includes the product-off regression.
-- A restored PostgreSQL copy upgrades through the prior analytics revision to e1c020261002; existing users have no product consent.
-- Frontend unit tests: 147 passed. Typecheck baseline and current each contain the same 8360 errors / 224 warnings; normalized diagnostic comparison adds/removes zero errors. Ruff adds zero findings against the base branch. Existing frontend ESLint fails in the same baseline/current no-unused-vars rule. These global checks are not reported as green.
-- Native build fallback preserves the repository-supported Node 22 line after Docker heap exhaustion. No application dependency is introduced or replaced. Native production build succeeds and 16 browser scenarios pass. Proxy-token privacy, DKIM, exact-SHA CI and production acceptance remain pending.
-- The repository has no npm preflight script; the documented Compose tests, formatting, lint comparison, migration and SDD gates are used instead.
-
-- Final local source check: 472 backend tests pass, one PostgreSQL-only skip is covered by 50 passing PostgreSQL/SMTP checks. All five new Python files pass Ruff and Black checks. Native build and 16 browser scenarios pass.
-- Tested safe rollback: 27 service SMTP checks pass and product welcome is blocked. Proxy config is validated and synthetic raw/encoded GET/POST requests produce zero token leaks. Live application, delivered DKIM and exact-SHA CI are still pending.
-
-- Final address review: Unicode and ASCII encodings of the same domain share a canonical fingerprint, so suppression cannot be bypassed by changing spelling. Regression passes in both database suites.
+- Source `35a9c313f190fb6ad31393678ff75a8a3e8d38cc` merged through PR #137 into airis_b2c. Backend, billing, migration, security and SDD CI pass. Inherited lint failures remain: 342 backend findings and five frontend findings, with zero additions against the base. Global typecheck has identical 8360 errors / 224 warnings; these checks are not reported green.
+- Backend: 472 passed / one PostgreSQL-only skip, covered by 50 passing PostgreSQL/SMTP checks. Frontend: 147 passed; browser: 16 passed. Five new Python files pass Ruff/Black. Repository-supported Node 22 production build passes. No new dependency.
+- PostgreSQL restored-copy migration, downgrade/reupgrade and repeated upgrade pass. Existing accounts remain opted out. Safe rollback retains the migration and blocks product welcome while 27 service SMTP checks pass.
+- Guarded production release verified the candidate bytes: 15 changed backend files and 5754 current frontend files. The complete running frontend tree matches the candidate image, including 1004 retained immutable assets for old tabs. Application healthy with zero restarts; configuration, storage/network bindings and all other containers preserved.
+- Ordinary account choice starts off, persists after explicit save and is restored off. Eight controlled production checks verify a delivered address challenge, preference persistence, strict input/authorization, passive valid-token GET, repeated manual and RFC8058 POST, product-off SMTP prevention, and removal of the owned fixture with preferences/tokens.
+- Control service email delivered to the owned mailbox. Reply-To verified; DKIM covers List-Unsubscribe and List-Unsubscribe-Post. Four raw/encoded proxy probes produce zero synthetic-token leaks. SMTP acceptance remains distinct from delivery.
+- AIRIS_PRODUCT_EMAILS_ENABLED remains false. Queue cancellation, scenario scheduling, transport-wide limits and real timed pilot are separate work items; this release does not enable the sequence.

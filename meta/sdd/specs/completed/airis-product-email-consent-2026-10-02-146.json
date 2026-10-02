@@ -2,7 +2,7 @@
   "spec_id": "airis-product-email-consent-2026-10-02-146",
   "title": "airis-product-email-consent",
   "generated": "2026-10-01T22:46:53.049048Z",
-  "last_updated": "2026-10-02T00:08:25.265534Z",
+  "last_updated": "2026-10-02T00:38:18.189213Z",
   "metadata": {
     "template": "simple",
     "complexity": "medium",
@@ -11,23 +11,25 @@
     "security_sensitive": true,
     "default_category": "implementation",
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__product-email-preferences.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-01T22:49:02.812068Z",
-    "progress_percentage": 66,
-    "current_phase": "phase-2"
+    "progress_percentage": 100,
+    "current_phase": "phase-2",
+    "completed_date": "2026-10-02T00:38:18.188334Z",
+    "actual_hours": 0.019
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "airis-product-email-consent",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
         "phase-2"
       ],
       "total_tasks": 6,
-      "completed_tasks": 4,
+      "completed_tasks": 6,
       "metadata": {}
     },
     "phase-1": {
@@ -51,7 +53,7 @@
     "phase-2": {
       "type": "phase",
       "title": "Validate and release measured result",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-2-1",
@@ -59,8 +61,12 @@
         "task-2-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 1,
-      "metadata": {}
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-02T00:38:17.653063Z",
+        "journaled_at": "2026-10-02T00:38:17.655730Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -159,7 +165,7 @@
     "task-2-2": {
       "type": "task",
       "title": "Review source and merge checked PR",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -168,17 +174,21 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "estimated_hours": 2.0,
         "file_path": "meta/memory_bank/specs/work_items/2026-10-02__feature__product-email-preferences.md",
-        "task_category": "implementation"
+        "task_category": "implementation",
+        "completed_at": "2026-10-02T00:37:05.611888Z",
+        "needs_journaling": false,
+        "status_note": "PR137 merged; final source 35a9c313f190fb6ad31393678ff75a8a3e8d38cc. CI backend/billing/migration/SDD/security pass; inherited lint findings documented with zero additions.",
+        "journaled_at": "2026-10-02T00:37:05.613164Z"
       }
     },
     "task-2-3": {
       "type": "task",
       "title": "Release and verify real preferences/unsubscribe/service mail",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -187,11 +197,15 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "estimated_hours": 2.0,
         "file_path": "scripts/deploy_guarded.sh",
-        "task_category": "implementation"
+        "task_category": "implementation",
+        "completed_at": "2026-10-02T00:38:17.652858Z",
+        "needs_journaling": false,
+        "status_note": "Guarded release and safe rollback verified; real account choice persists and restores off. Eight owned production checks pass, fixture deleted; delivered service control has Reply-To and DKIM covering unsubscribe headers. Four raw/encoded proxy probes leak zero tokens; global product sending remains off.",
+        "journaled_at": "2026-10-02T00:38:17.654280Z"
       }
     }
   },
@@ -249,6 +263,33 @@
       "content": "Task task-2-1 marked as completed. \nNote: Final Unicode/ASCII domain normalization covered; 472 backend and50 PostgreSQL/SMTP pass. Frontend147/browser16 unchanged; production pending. Targeted ESLint baseline/current5 identical;342 inherited backend lint diagnostics unchanged.",
       "metadata": {},
       "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-02T00:37:05.613158Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Review source and merge checked PR",
+      "author": "claude-code",
+      "content": "Task task-2-2 marked as completed. \nNote: PR137 merged; final source 35a9c313f190fb6ad31393678ff75a8a3e8d38cc. CI backend/billing/migration/SDD/security pass; inherited lint findings documented with zero additions.",
+      "metadata": {},
+      "task_id": "task-2-2"
+    },
+    {
+      "timestamp": "2026-10-02T00:38:17.654275Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Release and verify real preferences/unsubscribe/service mail",
+      "author": "claude-code",
+      "content": "Task task-2-3 marked as completed. \nNote: Guarded release and safe rollback verified; real account choice persists and restores off. Eight owned production checks pass, fixture deleted; delivered service control has Reply-To and DKIM covering unsubscribe headers. Four raw/encoded proxy probes leak zero tokens; global product sending remains off.",
+      "metadata": {},
+      "task_id": "task-2-3"
+    },
+    {
+      "timestamp": "2026-10-02T00:38:17.655725Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Validate and release measured result",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
     }
   ]
 }
