@@ -6,7 +6,7 @@ import { sanitizeRedirectPath } from './return_to';
 
 const loadHandler = async (socket: { emit: ReturnType<typeof vi.fn> } | null) => {
 	const route = await readFile('src/routes/auth/+page.svelte', 'utf8');
-	const script = route.match(/<script[^>]*>([\s\S]*?)<\/script>/i)?.[1];
+	const script = route.match(/<script[^>]*>([\s\S]*?)<\/script\s*>/i)?.[1];
 	if (!script) throw new Error('Auth script not found');
 	const parsed = ts.createSourceFile('auth.ts', script, ts.ScriptTarget.Latest, true);
 	const declaration = parsed.statements

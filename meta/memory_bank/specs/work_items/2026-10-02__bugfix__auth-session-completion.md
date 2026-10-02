@@ -53,3 +53,5 @@ CodeQL identifies that the test script-extraction regex did not recognize upperc
 The same candidate runtime passes all9 checked-in registration/guide tests after using loopback in the isolated fixture; no skips. A separate temporary diagnostic test also confirms `isSecureContext=true` and native `crypto.randomUUID`, for10/10 observed passes. It is retained as private diagnostic evidence, not additional application scaffolding. The registration test asserts profile visibility; the fixture's ordinary role is `user`, so its historical test title is not evidence of a pending-role flow.
 
 The security finding is corrected in the test regex; all3 parsed-handler regressions still pass. The final source commit and rebuilt source marker will include this correction before the production candidate is accepted. Production release remains pending.
+
+The final security check also exercises legal whitespace before the SCRIPT closing bracket; the extraction regex accepts it without suppressing the CodeQL rule. Docker165/165 and touched ESLint/Prettier pass again after the correction.
