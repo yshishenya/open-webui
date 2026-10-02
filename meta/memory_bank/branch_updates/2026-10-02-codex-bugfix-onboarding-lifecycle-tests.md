@@ -1,0 +1,8 @@
+- [x] **[TEST][ONBOARDING]** Combined lifecycle and timing acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__onboarding-lifecycle-tests.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/onboarding-lifecycle-tests`
+  - Done: 2026-10-02
+  - Summary: Add real signup/verification/preference routes and durable last-minute, boundary and restart checks on isolated databases.
+  - Tests: Full backend623/3; PostgreSQL140/140 and6/6 repeat; frontend198/198. New test Black/Ruff pass; baseline check4668/215 and lint1600 remain.
+  - Risks: Test-only; external mail transport is isolated.
