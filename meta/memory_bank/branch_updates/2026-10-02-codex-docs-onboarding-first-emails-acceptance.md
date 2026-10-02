@@ -1,0 +1,5 @@
+- [x] **[DOCS][EMAIL]** Record controlled first-email production acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__docs__first-emails-release-acceptance.md`
+  - Owner: Codex
+  - Done: 2026-10-02
+  - Summary: Exact-source checks, controlled worker delivery and repeated one-click unsubscribe passed; bounded implementation SDD closed. Calendar pilot and human/phone acceptance remain separate open gates.

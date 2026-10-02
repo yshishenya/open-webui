@@ -2,7 +2,7 @@
 	"spec_id": "airis-first-onboarding-emails-2026-10-02-645",
 	"title": "AIRIS first onboarding emails",
 	"generated": "2026-10-02T03:45:59.139818Z",
-	"last_updated": "2026-10-02T04:26:46.388075Z",
+	"last_updated": "2026-10-02T05:13:24.538886Z",
 	"metadata": {
 		"template": "medium",
 		"complexity": "medium",
@@ -11,20 +11,21 @@
 		"security_sensitive": true,
 		"default_category": "implementation",
 		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__onboarding-first-emails.md",
-		"status": "active",
+		"status": "completed",
 		"activated_date": "2026-10-02T03:51:40.264406Z",
-		"progress_percentage": 66,
-		"current_phase": "phase-2"
+		"progress_percentage": 100,
+		"current_phase": "phase-3",
+		"completed_date": "2026-10-02T05:13:24.538590Z"
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
 			"title": "AIRIS first onboarding emails",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2", "phase-3"],
 			"total_tasks": 6,
-			"completed_tasks": 4,
+			"completed_tasks": 6,
 			"metadata": {}
 		},
 		"phase-1": {
@@ -58,12 +59,16 @@
 		"phase-3": {
 			"type": "phase",
 			"title": "Verify and release disabled",
-			"status": "pending",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-3-1", "task-3-2"],
 			"total_tasks": 2,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T05:13:15.487242Z",
+				"journaled_at": "2026-10-02T05:13:15.489687Z"
+			}
 		},
 		"task-1-1": {
 			"type": "task",
@@ -160,7 +165,7 @@
 		"task-3-1": {
 			"type": "task",
 			"title": "Freeze source, review, CI, migrations and candidate runtime",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-3",
 			"children": [],
 			"dependencies": {
@@ -169,17 +174,21 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"metadata": {
 				"task_category": "implementation",
 				"estimated_hours": 2,
-				"file_path": "meta/memory_bank/specs/work_items/2026-10-02__feature__onboarding-first-emails.md"
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-02__feature__onboarding-first-emails.md",
+				"completed_at": "2026-10-02T05:03:06.257486Z",
+				"needs_journaling": false,
+				"status_note": "Frozen source 4231d59f6f4fa0f0b90f510cf5450bbca624eaf3: all required CI including CodeQL/billing pass; candidate image 568 backend and 44 PostgreSQL checks; source/resource hashes and fresh database-copy rollback compatibility pass. No new schema or dependency.",
+				"journaled_at": "2026-10-02T05:03:06.259254Z"
 			}
 		},
 		"task-3-2": {
 			"type": "task",
 			"title": "Release and verify real welcome links, SMTP and permissions",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-3",
 			"children": [],
 			"dependencies": {
@@ -188,11 +197,15 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"metadata": {
 				"task_category": "implementation",
 				"estimated_hours": 2,
-				"file_path": "scripts/deploy_guarded.sh"
+				"file_path": "scripts/deploy_guarded.sh",
+				"completed_at": "2026-10-02T05:13:15.487068Z",
+				"needs_journaling": false,
+				"status_note": "Released exact frozen image after verified backup and gates; live source/assets match. Actual worker welcome accepted once and received in control Inbox; Reply-To and multipart/one-click headers match. GET leaves consent, repeat POST succeeds, later optional suppressed before SMTP; fixture cleaned and global product sends disabled. Real calendar pilot remains a separate open gate.",
+				"journaled_at": "2026-10-02T05:13:15.488428Z"
 			}
 		}
 	},
@@ -250,6 +263,33 @@
 			"content": "All child tasks in phase phase-2 have been completed.",
 			"metadata": {},
 			"task_id": "phase-2"
+		},
+		{
+			"timestamp": "2026-10-02T05:03:06.259248Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Freeze source, review, CI, migrations and candidate runtime",
+			"author": "Codex",
+			"content": "Task task-3-1 marked as completed. \nNote: Frozen source 4231d59f6f4fa0f0b90f510cf5450bbca624eaf3: all required CI including CodeQL/billing pass; candidate image 568 backend and 44 PostgreSQL checks; source/resource hashes and fresh database-copy rollback compatibility pass. No new schema or dependency.",
+			"metadata": {},
+			"task_id": "task-3-1"
+		},
+		{
+			"timestamp": "2026-10-02T05:13:15.488423Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Release and verify real welcome links, SMTP and permissions",
+			"author": "Codex",
+			"content": "Task task-3-2 marked as completed. \nNote: Released exact frozen image after verified backup and gates; live source/assets match. Actual worker welcome accepted once and received in control Inbox; Reply-To and multipart/one-click headers match. GET leaves consent, repeat POST succeeds, later optional suppressed before SMTP; fixture cleaned and global product sends disabled. Real calendar pilot remains a separate open gate.",
+			"metadata": {},
+			"task_id": "task-3-2"
+		},
+		{
+			"timestamp": "2026-10-02T05:13:15.489682Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify and release disabled",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-3 have been completed.",
+			"metadata": {},
+			"task_id": "phase-3"
 		}
 	]
 }
