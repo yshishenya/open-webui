@@ -54,4 +54,6 @@ The same candidate runtime passes all9 checked-in registration/guide tests after
 
 The security finding is corrected in the test regex; all3 parsed-handler regressions still pass. The final source commit and rebuilt source marker will include this correction before the production candidate is accepted. Production release remains pending.
 
-The final security check also exercises legal whitespace before the SCRIPT closing bracket; the extraction regex accepts it without suppressing the CodeQL rule. Docker165/165 and touched ESLint/Prettier pass again after the correction.
+The final fixture uses the installed Svelte compiler to locate the component instance script, then the installed TypeScript parser to locate the actual handler. HTML extraction regexes are removed; CodeQL rules remain enabled. Docker165/165 and touched ESLint/Prettier pass after this change.
+
+Compiler compatibility: Svelte5.56.0 is already pinned/installed; npm latest stable is5.57.1 on02.10.2026. Official compiler parse documentation and release notes for both versions were reviewed. Reuse the project compiler to parse this project source; upgrading the application compiler is outside this test-only integration and requires its own lockfile/runtime regression checks. No dependency is added or replaced. The legacy instance AST is the documented Svelte5 default; migrate this extraction alongside a future Svelte6 compiler upgrade.

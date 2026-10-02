@@ -1,13 +1,15 @@
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
+import { parse } from 'svelte/compiler';
 import ts from 'typescript';
 import { expect, it, vi } from 'vitest';
 import { sanitizeRedirectPath } from './return_to';
 
 const loadHandler = async (socket: { emit: ReturnType<typeof vi.fn> } | null) => {
 	const route = await readFile('src/routes/auth/+page.svelte', 'utf8');
-	const script = route.match(/<script[^>]*>([\s\S]*?)<\/script\s*>/i)?.[1];
-	if (!script) throw new Error('Auth script not found');
+	const instance = parse(route).instance;
+	if (!instance) throw new Error('Auth script not found');
+	const script = route.slice(instance.content.start, instance.content.end);
 	const parsed = ts.createSourceFile('auth.ts', script, ts.ScriptTarget.Latest, true);
 	const declaration = parsed.statements
 		.filter(ts.isVariableStatement)
