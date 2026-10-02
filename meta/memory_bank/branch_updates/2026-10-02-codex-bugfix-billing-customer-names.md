@@ -1,0 +1,9 @@
+- [x] **[BUG][BILLING]** Show customer profile names in Payments
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__billing-customer-names.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/billing-customer-names`
+  - Done: 2026-10-02
+  - Summary: Expose and display profile names in payment reporting with ID fallback for unavailable names.
+  - Tests: Reporting pytest 7/7; frontend Vitest 198/198; affected ESLint/ruff passed; typecheck diagnostics identical to base.
+  - Rollout: Pending; patch prepared for review.
+  - Risks: Low, read-only reporting; no migration.

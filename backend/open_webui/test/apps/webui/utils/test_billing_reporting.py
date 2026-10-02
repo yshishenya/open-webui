@@ -3,11 +3,59 @@ import time
 import pytest
 from fastapi import HTTPException
 from open_webui.utils.airis.billing_reporting import (
+    BillingReportingService,
     PaymentFact,
     amount_to_kopeks,
     normalize_range,
     safe_csv_cell,
 )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('store', ['payment', 'transaction'])
+async def test_payment_reporting_includes_profile_name_and_retains_deleted_users(
+    store: str,
+) -> None:
+    from open_webui.models.billing_models import Transaction
+    from open_webui.models.billing_wallet import Payment
+    from open_webui.models.users import User
+    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+
+    engine = create_async_engine('sqlite+aiosqlite:///:memory:')
+    try:
+        async with engine.begin() as connection:
+            for model in (User, Payment, Transaction):
+                await connection.run_sync(model.__table__.create)
+        async with AsyncSession(engine) as session:
+            session.add(
+                User(id='customer', name='Иван Петров', email='customer@example.com')
+            )
+            for user_id in ('customer', 'deleted'):
+                fields = dict(
+                    id=user_id,
+                    user_id=user_id,
+                    status='succeeded',
+                    currency='RUB',
+                    created_at=100,
+                    updated_at=100,
+                )
+                session.add(
+                    Payment(
+                        **fields, provider='yookassa', kind='topup', amount_kopeks=50000
+                    )
+                    if store == 'payment'
+                    else Transaction(**fields, amount=500)
+                )
+            await session.commit()
+            service = BillingReportingService(session)
+            facts = await service.payment_facts(from_ts=1, to_ts=200, currency='RUB')
+            payloads = {fact.user_id: service._payment_payload(fact) for fact in facts}
+            assert payloads['customer']['name'] == 'Иван Петров'
+            assert payloads['deleted']['name'] is None
+            assert all(row['amount_kopeks'] == 50000 for row in payloads.values())
+            assert len(payloads) == 2
+    finally:
+        await engine.dispose()
 
 
 def test_amount_to_kopeks_uses_decimal_conversion() -> None:
