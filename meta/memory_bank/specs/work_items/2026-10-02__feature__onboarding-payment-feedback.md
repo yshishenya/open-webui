@@ -1,21 +1,21 @@
 # AIRIS PAYG payment and feedback emails
 
-Status: In Progress
+Status: Done
 Owner: Codex
 Branch: `codex/feature/onboarding-payment-feedback`
-SDD Spec: `meta/sdd/specs/active/airis-payment-and-feedback-ema-2026-10-02-917.json`
+SDD Spec: `meta/sdd/specs/completed/airis-payment-and-feedback-ema-2026-10-02-917.json`
 
 ## Bounded goal and measurable criteria
 
 Complete existing queue rendering for four B scenarios, with safe payment selection and current feedback content. No new sender, survey service, dependency or schema. Real pilot, tested paid-model example/public guide enhancement and mature calendar acceptance are separate final-plan gates; do not enable optional global mail on this implementation alone.
 
-- [ ] One ledger-backed confirmed topup produces one credited_v1 service notice: exact amount/currency and account history link; no subscription/next-payment/upsell/fiscal-receipt claim. Mail failure never mutates money. Existing source reconciliation restores missing jobs; unique payment key prevents replay.
-- [ ] payment_help selects only authoritative YooKassa canceled attempts with a provider ID. Local failed/create_failed/unknown and pending states never imply rejection; unresolved attempts block generic paid CTA.
-- [ ] A matching credit applied after the failed attempt suppresses help even if the successful Payment was initiated earlier. Match all provider/user/wallet/amount/currency/ledger facts.
-- [ ] Optional72h branches remain exclusive, activation/consent/time/frequency enforced at final gate. No reused checkout URL or automatic payment; help links to current account history.
-- [ ] feedback14d has current started/not-started and credited/not-credited wording. Content state changed before final DATA defers proven-unsent and renders current state on the next claim; no stale payment question.
-- [ ] Actual HTML/text render, escape recipient data, use configured Reply-To, existing optional unsubscribe; service contains no product unsubscribe. Name/address/credit changes are rechecked before DATA.
-- [ ] SQLite/PostgreSQL regression and full backend/quality/CI, frozen source/image, DB-copy rollback, guarded release and live controlled acceptance.
+- [x] One ledger-backed confirmed topup produces one credited_v1 service notice: exact amount/currency and account history link; no subscription/next-payment/upsell/fiscal-receipt claim. Mail failure never mutates money. Existing source reconciliation restores missing jobs; unique payment key prevents replay.
+- [x] payment_help selects only authoritative YooKassa canceled attempts with a provider ID. Local failed/create_failed/unknown and pending states never imply rejection; unresolved attempts block generic paid CTA.
+- [x] A matching credit applied after the failed attempt suppresses help even if the successful Payment was initiated earlier. Match all provider/user/wallet/amount/currency/ledger facts.
+- [x] Optional72h branches remain exclusive, activation/consent/time/frequency enforced at final gate. No reused checkout URL or automatic payment; help links to current account history.
+- [x] feedback14d has current started/not-started and credited/not-credited wording. Content state changed before final DATA defers proven-unsent and renders current state on the next claim; no stale payment question.
+- [x] Actual HTML/text render, escape recipient data, use configured Reply-To, existing optional unsubscribe; service contains no product unsubscribe. Name/address/credit changes are rechecked before DATA.
+- [x] SQLite/PostgreSQL regression and full backend/quality/CI, frozen source/image, DB-copy rollback, guarded release and live controlled acceptance.
 
 ## Reuse and upstream impact
 
@@ -31,4 +31,4 @@ Reproduce selection bugs before fix; cover early Payment/late ledger, false fail
 
 ## Source checks
 
-Pre-fix targeted regression reproduced three failures. After correction: focused SQLite70 passed /1 PostgreSQL-only skip; isolated PostgreSQL71 passed; full backend595 passed /3 PostgreSQL-only skips. Existing warnings are recorded in private logs. Touched-file Ruff/Black and template/docs formatting passed. Frozen candidate, required CI, database-copy rollback and live acceptance remain pending.
+Pre-fix targeted regression reproduced three failures. After correction: focused SQLite70 passed /1 PostgreSQL-only skip; isolated PostgreSQL71 passed; full backend595 passed /3 PostgreSQL-only skips. Existing warnings are recorded in private logs. Touched-file Ruff/Black and template/docs formatting passed. Frozen candidate repeated the full595 /PostgreSQL71 results. PR147 required gates passed at `65b9d088e78614f6e3372ae2f023e88da2277576`; source-to-merge runtime matches. Database-copy rollback passed; guarded release and live416 backend/7006 retained frontend hashes match. Four clearly marked controlled messages were received once with expected HTML/text and Reply-To through the released worker and SMTP. Artificial payment/activity facts were isolated from production; zero control rows exist in production. Real payment, ordinary checkout, public unsubscribe for these isolated controls, human feedback and real calendar pilot are not claimed. See [bounded acceptance](2026-10-02__docs__payment-feedback-release-acceptance.md).

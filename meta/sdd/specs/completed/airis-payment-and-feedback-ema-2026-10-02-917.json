@@ -2,7 +2,7 @@
 	"spec_id": "airis-payment-and-feedback-ema-2026-10-02-917",
 	"title": "AIRIS payment and feedback emails",
 	"generated": "2026-10-02T06:17:28.900924Z",
-	"last_updated": "2026-10-02T06:27:23.069858Z",
+	"last_updated": "2026-10-02T06:52:44.837875Z",
 	"metadata": {
 		"template": "medium",
 		"complexity": "medium",
@@ -10,18 +10,21 @@
 		"estimated_hours": 24,
 		"security_sensitive": false,
 		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__onboarding-payment-feedback.md",
-		"status": "active",
-		"activated_date": "2026-10-02T06:19:16.716824Z"
+		"status": "completed",
+		"activated_date": "2026-10-02T06:19:16.716824Z",
+		"progress_percentage": 100,
+		"current_phase": "phase-3",
+		"completed_date": "2026-10-02T06:52:44.837511Z"
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
 			"title": "AIRIS payment and feedback emails",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2", "phase-3"],
 			"total_tasks": 6,
-			"completed_tasks": 4,
+			"completed_tasks": 6,
 			"metadata": {}
 		},
 		"phase-1": {
@@ -53,12 +56,16 @@
 		"phase-3": {
 			"type": "phase",
 			"title": "Verify frozen release and controlled acceptance",
-			"status": "pending",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-3-1", "task-3-2"],
 			"total_tasks": 2,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T06:52:44.323553Z",
+				"journaled_at": "2026-10-02T06:52:44.326260Z"
+			}
 		},
 		"task-1-1": {
 			"type": "task",
@@ -139,7 +146,7 @@
 		"task-3-1": {
 			"type": "task",
 			"title": "Verify source/image/PostgreSQL/CI and compatible database rollback",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-3",
 			"children": [],
 			"dependencies": {
@@ -148,13 +155,18 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T06:52:44.004007Z",
+				"needs_journaling": false,
+				"status_note": "Frozen source and image: 595 backend checks /71 PostgreSQL checks, required PR147 CI passed, compatible database-copy rollback; no schema changes.",
+				"journaled_at": "2026-10-02T06:52:44.006428Z"
+			}
 		},
 		"task-3-2": {
 			"type": "task",
 			"title": "Guarded release and controlled SMTP/privacy acceptance",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-3",
 			"children": [],
 			"dependencies": {
@@ -163,8 +175,42 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T06:52:44.323318Z",
+				"needs_journaling": false,
+				"status_note": "Guarded release and live runtime hashes verified; four controlled worker+SMTP HTML/text messages received once with expected Reply-To/content; artificial source facts isolated, production queue remains disabled. Real pilot remains separate.",
+				"journaled_at": "2026-10-02T06:52:44.324570Z"
+			}
 		}
-	}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-02T06:52:44.006421Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify source/image/PostgreSQL/CI and compatible database rollback",
+			"author": "claude-code",
+			"content": "Task task-3-1 marked as completed. \nNote: Frozen source and image: 595 backend checks /71 PostgreSQL checks, required PR147 CI passed, compatible database-copy rollback; no schema changes.",
+			"metadata": {},
+			"task_id": "task-3-1"
+		},
+		{
+			"timestamp": "2026-10-02T06:52:44.324562Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Guarded release and controlled SMTP/privacy acceptance",
+			"author": "claude-code",
+			"content": "Task task-3-2 marked as completed. \nNote: Guarded release and live runtime hashes verified; four controlled worker+SMTP HTML/text messages received once with expected Reply-To/content; artificial source facts isolated, production queue remains disabled. Real pilot remains separate.",
+			"metadata": {},
+			"task_id": "task-3-2"
+		},
+		{
+			"timestamp": "2026-10-02T06:52:44.326248Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify frozen release and controlled acceptance",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-3 have been completed.",
+			"metadata": {},
+			"task_id": "phase-3"
+		}
+	]
 }
