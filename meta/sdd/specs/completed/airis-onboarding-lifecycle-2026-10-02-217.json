@@ -1,0 +1,148 @@
+{
+  "spec_id": "airis-onboarding-lifecycle-2026-10-02-217",
+  "title": "Combined onboarding lifecycle acceptance",
+  "generated": "2026-10-02T19:56:46.664275Z",
+  "last_updated": "2026-10-02T20:33:16.947526Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__onboarding-lifecycle-tests.md",
+    "status": "completed",
+    "activated_date": "2026-10-02T19:58:11.396717Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-02T20:33:16.947103Z",
+    "actual_hours": 0.584
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-onboarding-lifecycle-2026-10-02",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Add real route and durable timing acceptance",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "implement"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-02T20:21:14.783295Z",
+        "journaled_at": "2026-10-02T20:21:14.790806Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Validate isolated SQLite and PostgreSQL",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "verify"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-02T20:33:16.242191Z",
+        "journaled_at": "2026-10-02T20:33:16.246525Z"
+      }
+    },
+    "implement": {
+      "type": "task",
+      "title": "Registration, consent, final submission and restart scenarios",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "depends": []
+      },
+      "metadata": {
+        "started_at": "2026-10-02T19:58:11.675888Z",
+        "completed_at": "2026-10-02T20:21:14.783036Z",
+        "needs_journaling": false,
+        "status_note": "Real routes and six durable timing/consent scenarios implemented; shared queue helper now uses the same deterministic clock after full-run reproduction.",
+        "actual_hours": 0.384,
+        "journaled_at": "2026-10-02T20:21:14.787821Z",
+        "file_path": "backend/open_webui/test/util/test_onboarding_lifecycle.py"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "verify": {
+      "type": "task",
+      "title": "Run focused and full backend checks and record limits",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "depends": [
+          "implement"
+        ]
+      },
+      "metadata": {
+        "started_at": "2026-10-02T20:21:15.299824Z",
+        "file_path": "backend/open_webui/test/util/test_onboarding_lifecycle.py",
+        "completed_at": "2026-10-02T20:33:16.241952Z",
+        "needs_journaling": false,
+        "status_note": "623 backend passed/3 PostgreSQL-only skips; 140 PostgreSQL plus six repeat checks; 198 frontend passed. Baseline check/lint remain open; only changed-file quality passes. Frozen formatter changes restored. CI/merge unverified.",
+        "actual_hours": 0.2,
+        "journaled_at": "2026-10-02T20:33:16.244857Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-02T20:21:14.787802Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Registration, consent, final submission and restart scenarios",
+      "author": "Codex",
+      "content": "Task implement marked as completed. \nNote: Real routes and six durable timing/consent scenarios implemented; shared queue helper now uses the same deterministic clock after full-run reproduction.",
+      "metadata": {},
+      "task_id": "implement"
+    },
+    {
+      "timestamp": "2026-10-02T20:21:14.790786Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Add real route and durable timing acceptance",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-02T20:33:16.244845Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run focused and full backend checks and record limits",
+      "author": "Codex",
+      "content": "Task verify marked as completed. \nNote: 623 backend passed/3 PostgreSQL-only skips; 140 PostgreSQL plus six repeat checks; 198 frontend passed. Baseline check/lint remain open; only changed-file quality passes. Frozen formatter changes restored. CI/merge unverified.",
+      "metadata": {},
+      "task_id": "verify"
+    },
+    {
+      "timestamp": "2026-10-02T20:33:16.246517Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Validate isolated SQLite and PostgreSQL",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
