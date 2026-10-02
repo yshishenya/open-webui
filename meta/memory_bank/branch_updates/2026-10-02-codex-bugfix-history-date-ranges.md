@@ -1,0 +1,8 @@
+- [ ] **[BUG]** Classify yesterday across calendar boundaries
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__history-date-ranges.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/history-date-ranges`
+  - Started: 2026-10-02
+  - Summary: Correct the shared date grouping at month/year/DST boundaries and missing/future timestamps; all ten callers traced.
+  - Tests: Former helper 10 failed/8 passed; corrected18/18 in two time zones, Docker189/189, changed format/lint passed, strict4722→4721/215 and lint1601 with zero new messages. CI/merge/deployment pending.
+  - Risks: Preserve valid epoch and existing group labels/rolling periods.
