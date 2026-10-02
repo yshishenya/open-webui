@@ -16,13 +16,13 @@
 	export let dirty = false;
 	export let onSave: () => void;
 
-	const formatMoney = (kopeks: number | null | undefined, currencyCode: string): string => {
+	const formatMoney = (kopeks: number | null | undefined, currencyCode: string, locale: string = getI18nLocale($i18n)): string => {
 		if (kopeks === null || kopeks === undefined) {
 			return $i18n.t('Not set');
 		}
 		const amount = kopeks / 100;
 		try {
-			return new Intl.NumberFormat(getI18nLocale($i18n), {
+			return new Intl.NumberFormat(locale, {
 				style: 'currency',
 				currency: currencyCode
 			}).format(amount);
@@ -32,9 +32,9 @@
 		}
 	};
 
-	const formatDateTime = (timestamp: number | null | undefined): string => {
+	const formatDateTime = (timestamp: number | null | undefined, locale: string = getI18nLocale($i18n)): string => {
 		if (!timestamp) return $i18n.t('Never');
-		return new Date(timestamp * 1000).toLocaleString(getI18nLocale($i18n), {
+		return new Date(timestamp * 1000).toLocaleString(locale, {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric',
@@ -59,7 +59,7 @@
 				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
 			/>
 			<span class="text-xs text-gray-500">
-				{$i18n.t('Current')}: {formatMoney(currentMaxReply, currency)}
+				{$i18n.t('Current')}: {formatMoney(currentMaxReply, currency, getI18nLocale($i18n))}
 			</span>
 		</label>
 		<label class="flex flex-col gap-1 text-sm">
@@ -74,7 +74,7 @@
 				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
 			/>
 			<span class="text-xs text-gray-500">
-				{$i18n.t('Current')}: {formatMoney(currentDailyCap, currency)}
+				{$i18n.t('Current')}: {formatMoney(currentDailyCap, currency, getI18nLocale($i18n))}
 			</span>
 		</label>
 	</div>
@@ -83,11 +83,11 @@
 	</div>
 	{#if currentDailyCap !== null && dailySpent !== null}
 		<div class="text-xs text-gray-500 mt-1">
-			{$i18n.t('Spent today')}: {formatMoney(dailySpent, currency)} / {formatMoney(currentDailyCap, currency)}
+			{$i18n.t('Spent today')}: {formatMoney(dailySpent, currency, getI18nLocale($i18n))} / {formatMoney(currentDailyCap, currency, getI18nLocale($i18n))}
 		</div>
 		{#if dailyResetAt}
 			<div class="text-xs text-gray-500 mt-1">
-				{$i18n.t('Resets at')}: {formatDateTime(dailyResetAt)}
+				{$i18n.t('Resets at')}: {formatDateTime(dailyResetAt, getI18nLocale($i18n))}
 			</div>
 		{/if}
 	{/if}

@@ -73,3 +73,9 @@ Compose regression/full frontend tests, strict check and full lint; focused chec
 The first PR CI frontend job rejected 52 preexisting violations in touched caller files. Corrected them rather than weakening the gate: connect 30 admin field labels to their actual input/select/textarea controls; close non-void textarea/div tags; add two icon-button accessible names; remove unused imports/dispatcher; replace explicit any/function types in touched code with bounded types and unknown guards.
 
 All changed caller/test/helper files now pass ESLint with 0 messages. Full frontend suite remains 207/207. Strict check remains 4631 errors, warnings reduced 215 → 179. Final whole-project lint count recorded separately; global G14 remains open. Browser independently reproduced English (US) interface with Russian timeline labels on the previous candidate.
+
+## Full wallet switching correction
+
+Browser acceptance on the first SHA-tagged candidate exposed a second indirect dependency: timeline changed correctly, but wallet total, package display and repeat amount retained the previous locale. Added a real-i18next page regression; before the correction 16 tests passed and the new switching test failed. Afterward all 17 wallet tests passed, with one balance fetch and no payment creation.
+
+The selected locale is now an explicit formatter argument at 55 calls across 14 affected caller files, including nested formatOptionalDate forwarding. Intl formatters accept a typed locale parameter; defaults retain existing script callers. This avoids hidden template dependencies, preserves amounts and dates, and keeps the existing component layout. Browser acceptance and new immutable candidate required before release.

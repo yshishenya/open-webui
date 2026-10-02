@@ -168,9 +168,9 @@
 		}
 	};
 
-	const formatNumber = (value: number | null): string => {
+	const formatNumber = (value: number | null, locale: string = getI18nLocale($i18n)): string => {
 		if (value === null) return '∞';
-		return new Intl.NumberFormat(getI18nLocale($i18n)).format(value);
+		return new Intl.NumberFormat(locale).format(value);
 	};
 </script>
 
@@ -487,15 +487,15 @@
 								>
 									<div>
 										{$i18n.t('Input')}:
-										<span class="font-medium">{formatNumber(formData.quotas.tokens_input)}</span>
+										<span class="font-medium">{formatNumber(formData.quotas.tokens_input, getI18nLocale($i18n))}</span>
 									</div>
 									<div>
 										{$i18n.t('Output')}:
-										<span class="font-medium">{formatNumber(formData.quotas.tokens_output)}</span>
+										<span class="font-medium">{formatNumber(formData.quotas.tokens_output, getI18nLocale($i18n))}</span>
 									</div>
 									<div>
 										{$i18n.t('Requests')}:
-										<span class="font-medium">{formatNumber(formData.quotas.requests)}</span>
+										<span class="font-medium">{formatNumber(formData.quotas.requests, getI18nLocale($i18n))}</span>
 									</div>
 								</div>
 								{#if formData.features.length > 0}

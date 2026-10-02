@@ -249,8 +249,8 @@
 	// Subscribers list state
 	let subscribersExpanded = false;
 
-	const formatDate = (timestamp: number): string => {
-		return new Date(timestamp * 1000).toLocaleDateString(getI18nLocale($i18n), {
+	const formatDate = (timestamp: number, locale: string = getI18nLocale($i18n)): string => {
+		return new Date(timestamp * 1000).toLocaleDateString(locale, {
 			month: 'short',
 			day: 'numeric'
 		});
@@ -728,7 +728,7 @@
 																	{/if}
 																</td>
 																<td class="px-3 py-2 text-gray-500">
-																	{formatDate(subscriber.current_period_end)}
+																	{formatDate(subscriber.current_period_end, getI18nLocale($i18n))}
 																</td>
 															</tr>
 														{/each}

@@ -144,9 +144,9 @@
 		}));
 	};
 
-	const formatPrice = (price: number, currency: string = 'RUB'): string => {
+	const formatPrice = (price: number, currency: string = 'RUB', locale: string = getI18nLocale($i18n)): string => {
 		if (price === 0) return $i18n.t('Free');
-		return new Intl.NumberFormat(getI18nLocale($i18n), {
+		return new Intl.NumberFormat(locale, {
 			style: 'currency',
 			currency: currency,
 			minimumFractionDigits: 0,
@@ -154,8 +154,8 @@
 		}).format(price);
 	};
 
-	const formatDate = (timestamp: number): string => {
-		return new Date(timestamp * 1000).toLocaleDateString(getI18nLocale($i18n), {
+	const formatDate = (timestamp: number, locale: string = getI18nLocale($i18n)): string => {
+		return new Date(timestamp * 1000).toLocaleDateString(locale, {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric'
@@ -229,8 +229,8 @@
 				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
 			>
 				<div class="text-xs text-gray-500">{$i18n.t('MRR')}</div>
-				<div class="text-lg font-medium">{formatPrice(mrr, plan.currency)}</div>
-				<div class="text-xs text-gray-400">{$i18n.t('ARR')}: {formatPrice(arr, plan.currency)}</div>
+				<div class="text-lg font-medium">{formatPrice(mrr, plan.currency, getI18nLocale($i18n))}</div>
+				<div class="text-xs text-gray-400">{$i18n.t('ARR')}: {formatPrice(arr, plan.currency, getI18nLocale($i18n))}</div>
 			</div>
 			<div
 				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
@@ -268,7 +268,7 @@
 					<div>
 						<div class="text-xs text-gray-500">{$i18n.t('Price')}</div>
 						<div class="font-medium">
-							{formatPrice(plan.price, plan.currency)} / {$i18n.t(plan.interval)}
+							{formatPrice(plan.price, plan.currency, getI18nLocale($i18n))} / {$i18n.t(plan.interval)}
 						</div>
 					</div>
 					<div>
@@ -330,7 +330,7 @@
 								<div class="flex items-center justify-between text-xs mb-0.5">
 									<span class="font-medium">{data.month}</span>
 									<span class="text-gray-500">
-										{formatPrice(data.revenue, plan.currency)}
+										{formatPrice(data.revenue, plan.currency, getI18nLocale($i18n))}
 									</span>
 								</div>
 								<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
@@ -402,10 +402,10 @@
 										</span>
 									</td>
 									<td class="px-4 py-2 text-sm text-gray-500"
-										>{formatDate(subscriber.subscribed_at)}</td
+										>{formatDate(subscriber.subscribed_at, getI18nLocale($i18n))}</td
 									>
 									<td class="px-4 py-2 text-sm text-gray-500"
-										>{formatDate(subscriber.current_period_end)}</td
+										>{formatDate(subscriber.current_period_end, getI18nLocale($i18n))}</td
 									>
 								</tr>
 							{/each}

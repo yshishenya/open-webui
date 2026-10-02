@@ -15,10 +15,10 @@
 	export let customTopupKopeks: number | null = null;
 	export let onTopup: (amountKopeks: number, source?: 'package' | 'custom') => void | Promise<void>;
 
-	const formatMoney = (kopeks: number, currencyCode: string): string => {
+	const formatMoney = (kopeks: number, currencyCode: string, locale: string = getI18nLocale($i18n)): string => {
 		const amount = kopeks / 100;
 		try {
-			return new Intl.NumberFormat(getI18nLocale($i18n), {
+			return new Intl.NumberFormat(locale, {
 				style: 'currency',
 				currency: currencyCode,
 				maximumFractionDigits: Number.isInteger(amount) ? 0 : 2
@@ -89,7 +89,7 @@
 		>
 			<span>{highlightedPackageLabel}</span>
 			<strong class="shrink-0 tabular-nums"
-				>{formatMoney(highlightedPackageKopeks, currency)}</strong
+				>{formatMoney(highlightedPackageKopeks, currency, getI18nLocale($i18n))}</strong
 			>
 		</div>
 	{/if}
@@ -101,7 +101,7 @@
 				data-testid="topup-preset"
 				data-amount-kopeks={amount}
 				aria-pressed={selectedPackageKopeks === amount && !hasValidCustom}
-				aria-label={$i18n.t('Top up {{amount}}', { amount: formatMoney(amount, currency) })}
+				aria-label={$i18n.t('Top up {{amount}}', { amount: formatMoney(amount, currency, getI18nLocale($i18n)) })}
 				class="min-h-11 px-3 py-2 rounded-xl border text-sm font-medium transition disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 {selectedPackageKopeks ===
 					amount && !hasValidCustom
 					? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white'
@@ -111,7 +111,7 @@
 					: ''}"
 				disabled={creatingTopupAmount !== null}
 			>
-				{formatMoney(amount, currency)}
+				{formatMoney(amount, currency, getI18nLocale($i18n))}
 			</button>
 		{/each}
 	</div>
@@ -147,7 +147,7 @@
 					</span>
 				{:else if customTopupKopeks !== null && customTopupKopeks > 0}
 					<span class="text-xs text-gray-500">
-						{$i18n.t('You will top up')}: {formatMoney(customTopupKopeks, currency)}
+						{$i18n.t('You will top up')}: {formatMoney(customTopupKopeks, currency, getI18nLocale($i18n))}
 					</span>
 				{/if}
 			</label>
@@ -161,7 +161,7 @@
 	<div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 		<div class="text-xs text-gray-500">
 			{#if selectedAmountKopeks !== null && selectedAmountKopeks > 0}
-				{$i18n.t('Selected')}: {formatMoney(selectedAmountKopeks, currency)}
+				{$i18n.t('Selected')}: {formatMoney(selectedAmountKopeks, currency, getI18nLocale($i18n))}
 			{:else}
 				{$i18n.t('Choose an amount to continue')}
 			{/if}
@@ -176,7 +176,7 @@
 			{#if creatingTopupAmount !== null}
 				{$i18n.t('Processing…')}
 			{:else if selectedAmountKopeks !== null && selectedAmountKopeks > 0}
-				{$i18n.t('Pay {{amount}}', { amount: formatMoney(selectedAmountKopeks, currency) })}
+				{$i18n.t('Pay {{amount}}', { amount: formatMoney(selectedAmountKopeks, currency, getI18nLocale($i18n)) })}
 			{:else}
 				{$i18n.t('Choose an amount')}
 			{/if}

@@ -586,13 +586,13 @@
 		}
 	};
 
-	const formatMoney = (kopeks: number | null | undefined, currency: string): string => {
+	const formatMoney = (kopeks: number | null | undefined, currency: string, locale: string = getI18nLocale($i18n)): string => {
 		if (kopeks === null || kopeks === undefined) {
 			return $i18n.t('Not set');
 		}
 		const amount = kopeks / 100;
 		try {
-			return new Intl.NumberFormat(getI18nLocale($i18n), {
+			return new Intl.NumberFormat(locale, {
 				style: 'currency',
 				currency
 			}).format(amount);
@@ -713,9 +713,9 @@
 		await goto(normalizedReturnTo);
 	};
 
-	const formatDateTime = (timestamp: number | null | undefined): string => {
+	const formatDateTime = (timestamp: number | null | undefined, locale: string = getI18nLocale($i18n)): string => {
 		if (!timestamp) return $i18n.t('Never');
-		return new Date(timestamp * 1000).toLocaleString(getI18nLocale($i18n), {
+		return new Date(timestamp * 1000).toLocaleString(locale, {
 			year: 'numeric',
 			month: 'long',
 			day: 'numeric',
@@ -832,7 +832,7 @@
 									{/if}
 								</div>
 								<div class="text-xs text-gray-500 mt-1">
-									{$i18n.t('Top-up')}: {formatMoney(topupFlow.amount_kopeks, balance.currency)}
+									{$i18n.t('Top-up')}: {formatMoney(topupFlow.amount_kopeks, balance.currency, getI18nLocale($i18n))}
 									{#if topupReturnStatus !== 'success'}
 										<span class="mx-1">•</span>
 										{$i18n.t('This may take a minute')}
@@ -955,20 +955,20 @@
 						</Tooltip>
 					</div>
 					<div class="text-3xl font-semibold mt-1">
-						{formatMoney(totalBalance, balance.currency)}
+						{formatMoney(totalBalance, balance.currency, getI18nLocale($i18n))}
 					</div>
 					<div class="flex flex-wrap gap-3 text-xs text-gray-500 mt-2">
 						<span>
 							{$i18n.t('From wallet')}:{' '}
-							{formatMoney(balance.balance_topup_kopeks, balance.currency)}
+							{formatMoney(balance.balance_topup_kopeks, balance.currency, getI18nLocale($i18n))}
 						</span>
 						{#if balance.balance_included_kopeks > 0}
 							<span>
 								{$i18n.t('From plan')}:{' '}
-								{formatMoney(balance.balance_included_kopeks, balance.currency)}
+								{formatMoney(balance.balance_included_kopeks, balance.currency, getI18nLocale($i18n))}
 							</span>
 							<span>
-								{$i18n.t('Included expires')}: {formatDateTime(balance.included_expires_at)}
+								{$i18n.t('Included expires')}: {formatDateTime(balance.included_expires_at, getI18nLocale($i18n))}
 							</span>
 						{/if}
 					</div>

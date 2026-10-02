@@ -145,8 +145,8 @@
 		return Boolean(subscription?.plan_id === planId && subscription?.cancel_at_period_end);
 	};
 
-	const formatPrice = (price: number, currency: string): string => {
-		return new Intl.NumberFormat(getI18nLocale($i18n), {
+	const formatPrice = (price: number, currency: string, locale: string = getI18nLocale($i18n)): string => {
+		return new Intl.NumberFormat(locale, {
 			style: 'currency',
 			currency: currency
 		}).format(price);
@@ -236,7 +236,7 @@
 					<div class="mb-4">
 						<div class="flex items-baseline gap-1">
 							<span class="text-2xl font-bold">
-								{formatPrice(plan.price, plan.currency)}
+								{formatPrice(plan.price, plan.currency, getI18nLocale($i18n))}
 							</span>
 							{#if plan.price > 0}
 								<span class="text-gray-500 text-sm">

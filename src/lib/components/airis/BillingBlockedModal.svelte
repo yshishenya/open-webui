@@ -15,22 +15,22 @@
 	export let detail: BillingBlockedDetail | null = null;
 	export let returnTo: string | null = null;
 
-	const formatMoney = (kopeks: number | null, currency: string | null): string => {
+	const formatMoney = (kopeks: number | null, currency: string | null, locale: string = getI18nLocale($i18n)): string => {
 		if (kopeks === null || currency === null) {
 			return $i18n.t('—');
 		}
 		const amount = kopeks / 100;
 		try {
-			return new Intl.NumberFormat(getI18nLocale($i18n), { style: 'currency', currency }).format(amount);
+			return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount);
 		} catch (error) {
 			console.warn('Invalid currency code:', currency, error);
 			return `${amount.toFixed(2)} ${currency}`.trim();
 		}
 	};
 
-	const formatDateTime = (timestamp: number | null): string => {
+	const formatDateTime = (timestamp: number | null, locale: string = getI18nLocale($i18n)): string => {
 		if (!timestamp) return $i18n.t('Never');
-		return new Date(timestamp * 1000).toLocaleString(getI18nLocale($i18n), {
+		return new Date(timestamp * 1000).toLocaleString(locale, {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric',
@@ -117,13 +117,13 @@
 					<div class="flex items-center justify-between gap-3">
 						<span class="text-gray-500">{$i18n.t('Available now')}</span>
 						<span class="font-medium">
-							{formatMoney(insufficientFundsDetail?.available_kopeks ?? null, currency)}
+							{formatMoney(insufficientFundsDetail?.available_kopeks ?? null, currency, getI18nLocale($i18n))}
 						</span>
 					</div>
 					<div class="flex items-center justify-between gap-3">
 						<span class="text-gray-500">{$i18n.t('Required for this reply')}</span>
 						<span class="font-medium">
-							{formatMoney(insufficientFundsDetail?.required_kopeks ?? null, currency)}
+							{formatMoney(insufficientFundsDetail?.required_kopeks ?? null, currency, getI18nLocale($i18n))}
 						</span>
 					</div>
 					{#if shortfallKopeks !== null && shortfallKopeks > 0}
@@ -133,7 +133,7 @@
 						>
 							<span class="font-medium">{$i18n.t('Shortfall')}</span>
 							<span class="font-semibold tabular-nums"
-								>{formatMoney(shortfallKopeks, currency)}</span
+								>{formatMoney(shortfallKopeks, currency, getI18nLocale($i18n))}</span
 							>
 						</div>
 					{/if}
@@ -162,31 +162,31 @@
 					<div class="flex items-center justify-between gap-3">
 						<span class="text-gray-500">{$i18n.t('Daily cap')}</span>
 						<span class="font-medium">
-							{formatMoney(detail.daily_cap_kopeks ?? null, 'RUB')}
+							{formatMoney(detail.daily_cap_kopeks ?? null, 'RUB', getI18nLocale($i18n))}
 						</span>
 					</div>
 					<div class="flex items-center justify-between gap-3">
 						<span class="text-gray-500">{$i18n.t('Spent today')}</span>
 						<span class="font-medium">
-							{formatMoney(detail.daily_spent_kopeks ?? null, 'RUB')}
+							{formatMoney(detail.daily_spent_kopeks ?? null, 'RUB', getI18nLocale($i18n))}
 						</span>
 					</div>
 					{#if detail.daily_reset_at}
 						<div class="flex items-center justify-between gap-3">
 							<span class="text-gray-500">{$i18n.t('Resets at')}</span>
-							<span class="font-medium">{formatDateTime(detail.daily_reset_at ?? null)}</span>
+							<span class="font-medium">{formatDateTime(detail.daily_reset_at ?? null, getI18nLocale($i18n))}</span>
 						</div>
 					{/if}
 				{:else}
 					<div class="flex items-center justify-between gap-3">
 						<span class="text-gray-500">{$i18n.t('Max reply cost')}</span>
 						<span class="font-medium">
-							{formatMoney(detail.max_reply_cost_kopeks ?? null, 'RUB')}
+							{formatMoney(detail.max_reply_cost_kopeks ?? null, 'RUB', getI18nLocale($i18n))}
 						</span>
 					</div>
 					<div class="flex items-center justify-between gap-3">
 						<span class="text-gray-500">{$i18n.t('Required for this reply')}</span>
-						<span class="font-medium">{formatMoney(detail.required_kopeks ?? null, 'RUB')}</span>
+						<span class="font-medium">{formatMoney(detail.required_kopeks ?? null, 'RUB', getI18nLocale($i18n))}</span>
 					</div>
 				{/if}
 			</div>

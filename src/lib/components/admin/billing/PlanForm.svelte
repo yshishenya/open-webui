@@ -108,14 +108,14 @@
 		formData.price !== undefined &&
 		formData.price !== originalPlan.price;
 
-	const formatNumber = (value: number | null): string => {
+	const formatNumber = (value: number | null, locale: string = getI18nLocale($i18n)): string => {
 		if (value === null) return '∞';
-		return new Intl.NumberFormat(getI18nLocale($i18n)).format(value);
+		return new Intl.NumberFormat(locale).format(value);
 	};
 
-	const formatPrice = (price: number): string => {
+	const formatPrice = (price: number, locale: string = getI18nLocale($i18n)): string => {
 		if (price === 0) return $i18n.t('Free');
-		return new Intl.NumberFormat(getI18nLocale($i18n), {
+		return new Intl.NumberFormat(locale, {
 			style: 'currency',
 			currency: formData.currency || 'RUB'
 		}).format(price);
@@ -361,7 +361,7 @@
 					{#if isEditMode && hasActiveSubscribers && originalPlan?.quotas?.tokens_input !== null}
 						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 							{$i18n.t('Current: {value}', {
-								value: formatNumber(originalPlan.quotas.tokens_input)
+								value: formatNumber(originalPlan.quotas.tokens_input, getI18nLocale($i18n))
 							})}
 						</p>
 					{/if}
@@ -390,7 +390,7 @@
 					{#if isEditMode && hasActiveSubscribers && originalPlan?.quotas?.tokens_output !== null}
 						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 							{$i18n.t('Current: {value}', {
-								value: formatNumber(originalPlan.quotas.tokens_output)
+								value: formatNumber(originalPlan.quotas.tokens_output, getI18nLocale($i18n))
 							})}
 						</p>
 					{/if}
@@ -418,7 +418,7 @@
 					/>
 					{#if isEditMode && hasActiveSubscribers && originalPlan?.quotas?.requests !== null}
 						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-							{$i18n.t('Current: {value}', { value: formatNumber(originalPlan.quotas.requests) })}
+							{$i18n.t('Current: {value}', { value: formatNumber(originalPlan.quotas.requests, getI18nLocale($i18n)) })}
 						</p>
 					{/if}
 				</div>
@@ -535,7 +535,7 @@
 					<!-- Price -->
 					<div class="py-4 border-y dark:border-gray-700">
 						<div class="text-3xl font-bold">
-							{formatPrice(formData.price || 0)}
+							{formatPrice(formData.price || 0, getI18nLocale($i18n))}
 						</div>
 						<div class="text-sm text-gray-600 dark:text-gray-400">
 							/{getIntervalLabel(formData.interval || 'month')}
@@ -549,15 +549,15 @@
 							<div class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
 								<div class="flex justify-between">
 									<span>{$i18n.t('Input Tokens')}:</span>
-									<span class="font-medium">{formatNumber(formData.quotas.tokens_input)}</span>
+									<span class="font-medium">{formatNumber(formData.quotas.tokens_input, getI18nLocale($i18n))}</span>
 								</div>
 								<div class="flex justify-between">
 									<span>{$i18n.t('Output Tokens')}:</span>
-									<span class="font-medium">{formatNumber(formData.quotas.tokens_output)}</span>
+									<span class="font-medium">{formatNumber(formData.quotas.tokens_output, getI18nLocale($i18n))}</span>
 								</div>
 								<div class="flex justify-between">
 									<span>{$i18n.t('Requests')}:</span>
-									<span class="font-medium">{formatNumber(formData.quotas.requests)}</span>
+									<span class="font-medium">{formatNumber(formData.quotas.requests, getI18nLocale($i18n))}</span>
 								</div>
 							</div>
 						</div>

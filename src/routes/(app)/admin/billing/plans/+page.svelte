@@ -161,8 +161,8 @@
 		}
 	};
 
-	const formatPrice = (price: number, currency: string): string => {
-		return new Intl.NumberFormat(getI18nLocale($i18n), {
+	const formatPrice = (price: number, currency: string, locale: string = getI18nLocale($i18n)): string => {
+		return new Intl.NumberFormat(locale, {
 			style: 'currency',
 			currency: currency,
 			minimumFractionDigits: 0,
@@ -170,9 +170,9 @@
 		}).format(price);
 	};
 
-	const formatMRR = (mrr: number): string => {
+	const formatMRR = (mrr: number, locale: string = getI18nLocale($i18n)): string => {
 		if (mrr === 0) return '0₽';
-		return new Intl.NumberFormat(getI18nLocale($i18n), {
+		return new Intl.NumberFormat(locale, {
 			style: 'currency',
 			currency: 'RUB',
 			minimumFractionDigits: 0,
@@ -293,7 +293,7 @@
 													{formatPrice(
 														planStat.plan.price,
 														planStat.plan.currency
-													)}/{getIntervalLabel(planStat.plan.interval)}
+													, getI18nLocale($i18n))}/{getIntervalLabel(planStat.plan.interval)}
 												</div>
 											</div>
 										</Tooltip>
@@ -305,7 +305,7 @@
 											</div>
 											{#if planStat.mrr > 0}
 												<div class="text-xs text-gray-500">
-													• MRR: {formatMRR(planStat.mrr)}
+													• MRR: {formatMRR(planStat.mrr, getI18nLocale($i18n))}
 												</div>
 											{/if}
 											{#if planStat.plan.description_ru || planStat.plan.description}
@@ -449,7 +449,7 @@
 				>
 					<div class="text-xs text-gray-500">{$i18n.t('Total MRR')}</div>
 					<div class="text-lg font-medium">
-						{formatMRR(plansWithStats.reduce((sum, p) => sum + p.mrr, 0))}
+						{formatMRR(plansWithStats.reduce((sum, p) => sum + p.mrr, 0), getI18nLocale($i18n))}
 					</div>
 					<div class="text-xs text-gray-400">{$i18n.t('monthly')}</div>
 				</div>

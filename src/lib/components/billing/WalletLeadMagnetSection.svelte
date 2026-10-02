@@ -60,9 +60,9 @@
 	// ponytail: keep secondary quota data behind one disclosure so top-up remains the primary action.
 	let showDetails = false;
 
-	const formatDateTime = (timestamp: number | null | undefined): string => {
+	const formatDateTime = (timestamp: number | null | undefined, locale: string = getI18nLocale($i18n)): string => {
 		if (!timestamp) return $i18n.t('Never');
-		return new Date(timestamp * 1000).toLocaleString(getI18nLocale($i18n), {
+		return new Date(timestamp * 1000).toLocaleString(locale, {
 			year: 'numeric',
 			month: 'long',
 			day: 'numeric',
@@ -166,7 +166,7 @@
 	</div>
 
 	<div class="mt-2 text-xs text-gray-500">
-		{$i18n.t('Next reset')}: {formatDateTime(leadMagnetInfo.cycle_end)}
+		{$i18n.t('Next reset')}: {formatDateTime(leadMagnetInfo.cycle_end, getI18nLocale($i18n))}
 		<span class="mx-1">•</span>
 		{$i18n.t('Free limit applies to select models')}
 	</div>
