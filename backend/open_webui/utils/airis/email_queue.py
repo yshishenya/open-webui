@@ -26,7 +26,7 @@ from open_webui.models.email_preferences import (
 )
 from open_webui.models.users import User
 from open_webui.utils.airis.email_delivery import EmailSendResult
-from open_webui.utils.airis.email_onboarding import first_email_context
+from open_webui.utils.airis.email_onboarding import onboarding_context
 from open_webui.utils.airis.email_scenarios import (
     EmailQueueConfig,
     ScenarioDecision,
@@ -61,6 +61,7 @@ async def take_transport_capacity(host: str, port: int, username: str, product: 
 class Recipient:
     email: str
     name: str
+    context: dict[str, str]
 
 
 async def account_email_reason(
@@ -121,7 +122,10 @@ async def permission_decision(
 
 
 async def prepare_email(
-    job: DeliveryView, config: EmailQueueConfig, expected_email: str | None = None
+    job: DeliveryView,
+    config: EmailQueueConfig,
+    expected_email: str | None = None,
+    expected_context: dict[str, str] | None = None,
 ) -> Recipient | None:
     """First call starts an attempt; post-AUTH call commits the submitting marker."""
     now = int(time.time())
@@ -144,6 +148,11 @@ async def prepare_email(
         if row.lease_until <= now:
             return None
         decision = await permission_decision(session, user, job, config, expected_email, now)
+        context = {}
+        if decision.reason == 'ready':
+            context = await onboarding_context(session, user, job, os.getenv('FRONTEND_URL', 'http://localhost:3000'))
+            if expected_context is not None and context != expected_context:
+                decision = ScenarioDecision('content_changed', now + POLL_SECONDS)
         now = int(time.time())
         if row.expires_at is not None and row.expires_at <= now:
             decision = ScenarioDecision('expired')
@@ -165,7 +174,7 @@ async def prepare_email(
             row.attempts += 1
         else:
             row.submitted_at, row.lease_until = now, now + LEASE_SECONDS
-        recipient = Recipient(user.email, user.name)
+        recipient = Recipient(user.email, user.name, context)
         await session.commit()
         return recipient
 
@@ -181,9 +190,8 @@ async def execute_email(job: DeliveryView, config: EmailQueueConfig) -> None:
     try:
         if job.template_version not in {'onboarding_v1', 'credited_v1'}:
             raise ValueError('Unsupported email template version')
-        context = first_email_context(os.getenv('FRONTEND_URL', 'http://localhost:3000'), recipient.name)
         html, text = await asyncio.to_thread(
-            email_service.render_template, f'{job.template_version}/{job.type}', **context
+            email_service.render_template, f'{job.template_version}/{job.type}', **recipient.context
         )
     except Exception as error:
         log.error('Email rendering job=%s error_type=%s', job.id, type(error).__name__)
@@ -191,7 +199,10 @@ async def execute_email(job: DeliveryView, config: EmailQueueConfig) -> None:
         return
 
     async def before_submit() -> bool:
-        return await asyncio.wait_for(prepare_email(job, config, recipient.email), timeout=15) is not None
+        return (
+            await asyncio.wait_for(prepare_email(job, config, recipient.email, recipient.context), timeout=15)
+            is not None
+        )
 
     subjects = {
         'welcome': 'Добро пожаловать в AIRIS',

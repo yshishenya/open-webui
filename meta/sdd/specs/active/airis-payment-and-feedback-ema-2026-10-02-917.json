@@ -1,0 +1,170 @@
+{
+	"spec_id": "airis-payment-and-feedback-ema-2026-10-02-917",
+	"title": "AIRIS payment and feedback emails",
+	"generated": "2026-10-02T06:17:28.900924Z",
+	"last_updated": "2026-10-02T06:27:23.069858Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 24,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__onboarding-payment-feedback.md",
+		"status": "active",
+		"activated_date": "2026-10-02T06:19:16.716824Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS payment and feedback emails",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2", "phase-3"],
+			"total_tasks": 6,
+			"completed_tasks": 4,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace and reproduce payment/content risks",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": true,
+				"completed_at": "2026-10-02T06:26:06.205732Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Implement existing queue templates and guards",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": true,
+				"completed_at": "2026-10-02T06:27:23.069810Z"
+			}
+		},
+		"phase-3": {
+			"type": "phase",
+			"title": "Verify frozen release and controlled acceptance",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-3-1", "task-3-2"],
+			"total_tasks": 2,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Trace authoritative credit and canceled status through all callers",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T06:26:05.923663Z",
+				"needs_journaling": true,
+				"status_note": "Traced existing BillingService webhook/reconcile, ledger credit predicate, durable queue and final SMTP gate; Jinja2 3.1.6 latest stable and official pinned-stack docs reviewed; no dependencies."
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Reproduce late credit and unverified failure selection",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T06:26:06.205508Z",
+				"needs_journaling": true,
+				"status_note": "Pre-fix regression: late ledger credit and local failed/create_failed or canceled without provider proof fail (3 failed /1 passed); root selection fixed in shared scenario predicates."
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Add PAYG and optional versioned templates without marketing in service mail",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T06:27:22.807712Z",
+				"needs_journaling": true,
+				"status_note": "Four B HTML/text templates reuse existing base, Reply-To, optional unsubscribe and exact applied-credit context. Service has no subscription, upsell or fiscal-receipt claim; checked paid example remains a separate pilot gate."
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Recheck dynamic feedback and payment context before DATA",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T06:27:23.069619Z",
+				"needs_journaling": true,
+				"status_note": "Final queue gate reconstructs server context before submitting marker; content changes defer proven-unsent then render current state. SMTP-boundary success/credit regression passes alongside queue, consent and report checks."
+			}
+		},
+		"task-3-1": {
+			"type": "task",
+			"title": "Verify source/image/PostgreSQL/CI and compatible database rollback",
+			"status": "pending",
+			"parent": "phase-3",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-3-2": {
+			"type": "task",
+			"title": "Guarded release and controlled SMTP/privacy acceptance",
+			"status": "pending",
+			"parent": "phase-3",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		}
+	}
+}

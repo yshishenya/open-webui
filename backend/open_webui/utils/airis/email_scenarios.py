@@ -71,7 +71,7 @@ class ScenarioDecision:
     defer_until: int | None = None
 
 
-def credited_condition() -> ColumnElement[bool]:
+def credited_condition(credited_since: int | None = None) -> ColumnElement[bool]:
     """Provider success alone is insufficient: a matching applied ledger credit is required."""
     return and_(
         Payment.provider == 'yookassa',
@@ -91,8 +91,21 @@ def credited_condition() -> ColumnElement[bool]:
                 LedgerEntry.type == 'topup',
                 LedgerEntry.amount_kopeks == Payment.amount_kopeks,
                 LedgerEntry.currency == Payment.currency,
+                LedgerEntry.created_at >= credited_since if credited_since is not None else True,
             )
         ),
+    )
+
+
+def canceled_condition() -> ColumnElement[bool]:
+    """Only a recorded final provider cancellation can trigger payment help."""
+    return and_(
+        Payment.provider == 'yookassa',
+        Payment.kind == 'topup',
+        Payment.status == 'canceled',
+        Payment.provider_payment_id.is_not(None),
+        Payment.provider_payment_id != '',
+        func.coalesce(Payment.status_details['yookassa_status'].as_string(), '') == 'canceled',
     )
 
 
@@ -123,9 +136,7 @@ async def latest_help_payment(session: AsyncSession, user_id: str, now: int) -> 
         select(Payment)
         .where(
             Payment.user_id == user_id,
-            Payment.kind == 'topup',
-            Payment.provider == 'yookassa',
-            Payment.status.in_(['failed', 'canceled']),
+            canceled_condition(),
             Payment.created_at > now - 7 * DAY,
         )
         .order_by(Payment.created_at.desc(), Payment.id.desc())
@@ -157,7 +168,8 @@ async def unresolved_payment(session: AsyncSession, user_id: str, since: int) ->
             .where(
                 Payment.user_id == user_id,
                 Payment.kind == 'topup',
-                Payment.status == 'pending',
+                Payment.provider == 'yookassa',
+                ~func.coalesce(or_(credited_condition(), canceled_condition()), False),
                 Payment.created_at >= since,
             )
             .limit(1)
@@ -200,13 +212,12 @@ async def payment_help_decision(session: AsyncSession, user: User, job: Delivery
         select(Payment.id)
         .where(
             Payment.user_id == user.id,
-            Payment.created_at >= payment.created_at,
-            credited_condition(),
+            credited_condition(credited_since=payment.created_at),
         )
         .limit(1)
     ):
         return ScenarioDecision('credited')
-    if await unresolved_payment(session, user.id, payment.created_at):
+    if await unresolved_payment(session, user.id, now - 7 * DAY):
         return ScenarioDecision('payment_priority')
     if now < payment.created_at + 3 * DAY:
         return ScenarioDecision('scenario_window', payment.created_at + 3 * DAY)
@@ -304,9 +315,7 @@ async def payment_candidates(session: AsyncSession, config: EmailQueueConfig, no
     if config.release_b and config.start_at > 0:
         conditions.append(
             and_(
-                Payment.kind == 'topup',
-                Payment.provider == 'yookassa',
-                Payment.status.in_(['failed', 'canceled']),
+                canceled_condition(),
                 Payment.created_at >= max(config.start_at, now - 7 * DAY),
             )
         )
