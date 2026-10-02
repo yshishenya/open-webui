@@ -30,7 +30,7 @@
     },
     "phase-1": {
       "type": "phase",
-      "title": "Repair existing shared utility contracts without changing JavaScript",
+      "title": "Repair utility contracts with preserved runtime behavior",
       "status": "in_progress",
       "parent": "spec-root",
       "children": [
@@ -64,7 +64,7 @@
     },
     "task-1-2": {
       "type": "task",
-      "title": "Annotate existing utility contracts and prove identical JavaScript",
+      "title": "Annotate utility contracts and verify only three declared lint cleanups",
       "status": "completed",
       "parent": "phase-1",
       "children": [],

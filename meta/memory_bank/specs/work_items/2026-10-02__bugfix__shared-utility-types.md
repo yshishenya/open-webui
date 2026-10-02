@@ -46,3 +46,7 @@ One upstream-owned utility file receives type annotations only. Moving implement
 ## Risks / Rollback
 
 A narrower signature can expose real incompatible callers; compare the full diagnostic set before accepting. Keep the accepted production image unchanged during this type/lint work; final consolidated release remains a separate goal gate. Restore this source commit for type-only rollback; production configuration is unaffected.
+
+## Current verification
+
+Docker frontend166/166 passed; changed-file ESLint0 errors. Full strict check4730 errors/217 warnings, down from4783/217; shared module120→80 errors. No new diagnostic locations in untouched files. Two existing nullable/never-array errors show a more precise inferred specs type; their positions and causes are unchanged. The incomplete intermediate log is excluded from final counts. Compiler regression proof rejects the old clipboard any return and accepts six exported contracts. Emitted code matches after the three explicit lint cleanups; no other runtime change. Existing baseline and final consolidated runtime release remain open.
