@@ -194,14 +194,22 @@ export const splitStream = (splitOn: string | RegExp): TransformStream<string, s
 	});
 };
 
-export const convertMessagesToHistory = (messages) => {
-	const history = {
+export const convertMessagesToHistory = <T extends object>(
+	messages: (T & { id?: string | null; parentId?: string | null })[]
+): {
+	messages: Record<string, T & { id: string; parentId: string | null; childrenIds: string[] }>;
+	currentId: string | null;
+} => {
+	const history: {
+		messages: Record<string, T & { id: string; parentId: string | null; childrenIds: string[] }>;
+		currentId: string | null;
+	} = {
 		messages: {},
 		currentId: null
 	};
 
-	let parentMessageId = null;
-	let messageId = null;
+	let parentMessageId: string | null = null;
+	let messageId: string | null = null;
 
 	for (const message of messages) {
 		messageId = message?.id ?? uuidv4();
@@ -230,11 +238,27 @@ export const convertMessagesToHistory = (messages) => {
 	return history;
 };
 
+type RepairableHistoryMessage = {
+	id?: string;
+	role?: string;
+	parentId?: string | null;
+	childrenIds?: string[];
+	timestamp?: number;
+	model?: unknown;
+	usage?: unknown;
+	done?: boolean;
+};
+
 // Repair structurally-malformed history nodes from failed regenerations.
 // A lost assistant placeholder may exist under its map key with only
 // completion fields (content/done/error), missing id/role/parentId.
 // Reconstruct graph fields so already-corrupted chats recover on open.
-export const sanitizeHistory = (history) => {
+export const sanitizeHistory = (
+	history:
+		| { messages: Record<string, RepairableHistoryMessage>; currentId?: string | null }
+		| null
+		| undefined
+): void => {
 	if (!history?.messages || typeof history.messages !== 'object') return;
 
 	// Purge entries that aren't usable objects
@@ -251,22 +275,22 @@ export const sanitizeHistory = (history) => {
 	}
 
 	// Build reverse lookup: parent, indexed by child id
-	const parentByChildId = {};
+	const parentByChildId: Record<string, string> = {};
 	for (const [id, message] of Object.entries(history.messages)) {
-		for (const childId of message.childrenIds) {
+		for (const childId of message.childrenIds!) {
 			parentByChildId[childId] = id;
 		}
 	}
 
 	// Recover currentId before role reconstruction can make a malformed node
 	// look valid.
-	const currentMessage = history.messages?.[history.currentId];
+	const currentMessage = history.messages?.[history.currentId!];
 	if (!currentMessage?.id || !currentMessage?.role) {
-		let latestLeafId = null;
+		let latestLeafId: string | null = null;
 		let latestTimestamp = -1;
 
 		for (const [id, message] of Object.entries(history.messages)) {
-			if (message.childrenIds.length === 0 && (message.timestamp ?? 0) > latestTimestamp) {
+			if (message.childrenIds!.length === 0 && (message.timestamp ?? 0) > latestTimestamp) {
 				latestLeafId = id;
 				latestTimestamp = message.timestamp ?? 0;
 			}
@@ -299,7 +323,7 @@ export const sanitizeHistory = (history) => {
 
 	// Prune childrenIds referencing deleted/missing nodes
 	for (const message of Object.values(history.messages)) {
-		message.childrenIds = message.childrenIds.filter((childId) => history.messages[childId]);
+		message.childrenIds = message.childrenIds!.filter((childId) => history.messages[childId]);
 	}
 };
 

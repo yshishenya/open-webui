@@ -1,0 +1,8 @@
+- [ ] **[BUG]** Declare shared history graph contracts
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__history-utility-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/history-utility-contracts`
+  - Started: 2026-10-02
+  - Summary: Repair strict type inference in existing conversion and repair helpers while preserving runtime and metadata.
+  - Tests: Docker193/193, strict4721→4686/215, ESLint1601, zero new messages; whole-module JavaScript byte-identical. Exact-source CI/merge pending.
+  - Risks: Narrowed contracts can expose caller errors; preserve runtime and reject new caller diagnostics.
