@@ -19,6 +19,8 @@ from sqlalchemy import (
     and_,
     case,
     delete,
+    func,
+    literal,
     or_,
     select,
     update,
@@ -369,8 +371,7 @@ async def _reserve_transport_window(
 ) -> bool:
     """Reuse the existing bucket column; namespace cleanup by key and window units."""
     result = await session.scalar(
-        dialect_insert(session, EmailTransportWindow)
-        .values(transport_key=key, minute=now // seconds, total=1, product=int(product))
+        _transport_insert(session, key, seconds, product, total, optional, now)
         .on_conflict_do_update(
             index_elements=['transport_key', 'minute'],
             set_={'total': EmailTransportWindow.total + 1, 'product': EmailTransportWindow.product + int(product)},
@@ -391,6 +392,27 @@ async def _reserve_transport_window(
         )
     )
     return result is not None
+
+
+def _transport_insert(
+    session: AsyncSession, key: str, seconds: int, product: bool, total: int, optional: int, now: int
+) -> PgInsert | SqliteInsert:
+    insert = dialect_insert(session, EmailTransportWindow)
+    if seconds == 60:
+        return insert.values(transport_key=key, minute=now // seconds, total=1, product=int(product))
+    # Seed the first day from existing minute reservations, including this attempt.
+    start = now // 86400 * 1440
+    totals, products = func.sum(EmailTransportWindow.total), func.sum(EmailTransportWindow.product)
+    initial = (
+        select(literal(key), literal(now // seconds), totals, products)
+        .where(
+            EmailTransportWindow.transport_key == key.removesuffix(':day'),
+            EmailTransportWindow.minute >= start,
+            EmailTransportWindow.minute < start + 1440,
+        )
+        .having(and_(totals <= total, or_(not product, products <= optional)))
+    )
+    return insert.from_select(['transport_key', 'minute', 'total', 'product'], initial)
 
 
 async def requeue_email(job_id: str, now: int) -> bool:

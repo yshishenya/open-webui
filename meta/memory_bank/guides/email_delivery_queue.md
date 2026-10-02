@@ -49,6 +49,8 @@ Capacity is shared by transport host/port/login hash across all instances, queue
 
 The existing transport table stores both windows without migration: the original hash key retains minutes and its `:day` namespace holds UTC-day buckets in the legacy `minute` column. Cleanup is restricted to one key and its window units, preserving current/previous days. Persisted counters survive process/sender restart. Direct account/password email reports refusal through its existing result contract; only queued jobs get durable quota deferral.
 
+The first daily bucket includes that transport's existing current-day minute reservations, so a midday rollout does not reset the budget. A full existing day rejects the new reservation and rolls back its minute increment. This is a conservative count of reservations, not a claim of delivered messages.
+
 For immediate stop, set `AIRIS_EMAIL_QUEUE_ENABLED=false` and `AIRIS_PRODUCT_EMAILS_ENABLED=false` in the private deployment environment and recreate only the application using its complete production Compose set. Account/password verification service mail continues through the shared quota. Preserve pending/unknown rows for investigation. Existing SMTP credentials and Reply-To stay private.
 
 ## Administration and verification

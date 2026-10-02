@@ -289,6 +289,7 @@ async def test_capacity_delay_does_not_exhaust_smtp_retries(
     database: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     now = int(time.time())
+    monkeypatch.setattr(worker.time, 'time', lambda: now)
     job_id = await enqueue(database)
     service = email.EmailService()
     service.smtp_host, service.smtp_username, service.smtp_password = 'smtp.invalid', 'test', 'unused'
@@ -405,6 +406,7 @@ async def test_capacity_deferral_respects_expiry_and_consent(database: async_ses
     assert await journal.claim_email(now + worker.POLL_SECONDS) is None
     await prefs.set_product_preference('1', True, 'settings')
     job_id = await enqueue(database, key='expires-before-capacity')
+    now = int(time.time())
     job = await journal.claim_email(now)
     assert await worker.prepare_email(job, config())
     async with database() as db:
@@ -428,6 +430,29 @@ async def test_daily_zero_product_budget_and_invalid_config_fail_closed(
     async with database() as db:
         rows = (await db.scalars(select(journal.EmailTransportWindow))).all()
         assert len(rows) == 2 and all(row.total == 1 and row.product == 0 for row in rows)
+
+
+@pytest.mark.asyncio
+async def test_first_daily_counter_includes_existing_minute_reservations(
+    database: async_sessionmaker[AsyncSession],
+) -> None:
+    now = 20000 * 86400 + 120
+    async with database() as db:
+        db.add(journal.EmailTransportWindow(transport_key='existing', minute=now // 60 - 1, total=2, product=1))
+        await db.commit()
+    assert await journal.reserve_transport('existing', True, 5, 3, now, 3, 2)
+    assert not await journal.reserve_transport('existing', False, 5, 3, now, 3, 2)
+    async with database() as db:
+        day = await db.get(journal.EmailTransportWindow, ('existing:day', now // 86400))
+        assert day.total == 3 and day.product == 2
+        assert (
+            await db.scalar(
+                select(func.sum(journal.EmailTransportWindow.total)).where(
+                    journal.EmailTransportWindow.transport_key == 'existing'
+                )
+            )
+            == 3
+        )
 
 
 @pytest.mark.asyncio

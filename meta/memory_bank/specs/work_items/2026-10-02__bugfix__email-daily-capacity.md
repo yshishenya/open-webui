@@ -12,6 +12,7 @@ The existing fixed-minute quota does not bound daily volume. Ordinary quota exha
 - [ ] Across two workers/direct calls, reserve both minute and UTC-day windows atomically. No reservation remains from a rejected request. Product and total ceilings remain separate, preserving service headroom.
 - [ ] Default minute60/40 and UTC-day100/50. For any rolling24h the app uses at most200 total/100 product reservations. Other clients using the same SMTP account are outside app accounting; provider capacity must be checked separately.
 - [ ] Day/minute keys and cleanup are isolated; current/previous day retained. Same credentials and persisted database preserve limits after sender/process restart. Zero product budget fails closed; service retains headroom.
+- [ ] First-day accounting includes existing current-day minute reservations. A midday upgrade cannot silently reset the daily budget; an already full day rejects and rolls back the new minute increment.
 - [ ] Capacity/DB failure before DATA defers only the currently claimed, proven-unsent job, restores its attempt count, respects expiry and rechecks current consent on next claim. Accepted/unknown/submitted/stale-owner jobs cannot become pending.
 - [ ] Real SMTP errors still use the existing bounded retry policy. No secrets, addresses or payload added to quota/journal output.
 - [ ] Regression fails before the fix; source/frozen image/isolated PostgreSQL/required CI and guarded rollout checks pass. Queue/global mail remain disabled until separate pilot readiness.
@@ -19,6 +20,8 @@ The existing fixed-minute quota does not bound daily volume. Ordinary quota exha
 ## Scope and upstream impact
 
 Reuse fork-owned models/email_delivery.py and utils/airis/email_queue.py and the existing queue tests. Two environment entries in .env.example and docker-compose.yaml; no new table, migration, dependency, API or money mutation. Minimal two-line addition to upstream Compose config; no other upstream runtime change. Existing pinned ORM and SMTP interfaces retained.
+
+One existing payment-mail test now claims at the current time after reconciliation instead of a timestamp captured before asynchronous setup; this removes a reproduced one-second scheduling race in the test.
 
 ## Verification and rollback
 

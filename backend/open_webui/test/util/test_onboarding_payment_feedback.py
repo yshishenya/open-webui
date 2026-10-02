@@ -91,7 +91,7 @@ async def test_service_notice_uses_exact_credit_and_mail_failure_cannot_change_m
     smtp.send_message.side_effect = aiosmtplib.errors.SMTPDataError(550, 'test rejection')
     service._create_connection = AsyncMock(return_value=smtp)
     monkeypatch.setattr(email, 'email_service', service)
-    job = await journal.claim_email(now)
+    job = await journal.claim_email(int(time.time()))
     assert job.type == 'topup_credited'
     await worker.execute_email(job, config())
     msg = smtp.send_message.call_args.args[0]
