@@ -1,6 +1,7 @@
 """Report semantics: mature unique cohorts, first payment and repeat payments."""
 
 from open_webui.utils.airis.analytics_reports import cohort_rows
+from pytest import MonkeyPatch
 
 
 def test_mature_denominator_and_first_payment() -> None:
@@ -198,7 +199,7 @@ def test_actual_report_excludes_existing_accounts_and_bounds_stage_window(monkey
     asyncio.run(run())
 
 
-def test_authorized_report_is_not_cached_for_both_observation_windows(monkeypatch) -> None:
+def test_authorized_report_is_not_cached_for_both_observation_windows(monkeypatch: MonkeyPatch) -> None:
     from types import SimpleNamespace
 
     from fastapi import FastAPI

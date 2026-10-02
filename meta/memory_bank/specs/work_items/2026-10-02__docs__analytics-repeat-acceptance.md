@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: `codex/bugfix/analytics-report-cache-20261002`
-- SDD Spec: `meta/sdd/specs/active/airis-analytics-repeat-acceptance-2026-10-02-001.json`
+- SDD Spec: `meta/sdd/specs/completed/airis-analytics-repeat-acceptance-2026-10-02-001.json`
 - Created: 2026-10-02
 - Updated: 2026-10-02
 
@@ -22,13 +22,13 @@
 
 ## Acceptance criteria
 
-- [ ] AC01: текущий образ сохраняет проверенную сборку default allow и серверные модули аналитики; health и конфигурация назначений корректны.
-- [ ] AC02: новые посетители допускаются без клика; старый запрет, повреждённое/недоступное хранилище, незавершённый отзыв и несохранённый отказ блокируют сбор; сохранены проверенные регрессии.
-- [ ] AC03: серверная цепочка регистрации, полезного использования, оплаты и возврата проверена независимо; актуальные применимые CI успешны.
-- [ ] AC04: PostHog и Метрика подтверждают обработку контрольных событий, запросы панели исполняются; загрузка Метрики проверяется только GET, без дубля.
-- [ ] AC05: текущий административный отчёт проверен; анонимный/обычный пользователь не получает данные; вывод содержит только агрегаты и корректные зрелые знаменатели.
-- [ ] AC07: исправлен запрет кэширования административного ответа; регрессия красная до/зелёная после, CI и guarded rollout подтверждены.
-- [ ] AC06: итоги и границы доказательств сохранены, независимо просмотрены, опубликованы в PR к `airis_b2c`; текущая техническая приёмка отделена от настоящей покупки/возврата и будущих зрелых групп.
+- [x] AC01: текущий образ сохраняет проверенную сборку default allow и серверные модули аналитики; health и конфигурация назначений корректны.
+- [x] AC02: новые посетители допускаются без клика; старый запрет, повреждённое/недоступное хранилище, незавершённый отзыв и несохранённый отказ блокируют сбор; сохранены проверенные регрессии.
+- [x] AC03: серверная цепочка регистрации, полезного использования, оплаты и возврата проверена независимо; актуальные применимые CI успешны.
+- [x] AC04: PostHog и Метрика подтверждают обработку контрольных событий, запросы панели исполняются; загрузка Метрики проверяется только GET, без дубля.
+- [x] AC05: текущий административный отчёт проверен; анонимный/обычный пользователь не получает данные; вывод содержит только агрегаты и корректные зрелые знаменатели.
+- [x] AC07: исправлен запрет кэширования административного ответа; регрессия красная до/зелёная после, CI и guarded rollout подтверждены.
+- [x] AC06: итоги и границы доказательств сохранены, независимо просмотрены, опубликованы в PR к `airis_b2c`; текущая техническая приёмка отделена от настоящей покупки/возврата и будущих зрелых групп.
 
 ## Scope and upstream impact
 
@@ -70,11 +70,49 @@ readonly API/ORM/кабинеты провайдеров и администра
 - Live внутренний журнал:2first visits/1wallet view;3PostHog deliveries delivered.
   HTTPS report7/30:admin200, anonymous/ordinary401, invalid window422. Только
   агрегаты, зрелый знаменатель0, conversion=null. Администратор проверен коротким
-  токеном существующего аккаунта; права и данные не менялись. Browser UI отдельно.
+  токеном существующего аккаунта; права и данные не менялись. Повторный просмотр
+  страницы в native browser после слоёв не подтверждён; техническая приёмка API
+  не выдаётся за такой просмотр.
 - YooKassa HTTP notifications: правильный URL; succeeded/waiting_for_capture/
   canceled/refund.succeeded сохранены. Реальной финансовой операции не было.
 - Live `Cache-Control` отсутствовал. Регрессия на FastAPI200 упала `None != no-store`;
   после scoped Response header:5tests pass, Ruff/diffcheckpass. Выполнение Docker Compose.
+
+### Исправление кэширования
+
+- Runtime source `e007096adfcd552ac80ddb6919c80eba73c2c670`; PR HEAD
+  `9eec5ea8252ad7560c173cede1ab337387b1fc39` сохраняет тот же router по байтам.
+- Candidate `report-nostore-e007096ad-on-groups-20261002`, registry digest
+  `sha256:a1a8d57f22e3fc85f5461919aaabbc932271369dc90042efad4097c576cc2fed`.
+  Все97base layers сохранены; единственный COPY — fork-owned report router.
+  Environment/Cmd/Entrypoint/WorkingDir/User/Volumes/Healthcheck совпадают с основой.
+  Router SHA256 `5268b3412b6b9a0033d37c67369d339ec1fac1dae1042b7a47635ce608781426`.
+- Frozen-image full backend:615passed/3PostgreSQL-only skips/26warnings. Первые
+  попытки full collection остановились из-за неверных тестовых Fernet keys;
+  исправлен только изолированный Compose environment, приложение не менялось.
+- Предыдущая актуальная резервная копия email-groups полностью скопирована
+  в приватный каталог Mac; размеры/SHA256/tar/pg_restore и повторный remote
+  manifest сверены. Удалён только server-дубликат проверенного архива; dump/config
+  сохранены. Свежая резервная копия
+  `/opt/backups/airis/20261002T102700Z-report-nostore-e007096ad-on-groups-20261002`
+  проверена, полностью скопирована в приватный Mac-каталог
+  `/Users/yshishenya/.codex/private-artifacts/airis-report-nostore-backup-20261002/20261002T102700Z-report-nostore-e007096ad-on-groups-20261002`;
+  сохранён rollback image. Удалён только проверенный server-дубликат data archive.
+- GitHub CI для9eec5ea8252ad7560c173cede1ab337387b1fc39: backend36994686654,
+  Billing36994686705, Migration36994686730, Security36994686664, SDD36994686667,
+  backend/frontend lint successful. Billing summary проверен прямо:3/3suitespass,
+  каждыйexit0. На финальном HEAD остаются проверки метаданных и аннотации теста.
+- Guarded rollout завершён: новый registry digest совпал, hard Alembic gate
+  прошёл, revisionq1c020261002 сохранён; healthy; environment, volumes, ports,
+  command, networks и16соседних container IDs сохранены. Изменены только два
+  image keys `.env` атомарной заменой после CAS; dirty server checkout не трогали.
+- После выкладки8analytics modules совпали с frozen source, все938frontend
+  compiled files снова совпали с23176a55c. Live HTTPS7/30: admin200/no-store,
+  anonymous/member401; агрегаты совпали с независимым ORM расчётом, приватных
+  идентификаторов нет, immature conversion=null; invalid window422.
+- Native administrator browser UI после этих слоёв не проверен: доступная
+  пользовательская сессия имеет обычные права. Права не повышались; подтверждён
+  рабочий административный HTTPS API, а не личный просмотр страницы.
 
 ### Ограничения доказательств
 
@@ -88,5 +126,5 @@ readonly API/ORM/кабинеты провайдеров и администра
 
 ## Completion checklist
 
-- [ ] SDD check-complete / complete-spec.
-- [ ] Branch update Done; PR review and merge.
+- [x] SDD check-complete / complete-spec.
+- [x] Branch update Done; independent review complete; PR158 final integration tracked in GitHub.
