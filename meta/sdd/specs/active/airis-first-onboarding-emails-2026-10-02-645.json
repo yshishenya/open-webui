@@ -1,0 +1,255 @@
+{
+	"spec_id": "airis-first-onboarding-emails-2026-10-02-645",
+	"title": "AIRIS first onboarding emails",
+	"generated": "2026-10-02T03:45:59.139818Z",
+	"last_updated": "2026-10-02T04:26:46.388075Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "medium",
+		"risk_level": "high",
+		"estimated_hours": 24,
+		"security_sensitive": true,
+		"default_category": "implementation",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__onboarding-first-emails.md",
+		"status": "active",
+		"activated_date": "2026-10-02T03:51:40.264406Z",
+		"progress_percentage": 66,
+		"current_phase": "phase-2"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS first onboarding emails",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2", "phase-3"],
+			"total_tasks": 6,
+			"completed_tasks": 4,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace trust and lifecycle",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T04:26:45.896107Z",
+				"journaled_at": "2026-10-02T04:26:45.898281Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Deliver release A templates",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T04:26:46.385436Z",
+				"journaled_at": "2026-10-02T04:26:46.388050Z"
+			}
+		},
+		"phase-3": {
+			"type": "phase",
+			"title": "Verify and release disabled",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-3-1", "task-3-2"],
+			"total_tasks": 2,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Confirm social identity and account lifecycle contracts",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"task_category": "implementation",
+				"estimated_hours": 2,
+				"file_path": "backend/open_webui/routers/oauth_russian.py",
+				"completed_at": "2026-10-02T04:26:45.653707Z",
+				"needs_journaling": false,
+				"status_note": "Reviewed email/VK/VK ID/shared Yandex lifecycle and official contact-email contracts; client identity fallbacks rejected.",
+				"journaled_at": "2026-10-02T04:26:45.655475Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Unify new account, consent and welcome boundaries",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"task_category": "implementation",
+				"estimated_hours": 2,
+				"file_path": "backend/open_webui/utils/airis/email_scenarios.py",
+				"completed_at": "2026-10-02T04:26:45.895932Z",
+				"needs_journaling": false,
+				"status_note": "Common VK credentials, authenticated missing-credential repair, disabled account denial and existing address verification; PostgreSQL regression passes.",
+				"journaled_at": "2026-10-02T04:26:45.897046Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Render versioned welcome and activation with safe existing guide links",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"task_category": "implementation",
+				"estimated_hours": 2,
+				"file_path": "backend/open_webui/utils/airis/email_queue.py",
+				"completed_at": "2026-10-02T04:26:46.137796Z",
+				"needs_journaling": false,
+				"status_note": "Versioned HTML/text welcome and first-task reminder reuse canonical public guide task; render/version/origin/escaping checks pass.",
+				"journaled_at": "2026-10-02T04:26:46.138964Z"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Check registration replay, temporal decisions and template privacy",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"task_category": "implementation",
+				"estimated_hours": 2,
+				"file_path": "backend/open_webui/test/util/test_email_delivery_queue.py",
+				"completed_at": "2026-10-02T04:26:46.385246Z",
+				"needs_journaling": false,
+				"status_note": "First-email/queue PostgreSQL 43 passes including late consent/seven-day edge, no-success candidates, replay and final checks; calendar live proof remains release gate.",
+				"journaled_at": "2026-10-02T04:26:46.386579Z"
+			}
+		},
+		"task-3-1": {
+			"type": "task",
+			"title": "Freeze source, review, CI, migrations and candidate runtime",
+			"status": "pending",
+			"parent": "phase-3",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"task_category": "implementation",
+				"estimated_hours": 2,
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-02__feature__onboarding-first-emails.md"
+			}
+		},
+		"task-3-2": {
+			"type": "task",
+			"title": "Release and verify real welcome links, SMTP and permissions",
+			"status": "pending",
+			"parent": "phase-3",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"task_category": "implementation",
+				"estimated_hours": 2,
+				"file_path": "scripts/deploy_guarded.sh"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-02T04:26:45.655468Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Confirm social identity and account lifecycle contracts",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Reviewed email/VK/VK ID/shared Yandex lifecycle and official contact-email contracts; client identity fallbacks rejected.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-02T04:26:45.897042Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Unify new account, consent and welcome boundaries",
+			"author": "claude-code",
+			"content": "Task task-1-2 marked as completed. \nNote: Common VK credentials, authenticated missing-credential repair, disabled account denial and existing address verification; PostgreSQL regression passes.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-02T04:26:45.898276Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace trust and lifecycle",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-02T04:26:46.138959Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Render versioned welcome and activation with safe existing guide links",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Versioned HTML/text welcome and first-task reminder reuse canonical public guide task; render/version/origin/escaping checks pass.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-02T04:26:46.386571Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Check registration replay, temporal decisions and template privacy",
+			"author": "claude-code",
+			"content": "Task task-2-2 marked as completed. \nNote: First-email/queue PostgreSQL 43 passes including late consent/seven-day edge, no-success candidates, replay and final checks; calendar live proof remains release gate.",
+			"metadata": {},
+			"task_id": "task-2-2"
+		},
+		{
+			"timestamp": "2026-10-02T04:26:46.388045Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Deliver release A templates",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}

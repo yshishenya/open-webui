@@ -26,6 +26,7 @@ from open_webui.models.email_preferences import (
 )
 from open_webui.models.users import User
 from open_webui.utils.airis.email_delivery import EmailSendResult
+from open_webui.utils.airis.email_onboarding import first_email_context
 from open_webui.utils.airis.email_scenarios import (
     EmailQueueConfig,
     ScenarioDecision,
@@ -178,12 +179,11 @@ async def execute_email(job: DeliveryView, config: EmailQueueConfig) -> None:
         return
     # Templates are shipped separately; an unavailable template is a proven-unsent failure.
     try:
+        if job.template_version not in {'onboarding_v1', 'credited_v1'}:
+            raise ValueError('Unsupported email template version')
+        context = first_email_context(os.getenv('FRONTEND_URL', 'http://localhost:3000'), recipient.name)
         html, text = await asyncio.to_thread(
-            email_service.render_template,
-            job.type,
-            name=recipient.name,
-            dashboard_url=f'{os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")}/',
-            guide_url=f'{os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")}/guide',
+            email_service.render_template, f'{job.template_version}/{job.type}', **context
         )
     except Exception as error:
         log.error('Email rendering job=%s error_type=%s', job.id, type(error).__name__)

@@ -353,7 +353,12 @@ async def reconcile_email_candidates(config: EmailQueueConfig, limit: int = 100)
         for user in accounts:
             if not (await preference_for_user(session, user, now)).can_receive:
                 continue
+            activated = bool(
+                await session.scalar(select(TaskSuccess.operation_id).where(TaskSuccess.user_id == user.id).limit(1))
+            )
             for email_type, due_at, expires_at in account_scenarios(user, config, now):
+                if email_type == 'activation_24h' and activated:
+                    continue
                 count += 1
                 if not config.dry_run:
                     await enqueue_email(session, user.id, email_type, ONBOARDING_VERSION, due_at, expires_at)
