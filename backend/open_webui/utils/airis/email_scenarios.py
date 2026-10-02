@@ -81,7 +81,9 @@ def credited_condition() -> ColumnElement[bool]:
         Payment.amount_kopeks > 0,
         Payment.status_details['yookassa_status'].as_string() == 'succeeded',
         exists(
-            select(LedgerEntry.id).where(
+            select(LedgerEntry.id)
+            .correlate(Payment)
+            .where(
                 LedgerEntry.user_id == Payment.user_id,
                 LedgerEntry.wallet_id == Payment.wallet_id,
                 LedgerEntry.reference_type == 'payment',

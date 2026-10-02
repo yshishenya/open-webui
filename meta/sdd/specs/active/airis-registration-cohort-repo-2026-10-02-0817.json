@@ -1,0 +1,235 @@
+{
+	"spec_id": "airis-registration-cohort-repo-2026-10-02-0817",
+	"title": "AIRIS registration cohort report",
+	"generated": "2026-10-02T05:17:31.094728Z",
+	"last_updated": "2026-10-02T05:32:29.234981Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 24,
+		"security_sensitive": false,
+		"default_category": "implementation",
+		"status": "active",
+		"activated_date": "2026-10-02T05:19:06.026116Z",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__feature__onboarding-cohort-report.md",
+		"progress_percentage": 66,
+		"current_phase": "phase-2"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS registration cohort report",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2", "phase-3"],
+			"total_tasks": 6,
+			"completed_tasks": 4,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Define operational registration cohorts",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T05:19:54.674635Z",
+				"journaled_at": "2026-10-02T05:19:54.677212Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Implement protected aggregate report",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-02T05:32:29.232624Z",
+				"journaled_at": "2026-10-02T05:32:29.234948Z"
+			}
+		},
+		"phase-3": {
+			"type": "phase",
+			"title": "Verify and release",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-3-1", "task-3-2"],
+			"total_tasks": 2,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Trace authoritative success, credit and consent facts",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T05:19:54.438191Z",
+				"needs_journaling": false,
+				"status_note": "Traced existing operational journal and acquisition report; reuse foreground TaskSuccess, current preference decisions and credited_condition. No test marker exists; explicit admin exclusions required.",
+				"journaled_at": "2026-10-02T05:19:54.439402Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Define windows, exclusions and unknown metrics",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T05:19:54.674461Z",
+				"needs_journaling": false,
+				"status_note": "Recorded half-open mature windows, timezone return definition, ledger time, snapshot consent, deleted/old exclusions and unavailable delivery/usefulness/causality; pinned official docs reviewed.",
+				"journaled_at": "2026-10-02T05:19:54.675789Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Reuse preference decisions and bulk database aggregates",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T05:32:28.989556Z",
+				"needs_journaling": false,
+				"status_note": "Added bounded async SQL aggregates, shared preference evaluator and explicit Payment correlation; SQLite and PostgreSQL controlled report checks pass, no schema/dependency.",
+				"journaled_at": "2026-10-02T05:32:28.991433Z"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Add admin-only validated content-free report endpoint",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-02T05:32:29.232450Z",
+				"needs_journaling": false,
+				"status_note": "Admin-only validated JSON endpoint with no-store, timeout, safe failures, explicit observation/test exclusions and null unavailable metrics; anonymous/ordinary users denied and privacy checks pass.",
+				"journaled_at": "2026-10-02T05:32:29.233682Z"
+			}
+		},
+		"task-3-1": {
+			"type": "task",
+			"title": "Verify controlled boundaries, privacy and exact-source checks",
+			"status": "pending",
+			"parent": "phase-3",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-3-2": {
+			"type": "task",
+			"title": "Release and compare a live report with independent database counts",
+			"status": "pending",
+			"parent": "phase-3",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-02T05:19:54.439397Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Trace authoritative success, credit and consent facts",
+			"author": "Codex",
+			"content": "Task task-1-1 marked as completed. \nNote: Traced existing operational journal and acquisition report; reuse foreground TaskSuccess, current preference decisions and credited_condition. No test marker exists; explicit admin exclusions required.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-02T05:19:54.675781Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Define windows, exclusions and unknown metrics",
+			"author": "Codex",
+			"content": "Task task-1-2 marked as completed. \nNote: Recorded half-open mature windows, timezone return definition, ledger time, snapshot consent, deleted/old exclusions and unavailable delivery/usefulness/causality; pinned official docs reviewed.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-02T05:19:54.677207Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Define operational registration cohorts",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-02T05:32:28.991424Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reuse preference decisions and bulk database aggregates",
+			"author": "Codex",
+			"content": "Task task-2-1 marked as completed. \nNote: Added bounded async SQL aggregates, shared preference evaluator and explicit Payment correlation; SQLite and PostgreSQL controlled report checks pass, no schema/dependency.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-02T05:32:29.233677Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Add admin-only validated content-free report endpoint",
+			"author": "Codex",
+			"content": "Task task-2-2 marked as completed. \nNote: Admin-only validated JSON endpoint with no-store, timeout, safe failures, explicit observation/test exclusions and null unavailable metrics; anonymous/ordinary users denied and privacy checks pass.",
+			"metadata": {},
+			"task_id": "task-2-2"
+		},
+		{
+			"timestamp": "2026-10-02T05:32:29.234943Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Implement protected aggregate report",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
