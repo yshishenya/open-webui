@@ -50,7 +50,10 @@
 	let editTextarea: HTMLTextAreaElement;
 
 	// Reset edit state when switching files
-	$: (selectedFile, resetEdit());
+	$: {
+		void selectedFile;
+		resetEdit();
+	}
 
 	const resetEdit = () => {
 		editing = false;
@@ -88,8 +91,6 @@
 		saving = false;
 	};
 
-	$: isTextFile = fileContent !== null && fileImageUrl === null && filePdfData === null;
-
 	const MD_EXTS = new Set(['md', 'markdown', 'mdx']);
 	const CSV_EXTS = new Set(['csv', 'tsv']);
 	const HTML_EXTS = new Set(['html', 'htm']);
@@ -117,7 +118,7 @@
 			: '';
 
 	let markdownEl: HTMLDivElement;
-	let mermaidInstance: any = null;
+	let mermaidInstance: Awaited<ReturnType<typeof initMermaid>> | null = null;
 
 	const renderMermaidBlocks = async (el: HTMLDivElement) => {
 		if (!el) return;
@@ -250,7 +251,10 @@
 	}
 
 	export let showRaw = false;
-	$: (selectedFile, (showRaw = false)); // reset to preview mode when switching files
+	$: {
+		void selectedFile; // reset to preview mode when switching files
+		showRaw = false;
+	}
 
 	// Auto-switch to raw/editor mode for empty previewable files so the user
 	// can start editing immediately instead of seeing a blank preview.
@@ -309,7 +313,8 @@
 	{:else if fileOfficeHtml !== null}
 		<div class="flex flex-col h-full">
 			<div class="office-preview overflow-auto flex-1 min-h-0">
-				{@html fileOfficeHtml}
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -- Office markup is sanitized again at the receiving sink. -->
+				{@html DOMPurify.sanitize(fileOfficeHtml)}
 			</div>
 			{#if excelSheetNames.length > 1}
 				<div
@@ -407,7 +412,7 @@
 					: ''}{($settings?.iframeSandboxAllowSameOrigin ?? false) ? ' allow-same-origin' : ''}"
 				class="w-full h-full border-none bg-white"
 				title="HTML Preview"
-			/>
+			></iframe>
 		{:else if isHtml && !showRaw}
 			{#if overlay}
 				<div class="absolute top-0 left-0 right-0 bottom-0 z-10"></div>
@@ -419,7 +424,7 @@
 					: ''}{($settings?.iframeSandboxAllowSameOrigin ?? false) ? ' allow-same-origin' : ''}"
 				class="w-full h-full border-none bg-white"
 				title="HTML Preview"
-			/>
+			></iframe>
 		{:else if isHtml && showRaw}
 			<div class="absolute inset-0">
 				<FileCodeEditor
@@ -431,6 +436,7 @@
 			</div>
 		{:else if isMarkdown && !showRaw}
 			<div bind:this={markdownEl} class="prose dark:prose-invert max-w-full text-sm p-3">
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -- renderedHtml is produced only by DOMPurify.sanitize above. -->
 				{@html renderedHtml}
 			</div>
 		{:else if isMarkdown && showRaw}
@@ -461,8 +467,8 @@
 									<td>{cell}</td>
 								{/each}
 								<!-- Pad missing columns -->
-								{#each Array(Math.max(0, csvHeader.length - row.length)) as _}
-									<td></td>
+								{#each Array(Math.max(0, csvHeader.length - row.length)).fill('') as cell}
+									<td>{cell}</td>
 								{/each}
 							</tr>
 						{/each}
@@ -485,6 +491,7 @@
 			</div>
 		{:else if isSvg && !showRaw && fileContent}
 			<div class="svg-preview w-full h-full flex items-center justify-center overflow-auto p-3">
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -- SVG content is sanitized with the restricted SVG profile. -->
 				{@html DOMPurify.sanitize(fileContent, {
 					USE_PROFILES: { svg: true, svgFilters: true },
 					ADD_TAGS: ['use']
@@ -501,7 +508,8 @@
 			</div>
 		{:else if isSvg && highlightedHtml && !showRaw}
 			<div class="shiki-preview overflow-auto h-full text-xs">
-				{@html highlightedHtml}
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -- Sanitize generated highlighter markup before rendering. -->
+				{@html DOMPurify.sanitize(highlightedHtml)}
 			</div>
 		{:else if editing}
 			<textarea
@@ -509,7 +517,7 @@
 				bind:value={editContent}
 				class="w-full h-full text-xs font-mono text-gray-800 dark:text-gray-200 whitespace-pre break-all leading-relaxed p-3 bg-transparent border-none outline-none resize-none"
 				spellcheck="false"
-			/>
+			></textarea>
 		{:else}
 			<pre
 				class="text-xs font-mono text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-all leading-relaxed p-3">{fileContent}</pre>

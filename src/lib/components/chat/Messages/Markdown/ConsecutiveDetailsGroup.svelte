@@ -7,7 +7,6 @@
 	import ChevronUp from '$lib/components/icons/ChevronUp.svelte';
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
-	import WrenchSolid from '$lib/components/icons/WrenchSolid.svelte';
 	import Sparkles from '$lib/components/icons/Sparkles.svelte';
 	import CheckCircle from '$lib/components/icons/CheckCircle.svelte';
 	import FullHeightIframe from '$lib/components/common/FullHeightIframe.svelte';
@@ -35,16 +34,16 @@
 
 	let open = $settings?.expandDetails ?? false;
 
-	function parseJSONString(str: string) {
+	function parseJSONString(str: unknown): unknown {
+		if (typeof str !== 'string') return str;
 		try {
 			return parseJSONString(JSON.parse(str));
-		} catch (e) {
+		} catch {
 			return str;
 		}
 	}
 
 	$: toolCallCount = tokens.filter((t) => t?.attributes?.type === 'tool_calls').length;
-	$: reasoningCount = tokens.filter((t) => t?.attributes?.type === 'reasoning').length;
 	$: hasPending =
 		!messageDone &&
 		tokens.some((t) => t?.attributes?.done !== undefined && t?.attributes?.done !== 'true');
@@ -59,10 +58,10 @@
 		for (const t of tokens) {
 			if (t?.attributes?.type !== 'tool_calls') continue;
 			const raw = decode(t.attributes?.embeds ?? '');
-			try {
-				const parsed = parseJSONString(raw);
-				if (Array.isArray(parsed) && parsed.length > 0) {
-					for (const embed of parsed) {
+			const parsed = parseJSONString(raw);
+			if (Array.isArray(parsed)) {
+				for (const embed of parsed) {
+					if (typeof embed === 'string') {
 						result.push({
 							name: t.attributes?.name ?? '',
 							embed,
@@ -70,7 +69,7 @@
 						});
 					}
 				}
-			} catch {}
+			}
 		}
 		return result;
 	})();
@@ -80,7 +79,7 @@
 
 		if (toolCallCount > 0) {
 			// Group by tool name and show counts
-			const nameCounts = {};
+			const nameCounts: Record<string, number> = {};
 			tokens
 				.filter((t) => t?.attributes?.type === 'tool_calls')
 				.forEach((t) => {
@@ -102,7 +101,6 @@
 			}
 		}
 
-		const prefix = hasPending ? $i18n.t('Exploring') : $i18n.t('Explored');
 		const detail = parts.join(', ');
 		return detail;
 	})();
@@ -111,7 +109,6 @@
 </script>
 
 <div {id} class="w-full">
-	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<button
 		class="w-fit py-0.5 text-left {compactPreview
 			? 'text-xs'

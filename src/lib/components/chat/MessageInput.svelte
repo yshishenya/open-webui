@@ -13,7 +13,7 @@
 
 	import { onMount, tick, getContext, createEventDispatcher } from 'svelte';
 
-	import { createPicker, getAuthToken } from '$lib/utils/google-drive-picker';
+	import { createPicker } from '$lib/utils/google-drive-picker';
 	import { pickAndDownloadFile } from '$lib/utils/onedrive-file-picker';
 	import { KokoroWorker } from '$lib/workers/KokoroWorker';
 
@@ -32,7 +32,6 @@
 		terminalServers,
 		user as _user,
 		showControls,
-		showSettings,
 		selectedTerminalId,
 		TTSWorker,
 		temporaryChatEnabled
@@ -55,17 +54,15 @@
 	} from '$lib/utils';
 	import { uploadFile } from '$lib/apis/files';
 	import { generateAutoCompletion } from '$lib/apis';
-	import { deleteFileById } from '$lib/apis/files';
 	import { getChatById } from '$lib/apis/chats';
 	import { getFolderById } from '$lib/apis/folders';
 	import { getNoteById } from '$lib/apis/notes';
 	import { getSessionUser } from '$lib/apis/auths';
 
-	import { WEBUI_BASE_URL, WEBUI_API_BASE_URL, PASTED_TEXT_CHARACTER_LIMIT } from '$lib/constants';
+	import { WEBUI_API_BASE_URL, PASTED_TEXT_CHARACTER_LIMIT } from '$lib/constants';
 	import { initiateOAuthRedirect } from '$lib/apis/configs';
 	import { matchKeybinding, Shortcut } from '$lib/shortcuts';
 
-	import { createNoteHandler } from '../notes/utils';
 	import { getSuggestionRenderer } from '../common/RichTextInput/suggestions';
 
 	import InputMenu from './MessageInput/InputMenu.svelte';
@@ -96,13 +93,10 @@
 	import TerminalMenu from './MessageInput/TerminalMenu.svelte';
 	import Component from '../icons/Component.svelte';
 	import PlusAlt from '../icons/PlusAlt.svelte';
-	import Dropdown from '../common/Dropdown.svelte';
 
 	import CommandSuggestionList from './MessageInput/CommandSuggestionList.svelte';
 	import Knobs from '../icons/Knobs.svelte';
 	import ValvesModal from '../workspace/common/ValvesModal.svelte';
-	import Note from '../icons/Note.svelte';
-	import { goto } from '$app/navigation';
 	import InputModal from '../common/InputModal.svelte';
 	import Expand from '../icons/Expand.svelte';
 	import QueuedMessageItem from './MessageInput/QueuedMessageItem.svelte';
@@ -110,15 +104,15 @@
 
 	const i18n = getContext('i18n');
 
-	export let onUpload: Function = (e) => {};
-	export let onChange: Function = () => {};
-	export let onWebSearchToggle: Function = () => {};
+	export let onUpload: (event: { type: string; data: unknown }) => void | Promise<void> = () => {};
+	export let onChange: (draft: Record<string, unknown>) => void | Promise<void> = () => {};
+	export let onWebSearchToggle: (enabled: boolean) => void = () => {};
 
-	export let createMessagePair: Function;
-	export let stopResponse: Function;
-	export let compactHandler: Function = () => {};
-	export let statusHandler: Function = () => {};
-	export let forkHandler: Function = () => {};
+	export let createMessagePair: (prompt: string) => void | Promise<void>;
+	export let stopResponse: (processQueue?: boolean) => void | Promise<void>;
+	export let compactHandler: () => void | Promise<void> = () => {};
+	export let statusHandler: () => void = () => {};
+	export let forkHandler: (messageId?: string | null) => void | Promise<void> = () => {};
 	export let chatId = '';
 	export let contextUsage = null;
 	export let contextCompactionEnabled = false;
@@ -145,7 +139,6 @@
 		(taskIds && taskIds.length > 0) ||
 		(history.currentId && history.messages[history.currentId]?.done != true) ||
 		generating;
-	$: canCompact = !!history?.currentId;
 
 	export let prompt = '';
 	export let files = [];
@@ -162,7 +155,7 @@
 
 	let showTerminalMenu = false;
 
-	export let messageQueue: { id: string; prompt: string; files: any[] }[] = [];
+	export let messageQueue: { id: string; prompt: string; files: Record<string, unknown>[] }[] = [];
 	export let onQueueSendNow: (id: string) => void = () => {};
 	export let onQueueEdit: (id: string) => void = () => {};
 	export let onQueueDelete: (id: string) => void = () => {};
@@ -172,7 +165,7 @@
 	let inputContent = null;
 
 	let showInputVariablesModal = false;
-	let inputVariablesModalCallback = (variableValues) => {};
+	let inputVariablesModalCallback: (variableValues: Record<string, unknown>) => void = () => {};
 	let inputVariables = {};
 	let inputVariableValues = {};
 
@@ -228,7 +221,7 @@
 
 	const textVariableHandler = async (text: string) => {
 		if (text.includes('{{CLIPBOARD}}')) {
-			const clipboardText = await navigator.clipboard.readText().catch((err) => {
+			const clipboardText = await navigator.clipboard.readText().catch(() => {
 				toast.error($i18n.t('Failed to read clipboard contents'));
 				return '{{CLIPBOARD}}';
 			});
@@ -258,7 +251,7 @@
 			let location;
 			try {
 				location = await getUserPosition();
-			} catch (error) {
+			} catch {
 				toast.error($i18n.t('Location access not allowed'));
 				location = 'LOCATION_UNKNOWN';
 			}
@@ -347,7 +340,7 @@
 		return text;
 	};
 
-	const replaceVariables = (variables: Record<string, any>) => {
+	const replaceVariables = (variables: Record<string, unknown>) => {
 		console.log('Replacing variables:', variables);
 
 		const chatInput = document.getElementById('chat-input');
@@ -539,7 +532,6 @@
 			const words = extractCurlyBraceWords(prompt);
 
 			if (words.length > 0) {
-				const word = words.at(0);
 				await tick();
 			} else {
 				chatInput.scrollTop = chatInput.scrollHeight;
@@ -585,11 +577,9 @@
 		return false;
 	}
 
-	let chatInputContainerElement;
 	let chatInputElement;
 
 	let filesInputElement;
-	let commandsElement;
 
 	let inputFiles;
 
@@ -599,7 +589,6 @@
 	export let dropzoneId = 'chat-pane';
 	let shiftKey = false;
 
-	let user = null;
 	export let placeholder = '';
 
 	type ModelCapability =
@@ -969,25 +958,6 @@
 		});
 	};
 
-	const createNote = async () => {
-		if (inputContent?.md.trim() === '' && inputContent?.html.trim() === '') {
-			toast.error($i18n.t('Cannot create an empty note.'));
-			return;
-		}
-
-		const res = await createNoteHandler(
-			dayjs().format('YYYY-MM-DD'),
-			inputContent?.md,
-			inputContent?.html
-		);
-
-		if (res) {
-			// Clear the input content saved in session storage.
-			sessionStorage.removeItem('chat-input');
-			goto(`/notes/${res.id}`);
-		}
-	};
-
 	const onDragOver = (e: DragEvent) => {
 		e.preventDefault();
 
@@ -1082,7 +1052,7 @@
 					e.stopPropagation();
 					return;
 				}
-			} catch (_) {
+			} catch {
 				// Not valid JSON — fall through to file handling
 			}
 		}
@@ -1265,7 +1235,7 @@
 				char: '$',
 				render: getSuggestionRenderer(CommandSuggestionList, {
 					i18n,
-					onSelect: (e) => {
+					onSelect: () => {
 						document.getElementById('chat-input')?.focus();
 					},
 
@@ -1284,7 +1254,7 @@
 				},
 				render: getSuggestionRenderer(CommandSuggestionList, {
 					i18n,
-					onSelect: (e) => {
+					onSelect: () => {
 						document.getElementById('chat-input')?.focus();
 					},
 
@@ -1450,7 +1420,7 @@
 								document.getElementById('chat-input')?.focus();
 							}}
 							onConfirm={async (data) => {
-								const { text, filename } = data;
+								const { text } = data;
 
 								recording = false;
 
@@ -1477,7 +1447,7 @@
 							aria-label={$i18n.t('Generate message pair')}
 							class="hidden"
 							on:click={() => createMessagePair(prompt)}
-						/>
+						></button>
 
 						<!-- Task list display -->
 						{#if isActive && chatTasks.length > 0}
@@ -1974,7 +1944,7 @@
 									{#if showWebSearchButton || showImageGenerationButton || showCodeInterpreterButton || showToolsButton || showSkillsButton || (toggleFilters && toggleFilters.length > 0)}
 										<div
 											class="flex self-center w-[1px] h-4 mx-1 bg-gray-200/50 dark:bg-gray-800/50 shrink-0"
-										/>
+										></div>
 									{/if}
 
 									<div class="flex flex-1 items-center min-w-0 overflow-x-auto scrollbar-none">
@@ -2380,7 +2350,7 @@
 
 																showCallOverlay.set(true);
 																showControls.set(true);
-															} catch (err) {
+															} catch {
 																// If the user denies the permission or an error occurs, show an error message
 																toast.error(
 																	$i18n.t('Permission denied when accessing media devices')
@@ -2435,10 +2405,11 @@
 
 						{#if $config?.license_metadata?.input_footer}
 							<div class=" text-xs text-gray-500 text-center line-clamp-1 marked">
+								<!-- eslint-disable-next-line svelte/no-at-html-tags -- License footer markup is sanitized at this sink. -->
 								{@html DOMPurify.sanitize(marked($config?.license_metadata?.input_footer))}
 							</div>
 						{:else}
-							<div class="mb-1" />
+							<div class="mb-1"></div>
 						{/if}
 					</form>
 				</div>

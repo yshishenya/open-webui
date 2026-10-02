@@ -1,16 +1,14 @@
 <script lang="ts">
-	import { toast } from 'svelte-sonner';
 	import { marked } from 'marked';
 	import DOMPurify from 'dompurify';
 
-	import { onMount, getContext, tick, createEventDispatcher } from 'svelte';
-	import { blur, fade } from 'svelte/transition';
+	import { getContext, createEventDispatcher, type ComponentProps } from 'svelte';
+	import { fade } from 'svelte/transition';
 
 	const dispatch = createEventDispatcher();
 
-	import { updateFolderById } from '$lib/apis/folders';
-
 	import {
+		type Model,
 		config,
 		user,
 		models as _models,
@@ -18,8 +16,8 @@
 		selectedFolder
 	} from '$lib/stores';
 	import { refreshChatList } from '$lib/stores/chatList';
-	import { sanitizeResponseContent, extractCurlyBraceWords } from '$lib/utils';
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+	import { sanitizeResponseContent } from '$lib/utils';
+	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 	import Suggestions from './Suggestions.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -30,19 +28,27 @@
 
 	const i18n = getContext('i18n');
 
-	export let createMessagePair: Function;
-	export let stopResponse: Function;
+	export let createMessagePair: ComponentProps<MessageInput>['createMessagePair'];
+	export let stopResponse: ComponentProps<MessageInput>['stopResponse'];
 
 	export let autoScroll = false;
 
-	export let atSelectedModel: Model | undefined;
+	export let atSelectedModel:
+		| (Model & {
+				info?: {
+					meta?: NonNullable<Model['info']>['meta'] & {
+						suggestion_prompts?: { content: string; title: [string, string] }[];
+					};
+				};
+		  })
+		| undefined;
 	export let selectedModels: [''];
 
 	export let history;
 
 	export let prompt = '';
 	export let files = [];
-	export let messageInput = null;
+	export let messageInput: MessageInput | null = null;
 
 	export let selectedToolIds = [];
 	export let selectedSkillIds = [];
@@ -55,10 +61,10 @@
 	export let codeInterpreterEnabled = false;
 	export let webSearchEnabled = false;
 
-	export let onUpload: Function = (e) => {};
-	export let onSelect = (e) => {};
-	export let onChange = (e) => {};
-	export let onWebSearchToggle: Function = () => {};
+	export let onUpload: ComponentProps<MessageInput>['onUpload'] = () => {};
+	export let onSelect: (event: { type: string; data: string }) => void | Promise<void> = () => {};
+	export let onChange: ComponentProps<MessageInput>['onChange'] = () => {};
+	export let onWebSearchToggle: ComponentProps<MessageInput>['onWebSearchToggle'] = () => {};
 
 	export let toolServers = [];
 
@@ -99,7 +105,7 @@
 				<FolderTitle
 					folder={$selectedFolder}
 					readOnly={folderReadOnly}
-					onUpdate={async (folder) => {
+					onUpdate={async () => {
 						await refreshChatList(localStorage.token);
 					}}
 					onDelete={async () => {
@@ -132,6 +138,7 @@
 											src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
 											class=" size-9 @sm:size-10 rounded-2xl"
 											aria-hidden="true"
+											alt=""
 											draggable="false"
 											on:error={(e) => {
 												e.currentTarget.src = '/favicon.png';
@@ -180,6 +187,7 @@
 								<div
 									class="mt-0.5 px-2 text-sm font-normal text-gray-500 dark:text-gray-400 line-clamp-2 max-w-xl markdown"
 								>
+									<!-- eslint-disable-next-line svelte/no-at-html-tags -- Model description markup is sanitized at this sink. -->
 									{@html DOMPurify.sanitize(
 										marked.parse(
 											sanitizeResponseContent(
