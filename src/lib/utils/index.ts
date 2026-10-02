@@ -1303,29 +1303,31 @@ const MONTH_NAMES = [
 	'December'
 ];
 
-export const getTimeRange = (timestamp) => {
+export const getTimeRange = (timestamp: number | null | undefined): string => {
+	if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) return 'Unknown';
+
 	const now = new Date();
 	const date = new Date(timestamp * 1000); // Convert Unix timestamp to milliseconds
+	if (!Number.isFinite(date.getTime())) return 'Unknown';
+	const yesterday = new Date(now);
+	yesterday.setDate(now.getDate() - 1);
 
 	// Calculate the difference in milliseconds
 	const diffTime = now.getTime() - date.getTime();
 	const diffDays = diffTime / (1000 * 3600 * 24);
 
-	const nowDate = now.getDate();
-	const nowMonth = now.getMonth();
 	const nowYear = now.getFullYear();
 
-	const dateDate = date.getDate();
 	const dateMonth = date.getMonth();
 	const dateYear = date.getFullYear();
 
-	if (nowYear === dateYear && nowMonth === dateMonth && nowDate === dateDate) {
+	if (now.toDateString() === date.toDateString()) {
 		return 'Today';
-	} else if (nowYear === dateYear && nowMonth === dateMonth && nowDate - dateDate === 1) {
+	} else if (yesterday.toDateString() === date.toDateString()) {
 		return 'Yesterday';
-	} else if (diffDays <= 7) {
+	} else if (diffDays >= 0 && diffDays <= 7) {
 		return 'Previous 7 days';
-	} else if (diffDays <= 30) {
+	} else if (diffDays >= 0 && diffDays <= 30) {
 		return 'Previous 30 days';
 	} else if (nowYear === dateYear) {
 		return MONTH_NAMES[dateMonth];
