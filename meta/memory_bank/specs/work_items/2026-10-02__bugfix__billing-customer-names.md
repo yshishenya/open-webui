@@ -5,7 +5,7 @@
 - Status: done
 - Owner: Codex
 - Branch: codex/bugfix/billing-customer-names
-- SDD Spec: meta/sdd/specs/completed/billing-customer-names-2026-10-02-2205.json
+- SDD Spec: meta/sdd/specs/completed/billing-customer-names-2026-10-02-001.json
 - Created: 2026-10-02
 - Updated: 2026-10-02
 
@@ -40,6 +40,6 @@ Revert the isolated commit to roll back.
 - Changed-file ESLint, backend ruff, diff whitespace checks passed.
 - Full typecheck has 4668 errors / 215 warnings in 284 files; the same
   diagnostics are present on the base commit, with zero added or removed.
-- SDD validation: zero errors; generated ID format has an advisory warning.
+- SDD validation: zero errors and warnings after aligning the generated ID with the CI format.
 - Automated DOM interaction verified customer-name display and navigation.
 - Production browser acceptance and deployment are pending a separate rollout.
