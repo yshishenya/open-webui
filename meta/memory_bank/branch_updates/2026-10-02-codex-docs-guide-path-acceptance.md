@@ -1,0 +1,8 @@
+- [x] **[DOCS][OPS]** Accept guide entry after fresh sign-in and from chat banner
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__docs__guide-path-acceptance.md`
+  - Owner: Codex
+  - Branch: `codex/docs/guide-path-acceptance`
+  - Done: 2026-10-02
+  - Summary: Three real free tasks preserve the draft through fresh sign-in and match server usage; reuse the existing Markdown support banner for the guide entry.
+  - Tests: Three ordinary-account browser responses and read-only measured-usage/free-quota verification passed; exact banner array read-back and ordinary-account desktop/narrow browser checks passed.
+  - Risks: Banner writes replace the array; retain a private snapshot and detect concurrent edits.
