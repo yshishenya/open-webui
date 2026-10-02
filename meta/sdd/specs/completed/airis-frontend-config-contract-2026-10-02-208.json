@@ -2,7 +2,7 @@
   "spec_id": "airis-frontend-config-contract-2026-10-02-208",
   "title": "Airis frontend config contract recovery 2026-10-02",
   "generated": "2026-10-02T12:28:18.449663Z",
-  "last_updated": "2026-10-02T12:43:20.641303Z",
+  "last_updated": "2026-10-02T12:55:37.972835Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -11,23 +11,24 @@
     "security_sensitive": false,
     "default_category": "implementation",
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-config-contract.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-02T12:35:32.010973Z",
-    "progress_percentage": 66,
-    "current_phase": "phase-2"
+    "progress_percentage": 100,
+    "current_phase": "phase-2",
+    "completed_date": "2026-10-02T12:55:37.972430Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Airis frontend config contract recovery 2026-10-02",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
         "phase-2"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
@@ -49,15 +50,19 @@
     "phase-2": {
       "type": "phase",
       "title": "Verify contracts and publish reviewed source",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-2-1",
         "task-2-2"
       ],
       "total_tasks": 2,
-      "completed_tasks": 1,
-      "metadata": {}
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-02T12:55:37.468240Z",
+        "journaled_at": "2026-10-02T12:55:37.470580Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -104,7 +109,7 @@
     "task-2-2": {
       "type": "task",
       "title": "Publish and verify accepted source",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -113,9 +118,12 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "file_path": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-config-contract.md"
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-config-contract.md",
+        "completed_at": "2026-10-02T12:55:37.467984Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-02T12:55:37.469332Z"
       },
       "description": "Commit push PR checks merge and documentation closure"
     }
@@ -147,6 +155,24 @@
       "content": "Task task-2-1 marked as completed.",
       "metadata": {},
       "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-02T12:55:37.469327Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Publish and verify accepted source",
+      "author": "claude-code",
+      "content": "Task task-2-2 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-2"
+    },
+    {
+      "timestamp": "2026-10-02T12:55:37.470576Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify contracts and publish reviewed source",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
     }
   ]
 }

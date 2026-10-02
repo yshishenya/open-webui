@@ -1,8 +1,9 @@
-- [ ] **[BUG]** Correct shared frontend configuration contracts
+- [x] **[BUG]** Correct shared frontend configuration contracts
   - Spec: `meta/memory_bank/specs/work_items/2026-10-02__bugfix__frontend-config-contract.md`
   - Owner: Codex
   - Branch: `codex/bugfix/frontend-config-contract`
-  - Started: 2026-10-02
+  - Done: 2026-10-02
   - Summary: Trace backend payloads and store consumers; replace mismatched provider types and inherited explicit any without changing runtime behavior.
   - Tests: Docker162/162; compiler positive/negative fixture; touched ESLint/Prettier pass; store emitted JavaScript identical. Global lint1624 errors and strict4796 errors/217 warnings remain open.
   - Risks: Existing global frontend diagnostic debt remains open.
+  - Acceptance: PR165 source5069af8aa2764e177843495a8ba4b5135d6512b1 merged asd0cd7eb905716aca811a974f38255cc8d2d7ca3c; all12 observed statuses satisfied, no runtime changes.

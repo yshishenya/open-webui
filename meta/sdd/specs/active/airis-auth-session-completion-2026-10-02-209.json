@@ -1,0 +1,152 @@
+{
+  "spec_id": "airis-auth-session-completion-2026-10-02-209",
+  "title": "Airis auth session completion 2026-10-02",
+  "generated": "2026-10-02T12:49:07.165941Z",
+  "last_updated": "2026-10-02T13:17:55.471425Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__auth-session-completion.md",
+    "status": "active",
+    "activated_date": "2026-10-02T12:50:05.579119Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-2"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis auth session completion 2026-10-02",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce login completion and repair route",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-02T12:54:37.271577Z",
+        "journaled_at": "2026-10-02T12:54:37.273410Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify and release accepted authentication assets",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce actual handler behavior and repair local auth contracts",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/routes/auth/+page.svelte",
+        "completed_at": "2026-10-02T12:54:37.271403Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-02T12:54:37.272410Z"
+      },
+      "description": "Nullable socket and session/cookie/image/widget types"
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify Docker tests diagnostics and candidate E2E",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/lib/utils/airis/auth_session_completion.test.ts",
+        "completed_at": "2026-10-02T13:17:55.469948Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-02T13:17:55.470898Z"
+      },
+      "description": "No duplicate logic or rule suppression"
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Publish and accept production runtime",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-02__bugfix__auth-session-completion.md"
+      },
+      "description": "Exact accepted source guarded release and live files proof"
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-02T12:54:37.272405Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce actual handler behavior and repair local auth contracts",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-02T12:54:37.273406Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce login completion and repair route",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-02T13:17:55.470893Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify Docker tests diagnostics and candidate E2E",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    }
+  ]
+}

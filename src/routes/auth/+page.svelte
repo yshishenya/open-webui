@@ -21,7 +21,7 @@
 		} from '$lib/apis/auths';
 
 	import { WEBUI_BASE_URL } from '$lib/constants';
-	import { WEBUI_NAME, config, user, socket } from '$lib/stores';
+	import { WEBUI_NAME, config, user, socket, type SessionUser } from '$lib/stores';
 
 	import { generateInitialsImage, getUserTimezone } from '$lib/utils';
 
@@ -106,7 +106,10 @@
 				: 'ldap'
 			: null;
 
-	const setSessionUser = async (sessionUser, redirectPath: string | null = null) => {
+	const setSessionUser = async (
+		sessionUser: (SessionUser & { token?: string }) | null,
+		redirectPath: string | null = null
+	): Promise<void> => {
 		if (sessionUser) {
 			trackEvent(mode === 'signup' ? 'signup_completed' : 'login_completed', {
 				method: 'auth',
@@ -116,7 +119,7 @@
 			if (sessionUser.token) {
 				localStorage.token = sessionUser.token;
 			}
-			$socket.emit('user-join', { auth: { token: sessionUser.token } });
+			$socket?.emit('user-join', { auth: { token: sessionUser.token } });
 			await user.set(sessionUser);
 			await config.set(await getBackendConfig());
 
@@ -321,7 +324,7 @@
 
 	const oauthCallbackHandler = async () => {
 		// Get the value of the 'token' cookie
-		function getCookie(name) {
+		function getCookie(name: string): string | null {
 			const match = document.cookie.match(
 				new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)')
 			);
@@ -348,9 +351,9 @@
 
 	let onboarding = false;
 
-	async function setLogoImage() {
+	async function setLogoImage(): Promise<void> {
 		await tick();
-		const logo = document.getElementById('logo');
+		const logo = document.querySelector<HTMLImageElement>('#logo');
 
 		if (logo) {
 			logo.src = `${WEBUI_BASE_URL}/static/favicon.svg`;
@@ -614,7 +617,7 @@
 
 															<div class="absolute inset-0 telegram-widget-root">
 																<TelegramLoginWidget
-																	botUsername={$config?.telegram?.bot_username}
+																	botUsername={$config?.telegram?.bot_username ?? ''}
 																	size="small"
 																	radius={18}
 																	showUserPic={false}
