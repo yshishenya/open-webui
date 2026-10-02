@@ -1,23 +1,23 @@
 # AIRIS welcome and first-task reminder
 
-Status: In Progress
+Status: Done (bounded implementation and controlled release; pilot pending)
 Owner: Codex
-SDD Spec: `meta/sdd/specs/active/airis-first-onboarding-emails-2026-10-02-645.json`
+SDD Spec: `meta/sdd/specs/completed/airis-first-onboarding-emails-2026-10-02-645.json`
 
 ## Goal and measurable acceptance
 
 Use the released queue for one consented welcome and one eligible first-task reminder across enabled registration paths. Repair lifecycle/trust gaps before allowing those paths to send. This step implements release A scenarios; cohort reporting and real calendar pilot remain separate final-goal gates.
 
-- [ ] New email/VK/VK ID/Yandex accounts use a durable, compatible account lifecycle; existing disabled credentials never reactivate.
-- [ ] Client-supplied social email/identity never establishes verified address, links an existing account or bypasses provider proof. Missing authoritative information fails safely or uses separate explicit address verification.
-- [ ] New/late consent and address verification within seven days create at most one welcome; old accounts and repeat login/verification/reconciliation create zero duplicates.
-- [ ] Missing consent, inactive/admin/deleted account, technical/unverified/suppressed address submit zero product messages.
-- [ ] Both welcome and activation templates have tested HTML and text, safe escaped names, working support/guide links and common one-click opt-out headers/footer.
-- [ ] Primary welcome links to the existing ready letter task in `/guide#example-letter`; no duplicate prompt catalogue, automatic send or hidden paid selection.
-- [ ] Activation is due no earlier than both registration+24h and accepted welcome+24h, before registration+7d; successful foreground work suppresses it during reconciliation and final permission.
-- [ ] Missing/failed/unknown welcome never silently triggers activation; valid deferred work respects expiry and rolling frequency.
-- [ ] Template version selects actual versioned assets; a copy edit never creates a second cycle key.
-- [ ] Compose backend/PostgreSQL, template and browser handoff checks pass on frozen source and image; real SMTP control passes with correct Reply-To/opt-out. Existing product releases remain gated until pilot/report requirements are met.
+- [x] New email/VK/VK ID/Yandex accounts use a durable, compatible account lifecycle; existing disabled credentials never reactivate.
+- [x] Client-supplied social email/identity never establishes verified address, links an existing account or bypasses provider proof. Missing authoritative information fails safely or uses separate explicit address verification.
+- [x] New/late consent and address verification within seven days create at most one welcome; old accounts and repeat login/verification/reconciliation create zero duplicates.
+- [x] Missing consent, inactive/admin/deleted account, technical/unverified/suppressed address submit zero product messages.
+- [x] Both welcome and activation templates have tested HTML and text, safe escaped names, working support/guide links and common one-click opt-out headers/footer.
+- [x] Primary welcome links to the existing ready letter task in `/guide#example-letter`; no duplicate prompt catalogue, automatic send or hidden paid selection.
+- [x] Activation is due no earlier than both registration+24h and accepted welcome+24h, before registration+7d; successful foreground work suppresses it during reconciliation and final permission.
+- [x] Missing/failed/unknown welcome never silently triggers activation; valid deferred work respects expiry and rolling frequency.
+- [x] Template version selects actual versioned assets; a copy edit never creates a second cycle key.
+- [x] Compose backend/PostgreSQL, template and browser handoff checks pass on frozen source and image; real SMTP control passes with correct Reply-To/opt-out. Existing product releases remain gated until pilot/report requirements are met.
 
 ## Evidence and reuse
 
@@ -48,3 +48,11 @@ Local checks: final full Compose backend 567 passed / 3 PostgreSQL-only skipped;
 ## OAuth security review correction
 
 The first PR scan reported ten clear-text logging findings in the shared OAuth file. Provider claims (roles/groups), raw token/userinfo, response bodies and exception text must not enter logs or error redirects. Removed those payloads, retained operation context, local identifiers and exception class, and made callback messages safe. The regression check injects a private fixture marker into roles, email, token and provider exceptions; it fails against the previous frozen image. The previous image is superseded and must not be released. No scanning rule, severity or suppression was changed. Frozen source/image checks and CI must be rerun before release.
+
+## Frozen and production acceptance
+
+Source `4231d59f6f4fa0f0b90f510cf5450bbca624eaf3`, PR [143](https://github.com/yshishenya/open-webui/pull/143), merge `5ab52cb60457fe489f048d92ff6e0e42f01807dd`. Runtime source did not change in merge. Final source and frozen-image backend: 568 passed / 3 PostgreSQL-only skipped; isolated PostgreSQL: 44 passed. Required CI and CodeQL passed; zero new security findings. Existing frontend retained; no schema/dependency introduced.
+
+Guarded release verified backup integrity, migration compatibility, frozen backend/frontend hashes and healthy runtime. Actual worker accepted one controlled welcome; the control mailbox received exactly one multipart HTML/text message with correct Reply-To and one-click headers. HTTPS GET left consent unchanged; two POST requests safely unsubscribed; a subsequent optional job was suppressed before SMTP. Disposable fixture was cleaned and global product sends stayed disabled. Released guide link opens the prepared free task with manual submission.
+
+This closes the six bounded implementation tasks. Real 24h/72h/14d pilot, live provider login by a person, physical-phone end-to-end and first mature cohort remain separate open acceptance requirements. SMTP acceptance and one control Inbox do not establish general inbox placement or usefulness.
