@@ -187,3 +187,123 @@ def test_b_templates_have_both_formats_and_do_not_reuse_checkout() -> None:
             assert 'Не платите повторно' in text and 'отмене этой попытки' in text
         else:
             assert 'не гарантирует' in text and 'не оплачивает' in text and '/pricing#calculation' in text
+
+
+def test_measured_paid_example_same_facts_in_both_rendered_formats() -> None:
+    from html import unescape
+
+    from open_webui.utils import email
+
+    service = email.EmailService()
+    service.reply_to = 'support@airis.you'
+    html, text = service.render_template(
+        'onboarding_v1/paid_value_72h',
+        name='<script>',
+        guide_url='https://chat.airis.you/guide',
+        pricing_url='https://chat.airis.you/pricing#calculation',
+        paid_example_url='https://chat.airis.you/guide#costs',
+    )
+    for rendered in [unescape(html), text]:
+        content = " ".join(rendered.split())
+        for fact in [
+            '3 октября 2026 года',
+            '120 минут',
+            '480 минут',
+            '30 минут',
+            'Luna',
+            'Sol',
+            '0,42 ₽',
+            '12,06 ₽',
+            'тестовым кошельком',
+            'не подтверждают реальную оплату',
+            'бесплатна в пределах действующей квоты',
+            'не гарантирует лучший результат',
+            'история чата',
+            'новые ставки',
+            'https://chat.airis.you/guide#costs',
+            'https://chat.airis.you/pricing#calculation',
+        ]:
+            assert fact in content
+    assert '<script>' not in html and '&lt;script&gt;' in html
+    assert 'confirmation_url' not in html + text and 'checkout' not in html + text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('blocked', ['no_activation', 'consent', 'unverified_address'])
+async def test_paid_example_email_still_requires_success_consent_and_verified_address(
+    database: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch, blocked: str
+) -> None:
+    from unittest.mock import AsyncMock
+
+    from open_webui.models import email_preferences as prefs
+    from open_webui.utils import email
+
+    now = int(time.time())
+    async with database() as db:
+        if blocked != 'no_activation':
+            db.add(
+                TaskSuccess(
+                    user_id='1',
+                    operation_id='first-success',
+                    kind='foreground_chat',
+                    source='saved_chat',
+                    completed_at=now - 60,
+                )
+            )
+        if blocked == 'unverified_address':
+            await db.execute(update(User).where(User.id == '1').values(email_verified=False))
+        await db.commit()
+    if blocked == 'consent':
+        await prefs.set_product_preference('1', False, 'settings')
+    job_id = await enqueue(database, 'paid_value_72h')
+    service = email.EmailService()
+    service.send_product_email = AsyncMock()
+    monkeypatch.setattr(email, 'email_service', service)
+    job = await journal.claim_email(now)
+    assert job is not None and job.id == job_id
+    await worker.execute_email(job, config())
+    service.send_product_email.assert_not_awaited()
+    row = await queue_tests.state(database, job_id)
+    expected = 'invalid_address' if blocked == 'unverified_address' else blocked
+    assert row.status == 'suppressed' and row.reason == expected and row.submitted_at is None
+
+
+@pytest.mark.asyncio
+async def test_measured_paid_example_mime_is_submitted_once_after_first_success(
+    database: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from unittest.mock import AsyncMock, Mock
+
+    from open_webui.utils import email
+
+    now = int(time.time())
+    async with database() as db:
+        db.add(
+            TaskSuccess(
+                user_id='1',
+                operation_id='first-success',
+                kind='foreground_chat',
+                source='saved_chat',
+                completed_at=now - 60,
+            )
+        )
+        await db.commit()
+    job_id = await enqueue(database, 'paid_value_72h')
+    service = email.EmailService()
+    service.reply_to = 'support@airis.you'
+    service.smtp_host, service.smtp_username, service.smtp_password = 'smtp.invalid', 'test', 'unused'
+    smtp = AsyncMock()
+    smtp.close = Mock()
+    service._create_connection = AsyncMock(return_value=smtp)
+    monkeypatch.setattr(email, 'email_service', service)
+    await worker.execute_email(await journal.claim_email(now), config())
+    await scenarios.reconcile_email_candidates(config())
+    smtp.send_message.assert_awaited_once()
+    msg = smtp.send_message.call_args.args[0]
+    parts = [part.get_payload(decode=True).decode() for part in msg.get_payload()]
+    for part in parts:
+        assert '0,42 ₽' in part and '12,06 ₽' in part and 'тестовым кошельком' in part
+        assert 'utm_content=paid_value_72h' in part and '/pricing?' in part and '#calculation' in part
+    assert msg['Reply-To'] == 'support@airis.you' and msg['List-Unsubscribe']
+    assert msg['List-Unsubscribe-Post'] == 'List-Unsubscribe=One-Click'
+    assert (await queue_tests.state(database, job_id)).status == 'accepted'

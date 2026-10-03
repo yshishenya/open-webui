@@ -1,0 +1,109 @@
+{
+  "spec_id": "airis-measured-paid-email-exam-2026-10-03-0701",
+  "title": "AIRIS measured paid email example 2026-10-03",
+  "generated": "2026-10-03T04:01:19.833524Z",
+  "last_updated": "2026-10-03T04:11:49.315462Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__feature__measured-paid-email-example.md",
+    "status": "active",
+    "activated_date": "2026-10-03T04:02:26.763125Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS measured paid email example 2026-10-03",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Publish the measured example in both optional email formats",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Write dated measured example without universal superiority claim",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "category": "implementation",
+        "completed_at": "2026-10-03T04:11:49.067180Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-03T04:11:49.068269Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Verify real template rendering and activation/consent gates",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "category": "implementation",
+        "completed_at": "2026-10-03T04:11:49.313897Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-03T04:11:49.314931Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Validate exact-source candidate, guarded release and document acceptance",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-03T04:11:49.068265Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Write dated measured example without universal superiority claim",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-03T04:11:49.314926Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify real template rendering and activation/consent gates",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    }
+  ]
+}
