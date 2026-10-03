@@ -1,8 +1,8 @@
-- [ ] **[BUG][ANALYTICS]** Восстановить потерянный ID Метрики в текущем frontend
+- [x] **[BUG][ANALYTICS]** Восстановить потерянный ID Метрики в текущем frontend
   - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__metrica-runtime-env-recovery.md`
   - Owner: Codex
   - Branch: `codex/bugfix/metrica-runtime-env-20261004`
-  - Started: 2026-10-04
+  - Done: 2026-10-04
   - Summary: После последней frontend-сборки исчез ID. Восстановление одним env.js поверх актуального production, с сохранением остальных файлов и защитой будущих выкладок.
-  - Tests: Текущий браузер воспроизводит отсутствие тега; candidate verification и rollout выполняются.
+  - Tests: Исходный образ отвергнут, candidate проходит; 4904 файла сверены, только env.js изменён; 11 live-сценариев и provider report (1 визит/5 просмотров) подтверждены.
   - Risks: Краткое пересоздание только airis; rollback и backup обязательны.
