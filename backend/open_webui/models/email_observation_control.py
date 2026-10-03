@@ -1,6 +1,7 @@
 """Serialize diagnostic pages and operator closure without touching source data."""
 
 import asyncio
+from typing import Literal
 
 from open_webui.models.email_observation import ObservationClaim
 from open_webui.models.email_observation_schema import EmailObservationRun, EmailObservationScope
@@ -17,6 +18,7 @@ async def _lock_observation_page(
     claim: ObservationClaim,
     now: int,
     expected_cursor: int | None = None,
+    mode: Literal['observe', 'dispatch'] = 'observe',
 ) -> EmailObservationScope:
     """Hold scope then run locks until page commit, in the same order as claiming/closing.
 
@@ -27,7 +29,7 @@ async def _lock_observation_page(
         update(EmailObservationScope)
         .where(
             EmailObservationScope.id == claim.scope_id,
-            EmailObservationScope.mode == 'observe',
+            EmailObservationScope.mode == mode,
             EmailObservationScope.closed_at.is_(None),
         )
         .values(member_count=EmailObservationScope.member_count)
@@ -86,7 +88,12 @@ async def close_observation_scope(session: AsyncSession, scope_id: str, now: int
 
 
 async def lock_observation_page(
-    session: AsyncSession, claim: ObservationClaim, now: int, expected_cursor: int | None = None
+    session: AsyncSession,
+    claim: ObservationClaim,
+    now: int,
+    expected_cursor: int | None = None,
+    *,
+    mode: Literal['observe', 'dispatch'] = 'observe',
 ) -> EmailObservationScope:
     """Drain in-flight driver work before cancellation rolls back the owning session.
 
@@ -94,8 +101,8 @@ async def lock_observation_page(
     can otherwise retain its write lock after the async connection is invalidated.
     """
     if session.get_bind().dialect.name != 'sqlite':
-        return await _lock_observation_page(session, claim, now, expected_cursor)
-    task = asyncio.create_task(_lock_observation_page(session, claim, now, expected_cursor))
+        return await _lock_observation_page(session, claim, now, expected_cursor, mode)
+    task = asyncio.create_task(_lock_observation_page(session, claim, now, expected_cursor, mode))
     try:
         return await asyncio.shield(task)
     except asyncio.CancelledError:

@@ -12,7 +12,6 @@ from open_webui.models.email_delivery import (
     DeliveryView,
     EmailDelivery,
     EmailType,
-    enqueue_email,
 )
 from open_webui.models.email_preferences import EmailPreference, preference_for_user
 from open_webui.models.task_success import TaskSuccess
@@ -37,6 +36,7 @@ class EmailQueueConfig:
     pilot_user_ids: frozenset[str] = frozenset()
     start_at: int = 0
     credited_start_at: int = 0
+    observation_scope_id: str = ''
 
     @classmethod
     def from_env(cls) -> 'EmailQueueConfig':
@@ -54,6 +54,7 @@ class EmailQueueConfig:
             ),
             start_at=int(os.getenv('AIRIS_EMAIL_ONBOARDING_START_AT', '0')),
             credited_start_at=int(os.getenv('AIRIS_EMAIL_CREDITED_START_AT', '0')),
+            observation_scope_id=os.getenv('AIRIS_EMAIL_OBSERVATION_SCOPE_ID', '').strip(),
         )
 
     def allows(self, user_id: str, email_type: str) -> bool:
@@ -112,12 +113,16 @@ def canceled_condition() -> ColumnElement[bool]:
 
 async def queue_welcome(user_id: str) -> bool:
     """All signup/verification/provider callers share one idempotent durable boundary."""
+    from open_webui.utils.airis.email_dispatch import enqueue_observed_email, lock_dispatch_scope
+
     config = EmailQueueConfig.from_env()
     if not config.allows(user_id, 'welcome') or config.start_at <= 0:
         return False
     now = int(time.time())
     async with get_async_db_context() as session:
+        scope = await lock_dispatch_scope(session, config, now)
         user = await session.scalar(select(User).where(User.id == user_id).with_for_update())
+        now = int(time.time())
         if (
             not user
             or user.role != 'user'
@@ -126,7 +131,9 @@ async def queue_welcome(user_id: str) -> bool:
             or not (await preference_for_user(session, user, now)).can_receive
         ):
             return False
-        result = await enqueue_email(session, user.id, 'welcome', ONBOARDING_VERSION, now, user.created_at + 7 * DAY)
+        result = await enqueue_observed_email(
+            session, scope, user, 'welcome', ONBOARDING_VERSION, now, user.created_at + 7 * DAY, now=now
+        )
         await session.commit()
         return result is not None
 
@@ -356,14 +363,21 @@ async def plan_payment_email(
 
 async def reconcile_email_candidates(config: EmailQueueConfig, limit: int = 100) -> int:
     """Recover missing jobs after source commits; no registration/payment transaction waits for SMTP."""
+    from open_webui.utils.airis.email_dispatch import enqueue_observed_email, lock_dispatch_scope
+
     global _account_cursor, _payment_cursor
     if not config.enabled:
         return 0
     now, count, limit = int(time.time()), 0, min(max(limit, 1), 100)
     async with get_async_db_context() as session:
+        scope = await lock_dispatch_scope(session, config, now)
         accounts = await account_candidates(session, config, now, limit)
-        for user in accounts:
-            if not (await preference_for_user(session, user, now)).can_receive:
+        for candidate_user in accounts:
+            user = await session.get(
+                User, candidate_user.id, with_for_update=True if scope else None, populate_existing=scope is not None
+            )
+            now = int(time.time())
+            if not user or not (await preference_for_user(session, user, now)).can_receive:
                 continue
             activated = bool(
                 await session.scalar(select(TaskSuccess.operation_id).where(TaskSuccess.user_id == user.id).limit(1))
@@ -373,16 +387,22 @@ async def reconcile_email_candidates(config: EmailQueueConfig, limit: int = 100)
                     continue
                 count += 1
                 if not config.dry_run:
-                    await enqueue_email(session, user.id, email_type, ONBOARDING_VERSION, due_at, expires_at)
+                    await enqueue_observed_email(
+                        session, scope, user, email_type, ONBOARDING_VERSION, due_at, expires_at, now=now
+                    )
         payments = await payment_candidates(session, config, now, limit)
         for payment in payments:
-            plan = await plan_payment_email(session, payment, now)
+            user = await session.get(
+                User, payment.user_id, with_for_update=True if scope else None, populate_existing=scope is not None
+            )
+            now = int(time.time())
+            plan = await plan_payment_email(session, payment, now) if user else None
             if plan is not None:
                 count += 1
                 if not config.dry_run:
                     email_type, due_at, expires_at = plan
-                    await enqueue_email(
-                        session, payment.user_id, email_type, payment.id, due_at, expires_at, payment_id=payment.id
+                    await enqueue_observed_email(
+                        session, scope, user, email_type, payment.id, due_at, expires_at, now=now, payment_id=payment.id
                     )
         await session.commit()
     _account_cursor = (accounts[-1].created_at, accounts[-1].id) if len(accounts) == limit else (0, '')

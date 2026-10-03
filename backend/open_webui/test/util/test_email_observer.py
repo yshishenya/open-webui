@@ -16,8 +16,8 @@ from open_webui.models.email_delivery import EmailDelivery
 from open_webui.models.task_success import TaskSuccess
 from open_webui.models.users import User
 from open_webui.utils import email
+from open_webui.utils.airis import email_dispatch, email_scenarios
 from open_webui.utils.airis import email_observer as observer
-from open_webui.utils.airis import email_scenarios
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from test.util import test_email_delivery_queue as queue_tests
@@ -114,7 +114,7 @@ async def test_six_independent_ready_cases_with_all_transport_switches_off(
         )
     smtp, enqueue = AsyncMock(), AsyncMock()
     monkeypatch.setattr(email.email_service, 'send_email_result', smtp)
-    monkeypatch.setattr(email_scenarios, 'enqueue_email', enqueue)
+    monkeypatch.setattr(email_dispatch, 'enqueue_email', enqueue)
     scope_id = await scope(observed_db, now)
     result = await observer.observe_scope_page(scope_id, now=now + 1)
     data = await rows(observed_db)
@@ -302,7 +302,7 @@ async def test_page_failure_is_atomic_safe_and_money_independent(
     before = await source_snapshot(observed_db)
     smtp, enqueue = AsyncMock(), AsyncMock()
     monkeypatch.setattr(email.email_service, 'send_email_result', smtp)
-    monkeypatch.setattr(email_scenarios, 'enqueue_email', enqueue)
+    monkeypatch.setattr(email_dispatch, 'enqueue_email', enqueue)
     if failure == 'exception':
         original = observer._member
         calls = 0
