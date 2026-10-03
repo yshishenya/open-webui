@@ -21,6 +21,7 @@ from open_webui.models.email_observation import (
     observation_page,
     save_observation_page,
 )
+from open_webui.models.email_observation_control import ObservationStateConflict, lock_observation_page
 from open_webui.models.users import User
 from open_webui.utils.airis.email_eligibility import send_eligibility
 from open_webui.utils.airis.email_scenarios import DAY, ONBOARDING_VERSION
@@ -43,6 +44,10 @@ PAYMENT_TYPES: tuple[EmailType, ...] = ('topup_credited', 'payment_help_72h')
 
 class ObservationPageError(RuntimeError):
     """Safe caller-facing page failure; partial decisions have rolled back."""
+
+
+class ObservationPageConflict(ObservationPageError):
+    """Safe replay/ownership conflict; the current run and its history are untouched."""
 
 
 class ObservationCoverageError(ValueError):
@@ -217,11 +222,11 @@ async def _member(
     return ObservedMember(member.id, decisions), False
 
 
-async def _save_page(claim: ObservationClaim, now: int, limit: int) -> ObservationPageResult:
+async def _save_page(
+    claim: ObservationClaim, now: int, limit: int, expected_cursor: int | None
+) -> ObservationPageResult:
     async with get_async_db_context() as session:
-        scope = await session.get(EmailObservationScope, claim.scope_id)
-        if not scope or scope.mode != 'observe':
-            raise ValueError('Scope is not an observation-only population')
+        scope = await lock_observation_page(session, claim, now, expected_cursor)
         members = await observation_page(session, claim, limit)
         page: list[ObservedMember] = []
         for member in members:
@@ -250,6 +255,7 @@ async def observe_scope_page(
     claim: ObservationClaim | None = None,
     now: int | None = None,
     limit: int = MAX_PAGE_MEMBERS,
+    expected_cursor: int | None = None,
 ) -> ObservationPageResult:
     """Observe one bounded page; current-time injection is for controlled tests, never HTTP input.
 
@@ -257,7 +263,12 @@ async def observe_scope_page(
     unknown gaps cannot be interpreted as complete eligibility coverage by a report.
     """
     now = int(time.time()) if now is None else now
-    if now <= 0 or not 1 <= limit <= MAX_PAGE_MEMBERS or (claim is not None and claim.scope_id != scope_id):
+    if (
+        now <= 0
+        or not 1 <= limit <= MAX_PAGE_MEMBERS
+        or (claim is not None and claim.scope_id != scope_id)
+        or (expected_cursor is not None and (expected_cursor < 0 or claim is None))
+    ):
         raise ValueError('Invalid observation page request')
     if claim is None:
         async with get_async_db_context() as session:
@@ -270,11 +281,13 @@ async def observe_scope_page(
             return ObservationPageResult(None)
     try:
         async with asyncio.timeout(PAGE_TIMEOUT_SECONDS):
-            return await _save_page(claim, now, limit)
+            return await _save_page(claim, now, limit, expected_cursor)
+    except ObservationStateConflict as exc:
+        raise ObservationPageConflict(str(exc)) from None
     except Exception as exc:
         reason = 'coverage_lost' if isinstance(exc, ObservationCoverageError) else 'observer_error'
         async with get_async_db_context() as session:
-            await fail_observation_run(session, claim, now, reason)
+            await fail_observation_run(session, claim, now, reason, expected_cursor=expected_cursor)
             await session.commit()
         log.warning('Mail observation page failed', extra={'reason': reason, 'error_type': type(exc).__name__})
         raise ObservationPageError(reason) from None

@@ -454,6 +454,8 @@ async def fail_observation_run(
     claim: ObservationClaim,
     now: int,
     reason: Literal['observer_error', 'coverage_lost', 'operator_stop'],
+    *,
+    expected_cursor: int | None = None,
 ) -> bool:
     """Record incomplete coverage; interruption alone can instead resume the live run."""
     if reason not in {'observer_error', 'coverage_lost', 'operator_stop'}:
@@ -467,6 +469,7 @@ async def fail_observation_run(
             EmailObservationRun.status == 'running',
             EmailObservationRun.lease_until > now,
             EmailObservationRun.started_at <= now,
+            *([EmailObservationRun.cursor == expected_cursor] if expected_cursor is not None else []),
         )
         .values(status='failed', failure_reason=reason, finished_at=now, claim_id=None, lease_until=None)
         .returning(EmailObservationRun.id)
