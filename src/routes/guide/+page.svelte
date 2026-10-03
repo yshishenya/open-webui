@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import comparison from '$lib/utils/airis/guide-comparison.json';
 	import PublicPageLayout from '$lib/components/landing/PublicPageLayout.svelte';
 	import { buildChatUrl, openPreset } from '$lib/components/landing/welcomeNavigation';
 	import { getPublicLeadMagnetConfig, getPublicPricingConfig } from '$lib/apis/billing';
@@ -45,6 +46,7 @@
 	let freeConfig: PublicLeadMagnetConfig | null = null;
 	let pricingConfig: PublicPricingConfig | null = null;
 	let loading = true;
+	let pricingLoadedAt: string | null = null;
 	const formatNumber = (value: number): string => new Intl.NumberFormat('ru-RU').format(value);
 
 	onMount(() => {
@@ -57,6 +59,20 @@
 			.then(([free, pricing]) => {
 				freeConfig = free;
 				pricingConfig = pricing;
+				if (
+					Array.isArray(pricing?.topup_amounts_rub) &&
+					pricing.topup_amounts_rub.length > 0 &&
+					pricing.topup_amounts_rub.every((amount) => Number.isFinite(amount) && amount > 0)
+				) {
+					pricingLoadedAt = new Intl.DateTimeFormat('ru-RU', {
+						day: 'numeric',
+						month: 'long',
+						year: 'numeric',
+						timeZone: 'Europe/Moscow'
+					}).format(new Date());
+				} else {
+					pricingConfig = null;
+				}
 			})
 			.finally(() => {
 				clearTimeout(timeout);
@@ -242,7 +258,7 @@
 				<p class="mt-4 text-[var(--airis-muted)]">
 					Действующие суммы пополнения: {pricingConfig.topup_amounts_rub
 						.map((amount) => `${formatNumber(amount)} ₽`)
-						.join(', ')}. Они загружаются из текущих настроек AIRIS.
+						.join(', ')}. Условия пополнения загружены {pricingLoadedAt} из настроек AIRIS.
 				</p>
 			{:else}
 				<p class="mt-4 text-[var(--airis-muted)]">
@@ -268,6 +284,85 @@
 					href="/billing/history"
 					class="airis-public-text-button inline-flex min-h-11 items-center">История расходов →</a
 				>
+			</div>
+		</div>
+	</section>
+
+	<section class="airis-public-section" id="model-comparison">
+		<div class="container mx-auto px-4 max-w-4xl">
+			<h2 class="airis-public-section-title">Когда стоит сравнить модели</h2>
+			<p class="mt-5 text-[var(--airis-muted)]">
+				Сначала попробуйте бесплатную Luna и уточните запрос. Если задача требует сложного плана,
+				можно сравнить ответ с другой моделью, предварительно проверив её ставки и лимит расхода.
+				Более высокая цена сама по себе не гарантирует более полезный ответ.
+			</p>
+			<div class="airis-public-card mt-6 p-6">
+				<h3 class="text-xl font-semibold">Одна задача, два настоящих ответа</h3>
+				<p class="mt-4">
+					3 октября 2026 года мы проверили план подготовки презентации. В задаче доступно четыре дня
+					по 120 минут, все работы занимают 480 минут, нужен резерв 30 минут. При этом четверговая
+					цепочка «замечания → исправления → репетиция» занимает 135 минут.
+				</p>
+				<p class="mt-4">
+					Обе модели нашли оба противоречия и предложили согласовать увеличение четвергового окна до
+					150 минут. Luna уже решила основную задачу. В этом ответе Sol подробнее разделила работу и
+					резерв: 120, 120, 105 и 135 минут работы, по 15 минут резерва в среду и четверг. В
+					итоговом списке Luna время работы и доступные окна разделены менее явно; его стоит
+					уточнить следующим сообщением.
+				</p>
+				<div class="mt-6 overflow-x-auto">
+					<table class="w-full text-left text-sm">
+						<caption class="pb-3 text-left font-semibold"
+							>Использование и расчёт по ставкам AIRIS на 3 октября 2026 года</caption
+						>
+						<thead
+							><tr>
+								<th scope="col" class="p-2">Модель</th>
+								<th scope="col" class="p-2">Токены запроса</th>
+								<th scope="col" class="p-2">Токены ответа</th>
+								<th scope="col" class="p-2">По ставкам AIRIS</th>
+							</tr></thead
+						>
+						<tbody>
+							{#each comparison.models as result}
+								<tr
+									><th scope="row" class="p-2 font-medium">{result.model}</th>
+									<td class="p-2">{formatNumber(result.input_tokens)}</td>
+									<td class="p-2">{formatNumber(result.output_tokens)}</td>
+									<td class="p-2 whitespace-nowrap"
+										>{(result.cost_kopeks / 100).toLocaleString('ru-RU', {
+											minimumFractionDigits: 2,
+											maximumFractionDigits: 2
+										})} ₽</td
+									>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+				<p class="mt-4 text-sm text-[var(--airis-muted)]">
+					Ответы получены по одному одинаковому запросу в новых чатах, с одинаковыми общими
+					инструкциями и пределом длины. Расход проверен в тестовом кошельке. Для Luna 0,42 ₽ —
+					ориентир платного использования: в пределах бесплатной квоты деньги с кошелька не
+					списываются. Это один пример; результат следующего запроса может отличаться.
+				</p>
+				<p class="mt-4 text-sm text-[var(--airis-muted)]">
+					Ставки за 1000 токенов запроса / ответа: Luna — 0,06 / 0,36 ₽, Sol — 1,50 / 9,00 ₽.
+					Стоимость запроса и ответа округляется вверх до копейки отдельно. В токены ответа входит
+					также внутреннее рассуждение модели. Новая длина ответа и история чата меняют расход;
+					действующие ставки смотрите на странице тарифов, предел одного ответа и дневной расход — в
+					кошельке.
+				</p>
+				<details class="mt-6">
+					<summary class="cursor-pointer py-3 font-medium">Полный запрос и оба ответа</summary>
+					<h4 class="mt-4 font-semibold">Запрос</h4>
+					<p class="mt-3">{comparison.prompt}</p>
+					{#each comparison.models as result}
+						<h4 class="mt-6 font-semibold">{result.model}</h4>
+						<pre
+							class="mt-3 whitespace-pre-wrap break-words font-sans text-sm">{result.answer}</pre>
+					{/each}
+				</details>
 			</div>
 		</div>
 	</section>

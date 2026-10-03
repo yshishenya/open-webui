@@ -1,0 +1,126 @@
+{
+  "spec_id": "airis-measured-paid-guide-example-2026-10-03-544",
+  "title": "Airis measured paid guide example",
+  "generated": "2026-10-03T02:44:43.621445Z",
+  "last_updated": "2026-10-03T03:07:25.987770Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__feature__measured-paid-guide-example.md",
+    "status": "active",
+    "activated_date": "2026-10-03T02:46:14.777928Z",
+    "progress_percentage": 50,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis measured paid guide example",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Measure a fair comparison, publish guide, verify release",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3",
+        "task-1-4"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Prepare isolated ordinary-user comparison with bounded real provider usage",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T03:02:17.582797Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-03T03:02:17.584533Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Measure two answers, billing and objective task criteria",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T03:07:25.984529Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-03T03:07:25.987744Z",
+        "started_at": "2026-10-03T03:05:21.882448Z",
+        "actual_hours": 0.034
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Update guide with verified example and current price dates",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-4": {
+      "type": "task",
+      "title": "Validate exact source, release and accept ordinary-user guide",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-03T03:02:17.584521Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Prepare isolated ordinary-user comparison with bounded real provider usage",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-03T03:02:17.961806Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Measure two answers, billing and objective task criteria",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-03T03:07:25.987737Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Measure two answers, billing and objective task criteria",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    }
+  ]
+}

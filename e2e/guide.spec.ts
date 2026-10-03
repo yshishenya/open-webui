@@ -207,3 +207,90 @@ test('draft survives new account registration', async ({ page }) => {
 	await expect(page.getByRole('button', { name: /Selected model: gpt-5.6-luna/ })).toBeVisible();
 	await expect(page.getByTestId('user-message')).toHaveCount(0);
 });
+
+test('measured comparison shows both answers and distinguishes free quota from price illustration', async ({
+	page
+}) => {
+	await page.goto('/guide');
+	const comparison = page.locator('#model-comparison');
+	await expect(
+		comparison.getByRole('heading', { name: 'Когда стоит сравнить модели' })
+	).toBeVisible();
+	await expect(
+		comparison.getByText('Luna уже решила основную задачу.', { exact: false })
+	).toBeVisible();
+	const rows = comparison.locator('tbody tr');
+	await expect(rows).toHaveCount(2);
+	await expect(rows.nth(0)).toContainText('gpt-5.6-luna');
+	await expect(rows.nth(0)).toContainText('376');
+	await expect(rows.nth(0)).toContainText('1 065');
+	await expect(rows.nth(0)).toContainText('0,42 ₽');
+	await expect(rows.nth(1)).toContainText('1 276');
+	await expect(rows.nth(1)).toContainText('12,06 ₽');
+	await expect(
+		comparison.getByText('Расход проверен в тестовом кошельке.', { exact: false })
+	).toBeVisible();
+	await expect(
+		comparison.getByText('в пределах бесплатной квоты деньги с кошелька не списываются.', {
+			exact: false
+		})
+	).toBeVisible();
+	await expect(
+		comparison.getByText('Более высокая цена сама по себе не гарантирует', { exact: false })
+	).toBeVisible();
+	await comparison.locator('summary').click();
+	await expect(comparison.getByRole('heading', { name: 'Запрос', exact: true })).toBeVisible();
+	await expect(comparison.locator('pre')).toHaveCount(2);
+	await expect(comparison.locator('pre').nth(0)).toContainText('510 минут');
+	await expect(comparison.locator('pre').nth(1)).toContainText(
+		'Это изменение требует вашего согласия.'
+	);
+	for (const width of [320, 390, 768, 1440]) {
+		await page.setViewportSize({ width, height: 900 });
+		expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+			true
+		);
+	}
+	await expect(page.getByText(/Условия пополнения загружены \d+ .+ \d{4} г\./)).toBeVisible();
+});
+
+for (const invalid of ['unavailable', 'empty', 'invalid'] as const) {
+	test(`pricing ${invalid} never displays a fresh date or misleading amounts`, async ({ page }) => {
+		await page.route('**/api/v1/billing/public/pricing-config', (route) =>
+			invalid === 'unavailable'
+				? route.abort()
+				: route.fulfill({
+						json: { topup_amounts_rub: invalid === 'empty' ? [] : [-1, null, '500'] }
+					})
+		);
+		await page.goto('/guide');
+		await expect(
+			page.getByText('Доступные суммы пополнения можно проверить в кошельке.')
+		).toBeVisible();
+		await expect(page.getByText('Условия пополнения загружены', { exact: false })).toHaveCount(0);
+		await expect(page.getByText('Действующие суммы пополнения:', { exact: false })).toHaveCount(0);
+		await expect(
+			page.getByText('Лимиты обновляются каждые 30 дней.', { exact: false })
+		).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Кошелёк →', exact: true })).toHaveAttribute(
+			'href',
+			'/billing/balance'
+		);
+		await expect(page.locator('#model-comparison')).toContainText('3 октября 2026 года');
+	});
+}
+
+test('pricing success remains readable when free conditions fail', async ({ page }) => {
+	await page.route('**/api/v1/billing/public/lead-magnet', (route) => route.abort());
+	await page.goto('/guide');
+	await expect(
+		page.getByText('Не удалось загрузить условия бесплатного доступа.', { exact: false })
+	).toBeVisible();
+	await expect(page.getByText('Условия пополнения загружены', { exact: false })).toBeVisible();
+	for (const name of exampleNames) {
+		const link = page.getByRole('link', { name: `Открыть задачу: ${name}` });
+		const query = new URL((await link.getAttribute('href')) ?? '', 'http://localhost').searchParams;
+		expect(query.get('model')).toBe('gpt-5.6-luna');
+		expect(query.get('submit')).toBe('false');
+	}
+});
