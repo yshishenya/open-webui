@@ -2,7 +2,7 @@
   "spec_id": "airis-measured-paid-guide-example-2026-10-03-544",
   "title": "Airis measured paid guide example",
   "generated": "2026-10-03T02:44:43.621445Z",
-  "last_updated": "2026-10-03T03:07:25.987770Z",
+  "last_updated": "2026-10-03T03:48:03.202188Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -10,28 +10,30 @@
     "estimated_hours": 24,
     "security_sensitive": false,
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__feature__measured-paid-guide-example.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-03T02:46:14.777928Z",
-    "progress_percentage": 50,
-    "current_phase": "phase-1"
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-03T03:48:03.201915Z",
+    "actual_hours": 0.034
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Airis measured paid guide example",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1"
       ],
       "total_tasks": 4,
-      "completed_tasks": 2,
+      "completed_tasks": 4,
       "metadata": {}
     },
     "phase-1": {
       "type": "phase",
       "title": "Measure a fair comparison, publish guide, verify release",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-1-1",
@@ -40,8 +42,12 @@
         "task-1-4"
       ],
       "total_tasks": 4,
-      "completed_tasks": 2,
-      "metadata": {}
+      "completed_tasks": 4,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T03:48:02.715369Z",
+        "journaled_at": "2026-10-03T03:48:02.717815Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -76,22 +82,30 @@
     "task-1-3": {
       "type": "task",
       "title": "Update guide with verified example and current price dates",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T03:31:26.608530Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-03T03:31:26.610052Z"
+      }
     },
     "task-1-4": {
       "type": "task",
       "title": "Validate exact source, release and accept ordinary-user guide",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T03:48:02.715208Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-03T03:48:02.716624Z"
+      }
     }
   },
   "journal": [
@@ -121,6 +135,33 @@
       "content": "Task task-1-2 marked as completed.",
       "metadata": {},
       "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-03T03:31:26.610046Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Update guide with verified example and current price dates",
+      "author": "claude-code",
+      "content": "Task task-1-3 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-3"
+    },
+    {
+      "timestamp": "2026-10-03T03:48:02.716616Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Validate exact source, release and accept ordinary-user guide",
+      "author": "claude-code",
+      "content": "Task task-1-4 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-4"
+    },
+    {
+      "timestamp": "2026-10-03T03:48:02.717810Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Measure a fair comparison, publish guide, verify release",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
     }
   ]
 }

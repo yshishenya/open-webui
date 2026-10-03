@@ -1,0 +1,7 @@
+- [x] **[DOCS][GUIDE]** Record measured guide production acceptance
+  - Spec: meta/memory_bank/specs/work_items/2026-10-03__feature__measured-paid-guide-example.md
+  - Owner: Codex
+  - Done: 2026-10-03
+  - Summary: Close the four SDD tasks and record exact source, image, CI, bounded provider comparison and production acceptance. General onboarding goal remains active.
+  - Tests: SDD check-complete; documentation links and diff check; application tests and live acceptance retained from PR195.
+  - Risks: Documentation only; no application, settings or database changes.
