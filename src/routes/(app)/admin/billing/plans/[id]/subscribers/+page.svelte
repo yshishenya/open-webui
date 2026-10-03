@@ -1,316 +1,157 @@
 <script lang="ts">
-	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
-	import { onMount, getContext } from 'svelte';
-	import { page } from '$app/stores';
-	import { toast } from 'svelte-sonner';
+	import { onMount, onDestroy, getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18nType } from 'i18next';
+	import { page as route } from '$app/stores';
 	import { goto } from '$app/navigation';
-
 	import { WEBUI_NAME, user } from '$lib/stores';
-	import { getPlan, getPlanSubscribers } from '$lib/apis/admin/billing';
-	import type { Plan, PlanSubscriber } from '$lib/apis/admin/billing';
 	import {
-		formatCompactNumber,
-		getUsagePercentage,
-		getUsageColor,
-		getStatusColor
-	} from '$lib/utils/billing-formatters';
-
-	import Spinner from '$lib/components/common/Spinner.svelte';
-	import ChevronLeft from '$lib/components/icons/ChevronLeft.svelte';
-	import ChevronRight from '$lib/components/icons/ChevronRight.svelte';
-
-	const i18n = getContext('i18n');
-
-	let loaded = false;
+		getPlan,
+		getPlanSubscribers,
+		type Plan,
+		type PlanSubscriber
+	} from '$lib/apis/admin/billing';
+	import ReportingPagination from '$lib/components/admin/billing/ReportingPagination.svelte';
+	import {
+		formatReportTime,
+		moneyPage,
+		moneyFilters,
+		customerHref
+	} from '$lib/utils/airis/billing_reporting_ui';
+	const i18n = getContext<Readable<I18nType>>('i18n');
 	let plan: Plan | null = null;
-	let subscribers: PlanSubscriber[] = [];
-	let currentPage = 1;
+	let rows: PlanSubscriber[] = [];
+	let page = moneyPage($route.url.searchParams.get('page'));
+	let total = 0;
 	let totalPages = 1;
-	let totalSubscribers = 0;
-	let pageSize = 20;
-
-	$: planId = $page.params.id;
-
+	let loading = false;
+	let error = '';
+	let request = 0;
+	onDestroy(() => {
+		request++;
+		mounted = false;
+	});
+	let planId = String($route.params.id);
+	let mounted = false;
+	const load = async (): Promise<void> => {
+		const id = ++request;
+		const selectedPlan = planId;
+		loading = true;
+		error = '';
+		rows = [];
+		try {
+			const [nextPlan, result] = await Promise.all([
+				getPlan(localStorage.token, selectedPlan),
+				getPlanSubscribers(localStorage.token, selectedPlan, page, 20)
+			]);
+			if (id !== request || selectedPlan !== String($route.params.id)) return;
+			plan = nextPlan;
+			rows = result.items;
+			total = result.total;
+			totalPages = Math.max(1, result.total_pages);
+			await goto(`?page=${page}`, { replaceState: true, noScroll: true, keepFocus: true });
+		} catch {
+			if (id === request) error = 'Failed to load subscribers';
+		} finally {
+			if (id === request) loading = false;
+		}
+	};
+	const state = (value: string): string =>
+		(
+			({
+				active: 'Active',
+				canceled: 'Canceled',
+				trialing: 'Trial',
+				past_due: 'Past Due',
+				incomplete: 'Incomplete',
+				incomplete_expired: 'Expired'
+			}) as Record<string, string>
+		)[value] || value;
+	const quota = (used: number, limit: number | null | undefined): string =>
+		`${used.toLocaleString($i18n.language)} / ${limit === null || limit === undefined ? $i18n.t('Unlimited') : limit.toLocaleString($i18n.language)}`;
 	onMount(async () => {
 		if ($user?.role !== 'admin') {
 			await goto('/');
 			return;
 		}
-		await loadPlan();
-		await loadSubscribers();
-		loaded = true;
+		mounted = true;
+		await load();
 	});
-
-	const loadPlan = async () => {
-		try {
-			plan = await getPlan(localStorage.token, planId);
-		} catch (error) {
-			console.error('Failed to load plan:', error);
-			toast.error($i18n.t('Failed to load plan'));
-		}
-	};
-
-	const loadSubscribers = async () => {
-		try {
-			const result = await getPlanSubscribers(localStorage.token, planId, currentPage, pageSize);
-			if (result) {
-				subscribers = result.items;
-				totalPages = result.total_pages;
-				totalSubscribers = result.total;
-			}
-		} catch (error) {
-			console.error('Failed to load subscribers:', error);
-			toast.error($i18n.t('Failed to load subscribers'));
-		}
-	};
-
-	const goToPage = async (newPage: number) => {
-		if (newPage < 1 || newPage > totalPages) return;
-		currentPage = newPage;
-		await loadSubscribers();
-	};
-
-	const formatDate = (timestamp: number, locale: string = getI18nLocale($i18n)): string => {
-		return new Date(timestamp * 1000).toLocaleDateString(locale, {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		});
-	};
+	$: if (mounted && String($route.params.id) !== planId) {
+		planId = String($route.params.id);
+		plan = null;
+		page = moneyPage($route.url.searchParams.get('page'));
+		void load();
+	}
 </script>
 
-<svelte:head>
-	<title>
-		{plan?.name || $i18n.t('Plan')} - {$i18n.t('Subscribers')} • {$WEBUI_NAME}
-	</title>
-</svelte:head>
-
-{#if !loaded}
-	<div class="w-full h-full flex justify-center items-center">
-		<Spinner className="size-5" />
-	</div>
-{:else}
-	<div class="px-4.5 w-full max-w-6xl mx-auto">
-		<!-- Header -->
-		<div class="flex flex-col gap-1 px-1 mt-2.5 mb-4">
-			<div class="flex items-center gap-2 mb-2">
-				<button
-					class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-					on:click={() => goto('/admin/billing/plans')}
-				>
-					<ChevronLeft className="size-4" />
-				</button>
-				<div>
-					<div class="text-xl font-medium">
-						{plan?.name_ru || plan?.name || $i18n.t('Plan Subscribers')}
-					</div>
-					<div class="text-sm text-gray-500">
-						{totalSubscribers}
-						{$i18n.t('subscribers')}
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Subscribers Table -->
-		<div
-			class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 overflow-hidden"
-		>
-			{#if subscribers.length === 0}
-				<div class="w-full h-full flex flex-col justify-center items-center my-16">
-					<div class="max-w-md text-center">
-						<div class="text-3xl mb-3">👥</div>
-						<div class="text-lg font-medium mb-1">{$i18n.t('No subscribers')}</div>
-						<div class="text-gray-500 text-center text-xs">
-							{$i18n.t('This plan has no active subscribers yet.')}
-						</div>
-					</div>
-				</div>
-			{:else}
-				<div class="overflow-x-auto">
-					<table class="w-full text-sm">
-						<thead
-							class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
+<svelte:head><title>{$i18n.t('Subscription customers')} • {$WEBUI_NAME}</title></svelte:head>
+<div class="mx-auto w-full min-w-0 max-w-6xl px-4 py-5">
+	<a href="/admin/billing/plans" class="text-sm underline">← {$i18n.t('Subscriptions')}</a>
+	<h1 class="mt-4 break-words text-xl font-semibold">
+		{plan?.name_ru || plan?.name || $i18n.t('Subscription customers')}
+	</h1>
+	<p class="my-3 text-sm text-gray-500">{total} {$i18n.t('subscriptions across all statuses')}</p>
+	{#if error}<p role="alert" class="mb-4 text-red-700">
+			{$i18n.t(error)}
+			<button type="button" on:click={load} class="underline">{$i18n.t('Retry')}</button>
+		</p>{/if}{#if loading}<p role="status" class="mb-3">{$i18n.t('Loading')}</p>{/if}
+	<div class="space-y-3">
+		{#each rows as row}<article class="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+				<div class="flex flex-wrap justify-between gap-3">
+					<div class="min-w-0">
+						<a
+							class="break-words font-medium underline"
+							href={customerHref(
+								row.user_id,
+								{ ...moneyFilters($route.url), currency: plan?.currency || 'RUB' },
+								`/admin/billing/plans/${encodeURIComponent(planId)}/subscribers?page=${page}`
+							)}>{row.name || row.email}</a
 						>
-							<tr>
-								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300"
-									>{$i18n.t('User')}</th
-								>
-								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300"
-									>{$i18n.t('Status')}</th
-								>
-								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300"
-									>{$i18n.t('Tokens Input')}</th
-								>
-								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300"
-									>{$i18n.t('Tokens Output')}</th
-								>
-								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300"
-									>{$i18n.t('Requests')}</th
-								>
-								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300"
-									>{$i18n.t('Subscribed')}</th
-								>
-								<th class="text-left px-4 py-3 font-medium text-gray-700 dark:text-gray-300"
-									>{$i18n.t('Period Ends')}</th
-								>
-							</tr>
-						</thead>
-						<tbody>
-							{#each subscribers as subscriber (subscriber.user_id)}
-								<tr
-									class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition"
-								>
-									<td class="px-4 py-3">
-										<div class="flex items-center gap-2">
-											<img
-												src={subscriber.profile_image_url || '/user.png'}
-												alt={subscriber.name}
-												class="size-8 rounded-full object-cover"
-											/>
-											<div>
-												<div class="font-medium">{subscriber.name}</div>
-												<div class="text-xs text-gray-500">{subscriber.email}</div>
-											</div>
-										</div>
-									</td>
-									<td class="px-4 py-3">
-										<span
-											class="px-2 py-0.5 rounded text-xs font-medium {getStatusColor(
-												subscriber.subscription_status
-											)}"
-										>
-											{subscriber.subscription_status}
-										</span>
-									</td>
-									<td class="px-4 py-3">
-										{#if subscriber.tokens_input_limit}
-											{@const pct = getUsagePercentage(
-												subscriber.tokens_input_used,
-												subscriber.tokens_input_limit
-											)}
-											<div class="space-y-1">
-												<div class="flex justify-between text-xs">
-													<span>{formatCompactNumber(subscriber.tokens_input_used)}</span>
-													<span class="text-gray-500"
-														>/ {formatCompactNumber(subscriber.tokens_input_limit)}</span
-													>
-												</div>
-												<div
-													class="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
-												>
-													<div
-														class="h-full {getUsageColor(pct)} transition-all"
-														style="width: {pct}%"
-													></div>
-												</div>
-											</div>
-										{:else}
-											<span class="text-gray-400"
-												>{formatCompactNumber(subscriber.tokens_input_used)}</span
-											>
-										{/if}
-									</td>
-									<td class="px-4 py-3">
-										{#if subscriber.tokens_output_limit}
-											{@const pct = getUsagePercentage(
-												subscriber.tokens_output_used,
-												subscriber.tokens_output_limit
-											)}
-											<div class="space-y-1">
-												<div class="flex justify-between text-xs">
-													<span>{formatCompactNumber(subscriber.tokens_output_used)}</span>
-													<span class="text-gray-500"
-														>/ {formatCompactNumber(subscriber.tokens_output_limit)}</span
-													>
-												</div>
-												<div
-													class="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
-												>
-													<div
-														class="h-full {getUsageColor(pct)} transition-all"
-														style="width: {pct}%"
-													></div>
-												</div>
-											</div>
-										{:else}
-											<span class="text-gray-400"
-												>{formatCompactNumber(subscriber.tokens_output_used)}</span
-											>
-										{/if}
-									</td>
-									<td class="px-4 py-3">
-										{#if subscriber.requests_limit}
-											{@const pct = getUsagePercentage(
-												subscriber.requests_used,
-												subscriber.requests_limit
-											)}
-											<div class="space-y-1">
-												<div class="flex justify-between text-xs">
-													<span>{subscriber.requests_used}</span>
-													<span class="text-gray-500">/ {subscriber.requests_limit}</span>
-												</div>
-												<div
-													class="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
-												>
-													<div
-														class="h-full {getUsageColor(pct)} transition-all"
-														style="width: {pct}%"
-													></div>
-												</div>
-											</div>
-										{:else}
-											<span class="text-gray-400">{subscriber.requests_used}</span>
-										{/if}
-									</td>
-									<td class="px-4 py-3 text-gray-600 dark:text-gray-400">
-										{formatDate(subscriber.subscribed_at, getI18nLocale($i18n))}
-									</td>
-									<td class="px-4 py-3 text-gray-600 dark:text-gray-400">
-										{formatDate(subscriber.current_period_end, getI18nLocale($i18n))}
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
-
-				<!-- Pagination -->
-				{#if totalPages > 1}
-					<div
-						class="flex justify-between items-center px-4 py-3 border-t border-gray-200 dark:border-gray-700"
-					>
-						<div class="text-sm text-gray-500">
-							{$i18n.t('Page')}
-							{currentPage}
-							{$i18n.t('of')}
-							{totalPages}
-						</div>
-						<div class="flex gap-2">
-							<button
-								class="px-3 py-1.5 rounded-lg text-sm font-medium transition
-									{currentPage === 1
-									? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-									: 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}"
-								disabled={currentPage === 1}
-								on:click={() => goToPage(currentPage - 1)}
-							>
-								<ChevronLeft className="size-4" />
-							</button>
-							<button
-								class="px-3 py-1.5 rounded-lg text-sm font-medium transition
-									{currentPage === totalPages
-									? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-									: 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}"
-								disabled={currentPage === totalPages}
-								on:click={() => goToPage(currentPage + 1)}
-							>
-								<ChevronRight className="size-4" />
-							</button>
-						</div>
+						<p class="mt-1 break-all text-xs text-gray-500">{row.email}</p>
 					</div>
-				{/if}
-			{/if}
-		</div>
+					<span class="text-sm">{$i18n.t(state(row.subscription_status))}</span>
+				</div>
+				<dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+					<div>
+						<dt class="text-gray-500">{$i18n.t('Current subscription period')}</dt>
+						<dd>
+							{formatReportTime(row.current_period_start, $i18n.language)} — {formatReportTime(
+								row.current_period_end,
+								$i18n.language
+							)} UTC
+						</dd>
+					</div>
+					<div>
+						<dt class="text-gray-500">{$i18n.t('Subscribed')}</dt>
+						<dd>{formatReportTime(row.subscribed_at, $i18n.language)} UTC</dd>
+					</div>
+				</dl>
+				<details class="mt-3 text-sm">
+					<summary class="cursor-pointer">{$i18n.t('Usage Quotas')}</summary>
+					<dl class="mt-2 space-y-2">
+						<div>
+							{$i18n.t('Input Tokens')}: {quota(row.tokens_input_used, row.tokens_input_limit)}
+						</div>
+						<div>
+							{$i18n.t('Output Tokens')}: {quota(row.tokens_output_used, row.tokens_output_limit)}
+						</div>
+						<div>{$i18n.t('Requests')}: {quota(row.requests_used, row.requests_limit)}</div>
+					</dl>
+				</details>
+			</article>{:else}{#if !loading && !error}<p>{$i18n.t('No subscribers')}</p>{/if}{/each}
 	</div>
-{/if}
+	<ReportingPagination
+		{page}
+		{total}
+		{totalPages}
+		{loading}
+		onPage={(next) => {
+			page = next;
+			void load();
+		}}
+	/>
+	<p class="mt-4 text-xs text-gray-500">
+		{$i18n.t('The period end is not a confirmed future payment date.')}
+	</p>
+</div>

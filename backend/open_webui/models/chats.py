@@ -1447,14 +1447,25 @@ class ChatTable:
 
         async with get_async_db_context(db) as session:
             chat_ids = (
-                select(ChatMessage.chat_id).filter(ChatMessage.model_id == model_id).group_by(ChatMessage.chat_id)
+                select(ChatMessage.chat_id)
+                .filter(ChatMessage.model_id == model_id, ChatMessage.role == 'assistant')
+                .group_by(ChatMessage.chat_id)
             )
 
             if filter:
-                if filter.get('start_date'):
+                if filter.get('start_date') is not None:
                     chat_ids = chat_ids.filter(ChatMessage.created_at >= filter.get('start_date'))
-                if filter.get('end_date'):
-                    chat_ids = chat_ids.filter(ChatMessage.created_at <= filter.get('end_date'))
+                if filter.get('end_date') is not None:
+                    chat_ids = chat_ids.filter(ChatMessage.created_at < filter.get('end_date'))
+
+            if filter and filter.get('group_id'):
+                from open_webui.models.groups import GroupMember
+
+                chat_ids = chat_ids.where(
+                    ChatMessage.user_id.in_(
+                        select(GroupMember.user_id).where(GroupMember.group_id == filter['group_id'])
+                    )
+                )
 
             chat_ids = chat_ids.subquery()
 

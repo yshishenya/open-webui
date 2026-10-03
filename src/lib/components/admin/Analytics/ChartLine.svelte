@@ -1,5 +1,10 @@
 <script lang="ts">
-	import dayjs from 'dayjs';
+	// The API supplies UTC calendar buckets, so format their literal date without local conversion.
+	const dateLabel = (value: string, year = false): string => {
+		const [date, time] = value.split(/[ T]/);
+		const [yyyy, mm, dd] = date.split('-');
+		return `${dd}.${mm}${year ? `.${yyyy}` : ''}${time ? ` ${time.slice(0, 5)}` : ''}`;
+	};
 
 	interface Props {
 		data: { date: string; models: Record<string, number> }[];
@@ -46,6 +51,8 @@
 
 <div class="relative w-full" style="height:{height}px">
 	<svg
+		role="img"
+		aria-label="Сохранённые ответы по моделям; значения доступны в таблице графика"
 		viewBox="0 0 {w} {height - 20}"
 		class="absolute inset-x-0 top-0 h-[calc(100%-20px)] w-full"
 		preserveAspectRatio="none"
@@ -82,18 +89,12 @@
 	{#if data.length > 1}
 		{@const labelCount = Math.min(7, data.length)}
 		{@const step = labelCount > 1 ? Math.floor((data.length - 1) / (labelCount - 1)) || 1 : 1}
-		{@const isHourly = data[0]?.date?.includes(':')}
-		{@const dateFormat = isHourly
-			? 'h A'
-			: period === 'year' || period === 'all'
-				? 'M/D/YY'
-				: 'M/D'}
 		<div class="absolute inset-x-0 bottom-0 flex justify-between px-0.5 text-[10px] text-gray-400">
-			{#each Array(labelCount) as _, i}
+			{#each [...Array(labelCount).keys()] as i}
 				{@const idx = i === labelCount - 1 ? data.length - 1 : Math.min(i * step, data.length - 1)}
 				{#if data[idx]}
 					<span class={i === 0 ? 'text-left' : i === labelCount - 1 ? 'text-right' : 'text-center'}
-						>{dayjs(data[idx].date).format(dateFormat)}</span
+						>{dateLabel(data[idx].date, period === 'year' || period === 'all')}</span
 					>
 				{/if}
 			{/each}
@@ -109,11 +110,7 @@
 				class="min-w-[140px] -translate-x-1/2 rounded border border-gray-100 bg-white px-2.5 py-1.5 shadow-sm dark:border-gray-800 dark:bg-gray-900"
 			>
 				<div class="mb-1.5 text-[10px] text-gray-400">
-					{#if hovered.date?.includes(':')}
-						{dayjs(hovered.date).format('MMM D, h A')}
-					{:else}
-						{dayjs(hovered.date).format('MMM D, YYYY')}
-					{/if}
+					{dateLabel(hovered.date, true)} · UTC
 				</div>
 				{#each Object.entries(hovered.models || {})
 					.sort(([, a], [, b]) => b - a)

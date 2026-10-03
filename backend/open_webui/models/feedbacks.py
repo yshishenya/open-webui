@@ -388,15 +388,26 @@ class FeedbackTable:
         model_id: str,
         start_date: Optional[int] = None,
         db: Optional[AsyncSession] = None,
+        end_date: int | None = None,
+        group_id: str | None = None,
     ) -> list[ModelHistoryCounts]:
         """Get aggregated feedback counts per day for a model, preserving all matching days."""
+        import datetime as dt
         from collections import defaultdict
-        from datetime import datetime
 
         async with get_async_db_context(db) as db:
             stmt = select(Feedback.created_at, Feedback.data).filter(Feedback.data['model_id'].as_string() == model_id)
             if start_date is not None:
                 stmt = stmt.filter(Feedback.created_at >= start_date)
+
+            if end_date is not None:
+                stmt = stmt.where(Feedback.created_at < end_date)
+            if group_id:
+                from open_webui.models.groups import GroupMember
+
+                stmt = stmt.where(
+                    Feedback.user_id.in_(select(GroupMember.user_id).where(GroupMember.group_id == group_id))
+                )
 
             result = await db.execute(stmt.order_by(Feedback.created_at.asc()))
             rows = result.all()
@@ -411,7 +422,7 @@ class FeedbackTable:
             if rating_str not in ('1', '-1'):
                 continue
 
-            date_str = datetime.fromtimestamp(created_at).strftime('%Y-%m-%d')
+            date_str = dt.datetime.fromtimestamp(created_at, dt.UTC).strftime('%Y-%m-%d')
             if rating_str == '1':
                 daily_counts[date_str]['won'] += 1
             else:
@@ -421,7 +432,6 @@ class FeedbackTable:
             ModelHistoryCounts(date=date_str, won=counts['won'], lost=counts['lost'])
             for date_str, counts in sorted(daily_counts.items())
         ]
-
     async def get_feedbacks_by_type(self, type: str, db: Optional[AsyncSession] = None) -> list[FeedbackModel]:
         async with get_async_db_context(db) as db:
             result = await db.execute(select(Feedback).filter_by(type=type).order_by(Feedback.updated_at.desc()))

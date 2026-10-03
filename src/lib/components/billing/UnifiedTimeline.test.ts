@@ -24,14 +24,19 @@ type MockStores = {
 	pageStore: MockStore<PageStoreValue>;
 	modelsStore: MockStore<Model[]>;
 	getLedgerMock: ReturnType<typeof vi.fn>;
+	getBillingRefundsMock: ReturnType<typeof vi.fn>;
 	getUsageEventsMock: ReturnType<typeof vi.fn>;
 	i18nStore: MockStore<I18nValue>;
 };
 
 type RenderProps = Partial<{
 	showFilters: boolean;
+	showLoadMore: boolean;
+	pageSize: number;
+	periodFrom: number;
+	periodTo: number;
 	syncFilterWithUrl: boolean;
-	onFilterChange: (filter: 'all' | 'paid' | 'free' | 'topups') => void;
+	onFilterChange: (filter: 'all' | 'paid' | 'free' | 'topups' | 'refunds') => void;
 }>;
 
 const mocks: MockStores = vi.hoisted(() => {
@@ -54,13 +59,22 @@ const mocks: MockStores = vi.hoisted(() => {
 		url: new URL('http://localhost/billing/history')
 	});
 	const modelsStore = createStore<Model[]>([]);
+	const getBillingRefundsMock = vi.fn().mockResolvedValue({ items: [], total: 0 });
 	const getLedgerMock = vi.fn().mockResolvedValue([]);
 	const getUsageEventsMock = vi.fn().mockResolvedValue([]);
 	const i18nStore = createStore<I18nValue>({
 		language: 'en-US',
 		t: (key: string) => key
 	});
-	return { gotoMock, pageStore, modelsStore, getLedgerMock, getUsageEventsMock, i18nStore };
+	return {
+		gotoMock,
+		pageStore,
+		modelsStore,
+		getLedgerMock,
+		getUsageEventsMock,
+		getBillingRefundsMock,
+		i18nStore
+	};
 });
 
 vi.mock('$app/navigation', () => ({ goto: mocks.gotoMock }));
@@ -68,7 +82,8 @@ vi.mock('$app/stores', () => ({ page: mocks.pageStore }));
 vi.mock('$lib/stores', () => ({ models: mocks.modelsStore }));
 vi.mock('$lib/apis/billing', () => ({
 	getLedger: mocks.getLedgerMock,
-	getUsageEvents: mocks.getUsageEventsMock
+	getUsageEvents: mocks.getUsageEventsMock,
+	getBillingRefunds: mocks.getBillingRefundsMock
 }));
 
 const flushPromises = async (): Promise<void> => {
@@ -86,6 +101,7 @@ describe('UnifiedTimeline', () => {
 		mocks.i18nStore.set({ language: 'en-US', t: (key: string) => key });
 		mocks.gotoMock.mockReset();
 		mocks.getLedgerMock.mockReset().mockResolvedValue([]);
+		mocks.getBillingRefundsMock.mockReset().mockResolvedValue({ items: [], total: 0 });
 		mocks.getUsageEventsMock.mockReset().mockResolvedValue([]);
 		mocks.pageStore.set({ url: new URL('http://localhost/billing/history') });
 		localStorage.token = 'test-token';
@@ -155,6 +171,7 @@ describe('UnifiedTimeline', () => {
 		const root = renderTimeline();
 		await flushPromises();
 		const options: Intl.DateTimeFormatOptions = {
+			timeZone: 'UTC',
 			weekday: 'long',
 			day: 'numeric',
 			month: 'long',
@@ -200,7 +217,7 @@ describe('UnifiedTimeline', () => {
 		await flushPromises();
 
 		const paidButton = Array.from(root.querySelectorAll('button')).find((button) =>
-			button.textContent?.includes('Charges')
+			button.textContent?.includes('Usage')
 		);
 		expect(paidButton).toBeTruthy();
 
@@ -250,7 +267,7 @@ describe('UnifiedTimeline', () => {
 		expect(initialCards).toHaveLength(2);
 
 		const paidButton = Array.from(root.querySelectorAll('button')).find((button) =>
-			button.textContent?.includes('Charges')
+			button.textContent?.includes('Usage')
 		);
 		expect(paidButton).toBeTruthy();
 
@@ -322,7 +339,7 @@ describe('UnifiedTimeline', () => {
 		await flushPromises();
 
 		const paidButton = Array.from(root.querySelectorAll('button')).find((button) =>
-			button.textContent?.includes('Charges')
+			button.textContent?.includes('Usage')
 		);
 		const freeButton = Array.from(root.querySelectorAll('button')).find((button) =>
 			button.textContent?.includes('Free usage')
@@ -346,5 +363,138 @@ describe('UnifiedTimeline', () => {
 		await flushPromises();
 		expect(freeButton?.className).toContain('bg-black');
 		expect(paidButton?.className).not.toContain('bg-black');
+	});
+	it('loads the full bounded period even when the first filtered page is empty', async () => {
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/history?filter=topups') });
+		const entry = (id: string, type: string, created_at: number): LedgerEntry => ({
+			id,
+			type,
+			created_at,
+			user_id: 'u',
+			wallet_id: 'w',
+			currency: 'RUB',
+			amount_kopeks: 50000,
+			balance_included_after: 0,
+			balance_topup_after: 50000
+		});
+		mocks.getLedgerMock
+			.mockResolvedValueOnce([entry('usage-1', 'hold', 400), entry('usage-2', 'release', 300)])
+			.mockResolvedValueOnce([entry('actual-topup', 'topup', 200), entry('older', 'topup', 50)]);
+		const root = renderTimeline({ pageSize: 2, periodFrom: 100, periodTo: 500 });
+		await flushPromises();
+		await flushPromises();
+		expect(mocks.getLedgerMock).toHaveBeenCalledTimes(2);
+		expect(root.querySelectorAll('[data-testid="timeline-item"]')).toHaveLength(1);
+		expect(root.textContent).toContain('Top-up');
+	});
+	it('asks to open full history when the preview contains only hidden technical records', async () => {
+		mocks.getLedgerMock.mockResolvedValue([
+			{ id: 'hold', type: 'hold', created_at: 400 },
+			{ id: 'release', type: 'release', created_at: 300 }
+		]);
+		const root = renderTimeline({ pageSize: 2, showLoadMore: false });
+		await flushPromises();
+		expect(root.textContent).toContain('Open the full history to see older operations.');
+		expect(root.textContent).not.toContain('Load older operations to continue.');
+		expect(
+			[...root.querySelectorAll('button')].some((button) =>
+				button.textContent?.includes('Load more')
+			)
+		).toBe(false);
+	});
+	it('shows the final estimated charge once and retains a confirmed provider refund', async () => {
+		mocks.getLedgerMock.mockResolvedValue([
+			{
+				id: 'delta',
+				type: 'adjustment',
+				amount_kopeks: -200,
+				metadata_json: { reason: 'hold_overage' },
+				currency: 'RUB',
+				created_at: 200
+			}
+		]);
+		mocks.getUsageEventsMock.mockResolvedValue([
+			{
+				id: 'usage',
+				request_id: 'request',
+				model_id: 'model',
+				modality: 'text',
+				billing_source: 'wallet',
+				cost_charged_kopeks: 1000,
+				is_estimated: true,
+				created_at: 200
+			}
+		]);
+		mocks.getBillingRefundsMock.mockResolvedValue({
+			items: [
+				{
+					id: 'refund',
+					payment_id: 'payment',
+					amount_kopeks: 5000,
+					currency: 'RUB',
+					occurred_at: 210,
+					wallet_reflection: 'requires_verification'
+				}
+			],
+			total: 1
+		});
+		const root = renderTimeline();
+		await flushPromises();
+		expect(root.querySelectorAll('[data-testid="timeline-item"]')).toHaveLength(2);
+		expect(root.textContent).toContain('Charged using an estimate');
+		expect(root.textContent).not.toContain('Not charged');
+		expect(root.textContent).toContain('Payment refund');
+		expect(root.textContent).toContain(
+			'Refund confirmation and its reflection in the wallet are checked separately'
+		);
+	});
+	it('preserves a partial-load error when another source has valid operations', async () => {
+		mocks.getLedgerMock.mockRejectedValue(new Error('offline'));
+		mocks.getBillingRefundsMock.mockResolvedValue({
+			items: [
+				{
+					id: 'refund',
+					payment_id: 'payment',
+					amount_kopeks: 5000,
+					currency: 'RUB',
+					occurred_at: 210
+				}
+			],
+			total: 1
+		});
+		const root = renderTimeline();
+		await flushPromises();
+		expect(root.querySelector('[role="alert"]')?.textContent).toContain(
+			'Some operations could not be loaded'
+		);
+		expect(root.textContent).toContain('Payment refund');
+	});
+	it('deduplicates a shifted offset page while retaining the raw offset', async () => {
+		const entry = (id: string, created_at: number) => ({
+			id,
+			type: 'topup',
+			created_at,
+			user_id: 'u',
+			wallet_id: 'w',
+			currency: 'RUB',
+			amount_kopeks: 1000,
+			balance_included_after: 0,
+			balance_topup_after: 1000
+		});
+		mocks.getLedgerMock
+			.mockResolvedValueOnce([entry('a', 400), entry('b', 300)])
+			.mockResolvedValueOnce([entry('b', 300), entry('c', 200)])
+			.mockResolvedValueOnce([entry('d', 50)]);
+		const root = renderTimeline({ pageSize: 2, periodFrom: 100, periodTo: 500 });
+		await flushPromises();
+		await flushPromises();
+		expect(root.querySelectorAll('[data-testid="timeline-item"]')).toHaveLength(2);
+		const more = [...root.querySelectorAll('button')].find((button) =>
+			button.textContent?.includes('Load more')
+		);
+		more?.click();
+		await flushPromises();
+		expect(root.querySelectorAll('[data-testid="timeline-item"]')).toHaveLength(3);
+		expect(mocks.getLedgerMock.mock.calls.map((call) => call[2])).toEqual([0, 2, 4]);
 	});
 });

@@ -61,7 +61,14 @@
 	const handleHeroSecondary = (event: MouseEvent): void => {
 		event.preventDefault();
 		trackEvent('pricing_hero_secondary_click');
-		document.getElementById('rates')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		document
+			.getElementById('rates')
+			?.scrollIntoView({
+				behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+					? 'auto'
+					: 'smooth',
+				block: 'start'
+			});
 	};
 
 	const handleFinalCta = (event: MouseEvent): void => {
@@ -97,7 +104,10 @@
 
 	const scrollToCalculation = (): void => {
 		const target = document.getElementById('calculation');
-		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		target?.scrollIntoView({
+			behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+			block: 'start'
+		});
 	};
 
 	const buildFreeLimits = (
@@ -160,8 +170,8 @@
 
 	$: freeLimitItems = freeLimits
 		? [
-				{ label: 'Текст (ваши сообщения)', value: freeLimits.text_in, suffix: '' },
-				{ label: 'Текст (ответы)', value: freeLimits.text_out, suffix: '' },
+				{ label: 'Текст (ваши сообщения)', value: freeLimits.text_in, suffix: ' токенов' },
+				{ label: 'Текст (ответы)', value: freeLimits.text_out, suffix: ' токенов' },
 				{ label: 'Изображения', value: freeLimits.images, suffix: '' },
 				{ label: 'Озвучка текста', value: freeLimits.tts_minutes, suffix: ' мин' },
 				{ label: 'Распознавание речи', value: freeLimits.stt_minutes, suffix: ' мин' }
@@ -250,8 +260,8 @@
 						Оплата по использованию — без подписки
 					</h1>
 					<p class="text-lg md:text-xl text-gray-600 max-w-xl leading-relaxed">
-						Пополняете баланс и платите только за фактическое использование доступных моделей. Без
-						обязательной подписки и фиксированного ежемесячного платежа.
+						Пополняете баланс и платите за использование доступных моделей. Без обязательной
+						подписки и фиксированного ежемесячного платежа.
 					</p>
 					<div class="flex flex-wrap gap-3">
 						<a
@@ -358,9 +368,13 @@
 				</div>
 			{:else}
 				<p class="mt-6 text-sm text-gray-500">
-					Лимиты будут отображаться после настройки квот администратора.
+					Бесплатные функции сейчас недоступны. Актуальные возможности показаны в каталоге моделей.
 				</p>
 			{/if}
+			<p class="mt-4 text-xs text-gray-600">
+				Бесплатные лимиты действуют только на отмеченных моделях. Остаток и доступные бесплатные
+				модели можно проверить на странице баланса.
+			</p>
 			<div class="mt-6">
 				<a
 					href={$user ? '/' : '/signup'}
@@ -403,7 +417,8 @@
 			/>
 			<div class="mt-8 grid gap-4 text-sm text-gray-700">
 				<div class="rounded-xl border border-gray-200/70 bg-white px-4 py-3">
-					Текст: учитывается объём запроса и ответа.
+					Текст: учитывается объём запроса, отправленной истории чата и ответа. Токены — короткие
+					части текста.
 				</div>
 				<div class="rounded-xl border border-gray-200/70 bg-white px-4 py-3">
 					Изображения: по фиксированной ставке (может зависеть от размера и модели).
@@ -412,7 +427,9 @@
 					Аудио: по длительности или объёму.
 				</div>
 				<div class="rounded-xl border border-gray-200/70 bg-white px-4 py-3">
-					Где смотреть: история списаний в личном кабинете.
+					Перед ответом сумма резервируется. После ответа списывается итоговая стоимость, а
+					неиспользованный остаток резерва освобождается. При отсутствии данных от модели списание
+					оценивается и отмечается в истории.
 				</div>
 			</div>
 		</div>

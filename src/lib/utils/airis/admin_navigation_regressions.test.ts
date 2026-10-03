@@ -10,7 +10,7 @@ describe('Admin navigation regressions', () => {
 		const layout = await readText('src/routes/(app)/admin/+layout.svelte');
 
 		expect(layout).toContain('href="/admin/billing"');
-		expect(layout).toContain("{$i18n.t('Billing')}");
+		expect(layout).toContain("{$i18n.t('Money')}");
 		expect(layout).toContain('href="/admin/analytics"');
 		expect(layout).toContain('$config?.features.enable_admin_analytics ?? true');
 	});

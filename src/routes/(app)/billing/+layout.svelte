@@ -18,7 +18,7 @@
 
 	$: subscriptionsEnabled = $config?.features?.enable_billing_subscriptions ?? true;
 	$: isAdmin = $user?.role === 'admin';
-	$: returnTo = sanitizeReturnTo($page.url.searchParams.get('return_to'));
+	$: returnTo = sanitizeReturnTo($page.url.searchParams.get('return_to')) ?? '/';
 	$: settingsView =
 		$page.url.pathname === '/billing/balance' &&
 		['limits', 'auto_topup'].includes($page.url.searchParams.get('focus') ?? '');
@@ -26,6 +26,10 @@
 	const buildBillingHref = (pathname: string, focus?: string): string => {
 		const params = new URLSearchParams();
 		if (focus) params.set('focus', focus);
+		for (const key of ['from_date', 'to_date']) {
+			const value = $page.url.searchParams.get(key);
+			if (value) params.set(key, value);
+		}
 		if (!returnTo) {
 			const query = params.toString();
 			return query ? `${pathname}?${query}` : pathname;
@@ -36,13 +40,7 @@
 
 	const handleReturnToClick = async (event: MouseEvent): Promise<void> => {
 		if (!returnTo) return;
-		if (
-			event.metaKey ||
-			event.ctrlKey ||
-			event.shiftKey ||
-			event.altKey ||
-			event.button !== 0
-		) {
+		if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
 			return;
 		}
 		event.preventDefault();
@@ -71,7 +69,7 @@
 			: ''} max-w-full"
 	>
 		<nav class="px-2.5 pt-1.5 backdrop-blur-xl drag-region">
-			<div class="flex items-center gap-1">
+			<div class="flex flex-wrap items-center gap-2">
 				{#if $mobile}
 					<div class="{$showSidebar ? 'md:hidden' : ''} self-center flex flex-none items-center">
 						<Tooltip
@@ -95,43 +93,48 @@
 
 				<div class="">
 					<div
-						class="flex gap-1 scrollbar-none overflow-x-auto w-fit text-center text-sm font-medium rounded-full bg-transparent py-1 touch-auto pointer-events-auto"
+						class="flex flex-wrap gap-1 w-full text-center text-sm font-medium rounded-full bg-transparent py-1 touch-auto pointer-events-auto"
 					>
 						<a
-							class="min-w-fit p-1.5 {($page.url.pathname === '/billing/balance' &&
+							class="min-w-fit px-2 py-3 {($page.url.pathname === '/billing/balance' &&
 								!settingsView) ||
 							$page.url.pathname === '/billing/dashboard' ||
 							$page.url.pathname === '/billing/settings'
 								? ''
-								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
+								: 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'} transition"
 							href={buildBillingHref('/billing/balance')}
+							aria-current={!settingsView && $page.url.pathname === '/billing/balance'
+								? 'page'
+								: undefined}
 						>
-							{$i18n.t('Balance')}
+							{$i18n.t('Balance and spending')}
 						</a>
 
 						<a
-							class="min-w-fit p-1.5 {$page.url.pathname === '/billing/history'
+							class="min-w-fit px-2 py-3 {$page.url.pathname === '/billing/history'
 								? ''
-								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
+								: 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'} transition"
 							href={buildBillingHref('/billing/history')}
+							aria-current={$page.url.pathname === '/billing/history' ? 'page' : undefined}
 						>
-							{$i18n.t('History')}
+							{$i18n.t('Operations')}
 						</a>
 
 						<a
-							class="min-w-fit p-1.5 {settingsView
+							class="min-w-fit px-2 py-3 {settingsView
 								? ''
-								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
+								: 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'} transition"
 							href={buildBillingHref('/billing/balance', 'limits')}
+							aria-current={settingsView ? 'page' : undefined}
 						>
-							{$i18n.t('Settings')}
+							{$i18n.t('Payment settings')}
 						</a>
 
 						{#if subscriptionsEnabled && isAdmin}
 							<a
-								class="min-w-fit p-1.5 {$page.url.pathname === '/billing/plans'
+								class="min-w-fit px-2 py-3 {$page.url.pathname === '/billing/plans'
 									? ''
-									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
+									: 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'} transition"
 								href={buildBillingHref('/billing/plans')}
 							>
 								{$i18n.t('Plans')}

@@ -1,450 +1,103 @@
 <script lang="ts">
-	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
-	import { onMount, getContext } from 'svelte';
-	import { toast } from 'svelte-sonner';
-	import { goto } from '$app/navigation';
+	import { onMount, onDestroy, getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18nType } from 'i18next';
 	import { page } from '$app/stores';
-
+	import { goto } from '$app/navigation';
 	import { WEBUI_NAME, user } from '$lib/stores';
-	import { getPlan, getPlanSubscribers } from '$lib/apis/admin/billing';
-	import type { Plan, PlanSubscriber } from '$lib/apis/admin/billing';
-	import { getStatusColor } from '$lib/utils/billing-formatters';
-
-	import Spinner from '$lib/components/common/Spinner.svelte';
-	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import Badge from '$lib/components/common/Badge.svelte';
-	import ChevronLeft from '$lib/components/icons/ChevronLeft.svelte';
-	import ChartBar from '$lib/components/icons/ChartBar.svelte';
-
-	const i18n = getContext('i18n');
-
-	let planId = '';
-	let loading = true;
-	let plan: Plan | null = null;
-	let subscribers: PlanSubscriber[] = [];
-	let totalSubscribers = 0;
-	let currentPage = 1;
-	let totalPages = 1;
-	const pageSize = 20;
-
-	// Computed stats
-	$: activeSubscribers = subscribers.filter((s) => s.subscription_status === 'active').length;
-	$: canceledSubscribers = subscribers.filter((s) => s.subscription_status === 'canceled').length;
-	$: trialSubscribers = subscribers.filter((s) => s.subscription_status === 'trialing').length;
-	$: pastDueSubscribers = subscribers.filter((s) => s.subscription_status === 'past_due').length;
-
-	// MRR calculation
-	$: mrr = plan ? calculateMRR(plan, activeSubscribers) : 0;
-	$: arr = mrr * 12;
-
-	// Churn rate
-	$: churnRate = subscribers.length > 0 ? (canceledSubscribers / subscribers.length) * 100 : 0;
-
-	// Revenue by month (demo data)
-	$: revenueData = generateRevenueData();
-
+	import { getPlansWithStats, type PlanStats } from '$lib/apis/admin/billing';
+	import { formatReportMoney } from '$lib/utils/airis/billing_reporting_ui';
+	const i18n = getContext<Readable<I18nType>>('i18n');
+	let stats: PlanStats | null = null;
+	let loading = false;
+	let error = '';
+	let request = 0;
+	let loadedId = '';
+	let mounted = false;
+	onDestroy(() => {
+		request++;
+		mounted = false;
+	});
+	const load = async (): Promise<void> => {
+		const id = ++request;
+		const selectedPlan = String($page.params.id);
+		loadedId = selectedPlan;
+		loading = true;
+		error = '';
+		try {
+			const result = await getPlansWithStats(localStorage.token);
+			if (id !== request || selectedPlan !== String($page.params.id)) return;
+			stats = result.find((item) => item.plan.id === selectedPlan) || null;
+			if (!stats) error = 'Plan not found';
+		} catch {
+			if (id === request) error = 'Failed to load analytics';
+		} finally {
+			if (id === request) loading = false;
+		}
+	};
 	onMount(async () => {
 		if ($user?.role !== 'admin') {
-			goto('/');
+			await goto('/');
 			return;
 		}
-
-		planId = $page.params.id;
-		await loadData();
+		mounted = true;
+		await load();
 	});
-
-	const loadData = async () => {
-		loading = true;
-		try {
-			const [planData, subscribersData] = await Promise.all([
-				getPlan(localStorage.token, planId),
-				getPlanSubscribers(localStorage.token, planId, currentPage, pageSize)
-			]);
-
-			if (!planData) {
-				toast.error($i18n.t('Plan not found'));
-				goto('/admin/billing/plans');
-				return;
-			}
-
-			plan = planData;
-			if (subscribersData) {
-				subscribers = subscribersData.items;
-				totalSubscribers = subscribersData.total;
-				totalPages = subscribersData.total_pages;
-			} else {
-				subscribers = [];
-				totalSubscribers = 0;
-				totalPages = 1;
-			}
-		} catch (error) {
-			console.error('Failed to load analytics:', error);
-			toast.error($i18n.t('Failed to load analytics'));
-		} finally {
-			loading = false;
-		}
-	};
-
-	const loadSubscribersPage = async (newPage: number) => {
-		if (newPage < 1 || newPage > totalPages) return;
-		currentPage = newPage;
-		try {
-			const subscribersData = await getPlanSubscribers(
-				localStorage.token,
-				planId,
-				currentPage,
-				pageSize
-			);
-			if (subscribersData) {
-				subscribers = subscribersData.items;
-				totalSubscribers = subscribersData.total;
-				totalPages = subscribersData.total_pages;
-			}
-		} catch (error) {
-			console.error('Failed to load subscribers:', error);
-			toast.error($i18n.t('Failed to load subscribers'));
-		}
-	};
-
-	const calculateMRR = (plan: Plan, activeCount: number): number => {
-		if (!plan || activeCount === 0) return 0;
-
-		const price = plan.price;
-		const interval = plan.interval;
-
-		let monthlyPrice = price;
-		if (interval === 'year') monthlyPrice = price / 12;
-		else if (interval === 'week') monthlyPrice = price * 4.33;
-		else if (interval === 'day') monthlyPrice = price * 30;
-
-		return monthlyPrice * activeCount;
-	};
-
-	const generateRevenueData = () => {
-		const months = [
-			'Jan',
-			'Feb',
-			'Mar',
-			'Apr',
-			'May',
-			'Jun',
-			'Jul',
-			'Aug',
-			'Sep',
-			'Oct',
-			'Nov',
-			'Dec'
-		];
-		const currentMonth = new Date().getMonth();
-
-		return months.slice(Math.max(0, currentMonth - 5), currentMonth + 1).map((month, i) => ({
-			month,
-			revenue: mrr * (0.7 + i * 0.05),
-			subscribers: Math.floor(activeSubscribers * (0.7 + i * 0.05))
-		}));
-	};
-
-	const formatPrice = (price: number, currency: string = 'RUB', locale: string = getI18nLocale($i18n)): string => {
-		if (price === 0) return $i18n.t('Free');
-		return new Intl.NumberFormat(locale, {
-			style: 'currency',
-			currency: currency,
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0
-		}).format(price);
-	};
-
-	const formatDate = (timestamp: number, locale: string = getI18nLocale($i18n)): string => {
-		return new Date(timestamp * 1000).toLocaleDateString(locale, {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		});
-	};
-
-	const getStatusLabel = (status: string): string => {
-		const labels: Record<string, string> = {
-			active: $i18n.t('Active'),
-			canceled: $i18n.t('Canceled'),
-			trialing: $i18n.t('Trial'),
-			past_due: $i18n.t('Past Due'),
-			incomplete: $i18n.t('Incomplete'),
-			incomplete_expired: $i18n.t('Expired')
-		};
-		return labels[status] || status;
-	};
+	$: if (mounted && String($page.params.id) !== loadedId) {
+		stats = null;
+		void load();
+	}
 </script>
 
-<svelte:head>
-	<title>
-		{$i18n.t('Analytics')} • {plan?.name || planId} • {$WEBUI_NAME}
-	</title>
-</svelte:head>
-
-{#if loading}
-	<div class="w-full h-full flex justify-center items-center">
-		<Spinner className="size-5" />
-	</div>
-{:else if !plan}
-	<div class="w-full h-full flex justify-center items-center">
-		<div class="text-gray-500 dark:text-gray-400">
-			{$i18n.t('Plan not found')}
-		</div>
-	</div>
-{:else}
-	<div class="px-4.5 w-full">
-		<!-- Header -->
-		<div class="flex flex-col gap-1 px-1 mt-2.5 mb-2">
-			<div class="flex justify-between items-center mb-1 w-full">
-				<div class="flex items-center gap-2">
-					<Tooltip content={$i18n.t('Back')}>
-						<button
-							class="text-left text-sm py-1.5 px-1 rounded-lg dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-gray-850"
-							on:click={() => goto('/admin/billing/plans')}
-							type="button"
-						>
-							<ChevronLeft strokeWidth="2.5" />
-						</button>
-					</Tooltip>
-					<div class="flex items-center gap-2">
-						<ChartBar className="size-5" />
-						<div class="text-xl font-medium">{plan.name_ru || plan.name}</div>
-					</div>
-					<Badge type="muted" content={planId} />
-				</div>
-
-				<button
-					type="button"
-					on:click={() => goto(`/admin/billing/plans/${planId}/edit`)}
-					class="px-2 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition text-sm"
-				>
-					{$i18n.t('Edit Plan')}
-				</button>
-			</div>
-		</div>
-
-		<!-- Key Metrics -->
-		<div class="grid grid-cols-4 gap-2 mb-4">
-			<div
-				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
-			>
-				<div class="text-xs text-gray-500">{$i18n.t('MRR')}</div>
-				<div class="text-lg font-medium">{formatPrice(mrr, plan.currency, getI18nLocale($i18n))}</div>
-				<div class="text-xs text-gray-400">{$i18n.t('ARR')}: {formatPrice(arr, plan.currency, getI18nLocale($i18n))}</div>
-			</div>
-			<div
-				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
-			>
-				<div class="text-xs text-gray-500">{$i18n.t('Active')}</div>
-				<div class="text-lg font-medium text-green-600 dark:text-green-400">
-					{activeSubscribers}
-				</div>
-				<div class="text-xs text-gray-400">{trialSubscribers} {$i18n.t('on trial')}</div>
-			</div>
-			<div
-				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
-			>
-				<div class="text-xs text-gray-500">{$i18n.t('Churn')}</div>
-				<div class="text-lg font-medium">{churnRate.toFixed(1)}%</div>
-				<div class="text-xs text-gray-400">{canceledSubscribers} {$i18n.t('canceled')}</div>
-			</div>
-			<div
-				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
-			>
-				<div class="text-xs text-gray-500">{$i18n.t('Total')}</div>
-				<div class="text-lg font-medium">{totalSubscribers}</div>
-				<div class="text-xs text-gray-400">{pastDueSubscribers} {$i18n.t('past due')}</div>
-			</div>
-		</div>
-
-		<!-- Plan Details & Revenue -->
-		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-			<!-- Plan Details -->
-			<div
-				class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
-			>
-				<div class="text-sm font-medium mb-3">{$i18n.t('Plan Details')}</div>
-				<div class="grid grid-cols-2 gap-3 text-sm">
-					<div>
-						<div class="text-xs text-gray-500">{$i18n.t('Price')}</div>
-						<div class="font-medium">
-							{formatPrice(plan.price, plan.currency, getI18nLocale($i18n))} / {$i18n.t(plan.interval)}
-						</div>
-					</div>
-					<div>
-						<div class="text-xs text-gray-500">{$i18n.t('Status')}</div>
-						<span
-							class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
-							{plan.is_active
-								? 'bg-green-500/20 text-green-700 dark:text-green-200'
-								: 'bg-gray-500/20 text-gray-700 dark:text-gray-200'}"
-						>
-							{plan.is_active ? $i18n.t('Active') : $i18n.t('Inactive')}
-						</span>
-					</div>
-					{#if plan.quotas}
-						<div>
-							<div class="text-xs text-gray-500">{$i18n.t('Input Tokens')}</div>
-							<div class="font-medium">
-								{plan.quotas.tokens_input !== null
-									? plan.quotas.tokens_input.toLocaleString(getI18nLocale($i18n))
-									: '∞'}
-							</div>
-						</div>
-						<div>
-							<div class="text-xs text-gray-500">{$i18n.t('Output Tokens')}</div>
-							<div class="font-medium">
-								{plan.quotas.tokens_output !== null
-									? plan.quotas.tokens_output.toLocaleString(getI18nLocale($i18n))
-									: '∞'}
-							</div>
-						</div>
-						<div>
-							<div class="text-xs text-gray-500">{$i18n.t('Requests')}</div>
-							<div class="font-medium">
-								{plan.quotas.requests !== null
-									? plan.quotas.requests.toLocaleString(getI18nLocale($i18n))
-									: '∞'}
-							</div>
-						</div>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Revenue Trend -->
-			{#if revenueData.length > 0}
-				<div
-					class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4"
-				>
-					<div class="flex items-center justify-between mb-3">
-						<div class="text-sm font-medium">{$i18n.t('Revenue Trend')}</div>
-						<span
-							class="px-1.5 py-0.5 text-xs font-medium bg-yellow-500/20 text-yellow-700 dark:text-yellow-200 rounded"
-						>
-							{$i18n.t('Demo')}
-						</span>
-					</div>
-					<div class="space-y-2">
-						{#each revenueData as data}
-							<div>
-								<div class="flex items-center justify-between text-xs mb-0.5">
-									<span class="font-medium">{data.month}</span>
-									<span class="text-gray-500">
-										{formatPrice(data.revenue, plan.currency, getI18nLocale($i18n))}
-									</span>
-								</div>
-								<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-									<div
-										class="bg-blue-600 dark:bg-blue-500 h-1.5 rounded-full transition-all"
-										style="width: {Math.min((data.revenue / mrr) * 100, 100)}%"
-									></div>
-								</div>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
-		</div>
-
-		<!-- Subscribers List -->
-		<div
-			class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30"
+<svelte:head><title>{$i18n.t('Subscription overview')} • {$WEBUI_NAME}</title></svelte:head>
+<div class="mx-auto w-full min-w-0 max-w-5xl px-4 py-5">
+	<a href="/admin/billing/plans" class="text-sm underline">← {$i18n.t('Subscriptions')}</a>
+	<h1 class="my-4 break-words text-xl font-semibold">
+		{stats?.plan.name_ru || stats?.plan.name || $i18n.t('Subscription overview')}
+	</h1>
+	{#if loading}<p role="status">{$i18n.t('Loading')}</p>{/if}{#if error}<p
+			role="alert"
+			class="text-red-700"
 		>
-			<div class="px-4 py-3 border-b border-gray-100/30 dark:border-gray-850/30">
-				<div class="text-sm font-medium">{$i18n.t('Subscribers')} ({totalSubscribers})</div>
+			{$i18n.t(error)}
+			<button type="button" class="underline" on:click={load}>{$i18n.t('Retry')}</button>
+		</p>{/if}
+	{#if stats && !loading && !error}<dl class="grid gap-3 sm:grid-cols-3">
+			<div class="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+				<dt class="text-sm text-gray-500">{$i18n.t('Active subscriptions')}</dt>
+				<dd class="mt-2 text-xl font-semibold">{stats.active_subscriptions}</dd>
 			</div>
-
-			{#if subscribers.length === 0}
-				<div class="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
-					{$i18n.t('No subscribers yet')}
-				</div>
-			{:else}
-				<div class="overflow-x-auto">
-					<table class="w-full">
-						<thead>
-							<tr class="border-b border-gray-100/30 dark:border-gray-850/30 text-left">
-								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase"
-									>{$i18n.t('User')}</th
-								>
-								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase"
-									>{$i18n.t('Email')}</th
-								>
-								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase"
-									>{$i18n.t('Status')}</th
-								>
-								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase"
-									>{$i18n.t('Subscribed')}</th
-								>
-								<th class="px-4 py-2 text-xs font-medium text-gray-500 uppercase"
-									>{$i18n.t('Next Billing')}</th
-								>
-							</tr>
-						</thead>
-						<tbody>
-							{#each subscribers as subscriber}
-								<tr
-									class="border-b border-gray-100/30 dark:border-gray-850/30 hover:bg-black/5 dark:hover:bg-white/5"
-								>
-									<td class="px-4 py-2">
-										<div class="font-medium text-sm">
-											{subscriber.name || $i18n.t('Unknown')}
-										</div>
-										<div class="text-xs text-gray-500">{subscriber.user_id.slice(0, 8)}...</div>
-									</td>
-									<td class="px-4 py-2 text-sm">{subscriber.email}</td>
-									<td class="px-4 py-2">
-										<span
-											class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium {getStatusColor(
-												subscriber.subscription_status
-											)}"
-										>
-											{getStatusLabel(subscriber.subscription_status)}
-										</span>
-									</td>
-									<td class="px-4 py-2 text-sm text-gray-500"
-										>{formatDate(subscriber.subscribed_at, getI18nLocale($i18n))}</td
-									>
-									<td class="px-4 py-2 text-sm text-gray-500"
-										>{formatDate(subscriber.current_period_end, getI18nLocale($i18n))}</td
-									>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
-
-				<!-- Pagination -->
-				{#if totalPages > 1}
-					<div
-						class="flex items-center justify-between px-4 py-3 border-t border-gray-100/30 dark:border-gray-850/30"
-					>
-						<div class="text-xs text-gray-500">
-							{$i18n.t('Page')}
-							{currentPage}
-							{$i18n.t('of')}
-							{totalPages}
-						</div>
-						<div class="flex items-center gap-1">
-							<button
-								type="button"
-								on:click={() => loadSubscribersPage(currentPage - 1)}
-								disabled={currentPage === 1}
-								class="px-2 py-1 text-xs rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition disabled:opacity-50 disabled:cursor-not-allowed"
-							>
-								{$i18n.t('Previous')}
-							</button>
-							<button
-								type="button"
-								on:click={() => loadSubscribersPage(currentPage + 1)}
-								disabled={currentPage === totalPages}
-								class="px-2 py-1 text-xs rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition disabled:opacity-50 disabled:cursor-not-allowed"
-							>
-								{$i18n.t('Next')}
-							</button>
-						</div>
-					</div>
-				{/if}
-			{/if}
-		</div>
-	</div>
-{/if}
+			<div class="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+				<dt class="text-sm text-gray-500">{$i18n.t('Canceled subscriptions')}</dt>
+				<dd class="mt-2 text-xl font-semibold">{stats.canceled_subscriptions}</dd>
+			</div>
+			<div class="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+				<dt class="text-sm text-gray-500">{$i18n.t('Calculated monthly income')}</dt>
+				<dd class="mt-2 break-words text-xl font-semibold">
+					{formatReportMoney(Math.round(stats.mrr * 100), stats.plan.currency, $i18n.language)}
+				</dd>
+			</div>
+		</dl>
+		<p class="mt-3 text-sm text-gray-500">
+			{$i18n.t(
+				'Calculated from current plan price and active subscriptions; this is not actual payment history.'
+			)}
+		</p>
+		<section class="mt-6 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+			<h2 class="font-medium">{$i18n.t('Income history is not connected yet')}</h2>
+			<p class="mt-2 text-sm text-gray-500">
+				{$i18n.t(
+					'Historical income and churn require complete period data. No demonstration values are shown.'
+				)}
+			</p>
+		</section>
+		<div class="mt-5 flex flex-wrap gap-3">
+			<a href={`/admin/billing/plans/${stats.plan.id}/subscribers`} class="underline"
+				>{$i18n.t('View subscribers')}</a
+			><a href={`/admin/billing/plans/${stats.plan.id}/edit`} class="underline"
+				>{$i18n.t('Edit Plan')}</a
+			><a href="/admin/billing/transactions?tab=payments&kind=subscription" class="underline"
+				>{$i18n.t('Subscription payments')}</a
+			>
+		</div>{/if}
+</div>

@@ -1,6 +1,6 @@
 """Report semantics: mature unique cohorts, first payment and repeat payments."""
 
-from open_webui.utils.airis.analytics_reports import cohort_rows
+from open_webui.utils.airis.analytics_reports import cohort_rows, cohort_summary, percentage, visitor_sequence
 from pytest import MonkeyPatch
 
 
@@ -72,6 +72,7 @@ def test_actual_report_excludes_existing_accounts_and_bounds_stage_window(monkey
     from open_webui.models.analytics import AnalyticsDelivery, AnalyticsEvent, AnalyticsIdentity
     from open_webui.models.analytics_refunds import AnalyticsRefund
     from open_webui.models.billing import LedgerEntry, Payment
+    from open_webui.models.billing_models import Transaction
     from open_webui.models.users import User
     from open_webui.utils.airis import analytics_reports as reports
     from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -84,6 +85,7 @@ def test_actual_report_excludes_existing_accounts_and_bounds_stage_window(monkey
             AnalyticsEvent.__table__,
             AnalyticsDelivery.__table__,
             Payment.__table__,
+            Transaction.__table__,
             LedgerEntry.__table__,
             AnalyticsRefund.__table__,
         ]
@@ -227,3 +229,63 @@ def test_authorized_report_is_not_cached_for_both_observation_windows(monkeypatc
                 'financial': {'RUB': {'net_kopeks': 800}},
                 'rows': [],
             }
+
+
+def test_ordered_paths_distinguish_payment_without_observed_response() -> None:
+    def facts(response: int | None, payment: int, signup: int | None = 110) -> list[dict[str, object]]:
+        result = [
+            {'identity_id': 'u', 'name': 'product_first_visit', 'timestamp': 100, 'properties': {}},
+            {
+                'identity_id': 'u',
+                'name': 'payment_confirmed',
+                'timestamp': payment,
+                'properties': {'is_first_payment': True},
+            },
+        ]
+        if signup is not None:
+            result.append({'identity_id': 'u', 'name': 'signup_completed', 'timestamp': signup, 'properties': {}})
+        if response is not None:
+            result.append(
+                {'identity_id': 'u', 'name': 'first_response_received', 'timestamp': response, 'properties': {}}
+            )
+        return result
+
+    assert visitor_sequence(facts(120, 130), 100)['paid_after_response'] == 1
+    assert visitor_sequence(facts(130, 120), 100)['paid_before_response'] == 1
+    assert visitor_sequence(facts(None, 120), 100)['paid_without_observed_response'] == 1
+    assert visitor_sequence(facts(None, 120, None), 100)['incomplete_paid'] == 1
+    # Events use second resolution: ties count as non-decreasing observations.
+    assert visitor_sequence(facts(120, 120), 100)['paid_after_response'] == 1
+
+
+def test_summary_weights_actual_mature_denominators_and_rounds_half_up() -> None:
+    assert percentage(25, 800) == 3.13
+    assert percentage(0, 0) is None
+    facts = []
+    touches = {}
+    for index in range(10):
+        identity = str(index)
+        stamp = 100 if index < 9 else 86400 * 29
+        facts.append({'identity_id': identity, 'name': 'product_first_visit', 'timestamp': stamp, 'properties': {}})
+        touches[identity] = {'utm_source': 'a' if index < 8 else 'b'}
+        if index in (0, 8, 9):
+            facts.append(
+                {
+                    'identity_id': identity,
+                    'name': 'payment_confirmed',
+                    'timestamp': stamp + 1,
+                    'properties': {'is_first_payment': True},
+                }
+            )
+    rows = cohort_rows(facts, touches, 86400 * 31, 30, 'utm_source')
+    summary, sequence = cohort_summary(rows)
+    assert summary['mature_visitors'] == 9
+    assert summary['mature_paid'] == 2
+    assert summary['conversion_percent'] == 22.22
+    assert summary['immature_visitors'] == 1
+    assert summary['next_maturity_at'] == 86400 * 59
+    assert sequence['visitors'] == 10
+    assert sequence['mature_visitors'] == 9
+    empty, empty_sequence = cohort_summary([])
+    assert empty['conversion_percent'] is None
+    assert empty_sequence['paid_before_response'] == 0

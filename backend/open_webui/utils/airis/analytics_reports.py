@@ -2,17 +2,32 @@
 
 import datetime as dt
 from collections import defaultdict
+from decimal import ROUND_HALF_UP, Decimal
 from statistics import median
 from typing import TypedDict
 
 from open_webui.internal.db import get_async_db_context
 from open_webui.models.analytics import AnalyticsDelivery, AnalyticsEvent, AnalyticsIdentity
 from open_webui.models.analytics_refunds import AnalyticsRefund
-from open_webui.models.billing import LedgerEntry, Payment, PaymentKind
+from open_webui.models.billing import Payment, PaymentKind
 from open_webui.models.users import User
 from open_webui.utils.airis.analytics import enabled_at
-from open_webui.utils.airis.analytics_payments import _confirmed_query
-from sqlalchemy import func, select
+from open_webui.utils.airis.billing_reporting_facts import live_refund_condition, payment_table
+from sqlalchemy import func, or_, select
+
+SEQUENCE_KEYS = (
+    'visitors',
+    'registered',
+    'responded',
+    'paid_after_response',
+    'paid_before_response',
+    'paid_without_observed_response',
+    'incomplete_paid',
+)
+
+
+def empty_sequence() -> dict[str, int]:
+    return {key: 0 for name in SEQUENCE_KEYS for key in (name, 'mature_' + name)}
 
 
 class EventFact(TypedDict):
@@ -33,6 +48,56 @@ class CohortRow(TypedDict):
     mature_paid: int
     conversion_percent: float | None
     median_hours_to_pay: float | None
+    immature_visitors: int
+    next_maturity_at: int | None
+    sequence: dict[str, int]
+
+
+def percentage(count: int, denominator: int) -> float | None:
+    """Round percentages consistently, including exact half-cent boundaries."""
+    if not denominator:
+        return None
+    return float((Decimal(count) * 100 / Decimal(denominator)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+
+
+def visitor_sequence(events: list[EventFact], first: int) -> dict[str, int]:
+    """Count ordered observations; a missing event never proves the action was absent."""
+
+    def earliest(name: str, after: int) -> int | None:
+        return min(
+            (event['timestamp'] for event in events if event['name'] == name and event['timestamp'] >= after),
+            default=None,
+        )
+
+    registered = earliest('signup_completed', first)
+    responded = earliest('first_response_received', registered) if registered is not None else None
+    payment = min(
+        (
+            event['timestamp']
+            for event in events
+            if event['name'] == 'payment_confirmed' and event['properties'].get('is_first_payment') is True
+        ),
+        default=None,
+    )
+    result = dict.fromkeys(SEQUENCE_KEYS, 0)
+    result['visitors'] = 1
+    result['registered'] = int(registered is not None)
+    result['responded'] = int(responded is not None)
+    if payment is not None:
+        if registered is None or payment < registered:
+            result['incomplete_paid'] = 1
+        elif responded is not None:
+            result['paid_after_response' if payment >= responded else 'paid_before_response'] = 1
+        else:
+            result['paid_without_observed_response'] = 1
+    return result
+
+
+def cohort_key(first: int, touch: dict[str, str | int], breakdown: str) -> str:
+    if breakdown == 'week':
+        iso = dt.datetime.fromtimestamp(first, dt.UTC).isocalendar()
+        return f'{iso.year}-W{iso.week:02}'
+    return str(touch.get(breakdown) or 'unknown')
 
 
 def cohort_rows(
@@ -42,7 +107,7 @@ def cohort_rows(
     window_days: int,
     breakdown: str = 'week',
 ) -> list[CohortRow]:
-    """Only fully observed visitors enter the final conversion denominator."""
+    """Keep attained stages separate from ordered paths and mature denominators."""
     users: dict[str, list[EventFact]] = defaultdict(list)
     for fact in facts:
         users[fact['identity_id']].append(fact)
@@ -53,11 +118,7 @@ def cohort_rows(
             continue
         first = min(visits)
         touch = touches.get(identity_id, {})
-        if breakdown == 'week':
-            iso = dt.datetime.fromtimestamp(first, dt.UTC).isocalendar()
-            key = f'{iso.year}-W{iso.week:02}'
-        else:
-            key = str(touch.get(breakdown) or 'direct / unknown')
+        key = cohort_key(first, touch, breakdown)
         groups[key].append((first, events))
     rows: list[CohortRow] = []
     window = window_days * 86400
@@ -73,6 +134,9 @@ def cohort_rows(
             'mature_paid': 0,
             'conversion_percent': None,
             'median_hours_to_pay': None,
+            'immature_visitors': 0,
+            'next_maturity_at': None,
+            'sequence': empty_sequence(),
         }
         hours: list[float] = []
         for first, events in visitors:
@@ -92,14 +156,45 @@ def cohort_rows(
             mature = now >= first + window
             row['mature_visitors'] += int(mature)
             row['mature_paid'] += int(mature and paid)
+            for name, value in visitor_sequence(observed, first).items():
+                row['sequence'][name] = row['sequence'].get(name, 0) + value
+                row['sequence']['mature_' + name] = row['sequence'].get('mature_' + name, 0) + int(mature) * value
+            if not mature:
+                row['next_maturity_at'] = min(row['next_maturity_at'] or first + window, first + window)
             if first_payments:
                 hours.append((min(first_payments) - first) / 3600)
-        if row['mature_visitors']:
-            row['conversion_percent'] = round(100 * row['mature_paid'] / row['mature_visitors'], 2)
+        row['immature_visitors'] = row['visitors'] - row['mature_visitors']
+        row['conversion_percent'] = percentage(row['mature_paid'], row['mature_visitors'])
         if hours:
-            row['median_hours_to_pay'] = round(median(hours), 2)
+            row['median_hours_to_pay'] = float(
+                Decimal(str(median(hours))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            )
         rows.append(row)
     return rows
+
+
+def cohort_summary(rows: list[CohortRow]) -> tuple[dict[str, int | float | None], dict[str, int]]:
+    """Sum denominators, never average independently rounded row percentages."""
+    keys = [
+        'visitors',
+        'registered',
+        'activated',
+        'paid',
+        'repeated',
+        'mature_visitors',
+        'mature_paid',
+        'immature_visitors',
+    ]
+    summary: dict[str, int | float | None] = {key: sum(row[key] for row in rows) for key in keys}
+    summary['conversion_percent'] = percentage(int(summary['mature_paid']), int(summary['mature_visitors']))
+    summary['next_maturity_at'] = min(
+        (row['next_maturity_at'] for row in rows if row['next_maturity_at'] is not None), default=None
+    )
+    sequence = empty_sequence()
+    for row in rows:
+        for name, value in row['sequence'].items():
+            sequence[name] = sequence.get(name, 0) + value
+    return summary, sequence
 
 
 async def funnel_report(start: int, end: int, now: int, window_days: int, breakdown: str) -> dict[str, object]:
@@ -170,6 +265,11 @@ async def funnel_report(start: int, end: int, now: int, window_days: int, breakd
             if cohort_ids
             else []
         )
+        test_payment_ids = set(
+            (await db.execute(select(Payment.id).where(Payment.raw_payload_json['test'].as_boolean().is_(True))))
+            .scalars()
+            .all()
+        )
         facts: list[EventFact] = [
             {
                 'identity_id': event.identity_id,
@@ -178,6 +278,7 @@ async def funnel_report(start: int, end: int, now: int, window_days: int, breakd
                 'properties': event.properties or {},
             }
             for event in events
+            if (event.properties or {}).get('payment_id') not in test_payment_ids
         ]
         # Every stage and event count uses the same per-visitor observation window.
         facts = [
@@ -192,22 +293,28 @@ async def funnel_report(start: int, end: int, now: int, window_days: int, breakd
         event_counts: dict[str, int] = {}
         for fact in facts:
             event_counts[fact['name']] = event_counts.get(fact['name'], 0) + 1
+        payments_table = payment_table()
+        genuine = or_(payments_table.c.is_test.is_(None), payments_table.c.is_test.is_(False))
         financial_rows = (
-            await db.execute(_confirmed_query().where(LedgerEntry.created_at >= start, LedgerEntry.created_at < end))
+            await db.execute(
+                select(payments_table.c.currency, func.count(), func.sum(payments_table.c.amount_kopeks))
+                .where(
+                    payments_table.c.credit_status == 'credited',
+                    genuine,
+                    payments_table.c.credited_at >= start,
+                    payments_table.c.credited_at < end,
+                )
+                .group_by(payments_table.c.currency)
+            )
         ).all()
-        financial: dict[str, dict[str, int]] = {}
-        seen_payments: set[str] = set()
-        for payment, ledger in financial_rows:
-            if payment.id in seen_payments:
-                continue
-            seen_payments.add(payment.id)
-            bucket = financial.setdefault(payment.currency, {'confirmed_payments': 0, 'gross_kopeks': 0})
-            bucket['confirmed_payments'] += 1
-            bucket['gross_kopeks'] += int(payment.amount_kopeks)
+        financial: dict[str, dict[str, int]] = {
+            currency: {'confirmed_payments': int(count), 'gross_kopeks': int(amount)}
+            for currency, count, amount in financial_rows
+        }
         refunds = (
             await db.execute(
                 select(AnalyticsRefund.currency, func.sum(AnalyticsRefund.amount_kopeks))
-                .where(AnalyticsRefund.occurred_at >= start, AnalyticsRefund.occurred_at < end)
+                .where(AnalyticsRefund.occurred_at >= start, AnalyticsRefund.occurred_at < end, live_refund_condition())
                 .group_by(AnalyticsRefund.currency)
             )
         ).all()
@@ -216,21 +323,28 @@ async def funnel_report(start: int, end: int, now: int, window_days: int, breakd
         for bucket in financial.values():
             bucket.setdefault('refund_kopeks', 0)
             bucket['net_kopeks'] = bucket['gross_kopeks'] - bucket['refund_kopeks']
+        attempt_conditions = [
+            payments_table.c.kind == PaymentKind.TOPUP.value,
+            genuine,
+            payments_table.c.created_at >= start,
+            payments_table.c.created_at < end,
+        ]
         created = (
-            await db.execute(
-                select(func.count(Payment.id)).where(
-                    Payment.kind == PaymentKind.TOPUP.value, Payment.created_at >= start, Payment.created_at < end
-                )
-            )
+            await db.execute(select(func.count()).select_from(payments_table).where(*attempt_conditions))
         ).scalar_one()
-        converted = (
-            await db.execute(_confirmed_query().where(Payment.created_at >= start, Payment.created_at < end))
-        ).all()
-        confirmed_created = len({payment.id for payment, ledger in converted})
+        confirmed_created = int(
+            (
+                await db.execute(
+                    select(func.count())
+                    .select_from(payments_table)
+                    .where(*attempt_conditions, payments_table.c.credit_status == 'credited')
+                )
+            ).scalar_one()
+        )
         payment_funnel = {
             'created': int(created),
             'confirmed': confirmed_created,
-            'conversion_percent': round(100 * confirmed_created / created, 2) if created else None,
+            'conversion_percent': percentage(confirmed_created, int(created)),
         }
         stages = {
             name: len({fact['identity_id'] for fact in facts if fact['name'] == name})
@@ -257,7 +371,16 @@ async def funnel_report(start: int, end: int, now: int, window_days: int, breakd
             )
         ).all()
         delivery = [{'destination': dest, 'state': state, 'count': count} for dest, state, count in states]
+        summary, sequence = cohort_summary(rows)
         return {
+            'summary': summary,
+            'sequence': sequence,
+            'start': start,
+            'end': end,
+            'timezone': 'UTC',
+            'rounding': 'ROUND_HALF_UP',
+            'coverage_scope': 'lifetime_current',
+            'delivery_scope': 'lifetime_current',
             'payment_funnel': payment_funnel,
             'stages': stages,
             'financial': financial,

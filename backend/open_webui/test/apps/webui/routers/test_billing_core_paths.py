@@ -130,6 +130,8 @@ class TestBillingCorePaths(AbstractPostgresTest):
             balance_topup_kopeks=1200,
             balance_included_kopeks=300,
             included_expires_at=None,
+            topup_expires_at=456,
+            daily_reserved_kopeks=75,
             max_reply_cost_kopeks=250,
             daily_cap_kopeks=1000,
             daily_spent_kopeks=150,
@@ -159,6 +161,8 @@ class TestBillingCorePaths(AbstractPostgresTest):
         assert response.status_code == 200
         payload = response.json()
         assert payload["balance_topup_kopeks"] == 1200
+        assert payload["topup_expires_at"] == 456
+        assert payload["daily_reserved_kopeks"] == 75
         assert payload["auto_topup_payment_method_saved"] is True
         assert payload["currency"] == "RUB"
 

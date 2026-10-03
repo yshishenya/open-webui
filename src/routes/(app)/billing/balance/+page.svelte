@@ -25,12 +25,12 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import UnifiedTimeline from '$lib/components/billing/UnifiedTimeline.svelte';
+	import WalletPeriodSummary from '$lib/components/billing/WalletPeriodSummary.svelte';
 	import WalletTopupSection from '$lib/components/billing/WalletTopupSection.svelte';
 	import WalletAutoTopupSection from '$lib/components/billing/WalletAutoTopupSection.svelte';
 	import WalletSpendControls from '$lib/components/billing/WalletSpendControls.svelte';
 	import WalletContactsSection from '$lib/components/billing/WalletContactsSection.svelte';
 	import WalletLeadMagnetSection from '$lib/components/billing/WalletLeadMagnetSection.svelte';
-	import WalletAdvancedSettings from '$lib/components/billing/WalletAdvancedSettings.svelte';
 	import WalletHowItWorksModal from '$lib/components/billing/WalletHowItWorksModal.svelte';
 	import InfoCircle from '$lib/components/icons/InfoCircle.svelte';
 	import { trackEcommercePurchase, trackEvent } from '$lib/utils/analytics';
@@ -40,11 +40,21 @@
 		withBasePath
 	} from '$lib/utils/airis/billing_return_url';
 	import { sanitizeReturnTo } from '$lib/utils/airis/return_to';
+	import {
+		parseBillingMoney,
+		hasFreeTextQuota,
+		paymentReturnState,
+		type PaymentReturnState
+	} from '$lib/utils/airis/billing_ui';
 
 	const i18n = getContext<Readable<I18nType>>('i18n');
 
 	const DEFAULT_TOPUP_PACKAGES_KOPEKS = [50000, 100000, 200000];
 	const LOW_BALANCE_THRESHOLD_KOPEKS = 10000;
+	let destroyed = false;
+	let balanceRequest = 0;
+	let checkingTopup = false;
+	let reconcileInFlight: Promise<boolean> | null = null;
 	const TOPUP_FLOW_STORAGE_KEY = 'billing_topup_flow_v1';
 	const TOPUP_FLOW_TTL_MS = 10 * 60 * 1000;
 	const TOPUP_RETURN_POLL_INTERVAL_MS = 3000;
@@ -65,6 +75,8 @@
 	let returnTo: string | null = null;
 	let normalizedReturnTo: string | null = null;
 	let settingsView = false;
+	let selectedFrom = '';
+	let selectedTo = '';
 	let focusHint: 'topup' | 'limits' | 'auto_topup' | null = null;
 	let topupPackages = DEFAULT_TOPUP_PACKAGES_KOPEKS;
 	let allowCustomTopup = true;
@@ -72,7 +84,14 @@
 	let highlightedPackageLabel: string | null = null;
 	let lastTopupKopeks: number | null = null;
 	let topupFlow: TopupFlow | null = null;
-	let topupReturnStatus: 'idle' | 'checking' | 'success' | 'pending' = 'idle';
+	let topupReturnStatus: PaymentReturnState = 'idle';
+	let leadMagnetError = false;
+	let contactsError = false;
+	let saveResult = '';
+	let saveSource: 'limits' | 'contacts' | 'auto' | '' = '';
+	let limitsError = '';
+	let autoTopupError = '';
+	let contactsSaveError = '';
 	let topupReturnAttempts = 0;
 	let topupReturnTimer: ReturnType<typeof setTimeout> | null = null;
 	let topupReturnDismissed = false;
@@ -93,8 +112,6 @@
 	let autoTopupEnabled = false;
 	let autoTopupThreshold = '';
 	let autoTopupAmount = '';
-	let advancedOpen = false;
-	let advancedAutoLock = false;
 	let lastTrackedStatus: 'success' | 'error' | null = null;
 	let autoTopupBaseline = { enabled: false, threshold: '', amount: '' };
 	let limitsBaseline = { maxReplyCost: '', dailyCap: '' };
@@ -136,17 +153,18 @@
 		if (rawFocus === 'topup' || rawFocus === 'limits' || rawFocus === 'auto_topup') {
 			focusHint = rawFocus;
 		}
-		if (focusHint === 'limits' || focusHint === 'auto_topup') {
-			advancedOpen = true;
-			advancedAutoLock = true;
-		}
+
 		await loadBalance();
+		if (destroyed) return;
 		await tick();
+		if (destroyed) return;
 		applyFocusHint();
 		await startTopupReturnCheck();
 	});
 
 	onDestroy(() => {
+		destroyed = true;
+		balanceRequest++;
 		if (topupReturnTimer) {
 			clearTimeout(topupReturnTimer);
 			topupReturnTimer = null;
@@ -184,12 +202,13 @@
 	$: {
 		if (requiredKopeksHint !== null) {
 			const sorted = [...topupPackages].sort((a, b) => a - b);
-			const match = sorted.find((amount) => amount >= requiredKopeksHint) ?? null;
+			const shortfall = Math.max(0, requiredKopeksHint - totalBalance);
+			const match = sorted.find((amount) => amount >= shortfall) ?? null;
 			highlightedPackageKopeks = match ?? sorted.at(-1) ?? null;
 			highlightedPackageLabel = $i18n.t('Recommended top-up');
 		} else if (lastTopupKopeks !== null && topupPackages.includes(lastTopupKopeks)) {
 			highlightedPackageKopeks = lastTopupKopeks;
-			highlightedPackageLabel = $i18n.t('Repeat last top-up');
+			highlightedPackageLabel = $i18n.t('Last selected amount');
 		} else {
 			highlightedPackageKopeks = null;
 			highlightedPackageLabel = null;
@@ -234,16 +253,26 @@
 	};
 
 	const reconcileStoredTopup = async (): Promise<boolean> => {
-		if (!topupFlow?.payment_id) return false;
-		const result = await reconcileTopup(localStorage.token, topupFlow.payment_id);
-		const credited = result?.credited === true;
-		// The timeline mounted before reconciliation and needs fresh ledger facts.
-		if (credited) recentActivityRevision += 1;
-		return credited;
+		if (reconcileInFlight) return reconcileInFlight;
+		const paymentId = topupFlow?.payment_id;
+		if (!paymentId) return false;
+		reconcileInFlight = (async () => {
+			try {
+				const result = await reconcileTopup(localStorage.token, paymentId);
+				if (destroyed || paymentId !== topupFlow?.payment_id) return false;
+				topupReturnStatus = paymentReturnState(result);
+				const credited = topupReturnStatus === 'success';
+				if (credited) recentActivityRevision += 1;
+				return credited;
+			} finally {
+				reconcileInFlight = null;
+			}
+		})();
+		return reconcileInFlight;
 	};
 
 	const trackTopupCompleted = (): void => {
-		if (!topupFlow) return;
+		if (destroyed || !topupFlow) return;
 		const completed = { ...topupFlow };
 		const currency = balance?.currency ?? 'RUB';
 		// Resolve the authoritative transport before emitting; analytics never delays wallet UI.
@@ -259,23 +288,30 @@
 	};
 
 	const handleTopupReturnRefresh = async (): Promise<void> => {
-		let credited = false;
-		if (topupFlow?.payment_id) {
-			try {
-				credited = await reconcileStoredTopup();
-			} catch (error) {
-				console.warn('Failed to reconcile topup on manual refresh:', error);
+		if (checkingTopup || refreshing || destroyed) return;
+		checkingTopup = true;
+		try {
+			let credited = false;
+			if (topupFlow?.payment_id) {
+				try {
+					credited = await reconcileStoredTopup();
+				} catch (error) {
+					console.warn('Failed to reconcile topup on manual refresh:', error);
+					topupReturnStatus = 'unknown';
+				}
 			}
-		}
-		await loadBalance({ showLoader: false });
-		if (topupFlow && credited) {
-			trackTopupCompleted();
-			topupReturnStatus = 'success';
-			clearTopupFlow();
-			if (topupReturnTimer) {
-				clearTimeout(topupReturnTimer);
-				topupReturnTimer = null;
+			await loadBalance({ showLoader: false });
+			if (topupFlow && credited) {
+				trackTopupCompleted();
+				topupReturnStatus = 'success';
+				clearTopupFlow();
+				if (topupReturnTimer) {
+					clearTimeout(topupReturnTimer);
+					topupReturnTimer = null;
+				}
 			}
+		} finally {
+			checkingTopup = false;
 		}
 	};
 
@@ -288,16 +324,20 @@
 	};
 
 	const scheduleTopupReturnCheck = (): void => {
+		if (destroyed) return;
 		if (!topupFlow || topupReturnDismissed) return;
-		if (topupReturnAttempts >= TOPUP_RETURN_POLL_MAX_ATTEMPTS) {
-			topupReturnStatus = 'pending';
+		if (topupReturnStatus === 'canceled' || topupReturnAttempts >= TOPUP_RETURN_POLL_MAX_ATTEMPTS)
 			return;
-		}
 		if (topupReturnTimer) {
 			clearTimeout(topupReturnTimer);
 			topupReturnTimer = null;
 		}
 		topupReturnTimer = setTimeout(async () => {
+			if (destroyed) return;
+			if (checkingTopup) {
+				scheduleTopupReturnCheck();
+				return;
+			}
 			topupReturnAttempts += 1;
 			let credited = false;
 			if (topupFlow?.payment_id) {
@@ -305,10 +345,11 @@
 					credited = await reconcileStoredTopup();
 				} catch (error) {
 					console.warn('Failed to reconcile topup during polling:', error);
+					topupReturnStatus = 'unknown';
 				}
 			}
 			await loadBalance({ showLoader: false });
-			if (!topupFlow) return;
+			if (destroyed || !topupFlow) return;
 			if (credited) {
 				trackTopupCompleted();
 				topupReturnStatus = 'success';
@@ -324,7 +365,7 @@
 	};
 
 	const startTopupReturnCheck = async (): Promise<void> => {
-		if (topupReturnDismissed) return;
+		if (destroyed || topupReturnDismissed) return;
 		const flow = readTopupFlowFromStorage();
 		if (!flow) return;
 		topupFlow = flow;
@@ -334,6 +375,7 @@
 	};
 
 	const loadBalance = async (options: { showLoader?: boolean } = {}): Promise<void> => {
+		const version = ++balanceRequest;
 		const showLoader = options.showLoader ?? balance === null;
 		if (showLoader) {
 			loading = true;
@@ -345,18 +387,33 @@
 
 		try {
 			const balanceResult = await getBalance(localStorage.token);
+			if (destroyed || version !== balanceRequest) return;
 			balance = balanceResult;
-			autoTopupEnabled = balance?.auto_topup_enabled ?? false;
-			autoTopupThreshold = formatMoneyInput(balance?.auto_topup_threshold_kopeks ?? null);
-			autoTopupAmount = formatMoneyInput(balance?.auto_topup_amount_kopeks ?? null);
-			maxReplyCost = formatMoneyInput(balance?.max_reply_cost_kopeks ?? null);
-			dailyCap = formatMoneyInput(balance?.daily_cap_kopeks ?? null);
+			if (!autoTopupDirty) {
+				autoTopupEnabled = balance?.auto_topup_enabled ?? false;
+				autoTopupThreshold = formatMoneyInput(balance?.auto_topup_threshold_kopeks ?? null);
+				autoTopupAmount = formatMoneyInput(balance?.auto_topup_amount_kopeks ?? null);
+				autoTopupBaseline = {
+					enabled: autoTopupEnabled,
+					threshold: autoTopupThreshold,
+					amount: autoTopupAmount
+				};
+			}
+			if (!limitsDirty) {
+				maxReplyCost = formatMoneyInput(balance?.max_reply_cost_kopeks ?? null);
+				dailyCap = formatMoneyInput(balance?.daily_cap_kopeks ?? null);
+				limitsBaseline = { maxReplyCost, dailyCap };
+			}
 
 			try {
 				const leadMagnetResult = await getLeadMagnetInfo(localStorage.token);
+				if (destroyed || version !== balanceRequest) return;
 				leadMagnetInfo = leadMagnetResult;
+				leadMagnetError = !leadMagnetResult;
 			} catch (error) {
+				if (destroyed || version !== balanceRequest) return;
 				console.error('Failed to load lead magnet info:', error);
+				leadMagnetError = true;
 				if (showLoader) {
 					leadMagnetInfo = null;
 				}
@@ -364,37 +421,29 @@
 
 			try {
 				const infoResult = await getUserInfo(localStorage.token);
-				contactEmail = infoResult?.billing_contact_email ?? '';
-				contactPhone = infoResult?.billing_contact_phone ?? '';
+				if (destroyed || version !== balanceRequest) return;
+				contactsError = !infoResult;
+				if (!contactsDirty) {
+					contactEmail = infoResult?.billing_contact_email ?? '';
+					contactPhone = infoResult?.billing_contact_phone ?? '';
+					contactsBaseline = { email: contactEmail, phone: contactPhone };
+				}
 			} catch (error) {
+				if (destroyed || version !== balanceRequest) return;
 				console.error('Failed to load billing contacts:', error);
+				contactsError = true;
 				if (showLoader) {
 					contactEmail = '';
 					contactPhone = '';
 				}
 			}
 
-			autoTopupBaseline = {
-				enabled: autoTopupEnabled,
-				threshold: autoTopupThreshold,
-				amount: autoTopupAmount
-			};
-			limitsBaseline = { maxReplyCost, dailyCap };
-			contactsBaseline = { email: contactEmail, phone: contactPhone };
-
-			const hasLimits =
-				(balance?.max_reply_cost_kopeks ?? null) !== null ||
-				(balance?.daily_cap_kopeks ?? null) !== null;
-			const hasContacts = Boolean(contactEmail || contactPhone);
-			const hasAutoTopup = balance?.auto_topup_enabled ?? false;
-			if (!advancedAutoLock) {
-				advancedOpen = hasAutoTopup || hasLimits || hasContacts;
-			}
 			if (lastTrackedStatus !== 'success') {
 				trackEvent('billing_wallet_view', { status: 'success' });
 				lastTrackedStatus = 'success';
 			}
 		} catch (error) {
+			if (destroyed || version !== balanceRequest) return;
 			console.error('Failed to load balance:', error);
 			if (showLoader) {
 				errorMessage = $i18n.t('Failed to load balance');
@@ -408,8 +457,10 @@
 				toast.error($i18n.t('Failed to load balance'));
 			}
 		} finally {
-			loading = false;
-			refreshing = false;
+			if (version === balanceRequest && !destroyed) {
+				loading = false;
+				refreshing = false;
+			}
 		}
 	};
 
@@ -434,7 +485,8 @@
 			const result = await createTopup(localStorage.token, amountKopeks, returnUrl);
 			if (result?.confirmation_url) {
 				void browserTracksPayments().then((browserEnabled) => {
-					if (browserEnabled) trackEvent('billing_topup_payment_created', { amount_kopeks: amountKopeks });
+					if (browserEnabled)
+						trackEvent('billing_topup_payment_created', { amount_kopeks: amountKopeks });
 				});
 				try {
 					localStorage.setItem('billing_last_topup_kopeks', String(amountKopeks));
@@ -456,7 +508,7 @@
 						// ignore
 					}
 				}
-				window.location.href = result.confirmation_url;
+				if (!destroyed) window.location.href = result.confirmation_url;
 				return;
 			}
 			toast.error($i18n.t('Failed to create topup'));
@@ -470,57 +522,78 @@
 	};
 
 	const handleSaveAutoTopup = async (): Promise<void> => {
-		if (!balance) return;
+		if (!balance || savingAutoTopup || destroyed) return;
+		const snapshot = {
+			enabled: autoTopupEnabled,
+			threshold: autoTopupThreshold,
+			amount: autoTopupAmount
+		};
 		savingAutoTopup = true;
+		autoTopupError = '';
+		saveResult = '';
 		try {
-			const threshold = parseMoneyInput(autoTopupThreshold);
-			const amount = parseMoneyInput(autoTopupAmount);
+			const threshold = parseMoneyInput(snapshot.threshold);
+			const amount = parseMoneyInput(snapshot.amount);
 
-			if (autoTopupEnabled && (threshold === null || amount === null)) {
-				toast.error($i18n.t('Enter threshold and amount for auto-topup'));
+			if (
+				snapshot.enabled &&
+				(threshold === null || amount === null || !topupPackages.includes(amount))
+			) {
+				autoTopupError = $i18n.t('Enter a valid threshold and choose a top-up amount');
+				toast.error(autoTopupError);
 				return;
 			}
 
 			await updateAutoTopup(localStorage.token, {
-				enabled: autoTopupEnabled,
-				threshold_kopeks: autoTopupEnabled ? (threshold ?? undefined) : undefined,
-				amount_kopeks: autoTopupEnabled ? (amount ?? undefined) : undefined
+				enabled: snapshot.enabled,
+				threshold_kopeks: snapshot.enabled ? (threshold ?? undefined) : undefined,
+				amount_kopeks: snapshot.enabled ? (amount ?? undefined) : undefined
 			});
 
+			if (destroyed) return;
 			trackEvent('billing_wallet_auto_topup_save', {
-				enabled: autoTopupEnabled,
-				...(autoTopupEnabled && threshold !== null ? { threshold_kopeks: threshold } : {}),
-				...(autoTopupEnabled && amount !== null ? { amount_kopeks: amount } : {})
+				enabled: snapshot.enabled,
+				...(snapshot.enabled && threshold !== null ? { threshold_kopeks: threshold } : {}),
+				...(snapshot.enabled && amount !== null ? { amount_kopeks: amount } : {})
 			});
-			toast.success($i18n.t('Auto-topup settings saved'));
+			saveSource = 'auto';
+			saveResult = $i18n.t('Auto-topup settings saved');
+			toast.success(saveResult);
 			autoTopupBaseline = {
-				enabled: autoTopupEnabled,
-				threshold: autoTopupThreshold,
-				amount: autoTopupAmount
+				enabled: snapshot.enabled,
+				threshold: snapshot.threshold,
+				amount: snapshot.amount
 			};
 			// Avoid wiping other unsaved inputs (contacts/limits) by reloading the whole page state.
 			// Balance is updated optimistically; a full refresh will still reconcile with backend state.
 			balance = {
 				...balance,
-				auto_topup_enabled: autoTopupEnabled,
-				auto_topup_threshold_kopeks: autoTopupEnabled
+				auto_topup_enabled: snapshot.enabled,
+				auto_topup_threshold_kopeks: snapshot.enabled
 					? (threshold ?? balance.auto_topup_threshold_kopeks)
 					: balance.auto_topup_threshold_kopeks,
-				auto_topup_amount_kopeks: autoTopupEnabled
+				auto_topup_amount_kopeks: snapshot.enabled
 					? (amount ?? balance.auto_topup_amount_kopeks)
 					: balance.auto_topup_amount_kopeks
 			};
 		} catch (error) {
+			if (destroyed) return;
 			console.error('Failed to update auto-topup:', error);
-			toast.error($i18n.t('Failed to update auto-topup'));
+			autoTopupError = $i18n.t('Failed to update auto-topup');
+			toast.error(autoTopupError);
 		} finally {
 			savingAutoTopup = false;
 		}
 	};
 
 	const handleSavePreferences = async (source: 'limits' | 'contacts'): Promise<void> => {
-		if (!balance) return;
+		if (!balance || savingPreferences || destroyed) return;
+		const savedLimits = { maxReplyCost, dailyCap };
+		const savedContacts = { email: contactEmail, phone: contactPhone };
 		savingPreferences = true;
+		limitsError = '';
+		contactsSaveError = '';
+		saveResult = '';
 		try {
 			const payload: {
 				max_reply_cost_kopeks?: number | null;
@@ -534,11 +607,13 @@
 				const daily = parseMoneyInput(dailyCap);
 
 				if (maxReplyCost && maxReply === null) {
-					toast.error($i18n.t('Invalid value for {label}', { label: $i18n.t('Max reply cost') }));
+					limitsError = $i18n.t('Enter a non-negative amount with up to two decimal places');
+					toast.error(limitsError);
 					return;
 				}
 				if (dailyCap && daily === null) {
-					toast.error($i18n.t('Invalid value for {label}', { label: $i18n.t('Daily cap') }));
+					limitsError = $i18n.t('Enter a non-negative amount with up to two decimal places');
+					toast.error(limitsError);
 					return;
 				}
 
@@ -550,6 +625,18 @@
 					...(daily !== null ? { daily_cap_kopeks: daily } : {})
 				});
 			} else {
+				if (contactsError) {
+					contactsSaveError = $i18n.t('Load saved contacts before changing them');
+					return;
+				}
+				if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+					contactsSaveError = $i18n.t('Enter a valid email address');
+					return;
+				}
+				if (contactPhone && !/^\+?[\d ()-]{7,20}$/.test(contactPhone)) {
+					contactsSaveError = $i18n.t('Enter a valid phone number');
+					return;
+				}
 				payload.billing_contact_email = contactEmail ? contactEmail : null;
 				payload.billing_contact_phone = contactPhone ? contactPhone : null;
 
@@ -560,9 +647,12 @@
 			}
 
 			await updateBillingSettings(localStorage.token, payload);
-			toast.success($i18n.t('Billing settings saved'));
+			if (destroyed) return;
+			saveSource = source;
+			saveResult = $i18n.t('Billing settings saved');
+			toast.success(saveResult);
 			if (source === 'limits') {
-				limitsBaseline = { maxReplyCost, dailyCap };
+				limitsBaseline = savedLimits;
 				balance = {
 					...balance,
 					max_reply_cost_kopeks:
@@ -576,17 +666,24 @@
 							: balance.daily_cap_kopeks
 				};
 			} else {
-				contactsBaseline = { email: contactEmail, phone: contactPhone };
+				contactsBaseline = savedContacts;
 			}
 		} catch (error) {
+			if (destroyed) return;
 			console.error('Failed to update billing settings:', error);
+			if (source === 'limits') limitsError = $i18n.t('Failed to update billing settings');
+			else contactsSaveError = $i18n.t('Failed to update billing settings');
 			toast.error($i18n.t('Failed to update billing settings'));
 		} finally {
 			savingPreferences = false;
 		}
 	};
 
-	const formatMoney = (kopeks: number | null | undefined, currency: string, locale: string = getI18nLocale($i18n)): string => {
+	const formatMoney = (
+		kopeks: number | null | undefined,
+		currency: string,
+		locale: string = getI18nLocale($i18n)
+	): string => {
 		if (kopeks === null || kopeks === undefined) {
 			return $i18n.t('Not set');
 		}
@@ -607,15 +704,7 @@
 		return (kopeks / 100).toFixed(2);
 	};
 
-	const parseMoneyInput = (value: string): number | null => {
-		if (!value) return null;
-		const normalized = value.replace(',', '.');
-		const parsed = Number.parseFloat(normalized);
-		if (Number.isNaN(parsed) || parsed < 0) {
-			return null;
-		}
-		return Math.round(parsed * 100);
-	};
+	const parseMoneyInput = parseBillingMoney;
 
 	const extractApiErrorDetail = (error: unknown): string | null => {
 		if (typeof error === 'string') {
@@ -636,22 +725,34 @@
 
 	const scrollToTopup = () => {
 		const target = document.getElementById('topup-section');
-		target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+		target?.scrollIntoView?.({
+			behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+			block: 'start'
+		});
 	};
 
 	const scrollToFreeLimit = () => {
 		const target = document.getElementById('free-limit-section');
-		target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+		target?.scrollIntoView?.({
+			behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+			block: 'start'
+		});
 	};
 
 	const scrollToAdvanced = () => {
 		const target = document.getElementById('advanced-settings-section');
-		target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+		target?.scrollIntoView?.({
+			behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+			block: 'start'
+		});
 	};
 
 	const scrollToAutoTopup = () => {
 		const target = document.getElementById('auto-topup-section');
-		target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+		target?.scrollIntoView?.({
+			behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+			block: 'start'
+		});
 	};
 
 	const applyFocusHint = (): void => {
@@ -668,30 +769,27 @@
 		}
 	};
 
-	const handleAdvancedToggle = (open: boolean): void => {
-		advancedOpen = open;
-		advancedAutoLock = true;
-		trackEvent('billing_wallet_advanced_toggle', { open });
-	};
-
 	const openHowItWorks = (): void => {
 		howItWorksOpen = true;
 		trackEvent('billing_wallet_how_it_works_open');
 	};
 
 	const handleHowItWorksLimits = async (): Promise<void> => {
-		advancedOpen = true;
-		advancedAutoLock = true;
+		const target = new URL(buildBillingPath('/billing/balance'), $page.url.origin);
+		target.searchParams.set('focus', 'limits');
+		await goto(`${target.pathname}${target.search}`);
+		if (destroyed) return;
 		await tick();
 		scrollToAdvanced();
 	};
 
 	const buildBillingPath = (pathname: string): string => {
 		const prefixedPath = withBasePath(pathname, base);
-		if (!normalizedReturnTo) return prefixedPath;
 		const params = new URLSearchParams();
-		params.set('return_to', normalizedReturnTo);
-		return `${prefixedPath}?${params.toString()}`;
+		if (normalizedReturnTo) params.set('return_to', normalizedReturnTo);
+		if (selectedFrom) params.set('from_date', selectedFrom);
+		if (selectedTo) params.set('to_date', selectedTo);
+		return params.size ? `${prefixedPath}?${params.toString()}` : prefixedPath;
 	};
 
 	const handleHistoryClick = async (event: MouseEvent): Promise<void> => {
@@ -713,7 +811,10 @@
 		await goto(normalizedReturnTo);
 	};
 
-	const formatDateTime = (timestamp: number | null | undefined, locale: string = getI18nLocale($i18n)): string => {
+	const formatDateTime = (
+		timestamp: number | null | undefined,
+		locale: string = getI18nLocale($i18n)
+	): string => {
 		if (!timestamp) return $i18n.t('Never');
 		return new Date(timestamp * 1000).toLocaleString(locale, {
 			year: 'numeric',
@@ -734,28 +835,7 @@
 			.map((model) => ({ id: model.id, name: model.name ?? model.id })) ?? [];
 	const leadMagnetModelsReady = true;
 	$: leadMagnetModelsAvailable = leadMagnetModels.length > 0;
-	$: leadMagnetHasRemaining = (() => {
-		if (!leadMagnetInfo?.enabled) return false;
-
-		// Prefer server-provided remaining, but keep a local fallback for robustness.
-		const remaining = (leadMagnetInfo.remaining ?? {}) as unknown as Record<
-			string,
-			number | undefined
-		>;
-		if (Object.values(remaining).some((value) => typeof value === 'number' && value > 0)) {
-			return true;
-		}
-
-		const quotas = (leadMagnetInfo.quotas ?? {}) as unknown as Record<string, number | undefined>;
-		const usage = (leadMagnetInfo.usage ?? {}) as unknown as Record<string, number | undefined>;
-		return Object.entries(quotas).some(([key, limit]) => {
-			if (typeof limit !== 'number' || limit <= 0) return false;
-			const used = usage[key] ?? 0;
-			return limit - used > 0;
-		});
-	})();
-	$: freeUsageAvailable =
-		Boolean(leadMagnetInfo?.enabled) && leadMagnetHasRemaining && leadMagnetModelsAvailable;
+	$: freeUsageAvailable = hasFreeTextQuota(leadMagnetInfo) && leadMagnetModelsAvailable;
 </script>
 
 <svelte:head>
@@ -800,6 +880,8 @@
 
 			{#if topupReturnStatus !== 'idle' && !topupReturnDismissed && topupFlow}
 				<div
+					role="status"
+					aria-live="polite"
 					class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4"
 				>
 					<div class="flex items-start justify-between gap-3">
@@ -827,13 +909,23 @@
 										{$i18n.t('Checking top-up…')}
 									{:else if topupReturnStatus === 'success'}
 										{$i18n.t('Top-up successful')}
+									{:else if topupReturnStatus === 'canceled'}
+										{$i18n.t('Payment canceled; balance was not topped up')}
+									{:else if topupReturnStatus === 'unknown'}
+										{$i18n.t('Payment status could not be checked')}
+									{:else if topupReturnStatus === 'uncredited'}
+										{$i18n.t('Payment confirmed; awaiting balance credit')}
 									{:else}
-										{$i18n.t('Top-up is processing')}
+										{$i18n.t('Awaiting payment confirmation')}
 									{/if}
 								</div>
 								<div class="text-xs text-gray-500 mt-1">
-									{$i18n.t('Top-up')}: {formatMoney(topupFlow.amount_kopeks, balance.currency, getI18nLocale($i18n))}
-									{#if topupReturnStatus !== 'success'}
+									{$i18n.t('Top-up')}: {formatMoney(
+										topupFlow.amount_kopeks,
+										balance.currency,
+										getI18nLocale($i18n)
+									)}
+									{#if ['checking', 'pending', 'uncredited'].includes(topupReturnStatus)}
 										<span class="mx-1">•</span>
 										{$i18n.t('This may take a minute')}
 									{/if}
@@ -844,7 +936,7 @@
 							type="button"
 							aria-label={$i18n.t('Close')}
 							on:click={dismissTopupReturn}
-							class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition px-2 -my-1"
+							class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition min-h-11 min-w-11 px-2 -my-1"
 						>
 							&times;
 						</button>
@@ -854,17 +946,19 @@
 							<button
 								type="button"
 								on:click={handleTopupReturnRefresh}
-								disabled={refreshing}
-								class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
+								disabled={refreshing || checkingTopup || reconcileInFlight !== null}
+								class="inline-flex min-h-11 items-center px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
 							>
-								{refreshing ? $i18n.t('Loading…') : $i18n.t('Refresh')}
+								{refreshing || checkingTopup || reconcileInFlight !== null
+									? $i18n.t('Loading…')
+									: $i18n.t('Refresh')}
 							</button>
 						{/if}
 						{#if normalizedReturnTo}
 							<a
 								href={normalizedReturnTo}
 								on:click={handleReturnToClick}
-								class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
+								class="inline-flex min-h-11 items-center px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
 							>
 								{$i18n.t('Back to chat')}
 							</a>
@@ -873,231 +967,282 @@
 				</div>
 			{/if}
 
-			<div
-				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4 sm:p-5"
-				class:hidden={settingsView}
-			>
-				<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-					<div>
-						<div class="flex items-center gap-2">
-							<h1 class="text-xl font-medium">{$i18n.t('Balance')}</h1>
-							{#if isLowBalance}
-								<span
-									class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300"
+			{#if !settingsView}
+				<div
+					class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4 sm:p-5"
+				>
+					<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+						<div>
+							<div class="flex flex-wrap items-center gap-2">
+								<h1 class="text-xl font-medium">{$i18n.t('Balance and spending')}</h1>
+								{#if isLowBalance}
+									<span
+										class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300"
+									>
+										{$i18n.t('Low balance')}
+									</span>
+								{/if}
+							</div>
+							<div class="text-sm text-gray-500 mt-1">
+								{$i18n.t('Top up and control spending')}
+							</div>
+							<div class="mt-1 flex flex-wrap items-center gap-3">
+								<button
+									type="button"
+									class="inline-flex min-h-11 items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
+									on:click={openHowItWorks}
 								>
-									{$i18n.t('Low balance')}
+									<InfoCircle className="size-4" />
+									<span>{$i18n.t('How billing works')}</span>
+								</button>
+								<a
+									href={buildBillingPath('/billing/cost')}
+									class="inline-flex min-h-11 items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
+									on:click={() => trackEvent('billing_wallet_pricing_click')}
+								>
+									<span>{$i18n.t('Pricing')}</span>
+								</a>
+							</div>
+						</div>
+						<div class="flex flex-wrap items-center gap-2">
+							{#if normalizedReturnTo}
+								<a
+									href={normalizedReturnTo}
+									on:click={handleReturnToClick}
+									class="inline-flex min-h-11 items-center px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
+								>
+									{$i18n.t('Back to chat')}
+								</a>
+							{/if}
+							<a
+								href={buildBillingPath('/billing/history')}
+								on:click={handleHistoryClick}
+								class="inline-flex min-h-11 items-center px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
+							>
+								{$i18n.t('View history')}
+							</a>
+							<button
+								type="button"
+								data-testid="wallet-hero-topup"
+								aria-controls="topup-section"
+								on:click={scrollToTopup}
+								class="inline-flex min-h-11 items-center px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium {isLowBalance
+									? 'ring-2 ring-amber-500/40'
+									: ''}"
+							>
+								{$i18n.t('Top up balance')}
+							</button>
+						</div>
+					</div>
+
+					<div class="mt-5">
+						<div class="flex items-center gap-1 text-sm text-gray-500">
+							<span>{$i18n.t('Available for paid models')}</span>
+							<Tooltip content={$i18n.t('Available now help')} placement="top">
+								<button
+									type="button"
+									aria-label={$i18n.t('Available now help')}
+									class="min-h-11 min-w-11 inline-flex items-center justify-center text-gray-500 focus-visible:ring-2"
+									><InfoCircle className="size-4" /></button
+								>
+							</Tooltip>
+						</div>
+						<div class="text-3xl font-semibold mt-1">
+							{formatMoney(totalBalance, balance.currency, getI18nLocale($i18n))}
+						</div>
+						<div class="mt-3 text-sm" role="status">
+							{#if leadMagnetError}<span>{$i18n.t('Free availability could not be checked')}</span
+								><button
+									type="button"
+									class="ml-2 underline min-h-11"
+									on:click={() => loadBalance({ showLoader: false })}>{$i18n.t('Retry')}</button
+								>
+							{:else if freeUsageAvailable}<span class="text-emerald-700 dark:text-emerald-300"
+									>{$i18n.t('Free usage is available on marked models')}</span
+								>
+							{:else if leadMagnetInfo?.enabled}<span
+									>{$i18n.t('Free usage is currently unavailable')}</span
+								>{/if}
+						</div>
+						<p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+							{$i18n.t('Spent today')}: {formatMoney(balance.daily_spent_kopeks, balance.currency)}
+						</p>
+						{#if balance.topup_expires_at}<p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+								{$i18n.t('Paid balance valid until')}: {formatDateTime(balance.topup_expires_at)}
+							</p>{/if}
+						{#if balance.daily_reserved_kopeks && balance.daily_reserved_kopeks > 0}<p
+								class="mt-2 text-sm text-gray-600 dark:text-gray-300"
+							>
+								{$i18n.t('Reserved today')}: {formatMoney(
+									balance.daily_reserved_kopeks,
+									balance.currency
+								)}
+							</p>{/if}
+						<div class="flex flex-wrap gap-3 text-xs text-gray-500 mt-2">
+							<span>
+								{$i18n.t('From wallet')}:{' '}
+								{formatMoney(balance.balance_topup_kopeks, balance.currency, getI18nLocale($i18n))}
+							</span>
+							{#if balance.balance_included_kopeks > 0}
+								<span>
+									{$i18n.t('Included funds')}:{' '}
+									{formatMoney(
+										balance.balance_included_kopeks,
+										balance.currency,
+										getI18nLocale($i18n)
+									)}
+								</span>
+								<span>
+									{$i18n.t('Included expires')}: {formatDateTime(
+										balance.included_expires_at,
+										getI18nLocale($i18n)
+									)}
 								</span>
 							{/if}
 						</div>
-						<div class="text-sm text-gray-500 mt-1">
-							{$i18n.t('Top up and control spending')}
-						</div>
-						<div class="mt-1 flex flex-wrap items-center gap-3">
-							<button
-								type="button"
-								class="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
-								on:click={openHowItWorks}
+						{#if isLowBalance}
+							<div
+								class="text-xs text-amber-700 dark:text-amber-300 mt-2"
+								data-testid="wallet-low-balance-hint"
 							>
-								<InfoCircle className="size-4" />
-								<span>{$i18n.t('How billing works')}</span>
-							</button>
-							<a
-								href="/pricing"
-								target="_blank"
-								rel="noreferrer"
-								class="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
-								on:click={() => trackEvent('billing_wallet_pricing_click')}
-							>
-								<span>{$i18n.t('Pricing')}</span>
-							</a>
-						</div>
-					</div>
-					<div class="flex items-center gap-2">
-						{#if normalizedReturnTo}
-							<a
-								href={normalizedReturnTo}
-								on:click={handleReturnToClick}
-								class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
-							>
-								{$i18n.t('Back to chat')}
-							</a>
+								{#if freeUsageAvailable}
+									<span data-testid="wallet-low-balance-hint-free">
+										{$i18n.t('Wallet is low but free limit is available')}
+									</span>{' '}
+									<button
+										type="button"
+										data-testid="wallet-low-balance-free-limit-link"
+										class="underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100 transition"
+										on:click={scrollToFreeLimit}
+									>
+										{$i18n.t('Free limit')}
+									</button>
+								{:else}
+									<span data-testid="wallet-low-balance-hint-topup">
+										{$i18n.t('Top up to keep working')}
+									</span>
+								{/if}
+							</div>
 						{/if}
+					</div>
+				</div>
+
+				{#if !settingsView}<WalletPeriodSummary
+						refreshRevision={recentActivityRevision}
+						initialFrom={$page.url.searchParams.get('from_date') ?? ''}
+						initialTo={$page.url.searchParams.get('to_date') ?? ''}
+						onPeriodChange={(from, to) => {
+							selectedFrom = new Date(from * 1000).toISOString().slice(0, 10);
+							selectedTo = new Date((to - 86400) * 1000).toISOString().slice(0, 10);
+						}}
+					/>{/if}
+				<div class={`grid gap-3 ${leadMagnetInfo?.enabled ? 'lg:grid-cols-2' : ''}`}>
+					{#if leadMagnetInfo?.enabled}
+						<WalletLeadMagnetSection
+							leadMagnetInfo={leadMagnetInfo as LeadMagnetInfo}
+							models={leadMagnetModels}
+							modelsReady={leadMagnetModelsReady}
+						/>
+					{/if}
+					<WalletTopupSection
+						currency={balance.currency}
+						defaultPackages={topupPackages}
+						allowCustom={allowCustomTopup}
+						autoSelectFirst={isLowBalance}
+						{highlightedPackageKopeks}
+						{highlightedPackageLabel}
+						{creatingTopupAmount}
+						bind:customTopup
+						{customTopupKopeks}
+						onTopup={handleTopup}
+					/>
+				</div>
+			{/if}
+			{#if settingsView}
+				<div id="advanced-settings-section">
+					{#if settingsView}
+						<div class="px-1 pb-1">
+							<h1 class="text-xl font-medium">{$i18n.t('Payment settings')}</h1>
+							<div class="mt-1 text-sm text-gray-500">
+								{$i18n.t('Control spending and payment behavior')}
+							</div>
+						</div>
+					{/if}
+					<div class="space-y-4">
+						<div id="auto-topup-section">
+							<WalletAutoTopupSection
+								packages={topupPackages}
+								currency={balance.currency}
+								successMessage={saveSource === 'auto' && !autoTopupDirty ? saveResult : ''}
+								errorMessage={autoTopupError}
+								bind:autoTopupEnabled
+								bind:autoTopupThreshold
+								bind:autoTopupAmount
+								{savingAutoTopup}
+								dirty={autoTopupDirty}
+								paymentMethodSaved={balance.auto_topup_payment_method_saved ?? false}
+								autoTopupFailCount={balance.auto_topup_fail_count ?? 0}
+								autoTopupLastFailedAt={balance.auto_topup_last_failed_at}
+								onSave={handleSaveAutoTopup}
+							/>
+						</div>
+						<WalletSpendControls
+							successMessage={saveSource === 'limits' && !limitsDirty ? saveResult : ''}
+							errorMessage={limitsError}
+							bind:maxReplyCost
+							bind:dailyCap
+							currentMaxReply={balance.max_reply_cost_kopeks ?? null}
+							currentDailyCap={balance.daily_cap_kopeks ?? null}
+							dailyReserved={balance.daily_reserved_kopeks ?? 0}
+							dailySpent={balance.daily_spent_kopeks ?? null}
+							dailyResetAt={balance.daily_reset_at ?? null}
+							currency={balance.currency}
+							{savingPreferences}
+							dirty={limitsDirty}
+							onSave={() => handleSavePreferences('limits')}
+						/>
+						<WalletContactsSection
+							loadFailed={contactsError}
+							successMessage={saveSource === 'contacts' && !contactsDirty ? saveResult : ''}
+							errorMessage={contactsSaveError}
+							onRetry={() => loadBalance({ showLoader: false })}
+							bind:contactEmail
+							bind:contactPhone
+							{savingPreferences}
+							dirty={contactsDirty}
+							onSave={() => handleSavePreferences('contacts')}
+						/>
+					</div>
+				</div>
+			{/if}
+
+			{#if !settingsView}
+				<div
+					class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4"
+				>
+					<div class="flex items-center justify-between mb-3">
+						<div class="text-sm font-medium">{$i18n.t('Latest activity')}</div>
 						<a
 							href={buildBillingPath('/billing/history')}
 							on:click={handleHistoryClick}
-							class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
+							class="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
 						>
-							{$i18n.t('View history')}
+							{$i18n.t('View all activity')}
 						</a>
-						<button
-							type="button"
-							data-testid="wallet-hero-topup"
-							aria-controls="topup-section"
-							on:click={scrollToTopup}
-							class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium {isLowBalance
-								? 'ring-2 ring-amber-500/40'
-								: ''}"
-						>
-							{$i18n.t('Top up balance')}
-						</button>
 					</div>
-				</div>
-
-				<div class="mt-5">
-					<div class="flex items-center gap-1 text-sm text-gray-500">
-						<span>{$i18n.t('Available now')}</span>
-						<Tooltip content={$i18n.t('Available now help')} placement="top">
-							<span
-								class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition cursor-pointer"
-							>
-								<InfoCircle className="size-4" />
-							</span>
-						</Tooltip>
-					</div>
-					<div class="text-3xl font-semibold mt-1">
-						{formatMoney(totalBalance, balance.currency, getI18nLocale($i18n))}
-					</div>
-					<div class="flex flex-wrap gap-3 text-xs text-gray-500 mt-2">
-						<span>
-							{$i18n.t('From wallet')}:{' '}
-							{formatMoney(balance.balance_topup_kopeks, balance.currency, getI18nLocale($i18n))}
-						</span>
-						{#if balance.balance_included_kopeks > 0}
-							<span>
-								{$i18n.t('From plan')}:{' '}
-								{formatMoney(balance.balance_included_kopeks, balance.currency, getI18nLocale($i18n))}
-							</span>
-							<span>
-								{$i18n.t('Included expires')}: {formatDateTime(balance.included_expires_at, getI18nLocale($i18n))}
-							</span>
-						{/if}
-					</div>
-					{#if isLowBalance}
-						<div
-							class="text-xs text-amber-700 dark:text-amber-300 mt-2"
-							data-testid="wallet-low-balance-hint"
-						>
-							{#if freeUsageAvailable}
-								<span data-testid="wallet-low-balance-hint-free">
-									{$i18n.t('Wallet is low but free limit is available')}
-								</span>{' '}
-								<button
-									type="button"
-									data-testid="wallet-low-balance-free-limit-link"
-									class="underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100 transition"
-									on:click={scrollToFreeLimit}
-								>
-									{$i18n.t('Free limit')}
-								</button>
-							{:else}
-								<span data-testid="wallet-low-balance-hint-topup">
-									{$i18n.t('Top up to keep working')}
-								</span>
-							{/if}
-						</div>
-					{/if}
-				</div>
-			</div>
-
-			<div class={`grid gap-3 ${leadMagnetInfo?.enabled ? 'lg:grid-cols-2' : ''}`} class:hidden={settingsView}>
-				<WalletTopupSection
-					currency={balance.currency}
-					defaultPackages={topupPackages}
-					allowCustom={allowCustomTopup}
-					autoSelectFirst={isLowBalance}
-					{highlightedPackageKopeks}
-					{highlightedPackageLabel}
-					{creatingTopupAmount}
-					bind:customTopup
-					{customTopupKopeks}
-					onTopup={handleTopup}
-				/>
-
-				{#if leadMagnetInfo?.enabled}
-					<WalletLeadMagnetSection
-						leadMagnetInfo={leadMagnetInfo as LeadMagnetInfo}
-						models={leadMagnetModels}
-						modelsReady={leadMagnetModelsReady}
-					/>
-				{/if}
-			</div>
-
-			<div id="advanced-settings-section">
-				{#if settingsView}
-					<div class="px-1 pb-1">
-						<h1 class="text-xl font-medium">{$i18n.t('Payment settings')}</h1>
-						<div class="mt-1 text-sm text-gray-500">
-							{$i18n.t('Control spending and payment behavior')}
-						</div>
-					</div>
-				{/if}
-				<WalletAdvancedSettings
-					bind:open={advancedOpen}
-					title={$i18n.t('Manage limits & auto-topup')}
-					helper={$i18n.t('Rarely used settings')}
-					onToggle={handleAdvancedToggle}
-				>
-					<div id="auto-topup-section">
-						<WalletAutoTopupSection
-							bind:autoTopupEnabled
-							bind:autoTopupThreshold
-							bind:autoTopupAmount
-							{savingAutoTopup}
-							dirty={autoTopupDirty}
-							paymentMethodSaved={balance.auto_topup_payment_method_saved ?? false}
-							autoTopupFailCount={balance.auto_topup_fail_count ?? 0}
-							autoTopupLastFailedAt={balance.auto_topup_last_failed_at}
-							onSave={handleSaveAutoTopup}
+					{#key recentActivityRevision}
+						<UnifiedTimeline
+							pageSize={5}
+							maxItems={5}
+							showFilters={false}
+							showLoadMore={false}
+							emptyActionLabel={$i18n.t('View all activity')}
+							onEmptyAction={() => goto(buildBillingPath('/billing/history'))}
+							currency={balance.currency}
 						/>
-					</div>
-					<WalletSpendControls
-						bind:maxReplyCost
-						bind:dailyCap
-						currentMaxReply={balance.max_reply_cost_kopeks ?? null}
-						currentDailyCap={balance.daily_cap_kopeks ?? null}
-						dailySpent={balance.daily_spent_kopeks ?? null}
-						dailyResetAt={balance.daily_reset_at ?? null}
-						currency={balance.currency}
-						{savingPreferences}
-						dirty={limitsDirty}
-						onSave={() => handleSavePreferences('limits')}
-					/>
-					<WalletContactsSection
-						bind:contactEmail
-						bind:contactPhone
-						{savingPreferences}
-						dirty={contactsDirty}
-						onSave={() => handleSavePreferences('contacts')}
-					/>
-				</WalletAdvancedSettings>
-			</div>
-
-			<div
-				class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-4"
-				class:hidden={settingsView}
-			>
-				<div class="flex items-center justify-between mb-3">
-					<div class="text-sm font-medium">{$i18n.t('Latest activity')}</div>
-					<a
-						href={buildBillingPath('/billing/history')}
-						on:click={handleHistoryClick}
-						class="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition"
-					>
-						{$i18n.t('View all activity')}
-					</a>
+					{/key}
 				</div>
-				{#key recentActivityRevision}
-					<UnifiedTimeline
-						pageSize={6}
-						maxItems={6}
-						showFilters={false}
-						showLoadMore={false}
-						emptyActionLabel={$i18n.t('Top up')}
-						onEmptyAction={scrollToTopup}
-						currency={balance.currency}
-					/>
-				{/key}
-			</div>
+			{/if}
 		</div>
 	</div>
 {/if}

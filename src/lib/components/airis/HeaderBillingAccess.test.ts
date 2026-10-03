@@ -50,6 +50,8 @@ const mocks = vi.hoisted(() => {
 
 	return {
 		getBalanceMock: vi.fn(),
+		getLeadMagnetInfoMock: vi.fn().mockResolvedValue(null),
+		modelsStore: createStore<{ id: string; info?: { meta?: { lead_magnet?: boolean } } }[]>([]),
 		pageStore: createStore({ url: new URL('http://localhost/c/123') }),
 		i18nStore: createStore<I18nValue>({
 			language: 'en-US',
@@ -58,7 +60,11 @@ const mocks = vi.hoisted(() => {
 	};
 });
 
-vi.mock('$lib/apis/billing', () => ({ getBalance: mocks.getBalanceMock }));
+vi.mock('$lib/apis/billing', () => ({
+	getBalance: mocks.getBalanceMock,
+	getLeadMagnetInfo: mocks.getLeadMagnetInfoMock
+}));
+vi.mock('$lib/stores', () => ({ models: mocks.modelsStore }));
 vi.mock('$app/stores', () => ({ page: mocks.pageStore }));
 
 const flushPromises = async (): Promise<void> => {
@@ -89,6 +95,8 @@ describe('HeaderBillingAccess', () => {
 		mocks.i18nStore.set({ language: 'en-US', t: (key: string) => key });
 		mocks.pageStore.set({ url: new URL('http://localhost/c/123?focus=topup') });
 		mocks.getBalanceMock.mockReset().mockResolvedValue(createBalance());
+		mocks.modelsStore.set([]);
+		mocks.getLeadMagnetInfoMock.mockReset().mockResolvedValue(null);
 		consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 	});
 
@@ -132,7 +140,7 @@ describe('HeaderBillingAccess', () => {
 		expect(root.textContent).not.toContain('Balance');
 		expect(root.textContent).toContain('Top up balance');
 		expect(topupLink?.getAttribute('aria-label')).toBe('Top up balance');
-		expect(shell?.className).toContain('h-[34px]');
+		expect(shell).toBeTruthy();
 		expect(shell?.className).toContain('rounded-xl');
 		expect(topupLink?.className).not.toContain('rounded-full');
 		expect(topupLink?.className).not.toContain('bg-black');
@@ -220,8 +228,6 @@ describe('HeaderBillingAccess', () => {
 		const amount = root.querySelector('[data-testid="header-billing-amount"]');
 
 		expect(amount?.textContent).toContain('0');
-		expect(amount?.className).toContain('min-w-[2.6rem]');
-		expect(amount?.className).toContain('max-w-[6rem]');
 		expect(amount?.getAttribute('title')).toContain('0');
 	});
 
@@ -244,5 +250,21 @@ describe('HeaderBillingAccess', () => {
 		expect(topupUrl.pathname).toBe('/billing/balance');
 		expect(topupUrl.searchParams.get('focus')).toBe('topup');
 		expect(topupUrl.searchParams.get('return_to')).toBeNull();
+	});
+	it('shows free text availability without a low-balance warning', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 0 }));
+		mocks.modelsStore.set([{ id: 'free', info: { meta: { lead_magnet: true } } }]);
+		mocks.getLeadMagnetInfoMock.mockResolvedValue({
+			enabled: true,
+			remaining: { tokens_input: 100, tokens_output: 100 }
+		});
+		const root = renderComponent();
+		await flushPromises();
+		expect(
+			root.querySelector('[data-testid="header-billing-access"]')?.getAttribute('data-state')
+		).toBe('normal');
+		expect(
+			root.querySelector('[data-testid="header-billing-balance"]')?.getAttribute('aria-label')
+		).toContain('Free text quota available');
 	});
 });

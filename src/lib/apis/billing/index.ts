@@ -44,6 +44,8 @@ export interface PublicPlan {
 }
 
 export interface Balance {
+	topup_expires_at?: number | null;
+	daily_reserved_kopeks?: number;
 	balance_topup_kopeks: number;
 	balance_included_kopeks: number;
 	included_expires_at?: number | null;
@@ -280,6 +282,8 @@ const BILLING_INFO_TIMEOUT_MS = 15000;
 async function apiRequest<T>(url: string, token: string, options: RequestInit = {}): Promise<T> {
 	const response = await fetch(url, {
 		...options,
+		signal: options.signal ?? AbortSignal.timeout(25000),
+		cache: options.cache ?? 'no-store',
 		headers: {
 			'Content-Type': 'application/json',
 			Authorization: `Bearer ${token}`,
@@ -708,4 +712,63 @@ export const getPublicRateCards = async (): Promise<PublicRateCardResponse | nul
 		console.error('Failed to get public rate cards:', error);
 		return null;
 	}
+};
+
+export interface BillingPeriodSummary {
+	currency: string;
+	from: number;
+	to: number;
+	as_of: number;
+	timezone?: string;
+	topup_kopeks: number;
+	topup_count: number;
+	refund_kopeks: number;
+	refund_count: number;
+	net_kopeks: number;
+	spent_kopeks: number;
+	usage_count: number;
+	current_balance: {
+		balance_kopeks: number;
+		included_balance_kopeks: number;
+		daily_reserved_kopeks: number;
+		topup_expires_at: number | null;
+	};
+	refund_wallet_reflection: string;
+}
+
+export const getBillingSummary = (
+	token: string,
+	from: number,
+	to: number
+): Promise<BillingPeriodSummary> =>
+	apiRequest<BillingPeriodSummary>(
+		`${WEBUI_API_BASE_URL}/billing/summary?from=${from}&to=${to}`,
+		token
+	);
+
+export interface BillingRefund {
+	id: string;
+	payment_id: string;
+	amount_kopeks: number;
+	currency: string;
+	occurred_at: number;
+	wallet_reflection: 'requires_verification';
+}
+export interface BillingRefundPage {
+	items: BillingRefund[];
+	total: number;
+	limit: number;
+	skip: number;
+}
+export const getBillingRefunds = (
+	token: string,
+	limit: number,
+	skip: number,
+	from?: number | null,
+	to?: number | null
+): Promise<BillingRefundPage> => {
+	const params = new URLSearchParams({ limit: String(limit), skip: String(skip) });
+	if (from !== null && from !== undefined) params.set('from', String(from));
+	if (to !== null && to !== undefined) params.set('to', String(to));
+	return apiRequest<BillingRefundPage>(`${WEBUI_API_BASE_URL}/billing/refunds?${params}`, token);
 };

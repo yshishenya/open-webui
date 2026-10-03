@@ -170,17 +170,20 @@
 </script>
 
 <section class="space-y-4 p-4">
-	<h2 class="text-xl font-semibold">{copy.title}</h2>
+	<h1 class="text-xl font-semibold">{copy.title}</h1>
 	<p class="text-sm text-gray-600 dark:text-gray-300">{copy.intro}</p>
-	<p class="text-sm text-gray-600 dark:text-gray-300">{copy.coverage}</p>
+	<details class="text-sm text-gray-600 dark:text-gray-300">
+		<summary class="cursor-pointer">{copy.how}</summary>
+		<p class="mt-2">{copy.coverage}</p>
+	</details>
 	<div class="flex flex-wrap gap-2">
 		<button
-			class="rounded border px-3 py-2"
+			class="min-h-11 rounded border px-3 py-2"
 			disabled={loading || writing || traversal?.busy}
 			on:click={() => loadGroups()}>{copy.refresh}</button
 		>
 		<button
-			class="rounded border px-3 py-2"
+			class="min-h-11 rounded border px-3 py-2"
 			disabled={writing || traversal?.busy}
 			on:click={() => {
 				showCreate = !showCreate;
@@ -194,6 +197,7 @@
 			<p class="text-sm">{copy.cap}</p>
 			<fieldset disabled={writing || declarationPending !== null} class="space-y-3">
 				<div class="grid gap-3 sm:grid-cols-2">
+					<p class="font-medium sm:col-span-2">{copy.registrations}</p>
 					<label
 						>{copy.registrationsFrom}<input
 							required
@@ -211,6 +215,7 @@
 							class="block rounded border bg-transparent p-2"
 						/></label
 					>
+					<p class="font-medium sm:col-span-2">{copy.payments}</p>
 					<label
 						>{copy.paymentsFrom}<input
 							required
@@ -304,33 +309,36 @@
 		>{/if}
 	{#if selected}
 		<div class="space-y-3 rounded border p-3">
-			<p class="break-all text-xs text-gray-500">{selected.id}</p>
-			<dl class="grid gap-2 text-sm sm:grid-cols-2">
-				<div>
-					<dt>{copy.declared}</dt>
-					<dd>{stamp(selected.declared_at)}</dd>
-				</div>
-				<div>
-					<dt>{copy.started}</dt>
-					<dd>{stamp(selected.observed_from)}</dd>
-				</div>
-				<div>
-					<dt>{copy.registrationsFrom}</dt>
-					<dd>{stamp(selected.registrations_from)}</dd>
-				</div>
-				<div>
-					<dt>{copy.registrationsUntil}</dt>
-					<dd>{stamp(selected.registrations_until)} ({copy.exclusive})</dd>
-				</div>
-				<div>
-					<dt>{copy.paymentsFrom}</dt>
-					<dd>{stamp(selected.payments_from)}</dd>
-				</div>
-				<div>
-					<dt>{copy.paymentsUntil}</dt>
-					<dd>{stamp(selected.payments_until)} ({copy.exclusive})</dd>
-				</div>
-			</dl>
+			<details>
+				<summary class="cursor-pointer text-sm">{copy.technical}</summary>
+				<p class="mt-2 break-all text-xs text-gray-500">{selected.id}</p>
+				<dl class="grid gap-2 text-sm sm:grid-cols-2">
+					<div>
+						<dt>{copy.declared}</dt>
+						<dd>{stamp(selected.declared_at)}</dd>
+					</div>
+					<div>
+						<dt>{copy.started}</dt>
+						<dd>{stamp(selected.observed_from)}</dd>
+					</div>
+					<div>
+						<dt>{copy.registrationsFrom}</dt>
+						<dd>{stamp(selected.registrations_from)}</dd>
+					</div>
+					<div>
+						<dt>{copy.registrationsUntil}</dt>
+						<dd>{stamp(selected.registrations_until)} ({copy.exclusive})</dd>
+					</div>
+					<div>
+						<dt>{copy.paymentsFrom}</dt>
+						<dd>{stamp(selected.payments_from)}</dd>
+					</div>
+					<div>
+						<dt>{copy.paymentsUntil}</dt>
+						<dd>{stamp(selected.payments_until)} ({copy.exclusive})</dd>
+					</div>
+				</dl>
+			</details>
 			{#if selected.last_run}
 				<p role="status">{copy[selected.last_run.status]}</p>
 				<p>{copy.progress}: {selected.last_run.scanned_members} / {selected.member_count}</p>
@@ -345,9 +353,12 @@
 				{#if selected.last_run.failure_reason}<p role="alert">
 						{copy.reason}: {selected.last_run.failure_reason}
 					</p>{/if}
-				{#if selected.last_run.lease_until}<p>
-						{copy.lease}: {stamp(selected.last_run.lease_until)}
-					</p>{/if}
+				{#if selected.last_run.lease_until}<details>
+						<summary class="cursor-pointer text-sm">{copy.technical}</summary>
+						<p>
+							{copy.lease}: {stamp(selected.last_run.lease_until)}
+						</p>
+					</details>{/if}
 			{:else}<p>{copy.ready}</p>{/if}
 			{#if selected.closed_at !== null}<p>{copy.closed}: {stamp(selected.closed_at)}</p>{/if}
 			{#if traversal?.error}<p role="alert">{copy[traversal.error]}</p>{/if}

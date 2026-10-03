@@ -115,6 +115,10 @@ vi.mock('$lib/apis/billing', () => ({
 	reconcileTopup: mocks.reconcileTopupMock,
 	getLedger: mocks.getLedgerMock,
 	getUsageEvents: mocks.getUsageEventsMock,
+	getBillingRefunds: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+	getBillingSummary: vi
+		.fn()
+		.mockResolvedValue({ currency: 'RUB', topup_kopeks: 0, spent_kopeks: 0, refund_kopeks: 0 }),
 	updateAutoTopup: mocks.updateAutoTopupMock,
 	updateBillingSettings: mocks.updateBillingSettingsMock
 }));
@@ -255,24 +259,26 @@ describe('Billing balance page', () => {
 		expect(mocks.createTopupMock).not.toHaveBeenCalled();
 	});
 
-	it('auto-expands advanced settings when auto-topup is enabled', async () => {
+	it('opens payment settings explicitly when requested', async () => {
 		mocks.getBalanceMock.mockResolvedValue(createBalance({ auto_topup_enabled: true }));
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/balance?focus=limits') });
 
 		const root = renderPage();
 		await flushPromises();
 
-		const toggle = root.querySelector('button[aria-controls^="wallet-advanced-settings-"]');
-		expect(toggle?.getAttribute('aria-expanded')).toBe('true');
+		expect(root.textContent).toContain('Payment settings');
+		expect(root.textContent).toContain('Spend controls');
+		expect(root.querySelector('[data-testid="topup-proceed"]')).toBeNull();
 	});
 
-	it('keeps advanced settings collapsed when no settings are configured', async () => {
+	it('keeps payment settings separate from the balance page', async () => {
 		mocks.getBalanceMock.mockResolvedValue(createBalance());
 
 		const root = renderPage();
 		await flushPromises();
 
-		const toggle = root.querySelector('button[aria-controls^="wallet-advanced-settings-"]');
-		expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+		expect(root.textContent).not.toContain('Save limits');
+		expect(root.querySelector('[data-testid="topup-proceed"]')).toBeTruthy();
 	});
 
 	it('preselects the smallest package for paid recovery even with free usage', async () => {
@@ -310,7 +316,7 @@ describe('Billing balance page', () => {
 
 		expect(presets[0]?.getAttribute('aria-pressed')).toBe('true');
 		expect(proceed?.disabled).toBe(false);
-		expect(proceed?.textContent).toContain('Pay');
+		expect(proceed?.textContent).toContain('Continue to payment');
 	});
 
 	it('hides free-limit hint when free models are unavailable', async () => {
@@ -361,7 +367,7 @@ describe('Billing balance page', () => {
 		await flushPromises();
 
 		expect(root.querySelector('input[name="custom_topup"]')).toBeNull();
-		expect(root.textContent).toContain('Custom top-up amounts are unavailable');
+		expect(root.querySelectorAll('[data-testid="topup-preset"]')).toHaveLength(3);
 	});
 
 	it('sends normalized return_url for top-up when return_to is valid', async () => {
@@ -555,5 +561,100 @@ describe('Billing balance page', () => {
 		refresh?.click();
 		await flushPromises();
 		expect(root.textContent).toContain('Top-up successful');
+	});
+	it.each([
+		['canceled', 'Payment canceled; balance was not topped up'],
+		['succeeded', 'Payment confirmed; awaiting balance credit']
+	])('keeps the provider %s state distinct from confirmed wallet credit', async (status, label) => {
+		vi.useFakeTimers();
+		storeReturningTopup();
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		mocks.reconcileTopupMock.mockResolvedValue({ credited: false, provider_status: status });
+		const root = renderPage();
+		await vi.advanceTimersByTimeAsync(3000);
+		expect(root.textContent).toContain(label);
+		expect(root.textContent).not.toContain('Top-up successful');
+	});
+	it('rejects a malformed spending limit and preserves an explicit zero limit', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance({ max_reply_cost_kopeks: 1000 }));
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/balance?focus=limits') });
+		const root = renderPage();
+		await flushPromises();
+		const input = root.querySelector('input[name="max_reply_cost"]') as HTMLInputElement;
+		input.value = '12abc';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await flushPromises();
+		const save = [...root.querySelectorAll('button')].find((button) =>
+			button.textContent?.includes('Save limits')
+		);
+		save?.click();
+		await flushPromises();
+		expect(mocks.updateBillingSettingsMock).not.toHaveBeenCalled();
+		expect(root.querySelector('[role="alert"]')?.textContent).toContain(
+			'Enter a non-negative amount'
+		);
+		input.value = '0';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await flushPromises();
+		save?.click();
+		await flushPromises();
+		expect(mocks.updateBillingSettingsMock.mock.calls.at(-1)?.[1].max_reply_cost_kopeks).toBe(0);
+	});
+	it('disables manual refresh for the whole pending reconciliation', async () => {
+		vi.useFakeTimers();
+		storeReturningTopup();
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		let complete: (value: { credited: boolean }) => void = () => {};
+		mocks.reconcileTopupMock.mockImplementation(
+			() =>
+				new Promise((resolve) => {
+					complete = resolve;
+				})
+		);
+		const root = renderPage();
+		await vi.advanceTimersByTimeAsync(0);
+		const refresh = [...root.querySelectorAll('button')].find(
+			(button) => button.textContent?.trim() === 'Refresh'
+		) as HTMLButtonElement;
+		refresh.click();
+		await vi.advanceTimersByTimeAsync(0);
+		expect(refresh.disabled).toBe(true);
+		await vi.advanceTimersByTimeAsync(3000);
+		expect(mocks.reconcileTopupMock).toHaveBeenCalledTimes(1);
+		complete({ credited: false });
+		await vi.advanceTimersByTimeAsync(0);
+		expect(refresh.disabled).toBe(false);
+	});
+	it('keeps edits made during saving dirty and remembers only the sent limit', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance({ max_reply_cost_kopeks: 1000 }));
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/balance?focus=limits') });
+		let saved: () => void = () => {};
+		mocks.updateBillingSettingsMock.mockImplementation(
+			() =>
+				new Promise((resolve) => {
+					saved = () => resolve({ status: 'ok' });
+				})
+		);
+		const root = renderPage();
+		await flushPromises();
+		const input = root.querySelector('input[name="max_reply_cost"]') as HTMLInputElement;
+		const set = (value: string) => {
+			input.value = value;
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+		};
+		set('20');
+		await flushPromises();
+		const button = [...root.querySelectorAll('button')].find((button) =>
+			button.textContent?.includes('Save limits')
+		) as HTMLButtonElement;
+		button.click();
+		await flushPromises();
+		set('30');
+		await flushPromises();
+		saved();
+		await flushPromises();
+		expect(mocks.updateBillingSettingsMock.mock.calls.at(-1)?.[1].max_reply_cost_kopeks).toBe(2000);
+		expect(input.value).toBe('30');
+		expect(button.disabled).toBe(false);
 	});
 });

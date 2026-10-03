@@ -15,7 +15,11 @@
 	export let customTopupKopeks: number | null = null;
 	export let onTopup: (amountKopeks: number, source?: 'package' | 'custom') => void | Promise<void>;
 
-	const formatMoney = (kopeks: number, currencyCode: string, locale: string = getI18nLocale($i18n)): string => {
+	const formatMoney = (
+		kopeks: number,
+		currencyCode: string,
+		locale: string = getI18nLocale($i18n)
+	): string => {
 		const amount = kopeks / 100;
 		try {
 			return new Intl.NumberFormat(locale, {
@@ -43,12 +47,9 @@
 	$: canProceed =
 		creatingTopupAmount === null && selectedAmountKopeks !== null && selectedAmountKopeks > 0;
 
-	$: if (
-		!userSelected &&
-		selectedPackageKopeks === null
-	) {
+	$: if (!userSelected && selectedPackageKopeks === null) {
 		const suggestedPackage =
-			highlightedPackageKopeks ?? (autoSelectFirst ? defaultPackages[0] ?? null : null);
+			highlightedPackageKopeks ?? (autoSelectFirst ? (defaultPackages[0] ?? null) : null);
 		if (suggestedPackage !== null && defaultPackages.includes(suggestedPackage)) {
 			selectedPackageKopeks = suggestedPackage;
 		}
@@ -79,7 +80,9 @@
 	<div class="flex items-center justify-between mb-3">
 		<div>
 			<div class="text-sm font-medium">{$i18n.t('Top up balance')}</div>
-			<div class="mt-1 text-xs text-gray-500">{$i18n.t('Choose an amount, then pay securely')}</div>
+			<div class="mt-1 text-xs text-gray-500">
+				{$i18n.t('Choose an amount. Balance is credited after payment confirmation.')}
+			</div>
 		</div>
 	</div>
 	{#if highlightedPackageKopeks !== null && highlightedPackageLabel}
@@ -101,7 +104,9 @@
 				data-testid="topup-preset"
 				data-amount-kopeks={amount}
 				aria-pressed={selectedPackageKopeks === amount && !hasValidCustom}
-				aria-label={$i18n.t('Top up {{amount}}', { amount: formatMoney(amount, currency, getI18nLocale($i18n)) })}
+				aria-label={$i18n.t('Top up {{amount}}', {
+					amount: formatMoney(amount, currency, getI18nLocale($i18n))
+				})}
 				class="min-h-11 px-3 py-2 rounded-xl border text-sm font-medium transition disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 {selectedPackageKopeks ===
 					amount && !hasValidCustom
 					? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white'
@@ -147,15 +152,15 @@
 					</span>
 				{:else if customTopupKopeks !== null && customTopupKopeks > 0}
 					<span class="text-xs text-gray-500">
-						{$i18n.t('You will top up')}: {formatMoney(customTopupKopeks, currency, getI18nLocale($i18n))}
+						{$i18n.t('You will top up')}: {formatMoney(
+							customTopupKopeks,
+							currency,
+							getI18nLocale($i18n)
+						)}
 					</span>
 				{/if}
 			</label>
 			<div class="h-fit sm:self-end"></div>
-		</div>
-	{:else}
-		<div class="mt-4 text-xs text-gray-500">
-			{$i18n.t('Custom top-up amounts are unavailable')}
 		</div>
 	{/if}
 	<div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -171,20 +176,20 @@
 			on:click={() => void handleProceed()}
 			data-testid="topup-proceed"
 			disabled={!canProceed}
-			class="px-4 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
+			class="min-h-11 px-4 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
 		>
 			{#if creatingTopupAmount !== null}
 				{$i18n.t('Processing…')}
 			{:else if selectedAmountKopeks !== null && selectedAmountKopeks > 0}
-				{$i18n.t('Pay {{amount}}', { amount: formatMoney(selectedAmountKopeks, currency, getI18nLocale($i18n)) })}
+				{$i18n.t('Continue to payment {{amount}}', {
+					amount: formatMoney(selectedAmountKopeks, currency, getI18nLocale($i18n))
+				})}
 			{:else}
 				{$i18n.t('Choose an amount')}
 			{/if}
 		</button>
 	</div>
 	<div class="text-xs text-gray-500 mt-3">
-		{$i18n.t('Top-up packages are charged in')}: {currency} · {$i18n.t(
-			'You will be redirected to YooKassa'
-		)} · {$i18n.t("We don't store card details")}
+		{$i18n.t('You will be redirected to YooKassa')} · {$i18n.t("We don't store card details")}
 	</div>
 </div>

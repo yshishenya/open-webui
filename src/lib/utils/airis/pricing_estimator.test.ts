@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { PublicRateCardModel } from '$lib/apis/billing';
 
-import { calculateTextEstimate, pickCheapestTextModel } from './pricing_estimator';
+import {
+	calculateTextEstimate,
+	calculateUsageEstimate,
+	pickCheapestTextModel
+} from './pricing_estimator';
 
 const model = (id: string, input: number, output: number): PublicRateCardModel => ({
 	id,
@@ -40,6 +44,12 @@ describe('pricing estimator', () => {
 		expect(estimate).toEqual({ min: 62322, max: 87984 });
 	});
 
+	it('separates independent chats from a cumulative long chat', () => {
+		expect(
+			calculateTextEstimate(model('balanced', 10, 39), 80, 80, 10, { min: 1, max: 1 }, 'separate')
+		).toEqual({ min: 1500, max: 1500 });
+	});
+
 	it('does not produce a negative estimate for invalid message counts', () => {
 		const estimate = calculateTextEstimate(model('cheap', 1, 3), 80, 80, -1.5, {
 			min: 0.85,
@@ -47,5 +57,14 @@ describe('pricing estimator', () => {
 		});
 
 		expect(estimate).toEqual({ min: 0, max: 0 });
+	});
+	it('rejects negative, infinite, and fractional indivisible quantities', () => {
+		for (const kind of ['image', 'tts', 'stt'] as const)
+			for (const value of [-1, Infinity, Number('1e309'), NaN, 0])
+				expect(calculateUsageEstimate(10, value, kind, { min: 1, max: 1 })).toBeNull();
+		expect(calculateUsageEstimate(10, 1.5, 'image', { min: 1, max: 1 })).toBeNull();
+		expect(calculateUsageEstimate(10, 1.5, 'tts', { min: 1, max: 1 })).toBeNull();
+		expect(calculateUsageEstimate(10, 0.5, 'stt', { min: 1, max: 1 })).toEqual({ min: 5, max: 5 });
+		expect(calculateUsageEstimate(10, 43201, 'stt', { min: 1, max: 1 })).toBeNull();
 	});
 });

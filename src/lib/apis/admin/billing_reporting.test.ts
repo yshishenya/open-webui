@@ -5,10 +5,7 @@ vi.hoisted(() => {
 	(globalThis as typeof globalThis & { APP_VERSION: string }).APP_VERSION = 'test';
 	(globalThis as typeof globalThis & { APP_BUILD_HASH: string }).APP_BUILD_HASH = 'test';
 });
-import {
-	getBillingReportingCustomers,
-	getBillingReportingExportUrl
-} from './billing_reporting';
+import { getBillingReportingCustomers, getBillingReportingExportUrl } from './billing_reporting';
 
 describe('billing reporting API', () => {
 	beforeEach(() => {
@@ -59,5 +56,15 @@ describe('billing reporting API', () => {
 		expect(url).toContain('to=200');
 		expect(url).toContain('user_id=user%2F1');
 		expect(url).toContain('status=succeeded');
+	});
+	it('bounds reporting reads to 25 seconds and bypasses the browser cache', async () => {
+		const controller = new AbortController();
+		const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(controller.signal);
+		await getBillingReportingCustomers('token');
+		expect(timeout).toHaveBeenCalledWith(25000);
+		expect(fetch).toHaveBeenCalledWith(
+			expect.any(String),
+			expect.objectContaining({ signal: controller.signal, cache: 'no-store' })
+		);
 	});
 });

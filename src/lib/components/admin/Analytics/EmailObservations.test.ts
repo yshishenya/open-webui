@@ -76,7 +76,7 @@ describe('EmailObservations', () => {
 
 	it('labels diagnostic purpose, unknown coverage and empty state without transport controls', async () => {
 		await show();
-		expect(target.textContent).toContain('Диагностических групп пока нет.');
+		expect(target.textContent).toContain('Проверок пока нет.');
 		expect(target.textContent).toContain('не меняет согласия и не отправляет письма');
 		expect(target.textContent).toContain('не доказывает непрерывную или прошлую');
 		expect(api.start).not.toHaveBeenCalled();
@@ -101,7 +101,7 @@ describe('EmailObservations', () => {
 		await tick();
 		expect(target.textContent).toContain('Прежняя диагностическая группа');
 		expect(target.textContent).toContain('Пока неизвестно');
-		expect(target.textContent).toContain('Не начат');
+		expect(target.textContent).toContain('Проверка не начата');
 	});
 	it('retains incomplete traversal and missing source evidence on a closed group', async () => {
 		const scope = {
@@ -125,8 +125,8 @@ describe('EmailObservations', () => {
 		await show();
 		(target.querySelector('button[aria-pressed="false"]') as HTMLButtonElement).click();
 		await tick();
-		expect(target.textContent).toContain('Неполный проход');
-		expect(target.textContent).toContain('Потерянных источников среди посещённых: 1');
+		expect(target.textContent).toContain('Проверка не завершена');
+		expect(target.textContent).toContain('Участников с недоступными исходными данными: 1');
 		expect(target.textContent).toContain('operator_stop');
 		const run = [...target.querySelectorAll('button')].find((button) =>
 			button.textContent?.includes('Начать или продолжить')
@@ -151,7 +151,7 @@ describe('EmailObservations', () => {
 			.mockRejectedValueOnce(new Error('lost'))
 			.mockResolvedValueOnce({ ...group(), administrative: true });
 		await show();
-		await click('Объявить диагностическую группу');
+		await click('Создать проверку');
 		await vi.waitFor(() => expect(target.querySelector('input[type="checkbox"]')).toBeTruthy());
 		expect(target.textContent).toContain('Без подтверждения');
 		expect(target.textContent).not.toContain('Администратор');
@@ -161,7 +161,7 @@ describe('EmailObservations', () => {
 		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
 		await vi.waitFor(() => expect(api.declare).toHaveBeenCalledOnce());
 		await tick();
-		expect(target.textContent).toContain('Результат объявления пока неизвестен');
+		expect(target.textContent).toContain('Результат создания пока неизвестен');
 		expect((target.querySelector('fieldset') as HTMLFieldSetElement).disabled).toBe(true);
 		expect(
 			form.checkValidity(),
@@ -169,7 +169,7 @@ describe('EmailObservations', () => {
 				.map((input) => `${input.type}:${input.value}:${input.validationMessage}`)
 				.join(' | ')
 		).toBe(true);
-		await click('Повторить то же объявление');
+		await click('Повторить создание этой проверки');
 		await vi.waitFor(() => expect(api.declare).toHaveBeenCalledTimes(2));
 		expect(api.declare.mock.calls[1]).toEqual(api.declare.mock.calls[0]);
 		expect(api.declare.mock.calls[0][1].user_ids).toEqual(['negative']);

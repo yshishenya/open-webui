@@ -1,64 +1,284 @@
 <script lang="ts">
-	import { onMount, getContext } from 'svelte';
+	import { onMount, onDestroy, getContext } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import type { i18n as I18nType } from 'i18next';
-	import { page } from '$app/stores';
+	import { page as route } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { WEBUI_NAME, user } from '$lib/stores';
-	import Spinner from '$lib/components/common/Spinner.svelte';
+	import ReportingFilters from '$lib/components/admin/billing/ReportingFilters.svelte';
+	import ReportingPagination from '$lib/components/admin/billing/ReportingPagination.svelte';
+	import ReportingRecords from '$lib/components/admin/billing/ReportingRecords.svelte';
 	import {
 		getBillingReportingCustomer,
-		type BillingReportingCustomerDetail
+		getBillingReportingPayments,
+		getBillingReportingRefunds,
+		getBillingReportingUsage,
+		getBillingReportingLedger,
+		type BillingReportingCustomerDetail,
+		type BillingReportingPayment,
+		type BillingReportingRefund,
+		type BillingReportingRow
 	} from '$lib/apis/admin/billing_reporting';
-
+	import {
+		moneyPage,
+		moneyFilters,
+		moneyRange,
+		moneyQuery,
+		reportingBack,
+		formatReportMoney,
+		formatReportTime
+	} from '$lib/utils/airis/billing_reporting_ui';
 	const i18n = getContext<Readable<I18nType>>('i18n');
-	let loaded = false;
-	let loading = true;
-	let errorMessage = '';
+	onDestroy(() => {
+		request++;
+		mounted = false;
+	});
+	type Tab = 'payments' | 'refunds' | 'usage' | 'ledger';
+	let customerId = String($route.params.id || '');
+	let mounted = false;
+	let back = reportingBack($route.url.searchParams.get('back'));
+	$: back = reportingBack($route.url.searchParams.get('back'));
+	let draft = moneyFilters($route.url);
+	let applied = { ...draft };
 	let detail: BillingReportingCustomerDetail | null = null;
-	let activeTab: 'payments' | 'ledger' | 'usage' = 'payments';
-
-	const money = (kopeks: number): string =>
-		new Intl.NumberFormat($i18n.language, { style: 'currency', currency: detail?.wallet.currency ?? 'RUB', maximumFractionDigits: 2 }).format(
-			kopeks / 100
-		);
-	const dateTime = (value: number | null): string => (value ? new Date(value * 1000).toLocaleString($i18n.language) : '—');
-
+	let loading = false;
+	let error = '';
+	let detailError = '';
+	let tab: Tab = ['payments', 'refunds', 'usage', 'ledger'].includes(
+		$route.url.searchParams.get('tab') || ''
+	)
+		? ($route.url.searchParams.get('tab') as Tab)
+		: 'payments';
+	let page = moneyPage($route.url.searchParams.get('page'));
+	let total = 0;
+	let totalPages = 1;
+	let request = 0;
+	let payments: BillingReportingPayment[] = [];
+	let refunds: BillingReportingRefund[] = [];
+	let rows: BillingReportingRow[] = [];
+	const money = (value: number): string =>
+		formatReportMoney(value, applied.currency, $i18n.language);
+	const load = async (apply = false): Promise<void> => {
+		const next = apply ? { ...draft } : { ...applied };
+		let range: ReturnType<typeof moneyRange>;
+		try {
+			range = moneyRange(next);
+		} catch (e) {
+			request++;
+			loading = false;
+			error = e instanceof Error ? e.message : 'Choose a valid date range';
+			return;
+		}
+		const id = ++request;
+		const nextPage = apply ? 1 : page;
+		const selected = tab;
+		const selectedCustomer = customerId;
+		loading = true;
+		error = '';
+		payments = [];
+		refunds = [];
+		rows = [];
+		detailError = '';
+		const filters = { ...range, user_id: selectedCustomer, page: nextPage, page_size: 50 };
+		const [profile, history] = await Promise.allSettled([
+			getBillingReportingCustomer(localStorage.token, selectedCustomer, { ...range, limit: 1 }),
+			selected === 'payments'
+				? getBillingReportingPayments(localStorage.token, filters)
+				: selected === 'refunds'
+					? getBillingReportingRefunds(localStorage.token, filters)
+					: selected === 'usage'
+						? getBillingReportingUsage(localStorage.token, filters)
+						: getBillingReportingLedger(localStorage.token, filters)
+		]);
+		if (id !== request || selectedCustomer !== String($route.params.id || '')) return;
+		if (profile.status === 'fulfilled') {
+			detail = profile.value;
+			applied = next;
+		} else {
+			detail = null;
+			detailError = 'Failed to load customer financial profile';
+		}
+		if (history.status === 'fulfilled') {
+			const result = history.value;
+			if (selected === 'payments') payments = result.items as BillingReportingPayment[];
+			else if (selected === 'refunds') refunds = result.items as BillingReportingRefund[];
+			else rows = result.items as BillingReportingRow[];
+			total = result.total;
+			totalPages = Math.max(1, result.total_pages);
+			page = nextPage;
+			applied = next;
+		} else {
+			payments = [];
+			refunds = [];
+			rows = [];
+			error = 'Failed to load customer history';
+		}
+		loading = false;
+		await goto(`?${moneyQuery(applied, { back, tab, page })}`, {
+			replaceState: true,
+			noScroll: true,
+			keepFocus: true
+		});
+	};
+	const select = (next: Tab): void => {
+		tab = next;
+		page = 1;
+		payments = [];
+		refunds = [];
+		rows = [];
+		void load();
+	};
 	onMount(async () => {
 		if ($user?.role !== 'admin') {
 			await goto('/');
 			return;
 		}
-		try {
-			const customerId = String($page.params.id ?? '');
-			if (!customerId) throw new Error('Missing customer id');
-			detail = await getBillingReportingCustomer(localStorage.token, customerId);
-		} catch (error) {
-			console.error('Failed to load billing customer:', error);
-			errorMessage = $i18n.t('Failed to load customer financial profile');
-		} finally {
-			loading = false;
-			loaded = true;
-		}
+		mounted = true;
+		await load();
 	});
+	$: if (mounted && String($route.params.id || '') !== customerId) {
+		customerId = String($route.params.id || '');
+		detail = null;
+		detailError = '';
+		payments = [];
+		refunds = [];
+		rows = [];
+		total = 0;
+		totalPages = 1;
+		draft = moneyFilters($route.url);
+		applied = { ...draft };
+		page = moneyPage($route.url.searchParams.get('page'));
+		tab = ['payments', 'refunds', 'usage', 'ledger'].includes(
+			$route.url.searchParams.get('tab') || ''
+		)
+			? ($route.url.searchParams.get('tab') as Tab)
+			: 'payments';
+		void load();
+	}
 </script>
 
-<svelte:head><title>{$i18n.t('Customer financial profile')} • {$WEBUI_NAME}</title></svelte:head>
-
-{#if !loaded || loading}
-	<div class="flex h-64 items-center justify-center"><Spinner className="size-5" /></div>
-{:else if errorMessage}
-	<div class="mx-auto max-w-5xl px-4 py-8"><div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">{errorMessage}</div></div>
-{:else if detail}
-	<div class="mx-auto max-w-7xl px-4 py-5">
-		<button class="mb-4 text-sm text-gray-500 underline" on:click={() => goto('/admin/billing/customers')}>← {$i18n.t('Back to customers')}</button>
-		<div class="flex flex-wrap items-start justify-between gap-3"><div><h1 class="text-xl font-semibold text-gray-900 dark:text-white">{detail.user.name}</h1><p class="text-sm text-gray-500">{detail.user.email} · {detail.user.id}</p></div><span class="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">{detail.user.role}</span></div>
-		<div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><div class="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><div class="text-xs text-gray-500">{$i18n.t('Paid lifetime')}</div><div class="mt-2 font-semibold tabular-nums">{money(detail.metrics.paid_kopeks)}</div></div><div class="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><div class="text-xs text-gray-500">{$i18n.t('Spent lifetime')}</div><div class="mt-2 font-semibold tabular-nums">{money(detail.metrics.spent_kopeks)}</div></div><div class="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><div class="text-xs text-gray-500">{$i18n.t('Paid balance')}</div><div class="mt-2 font-semibold tabular-nums">{money(detail.wallet.balance_topup_kopeks)}</div></div><div class="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><div class="text-xs text-gray-500">{$i18n.t('Bonus balance')}</div><div class="mt-2 font-semibold tabular-nums text-amber-600">{money(detail.wallet.balance_included_kopeks)}</div></div><div class="rounded-xl border border-gray-200 p-4 dark:border-gray-800"><div class="text-xs text-gray-500">{$i18n.t('Daily usage')}</div><div class="mt-2 font-semibold tabular-nums">{money(detail.wallet.daily_spent_kopeks)}</div></div></div>
-		<div class="mt-5 rounded-xl border border-gray-200 dark:border-gray-800"><div class="flex gap-1 overflow-x-auto border-b border-gray-200 p-2 dark:border-gray-800">{#each [['payments', 'Payments'], ['ledger', 'Wallet ledger'], ['usage', 'Usage']] as tab}<button class={`rounded-lg px-3 py-2 text-sm ${activeTab === tab[0] ? 'bg-gray-100 font-medium dark:bg-gray-800' : 'text-gray-500'}`} on:click={() => (activeTab = tab[0] as typeof activeTab)}>{ $i18n.t(tab[1]) } <span class="ml-1 text-xs text-gray-400">{tab[0] === 'payments' ? detail.payments.length : tab[0] === 'ledger' ? detail.ledger.length : detail.usage.length}</span></button>{/each}</div>
-			<div class="overflow-x-auto p-3">
-				{#if activeTab === 'payments'}<table class="min-w-[850px] w-full text-left text-sm"><thead class="text-xs text-gray-500"><tr><th class="px-2 py-2">{$i18n.t('Time')}</th><th class="px-2 py-2">{$i18n.t('Type')}</th><th class="px-2 py-2">{$i18n.t('Status')}</th><th class="px-2 py-2 text-right">{$i18n.t('Amount')}</th><th class="px-2 py-2">{$i18n.t('Provider')}</th><th class="px-2 py-2">ID</th></tr></thead><tbody>{#each detail.payments as payment}<tr class="border-t border-gray-100 dark:border-gray-800"><td class="px-2 py-2 text-xs">{dateTime(payment.processed_at)}</td><td class="px-2 py-2">{$i18n.t(payment.kind)}</td><td class="px-2 py-2">{payment.status}</td><td class="px-2 py-2 text-right tabular-nums">{money(payment.amount_kopeks)}</td><td class="px-2 py-2">{payment.provider}</td><td class="px-2 py-2 font-mono text-xs">{payment.id}</td></tr>{:else}<tr><td colspan="6" class="px-2 py-8 text-center text-gray-500">{$i18n.t('No payments')}</td></tr>{/each}</tbody></table>{:else if activeTab === 'ledger'}<table class="min-w-[850px] w-full text-left text-sm"><thead class="text-xs text-gray-500"><tr><th class="px-2 py-2">{$i18n.t('Time')}</th><th class="px-2 py-2">{$i18n.t('Type')}</th><th class="px-2 py-2 text-right">{$i18n.t('Delta')}</th><th class="px-2 py-2 text-right">{$i18n.t('Paid balance after')}</th><th class="px-2 py-2 text-right">{$i18n.t('Bonus after')}</th><th class="px-2 py-2">{$i18n.t('Reference')}</th></tr></thead><tbody>{#each detail.ledger as entry}<tr class="border-t border-gray-100 dark:border-gray-800"><td class="px-2 py-2 text-xs">{dateTime(Number(entry.created_at))}</td><td class="px-2 py-2">{entry.type}</td><td class="px-2 py-2 text-right tabular-nums">{money(Number(entry.amount_kopeks))}</td><td class="px-2 py-2 text-right tabular-nums">{money(Number(entry.balance_topup_after))}</td><td class="px-2 py-2 text-right tabular-nums">{money(Number(entry.balance_included_after))}</td><td class="px-2 py-2 font-mono text-xs">{entry.reference_id ?? '—'}</td></tr>{/each}</tbody></table>{:else}<table class="min-w-[950px] w-full text-left text-sm"><thead class="text-xs text-gray-500"><tr><th class="px-2 py-2">{$i18n.t('Time')}</th><th class="px-2 py-2">{$i18n.t('Model')}</th><th class="px-2 py-2">{$i18n.t('Modality')}</th><th class="px-2 py-2 text-right">{$i18n.t('Charged')}</th><th class="px-2 py-2">{$i18n.t('Source')}</th><th class="px-2 py-2">{$i18n.t('Request')}</th></tr></thead><tbody>{#each detail.usage as event}<tr class="border-t border-gray-100 dark:border-gray-800"><td class="px-2 py-2 text-xs">{dateTime(Number(event.created_at))}</td><td class="px-2 py-2">{event.model_id}</td><td class="px-2 py-2">{event.modality}</td><td class="px-2 py-2 text-right tabular-nums">{money(Number(event.cost_charged_kopeks))}</td><td class="px-2 py-2">{event.billing_source}</td><td class="px-2 py-2 font-mono text-xs">{event.request_id}</td></tr>{/each}</tbody></table>{/if}
-			</div>
-		</div>
-		<p class="mt-3 text-xs text-gray-400">{$i18n.t('Payment time uses processed_at fallback until provider paid_at is persisted. Raw provider payloads and payment method identifiers are intentionally hidden.')}</p>
+<svelte:head><title>{$i18n.t('Customer money')} • {$WEBUI_NAME}</title></svelte:head>
+<div class="mx-auto w-full min-w-0 max-w-7xl px-4 py-5">
+	<a href={back} class="mb-4 inline-block text-sm underline"
+		>← {$i18n.t(
+			back.startsWith('/admin/billing/transactions')
+				? 'Back to operations'
+				: back.startsWith('/admin/billing/plans')
+					? 'Back to subscribers'
+					: 'Back to customer list'
+		)}</a
+	>
+	<h1 class="mb-1 break-words text-xl font-semibold">
+		{detail?.user.name || $i18n.t('Customer money')}
+	</h1>
+	{#if detail}<p class="mb-4 break-all text-sm text-gray-500">{detail.user.email}</p>{/if}
+	<ReportingFilters bind:filters={draft} {loading} {error} onApply={() => load(true)} />
+	{#if loading}<p role="status" class="mb-3 text-sm text-gray-500">
+			{$i18n.t('Updating report')}
+		</p>{/if}
+	{#if detailError}<p role="alert" class="mb-4 text-sm text-red-700 dark:text-red-300">
+			{$i18n.t(detailError)}
+			<button type="button" class="min-h-11 underline" on:click={() => load()}
+				>{$i18n.t('Retry')}</button
+			>
+		</p>{/if}
+	{#if detail && !loading}<p class="mb-3 text-sm text-gray-500">
+			{$i18n.t('For the applied period')}: {applied.fromDate} — {applied.toDate}
+		</p>
+		<dl class="grid gap-3 sm:grid-cols-3">
+			{#each [['Top-ups in period', detail.metrics.period_paid_kopeks], ['Refunds in period', detail.metrics.period_refund_kopeks], ['Usage in period', detail.metrics.period_spent_kopeks]] as metric}<div
+					class="min-w-0 rounded-xl border border-gray-200 p-4 dark:border-gray-800"
+				>
+					<dt class="text-sm text-gray-500">{$i18n.t(String(metric[0]))}</dt>
+					<dd class="mt-2 break-words text-xl font-semibold tabular-nums">
+						{money(Number(metric[1]))}
+					</dd>
+				</div>{/each}
+		</dl>
+		{#if detail.metrics.period_other_payments_kopeks}<p class="mt-3 text-sm">
+				{$i18n.t('Other subscription payments')}: {money(
+					detail.metrics.period_other_payments_kopeks
+				)} · {$i18n.t('For the applied period')}
+			</p>{/if}
+		<section class="mt-5 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+			<h2 class="font-medium">{$i18n.t('Balance now')}</h2>
+			<dl class="mt-3 grid gap-3 sm:grid-cols-2">
+				<div>
+					<dt class="text-sm text-gray-500">{$i18n.t('Paid funds remaining')}</dt>
+					<dd class="mt-1 text-xl font-semibold tabular-nums">
+						{money(detail.wallet.balance_topup_kopeks)}
+					</dd>
+				</div>
+				<div>
+					<dt class="text-sm text-gray-500">{$i18n.t('Bonus funds remaining')}</dt>
+					<dd class="mt-1 text-xl font-semibold tabular-nums">
+						{money(detail.wallet.balance_included_kopeks)}
+					</dd>
+				</div>
+			</dl>
+			<p class="mt-3 text-xs text-gray-500">
+				{$i18n.t('Current balances as of')}: {formatReportTime(detail.as_of, $i18n.language)} UTC. {$i18n.t(
+					'Refunds require a separate wallet reconciliation'
+				)}
+			</p>
+		</section>
+		<details class="mt-4 text-sm">
+			<summary class="cursor-pointer text-gray-500">{$i18n.t('All-time totals and limits')}</summary
+			>
+			<dl class="mt-3 grid gap-3 sm:grid-cols-3">
+				<div>
+					<dt>{$i18n.t('Top-ups all time')}</dt>
+					<dd class="tabular-nums">{money(detail.metrics.paid_kopeks)}</dd>
+				</div>
+				<div>
+					<dt>{$i18n.t('Refunds all time')}</dt>
+					<dd class="tabular-nums">{money(detail.metrics.refund_kopeks)}</dd>
+				</div>
+				<div>
+					<dt>{$i18n.t('Usage all time')}</dt>
+					<dd class="tabular-nums">{money(detail.metrics.spent_kopeks)}</dd>
+				</div>
+				{#if detail.metrics.other_payments_kopeks}<div>
+						<dt>{$i18n.t('Other subscription payments')}</dt>
+						<dd class="tabular-nums">{money(detail.metrics.other_payments_kopeks)}</dd>
+					</div>{/if}
+				<div>
+					<dt>{$i18n.t('Daily spending limit')}</dt>
+					<dd>
+						{detail.wallet.daily_cap_kopeks === null
+							? $i18n.t('Not set')
+							: money(detail.wallet.daily_cap_kopeks)}
+					</dd>
+				</div>
+			</dl>
+		</details>{/if}
+	<h2 class="mt-6 mb-3 font-medium">{$i18n.t('Customer operations')}</h2>
+	<div class="mb-4 flex flex-wrap gap-2">
+		{#each [['payments', 'Payments'], ['refunds', 'Refunds'], ['usage', 'Usage charged'], ['ledger', 'Technical wallet journal']] as item}<button
+				type="button"
+				aria-pressed={tab === item[0]}
+				on:click={() => select(item[0] as Tab)}
+				class={`min-h-11 rounded-lg px-3 py-2 text-sm ${tab === item[0] ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'border border-gray-200 dark:border-gray-700'}`}
+				>{$i18n.t(item[1])}</button
+			>{/each}
 	</div>
-{/if}
+	<ReportingRecords
+		dataset={tab}
+		{payments}
+		{refunds}
+		{rows}
+		currency={applied.currency}
+		{loading}
+		error={Boolean(error)}
+	/>
+	<ReportingPagination
+		{page}
+		{totalPages}
+		{total}
+		{loading}
+		onPage={(next) => {
+			page = next;
+			void load();
+		}}
+	/>
+</div>

@@ -7,7 +7,7 @@ import io
 import time
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import StreamingResponse
 from open_webui.internal.db import get_async_session
 from open_webui.utils.airis.billing_reporting import (
@@ -21,7 +21,12 @@ from open_webui.utils.auth import get_admin_user
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+
+def _no_store(response: Response) -> None:
+    response.headers['Cache-Control'] = 'no-store'
+
+
+router = APIRouter(dependencies=[Depends(_no_store)])
 
 
 class ReportingPage(BaseModel):
@@ -71,6 +76,7 @@ async def get_reporting_customers(
     page_size: int = Query(50, ge=1, le=REPORTING_PAGE_MAX),
     sort: Literal['paid', 'spent', 'balance', 'last_payment', 'last_usage'] = 'last_payment',
     direction: Literal['asc', 'desc'] = 'desc',
+    status: Literal['paid', 'never_paid', 'problems', 'negative_balance'] | None = None,
     _: object = Depends(get_admin_user),
     session: AsyncSession = Depends(get_async_session),
 ) -> dict[str, object]:
@@ -84,6 +90,7 @@ async def get_reporting_customers(
         page_size=_page_size(page_size),
         sort=sort,
         direction=direction,
+        status=status,
     )
 
 
@@ -120,37 +127,79 @@ async def get_reporting_payments(
     kind: str | None = Query(None, max_length=32),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=REPORTING_PAGE_MAX),
+    credit_status: Literal['credited', 'not_credited', 'not_applicable'] | None = None,
+    attention: Literal['stale_pending', 'uncredited'] | None = None,
+    is_test: bool | None = None,
+    older_than_hours: int | None = Query(None, ge=1, le=8784),
     _: object = Depends(get_admin_user),
     session: AsyncSession = Depends(get_async_session),
 ) -> dict[str, object]:
     start, end = _range_or_400(from_ts, to_ts)
+    if attention:
+        start, end = 0, int(time.time()) + 1
+        if attention == 'stale_pending':
+            status, older_than_hours = 'pending', 24
+        else:
+            status, kind, credit_status = 'succeeded', 'topup', 'not_credited'
     size = _page_size(page_size)
-    facts = await BillingReportingService(session).payment_facts(
+    items, total = await BillingReportingService(session).payment_page(
         from_ts=start,
         to_ts=end,
         currency=currency,
         user_id=user_id,
         status=status,
         kind=kind,
-        # Fetch the complete bounded reporting window so `total_pages` is
-        # stable on page one.  Deriving totals from `page * size` made every
-        # first page look like the final page and disabled pagination.
-        limit=REPORTING_EXPORT_MAX,
+        credit_status=credit_status,
+        is_test=is_test,
+        older_than=int(time.time()) - older_than_hours * 3600 if older_than_hours is not None else None,
+        page=page,
+        page_size=size,
     )
-    start_index = (page - 1) * size
-    items = [BillingReportingService._payment_payload(fact) for fact in facts[start_index : start_index + size]]
     return {
         'items': items,
-        'total': len(facts),
+        'total': total,
         'page': page,
         'page_size': size,
-        'total_pages': (len(facts) + size - 1) // size,
+        'total_pages': (total + size - 1) // size,
         'currency': currency,
         'from': start,
         'to': end,
         'as_of': int(time.time()),
-        'time_semantics': 'processed_at_fallback',
-        'truncated': len(facts) >= REPORTING_EXPORT_MAX,
+        'timezone': 'UTC',
+        'time_semantics': 'topup_ledger_refund_provider_created_at',
+        'truncated': False,
+        'attention': attention,
+        'scope': 'lifetime_current' if attention else 'selected_period',
+    }
+
+
+@router.get('/reporting/refunds')
+async def get_reporting_refunds(
+    currency: str = Query('RUB', min_length=3, max_length=3, pattern='^[A-Z]{3}$'),
+    from_ts: int | None = Query(None, alias='from', ge=0),
+    to_ts: int | None = Query(None, alias='to', ge=0),
+    user_id: str | None = Query(None, max_length=128),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=REPORTING_PAGE_MAX),
+    _: object = Depends(get_admin_user),
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, object]:
+    start, end = _range_or_400(from_ts, to_ts)
+    size = _page_size(page_size)
+    rows, total = await BillingReportingService(session).refund_rows(
+        from_ts=start, to_ts=end, currency=currency, user_id=user_id, limit=size, offset=(page - 1) * size
+    )
+    return {
+        'items': rows,
+        'total': total,
+        'page': page,
+        'page_size': size,
+        'total_pages': (total + size - 1) // size,
+        'currency': currency,
+        'from': start,
+        'to': end,
+        'as_of': int(time.time()),
+        'timezone': 'UTC',
     }
 
 
@@ -224,17 +273,27 @@ async def get_reporting_usage(
 
 @router.get('/reporting/export')
 async def export_reporting_data(
-    dataset: Literal['payments', 'ledger', 'usage'] = Query('payments'),
+    dataset: Literal['payments', 'ledger', 'usage', 'refunds'] = Query('payments'),
     currency: str = Query('RUB', min_length=3, max_length=3, pattern='^[A-Z]{3}$'),
     from_ts: int | None = Query(None, alias='from', ge=0),
     to_ts: int | None = Query(None, alias='to', ge=0),
     user_id: str | None = Query(None, max_length=128),
     status: str | None = Query(None, max_length=32),
     kind: str | None = Query(None, max_length=32),
+    credit_status: Literal['credited', 'not_credited', 'not_applicable'] | None = None,
+    attention: Literal['stale_pending', 'uncredited'] | None = None,
+    is_test: bool | None = None,
+    older_than_hours: int | None = None,
     _: object = Depends(get_admin_user),
     session: AsyncSession = Depends(get_async_session),
 ) -> StreamingResponse:
     start, end = _range_or_400(from_ts, to_ts)
+    if attention and dataset == 'payments':
+        start, end = 0, int(time.time()) + 1
+        if attention == 'stale_pending':
+            status, older_than_hours = 'pending', 24
+        else:
+            status, kind, credit_status = 'succeeded', 'topup', 'not_credited'
     service = BillingReportingService(session)
     rows: list[dict[str, object]]
     if dataset == 'payments':
@@ -247,9 +306,16 @@ async def export_reporting_data(
                 user_id=user_id,
                 status=status,
                 kind=kind,
+                credit_status=credit_status,
+                is_test=is_test,
+                older_than=int(time.time()) - older_than_hours * 3600 if older_than_hours is not None else None,
                 limit=REPORTING_EXPORT_MAX,
             )
         ]
+    elif dataset == 'refunds':
+        rows, _ = await service.refund_rows(
+            from_ts=start, to_ts=end, currency=currency, user_id=user_id, limit=REPORTING_EXPORT_MAX, offset=0
+        )
     elif dataset == 'ledger':
         if not user_id:
             raise HTTPException(
@@ -291,5 +357,10 @@ async def export_reporting_data(
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type='text/csv; charset=utf-8',
-        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+        headers={
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Cache-Control': 'no-store',
+            'X-Export-Limit': str(REPORTING_EXPORT_MAX),
+            'X-Export-Possibly-Truncated': str(len(rows) >= REPORTING_EXPORT_MAX).lower(),
+        },
     )

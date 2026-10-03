@@ -57,10 +57,12 @@
 
 	let showModels = false;
 	let showAllModels = false;
-	// ponytail: keep secondary quota data behind one disclosure so top-up remains the primary action.
 	let showDetails = false;
 
-	const formatDateTime = (timestamp: number | null | undefined, locale: string = getI18nLocale($i18n)): string => {
+	const formatDateTime = (
+		timestamp: number | null | undefined,
+		locale: string = getI18nLocale($i18n)
+	): string => {
 		if (!timestamp) return $i18n.t('Never');
 		return new Date(timestamp * 1000).toLocaleString(locale, {
 			year: 'numeric',
@@ -85,8 +87,8 @@
 	const getGroupMetricLabel = (group: LeadMagnetGroupId, key: string): string => {
 		if (group === 'text' && key === 'tokens_input') return $i18n.t('Input');
 		if (group === 'text' && key === 'tokens_output') return $i18n.t('Output');
-		if (group === 'voice' && key === 'tts_seconds') return $i18n.t('TTS');
-		if (group === 'voice' && key === 'stt_seconds') return $i18n.t('STT');
+		if (group === 'voice' && key === 'tts_seconds') return $i18n.t('Text to speech, seconds');
+		if (group === 'voice' && key === 'stt_seconds') return $i18n.t('Speech recognition, seconds');
 		return getLocalizedQuotaLabel(key);
 	};
 
@@ -156,7 +158,7 @@
 >
 	<div class="flex items-start justify-between gap-3">
 		<h3 class="text-sm font-medium">
-			{$i18n.t('Free limit')}
+			{$i18n.t('Free usage')}
 		</h3>
 		<span
 			class="px-1.5 py-0.5 text-xs font-medium rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
@@ -173,7 +175,7 @@
 
 	<button
 		type="button"
-		class="mt-3 min-h-10 rounded-xl border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-900 dark:focus-visible:ring-white/30"
+		class="mt-3 min-h-11 rounded-xl border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-900 dark:focus-visible:ring-white/30"
 		aria-expanded={showDetails}
 		aria-controls="free-limit-details"
 		on:click={() => (showDetails = !showDetails)}
@@ -201,7 +203,14 @@
 												{formatCompactNumber(metric.used)} / {formatCompactNumber(metric.limit)}
 											</span>
 										</div>
-										<div class="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+										<div
+											class="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700"
+											role="progressbar"
+											aria-label={getGroupMetricLabel(group.id, metric.key)}
+											aria-valuemin="0"
+											aria-valuemax={metric.limit}
+											aria-valuenow={Math.min(metric.limit, Math.max(0, metric.used))}
+										>
 											<div
 												class="{getUsageColor(
 													metric.percentage
@@ -233,7 +242,7 @@
 				<div class="mt-4">
 					<button
 						type="button"
-						class="min-h-10 text-xs text-gray-500 transition-colors hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 dark:text-gray-400 dark:hover:text-gray-200 dark:focus-visible:ring-white/30"
+						class="min-h-11 text-xs text-gray-500 transition-colors hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 dark:text-gray-400 dark:hover:text-gray-200 dark:focus-visible:ring-white/30"
 						aria-expanded={showModels}
 						aria-controls="free-limit-models"
 						on:click={() => (showModels = !showModels)}
@@ -259,7 +268,7 @@
 								{#if hasHiddenModels}
 									<button
 										type="button"
-										class="mt-2 min-h-10 text-xs text-gray-500 transition-colors hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 dark:text-gray-400 dark:hover:text-gray-200 dark:focus-visible:ring-white/30"
+										class="mt-2 min-h-11 text-xs text-gray-500 transition-colors hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 dark:text-gray-400 dark:hover:text-gray-200 dark:focus-visible:ring-white/30"
 										on:click={() => (showAllModels = !showAllModels)}
 									>
 										{showAllModels ? $i18n.t('Show less') : $i18n.t('Show all')}

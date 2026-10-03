@@ -1,18 +1,19 @@
 <script lang="ts">
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
-	import { onMount, getContext } from 'svelte';
+	import { onMount, onDestroy, getContext } from 'svelte';
 	import { derived } from 'svelte/store';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { models } from '$lib/stores';
-	import { getLedger, getUsageEvents } from '$lib/apis/billing';
-	import type { LedgerEntry, UsageEvent } from '$lib/apis/billing';
+	import { getLedger, getUsageEvents, getBillingRefunds } from '$lib/apis/billing';
+	import type { LedgerEntry, UsageEvent, BillingRefund } from '$lib/apis/billing';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import { isTechnicalBillingEntry } from '$lib/utils/airis/billing_ui';
 
 	const i18n = getContext('i18n');
 
-	type FilterKey = 'all' | 'paid' | 'free' | 'topups';
+	type FilterKey = 'all' | 'paid' | 'free' | 'topups' | 'refunds';
 	type TimelineKind =
 		| 'usage'
 		| 'free'
@@ -32,6 +33,9 @@
 		amountKopeks: number | null;
 		currency: string;
 		isEstimated: boolean;
+		chatId?: string | null;
+		requestId?: string;
+		reason?: string;
 	};
 
 	export let pageSize = 20;
@@ -43,7 +47,17 @@
 	export let onFilterChange: (filter: FilterKey) => void = () => {};
 	export let emptyActionLabel: string | null = null;
 	export let onEmptyAction: () => void = () => {};
+	export let periodFrom: number | null = null;
+	export let periodTo: number | null = null;
 
+	let refundEntries: BillingRefund[] = [];
+	let refundSkip = 0;
+	let refundHasMore = true;
+	let refundError: string | null = null;
+	let destroyed = false;
+	onDestroy(() => {
+		destroyed = true;
+	});
 	let loading = true;
 	let loadingMore = false;
 	let ledgerEntries: LedgerEntry[] = [];
@@ -59,7 +73,7 @@
 	let lastSyncedUrlFilter: FilterKey = 'all';
 	let pendingUrlFilter: FilterKey | null = null;
 	let urlUpdateVersion = 0;
-	const filterKeys: FilterKey[] = ['all', 'paid', 'free', 'topups'];
+	const filterKeys: FilterKey[] = ['all', 'paid', 'free', 'topups', 'refunds'];
 	const urlFilter = derived(page, ($page): FilterKey => {
 		const value = $page.url.searchParams.get('filter');
 		if (value && filterKeys.includes(value as FilterKey)) {
@@ -92,13 +106,18 @@
 	};
 
 	const fetchLedger = async (): Promise<void> => {
-		if (!ledgerHasMore) return;
+		if (destroyed || !ledgerHasMore) return;
 		try {
 			const result = await getLedger(localStorage.token, pageSize, ledgerSkip);
+			if (destroyed) return;
 			const newEntries = result ?? [];
-			ledgerEntries = [...ledgerEntries, ...newEntries];
+			ledgerEntries = [
+				...new Map([...ledgerEntries, ...newEntries].map((entry) => [entry.id, entry])).values()
+			];
 			ledgerSkip += newEntries.length;
-			ledgerHasMore = newEntries.length === pageSize;
+			ledgerHasMore =
+				newEntries.length === pageSize &&
+				(periodFrom === null || newEntries.at(-1)!.created_at >= periodFrom);
 		} catch (error) {
 			console.error('Failed to load ledger:', error);
 			ledgerError = $i18n.t('Failed to load ledger');
@@ -107,13 +126,18 @@
 	};
 
 	const fetchUsage = async (): Promise<void> => {
-		if (!usageHasMore) return;
+		if (destroyed || !usageHasMore) return;
 		try {
 			const result = await getUsageEvents(localStorage.token, pageSize, usageSkip);
+			if (destroyed) return;
 			const newEntries = result ?? [];
-			usageEntries = [...usageEntries, ...newEntries];
+			usageEntries = [
+				...new Map([...usageEntries, ...newEntries].map((entry) => [entry.id, entry])).values()
+			];
 			usageSkip += newEntries.length;
-			usageHasMore = newEntries.length === pageSize;
+			usageHasMore =
+				newEntries.length === pageSize &&
+				(periodFrom === null || newEntries.at(-1)!.created_at >= periodFrom);
 		} catch (error) {
 			console.error('Failed to load usage events:', error);
 			usageError = $i18n.t('Failed to load usage events');
@@ -121,8 +145,33 @@
 		}
 	};
 
+	const fetchRefunds = async (): Promise<void> => {
+		if (destroyed || !refundHasMore) return;
+		try {
+			const result = await getBillingRefunds(
+				localStorage.token,
+				pageSize,
+				refundSkip,
+				periodFrom,
+				periodTo
+			);
+			if (destroyed) return;
+			refundEntries = [
+				...new Map([...refundEntries, ...result.items].map((entry) => [entry.id, entry])).values()
+			];
+			refundSkip += result.items.length;
+			refundHasMore = result.items.length > 0 && refundSkip < result.total;
+		} catch {
+			refundError = $i18n.t('Payment refunds could not be loaded');
+			refundHasMore = false;
+		}
+	};
 	const loadInitial = async (): Promise<void> => {
 		loading = true;
+		refundEntries = [];
+		refundSkip = 0;
+		refundHasMore = true;
+		refundError = null;
 		ledgerError = null;
 		usageError = null;
 		ledgerEntries = [];
@@ -133,7 +182,12 @@
 		usageHasMore = true;
 		displayCount = maxItems ?? pageSize;
 
-		await Promise.all([fetchLedger(), fetchUsage()]);
+		await Promise.all([fetchLedger(), fetchUsage(), fetchRefunds()]);
+		// With date filters, finish the bounded period before displaying a sorted history.
+		if (periodFrom !== null) {
+			while (!destroyed && (ledgerHasMore || usageHasMore || refundHasMore))
+				await Promise.all([fetchLedger(), fetchUsage(), fetchRefunds()]);
+		}
 		loading = false;
 	};
 
@@ -147,7 +201,7 @@
 		if (loadingMore) return;
 		loadingMore = true;
 		displayCount += pageSize;
-		await Promise.all([fetchLedger(), fetchUsage()]);
+		await Promise.all([fetchLedger(), fetchUsage(), fetchRefunds()]);
 		loadingMore = false;
 	};
 
@@ -179,6 +233,7 @@
 
 	const formatDateTime = (timestamp: number): string => {
 		return new Date(timestamp * 1000).toLocaleString(getI18nLocale($i18n), {
+			timeZone: 'UTC',
 			hour: '2-digit',
 			minute: '2-digit'
 		});
@@ -186,6 +241,7 @@
 
 	const formatDay = (timestamp: number): string => {
 		return new Date(timestamp * 1000).toLocaleDateString(getI18nLocale($i18n), {
+			timeZone: 'UTC',
 			weekday: 'long',
 			day: 'numeric',
 			month: 'long',
@@ -224,7 +280,14 @@
 	const mapUsageEvent = (entry: UsageEvent, currencyCode: string): TimelineItem => {
 		const isFree = entry.billing_source === 'lead_magnet';
 		const modelName = getModelName(entry.model_id);
-		const subtitle = `${modelName} · ${entry.modality}`;
+		const modality =
+			{
+				text: $i18n.t('Text'),
+				image: $i18n.t('Images'),
+				tts: $i18n.t('Text to speech'),
+				stt: $i18n.t('Speech recognition')
+			}[entry.modality] ?? entry.modality;
+		const subtitle = `${modelName} · ${modality}`;
 		const metrics = getUsageMetrics(entry);
 		const charged = entry.cost_charged_kopeks ?? 0;
 		const isEstimated = Boolean(entry.is_estimated);
@@ -238,7 +301,9 @@
 			metrics,
 			amountKopeks: isFree ? 0 : charged,
 			currency: currencyCode,
-			isEstimated
+			isEstimated,
+			chatId: entry.chat_id,
+			requestId: entry.request_id
 		};
 	};
 
@@ -262,7 +327,7 @@
 		entry: LedgerEntry,
 		usageRequestIds: Set<string>
 	): TimelineItem | null => {
-		if (['hold', 'release'].includes(entry.type)) {
+		if (isTechnicalBillingEntry(entry)) {
 			return null;
 		}
 		if (entry.type === 'charge') {
@@ -278,7 +343,7 @@
 		const titleMap: Record<string, string> = {
 			charge: $i18n.t('Charge'),
 			topup: $i18n.t('Top-up'),
-			refund: $i18n.t('Refund'),
+			refund: $i18n.t('Wallet credit adjustment'),
 			adjustment: $i18n.t('Adjustment'),
 			subscription_credit: $i18n.t('Subscription credit')
 		};
@@ -287,28 +352,52 @@
 
 		return {
 			id: entry.id,
-			kind: entry.type as TimelineKind,
+			kind: entry.type === 'refund' ? 'adjustment' : (entry.type as TimelineKind),
 			createdAt: entry.created_at,
 			title,
 			subtitle,
 			metrics: [],
 			amountKopeks,
 			currency: entry.currency,
-			isEstimated: false
+			isEstimated: false,
+			requestId: entry.reference_id ?? entry.id,
+			reason:
+				typeof entry.metadata_json?.reason === 'string' ? entry.metadata_json.reason : undefined
 		};
 	};
 
-	const mergeItems = (ledger: LedgerEntry[], usage: UsageEvent[]): TimelineItem[] => {
+	const mergeItems = (
+		ledger: LedgerEntry[],
+		usage: UsageEvent[],
+		refunds: BillingRefund[]
+	): TimelineItem[] => {
 		const currencyCode = resolveCurrency();
 		const usageRequestIds = new Set(usage.map((entry) => entry.request_id).filter(Boolean));
 		const mappedLedger = ledger
 			.map((entry) => mapLedgerEntry(entry, usageRequestIds))
 			.filter(Boolean) as TimelineItem[];
 		const mappedUsage = usage.map((entry) => mapUsageEvent(entry, currencyCode));
-		return [...mappedLedger, ...mappedUsage].sort((a, b) => b.createdAt - a.createdAt);
+		const mappedRefunds: TimelineItem[] = refunds.map((entry) => ({
+			id: entry.id,
+			kind: 'refund',
+			createdAt: entry.occurred_at,
+			title: $i18n.t('Payment refund'),
+			subtitle: $i18n.t('Returned through the payment service'),
+			metrics: [
+				$i18n.t('Refund confirmation and its reflection in the wallet are checked separately')
+			],
+			amountKopeks: entry.amount_kopeks,
+			currency: entry.currency,
+			isEstimated: false,
+			requestId: entry.payment_id
+		}));
+		return [...mappedLedger, ...mappedUsage, ...mappedRefunds].sort(
+			(a, b) => b.createdAt - a.createdAt
+		);
 	};
 
 	const filterItems = (items: TimelineItem[], filter: FilterKey): TimelineItem[] => {
+		if (filter === 'refunds') return items.filter((item) => item.kind === 'refund');
 		if (filter === 'paid') {
 			return items.filter((item) => item.kind === 'usage' || item.kind === 'charge');
 		}
@@ -316,9 +405,7 @@
 			return items.filter((item) => item.kind === 'free');
 		}
 		if (filter === 'topups') {
-			return items.filter((item) =>
-				['topup', 'refund', 'adjustment', 'subscription_credit'].includes(item.kind)
-			);
+			return items.filter((item) => ['topup', 'subscription_credit'].includes(item.kind));
 		}
 		return items;
 	};
@@ -343,9 +430,16 @@
 		}
 	}
 	// Translation-dependent titles and day labels also need a fresh view on language change.
-	$: mergedItems = $i18n ? mergeItems(ledgerEntries, usageEntries) : [];
+	$: mergedItems = $i18n ? mergeItems(ledgerEntries, usageEntries, refundEntries) : [];
 	// Keep filter key explicit so Svelte tracks activeFilter as a reactive dependency.
-	$: filteredItems = filterItems(mergedItems, activeFilter);
+	$: filteredItems = filterItems(
+		mergedItems.filter(
+			(item) =>
+				(periodFrom === null || item.createdAt >= periodFrom) &&
+				(periodTo === null || item.createdAt < periodTo)
+		),
+		activeFilter
+	);
 	$: visibleItems = (() => {
 		const sliceCount = maxItems ?? displayCount;
 		return filteredItems.slice(0, sliceCount);
@@ -354,7 +448,7 @@
 		const groups: { key: string; label: string; items: TimelineItem[] }[] = [];
 		for (const item of visibleItems) {
 			const date = new Date(item.createdAt * 1000);
-			const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+			const key = `${date.getUTCFullYear()}-${date.getUTCMonth()}-${date.getUTCDate()}`;
 			const lastGroup = groups.at(-1);
 			if (lastGroup?.key === key) {
 				lastGroup.items.push(item);
@@ -365,20 +459,17 @@
 		return groups;
 	})();
 	$: canLoadMore =
-		showLoadMore && (filteredItems.length > visibleItems.length || ledgerHasMore || usageHasMore);
+		showLoadMore &&
+		(filteredItems.length > visibleItems.length || ledgerHasMore || usageHasMore || refundHasMore);
 </script>
 
 {#if showFilters}
-	<div
-		class="flex gap-2 mb-4 overflow-x-auto scrollbar-none pb-0.5"
-		role="group"
-		aria-label={$i18n.t('History filters')}
-	>
+	<div class="flex flex-wrap gap-2 mb-4" role="group" aria-label={$i18n.t('History filters')}>
 		<button
 			type="button"
 			aria-pressed={activeFilter === 'all'}
 			on:click={() => handleFilterChange('all')}
-			class="px-3 py-1.5 rounded-full text-sm font-medium transition {activeFilter === 'all'
+			class="min-h-11 px-3 py-2 rounded-full text-sm font-medium transition {activeFilter === 'all'
 				? 'bg-black text-white dark:bg-white dark:text-black'
 				: 'border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}"
 		>
@@ -388,17 +479,17 @@
 			type="button"
 			aria-pressed={activeFilter === 'paid'}
 			on:click={() => handleFilterChange('paid')}
-			class="px-3 py-1.5 rounded-full text-sm font-medium transition {activeFilter === 'paid'
+			class="min-h-11 px-3 py-2 rounded-full text-sm font-medium transition {activeFilter === 'paid'
 				? 'bg-black text-white dark:bg-white dark:text-black'
 				: 'border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}"
 		>
-			{$i18n.t('Charges')}
+			{$i18n.t('Usage')}
 		</button>
 		<button
 			type="button"
 			aria-pressed={activeFilter === 'free'}
 			on:click={() => handleFilterChange('free')}
-			class="px-3 py-1.5 rounded-full text-sm font-medium transition {activeFilter === 'free'
+			class="min-h-11 px-3 py-2 rounded-full text-sm font-medium transition {activeFilter === 'free'
 				? 'bg-black text-white dark:bg-white dark:text-black'
 				: 'border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}"
 		>
@@ -408,14 +499,36 @@
 			type="button"
 			aria-pressed={activeFilter === 'topups'}
 			on:click={() => handleFilterChange('topups')}
-			class="px-3 py-1.5 rounded-full text-sm font-medium transition {activeFilter === 'topups'
+			class="min-h-11 px-3 py-2 rounded-full text-sm font-medium transition {activeFilter ===
+			'topups'
 				? 'bg-black text-white dark:bg-white dark:text-black'
 				: 'border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}"
 		>
 			{$i18n.t('Top-ups')}
 		</button>
+		<button
+			type="button"
+			aria-pressed={activeFilter === 'refunds'}
+			on:click={() => handleFilterChange('refunds')}
+			class="min-h-11 rounded-full border border-gray-200 px-3 py-2 text-sm dark:border-gray-800"
+			>{$i18n.t('Refunds')}</button
+		>
 	</div>
 {/if}
+
+{#if ledgerError || usageError || refundError}<div
+		class="mb-3 rounded-xl border border-amber-300 p-3 text-sm"
+		role="alert"
+	>
+		<p>
+			{$i18n.t('Some operations could not be loaded')}. {ledgerError ?? ''}
+			{usageError ?? ''}
+			{refundError ?? ''}
+		</p>
+		<button type="button" class="min-h-11 underline" on:click={loadInitial}
+			>{$i18n.t('Retry')}</button
+		>
+	</div>{/if}
 
 {#if loading}
 	<div class="w-full flex justify-center items-center py-8">
@@ -424,7 +537,7 @@
 {:else if !visibleItems.length && (ledgerError || usageError)}
 	<div class="flex flex-col items-center justify-center py-8 text-center">
 		<div class="text-gray-500 dark:text-gray-400 text-sm">
-			{ledgerError || usageError}
+			{ledgerError || usageError || refundError}
 		</div>
 		<button
 			type="button"
@@ -437,7 +550,15 @@
 {:else if !visibleItems.length}
 	<div class="flex flex-col items-center justify-center py-8 text-center">
 		<div class="text-sm text-gray-500 dark:text-gray-400">
-			{$i18n.t('No recent activity')}
+			{ledgerHasMore || usageHasMore
+				? showLoadMore
+					? $i18n.t(
+							'No matching operations in the loaded portion. Load older operations to continue.'
+						)
+					: $i18n.t(
+							'No matching operations in the latest activity. Open the full history to see older operations.'
+						)
+				: $i18n.t('No operations for these filters')}
 		</div>
 		{#if emptyActionLabel}
 			<button
@@ -470,21 +591,36 @@
 							class="flex items-start justify-between gap-4 px-4 py-3.5 min-h-[68px]"
 						>
 							<div class="min-w-0">
-								<div class="text-sm font-medium truncate">{item.title}</div>
-								<div class="text-xs text-gray-500 mt-0.5 truncate">
+								<div class="text-sm font-medium break-words">{item.title}</div>
+								<div class="text-sm text-gray-500 mt-0.5 break-words">
 									{item.subtitle || $i18n.t('Billing activity')}
 									<span class="mx-1">•</span>{formatDateTime(item.createdAt)}
 								</div>
-								{#if item.metrics.length > 0 || item.isEstimated}
-									<div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500 mt-1.5">
-										{#each item.metrics as metric}
-											<span>{metric}</span>
-										{/each}
-										{#if item.isEstimated}
-											<span>{$i18n.t('Estimated')} • {$i18n.t('Not charged')}</span>
-										{/if}
+								<details class="mt-2 text-sm">
+									<summary
+										class="min-h-11 cursor-pointer py-3 text-gray-600 dark:text-gray-300 focus-visible:outline focus-visible:outline-2"
+										>{$i18n.t('Details')}</summary
+									>
+									<div class="space-y-2 pb-3">
+										{#if item.isEstimated}<p>
+												{item.kind === 'free'
+													? $i18n.t('Free usage volume was estimated')
+													: (item.amountKopeks ?? 0) > 0
+														? $i18n.t('Charged using an estimate')
+														: $i18n.t('No charge; usage volume was estimated')}
+											</p>{/if}
+										{#each item.metrics as metric}<p>{metric}</p>{/each}
+										{#if item.chatId}<a
+												href={`/c/${encodeURIComponent(item.chatId)}`}
+												class="inline-flex min-h-11 items-center underline"
+												>{$i18n.t('Open chat')}</a
+											>{/if}
+										{#if item.reason}<p>{$i18n.t('Adjustment reason')}: {item.reason}</p>{/if}
+										<p class="break-all text-xs text-gray-500">
+											{$i18n.t('Operation reference')}: {item.requestId ?? item.id}
+										</p>
 									</div>
-								{/if}
+								</details>
 							</div>
 							{#if item.kind === 'free'}
 								<div class="shrink-0 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
@@ -501,17 +637,17 @@
 			</section>
 		{/each}
 	</div>
+{/if}
 
-	{#if canLoadMore}
-		<div class="flex justify-center mt-4">
-			<button
-				type="button"
-				on:click={handleLoadMore}
-				disabled={loadingMore}
-				class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
-			>
-				{loadingMore ? $i18n.t('Loading…') : $i18n.t('Load more')}
-			</button>
-		</div>
-	{/if}
+{#if canLoadMore}
+	<div class="flex justify-center mt-4">
+		<button
+			type="button"
+			on:click={handleLoadMore}
+			disabled={loadingMore}
+			class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
+		>
+			{loadingMore ? $i18n.t('Loading…') : $i18n.t('Load more')}
+		</button>
+	</div>
 {/if}
