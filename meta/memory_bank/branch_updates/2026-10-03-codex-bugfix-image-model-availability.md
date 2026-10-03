@@ -1,0 +1,8 @@
+- [ ] **[BUG][IMAGES][BILLING]** Enforce image model availability before billing
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-03__bugfix__image-model-availability.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/image-model-availability`
+  - Started: 2026-10-03
+  - Summary: Reproduce disabled/private image-model bypass, guard shared operations, and reconcile feature/recommendation visibility.
+  - Tests: In progress.
+  - Risks: Non-admin image use requires a registered accessible model; disabled records are denied for all roles.

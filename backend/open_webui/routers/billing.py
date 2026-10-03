@@ -52,6 +52,7 @@ from open_webui.utils.billing import (
 from open_webui.utils.pricing import PricingService
 from open_webui.utils.models import get_all_base_models
 from open_webui.utils.wallet import wallet_service, WalletError
+from open_webui.utils.airis.public_pricing_selection import filter_public_pricing_selection
 from open_webui.utils.airis.runtime_config import get_lead_magnet_runtime_config
 from open_webui.utils.yookassa import (
     YooKassaWebhookHandler,
@@ -1093,7 +1094,7 @@ def get_public_lead_magnet_config(request: Request) -> PublicLeadMagnetResponse:
 
 
 @router.get("/public/pricing-config", response_model=PublicPricingConfigResponse)
-def get_public_pricing_config(request: Request) -> PublicPricingConfigResponse:
+async def get_public_pricing_config(request: Request) -> PublicPricingConfigResponse:
     """Expose pricing config for public pages (topups, free limits, popular/recommended)."""
     config = get_lead_magnet_runtime_config()
     quotas = _normalize_public_lead_magnet_quotas(config.quotas)
@@ -1102,9 +1103,14 @@ def get_public_pricing_config(request: Request) -> PublicPricingConfigResponse:
         {int(amount / 100) for amount in BILLING_TOPUP_PACKAGES_KOPEKS if isinstance(amount, int) and amount > 0}
     )
 
-    def _nullable(value: str) -> Optional[str]:
-        cleaned = value.strip()
-        return cleaned if cleaned else None
+    popular_ids, recommended_ids = await filter_public_pricing_selection(
+        PUBLIC_PRICING_POPULAR_MODELS,
+        {
+            'text': PUBLIC_PRICING_RECOMMENDED_TEXT_MODEL,
+            'image': PUBLIC_PRICING_RECOMMENDED_IMAGE_MODEL,
+            'audio': PUBLIC_PRICING_RECOMMENDED_AUDIO_MODEL,
+        },
+    )
 
     return PublicPricingConfigResponse(
         topup_amounts_rub=topup_amounts_rub,
@@ -1115,11 +1121,11 @@ def get_public_pricing_config(request: Request) -> PublicPricingConfigResponse:
             tts_minutes=(int(quotas["tts_seconds"] / 60) if quotas["tts_seconds"] > 0 else 0),
             stt_minutes=(int(quotas["stt_seconds"] / 60) if quotas["stt_seconds"] > 0 else 0),
         ),
-        popular_model_ids=PUBLIC_PRICING_POPULAR_MODELS,
+        popular_model_ids=popular_ids,
         recommended_model_ids=PublicPricingRecommendedModels(
-            text=_nullable(PUBLIC_PRICING_RECOMMENDED_TEXT_MODEL),
-            image=_nullable(PUBLIC_PRICING_RECOMMENDED_IMAGE_MODEL),
-            audio=_nullable(PUBLIC_PRICING_RECOMMENDED_AUDIO_MODEL),
+            text=recommended_ids['text'],
+            image=recommended_ids['image'],
+            audio=recommended_ids['audio'],
         ),
     )
 
