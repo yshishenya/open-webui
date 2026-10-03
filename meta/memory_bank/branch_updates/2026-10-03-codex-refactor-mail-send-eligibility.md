@@ -4,3 +4,5 @@
   - Started: 2026-10-03
   - Summary: Separate reusable account/scenario/frequency decisions from worker release controls; preserve all dispatch behavior. Historical observation and pilot remain pending.
   - Tests:15 before-refactor cases;714 full backend/3 PostgreSQL-only skips;122 PostgreSQL checks and22 final cases on each dialect;Ruff/Black/SDD passed. Frozen release pending.
+
+- 2026-10-03: Corrected the generated SDD identifier and filename to the strict CI format; runtime files unchanged. Release task remains pending.

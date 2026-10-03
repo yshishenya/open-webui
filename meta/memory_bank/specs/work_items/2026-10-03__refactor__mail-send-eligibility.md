@@ -5,7 +5,7 @@
 - Owner: Codex
 - Branch: codex/refactor/mail-send-eligibility
 - Created: 2026-10-03
-- SDD Spec: meta/sdd/specs/active/airis-shared-send-eligibility--2026-10-03-0902.json
+- SDD Spec: meta/sdd/specs/active/airis-mail-send-eligibility-2026-10-03-001.json
 
 ## Goal
 
@@ -17,7 +17,8 @@ Make the existing account/scenario/personal-frequency decision reusable by the f
 - [x] Shared decision returns the same account, address, consent, scenario and personal-frequency outcomes for ready, deleted/inactive, unverified/changed address, absent consent, complaint, expired window, activation state, unresolved payment and frequency.
 - [x] Every dispatch control remains enforced before sending; disabled releases/dry-run/nonpilot/global product off never reach transport. Shared business eligibility can be ready while release is disabled, clearly distinguished from authorization to send.
 - [x] Repeated decision reads execute zero DML, enqueue and SMTP calls; no new model/schema/endpoint/dependency.
-- [x] Existing post-AUTH permission/content/expiry checks, replay and concurrency regressions pass. Full backend, focused PostgreSQL, changed-file Ruff/Black and exact-head CI pass.
+- [x] Existing post-AUTH permission/content/expiry checks, replay and concurrency regressions pass. Full backend, focused PostgreSQL and changed-file Ruff/Black pass.
+- [ ] All required CI checks pass for the final source SHA.
 - [ ] Frozen candidate and guarded production acceptance preserve configuration, neighbor services and mail-off settings; document evidence before closing SDD.
 
 ## Design and upstream impact
