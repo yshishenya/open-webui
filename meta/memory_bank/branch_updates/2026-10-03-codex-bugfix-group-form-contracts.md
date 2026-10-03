@@ -1,0 +1,7 @@
+- [ ] **[BUG][REFACTOR]** Complete group form and membership contracts
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-03__bugfix__group-form-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/group-form-contracts`
+  - Started: 2026-10-03
+  - Summary: Preserve failed group edits, describe nullable payloads/member lists and prevent requests without a saved group.
+  - Tests: Base4442/179, ESLint1546; 23 regression scenarios and full236/236 passed; check4419/177 with0 new diagnostics; full ESLint1540, changed files clean. Release pending.

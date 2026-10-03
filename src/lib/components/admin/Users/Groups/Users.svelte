@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { GroupDetails, GroupMember, GroupUserList } from '$lib/utils/airis/group-types';
 	import { getContext, onDestroy } from 'svelte';
 	const i18n = getContext('i18n');
 
@@ -25,9 +26,11 @@
 	export let groupId: string;
 	export let userCount = 0;
 
-	let users = null;
-	let total = null;
+	let users: GroupMember[] | null = null;
+	let total: number | null = null;
 
+	let pendingMember: string | null = null;
+	let memberRevision = 0;
 	let query = '';
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 	let orderBy = groupId ? `group_id:${groupId}` : 'last_active_at'; // default sort key
@@ -35,7 +38,7 @@
 
 	let page = 1;
 
-	const setSortKey = (key) => {
+	const setSortKey = (key: string): void => {
 		if (orderBy === key) {
 			direction = direction === 'asc' ? 'desc' : 'asc';
 		} else {
@@ -45,7 +48,7 @@
 		page = 1;
 	};
 
-	const roleClass = (role) => {
+	const roleClass = (role: string): string => {
 		if (role === 'admin') {
 			return 'text-[#4f6f93] dark:text-[#8ba6c6]';
 		}
@@ -55,45 +58,61 @@
 		return 'text-gray-500 dark:text-gray-400';
 	};
 
-	const getUserList = async () => {
+	const getUserList = async (): Promise<void> => {
 		try {
-			const res = await getUsers(localStorage.token, query, orderBy, direction, page).catch(
-				(error) => {
-					toast.error(`${error}`);
-					return null;
-				}
+			const res: GroupUserList | null = await getUsers(
+				localStorage.token,
+				query,
+				orderBy,
+				direction,
+				page
 			);
-
-			if (res) {
-				users = res.users;
-				total = res.total;
-			}
-		} catch (err) {
-			console.error(err);
+			if (!res) throw new Error($i18n.t('Something went wrong :/'));
+			users = res.users;
+			total = res.total;
+		} catch (error) {
+			toast.error(`${error}`);
 		}
 	};
 
-	const toggleMember = async (userId, state) => {
-		if (state === 'checked') {
-			await addUserToGroup(localStorage.token, groupId, [userId]).catch((error) => {
-				toast.error(`${error}`);
-				return null;
-			});
-		} else {
-			await removeUserFromGroup(localStorage.token, groupId, [userId]).catch((error) => {
-				toast.error(`${error}`);
-				return null;
-			});
+	const toggleMember = async (userId: string, state: string): Promise<void> => {
+		if (!groupId || pendingMember) return;
+		pendingMember = userId;
+		try {
+			const res: GroupDetails | null =
+				state === 'checked'
+					? await addUserToGroup(localStorage.token, groupId, [userId])
+					: await removeUserFromGroup(localStorage.token, groupId, [userId]);
+			if (!res) throw new Error($i18n.t('Something went wrong :/'));
+			// Keep the committed membership visible even if the subsequent list refresh fails.
+			users =
+				users?.map((user) =>
+					user.id === userId
+						? {
+								...user,
+								group_ids:
+									state === 'checked'
+										? [...new Set([...user.group_ids, groupId])]
+										: user.group_ids.filter((id) => id !== groupId)
+							}
+						: user
+				) ?? null;
+			userCount = res.member_count ?? userCount;
+			await getUserList();
+		} catch (error) {
+			toast.error(`${error}`);
+		} finally {
+			// Checkbox keeps local click state; remount it from the confirmed membership on failure.
+			memberRevision += 1;
+			pendingMember = null;
 		}
-
-		getUserList();
 	};
 
 	$: if (page !== null && orderBy !== null && direction !== null) {
 		getUserList();
 	}
 
-	const handleSearchInput = () => {
+	const handleSearchInput = (): void => {
 		clearTimeout(searchDebounceTimer);
 		searchDebounceTimer = setTimeout(() => {
 			if (page !== 1) {
@@ -237,13 +256,16 @@
 							<tr class="dark:border-gray-850 text-xs">
 								<td class=" px-3 py-1 w-8">
 									<div class="flex w-full justify-center">
-										<Checkbox
-											ariaLabel={user.name}
-											state={(user?.group_ids ?? []).includes(groupId) ? 'checked' : 'unchecked'}
-											on:change={(e) => {
-												toggleMember(user.id, e.detail);
-											}}
-										/>
+										{#key memberRevision}
+											<Checkbox
+												ariaLabel={user.name}
+												disabled={pendingMember !== null}
+												state={(user?.group_ids ?? []).includes(groupId) ? 'checked' : 'unchecked'}
+												on:change={(e) => {
+													toggleMember(user.id, e.detail);
+												}}
+											/>
+										{/key}
 									</div>
 								</td>
 								<td class="px-3 py-1 font-normal text-gray-900 dark:text-white max-w-48">

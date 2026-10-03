@@ -1,4 +1,7 @@
-<script>
+<script lang="ts">
+	import type { GroupDetails, GroupForm } from '$lib/utils/airis/group-types';
+	import type { PermissionSettingsInput } from '$lib/utils/airis/permission-types';
+	import { performGroupMutation } from '$lib/utils/airis/group-mutation';
 	import { toast } from 'svelte-sonner';
 	import { onMount, getContext } from 'svelte';
 	import { page } from '$app/stores';
@@ -9,44 +12,30 @@
 
 	import EditGroupModal from './EditGroupModal.svelte';
 
-	export let group = {
-		id: '',
-		name: 'Admins',
-		description: '',
-		permissions: {},
-		user_ids: [1, 2, 3],
-		member_count: 0
-	};
-	export let defaultPermissions = {};
-
-	export let setGroups = () => {};
+	export let group: GroupDetails;
+	export let defaultPermissions: PermissionSettingsInput = {};
+	export let setGroups: () => void | Promise<void> = () => {};
 
 	let showEdit = false;
 	$: hasCustomPermissions = Object.keys(group?.permissions ?? {}).length > 0;
 
-	const updateHandler = async (_group) => {
-		const res = await updateGroupById(localStorage.token, group.id, _group).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
+	const updateHandler = async (payload: GroupForm): Promise<boolean> =>
+		performGroupMutation(
+			() => updateGroupById(localStorage.token, group.id, payload),
+			() => toast.success($i18n.t('Group updated successfully')),
+			setGroups,
+			(error) => toast.error(`${error}`),
+			$i18n.t('Something went wrong :/')
+		);
 
-		if (res) {
-			toast.success($i18n.t('Group updated successfully'));
-			setGroups();
-		}
-	};
-
-	const deleteHandler = async () => {
-		const res = await deleteGroupById(localStorage.token, group.id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (res) {
-			toast.success($i18n.t('Group deleted successfully'));
-			setGroups();
-		}
-	};
+	const deleteHandler = async (): Promise<boolean> =>
+		performGroupMutation(
+			() => deleteGroupById(localStorage.token, group.id),
+			() => toast.success($i18n.t('Group deleted successfully')),
+			setGroups,
+			(error) => toast.error(`${error}`),
+			$i18n.t('Something went wrong :/')
+		);
 
 	onMount(() => {
 		const groupId = $page.url.searchParams.get('id');

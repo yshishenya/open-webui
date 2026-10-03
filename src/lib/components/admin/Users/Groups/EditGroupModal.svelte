@@ -1,4 +1,12 @@
 <script lang="ts">
+	import type {
+		GroupData,
+		GroupDetails,
+		GroupForm,
+		GroupSubmit,
+		GroupDelete
+	} from '$lib/utils/airis/group-types';
+	import type { PermissionSettingsInput } from '$lib/utils/airis/permission-types';
 	import { toast } from 'svelte-sonner';
 	import { getContext, onMount } from 'svelte';
 	const i18n = getContext('i18n');
@@ -17,14 +25,14 @@
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 
-	export let onSubmit: Function = () => {};
-	export let onDelete: Function = () => {};
+	export let onSubmit: GroupSubmit = () => {};
+	export let onDelete: GroupDelete = () => {};
 
 	export let show = false;
 	export let edit = false;
 
-	export let group = null;
-	export let defaultPermissions = {};
+	export let group: GroupDetails | null = null;
+	export let defaultPermissions: PermissionSettingsInput = {};
 
 	export let custom = true;
 
@@ -39,27 +47,36 @@
 
 	export let name = '';
 	export let description = '';
-	export let data = {};
+	export let data: GroupData = {};
 
-	export let permissions = DEFAULT_PERMISSIONS;
+	export let permissions: PermissionSettingsInput = DEFAULT_PERMISSIONS;
 
-	const submitHandler = async () => {
+	const submitHandler = async (): Promise<void> => {
+		if (loading) return;
 		loading = true;
-
-		const group = {
-			name,
-			description,
-			data,
-			permissions
-		};
-
-		await onSubmit(group);
-
-		loading = false;
-		show = false;
+		const payload: GroupForm = { name, description, data, permissions };
+		try {
+			if ((await onSubmit(payload)) !== false) show = false;
+		} catch (error) {
+			toast.error(`${error}`);
+		} finally {
+			loading = false;
+		}
 	};
 
-	const resetToDefaultsHandler = async () => {
+	const deleteHandler = async (): Promise<void> => {
+		if (loading) return;
+		loading = true;
+		try {
+			if ((await onDelete()) !== false) show = false;
+		} catch (error) {
+			toast.error(`${error}`);
+		} finally {
+			loading = false;
+		}
+	};
+
+	const resetToDefaultsHandler = async (): Promise<void> => {
 		try {
 			// For user groups: reset to current global default permissions
 			// For default permissions modal: reset to stock/env-var configuration
@@ -82,7 +99,7 @@
 		}
 	};
 
-	const init = () => {
+	const init = (): void => {
 		if (group) {
 			name = group.name;
 			description = group.description;
@@ -96,7 +113,7 @@
 				features: { ...DEFAULT_PERMISSIONS.features, ...loadedPermissions.features },
 				settings: { ...DEFAULT_PERMISSIONS.settings, ...loadedPermissions.settings }
 			};
-			data = group?.data ?? {};
+			data = structuredClone(group.data ?? {});
 
 			userCount = group?.member_count ?? 0;
 		}
@@ -107,17 +124,15 @@
 	}
 
 	onMount(() => {
-		selectedTab = tabs[0];
+		selectedTab = tabs.find((tab) => group?.id || !['users', 'preview'].includes(tab)) ?? 'general';
 		init();
 	});
 </script>
 
 <ConfirmDialog
 	bind:show={showDeleteConfirmDialog}
-	on:confirm={() => {
-		onDelete();
-		show = false;
-	}}
+	confirmDisabled={loading}
+	on:confirm={deleteHandler}
 />
 
 <ConfirmDialog
@@ -216,7 +231,7 @@
 								</button>
 							{/if}
 
-							{#if tabs.includes('users')}
+							{#if tabs.includes('users') && group?.id}
 								<button
 									class="px-0.5 py-1 max-w-fit w-fit rounded-lg flex-1 lg:flex-none flex text-right transition {selectedTab ===
 									'users'
@@ -234,7 +249,7 @@
 								</button>
 							{/if}
 
-							{#if tabs.includes('preview')}
+							{#if tabs.includes('preview') && group?.id}
 								<button
 									class="px-0.5 py-1 max-w-fit w-fit rounded-lg flex-1 lg:flex-none flex text-right transition {selectedTab ===
 									'preview'
@@ -279,10 +294,10 @@
 									/>
 								{:else if selectedTab == 'permissions'}
 									<Permissions bind:permissions {defaultPermissions} />
-								{:else if selectedTab == 'users'}
-									<Users bind:userCount groupId={group?.id} />
-								{:else if selectedTab == 'preview'}
-									<GroupPreviewPanel groupId={group?.id} />
+								{:else if selectedTab == 'users' && group?.id}
+									<Users bind:userCount groupId={group.id} />
+								{:else if selectedTab == 'preview' && group?.id}
+									<GroupPreviewPanel groupId={group.id} />
 								{/if}
 							</div>
 

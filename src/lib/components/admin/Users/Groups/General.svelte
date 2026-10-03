@@ -1,17 +1,17 @@
 <script lang="ts">
+	import type { GroupData } from '$lib/utils/airis/group-types';
 	import { getContext } from 'svelte';
 	import Textarea from '$lib/components/common/Textarea.svelte';
-	import Tooltip from '$lib/components/common/Tooltip.svelte';
 
 	const i18n = getContext('i18n');
 
 	export let name = '';
-	export let color = '';
+
 	export let description = '';
-	export let data = {};
+	export let data: GroupData = {};
 
 	export let edit = false;
-	export let onDelete: Function = () => {};
+	export let onDelete: () => void = () => {};
 </script>
 
 <div class="flex gap-2">
@@ -80,7 +80,7 @@
 					class="text-sm bg-transparent outline-hidden rounded-lg px-2"
 					value={data?.config?.share ?? 'members'}
 					on:change={(e) => {
-						const value = e.target.value;
+						const value = e.currentTarget.value;
 						let shareValue;
 						if (value === 'false') {
 							shareValue = false;
