@@ -1,0 +1,8 @@
+- [x] **[DOCS][MAIL]** Accept production atomic queue observation
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__docs__mail-queue-production-acceptance.md`
+  - Owner: Codex
+  - Branch: `codex/docs/mail-queue-production-acceptance`
+  - Done: 2026-10-04
+  - Summary: Record exact source/image/CI, compatible migration and guarded production acceptance while retaining the actual Metrica successor. Report and real pilot remain separate gates.
+  - Tests: Exact image838/4skips; isolated PostgreSQL211; current database78tables/20722rows preserved; source CI11success/1skip. Production hashes/runtime/source/journal preserved; queue off.
+  - Release: PR210/source95bf27b94/merge9a701af3e/digestd113fd4c7055; image838/4skips+211PostgreSQL;4904frontend/495backend;13neighbors;health200/restarts0; overall189/244active.

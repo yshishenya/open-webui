@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: feature
-- Status: active
+- Status: completed
 - Owner: Codex
 - Branch: codex/feature/mail-queue-observation
-- SDD Spec: meta/sdd/specs/active/airis-mail-queue-observation-2026-10-04-001.json
+- SDD Spec: meta/sdd/specs/completed/airis-mail-queue-observation-2026-10-04-001.json
 - Created: 2026-10-04
 
 ## Goal and measurable acceptance
@@ -19,7 +19,7 @@ The declared dispatch population must retain a factual history through queue cre
 - [x] Both pre-submit checks update only proven linked scenarios; unrelated/closed/diagnostic scopes fail safely. No HTTP route permits dispatch mutation.
 - [x] One bounded scheduler page scans all frozen members, retaining durable cursors, missing sources and failed coverage. A single worker fact has run_id=null and changes no page counters.
 - [x] Duplicate/restart/lost-response/two-worker paths create zero duplicate tasks/events/links; journal failures roll back queue decisions while committed payment credits survive.
-- [ ] SQLite and isolated PostgreSQL tests pass; full backend and required code checks run before commit; exact-source CI and guarded release preserve the current production successor.
+- [x] SQLite and isolated PostgreSQL tests pass; full backend and required code checks run before commit; exact-source CI and guarded release preserve the current production successor.
 
 ## Implementation
 
@@ -53,3 +53,7 @@ This block does not close report denominators, voluntary pilot, human usefulness
 - Dependency runtime SQLAlchemy 2.0.50 confirmed. SDD validation: 0 errors / 0 warnings; 501 Markdown files / 0 broken links. npm run preflight is absent; actual project checks were run instead.
 - Backup space: one old 20261002T165448Z history-dates backup copied privately to Mac; all 12 files / 1565708895 bytes matched SHA256 and size, tar/pg_restore read successfully. Server removal revalidated both copies and retained all other backups. About 11.8 GiB free afterward.
 - Exact source/image/CI, production configuration and release acceptance remain task-1-4. No pilot or cohort outcome is declared completed.
+
+## Production acceptance (2026-10-04)
+
+PR210 source95bf27b94d398ba7f792ea13f3d340f6236058f4 merged as9a701af3ed37f7485434782d074d096c9171e315; CI11success/1skip, CodeRabbit disabled. Exact image838/4PostgreSQL-only skips plus211PostgreSQL checks; current78tables/20722rows unchanged at heado1a020261003. Digestsha256:d113fd4c70550538932c050dbdd33c31a04d027a7daa4979721e7c4164c9a10a preserves actual Metrica base1a013, one overlay/10layers;4904frontend/495immutablebackend hashes match live. ENV/mounts/networks/ports/command and13neighboring IDs preserved. Finance,consent,queue and journal fingerprints unchanged; no production dispatch scope created. Default helper0queries and scheduler0worker; queue/A/Boff,dry-run/pilot-onlyon. Health200/restarts0; verified backup and rollback retained. [Detailed acceptance](2026-10-04__docs__mail-queue-production-acceptance.md). All4SDDtasks complete. Overall189/244 remains active; report08.09/09.07 and real pilot are separate.

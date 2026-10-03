@@ -1,8 +1,9 @@
-- [ ] **[FEATURE][MAIL]** Atomic queue observation and dispatch population coverage
+- [x] **[FEATURE][MAIL]** Atomic queue observation and dispatch population coverage
   - Spec: `meta/memory_bank/specs/work_items/2026-10-04__feature__mail-queue-observation.md`
   - Owner: Codex
   - Branch: `codex/feature/mail-queue-observation`
-  - Started: 2026-10-04
+  - Done: 2026-10-04
   - Summary: Preserve factual business-ready history and exact new queue receipts; reuse bounded complete-population observation. Overall onboarding goal remains active.
-  - Tests: SQLite838/4skips; PostgreSQL193; frontend251; SDD0/0; Markdown501/0broken. Existing frontend4419type/1540lint errors unchanged. Source/image/CI/release pending.
+  - Tests: SQLite838/4skips; PostgreSQL193; frontend251; SDD0/0; Markdown501/0broken. Existing frontend4419type/1540lint errors unchanged. Source PR210 merged; image/CI/production accepted.
   - Risks: Scope/User/Delivery lock ordering, stale source/link identity and transaction rollback; default selected scope empty and release flags off.
+  - Release: PR210/source95bf27b94/merge9a701af3e/digestd113fd4c7055; image838/4skips+211PostgreSQL;4904frontend/495backend;13neighbors;health200/restarts0; overall189/244active.
