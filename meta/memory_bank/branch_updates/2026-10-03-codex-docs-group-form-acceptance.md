@@ -1,0 +1,8 @@
+- [x] **[BUG][GROUPS][PROD]** Preserve rejected group edits and confirmed membership state
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-03__bugfix__group-form-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/docs/group-form-acceptance`
+  - Done: 2026-10-03
+  - Summary: PR191/source09431cbd1 integrated and accepted in production. Eight reproduced defects fixed; failed writes preserve edits, refresh failure cannot duplicate a committed write, unsaved groups cannot request members, rejected membership resets its checkbox, and sharing edits cannot mutate stored data before Save.
+  - Tests: 236/236 frontend tests,23 group scenarios; changed9 files lint/format clean; full check4419/177 and ESLint1540, zero new diagnostics;10 actual source CI checks; frozen and public-static browser acceptance;5759 installed frontend hashes and476 immutable backend hashes; verified backup/migration/health/runtime;SDD4/4.
+  - Risks: Overall quality gate and external onboarding/pilot criteria remain open. Browser width390 does not establish physical-device acceptance.
