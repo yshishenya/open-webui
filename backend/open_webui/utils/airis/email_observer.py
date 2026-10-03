@@ -4,11 +4,13 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, replace
+from typing import Literal
 
 from open_webui.internal.db import get_async_db_context
 from open_webui.models.billing_wallet import Payment
 from open_webui.models.email_delivery import DeliveryView, EmailDelivery, EmailType
 from open_webui.models.email_observation import (
+    RULE_VERSION,
     EmailObservationMember,
     EmailObservationRun,
     EmailObservationScope,
@@ -223,10 +225,14 @@ async def _member(
 
 
 async def _save_page(
-    claim: ObservationClaim, now: int, limit: int, expected_cursor: int | None
+    claim: ObservationClaim,
+    now: int,
+    limit: int,
+    expected_cursor: int | None,
+    mode: Literal['observe', 'dispatch'] = 'observe',
 ) -> ObservationPageResult:
     async with get_async_db_context() as session:
-        scope = await lock_observation_page(session, claim, now, expected_cursor)
+        scope = await lock_observation_page(session, claim, now, expected_cursor, mode=mode)
         members = await observation_page(session, claim, limit)
         page: list[ObservedMember] = []
         for member in members:
@@ -256,6 +262,7 @@ async def observe_scope_page(
     now: int | None = None,
     limit: int = MAX_PAGE_MEMBERS,
     expected_cursor: int | None = None,
+    mode: Literal['observe', 'dispatch'] = 'observe',
 ) -> ObservationPageResult:
     """Observe one bounded page; current-time injection is for controlled tests, never HTTP input.
 
@@ -265,6 +272,7 @@ async def observe_scope_page(
     now = int(time.time()) if now is None else now
     if (
         now <= 0
+        or mode not in {'observe', 'dispatch'}
         or not 1 <= limit <= MAX_PAGE_MEMBERS
         or (claim is not None and claim.scope_id != scope_id)
         or (expected_cursor is not None and (expected_cursor < 0 or claim is None))
@@ -273,7 +281,7 @@ async def observe_scope_page(
     if claim is None:
         async with get_async_db_context() as session:
             scope = await session.get(EmailObservationScope, scope_id)
-            if not scope or scope.mode != 'observe':
+            if not scope or scope.mode != mode or scope.rule_version != RULE_VERSION:
                 raise ValueError('Scope is not an observation-only population')
             claim = await claim_observation_run(session, scope_id, now)
             await session.commit()
@@ -281,7 +289,7 @@ async def observe_scope_page(
             return ObservationPageResult(None)
     try:
         async with asyncio.timeout(PAGE_TIMEOUT_SECONDS):
-            return await _save_page(claim, now, limit, expected_cursor)
+            return await _save_page(claim, now, limit, expected_cursor, mode)
     except ObservationStateConflict as exc:
         raise ObservationPageConflict(str(exc)) from None
     except Exception as exc:

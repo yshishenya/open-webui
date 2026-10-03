@@ -17,7 +17,7 @@ from open_webui.models import email_observation as store
 from open_webui.models.billing_wallet import LedgerEntry, Payment
 from open_webui.models.email_delivery import EmailDelivery, enqueue_email
 from open_webui.models.users import User
-from open_webui.utils.airis import email_queue, email_scenarios
+from open_webui.utils.airis import email_dispatch, email_queue
 from sqlalchemy import delete, func, inspect, select, update
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
@@ -197,7 +197,7 @@ async def test_page_failure_rolls_back_all_storage_but_not_money(
     smtp = AsyncMock(side_effect=AssertionError('Storage must not call SMTP'))
     enqueue = AsyncMock(side_effect=AssertionError('Storage must not enqueue'))
     monkeypatch.setattr(email_queue, 'prepare_email', smtp)
-    monkeypatch.setattr(email_scenarios, 'enqueue_email', enqueue)
+    monkeypatch.setattr(email_dispatch, 'enqueue_email', enqueue)
     async with journal_db() as session:
         session.add(
             Payment(

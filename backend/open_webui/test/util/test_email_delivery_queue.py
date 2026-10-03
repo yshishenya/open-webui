@@ -68,6 +68,9 @@ async def database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIter
     monkeypatch.setattr(email, 'AIRIS_PRODUCT_EMAILS_ENABLED', True)
     monkeypatch.setattr(email, 'FRONTEND_URL', 'https://chat.airis.you')
     monkeypatch.setenv('FRONTEND_URL', 'https://chat.airis.you')
+    # Keep enqueue/claim windows deterministic across awaited fixture I/O.
+    clock = int(time.time())
+    monkeypatch.setattr(time, 'time', lambda: clock)
     async with factory() as session:
         now = int(time.time())
         for number in ['1', '2']:

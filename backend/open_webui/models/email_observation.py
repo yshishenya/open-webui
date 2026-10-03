@@ -291,15 +291,15 @@ async def _link_delivery(
     decision: ObservationDecision,
     row: EmailScenarioObservation,
     now: int,
+    *,
+    newly_enqueued: bool = False,
 ) -> None:
     if decision.delivery_id is not None and row.delivery_id != decision.delivery_id:
         job = await session.get(EmailDelivery, decision.delivery_id)
         if (
-            decision.reason != 'ready'
-            or row.linked_at is not None
+            row.linked_at is not None
             or row.delivery_id is not None
             or scope.mode != 'dispatch'
-            or row.first_eligible_at is None
             or not job
             or job.user_id != member.user_id
             or job.type != decision.type
@@ -307,9 +307,25 @@ async def _link_delivery(
             or job.payment_id != decision.payment_id
             or job.category != row.category
             or job.expires_at != row.expires_at
-            or job.due_at > now
-            or job.created_at < row.first_eligible_at
             or job.status not in {'pending', 'retry'}
+            or (
+                newly_enqueued
+                and (
+                    job.status != 'pending'
+                    or job.attempts != 0
+                    or job.submitted_at is not None
+                    or job.created_at < scope.declared_at
+                )
+            )
+            or (
+                not newly_enqueued
+                and (
+                    decision.reason != 'ready'
+                    or row.first_eligible_at is None
+                    or job.due_at > now
+                    or job.created_at < row.first_eligible_at
+                )
+            )
         ):
             raise ValueError('Delivery does not match a new eligible scenario')
         row.delivery_id, row.linked_at = job.id, now
@@ -319,9 +335,11 @@ async def _write_decision(
     session: AsyncSession,
     scope: EmailObservationScope,
     member: EmailObservationMember,
-    claim: ObservationClaim,
+    claim: ObservationClaim | None,
     decision: ObservationDecision,
     now: int,
+    *,
+    newly_enqueued: bool = False,
 ) -> None:
     _validate_decision_input(decision, now)
     existing = await session.scalar(
@@ -380,13 +398,13 @@ async def _write_decision(
     row.last_observed_at, row.reason, row.defer_until = now, decision.reason, decision.defer_until
     if decision.reason == 'ready' and row.first_eligible_at is None:
         row.first_eligible_at = now
-    await _link_delivery(session, scope, member, decision, row, now)
+    await _link_delivery(session, scope, member, decision, row, now, newly_enqueued=newly_enqueued)
     if changed:
         session.add(
             EmailDecisionEvent(
                 id=str(uuid.uuid4()),
                 observation_id=row.id,
-                run_id=claim.run_id,
+                run_id=claim.run_id if claim else None,
                 revision=row.revision,
                 observed_at=now,
                 reason=decision.reason,

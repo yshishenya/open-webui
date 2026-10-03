@@ -11,6 +11,7 @@ from open_webui.models.email_delivery import DeliveryView, EmailDelivery, EmailT
 from open_webui.models.task_success import TaskSuccess
 from open_webui.models.users import User
 from open_webui.utils import email
+from open_webui.utils.airis import email_dispatch
 from open_webui.utils.airis import email_eligibility as eligibility
 from open_webui.utils.airis import email_queue as worker
 from sqlalchemy import event, update
@@ -179,7 +180,7 @@ async def test_repeated_business_decisions_write_nothing_and_never_enqueue_or_se
 
     enqueue = AsyncMock(side_effect=AssertionError('Read must not enqueue'))
     transport = AsyncMock(side_effect=AssertionError('Read must not send'))
-    monkeypatch.setattr(queue_tests.scenarios, 'enqueue_email', enqueue)
+    monkeypatch.setattr(email_dispatch, 'enqueue_email', enqueue)
     monkeypatch.setattr(worker, 'execute_email', transport)
     event.listen(engine.sync_engine, 'before_cursor_execute', record)
     try:

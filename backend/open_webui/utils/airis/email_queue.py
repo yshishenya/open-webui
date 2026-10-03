@@ -79,8 +79,11 @@ async def prepare_email(
     expected_context: dict[str, str] | None = None,
 ) -> Recipient | None:
     """First call starts an attempt; post-AUTH call commits the submitting marker."""
+    from open_webui.utils.airis.email_dispatch import lock_dispatch_scope, record_dispatch_permission
+
     now = int(time.time())
     async with get_async_db_context() as session:
+        scope = await lock_dispatch_scope(session, config, now)
         user = await session.scalar(select(User).where(User.id == job.user_id).with_for_update())
         now = int(time.time())
         row = await session.scalar(
@@ -98,7 +101,14 @@ async def prepare_email(
         now = int(time.time())
         if row.lease_until <= now:
             return None
-        decision = await permission_decision(session, user, job, config, expected_email, now)
+        business = await record_dispatch_permission(
+            session, scope, user, DeliveryView.model_validate(row), expected_email, now
+        )
+        decision = (
+            business
+            if business is not None and business.reason != 'ready'
+            else await permission_decision(session, user, job, config, expected_email, now)
+        )
         context = {}
         if decision.reason == 'ready':
             context = await onboarding_context(session, user, job, os.getenv('FRONTEND_URL', 'http://localhost:3000'))
@@ -201,6 +211,10 @@ async def execute_email(job: DeliveryView, config: EmailQueueConfig) -> None:
 async def drain_email_queue(config: EmailQueueConfig) -> None:
     """Keep slow SMTP work out of the shared timer/calendar scheduler."""
     try:
+        if config.observation_scope_id:
+            from open_webui.utils.airis.email_observer import observe_scope_page
+
+            await observe_scope_page(config.observation_scope_id, mode='dispatch')
         candidates = await asyncio.wait_for(reconcile_email_candidates(config), timeout=20)
         if config.dry_run:
             log.info('Email dry-run candidates=%s submitted=0', candidates)

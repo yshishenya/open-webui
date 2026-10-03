@@ -1,0 +1,147 @@
+{
+  "spec_id": "airis-mail-queue-observation-2026-10-04-001",
+  "title": "AIRIS mail queue observation",
+  "generated": "2026-10-03T22:13:28.652873Z",
+  "last_updated": "2026-10-03T22:48:19.426025Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "medium",
+    "risk_level": "high",
+    "estimated_hours": 8,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__feature__mail-queue-observation.md",
+    "status": "active",
+    "activated_date": "2026-10-03T22:14:36.037407Z",
+    "progress_percentage": 75,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS mail queue observation",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Atomic dispatch observation",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3",
+        "task-1-4"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Define queue receipt and canonical windows",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "investigation",
+        "started_at": "2026-10-03T22:14:36.434489Z",
+        "completed_at": "2026-10-03T22:27:14.275429Z",
+        "needs_journaling": false,
+        "status_note": "Defined canonical windows, atomic new receipts, default-off selected dispatch scope, immutable first-positive and source->queue transaction boundaries.",
+        "actual_hours": 0.211,
+        "journaled_at": "2026-10-03T22:27:14.279529Z",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-04__feature__mail-queue-observation.md"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Implement atomic enqueue and pre-submit observations",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "started_at": "2026-10-03T22:27:14.978948Z",
+        "file_path": "backend/open_webui/utils/airis/email_dispatch.py",
+        "completed_at": "2026-10-03T22:37:23.894091Z",
+        "needs_journaling": false,
+        "status_note": "Atomic enqueue receipts, canonical permission facts, selected-scope gates and durable bounded dispatch pages implemented; PostgreSQL158 passed.",
+        "actual_hours": 0.169,
+        "journaled_at": "2026-10-03T22:37:23.898415Z"
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Verify SQLite and PostgreSQL concurrency and rollback",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "backend/open_webui/test/util/test_email_dispatch.py",
+        "started_at": "2026-10-03T22:37:24.811425Z",
+        "completed_at": "2026-10-03T22:48:18.678835Z",
+        "needs_journaling": false,
+        "status_note": "SQLite838/4PostgreSQL-only skips; PostgreSQL193; frontend251; SDD0errors/0warnings. Existing frontend debt unchanged.",
+        "actual_hours": 0.182,
+        "journaled_at": "2026-10-03T22:48:18.681238Z"
+      }
+    },
+    "task-1-4": {
+      "type": "task",
+      "title": "Accept exact-source CI and production release",
+      "status": "in_progress",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-04__feature__mail-queue-observation.md",
+        "started_at": "2026-10-03T22:48:19.425714Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-03T22:27:14.279512Z",
+      "entry_type": "status_change",
+      "title": "Dispatch receipt contract selected",
+      "author": "claude-code",
+      "content": "Reused queue/eligibility/observer/storage; no schema or dependency addition. Scope -> User -> Delivery lock order; worker facts have no population run. Overall goal189/244 remains active.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-03T22:37:23.898402Z",
+      "entry_type": "status_change",
+      "title": "Queue integration implemented",
+      "author": "Codex",
+      "content": "Reuses existing queue/storage/observer; 6types, future scheduling, immutable positive, rollback and cancellation verified on isolated PostgreSQL; defaults unchanged with empty selector.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-03T22:48:18.681230Z",
+      "entry_type": "status_change",
+      "title": "Source verification passed",
+      "author": "Codex",
+      "content": "All6types, future readiness, replay/concurrency, rollback, consent/address/complaint, missing/stale receipts, partial population, cancellation and finance preservation tested. Test clock fixed across awaited enqueue/claim. Frontend source unchanged;4419type/1540lint errors remain G14. Source/image/CI/release gate remains separate.",
+      "metadata": {},
+      "task_id": "task-1-3"
+    }
+  ]
+}
