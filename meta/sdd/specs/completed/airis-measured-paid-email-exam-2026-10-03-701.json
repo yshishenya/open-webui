@@ -2,7 +2,7 @@
   "spec_id": "airis-measured-paid-email-exam-2026-10-03-701",
   "title": "AIRIS measured paid email example 2026-10-03",
   "generated": "2026-10-03T04:01:19.833524Z",
-  "last_updated": "2026-10-03T04:11:49.315462Z",
+  "last_updated": "2026-10-03T04:41:24.270728Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -11,28 +11,29 @@
     "security_sensitive": false,
     "default_category": "implementation",
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__feature__measured-paid-email-example.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-03T04:02:26.763125Z",
-    "progress_percentage": 66,
-    "current_phase": "phase-1"
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-03T04:41:24.270369Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "AIRIS measured paid email example 2026-10-03",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
       "type": "phase",
       "title": "Publish the measured example in both optional email formats",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-1-1",
@@ -40,8 +41,12 @@
         "task-1-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
-      "metadata": {}
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T04:41:23.750929Z",
+        "journaled_at": "2026-10-03T04:41:23.753790Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -78,14 +83,18 @@
     "task-1-3": {
       "type": "task",
       "title": "Validate exact-source candidate, guarded release and document acceptance",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1",
       "children": [],
       "metadata": {
         "category": "implementation",
-        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__measured-paid-email-example.md"
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__measured-paid-email-example.md",
+        "completed_at": "2026-10-03T04:41:23.750777Z",
+        "needs_journaling": false,
+        "status_note": "Immutable candidate, exact-source CI and guarded production release accepted;5759/478 hashes, backup,14 neighboring IDs, unchanged flags and healthy endpoint verified.",
+        "journaled_at": "2026-10-03T04:41:23.752462Z"
       },
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "total_tasks": 1
     }
   },
@@ -107,6 +116,24 @@
       "content": "Task task-1-2 marked as completed.",
       "metadata": {},
       "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-03T04:41:23.752455Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Validate exact-source candidate, guarded release and document acceptance",
+      "author": "Codex",
+      "content": "Task task-1-3 marked as completed. \nNote: Immutable candidate, exact-source CI and guarded production release accepted;5759/478 hashes, backup,14 neighboring IDs, unchanged flags and healthy endpoint verified.",
+      "metadata": {},
+      "task_id": "task-1-3"
+    },
+    {
+      "timestamp": "2026-10-03T04:41:23.753786Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Publish the measured example in both optional email formats",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
     }
   ]
 }

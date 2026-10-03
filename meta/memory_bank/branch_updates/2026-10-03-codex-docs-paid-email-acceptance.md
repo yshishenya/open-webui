@@ -1,0 +1,6 @@
+- [x] **[DOCS][MAIL]** Record production acceptance of measured paid email
+  - Spec: meta/memory_bank/specs/work_items/2026-10-03__feature__measured-paid-email-example.md
+  - Owner: Codex
+  - Done: 2026-10-03
+  - Summary: Close measured content/release work with exact-source tests and verified production artifacts;calendar pilot and external delivery remain open.
+  - Tests: SDD validation/completion,documentation diff;runtime acceptance in linked work item.

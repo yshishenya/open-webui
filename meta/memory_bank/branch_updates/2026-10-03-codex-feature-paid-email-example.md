@@ -1,6 +1,6 @@
-- [ ] **[MAIL][GUIDE]** Measured planning example in paid-value email
+- [x] **[MAIL][GUIDE]** Measured planning example in paid-value email
   - Spec: meta/memory_bank/specs/work_items/2026-10-03__feature__measured-paid-email-example.md
   - Owner: Codex
-  - Started: 2026-10-03
+  - Done: 2026-10-03
   - Summary: Include the accepted bounded comparison in both email formats, with exact past costs and clear limitations; retain all sender guards.
-  - Tests: 687 backend passed/3 PostgreSQL-only skips;52/52 focused PostgreSQL;4 email widths, changed-file Ruff and template formatting passed. Release pending.
+  - Tests: 687 backend passed/3 PostgreSQL-only skips;52/52 focused PostgreSQL;4 email widths, changed-file Ruff and template formatting passed. Guarded production release accepted;5759/478 hashes,14 neighbors,configuration,backup and health verified.
