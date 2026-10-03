@@ -204,7 +204,7 @@ def test_measured_paid_example_same_facts_in_both_rendered_formats() -> None:
         paid_example_url='https://chat.airis.you/guide#costs',
     )
     for rendered in [unescape(html), text]:
-        content = " ".join(rendered.split())
+        content = ' '.join(rendered.split())
         for fact in [
             '3 октября 2026 года',
             '120 минут',

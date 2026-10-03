@@ -5,7 +5,7 @@
 - Owner: Codex
 - Branch: codex/feature/paid-email-example
 - Created: 2026-10-03
-- SDD Spec: meta/sdd/specs/active/airis-measured-paid-email-exam-2026-10-03-0701.json
+- SDD Spec: meta/sdd/specs/active/airis-measured-paid-email-exam-2026-10-03-701.json
 
 ## Goal and acceptance
 

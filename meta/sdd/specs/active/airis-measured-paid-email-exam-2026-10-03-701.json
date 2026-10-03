@@ -1,5 +1,5 @@
 {
-  "spec_id": "airis-measured-paid-email-exam-2026-10-03-0701",
+  "spec_id": "airis-measured-paid-email-exam-2026-10-03-701",
   "title": "AIRIS measured paid email example 2026-10-03",
   "generated": "2026-10-03T04:01:19.833524Z",
   "last_updated": "2026-10-03T04:11:49.315462Z",
@@ -53,7 +53,8 @@
         "category": "implementation",
         "completed_at": "2026-10-03T04:11:49.067180Z",
         "needs_journaling": false,
-        "journaled_at": "2026-10-03T04:11:49.068269Z"
+        "journaled_at": "2026-10-03T04:11:49.068269Z",
+        "file_path": "backend/open_webui/templates/email/onboarding_v1/paid_value_72h.html"
       },
       "completed_tasks": 1,
       "total_tasks": 1
@@ -68,7 +69,8 @@
         "category": "implementation",
         "completed_at": "2026-10-03T04:11:49.313897Z",
         "needs_journaling": false,
-        "journaled_at": "2026-10-03T04:11:49.314931Z"
+        "journaled_at": "2026-10-03T04:11:49.314931Z",
+        "file_path": "backend/open_webui/test/util/test_onboarding_payment_feedback.py"
       },
       "completed_tasks": 1,
       "total_tasks": 1
@@ -80,7 +82,8 @@
       "parent": "phase-1",
       "children": [],
       "metadata": {
-        "category": "implementation"
+        "category": "implementation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__measured-paid-email-example.md"
       },
       "completed_tasks": 0,
       "total_tasks": 1
