@@ -1,0 +1,7 @@
+- [x] **[DOCS][PROD]** Accept administrative diagnostic email controls.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-04__docs__mail-admin-production-acceptance.md
+  - Owner: Codex
+  - Done: 2026-10-04
+  - Summary: PR207 exact source/image accepted on production; durable command replay, two139member traversals, preserved old870facts/events and denied all six routes to anonymous/ordinary accounts. Queue and SMTP stay disabled; onboarding goal remains active189/244.
+  - Tests:810backend/4PostgreSQL-only skips;97PostgreSQL;251frontend;13successfulCI/1skip; live4904frontend/489immutablebackend hashes; source/journal fingerprints; publichealth/version; ordinary wallet/browser.
+  - Risks: Existing frontend type/lint debt and disabled independent CodeRabbit review are recorded; volunteer pilot, queue association and coverage-aware report remain separate.
