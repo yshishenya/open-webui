@@ -2,7 +2,7 @@
   "spec_id": "airis-mail-observation-admin-2026-10-03-001",
   "title": "AIRIS administrative observation controls",
   "generated": "2026-10-03T09:03:46.980217Z",
-  "last_updated": "2026-10-03T21:52:14.997682Z",
+  "last_updated": "2026-10-03T21:56:03.876465Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -63,8 +63,9 @@
         "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-observation-admin-controls.md",
         "started_at": "2026-10-03T09:06:25.406299Z",
         "completed_at": "2026-10-03T20:47:06.169184Z",
-        "needs_journaling": true,
-        "status_note": "Durable actor-bound command receipts and scope/run lock order selected; SQLite/PostgreSQL replay tests passed."
+        "needs_journaling": false,
+        "status_note": "Durable actor-bound command receipts and scope/run lock order selected; SQLite/PostgreSQL replay tests passed.",
+        "journaled_at": "2026-10-03T21:56:02.950311Z"
       }
     },
     "task-1-2": {
@@ -81,7 +82,8 @@
         "started_at": "2026-10-03T20:47:06.400179Z",
         "status_note": "Admin-only routes and durable command receipts passed SQLite/PostgreSQL tests; migration preserves populated history. Production acceptance is task-1-5.",
         "completed_at": "2026-10-03T21:00:06.841833Z",
-        "needs_journaling": true
+        "needs_journaling": false,
+        "journaled_at": "2026-10-03T21:56:03.455012Z"
       }
     },
     "task-1-3": {
@@ -98,7 +100,8 @@
         "started_at": "2026-10-03T20:47:06.640743Z",
         "status_note": "Mounted UI and traversal tests passed; full frontend suite 251 passed. Build and release remain separate verification.",
         "completed_at": "2026-10-03T21:00:07.084901Z",
-        "needs_journaling": true
+        "needs_journaling": false,
+        "journaled_at": "2026-10-03T21:56:03.876399Z"
       }
     },
     "task-1-4": {
@@ -165,6 +168,33 @@
       "content": "All child tasks in phase phase-1 have been completed.",
       "metadata": {},
       "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-03T21:56:02.950287Z",
+      "entry_type": "note",
+      "title": "Requirements and replay design verified",
+      "author": "Codex",
+      "content": "Actor-bound durable command receipts and scope/run lock order were implemented in PR207; SQLite/PostgreSQL replay and mutation isolation tests passed. Scope remains diagnostic.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-03T21:56:03.454999Z",
+      "entry_type": "note",
+      "title": "Authenticated API and migration verified",
+      "author": "Codex",
+      "content": "All six methods require administrator authentication and no-store; normalized declaration/start replay and migration history preservation passed on SQLite/PostgreSQL and production. Production acceptance recorded separately in task-1-5.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-03T21:56:03.876382Z",
+      "entry_type": "note",
+      "title": "Sequential administrator interface verified",
+      "author": "Codex",
+      "content": "Mounted UI/controller15 tests and full251frontend tests passed. Exact-source candidate browser created and closed a diagnostic group1member/6scenarios with0console errors; production frontend hashes matched4904files.",
+      "metadata": {},
+      "task_id": "task-1-3"
     }
   ]
 }
