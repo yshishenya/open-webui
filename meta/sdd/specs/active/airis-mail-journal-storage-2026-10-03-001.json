@@ -1,0 +1,111 @@
+{
+  "spec_id": "airis-mail-journal-storage-2026-10-03-001",
+  "title": "AIRIS mail journal storage",
+  "generated": "2026-10-03T06:49:50.918747Z",
+  "last_updated": "2026-10-03T07:31:10.773438Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 8,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-journal-storage.md",
+    "status": "active",
+    "activated_date": "2026-10-03T06:51:54.161223Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS mail journal storage",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Durable storage and production acceptance",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Implement additive schema and transactional storage primitives",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "backend/open_webui/models/email_observation.py",
+        "completed_at": "2026-10-03T07:31:10.512710Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-03T07:31:10.514135Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Verify replay, concurrent leases, interruption, deletion and money isolation",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "backend/open_webui/test/util/test_email_observation_storage.py",
+        "completed_at": "2026-10-03T07:31:10.771723Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-03T07:31:10.772874Z"
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Accept frozen production storage release without enabling observation or SMTP",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-journal-storage.md"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-03T07:31:10.514128Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement additive schema and transactional storage primitives",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-03T07:31:10.772867Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify replay, concurrent leases, interruption, deletion and money isolation",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    }
+  ]
+}

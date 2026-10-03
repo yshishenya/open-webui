@@ -1,0 +1,8 @@
+- [ ] **[FEATURE]** Durable mail eligibility journal storage.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-03__feature__mail-journal-storage.md
+  - Owner: Codex
+  - Started: 2026-10-03
+  - Summary: Add declared populations, resumable runs and immutable first-positive decision history without enabling observation or SMTP.
+  - Tests: 746 backend passed/3 PostgreSQL-only skips; 32 PostgreSQL journal tests; changed-file Black/Ruff passed.
+  - Review: canonical source identity, page atomicity, independent sessions and deletion boundaries checked. Production acceptance pending.
+  - Risks: additive five-table migration; observer/queue/SMTP switches untouched.
