@@ -1,8 +1,14 @@
-- [ ] **[BUG][IMAGES][BILLING]** Enforce image model availability before billing
+- [x] **[BUG][IMAGES][BILLING]** Enforce image model availability before billing
   - Spec: `meta/memory_bank/specs/work_items/2026-10-03__bugfix__image-model-availability.md`
   - Owner: Codex
   - Branch: `codex/bugfix/image-model-availability`
   - Started: 2026-10-03
   - Summary: Reproduce disabled/private image-model bypass, guard shared operations, and reconcile feature/recommendation visibility.
-  - Tests: In progress.
+  - Tests: Backend682/3skipped; frontend236; exact frozen candidate PostgreSQL65; required source CI and production acceptance passed.
   - Risks: Non-admin image use requires a registered accessible model; disabled records are denied for all roles.
+
+- [x] [BUG] Image availability enforced before billing; production acceptance completed.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-03__bugfix__image-model-availability.md
+  - Owner: Codex
+  - Done: 2026-10-03
+  - Summary: PR193/source43818d1ef merged07a827149 and released digest34464a0cf.65 exact-candidate PostgreSQL tests,682 backend/236 frontend tests, required CI passed;5759 frontend/478 immutable backend hashes verified. Ordinary UI hides disabled images, public recommendation null; four deployed route/shared boundaries reject403 before billing, wallet/quota/ledger/usage unchanged. No model activation or migrations; global quality/pilot remain open.

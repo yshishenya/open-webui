@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/bugfix/image-model-availability
-- SDD Spec: meta/sdd/specs/active/airis-image-model-availability-2026-10-03-432.json
+- SDD Spec: meta/sdd/specs/completed/airis-image-model-availability-2026-10-03-432.json
 - Created: 2026-10-03
 - Updated: 2026-10-03
 
@@ -22,7 +22,7 @@ Shared image generation/edit functions reach wallet preflight without checking t
 - [x] Named image engines expose generation only when the configured/default model is accessible; /api/config makes no provider requests.
 - [x] Public popular/recommended IDs require registered active public visible models with an active rate for the recommended modality.
 - [x] SQLite and PostgreSQL tests cover actual grants and successful image billing/release.
-- [ ] Exact source review, CI, integration and production acceptance; denied images create no image hold/charge/usage.
+- [x] Exact source review, CI, integration and production acceptance; denied images create no image hold/charge/usage.
 
 ## Implementation / Scope
 
@@ -49,8 +49,8 @@ Non-admin image use requires a registered accessible model, matching text access
 
 ## Completion Checklist
 
-- [ ] SDD check-complete and complete-spec
-- [ ] Branch update with tests, risks and Done date
+- [x] SDD check-complete and complete-spec
+- [x] Branch update with tests, risks and Done date
 
 ## Verification results before integration
 
@@ -59,7 +59,7 @@ Non-admin image use requires a registered accessible model, matching text access
 - Docker PostgreSQL: 61 focused tests passed with real grants, model records and wallet charge/release invariants.
 - New helpers/tests pass Ruff and Black. Full Ruff: 6475 diagnostics versus 6476 in the baseline, zero additions; full Black check identifies 71 pre-existing files needing formatting. No broad formatting changes made.
 - Self-review: five runtime files; no new dependencies, SQL, synchronous request I/O, migrations or activation writes. Shared boundaries cover routes, chat and built-in tools; config never discovers providers. Public recommendations require matching priced modalities. Disabled-base and cyclic-base guards prevent chained bypasses.
-- CI and immutable candidate/production acceptance pending.
+- CI and immutable candidate/production acceptance completed; details below.
 
 ## CI baseline reconciliation
 
@@ -68,3 +68,13 @@ Existing backend lint rejects changed legacy files with hundreds of unchanged di
 Frontend source is unchanged. Default concurrent verification hit module-loading timeouts and a terminated type-check; rerun uses two test workers with no file parallelism, without relaxing assertions or timeouts. Frontend ESLint retains its existing1540 diagnostics.
 
 Final frontend verification:236/236 tests passed across49 files; complete type check4419 errors/177 warnings and ESLint1540 match the unchanged frontend baseline. The first resource-limited run is retained as evidence; the successful rerun kept assertions and timeouts unchanged. Full quality remains open.
+
+## Production acceptance — 2026-10-03
+
+PR193 source `43818d1ef9a9c816e9b172ca3c60034680c5792d` merged as `07a82714951664c2f670577fd7f6d5f6fed7521d`; every required CI check passed, including billing-confidence. dependency-review and independent CodeRabbit review were skipped. The frozen amd64 candidate has124 layers and passed65 PostgreSQL tests without application source bind mounts. An earlier128-layer candidate failed Docker startup and was discarded before release.
+
+Guarded deployment verified backups, Alembic head, health and rollback availability. Live5759 frontend and478 immutable backend hashes match the frozen candidate; environment, mounts, ports, networks and14 neighboring container IDs are preserved. Restart count0. Registry digest `sha256:34464a0cf06285618fc510002e41cdc47603f8211830705d2c9f120d6b330f7e`.
+
+The existing ordinary account's browser hides the image control and Generate Image action after reload. Public image recommendation is null. Four route/shared generation/edit invocations on the deployed code, with the actual ordinary user and unchanged production model/config, return403 model_disabled before billing/input I/O. Wallet, free-quota, ledger and usage snapshots are identical before/after; billing calls0, source input I/O0. This read-only boundary acceptance is distinct from an HTTP request and does not claim successful image generation. Models remain disabled and are excluded from paid instructional examples.
+
+Source code and release acceptance are complete. Full baseline frontend/backend quality remains a separate open criterion. This documentation update changes no runtime files.
