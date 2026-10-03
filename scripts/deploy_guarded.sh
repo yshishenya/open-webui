@@ -244,6 +244,13 @@ docker image inspect "${image_ref}" >/dev/null || fail "target image is unavaila
 platform="$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "${image_ref}")"
 [[ "${platform}" == "linux/amd64" ]] || fail "expected linux/amd64 image, got ${platform}"
 
+# Preserve the configured production counter across frontend rebuilds.
+expected_metrica_id="$(docker exec airis printenv AIRIS_METRICA_COUNTER_ID || true)"
+if [[ -n "${expected_metrica_id}" ]]; then
+  bash scripts/check_metrica_image.sh "${image_ref}" "${expected_metrica_id}" \
+    || fail "candidate frontend lost the configured Metrica counter"
+fi
+
 echo "Running hard Alembic migration gate"
 if ! WEBUI_IMAGE="${image_repo}" WEBUI_DOCKER_TAG="${tag}" \
   "${compose[@]}" run --rm --no-deps --entrypoint bash \

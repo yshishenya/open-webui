@@ -1,0 +1,203 @@
+{
+  "spec_id": "airis-metrica-env-recovery-2026-10-04-001",
+  "title": "\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c ID \u041c\u0435\u0442\u0440\u0438\u043a\u0438 \u0432 \u0442\u0435\u043a\u0443\u0449\u0435\u043c production \u0431\u0435\u0437 \u0437\u0430\u043c\u0435\u043d\u044b frontend",
+  "generated": "2026-10-03T21:47:32.214842Z",
+  "last_updated": "2026-10-03T22:04:46.406686Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "status": "completed",
+    "activated_date": "2026-10-03T21:49:05.414367Z",
+    "progress_percentage": 100,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__metrica-runtime-env-recovery.md",
+    "completed_date": "2026-10-03T22:04:46.405657Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c ID \u041c\u0435\u0442\u0440\u0438\u043a\u0438 \u0432 \u0442\u0435\u043a\u0443\u0449\u0435\u043c production \u0431\u0435\u0437 \u0437\u0430\u043c\u0435\u043d\u044b frontend",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__metrica-runtime-env-recovery.md"
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "\u0414\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430 \u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u043e\u0439 \u0432\u0435\u0440\u0441\u0438\u0438",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T21:51:04.452961Z",
+        "journaled_at": "2026-10-03T21:51:04.460845Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u0430\u044f \u0441\u0431\u043e\u0440\u043a\u0430 \u0438 \u0441\u0432\u0435\u0440\u043a\u0430 \u043e\u0431\u0440\u0430\u0437\u0430",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T21:54:00.246484Z",
+        "journaled_at": "2026-10-03T21:54:00.252436Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "\u0417\u0430\u0449\u0438\u0449\u0451\u043d\u043d\u0430\u044f \u0432\u044b\u043a\u043b\u0430\u0434\u043a\u0430 \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T22:04:45.452930Z",
+        "journaled_at": "2026-10-03T22:04:45.457025Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "\u0421\u0432\u0435\u0440\u0438\u0442\u044c \u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0439 production \u0438 \u0432\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0441\u0442\u0438 \u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0438\u0435 ID",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T21:51:04.452498Z",
+        "needs_journaling": false,
+        "status_note": "Current production reproduces missing ID; current integration contains all prior fixes; env-only preview restores tag",
+        "journaled_at": "2026-10-03T21:51:04.454859Z",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__metrica-runtime-env-recovery.md"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "\u0421\u043e\u0431\u0440\u0430\u0442\u044c \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043e\u0434\u043d\u043e\u0444\u0430\u0439\u043b\u043e\u0432\u044b\u0439 Docker overlay \u043d\u0430 Mac",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T21:54:00.244574Z",
+        "needs_journaling": false,
+        "status_note": "Mac linux/amd64 image published digest1a013df;4904files compared,only env.js differs;all base layers and runtime config preserved;regression rejects baseline and accepts candidate",
+        "journaled_at": "2026-10-03T21:54:00.248996Z",
+        "file_path": "scripts/check_metrica_image.sh"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "\u0412\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u044c guarded rollout \u0438 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044c \u041c\u0435\u0442\u0440\u0438\u043a\u0443",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "scripts/deploy_guarded.sh",
+        "completed_at": "2026-10-03T22:04:45.452571Z",
+        "needs_journaling": false,
+        "status_note": "Guarded rollout completed;current frontend90674f905 retained;all4904files match;14neighbor IDs preserved;live11checks pass;Metrica report live campaign1visit5pageviews",
+        "journaled_at": "2026-10-03T22:04:45.454527Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-03T21:51:04.454788Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: \u0421\u0432\u0435\u0440\u0438\u0442\u044c \u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0439 production \u0438 \u0432\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0441\u0442\u0438 \u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0438\u0435 ID",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Current production reproduces missing ID; current integration contains all prior fixes; env-only preview restores tag",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-03T21:51:04.460818Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: [To Be Defined]",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-03T21:54:00.248979Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: \u0421\u043e\u0431\u0440\u0430\u0442\u044c \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043e\u0434\u043d\u043e\u0444\u0430\u0439\u043b\u043e\u0432\u044b\u0439 Docker overlay \u043d\u0430 Mac",
+      "author": "Codex",
+      "content": "Task task-2-1 marked as completed. \nNote: Mac linux/amd64 image published digest1a013df;4904files compared,only env.js differs;all base layers and runtime config preserved;regression rejects baseline and accepts candidate",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-03T21:54:00.252421Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: [To Be Defined]",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-03T22:04:45.454516Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: \u0412\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u044c guarded rollout \u0438 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044c \u041c\u0435\u0442\u0440\u0438\u043a\u0443",
+      "author": "Codex",
+      "content": "Task task-3-1 marked as completed. \nNote: Guarded rollout completed;current frontend90674f905 retained;all4904files match;14neighbor IDs preserved;live11checks pass;Metrica report live campaign1visit5pageviews",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-03T22:04:45.457015Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: \u0417\u0430\u0449\u0438\u0449\u0451\u043d\u043d\u0430\u044f \u0432\u044b\u043a\u043b\u0430\u0434\u043a\u0430 \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}
