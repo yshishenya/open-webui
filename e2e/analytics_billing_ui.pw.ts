@@ -586,7 +586,9 @@ for (const width of [360, 1280])
 			} else if (name === 'mail')
 				await expect(page.getByText('Проверок пока нет.', { exact: true })).toBeVisible();
 			else if (name === 'models' || name === 'free')
-				await expect(page.getByText('Проверочная модель', { exact: true }).first()).toBeVisible();
+				await expect(
+					page.getByText('Проверочная модель', { exact: true }).filter({ visible: true }).first()
+				).toBeVisible();
 			else if (name === 'plans')
 				await expect(page.getByText('Проверочная подписка', { exact: true })).toBeVisible();
 			else if (name === 'create')

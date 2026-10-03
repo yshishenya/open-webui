@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { onMount, getContext } from 'svelte';
+	import { v4 as uuidv4 } from 'uuid';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 
@@ -21,7 +22,7 @@
 
 	// Form data
 	let formData: CreatePlanRequest = {
-		id: `plan-${crypto.randomUUID()}`,
+		id: `plan-${uuidv4()}`,
 		name: '',
 		name_ru: '',
 		description: '',
@@ -212,34 +213,34 @@
 
 					<details class="mt-2 text-sm">
 						<summary class="cursor-pointer text-gray-500">{$i18n.t('Technical details')}</summary>
-					<div class="flex gap-2 px-1 items-center">
-						<Tooltip
-							className="w-full"
-							content={$i18n.t('e.g. professional')}
-							placement="top-start"
-						>
-							<input
-								class="w-full text-sm text-gray-500 bg-transparent outline-hidden"
-								type="text"
-								placeholder={$i18n.t('Plan ID')}
-								bind:value={formData.id}
-								required
-							/>
-						</Tooltip>
+						<div class="flex gap-2 px-1 items-center">
+							<Tooltip
+								className="w-full"
+								content={$i18n.t('e.g. professional')}
+								placement="top-start"
+							>
+								<input
+									class="w-full text-sm text-gray-500 bg-transparent outline-hidden"
+									type="text"
+									placeholder={$i18n.t('Plan ID')}
+									bind:value={formData.id}
+									required
+								/>
+							</Tooltip>
 
-						<Tooltip
-							className="w-full self-center items-center flex"
-							content={$i18n.t('e.g. For growing teams')}
-							placement="top-start"
-						>
-							<input
-								class="w-full text-sm bg-transparent outline-hidden"
-								type="text"
-								placeholder={$i18n.t('Description (English)')}
-								bind:value={formData.description}
-							/>
-						</Tooltip>
-					</div>
+							<Tooltip
+								className="w-full self-center items-center flex"
+								content={$i18n.t('e.g. For growing teams')}
+								placement="top-start"
+							>
+								<input
+									class="w-full text-sm bg-transparent outline-hidden"
+									type="text"
+									placeholder={$i18n.t('Description (English)')}
+									bind:value={formData.description}
+								/>
+							</Tooltip>
+						</div>
 					</details>
 				</div>
 
@@ -252,31 +253,31 @@
 								>{$i18n.t('Additional language fields')}</summary
 							>
 							<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-							<div>
+								<div>
 									<label for="plan-new-name_ru" class="block text-xs text-gray-500 mb-1"
 										>{$i18n.t('Name (English)')}</label
 									>
-								<input
-									id="plan-new-name_ru"
-									type="text"
+									<input
+										id="plan-new-name_ru"
+										type="text"
 										bind:value={formData.name}
-									placeholder={$i18n.t('Professional')}
-									class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
-								/>
+										placeholder={$i18n.t('Professional')}
+										class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
+									/>
+								</div>
+								<div>
+									<label for="plan-new-description_ru" class="block text-xs text-gray-500 mb-1"
+										>{$i18n.t('Description (Russian)')}</label
+									>
+									<input
+										id="plan-new-description_ru"
+										type="text"
+										bind:value={formData.description_ru}
+										placeholder={$i18n.t('For growing teams')}
+										class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
+									/>
+								</div>
 							</div>
-							<div>
-								<label for="plan-new-description_ru" class="block text-xs text-gray-500 mb-1"
-									>{$i18n.t('Description (Russian)')}</label
-								>
-								<input
-									id="plan-new-description_ru"
-									type="text"
-									bind:value={formData.description_ru}
-									placeholder={$i18n.t('For growing teams')}
-									class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
-								/>
-							</div>
-						</div>
 						</details>
 						<!-- Pricing -->
 						<div>
