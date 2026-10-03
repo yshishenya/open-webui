@@ -1,0 +1,200 @@
+{
+  "spec_id": "airis-mail-observation-admin-2026-10-03-001",
+  "title": "AIRIS administrative observation controls",
+  "generated": "2026-10-03T09:03:46.980217Z",
+  "last_updated": "2026-10-03T21:56:03.876465Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-observation-admin-controls.md",
+    "status": "completed",
+    "activated_date": "2026-10-03T09:06:22.314864Z",
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-03T21:52:14.997198Z",
+    "actual_hours": 1.081
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS administrative observation controls",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 5,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Administrative diagnostic groups",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3",
+        "task-1-4",
+        "task-1-5"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 5,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T21:52:00.541296Z",
+        "journaled_at": "2026-10-03T21:52:00.545835Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Define bounded diagnostic controls and safe HTTP replay",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "investigation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-observation-admin-controls.md",
+        "started_at": "2026-10-03T09:06:25.406299Z",
+        "completed_at": "2026-10-03T20:47:06.169184Z",
+        "needs_journaling": false,
+        "status_note": "Durable actor-bound command receipts and scope/run lock order selected; SQLite/PostgreSQL replay tests passed.",
+        "journaled_at": "2026-10-03T21:56:02.950311Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Implement authenticated scope and page management",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "backend/open_webui/routers/airis/email_observation.py",
+        "started_at": "2026-10-03T20:47:06.400179Z",
+        "status_note": "Admin-only routes and durable command receipts passed SQLite/PostgreSQL tests; migration preserves populated history. Production acceptance is task-1-5.",
+        "completed_at": "2026-10-03T21:00:06.841833Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-03T21:56:03.455012Z"
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Implement administrator interface and state handling",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "src/lib/components/admin/Analytics/EmailObservations.svelte",
+        "started_at": "2026-10-03T20:47:06.640743Z",
+        "status_note": "Mounted UI and traversal tests passed; full frontend suite 251 passed. Build and release remain separate verification.",
+        "completed_at": "2026-10-03T21:00:07.084901Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-03T21:56:03.876399Z"
+      }
+    },
+    "task-1-4": {
+      "type": "task",
+      "title": "Verify authorization, concurrent pages, failure, privacy and source isolation",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "backend/open_webui/test/util/test_email_observation_admin.py",
+        "started_at": "2026-10-03T20:47:06.866887Z",
+        "status_note": "Exact image backend810/4skips, PostgreSQL97, frontend251; HTTP/UI replay, cursor and isolation accepted; existing frontend debt remains.",
+        "completed_at": "2026-10-03T21:51:59.908511Z",
+        "needs_journaling": false,
+        "actual_hours": 1.081,
+        "journaled_at": "2026-10-03T21:51:59.920970Z"
+      }
+    },
+    "task-1-5": {
+      "type": "task",
+      "title": "Accept exact-source CI and guarded production controls",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-observation-admin-controls.md",
+        "completed_at": "2026-10-03T21:52:00.540895Z",
+        "needs_journaling": false,
+        "status_note": "Production digest9b102cb8c accepted: migration, exact hashes,2x139member traversals,12access denials, preserved old870facts/events and finance/consent/queue fingerprints.",
+        "journaled_at": "2026-10-03T21:52:00.543590Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-03T21:51:59.920949Z",
+      "entry_type": "status_change",
+      "title": "Exact-source verification accepted",
+      "author": "Codex",
+      "content": "PR207 source90674f905;13CI successes and1skip. CodeRabbit disabled. Tests and candidate API/browser proof saved privately; production task remains separate.",
+      "metadata": {},
+      "task_id": "task-1-4"
+    },
+    {
+      "timestamp": "2026-10-03T21:52:00.543578Z",
+      "entry_type": "status_change",
+      "title": "Guarded production controls accepted",
+      "author": "Codex",
+      "content": "Verified backup/resume; head o1a020261003;4904frontend/489immutablebackend hashes;14neighbors retained;health200/restarts0;queue disabled. Overall goal189/244 active; pilot/report/queue association remain open. See2026-10-04__docs__mail-admin-production-acceptance.md.",
+      "metadata": {},
+      "task_id": "task-1-5"
+    },
+    {
+      "timestamp": "2026-10-03T21:52:00.545827Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Administrative diagnostic groups",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-03T21:56:02.950287Z",
+      "entry_type": "note",
+      "title": "Requirements and replay design verified",
+      "author": "Codex",
+      "content": "Actor-bound durable command receipts and scope/run lock order were implemented in PR207; SQLite/PostgreSQL replay and mutation isolation tests passed. Scope remains diagnostic.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-03T21:56:03.454999Z",
+      "entry_type": "note",
+      "title": "Authenticated API and migration verified",
+      "author": "Codex",
+      "content": "All six methods require administrator authentication and no-store; normalized declaration/start replay and migration history preservation passed on SQLite/PostgreSQL and production. Production acceptance recorded separately in task-1-5.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-03T21:56:03.876382Z",
+      "entry_type": "note",
+      "title": "Sequential administrator interface verified",
+      "author": "Codex",
+      "content": "Mounted UI/controller15 tests and full251frontend tests passed. Exact-source candidate browser created and closed a diagnostic group1member/6scenarios with0console errors; production frontend hashes matched4904files.",
+      "metadata": {},
+      "task_id": "task-1-3"
+    }
+  ]
+}
