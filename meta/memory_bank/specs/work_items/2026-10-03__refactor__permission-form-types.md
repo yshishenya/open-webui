@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: refactor
-- Status: active
+- Status: completed
 - Owner: Codex
 - Branch: `codex/refactor/permission-form-types`
-- SDD Spec: `meta/sdd/specs/active/airis-permission-form-types-2026-10-03-230.json`
+- SDD Spec: `meta/sdd/specs/completed/airis-permission-form-types-2026-10-03-230.json`
 - Created: 2026-10-03 (Europe/Istanbul)
 
 ## Context and measured baseline
@@ -20,7 +20,7 @@ Integration base `b0a248c7e35370206a068c3133034d3fab29a578`. Fresh Compose stric
 - [x] Permissions.svelte has zero type errors; changed callers/helper/tests lint clean; no new diagnostics in callers.
 - [x] Full frontend suite passes on exact source; type/lint debt decreases with rules unchanged.
 - [x] Compiled runtime compared to base; identical runtime needs no image release, changed runtime requires candidate/browser acceptance and guarded release.
-- [ ] PR to airis_b2c, exact-head checks, SDD and work-item completion, private acceptance updated.
+- [x] PR to airis_b2c, exact-head checks, SDD and work-item completion, private acceptance updated.
 
 ## Approach
 
@@ -52,3 +52,9 @@ The safety-net tests passed on the unmodified form. Type-checking the modal expo
 - Prettier check passed for all four code/test files.
 - Svelte5.56.0 production client and server output byte-identical to integration base b0a248c7e. Client SHA256032a6a0bc730ccc5f946c18812fa5400845810269540ee0ecf5bcc434f62ca80; server77d1d8af5a3ee4023f6c3f47506ec36140ddb0bd059cc4c03c21cd59889a4728. Type module is imported only with import type; tests/harness are outside production routes. No runtime image release required.
 - Review: no runtime default/permission/API behavior changes, no any, no new dependencies. Existing 1194-line component is retained; template assertions erase at compile time. Backend verification not applicable to this frontend-only type change. General G14 remains open.
+
+## Integration acceptance
+
+PR189 merged into airis_b2c as `2c407a158c7a50bd1f1279b226e39fe24213dd37` after ten actual checks succeeded on `47ab5e667c727f7e5e4d6364d1872ec89c0a5079`, including billing-confidence and both CodeQL languages. Dependency-review was skipped and CodeRabbit review disabled; neither counts as independent review. SDD3/3 completed; private acceptance and goal/quality reports updated, numbered plan185/244.
+
+Correction to the metadata-fix commit message: the validated public SDD set contains71 specs, not90. Schema, identifier, filename and work-item-link validation passes with zero errors.

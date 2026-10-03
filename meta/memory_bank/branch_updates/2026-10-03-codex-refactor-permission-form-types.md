@@ -1,9 +1,7 @@
-- [ ] **[REFACTOR]** Type permission form state while preserving rights
+- [x] **[REFACTOR]** Type permission form state while preserving rights
   - Spec: `meta/memory_bank/specs/work_items/2026-10-03__refactor__permission-form-types.md`
   - Owner: Codex
   - Branch: `codex/refactor/permission-form-types`
-  - Started: 2026-10-03
-  - Summary: Measured189 permission-form and7 group-modal errors on fresh integration base; preserve partial input and normalized mutable state.
-  - Tests: Baseline check4631/179; behavior safety net and implementation pending.
-
-- Verification:189 form diagnostics removed, zero new diagnostics,213/213 frontend tests; fullcheck4442/179, ESLint1546. Production client/server compiled JS byte-identical to b0a248; no image release required. Group/modal7 diagnostics retained for a separate contract item. Integration/CI pending.
+  - Done: 2026-10-03
+  - Summary: 189 permission-form errors removed, zero new diagnostics. Partial/null sections, extensions, real switch binding and serialization verified. Client/server production JavaScript byte-identical; no image release required.
+  - Tests: 213/213 frontend tests; changed lint/format clean; full check4442/179 and ESLint1546. PR189 source47ab5e667 has ten successful checks, merged2c407a158. SDD3/3 completed. General G14 and separate group/membership contract remain open.
