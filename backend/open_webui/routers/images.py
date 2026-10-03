@@ -30,9 +30,11 @@ from open_webui.events import EVENTS, publish_event
 from open_webui.internal.db import get_async_session
 from open_webui.models.chats import Chats
 from open_webui.models.config import Config
+from open_webui.models.users import UserModel
 from open_webui.retrieval.web.utils import get_ssrf_safe_session, validate_url
 from open_webui.routers.files import get_file_content_by_id, upload_file_handler
 from open_webui.utils.access_control import has_permission
+from open_webui.utils.airis.image_access import check_image_model_access
 from open_webui.utils.airis.image_billing import (
     ImageBillingContext,
     preflight_image_billing,
@@ -598,9 +600,9 @@ async def generate_images(request: Request, form_data: CreateImageForm, user=Dep
 async def image_generations(
     request: Request,
     form_data: CreateImageForm,
-    metadata: dict | None = None,
-    user=None,
-):
+    metadata: dict[str, object] | None = None,
+    user: UserModel | None = None,
+) -> list[dict[str, str]]:
     image_config = await get_image_config()
     # if IMAGE_SIZE = 'auto', default WidthxHeight to the 512x512 default
     # This is only relevant when the user has set IMAGE_SIZE to 'auto' with an
@@ -618,6 +620,7 @@ async def image_generations(
     metadata = metadata or {}
 
     model = await get_image_model(request)
+    await check_image_model_access(user, str(model or ''))
     billing_context: ImageBillingContext | None = None
     try:
         billing_context = await preflight_image_billing(
@@ -929,9 +932,9 @@ async def edit_images(request: Request, form_data: EditImageForm, user=Depends(g
 async def image_edits(
     request: Request,
     form_data: EditImageForm,
-    metadata: dict | None = None,
-    user=Depends(get_verified_user),
-):
+    metadata: dict[str, object] | None = None,
+    user: UserModel = Depends(get_verified_user),
+) -> list[dict[str, str]]:
     image_config = await get_image_config()
     size = None
     width, height = None, None
@@ -946,6 +949,8 @@ async def image_edits(
     model = image_config.IMAGE_EDIT_MODEL if form_data.model is None else form_data.model
     if not isinstance(model, str) or not model.strip():
         raise HTTPException(status_code=400, detail='Invalid model format')
+
+    await check_image_model_access(user, model)
 
     try:
 

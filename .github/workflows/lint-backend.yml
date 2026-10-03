@@ -46,6 +46,7 @@ jobs:
           fi
 
           echo "has_files=true" >> "$GITHUB_OUTPUT"
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
           {
             echo "files<<EOF"
             printf '%s\n' "${files[@]}"
@@ -66,5 +67,17 @@ jobs:
             echo "No backend Python changes detected after normalization."
             exit 0
           fi
+          mkdir -p backend/artifacts
+          BASE_DIR="$(mktemp -d backend/artifacts/lint-base.XXXXXX)"
+          trap 'rm -rf "$BASE_DIR"' EXIT
+          git archive '${{ steps.changed.outputs.base_sha }}' backend pyproject.toml | tar -x -C "$BASE_DIR"
           printf '%s\0' "${FILES[@]}" \
-            | docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps -T pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && xargs -0 ruff check"
+            | docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps -T pytools "python -m pip install -U pip >/dev/null && python -m pip install -q 'ruff>=0.1' && ruff check scripts/ci/check_backend_lint_delta.py scripts/ci/test_backend_lint_delta.py && python -m unittest discover -s scripts/ci -p test_backend_lint_delta.py && xargs -0 python scripts/ci/check_backend_lint_delta.py --base-dir '$BASE_DIR' --output backend/artifacts/lint-delta"
+
+      - name: Upload complete backend lint diagnostics
+        if: always() && steps.changed.outputs.has_files == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-lint-diagnostics
+          path: backend/artifacts/lint-delta/
+          if-no-files-found: error

@@ -1,0 +1,117 @@
+{
+  "spec_id": "airis-image-model-availability-2026-10-03-0432",
+  "title": "Airis image model availability",
+  "generated": "2026-10-03T01:32:03.523126Z",
+  "last_updated": "2026-10-03T01:47:33.380864Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": true,
+    "status": "active",
+    "activated_date": "2026-10-03T01:33:39.190763Z",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__bugfix__image-model-availability.md",
+    "progress_percentage": 50,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis image model availability",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Enforce image availability before billing and expose consistent choices",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3",
+        "task-1-4"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce disabled/private image bypass and stale pricing recommendation",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T01:39:58.743843Z",
+        "needs_journaling": false,
+        "status_note": "22 pre-fix failures reproduced: shared/direct generation/edit access, authenticated feature visibility and public recommendations. Live ordinary-account disabled model reached a 13.25 RUB prompt; no image charge, free text usage recorded.",
+        "journaled_at": "2026-10-03T01:39:58.744881Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Guard shared image boundaries and authenticated feature availability",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T01:47:33.378644Z",
+        "needs_journaling": false,
+        "status_note": "Shared image generate/edit guard precedes billing and input loading; authenticated feature and public recommendations reconcile model availability. 64 expanded SQLite tests,61 PostgreSQL tests and678 full backend tests pass; no new Ruff diagnostics.",
+        "journaled_at": "2026-10-03T01:47:33.380103Z"
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Verify database grants, billing invariants and exact source CI",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-4": {
+      "type": "task",
+      "title": "Release frozen candidate and confirm production availability",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-03T01:39:58.744877Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce disabled/private image bypass and stale pricing recommendation",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: 22 pre-fix failures reproduced: shared/direct generation/edit access, authenticated feature visibility and public recommendations. Live ordinary-account disabled model reached a 13.25 RUB prompt; no image charge, free text usage recorded.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-03T01:47:33.380095Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Guard shared image boundaries and authenticated feature availability",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed. \nNote: Shared image generate/edit guard precedes billing and input loading; authenticated feature and public recommendations reconcile model availability. 64 expanded SQLite tests,61 PostgreSQL tests and678 full backend tests pass; no new Ruff diagnostics.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    }
+  ]
+}

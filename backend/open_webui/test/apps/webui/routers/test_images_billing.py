@@ -22,6 +22,15 @@ class TestImagesBilling(AbstractPostgresTest):
         now = int(time.time())
         self.model_id = "test-image-model"
 
+        from open_webui.models.models import ModelForm, ModelMeta, ModelParams, Models
+
+        asyncio.run(Models.insert_new_model(
+            ModelForm(
+                id=self.model_id, name="Test image", meta=ModelMeta(), params=ModelParams(),
+                access_grants=[{"principal_type": "user", "principal_id": "*", "permission": "read"}],
+            ), user_id="admin",
+        ))
+
         rate_card = PricingRateCardModel(
             id="rate_image_1",
             model_id=self.model_id,

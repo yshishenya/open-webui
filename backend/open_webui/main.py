@@ -208,6 +208,7 @@ from open_webui.utils.asgi_middleware import (
     WebsocketUpgradeGuardMiddleware,
 )
 from open_webui.utils.audit import AuditLevel, AuditLoggingMiddleware
+from open_webui.utils.airis.image_access import can_use_configured_image_model
 from open_webui.utils.airis.app_bootstrap import (
     bootstrap_airis,
     extend_airis_app_config,
@@ -2164,6 +2165,8 @@ async def get_app_config(request: Request):
         'code_execution.enable',
         'code_interpreter.enable',
         'image_generation.enable',
+        'image_generation.engine',
+        'image_generation.model',
         'task.autocomplete.enable',
         'ui.enable_community_sharing',
         'ui.enable_message_rating',
@@ -2239,7 +2242,12 @@ async def get_app_config(request: Request):
                     'web_search_confirmation_content': config.get('web.search.confirmation.content'),
                     'enable_code_execution': config.get('code_execution.enable'),
                     'enable_code_interpreter': config.get('code_interpreter.enable'),
-                    'enable_image_generation': config.get('image_generation.enable'),
+                    'enable_image_generation': await can_use_configured_image_model(
+                        user,
+                        enabled=bool(config.get('image_generation.enable')),
+                        engine=str(config.get('image_generation.engine') or ''),
+                        model_id=str(config.get('image_generation.model') or ''),
+                    ),
                     'enable_autocomplete_generation': config.get('task.autocomplete.enable'),
                     'enable_community_sharing': config.get('ui.enable_community_sharing'),
                     'enable_message_rating': config.get('ui.enable_message_rating'),
