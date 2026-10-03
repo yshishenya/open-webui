@@ -29,3 +29,16 @@ Run the full backend suite using the project's Docker Compose workflow. Focused 
 Acceptance covers migration upgrade/downgrade/repeat,250members in100+100+50pages, interruption/reclaim, whole-page rollback, concurrent writers, immutable first-positive history, source identity, deleted links and0monetary/SMTP mutations. Production acceptance compares old schemas/source fingerprints and verifies all new journal tables remain empty.
 
 Rollback the container to the retained previous image if necessary. The migration is additive, so older application code ignores the new tables. Do not automatically downgrade a production database or delete historical rows as part of an application rollback.
+
+
+## Bounded callable observer
+
+`utils/airis/email_observer.py` exposes `observe_scope_page(scope_id, claim=...)`. It accepts only an open observe scope; it has no scheduler, router, enqueue or SMTP hook. A scope can declare an explicit future payment end before prospective payments arrive, while registration membership must already exist. Read payments only up to actual current time. Never expose the internal `now` test injection through HTTP or use it to backfill production observations.
+
+One page visits at most25members with at most100current payment sources and256retained scenario identities per member. The retained total includes existing negative placeholders. A limit overflow fails coverage explicitly; no silently truncated successful run. Pages have a30second processing timeout. Each claim/page/failure uses an independent AsyncSession. Continue using the returned claim; a new caller gets a busy result while the lease is live. After lease expiry a new claim resumes the stored cursor; the old owner cannot write or fail the new owner.
+
+Always evaluate all four registration scenarios and both scenarios of each actual topup using shared send_eligibility, regardless of dispatch switches. No payment yields two no_scenario_v1 placeholders. Later payments retain those earlier negative observations and add internal Payment.id keys. A deleted payment changes its known history to source_unavailable. A past transport submission/accepted/unknown record cannot create first_eligible_at now: record historical_submission when the current business result would otherwise be ready. Existing queue records remain unchanged and unassociated.
+
+The page result reports cumulative scanned_members/scanned_scenarios and missing_source_members among visited members. If an account disappeared before its first visit, its original registration window is unavailable: visit it with zero invented scenarios. Completed proves population traversal only; source loss, time gaps and incomplete historical reconstruction must remain unavailable in later reports. No queue association or eligibility denominator is published by this block. A controlled production diagnostic observe scope is distinct from a volunteer dispatch pilot.
+
+Additional tests: test_email_observer.py, including six independent ready types, unfiltered negative members, future payment declaration, historical submissions, deleted sources,250member restart, competing PostgreSQL claims, whole-page rollback and resource limits. New dependency installation is not required.

@@ -1,0 +1,113 @@
+{
+  "spec_id": "airis-mail-observation-runner-2026-10-03-001",
+  "title": "AIRIS mail observation runner",
+  "generated": "2026-10-03T07:59:45.029136Z",
+  "last_updated": "2026-10-03T08:28:41.677408Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-observation-runner.md",
+    "status": "active",
+    "activated_date": "2026-10-03T08:05:22.096590Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS mail observation runner",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Observation pages and production proof",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Implement bounded observation pages using shared send eligibility",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "backend/open_webui/utils/airis/email_observer.py",
+        "started_at": "2026-10-03T08:05:22.338788Z",
+        "completed_at": "2026-10-03T08:27:20.196057Z",
+        "needs_journaling": false,
+        "actual_hours": 0.366,
+        "journaled_at": "2026-10-03T08:27:20.197921Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Verify all six types, late sources, replay, deletion and isolated failures",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "backend/open_webui/test/util/test_email_observer.py",
+        "completed_at": "2026-10-03T08:28:41.675205Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-03T08:28:41.676464Z"
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Accept frozen production observer release and real diagnostic observation",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-observation-runner.md"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-03T08:27:20.197916Z",
+      "entry_type": "status_change",
+      "title": "Bounded runner implemented",
+      "author": "Codex",
+      "content": "Shared eligibility for six types, retained history capacity and cumulative missing-source coverage; no queue or transport integration.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-03T08:28:41.676453Z",
+      "entry_type": "status_change",
+      "title": "Observer regression proof",
+      "author": "Codex",
+      "content": "Final backend776passed/4skips and real PostgreSQL63passed. Covers six types, source loss, historical attempts,250member restart, competing claims, cumulative unavailable coverage and atomic failures.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    }
+  ]
+}
