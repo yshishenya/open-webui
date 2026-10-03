@@ -2,7 +2,7 @@
   "spec_id": "airis-group-form-contracts-2026-10-03-319",
   "title": "Airis group form contracts",
   "generated": "2026-10-03T00:19:18.014559Z",
-  "last_updated": "2026-10-03T00:42:36.507076Z",
+  "last_updated": "2026-10-03T01:05:56.257467Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -10,28 +10,29 @@
     "estimated_hours": 24,
     "security_sensitive": true,
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__bugfix__group-form-contracts.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-03T00:22:28.353199Z",
-    "progress_percentage": 50,
-    "current_phase": "phase-1"
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-03T01:05:56.257046Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Airis group form contracts",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1"
       ],
       "total_tasks": 4,
-      "completed_tasks": 2,
+      "completed_tasks": 4,
       "metadata": {}
     },
     "phase-1": {
       "type": "phase",
       "title": "Complete group edit and membership contracts",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-1-1",
@@ -40,8 +41,12 @@
         "task-1-4"
       ],
       "total_tasks": 4,
-      "completed_tasks": 2,
-      "metadata": {}
+      "completed_tasks": 4,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T01:05:39.448512Z",
+        "journaled_at": "2026-10-03T01:05:39.450571Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -76,22 +81,32 @@
     "task-1-3": {
       "type": "task",
       "title": "Run complete checks and integrate exact source",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T00:55:41.336627Z",
+        "needs_journaling": false,
+        "status_note": "Exact source09431cbd1:236 tests/49 files, changed type/lint/format clean, no new diagnostics;10 CI checks passed; PR191 merged0953de341.",
+        "journaled_at": "2026-10-03T00:55:41.337663Z"
+      }
     },
     "task-1-4": {
       "type": "task",
       "title": "Freeze candidate, accept group UI and safely release runtime",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T01:05:39.448361Z",
+        "needs_journaling": false,
+        "status_note": "Guarded production rollout passed with verified PostgreSQL/data backup and Alembic q1c020261002. Registry digest fe404b342340ad43a572a5ca06533278856e58048d37c090028568769f3f84f5; source09431cbd10fb7d0968a724df0e71bc4b17e1faf8. 5759 installed frontend hashes and476 immutable backend hashes match; environment and13 neighboring containers retained; restart0. Public health/version and production static browser error/retry/mobile scenarios passed with all APIs mocked and0 live group writes. Full project quality and external product criteria remain open.",
+        "journaled_at": "2026-10-03T01:05:39.449408Z"
+      }
     }
   },
   "journal": [
@@ -112,6 +127,33 @@
       "content": "Task task-1-2 marked as completed. \nNote: Explicit committed write results, loading recovery, saved group guards and confirmed membership state implemented; 23 regressions pass.",
       "metadata": {},
       "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-03T00:55:41.337657Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run complete checks and integrate exact source",
+      "author": "claude-code",
+      "content": "Task task-1-3 marked as completed. \nNote: Exact source09431cbd1:236 tests/49 files, changed type/lint/format clean, no new diagnostics;10 CI checks passed; PR191 merged0953de341.",
+      "metadata": {},
+      "task_id": "task-1-3"
+    },
+    {
+      "timestamp": "2026-10-03T01:05:39.449404Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Freeze candidate, accept group UI and safely release runtime",
+      "author": "claude-code",
+      "content": "Task task-1-4 marked as completed. \nNote: Guarded production rollout passed with verified PostgreSQL/data backup and Alembic q1c020261002. Registry digest fe404b342340ad43a572a5ca06533278856e58048d37c090028568769f3f84f5; source09431cbd10fb7d0968a724df0e71bc4b17e1faf8. 5759 installed frontend hashes and476 immutable backend hashes match; environment and13 neighboring containers retained; restart0. Public health/version and production static browser error/retry/mobile scenarios passed with all APIs mocked and0 live group writes. Full project quality and external product criteria remain open.",
+      "metadata": {},
+      "task_id": "task-1-4"
+    },
+    {
+      "timestamp": "2026-10-03T01:05:39.450566Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Complete group edit and membership contracts",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
     }
   ]
 }
