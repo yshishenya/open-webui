@@ -5,7 +5,8 @@
 
 	import Dashboard from './Analytics/Dashboard.svelte';
 	import ProductFunnel from './Analytics/ProductFunnel.svelte';
-	let productFunnel = false;
+	import EmailObservations from './Analytics/EmailObservations.svelte';
+	let activeTab = 'models';
 
 	const i18n = getContext('i18n');
 
@@ -24,14 +25,16 @@
 		<div class="flex gap-2 p-2">
 			<button
 				class="rounded border px-3 py-2"
-				aria-pressed={!productFunnel}
-				on:click={() => (productFunnel = false)}>{$i18n.t('Model usage')}</button
+				aria-pressed={activeTab === 'models'}
+				on:click={() => (activeTab = 'models')}>{$i18n.t('Model usage')}</button
 			><button
 				class="rounded border px-3 py-2"
-				aria-pressed={productFunnel}
-				on:click={() => (productFunnel = true)}>{$i18n.t('Product funnel')}</button
+				aria-pressed={activeTab === 'funnel'}
+				on:click={() => (activeTab = 'funnel')}>{$i18n.t('Product funnel')}</button
 			>
+			<button class="rounded border px-3 py-2" aria-pressed={activeTab === 'mail'}
+				on:click={() => (activeTab = 'mail')}>{$i18n.language?.startsWith('ru') ? 'Диагностика писем' : 'Email diagnostics'}</button>
 		</div>
-		{#if productFunnel}<ProductFunnel />{:else}<Dashboard />{/if}
+		{#if activeTab === 'funnel'}<ProductFunnel />{:else if activeTab === 'mail'}<EmailObservations />{:else}<Dashboard />{/if}
 	</div>
 {/if}
