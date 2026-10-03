@@ -1,4 +1,4 @@
-- [ ] **[REFACTOR][MAIL]** Share existing send eligibility for future journal
+- [x] **[REFACTOR][MAIL]** Share existing send eligibility for future journal
   - Spec: meta/memory_bank/specs/work_items/2026-10-03__refactor__mail-send-eligibility.md
   - Owner: Codex
   - Started: 2026-10-03
@@ -6,3 +6,6 @@
   - Tests:15 before-refactor cases;714 full backend/3 PostgreSQL-only skips;122 PostgreSQL checks and22 final cases on each dialect;Ruff/Black/SDD passed. Frozen release pending.
 
 - 2026-10-03: Corrected the generated SDD identifier and filename to the strict CI format; runtime files unchanged. Release task remains pending.
+
+- Done: 2026-10-03
+- Summary: Shared read-only business eligibility passed final-source CI, frozen PostgreSQL/API acceptance and guarded production verification. Historical journal and real pilot remain pending.

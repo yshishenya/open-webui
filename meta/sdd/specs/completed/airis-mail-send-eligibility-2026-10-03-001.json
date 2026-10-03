@@ -2,7 +2,7 @@
   "spec_id": "airis-mail-send-eligibility-2026-10-03-001",
   "title": "AIRIS shared send eligibility policy 2026-10-03",
   "generated": "2026-10-03T06:02:40.496782Z",
-  "last_updated": "2026-10-03T06:20:00.218268Z",
+  "last_updated": "2026-10-03T06:44:56.945974Z",
   "metadata": {
     "template": "simple",
     "complexity": "medium",
@@ -10,28 +10,29 @@
     "estimated_hours": 4,
     "security_sensitive": true,
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__refactor__mail-send-eligibility.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-03T06:04:51.896793Z",
-    "progress_percentage": 66,
-    "current_phase": "phase-1"
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-03T06:44:56.945684Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "AIRIS shared send eligibility policy 2026-10-03",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
       "type": "phase",
       "title": "Share existing business permission without enabling observation or SMTP",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-1-1",
@@ -39,8 +40,12 @@
         "task-1-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
-      "metadata": {}
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T06:44:56.473418Z",
+        "journaled_at": "2026-10-03T06:44:56.476081Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -79,14 +84,18 @@
     "task-1-3": {
       "type": "task",
       "title": "Accept frozen production candidate and document limits",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "category": "implementation",
-        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__refactor__mail-send-eligibility.md"
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__refactor__mail-send-eligibility.md",
+        "completed_at": "2026-10-03T06:44:56.473225Z",
+        "needs_journaling": false,
+        "status_note": "Final source CI passed; frozen image PostgreSQL/API checks and guarded production acceptance passed. Verified all frontend/backend hashes, unchanged runtime settings and 14 neighboring containers, healthy/no restarts, and read-only report. Historical journal and real pilot remain pending.",
+        "journaled_at": "2026-10-03T06:44:56.475024Z"
       }
     }
   },
@@ -108,6 +117,24 @@
       "content": "Task task-1-2 marked as completed. \nNote: Shared helper extracted; dispatch controls and final rechecks preserved.714 backend passed/3 skips,122 PostgreSQL checks and22 final cases on each dialect passed;Ruff/Black/SDD passed. No DML/enqueue/SMTP from decision reads.",
       "metadata": {},
       "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-03T06:44:56.475017Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Accept frozen production candidate and document limits",
+      "author": "claude-code",
+      "content": "Task task-1-3 marked as completed. \nNote: Final source CI passed; frozen image PostgreSQL/API checks and guarded production acceptance passed. Verified all frontend/backend hashes, unchanged runtime settings and 14 neighboring containers, healthy/no restarts, and read-only report. Historical journal and real pilot remain pending.",
+      "metadata": {},
+      "task_id": "task-1-3"
+    },
+    {
+      "timestamp": "2026-10-03T06:44:56.476076Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Share existing business permission without enabling observation or SMTP",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
     }
   ]
 }

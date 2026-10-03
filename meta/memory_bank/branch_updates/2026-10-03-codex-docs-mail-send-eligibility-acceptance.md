@@ -1,0 +1,5 @@
+- [ ] **[DOCS]** Record accepted shared mail eligibility production release.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-03__docs__mail-send-eligibility-acceptance.md
+  - Owner: Codex
+  - Started: 2026-10-03
+  - Summary: Record final-source CI and guarded release evidence; close refactor SDD without claiming the historical journal or real pilot.
