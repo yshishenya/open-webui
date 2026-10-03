@@ -1,0 +1,112 @@
+{
+  "spec_id": "airis-mail-observation-admin-2026-10-03-001",
+  "title": "AIRIS administrative observation controls",
+  "generated": "2026-10-03T09:03:46.980217Z",
+  "last_updated": "2026-10-03T09:06:25.414955Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-observation-admin-controls.md",
+    "status": "active",
+    "activated_date": "2026-10-03T09:06:22.314864Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS administrative observation controls",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Administrative diagnostic groups",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3",
+        "task-1-4",
+        "task-1-5"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Define bounded diagnostic controls and safe HTTP replay",
+      "status": "in_progress",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "category": "investigation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-observation-admin-controls.md",
+        "started_at": "2026-10-03T09:06:25.406299Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Implement authenticated scope and page management",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "backend/open_webui/routers/airis/email_observation.py"
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Implement administrator interface and state handling",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "src/lib/components/admin/Analytics/EmailObservations.svelte"
+      }
+    },
+    "task-1-4": {
+      "type": "task",
+      "title": "Verify authorization, concurrent pages, failure, privacy and source isolation",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "backend/open_webui/test/util/test_email_observation_admin.py"
+      }
+    },
+    "task-1-5": {
+      "type": "task",
+      "title": "Accept exact-source CI and guarded production controls",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-observation-admin-controls.md"
+      }
+    }
+  }
+}

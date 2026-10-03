@@ -1,0 +1,7 @@
+- [ ] **[FEATURE]** Administrative controls for diagnostic mail observations.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-03__feature__mail-observation-admin-controls.md
+  - Owner: Codex
+  - Started: 2026-10-03
+  - Summary: Make bounded scope creation, page traversal and closure usable by administrators; retain explicit diagnostic purpose, durable request replay and unavailable coverage. Resolve identical-owner HTTP concurrency before exposing the internal runner.
+  - Tests: pending; no runtime code changed.
+  - Risks: New idempotency metadata needs design/migration proof; keep consent, payments, queue and SMTP untouched. Volunteer dispatch and report denominators remain separate.
