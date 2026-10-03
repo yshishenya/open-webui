@@ -2,7 +2,7 @@
   "spec_id": "airis-mail-observation-runner-2026-10-03-001",
   "title": "AIRIS mail observation runner",
   "generated": "2026-10-03T07:59:45.029136Z",
-  "last_updated": "2026-10-03T08:28:41.677408Z",
+  "last_updated": "2026-10-03T08:50:15.969402Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -10,28 +10,30 @@
     "estimated_hours": 24,
     "security_sensitive": true,
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-observation-runner.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-03T08:05:22.096590Z",
-    "progress_percentage": 66,
-    "current_phase": "phase-1"
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-03T08:50:15.967594Z",
+    "actual_hours": 0.57
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "AIRIS mail observation runner",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
       "type": "phase",
       "title": "Observation pages and production proof",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-1-1",
@@ -39,8 +41,12 @@
         "task-1-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
-      "metadata": {}
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T08:50:12.849311Z",
+        "journaled_at": "2026-10-03T08:50:12.868385Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -79,14 +85,19 @@
     "task-1-3": {
       "type": "task",
       "title": "Accept frozen production observer release and real diagnostic observation",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "category": "implementation",
-        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-observation-runner.md"
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-observation-runner.md",
+        "started_at": "2026-10-03T08:37:57.574792Z",
+        "completed_at": "2026-10-03T08:50:12.848245Z",
+        "needs_journaling": false,
+        "actual_hours": 0.204,
+        "journaled_at": "2026-10-03T08:50:12.859838Z"
       }
     }
   },
@@ -108,6 +119,24 @@
       "content": "Final backend776passed/4skips and real PostgreSQL63passed. Covers six types, source loss, historical attempts,250member restart, competing claims, cumulative unavailable coverage and atomic failures.",
       "metadata": {},
       "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-03T08:50:12.859811Z",
+      "entry_type": "status_change",
+      "title": "Production observer accepted",
+      "author": "Codex",
+      "content": "PR205 accepted exact source/frozen image.139ordinary members traversed twice,870scenario rows/870events,0duplicates/0nonjournal DML/0transport; all77schemas,source fingerprints and runtime configuration preserved.0ready recipients; diagnostic is not a volunteer pilot.",
+      "metadata": {},
+      "task_id": "task-1-3"
+    },
+    {
+      "timestamp": "2026-10-03T08:50:12.868366Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Observation pages and production proof",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
     }
   ]
 }

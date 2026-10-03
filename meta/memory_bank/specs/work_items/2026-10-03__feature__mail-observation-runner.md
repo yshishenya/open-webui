@@ -1,6 +1,6 @@
 # AIRIS bounded mail observation runner
 
-Type: feature. Status: active; implemented, final verification in progress. Base: airis_b2c after accepted PR203/204. Scope: a callable observation runner, no scheduled execution, HTTP controls, enqueue or SMTP hooks. Overall plan189/244 and08.09/09.07 remain open.
+Type: feature. Status: completed; production accepted. Base: airis_b2c after accepted PR203/204. Scope: a callable observation runner, no scheduled execution, HTTP controls, enqueue or SMTP hooks. Overall plan189/244 and08.09/09.07 remain open.
 
 ## Final block result and measurable criteria
 
@@ -15,8 +15,8 @@ Read every declared member, including inactive/unverified/no-consent members, an
 - [x] Bound pages to25members, up to100current payment sources/member and256historical scenarios/member. Detect limit+1 and fail the pass as coverage_lost, never silently truncate or complete it. Timeout<=30seconds per page; valid leases/atomic cursor semantics remain in storage.
 - [x] On failure roll back the whole page; record a safe failed-run reason separately.0Payment/Ledger/consent/queue/SMTPmutations. Claim contention produces a busy result without page writes. Lost owner cannot fail another owner's pass.
 - [x] SQLite/PostgreSQL: all-six-type independent expected results; source/consent changes; historical attempts; first-positive preservation;250members across bounded pages/restart; timeout/failure/cap; money and transport isolation.
-- [ ] Full backend, changed-fileBlack/Ruff, exact-sourceCI and frozen-imagePostgreSQL/APIproof pass; guarded release keeps dispatchoff. Only a clearly labelled diagnostic observe group may be exercised on real ordinary accounts; it is never called a volunteer pilot.
-- [ ] PublicSDD/workitem/guide/branchlog and private proofs complete. Admin controls, queue association, coverage-aware report and real24h/72h/14dpilot remain separate blocks.
+- [x] Full backend, changed-fileBlack/Ruff, exact-sourceCI and frozen-imagePostgreSQL/APIproof pass; guarded release keeps dispatchoff. Only a clearly labelled diagnostic observe group may be exercised on real ordinary accounts; it is never called a volunteer pilot.
+- [x] PublicSDD/workitem/guide/branchlog and private proofs complete. Admin controls, queue association, coverage-aware report and real24h/72h/14dpilot remain separate blocks.
 
 ## Implementation contract
 
@@ -26,7 +26,7 @@ Storage delta: allow future payment windows without allowing future registration
 
 Upstream impact: none; only fork-owned journal/helper/test/docs files. No main/router/frontend hooks in this block.
 
-SDD Spec: meta/sdd/specs/active/airis-mail-observation-runner-2026-10-03-001.json
+SDD Spec: meta/sdd/specs/completed/airis-mail-observation-runner-2026-10-03-001.json
 Branch: codex/feature/mail-observation-runner
 
 
@@ -45,3 +45,14 @@ Self-review complete: only fork-owned files; no transport/scheduler/router hooks
 ## Final pre-release validation
 
 2026-10-03: final full backend776passed/4PostgreSQL-only skips; focused real PostgreSQL63passed; changed-fileBlack/Ruff clean; git diff --check clean; SDD schema/hierarchy0errors/0warnings. Full backend warnings are existing dependency deprecations. Tests use isolated databases and transport-disabled configuration. Production release, exact-source CI and frozen candidate tests remain pending.
+
+
+## Production acceptance
+
+PR205 source95f17e9edc341faabe0b492d9b2fb47316e0b6dc merged as4ce4825c5fe9b5087cb0636c02e6595794ce4b0b; all files identical. All11started CI checks passed; dependency-review skipped and CodeRabbit review skipped, so no independent review is claimed. Published image mail-observer-95f17e9ed-on-mail-journal-20261003, digestsha256:3b0d47edcc34a0c5fa09e6bcd1c03605563cd50bdd7a31445a03860883dc097e, linux/amd64,6layers. Frozen image full backend776/4skips; actual PostgreSQL149passed; positive/admin API401/200/no-store and null unavailable denominators verified.
+
+Guarded production release preserves all77schemas,5759frontend hashes,484immutable backend hashes, complete runtime configuration and14neighboring container identities; health200/restarts0 and more than10GiB free. All36Payment/5707LedgerEntry/0EmailDelivery fingerprints unchanged. Migration head o1j020261003 unchanged. New backup and previous rollback image retained; older selected backup was copied, all12files checksum/size verified and archive/dump read before server-only removal.
+
+A controlled diagnostic observe scope visited all139existing ordinary members in6pages twice:870scenario records/870transition events, no duplicate replay event,0missing sources,0first-positive facts,0queue associations,0SMTP/queue/money/source DML. Its actual-time observation scope was closed after the diagnostic; it is not a volunteer pilot or continuous historical coverage. Two independent post-diagnostic read-only snapshots agree.
+
+Current account-scenario reasons:121invalid_address,14inactive_account,4consent for each of the four account types. No currently eligible recipient was found in this diagnostic. Historical eligible people cannot be inferred; do not manufacture a pilot or opt people in. Administrative population controls, dispatch linkage, coverage-aware report and actual voluntary24h/72h/14d windows remain open in the overall plan189/244. First-positive preservation was tested synthetically/with PostgreSQL; production had0positive facts and cannot demonstrate that transition itself.
