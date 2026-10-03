@@ -1,0 +1,6 @@
+- [ ] **[REPORT][MAIL]** Complete observed per-type email outcomes
+  - Spec: meta/memory_bank/specs/work_items/2026-10-03__feature__mail-outcome-summary.md
+  - Owner: Codex
+  - Started: 2026-10-03
+  - Summary: Expose all six types and exact job-state counts; distinct accounts and receipt observations remain separate from unknown eligibility/delivery coverage.
+  - Tests: 692 backend passed/3 PostgreSQL-only skips;79 focused PostgreSQL;33 focused SQLite;Ruff/Black passed. Release pending.

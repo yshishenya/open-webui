@@ -1,0 +1,113 @@
+{
+  "spec_id": "airis-complete-observed-mail-o-2026-10-03-747",
+  "title": "AIRIS complete observed mail outcome summary 2026-10-03",
+  "generated": "2026-10-03T04:47:00.052743Z",
+  "last_updated": "2026-10-03T04:59:04.390049Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-outcome-summary.md",
+    "status": "active",
+    "activated_date": "2026-10-03T04:49:27.673109Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS complete observed mail outcome summary 2026-10-03",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Complete observed outcomes without inventing historical coverage",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Add exact six-type summaries with explicit unavailable denominators",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "category": "implementation",
+        "file_path": "backend/open_webui/utils/airis/mail_outcome_report.py",
+        "completed_at": "2026-10-03T04:59:04.120299Z",
+        "needs_journaling": false,
+        "status_note": "Added exact six-type job/account summaries while retaining unavailable historical eligibility and receipt coverage.",
+        "journaled_at": "2026-10-03T04:59:04.121370Z"
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Verify conservation, distinct accounts, privacy and read-only export",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "category": "implementation",
+        "file_path": "backend/open_webui/test/util/test_mail_outcome_summary.py",
+        "completed_at": "2026-10-03T04:59:04.388378Z",
+        "needs_journaling": false,
+        "status_note": "692 backend tests,79 PostgreSQL and33 focused SQLite cases passed;conservation,replay,privacy,opt-out,cutoffs and zero DML/SMTP checked.",
+        "journaled_at": "2026-10-03T04:59:04.389503Z"
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Validate frozen candidate, guarded release and documentation",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "category": "implementation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-outcome-summary.md"
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-03T04:59:04.121358Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add exact six-type summaries with explicit unavailable denominators",
+      "author": "Codex",
+      "content": "Task task-1-1 marked as completed. \nNote: Added exact six-type job/account summaries while retaining unavailable historical eligibility and receipt coverage.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-03T04:59:04.389498Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify conservation, distinct accounts, privacy and read-only export",
+      "author": "Codex",
+      "content": "Task task-1-2 marked as completed. \nNote: 692 backend tests,79 PostgreSQL and33 focused SQLite cases passed;conservation,replay,privacy,opt-out,cutoffs and zero DML/SMTP checked.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    }
+  ]
+}

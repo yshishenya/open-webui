@@ -22,6 +22,12 @@ from open_webui.models.email_preferences import (
 from open_webui.models.task_success import TaskSuccess
 from open_webui.models.users import User
 from open_webui.utils.airis.email_scenarios import DAY, canceled_condition, credited_condition
+from open_webui.utils.airis.mail_outcome_report import (
+    MailOutcome,
+    MailTypeSummary,
+    mail_snapshot,
+    summarize_mail_outcomes,
+)
 from pydantic import BaseModel
 from sqlalchemy import and_, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,17 +45,6 @@ class MatureRate(BaseModel):
     fraction: float | None
     immature: int
     small_sample: bool
-
-
-class MailOutcome(BaseModel):
-    type: str
-    template_version: str
-    status: str
-    reason: str | None
-    jobs: int
-    delivery_receipts: int
-    bounce_records: int
-    complaint_records: int
 
 
 class PaymentFunnel(BaseModel):
@@ -79,6 +74,7 @@ class RegistrationCohort(BaseModel):
     confirmed_payments_14d_mature: int
     payment_attempts_14d_mature: PaymentFunnel
     mail_outcomes: list[MailOutcome]
+    mail_summary: list[MailTypeSummary]
 
 
 class RegistrationReport(BaseModel):
@@ -92,6 +88,7 @@ class RegistrationReport(BaseModel):
     registrations: int
     exclusions: dict[str, int]
     cohorts: list[RegistrationCohort]
+    mail_summary: list[MailTypeSummary]
     historical_mail_eligibility: None = None
     delivered: None = None
     inbox: None = None
@@ -331,40 +328,6 @@ async def account_facts(session: AsyncSession, ids: list[str], now: int) -> list
     ]
 
 
-async def mail_outcomes(session: AsyncSession, ids: list[str], now: int) -> list[MailOutcome]:
-    """Recorded queue and receipt facts never establish delivery coverage."""
-    rows = (
-        await session.execute(
-            select(
-                EmailDelivery.type,
-                EmailDelivery.template_version,
-                EmailDelivery.status,
-                EmailDelivery.reason,
-                func.count(),
-                func.count(case((EmailDelivery.delivered_at <= now, 1))),
-                func.count(case((EmailDelivery.bounced_at <= now, 1))),
-                func.count(case((EmailDelivery.complained_at <= now, 1))),
-            )
-            .where(EmailDelivery.user_id.in_(ids), EmailDelivery.created_at <= now)
-            .group_by(EmailDelivery.type, EmailDelivery.template_version, EmailDelivery.status, EmailDelivery.reason)
-            .order_by(EmailDelivery.type, EmailDelivery.template_version, EmailDelivery.status, EmailDelivery.reason)
-        )
-    ).all()
-    return [
-        MailOutcome(
-            type=kind,
-            template_version=version,
-            status=status,
-            reason=reason,
-            jobs=count,
-            delivery_receipts=delivered,
-            bounce_records=bounced,
-            complaint_records=complained,
-        )
-        for kind, version, status, reason, count, delivered, bounced, complained in rows
-    ]
-
-
 async def registration_population(
     session: AsyncSession, start: int, end: int, observed_from: int, now: int, excluded_ids: frozenset[str]
 ) -> tuple[list[str], dict[str, int]]:
@@ -409,6 +372,7 @@ async def registration_cohort(
             EmailDelivery.accepted_at <= now,
         )
     )
+    outcomes, summaries = await mail_snapshot(session, ids, now)
     return RegistrationCohort(
         date=date,
         consent_segment='current_opt_in' if subscribed else 'no_current_opt_in',
@@ -420,7 +384,8 @@ async def registration_cohort(
         confirmed_payments_14d_mature=sum(
             account.paid_count for account in accounts if account.registered_at + 14 * DAY <= now
         ),
-        mail_outcomes=await mail_outcomes(session, ids, now),
+        mail_outcomes=outcomes,
+        mail_summary=summaries,
         payment_attempts_14d_mature=await payment_funnel(session, ids, now),
         **cohort_metrics(accounts, now, timezone),
     )
@@ -451,6 +416,16 @@ async def registration_report(
             registrations=len(facts),
             exclusions=exclusions,
             cohorts=cohorts,
+            mail_summary=summarize_mail_outcomes(
+                [row for cohort in cohorts for row in cohort.mail_outcomes],
+                {
+                    kind: sum(
+                        row.queued_accounts for cohort in cohorts for row in cohort.mail_summary if row.type == kind
+                    )
+                    for kind in {row.type for cohort in cohorts for row in cohort.mail_summary}
+                },
+                now,
+            ),
             limitations=[
                 'Existing ordinary accounts only; privacy-deleted registration history is unavailable.',
                 'Explicit test IDs are operator-supplied; unmarked test accounts cannot be inferred.',
@@ -462,6 +437,8 @@ async def registration_report(
                 'Attempt funnel uses attempts initiated in registration+14d for mature accounts; statuses are current.',
                 'Detailed cancellation causes are not retained; local create_failed is a separate observation.',
                 'Queue acceptance is SMTP acceptance; receipt/bounce/complaint counts are recorded observations only.',
+                'Job and account totals are separate; historical eligibility and receipt coverage are unknown.',
+                'States are current; the timestamp cutoff limits jobs and receipts, not state history.',
                 'Delivery/Inbox rates, response usefulness, email clicks and causal effects are unavailable.',
             ],
         )
