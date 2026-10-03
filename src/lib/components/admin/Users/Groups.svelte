@@ -1,4 +1,7 @@
-<script>
+<script lang="ts">
+	import type { GroupDetails, GroupForm } from '$lib/utils/airis/group-types';
+	import type { PermissionSettingsInput } from '$lib/utils/airis/permission-types';
+	import { performGroupMutation } from '$lib/utils/airis/group-mutation';
 	import { toast } from 'svelte-sonner';
 	import { onMount, getContext } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -19,8 +22,7 @@
 
 	let loaded = false;
 
-	/** @type {any[]} */
-	let groups = [];
+	let groups: GroupDetails[] = [];
 
 	let query = '';
 	let sortBy = 'members';
@@ -48,46 +50,41 @@
 			return (b.member_count ?? 0) - (a.member_count ?? 0) || a.name.localeCompare(b.name);
 		});
 
-	/** @type {any} */
-	let defaultPermissions = {};
+	let defaultPermissions: PermissionSettingsInput = {};
 
 	let showAddGroupModal = false;
 	let showDefaultPermissionsModal = false;
 
-	const setGroups = async () => {
-		groups = await getGroups(localStorage.token);
+	const setGroups = async (): Promise<void> => {
+		const result: GroupDetails[] | null = await getGroups(localStorage.token);
+		if (!result) throw new Error($i18n.t('Something went wrong :/'));
+		groups = result;
 		adminGroupCount.set(groups.length);
 	};
 
-	/** @param {any} group */
-	const addGroupHandler = async (group) => {
-		const res = await createNewGroup(localStorage.token, group).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (res) {
-			toast.success($i18n.t('Group created successfully'));
-			await setGroups();
-		}
-	};
-
-	/** @param {any} group */
-	const updateDefaultPermissionsHandler = async (group) => {
-		console.debug(group.permissions);
-
-		const res = await updateUserDefaultPermissions(localStorage.token, group.permissions).catch(
-			(error) => {
-				toast.error(`${error}`);
-				return null;
-			}
+	const addGroupHandler = async (group: GroupForm): Promise<boolean> =>
+		performGroupMutation(
+			() => createNewGroup(localStorage.token, group),
+			() => toast.success($i18n.t('Group created successfully')),
+			setGroups,
+			(error) => toast.error(`${error}`),
+			$i18n.t('Something went wrong :/')
 		);
 
-		if (res) {
-			toast.success($i18n.t('Default permissions updated successfully'));
-			defaultPermissions = await getUserDefaultPermissions(localStorage.token);
-		}
-	};
+	const updateDefaultPermissionsHandler = async (group: GroupForm): Promise<boolean> =>
+		performGroupMutation(
+			() => updateUserDefaultPermissions(localStorage.token, group.permissions),
+			() => toast.success($i18n.t('Default permissions updated successfully')),
+			async () => {
+				const result: PermissionSettingsInput | null = await getUserDefaultPermissions(
+					localStorage.token
+				);
+				if (!result) throw new Error($i18n.t('Something went wrong :/'));
+				defaultPermissions = result;
+			},
+			(error) => toast.error(`${error}`),
+			$i18n.t('Something went wrong :/')
+		);
 
 	onMount(async () => {
 		if ($user?.role !== 'admin') {
