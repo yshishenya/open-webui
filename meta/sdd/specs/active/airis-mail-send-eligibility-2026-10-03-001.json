@@ -1,0 +1,113 @@
+{
+  "spec_id": "airis-mail-send-eligibility-2026-10-03-001",
+  "title": "AIRIS shared send eligibility policy 2026-10-03",
+  "generated": "2026-10-03T06:02:40.496782Z",
+  "last_updated": "2026-10-03T06:20:00.218268Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 4,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__refactor__mail-send-eligibility.md",
+    "status": "active",
+    "activated_date": "2026-10-03T06:04:51.896793Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS shared send eligibility policy 2026-10-03",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Share existing business permission without enabling observation or SMTP",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Characterize existing permission outcomes before extracting",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "completed_at": "2026-10-03T06:07:26.595547Z",
+        "needs_journaling": false,
+        "status_note": "Fifteen controlled expected reasons/deferral cases passed against the unchanged worker before extraction.",
+        "journaled_at": "2026-10-03T06:07:26.596662Z",
+        "file_path": "backend/open_webui/test/util/test_mail_send_eligibility.py"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Extract shared eligibility and verify unchanged dispatch controls",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "backend/open_webui/utils/airis/email_eligibility.py",
+        "completed_at": "2026-10-03T06:20:00.216577Z",
+        "needs_journaling": false,
+        "status_note": "Shared helper extracted; dispatch controls and final rechecks preserved.714 backend passed/3 skips,122 PostgreSQL checks and22 final cases on each dialect passed;Ruff/Black/SDD passed. No DML/enqueue/SMTP from decision reads.",
+        "journaled_at": "2026-10-03T06:20:00.217722Z"
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Accept frozen production candidate and document limits",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__refactor__mail-send-eligibility.md"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-03T06:07:26.596657Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Characterize existing permission outcomes before extracting",
+      "author": "Codex",
+      "content": "Task task-1-1 marked as completed. \nNote: Fifteen controlled expected reasons/deferral cases passed against the unchanged worker before extraction.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-03T06:20:00.217716Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Extract shared eligibility and verify unchanged dispatch controls",
+      "author": "Codex",
+      "content": "Task task-1-2 marked as completed. \nNote: Shared helper extracted; dispatch controls and final rechecks preserved.714 backend passed/3 skips,122 PostgreSQL checks and22 final cases on each dialect passed;Ruff/Black/SDD passed. No DML/enqueue/SMTP from decision reads.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    }
+  ]
+}
