@@ -7,7 +7,7 @@
 - Owner: Codex
 - Branch: codex/feature/analytics-billing-ui
 - Created: 2026-10-04
-- SDD Spec: meta/sdd/specs/active/analytics-billing-ui-2026-10-04-0118.json
+- SDD Spec: meta/sdd/specs/active/analytics-billing-ui-2026-10-04-118.json
 - Design: [Постраничный аудит](2026-10-04__docs__analytics-billing-interface-audit.md)
 
 ## Goal / Acceptance Criteria

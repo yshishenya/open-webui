@@ -5,7 +5,7 @@
 - Type: docs / investigation, workflow: code_review (исследование существующего интерфейса).
 - Status: completed (исследование и проектирование; внедрение не выполнено). Owner: Codex. Created: 2026-10-04.
 - Branch: codex/bugfix/analytics-report-cache-20261002.
-- SDD Spec: meta/sdd/specs/completed/airis-analytics-billing-interf-2026-10-04-0040.json
+- SDD Spec: meta/sdd/specs/completed/airis-analytics-billing-interf-2026-10-04-040.json
 - Запрос: владельцу продукта и коллеге по продвижению должно быть легко понимать продукт, воронку и деньги. Пользователю — баланс, расходы и состояние оплаты.
 - На этом этапе меняются только документы и локальный пример предложенного интерфейса. Production, платежи, настройки, API, авторизация и бизнес-правила не меняются.
 
