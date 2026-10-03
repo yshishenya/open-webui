@@ -2,7 +2,7 @@
   "spec_id": "airis-mail-queue-observation-2026-10-04-001",
   "title": "AIRIS mail queue observation",
   "generated": "2026-10-03T22:13:28.652873Z",
-  "last_updated": "2026-10-03T22:48:19.426025Z",
+  "last_updated": "2026-10-03T23:09:25.255017Z",
   "metadata": {
     "template": "simple",
     "complexity": "medium",
@@ -10,28 +10,30 @@
     "estimated_hours": 8,
     "security_sensitive": true,
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__feature__mail-queue-observation.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-03T22:14:36.037407Z",
-    "progress_percentage": 75,
-    "current_phase": "phase-1"
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-03T23:09:25.254485Z",
+    "actual_hours": 0.913
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "AIRIS mail queue observation",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1"
       ],
       "total_tasks": 4,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {}
     },
     "phase-1": {
       "type": "phase",
       "title": "Atomic dispatch observation",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-1-1",
@@ -40,8 +42,12 @@
         "task-1-4"
       ],
       "total_tasks": 4,
-      "completed_tasks": 3,
-      "metadata": {}
+      "completed_tasks": 4,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T23:09:24.729472Z",
+        "journaled_at": "2026-10-03T23:09:24.732320Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -103,15 +109,20 @@
     "task-1-4": {
       "type": "task",
       "title": "Accept exact-source CI and production release",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "category": "implementation",
         "file_path": "meta/memory_bank/specs/work_items/2026-10-04__feature__mail-queue-observation.md",
-        "started_at": "2026-10-03T22:48:19.425714Z"
+        "started_at": "2026-10-03T22:48:19.425714Z",
+        "completed_at": "2026-10-03T23:09:24.729295Z",
+        "needs_journaling": false,
+        "status_note": "Exact source PR210 merged; image838/4skips and211PostgreSQL; current78tables/20722rows preserved; guarded release accepted.",
+        "actual_hours": 0.351,
+        "journaled_at": "2026-10-03T23:09:24.731250Z"
       }
     }
   },
@@ -142,6 +153,24 @@
       "content": "All6types, future readiness, replay/concurrency, rollback, consent/address/complaint, missing/stale receipts, partial population, cancellation and finance preservation tested. Test clock fixed across awaited enqueue/claim. Frontend source unchanged;4419type/1540lint errors remain G14. Source/image/CI/release gate remains separate.",
       "metadata": {},
       "task_id": "task-1-3"
+    },
+    {
+      "timestamp": "2026-10-03T23:09:24.731244Z",
+      "entry_type": "status_change",
+      "title": "Production queue observation accepted",
+      "author": "Codex",
+      "content": "Source95bf27b94, merge9a701af3e, digestd113fd4c7055. Actual Metrica successor preserved;4904frontend/495immutablebackend hashes,13neighbors,ENV/config and source/journal fingerprints unchanged. Hard Alembic o1a020261003; health200/restarts0; queue disabled, selector empty, default helper0queries/worker0. Coverage report and voluntary pilot remain open; overall189/244 active.",
+      "metadata": {},
+      "task_id": "task-1-4"
+    },
+    {
+      "timestamp": "2026-10-03T23:09:24.732314Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Atomic dispatch observation",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
     }
   ]
 }
