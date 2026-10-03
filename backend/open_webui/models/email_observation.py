@@ -44,6 +44,7 @@ REASONS = frozenset(
         'invalid_scenario',
         'no_scenario',
         'source_unavailable',
+        'historical_submission',
     }
 )
 
@@ -91,7 +92,7 @@ async def declare_scope(
         or mode not in {'observe', 'dispatch'}
         or rule_version != RULE_VERSION
         or not 0 <= registrations_from < registrations_until <= now + 1
-        or not 0 <= payments_from < payments_until <= now + 1
+        or not 0 <= payments_from < payments_until
         or len(user_ids) > MAX_MEMBERS
         or len(set(user_ids)) != len(user_ids)
     ):
