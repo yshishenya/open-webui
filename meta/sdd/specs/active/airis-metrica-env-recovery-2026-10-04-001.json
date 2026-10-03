@@ -1,0 +1,176 @@
+{
+  "spec_id": "airis-metrica-env-recovery-2026-10-04-001",
+  "title": "Восстановить ID Метрики в текущем production без замены frontend",
+  "generated": "2026-10-03T21:47:32.214842Z",
+  "last_updated": "2026-10-03T21:54:00.252481Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "status": "active",
+    "activated_date": "2026-10-03T21:49:05.414367Z",
+    "progress_percentage": 66,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__metrica-runtime-env-recovery.md"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Восстановить ID Метрики в текущем production без замены frontend",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {
+        "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__metrica-runtime-env-recovery.md"
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Диагностика актуальной версии",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T21:51:04.452961Z",
+        "journaled_at": "2026-10-03T21:51:04.460845Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Локальная сборка и сверка образа",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T21:54:00.246484Z",
+        "journaled_at": "2026-10-03T21:54:00.252436Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Защищённая выкладка и проверка",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Сверить актуальный production и воспроизвести отсутствие ID",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T21:51:04.452498Z",
+        "needs_journaling": false,
+        "status_note": "Current production reproduces missing ID; current integration contains all prior fixes; env-only preview restores tag",
+        "journaled_at": "2026-10-03T21:51:04.454859Z",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__metrica-runtime-env-recovery.md"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Собрать и проверить однофайловый Docker overlay на Mac",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T21:54:00.244574Z",
+        "needs_journaling": false,
+        "status_note": "Mac linux/amd64 image published digest1a013df;4904files compared,only env.js differs;all base layers and runtime config preserved;regression rejects baseline and accepts candidate",
+        "journaled_at": "2026-10-03T21:54:00.248996Z",
+        "file_path": "scripts/check_metrica_image.sh"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Выполнить guarded rollout и подтвердить Метрику",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "scripts/deploy_guarded.sh"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-03T21:51:04.454788Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Сверить актуальный production и воспроизвести отсутствие ID",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Current production reproduces missing ID; current integration contains all prior fixes; env-only preview restores tag",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-03T21:51:04.460818Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: [To Be Defined]",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-03T21:54:00.248979Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Собрать и проверить однофайловый Docker overlay на Mac",
+      "author": "Codex",
+      "content": "Task task-2-1 marked as completed. \nNote: Mac linux/amd64 image published digest1a013df;4904files compared,only env.js differs;all base layers and runtime config preserved;regression rejects baseline and accepts candidate",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-03T21:54:00.252421Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: [To Be Defined]",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
