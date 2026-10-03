@@ -1,11 +1,11 @@
 # AIRIS observed email outcome summary
 
 - Type: feature
-- Status: active
+- Status: completed
 - Owner: Codex
 - Branch: codex/feature/mail-outcome-summary
 - Created: 2026-10-03
-- SDD Spec: meta/sdd/specs/active/airis-complete-observed-mail-o-2026-10-03-747.json
+- SDD Spec: meta/sdd/specs/completed/airis-complete-observed-mail-o-2026-10-03-747.json
 
 ## Goal and measurable acceptance
 
@@ -17,7 +17,7 @@ Add a complete read-only view of recorded mail outcomes, as the first implementa
 - [x] Only rows created by the observation cutoff and receipts dated by that cutoff contribute. States are explicitly current persisted state, not reconstructed historical state.
 - [x] Historical eligible count/start and acceptance/delivery rates stay null with unavailable coverage, including when accepted is nonzero. Current opt-in does not rewrite past recorded jobs.
 - [x] Controlled SQLite/PostgreSQL counts match; repeated export without changes is equal, zero DML/SMTP occurs, normal users remain unauthorized, and no addresses/content/tokens leak.
-- [ ] Full backend/format/CI and frozen-image production acceptance pass; runtime settings, backup and neighboring services remain verified.
+- [x] Full backend/format/CI and frozen-image production acceptance pass; runtime settings, backup and neighboring services remain verified.
 
 ## Implementation / upstream impact
 
@@ -33,4 +33,11 @@ Historical eligibility needs a separately specified durable decision journal wit
 
 ## Source verification
 
-33 focused tests passed;692 backend tests passed with3 PostgreSQL-only skips.79 relevant PostgreSQL report/queue/payment-mail checks passed. Changed-file Ruff and Black checks passed with repository settings. Existing protected API tests retain admin authorization, no-store, timeout and error handling. Controlled54-job population (nine jobs per type, two distinct accounts) conserves every status;repeat enqueue adds no duplicate;receipt cutoff/overlap, opt-out, privacy and zero DML/SMTP verified. Release acceptance remains pending;plan08.09/09.07 remain open.
+33 focused tests passed;692 backend tests passed with3 PostgreSQL-only skips.79 relevant PostgreSQL report/queue/payment-mail checks passed. Changed-file Ruff and Black checks passed with repository settings. Existing protected API tests retain admin authorization, no-store, timeout and error handling. Controlled54-job population (nine jobs per type, two distinct accounts) conserves every status;repeat enqueue adds no duplicate;receipt cutoff/overlap, opt-out, privacy and zero DML/SMTP verified. Release acceptance completed;plan08.09/09.07 remain open.
+
+
+## Production acceptance — 2026-10-03
+
+Source `f6e72b6ce201f7be443608b7884cd930c8aa906f`, merge `ab66919720246c622da7bc1d67d00e717735a80a` (runtime diff zero). All executed exact-head CI checks passed; dependency review skipped and CodeRabbit did not perform a review. Final CI backend suite:692 passed/3 PostgreSQL-only skips. Frozen candidate:79 PostgreSQL checks, protected admin API and explicit unavailable denominators passed.
+
+Three-layer immutable image accepted after full filesystem/runtime-config comparison. Guarded production release verified readable database/data backup, migration head, preserved environment/mounts/ports/networks/command and14 neighboring container identities,5759 frontend and479 immutable backend hashes,healthy state and zero restarts. Independent production report used the previously recorded durable-success observation boundary, matched all counts on two reads and executed zero database mutation statements. Public health200 and anonymous report401. Existing ordinary accounts and zero recorded jobs do not establish a real pilot or historical mail eligibility;plan08.09/09.07 remain open. Private operational identifiers and backups are retained outside the public repository.

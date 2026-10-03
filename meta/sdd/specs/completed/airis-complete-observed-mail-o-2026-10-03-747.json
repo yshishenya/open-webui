@@ -2,7 +2,7 @@
   "spec_id": "airis-complete-observed-mail-o-2026-10-03-747",
   "title": "AIRIS complete observed mail outcome summary 2026-10-03",
   "generated": "2026-10-03T04:47:00.052743Z",
-  "last_updated": "2026-10-03T04:59:04.390049Z",
+  "last_updated": "2026-10-03T05:59:33.855279Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -10,28 +10,29 @@
     "estimated_hours": 8,
     "security_sensitive": false,
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-outcome-summary.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-03T04:49:27.673109Z",
-    "progress_percentage": 66,
-    "current_phase": "phase-1"
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-03T05:59:33.854845Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "AIRIS complete observed mail outcome summary 2026-10-03",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
       "type": "phase",
       "title": "Complete observed outcomes without inventing historical coverage",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-1-1",
@@ -39,8 +40,12 @@
         "task-1-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
-      "metadata": {}
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T05:59:33.359978Z",
+        "journaled_at": "2026-10-03T05:59:33.362797Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -79,15 +84,19 @@
     "task-1-3": {
       "type": "task",
       "title": "Validate frozen candidate, guarded release and documentation",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1",
       "children": [],
       "metadata": {
         "category": "implementation",
-        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-outcome-summary.md"
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-03__feature__mail-outcome-summary.md",
+        "completed_at": "2026-10-03T05:59:33.359823Z",
+        "needs_journaling": false,
+        "status_note": "Final f6e72b6ce candidate passed79 PostgreSQL checks and protected API; exact-head CI692 passed/3 skips. Guarded production release, readable backups,5759 frontend/479 backend hashes,14 neighbors/config,health/restarts0 and independent read-only report accepted; historical eligibility/pilot remain pending.",
+        "journaled_at": "2026-10-03T05:59:33.361656Z"
       },
       "total_tasks": 1,
-      "completed_tasks": 0
+      "completed_tasks": 1
     }
   },
   "journal": [
@@ -108,6 +117,24 @@
       "content": "Task task-1-2 marked as completed. \nNote: 692 backend tests,79 PostgreSQL and33 focused SQLite cases passed;conservation,replay,privacy,opt-out,cutoffs and zero DML/SMTP checked.",
       "metadata": {},
       "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-03T05:59:33.361648Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Validate frozen candidate, guarded release and documentation",
+      "author": "Codex",
+      "content": "Task task-1-3 marked as completed. \nNote: Final f6e72b6ce candidate passed79 PostgreSQL checks and protected API; exact-head CI692 passed/3 skips. Guarded production release, readable backups,5759 frontend/479 backend hashes,14 neighbors/config,health/restarts0 and independent read-only report accepted; historical eligibility/pilot remain pending.",
+      "metadata": {},
+      "task_id": "task-1-3"
+    },
+    {
+      "timestamp": "2026-10-03T05:59:33.362793Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Complete observed outcomes without inventing historical coverage",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
     }
   ]
 }
