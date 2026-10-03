@@ -8,7 +8,6 @@ import time
 from dataclasses import dataclass
 
 from open_webui.internal.db import get_async_db_context
-from open_webui.models.auths import Auth
 from open_webui.models.email_delivery import (
     LEASE_SECONDS,
     DeliveryView,
@@ -18,22 +17,14 @@ from open_webui.models.email_delivery import (
     finish_email,
     reserve_transport,
 )
-from open_webui.models.email_preferences import (
-    SUPPRESSION_DAYS,
-    EmailPreferenceEvent,
-    email_fingerprint,
-    preference_for_user,
-    valid_product_address,
-)
 from open_webui.models.users import User
 from open_webui.utils.airis.email_delivery import EmailSendResult
+from open_webui.utils.airis.email_eligibility import send_eligibility
 from open_webui.utils.airis.email_onboarding import onboarding_context
 from open_webui.utils.airis.email_scenarios import (
     EmailQueueConfig,
     ScenarioDecision,
-    recent_submission,
     reconcile_email_candidates,
-    scenario_decision,
 )
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -63,37 +54,6 @@ class Recipient:
     context: dict[str, str]
 
 
-async def account_email_reason(
-    session: AsyncSession, user: User, job: DeliveryView, expected_email: str | None, now: int
-) -> str:
-    auth = await session.get(Auth, user.id)
-    if not auth or not auth.active or user.role not in {'user', 'admin'}:
-        return 'inactive_account'
-    if (
-        not valid_product_address(user.email)
-        or not user.email_verified
-        or (expected_email is not None and user.email != expected_email)
-    ):
-        return 'invalid_address'
-    if job.category == 'product':
-        preference = await preference_for_user(session, user, now)
-        if user.role != 'user':
-            return 'inactive_account'
-        if not preference.can_receive:
-            return 'consent' if preference.reason == 'no_consent' else preference.reason
-    if await session.scalar(
-        select(EmailPreferenceEvent.id)
-        .where(
-            EmailPreferenceEvent.email_hash == email_fingerprint(user.email),
-            EmailPreferenceEvent.action.in_(['hard_bounce', 'complaint']),
-            EmailPreferenceEvent.created_at >= now - SUPPRESSION_DAYS * 86400,
-        )
-        .limit(1)
-    ):
-        return 'invalid_address'
-    return 'ready'
-
-
 async def permission_decision(
     session: AsyncSession,
     user: User | None,
@@ -102,22 +62,14 @@ async def permission_decision(
     expected_email: str | None,
     now: int,
 ) -> ScenarioDecision:
+    """Enforce operator switches before the shared business eligibility reads."""
     from open_webui.utils.email import AIRIS_PRODUCT_EMAILS_ENABLED
 
     if not user:
         return ScenarioDecision('deleted_account')
     if not config.allows(user.id, job.type) or (job.category == 'product' and not AIRIS_PRODUCT_EMAILS_ENABLED):
         return ScenarioDecision('release_disabled', now + POLL_SECONDS)
-    reason = await account_email_reason(session, user, job, expected_email, now)
-    if reason != 'ready':
-        return ScenarioDecision(reason)
-    decision = await scenario_decision(session, user, job, now)
-    if decision.reason != 'ready' or job.category != 'product':
-        return decision
-    previous = await recent_submission(session, user.id, job.id)
-    if previous is not None and previous + 86400 > now:
-        return ScenarioDecision('frequency', previous + 86400)
-    return decision
+    return await send_eligibility(session, user, job, expected_email, now)
 
 
 async def prepare_email(
