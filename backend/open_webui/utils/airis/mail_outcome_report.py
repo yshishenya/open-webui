@@ -13,6 +13,8 @@ REASON_STATES = ('suppressed', 'expired', 'failed', 'unknown')
 
 
 class MailOutcome(BaseModel):
+    """Recorded jobs grouped by current type, template, status and reason."""
+
     type: str
     template_version: str
     status: str
@@ -24,13 +26,18 @@ class MailOutcome(BaseModel):
 
 
 class MailReasonCount(BaseModel):
+    """Current reason count for suppressed, expired, failed or unknown jobs."""
+
     status: str
     reason: str | None
     jobs: int
 
 
 class MailTypeSummary(BaseModel):
-    """Zero observations never establish a historical denominator or receipt coverage."""
+    """Cumulative recorded jobs, including waiting and terminal states, and distinct accounts.
+
+    Zero observations never establish a historical denominator or receipt coverage.
+    """
 
     type: str
     state_snapshot_at: int
