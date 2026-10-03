@@ -52,7 +52,7 @@ def lint(paths: list[str], *, cwd: Path, config: Path) -> list[Diagnostic]:
     if not paths:
         return []
     result = subprocess.run(
-        ['ruff', 'check', '--config', str(config), '--output-format=json', *paths],
+        ['ruff', 'check', '--no-cache', '--config', str(config), '--output-format=json', *paths],
         cwd=cwd,
         capture_output=True,
         text=True,

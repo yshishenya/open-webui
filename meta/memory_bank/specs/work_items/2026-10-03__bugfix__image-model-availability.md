@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/bugfix/image-model-availability
-- SDD Spec: meta/sdd/specs/active/airis-image-model-availability-2026-10-03-0432.json
+- SDD Spec: meta/sdd/specs/active/airis-image-model-availability-2026-10-03-432.json
 - Created: 2026-10-03
 - Updated: 2026-10-03
 
