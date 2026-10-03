@@ -1,6 +1,6 @@
 # AIRIS durable mail eligibility journal storage
 
-Type: feature. Status: active; implementation and local verification complete; release pending.
+Type: feature. Status: done; production storage accepted on 2026-10-03.
 Dependency: shared send eligibility helper accepted in production before this work.
 
 ## Result and release boundaries
@@ -38,15 +38,15 @@ Store a declared population, real observation start, complete/incomplete runs, i
 - [x] Stale timestamp, mismatched immutable window and wrong-account/type/scenario job association rejected.
 - [x] User deletion, job deletion and payment deletion do not resurrect identity; orphan links detectable.
 - [x] Artificial journal failures change0Payment/Ledger rows and invoke0SMTP/enqueue.
-- [ ] Full backend + focused PostgreSQL + changed-file Ruff/Black + exact-source CI pass.
-- [ ] Frozen image proof; backup; guarded production migration; preserved dispatch switches and neighboring containers.
-- [ ] Public work item/SDD/branch log and private release evidence complete; final plan remains189/244 until full report requirements pass.
+- [x] Full backend + focused PostgreSQL + changed-file Ruff/Black + exact-source CI pass.
+- [x] Frozen image proof; backup; guarded production migration; preserved dispatch switches and neighboring containers.
+- [x] Public work item/SDD/branch log and private release evidence complete; final plan remains189/244 until full report requirements pass.
 
 ## Compatibility
 
 Reuse runtime SQLAlchemy2.0.50 and project dialect_insert with ORM constraints, per-task AsyncSession. Stable upstream2.1.3 (2026-10-02), maintenance2.0.54 (2026-09-15) checked2026-10-03; no new dependency. Existing compatibility exception is retained because this block extends the validated runtime and does not replace the database library. Upgrade path: separate locked-runtime rebuild, full migration/payment/concurrency verification and guarded release. Official SQLAlchemy2.0 asyncio, PostgreSQL/SQLite ON CONFLICT and release notes reread.
 
-SDD Spec: meta/sdd/specs/active/airis-mail-journal-storage-2026-10-03-001.json
+SDD Spec: meta/sdd/specs/completed/airis-mail-journal-storage-2026-10-03-001.json
 Branch: codex/feature/mail-journal-storage
 
 Upstream impact: none; fork-owned model and additive migration/test modules only. No API or frontend changes.
@@ -59,4 +59,16 @@ Upstream impact: none; fork-owned model and additive migration/test modules only
 - Canonical account keys and payment IDs are enforced; invented orphan scenarios and replacement of deleted delivery links are rejected.
 - Schema and persistence are separate modules below 500 lines. Transaction primitives retain cohesive lock/savepoint boundaries; the few longer functions deliberately keep atomic steps visible together.
 - Code review: no route/background job/transport hooks; no monetary DML; database constraints and caller transaction ownership checked.
-- Production and exact-source CI are still pending. No claim of continuously observed cohorts is made by a completed storage run.
+- Production and exact-source CI are accepted. No claim of continuously observed cohorts is made by a completed storage run.
+
+## Production acceptance
+
+PR203 merged into airis_b2c. Source `2be45ce8fb0d66179e7bdf2065b6d9800f3fcb31`; merge `02a5b84a3d0c9a630f0563d2e7b439161598344b`; all-file diff between source and merge is zero. All executed CI checks pass. Dependency review skipped; CodeRabbit review skipped because reviews are disabled for the base branch, so no independent review is claimed.
+
+Frozen image: `yshishenya/yshishenya:mail-journal-2be45ce8f-on-mail-policy-20261003`; registry digest `sha256:32d7aa33a7aaa3b779d073db52e8c1102fb31e9cf2396e200506d628bf6fc438`; linux/amd64, five layers. Only schema, storage and static migration files added; existing files/config unchanged. Frozen PostgreSQL acceptance: 160 passed. Candidate API: health200, anonymous report401, admin200/no-store and unavailable denominators remain null.
+
+Guarded production upgrade: q1c020261002 → o1j020261003. All 72 old table schemas match; five new tables are empty. Fingerprints of all36Payment,5707LedgerEntry and0EmailDelivery rows match before/after; read-only acceptance executed0DML. 5759frontend and483immutable backend hashes verified;14neighboring container IDs, ENV/mounts/ports/networks/command retained; health200/restarts0; free11118956KiB.
+
+Backup: `/opt/backups/airis/20261003T074402Z-mail-journal-2be45ce8f-on-mail-policy-20261003`. SHA256, tar and pg_restore checks passed; previous image retained as `airis:rollback-20261003T074402Z-mail-journal-2be45ce8f-on-mail-policy-20261003`. Older043601 backup was copied to the Mac, all12files checked by size/SHA256 with tar/dump readability, then its server copy removed. Backups055208/063958 preserved.
+
+Queue/releasesA/B remain off; dry-run/pilot-only remain on; pilot IDs empty. No observation scope/run/member/history was created in production. Plan08.09/09.07 and189/244 overall remain unchanged until full observer/queue/report acceptance. Guide: `meta/memory_bank/guides/email_observation_journal.md`.
