@@ -1,0 +1,8 @@
+- [x] **[DOCS][CHAT]** Record accepted Collapsible production release
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__collapsible-attributes.md`
+  - Owner: Codex
+  - Branch: `codex/docs/collapsible-production-acceptance`
+  - Done: 2026-10-05
+  - Summary: Record exact PR/source/image identity and accepted production disclosure behavior; retain the full-project diagnostic debt and external pilot limits.
+  - Tests: Source CI10unique success/1skip;547frontend/25mounted/16compiled full paths/4browser proofs;production file/config/health checks. Documentation-only final change;SDD3/3 closed.
+  - Risks: No executable changes;the full onboarding goal remains active.
