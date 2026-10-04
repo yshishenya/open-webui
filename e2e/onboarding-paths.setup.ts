@@ -65,6 +65,26 @@ export default async function setup(config: FullConfig): Promise<void> {
 			});
 			expect(created.ok()).toBe(true);
 		}
+		const constructorModel = await client.get('/api/v1/models/base', { headers });
+		expect(constructorModel.ok()).toBe(true);
+		if (
+			!((await constructorModel.json()) as { id: string }[]).some(
+				(model) => model.id === 'airis-constructor-form'
+			)
+		) {
+			const created = await client.post('/api/v1/models/create', {
+				headers,
+				data: {
+					id: 'airis-constructor-form',
+					base_model_id: 'gpt-5.6-luna',
+					name: 'Constructor form fixture',
+					meta: {},
+					params: { system: '{{ chat.variables.constructor | text:required }}' },
+					access_grants: [{ principal_type: 'user', principal_id: '*', permission: 'read' }]
+				}
+			});
+			expect(created.ok()).toBe(true);
+		}
 	} finally {
 		await client.dispose();
 	}

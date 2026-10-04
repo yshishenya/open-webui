@@ -226,6 +226,56 @@ test('empty chat sidebar and embedded note chat fit their available width withou
 	expect(await facts(request, account)).toEqual({ successes: 0, usage: [], ledger: [] });
 });
 
+for (const context of ['ordinary', 'embedded']) {
+	test(`required constructor variable opens and retains an own value in ${context} chat`, async ({
+		page,
+		request,
+		account
+	}) => {
+		const providerBefore = (await state(request)).calls.length;
+		const headers = { Authorization: `Bearer ${account.token}` };
+		const settings = await request.post('/api/v1/users/user/settings/update', {
+			headers,
+			data: { ui: { models: ['airis-constructor-form'] } }
+		});
+		expect(settings.ok()).toBe(true);
+		await page.goto('/auth?form=1');
+		await signIn(page, account);
+		if (context === 'embedded') {
+			const created = await request.post('/api/v1/notes/create', {
+				headers,
+				data: { title: 'Local constructor form note' }
+			});
+			expect(created.ok()).toBe(true);
+			const note = (await created.json()) as { id: string };
+			await page.goto(`/notes/${note.id}`);
+			await page.getByRole('button', { name: 'Chat', exact: true }).click();
+			await expect(page.locator('#note-chat-container')).toBeVisible();
+		} else {
+			await page.goto('/?models=airis-constructor-form&submit=false');
+		}
+		const chat = context === 'embedded' ? page.locator('#note-chat-container') : page;
+		const variables = chat.getByRole('button', { name: 'Chat Variables', exact: true });
+		await variables.click();
+		const field = page.locator('#input-variable-0');
+		await expect(field).toBeVisible();
+		await expect(field).toHaveValue('');
+		await expect(field).toHaveAttribute('required', '');
+		await page.getByRole('button', { name: 'Save', exact: true }).click();
+		await expect(field).toBeVisible();
+		await expect(field).toHaveValue('');
+		await field.fill('Entered constructor value');
+		await page.getByRole('button', { name: 'Save', exact: true }).click();
+		await expect(field).toBeHidden();
+		await variables.click();
+		await expect(field).toHaveValue('Entered constructor value');
+		await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+		await expect(chat.getByRole('log').getByRole('listitem')).toHaveCount(0);
+		expect((await state(request)).calls.length).toBe(providerBefore);
+		expect(await facts(request, account)).toEqual({ successes: 0, usage: [], ledger: [] });
+	});
+}
+
 test('checkout → exact credit → visible history → one service email, replay gives zero duplicates', async ({
 	page,
 	request,
