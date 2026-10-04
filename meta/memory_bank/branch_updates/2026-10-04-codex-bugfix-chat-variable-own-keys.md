@@ -4,3 +4,4 @@
   - Branch: `codex/bugfix/chat-variable-own-keys`
   - Started: 2026-10-04
   - Summary: Reproduce constructor schema failure and inherited value bypass; fix the shared form path with existing ModelMeta types and verify source/candidate/runtime separately.
+  - Update 2026-10-04: 6 accepted-baseline regressions reproduced; 10 regression checks and all 490 frontend tests pass. Twelve type errors removed/zero added, all 1419 lint diagnostics unchanged. Production-configured candidate passes 16/16 full-path browser cases; SDD 3/3 completed. Source CI/merge and production rollout remain separate gates.

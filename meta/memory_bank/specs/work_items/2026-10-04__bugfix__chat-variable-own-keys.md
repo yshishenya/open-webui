@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: source and candidate validated; production pending
 - Owner: Codex
 - Branch: codex/bugfix/chat-variable-own-keys
-- SDD Spec: meta/sdd/specs/active/airis-chat-variable-own-keys-2026-10-04-001.json
+- SDD Spec: meta/sdd/specs/completed/airis-chat-variable-own-keys-2026-10-04-001.json
 - Created: 2026-10-04
 
 ## Context
@@ -15,11 +15,11 @@ The backend accepts constructor as a chat variable key. The frontend schema merg
 
 ## Goal / Acceptance Criteria
 
-- [ ] Regression checks fail on the accepted previous source for constructor fields and inherited values.
-- [ ] constructor fields merge without errors, require a real value and preserve explicit/default values.
-- [ ] Matching fields merge required flags; real shape conflicts still block sending; defaults false/0, empty values and missing models retain their behavior.
-- [ ] No new type/lint diagnostic; existing ModelMeta defines field types without any.
-- [ ] Relevant tests and full frontend suite pass; compiled/browser normal and embedded paths pass without model calls or user data changes.
+- [x] Regression checks fail on the accepted previous source for constructor fields and inherited values.
+- [x] constructor fields merge without errors, require a real value and preserve explicit/default values.
+- [x] Matching fields merge required flags; real shape conflicts still block sending; defaults false/0, empty values and missing models retain their behavior.
+- [x] No new type/lint diagnostic; existing ModelMeta defines field types without any.
+- [x] Relevant tests and full frontend suite pass; compiled/browser normal and embedded paths pass without model calls or user data changes.
 - [ ] Source accepted by exact-head CI, committed and pushed, then runtime candidate and production accepted separately.
 
 ## Scope and traced flow
@@ -46,3 +46,9 @@ An inherited property must never fill a required field or cause a false schema c
 - Added real compiled ordinary/embedded form scenarios using a disposable custom model. Empty required value must keep the form open, own value must survive reopening, and provider calls/successes/usage/ledger must remain unchanged.
 - Executable client/server AST matches the expected own-key runtime correction alone. This is a runtime fix, requiring a new candidate and production validation.
 - Evidence: private-artifacts/airis-chat-variable-own-keys-20261004/{baseline-own-keys-proof.json,frontend-tests.log,diagnostic-comparison.json,runtime-scope-proof.json}.
+
+### Compiled candidate
+
+Implementation source: fbca387589cc31d45a920954b9acaa645968a601. Final image: airis-chat-variable-candidate:fbca38758-r1. Production build flags: AIRIS_VITE_SOURCEMAP=false, APP_BUILD_HASH=the implementation SHA. All 4913 frontend files match the saved build; all 425 backend Python files, 27 base layers and image environment are preserved. Accepted compiled browser suite: 16/16 in Chromium desktop and Firefox 390x844. Required constructor values persist after reopening in ordinary and embedded chat; no model calls, successes, usage or ledger changes in these form scenarios. Existing guide, failed-provider and checkout/email replay paths also pass. SDD 3/3 completed and valid. Source CI/merge and production are separate final gates.
+
+Build diagnosis: production flags were restored after rejecting unpublished builds with exhausted heap, Docker memory termination or debug/source-map settings. The accepted production build exited 0 with a 4864 MiB Node heap while the disposable application fixture was stopped. No server or shared container was stopped for these builds.
