@@ -1,0 +1,146 @@
+{
+	"spec_id": "airis-input-variable-contracts-2026-10-04-001",
+	"title": "AIRIS input variable contracts",
+	"generated": "2026-10-04T03:20:35.475347Z",
+	"last_updated": "2026-10-04T04:11:32.325810Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__input-variable-contracts.md",
+		"status": "active",
+		"activated_date": "2026-10-04T03:21:46.283916Z",
+		"progress_percentage": 66,
+		"current_phase": "phase-1"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS input variable contracts",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Reproduce and fix shared variable form",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-04T03:45:02.157614Z",
+				"journaled_at": "2026-10-04T03:45:02.159913Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Validate and integrate exact source",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce checkbox, required select and scalar values",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-04T03:29:15.638535Z",
+				"needs_journaling": false,
+				"status_note": "Mounted original component: 3 failed/3 passed, zero harness errors; string false and required select reproduced. Three callers and backend schema/value validation traced.",
+				"journaled_at": "2026-10-04T03:29:15.639754Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Fix the shared typed form and verify all callers",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-04T03:45:02.157462Z",
+				"needs_journaling": false,
+				"status_note": "389 frontend/36 new cases/5 existing caller cases; 79 errors and 1 warning removed, 0 added; lint 1515 to1507, 0 added. Real component browser native validity, scalar save and reopening accepted, 0 page errors; map JSDoc only, 4 old map lint diagnostics preserved. Production/G14 pending.",
+				"journaled_at": "2026-10-04T03:45:02.158546Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Review exact-source checks and integrate",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-04T03:29:15.639749Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce checkbox, required select and scalar values",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Mounted original component: 3 failed/3 passed, zero harness errors; string false and required select reproduced. Three callers and backend schema/value validation traced.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-04T03:45:02.158541Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Fix the shared typed form and verify all callers",
+			"author": "claude-code",
+			"content": "Task task-1-2 marked as completed. \nNote: 389 frontend/36 new cases/5 existing caller cases; 79 errors and 1 warning removed, 0 added; lint 1515 to1507, 0 added. Real component browser native validity, scalar save and reopening accepted, 0 page errors; map JSDoc only, 4 old map lint diagnostics preserved. Production/G14 pending.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-04T03:45:02.159909Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Reproduce and fix shared variable form",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-04T04:11:32.325776Z",
+			"entry_type": "deviation",
+			"title": "Map validation extended after CI and delayed browser failure",
+			"author": "claude-code",
+			"content": "CI at 734bdd8 failed on four existing map diagnostics. Final map now skips empty fitBounds, reports bounds errors and has typed callback/paired markup. Delayed browser collection reproduced Leaflet1.9.4 zoom after remove twice; public zoomAnimation:false fixes shared cause.393 tests pass; final type/lint reports are rerunning. Earlier JSDoc-only/runtime-unchanged and immediate browser-zero-error claims are historical and superseded.",
+			"metadata": {}
+		}
+	]
+}

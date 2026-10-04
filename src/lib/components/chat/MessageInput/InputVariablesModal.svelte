@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { getContext, onMount, tick } from 'svelte';
-	import { models, config } from '$lib/stores';
-
-	import { toast } from 'svelte-sonner';
-	import { copyToClipboard } from '$lib/utils';
+	import { getContext, tick } from 'svelte';
+	import {
+		normalizeInputVariables,
+		getInputValue,
+		isInputChecked,
+		getMapLocation
+	} from '$lib/utils/airis/input_variables';
 
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
@@ -13,53 +15,46 @@
 	const i18n = getContext('i18n');
 
 	export let show = false;
-	export let variables = {};
+	export let variables: Record<string, Record<string, unknown> | null> = {};
 	export let title = $i18n.t('Input Variables');
 
-	export let onSave = (e) => {};
+	export let onSave: (values: Record<string, unknown>) => void = () => {};
 
 	let loading = true;
-	let variableValues = {};
+	let variableValues: Record<string, unknown> = {};
+	$: fields = normalizeInputVariables(variables);
 	let variablesKey = '';
 
-	const getVariableLabel = (variable) => variables[variable]?.label ?? variable;
-	const getVariablesKey = (value) => JSON.stringify(value ?? {});
+	const getVariableLabel = (variable: string): string => fields[variable]?.label ?? variable;
+	const getVariablesKey = (value: typeof variables): string => JSON.stringify(value ?? {});
 
-	const submitHandler = async () => {
+	const submitHandler = (): void => {
 		// Normalize Windows CRLF (\r\n) to LF (\n) for all string values
 		// Build a new object to avoid mutating the reactive variableValues proxy
-		const result = {};
-		for (const key of Object.keys(variableValues)) {
-			if (typeof variableValues[key] === 'string') {
-				result[key] = variableValues[key].replace(/\r\n/g, '\n');
-			} else {
-				result[key] = variableValues[key];
-			}
-		}
+		const result = Object.fromEntries(
+			Object.entries(variableValues).map(([key, value]) => [
+				key,
+				typeof value === 'string' ? value.replace(/\r\n/g, '\n') : value
+			])
+		);
 		onSave(result);
 		show = false;
 	};
 
-	const init = async () => {
+	const init = async (): Promise<void> => {
 		loading = true;
-		const newValues = {};
-		const keys = Object.keys(variables ?? {});
-		for (const key of keys) {
-			const variable = variables[key];
-			if (variable?.default !== undefined) {
-				newValues[key] = variable.default;
-			} else {
-				newValues[key] = '';
-			}
-		}
-		variableValues = newValues;
+		variableValues = Object.fromEntries(
+			Object.entries(fields).map(([key, variable]) => [
+				key,
+				variable.default !== undefined ? variable.default : ''
+			])
+		);
 		loading = false;
 
 		await tick();
 
 		const firstInputElement = document.getElementById('input-variable-0');
-		if (firstInputElement) {
-			console.log('Focusing first input element:', firstInputElement);
+		if (show && firstInputElement) {
 			firstInputElement.focus();
 		}
 	};
@@ -84,6 +79,7 @@
 				{title}
 			</div>
 			<button
+				aria-label={$i18n.t('Close')}
 				class="self-center rounded-lg p-1 text-gray-500 transition hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
 				on:click={() => {
 					show = false;
@@ -104,50 +100,53 @@
 					<div class="px-1">
 						{#if !loading}
 							<div class="flex flex-col gap-1">
-								{#each Object.keys(variables) as variable, idx}
-									{@const { type, ...variableAttributes } = variables[variable] ?? {}}
+								{#each Object.keys(fields) as variable, idx}
+									{@const { type, ...variableAttributes } = fields[variable] ?? {}}
 
 									<div class=" py-0.5 w-full justify-between">
 										<div class="flex w-full justify-between mb-1.5">
-											<div class=" self-center text-xs font-normal">
+											<label for="input-variable-{idx}" class=" self-center text-xs font-normal">
 												{getVariableLabel(variable)}
 
-												{#if variables[variable]?.required ?? false}
+												{#if fields[variable]?.required ?? false}
 													<span class="ml-1 text-gray-500">* {$i18n.t('required')}</span>
 												{/if}
-											</div>
+											</label>
 										</div>
 
 										<div class="flex mt-0.5 mb-0.5 space-x-2">
 											<div class=" flex-1">
-												{#if variables[variable]?.type === 'select'}
+												{#if type === 'select'}
 													<select
 														class="w-full rounded-lg py-2 px-4 text-sm dark:text-gray-300 dark:bg-gray-850 outline-hidden border border-gray-100/30 dark:border-gray-850/30"
 														bind:value={variableValues[variable]}
 														id="input-variable-{idx}"
+														required={fields[variable].required}
 													>
 														<option value="" disabled>
-															{variables[variable]?.placeholder ?? $i18n.t('Select an option')}
+															{fields[variable]?.placeholder ?? $i18n.t('Select an option')}
 														</option>
-														{#each variables[variable]?.options ?? [] as option}
+														{#each fields[variable]?.options ?? [] as option}
 															<option value={option}>
 																{option}
 															</option>
 														{/each}
 													</select>
-												{:else if variables[variable]?.type === 'checkbox'}
+												{:else if type === 'checkbox'}
 													<div class="flex items-center space-x-2">
 														<div class="relative flex justify-center items-center gap-2">
 															<input
 																type="checkbox"
-																bind:checked={variableValues[variable]}
+																checked={isInputChecked(variableValues[variable])}
+																on:change={(e) =>
+																	(variableValues[variable] = e.currentTarget.checked)}
 																class="size-3.5 rounded cursor-pointer border border-gray-200 dark:border-gray-700"
 																id="input-variable-{idx}"
 																{...variableAttributes}
 															/>
 
 															<label for="input-variable-{idx}" class="text-sm"
-																>{variables[variable]?.label ?? variable}</label
+																>{fields[variable]?.label ?? variable}</label
 															>
 														</div>
 
@@ -155,22 +154,23 @@
 															type="text"
 															class="flex-1 py-1 text-sm dark:text-gray-300 bg-transparent outline-hidden"
 															placeholder={$i18n.t('Enter value (true/false)')}
-															bind:value={variableValues[variable]}
+															value={getInputValue(variableValues[variable])}
+															on:input={(e) => (variableValues[variable] = e.currentTarget.value)}
 															autocomplete="off"
-															required={variables[variable]?.required ?? false}
+															required={fields[variable]?.required ?? false}
 														/>
 													</div>
-												{:else if variables[variable]?.type === 'color'}
+												{:else if type === 'color'}
 													<div class="flex items-center space-x-2">
 														<div class="relative size-6">
 															<input
 																type="color"
 																class="size-6 rounded cursor-pointer border border-gray-200 dark:border-gray-700"
-																value={variableValues[variable]}
+																value={getInputValue(variableValues[variable])}
 																id="input-variable-{idx}"
 																on:input={(e) => {
 																	// Convert the color value to uppercase immediately
-																	variableValues[variable] = e.target.value.toUpperCase();
+																	variableValues[variable] = e.currentTarget.value.toUpperCase();
 																}}
 																{...variableAttributes}
 															/>
@@ -180,72 +180,82 @@
 															type="text"
 															class="flex-1 py-2 text-sm dark:text-gray-300 bg-transparent outline-hidden"
 															placeholder={$i18n.t('Enter hex color (e.g. #FF0000)')}
-															bind:value={variableValues[variable]}
+															value={getInputValue(variableValues[variable])}
+															on:input={(e) => (variableValues[variable] = e.currentTarget.value)}
 															autocomplete="off"
-															required={variables[variable]?.required ?? false}
+															required={fields[variable]?.required ?? false}
 														/>
 													</div>
-												{:else if variables[variable]?.type === 'date'}
+												{:else if type === 'date'}
 													<input
 														type="date"
 														class="w-full rounded-lg py-2 px-4 text-sm dark:text-gray-300 dark:bg-gray-850 outline-hidden border border-gray-100/30 dark:border-gray-850/30 dark:scheme-dark"
-														placeholder={variables[variable]?.placeholder ?? ''}
-														bind:value={variableValues[variable]}
+														placeholder={fields[variable]?.placeholder ?? ''}
+														value={getInputValue(variableValues[variable])}
+														on:input={(e) => (variableValues[variable] = e.currentTarget.value)}
 														autocomplete="off"
 														id="input-variable-{idx}"
-														required={variables[variable]?.required ?? false}
 														{...variableAttributes}
 													/>
-												{:else if variables[variable]?.type === 'datetime-local'}
+												{:else if type === 'datetime-local'}
 													<input
 														type="datetime-local"
 														class="w-full rounded-lg py-2 px-4 text-sm dark:text-gray-300 dark:bg-gray-850 outline-hidden border border-gray-100/30 dark:border-gray-850/30 dark:scheme-dark"
-														placeholder={variables[variable]?.placeholder ?? ''}
-														bind:value={variableValues[variable]}
+														placeholder={fields[variable]?.placeholder ?? ''}
+														value={getInputValue(variableValues[variable])}
+														on:input={(e) => (variableValues[variable] = e.currentTarget.value)}
 														autocomplete="off"
 														id="input-variable-{idx}"
-														required={variables[variable]?.required ?? false}
 														{...variableAttributes}
 													/>
-												{:else if variables[variable]?.type === 'email'}
+												{:else if type === 'email'}
 													<input
 														type="email"
 														class="w-full rounded-lg py-2 px-4 text-sm dark:text-gray-300 dark:bg-gray-850 outline-hidden border border-gray-100/30 dark:border-gray-850/30"
-														placeholder={variables[variable]?.placeholder ?? ''}
-														bind:value={variableValues[variable]}
+														placeholder={fields[variable]?.placeholder ?? ''}
+														value={getInputValue(variableValues[variable])}
+														on:input={(e) => (variableValues[variable] = e.currentTarget.value)}
 														autocomplete="off"
 														id="input-variable-{idx}"
-														required={variables[variable]?.required ?? false}
 														{...variableAttributes}
 													/>
-												{:else if variables[variable]?.type === 'month'}
+												{:else if type === 'month'}
 													<input
 														type="month"
 														class="w-full rounded-lg py-2 px-4 text-sm dark:text-gray-300 dark:bg-gray-850 outline-hidden border border-gray-100/30 dark:border-gray-850/30 dark:scheme-dark"
-														placeholder={variables[variable]?.placeholder ?? ''}
-														bind:value={variableValues[variable]}
+														placeholder={fields[variable]?.placeholder ?? ''}
+														value={getInputValue(variableValues[variable])}
+														on:input={(e) => (variableValues[variable] = e.currentTarget.value)}
 														autocomplete="off"
 														id="input-variable-{idx}"
-														required={variables[variable]?.required ?? false}
 														{...variableAttributes}
 													/>
-												{:else if variables[variable]?.type === 'number'}
+												{:else if type === 'number'}
 													<input
 														type="number"
 														class="w-full rounded-lg py-2 px-4 text-sm dark:text-gray-300 dark:bg-gray-850 outline-hidden border border-gray-100/30 dark:border-gray-850/30"
-														placeholder={variables[variable]?.placeholder ?? ''}
-														bind:value={variableValues[variable]}
+														placeholder={fields[variable]?.placeholder ?? ''}
+														value={getInputValue(variableValues[variable])}
+														on:input={(e) =>
+															(variableValues[variable] =
+																e.currentTarget.value === ''
+																	? undefined
+																	: e.currentTarget.valueAsNumber)}
 														autocomplete="off"
 														id="input-variable-{idx}"
-														required={variables[variable]?.required ?? false}
 														{...variableAttributes}
 													/>
-												{:else if variables[variable]?.type === 'range'}
+												{:else if type === 'range'}
 													<div class="flex items-center space-x-2">
 														<div class="relative flex justify-center items-center gap-2 flex-1">
 															<input
 																type="range"
-																bind:value={variableValues[variable]}
+																value={getInputValue(variableValues[variable])}
+																on:input={(e) =>
+																	(variableValues[variable] =
+																		e.currentTarget.value === ''
+																			? undefined
+																			: e.currentTarget.valueAsNumber)}
 																class="w-full rounded-lg py-1 px-4 text-sm dark:text-gray-300 dark:bg-gray-850 outline-hidden border border-gray-100/30 dark:border-gray-850/30"
 																id="input-variable-{idx}"
 																{...variableAttributes}
@@ -256,9 +266,10 @@
 															type="text"
 															class=" py-1 text-sm dark:text-gray-300 bg-transparent outline-hidden text-right"
 															placeholder={$i18n.t('Enter value')}
-															bind:value={variableValues[variable]}
+															value={getInputValue(variableValues[variable])}
+															on:input={(e) => (variableValues[variable] = e.currentTarget.value)}
 															autocomplete="off"
-															required={variables[variable]?.required ?? false}
+															required={fields[variable]?.required ?? false}
 														/>
 													</div>
 
@@ -271,59 +282,56 @@
 														id="input-variable-{idx}"
 														required
 													/> -->
-												{:else if variables[variable]?.type === 'tel'}
+												{:else if type === 'tel'}
 													<input
 														type="tel"
 														class="w-full rounded-lg py-2 px-4 text-sm dark:text-gray-300 dark:bg-gray-850 outline-hidden border border-gray-100/30 dark:border-gray-850/30"
-														placeholder={variables[variable]?.placeholder ?? ''}
-														bind:value={variableValues[variable]}
+														placeholder={fields[variable]?.placeholder ?? ''}
+														value={getInputValue(variableValues[variable])}
+														on:input={(e) => (variableValues[variable] = e.currentTarget.value)}
 														autocomplete="off"
 														id="input-variable-{idx}"
-														required={variables[variable]?.required ?? false}
 														{...variableAttributes}
 													/>
-												{:else if variables[variable]?.type === 'text'}
+												{:else if type === 'text'}
 													<input
 														type="text"
 														class="w-full rounded-lg py-2 px-4 text-sm dark:text-gray-300 dark:bg-gray-850 outline-hidden border border-gray-100/30 dark:border-gray-850/30"
-														placeholder={variables[variable]?.placeholder ?? ''}
-														bind:value={variableValues[variable]}
+														placeholder={fields[variable]?.placeholder ?? ''}
+														value={getInputValue(variableValues[variable])}
+														on:input={(e) => (variableValues[variable] = e.currentTarget.value)}
 														autocomplete="off"
 														id="input-variable-{idx}"
-														required={variables[variable]?.required ?? false}
 														{...variableAttributes}
 													/>
-												{:else if variables[variable]?.type === 'time'}
+												{:else if type === 'time'}
 													<input
 														type="time"
 														class="w-full rounded-lg py-2 px-4 text-sm dark:text-gray-300 dark:bg-gray-850 outline-hidden border border-gray-100/30 dark:border-gray-850/30 dark:scheme-dark"
-														placeholder={variables[variable]?.placeholder ?? ''}
-														bind:value={variableValues[variable]}
+														placeholder={fields[variable]?.placeholder ?? ''}
+														value={getInputValue(variableValues[variable])}
+														on:input={(e) => (variableValues[variable] = e.currentTarget.value)}
 														autocomplete="off"
 														id="input-variable-{idx}"
-														required={variables[variable]?.required ?? false}
 														{...variableAttributes}
 													/>
-												{:else if variables[variable]?.type === 'url'}
+												{:else if type === 'url'}
 													<input
 														type="url"
 														class="w-full rounded-lg py-2 px-4 text-sm dark:text-gray-300 dark:bg-gray-850 outline-hidden border border-gray-100/30 dark:border-gray-850/30"
-														placeholder={variables[variable]?.placeholder ?? ''}
-														bind:value={variableValues[variable]}
+														placeholder={fields[variable]?.placeholder ?? ''}
+														value={getInputValue(variableValues[variable])}
+														on:input={(e) => (variableValues[variable] = e.currentTarget.value)}
 														autocomplete="off"
 														id="input-variable-{idx}"
-														required={variables[variable]?.required ?? false}
 														{...variableAttributes}
 													/>
-												{:else if variables[variable]?.type === 'map'}
+												{:else if type === 'map'}
 													<!-- EXPERIMENTAL INPUT TYPE, DO NOT USE IN PRODUCTION -->
 													<div class="flex flex-col items-center gap-1">
 														<MapSelector
-															setViewLocation={((variableValues[variable] ?? '').includes(',') ??
-															false)
-																? variableValues[variable].split(',')
-																: null}
-															onClick={(value) => {
+															setViewLocation={getMapLocation(variableValues[variable])}
+															onClick={(value: string) => {
 																variableValues[variable] = value;
 															}}
 														/>
@@ -332,20 +340,23 @@
 															type="text"
 															class=" w-full py-1 text-left text-sm dark:text-gray-300 bg-transparent outline-hidden"
 															placeholder={$i18n.t('Enter coordinates (e.g. 51.505, -0.09)')}
-															bind:value={variableValues[variable]}
+															value={getInputValue(variableValues[variable])}
+															on:input={(e) => (variableValues[variable] = e.currentTarget.value)}
 															autocomplete="off"
-															required={variables[variable]?.required ?? false}
+															id="input-variable-{idx}"
+															required={fields[variable]?.required ?? false}
 														/>
 													</div>
 												{:else}
 													<textarea
 														class="w-full rounded-lg py-2 px-4 text-sm dark:text-gray-300 dark:bg-gray-850 outline-hidden border border-gray-100/30 dark:border-gray-850/30"
-														placeholder={variables[variable]?.placeholder ?? ''}
-														bind:value={variableValues[variable]}
+														placeholder={fields[variable]?.placeholder ?? ''}
+														value={getInputValue(variableValues[variable])}
+														on:input={(e) => (variableValues[variable] = e.currentTarget.value)}
 														autocomplete="off"
 														id="input-variable-{idx}"
-														required={variables[variable]?.required ?? false}
-													/>
+														required={fields[variable]?.required ?? false}
+													></textarea>
 												{/if}
 											</div>
 										</div>
