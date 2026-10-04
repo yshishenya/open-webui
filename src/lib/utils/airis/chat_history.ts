@@ -12,7 +12,7 @@ export type ChatAttachment = Record<string, unknown> & {
 	collection_name?: string | null;
 	context?: string;
 	content?: string;
-	file?: string | Record<string, unknown>;
+	file?: string | (Record<string, unknown> & { data?: Record<string, unknown> | null });
 };
 
 /** Client history after the existing graph repair boundary. */
