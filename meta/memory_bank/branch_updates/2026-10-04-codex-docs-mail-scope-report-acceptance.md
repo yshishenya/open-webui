@@ -1,0 +1,8 @@
+- [x] **[DOCS][MAIL]** Record production scope-report acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__docs__mail-scope-report-production-acceptance.md`
+  - Owner: Codex
+  - Branch: `codex/docs/mail-scope-report-acceptance`
+  - Done: 2026-10-04
+  - Summary: PR213/source b3c377cfe/digest a744b6f64 accepted with885image backend and330PostgreSQL checks;9HTTPS checks and all money/consent/queue/journal fingerprints preserved. Close source SDD and document stop/rollback; voluntary pilot and broad frontend debt remain open.
+  - Tests: SDD completed4/4 and Markdown links clean; exact docs CI tracked independently. No runtime changes.
+  - Risks: Technical reporting is not a volunteer cohort or external delivery proof.

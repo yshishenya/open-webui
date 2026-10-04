@@ -1,4 +1,4 @@
-- [ ] **[FEATURE][MAIL]** Report declared observation population with explicit coverage
+- [x] **[FEATURE][MAIL]** Report declared observation population with explicit coverage
   - Spec: `meta/memory_bank/specs/work_items/2026-10-04__feature__mail-scope-report.md`
   - Owner: Codex
   - Branch: `codex/feature/mail-scope-report`
@@ -10,3 +10,5 @@
 - 2026-10-04: Implementation and47SQLite/47PostgreSQL scope-report cases passed; real concurrent snapshots stable, read-only/privacy/caps checked. Full source checks and image/CI/production acceptance are in progress. Final goal and189/244 remain open.
 
 - 2026-10-04: Full backend885passed/4PostgreSQL-onlyskips;205+75 isolated PostgreSQL passed, dedicated consent/success check still running. Frontend251/51passed; broad4419/177 type findings and1540ESLint unchanged. Five touched backend files Black/Ruff clean. Report release pending; transport off.
+
+- Done: 2026-10-04. PR213/sourceb3c377cfe/mergeac10f64a3/digesta744b6f64c0e accepted; exact885backend/330PostgreSQL,9liveHTTPS,4904/499filehashes and money/consent/queue/journal preservation verified. Technical reporting complete; voluntary pilot and overall goal remain active.

@@ -2,7 +2,7 @@
   "spec_id": "airis-mail-scope-report-2026-10-04-001",
   "title": "AIRIS mail scope report",
   "generated": "2026-10-03T23:17:33.949997Z",
-  "last_updated": "2026-10-04T00:02:22.183581Z",
+  "last_updated": "2026-10-04T00:25:52.761785Z",
   "metadata": {
     "template": "simple",
     "complexity": "medium",
@@ -10,23 +10,25 @@
     "estimated_hours": 8,
     "security_sensitive": true,
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__feature__mail-scope-report.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-03T23:19:58.967941Z",
-    "progress_percentage": 75,
-    "current_phase": "phase-2"
+    "progress_percentage": 100,
+    "current_phase": "phase-2",
+    "completed_date": "2026-10-04T00:25:52.761370Z",
+    "actual_hours": 1.093
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "AIRIS mail scope report",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
         "phase-2"
       ],
       "total_tasks": 4,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {}
     },
     "phase-1": {
@@ -49,15 +51,19 @@
     "phase-2": {
       "type": "phase",
       "title": "Verification and production acceptance",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-2-1",
         "task-2-2"
       ],
       "total_tasks": 2,
-      "completed_tasks": 1,
-      "metadata": {}
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T00:25:52.198462Z",
+        "journaled_at": "2026-10-04T00:25:52.201842Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -137,7 +143,7 @@
     "task-2-2": {
       "type": "task",
       "title": "Accept exact-source CI, image and guarded production reads",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -146,12 +152,17 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "estimated_hours": 2.0,
         "category": "implementation",
         "file_path": "meta/memory_bank/specs/work_items/2026-10-04__feature__mail-scope-report.md",
-        "started_at": "2026-10-04T00:02:22.182552Z"
+        "started_at": "2026-10-04T00:02:22.182552Z",
+        "completed_at": "2026-10-04T00:25:52.198275Z",
+        "needs_journaling": false,
+        "status_note": "PR213 merged; exact candidate885/4PG-onlyskips and330PostgreSQL passed; migration copy, guarded backup/release and readonly live HTTP/fingerprints accepted.",
+        "actual_hours": 0.392,
+        "journaled_at": "2026-10-04T00:25:52.200562Z"
       }
     }
   },
@@ -191,6 +202,24 @@
       "content": "Black/Ruff clean for all touched backend files, SDD valid and Markdown links clean. Frontend251passed/51files; existing4419errors/177warnings and1540ESLint remain open. Source checks do not prove exact image, production report or volunteer calendar windows; task2-2 pending.",
       "metadata": {},
       "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-04T00:25:52.200556Z",
+      "entry_type": "status_change",
+      "title": "Production scope report accepted",
+      "author": "Codex",
+      "content": "Sourceb3c377cfea569b5ef48ba11b3ab9b3917567aac2, mergeac10f64a3a1b6ad17cfec48feb01b769e794b7c5, digesta744b6f64c0e8c2a850e707497fc3995897fee5715948ab43fa06871025f37db. SourceCI11success/1dependency-review skip;4904frontend/499immutablebackend hashes,13neighbor IDs and ENV/mounts/commands preserved.78table schemas, financial/consent/queue and entire journal fingerprints unchanged. Two closed139member diagnostic groups and9HTTPS checks accepted,0DML from calculation and0SMTP/observer. Current frontend version90674f905 remains intentional. Real volunteer cohort/calendar/delivery/usefulness and broad quality debt remain outside this completed technical block; goalactive.",
+      "metadata": {},
+      "task_id": "task-2-2"
+    },
+    {
+      "timestamp": "2026-10-04T00:25:52.201838Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verification and production acceptance",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
     }
   ]
 }
