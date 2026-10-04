@@ -95,6 +95,9 @@ describe('AnalyticsModelModal report context', () => {
 				'old-group'
 			)
 		);
+		expect(document.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe(
+			'Использование модели: Same model'
+		);
 		await clickChats();
 		await vi.waitFor(() => expect(document.querySelectorAll('a[href^="/s/"]')).toHaveLength(50));
 		intersect?.();

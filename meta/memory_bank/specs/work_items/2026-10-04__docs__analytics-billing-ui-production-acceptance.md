@@ -32,7 +32,7 @@
 - Frontend 288 passed / 58 files. Frontend source is unchanged from that check; build repeated with frozen source SHA and Metrica 111392024.
 - Earlier exact-image migration rehearsal: 78 tables / 20722 rows unchanged, head o1a020261003. All migration bytes are unchanged in replacement; server hard migration gate remains mandatory.
 - Independent reporting, admin billing, user billing and release-base verification completed.
-- Frozen-source PR-fast 37165453796 and release-heavy 37165452029 passed. Required feature merge-medium 37166007708 passed. PostgreSQL reporting fix release-heavy and merge-medium remain pending.
+- Frozen-source PR-fast 37165453796 and release-heavy 37165452029 passed. Required feature merge-medium 37166007708 passed. PostgreSQL reporting fix release-heavy 37167839071 and merge-medium 37167950171 passed.
 
 ## Limitations
 

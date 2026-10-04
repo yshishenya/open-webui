@@ -30,6 +30,7 @@ type MockStores = {
 };
 
 type RenderProps = Partial<{
+	currency: string;
 	showFilters: boolean;
 	showLoadMore: boolean;
 	pageSize: number;
@@ -447,6 +448,105 @@ describe('UnifiedTimeline', () => {
 		expect(root.textContent).toContain(
 			'Refund confirmation and its reflection in the wallet are checked separately'
 		);
+	});
+	it('shows saved price references and the matching reserve without adding another charge', async () => {
+		mocks.getLedgerMock.mockResolvedValue([
+			{
+				id: 'hold',
+				type: 'hold',
+				amount_kopeks: -1000,
+				currency: 'RUB',
+				reference_id: 'request',
+				user_id: 'owner',
+				wallet_id: 'wallet',
+				created_at: 199
+			},
+			{
+				id: 'charge',
+				type: 'charge',
+				amount_kopeks: -300,
+				currency: 'RUB',
+				reference_id: 'request',
+				user_id: 'owner',
+				wallet_id: 'wallet',
+				created_at: 200
+			}
+		]);
+		mocks.getUsageEventsMock.mockResolvedValue([
+			{
+				id: 'usage',
+				request_id: 'request',
+				model_id: 'model',
+				modality: 'text',
+				user_id: 'owner',
+				wallet_id: 'wallet',
+				billing_source: 'wallet',
+				cost_charged_kopeks: 300,
+				created_at: 200,
+				pricing_version: 'old-version',
+				pricing_rate_card_id: 'old-rate',
+				pricing_rate_card_input_id: 'old-input',
+				pricing_rate_card_output_id: 'old-output'
+			}
+		]);
+		const root = renderTimeline();
+		await flushPromises();
+		expect(root.querySelectorAll('[data-testid="timeline-item"]')).toHaveLength(1);
+		expect(root.textContent).toContain('Historical rate is unavailable in these details');
+		expect(root.textContent).toContain('Saved pricing version: old-version');
+		expect(root.textContent).toContain('Saved rate reference: old-rate');
+		expect(root.textContent).toContain('Saved input rate reference: old-input');
+		expect(root.textContent).toContain('Saved output rate reference: old-output');
+		expect(root.textContent).toContain('Reserved before this reply:');
+		expect(root.textContent).toContain(
+			`Reserved before this reply: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'RUB' }).format(10)}`
+		);
+		expect(root.textContent).not.toContain('Reserve for this reply could not be confirmed');
+	});
+	it.each([
+		'missing',
+		'wrong-owner',
+		'wrong-wallet',
+		'wrong-currency',
+		'duplicate',
+		'invalid',
+		'later'
+	])('does not invent a reserve when the matching hold is %s', async (reason) => {
+		const hold = {
+			id: 'hold',
+			type: 'hold',
+			amount_kopeks: -1000,
+			currency: 'RUB',
+			reference_id: 'request',
+			user_id: 'owner',
+			wallet_id: 'wallet',
+			created_at: 199
+		};
+		if (reason === 'wrong-owner') hold.user_id = 'another-owner';
+		if (reason === 'wrong-wallet') hold.wallet_id = 'another-wallet';
+		if (reason === 'wrong-currency') hold.currency = 'USD';
+		if (reason === 'invalid') hold.amount_kopeks = -1.5;
+		if (reason === 'later') hold.created_at = 201;
+		mocks.getLedgerMock.mockResolvedValue(
+			reason === 'missing' ? [] : reason === 'duplicate' ? [hold, { ...hold, id: 'hold2' }] : [hold]
+		);
+		mocks.getUsageEventsMock.mockResolvedValue([
+			{
+				id: 'usage',
+				request_id: 'request',
+				model_id: 'model',
+				modality: 'text',
+				user_id: 'owner',
+				wallet_id: 'wallet',
+				billing_source: 'wallet',
+				cost_charged_kopeks: 300,
+				created_at: 200
+			}
+		]);
+		const root = renderTimeline({ currency: 'RUB' });
+		await flushPromises();
+		expect(root.textContent).toContain('Reserve for this reply could not be confirmed');
+		expect(root.textContent).not.toContain('Reserved before this reply:');
 	});
 	it('preserves a partial-load error when another source has valid operations', async () => {
 		mocks.getLedgerMock.mockRejectedValue(new Error('offline'));

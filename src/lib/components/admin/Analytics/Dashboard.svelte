@@ -63,6 +63,8 @@
 	let userOrderBy: UserSort = 'count';
 	let userDirection = -1;
 	const number = (value: number): string => value.toLocaleString('ru-RU');
+	const modelName = (id: string): string =>
+		modelStats.find((model) => model.model_id === id)?.name || id;
 	const modelColumns: Array<{ key: ModelSort; label: string }> = [
 		{ key: 'name', label: 'Модель' },
 		{ key: 'count', label: 'Ответы' },
@@ -293,12 +295,22 @@
 					<summary class="cursor-pointer text-sm">Значения графика</summary>
 					<div class="mt-3 max-h-72 overflow-auto">
 						<table class="w-full text-left text-sm">
+							<caption class="sr-only">Сохранённые ответы по датам и моделям</caption>
 							<thead
-								><tr><th class="p-2">Дата UTC</th><th class="p-2">Ответы всех моделей</th></tr
+								><tr
+									><th scope="col" class="p-2">Дата UTC</th><th scope="col" class="p-2">Модель</th
+									><th scope="col" class="p-2">Сохранённые ответы</th></tr
 								></thead
 							><tbody
-								>{#each dailyStats as row}<tr
-										><td class="p-2">{row.date}</td><td class="p-2 tabular-nums"
+								>{#each dailyStats as row}
+									{#each Object.entries(row.models).sort( ([a], [b]) => modelName(a).localeCompare(modelName(b)) ) as [model, count]}<tr
+										>
+											<td class="p-2">{row.date}</td><td class="p-2 break-words"
+												>{modelName(model)}</td
+											><td class="p-2 tabular-nums">{number(count)}</td>
+										</tr>{/each}<tr
+										><td class="p-2">{row.date}</td><td class="p-2 tabular-nums">Все модели</td><td
+											class="p-2 tabular-nums"
 											>{number(
 												Object.values(row.models).reduce((sum, count) => sum + count, 0)
 											)}</td

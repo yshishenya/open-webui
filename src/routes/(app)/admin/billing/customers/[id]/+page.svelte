@@ -50,6 +50,9 @@
 		? ($route.url.searchParams.get('tab') as Tab)
 		: 'payments';
 	let page = moneyPage($route.url.searchParams.get('page'));
+	let paymentId = $route.url.searchParams.get('payment_id') || '';
+	let referenceId = $route.url.searchParams.get('reference_id') || '';
+	let relatedContext = `${paymentId}|${referenceId}`;
 	let total = 0;
 	let totalPages = 1;
 	let request = 0;
@@ -83,12 +86,18 @@
 		const [profile, history] = await Promise.allSettled([
 			getBillingReportingCustomer(localStorage.token, selectedCustomer, { ...range, limit: 1 }),
 			selected === 'payments'
-				? getBillingReportingPayments(localStorage.token, filters)
+				? getBillingReportingPayments(localStorage.token, {
+						...filters,
+						payment_id: paymentId || undefined
+					})
 				: selected === 'refunds'
 					? getBillingReportingRefunds(localStorage.token, filters)
 					: selected === 'usage'
 						? getBillingReportingUsage(localStorage.token, filters)
-						: getBillingReportingLedger(localStorage.token, filters)
+						: getBillingReportingLedger(localStorage.token, {
+								...filters,
+								reference_id: referenceId || undefined
+							})
 		]);
 		if (id !== request || selectedCustomer !== String($route.params.id || '')) return;
 		if (profile.status === 'fulfilled') {
@@ -114,18 +123,32 @@
 			error = 'Failed to load customer history';
 		}
 		loading = false;
-		await goto(`?${moneyQuery(applied, { back, tab, page })}`, {
-			replaceState: true,
-			noScroll: true,
-			keepFocus: true
-		});
+		await goto(
+			`?${moneyQuery(applied, { back, tab, page, payment_id: paymentId, reference_id: referenceId })}`,
+			{
+				replaceState: true,
+				noScroll: true,
+				keepFocus: true
+			}
+		);
 	};
 	const select = (next: Tab): void => {
 		tab = next;
+		paymentId = '';
+		referenceId = '';
+		relatedContext = '|';
 		page = 1;
 		payments = [];
 		refunds = [];
 		rows = [];
+		void load();
+	};
+	const showRelated = (next: 'payments' | 'ledger', id: string): void => {
+		tab = next;
+		paymentId = next === 'payments' ? id : '';
+		referenceId = next === 'ledger' ? id : '';
+		relatedContext = `${paymentId}|${referenceId}`;
+		page = 1;
 		void load();
 	};
 	onMount(async () => {
@@ -136,8 +159,13 @@
 		mounted = true;
 		await load();
 	});
-	$: if (mounted && String($route.params.id || '') !== customerId) {
-		customerId = String($route.params.id || '');
+	const routeContextChanged = (url: URL, id: string): boolean =>
+		id !== customerId ||
+		`${url.searchParams.get('payment_id') || ''}|${url.searchParams.get('reference_id') || ''}` !==
+			relatedContext;
+	const syncRoute = (url: URL, id: string): void => {
+		if (!routeContextChanged(url, id)) return;
+		customerId = id;
 		detail = null;
 		detailError = '';
 		payments = [];
@@ -145,16 +173,18 @@
 		rows = [];
 		total = 0;
 		totalPages = 1;
-		draft = moneyFilters($route.url);
+		draft = moneyFilters(url);
 		applied = { ...draft };
-		page = moneyPage($route.url.searchParams.get('page'));
-		tab = ['payments', 'refunds', 'usage', 'ledger'].includes(
-			$route.url.searchParams.get('tab') || ''
-		)
-			? ($route.url.searchParams.get('tab') as Tab)
+		page = moneyPage(url.searchParams.get('page'));
+		paymentId = url.searchParams.get('payment_id') || '';
+		referenceId = url.searchParams.get('reference_id') || '';
+		relatedContext = `${paymentId}|${referenceId}`;
+		tab = ['payments', 'refunds', 'usage', 'ledger'].includes(url.searchParams.get('tab') || '')
+			? (url.searchParams.get('tab') as Tab)
 			: 'payments';
 		void load();
-	}
+	};
+	$: if (mounted) syncRoute($route.url, String($route.params.id || ''));
 </script>
 
 <svelte:head><title>{$i18n.t('Customer money')} • {$WEBUI_NAME}</title></svelte:head>
@@ -253,6 +283,16 @@
 			</dl>
 		</details>{/if}
 	<h2 class="mt-6 mb-3 font-medium">{$i18n.t('Customer operations')}</h2>
+	{#if (tab === 'payments' && paymentId) || (tab === 'ledger' && referenceId)}<p
+			class="mb-3 text-sm text-gray-500"
+		>
+			{$i18n.t(
+				'Related records are shown across all dates; financial totals keep the selected period.'
+			)}
+			<button type="button" class="min-h-11 ml-2 underline" on:click={() => select(tab)}
+				>{$i18n.t('Show all customer operations')}</button
+			>
+		</p>{/if}
 	<div class="mb-4 flex flex-wrap gap-2">
 		{#each [['payments', 'Payments'], ['refunds', 'Refunds'], ['usage', 'Usage charged'], ['ledger', 'Technical wallet journal']] as item}<button
 				type="button"
@@ -270,6 +310,8 @@
 		currency={applied.currency}
 		{loading}
 		error={Boolean(error)}
+		onPayment={(_id, id) => showRelated('payments', id)}
+		onUsageLedger={(_id, id) => showRelated('ledger', id)}
 	/>
 	<ReportingPagination
 		{page}

@@ -111,10 +111,13 @@ class BillingReportingService:
         credit_status: str | None = None,
         older_than: int | None = None,
         is_test: bool | None = None,
+        payment_id: str | None = None,
     ) -> tuple[list[dict[str, object]], int]:
+        if payment_id and not user_id:
+            raise ValueError('Related payment requires a customer')
         query = payment_query(
-            from_ts=from_ts,
-            to_ts=to_ts,
+            from_ts=0 if payment_id else from_ts,
+            to_ts=int(time.time()) + 1 if payment_id else to_ts,
             currency=currency,
             user_id=user_id,
             status=status,
@@ -123,11 +126,16 @@ class BillingReportingService:
             older_than=older_than,
             is_test=is_test,
         )
+        if payment_id:
+            query = query.where(query.selected_columns.id == payment_id)
         total = int((await self.session.execute(select(func.count()).select_from(query.subquery()))).scalar_one())
         rows = (
             (
                 await self.session.execute(
-                    query.order_by(query.selected_columns.processed_at.desc(), query.selected_columns.id.desc())
+                    query.order_by(
+                        query.selected_columns.processed_at.desc(),
+                        query.selected_columns.id.desc(),
+                    )
                     .offset((page - 1) * page_size)
                     .limit(page_size)
                 )
@@ -489,8 +497,8 @@ class BillingReportingService:
         table = statement.subquery()
         total = int((await self.session.execute(select(func.count()).select_from(table))).scalar_one())
         key = {
-            'paid': 'paid_kopeks',
-            'spent': 'spent_kopeks',
+            'paid': 'period_paid_kopeks',
+            'spent': 'period_spent_kopeks',
             'balance': 'balance_topup_kopeks',
             'last_payment': 'last_payment_at',
             'last_usage': 'last_usage_at',
@@ -611,15 +619,27 @@ class BillingReportingService:
         }
 
     async def ledger_rows(
-        self, *, from_ts: int, to_ts: int, currency: str, user_id: str | None, limit: int, offset: int
+        self,
+        *,
+        from_ts: int,
+        to_ts: int,
+        currency: str,
+        user_id: str | None,
+        limit: int,
+        offset: int,
+        reference_id: str | None = None,
     ) -> tuple[list[dict[str, object]], int]:
+        if reference_id and not user_id:
+            raise ValueError('Related wallet records require a customer')
         filters = [
-            LedgerEntry.created_at >= from_ts,
-            LedgerEntry.created_at < to_ts,
+            LedgerEntry.created_at >= (0 if reference_id else from_ts),
+            LedgerEntry.created_at < (int(time.time()) + 1 if reference_id else to_ts),
             LedgerEntry.currency == currency,
         ]
         if user_id:
             filters.append(LedgerEntry.user_id == user_id)
+        if reference_id:
+            filters.append(LedgerEntry.reference_id == reference_id)
         stmt = (
             select(LedgerEntry, User.name, User.email)
             .outerjoin(User, User.id == LedgerEntry.user_id)

@@ -284,6 +284,14 @@
 		{loading}
 		error={Boolean(error)}
 		onCustomer={(id) => goto(customerHref(id, applied, currentUrl()))}
+		onPayment={(id, paymentId) =>
+			goto(
+				`${customerHref(id, applied, currentUrl())}&tab=payments&payment_id=${encodeURIComponent(paymentId)}`
+			)}
+		onUsageLedger={(id, requestId) =>
+			goto(
+				`${customerHref(id, applied, currentUrl())}&tab=ledger&reference_id=${encodeURIComponent(requestId)}`
+			)}
 	/>
 	<ReportingPagination
 		{page}

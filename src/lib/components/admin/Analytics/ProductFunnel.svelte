@@ -7,7 +7,8 @@
 		getFunnelReport,
 		reportDateRange,
 		transitionPercent,
-		type FunnelReport
+		type FunnelReport,
+		type FunnelSequence
 	} from '$lib/utils/airis/analyticsReport';
 	export let overview = false;
 	const initial = defaultReportDates();
@@ -104,26 +105,32 @@
 		void load(false);
 	});
 	$: sequence = report?.sequence;
-	$: steps = sequence
-		? [
-				{ label: 'Первый визит', count: sequence.mature_visitors, previous: null },
-				{
-					label: 'Регистрация после визита',
-					count: sequence.mature_registered,
-					previous: sequence.mature_visitors
-				},
-				{
-					label: 'Первый ответ после регистрации',
-					count: sequence.mature_responded,
-					previous: sequence.mature_registered
-				},
-				{
-					label: 'Первое пополнение после ответа',
-					count: sequence.mature_paid_after_response,
-					previous: sequence.mature_responded
-				}
-			]
-		: [];
+	const sequenceSteps = (
+		sequence: FunnelSequence
+	): Array<{ label: string; count: number; previous: number | null }> => [
+		{ label: 'Первый визит', count: sequence.mature_visitors, previous: null },
+		{
+			label: 'Регистрация после визита',
+			count: sequence.mature_registered,
+			previous: sequence.mature_visitors
+		},
+		{
+			label: 'Первый ответ после регистрации',
+			count: sequence.mature_responded,
+			previous: sequence.mature_registered
+		},
+		{
+			label: 'Первое пополнение после ответа',
+			count: sequence.mature_paid_after_response,
+			previous: sequence.mature_responded
+		}
+	];
+	$: steps = sequence ? sequenceSteps(sequence) : [];
+	$: failedDeliveries =
+		report?.delivery.reduce(
+			(count, item) => count + (item.state === 'failed' ? item.count : 0),
+			0
+		) ?? 0;
 </script>
 
 <section
@@ -251,7 +258,8 @@
 							></progress>{#if step.previous !== null}<p
 									class="mt-1 text-xs text-gray-600 dark:text-gray-300"
 								>
-									{percent(transitionPercent(step.count, step.previous))} от предыдущего шага
+									{percent(transitionPercent(step.count, step.previous))} от предыдущего шага · Следующий
+									шаг не наблюдается: {number(step.previous - step.count)}
 								</p>{/if}
 						</div>
 					{/each}
@@ -313,6 +321,25 @@
 						href={link('/admin/billing')}>Посмотреть деньги и проверить оплаты</a
 					>
 				</section>{/if}
+			{#if overview && (failedDeliveries > 0 || report.sequence.mature_incomplete_paid > 0)}<section
+					class="space-y-2 rounded-xl border border-amber-300 p-4 dark:border-amber-800"
+				>
+					<h2 class="font-medium">Требует внимания</h2>
+					{#if report.sequence.mature_incomplete_paid > 0}<p class="text-sm">
+							У оплативших неполный порядок наблюдаемых событий: {number(
+								report.sequence.mature_incomplete_paid
+							)}.
+							<a class="underline" href={link('/admin/analytics/funnel')}
+								>Посмотреть пути к оплате</a
+							>
+						</p>{/if}
+					{#if failedDeliveries > 0}<p class="text-sm">
+							Не удалось отправить событий во внешнюю аналитику: {number(failedDeliveries)} за всё время.
+							<a class="underline" href={`${link('/admin/analytics/funnel')}#data-quality`}
+								>Проверить отправку</a
+							>
+						</p>{/if}
+				</section>{/if}
 		</div>
 		{#if !overview}<section>
 				<h2 class="mb-3 text-lg font-medium">
@@ -350,6 +377,49 @@
 									Мало наблюдений
 								</p>{/if}
 							<details class="mt-3 text-sm">
+								<summary class="cursor-pointer"
+									>{applied.group === 'utm_source' ? 'Путь источника' : 'Путь группы'}</summary
+								>
+								{#if row.sequence}<div class="mt-3 space-y-3">
+										<p class="text-xs text-gray-600 dark:text-gray-300">
+											Завершённые наблюдения: {number(row.sequence.mature_visitors)}. Порядок
+											событий проверен.
+										</p>
+										{#each sequenceSteps(row.sequence) as step}<div>
+												<div class="flex justify-between gap-3">
+													<span>{step.label}</span><strong class="shrink-0 tabular-nums"
+														>{number(step.count)}</strong
+													>
+												</div>
+												{#if step.previous !== null}<p
+														class="mt-1 text-xs text-gray-600 dark:text-gray-300"
+													>
+														{percent(transitionPercent(step.count, step.previous))} от предыдущего шага
+														· Следующий шаг не наблюдается: {number(step.previous - step.count)}
+													</p>{/if}
+											</div>{/each}
+										<p>
+											Пополнили до первого ответа: <strong
+												>{number(row.sequence.mature_paid_before_response)}</strong
+											>
+										</p>
+										<p>
+											Пополнили, но ответ не наблюдается: <strong
+												>{number(row.sequence.mature_paid_without_observed_response)}</strong
+											>
+										</p>
+										{#if row.sequence.mature_incomplete_paid > 0}<p>
+												Оплатили с неполным порядком событий: <strong
+													>{number(row.sequence.mature_incomplete_paid)}</strong
+												>
+											</p>{/if}
+										<p class="text-xs text-gray-600 dark:text-gray-300">
+											Эти оплаты включены в общий результат. Отсутствие события не доказывает, что
+											человек не совершил действие.
+										</p>
+									</div>{:else}<p class="mt-2">Последовательность этой группы не загружена.</p>{/if}
+							</details>
+							<details class="mt-3 text-sm">
 								<summary class="cursor-pointer">Повторная оплата и время</summary>
 								<p class="mt-2">Повторно пополнили: {number(row.repeated)}</p>
 								<p>
@@ -361,7 +431,11 @@
 						</article>{/each}
 				</div>
 			</section>{/if}
-		<details class="border-t border-gray-200 pt-4 text-sm dark:border-gray-800">
+		<details
+			id="data-quality"
+			open={$page.url.hash === '#data-quality'}
+			class="border-t border-gray-200 pt-4 text-sm dark:border-gray-800"
+		>
 			<summary class="cursor-pointer font-medium">Как считаем и что не видно</summary>
 			<div class="mt-3 space-y-2 text-gray-600 dark:text-gray-300">
 				<p>
@@ -382,7 +456,7 @@
 					Оплата может случиться после последней даты первого визита — в пределах выбранных {applied.days}
 					дней. Источник «Не определён» не означает прямой переход.
 				</p>
-				<details>
+				<details open={$page.url.hash === '#data-quality'}>
 					<summary class="cursor-pointer">Качество данных за всё время</summary>
 					<p class="mt-2">
 						Посетителей и устройств с разрешённой аналитикой сейчас: {number(

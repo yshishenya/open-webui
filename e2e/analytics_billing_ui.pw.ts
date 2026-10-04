@@ -198,6 +198,15 @@ test('model detail inherits dates and group; keyboard sorting and detail opening
 	expect(detail.searchParams.get('end_date')).toBe(
 		String(Date.parse('2026-10-01T00:00:00Z') / 1000)
 	);
+	const dialog = page.getByRole('dialog', { name: 'Использование модели: demo' });
+	await expect(dialog).toBeVisible();
+	for (const key of ['Tab', 'Shift+Tab', 'Tab']) {
+		await page.keyboard.press(key);
+		expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+	}
+	await page.keyboard.press('Escape');
+	await expect(dialog).not.toBeVisible();
+	await expect(page.getByRole('button', { name: 'demo', exact: true })).toBeFocused();
 });
 
 test('money cards open the matching credited payments and refunds for the same dates', async ({
@@ -208,6 +217,8 @@ test('money cards open the matching credited payments and refunds for the same d
 		route.fulfill({
 			json: {
 				currency: 'RUB',
+				from: Date.parse('2026-09-01T18:00:00Z') / 1000,
+				to: Date.parse('2026-09-03T01:00:00Z') / 1000,
 				as_of: 1791072000,
 				metrics: {
 					successful_payments_kopeks: 100050,
@@ -219,7 +230,9 @@ test('money cards open the matching credited payments and refunds for the same d
 					included_balance_kopeks: 0
 				},
 				warnings: {},
-				series: [],
+				series: [
+					{ date: '2026-09-01', paid_kopeks: 100050, refund_kopeks: 19900, usage_kopeks: 1234 }
+				],
 				definitions: {}
 			}
 		})
@@ -240,6 +253,14 @@ test('money cards open the matching credited payments and refunds for the same d
 		});
 	});
 	await page.goto(`/admin/billing${dates}`);
+	await expect(page.getByRole('img', { name: 'Пополнения и возвраты по дням' })).toBeVisible();
+	const moneyChart = page.getByRole('img', { name: 'Пополнения и возвраты по дням' });
+	// Partial UTC days and a missing day must still produce all three calendar points.
+	expect((await moneyChart.locator('path').first().getAttribute('d'))?.split('L')).toHaveLength(3);
+	await moneyChart.hover({ position: { x: 5, y: 50 } });
+	await expect(moneyChart.locator('..')).toContainText('1');
+	await expect(moneyChart.locator('..')).toContainText('₽');
+	await expect(moneyChart.locator('..')).not.toContainText('%');
 	await page.getByRole('link').filter({ hasText: 'Зачисленные пополнения' }).click();
 	await expect.poll(() => queries.length).toBeGreaterThan(0);
 	const url = queries.at(-1)!;
@@ -614,6 +635,64 @@ for (const width of [360, 1280])
 		}
 	});
 
+test('page template permits browser zoom', async ({ page }) => {
+	await setup(page);
+	await page.goto('/billing/balance');
+	await expect(page.locator('meta[name=viewport]')).not.toHaveAttribute(
+		'content',
+		/maximum-scale=1(?:,|$)|user-scalable=no/
+	);
+});
+
+for (const width of [390, 1280])
+	test(`all report and billing pages support 200% text at ${width}px`, async ({ page }) => {
+		test.setTimeout(120000);
+		await populatedPages(page);
+		await page.setViewportSize({ width, height: 900 });
+		await page.route('**/api/v1/analytics/funnel-report?*', (route) =>
+			route.fulfill({ json: funnel })
+		);
+		for (const path of [
+			'/admin/analytics',
+			'/admin/analytics/funnel',
+			'/admin/analytics/retention',
+			'/admin/analytics/models',
+			'/admin/analytics/mail',
+			'/admin/billing',
+			'/admin/billing/customers',
+			'/admin/billing/customers/acceptance-customer',
+			'/admin/billing/transactions',
+			'/admin/billing/models',
+			'/admin/billing/lead-magnet',
+			'/admin/billing/plans',
+			'/admin/billing/plans/new',
+			'/admin/billing/plans/acceptance-plan/edit',
+			'/admin/billing/plans/acceptance-plan/subscribers',
+			'/admin/billing/plans/acceptance-plan/analytics',
+			'/billing/balance',
+			'/billing/history',
+			'/billing/settings',
+			'/billing/cost',
+			'/pricing'
+		]) {
+			await page.goto(path);
+			await expect(page.getByRole('heading').first(), path).toBeVisible();
+			await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+			await expect
+				.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).fontSize))
+				.toBe('32px');
+			await expect
+				.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), {
+					message: path
+				})
+				.toBe(true);
+			await page.screenshot({
+				path: `artifacts/analytics-ui/text-200-${width}-${path.replaceAll('/', '_')}.png`,
+				fullPage: true
+			});
+		}
+	});
+
 test('populated payment, refund and usage records become labelled mobile cards with details', async ({
 	page
 }) => {
@@ -641,4 +720,87 @@ test('populated payment, refund and usage records become labelled mobile cards w
 			fullPage: true
 		});
 	}
+});
+
+// Final administrative acceptance: use the exact local image with safe GET fixtures only.
+for (const width of [360, 390, 768, 1280])
+	for (const theme of ['light', 'dark'])
+		test(`remaining model usage and subscription overview pages at ${width}px in ${theme}`, async ({
+			page
+		}) => {
+			await populatedPages(page);
+			await page.setViewportSize({ width, height: 900 });
+			await page.addInitScript((value) => localStorage.setItem('theme', value), theme);
+			await page.route('**/api/v1/analytics/**', (route) => {
+				const path = new URL(route.request().url()).pathname;
+				return route.fulfill({
+					json: path.endsWith('/summary')
+						? { total_messages: 3, total_chats: 2, total_models: 1, total_users: 1 }
+						: path.endsWith('/models')
+							? {
+									models: [
+										{ model_id: 'fixture-model', count: 3, unique_users: 1, unique_chats: 2 }
+									]
+								}
+							: path.endsWith('/users')
+								? { users: [] }
+								: path.endsWith('/daily')
+									? { data: [{ date: '2026-09-01', models: { 'fixture-model': 3 } }] }
+									: path.endsWith('/tokens')
+										? { models: [], total_tokens: 0 }
+										: { history: [], tags: [] }
+				});
+			});
+			for (const path of [
+				'/admin/analytics/models' + dates,
+				'/admin/billing/plans/acceptance-plan/analytics'
+			]) {
+				await page.goto(path);
+				await expect(page.getByRole('heading').first(), path).toBeVisible();
+				await expect(page.getByRole('alert'), path).toHaveCount(0);
+				if (path.includes('/plans/')) {
+					await expect(page.getByText('Проверочная подписка', { exact: true })).toBeVisible();
+					await expect(
+						page.getByText('История дохода пока недоступна', { exact: true })
+					).toBeVisible();
+				} else await expect(page.getByTestId('model-usage')).toContainText('Сохранённых ответов');
+				await expect
+					.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+					.toBe(true);
+			}
+		});
+
+test('money records and model price modal support keyboard inspection without writes', async ({
+	page
+}) => {
+	await populatedPages(page);
+	await page.setViewportSize({ width: 1280, height: 900 });
+	const writes: string[] = [];
+	page.on('request', (request) => {
+		if (request.url().includes('/api/v1/admin/billing/') && request.method() !== 'GET')
+			writes.push(request.url());
+	});
+	await page.goto(
+		'/admin/billing/transactions?tab=payments&from_date=2026-10-02&to_date=2026-10-03'
+	);
+	const row = page.locator('table.reporting-records tbody tr').first();
+	await row.locator('summary').press('Enter');
+	await expect(row.locator('details')).toHaveAttribute('open', '');
+	await expect(row.locator('details')).toContainText('local-payment');
+	await row.getByRole('button', { name: acceptancePayment.name }).press('Enter');
+	await expect(page).toHaveURL(/customers\/acceptance-customer/);
+	await page.locator('a[href^="/admin/billing/transactions?"]').first().press('Enter');
+	await expect(page).toHaveURL(/transactions\?.*tab=payments/);
+	await expect(page.locator('input[type=date]').first()).toHaveValue('2026-10-02');
+	await page.goto('/admin/billing/models');
+	const model = page
+		.locator('tbody tr')
+		.filter({ hasText: 'Проверочная модель', visible: true })
+		.first();
+	await model.getByRole('button').last().press('Enter');
+	await expect(page.getByRole('dialog')).toBeVisible();
+	await expect(page.getByRole('dialog')).toContainText('→');
+	await page.keyboard.press('Escape');
+	await expect(page.getByRole('dialog')).toHaveCount(0);
+	expect(writes).toEqual([]);
 });

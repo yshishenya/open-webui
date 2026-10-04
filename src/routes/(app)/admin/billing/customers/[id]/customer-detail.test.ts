@@ -76,6 +76,32 @@ it('reloads customer identity and operations when the same route component is re
 			undefined,
 			expect.objectContaining({ user_id: 'second' })
 		);
+		(page as unknown as Writable<{ url: URL; params: { id: string } }>).set({
+			url: new URL(
+				'https://example/admin/billing/customers/second?tab=payments&payment_id=older-payment'
+			),
+			params: { id: 'second' }
+		});
+		await tick();
+		await vi.waitFor(() =>
+			expect(api.getBillingReportingPayments).toHaveBeenLastCalledWith(
+				undefined,
+				expect.objectContaining({ user_id: 'second', payment_id: 'older-payment' })
+			)
+		);
+		await vi.waitFor(() =>
+			expect(target.textContent).toContain('Related records are shown across all dates')
+		);
+		Array.from(target.querySelectorAll<HTMLButtonElement>('button'))
+			.find((button) => button.textContent?.trim() === 'Show all customer operations')!
+			.click();
+		await tick();
+		await vi.waitFor(() =>
+			expect(api.getBillingReportingPayments).toHaveBeenLastCalledWith(
+				undefined,
+				expect.objectContaining({ user_id: 'second', payment_id: undefined })
+			)
+		);
 	} finally {
 		await unmount(component);
 		target.remove();

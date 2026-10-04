@@ -300,6 +300,114 @@ async def test_financial_totals_use_ledger_dates_and_full_selection(
             assert detail['metrics']['paid_kopeks'] == 6000
             assert detail['record_totals']['payments'] == 4
             assert detail['refunds'][0]['wallet_reflection'] == 'requires_verification'
+            original, original_total = await service.payment_page(
+                from_ts=200,
+                to_ts=300,
+                currency='RUB',
+                user_id='u',
+                status=None,
+                kind=None,
+                page=1,
+                page_size=10,
+                payment_id='0',
+            )
+            assert original_total == 1 and original[0]['id'] == '0'
+            unrelated, unrelated_total = await service.payment_page(
+                from_ts=100,
+                to_ts=200,
+                currency='RUB',
+                user_id='someone-else',
+                status=None,
+                kind=None,
+                page=1,
+                page_size=10,
+                payment_id='0',
+            )
+            assert unrelated_total == 0 and unrelated == []
+            related, related_total = await service.ledger_rows(
+                from_ts=200,
+                to_ts=300,
+                currency='RUB',
+                user_id='u',
+                limit=10,
+                offset=0,
+                reference_id='p0',
+            )
+            assert related_total == 1 and related[0]['id'] == 'l0'
+            other_records, other_total = await service.ledger_rows(
+                from_ts=100,
+                to_ts=200,
+                currency='RUB',
+                user_id='someone-else',
+                limit=10,
+                offset=0,
+                reference_id='p0',
+            )
+            assert other_total == 0 and other_records == []
+            # The visible period columns must sort by the period, even when lifetime order differs.
+            session.add(User(id='u2', name='Boris', email='boris@example.test'))
+            session.add(Wallet(id='w2', user_id='u2', currency='RUB', created_at=50, updated_at=50))
+            for index, (amount, stamp) in enumerate([(2000, 150), (10000, 250)]):
+                session.add(
+                    Payment(
+                        id=f'sort-{index}',
+                        user_id='u2',
+                        wallet_id='w2',
+                        currency='RUB',
+                        kind='topup',
+                        status='succeeded',
+                        provider='yookassa',
+                        provider_payment_id=f'sort-provider-{index}',
+                        amount_kopeks=amount,
+                        created_at=stamp,
+                        updated_at=stamp,
+                    )
+                )
+                session.add(
+                    LedgerEntry(
+                        id=f'sort-ledger-{index}',
+                        user_id='u2',
+                        wallet_id='w2',
+                        currency='RUB',
+                        type='topup',
+                        amount_kopeks=amount,
+                        balance_topup_after=amount,
+                        balance_included_after=0,
+                        reference_id=f'sort-provider-{index}',
+                        reference_type='payment',
+                        created_at=stamp,
+                    )
+                )
+            for index, (amount, stamp) in enumerate([(100, 150), (1000, 250)]):
+                session.add(
+                    UsageEvent(
+                        id=f'sort-usage-{index}',
+                        user_id='u2',
+                        wallet_id='w2',
+                        request_id=f'sort-request-{index}',
+                        model_id='model',
+                        modality='text',
+                        cost_charged_kopeks=amount,
+                        created_at=stamp,
+                    )
+                )
+            await session.commit()
+            for sort in ('paid', 'spent'):
+                for direction, expected in (
+                    ('desc', ['u', 'u2']),
+                    ('asc', ['u2', 'u']),
+                ):
+                    ordered = await service.customers(
+                        from_ts=100,
+                        to_ts=200,
+                        currency='RUB',
+                        query=None,
+                        page=1,
+                        page_size=10,
+                        sort=sort,
+                        direction=direction,
+                    )
+                    assert [row['user_id'] for row in ordered['items']] == expected
     finally:
         await engine.dispose()
 
@@ -345,3 +453,71 @@ async def test_attention_list_uses_same_current_scope_as_warning(monkeypatch: py
     )
     assert result['scope'] == 'lifetime_current'
     assert result['items'] == [{'id': 'older-warning'}]
+
+
+@pytest.mark.asyncio
+async def test_related_records_require_customer_scope() -> None:
+    from open_webui.routers.admin_billing_reporting import (
+        get_reporting_ledger,
+        get_reporting_payments,
+    )
+
+    for call in (
+        get_reporting_payments(from_ts=1, to_ts=2, user_id=None, payment_id='p'),
+        get_reporting_ledger(from_ts=1, to_ts=2, user_id=None, reference_id='request'),
+    ):
+        with pytest.raises(HTTPException) as error:
+            await call
+        assert error.value.status_code == 400
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('dataset', ['payment', 'ledger'])
+async def test_related_record_api_preserves_customer_and_reports_history_scope(
+    monkeypatch: pytest.MonkeyPatch, dataset: str
+) -> None:
+    import open_webui.routers.admin_billing_reporting as reporting_router
+
+    class FakeService:
+        def __init__(self, _session: object) -> None:
+            pass
+
+        async def payment_page(self, **kwargs: object) -> tuple[list[dict[str, object]], int]:
+            assert kwargs['from_ts'] == 0 and kwargs['to_ts'] == 100001
+            assert kwargs['user_id'] == 'customer'
+            assert kwargs['currency'] == 'RUB'
+            assert kwargs['payment_id'] == 'original-payment'
+            return [{'id': 'original-payment'}], 1
+
+        async def ledger_rows(self, **kwargs: object) -> tuple[list[dict[str, object]], int]:
+            assert kwargs['from_ts'] == 0 and kwargs['to_ts'] == 100001
+            assert kwargs['user_id'] == 'customer'
+            assert kwargs['currency'] == 'RUB'
+            assert kwargs['reference_id'] == 'usage-request'
+            return [{'id': 'matching-ledger'}], 1
+
+    monkeypatch.setattr(reporting_router, 'BillingReportingService', FakeService)
+    monkeypatch.setattr(reporting_router.time, 'time', lambda: 100000)
+    common = dict(
+        currency='RUB',
+        from_ts=90000,
+        to_ts=99000,
+        user_id='customer',
+        page=1,
+        page_size=50,
+        _=object(),
+        session=object(),
+    )
+    if dataset == 'payment':
+        result = await reporting_router.get_reporting_payments(
+            **common,
+            status=None,
+            kind=None,
+            older_than_hours=None,
+            payment_id='original-payment',
+        )
+    else:
+        result = await reporting_router.get_reporting_ledger(**common, reference_id='usage-request')
+    assert result['scope'] == 'lifetime_current'
+    assert result['from'] == 0 and result['to'] == 100001
+    assert result['total'] == 1

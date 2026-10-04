@@ -3842,5 +3842,18 @@
 	"Back to operations": "К списку операций",
 	"Back to subscribers": "К списку подписчиков",
 	"Apply": "Применить",
-	"No matching operations in the latest activity. Open the full history to see older operations.": "Среди последних записей нет подходящих операций. Откройте полную историю, чтобы посмотреть более ранние."
+	"No matching operations in the latest activity. Open the full history to see older operations.": "Среди последних записей нет подходящих операций. Откройте полную историю, чтобы посмотреть более ранние.",
+	"Historical rate is unavailable in these details": "Историческая ставка недоступна в этих подробностях",
+	"Saved pricing version": "Сохранённая версия цен",
+	"Saved rate reference": "Номер сохранённой ставки",
+	"Saved input rate reference": "Номер ставки ввода",
+	"Saved output rate reference": "Номер ставки ответа",
+	"Reserved before this reply": "Резерв перед этим ответом",
+	"Reserve for this reply could not be confirmed": "Резерв этого ответа не удалось подтвердить",
+	"Open original payment": "Открыть исходную оплату",
+	"Open related wallet records": "Открыть связанные движения кошелька",
+	"Related records are shown across all dates; financial totals keep the selected period.": "Связанные записи показаны за все даты; денежные итоги остаются за выбранный период.",
+	"Show all customer operations": "Показать все операции клиента",
+	"New subscriptions are disabled. Existing plans and subscription history remain available.": "Новые подписки отключены. Существующие тарифы и история подписок доступны.",
+	"New subscriptions are enabled.": "Новые подписки доступны."
 }

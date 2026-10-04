@@ -277,7 +277,11 @@
 		return metrics;
 	};
 
-	const mapUsageEvent = (entry: UsageEvent, currencyCode: string): TimelineItem => {
+	const mapUsageEvent = (
+		entry: UsageEvent,
+		currencyCode: string,
+		ledger: LedgerEntry[]
+	): TimelineItem => {
 		const isFree = entry.billing_source === 'lead_magnet';
 		const modelName = getModelName(entry.model_id);
 		const modality =
@@ -289,6 +293,35 @@
 			}[entry.modality] ?? entry.modality;
 		const subtitle = `${modelName} · ${modality}`;
 		const metrics = getUsageMetrics(entry);
+		// Saved references identify the price used; today's catalog cannot prove an old rate.
+		metrics.push($i18n.t('Historical rate is unavailable in these details'));
+		for (const [label, value] of [
+			['Saved pricing version', entry.pricing_version],
+			['Saved rate reference', entry.pricing_rate_card_id],
+			['Saved input rate reference', entry.pricing_rate_card_input_id],
+			['Saved output rate reference', entry.pricing_rate_card_output_id]
+		] as const) {
+			if (value) metrics.push(`${$i18n.t(label)}: ${value}`);
+		}
+		if (!isFree) {
+			const holds = ledger.filter(
+				(item) =>
+					item.type === 'hold' &&
+					Boolean(entry.request_id) &&
+					item.reference_id === entry.request_id &&
+					item.wallet_id === entry.wallet_id &&
+					item.user_id === entry.user_id &&
+					item.currency === currencyCode &&
+					item.created_at <= entry.created_at &&
+					Number.isSafeInteger(item.amount_kopeks) &&
+					item.amount_kopeks < 0
+			);
+			metrics.push(
+				holds.length === 1
+					? `${$i18n.t('Reserved before this reply')}: ${formatMoney(-holds[0].amount_kopeks, currencyCode)}`
+					: $i18n.t('Reserve for this reply could not be confirmed')
+			);
+		}
 		const charged = entry.cost_charged_kopeks ?? 0;
 		const isEstimated = Boolean(entry.is_estimated);
 
@@ -376,7 +409,7 @@
 		const mappedLedger = ledger
 			.map((entry) => mapLedgerEntry(entry, usageRequestIds))
 			.filter(Boolean) as TimelineItem[];
-		const mappedUsage = usage.map((entry) => mapUsageEvent(entry, currencyCode));
+		const mappedUsage = usage.map((entry) => mapUsageEvent(entry, currencyCode, ledger));
 		const mappedRefunds: TimelineItem[] = refunds.map((entry) => ({
 			id: entry.id,
 			kind: 'refund',
@@ -609,7 +642,7 @@
 														? $i18n.t('Charged using an estimate')
 														: $i18n.t('No charge; usage volume was estimated')}
 											</p>{/if}
-										{#each item.metrics as metric}<p>{metric}</p>{/each}
+										{#each item.metrics as metric}<p class="break-words">{metric}</p>{/each}
 										{#if item.chatId}<a
 												href={`/c/${encodeURIComponent(item.chatId)}`}
 												class="inline-flex min-h-11 items-center underline"
