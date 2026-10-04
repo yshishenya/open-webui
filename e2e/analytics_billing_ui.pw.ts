@@ -34,6 +34,7 @@ const sequence = {
 	mature_incomplete_paid: 1
 };
 const funnel = {
+	generated_at: 1791072000,
 	summary,
 	sequence,
 	rows: [{ ...summary, cohort: 'unknown', median_hours_to_pay: 2 }],
@@ -117,13 +118,14 @@ test('funnel separates ordered paths, overall payments and immature observations
 	await expect(page.getByTestId('product-funnel')).toBeVisible();
 	await expect(page.getByText('25% · 20 из 80', { exact: true }).first()).toBeVisible();
 	await expect(page.getByText('Ещё наблюдаем: 20', { exact: true }).first()).toBeVisible();
+	await page
+		.getByText('Последовательность событий для завершённых наблюдений', { exact: true })
+		.click();
 	await expect(page.getByText('Пополнили до первого ответа:')).toContainText('4');
 	await expect(page.getByText('Пополнили, но ответ не наблюдается:')).toContainText('3');
-	await expect(page.getByRole('heading', { name: 'Не определён', exact: true })).toBeVisible();
+	await expect(page.getByRole('rowheader').filter({ hasText: 'Не определён' })).toBeVisible();
 	await page.getByRole('link', { name: 'Деньги', exact: true }).last().click();
-	await expect(page).toHaveURL(/from(?:_date)?=2026-09-01/);
-	await expect(page.locator('input[type=date]').first()).toHaveValue('2026-09-01');
-	await expect(page.locator('input[type=date]').nth(1)).toHaveValue('2026-09-30');
+	await expect(page).not.toHaveURL(/from(?:_date)?=2026-09-01/);
 });
 
 test('a failed report and a still immature report do not show zero conversion', async ({
@@ -152,8 +154,88 @@ test('a failed report and a still immature report do not show zero conversion', 
 		})
 	);
 	await page.getByRole('button', { name: 'Применить', exact: true }).click();
-	await expect(page.getByText('Наблюдение продолжается', { exact: true })).toBeVisible();
+	await expect(
+		page.getByText('Результат за 7 дней пока недоступен', { exact: true })
+	).toBeVisible();
 });
+
+test('funnel applies drafts explicitly, refreshes applied dates and restores browser history', async ({
+	page
+}) => {
+	await setup(page);
+	const queries: URL[] = [];
+	await page.route('**/api/v1/analytics/funnel-report?*', (route) => {
+		queries.push(new URL(route.request().url()));
+		return route.fulfill({ json: funnel });
+	});
+	await page.goto(`/admin/analytics/funnel${dates}`);
+	await expect(page.getByText('Данные сформированы')).toBeVisible();
+	await page.getByLabel('Первый визит с', { exact: true }).fill('2026-09-02');
+	await expect(page.getByText('Изменения не применены')).toBeVisible();
+	expect(queries).toHaveLength(1);
+	await page.getByRole('button', { name: 'Обновить', exact: true }).click();
+	await expect.poll(() => queries.length).toBe(2);
+	expect(queries[1].searchParams.get('start')).toBe(
+		String(Date.parse('2026-09-01T00:00:00Z') / 1000)
+	);
+	await page.getByRole('button', { name: 'Применить', exact: true }).click();
+	await expect(page).toHaveURL(/from=2026-09-02/);
+	await page.goBack();
+	await expect(page.getByLabel('Первый визит с', { exact: true })).toHaveValue('2026-09-01');
+	await expect(page.getByText('Первые визиты:')).toContainText('2026-09-01');
+});
+
+test('funnel keeps the last report on a failed update and opens methodology', async ({ page }) => {
+	await setup(page);
+	let fail = false;
+	await page.route('**/api/v1/analytics/funnel-report?*', (route) =>
+		fail ? route.fulfill({ status: 503 }) : route.fulfill({ json: funnel })
+	);
+	await page.goto(`/admin/analytics/funnel${dates}`);
+	await expect(page.getByText('Данные сформированы')).toBeVisible();
+	fail = true;
+	await page.getByRole('button', { name: 'Обновить', exact: true }).click();
+	await expect(page.getByRole('alert')).toContainText('Сохранён предыдущий отчёт');
+	await expect(page.getByText('25% · 20 из 80', { exact: true }).first()).toBeVisible();
+	await page.getByRole('link', { name: 'Как считаем', exact: true }).click();
+	await expect(page.getByText('Исключения в выбранном отчёте', { exact: true })).toBeVisible();
+	fail = false;
+	await page.getByRole('button', { name: 'Повторить', exact: true }).click();
+	await expect(page.getByRole('alert')).not.toBeVisible();
+});
+
+for (const width of [360, 768, 1280])
+	for (const theme of ['light', 'dark']) {
+		test(`funnel accessible comparison at ${width}px in ${theme}`, async ({ page }) => {
+			await setup(page);
+			await page.setViewportSize({ width, height: 900 });
+			await page.addInitScript((theme) => localStorage.setItem('theme', theme), theme);
+			await page.route('**/api/v1/analytics/funnel-report?*', (route) =>
+				route.fulfill({ json: funnel })
+			);
+			await page.goto(`/admin/analytics/funnel${dates}`);
+			await expect(
+				page.getByRole('heading', { name: 'Сравнение групп', exact: true })
+			).toBeVisible();
+			expect(
+				await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)
+			).toBe(true);
+			const table = page.getByRole('region', { name: 'Таблица сравнения групп' });
+			await table.focus();
+			await expect(table).toBeFocused();
+			if (width === 360) {
+				await table.press('ArrowRight');
+				await expect.poll(() => table.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
+			}
+			await page
+				.getByRole('heading', { name: 'От первого визита до пополнения баланса', exact: true })
+				.scrollIntoViewIfNeeded();
+			await page.screenshot({
+				path: `output/playwright/funnel-${width}-${theme}.png`,
+				fullPage: true
+			});
+		});
+	}
 
 test('model detail inherits dates and group; keyboard sorting and detail opening work', async ({
 	page

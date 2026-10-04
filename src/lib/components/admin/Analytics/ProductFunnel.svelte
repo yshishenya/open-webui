@@ -1,67 +1,80 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
+	import FunnelMethodology from './FunnelMethodology.svelte';
 	import {
+		cohortLabel,
+		cohortWeekDates,
 		defaultReportDates,
 		getFunnelReport,
 		reportDateRange,
+		reportPresetDates,
 		transitionPercent,
 		type FunnelReport
 	} from '$lib/utils/airis/analyticsReport';
 	export let overview = false;
-	const initial = defaultReportDates();
-	let fromDate = $page.url.searchParams.get('from') || initial.from;
-	let toDate = $page.url.searchParams.get('to') || initial.to;
-	let windowDays = $page.url.searchParams.get('window_days') === '7' ? 7 : 30;
-	let breakdown = $page.url.searchParams.get('breakdown') || 'utm_source';
 	const groups = [
-		{ value: 'utm_source', label: 'Источник' },
-		{ value: 'utm_campaign', label: 'Кампания' },
-		{ value: 'week', label: 'Неделя первого визита' },
-		{ value: 'device', label: 'Устройство' },
-		{ value: 'signup_method', label: 'Способ регистрации' }
+		{ value: 'week', label: 'По неделям первого визита' },
+		{ value: 'utm_source', label: 'По источникам' },
+		{ value: 'utm_campaign', label: 'По кампаниям' },
+		{ value: 'device', label: 'По устройствам' },
+		{ value: 'signup_method', label: 'По способу регистрации' }
 	];
-	if (!groups.some((group) => group.value === breakdown)) breakdown = 'utm_source';
+	type Filters = { from: string; to: string; days: number; group: string };
+	const readFilters = (url: URL): Filters => {
+		const initial = defaultReportDates();
+		const group = url.searchParams.get('breakdown') || 'week';
+		return {
+			from: url.searchParams.get('from') || initial.from,
+			to: url.searchParams.get('to') || initial.to,
+			days: url.searchParams.get('window_days') === '7' ? 7 : 30,
+			group: groups.some((item) => item.value === group) ? group : 'week'
+		};
+	};
+	let draft = readFilters($page.url);
+	let applied = { ...draft };
+	let attempted = { ...draft };
 	let report: FunnelReport | null = null;
 	let loading = false;
 	let error = '';
+	let dateError = '';
 	let generation = 0;
-	let applied = { from: fromDate, to: toDate, days: windowDays, group: breakdown, updated: '' };
+	let loadedURL = '';
+	let preset = 'custom';
+	let methodology: HTMLDetailsElement;
+	const today = defaultReportDates().to;
 	const number = (value: number): string => value.toLocaleString('ru-RU');
 	const percent = (value: number | null): string =>
 		value === null ? '—' : `${value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}%`;
-	const money = (value: number, currency: string): string =>
-		new Intl.NumberFormat('ru-RU', { style: 'currency', currency }).format(value / 100);
 	const date = (value: number): string =>
 		new Date(value * 1000).toLocaleString('ru-RU', {
 			timeZone: 'UTC',
 			dateStyle: 'medium',
 			timeStyle: 'short'
 		});
-	const link = (path: string): string =>
-		`${path}?${new URLSearchParams({ from: applied.from, to: applied.to, window_days: String(applied.days) })}`;
-	const load = async (persist = true): Promise<void> => {
+	const money = (value: number, currency: string): string =>
+		new Intl.NumberFormat('ru-RU', { style: 'currency', currency }).format(value / 100);
+	const setPreset = (): void => {
+		if (preset === '7' || preset === '30' || preset === 'month')
+			draft = { ...draft, ...reportPresetDates(preset) };
+	};
+	const load = async (selected: Filters, persist = true): Promise<void> => {
 		const current = ++generation;
-		error = '';
+		loading = false;
 		let range: { start: number; end: number };
+		dateError = '';
 		try {
-			range = reportDateRange(fromDate, toDate);
+			range = reportDateRange(selected.from, selected.to);
+			if (selected.to > defaultReportDates().to)
+				throw new Error('Конечная дата не может быть позже сегодняшней даты UTC');
 		} catch (cause) {
-			error = cause instanceof Error ? cause.message : 'Проверьте даты';
-			loading = false;
-			report = null;
+			dateError = cause instanceof Error ? cause.message : 'Проверьте даты';
 			return;
 		}
-		const selected = {
-			from: fromDate,
-			to: toDate,
-			days: windowDays,
-			group: breakdown,
-			updated: ''
-		};
+		attempted = { ...selected };
 		loading = true;
-		report = null;
+		error = '';
 		try {
 			const result = await getFunnelReport(localStorage.token, {
 				...range,
@@ -70,25 +83,15 @@
 			});
 			if (current !== generation) return;
 			report = result;
-			applied = {
-				...selected,
-				updated: new Date().toLocaleTimeString('ru-RU', {
-					timeZone: 'UTC',
-					hour: '2-digit',
-					minute: '2-digit'
-				})
-			};
+			applied = { ...selected };
 			if (persist) {
 				const params = new URLSearchParams($page.url.searchParams);
 				params.set('from', selected.from);
 				params.set('to', selected.to);
 				params.set('window_days', String(selected.days));
 				params.set('breakdown', selected.group);
-				await goto(`${$page.url.pathname}?${params}`, {
-					replaceState: true,
-					noScroll: true,
-					keepFocus: true
-				});
+				loadedURL = `${$page.url.pathname}?${params}`;
+				await goto(loadedURL, { noScroll: true, keepFocus: true });
 			}
 		} catch (cause) {
 			if (current === generation)
@@ -97,12 +100,25 @@
 			if (current === generation) loading = false;
 		}
 	};
+	const synchronizeURL = (): void => {
+		const key = `${$page.url.pathname}?${$page.url.searchParams}`;
+		if (key === loadedURL) return;
+		loadedURL = key;
+		draft = readFilters($page.url);
+		preset = 'custom';
+		void load({ ...draft }, false);
+	};
+	// The administrator session can resolve after the initial navigation completed.
+	onMount(synchronizeURL);
+	afterNavigate(synchronizeURL);
 	onDestroy(() => {
 		++generation;
 	});
-	onMount(() => {
-		void load(false);
-	});
+	$: dirty =
+		draft.from !== applied.from ||
+		draft.to !== applied.to ||
+		draft.days !== applied.days ||
+		draft.group !== applied.group;
 	$: sequence = report?.sequence;
 	$: steps = sequence
 		? [
@@ -124,141 +140,260 @@
 				}
 			]
 		: [];
+	const partialWeek = (cohort: string): boolean => {
+		const week = applied.group === 'week' ? cohortWeekDates(cohort) : null;
+		return week !== null && (applied.from > week.from || applied.to < week.to);
+	};
 </script>
 
 <section
-	class="mx-auto max-w-7xl space-y-6 p-4 sm:p-6"
+	class="mx-auto min-w-0 max-w-7xl space-y-6 p-4 sm:p-6"
 	data-testid={overview ? 'product-overview' : 'product-funnel'}
 >
-	<div>
+	<header>
 		<h1 class="text-2xl font-semibold">
-			{overview ? 'Обзор продукта' : 'От первого визита до оплаты'}
+			{overview ? 'Обзор продукта' : 'От первого визита до пополнения баланса'}
 		</h1>
-		<p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
-			{overview
-				? 'Новые посетители, их путь к оплате и деньги за выбранные даты.'
-				: 'Кто дошёл до первого пополнения и какими путями.'}
+		<p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+			Только наблюдаемые посетители с согласием на аналитику. <a
+				class="underline"
+				href="#funnel-methodology"
+				on:click={() => {
+					if (methodology) methodology.open = true;
+				}}>Как считаем</a
+			>
 		</p>
-	</div>
-	<form class="flex flex-wrap items-end gap-3" on:submit|preventDefault={() => load()}>
-		<label class="flex flex-col gap-1 text-sm"
-			>Первые визиты с<input
-				class="min-h-11 rounded-lg border border-gray-300 bg-transparent px-3 py-2 dark:border-gray-700"
-				type="date"
-				bind:value={fromDate}
-				required
-			/></label
-		>
-		<label class="flex flex-col gap-1 text-sm"
-			>по<input
-				class="min-h-11 rounded-lg border border-gray-300 bg-transparent px-3 py-2 dark:border-gray-700"
-				type="date"
-				bind:value={toDate}
-				required
-			/></label
-		>
-		<label class="flex flex-col gap-1 text-sm"
-			>Время на первую оплату<select
-				class="min-h-11 rounded-lg border border-gray-300 bg-transparent px-3 py-2 dark:border-gray-700"
-				bind:value={windowDays}
-				><option value={7}>7 дней</option><option value={30}>30 дней</option></select
-			></label
-		>
-		{#if !overview}<label class="flex flex-col gap-1 text-sm"
-				>Сравнить по<select
-					class="min-h-11 rounded-lg border border-gray-300 bg-transparent px-3 py-2 dark:border-gray-700"
-					bind:value={breakdown}
-					>{#each groups as group}<option value={group.value}>{group.label}</option>{/each}</select
+	</header>
+	<form
+		class="space-y-3 rounded-xl border border-gray-200 p-4 dark:border-gray-800"
+		on:submit|preventDefault={() => load({ ...draft })}
+	>
+		<h2 class="text-sm font-medium">Период первого зафиксированного визита</h2>
+		<div class="flex flex-wrap items-end gap-3">
+			<label class="flex min-w-0 flex-col gap-1 text-sm"
+				>Период<select bind:value={preset} on:change={setPreset}
+					><option value="custom">Выбранные даты</option><option value="7">Последние 7 дней</option
+					><option value="30">Последние 30 дней</option><option value="month">Текущий месяц</option
+					></select
 				></label
-			>{/if}
-		<button
-			class="min-h-11 rounded-lg bg-gray-900 px-4 py-2 text-sm text-white disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900"
-			disabled={loading}>Применить</button
-		>
+			>
+			<label class="flex min-w-0 flex-col gap-1 text-sm"
+				>Первый визит с<input
+					type="date"
+					required
+					max={today}
+					bind:value={draft.from}
+					on:input={() => {
+						preset = 'custom';
+					}}
+					aria-invalid={dateError ? 'true' : undefined}
+					aria-describedby="funnel-date-help"
+				/></label
+			>
+			<label class="flex min-w-0 flex-col gap-1 text-sm"
+				>Первый визит по<input
+					type="date"
+					required
+					max={today}
+					bind:value={draft.to}
+					on:input={() => {
+						preset = 'custom';
+					}}
+					aria-invalid={dateError ? 'true' : undefined}
+					aria-describedby="funnel-date-help"
+				/></label
+			>
+		</div>
+		<div class="flex flex-wrap items-end gap-3">
+			<label class="flex flex-col gap-1 text-sm"
+				>Учитывать действия после визита в течение<select bind:value={draft.days}
+					><option value={7}>7 дней</option><option value={30}>30 дней</option></select
+				></label
+			>
+			<button class="primary" disabled={loading}>Применить</button>
+			{#if dirty}<p class="py-2 text-sm text-gray-600 dark:text-gray-300">
+					Изменения не применены
+				</p>{/if}
+		</div>
+		<p id="funnel-date-help" class="text-sm text-gray-600 dark:text-gray-300">
+			Даты UTC, последний день включён. Последующие действия могут произойти после конца выбранного
+			периода.
+		</p>
+		{#if dateError}<p role="alert" class="text-sm text-red-700 dark:text-red-300">
+				{dateError}
+			</p>{/if}
 	</form>
 	{#if error}<div
 			role="alert"
 			class="rounded-lg border border-red-300 p-3 text-sm text-red-700 dark:text-red-300"
 		>
-			{error}
+			<p>{error}</p>
+			{#if report}<p class="mt-1">
+					Сохранён предыдущий отчёт. Его даты и время формирования указаны ниже.
+				</p>{/if}<button
+				class="mt-2 min-h-11 underline"
+				disabled={loading}
+				on:click={() => load({ ...attempted })}>Повторить</button
+			>
 		</div>{/if}
 	{#if loading}<p role="status" class="text-sm text-gray-600 dark:text-gray-300">
-			Загружаем отчёт…
+			{report ? 'Обновляем данные. Ниже предыдущий отчёт.' : 'Загружаем отчёт…'}
 		</p>{/if}
 	{#if report}
-		<p class="text-sm text-gray-600 dark:text-gray-300">
-			Первые визиты: {applied.from} — {applied.to} · На оплату: {applied.days} дней · Даты UTC · Обновлено
-			{applied.updated} UTC
-		</p>
-		<div
-			class="grid grid-cols-2 gap-3 lg:grid-cols-4"
-			aria-label="Достижения новых посетителей к текущему моменту"
-		>
-			{#each [{ label: 'Впервые пришли', value: report.summary.visitors }, { label: 'Зарегистрировались', value: report.summary.registered }, { label: 'Получили первый ответ', value: report.summary.activated }, { label: 'Впервые пополнили', value: report.summary.paid }] as item}
-				<div class="min-w-0 rounded-xl border border-gray-200 p-3 dark:border-gray-800">
-					<p class="text-sm text-gray-600 dark:text-gray-300">{item.label}</p>
-					<p class="mt-2 break-words text-2xl font-semibold tabular-nums">{number(item.value)}</p>
+		<div aria-busy={loading} class="space-y-6">
+			<p class="text-sm text-gray-600 dark:text-gray-300">
+				Первые визиты: {applied.from} — {applied.to} · Действия за {applied.days} дней после визита ·
+				UTC{#if applied.to === defaultReportDates(new Date(report.generated_at * 1000)).to}
+					· Последний день неполный{/if}
+			</p>
+			<section aria-label="Зафиксированные результаты" class="space-y-3">
+				<h2 class="text-lg font-medium">Зафиксированные результаты</h2>
+				<div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+					{#each [{ label: 'Посетители', value: report.summary.visitors }, { label: 'Регистрации', value: report.summary.registered }, { label: 'Первый ответ', value: report.summary.activated }, { label: 'Первое пополнение', value: report.summary.paid }] as item}<div
+							class="min-w-0 rounded-xl border border-gray-200 p-3 dark:border-gray-800"
+						>
+							<p class="text-sm text-gray-600 dark:text-gray-300">{item.label}</p>
+							<p class="mt-2 text-2xl font-semibold tabular-nums">{number(item.value)}</p>
+						</div>{/each}
 				</div>
-			{/each}
-		</div>
-		<div
-			class="flex flex-wrap items-start justify-between gap-4 rounded-xl bg-gray-50 p-4 dark:bg-gray-900"
-			aria-live="polite"
-		>
-			<div>
-				<h2 class="font-medium">Первая оплата за {applied.days} дней</h2>
-				<p class="mt-1 text-xl font-semibold tabular-nums">
+				<p class="text-sm text-gray-600 dark:text-gray-300">
+					Наблюдаемые достижения за {applied.days} дней после визита, включая тех, за кем ещё наблюдаем.
+					Это не последовательные переходы.
+				</p>
+			</section>
+			<section
+				class="space-y-2 rounded-xl bg-gray-50 p-4 dark:bg-gray-900"
+				aria-label="Результат завершённых наблюдений"
+			>
+				<h2 class="font-medium">Доля впервые пополнивших баланс за {applied.days} дней</h2>
+				<p class="text-xl font-semibold tabular-nums">
 					{report.summary.conversion_percent === null
 						? report.summary.visitors > 0
-							? 'Наблюдение продолжается'
+							? `Результат за ${applied.days} дней пока недоступен`
 							: 'Нет новых наблюдаемых посетителей'
 						: `${percent(report.summary.conversion_percent)} · ${number(report.summary.mature_paid)} из ${number(report.summary.mature_visitors)}`}
 				</p>
-				<p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
-					Все пути к оплате. Итог только по завершённым наблюдениям.
+				<p class="text-sm">
+					Срок наблюдения завершился у {number(report.summary.mature_visitors)} из {number(
+						report.summary.visitors
+					)} посетителей.
 				</p>
-			</div>
-			{#if report.summary.immature_visitors > 0}<div>
-					<p class="font-medium">Ещё наблюдаем: {number(report.summary.immature_visitors)}</p>
-					{#if report.summary.next_maturity_at}<p
-							class="mt-1 text-sm text-gray-600 dark:text-gray-300"
-						>
-							Ближайший срок: {date(report.summary.next_maturity_at)} UTC
-						</p>{/if}
-				</div>{/if}
-		</div>
-		{#if report.summary.visitors === 0}<p class="text-sm">
-				За эти даты новых наблюдаемых посетителей нет.
-			</p>{/if}
-		<div class="space-y-6">
-			{#if !overview}<section class="space-y-4">
-					<h2 class="text-lg font-medium">Путь через первый ответ</h2>
-					<p class="text-sm text-gray-600 dark:text-gray-300">
-						Завершённые наблюдения; порядок событий проверен.
+				{#if report.summary.immature_visitors > 0}<p class="text-sm">
+						Ещё наблюдаем: {number(report.summary.immature_visitors)}
 					</p>
-					{#each steps as step}
-						<div>
-							<div class="flex justify-between gap-3 text-sm">
-								<span>{step.label}</span><strong class="shrink-0 tabular-nums"
-									>{number(step.count)}</strong
-								>
-							</div>
-							<progress
-								class="mt-2 h-2 w-full"
-								max={Math.max(sequence?.mature_visitors ?? 0, 1)}
-								value={step.count}
-								aria-label={step.label}
-							></progress>{#if step.previous !== null}<p
-									class="mt-1 text-xs text-gray-600 dark:text-gray-300"
-								>
-									{percent(transitionPercent(step.count, step.previous))} от предыдущего шага
-								</p>{/if}
-						</div>
-					{/each}
-					{#if sequence}<div
-							class="space-y-1 border-t border-gray-200 pt-3 text-sm dark:border-gray-800"
+					{#if report.summary.next_maturity_at}<p class="text-sm text-gray-600 dark:text-gray-300">
+							Ближайшее завершение наблюдения: {date(report.summary.next_maturity_at)} UTC. Это не срок
+							готовности всей группы.
+						</p>{/if}{/if}
+				<p class="text-sm text-gray-600 dark:text-gray-300">
+					Итог только по завершённым наблюдениям. Все пути к первому пополнению включены.
+				</p>
+			</section>
+			{#if !overview && report.summary.visitors > 0}
+				<section class="space-y-3">
+					<div class="flex flex-wrap items-end justify-between gap-3">
+						<h2 class="text-lg font-medium">Сравнение групп</h2>
+						<label class="flex flex-col gap-1 text-sm"
+							>Сравнить по<select bind:value={draft.group}
+								>{#each groups as group}<option value={group.value}>{group.label}</option
+									>{/each}</select
+							></label
 						>
-							<p>
+					</div>
+					{#if draft.group !== applied.group}<div class="flex flex-wrap items-center gap-3 text-sm">
+							<p>Новая группировка ещё не применена.</p>
+							<button class="secondary" disabled={loading} on:click={() => load({ ...draft })}
+								>Применить изменения</button
+							>
+						</div>{/if}
+					<p class="text-sm text-gray-600 dark:text-gray-300">
+						Показано: {groups.find((group) => group.value === applied.group)?.label}. На узком
+						экране таблицу можно прокрутить вправо.
+					</p>
+					<!-- Keyboard users must be able to scroll this region. -->
+					<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+					<div
+						class="max-w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800"
+						role="region"
+						aria-label="Таблица сравнения групп"
+						tabindex="0"
+					>
+						<table class="w-full min-w-[680px] text-sm">
+							<caption class="sr-only"
+								>Достижения выбранных посетителей и доля пополнивших среди завершивших наблюдение</caption
+							><thead class="bg-gray-50 dark:bg-gray-900"
+								><tr
+									>{#each ['Группа', 'Посетители', 'Регистрации', 'Первый ответ', 'Первое пополнение', `Итог за ${applied.days} дней`] as heading}<th
+											scope="col"
+											class="p-3 text-left font-medium">{heading}</th
+										>{/each}</tr
+								></thead
+							><tbody>
+								{#each report.rows as row}<tr class="border-t border-gray-200 dark:border-gray-800"
+										><th scope="row" class="max-w-xs p-3 text-left align-top font-normal"
+											><p class="break-words font-medium">
+												{cohortLabel(row.cohort, applied.group)}
+											</p>
+											{#if applied.group === 'week'}<p
+													class="mt-1 text-xs text-gray-600 dark:text-gray-300"
+												>
+													{row.cohort}{#if partialWeek(row.cohort)}
+														· Часть недели{/if}
+												</p>{/if}
+											<details class="mt-2">
+												<summary class="min-h-11 cursor-pointer py-2">Подробности</summary>
+												<div class="space-y-2 py-2 text-xs text-gray-600 dark:text-gray-300">
+													<p>
+														Повторно пополнили: {number(row.repeated)}. В пределах того же срока
+														после визита; возможны автоматические пополнения.
+													</p>
+													<p>
+														Медианное время до первого пополнения: {row.median_hours_to_pay === null
+															? '—'
+															: `${number(row.median_hours_to_pay)} ч`}. Пополнивших: {number(
+															row.paid
+														)}.
+													</p>
+													<p>
+														Это наблюдаемые события, не доказательство полезности продукта или
+														удержания.
+													</p>
+												</div>
+											</details></th
+										>{#each [row.visitors, row.registered, row.activated, row.paid] as count}<td
+												class="p-3 text-right align-top tabular-nums">{number(count)}</td
+											>{/each}<td class="p-3 align-top"
+											><p class="font-medium tabular-nums">
+												{row.conversion_percent === null
+													? 'Пока недоступен'
+													: `${percent(row.conversion_percent)} · ${number(row.mature_paid)} из ${number(row.mature_visitors)}`}
+											</p>
+											<p class="mt-1 text-xs text-gray-600 dark:text-gray-300">
+												Завершили наблюдение: {number(row.mature_visitors)} из {number(
+													row.visitors
+												)}. Ещё наблюдаем: {number(row.immature_visitors)}.
+											</p></td
+										></tr
+									>{/each}
+							</tbody>
+						</table>
+					</div>
+				</section>
+				<details class="rounded-xl border border-gray-200 p-4 text-sm dark:border-gray-800">
+					<summary class="min-h-11 cursor-pointer font-medium"
+						>Последовательность событий для завершённых наблюдений</summary
+					>
+					<div class="mt-3 space-y-3">
+						<p class="text-gray-600 dark:text-gray-300">
+							Только проверенный порядок визит → регистрация → ответ → пополнение. Другие пути также
+							включены в общий результат.
+						</p>
+						{#each steps as step}<p class="flex justify-between gap-3">
+								<span>{step.label}</span><span class="shrink-0 tabular-nums"
+									>{number(step.count)}{#if step.previous !== null}
+										· {percent(transitionPercent(step.count, step.previous))} от предыдущего шага{/if}</span
+								>
+							</p>{/each}{#if sequence}<p>
 								Пополнили до первого ответа: <strong
 									>{number(sequence.mature_paid_before_response)}</strong
 								>
@@ -268,159 +403,96 @@
 									>{number(sequence.mature_paid_without_observed_response)}</strong
 								>
 							</p>
-							{#if sequence.mature_incomplete_paid > 0}<p>
-									Оплатили с неполным порядком событий: <strong
-										>{number(sequence.mature_incomplete_paid)}</strong
-									>
-								</p>{/if}
-							<p class="text-gray-600 dark:text-gray-300">Эти оплаты включены в общий результат.</p>
-						</div>{/if}
-				</section>{:else}<a
-					class="min-h-11 inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
-					href={link('/admin/analytics/funnel')}>Посмотреть источники и воронку</a
+							<p>
+								Пополнили с неполным порядком событий: <strong
+									>{number(sequence.mature_incomplete_paid)}</strong
+								>
+							</p>{/if}
+					</div>
+				</details>
+			{:else if !overview}<p>
+					За выбранный период подходящих новых наблюдаемых посетителей не найдено.
+				</p>{/if}
+			{#if overview}<a
+					class="secondary inline-flex"
+					href={`/admin/analytics/funnel?${new URLSearchParams({ from: applied.from, to: applied.to, window_days: String(applied.days), breakdown: applied.group })}`}
+					>Посмотреть группы и воронку</a
 				>{/if}
-			{#if overview}<section class="space-y-3">
-					<h2 class="text-lg font-medium">Деньги за календарные даты</h2>
-					<p class="text-sm text-gray-600 dark:text-gray-300">
-						{applied.from} — {applied.to}. Все клиенты, включая прежних.
+			<section class="space-y-3 border-t border-gray-200 pt-4 dark:border-gray-800">
+				<h2 class="text-lg font-medium">Платежи всех клиентов</h2>
+				<p class="text-sm text-gray-600 dark:text-gray-300">
+					Отдельный отчёт, включая прежних клиентов и посетителей без согласия на аналитику. Период
+					выбирается по датам денежных операций, а не первого визита.
+				</p>
+				{#if overview}<p class="text-sm">
+						Зачисления и возвраты за {applied.from} — {applied.to}, UTC:
 					</p>
-					{#each Object.entries(report.financial) as [currency, totals]}<div
-							class="space-y-3 text-sm"
-						>
-							<div class="flex justify-between gap-3">
-								<span>Подтверждено пополнений</span><strong class="shrink-0 tabular-nums"
-									>{money(totals.gross_kopeks, currency)}</strong
-								>
-							</div>
-							<div class="flex justify-between gap-3">
-								<span>Возвращено клиентам</span><strong class="shrink-0 tabular-nums"
-									>{money(totals.refund_kopeks, currency)}</strong
-								>
-							</div>
-							<div class="flex justify-between gap-3">
-								<span>За вычетом возвратов</span><strong class="shrink-0 tabular-nums"
-									>{money(totals.net_kopeks, currency)}</strong
-								>
-							</div>
-						</div>{:else}<p class="text-sm">
+					{#each Object.entries(report.financial) as [currency, totals]}<p class="text-sm">
+							Зачислено {money(totals.gross_kopeks, currency)} · Возвращено {money(
+								totals.refund_kopeks,
+								currency
+							)} · После возвратов {money(totals.net_kopeks, currency)}
+						</p>{:else}<p class="text-sm">
 							За эти даты подтверждённых пополнений и возвратов нет.
 						</p>{/each}
 					<p class="text-sm text-gray-600 dark:text-gray-300">
-						Разность не учитывает комиссии и расходы компании.
-					</p>
-					<a
-						class="inline-block rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
-						href={link('/admin/billing')}>Посмотреть деньги и проверить оплаты</a
-					>
-				</section>{/if}
+						После возвратов — не прибыль: комиссии и расходы не учтены.
+					</p>{/if}
+				<a class="secondary inline-flex" href="/admin/billing">Открыть платежи и выбрать период</a>
+			</section>
+			<FunnelMethodology {report} days={applied.days} bind:methodology />
+			<footer
+				class="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-600 dark:text-gray-300"
+			>
+				<p>Данные сформированы {date(report.generated_at)} UTC</p>
+				<button class="secondary" disabled={loading} on:click={() => load({ ...applied }, false)}
+					>Обновить</button
+				>
+			</footer>
 		</div>
-		{#if !overview}<section>
-				<h2 class="mb-3 text-lg font-medium">
-					{groups.find((group) => group.value === applied.group)?.label || 'Группы посетителей'}
-				</h2>
-				<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-					{#each report.rows as row}<article
-							class="rounded-xl border border-gray-200 p-4 dark:border-gray-800"
-						>
-							<h3 class="break-words font-medium">
-								{row.cohort === 'unknown' || !row.cohort ? 'Не определён' : row.cohort}
-							</h3>
-							<dl class="mt-3 grid grid-cols-2 gap-2 text-sm">
-								<dt>Пришли</dt>
-								<dd class="text-right tabular-nums">{number(row.visitors)}</dd>
-								<dt>Регистрация</dt>
-								<dd class="text-right tabular-nums">{number(row.registered)}</dd>
-								<dt>Первый ответ</dt>
-								<dd class="text-right tabular-nums">{number(row.activated)}</dd>
-								<dt>Первое пополнение</dt>
-								<dd class="text-right tabular-nums">{number(row.paid)}</dd>
-							</dl>
-							<p class="mt-3 text-sm font-medium">
-								{row.conversion_percent === null
-									? 'Наблюдение продолжается'
-									: `${percent(row.conversion_percent)} · ${number(row.mature_paid)} из ${number(row.mature_visitors)}`}
-							</p>
-							{#if row.immature_visitors > 0}<p
-									class="mt-1 text-xs text-gray-600 dark:text-gray-300"
-								>
-									Ещё наблюдаем: {number(row.immature_visitors)}
-								</p>{/if}{#if row.mature_visitors > 0 && row.mature_visitors < 20}<p
-									class="mt-1 text-xs text-gray-600 dark:text-gray-300"
-								>
-									Мало наблюдений
-								</p>{/if}
-							<details class="mt-3 text-sm">
-								<summary class="cursor-pointer">Повторная оплата и время</summary>
-								<p class="mt-2">Повторно пополнили: {number(row.repeated)}</p>
-								<p>
-									Половина оплативших пополнила в течение: {row.median_hours_to_pay === null
-										? '—'
-										: `${row.median_hours_to_pay} ч`}
-								</p>
-							</details>
-						</article>{/each}
-				</div>
-			</section>{/if}
-		<details class="border-t border-gray-200 pt-4 text-sm dark:border-gray-800">
-			<summary class="cursor-pointer font-medium">Как считаем и что не видно</summary>
-			<div class="mt-3 space-y-2 text-gray-600 dark:text-gray-300">
-				<p>
-					Показываем наблюдаемых новых посетителей с разрешённой аналитикой. Отказавшиеся и
-					заблокированные посещения не видны; до входа устройства могут учитываться отдельно.
-				</p>
-				<p>
-					Регистрация подтверждается сервером; первый ответ — наблюдаемое завершение ответа в
-					интерфейсе. Существующие аккаунты исключены из новых посетителей. Счётчики достижений
-					сверху могут включать ещё незавершённые наблюдения; итоговый процент и последовательный
-					путь — только завершённые.
-				</p>
-				<p>
-					Пополнения всех клиентов считаются по времени зачисления в Airis. Возвраты — по времени
-					создания у YooKassa после подтверждения; их отражение в кошельке проверяется отдельно.
-				</p>
-				<p>
-					Оплата может случиться после последней даты первого визита — в пределах выбранных {applied.days}
-					дней. Источник «Не определён» не означает прямой переход.
-				</p>
-				<details>
-					<summary class="cursor-pointer">Качество данных за всё время</summary>
-					<p class="mt-2">
-						Посетителей и устройств с разрешённой аналитикой сейчас: {number(
-							report.coverage.consented_identities
-						)}; связано с аккаунтами: {number(report.coverage.linked_accounts)}; исключено прежних
-						аккаунтов: {number(report.coverage.excluded_existing_accounts ?? 0)}.
-					</p>
-					<h3 class="mt-3 font-medium">Отправка во внешнюю аналитику</h3>
-					{#each report.delivery as item}<p>
-							{item.destination}: {item.state} — {number(item.count)}
-						</p>{/each}
-					<h3 class="mt-3 font-medium">Промежуточные события</h3>
-					{#each Object.entries(report.events) as [event, count]}<p>
-							{event}: {number(count)}
-						</p>{/each}<a
-						href="https://metrika.yandex.ru/overview?id=111392024"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="inline-block mt-3 underline">Яндекс Метрика</a
-					>
-					·
-					<a
-						href="https://analytics.2brain.pro/project/2/dashboard/3"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="underline">PostHog</a
-					>
-				</details>
-				<details>
-					<summary class="cursor-pointer">Попытки оплаты за выбранные даты</summary>
-					<p class="mt-2">
-						Создано: {number(report.payment_funnel.created)}; подтверждено к текущему моменту: {number(
-							report.payment_funnel.confirmed
-						)}; доля: {percent(report.payment_funnel.conversion_percent)}.
-					</p>
-					<p>Это попытки, а не люди. Незавершённые оплаты ещё могут быть подтверждены.</p>
-				</details>
-			</div>
-		</details>
 	{/if}
 </section>
+
+<style>
+	input,
+	select,
+	.secondary {
+		min-height: 44px;
+		max-width: 100%;
+		border: 1px solid var(--color-gray-300, #d1d5db);
+		border-radius: 0.5rem;
+		padding: 0.5rem 0.75rem;
+		background: transparent;
+	}
+	.primary {
+		min-height: 44px;
+		border-radius: 0.5rem;
+		padding: 0.5rem 1rem;
+		background: #111827;
+		color: white;
+	}
+	button:disabled {
+		opacity: 0.5;
+	}
+	:global(.dark) input,
+	:global(.dark) select,
+	:global(.dark) .secondary {
+		border-color: #374151;
+	}
+	:global(.dark) .primary {
+		background: #f3f4f6;
+		color: #111827;
+	}
+	:global(.dark) select {
+		color-scheme: dark;
+	}
+	input:focus-visible,
+	select:focus-visible,
+	button:focus-visible,
+	a:focus-visible,
+	summary:focus-visible,
+	[tabindex]:focus-visible {
+		outline: 2px solid #3b82f6;
+		outline-offset: 3px;
+	}
+</style>
