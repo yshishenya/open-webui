@@ -7,7 +7,7 @@
 - Owner: Codex
 - Branch: codex/bugfix/note-load-save-contracts
 - Created: 2026-10-04
-- SDD Spec: meta/sdd/specs/active/airis-note-load-save-contracts-2026-10-04-0527.json
+- SDD Spec: meta/sdd/specs/active/airis-note-load-save-contracts-2026-10-04-001.json
 
 ## Цель и критерии
 
