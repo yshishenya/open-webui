@@ -1,6 +1,6 @@
-- [ ] **[BUG]** Загрузка и сохранение заметок без подмены записи
-  - Spec: meta/memory_bank/specs/work_items/2026-10-04**bugfix**note-load-save-contracts.md
+- [x] **[BUG]** Загрузка и сохранение заметок без подмены записи
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__note-load-save-contracts.md`
   - Owner: Codex
-  - Started: 2026-10-04
+  - Done: 2026-10-04
   - Branch: codex/bugfix/note-load-save-contracts
-  - Summary: Проверка пустых серверных данных, поздней загрузки и отложенной записи при переходе между заметками; автономные черновики и общий выпуск остаются отдельными условиями.
+  - Summary: PR223 объединён, source cc2f51938 / merge d60721746; 10 CI success/1skip, SDD3/3 закрыт. 353frontend/29 новых сценариев,31types/2lint удалено и0новых диагностик. Настоящий компонент в Chrome проверен; production, общий G14 и несколько устройств остаются отдельными условиями.
