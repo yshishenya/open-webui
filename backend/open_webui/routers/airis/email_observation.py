@@ -12,6 +12,7 @@ from open_webui.models.email_observation_commands import ObservationCommandConfl
 from open_webui.models.users import UserModel
 from open_webui.utils.airis import email_observation_admin as service
 from open_webui.utils.airis.email_observer import ObservationPageConflict, ObservationPageError, observe_scope_page
+from open_webui.utils.airis.email_scope_report import ScopeMailReport, scope_mail_report
 from open_webui.utils.auth import get_admin_user
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -82,6 +83,14 @@ async def read_diagnostic(
 ) -> service.DiagnosticScope:
     """Completed traversal does not establish historical or continuous eligibility."""
     return await _operation(asyncio.wait_for(service.diagnostic_scope(scope_id), 20))
+
+
+@router.get('/{scope_id}/report', response_model=ScopeMailReport)
+async def read_scope_report(
+    scope_id: service.Identifier, admin: UserModel = Depends(get_admin_user)
+) -> ScopeMailReport:
+    """Read observed units for one explicit diagnostic or dispatch group without recipient data."""
+    return await _operation(asyncio.wait_for(scope_mail_report(scope_id), 20))
 
 
 @router.post('/{scope_id}/runs', response_model=service.DiagnosticLease)
