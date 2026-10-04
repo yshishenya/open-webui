@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { mount, tick, unmount } from 'svelte';
+import { mount, unmount } from 'svelte';
 import MapSelector from '$lib/components/common/Valves/MapSelector.svelte';
 
 const api = vi.hoisted(() => ({
@@ -27,10 +27,7 @@ vi.mock('leaflet', () => ({
 let component: Record<string, unknown> | null = null;
 let target: HTMLDivElement | null = null;
 const settle = async (): Promise<void> => {
-	for (let index = 0; index < 10; index++) {
-		await tick();
-		await new Promise<void>((resolve) => setTimeout(resolve, 0));
-	}
+	await vi.waitFor(() => expect(api.on).toHaveBeenCalledWith('click', expect.any(Function)));
 };
 const render = async (location: number[] | null, onClick = vi.fn()): Promise<void> => {
 	target = document.createElement('div');
