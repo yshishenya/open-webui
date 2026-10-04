@@ -570,9 +570,11 @@ async def update_user_status_by_session_user(
 
 
 @router.get('/user/info', response_model=dict | None)
-async def get_user_info_by_session_user(user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)):
+async def get_user_info_by_session_user(
+    user: UserModel = Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)
+) -> dict[str, object]:
     # user already fetched by get_verified_user — no need to refetch
-    return user.info
+    return user.info or {}
 
 
 class UserVariablesForm(BaseModel):

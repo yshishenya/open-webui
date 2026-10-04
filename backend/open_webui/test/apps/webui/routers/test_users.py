@@ -122,11 +122,11 @@ class TestUsers(AbstractPostgresTest):
             'model_config': {'attr3': 'value3', 'attr4': 'value4'},
         }
 
-        # Get (empty) user info
+        # An account without saved info returns an empty object, not a load failure.
         with mock_webui_user(id='1'):
             response = self.fast_api_client.get(self.create_url('/user/info'))
         assert response.status_code == 200
-        assert response.json() is None
+        assert response.json() == {}
 
         # Update user info
         with mock_webui_user(id='1'):
