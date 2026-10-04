@@ -11,7 +11,7 @@
 	dayjs.extend(duration);
 	dayjs.extend(relativeTime);
 
-	import { onMount, tick, getContext, createEventDispatcher } from 'svelte';
+	import { onMount, onDestroy, tick, getContext, createEventDispatcher } from 'svelte';
 
 	import { createPicker } from '$lib/utils/google-drive-picker';
 	import { pickAndDownloadFile } from '$lib/utils/onedrive-file-picker';
@@ -166,6 +166,8 @@
 
 	let showInputVariablesModal = false;
 	let inputVariablesModalCallback: (variableValues: Record<string, unknown>) => void = () => {};
+	let inputVariablesModalCancelCallback: () => void = () => {};
+	onDestroy(() => inputVariablesModalCancelCallback());
 	let inputVariables = {};
 	let inputVariableValues = {};
 
@@ -199,7 +201,8 @@
 		codeInterpreterEnabled
 	});
 
-	const inputVariableHandler = async (text: string): Promise<string> => {
+	const inputVariableHandler = async (text: string): Promise<string | null> => {
+		inputVariablesModalCancelCallback();
 		inputVariables = extractInputVariables(text);
 
 		// No variables? return the original text immediately.
@@ -209,10 +212,20 @@
 
 		// Show modal and wait for the user's input.
 		showInputVariablesModal = true;
-		return await new Promise<string>((resolve) => {
+		return await new Promise<string | null>((resolve) => {
+			let settled = false;
+			inputVariablesModalCancelCallback = () => {
+				if (settled) return;
+				settled = true;
+				showInputVariablesModal = false;
+				resolve(null);
+			};
 			inputVariablesModalCallback = (variableValues) => {
-				inputVariableValues = { ...inputVariableValues, ...variableValues };
-				replaceVariables(inputVariableValues);
+				if (settled) return;
+				const values = { ...inputVariableValues, ...variableValues };
+				replaceVariables(values);
+				inputVariableValues = values;
+				settled = true;
 				showInputVariablesModal = false;
 				resolve(text);
 			};
@@ -351,7 +364,8 @@
 		}
 	};
 
-	export const setText = async (text?: string, cb?: (text: string) => void) => {
+	export const setText = async (text?: string, cb?: (text: string) => void): Promise<void> => {
+		inputVariablesModalCancelCallback();
 		const chatInput = document.getElementById('chat-input');
 
 		if (chatInput) {
@@ -365,7 +379,7 @@
 			}
 
 			if (text !== '') {
-				text = await inputVariableHandler(text);
+				if ((await inputVariableHandler(text)) === null) return;
 			}
 
 			await tick();
@@ -503,7 +517,8 @@
 		chatInputElement?.replaceCommandWithText(text);
 	};
 
-	const insertTextAtCursor = async (text: string) => {
+	const insertTextAtCursor = async (text: string): Promise<void> => {
+		inputVariablesModalCancelCallback();
 		const chatInput = document.getElementById('chat-input');
 		if (!chatInput) return;
 
@@ -516,7 +531,7 @@
 		}
 
 		await tick();
-		text = await inputVariableHandler(text);
+		if ((await inputVariableHandler(text)) === null) return;
 		await tick();
 
 		const chatInputContainer = document.getElementById('chat-input-container');
@@ -1316,6 +1331,7 @@
 	bind:show={showInputVariablesModal}
 	variables={inputVariables}
 	onSave={inputVariablesModalCallback}
+	onCancel={inputVariablesModalCancelCallback}
 />
 
 <ValvesModal
