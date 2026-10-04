@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix + test; new_feature.md and bug_fix.md
-- Status: local implementation verified; source CI and production pending
+- Status: done; source and production accepted, follow-up documentation tracked separately
 - Owner: Codex
 - Branch: codex/bugfix/onboarding-return-paths
 - SDD Spec: meta/sdd/specs/completed/airis-onboarding-full-paths-2026-10-04-001.json
@@ -19,7 +19,7 @@ Close the two automated browser gaps identified by the mandatory scenario audit.
 - [x] Browser starts checkout with an ordinary verified account; pending provider state gives zero credit and zero credited notices. Local provider success returns to the wallet, applies one exact credit, updates visible history and submits exactly one captured service email with Reply-To.
 - [x] Reconcile and queue replay create zero extra credits, ledger rows or credited messages. Artificial recipients remain exclusively in local SMTP.
 - [x] Chromium and Firefox, including a narrow viewport, pass without skips or page errors; assertions fail if completion, usage or idempotency breaks.
-- [ ] Required source checks, SDD, exact CI SHA and unchanged application content are recorded. Real provider, money, fiscal receipt, external Inbox, phone and elapsed pilot windows remain separate gates.
+- [x] Required source checks, SDD, exact CI SHA and unchanged application content are recorded. Real provider, money, fiscal receipt, external Inbox, phone and elapsed pilot windows remain separate gates.
 
 ## Reuse and dependency compatibility
 
@@ -49,4 +49,14 @@ ONBOARDING_PATHS_IMAGE=<compiled-image> docker compose -f .codex/docker-compose.
 
 ## Local acceptance — 2026-10-04
 
-Compiled runtime source `c00765af14d3bda95e12e31add3c9c782272ecc9`, candidate image ID `sha256:a801a6cfc7b0b6069fa026f07fd19b1fa7d97c77bd1700ba53238b93477cdd3c`: 10/10 complete browser paths in Chromium and Firefox 390×844, 0 skips and 0 page errors. All 4913 compiled files match; 23 inherited layers, backend and image environment preserved. Exact provider usage 17 input/3 output, one 50000-kopeck test credit, one captured notice, two safe reconciliation/queue replays. Frontend 480 tests in 72 files; strict changed-file lint and Python Ruff/Black pass. General checks retain 3967 type errors/164 warnings and 1419 ESLint diagnostics, 0 added/removed. The full quality gate remains open. `npm run preflight` is absent in this repository. Existing backend receipts: 900 passed/5 PostgreSQL-only skips, all five verified separately among PostgreSQL 111+2 passes. Backend is unchanged. SDD 4/4 completed; CI, merge and production will be recorded separately.
+Compiled runtime source `c00765af14d3bda95e12e31add3c9c782272ecc9`: 10/10 complete browser paths in Chromium and Firefox 390×844, 0 skips and 0 page errors. Exact provider usage 17 input/3 output, one 50000-kopeck test credit, one captured notice, two safe reconciliation/queue replays. Frontend 480 tests in 72 files; strict changed-file lint and Python Ruff/Black pass. General checks retain 3967 type errors/164 warnings and 1419 ESLint diagnostics, 0 added/removed. The full quality gate remains open. `npm run preflight` is absent in this repository. Existing backend receipts: 900 passed/5 PostgreSQL-only skips, all five verified separately among PostgreSQL 111+2 passes. Backend is unchanged. SDD 4/4 completed.
+
+## Source and production acceptance — 2026-10-04
+
+PR245 head `a35aa18fa6a547009cd7a4f7bde0e4fc4c3360e9` passed 10 CI checks with one dependency-review skip, then merged as `30190a01c8dbafe046fd15550279824795496e45`. CodeRabbit is disabled for this base; CodeQL reported no new alerts. All 11 changed files match through the merge; runtime source remains the compiled source above.
+
+The first artifact was stopped by the existing analytics check before migration or container replacement: its generated dynamic public environment module was empty. The accepted r1 restores that single module from the accepted base image; all other compiled files, backend layers, environment and labels are unchanged. This preserves the deployed analytics settings. Full browser paths were repeated against r1: 10/10, no skips or page errors.
+
+Accepted local image ID: `sha256:3194e24d652c9554bbbe4663213ef5c83783fb4cdbb4b610a7829a6fa2846a7f`. Registry and production identity: `sha256:8b584fa2e58bf712b610e4d3f022cb2d835061648cdbb85dcb1530708fdfd4e3`. All 4913 frontend and 425 backend Python files match the registry artifact. Guarded rollout passed backup integrity/readability, migration and health checks. The accepted default Compose image persists; container environment and all 13 original neighboring containers are preserved. One additional application-created per-user terminal is recorded separately. Rollback remains available.
+
+Read-only production browser acceptance exercised desktop header → balance → history → original chat, and narrow sidebar/UserMenu → dashboard redirect → balance → original chat. Both preserve the saved chat; two historical messages and empty input remain, no messages or payments were submitted, and no console errors were observed. Temporary viewport override was reset. A historical failed image response is not evidence of new generation. The collapsed desktop rail layout defect and full quality debt remain open.
