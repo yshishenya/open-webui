@@ -1,3 +1,4 @@
+import os
 import time
 
 import pytest
@@ -137,14 +138,24 @@ async def test_reporting_export_requires_customer_scope_for_sensitive_datasets()
 
 
 @pytest.mark.asyncio
-async def test_financial_totals_use_ledger_dates_and_full_selection(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize('dialect', ['sqlite', 'postgresql'])
+async def test_financial_totals_use_ledger_dates_and_full_selection(
+    monkeypatch: pytest.MonkeyPatch, dialect: str
+) -> None:
     from open_webui.models.analytics_refunds import AnalyticsRefund
     from open_webui.models.billing_models import Transaction
     from open_webui.models.billing_wallet import LedgerEntry, Payment, UsageEvent, Wallet
     from open_webui.models.users import User
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-    engine = create_async_engine('sqlite+aiosqlite:///:memory:')
+    database_url = (
+        os.getenv('BILLING_REPORTING_TEST_DATABASE_URL', '')
+        if dialect == 'postgresql'
+        else 'sqlite+aiosqlite:///:memory:'
+    )
+    if not database_url:
+        pytest.skip('Requires a disposable PostgreSQL billing reporting database')
+    engine = create_async_engine(database_url)
     try:
         async with engine.begin() as connection:
             for model in (User, Wallet, Payment, Transaction, LedgerEntry, AnalyticsRefund, UsageEvent):
@@ -267,7 +278,9 @@ async def test_financial_totals_use_ledger_dates_and_full_selection(monkeypatch:
             assert sum(row['amount_kopeks'] for row in credited) == totals['successful_payments_kopeks']
 
             overview = await service.overview(from_ts=100, to_ts=200, currency='RUB')
-            assert overview['series'][0]['paid_kopeks'] == 3000
+            assert overview['series'] == [
+                {'date': '1970-01-01', 'paid_kopeks': 3000, 'refund_kopeks': 250, 'usage_kopeks': 400}
+            ]
             customers = await service.customers(
                 from_ts=100,
                 to_ts=200,
