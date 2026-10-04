@@ -82,7 +82,11 @@
 	import { createTemporaryChatId, isTemporaryChatId } from '$lib/utils/chatId';
 	import { getOutputText } from './Messages/structuredOutput';
 	import { getLastMessageId } from '$lib/utils/airis/chat_history';
-	import type { ChatHistory, ChatHistoryMessage } from '$lib/utils/airis/chat_history';
+	import type {
+		ChatAttachment,
+		ChatHistory,
+		ChatHistoryMessage
+	} from '$lib/utils/airis/chat_history';
 	import { trackEvent } from '$lib/utils/analytics';
 
 	import {
@@ -407,8 +411,8 @@
 
 	// Chat Input
 	let prompt = '';
-	let chatFiles = [];
-	let files = [];
+	let chatFiles: ChatAttachment[] = [];
+	let files: ChatAttachment[] = [];
 	let params = {};
 	let chatVariables: Record<string, unknown> = {};
 	let showChatVariablesModal = false;
@@ -535,7 +539,10 @@
 		oldSelectedModelIds = structuredClone(selectedModelIds);
 	};
 
-	const mergeFiles = (current, incoming) => {
+	const mergeFiles = (
+		current: ChatAttachment[] | null | undefined,
+		incoming: ChatAttachment[] | null | undefined
+	): ChatAttachment[] => {
 		const seen = new Set();
 		return [...(incoming ?? []), ...(current ?? [])].filter((file) => {
 			const key = `${file?.type ?? ''}:${file?.id ?? file?.url ?? file?.name ?? ''}`;

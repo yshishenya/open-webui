@@ -1895,7 +1895,7 @@ async function ensurePDFjsLoaded() {
 	return window.pdfjsLib;
 }
 
-export const extractContentFromFile = async (file: File) => {
+export const extractContentFromFile = async (file: File): Promise<string> => {
 	// Known text file extensions for extra fallback
 	const textExtensions = [
 		'.txt',
@@ -1933,10 +1933,10 @@ export const extractContentFromFile = async (file: File) => {
 	}
 
 	// Reads file as text using FileReader
-	function readAsText(file: File) {
-		return new Promise((resolve, reject) => {
+	function readAsText(file: File): Promise<string> {
+		return new Promise<string>((resolve, reject) => {
 			const reader = new FileReader();
-			reader.onload = () => resolve(reader.result);
+			reader.onload = () => resolve(reader.result as string);
 			reader.onerror = reject;
 			reader.readAsText(file);
 		});

@@ -1,0 +1,173 @@
+{
+	"spec_id": "airis-chat-attachment-contracts-2026-10-04-001",
+	"title": "Airis chat attachment contracts",
+	"generated": "2026-10-04T16:12:56.259867Z",
+	"last_updated": "2026-10-04T16:42:57.836636Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__refactor__chat-attachment-contracts.md",
+		"status": "completed",
+		"activated_date": "2026-10-04T16:13:43.507255Z",
+		"progress_percentage": 100,
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-04T16:33:36.031944Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis chat attachment contracts",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 3,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace and reuse attachment contracts",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-04T16:33:34.908342Z",
+				"journaled_at": "2026-10-04T16:33:34.910259Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify erased types and frontend behavior",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-04T16:33:35.459792Z",
+				"journaled_at": "2026-10-04T16:33:35.462103Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Trace attachment writers and all consumers",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "src/lib/components/chat/MessageInput.svelte",
+				"task_category": "refactoring",
+				"completed_at": "2026-10-04T16:33:34.314049Z",
+				"needs_journaling": false,
+				"status_note": "Final scope Chat/MessageInput/Placeholder plus shared descriptor/text reader; 493 tests pass; 8 complete executable comparisons identical; 57 diagnostics removed and 8 existing consumer incompatibilities exposed. Controls/FileItem deferred with existing lint/runtime repairs.",
+				"journaled_at": "2026-10-04T16:33:34.314929Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Refine and reuse the existing descriptor contract",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "src/lib/utils/airis/chat_history.ts",
+				"task_category": "refactoring",
+				"completed_at": "2026-10-04T16:33:34.908193Z",
+				"needs_journaling": false,
+				"status_note": "Final scope Chat/MessageInput/Placeholder plus shared descriptor/text reader; 493 tests pass; 8 complete executable comparisons identical; 57 diagnostics removed and 8 existing consumer incompatibilities exposed. Controls/FileItem deferred with existing lint/runtime repairs.",
+				"journaled_at": "2026-10-04T16:33:34.909089Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify strict types, executable equality and frontend checks",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "tests/chat-attachment-contracts.test.ts",
+				"task_category": "refactoring",
+				"completed_at": "2026-10-04T16:33:35.459637Z",
+				"needs_journaling": false,
+				"status_note": "Final scope Chat/MessageInput/Placeholder plus shared descriptor/text reader; 493 tests pass; 8 complete executable comparisons identical; 57 diagnostics removed and 8 existing consumer incompatibilities exposed. Controls/FileItem deferred with existing lint/runtime repairs.",
+				"journaled_at": "2026-10-04T16:33:35.460714Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-04T16:33:34.314925Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Trace attachment writers and all consumers",
+			"author": "Codex",
+			"content": "Task task-1-1 marked as completed. \nNote: Traced existing callers; strict descriptor/native checks passed; 14 executable comparisons identical; diagnostic delta fully recorded; global quality gate remains open.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-04T16:33:34.909085Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Refine and reuse the existing descriptor contract",
+			"author": "Codex",
+			"content": "Task task-1-2 marked as completed. \nNote: Traced existing callers; strict descriptor/native checks passed; 14 executable comparisons identical; diagnostic delta fully recorded; global quality gate remains open.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-04T16:33:34.910254Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace and reuse attachment contracts",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-04T16:33:35.460686Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify strict types, executable equality and frontend checks",
+			"author": "Codex",
+			"content": "Task task-2-1 marked as completed. \nNote: Traced existing callers; strict descriptor/native checks passed; 14 executable comparisons identical; diagnostic delta fully recorded; global quality gate remains open.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-04T16:33:35.462098Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify erased types and frontend behavior",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}

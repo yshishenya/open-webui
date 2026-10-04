@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 	import DOMPurify from 'dompurify';
 	import { toast } from 'svelte-sonner';
 
@@ -141,7 +142,7 @@
 		generating;
 
 	export let prompt = '';
-	export let files = [];
+	export let files: ChatAttachment[] = [];
 
 	export let selectedToolIds: string[] = [];
 	export let selectedSkillIds: string[] = [];
@@ -755,7 +756,11 @@
 		}
 	};
 
-	const uploadFileHandler = async (file, process = true, itemData = {}) => {
+	const uploadFileHandler = async (
+		file: File,
+		process = true,
+		itemData: Partial<ChatAttachment> = {}
+	): Promise<null | void> => {
 		if ($_user?.role !== 'admin' && !($_user?.permissions?.chat?.file_upload ?? true)) {
 			toast.error($i18n.t('You do not have permission to upload files.'));
 			return null;
@@ -767,7 +772,7 @@
 		}
 
 		const tempItemId = uuidv4();
-		const fileItem = {
+		const fileItem: ChatAttachment = {
 			type: 'file',
 			file: '',
 			id: null,
@@ -950,7 +955,7 @@
 				let reader = new FileReader();
 
 				reader.onload = async (event) => {
-					let imageUrl = event.target.result;
+					let imageUrl = event.target!.result as string;
 
 					// Compress the image if settings or config require it
 					imageUrl = await compressImageHandler(imageUrl, $settings, $config);
