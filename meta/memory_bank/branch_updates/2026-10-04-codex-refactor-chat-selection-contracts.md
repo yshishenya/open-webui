@@ -1,0 +1,8 @@
+- [x] **[REFACTOR][CHAT]** Type selection and active task ID contracts
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__refactor__chat-selection-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/refactor/chat-selection-contracts`
+  - Done: 2026-10-04
+  - Summary: Trace existing selection and task consumers, annotate ID lists, prove unchanged complete JavaScript and no new diagnostics.
+  - Tests: 480/480 frontend; complete client/server compile equality for both components; 33 type diagnostics removed, 0 added; six existing diagnostics reworded; ESLint 1419 unchanged. Existing Chat formatting differences preserved, no new ones.
+  - Risks: Type-only source change; global type/lint gates remain red on existing debt, preflight script absent; no runtime release required.

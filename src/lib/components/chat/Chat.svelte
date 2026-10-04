@@ -189,7 +189,7 @@
 	}
 	let selectedModels = [''];
 	let atSelectedModel: Model | undefined;
-	let selectedModelIds = [];
+	let selectedModelIds: string[] = [];
 	$: if (atSelectedModel !== undefined) {
 		selectedModelIds = [atSelectedModel.id];
 	} else {
@@ -330,9 +330,9 @@
 	$: contextUsage = getContextUsage() ?? (contextCompactionEnabled ? serverContextUsage : null);
 	$: embeddedHeaderTitle = embeddedTitle || $chatTitle || $i18n.t('Chat');
 
-	let selectedToolIds = [];
-	let selectedSkillIds = [];
-	let selectedFilterIds = [];
+	let selectedToolIds: string[] = [];
+	let selectedSkillIds: string[] = [];
+	let selectedFilterIds: string[] = [];
 	let pendingOAuthTools = [];
 
 	let imageGenerationEnabled = false;
@@ -402,7 +402,7 @@
 		currentId: null
 	};
 
-	let taskIds = null;
+	let taskIds: string[] | null = null;
 
 	// Chat Input
 	let prompt = '';
@@ -4246,7 +4246,7 @@
 						bind:pane={controlPane}
 						chatId={$chatId}
 						modelId={selectedModelIds?.at(0) ?? null}
-						models={selectedModelIds.reduce((a, e, i, arr) => {
+						models={selectedModelIds.reduce<Model[]>((a, e, i, arr) => {
 							const model = $models.find((m) => m.id === e);
 							if (model) {
 								return [...a, model];
