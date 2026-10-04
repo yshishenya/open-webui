@@ -1,0 +1,177 @@
+{
+  "spec_id": "airis-shared-frontend-2026-10-04-001",
+  "title": "AIRIS shared frontend source rollout",
+  "generated": "2026-10-04T05:26:12.873509Z",
+  "last_updated": "2026-10-04T06:40:39.265240Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "medium",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__ops__shared-frontend-rollout.md",
+    "status": "completed",
+    "activated_date": "2026-10-04T05:28:57.615519Z",
+    "progress_percentage": 100,
+    "current_phase": "phase-2",
+    "completed_date": "2026-10-04T06:40:39.264978Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-shared-frontend",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Build and accept immutable candidate",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T06:18:12.463777Z",
+        "journaled_at": "2026-10-04T06:18:12.465785Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Guarded production and live acceptance",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T06:40:38.676070Z",
+        "journaled_at": "2026-10-04T06:40:38.677904Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Accept candidate build, image hashes and actual editor paths",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-04__ops__shared-frontend-rollout.md",
+        "completed_at": "2026-10-04T06:18:12.463649Z",
+        "needs_journaling": false,
+        "status_note": "Fixed source4a6a3feee/PR231 accepted.4913 frontend and501 immutable backend hashes match;counter111392024;19 query/guide plus3 actual math/note/map cases,0 shared/querypageerror.FullComposeonlyimagechanges.Registrydigest4268f1c5.",
+        "journaled_at": "2026-10-04T06:18:12.464664Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Back up and deploy only airis with unchanged full Compose settings",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "scripts/deploy_guarded.sh",
+        "completed_at": "2026-10-04T06:39:54.872956Z",
+        "needs_journaling": false,
+        "status_note": "Guarded deploy succeeded with verified retained database/data/config backup, hard Alembic gate, only airis recreate, preserved 13 neighbors and ENV, rollback image retained. Default full Compose image persisted with lock/hash guard.",
+        "journaled_at": "2026-10-04T06:39:54.874454Z"
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Verify production files, UI, money invariants and retained mail gates",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-04__ops__shared-frontend-rollout.md",
+        "completed_at": "2026-10-04T06:40:38.675912Z",
+        "needs_journaling": false,
+        "status_note": "Production4913 frontend hashes match accepted source4a;501 live backend hashes unchanged;ENV and13 retained neighbors unchanged.healthy/restarts0;live Cancel/Save draft0user messages/0browsererrors.Pilot inventory139users0valid opt-in,queue0.No pilot/business acceptance inferred.G14 debt4225/174 and1503 stays open.",
+        "journaled_at": "2026-10-04T06:40:38.676879Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-04T06:18:12.464659Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Accept candidate build, image hashes and actual editor paths",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Fixed source4a6a3feee/PR231 accepted.4913 frontend and501 immutable backend hashes match;counter111392024;19 query/guide plus3 actual math/note/map cases,0 shared/querypageerror.FullComposeonlyimagechanges.Registrydigest4268f1c5.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-04T06:18:12.465777Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Build and accept immutable candidate",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-04T06:39:54.874449Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Back up and deploy only airis with unchanged full Compose settings",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Guarded deploy succeeded with verified retained database/data/config backup, hard Alembic gate, only airis recreate, preserved 13 neighbors and ENV, rollback image retained. Default full Compose image persisted with lock/hash guard.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-04T06:40:38.676874Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify production files, UI, money invariants and retained mail gates",
+      "author": "claude-code",
+      "content": "Task task-2-2 marked as completed. \nNote: Production4913 frontend hashes match accepted source4a;501 live backend hashes unchanged;ENV and13 retained neighbors unchanged.healthy/restarts0;live Cancel/Save draft0user messages/0browsererrors.Pilot inventory139users0valid opt-in,queue0.No pilot/business acceptance inferred.G14 debt4225/174 and1503 stays open.",
+      "metadata": {},
+      "task_id": "task-2-2"
+    },
+    {
+      "timestamp": "2026-10-04T06:40:38.677900Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Guarded production and live acceptance",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
