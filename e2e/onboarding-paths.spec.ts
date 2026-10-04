@@ -96,6 +96,12 @@ async function signIn(page: Page, account: Account): Promise<void> {
 	await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toBeVisible();
 }
 
+async function openSidebar(page: Page): Promise<void> {
+	if ((page.viewportSize()?.width ?? 1000) < 640)
+		await page.getByRole('button', { name: 'Open Sidebar', exact: true }).click();
+	else await page.keyboard.press('Control+Shift+S');
+}
+
 test.beforeEach(async ({ page }) => {
 	await page.addInitScript(() => {
 		localStorage.setItem('locale', 'en-US');
@@ -157,6 +163,7 @@ for (const example of ['написать текст', 'разобраться в
 			page.getByRole('log').getByText('AIRIS deterministic answer.', { exact: true })
 		).toBeVisible();
 		expect((await facts(request, account)).successes).toBe(1);
+		await openSidebar(page);
 		await page.getByRole('link', { name: 'New Chat', exact: true }).click();
 		await expect(page).toHaveURL(/\/$/);
 		await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toHaveText('');
@@ -205,6 +212,7 @@ test('checkout → exact credit → visible history → one service email, repla
 	await expect(page).toHaveURL(/\/c\//);
 	const chatURL = page.url();
 	if ((page.viewportSize()?.width ?? 1000) < 640) {
+		await openSidebar(page);
 		await page.getByRole('button', { name: 'User menu', exact: true }).last().click();
 		await page.getByTestId('user-menu-billing').click();
 	} else {
@@ -239,7 +247,10 @@ test('checkout → exact credit → visible history → one service email, repla
 	await expect(
 		page.getByRole('article', { name: /^Top-up,/ }).getByText('+RUB 500.00', { exact: true })
 	).toBeVisible();
-	await page.getByRole('link', { name: 'Back to chat', exact: true }).click();
+	await page
+		.getByRole('link', { name: /^Back( to chat)?$/ })
+		.first()
+		.click();
 	await expect(page).toHaveURL(chatURL);
 	await expect(
 		page.getByRole('log').getByText('AIRIS deterministic answer.', { exact: true })

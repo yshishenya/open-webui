@@ -2,7 +2,7 @@
   "spec_id": "airis-onboarding-full-paths-2026-10-04-001",
   "title": "Airis onboarding full paths",
   "generated": "2026-10-04T11:00:55.879798Z",
-  "last_updated": "2026-10-04T11:37:45.597998Z",
+  "last_updated": "2026-10-04T12:15:26.512852Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -11,15 +11,17 @@
     "security_sensitive": false,
     "default_category": "implementation",
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__test__onboarding-full-paths.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-04T11:05:26.140374Z",
-    "progress_percentage": 66
+    "progress_percentage": 100,
+    "current_phase": "phase-3",
+    "completed_date": "2026-10-04T12:15:26.512546Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Airis onboarding full paths",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
@@ -27,7 +29,7 @@
         "phase-3"
       ],
       "total_tasks": 4,
-      "completed_tasks": 2,
+      "completed_tasks": 4,
       "metadata": {}
     },
     "phase-1": {
@@ -65,15 +67,19 @@
     "phase-3": {
       "type": "phase",
       "title": "Phase 3: [To Be Defined]",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-3-1",
         "task-3-2"
       ],
       "total_tasks": 2,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T12:15:26.081531Z",
+        "journaled_at": "2026-10-04T12:15:26.083553Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -118,7 +124,7 @@
     "task-3-1": {
       "type": "task",
       "title": "Verify two browsers, negative cases, regressions and exact source",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3",
       "children": [],
       "dependencies": {
@@ -127,13 +133,18 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-04T12:15:25.859612Z",
+        "needs_journaling": false,
+        "status_note": "10/10 two-browser full paths, no skips/page errors; frontend 480; zero new type/lint diagnostics. Local protocols only; real pilot and full quality debt remain open.",
+        "journaled_at": "2026-10-04T12:15:25.861159Z"
+      }
     },
     "task-3-2": {
       "type": "task",
       "title": "Fix wallet return links using persisted chat identity on desktop and mobile",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3",
       "children": [],
       "dependencies": {
@@ -142,8 +153,13 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {},
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-04T12:15:26.081367Z",
+        "needs_journaling": false,
+        "status_note": "Shared persisted chat return helper verified in rebuilt c00765af1 candidate, desktop header and mobile user menu; checkout/history returns original chat without extra provider requests. Source CI and production are separate acceptance.",
+        "journaled_at": "2026-10-04T12:15:26.082360Z"
+      },
       "description": "Both browsers reproduce the lost new-chat return. Share the existing validated return-path rules between the header and mobile user menu; preserve empty/temporary IDs and billing navigation; verify a rebuilt candidate."
     }
   },
@@ -183,6 +199,33 @@
       "content": "All child tasks in phase phase-2 have been completed.",
       "metadata": {},
       "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-04T12:15:25.861154Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify two browsers, negative cases, regressions and exact source",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: 10/10 two-browser full paths, no skips/page errors; frontend 480; zero new type/lint diagnostics. Local protocols only; real pilot and full quality debt remain open.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-04T12:15:26.082356Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Fix wallet return links using persisted chat identity on desktop and mobile",
+      "author": "claude-code",
+      "content": "Task task-3-2 marked as completed. \nNote: Shared persisted chat return helper verified in rebuilt c00765af1 candidate, desktop header and mobile user menu; checkout/history returns original chat without extra provider requests. Source CI and production are separate acceptance.",
+      "metadata": {},
+      "task_id": "task-3-2"
+    },
+    {
+      "timestamp": "2026-10-04T12:15:26.083548Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 3: [To Be Defined]",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
     }
   ]
 }
