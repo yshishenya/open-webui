@@ -1,0 +1,124 @@
+{
+  "spec_id": "airis-query-variable-submit-2026-10-04-001",
+  "title": "airis-query-variable-submit",
+  "generated": "2026-10-04T05:46:21.958470Z",
+  "last_updated": "2026-10-04T05:56:57.724202Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "medium",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__query-variable-submit.md",
+    "status": "active",
+    "activated_date": "2026-10-04T05:54:18.095932Z",
+    "progress_percentage": 33,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-query-variable-submit",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and fix both automatic query paths",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Accept exact source and integrate",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce early raw query submission in actual built UI",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "e2e/input-variable-query.spec.ts",
+        "completed_at": "2026-10-04T05:56:57.722303Z",
+        "needs_journaling": false,
+        "status_note": "Actual built source89 URL cases fail with1 raw-template request instead of0; helper3 failures show premature settlement and ignored rejection.",
+        "journaled_at": "2026-10-04T05:56:57.723671Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Wait for saved text and suppress cancelled automatic queries",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/lib/utils/airis/chat.ts"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify exact source, CI and merge",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__query-variable-submit.md"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-04T05:56:57.723666Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce early raw query submission in actual built UI",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Actual built source89 URL cases fail with1 raw-template request instead of0; helper3 failures show premature settlement and ignored rejection.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    }
+  ]
+}

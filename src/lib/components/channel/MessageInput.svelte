@@ -248,7 +248,7 @@
 		}
 	};
 
-	export const setText = async (text?: string, cb?: (text: string) => void): Promise<void> => {
+	export const setText = async (text?: string, cb?: (text: string) => void): Promise<boolean> => {
 		inputVariablesModalCancelCallback();
 		const chatInput = document.getElementById('chat-input');
 
@@ -261,12 +261,14 @@
 			chatInputElement?.focus();
 
 			if (text !== '') {
-				if ((await inputVariableHandler(text)) === null) return;
+				if ((await inputVariableHandler(text)) === null) return false;
 			}
 
 			await tick();
 			if (cb) await cb(text);
+			return true;
 		}
+		return false;
 	};
 
 	const getCommand = () => {

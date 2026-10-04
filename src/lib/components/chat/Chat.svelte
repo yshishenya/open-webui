@@ -1948,22 +1948,20 @@
 				}
 
 				if (query || eventFiles?.length) {
-					if (query) {
-						messageInput?.setText(query);
+					const ready = !query || (await setTextWithRetries(() => messageInput, tick, query));
+					if (ready) {
+						await tick();
+						submitHandler(query ? prompt : '');
 					}
-					await tick();
-					submitHandler(query || '');
 				}
 			}
 		} else if ($page.url.searchParams.get('q')) {
 			const q = $page.url.searchParams.get('q') ?? '';
-			await setTextWithRetries(() => messageInput, tick, q);
+			const ready = await setTextWithRetries(() => messageInput, tick, q);
 
-			if (q) {
-				if (($page.url.searchParams.get('submit') ?? 'true') === 'true') {
-					await tick();
-					submitHandler(q);
-				}
+			if (ready && q && ($page.url.searchParams.get('submit') ?? 'true') === 'true') {
+				await tick();
+				submitHandler(prompt);
 			}
 		} else {
 			const presetPrompt = consumeWelcomePresetPrompt();
