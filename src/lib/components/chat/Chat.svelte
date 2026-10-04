@@ -4050,7 +4050,7 @@
 										compactHandler={handleManualCompact}
 										statusHandler={handleStatusCommand}
 										forkHandler={handleForkChat}
-										toolServers={$toolServers}
+
 										{generating}
 										{stopResponse}
 										{createMessagePair}
@@ -4169,7 +4169,7 @@
 										compactHandler={handleManualCompact}
 										statusHandler={handleStatusCommand}
 										forkHandler={handleForkChat}
-										toolServers={$toolServers}
+
 										{generating}
 										{stopResponse}
 										{createMessagePair}

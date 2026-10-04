@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: verified; PR/CI/merge pending
+- Status: done
 - Owner: Codex
 - Branch: codex/bugfix/model-metadata-contracts
 - SDD Spec: meta/sdd/specs/completed/airis-model-metadata-contracts-2026-10-04-001.json
@@ -20,7 +20,7 @@ The shared ModelMeta incorrectly requires an impossible never[] tool list, descr
 - [x] Unknown extension capabilities and raw field values are retained; no new runtime validation or serialization is implied.
 - [x] Emitted API JavaScript is byte-identical to the accepted base.
 - [x] Full frontend tests pass; full diagnostic lists have zero additions; strict changed-file lint passes.
-- [ ] Source/CI/merge evidence is recorded. A runtime release is unnecessary only if byte identity is proved.
+- [x] Source/CI/merge evidence is recorded. A runtime release is unnecessary only if byte identity is proved.
 
 ## Scope / Upstream impact
 
@@ -35,3 +35,7 @@ Docker Compose full frontend tests/types/lint and strict lint. Compare against s
 Docker Compose: 467/467 frontend tests in 70 files pass. Full types: 4003 errors/164 warnings → 3991/164; the canonical diagnostic list removes 12 and adds 0. Full ESLint: 1419 errors/0 warnings unchanged, exact JSON diagnostic comparison removes 0/adds 0. Both global commands retain exit1 because existing quality debt remains; they are not reported green. Strict API/test lint, two compiler/erasure checks, test formatting and git diff --check pass. Exact frozen API source is unchanged outside the interface and type-only import; emitted JavaScript is byte-identical. No backend, dependency or migration changed. SDD3/3 completed, validator0errors/0warnings.
 
 Private receipts: airis-model-metadata-20261004/{type-delta.json,lint-delta.json,source-runtime-boundary-proof.json,check-exits.json}. No new runtime release is needed for an erased-type-only change. G14 and the real pilot remain open.
+
+## Accepted source
+
+PR240 source `c1f6558f6f7d2affe87305ceccbb5480e72a01e8`, merge `b83185491370f52f4767f646ee44aa7a9323045b`, accepted2026-10-04T09:49:24Z.10CI success/1dependency-review skip; CodeRabbit base review disabled. All5 files retain SHA256 after merge. No new deployment because exact API runtime identity is proven; overall G14/pilot remain open.
