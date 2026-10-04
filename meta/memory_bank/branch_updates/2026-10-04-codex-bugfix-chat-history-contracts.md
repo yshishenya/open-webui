@@ -1,0 +1,8 @@
+- [x] **[BUG][CHAT]** Type shared message-list history and actions
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__chat-message-list-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-history-contracts`
+  - Done: 2026-10-04
+  - Summary: Typed the existing graph and actions across the shared message list. All 110 local type errors are removed; source checks complete, CI/merge and production have separate receipts.
+  - Tests: 457/457 frontend tests; 14 source-handler checks; full type errors 4204 to 4094, ESLint 1503 to 1500; zero added diagnostics.
+  - Risks: Shared regular/public chat message list; production acceptance remains separate.
