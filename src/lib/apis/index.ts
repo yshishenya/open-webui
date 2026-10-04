@@ -1,4 +1,4 @@
-import { WEBUI_BASE_URL } from '$lib/constants';
+import { WEBUI_BASE_URL, type DEFAULT_CAPABILITIES } from '$lib/constants';
 import { convertOpenApiToToolPayload } from '$lib/utils';
 import { getOpenAIModelsDirect } from './openai';
 
@@ -1706,9 +1706,14 @@ export interface ModelConfig {
 }
 
 export interface ModelMeta {
-	toolIds: never[];
+	toolIds?: string[] | null;
 	description?: string;
-	capabilities?: object;
+	capabilities?:
+		| (Partial<Record<keyof typeof DEFAULT_CAPABILITIES, boolean>> & Record<string, unknown>)
+		| null;
+	chat_variables_schema?: {
+		fields: Array<Record<string, unknown> & { key: string; type: string; required: boolean }>;
+	} | null;
 	profile_image_url?: string;
 	lead_magnet?: boolean;
 }
