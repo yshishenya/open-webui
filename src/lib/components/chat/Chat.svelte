@@ -104,6 +104,7 @@
 		generateQueries,
 		chatAction,
 		generateMoACompletion,
+		type ModelMeta,
 		stopTask,
 		stopTasksByChatId,
 		getTaskIdsByChatId
@@ -409,14 +410,23 @@
 	let chatFiles = [];
 	let files = [];
 	let params = {};
-	let chatVariables = {};
+	let chatVariables: Record<string, unknown> = {};
 	let showChatVariablesModal = false;
 	let loadedChatIdProp = '';
 	let currentDraftKey = '';
 
-	const mergeChatVariableSchemas = (modelIds = [], availableModels = []) => {
-		const byKey: Record<string, any> = {};
-		const conflicts: any[] = [];
+	type ChatVariableField = NonNullable<ModelMeta['chat_variables_schema']>['fields'][number];
+	type ChatVariableConflict = { key: string; modelIds: string[] };
+	const mergeChatVariableSchemas = (
+		modelIds: string[] = [],
+		availableModels: Model[] = []
+	): { fields: ChatVariableField[]; conflicts: ChatVariableConflict[] } => {
+		// A valid field named constructor must not resolve to Object.prototype.
+		const byKey: Record<
+			string,
+			{ field: ChatVariableField; modelIds: string[]; shape: Record<string, unknown> }
+		> = Object.create(null);
+		const conflicts: ChatVariableConflict[] = [];
 
 		for (const modelId of modelIds.filter(Boolean)) {
 			const fields =
@@ -458,37 +468,49 @@
 		}
 
 		return {
-			fields: Object.values(byKey).map((item: any) => item.field),
+			fields: Object.values(byKey).map((item) => item.field),
 			conflicts
 		};
 	};
 
-	const hasValue = (value) => value !== undefined && value !== null && value !== '';
+	const hasValue = (value: unknown): boolean =>
+		value !== undefined && value !== null && value !== '';
 
-	const getChatVariablesForm = (modelIds = [], values = {}, availableModels = []) => {
+	const getChatVariablesForm = (
+		modelIds: string[] = [],
+		values: Record<string, unknown> = {},
+		availableModels: Model[] = []
+	): {
+		conflicts: ChatVariableConflict[];
+		empty: boolean;
+		missing: boolean;
+		variables: Record<string, Record<string, unknown>>;
+	} => {
+		const readValue = (key: string): unknown =>
+			Object.hasOwn(values ?? {}, key) ? values[key] : undefined;
 		const { fields, conflicts } = mergeChatVariableSchemas(modelIds, availableModels);
 		const empty =
 			fields.length > 0 &&
-			fields.every((field) => !hasValue(values?.[field.key]) && !hasValue(field.default));
+			fields.every((field) => !hasValue(readValue(field.key)) && !hasValue(field.default));
 		const missing = fields.some(
-			(field) => field.required && !hasValue(values?.[field.key]) && !hasValue(field.default)
+			(field) => field.required && !hasValue(readValue(field.key)) && !hasValue(field.default)
 		);
 		const variables = fields.reduce(
 			(acc, field) => {
 				const { key, ...inputField } = field;
 				acc[key] = {
 					...inputField,
-					default: hasValue(values?.[key]) ? values[key] : inputField.default
+					default: hasValue(readValue(key)) ? readValue(key) : inputField.default
 				};
 				return acc;
 			},
-			{} as Record<string, any>
+			{} as Record<string, Record<string, unknown>>
 		);
 
 		return { conflicts, empty, missing, variables };
 	};
 
-	const saveChatVariables = async (values) => {
+	const saveChatVariables = async (values: Record<string, unknown>): Promise<void> => {
 		chatVariables = { ...chatVariables, ...values };
 
 		if ($chatId && !$temporaryChatEnabled && !isTemporaryChatId($chatId)) {

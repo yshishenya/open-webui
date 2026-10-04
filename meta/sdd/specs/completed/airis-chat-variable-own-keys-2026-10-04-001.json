@@ -1,0 +1,158 @@
+{
+	"spec_id": "airis-chat-variable-own-keys-2026-10-04-001",
+	"title": "Airis chat variable own keys",
+	"generated": "2026-10-04T14:36:53.905877Z",
+	"last_updated": "2026-10-04T15:15:00.221267Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "implementation",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__chat-variable-own-keys.md",
+		"status": "completed",
+		"activated_date": "2026-10-04T14:39:36.150352Z",
+		"progress_percentage": 100,
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-04T15:15:00.221025Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis chat variable own keys",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 3,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Reproduce and fix shared variable form",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1", "task-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-04T14:56:56.552573Z",
+				"journaled_at": "2026-10-04T14:56:56.554420Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify source and compiled behavior",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-3"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-04T15:14:59.768399Z",
+				"journaled_at": "2026-10-04T15:14:59.770760Z"
+			}
+		},
+		"task-1": {
+			"type": "task",
+			"title": "Reproduce inherited schema/value failures",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"category": "implementation",
+				"file_path": "tests/chat-variable-own-keys.test.ts",
+				"completed_at": "2026-10-04T14:56:56.335299Z",
+				"needs_journaling": false,
+				"status_note": "Six accepted-baseline failures; ten own-key regressions pass after fix with real same-realm comparator",
+				"journaled_at": "2026-10-04T14:56:56.336128Z"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		},
+		"task-2": {
+			"type": "task",
+			"title": "Use own keys and existing ModelMeta contracts",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"category": "implementation",
+				"file_path": "src/lib/components/chat/Chat.svelte",
+				"completed_at": "2026-10-04T14:56:56.552405Z",
+				"needs_journaling": false,
+				"status_note": "Shared merge dictionary and own-value lookup corrected with existing ModelMeta; zero new diagnostics",
+				"journaled_at": "2026-10-04T14:56:56.553326Z"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		},
+		"task-3": {
+			"type": "task",
+			"title": "Validate tests, diagnostics and compiled scenarios",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"metadata": {
+				"category": "implementation",
+				"file_path": "e2e/onboarding-paths.spec.ts",
+				"completed_at": "2026-10-04T15:14:59.768243Z",
+				"needs_journaling": false,
+				"status_note": "490 frontend tests; 16 compiled ordinary/embedded/full-path cases pass in Chromium and Firefox; exact diagnostics and runtime scope verified",
+				"journaled_at": "2026-10-04T15:14:59.769735Z"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-04T14:56:56.336124Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce inherited schema/value failures",
+			"author": "claude-code",
+			"content": "Task task-1 marked as completed. \nNote: Six accepted-baseline failures; ten own-key regressions pass after fix with real same-realm comparator",
+			"metadata": {},
+			"task_id": "task-1"
+		},
+		{
+			"timestamp": "2026-10-04T14:56:56.553322Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Use own keys and existing ModelMeta contracts",
+			"author": "claude-code",
+			"content": "Task task-2 marked as completed. \nNote: Shared merge dictionary and own-value lookup corrected with existing ModelMeta; zero new diagnostics",
+			"metadata": {},
+			"task_id": "task-2"
+		},
+		{
+			"timestamp": "2026-10-04T14:56:56.554415Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Reproduce and fix shared variable form",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-04T15:14:59.769729Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Validate tests, diagnostics and compiled scenarios",
+			"author": "claude-code",
+			"content": "Task task-3 marked as completed. \nNote: 490 frontend tests; 16 compiled ordinary/embedded/full-path cases pass in Chromium and Firefox; exact diagnostics and runtime scope verified",
+			"metadata": {},
+			"task_id": "task-3"
+		},
+		{
+			"timestamp": "2026-10-04T15:14:59.770755Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify source and compiled behavior",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
