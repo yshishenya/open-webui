@@ -1,0 +1,8 @@
+- [x] **[DOCS][TEST]** Record accepted complete onboarding and payment return paths
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__docs__onboarding-paths-acceptance.md`
+  - Owner: Codex
+  - Branch: `codex/docs/onboarding-paths-acceptance`
+  - Done: 2026-10-04
+  - Summary: PR245 source/merge and final r1 artifact accepted; repeated browser paths 10/10 and production files/default image/navigation verified. Analytics settings preserved; general quality debt, collapsed desktop rail and real pilot remain open.
+  - Tests: N/A runtime changes; changed Markdown formatting, diff check, completed SDD validation; exact documentation CI tracked separately.
+  - Risks: Private operational receipts remain local; no new deployment.
