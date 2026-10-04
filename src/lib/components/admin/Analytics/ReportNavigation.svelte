@@ -17,6 +17,9 @@
 		(href === '/admin/billing/customers' && $page.url.pathname.startsWith(`${href}/`));
 	const url = (href: string): string => {
 		const params = new URLSearchParams();
+		// Acquisition dates and monetary operation dates have different meanings.
+		if ($page.url.pathname.startsWith('/admin/analytics') !== href.startsWith('/admin/analytics'))
+			return href;
 		for (const key of ['from', 'to', 'currency', 'window_days']) {
 			const value =
 				$page.url.searchParams.get(key) ||
