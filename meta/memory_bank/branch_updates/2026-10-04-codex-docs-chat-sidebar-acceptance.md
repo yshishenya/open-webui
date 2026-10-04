@@ -1,0 +1,8 @@
+- [x] **[DOCS][UI]** Record accepted collapsed sidebar and visible-button paths
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__docs__chat-sidebar-acceptance.md`
+  - Owner: Codex
+  - Branch: `codex/docs/chat-sidebar-acceptance`
+  - Done: 2026-10-04
+  - Summary: PR247 source and production accepted; desktop rail/button stay onscreen before and after reload, wallet returns to the same chat and narrow drawer opens. SDD 3/3 closed; general quality debt and real pilot remain open.
+  - Tests: Changed-file formatting, completed SDD schema/ID/links and diff check; exact documentation CI tracked separately.
+  - Risks: Private operational receipts remain local; no new runtime change or deployment.
