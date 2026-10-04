@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getAttachmentSource } from '$lib/utils/airis/attachment_source';
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
 	import isToday from 'dayjs/plugin/isToday';
@@ -460,10 +461,7 @@
 							dir={$settings?.chatDirection ?? 'auto'}
 						>
 							{#each message?.data?.files as file}
-								{@const fileUrl =
-									file.url.startsWith('data') || file.url.startsWith('http')
-										? file.url
-										: `${WEBUI_API_BASE_URL}/files/${file.url}${file?.content_type ? '/content' : ''}`}
+								{@const fileUrl = getAttachmentSource(file)}
 								<div>
 									{#if file.type === 'image' || (file?.content_type ?? '').startsWith('image/')}
 										<Image src={fileUrl} alt={file.name} imageClassName=" max-h-96 rounded-lg" />
