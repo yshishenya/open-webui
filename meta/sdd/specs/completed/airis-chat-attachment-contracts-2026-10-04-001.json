@@ -2,7 +2,7 @@
 	"spec_id": "airis-chat-attachment-contracts-2026-10-04-001",
 	"title": "Airis chat attachment contracts",
 	"generated": "2026-10-04T16:12:56.259867Z",
-	"last_updated": "2026-10-04T16:34:41.774917Z",
+	"last_updated": "2026-10-04T16:42:57.836636Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "low",
@@ -74,7 +74,7 @@
 				"task_category": "refactoring",
 				"completed_at": "2026-10-04T16:33:34.314049Z",
 				"needs_journaling": false,
-				"status_note": "Traced existing callers; strict descriptor/native checks passed; 14 executable comparisons identical; diagnostic delta fully recorded; global quality gate remains open.",
+				"status_note": "Final scope Chat/MessageInput/Placeholder plus shared descriptor/text reader; 493 tests pass; 8 complete executable comparisons identical; 57 diagnostics removed and 8 existing consumer incompatibilities exposed. Controls/FileItem deferred with existing lint/runtime repairs.",
 				"journaled_at": "2026-10-04T16:33:34.314929Z"
 			}
 		},
@@ -96,7 +96,7 @@
 				"task_category": "refactoring",
 				"completed_at": "2026-10-04T16:33:34.908193Z",
 				"needs_journaling": false,
-				"status_note": "Traced existing callers; strict descriptor/native checks passed; 14 executable comparisons identical; diagnostic delta fully recorded; global quality gate remains open.",
+				"status_note": "Final scope Chat/MessageInput/Placeholder plus shared descriptor/text reader; 493 tests pass; 8 complete executable comparisons identical; 57 diagnostics removed and 8 existing consumer incompatibilities exposed. Controls/FileItem deferred with existing lint/runtime repairs.",
 				"journaled_at": "2026-10-04T16:33:34.909089Z"
 			}
 		},
@@ -118,7 +118,7 @@
 				"task_category": "refactoring",
 				"completed_at": "2026-10-04T16:33:35.459637Z",
 				"needs_journaling": false,
-				"status_note": "Traced existing callers; strict descriptor/native checks passed; 14 executable comparisons identical; diagnostic delta fully recorded; global quality gate remains open.",
+				"status_note": "Final scope Chat/MessageInput/Placeholder plus shared descriptor/text reader; 493 tests pass; 8 complete executable comparisons identical; 57 diagnostics removed and 8 existing consumer incompatibilities exposed. Controls/FileItem deferred with existing lint/runtime repairs.",
 				"journaled_at": "2026-10-04T16:33:35.460714Z"
 			}
 		}

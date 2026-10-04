@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 	import { createEventDispatcher, getContext } from 'svelte';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
@@ -24,13 +23,13 @@
 	export let modal = false;
 	export let loading = false;
 
-	export let item: ChatAttachment | null = null;
+	export let item = null;
 	export let edit = false;
 	export let small = false;
 
-	export let name: string | undefined;
-	export let type: string | undefined;
-	export let size: number | undefined;
+	export let name: string;
+	export let type: string;
+	export let size: number;
 
 	import DocumentPage from '../icons/DocumentPage.svelte';
 	import Database from '../icons/Database.svelte';

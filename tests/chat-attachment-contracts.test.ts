@@ -6,7 +6,7 @@ import ts from 'typescript';
 import { expect, it } from 'vitest';
 
 it('retains heterogeneous attachments and rejects invalid known fields in actual component declarations', () => {
-	const declarations = ['Chat', 'MessageInput', 'ChatControls'].map((component) => {
+	const declarations = ['Chat', 'MessageInput'].map((component) => {
 		const text = readFileSync(`src/lib/components/chat/${component}.svelte`, 'utf8');
 		const script = ts.createSourceFile(
 			`${component}.ts`,

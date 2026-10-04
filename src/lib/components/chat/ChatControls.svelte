@@ -3,7 +3,6 @@
 </script>
 
 <script lang="ts">
-	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 	import { SvelteFlowProvider } from '@xyflow/svelte';
 	import { slide } from 'svelte/transition';
 	import { Pane, PaneResizer } from 'paneforge';
@@ -43,14 +42,14 @@
 
 	export let chatId = null;
 
-	export let chatFiles: ChatAttachment[] = [];
+	export let chatFiles = [];
 	export let params = {};
 
 	export let eventTarget: EventTarget;
 	export let submitPrompt: Function;
 	export let stopResponse: Function;
 	export let showMessage: Function;
-	export let files: ChatAttachment[];
+	export let files;
 	export let modelId;
 
 	export let codeInterpreterEnabled = false;
@@ -119,13 +118,9 @@
 	}
 
 	// Attach a terminal file to the chat input
-	const handleTerminalAttach = async (
-		blob: Blob,
-		name: string,
-		contentType: string
-	): Promise<void> => {
+	const handleTerminalAttach = async (blob: Blob, name: string, contentType: string) => {
 		const tempItemId = uuidv4();
-		const fileItem: ChatAttachment = {
+		const fileItem = {
 			type: 'file',
 			file: '',
 			id: null,
