@@ -1,0 +1,8 @@
+- [ ] **[BUG][CHAT]** Prevent empty model filter reduction from throwing
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__empty-model-filters.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/empty-model-filters`
+  - Started: 2026-10-04
+  - Summary: Guard the shared intersection; preserve non-empty behavior and mention priority.
+  - Tests: Base regression fails;470/470frontend,focused3,strict lint pass;types3967/164 and ESLint1419 exact0added/0removed;SDD3/3/valid. CI/candidate/production pending.
+  - Risks: General quality and real pilot remain open.

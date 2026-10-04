@@ -4,5 +4,5 @@
   - Branch: `codex/bugfix/message-input-id-contracts`
   - Started: 2026-10-04
   - Summary: Correct single-empty-model tuple and implicit integration arrays; describe nullable UUID task list. Five type annotations, executable component preserved.
-  - Tests:469/469;types3967/164 (24removed/0added);ESLint1419 unchanged;strict Chat/MessageInput/test lint passes. Child client/server identity, parent only2 ignored compiled properties, SDD3/3/valid. CI/merge/candidate/production pending.
+  - Tests:469/469;types3967/164 (24removed/0added);ESLint1419 unchanged;strict Chat/MessageInput/test lint passes. Child client/server identity, parent only2 ignored compiled properties, SDD3/3/valid. PR241 source43054d4d3/merge4d9666311:10CI success/1skip,8files SHA256 identical; candidate12/12,0pageerrors/modelcalls. Production pending combined runtime fix.
   - Risks: Overall quality and real pilot criteria remain open.
