@@ -1,0 +1,181 @@
+{
+  "spec_id": "airis-math-tokenizer-types-2026-10-04-001",
+  "title": "AIRIS math tokenizer type contracts",
+  "generated": "2026-10-04T00:52:47.385256Z",
+  "last_updated": "2026-10-04T01:08:19.460630Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 2,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__refactor__math-tokenizer-types.md",
+    "status": "active",
+    "activated_date": "2026-10-04T00:54:22.838350Z",
+    "progress_percentage": 66
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS math tokenizer type contracts",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Contract and behavior safety net",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T00:56:41.166947Z",
+        "journaled_at": "2026-10-04T00:56:41.169311Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Type annotations, equivalent style fixes and verification",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T01:06:08.152751Z",
+        "journaled_at": "2026-10-04T01:06:08.154965Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Exact-source CI and integration acceptance",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Verify pinned interfaces and delimiter behavior",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 0.5,
+        "completed_at": "2026-10-04T00:56:41.166727Z",
+        "needs_journaling": false,
+        "status_note": "Pinned marked9.1.6/TS5.9.3 and official extension API verified; baseline19 actual Marked tests passed. Legacy single-dollar fallback intentionally unchanged.",
+        "journaled_at": "2026-10-04T00:56:41.168164Z",
+        "category": "investigation",
+        "file_path": "tests/math-tokenizer-contracts.test.ts"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify final math behavior and full diagnostics",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 1.0,
+        "completed_at": "2026-10-04T01:06:08.152552Z",
+        "needs_journaling": false,
+        "status_note": "Final behavior matches baseline for4216tokens/HTML and16864display comparisons;307frontend tests pass.22type/3lint removed,0added diagnostics;4union-print-order differences normalized. Fullcheck4376/176 andlint1529 remain open. Final JS byte equality not claimed after style changes.",
+        "journaled_at": "2026-10-04T01:06:08.153735Z",
+        "category": "implementation",
+        "file_path": "src/lib/utils/marked/katex-extension.ts"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Accept exact-source CI and integrate without runtime release",
+      "status": "in_progress",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 0.5,
+        "category": "investigation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-04__refactor__math-tokenizer-types.md",
+        "started_at": "2026-10-04T01:08:19.460439Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-04T00:56:41.168155Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify pinned interfaces and delimiter behavior",
+      "author": "Codex",
+      "content": "Task task-1-1 marked as completed. \nNote: Pinned marked9.1.6/TS5.9.3 and official extension API verified; baseline19 actual Marked tests passed. Legacy single-dollar fallback intentionally unchanged.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-04T00:56:41.169306Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Contract and behavior safety net",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-04T01:06:08.153728Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add erased annotations and verify emitted bytes and full diagnostics",
+      "author": "Codex",
+      "content": "Task task-2-1 marked as completed. \nNote: Final behavior matches baseline for4216tokens/HTML and16864display comparisons;307frontend tests pass.22type/3lint removed,0added diagnostics;4union-print-order differences normalized. Fullcheck4376/176 andlint1529 remain open. Final JS byte equality not claimed after style changes.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-04T01:06:08.154960Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Erased type annotations and verification",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

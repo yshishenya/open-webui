@@ -1,4 +1,14 @@
-const DELIMITER_LIST = [
+import type { MarkedExtension, RendererExtension, Token, TokenizerExtension } from 'marked';
+
+type MathDelimiter = { left: string; right: string; display: boolean };
+type MathToken = {
+	type: 'inlineKatex' | 'blockKatex';
+	raw: string;
+	text: string | undefined;
+	displayMode: boolean;
+};
+
+const DELIMITER_LIST: MathDelimiter[] = [
 	{ left: '$$', right: '$$', display: true },
 	{ left: '$', right: '$', display: false },
 	{ left: '\\pu{', right: '}', display: false },
@@ -27,14 +37,17 @@ const ALLOWED_SURROUNDING_CHARS_REGEX = new RegExp(`[${ALLOWED_SURROUNDING_CHARS
 // const inlineRule = /^(\${1,2})(?!\$)((?:\\.|[^\\\n])*?(?:\\.|[^\\\n\$]))\1(?=[\s?!\.,:？！。，：]|$)/;
 // const blockRule = /^(\${1,2})\n((?:\\[^]|[^\\])+?)\n\1(?:\n|$)/;
 
-const inlinePatterns = [];
-const blockPatterns = [];
+const inlinePatterns: string[] = [];
+const blockPatterns: string[] = [];
 
-function escapeRegex(string) {
-	return string.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+function escapeRegex(string: string): string {
+	return string.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
 }
 
-function generateRegexRules(delimiters) {
+function generateRegexRules(delimiters: MathDelimiter[]): {
+	inlineRule: RegExp;
+	blockRule: RegExp;
+} {
 	delimiters.forEach((delimiter) => {
 		const { left, right, display } = delimiter;
 		// Ensure regex-safe delimiters
@@ -90,7 +103,7 @@ export const tokenizeDisplayMath = (
 	src: string,
 	type: 'inlineKatex' | 'blockKatex',
 	requireBlockBoundary = false
-) => {
+): MathToken | undefined => {
 	if (!src.startsWith('$$')) return;
 
 	const endIndex = findClosingDelimiter(src, 2);
@@ -109,13 +122,13 @@ export const tokenizeDisplayMath = (
 	return validators.every((v) => v()) ? { type, raw, text, displayMode: true } : undefined;
 };
 
-export default function (options = {}) {
+export default function (options: Record<string, unknown> = {}): MarkedExtension {
 	return {
 		extensions: [inlineKatex(options), blockKatex(options)]
 	};
 }
 
-function katexStart(src, displayMode: boolean) {
+function katexStart(src: string, displayMode: boolean): number | undefined {
 	for (let i = 0; i < src.length; i++) {
 		const ch = src.charCodeAt(i);
 
@@ -144,7 +157,7 @@ function katexStart(src, displayMode: boolean) {
 	}
 }
 
-function katexTokenizer(src, tokens, displayMode: boolean) {
+function katexTokenizer(src: string, tokens: Token[], displayMode: boolean): MathToken | undefined {
 	if (src.startsWith('$$')) {
 		const displayToken = tokenizeDisplayMath(
 			src,
@@ -176,7 +189,8 @@ function katexTokenizer(src, tokens, displayMode: boolean) {
 	}
 }
 
-function inlineKatex(options) {
+function inlineKatex(options: Record<string, unknown>): TokenizerExtension & RendererExtension {
+	void options;
 	return {
 		name: 'inlineKatex',
 		level: 'inline',
@@ -192,7 +206,8 @@ function inlineKatex(options) {
 	};
 }
 
-function blockKatex(options) {
+function blockKatex(options: Record<string, unknown>): TokenizerExtension & RendererExtension {
+	void options;
 	return {
 		name: 'blockKatex',
 		level: 'block',

@@ -1,0 +1,8 @@
+- [ ] **[REFACTOR][TYPES]** Type the shared math tokenizer and preserve math results
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__refactor__math-tokenizer-types.md`
+  - Owner: Codex
+  - Branch: `codex/refactor/math-tokenizer-types`
+  - Started: 2026-10-04
+  - Summary: Reuse pinned Marked extension interfaces; retain delimiter behavior while removing22type and3lint errors. Existing union members only change print order in four unrelated diagnostics.
+  - Tests:19actual Marked cases,4216token/HTML and16864display comparisons,307Docker frontend tests. Full check4376/176 andlint1529 remain open; exact CI pending.
+  - Risks: Broad G14/13.11 and human/calendar acceptance remain open.
