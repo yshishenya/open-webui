@@ -3329,5 +3329,7 @@
 	"Related records are shown across all dates; financial totals keep the selected period.": "Related records are shown across all dates; financial totals keep the selected period.",
 	"Show all customer operations": "Show all customer operations",
 	"New subscriptions are disabled. Existing plans and subscription history remain available.": "New subscriptions are disabled. Existing plans and subscription history remain available.",
-	"New subscriptions are enabled.": "New subscriptions are enabled."
+	"New subscriptions are enabled.": "New subscriptions are enabled.",
+	"Add subtitles (.vtt)": "Add subtitles (.vtt)",
+	"Invalid subtitles file": "Invalid subtitles file"
 }

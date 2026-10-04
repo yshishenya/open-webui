@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getAttachmentSource } from '$lib/utils/airis/attachment_source';
 	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 	import DOMPurify from 'dompurify';
 	import { toast } from 'svelte-sonner';
@@ -1619,10 +1620,7 @@
 								>
 									{#each files as file, fileIdx}
 										{#if file.type === 'image' || (file?.content_type ?? '').startsWith('image/')}
-											{@const fileUrl =
-												file.url.startsWith('data') || file.url.startsWith('http')
-													? file.url
-													: `${WEBUI_API_BASE_URL}/files/${file.url}${file?.content_type ? '/content' : ''}`}
+											{@const fileUrl = getAttachmentSource(file)}
 											<div class=" relative group">
 												<div class="relative flex items-center">
 													<Image
@@ -1692,7 +1690,7 @@
 												dismissible={true}
 												edit={true}
 												small={true}
-												modal={['file', 'collection'].includes(file?.type)}
+												modal={file.type === 'file' || file.type === 'collection'}
 												on:dismiss={async () => {
 													// Remove from UI state
 													files.splice(fileIdx, 1);

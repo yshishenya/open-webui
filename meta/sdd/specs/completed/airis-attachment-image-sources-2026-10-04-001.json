@@ -1,0 +1,205 @@
+{
+  "spec_id": "airis-attachment-image-sources-2026-10-04-001",
+  "title": "Airis attachment image sources",
+  "generated": "2026-10-04T18:19:58.595778Z",
+  "last_updated": "2026-10-04T19:19:40.932564Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__attachment-sources.md",
+    "status": "completed",
+    "activated_date": "2026-10-04T18:27:12.053024Z",
+    "progress_percentage": 100,
+    "scope_note": "Strict changed-file CI repair: 20 existing lint issues; native video/local WebVTT captions with resource cleanup and source-keyed remount; existing shared textarea keyboard callback restored. No new application dependencies.",
+    "completed_date": "2026-10-04T19:19:40.932152Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis attachment image sources",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace all renderers and reproduce nullable addresses",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T18:30:18.861863Z",
+        "journaled_at": "2026-10-04T18:30:18.863824Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Repair shared attachment source resolution",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T18:30:19.160954Z",
+        "journaled_at": "2026-10-04T18:30:19.165751Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify full checks and runtime acceptance",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T19:19:40.478731Z",
+        "journaled_at": "2026-10-04T19:19:40.481505Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace producers/restoration and reproduce all five source expressions",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-04T18:30:18.861725Z",
+        "needs_journaling": false,
+        "status_note": "All five actual expressions fail baseline (three startsWith crashes, two undefined paths); traced upload, desktop event, session restoration and authorized backend content routes.",
+        "journaled_at": "2026-10-04T18:30:18.862653Z",
+        "task_category": "investigation"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Use one resolver preserving valid URLs and empty placeholders",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-04T18:30:19.160744Z",
+        "needs_journaling": false,
+        "status_note": "One concrete resolver and five thin calls preserve explicit URLs, restore ID-only content, retain existing image policy and do not mutate descriptors; seven targeted checks pass.",
+        "journaled_at": "2026-10-04T18:30:19.163483Z",
+        "file_path": "src/lib/utils/airis/attachment_source.ts",
+        "task_category": "implementation"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify regression full checks and compiled browser behavior",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "tests/attachment-sources.test.ts",
+        "task_category": "implementation",
+        "acceptance_note": "Final full diagnostics delta plus compiled restore/ID-only/channel document/image/video, local captions replacement and keyboard edit acceptance. Production gate remains separate.",
+        "completed_at": "2026-10-04T19:19:40.478583Z",
+        "needs_journaling": false,
+        "status_note": "522 frontend and 11 focused pass; zero new full type/lint diagnostics; final linux/amd64 compiled candidate 16 full paths plus restored ID-only/null, channel document/image/video70.24s, 10 native cues/replacement/invalid retention, Escape/CtrlEnter persisted, saved nullable view/edit/remove/reload, zero page errors.",
+        "journaled_at": "2026-10-04T19:19:40.480444Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-04T18:30:18.862647Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace producers/restoration and reproduce all five source expressions",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: All five actual expressions fail baseline (three startsWith crashes, two undefined paths); traced upload, desktop event, session restoration and authorized backend content routes.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-04T18:30:18.863816Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace all renderers and reproduce nullable addresses",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-04T18:30:19.163454Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Use one resolver preserving valid URLs and empty placeholders",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: One concrete resolver and five thin calls preserve explicit URLs, restore ID-only content, retain existing image policy and do not mutate descriptors; seven targeted checks pass.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-04T18:30:19.165745Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Repair shared attachment source resolution",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-04T19:19:40.480439Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify regression full checks and compiled browser behavior",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: 522 frontend and 11 focused pass; zero new full type/lint diagnostics; final linux/amd64 compiled candidate 16 full paths plus restored ID-only/null, channel document/image/video70.24s, 10 native cues/replacement/invalid retention, Escape/CtrlEnter persisted, saved nullable view/edit/remove/reload, zero page errors.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-04T19:19:40.481500Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify full checks and runtime acceptance",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

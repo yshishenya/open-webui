@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getAttachmentSource } from '$lib/utils/airis/attachment_source';
 	import { toast } from 'svelte-sonner';
 	import { v4 as uuidv4 } from 'uuid';
 
@@ -24,7 +25,6 @@
 	import { getSessionUser } from '$lib/apis/auths';
 
 	import { uploadFile } from '$lib/apis/files';
-	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 	import { getSuggestionRenderer } from '../common/RichTextInput/suggestions';
 	import CommandSuggestionList from '../chat/MessageInput/CommandSuggestionList.svelte';
@@ -856,10 +856,7 @@
 								<div class="mx-2 mt-2.5 -mb-1 flex flex-wrap gap-2">
 									{#each files as file, fileIdx}
 										{#if file.type === 'image' || (file?.content_type ?? '').startsWith('image/')}
-											{@const fileUrl =
-												file.url.startsWith('data') || file.url.startsWith('http')
-													? file.url
-													: `${WEBUI_API_BASE_URL}/files/${file.url}${file?.content_type ? '/content' : ''}`}
+											{@const fileUrl = getAttachmentSource(file)}
 											<div class=" relative group">
 												<div class="relative">
 													<Image

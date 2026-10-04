@@ -3855,5 +3855,7 @@
 	"Related records are shown across all dates; financial totals keep the selected period.": "Связанные записи показаны за все даты; денежные итоги остаются за выбранный период.",
 	"Show all customer operations": "Показать все операции клиента",
 	"New subscriptions are disabled. Existing plans and subscription history remain available.": "Новые подписки отключены. Существующие тарифы и история подписок доступны.",
-	"New subscriptions are enabled.": "Новые подписки доступны."
+	"New subscriptions are enabled.": "Новые подписки доступны.",
+	"Add subtitles (.vtt)": "Добавить субтитры (.vtt)",
+	"Invalid subtitles file": "Не удалось прочитать субтитры. Выберите файл WebVTT размером до 5 МБ."
 }

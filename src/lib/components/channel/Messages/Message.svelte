@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getAttachmentSource } from '$lib/utils/airis/attachment_source';
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
 	import isToday from 'dayjs/plugin/isToday';
@@ -11,12 +12,15 @@
 	dayjs.extend(localizedFormat);
 
 	import { getContext, onMount } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
+	import AttachmentVideo from '$lib/components/airis/AttachmentVideo.svelte';
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
 	import { formatDate } from '$lib/utils';
 
-	import { settings, user, shortCodesToEmojis } from '$lib/stores';
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+	import { settings, user } from '$lib/stores';
+	import { WEBUI_API_BASE_URL } from '$lib/constants';
 	import { getMessageData } from '$lib/apis/channels';
 
 	import Markdown from '$lib/components/chat/Messages/Markdown.svelte';
@@ -55,17 +59,17 @@
 	export let disabled = false;
 	export let pending = false;
 
-	export let onDelete: Function = () => {};
-	export let onEdit: Function = () => {};
-	export let onReply: Function = () => {};
-	export let onPin: Function = () => {};
-	export let onThread: Function = () => {};
-	export let onReaction: Function = () => {};
+	export let onDelete: false | (() => void | Promise<void>) = () => {};
+	export let onEdit: false | ((content: string) => void | Promise<void>) = () => {};
+	export let onReply: false | ((message: { id: string; channel_id: string; is_pinned?: boolean; [key: string]: unknown }) => void | Promise<void>) = () => {};
+	export let onPin: false | ((message: { id: string; channel_id: string; is_pinned?: boolean; [key: string]: unknown }) => void | Promise<void>) = () => {};
+	export let onThread: false | ((value: string) => void | Promise<void>) = () => {};
+	export let onReaction: false | ((value: string) => void | Promise<void>) = () => {};
 
 	let showButtons = false;
 
 	let edit = false;
-	let editedContent = null;
+	let editedContent = '';
 	let showDeleteConfirmDialog = false;
 	$: renderedMessageId = message ? (id ? `${id}-${message.id}` : message.id) : null;
 	$: replyToMessageId = message?.reply_to_message
@@ -80,7 +84,6 @@
 	let swipeOffsetX = 0;
 	let isSwiping = false;
 	let swipeLocked = false; // locked to horizontal once determined
-	let swipeMessageEl: HTMLElement | null = null;
 
 	const SWIPE_THRESHOLD = 60;
 	const SWIPE_MAX = 100;
@@ -161,13 +164,14 @@
 	title={$i18n.t('Delete Message')}
 	message={$i18n.t('Are you sure you want to delete this message?')}
 	onConfirm={async () => {
-		await onDelete();
+		if (onDelete) await onDelete();
 	}}
 />
 
 {#if message}
 	<div
 		class="swipe-reply-wrapper relative"
+		role="group"
 		on:touchstart={handleTouchStart}
 		on:touchmove={handleTouchMove}
 		on:touchend={handleTouchEnd}
@@ -220,7 +224,7 @@
 								onClose={() => (showButtons = false)}
 								onSubmit={(name) => {
 									showButtons = false;
-									onReaction(name);
+									if (onReaction) onReaction(name);
 								}}
 							>
 								<Tooltip content={$i18n.t('Add Reaction')}>
@@ -253,7 +257,7 @@
 							<button
 								class="hover:bg-gray-100 dark:hover:bg-gray-800 transition rounded-lg p-1"
 								on:click={() => {
-									onPin(message);
+									if (onPin) onPin(message);
 								}}
 							>
 								{#if message?.is_pinned}
@@ -269,7 +273,7 @@
 								<button
 									class="hover:bg-gray-100 dark:hover:bg-gray-800 transition rounded-lg p-1"
 									on:click={() => {
-										onThread(message.id);
+										if (onThread) onThread(message.id);
 									}}
 								>
 									<ChatBubbleOvalEllipsis />
@@ -460,15 +464,14 @@
 							dir={$settings?.chatDirection ?? 'auto'}
 						>
 							{#each message?.data?.files as file}
-								{@const fileUrl =
-									file.url.startsWith('data') || file.url.startsWith('http')
-										? file.url
-										: `${WEBUI_API_BASE_URL}/files/${file.url}${file?.content_type ? '/content' : ''}`}
+								{@const fileUrl = getAttachmentSource(file)}
 								<div>
 									{#if file.type === 'image' || (file?.content_type ?? '').startsWith('image/')}
 										<Image src={fileUrl} alt={file.name} imageClassName=" max-h-96 rounded-lg" />
 									{:else if file.type === 'video' || (file?.content_type ?? '').startsWith('video/')}
-										<video src={fileUrl} controls class=" max-h-96 rounded-lg"></video>
+										{#key fileUrl}
+											<AttachmentVideo src={fileUrl} />
+										{/key}
 									{:else}
 										<FileItem
 											item={file}
@@ -509,7 +512,7 @@
 										class="px-3.5 py-1.5 bg-white dark:bg-gray-900 hover:bg-gray-100 text-gray-800 dark:text-gray-100 transition rounded-3xl"
 										on:click={() => {
 											edit = false;
-											editedContent = null;
+											editedContent = '';
 										}}
 									>
 										{$i18n.t('Cancel')}
@@ -519,9 +522,9 @@
 										id="confirm-edit-message-button"
 										class="px-3.5 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-850 text-gray-100 dark:text-gray-800 transition rounded-3xl"
 										on:click={async () => {
-											onEdit(editedContent);
+											if (onEdit) onEdit(editedContent);
 											edit = false;
-											editedContent = null;
+											editedContent = '';
 										}}
 									>
 										{$i18n.t('Save')}
@@ -561,7 +564,7 @@
 										<Tooltip
 											content={$i18n.t('{{NAMES}} reacted with {{REACTION}}', {
 												NAMES: reaction.users
-													.reduce((acc, u, idx) => {
+													.reduce((acc: string, u: { id: string; name: string }, idx: number) => {
 														const name = u.id === $user?.id ? $i18n.t('You') : u.name;
 														const total = reaction.users.length;
 
@@ -594,7 +597,7 @@
 										>
 											<button
 												class="flex items-center gap-1.5 transition rounded-xl px-2 py-1 cursor-pointer {reaction.users
-													.map((u) => u.id)
+													.map((u: { id: string }) => u.id)
 													.includes($user?.id)
 													? ' bg-blue-300/10 outline outline-blue-500/50 outline-1'
 													: 'bg-gray-300/10 dark:bg-gray-500/10 hover:outline hover:outline-gray-700/30 dark:hover:outline-gray-300/30 hover:outline-1'}"
@@ -618,7 +621,7 @@
 									{#if onReaction}
 										<EmojiPicker
 											onSubmit={(name) => {
-												onReaction(name);
+												if (onReaction) onReaction(name);
 											}}
 										>
 											<Tooltip content={$i18n.t('Add Reaction')}>
@@ -639,7 +642,7 @@
 								<button
 									class="flex items-center text-xs py-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition"
 									on:click={() => {
-										onThread(message.id);
+										if (onThread) onThread(message.id);
 									}}
 								>
 									<span class="font-normal mr-1">
