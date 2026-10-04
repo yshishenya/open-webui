@@ -1,0 +1,8 @@
+- [x] **[DOCS][CHAT][PROD]** Record bounded history release acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__docs__history-cycle-acceptance.md`
+  - Owner: Codex
+  - Branch: `codex/docs/history-cycle-acceptance`
+  - Done: 2026-10-04
+  - Summary: PR238 source3db735e6e/merge79bb137ee accepted; digest2df5cfe1 deployed. Twelve compiled browser cases, 4913 frontend/425 backend Python hashes, fifteen neighbors, environment, backup/migration/rollback and public/authenticated UI accepted.
+  - Tests: Source465frontend; strict12files; exactCI10success/1skip; full types4003/164 and lint1419 remain. Docs diff/SDD validation; runtime unchanged by this branch.
+  - Risks: Full quality debt and real pilot conditions remain open; CodeRabbit review was skipped.
