@@ -19,7 +19,7 @@ The general frontend quality gate reports implicit arrays in Chat selection stat
 - [x] Task state accepts null, empty and multiple string IDs.
 - [x] Complete client and server JavaScript for both components is byte identical before and after annotations.
 - [x] All frontend tests pass; no added type or lint diagnostic, with removed diagnostics counted.
-- [ ] Source, verification, SDD and branch log committed and pushed for review against airis_b2c.
+- [x] Source, verification, SDD and branch log committed and pushed for review against airis_b2c.
 
 ## Scope and non-goals
 
@@ -53,3 +53,5 @@ Narrowing an array may reveal a previously hidden incompatible caller. Compare d
 - MessageInput and new Markdown formatting pass. Chat has the same pre-existing whole-file formatting differences; formatting both versions and removing only our annotations gives identical text. No unrelated upstream formatting edits.
 - npm run preflight is absent in package.json. Actual test, type, lint and format checks were run directly; global frontend checks still fail on the documented existing debt. Backend and migration source unchanged; no deployment needed for type erasure alone.
 - SDD 3/3 completed. Full goal and real pilot acceptance remain open.
+
+Implementation source: `36214ed49682ebba1afd76bc49b404c631c3ba15`. [PR249](https://github.com/yshishenya/open-webui/pull/249) targets airis_b2c; remote source delivery is verified. Final CI and merge proof are recorded separately after completion.
