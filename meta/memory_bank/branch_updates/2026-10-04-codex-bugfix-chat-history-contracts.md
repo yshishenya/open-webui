@@ -1,0 +1,8 @@
+- [x] **[BUG][CHAT]** Type message-list history/actions and empty preview
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__chat-message-list-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-history-contracts`
+  - Done: 2026-10-04 (source checks)
+  - Summary: Concrete graph/actions remove all 110 Messages type errors. Empty hover history uses the valid component default. CI-driven follow-up removes old touched-file lint violations and dead props; production acceptance is separate.
+  - Tests: 458/458 frontend, 14 source-handler checks and actual empty Svelte mount; full type errors 4204 to 4087 / warnings 174 to 170; ESLint 1503 to 1477, zero added diagnostics; strict six changed files pass. 18 emitted handlers unchanged.
+  - Risks: Shared regular/public chat list; browser, accepted CI/merge and production receipts remain separate.
