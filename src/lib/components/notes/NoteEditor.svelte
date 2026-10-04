@@ -70,7 +70,8 @@
 		updateNoteById,
 		updateNoteAccessGrants,
 		toggleNotePinnedStatusById,
-		getPinnedNoteList
+		getPinnedNoteList,
+		type NoteForm
 	} from '$lib/apis/notes';
 	import { deleteChatById } from '$lib/apis/chats';
 
@@ -150,61 +151,86 @@
 		note?.data?.content?.html ||
 		(note?.data?.content?.md ? marked.parse(note.data.content.md) : '');
 
-	const init = async () => {
+	let loadGeneration = 0;
+	let destroyed = false;
+
+	const init = async (): Promise<void> => {
+		if (!id) return;
+		const requestedId = id;
+		if (note?.id !== requestedId) {
+			showAccessControlModal = false;
+			showDeleteConfirm = false;
+		}
+		const token = localStorage.token;
+		const generation = ++loadGeneration;
+		const isCurrent = (): boolean =>
+			!destroyed &&
+			generation === loadGeneration &&
+			id === requestedId &&
+			localStorage.token === token;
 		loading = true;
-		const res = await getNoteById(localStorage.token, id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (res) {
+		try {
+			const res = await getNoteById(token, requestedId);
+			if (!isCurrent()) return;
 			note = res;
-			if (!Array.isArray(note?.access_grants)) {
-				note.access_grants = [];
-			}
-			files = res.data.files || [];
-
-			$socket?.emit('join-note', {
-				note_id: id,
-				auth: {
-					token: localStorage.token
-				}
-			});
+			files = res.data.files;
+			$socket?.emit('join-note', { note_id: requestedId, auth: { token } });
 			$socket?.off('events:note', noteEventHandler);
 			$socket?.on('events:note', noteEventHandler);
-		} else {
-			goto('/');
-			return;
+		} catch (error) {
+			if (isCurrent()) toast.error(`${error}`);
+		} finally {
+			if (isCurrent()) loading = false;
 		}
-
-		loading = false;
 	};
 
-	let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
+	const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-	const changeDebounceHandler = () => {
-		if (debounceTimeout) {
-			clearTimeout(debounceTimeout);
+	const changeDebounceHandler = (): void => {
+		if (!note) return;
+		const noteId: string = note.id;
+		const token: string = localStorage.token;
+		const payload: NoteForm = structuredClone({
+			title: note.title === '' ? $i18n.t('Untitled') : note.title,
+			data: { files },
+			access_grants: note.access_grants ?? []
+		});
+		const previous = saveTimers.get(noteId);
+		if (previous !== undefined) clearTimeout(previous);
+		saveTimers.set(
+			noteId,
+			setTimeout(async (): Promise<void> => {
+				saveTimers.delete(noteId);
+				// Do not issue a delayed write after logout/account change.
+				if (localStorage.token !== token) return;
+				try {
+					await updateNoteById(token, noteId, payload);
+					if (localStorage.token !== token) return;
+					const pinned = await getPinnedNoteList(token);
+					if (localStorage.token === token) pinnedNotes.set(pinned);
+				} catch (error) {
+					if (localStorage.token === token) toast.error(`${error}`);
+				}
+			}, 200)
+		);
+	};
+
+	const pinHandler = async (): Promise<void> => {
+		if (!note) return;
+		const noteId: string = note.id;
+		const token: string = localStorage.token;
+		try {
+			await toggleNotePinnedStatusById(token, noteId);
+			// Pinning changes the list, not the editable draft.
+			const pinned = await getPinnedNoteList(token);
+			if (localStorage.token === token) pinnedNotes.set(pinned);
+		} catch (error) {
+			if (localStorage.token === token) toast.error(`${error}`);
 		}
-
-		debounceTimeout = setTimeout(async () => {
-			const res = await updateNoteById(localStorage.token, id, {
-				title: note?.title === '' ? $i18n.t('Untitled') : note.title,
-				data: {
-					files: files
-				},
-				access_grants: note?.access_grants ?? []
-			}).catch((e) => {
-				toast.error(`${e}`);
-			});
-
-			if (res) {
-				pinnedNotes.set(await getPinnedNoteList(localStorage.token).catch(() => []));
-			}
-		}, 200);
 	};
 
 	const applyExternalNoteContent = async (_note) => {
+		if (!note || _note.id !== id || _note.id !== note.id) return false;
 		const incomingContent = _note.data?.content;
 		const contentLength = incomingContent?.md?.length ?? incomingContent?.html?.length ?? 0;
 
@@ -737,7 +763,7 @@ ${content}
 
 	const noteEventHandler = async (_note) => {
 		console.log('noteEventHandler', _note);
-		if (_note.id !== id) return;
+		if (!note || _note.id !== id || _note.id !== note.id) return;
 
 		if (_note.updated_at && note?.updated_at && _note.updated_at < note.updated_at) {
 			console.info('[note-chat] external note event skipped', {
@@ -816,6 +842,7 @@ ${content}
 	});
 
 	onDestroy(() => {
+		destroyed = true;
 		console.log('destroy');
 		$socket?.off('events:note', noteEventHandler);
 		if (pendingNoteEventTimer) {
@@ -877,7 +904,7 @@ ${content}
 						<Spinner className="size-5" />
 					</div>
 				</div>
-			{:else}
+			{:else if note && note.id === id}
 				<div class=" w-full flex flex-col {loading ? 'opacity-20' : ''}">
 					<div class="shrink-0 w-full flex justify-between items-center px-3">
 						<div class="w-full min-w-0 flex items-center">
@@ -1083,11 +1110,7 @@ ${content}
 										showDeleteConfirm = true;
 									}}
 									isPinned={$pinnedNotes.some((n) => n.id === note.id)}
-									onPin={async () => {
-										await toggleNotePinnedStatusById(localStorage.token, note.id);
-										note = await getNoteById(localStorage.token, note.id);
-										pinnedNotes.set(await getPinnedNoteList(localStorage.token).catch(() => []));
-									}}
+									onPin={pinHandler}
 								>
 									<div class="p-1 bg-transparent hover:bg-white/5 transition rounded-lg">
 										<EllipsisHorizontal className="size-5" />
@@ -1299,6 +1322,11 @@ ${content}
 							}}
 						/>
 					</div>
+				</div>
+			{:else}
+				<div class="m-auto text-center">
+					<p>{$i18n.t('Something went wrong :/')}</p>
+					<button type="button" class="mt-2 underline" on:click={init}>{$i18n.t('Retry')}</button>
 				</div>
 			{/if}
 		</div>

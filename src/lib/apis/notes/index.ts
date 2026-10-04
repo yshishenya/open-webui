@@ -1,14 +1,15 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { getTimeRange } from '$lib/utils';
+import { normalizeNote, readNoteResponse, type NoteRecord } from '$lib/utils/airis/notes';
 
-type NoteItem = {
+export type NoteForm = {
 	title: string;
-	data: object;
+	data?: null | object;
 	meta?: null | object;
 	access_grants?: object[];
 };
 
-export const createNewNote = async (token: string, note: NoteItem) => {
+export const createNewNote = async (token: string, note: NoteForm) => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/notes/create`, {
@@ -76,7 +77,7 @@ export const getNotes = async (token: string = '', raw: boolean = false) => {
 	}
 
 	// Build the grouped object
-	const grouped: Record<string, any[]> = {};
+	const grouped: Record<string, object[]> = {};
 	for (const note of res) {
 		const timeRange = getTimeRange(note.updated_at / 1000000000);
 		if (!grouped[timeRange]) {
@@ -191,36 +192,16 @@ export const getNoteList = async (token: string = '', page: number | null = null
 	return res;
 };
 
-export const getNoteById = async (token: string, id: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/notes/${id}`, {
+export const getNoteById = async (token: string, id: string): Promise<NoteRecord> => {
+	const response = await fetch(`${WEBUI_API_BASE_URL}/notes/${id}`, {
 		method: 'GET',
 		headers: {
 			Accept: 'application/json',
 			'Content-Type': 'application/json',
 			authorization: `Bearer ${token}`
 		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	});
+	return normalizeNote(await readNoteResponse(response));
 };
 
 export const getNoteChatById = async (token: string, id: string) => {
@@ -315,42 +296,38 @@ export const createNoteChatById = async (token: string, id: string) => {
 	return res;
 };
 
-export const updateNoteById = async (token: string, id: string, note: NoteItem) => {
-	let error = null;
+// Keep writes ordered even when the editor is unmounted and opened again.
+const noteUpdates = new Map<string, Promise<NoteRecord>>();
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/notes/${id}/update`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			...note
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-
-			console.error(err);
-			return null;
+export const updateNoteById = async (
+	token: string,
+	id: string,
+	note: NoteForm
+): Promise<NoteRecord> => {
+	const body = JSON.stringify(note);
+	const pending = (noteUpdates.get(id) ?? Promise.resolve())
+		.catch(() => undefined)
+		.then(async (): Promise<NoteRecord> => {
+			const response = await fetch(`${WEBUI_API_BASE_URL}/notes/${id}/update`, {
+				method: 'POST',
+				headers: {
+					Accept: 'application/json',
+					'Content-Type': 'application/json',
+					authorization: `Bearer ${token}`
+				},
+				body
+			});
+			return normalizeNote(await readNoteResponse(response));
 		});
-
-	if (error) {
-		throw error;
+	noteUpdates.set(id, pending);
+	try {
+		return await pending;
+	} finally {
+		if (noteUpdates.get(id) === pending) noteUpdates.delete(id);
 	}
-
-	return res;
 };
 
-export const updateNoteAccessGrants = async (token: string, id: string, accessGrants: any[]) => {
+export const updateNoteAccessGrants = async (token: string, id: string, accessGrants: object[]) => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/notes/${id}/access/update`, {

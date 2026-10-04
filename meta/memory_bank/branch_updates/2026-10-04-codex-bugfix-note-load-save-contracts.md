@@ -1,0 +1,6 @@
+- [ ] **[BUG]** Загрузка и сохранение заметок без подмены записи
+  - Spec: meta/memory_bank/specs/work_items/2026-10-04**bugfix**note-load-save-contracts.md
+  - Owner: Codex
+  - Started: 2026-10-04
+  - Branch: codex/bugfix/note-load-save-contracts
+  - Summary: Проверка пустых серверных данных, поздней загрузки и отложенной записи при переходе между заметками; автономные черновики и общий выпуск остаются отдельными условиями.
