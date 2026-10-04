@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: codex/refactor/chat-history-contracts
-- SDD Spec: meta/sdd/specs/completed/airis-chat-history-contracts-2026-10-04-001.json
+- SDD Spec: meta/sdd/specs/completed/airis-chat-history-contracts-2026-10-04-002.json
 - Created: 2026-10-04
 
 ## Goal / Acceptance Criteria
