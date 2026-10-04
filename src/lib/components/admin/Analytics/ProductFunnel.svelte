@@ -458,7 +458,8 @@
 		background: #f3f4f6;
 		color: #111827;
 	}
-	:global(.dark) select {
+	:global(.dark) select,
+	:global(.dark) input {
 		color-scheme: dark;
 	}
 	input:focus-visible,

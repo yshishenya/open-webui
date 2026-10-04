@@ -254,6 +254,8 @@ for (const width of [360, 768, 1280])
 				route.fulfill({ json: funnel })
 			);
 			await page.goto(`/admin/analytics/funnel${dates}`);
+			if (theme === 'dark')
+				await expect(page.locator('input[type=date]').first()).toHaveCSS('color-scheme', 'dark');
 			await expect(
 				page.getByRole('heading', { name: 'Сравнение групп', exact: true })
 			).toBeVisible();
