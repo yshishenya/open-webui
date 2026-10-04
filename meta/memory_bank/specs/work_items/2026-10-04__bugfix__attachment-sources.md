@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: done — implementation and production acceptance complete; full onboarding goal remains active
 - Owner: Codex
 - Branch: codex/bugfix/attachment-image-sources
 - SDD Spec: meta/sdd/specs/completed/airis-attachment-image-sources-2026-10-04-001.json
@@ -25,7 +25,7 @@ Normal uploads set url to the uploaded ID and content_type from server metadata.
 - [x] The shared textarea forwards real Escape/Ctrl+Enter events to its existing channel editor callback.
 - [x] Compiled channel images/documents/video, captions and edit shortcuts pass in the complete application.
 - [x] Actual consumer regressions fail on baseline and pass after repair; full frontend tests pass, no new type/lint diagnostics, compiled browser scenarios pass.
-- [ ] Source CI/merge, candidate and guarded production identity/health/configuration verified; full onboarding goal remains open.
+- [x] Source CI/merge, candidate and guarded production identity/health/configuration verified; full onboarding goal remains open.
 
 ## Scope and upstream impact
 
@@ -57,3 +57,13 @@ Executable source: 2bc78d14380bcaa500f3c0eb746ffd3635b97681. Final linux/amd64 l
 - A real local channel shows the image, document and native video controls; video duration70.24s and playback progress verified. Real guide VTT yields10 cues in showing mode; replacement yields1 correct cue; invalid file retains the current track and displays a safe error.
 - Real editor Escape cancels without changing the message; Ctrl+Enter saves and reload/API confirm the stored text. Zero page errors in acceptance.
 - Exact executable source CI: all required checks succeed, dependency review is skipped by policy. Implementation SDD3/3 is complete; production release remains pending and is a separate gate.
+
+## Production acceptance — 2026-10-04
+
+PR257 head48ba6d80ae77901546a51ab3d9c1174f42bbd939 passed all 10 unique CI checks; dependency review skipped, CodeRabbit review disabled for this base. Merge13d773c48952a0ea008ab3737e9aa77af689c1a2 has the identical full tree. The head differs from executable source2bc78d14380bcaa500f3c0eb746ffd3635b97681 only in documentation.
+
+Released yshishenya/yshishenya:attachment-sources-2bc78d143-20261004, digest sha256:6c253c7d8e37c632f07e394d1288e7abc1b6314f4590a26358c440c99fd393a8. Registry and runtime match all5777 frontend/425 Python files, inherited layers/environment and dynamic analytics settings. Verified backup20261004T193227Z, hard migration gate, retained rollback image and full three-file Compose. Runtime healthy/restarts0, existing environment and all13 neighbors preserved;10.60GiB free. Only the image default was persisted atomically after acceptance.
+
+Public health/version/env match the accepted candidate. Reloaded ordinary-user saved chat shows its2 existing messages and empty input;0 console errors,0 submitted messages/payments. Nullable image/channel video/caption/edit acceptance is on the identical compiled candidate; production channels were not enabled for testing. These observations supersede the historical pending release notes above.
+
+Read-only pilot inventory19:38:16UTC:139 ordinary accounts,16 new within7d,0 eligible permissions;126 no_consent/13 inactive,queue0/DML0/SMTP0. Plan remains192/244. Full-project typecheck3763errors/160warnings and ESLint1396 remain red; real delivery, payments/receipt, phone, usefulness and calendar pilot gates remain open.
