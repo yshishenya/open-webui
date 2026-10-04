@@ -1,0 +1,8 @@
+- [x] **[DOCS]** Зафиксировать приёмку исходников исправления заметок
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__docs__note-title-source-acceptance.md`
+  - Owner: Codex
+  - Branch: `codex/docs/note-title-source-acceptance`
+  - Done: 2026-10-04
+  - Summary: PR219 exact source/merge и10CI success/1skip подтверждены; SDD3/3 закрыт. Исправлена ссылка на окончательный отчёт типов, прерванные логи исключены.
+  - Tests: SDD validate/check-complete, Markdown links, git diff --check; application unchanged.
+  - Risks: Общие проверки, production/browser и реальные условия пилота остаются открытыми.
