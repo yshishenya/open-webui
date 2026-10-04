@@ -2,7 +2,7 @@
   "spec_id": "airis-note-title-recovery-2026-10-04-001",
   "title": "AIRIS note title recovery",
   "generated": "2026-10-04T01:22:58.685570Z",
-  "last_updated": "2026-10-04T01:39:49.680452Z",
+  "last_updated": "2026-10-04T01:58:03.065728Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -10,23 +10,25 @@
     "estimated_hours": 2,
     "security_sensitive": false,
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__note-title-recovery.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-04T01:24:19.164256Z",
-    "progress_percentage": 66,
-    "current_phase": "phase-1"
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-04T01:58:03.065304Z",
+    "actual_hours": 0.562
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "AIRIS note title recovery",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
         "phase-2"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
@@ -49,14 +51,18 @@
     "phase-2": {
       "type": "phase",
       "title": "Exact source CI and integration",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-2-1"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T01:58:02.559050Z",
+        "journaled_at": "2026-10-04T01:58:02.562108Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -109,7 +115,7 @@
     "task-2-1": {
       "type": "task",
       "title": "Accept exact source checks and integration",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -118,12 +124,17 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "category": "investigation",
         "file_path": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__note-title-recovery.md",
         "estimated_hours": 0.5,
-        "started_at": "2026-10-04T01:39:49.680135Z"
+        "started_at": "2026-10-04T01:39:49.680135Z",
+        "completed_at": "2026-10-04T01:58:02.558773Z",
+        "needs_journaling": false,
+        "status_note": "PR219 exact source9f51694ebb77a0b31e7264ae1b3cd7dfde424699 accepted: 10CI success/1dependency-review skip. 324frontend/17note, full source check4335/176,41removed/0added andlint1517. Source integrated; production and G14 pending. Interrupted logs excluded; final proof uses typecheck-source.log with heap1536.",
+        "actual_hours": 0.304,
+        "journaled_at": "2026-10-04T01:58:02.560961Z"
       }
     }
   },
@@ -154,6 +165,24 @@
       "content": "All child tasks in phase phase-1 have been completed.",
       "metadata": {},
       "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-04T01:58:02.560956Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Accept exact source checks and integration",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: PR219 exact source9f51694ebb77a0b31e7264ae1b3cd7dfde424699 accepted: 10CI success/1dependency-review skip. 324frontend/17note, full source check4335/176,41removed/0added andlint1517. Source integrated; production and G14 pending. Interrupted logs excluded; final proof uses typecheck-source.log with heap1536.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-04T01:58:02.562104Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Exact source CI and integration",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
     }
   ]
 }
