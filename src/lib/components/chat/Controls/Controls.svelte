@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 	import { createEventDispatcher, getContext } from 'svelte';
 	const dispatch = createEventDispatcher();
 	const i18n = getContext('i18n');
@@ -11,7 +12,7 @@
 
 	import { user, settings } from '$lib/stores';
 	export let models = [];
-	export let chatFiles = [];
+	export let chatFiles: ChatAttachment[] = [];
 	export let params = {};
 	export let embed = false;
 

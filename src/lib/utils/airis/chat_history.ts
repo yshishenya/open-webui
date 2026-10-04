@@ -1,5 +1,20 @@
 import type { OutputItem } from '$lib/components/chat/Messages/structuredOutput';
 
+export type ChatAttachment = Record<string, unknown> & {
+	type?: string;
+	content_type?: string;
+	id?: string | null;
+	url?: string | null;
+	name?: string;
+	size?: number;
+	itemId?: string;
+	status?: string;
+	collection_name?: string | null;
+	context?: string;
+	content?: string;
+	file?: string | Record<string, unknown>;
+};
+
 /** Client history after the existing graph repair boundary. */
 export type ChatHistoryMessage = {
 	id: string;
@@ -17,7 +32,7 @@ export type ChatHistoryMessage = {
 	arena?: boolean;
 	done?: boolean;
 	merged?: { status?: boolean; content?: string; timestamp?: number };
-	files?: (Record<string, unknown> & { type?: string; content_type?: string })[];
+	files?: ChatAttachment[];
 	contextSummary?: string;
 	context_summary?: string;
 	usage?: { input_tokens?: number; prompt_tokens?: number; [key: string]: unknown };

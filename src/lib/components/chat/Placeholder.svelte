@@ -47,7 +47,7 @@
 	export let history;
 
 	export let prompt = '';
-	export let files = [];
+	export let files: ComponentProps<MessageInput>['files'] = [];
 	export let messageInput: MessageInput | null = null;
 
 	export let selectedToolIds = [];
