@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: verified; CI/merge/candidate/production pending
+- Status: source accepted; compiled candidate verified; production pending
 - Owner: Codex
 - Branch: codex/bugfix/message-input-id-contracts
 - SDD Spec: meta/sdd/specs/completed/airis-message-input-id-contracts-2026-10-04-001.json
@@ -19,7 +19,7 @@ MessageInput declares selectedModels as a single empty-string tuple even though 
 - [x] Empty, single and multiple string IDs compile; numeric IDs are rejected for all five lists; taskIds retains null.
 - [x] Full Svelte client and server emitted code is identical to the frozen base.
 - [x] Full frontend tests and strict changed-file lint pass; exact types/style diagnostics add zero errors or warnings.
-- [ ] Source, CI and merge evidence are recorded separately. General quality remains open.
+- [x] Source, CI and merge evidence are recorded separately. General quality remains open.
 
 ## Scope / Upstream impact
 
@@ -36,3 +36,7 @@ The first type pass removed24 diagnostics and exposed2 previously masked unknown
 Docker Compose frontend469/469 in71 files. First concurrent test process ended with SIGKILL; standalone rerun passes and is retained separately. Final full types3991/164→3967/164:24diagnostics removed/0added. Final full ESLint1419 unchanged, exact list0removed/0added. Strict Chat/MessageInput/test lint passes. Child source changes only in5 erased annotations; client/server JavaScript fully identical. Parent client/server compiled AST identical after removing exactly2 ignored toolServers properties; no script, other markup, initial value, draft, provider or data changes. Two persistent compiler checks pass. SDD3/3 completed, validator0errors/0warnings. General types/style retain exit1 and G14 remains open.
 
 Current parent source differs from deployed files by removing2 ignored bindings. Candidate/production evidence is separate; no new production claimed. Private receipts: airis-message-input-ids-20261004/{types-delta-final.json,lint-delta-final.json,runtime-boundary-proof.json,parent-runtime-boundary-proof.json,tests-after-callsite.log}.
+
+## Accepted source and compiled candidate — 2026-10-04
+
+PR241 source43054d4d3a192fb0ad9e332d7e7bdb8dd75e875c / merge4d9666311292a4b72b1162e97b0c1efdc5283b05 accepted10:07:59UTC. All10CI checks success, dependency-review skipped; CodeRabbit disabled for this base. All8files SHA256 identical after merge. Candidate image3fca9ea6d1009eea6644e6889e79e8ba06dd1b22a24d26ebe484ace14c210105 on localhost6218:4913frontend hashes,21base layers and imageENV preserved. Ordinary disposable user, real local API/storage,6previews+6chat openings passed,0pageerrors/0modelcalls. Initial empty-chat assertion checked before transition settled; final run waits for previous text to disappear, application unchanged. Legal marks are local fixtures, not real consents. Production remains separate pending combined runtime fix for empty-model filter reduction.
