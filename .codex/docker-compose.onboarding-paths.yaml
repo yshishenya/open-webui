@@ -68,6 +68,7 @@ services:
       - onboarding-paths-node-modules:/work/node_modules
     environment:
       PLAYWRIGHT_BASE_URL: http://onboarding-paths:8080
+      PLAYWRIGHT_JUNIT_OUTPUT_FILE: /work/artifacts/onboarding-paths/results.xml
       NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
     entrypoint: ['bash', '-lc']
 volumes:

@@ -8,7 +8,7 @@
 	import { fade } from 'svelte/transition';
 	const i18n: Writable<i18nType> = getContext('i18n');
 
-	import { goto, replaceState } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
 	import { get, type Writable } from 'svelte/store';
@@ -1848,7 +1848,7 @@
 		await showArtifacts.set(false);
 
 		if (!embedded && $page.url.pathname.includes('/c/')) {
-			replaceState(`/`, $page.state);
+			window.history.replaceState(history.state, '', `/`);
 		}
 
 		autoScroll = true;
@@ -3298,7 +3298,7 @@
 				if (res.chat_id && $chatId !== res.chat_id && $chatId === _chatId) {
 					await chatId.set(res.chat_id);
 					if (!$temporaryChatEnabled && !embedded) {
-						replaceState(`/c/${res.chat_id}`, $page.state);
+						window.history.replaceState(history.state, '', `/c/${res.chat_id}`);
 						await refreshChatList(localStorage.token);
 
 						// Persist chat-level params (system prompt, advanced
@@ -3580,7 +3580,7 @@
 			await chatId.set(_chatId);
 
 			if (!embedded) {
-				replaceState(`/c/${_chatId}`, $page.state);
+				window.history.replaceState(history.state, '', `/c/${_chatId}`);
 			}
 
 			await tick();

@@ -10,7 +10,7 @@
 
 ## Requirement and scope
 
-Close the two automated browser gaps identified by the mandatory scenario audit. Exercise the unchanged compiled application, real authentication, APIs, persistence, billing and durable email queue. Replace only external model/payment services and SMTP with bounded local fixtures. Never use production credentials, recipients, credit or consent. Fixtures must refuse to start unless explicitly enabled in a disposable test application.
+Close the two automated browser gaps identified by the mandatory scenario audit. Exercise the compiled application, real authentication, APIs, persistence, billing and durable email queue. Replace only external model/payment services and SMTP with bounded local fixtures. Never use production credentials, recipients, credit or consent. Fixtures must refuse to start unless explicitly enabled in a disposable test application.
 
 ## Acceptance
 
@@ -31,11 +31,9 @@ Repository Playwright is 1.62.1; the official registry currently reports latest 
 
 Docker Compose starts a fresh application database and runs both browser projects. No browser mocks for application APIs, persisted usage, wallet, ledger or queue. Check formatting/changed-file lint, full frontend tests and unchanged backend hashes; existing general type/style debt stays open.
 
-Full payment return reproduced a product defect in Chromium and Firefox: creating a chat changed the browser URL with native history.replaceState, but left the SvelteKit page URL stale. HeaderBillingAccess therefore omitted return_to and Back to chat opened an empty chat. All three native history replacements in upstream Chat.svelte are changed to the existing SvelteKit replaceState API, preserving page.state. This thin hook keeps visible URL and shared route state together, including reset to New Chat; no per-link workaround, extra listeners or dependencies. Navbar and billing/workspace consumers keep their existing validated return URL handling.
+Full payment return reproduced a product defect in Chromium and Firefox: creating a chat changed the visible URL with native history.replaceState, while the SvelteKit page URL remained the original home route. HeaderBillingAccess therefore omitted return_to and Back to chat opened an empty chat. The shared fork-owned return helper now derives the return path from the existing persisted chat ID on chat routes, retaining validated query parameters when the route matches. Empty and temporary IDs do not create links to nonexistent saved chats; billing return_to and non-chat routes retain their existing handling. Navbar, billing and workspace share the header; the mobile user menu uses the same helper and preserves return_to through its existing dashboard redirect. Upstream impact: only thin imports, one derived menu link and its two uses in UserMenu.svelte. Chat.svelte, backend and dependencies are unchanged.
 
-Pinned SvelteKit 2.68.0 public types and current official shallow-routing documentation were checked. Latest stable is 3.0.0; reuse 2.68.0 because this is a fix inside the existing SvelteKit 2 application. A major-version migration would require its own application-wide compatibility work. No package or lockfile changes.
-
-- [ ] Newly created chat survives wallet checkout, history and Back to chat without reload; zero extra model requests or completed successes. All three URL updates use the framework API; reset and existing route navigation remain usable.
+- [ ] Newly created chat survives wallet checkout, history and Back to chat without reload; zero extra model requests or completed successes. New Chat clears the input without sending; temporary and empty IDs do not produce saved-chat return links.
 
 ## Run locally
 

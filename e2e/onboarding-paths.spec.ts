@@ -157,6 +157,10 @@ for (const example of ['написать текст', 'разобраться в
 			page.getByRole('log').getByText('AIRIS deterministic answer.', { exact: true })
 		).toBeVisible();
 		expect((await facts(request, account)).successes).toBe(1);
+		await page.getByRole('link', { name: 'New Chat', exact: true }).click();
+		await expect(page).toHaveURL(/\/$/);
+		await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toHaveText('');
+		expect((await state(request)).calls.length).toBe(providerBefore + 1);
 	});
 }
 
@@ -187,6 +191,7 @@ test('checkout → exact credit → visible history → one service email, repla
 	account
 }) => {
 	const headers = { Authorization: `Bearer ${account.token}` };
+	const providerBefore = (await state(request)).calls.length;
 	await page.goto('/auth?form=1');
 	await signIn(page, account);
 	await page.goto('/?model=gpt-5.6-luna&q=Payment%20return%20test&submit=false');
@@ -199,7 +204,12 @@ test('checkout → exact credit → visible history → one service email, repla
 	).toBeVisible();
 	await expect(page).toHaveURL(/\/c\//);
 	const chatURL = page.url();
-	await page.getByRole('link', { name: /^Open wallet:/ }).click();
+	if ((page.viewportSize()?.width ?? 1000) < 640) {
+		await page.getByRole('button', { name: 'User menu', exact: true }).last().click();
+		await page.getByTestId('user-menu-billing').click();
+	} else {
+		await page.getByRole('link', { name: /^Open wallet:/ }).click();
+	}
 	const created = page.waitForResponse(
 		(response) => response.url().endsWith('/api/v1/billing/topup') && response.status() === 200
 	);
@@ -253,4 +263,6 @@ test('checkout → exact credit → visible history → one service email, repla
 		{ amount: 50000, reference: payment.payment_id }
 	]);
 	expect(await notices()).toEqual([first]);
+	expect((await facts(request, account)).successes).toBe(1);
+	expect((await state(request)).calls.length).toBe(providerBefore + 1);
 });

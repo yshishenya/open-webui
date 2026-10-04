@@ -132,7 +132,7 @@
     },
     "task-3-2": {
       "type": "task",
-      "title": "Fix stale route state and verify wallet returns to the newly created chat",
+      "title": "Fix wallet return links using persisted chat identity on desktop and mobile",
       "status": "pending",
       "parent": "phase-3",
       "children": [],
@@ -144,7 +144,7 @@
       "total_tasks": 1,
       "completed_tasks": 0,
       "metadata": {},
-      "description": "Two browsers reproduce native history URL replacement leaving page.url stale. Replace the three shared Chat history updates with the installed SvelteKit API, preserve page state, verify full payment and new chat flows on a rebuilt candidate."
+      "description": "Both browsers reproduce the lost new-chat return. Share the existing validated return-path rules between the header and mobile user menu; preserve empty/temporary IDs and billing navigation; verify a rebuilt candidate."
     }
   },
   "journal": [
