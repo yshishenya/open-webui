@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: source completed; production pending
 - Owner: Codex
 - Branch: codex/bugfix/collapsible-attributes
-- SDD Spec: meta/sdd/specs/active/airis-collapsible-attributes-2026-10-04-001.json
+- SDD Spec: meta/sdd/specs/completed/airis-collapsible-attributes-2026-10-04-001.json
 - Created: 2026-10-04
 
 ## Context / root cause
@@ -17,7 +17,7 @@ Shared Collapsible infers title/attributes as null-only and uses an unsafe Funct
 
 - [x] A regression mounted against the actual baseline component fails for malformed/negative/non-finite duration; correct labels remain for valid string/numeric boundaries and absent/zero values.
 - [x] Shared title, attributes, localization context and onChange have concrete compatible types; no descriptor mutation and no new type diagnostics in consumers.
-- [ ] Disabled state, button aria-expanded, callback, slotted header/content, grow/hide and reasoning/code-interpreter completion behavior remain correct.
+- [x] Disabled state, button aria-expanded, callback, slotted header/content, grow/hide and reasoning/code-interpreter completion behavior remain correct.
 - [x] Focused and full frontend tests pass; all changed files pass strict ESLint and formatting; full diagnostic comparison against3763 errors/160 warnings/1396 ESLint adds zero diagnostics.
 - [ ] Compiled browser behavior, exact-source CI/merge and guarded production identity/health/configuration verified before production completion.
 
@@ -35,4 +35,6 @@ Compose-created frontend tools container; actual mounted component regressions, 
 
 ## Source checks
 
-Baseline05ad7e0f8: malformed/negative/Infinity duration regressions fail3/16, without unhandled errors. Final25 mounted checks (valid string/numeric boundaries, running/completed/code interpreter, Russian locale, callback and disabled) and547/547 frontend tests in79files pass. Strict changed-file ESLint/Prettier pass. Fullcheck3763/160→3743/160:20removed,0new,4existing dir-prop signatures refined. FullESLint1396→1393:3removed,0new. Overall full-project checks remain red. Slotted/grow/hide/browser/sourceCI/production acceptance pending.
+Baseline05ad7e0f8: malformed/negative/Infinity duration regressions fail3/16, without unhandled errors. Final25 mounted checks (valid string/numeric boundaries, running/completed/code interpreter, Russian locale, callback and disabled) and547/547 frontend tests in79files pass. Strict changed-file ESLint/Prettier pass. Fullcheck3763/160→3743/160:20removed,0new,4existing dir-prop signatures refined. FullESLint1396→1393:3removed,0new. Overall full-project checks remain red.
+
+Compiled candidate c9a8c940893a91e9c33c0bacbdba349b4cde6ad2 passes16/16 full paths in Chromium and Firefox390px. Four additional browser proofs cover real saved Markdown, Enter/Space/content-click/disabled behavior, Controls system/advanced sections, Sidebar section/recursive folders, and Playground grow editor;0pageerrors. CI head b5bf88b25d9bbcad3a32869d54fd59ace9421c7c has10 successful checks and dependency-review skipped. CodeRabbit review is disabled, not an independent approval. Source SDD3/3 completed. Registry/server candidate4914 frontend and425 backend hashes match the local candidate. Exact final documentation head/merge and guarded production acceptance remain pending.
