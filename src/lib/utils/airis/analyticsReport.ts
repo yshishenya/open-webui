@@ -31,6 +31,7 @@ export interface FunnelSequence {
 }
 
 export interface FunnelReport {
+	generated_at: number;
 	summary: FunnelSummary;
 	sequence: FunnelSequence;
 	rows: Array<
@@ -81,6 +82,52 @@ export const reportDateRange = (from: string, to: string): { start: number; end:
 export const transitionPercent = (count: number, base: number): number | null =>
 	base > 0 ? Math.round((count * 10000) / base) / 100 : null;
 
+export const reportPresetDates = (
+	preset: '7' | '30' | 'month',
+	now: Date = new Date()
+): { from: string; to: string } => {
+	const { to } = defaultReportDates(now);
+	const end = Date.parse(`${to}T00:00:00Z`);
+	return {
+		from:
+			preset === 'month'
+				? `${to.slice(0, 7)}-01`
+				: new Date(end - (Number(preset) - 1) * 86400000).toISOString().slice(0, 10),
+		to
+	};
+};
+
+export const cohortWeekDates = (cohort: string): { from: string; to: string } | null => {
+	const match = /^(\d{4})-W(\d{2})$/.exec(cohort);
+	if (!match) return null;
+	const year = Number(match[1]);
+	const week = Number(match[2]);
+	if (week < 1 || week > 53) return null;
+	const jan4 = new Date(`${match[1]}-01-04T00:00:00Z`);
+	const monday =
+		jan4.getTime() - ((jan4.getUTCDay() + 6) % 7) * 86400000 + (week - 1) * 7 * 86400000;
+	if (new Date(monday + 3 * 86400000).getUTCFullYear() !== year) return null;
+	return {
+		from: new Date(monday).toISOString().slice(0, 10),
+		to: new Date(monday + 6 * 86400000).toISOString().slice(0, 10)
+	};
+};
+
+export const cohortLabel = (cohort: string, group: string): string => {
+	if (!cohort || cohort === 'unknown')
+		return group === 'utm_source' ? 'Источник не определён' : 'Не определён';
+	const week = group === 'week' ? cohortWeekDates(cohort) : null;
+	if (!week) return cohort;
+	const format = (day: string): string =>
+		new Date(`${day}T00:00:00Z`).toLocaleDateString('ru-RU', {
+			timeZone: 'UTC',
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric'
+		});
+	return `${format(week.from)} — ${format(week.to)}`;
+};
+
 export const getFunnelReport = async (
 	token: string,
 	values: { start: number; end: number; window_days: number; breakdown: string }
@@ -93,9 +140,11 @@ export const getFunnelReport = async (
 		signal: AbortSignal.timeout(25000),
 		cache: 'no-store'
 	});
+	if (response.status === 401 || response.status === 403)
+		throw new Error('Нет доступа к отчёту. Требуется действующая сессия администратора.');
 	if (!response.ok) throw new Error('Не удалось загрузить отчёт. Повторите попытку.');
 	const report: FunnelReport = await response.json();
-	if (!report.summary || !report.sequence)
+	if (!report.summary || !report.sequence || !Number.isFinite(report.generated_at))
 		throw new Error('Расчёт отчёта ещё не обновлён. Повторите загрузку позже.');
 	return report;
 };
