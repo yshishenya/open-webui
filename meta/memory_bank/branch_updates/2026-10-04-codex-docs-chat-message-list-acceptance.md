@@ -1,0 +1,8 @@
+- [x] **[DOCS][CHAT]** Record message-list source and candidate acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__chat-message-list-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/docs/chat-message-list-acceptance`
+  - Done: 2026-10-04
+  - Summary: PR236 source f968824ca / merge a2e2f7e52 accepted with 11 CI success / 1 skip. Nine source/test/doc hashes preserve the accepted revision. Production and full-quality acceptance remain open.
+  - Tests: Chrome component 4/4; compiled candidate 3/3 under ordinary fixture user, real local API/storage, 0 page errors; all 4913 frontend files match, 19 base layers/image environment preserved, healthy/restarts0. Source tests 458/458 and strict six files pass; full types 4087/170 and ESLint1477 remain debt.
+  - Risks: This record does not claim production or a real pilot. Shared cyclic-history traversal remains a separate verified defect.

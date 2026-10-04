@@ -2,7 +2,7 @@
 	"spec_id": "airis-chat-history-contracts-2026-10-04-001",
 	"title": "AIRIS message list history contracts",
 	"generated": "2026-10-04T07:20:38.403774Z",
-	"last_updated": "2026-10-04T07:53:12.836937Z",
+	"last_updated": "2026-10-04T08:14:07.933421Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "low",
@@ -171,6 +171,14 @@
 			"title": "CI-driven callback and empty-preview follow-up",
 			"author": "Codex",
 			"content": "Old PR head failed touched-file lint on 21 existing Messages errors. Replaced Function contracts, removed dead imports/props, typed Chat callbacks and mapped null hover history to the empty list default. Actual Svelte mount passes without uncaught errors. Revised source:458/458frontend68files;4204/174 to4087/170;1503 to1477 ESLint;zero added diagnostics and strict sixchangedfiles pass.18emittedhandlers unchanged. Five pre-existing Chat formatting differences retained. CI/merge/browser/production are separate receipts.",
+			"metadata": {}
+		},
+		{
+			"timestamp": "2026-10-04T08:14:07.933421Z",
+			"entry_type": "verification",
+			"title": "Accepted PR236 and compiled candidate",
+			"author": "Codex",
+			"content": "Source f968824cabc4fa1a97c5dd03679a2d9ca2f26eff / merge a2e2f7e529de2811159212d9e1b78d25474495d5;11 CI success/1dependency-review skip. Nine source/test/doc hashes unchanged after merge. Chrome component4/4 and compiledcandidate3/3, ordinaryfixtureuser/real localAPIstorage/0pageerrors/0SMTPmodel.4913frontendfiles match,19baselayers/imageENV preserved,healthy/restarts0.Production/fullquality/pilot remain separate acceptance gates.",
 			"metadata": {}
 		}
 	]
