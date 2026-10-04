@@ -3,11 +3,11 @@
 ## Meta
 
 - Type: bugfix / test / code review
-- Status: in progress
+- Status: completed (technical release; human trial and live admin UI unperformed)
 - Owner: Codex
 - Branch: codex/test/analytics-billing-final-acceptance
 - Created: 2026-10-04
-- SDD Spec: meta/sdd/specs/active/analytics-billing-completion-g-2026-10-04-053.json
+- SDD Spec: meta/sdd/specs/completed/analytics-billing-completion-g-2026-10-04-053.json
 - Feature: [Понятные аналитика и деньги](2026-10-04__feature__analytics-billing-ui.md)
 
 ## Goal / Acceptance Criteria
@@ -31,4 +31,8 @@
 
 - Итоговый frontend: 337 tests / 62 files passed в Compose. Reporting: 14 tests passed с отдельной PostgreSQL16. Старый образ причинно падает на неправильном порядке клиентов в SQLite/PG; новый source проходит.
 - Проверка типов: 4335 прежних errors /176 warnings; изменённые области содержат только пять старых диагностик Modal с сдвигом номера строки. Новая ошибка tuple исправлена; новых диагностик нет. ESLint: три прежних замечания Modal, остальные изменённые области чистые. Независимый обзор не нашёл блокеров.
-- Полный интерфейс будет повторно принят на новом неизменяемом образе до публикации; результаты здесь пока не заявляются.
+- Окончательный неизменяемый образ source239: 28 сценариев аналитики/административного биллинга и 18 пользовательского биллинга passed. Проверены 21 страница при 200% тексте, 390/1280; общий набор — 360/390/768/1280, обе темы, клавиатура и права доступа.
+- Контраст подписей исправлен в ограниченной области аналитики/биллинга/цен. Старый образ причинно падает при 2,7794:1, окончательный проходит минимум 4,5:1. RUB больше не перекрывается стрелкой select.
+- Source239 PR-fast37173657477 и release-heavy37173671224 passed; все пять наборов release-heavy успешны. PR224 слит как f519998bb424360984222deb69708e9b0636370c; все 35 файлов этой задачи byte-identical с кандидатом, соседние PR223/225 сохранены в integration. Публикация и проверки слитой версии ещё выполняются.
+
+Окончательный образ опубликован и принят: [SHA/digest/CI и реальная проверка](2026-10-04__docs__analytics-billing-final-release.md). Merge-medium и все merge CI passed; деньги/воронка/сортировка/обе точные связи проверены чтением production, обычные пользовательские страницы открыты после выпуска.

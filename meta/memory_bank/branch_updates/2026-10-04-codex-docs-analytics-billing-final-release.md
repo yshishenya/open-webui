@@ -1,0 +1,5 @@
+- [x] Окончательный выпуск аналитики и биллинга
+  - Spec: meta/memory_bank/specs/work_items/2026-10-04**docs**analytics-billing-final-release.md
+  - Owner: Codex
+  - Summary: PR224 слит, окончательный image239 принят; публикация, реальные отчёты и ordinary browser приняты, ограничения зафиксированы.
+  - Done: 2026-10-04

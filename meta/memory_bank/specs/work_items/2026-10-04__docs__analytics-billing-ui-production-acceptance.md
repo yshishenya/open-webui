@@ -89,3 +89,7 @@ PR220 merged as 76a2c58b13b6cd9e3192ff32fe0fd1f489cdc0e4 after all applicable PR
 - Final production ordinary browser: balance, history, settings and cost calculator load. Empty receipt contacts are enabled without loading error; Save disabled before edits. No settings saved or payment/refund performed.
 - Local final image admin overview opened with current period/data and shared navigation; screenshot retained privately. Production admin browser session still redirects to chat; this separate live UI check is unperformed.
 - SDD technical release task completed via complete-task, check-complete and complete-spec; timing/human trial remains explicitly unverified.
+
+## Окончательный выпуск после сверки полного плана
+
+Сведения выше относятся к последовательным предыдущим публикациям. Текущая итоговая версия — source23927571287775fb8e7554325eca5fc08ef8b04b, digest931098f324c4faa1842ccb29d7e824787047d45b69d45e180dd09b94c5d9db8d. [Точные проверки и ограничения окончательного выпуска](2026-10-04__docs__analytics-billing-final-release.md).
