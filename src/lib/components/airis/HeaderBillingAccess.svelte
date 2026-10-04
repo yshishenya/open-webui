@@ -10,12 +10,12 @@
 		type Balance,
 		type LeadMagnetInfo
 	} from '$lib/apis/billing';
-	import { models } from '$lib/stores';
+	import { chatId, models } from '$lib/stores';
 	import { hasFreeTextQuota } from '$lib/utils/airis/billing_ui';
 	import CreditCard from '$lib/components/icons/CreditCard.svelte';
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import { buildBillingBalanceHref } from '$lib/utils/airis/billing_block';
-	import { sanitizeReturnTo } from '$lib/utils/airis/return_to';
+	import { getBillingReturnTo } from '$lib/utils/airis/return_to';
 
 	const i18n = getContext('i18n');
 
@@ -32,8 +32,6 @@
 	let hasError = false;
 	let lastLoadedAt: number | null = null;
 	let inflightLoad: Promise<void> | null = null;
-	let queryReturnTo: string | null = null;
-	let currentPathReturnTo: string | null = null;
 	let returnTo: string | null = null;
 	let totalBalanceKopeks = 0;
 	let currency = 'RUB';
@@ -117,11 +115,7 @@
 		document.removeEventListener('visibilitychange', handleVisibilityChange);
 	});
 
-	$: queryReturnTo = sanitizeReturnTo($page.url.searchParams.get('return_to'));
-	$: currentPathReturnTo = $page.url.pathname.startsWith('/billing')
-		? null
-		: sanitizeReturnTo(`${$page.url.pathname}${$page.url.search}`);
-	$: returnTo = queryReturnTo ?? currentPathReturnTo;
+	$: returnTo = getBillingReturnTo($page.url, $chatId);
 	$: totalBalanceKopeks =
 		(balance?.balance_topup_kopeks ?? 0) + (balance?.balance_included_kopeks ?? 0);
 	$: currency = balance?.currency ?? 'RUB';

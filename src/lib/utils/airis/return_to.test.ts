@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-import { sanitizeRedirectPath, sanitizeReturnTo } from './return_to';
+import { getBillingReturnTo, sanitizeRedirectPath, sanitizeReturnTo } from './return_to';
+
+it.each([
+	['/', 'saved', '/c/saved'],
+	['/c/old', 'saved', '/c/saved'],
+	['/c/saved?focus=topup', 'saved', '/c/saved?focus=topup'],
+	['/billing/history?return_to=%2Fc%2F42', 'saved', '/c/42'],
+	['/workspace', 'saved', null],
+	['/', 'temporary:local', null],
+	['/', 'local:legacy', null],
+	['/', '', null]
+])('resolves billing return from %s with chat %s', (path, chat, expected) => {
+	expect(getBillingReturnTo(new URL(path!, 'http://localhost'), chat!)).toBe(expected);
+});
 
 describe('sanitizeReturnTo', () => {
 	it('returns null for missing/invalid values', () => {
@@ -39,4 +52,3 @@ describe('sanitizeRedirectPath', () => {
 		);
 	});
 });
-

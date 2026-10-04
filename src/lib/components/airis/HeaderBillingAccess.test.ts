@@ -52,6 +52,7 @@ const mocks = vi.hoisted(() => {
 		getBalanceMock: vi.fn(),
 		getLeadMagnetInfoMock: vi.fn().mockResolvedValue(null),
 		modelsStore: createStore<{ id: string; info?: { meta?: { lead_magnet?: boolean } } }[]>([]),
+		chatIdStore: createStore(''),
 		pageStore: createStore({ url: new URL('http://localhost/c/123') }),
 		i18nStore: createStore<I18nValue>({
 			language: 'en-US',
@@ -64,7 +65,7 @@ vi.mock('$lib/apis/billing', () => ({
 	getBalance: mocks.getBalanceMock,
 	getLeadMagnetInfo: mocks.getLeadMagnetInfoMock
 }));
-vi.mock('$lib/stores', () => ({ models: mocks.modelsStore }));
+vi.mock('$lib/stores', () => ({ models: mocks.modelsStore, chatId: mocks.chatIdStore }));
 vi.mock('$app/stores', () => ({ page: mocks.pageStore }));
 
 const flushPromises = async (): Promise<void> => {
@@ -96,6 +97,7 @@ describe('HeaderBillingAccess', () => {
 		mocks.pageStore.set({ url: new URL('http://localhost/c/123?focus=topup') });
 		mocks.getBalanceMock.mockReset().mockResolvedValue(createBalance());
 		mocks.modelsStore.set([]);
+		mocks.chatIdStore.set('');
 		mocks.getLeadMagnetInfoMock.mockReset().mockResolvedValue(null);
 		consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 	});
@@ -205,6 +207,30 @@ describe('HeaderBillingAccess', () => {
 
 		expect(walletUrl.searchParams.get('return_to')).toBe('/c/42?focus=topup');
 		expect(topupUrl.searchParams.get('return_to')).toBe('/c/42?focus=topup');
+	});
+
+	it('uses the persisted new chat ID when the home page URL store is stale', async () => {
+		mocks.pageStore.set({ url: new URL('http://localhost/?model=gpt-5.6-luna&q=private-draft') });
+		const root = renderComponent();
+		await flushPromises();
+		mocks.chatIdStore.set('saved-chat');
+		await flushPromises();
+		for (const name of ['balance', 'topup']) {
+			const link = root.querySelector(`[data-testid="header-billing-${name}"]`);
+			const href = new URL(link?.getAttribute('href') ?? '', 'http://localhost');
+			expect(href.searchParams.get('return_to')).toBe('/c/saved-chat');
+			expect(href.href).not.toContain('private-draft');
+		}
+		mocks.chatIdStore.set('');
+		await flushPromises();
+		expect(
+			root.querySelector('[data-testid="header-billing-balance"]')?.getAttribute('href')
+		).not.toContain('return_to');
+		mocks.chatIdStore.set('local:temporary');
+		await flushPromises();
+		expect(
+			root.querySelector('[data-testid="header-billing-balance"]')?.getAttribute('href')
+		).not.toContain('return_to');
 	});
 
 	it('marks the access pill as low balance when funds are low', async () => {
