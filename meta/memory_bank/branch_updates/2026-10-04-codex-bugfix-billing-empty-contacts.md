@@ -1,0 +1,5 @@
+- [ ] **[BUG][BILLING]** Пустые контакты для чеков
+  - Spec: meta/memory_bank/specs/work_items/2026-10-04__bugfix__billing-empty-contacts.md
+  - Owner: Codex
+  - Started: 2026-10-04
+  - Summary: Нормализовать успешный ответ пользователя без info в пустой объект; сохранить реальную ошибку загрузки и данные существующего аккаунта.
