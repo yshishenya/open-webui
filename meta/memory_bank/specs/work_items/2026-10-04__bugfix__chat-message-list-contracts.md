@@ -49,5 +49,12 @@ Graph types describe repaired client state, not validation of arbitrary server J
 
 - [x] Source checks and SDD are recorded, including the CI-driven callback/empty-preview follow-up.
 - [x] Branch entry has source evidence.
-- [ ] Accepted CI and exact merge receipt.
-- [ ] Browser and production receipt for runtime defaults.
+- [x] Accepted CI and exact merge receipt.
+- [x] Browser and compiled candidate receipt for runtime defaults.
+- [ ] Production receipt for runtime defaults.
+
+## Accepted source and candidate receipts
+
+PR236 source `f968824cabc4fa1a97c5dd03679a2d9ca2f26eff`, merge `a2e2f7e529de2811159212d9e1b78d25474495d5`, accepted 2026-10-04T08:04:12Z. All 11 CI checks succeed; dependency-review is skipped. CodeRabbit reviews are disabled for this base branch; independent review is not claimed. All nine source/test/doc files retain their SHA256 after merge.
+
+Chrome component checks pass 4/4: missing history, null history, ordinary graph and API failure. The compiled candidate passes 3/3 previews through real local API/storage under an ordinary fixture user, with zero page errors and zero SMTP/model calls. All 4913 compiled files match the candidate; all 19 base layers and image environment are preserved; health is healthy, restart count zero. Five pre-existing Chat Prettier differences remain outside changed lines. Full quality checks and production acceptance stay open.
