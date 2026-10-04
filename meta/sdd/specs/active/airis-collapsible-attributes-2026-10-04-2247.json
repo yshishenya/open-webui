@@ -1,0 +1,150 @@
+{
+  "spec_id": "airis-collapsible-attributes-2026-10-04-2247",
+  "title": "Airis collapsible attributes",
+  "generated": "2026-10-04T19:47:58.315916Z",
+  "last_updated": "2026-10-04T19:59:13.180896Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__collapsible-attributes.md",
+    "status": "active",
+    "activated_date": "2026-10-04T19:53:38.846763Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis collapsible attributes",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and repair shared contracts",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T19:59:13.178941Z",
+        "journaled_at": "2026-10-04T19:59:13.180867Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify source and compiled behavior",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce invalid duration on actual component; inspect all consumers",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 1.0,
+        "completed_at": "2026-10-04T19:56:19.954245Z",
+        "needs_journaling": false,
+        "status_note": "Actual baseline: 3 failed/13 passed, no unhandled errors. Numeric strings accepted; invalid, negative and Infinity labels wrong. All callers inspected including common/Folder.",
+        "journaled_at": "2026-10-04T19:56:19.955101Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Repair shared attributes and callback contracts without changing valid behavior",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 1.0,
+        "completed_at": "2026-10-04T19:59:13.178785Z",
+        "needs_journaling": false,
+        "status_note": "Shared duration guard and concrete nullable contracts;547 frontend tests pass.20type and3lint diagnostics removed,0new;4old dir diagnostics only refine signatures.",
+        "journaled_at": "2026-10-04T19:59:13.179662Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Full tests and diagnostic delta; compiled acceptance and exact source CI",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 2.0
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-04T19:56:19.955097Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce invalid duration on actual component; inspect all consumers",
+      "author": "Codex",
+      "content": "Task task-1-1 marked as completed. \nNote: Actual baseline: 3 failed/13 passed, no unhandled errors. Numeric strings accepted; invalid, negative and Infinity labels wrong. All callers inspected including common/Folder.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-04T19:59:13.179658Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Repair shared attributes and callback contracts without changing valid behavior",
+      "author": "Codex",
+      "content": "Task task-1-2 marked as completed. \nNote: Shared duration guard and concrete nullable contracts;547 frontend tests pass.20type and3lint diagnostics removed,0new;4old dir diagnostics only refine signatures.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-04T19:59:13.180860Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce and repair shared contracts",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}
