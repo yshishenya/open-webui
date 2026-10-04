@@ -1,25 +1,26 @@
 {
 	"spec_id": "airis-chat-history-contracts-2026-10-04-001",
-	"title": "AIRIS message list history contracts",
-	"generated": "2026-10-04T07:20:38.403774Z",
-	"last_updated": "2026-10-04T08:14:07.933421Z",
+	"title": "Airis chat history contracts",
+	"generated": "2026-10-04T15:45:03.194686Z",
+	"last_updated": "2026-10-04T15:53:51.527248Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "low",
 		"risk_level": "low",
 		"estimated_hours": 8,
 		"security_sensitive": false,
-		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__chat-message-list-contracts.md",
+		"default_category": "refactoring",
 		"status": "completed",
-		"activated_date": "2026-10-04T07:22:03.530370Z",
+		"activated_date": "2026-10-04T15:45:54.654990Z",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__refactor__chat-history-contracts.md",
 		"progress_percentage": 100,
-		"current_phase": "phase-2",
-		"completed_date": "2026-10-04T07:35:05.664857Z"
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-04T15:52:36.815448Z"
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
-			"title": "airis-chat-history-contracts",
+			"title": "Airis chat history contracts",
 			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2"],
@@ -29,157 +30,141 @@
 		},
 		"phase-1": {
 			"type": "phase",
-			"title": "Describe message graph and reproduce contract errors",
+			"title": "Trace and annotate existing history",
 			"status": "completed",
 			"parent": "spec-root",
-			"children": ["task-1-1"],
-			"total_tasks": 1,
-			"completed_tasks": 1,
-			"metadata": {
-				"needs_journaling": false,
-				"completed_at": "2026-10-04T07:29:08.021496Z",
-				"journaled_at": "2026-10-04T07:29:08.023684Z"
-			}
-		},
-		"phase-2": {
-			"type": "phase",
-			"title": "Verify unchanged chat actions and accept source",
-			"status": "completed",
-			"parent": "spec-root",
-			"children": ["task-2-1", "task-2-2"],
+			"children": ["task-1-1", "task-1-2"],
 			"total_tasks": 2,
 			"completed_tasks": 2,
 			"metadata": {
 				"needs_journaling": false,
-				"completed_at": "2026-10-04T07:35:05.160182Z",
-				"journaled_at": "2026-10-04T07:35:05.161990Z"
+				"completed_at": "2026-10-04T15:52:36.160137Z",
+				"journaled_at": "2026-10-04T15:52:36.161959Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify behavior and diagnostics",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-04T15:52:36.378548Z",
+				"journaled_at": "2026-10-04T15:52:36.380606Z"
 			}
 		},
 		"task-1-1": {
 			"type": "task",
-			"title": "Trace real history and all list consumers",
+			"title": "Trace history producers and consumers",
 			"status": "completed",
 			"parent": "phase-1",
 			"children": [],
-			"total_tasks": 1,
-			"completed_tasks": 1,
 			"dependencies": {
 				"blocks": [],
 				"blocked_by": [],
 				"depends": []
 			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
 			"metadata": {
-				"completed_at": "2026-10-04T07:29:08.021137Z",
+				"completed_at": "2026-10-04T15:52:35.928072Z",
 				"needs_journaling": false,
-				"status_note": "Traced all six message-list consumers and parent/child persistence; exact baseline4204/174,110 message-list errors. Before contract probe fails,13 existing behavior scenarios pass. No new dependency; existing TypeScript5.9.3 retained for toolchain compatibility.",
-				"journaled_at": "2026-10-04T07:29:08.022630Z",
-				"file_path": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__chat-message-list-contracts.md"
+				"journaled_at": "2026-10-04T15:52:35.929358Z",
+				"file_path": "src/lib/components/chat/Chat.svelte",
+				"task_category": "refactoring"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Reuse the shared history contract",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-04T15:52:36.159981Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-04T15:52:36.160914Z",
+				"file_path": "src/lib/utils/airis/chat_history.ts",
+				"task_category": "refactoring"
 			}
 		},
 		"task-2-1": {
 			"type": "task",
-			"title": "Type message list and check edit/delete/navigation",
+			"title": "Verify strict contracts, runtime equality and frontend checks",
 			"status": "completed",
 			"parent": "phase-2",
 			"children": [],
-			"total_tasks": 1,
-			"completed_tasks": 1,
 			"dependencies": {
 				"blocks": [],
 				"blocked_by": [],
 				"depends": []
 			},
-			"metadata": {
-				"completed_at": "2026-10-04T07:35:04.873176Z",
-				"needs_journaling": false,
-				"status_note": "Concrete repaired graph, optional malformed-node content/timestamp, existing OutputItem and attachment metadata.14/14 source-handler checks pass; previous source1contract failure/13behavior pass.16 emitted runtime handlers identical; only safe empty history/default callback initializer differences.",
-				"journaled_at": "2026-10-04T07:35:04.874748Z",
-				"file_path": "src/lib/components/chat/Messages.svelte"
-			}
-		},
-		"task-2-2": {
-			"type": "task",
-			"title": "Compare complete diagnostics and freeze reviewable source",
-			"status": "completed",
-			"parent": "phase-2",
-			"children": [],
 			"total_tasks": 1,
 			"completed_tasks": 1,
-			"dependencies": {
-				"blocks": [],
-				"blocked_by": [],
-				"depends": []
-			},
 			"metadata": {
-				"completed_at": "2026-10-04T07:35:05.160034Z",
+				"completed_at": "2026-10-04T15:52:36.378390Z",
 				"needs_journaling": false,
-				"status_note": "457/457frontend67files;110message-list errors removed,4094/174 fullcheck;4existing caller type-schema messages rewritten,0new diagnosticlocations.ESLint1503to1500,3removed0added.Strictnewcontract/testpasses.Source freeze and PR prepared;CI/merge and production are separate receipts.",
-				"journaled_at": "2026-10-04T07:35:05.160957Z",
-				"file_path": "tests/chat-message-list-contracts.test.ts"
+				"journaled_at": "2026-10-04T15:52:36.379346Z",
+				"file_path": "tests/history-utility-contracts.test.ts",
+				"task_category": "refactoring"
 			}
 		}
 	},
 	"journal": [
 		{
-			"timestamp": "2026-10-04T07:29:08.022625Z",
+			"timestamp": "2026-10-04T15:52:35.929354Z",
 			"entry_type": "status_change",
-			"title": "Task Completed: Trace real history and all list consumers",
+			"title": "Task Completed: Trace history producers and consumers",
 			"author": "claude-code",
-			"content": "Task task-1-1 marked as completed. \nNote: Traced all six message-list consumers and parent/child persistence; exact baseline4204/174,110 message-list errors. Before contract probe fails,13 existing behavior scenarios pass. No new dependency; existing TypeScript5.9.3 retained for toolchain compatibility.",
+			"content": "Task task-1-1 marked as completed.",
 			"metadata": {},
 			"task_id": "task-1-1"
 		},
 		{
-			"timestamp": "2026-10-04T07:29:08.023679Z",
+			"timestamp": "2026-10-04T15:52:36.160908Z",
 			"entry_type": "status_change",
-			"title": "Phase Completed: Describe message graph and reproduce contract errors",
+			"title": "Task Completed: Reuse the shared history contract",
+			"author": "claude-code",
+			"content": "Task task-1-2 marked as completed.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-04T15:52:36.161954Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace and annotate existing history",
 			"author": "claude-code",
 			"content": "All child tasks in phase phase-1 have been completed.",
 			"metadata": {},
 			"task_id": "phase-1"
 		},
 		{
-			"timestamp": "2026-10-04T07:35:04.874743Z",
+			"timestamp": "2026-10-04T15:52:36.379341Z",
 			"entry_type": "status_change",
-			"title": "Task Completed: Type message list and check edit/delete/navigation",
+			"title": "Task Completed: Verify strict contracts, runtime equality and frontend checks",
 			"author": "claude-code",
-			"content": "Task task-2-1 marked as completed. \nNote: Concrete repaired graph, optional malformed-node content/timestamp, existing OutputItem and attachment metadata.14/14 source-handler checks pass; previous source1contract failure/13behavior pass.16 emitted runtime handlers identical; only safe empty history/default callback initializer differences.",
+			"content": "Task task-2-1 marked as completed.",
 			"metadata": {},
 			"task_id": "task-2-1"
 		},
 		{
-			"timestamp": "2026-10-04T07:35:05.160952Z",
+			"timestamp": "2026-10-04T15:52:36.380601Z",
 			"entry_type": "status_change",
-			"title": "Task Completed: Compare complete diagnostics and freeze reviewable source",
-			"author": "claude-code",
-			"content": "Task task-2-2 marked as completed. \nNote: 457/457frontend67files;110message-list errors removed,4094/174 fullcheck;4existing caller type-schema messages rewritten,0new diagnosticlocations.ESLint1503to1500,3removed0added.Strictnewcontract/testpasses.Source freeze and PR prepared;CI/merge and production are separate receipts.",
-			"metadata": {},
-			"task_id": "task-2-2"
-		},
-		{
-			"timestamp": "2026-10-04T07:35:05.161986Z",
-			"entry_type": "status_change",
-			"title": "Phase Completed: Verify unchanged chat actions and accept source",
+			"title": "Phase Completed: Verify behavior and diagnostics",
 			"author": "claude-code",
 			"content": "All child tasks in phase phase-2 have been completed.",
 			"metadata": {},
 			"task_id": "phase-2"
-		},
-		{
-			"timestamp": "2026-10-04T07:53:12.836937Z",
-			"entry_type": "verification",
-			"title": "CI-driven callback and empty-preview follow-up",
-			"author": "Codex",
-			"content": "Old PR head failed touched-file lint on 21 existing Messages errors. Replaced Function contracts, removed dead imports/props, typed Chat callbacks and mapped null hover history to the empty list default. Actual Svelte mount passes without uncaught errors. Revised source:458/458frontend68files;4204/174 to4087/170;1503 to1477 ESLint;zero added diagnostics and strict sixchangedfiles pass.18emittedhandlers unchanged. Five pre-existing Chat formatting differences retained. CI/merge/browser/production are separate receipts.",
-			"metadata": {}
-		},
-		{
-			"timestamp": "2026-10-04T08:14:07.933421Z",
-			"entry_type": "verification",
-			"title": "Accepted PR236 and compiled candidate",
-			"author": "Codex",
-			"content": "Source f968824cabc4fa1a97c5dd03679a2d9ca2f26eff / merge a2e2f7e529de2811159212d9e1b78d25474495d5;11 CI success/1dependency-review skip. Nine source/test/doc hashes unchanged after merge. Chrome component4/4 and compiledcandidate3/3, ordinaryfixtureuser/real localAPIstorage/0pageerrors/0SMTPmodel.4913frontendfiles match,19baselayers/imageENV preserved,healthy/restarts0.Production/fullquality/pilot remain separate acceptance gates.",
-			"metadata": {}
 		}
 	]
 }

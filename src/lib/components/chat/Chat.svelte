@@ -82,7 +82,7 @@
 	import { createTemporaryChatId, isTemporaryChatId } from '$lib/utils/chatId';
 	import { getOutputText } from './Messages/structuredOutput';
 	import { getLastMessageId } from '$lib/utils/airis/chat_history';
-	import type { ChatHistoryMessage } from '$lib/utils/airis/chat_history';
+	import type { ChatHistory, ChatHistoryMessage } from '$lib/utils/airis/chat_history';
 	import { trackEvent } from '$lib/utils/analytics';
 
 	import {
@@ -398,7 +398,7 @@
 
 	let chatTasks = [];
 
-	let history = {
+	let history: ChatHistory & { state?: unknown } = {
 		messages: {},
 		currentId: null
 	};
@@ -917,7 +917,7 @@
 	): Promise<void> => {
 		const _chatId = JSON.parse(JSON.stringify($chatId));
 		// Keep the existing dynamically populated history boundary.
-		(history as { currentId: string | null }).currentId = getLastMessageId(history, message.id);
+		history.currentId = getLastMessageId(history, message.id);
 
 		await tick();
 
@@ -3469,7 +3469,7 @@
 		console.log('regenerateResponse');
 
 		if (history.currentId) {
-			let userMessage = (history.messages as Record<string, ChatHistoryMessage>)[message.parentId!];
+			let userMessage = history.messages[message.parentId!];
 
 			if (!userMessage) {
 				toast.error($i18n.t('Parent message not found'));

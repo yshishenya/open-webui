@@ -9,8 +9,12 @@ export type ChatHistoryMessage = {
 	content?: string;
 	timestamp?: number;
 	model?: string;
+	modelName?: string;
 	modelIdx?: number;
 	models?: string[];
+	selectedModelId?: string;
+	operation_id?: string;
+	arena?: boolean;
 	done?: boolean;
 	merged?: { status?: boolean; content?: string; timestamp?: number };
 	files?: (Record<string, unknown> & { type?: string; content_type?: string })[];
@@ -22,6 +26,12 @@ export type ChatHistoryMessage = {
 	error?: { content: unknown };
 	output?: OutputItem[];
 	originalContent?: string;
+	statusHistory?: (Record<string, unknown> & { action?: string })[];
+	code_executions?: (Record<string, unknown> & { id: string })[];
+	embeds?: string[];
+	followUps?: string[];
+	favorite?: boolean;
+	lastSentence?: string;
 	annotation?: { rating: number; [key: string]: unknown };
 };
 
