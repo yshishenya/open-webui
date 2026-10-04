@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: source accepted; compiled candidate verified; production pending
+- Status: done
 - Owner: Codex
 - Branch: codex/bugfix/message-input-id-contracts
 - SDD Spec: meta/sdd/specs/completed/airis-message-input-id-contracts-2026-10-04-001.json
@@ -40,3 +40,7 @@ Current parent source differs from deployed files by removing2 ignored bindings.
 ## Accepted source and compiled candidate — 2026-10-04
 
 PR241 source43054d4d3a192fb0ad9e332d7e7bdb8dd75e875c / merge4d9666311292a4b72b1162e97b0c1efdc5283b05 accepted10:07:59UTC. All10CI checks success, dependency-review skipped; CodeRabbit disabled for this base. All8files SHA256 identical after merge. Candidate image3fca9ea6d1009eea6644e6889e79e8ba06dd1b22a24d26ebe484ace14c210105 on localhost6218:4913frontend hashes,21base layers and imageENV preserved. Ordinary disposable user, real local API/storage,6previews+6chat openings passed,0pageerrors/0modelcalls. Initial empty-chat assertion checked before transition settled; final run waits for previous text to disappear, application unchanged. Legal marks are local fixtures, not real consents. Production remains separate pending combined runtime fix for empty-model filter reduction.
+
+## Combined runtime acceptance
+
+The two Chat call-site removals and all erased types are included in PR242 frontendcce5a05de,registry/runtime2037787c. All4913compiled files match,component/candidate checks pass and existing production chat renders2messages/input without console errors or message submission.14current neighbors,ENV,compiled counter,backup/rollback/migration and persisted full Compose are verified. Thus runtime acceptance is closed separately from the source/CI proof above;overall quality and real pilot stay open.
