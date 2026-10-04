@@ -1,8 +1,8 @@
-- [ ] **[BUG][CHAT][TYPES]** Describe existing model metadata
+- [x] **[BUG][CHAT][TYPES]** Describe existing model metadata
   - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__model-metadata-contracts.md`
   - Owner: Codex
   - Branch: `codex/bugfix/model-metadata-contracts`
-  - Started: 2026-10-04
+  - Done: 2026-10-04
   - Summary: Trace shared never[] tools, missing chat variable schema and untyped capability flags; describe existing API data with runtime identity and zero new diagnostic gates.
-  - Tests: Docker467/467; types3991/164 (12removed/0added); ESLint1419 (0removed/0added); strict API/test lint and runtime identity pass. SDD3/3 completed, validation0errors/0warnings. PR/CI/merge pending.
+  - Tests: Docker467/467; types3991/164 (12removed/0added); ESLint1419 (0removed/0added); strict API/test lint and runtime identity pass. SDD3/3 completed, validation0errors/0warnings. PR240/sourcec1f6558f6/mergeb83185491 accepted;10CI success/1skip,5SHA256identical.
   - Risks: General quality debt and real pilot conditions remain open; no runtime release claimed.

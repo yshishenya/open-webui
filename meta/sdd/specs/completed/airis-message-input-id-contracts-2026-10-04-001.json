@@ -1,0 +1,122 @@
+{
+  "spec_id": "airis-message-input-id-contracts-2026-10-04-001",
+  "title": "Airis message input ID contracts",
+  "generated": "2026-10-04T09:42:32.438751Z",
+  "last_updated": "2026-10-04T09:51:43.446893Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__message-input-id-contracts.md",
+    "status": "completed",
+    "activated_date": "2026-10-04T09:44:03.314115Z",
+    "completed_date": "2026-10-04T09:51:43.446583Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis message input ID contracts",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace selection and task consumers",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-10-04T09:44:03.527578Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Describe five existing ID lists",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-10-04T09:44:03.737001Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify contracts and erased runtime identity",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-10-04T09:51:42.930937Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace selection and task consumers",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "file_path": "src/lib/components/chat/MessageInput.svelte",
+        "completed_at": "2026-10-04T09:44:03.527410Z",
+        "needs_journaling": true
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Describe five existing ID lists",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "metadata": {
+        "file_path": "src/lib/components/chat/MessageInput.svelte",
+        "completed_at": "2026-10-04T09:44:03.736836Z",
+        "needs_journaling": true
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify contracts and erased runtime identity",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "metadata": {
+        "file_path": "tests/message-input-id-contracts.test.ts",
+        "started_at": "2026-10-04T09:44:03.967604Z",
+        "completed_at": "2026-10-04T09:51:42.930541Z",
+        "needs_journaling": true,
+        "status_note": "469 frontend tests pass;24removed/0added types;strict changed-file lint;complete child client/server identity;parent only removes2 ignored bindings"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    }
+  }
+}

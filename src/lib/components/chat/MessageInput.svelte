@@ -122,7 +122,7 @@
 	export let uploadPending = false;
 
 	export let atSelectedModel: Model | undefined = undefined;
-	export let selectedModels: [''];
+	export let selectedModels: string[];
 
 	let selectedModelIds = [];
 	$: selectedModelIds = atSelectedModel !== undefined ? [atSelectedModel.id] : selectedModels;
@@ -133,7 +133,7 @@
 	);
 
 	export let history;
-	export let taskIds = null;
+	export let taskIds: string[] | null = null;
 
 	$: isActive =
 		(taskIds && taskIds.length > 0) ||
@@ -143,9 +143,9 @@
 	export let prompt = '';
 	export let files = [];
 
-	export let selectedToolIds = [];
-	export let selectedSkillIds = [];
-	export let selectedFilterIds = [];
+	export let selectedToolIds: string[] = [];
+	export let selectedSkillIds: string[] = [];
+	export let selectedFilterIds: string[] = [];
 
 	export let imageGenerationEnabled = false;
 	export let webSearchEnabled = false;
