@@ -15,3 +15,5 @@
 - Focused actual-consumer/caption/keyboard checks: 11/11; scoped ESLint clean. Final full validation and merged compiled runtime remain pending. The overall quality gates and onboarding goal remain open.
 
 - Final expanded checks: 522/522 frontend, 11/11 focused; typecheck3789/163→3763/160, 29 removed, 2 existing signature refinements, 0 new; ESLint1416→1396, 20 removed/0 new. Full project check/lint remain red. SDD valid without warnings. Final compiled rebuild/source CI/production pending.
+
+- Final compiled candidate on executable source2bc78d14380bcaa500f3c0eb746ffd3635b97681:16/16 full paths, restored/saved nullable images, real document/video70.24s, WebVTT10cues/replacement/invalid retention, actual Escape/CtrlEnter and saved-chat remove/save/reload; zero page errors. All executable-source CI gates satisfied. SDD3/3 completed; production and final delivery pending.

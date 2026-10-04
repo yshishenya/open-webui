@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/bugfix/attachment-image-sources
-- SDD Spec: meta/sdd/specs/active/airis-attachment-image-sources-2026-10-04-001.json
+- SDD Spec: meta/sdd/specs/completed/airis-attachment-image-sources-2026-10-04-001.json
 - Created: 2026-10-04
 
 ## Context and root cause
@@ -23,8 +23,8 @@ Normal uploads set url to the uploaded ID and content_type from server metadata.
 - [x] Strict changed-file ESLint finds zero issues in the affected consumers and new components.
 - [x] Native video controls remain; local WebVTT captions can be selected/replaced, invalid input retains the current track, and destruction releases object URLs. No automatic captions are promised.
 - [x] The shared textarea forwards real Escape/Ctrl+Enter events to its existing channel editor callback.
-- [ ] Compiled channel images/documents/video, captions and edit shortcuts pass in the complete application.
-- [ ] Actual consumer regressions fail on baseline and pass after repair; full frontend tests pass, no new type/lint diagnostics, compiled browser scenarios pass.
+- [x] Compiled channel images/documents/video, captions and edit shortcuts pass in the complete application.
+- [x] Actual consumer regressions fail on baseline and pass after repair; full frontend tests pass, no new type/lint diagnostics, compiled browser scenarios pass.
 - [ ] Source CI/merge, candidate and guarded production identity/health/configuration verified; full onboarding goal remains open.
 
 ## Scope and upstream impact
@@ -47,3 +47,13 @@ Five actual consumer cases fail before the repair; all seven targeted checks and
 - Typecheck: 3789 errors/163 warnings → 3763/160. Complete mapped comparison removes 29 diagnostics; two existing diagnostics only refine printed prop signatures (onInsertToNote and aria-label). Zero new diagnostics.
 - ESLint: 1416 → 1396, 20 removed and zero new. Overall project type/lint remain failing; they are not reported as green.
 - SDD validation: zero errors/warnings. Final compiled rebuild, source CI and production acceptance pending.
+
+## Final compiled acceptance
+
+Executable source: 2bc78d14380bcaa500f3c0eb746ffd3635b97681. Final linux/amd64 local candidate: sha256:ab448ed63b7a006c53bee3f9f4b7b4c643550348710c30bf6e0136de4711dc00. The unchanged 425 backend files, inherited base layers/image environment and accepted dynamic env.js were compared by hashes. Final frontend includes integration PR255.
+
+- 16/16 full-path scenarios pass in Chromium and Firefox390px, including three free tasks, provider errors and controlled checkout/credit/history/service-mail replay. External protocols are fixture-controlled.
+- Restored draft keeps all three descriptors and its text; ID-only/null image loads authorized /content with naturalWidth1. Saved-chat view and edit show that image plus two existing favicon placeholders (width500); removal/save/reload preserves the remaining descriptors and null URL.
+- A real local channel shows the image, document and native video controls; video duration70.24s and playback progress verified. Real guide VTT yields10 cues in showing mode; replacement yields1 correct cue; invalid file retains the current track and displays a safe error.
+- Real editor Escape cancels without changing the message; Ctrl+Enter saves and reload/API confirm the stored text. Zero page errors in acceptance.
+- Exact executable source CI: all required checks succeed, dependency review is skipped by policy. Implementation SDD3/3 is complete; production release remains pending and is a separate gate.
