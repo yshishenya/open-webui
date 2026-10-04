@@ -1,0 +1,8 @@
+- [x] **[DOCS][MAIL]** Prepare reproducible voluntary pilot launch
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__docs__mail-pilot-launch-runbook.md`
+  - Owner: Codex
+  - Branch: `codex/docs/mail-pilot-launch-runbook`
+  - Done: 2026-10-04
+  - Summary: Reuse existing consent, scope, queue and report primitives; specify prospective windows, launch controls and safe stop. Prepare explicit Compose passthrough without recreating the runtime.
+  - Tests: Read-only aggregate account inventory; rendered Compose differs only in two safe-default keys; all14container IDs and runtime configuration preserved. Markdown512/0; exact CI recorded separately before merge.
+  - Risks: Preparation cannot establish voluntary participation, external Inbox delivery or mature calendar outcomes.
