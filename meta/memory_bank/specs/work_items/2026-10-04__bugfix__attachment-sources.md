@@ -19,13 +19,17 @@ Normal uploads set url to the uploaded ID and content_type from server metadata.
 
 - [x] All five actual source expressions handle omitted/null/empty URL without throwing or producing undefined/null paths.
 - [x] A known ID without a URL resolves to authorized file content; no address/ID yields an empty string consumed by the existing image placeholder.
-- [x] Existing data/http URLs and explicit ID/content_type behavior remain unchanged; channel video and document rendering still work.
+- [x] Existing data/http URLs and explicit ID/content_type behavior remain unchanged.
+- [x] Strict changed-file ESLint finds zero issues in the affected consumers and new components.
+- [x] Native video controls remain; local WebVTT captions can be selected/replaced, invalid input retains the current track, and destruction releases object URLs. No automatic captions are promised.
+- [x] The shared textarea forwards real Escape/Ctrl+Enter events to its existing channel editor callback.
+- [ ] Compiled channel images/documents/video, captions and edit shortcuts pass in the complete application.
 - [ ] Actual consumer regressions fail on baseline and pass after repair; full frontend tests pass, no new type/lint diagnostics, compiled browser scenarios pass.
 - [ ] Source CI/merge, candidate and guarded production identity/health/configuration verified; full onboarding goal remains open.
 
 ## Scope and upstream impact
 
-One small fork-owned resolver in src/lib/utils/airis with thin calls in chat/MessageInput, chat/Messages/UserMessage, channel/MessageInput and channel/Messages/Message. Replace all five duplicate expressions and use exact native equality for the optional modal type. Retain existing Image safety policy, uploads, draft storage, file preview, API, database and dependencies. No broad component formatting.
+One small fork-owned resolver in src/lib/utils/airis with thin calls in chat/MessageInput, chat/Messages/UserMessage, channel/MessageInput and channel/Messages/Message. Replace all five duplicate expressions and use exact native equality for the optional modal type. Retain existing Image safety policy, uploads, draft storage, file preview, API, database and dependencies. No broad component formatting. Strict PR CI additionally exposed 20 existing lint issues in the touched channel/user message components. Remove unused imports/state, type callback contracts including disabled=false, and retain swipe/reply/pin controls. A fork-owned AttachmentVideo keeps native playback and accepts local WebVTT files up to 5 MiB using async reading and revision/object-URL cleanup. A key on the source remounts video when attachment identity changes. Two additive lines in shared common/Textarea restore the already-supplied keyboard callback; no new dependencies or app services.
 
 ## Verification / rollback
 
@@ -33,4 +37,13 @@ Use Compose-created frontend tools for actual expression regressions, full Vites
 
 ## Source verification
 
+Baseline source: 3a9811fed022b4545fa76e054f5a77cf836d6927. Merged integration PR255 adds 13 frontend tests with no type/lint delta. The original source-only verification below is superseded by the final expanded validation when recorded.
+
 Five actual consumer cases fail before the repair; all seven targeted checks and 505/505 frontend tests in 76 files pass after it. Check3789→3785 errors, warnings163 unchanged: four removed, zero new or refined diagnostics. ESLint1416 unchanged; new helper/test scoped lint passes. Overall quality gates remain red. Compiled candidate, exact-source CI and production acceptance remain pending.
+
+## Final expanded source checks
+
+- 522/522 frontend tests, 78 files; focused resolver/caption/actual-keyboard checks 11/11; strict changed-file ESLint clean.
+- Typecheck: 3789 errors/163 warnings → 3763/160. Complete mapped comparison removes 29 diagnostics; two existing diagnostics only refine printed prop signatures (onInsertToNote and aria-label). Zero new diagnostics.
+- ESLint: 1416 → 1396, 20 removed and zero new. Overall project type/lint remain failing; they are not reported as green.
+- SDD validation: zero errors/warnings. Final compiled rebuild, source CI and production acceptance pending.

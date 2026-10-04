@@ -12,7 +12,8 @@
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__attachment-sources.md",
     "status": "active",
     "activated_date": "2026-10-04T18:27:12.053024Z",
-    "progress_percentage": 66
+    "progress_percentage": 66,
+    "scope_note": "Strict changed-file CI repair: 20 existing lint issues; native video/local WebVTT captions with resource cleanup and source-keyed remount; existing shared textarea keyboard callback restored. No new application dependencies."
   },
   "hierarchy": {
     "spec-root": {
@@ -131,7 +132,8 @@
       "completed_tasks": 0,
       "metadata": {
         "file_path": "tests/attachment-sources.test.ts",
-        "task_category": "implementation"
+        "task_category": "implementation",
+        "acceptance_note": "Final full diagnostics delta plus compiled restore/ID-only/channel document/image/video, local captions replacement and keyboard edit acceptance. Production gate remains separate."
       }
     }
   },

@@ -13,6 +13,7 @@
 	export let ariaLabel: string | null = null;
 
 	export let onInput: (event: Event) => void = () => {};
+	export let onKeydown: (event: KeyboardEvent) => void = () => {};
 	export let onBlur: (event: FocusEvent) => void = () => {};
 
 	let textareaElement: HTMLTextAreaElement | null = null;
@@ -90,5 +91,6 @@
 	on:focus={() => {
 		resize();
 	}}
+	on:keydown={onKeydown}
 	on:blur={onBlur}
 ></textarea>

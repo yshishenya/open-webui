@@ -1,9 +1,10 @@
 <script lang="ts">
+	import type { ChatHistoryMessage, ChatMessageEdit } from '$lib/utils/airis/chat_history';
 	import { getAttachmentSource } from '$lib/utils/airis/attachment_source';
 	import { toast } from 'svelte-sonner';
 	import { tick, getContext, onMount } from 'svelte';
 
-	import { models, settings } from '$lib/stores';
+	import { settings } from '$lib/stores';
 	import { user as _user } from '$lib/stores';
 	import {
 		copyToClipboard as _copyToClipboard,
@@ -31,12 +32,12 @@
 
 	export let siblings;
 
-	export let gotoMessage: Function;
-	export let showPreviousMessage: Function;
-	export let showNextMessage: Function;
+	export let gotoMessage: (message: ChatHistoryMessage, index: number) => void | Promise<void>;
+	export let showPreviousMessage: (message: ChatHistoryMessage) => void | Promise<void>;
+	export let showNextMessage: (message: ChatHistoryMessage) => void | Promise<void>;
 
-	export let editMessage: Function;
-	export let deleteMessage: Function;
+	export let editMessage: (id: string, edit: ChatMessageEdit, submit?: boolean) => void | Promise<void>;
+	export let deleteMessage: (id: string) => void | Promise<void>;
 
 	export let isFirstMessage: boolean;
 	export let readOnly: boolean;
@@ -290,7 +291,7 @@
 									document.getElementById('confirm-edit-message-button')?.click();
 								}
 							}}
-						/>
+						></textarea>
 					</div>
 
 					<div class=" mt-2 -mx-1 flex justify-between text-sm font-normal">
