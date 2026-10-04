@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getContext, tick } from 'svelte';
+	import { getContext, tick, onDestroy } from 'svelte';
 	import {
 		normalizeInputVariables,
 		getInputValue,
@@ -19,6 +19,24 @@
 	export let title = $i18n.t('Input Variables');
 
 	export let onSave: (values: Record<string, unknown>) => void = () => {};
+	export let onCancel: () => void = () => {};
+
+	let awaitingInput = false;
+	let cancelCallback: () => void = () => {};
+	const cancelHandler = (): void => {
+		if (awaitingInput) {
+			awaitingInput = false;
+			cancelCallback();
+		}
+	};
+	onDestroy(cancelHandler);
+	$: if (show) {
+		awaitingInput = true;
+		// Keep the current resolver: Svelte prop getters can be stale during teardown.
+		cancelCallback = onCancel;
+	} else {
+		cancelHandler();
+	}
 
 	let loading = true;
 	let variableValues: Record<string, unknown> = {};
@@ -38,6 +56,7 @@
 			])
 		);
 		onSave(result);
+		awaitingInput = false;
 		show = false;
 	};
 

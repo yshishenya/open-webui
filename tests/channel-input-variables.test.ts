@@ -38,6 +38,7 @@ it.each<['channel' | 'chat', boolean, string, string, boolean]>([
 			content: current,
 			prompt: kind === 'chat' ? current : vi.fn(),
 			command: command ? '/task' : '',
+			inputVariablesModalCancelCallback: (): void => {},
 			document: { getElementById: (id: string) => (id === 'chat-input' ? input : container) },
 			Event,
 			tick: async (): Promise<void> => {},

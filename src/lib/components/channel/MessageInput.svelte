@@ -2,7 +2,7 @@
 	import { toast } from 'svelte-sonner';
 	import { v4 as uuidv4 } from 'uuid';
 
-	import { tick, getContext, onMount } from 'svelte';
+	import { tick, getContext, onMount, onDestroy } from 'svelte';
 
 	const i18n = getContext('i18n');
 
@@ -82,10 +82,13 @@
 
 	let showInputVariablesModal = false;
 	let inputVariablesModalCallback: (variableValues: Record<string, unknown>) => void;
+	let inputVariablesModalCancelCallback: () => void = () => {};
+	onDestroy(() => inputVariablesModalCancelCallback());
 	let inputVariables: Record<string, Record<string, unknown>> = {};
 	let inputVariableValues: Record<string, unknown> = {};
 
-	const inputVariableHandler = async (text: string): Promise<string> => {
+	const inputVariableHandler = async (text: string): Promise<string | null> => {
+		inputVariablesModalCancelCallback();
 		inputVariables = extractInputVariables(text);
 
 		// No variables? return the original text immediately.
@@ -95,10 +98,20 @@
 
 		// Show modal and wait for the user's input.
 		showInputVariablesModal = true;
-		return await new Promise<string>((resolve) => {
+		return await new Promise<string | null>((resolve) => {
+			let settled = false;
+			inputVariablesModalCancelCallback = () => {
+				if (settled) return;
+				settled = true;
+				showInputVariablesModal = false;
+				resolve(null);
+			};
 			inputVariablesModalCallback = (variableValues) => {
-				inputVariableValues = { ...inputVariableValues, ...variableValues };
-				replaceVariables(inputVariableValues);
+				if (settled) return;
+				const values = { ...inputVariableValues, ...variableValues };
+				replaceVariables(values);
+				inputVariableValues = values;
+				settled = true;
 				showInputVariablesModal = false;
 				resolve(text);
 			};
@@ -235,7 +248,8 @@
 		}
 	};
 
-	export const setText = async (text?: string, cb?: (text: string) => void) => {
+	export const setText = async (text?: string, cb?: (text: string) => void): Promise<void> => {
+		inputVariablesModalCancelCallback();
 		const chatInput = document.getElementById('chat-input');
 
 		if (chatInput) {
@@ -247,7 +261,7 @@
 			chatInputElement?.focus();
 
 			if (text !== '') {
-				text = await inputVariableHandler(text);
+				if ((await inputVariableHandler(text)) === null) return;
 			}
 
 			await tick();
@@ -274,6 +288,7 @@
 	};
 
 	const insertTextAtCursor = async (text: string): Promise<void> => {
+		inputVariablesModalCancelCallback();
 		const chatInput = document.getElementById('chat-input');
 		if (!chatInput) return;
 
@@ -286,7 +301,7 @@
 		}
 
 		await tick();
-		text = await inputVariableHandler(text);
+		if ((await inputVariableHandler(text)) === null) return;
 		await tick();
 
 		const chatInputContainer = document.getElementById('chat-input-container');
@@ -709,6 +724,7 @@
 		bind:show={showInputVariablesModal}
 		variables={inputVariables}
 		onSave={inputVariablesModalCallback}
+		onCancel={inputVariablesModalCancelCallback}
 	/>
 
 	<div class="bg-transparent">
