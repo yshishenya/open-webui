@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/bugfix/attachment-image-sources
-- SDD Spec: meta/sdd/specs/active/airis-attachment-image-sources-2026-10-04-2119.json
+- SDD Spec: meta/sdd/specs/active/airis-attachment-image-sources-2026-10-04-001.json
 - Created: 2026-10-04
 
 ## Context and root cause
