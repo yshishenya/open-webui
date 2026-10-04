@@ -135,3 +135,66 @@ export {};`;
 			.map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'))
 	).toEqual([]);
 });
+
+it('types the actual Chat history declaration and streamed metadata without erasing optional fields', () => {
+	const chat = readFileSync('src/lib/components/chat/Chat.svelte', 'utf8');
+	const script = ts.createSourceFile(
+		'Chat.ts',
+		chat.split('<script lang="ts">')[1].split('</script>')[0],
+		ts.ScriptTarget.Latest
+	);
+	const history = script.statements
+		.filter(ts.isVariableStatement)
+		.flatMap((statement) => [...statement.declarationList.declarations])
+		.find((declaration) => declaration.name.getText(script) === 'history');
+	expect(history).toBeDefined();
+	const filename = resolve('tests/chat-history-type-probe.ts');
+	const code = `import type {ChatHistory, ChatHistoryMessage} from '../src/lib/utils/airis/chat_history';
+let ${history?.getText(script)};
+history.currentId = 'a';
+history.currentId = null;
+history.messages.a = {id: 'a', parentId: 'u', childrenIds: [], role: 'assistant',
+ model: 'model', modelName: 'Model', modelIdx: 0, operation_id: 'operation', done: false,
+ statusHistory: [{action: 'knowledge_search', extension: 42}],
+ code_executions: [{id: 'execution', result: {output: 'ok'}}],
+ embeds: ['<p>Result</p>'], followUps: ['Next?'], favorite: true};
+history.messages.a.childrenIds.push('b');
+const graph: ChatHistory = history;
+const content: string | undefined = graph.messages.a.content;
+const parent: string | null = graph.messages.a.parentId;
+type IsAny<T> = 0 extends (1 & T) ? true : false;
+const concrete: IsAny<typeof history.messages.a> = false;
+// @ts-expect-error current message IDs cannot be numeric
+history.currentId = 42;
+// @ts-expect-error branch children must be string IDs
+history.messages.a.childrenIds.push(42);
+// @ts-expect-error streaming status actions retain their string type
+history.messages.a.statusHistory = [{action: 42}];
+// @ts-expect-error follow-up suggestions are strings
+history.messages.a.followUps = [42];
+// @ts-expect-error repaired graph nodes require their canonical ID
+history.messages.b = {role: 'user', parentId: null, childrenIds: []};
+export {};`;
+	const options: ts.CompilerOptions = {
+		strict: true,
+		noEmit: true,
+		skipLibCheck: true,
+		target: ts.ScriptTarget.ES2022,
+		module: ts.ModuleKind.ESNext,
+		moduleResolution: ts.ModuleResolutionKind.Bundler,
+		types: [],
+		baseUrl: resolve('.'),
+		paths: { '$lib/*': ['src/lib/*'] }
+	};
+	const host = ts.createCompilerHost(options);
+	const original = host.getSourceFile.bind(host);
+	host.getSourceFile = (path, version, onError, fresh) =>
+		path === filename
+			? ts.createSourceFile(path, code, version)
+			: original(path, version, onError, fresh);
+	expect(
+		ts
+			.getPreEmitDiagnostics(ts.createProgram([filename], options, host))
+			.map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'))
+	).toEqual([]);
+});

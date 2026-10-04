@@ -1,0 +1,6 @@
+- [x] **[REFACTOR][CHAT]** Reuse concrete history contracts in Chat
+  - Spec: meta/memory_bank/specs/work_items/2026-10-04**refactor**chat-history-contracts.md
+  - Owner: Codex
+  - Done: 2026-10-04
+  - Summary: Type the existing repaired graph and streamed metadata; preserve executable behavior and compare diagnostics.
+  - Tests: 491/491 frontend; runtime equality 3/3; 74 diagnostics removed, two existing messages refined; no added issues, 1419 ESLint unchanged. Full type gate remains red (3848/164).
