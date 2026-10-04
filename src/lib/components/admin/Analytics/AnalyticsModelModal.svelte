@@ -169,7 +169,12 @@
 	else invalidate();
 </script>
 
-<Modal size="md" bind:show>
+<Modal
+	size="md"
+	bind:show
+	containerClassName="airis-reporting-scope"
+	ariaLabel={`Использование модели: ${model?.name || model?.id || ''}`}
+>
 	{#if model}
 		<div class="flex justify-between dark:text-gray-300 px-4 pt-3 pb-1">
 			<Tooltip content={`${model.name} (${model.id})`} placement="top-start">

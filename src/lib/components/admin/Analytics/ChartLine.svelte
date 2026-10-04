@@ -12,9 +12,21 @@
 		colors: string[];
 		height?: number;
 		period?: 'hour' | 'week' | 'month' | 'year' | 'all';
+		label?: string;
+		formatValue?: (value: number) => string;
+		showPercent?: boolean;
 	}
 
-	let { data, models, colors, height = 300, period = 'week' }: Props = $props();
+	let {
+		data,
+		models,
+		colors,
+		height = 300,
+		period = 'week',
+		label = 'Сохранённые ответы по моделям; значения доступны в таблице графика',
+		formatValue = (value: number) => value.toLocaleString(),
+		showPercent = true
+	}: Props = $props();
 
 	let hoveredIdx: number | null = $state(null);
 	let mouseX = $state(0);
@@ -52,7 +64,7 @@
 <div class="relative w-full" style="height:{height}px">
 	<svg
 		role="img"
-		aria-label="Сохранённые ответы по моделям; значения доступны в таблице графика"
+		aria-label={label}
 		viewBox="0 0 {w} {height - 20}"
 		class="absolute inset-x-0 top-0 h-[calc(100%-20px)] w-full"
 		preserveAspectRatio="none"
@@ -118,9 +130,10 @@
 					<div class="flex items-center justify-between gap-2 py-0.5">
 						<span class="min-w-0 truncate text-gray-600 dark:text-gray-300">{n}</span>
 						<span class="shrink-0 text-gray-900 tabular-nums dark:text-white"
-							>{c.toLocaleString()}
-							<span class="text-gray-400">({total > 0 ? ((c / total) * 100).toFixed(0) : 0}%)</span
-							></span
+							>{formatValue(c)}
+							{#if showPercent}<span class="text-gray-400"
+									>({total > 0 ? ((c / total) * 100).toFixed(0) : 0}%)</span
+								>{/if}</span
 						>
 					</div>
 				{/each}

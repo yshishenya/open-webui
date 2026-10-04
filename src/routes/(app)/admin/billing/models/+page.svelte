@@ -2324,6 +2324,7 @@
 				<button
 					type="button"
 					on:click={closeModal}
+					aria-label={$i18n.t('Close')}
 					class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
 				>
 					<XMark className="size-5" />

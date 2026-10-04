@@ -61,14 +61,10 @@
 	const handleHeroSecondary = (event: MouseEvent): void => {
 		event.preventDefault();
 		trackEvent('pricing_hero_secondary_click');
-		document
-			.getElementById('rates')
-			?.scrollIntoView({
-				behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-					? 'auto'
-					: 'smooth',
-				block: 'start'
-			});
+		document.getElementById('rates')?.scrollIntoView({
+			behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+			block: 'start'
+		});
 	};
 
 	const handleFinalCta = (event: MouseEvent): void => {
@@ -217,6 +213,30 @@
 				'Вы сможете пополнить баланс и продолжить работу. История списаний доступна в личном кабинете.'
 		},
 		{
+			id: 'free-quota',
+			question: 'Что произойдёт, когда бесплатный объём закончится?',
+			answer:
+				'Бесплатный доступ действует для указанных моделей в пределах их квот. Остаток и срок квоты видны на странице «Баланс». Если квота выбранной модели закончилась, проверьте доступность другой бесплатной модели или пополните баланс для платного использования.'
+		},
+		{
+			id: 'chat-history',
+			question: 'Почему длинный чат может стоить дороже?',
+			answer:
+				'В расчёт входят ваш новый запрос, предыдущая история чата, отправленная модели, и её ответ. Поэтому одинаковый вопрос в новом чате и в длинном разговоре может стоить по-разному. На странице «Стоимость» можно сравнить эти сценарии.'
+		},
+		{
+			id: 'reserve',
+			question: 'Почему деньги резервируются перед ответом?',
+			answer:
+				'Перед ответом часть доступных денег временно резервируется. После ответа списывается итоговая стоимость, а неиспользованная часть резерва освобождается. На странице «Операции» показан окончательный расход; резерв не является вторым списанием.'
+		},
+		{
+			id: 'find-charge',
+			question: 'Как найти списание за конкретный ответ?',
+			answer:
+				'Откройте «Операции», выберите даты и фильтр «Использование». Найдите модель и время ответа, раскройте «Подробнее»: там показаны объём, способ расчёта и ссылка на чат, если он сохранён. Если нужна помощь, сообщите номер операции из подробностей.'
+		},
+		{
 			id: 'history',
 			question: 'Где смотреть историю списаний?',
 			answer: 'История списаний отображается в личном кабинете.'
@@ -239,7 +259,7 @@
 	description="Прозрачные тарифы Airis: пополнение баланса, списания только за использование и бесплатный старт."
 	showHero={false}
 >
-	<section class="relative overflow-hidden">
+	<section class="airis-reporting-scope relative overflow-hidden">
 		<div
 			class="absolute -top-20 -right-32 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"
 		></div>
@@ -329,7 +349,7 @@
 		</div>
 	</section>
 
-	<section class="bg-[#f7f7f8] py-16">
+	<section class="airis-reporting-scope bg-[#f7f7f8] py-16">
 		<div class="mx-auto max-w-[1200px] px-4">
 			<SectionHeader
 				id="estimator"
@@ -351,7 +371,7 @@
 		</div>
 	</section>
 
-	<section class="py-16">
+	<section class="airis-reporting-scope py-16">
 		<div class="mx-auto max-w-[1200px] px-4">
 			<SectionHeader
 				id="free"
@@ -387,7 +407,7 @@
 		</div>
 	</section>
 
-	<section class="bg-[#f7f7f8] py-16">
+	<section class="airis-reporting-scope bg-[#f7f7f8] py-16">
 		<div class="mx-auto max-w-[1200px] px-4">
 			<SectionHeader
 				id="rates"
@@ -408,7 +428,7 @@
 		</div>
 	</section>
 
-	<section class="py-16">
+	<section class="airis-reporting-scope py-16">
 		<div class="mx-auto max-w-[1200px] px-4">
 			<SectionHeader
 				id="calculation"
@@ -435,7 +455,7 @@
 		</div>
 	</section>
 
-	<section class="py-16">
+	<section class="airis-reporting-scope py-16">
 		<div class="mx-auto max-w-[1200px] px-4">
 			<SectionHeader id="faq" title="Часто задаваемые вопросы" />
 			<div class="mt-8 max-w-3xl">

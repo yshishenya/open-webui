@@ -21,6 +21,9 @@
 	export let rows: BillingReportingRow[] = [];
 	export let currency = 'RUB';
 	export let onCustomer: ((id: string) => void) | undefined = undefined;
+	export let onPayment: ((customerId: string, paymentId: string) => void) | undefined = undefined;
+	export let onUsageLedger: ((customerId: string, requestId: string) => void) | undefined =
+		undefined;
 	export let loading = false;
 	export let error = false;
 	const money = (value: number, code = currency): string =>
@@ -71,9 +74,8 @@
 							>{$i18n.t(row.kind === 'topup' ? 'Wallet top-up' : 'Subscription payment')}
 							<div class="mt-1 text-xs text-gray-500">{$i18n.t(paymentLabel(row.status))}</div>
 							<div class="mt-1 text-xs">{$i18n.t(credit(row))}</div></td
-						><td
-							data-label={$i18n.t('Amount')}
-							class="p-3 text-right tabular-nums">{money(row.amount_kopeks, row.currency)}</td
+						><td data-label={$i18n.t('Amount')} class="p-3 text-right tabular-nums"
+							>{money(row.amount_kopeks, row.currency)}</td
 						><td data-label={$i18n.t('Details')} class="p-3"
 							><details>
 								<summary class="min-h-11 cursor-pointer content-center"
@@ -119,9 +121,7 @@
 									on:click={() => onCustomer?.(row.user_id)}
 									>{row.name?.trim() || row.user_id}</button
 								>{:else}{row.name?.trim() || row.user_id}{/if}</td
-						><td data-label={$i18n.t('Operation')} class="p-3"
-							>{$i18n.t('Payment refund')}</td
-						><td
+						><td data-label={$i18n.t('Operation')} class="p-3">{$i18n.t('Payment refund')}</td><td
 							data-label={$i18n.t('Amount')}
 							class="p-3 text-right tabular-nums">{money(row.amount_kopeks, row.currency)}</td
 						><td data-label={$i18n.t('Details')} class="p-3"
@@ -132,6 +132,12 @@
 								<p class="mt-2 break-all text-xs">
 									{$i18n.t('Payment')}: {row.payment_id} · ID {row.id}
 								</p>
+								{#if onPayment}<button
+										type="button"
+										class="min-h-11 text-sm underline"
+										on:click={() => onPayment?.(row.user_id, row.payment_id)}
+										>{$i18n.t('Open original payment')}</button
+									>{/if}
 							</details></td
 						></tr
 					>{/each}
@@ -188,7 +194,16 @@
 											<dd class="break-all">{row.reference_id || '—'}</dd>
 										</div>{:else}<div>
 											<dt>{$i18n.t('Request')}</dt>
-											<dd class="break-all">{row.request_id}</dd>
+											<dd class="break-all">
+												{row.request_id}
+												{#if onUsageLedger && str(row, 'request_id')}<button
+														type="button"
+														class="min-h-11 text-sm underline"
+														on:click={() =>
+															onUsageLedger?.(str(row, 'user_id'), str(row, 'request_id'))}
+														>{$i18n.t('Open related wallet records')}</button
+													>{/if}
+											</dd>
 										</div>
 										<div>
 											<dt>{$i18n.t('Billing source')}</dt>
