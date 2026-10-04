@@ -21,7 +21,7 @@
 	dayjs.extend(duration);
 	dayjs.extend(relativeTime);
 
-	import { PaneGroup, Pane, PaneResizer } from 'paneforge';
+	import { PaneGroup, Pane } from 'paneforge';
 
 	import { compressImage, copyToClipboard, convertHeicToJpeg } from '$lib/utils';
 	import { WEBUI_BASE_URL } from '$lib/constants';
@@ -98,31 +98,6 @@
 
 	let editor = null;
 	let note = null;
-
-	const newNote = {
-		title: '',
-		data: {
-			content: {
-				json: null,
-				html: '',
-				md: ''
-			},
-			versions: [],
-			files: null
-		},
-		// pages: [], // TODO: Implement pages for notes to allow users to create multiple pages in a note
-		meta: null,
-		access_grants: []
-	};
-
-	const hasPublicReadGrant = (grants) =>
-		Array.isArray(grants) &&
-		grants.some(
-			(grant) =>
-				grant?.principal_type === 'user' &&
-				grant?.principal_id === '*' &&
-				grant?.permission === 'read'
-		);
 
 	let files = [];
 
@@ -205,7 +180,7 @@
 		loading = false;
 	};
 
-	let debounceTimeout: NodeJS.Timeout | null = null;
+	let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	const changeDebounceHandler = () => {
 		if (debounceTimeout) {
@@ -340,7 +315,9 @@
 		return false;
 	}
 
-	const generateTitleHandler = async () => {
+	const generateTitleHandler = async (): Promise<void> => {
+		if (titleGenerating) return;
+		const targetNote = note;
 		const content = note.data.content.md;
 		const DEFAULT_TITLE_GENERATION_PROMPT_TEMPLATE = `### Task:
 Generate a concise title summarizing the content in the content's primary language.
@@ -365,110 +342,51 @@ JSON format: { "title": "your concise title here" }
 ${content}
 </content>`;
 
-		const oldTitle = JSON.parse(JSON.stringify(note.title));
-		note.title = '';
 		titleGenerating = true;
 
-		const res = await generateOpenAIChatCompletion(
-			localStorage.token,
-			{
-				model: selectedModelId,
-				stream: false,
-				messages: [
-					{
-						role: 'user',
-						content: DEFAULT_TITLE_GENERATION_PROMPT_TEMPLATE
-					}
-				]
-			},
-			`${WEBUI_BASE_URL}/api`
-		);
-		if (res) {
-			// Step 1: Safely extract the response string
-			const response = res?.choices[0]?.message?.content ?? '';
+		try {
+			const res = await generateOpenAIChatCompletion(
+				localStorage.token,
+				{
+					model: selectedModelId,
+					stream: false,
+					messages: [
+						{
+							role: 'user',
+							content: DEFAULT_TITLE_GENERATION_PROMPT_TEMPLATE
+						}
+					]
+				},
+				`${WEBUI_BASE_URL}/api`
+			);
+			if (note !== targetNote) return;
+			const response = res?.choices?.[0]?.message?.content ?? '';
+			const jsonStartIndex = response.indexOf('{');
+			const jsonEndIndex = response.lastIndexOf('}');
 
-			try {
-				const jsonStartIndex = response.indexOf('{');
-				const jsonEndIndex = response.lastIndexOf('}');
-
-				if (jsonStartIndex !== -1 && jsonEndIndex !== -1) {
-					const jsonResponse = response.substring(jsonStartIndex, jsonEndIndex + 1);
-					const parsed = JSON.parse(jsonResponse);
-
-					if (parsed && parsed.title) {
-						note.title = parsed.title.trim();
-					}
+			if (jsonStartIndex !== -1 && jsonEndIndex !== -1) {
+				const parsed: unknown = JSON.parse(response.substring(jsonStartIndex, jsonEndIndex + 1));
+				if (
+					parsed &&
+					typeof parsed === 'object' &&
+					'title' in parsed &&
+					typeof parsed.title === 'string'
+				) {
+					const generatedTitle = parsed.title.trim();
+					if (generatedTitle) note.title = generatedTitle;
 				}
-			} catch (e) {
-				console.error('Error parsing JSON response:', e);
-				toast.error($i18n.t('Failed to generate title'));
 			}
+		} catch {
+			console.error('Failed to generate note title');
+			toast.error($i18n.t('Failed to generate title'));
+			return;
+		} finally {
+			titleGenerating = false;
 		}
 
-		if (!note.title) {
-			note.title = oldTitle;
-		}
-
-		titleGenerating = false;
 		await tick();
-		changeDebounceHandler();
+		if (note === targetNote) changeDebounceHandler();
 	};
-
-	function setContentByVersion(versionIdx) {
-		if (!note.data.versions?.length) return;
-		let idx = versionIdx;
-
-		if (idx === null) idx = note.data.versions.length - 1; // latest
-		const v = note.data.versions[idx];
-
-		note.data.content.json = v.json;
-		note.data.content.html = v.html;
-		note.data.content.md = v.md;
-
-		if (versionIdx === null) {
-			const lastVersion = note.data.versions.at(-1);
-			const currentContent = note.data.content;
-
-			if (areContentsEqual(lastVersion, currentContent)) {
-				// remove the last version
-				note.data.versions = note.data.versions.slice(0, -1);
-			}
-		}
-	}
-
-	// Navigation
-	function versionNavigateHandler(direction) {
-		if (!note.data.versions || note.data.versions.length === 0) return;
-
-		if (versionIdx === null) {
-			// Get latest snapshots
-			const lastVersion = note.data.versions.at(-1);
-			const currentContent = note.data.content;
-
-			if (!areContentsEqual(lastVersion, currentContent)) {
-				// If the current content is different from the last version, insert a new version
-				insertNoteVersion(note);
-				versionIdx = note.data.versions.length - 1;
-			} else {
-				versionIdx = note.data.versions.length;
-			}
-		}
-
-		if (direction === 'prev') {
-			if (versionIdx > 0) versionIdx -= 1;
-		} else if (direction === 'next') {
-			if (versionIdx < note.data.versions.length - 1) versionIdx += 1;
-			else versionIdx = null; // Reset to latest
-
-			if (versionIdx === note.data.versions.length - 1) {
-				// If we reach the latest version, reset to null
-				versionIdx = null;
-			}
-		}
-
-		setContentByVersion(versionIdx);
-	}
-
 	const uploadFileHandler = async (file) => {
 		const tempItemId = uuidv4();
 		const fileItem = {
@@ -585,7 +503,11 @@ ${content}
 		return imageUrl;
 	};
 
-	const inputFileHandler = async (file) => {
+	type NoteImage = { id: string; type: 'image'; url: string };
+
+	const inputFileHandler = async (
+		file: File
+	): Promise<Awaited<ReturnType<typeof uploadFileHandler>> | NoteImage | undefined> => {
 		console.log('Processing file:', {
 			name: file.name,
 			type: file.type,
@@ -610,7 +532,9 @@ ${content}
 		}
 
 		if (file['type'].startsWith('image/')) {
-			const uploadImagePromise = new Promise(async (resolve, reject) => {
+			const imageFile = file.type === 'image/heic' ? await convertHeicToJpeg(file) : file;
+			if (Array.isArray(imageFile)) throw new Error('Expected a single converted image');
+			const uploadImagePromise = new Promise<NoteImage>((resolve, reject) => {
 				let reader = new FileReader();
 				reader.onload = async (event) => {
 					try {
@@ -618,7 +542,7 @@ ${content}
 						imageUrl = await compressImageHandler(imageUrl, $settings, $config);
 
 						const fileId = uuidv4();
-						const fileItem = {
+						const fileItem: NoteImage = {
 							id: fileId,
 							type: 'image',
 							url: `${imageUrl}`
@@ -636,7 +560,8 @@ ${content}
 					}
 				};
 
-				reader.readAsDataURL(file['type'] === 'image/heic' ? await convertHeicToJpeg(file) : file);
+				reader.onerror = () => reject(reader.error ?? new Error('Failed to read image'));
+				reader.readAsDataURL(imageFile);
 			});
 
 			return await uploadImagePromise;
@@ -805,52 +730,6 @@ ${content}
 		}
 	};
 
-	const onDragOver = (e) => {
-		e.preventDefault();
-
-		if (
-			e.dataTransfer?.types?.includes('text/plain') ||
-			e.dataTransfer?.types?.includes('text/html')
-		) {
-			dragged = false;
-			return;
-		}
-
-		// Check if the dragged item is a file or image
-		if (e.dataTransfer?.types?.includes('Files') && e.dataTransfer?.items) {
-			const items = Array.from(e.dataTransfer.items);
-			const hasFiles = items.some((item) => item.kind === 'file');
-			const hasImages = items.some((item) => item.type.startsWith('image/'));
-
-			if (hasFiles && !hasImages) {
-				dragged = true;
-			} else {
-				dragged = false;
-			}
-		} else {
-			dragged = false;
-		}
-	};
-
-	const onDragLeave = () => {
-		dragged = false;
-	};
-
-	const onDrop = async (e) => {
-		e.preventDefault();
-		console.log(e);
-
-		if (e.dataTransfer?.files) {
-			const inputFiles = Array.from(e.dataTransfer?.files);
-			if (inputFiles && inputFiles.length > 0) {
-				console.log(inputFiles);
-				inputFilesHandler(inputFiles);
-			}
-		}
-
-		dragged = false;
-	};
-
 	const insertHandler = (content) => {
 		insertNoteVersion(note);
 		inputElement?.insertContent(content);
@@ -934,12 +813,6 @@ ${content}
 			selectedModelId =
 				$models.filter((model) => !(model?.info?.meta?.hidden ?? false)).at(0)?.id || '';
 		}
-
-		const dropzoneElement = document.getElementById('note-editor');
-
-		// dropzoneElement?.addEventListener('dragover', onDragOver);
-		// dropzoneElement?.addEventListener('drop', onDrop);
-		// dropzoneElement?.addEventListener('dragleave', onDragLeave);
 	});
 
 	onDestroy(() => {
@@ -947,14 +820,6 @@ ${content}
 		$socket?.off('events:note', noteEventHandler);
 		if (pendingNoteEventTimer) {
 			clearTimeout(pendingNoteEventTimer);
-		}
-
-		const dropzoneElement = document.getElementById('note-editor');
-
-		if (dropzoneElement) {
-			// dropzoneElement?.removeEventListener('dragover', onDragOver);
-			// dropzoneElement?.removeEventListener('drop', onDrop);
-			// dropzoneElement?.removeEventListener('dragleave', onDragLeave);
 		}
 	});
 </script>
@@ -1049,7 +914,7 @@ ${content}
 								on:focus={() => {
 									titleInputFocused = true;
 								}}
-								on:blur={(e) => {
+								on:blur={(): void => {
 									// check if target is generate button
 									if (ignoreBlur) {
 										ignoreBlur = false;
@@ -1098,7 +963,6 @@ ${content}
 													class="self-center p-1 hover:enabled:bg-black/5 dark:hover:enabled:bg-white/5 dark:hover:enabled:text-white hover:enabled:text-black rounded-md transition disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:text-gray-500"
 													on:click={() => {
 														editor.chain().focus().undo().run();
-														// versionNavigateHandler('prev');
 													}}
 													disabled={!editor.can().undo()}
 												>
@@ -1109,7 +973,6 @@ ${content}
 													class="self-center p-1 hover:enabled:bg-black/5 dark:hover:enabled:bg-white/5 dark:hover:enabled:text-white hover:enabled:text-black rounded-md transition disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:text-gray-500"
 													on:click={() => {
 														editor.chain().focus().redo().run();
-														// versionNavigateHandler('next');
 													}}
 													disabled={!editor.can().redo()}
 												>
@@ -1381,7 +1244,7 @@ ${content}
 							fileHandler={true}
 							onFileDrop={(currentEditor, files, pos) => {
 								files.forEach(async (file) => {
-									const fileItem = await inputFileHandler(file).catch((error) => {
+									const fileItem = await inputFileHandler(file).catch((): null => {
 										return null;
 									});
 
@@ -1414,7 +1277,7 @@ ${content}
 											const blob = item.getAsFile();
 											const fileItem = await inputFileHandler(blob);
 
-											if (editor) {
+											if (editor && fileItem?.type === 'image') {
 												editor
 													?.chain()
 													.insertContentAt(editor.state.selection.$anchor.pos, {
