@@ -22,10 +22,7 @@
 			"title": "Airis chat sidebar shrink",
 			"status": "completed",
 			"parent": null,
-			"children": [
-				"phase-1",
-				"phase-2"
-			],
+			"children": ["phase-1", "phase-2"],
 			"total_tasks": 3,
 			"completed_tasks": 3,
 			"metadata": {}
@@ -35,9 +32,7 @@
 			"title": "Phase 1: [To Be Defined]",
 			"status": "completed",
 			"parent": "spec-root",
-			"children": [
-				"task-1-1"
-			],
+			"children": ["task-1-1"],
 			"total_tasks": 1,
 			"completed_tasks": 1,
 			"metadata": {
@@ -51,10 +46,7 @@
 			"title": "Phase 2: [To Be Defined]",
 			"status": "completed",
 			"parent": "spec-root",
-			"children": [
-				"task-2-1",
-				"task-2-2"
-			],
+			"children": ["task-2-1", "task-2-2"],
 			"total_tasks": 2,
 			"completed_tasks": 2,
 			"metadata": {
