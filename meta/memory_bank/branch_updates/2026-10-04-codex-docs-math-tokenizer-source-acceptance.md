@@ -1,0 +1,8 @@
+- [x] **[DOCS]** Зафиксировать source-приёмку общего разборщика формул
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__docs__math-tokenizer-source-acceptance.md`
+  - Owner: Codex
+  - Branch: `codex/docs/math-tokenizer-source-acceptance`
+  - Done: 2026-10-04
+  - Summary: PR216 exact-source10CI success/1skip и merge884acdbf4 подтверждены, SDD3/3 закрыт;191/244 иобщийG14 сохраняются.
+  - Tests: SDDvalidate/check-complete,Markdownlinks,gitdiffcheck; runtime unchanged.
+  - Risks: Выпуск общего кандидата, общие проверки и реальный пилот остаются открытыми.
