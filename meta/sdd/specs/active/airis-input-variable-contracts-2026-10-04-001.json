@@ -2,7 +2,7 @@
 	"spec_id": "airis-input-variable-contracts-2026-10-04-001",
 	"title": "AIRIS input variable contracts",
 	"generated": "2026-10-04T03:20:35.475347Z",
-	"last_updated": "2026-10-04T03:45:02.159940Z",
+	"last_updated": "2026-10-04T04:11:32.325810Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "low",
@@ -133,6 +133,14 @@
 			"content": "All child tasks in phase phase-1 have been completed.",
 			"metadata": {},
 			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-04T04:11:32.325776Z",
+			"entry_type": "deviation",
+			"title": "Map validation extended after CI and delayed browser failure",
+			"author": "claude-code",
+			"content": "CI at 734bdd8 failed on four existing map diagnostics. Final map now skips empty fitBounds, reports bounds errors and has typed callback/paired markup. Delayed browser collection reproduced Leaflet1.9.4 zoom after remove twice; public zoomAnimation:false fixes shared cause.393 tests pass; final type/lint reports are rerunning. Earlier JSDoc-only/runtime-unchanged and immediate browser-zero-error claims are historical and superseded.",
+			"metadata": {}
 		}
 	]
 }

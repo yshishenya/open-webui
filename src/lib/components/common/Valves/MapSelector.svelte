@@ -8,7 +8,8 @@
 	export let setViewLocation = [51.505, -0.09];
 	export let points = [];
 
-	export let onClick = (e) => {};
+	/** @type {(value: string) => void} */
+	export let onClick = () => {};
 
 	let markerGroupLayer = null;
 
@@ -18,7 +19,11 @@
 			import('leaflet/dist/leaflet.css')
 		]);
 
-		map = L.map(mapElement).setView(setViewLocation ? setViewLocation : [51.505, -0.09], 10);
+		// Leaflet 1.9.4 can finish a zoom after remove() and touch the deleted map pane.
+		map = L.map(mapElement, { zoomAnimation: false }).setView(
+			setViewLocation ? setViewLocation : [51.505, -0.09],
+			10
+		);
 
 		if (setViewLocation) {
 			points = [
@@ -34,6 +39,7 @@
 				'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 		}).addTo(map);
 
+		/** @param {{coords: number[], content: string}[]} points @returns {void} */
 		const setMarkers = (points) => {
 			if (map) {
 				if (markerGroupLayer) {
@@ -50,10 +56,14 @@
 				markerGroupLayer = L.featureGroup(markers).addTo(map);
 
 				try {
-					map.fitBounds(markerGroupLayer.getBounds(), {
-						maxZoom: Math.max(map.getZoom(), 13)
-					});
-				} catch (error) {}
+					if (markers.length > 0) {
+						map.fitBounds(markerGroupLayer.getBounds(), {
+							maxZoom: Math.max(map.getZoom(), 13)
+						});
+					}
+				} catch (error) {
+					console.warn('Could not fit map bounds', error);
+				}
 			}
 		};
 
@@ -81,5 +91,5 @@
 </script>
 
 <div class=" z-10 w-full">
-	<div bind:this={mapElement} class="h-96 z-10" />
+	<div bind:this={mapElement} class="h-96 z-10"></div>
 </div>
