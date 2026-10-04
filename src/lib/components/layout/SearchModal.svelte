@@ -23,6 +23,7 @@
 	import calendar from 'dayjs/plugin/calendar';
 	import Loader from '../common/Loader.svelte';
 	import { createMessagesList } from '$lib/utils';
+	import type { ChatHistoryMessage } from '$lib/utils/airis/chat_history';
 	import { getOutputText } from '$lib/components/chat/Messages/structuredOutput';
 	import { config, user, chatId as currentChatId, tags } from '$lib/stores';
 	import { refreshChatList } from '$lib/stores/chatList';
@@ -100,7 +101,7 @@
 
 			await refreshSidebar();
 			toast.success($i18n.t('Chat archived.'));
-		} catch (error) {
+		} catch {
 			toast.error($i18n.t('Failed to archive chat.'));
 		}
 	};
@@ -195,12 +196,12 @@
 		let msgList = [];
 
 		if (history?.messages && history?.currentId) {
-			msgList = createMessagesList(history, history.currentId).map((m: any) => ({
+			msgList = createMessagesList(history, history.currentId).map((m: ChatHistoryMessage) => ({
 				role: m.role,
 				content: getOutputText(m.output) || m.content || ''
 			}));
 		} else {
-			msgList = (chatContent?.messages ?? []).map((m: any) => ({
+			msgList = (chatContent?.messages ?? []).map((m: ChatHistoryMessage) => ({
 				role: m.role,
 				content: getOutputText(m.output) || m.content || ''
 			}));
@@ -208,16 +209,10 @@
 
 		let model = '';
 		if (history?.messages && history?.currentId) {
-			let currentId = history.currentId;
-			while (currentId) {
-				const msg = history.messages[currentId];
-				if (!msg) break;
-				if (msg.role === 'assistant' && msg.model) {
-					model = msg.model;
-					break;
-				}
-				currentId = msg.parentId;
-			}
+			model =
+				createMessagesList(history, history.currentId)
+					.reverse()
+					.find((msg: ChatHistoryMessage) => msg.role === 'assistant' && msg.model)?.model ?? '';
 		}
 		if (!model) {
 			model = chatContent?.models?.at(0) ?? '';
@@ -353,7 +348,7 @@
 
 		const chatId = chatList[selectedChatIdx].id;
 
-		const chat = await getChatById(localStorage.token, chatId).catch(async (error) => {
+		const chat = await getChatById(localStorage.token, chatId).catch(async () => {
 			return null;
 		});
 
@@ -631,7 +626,7 @@
 				{/each}
 
 				{#if chatList}
-					<div aria-hidden="true" class="h-px my-3" />
+					<div aria-hidden="true" class="h-px my-3"></div>
 
 					{#if chatList.length === 0}
 						<div class="text-xs text-gray-500 dark:text-gray-400 text-center px-5 py-4">
@@ -852,7 +847,7 @@
 
 					{#if !allChatsLoaded}
 						<Loader
-							on:visible={(e) => {
+							on:visible={() => {
 								if (!chatListLoading) {
 									loadMoreChats();
 								}

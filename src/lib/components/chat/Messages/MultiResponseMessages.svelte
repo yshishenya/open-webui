@@ -1,12 +1,7 @@
 <script lang="ts">
 	import { onMount, tick, getContext } from 'svelte';
-	import { createEventDispatcher } from 'svelte';
 
 	import { mobile, models, settings } from '$lib/stores';
-
-	import { generateMoACompletion } from '$lib/apis';
-	import { updateChatById } from '$lib/apis/chats';
-	import { createOpenAITextStream } from '$lib/apis/streaming';
 
 	import ResponseMessage from './ResponseMessage.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -15,53 +10,75 @@
 	import Markdown from './Markdown.svelte';
 	import Name from './Name.svelte';
 	import Skeleton from './Skeleton.svelte';
-	import ProfileImage from './ProfileImage.svelte';
-	import { WEBUI_BASE_URL } from '$lib/constants';
 	import equal from 'fast-deep-equal';
 	import { formatMessageTimestamp, formatMessageTimestampFull } from '$lib/utils';
-	const i18n = getContext('i18n');
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import { getLastMessageId } from '$lib/utils/airis/chat_history';
+	import type {
+		ChatHistory,
+		ChatHistoryMessage,
+		ChatMessageEdit
+	} from '$lib/utils/airis/chat_history';
+	const i18n = getContext<Writable<I18n>>('i18n');
 
-	export let chatId;
-	export let history;
-	export let messageId;
-	export let selectedModels = [];
+	export let chatId: string;
+	export let history: ChatHistory;
+	export let messageId: string;
+	export let selectedModels: string[] = [];
 
-	export let isLastMessage;
+	export let isLastMessage: boolean;
 	export let readOnly = false;
 	export let allowDelete = true;
 	export let compactPreview = false;
 	export let editCodeBlock = true;
 
-	export let setInputText: Function = () => {};
-	export let updateChat: Function;
-	export let editMessage: Function;
-	export let saveMessage: Function;
-	export let rateMessage: Function;
-	export let actionMessage: Function;
+	export let setInputText: (text: string) => void = () => {};
+	export let updateChat: () => void | Promise<void>;
+	export let editMessage: (
+		id: string,
+		edit: ChatMessageEdit,
+		submit?: boolean
+	) => void | Promise<void>;
+	export let saveMessage: (id: string, message: ChatHistoryMessage) => void | Promise<void>;
+	export let rateMessage: (id: string, rating: number) => void | Promise<void>;
+	export let actionMessage: (
+		actionId: string,
+		message: ChatHistoryMessage,
+		event?: unknown
+	) => void | Promise<void>;
 
-	export let submitMessage: Function;
-	export let deleteMessage: Function;
+	export let submitMessage: (id: string, prompt: string) => void | Promise<void>;
+	export let deleteMessage: (id: string) => void | Promise<void>;
 
-	export let continueResponse: Function;
-	export let regenerateResponse: Function;
-	export let mergeResponses: Function;
+	export let continueResponse: () => void | Promise<void>;
+	export let regenerateResponse: (
+		message: ChatHistoryMessage,
+		prompt?: string | null
+	) => void | Promise<void>;
+	export let mergeResponses: (
+		id: string,
+		responses: string[],
+		chatId: string
+	) => void | Promise<void>;
 
-	export let addMessages: Function;
-	export let forkHandler: Function | null = null;
+	export let addMessages: (request: {
+		modelId: string;
+		parentId: string | null;
+		messages: ChatHistoryMessage[];
+	}) => void | Promise<void>;
+	export let forkHandler: ((messageId?: string | null) => void | Promise<void>) | null = null;
 
-	export let triggerScroll: Function;
+	export let triggerScroll: () => void;
 
 	export let topPadding = false;
 	export let onInsertToNote: ((content: string) => void) | null = null;
 
-	const dispatch = createEventDispatcher();
+	let parentMessage: ChatHistoryMessage | null | undefined;
+	let groupedMessageIds: Record<number, { messageIds: string[] }> = {};
+	let groupedMessageIdsIdx: Record<number, number> = {};
 
-	let currentMessageId;
-	let parentMessage;
-	let groupedMessageIds = {};
-	let groupedMessageIdsIdx = {};
-
-	let selectedModelIdx = null;
+	let selectedModelIdx: number | null | undefined = null;
 
 	let message = structuredClone(history.messages[messageId]);
 	$: if (history.messages) {
@@ -75,7 +92,7 @@
 		}
 	}
 
-	const gotoMessage = async (modelIdx, messageIdx) => {
+	const gotoMessage = async (modelIdx: number, messageIdx: number): Promise<void> => {
 		// Clamp messageIdx to ensure it's within valid range
 		groupedMessageIdsIdx[modelIdx] = Math.max(
 			0,
@@ -87,11 +104,7 @@
 		console.log(messageId);
 
 		// Traverse the branch to find the deepest child message
-		let messageChildrenIds = history.messages[messageId].childrenIds;
-		while (messageChildrenIds.length !== 0) {
-			messageId = messageChildrenIds.at(-1);
-			messageChildrenIds = history.messages[messageId].childrenIds;
-		}
+		messageId = getLastMessageId(history, messageId) ?? history.currentId!;
 
 		// Update the current message ID in history
 		history.currentId = messageId;
@@ -104,18 +117,13 @@
 		triggerScroll();
 	};
 
-	const showPreviousMessage = async (modelIdx) => {
+	const showPreviousMessage = async (modelIdx: number): Promise<void> => {
 		groupedMessageIdsIdx[modelIdx] = Math.max(0, groupedMessageIdsIdx[modelIdx] - 1);
 
 		let messageId = groupedMessageIds[modelIdx].messageIds[groupedMessageIdsIdx[modelIdx]];
 		console.log(messageId);
 
-		let messageChildrenIds = history.messages[messageId].childrenIds;
-
-		while (messageChildrenIds.length !== 0) {
-			messageId = messageChildrenIds.at(-1);
-			messageChildrenIds = history.messages[messageId].childrenIds;
-		}
+		messageId = getLastMessageId(history, messageId) ?? history.currentId!;
 
 		history.currentId = messageId;
 
@@ -124,7 +132,7 @@
 		triggerScroll();
 	};
 
-	const showNextMessage = async (modelIdx) => {
+	const showNextMessage = async (modelIdx: number): Promise<void> => {
 		groupedMessageIdsIdx[modelIdx] = Math.min(
 			groupedMessageIds[modelIdx].messageIds.length - 1,
 			groupedMessageIdsIdx[modelIdx] + 1
@@ -133,12 +141,7 @@
 		let messageId = groupedMessageIds[modelIdx].messageIds[groupedMessageIdsIdx[modelIdx]];
 		console.log(messageId);
 
-		let messageChildrenIds = history.messages[messageId].childrenIds;
-
-		while (messageChildrenIds.length !== 0) {
-			messageId = messageChildrenIds.at(-1);
-			messageChildrenIds = history.messages[messageId].childrenIds;
-		}
+		messageId = getLastMessageId(history, messageId) ?? history.currentId!;
 
 		history.currentId = messageId;
 
@@ -147,56 +150,61 @@
 		triggerScroll();
 	};
 
-	const initHandler = async () => {
+	const initHandler = async (): Promise<void> => {
 		console.log('multiresponse:initHandler');
 		await tick();
 
-		currentMessageId = messageId;
 		parentMessage = history.messages[messageId].parentId
-			? history.messages[history.messages[messageId].parentId]
+			? history.messages[history.messages[messageId].parentId!]
 			: null;
 
-		groupedMessageIds = parentMessage?.models.reduce((a, model, modelIdx) => {
-			// Find all messages that are children of the parent message and have the same model
-			let modelMessageIds = parentMessage?.childrenIds
-				.map((id) => history.messages[id])
-				.filter((m) => m?.modelIdx === modelIdx)
-				.map((m) => m.id);
-
-			// Legacy support for messages that don't have a modelIdx
-			// Find all messages that are children of the parent message and have the same model
-			if (modelMessageIds.length === 0) {
-				let modelMessages = parentMessage?.childrenIds
+		groupedMessageIds = (parentMessage?.models ?? []).reduce(
+			(a, model, modelIdx) => {
+				// Find all messages that are children of the parent message and have the same model
+				let modelMessageIds = (parentMessage?.childrenIds ?? [])
 					.map((id) => history.messages[id])
-					.filter((m) => m?.model === model);
+					.filter((m) => m?.modelIdx === modelIdx)
+					.map((m) => m.id);
 
-				modelMessages.forEach((m) => {
-					m.modelIdx = modelIdx;
-				});
+				// Legacy support for messages that don't have a modelIdx
+				// Find all messages that are children of the parent message and have the same model
+				if (modelMessageIds.length === 0) {
+					let modelMessages = (parentMessage?.childrenIds ?? [])
+						.map((id) => history.messages[id])
+						.filter((m) => m?.model === model);
 
-				modelMessageIds = modelMessages.map((m) => m.id);
-			}
+					modelMessages.forEach((m) => {
+						m.modelIdx = modelIdx;
+					});
 
-			return {
-				...a,
-				[modelIdx]: { messageIds: modelMessageIds }
-			};
-		}, {});
+					modelMessageIds = modelMessages.map((m) => m.id);
+				}
 
-		groupedMessageIdsIdx = parentMessage?.models.reduce((a, model, modelIdx) => {
-			const idx = groupedMessageIds[modelIdx].messageIds.findIndex((id) => id === messageId);
-			if (idx !== -1) {
 				return {
 					...a,
-					[modelIdx]: idx
+					[modelIdx]: { messageIds: modelMessageIds }
 				};
-			} else {
-				return {
-					...a,
-					[modelIdx]: groupedMessageIds[modelIdx].messageIds.length - 1
-				};
-			}
-		}, {});
+			},
+			{} as Record<number, { messageIds: string[] }>
+		);
+
+		groupedMessageIdsIdx = (parentMessage?.models ?? []).reduce(
+			(a, model, modelIdx) => {
+				const idx = groupedMessageIds[modelIdx].messageIds.findIndex((id) => id === messageId);
+				if (idx !== -1) {
+					return {
+						...a,
+						[modelIdx]: idx
+					};
+				} else {
+					return {
+						...a,
+						[modelIdx]: groupedMessageIds[modelIdx].messageIds.length - 1
+					};
+				}
+			},
+			{} as Record<number, number>
+		);
 
 		selectedModelIdx = history.messages[messageId]?.modelIdx;
 
@@ -205,15 +213,9 @@
 		await tick();
 	};
 
-	const onGroupClick = async (_messageId, modelIdx) => {
+	const onGroupClick = async (_messageId: string, modelIdx: number): Promise<void> => {
 		if (messageId != _messageId) {
-			let currentMessageId = _messageId;
-			let messageChildrenIds = history.messages[currentMessageId].childrenIds;
-			while (messageChildrenIds.length !== 0) {
-				currentMessageId = messageChildrenIds.at(-1);
-				messageChildrenIds = history.messages[currentMessageId].childrenIds;
-			}
-			history.currentId = currentMessageId;
+			history.currentId = getLastMessageId(history, _messageId) ?? history.currentId;
 			selectedModelIdx = modelIdx;
 
 			// await tick();
@@ -222,13 +224,15 @@
 		}
 	};
 
-	const mergeResponsesHandler = async () => {
-		const responses = Object.keys(groupedMessageIds).map((modelIdx) => {
-			const { messageIds } = groupedMessageIds[modelIdx];
-			const messageId = messageIds[groupedMessageIdsIdx[modelIdx]];
+	const mergeResponsesHandler = async (): Promise<void> => {
+		const responses = Object.keys(groupedMessageIds)
+			.map(Number)
+			.map((modelIdx) => {
+				const { messageIds } = groupedMessageIds[modelIdx];
+				const messageId = messageIds[groupedMessageIdsIdx[modelIdx]];
 
-			return history.messages[messageId].content;
-		});
+				return history.messages[messageId].content ?? '';
+			});
 		mergeResponses(messageId, responses, chatId);
 	};
 
@@ -264,11 +268,8 @@
 								e.currentTarget.scrollLeft += e.deltaY;
 							}}
 						>
-							{#each Object.keys(groupedMessageIds) as modelIdx}
+							{#each Object.keys(groupedMessageIds).map(Number) as modelIdx}
 								{#if groupedMessageIdsIdx[modelIdx] !== undefined && (groupedMessageIds[modelIdx]?.messageIds ?? []).length > 0}
-									<!-- svelte-ignore a11y-no-static-element-interactions -->
-									<!-- svelte-ignore a11y-click-events-have-key-events -->
-
 									{@const _messageId =
 										groupedMessageIds[modelIdx].messageIds[groupedMessageIdsIdx[modelIdx]]}
 
@@ -297,7 +298,7 @@
 						</div>
 					</div>
 
-					{#if selectedModelIdx !== null}
+					{#if selectedModelIdx != null}
 						{#key history.currentId}
 							{#if message}
 								<ResponseMessage
@@ -307,9 +308,9 @@
 									{selectedModels}
 									isLastMessage={true}
 									siblings={groupedMessageIds[selectedModelIdx].messageIds}
-									gotoMessage={(message, messageIdx) => gotoMessage(selectedModelIdx, messageIdx)}
-									showPreviousMessage={() => showPreviousMessage(selectedModelIdx)}
-									showNextMessage={() => showNextMessage(selectedModelIdx)}
+									gotoMessage={(message, messageIdx) => gotoMessage(selectedModelIdx!, messageIdx)}
+									showPreviousMessage={() => showPreviousMessage(selectedModelIdx!)}
+									showNextMessage={() => showNextMessage(selectedModelIdx!)}
 									{setInputText}
 									{updateChat}
 									{editMessage}
@@ -322,8 +323,8 @@
 									regenerateResponse={async (message, prompt = null) => {
 										regenerateResponse(message, prompt);
 										await tick();
-										groupedMessageIdsIdx[selectedModelIdx] =
-											groupedMessageIds[selectedModelIdx].messageIds.length - 1;
+										groupedMessageIdsIdx[selectedModelIdx!] =
+											groupedMessageIds[selectedModelIdx!].messageIds.length - 1;
 									}}
 									{addMessages}
 									{forkHandler}
@@ -337,10 +338,8 @@
 					{/if}
 				</div>
 			{:else}
-				{#each Object.keys(groupedMessageIds) as modelIdx}
+				{#each Object.keys(groupedMessageIds).map(Number) as modelIdx}
 					{#if groupedMessageIdsIdx[modelIdx] !== undefined && groupedMessageIds[modelIdx].messageIds.length > 0}
-						<!-- svelte-ignore a11y-no-static-element-interactions -->
-						<!-- svelte-ignore a11y-click-events-have-key-events -->
 						{@const _messageId =
 							groupedMessageIds[modelIdx].messageIds[groupedMessageIdsIdx[modelIdx]]}
 
@@ -356,6 +355,17 @@
 													$mobile ? 'min-w-full' : 'min-w-80'
 												}`
 									}`}"
+							role="button"
+							tabindex="0"
+							on:keydown={(event) => {
+								if (
+									event.target === event.currentTarget &&
+									(event.key === 'Enter' || event.key === ' ')
+								) {
+									event.preventDefault();
+									onGroupClick(_messageId, modelIdx);
+								}
+							}}
 							on:click={async () => {
 								onGroupClick(_messageId, modelIdx);
 							}}
@@ -405,15 +415,17 @@
 		</div>
 
 		{#if !compactPreview && !readOnly}
-			{#if !Object.keys(groupedMessageIds).find((modelIdx) => {
-				const { messageIds } = groupedMessageIds[modelIdx];
-				const _messageId = messageIds[groupedMessageIdsIdx[modelIdx]];
-				return !history.messages[_messageId]?.done ?? false;
-			})}
+			{#if !Object.keys(groupedMessageIds)
+				.map(Number)
+				.find((modelIdx) => {
+					const { messageIds } = groupedMessageIds[modelIdx];
+					const _messageId = messageIds[groupedMessageIdsIdx[modelIdx]];
+					return !history.messages[_messageId]?.done;
+				})}
 				<div class="flex justify-end">
 					<div class="w-full">
 						{#if history.messages[messageId]?.merged?.status}
-							{@const message = history.messages[messageId]?.merged}
+							{@const message = history.messages[messageId].merged!}
 
 							<div class="w-full rounded-xl pl-5 pr-2 py-2 mt-2">
 								<Name>
@@ -458,9 +470,7 @@
 								<button
 									type="button"
 									id="merge-response-button"
-									class="{true
-										? 'visible'
-										: 'invisible group-hover:visible'} p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg dark:hover:text-white hover:text-black transition"
+									class="visible p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg dark:hover:text-white hover:text-black transition"
 									on:click={() => {
 										mergeResponsesHandler();
 									}}

@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 import { expect, it, vi } from 'vitest';
+import { getLastMessageId } from '../src/lib/utils/airis/chat_history';
 import type {
 	ChatHistory,
 	ChatHistoryMessage,
@@ -60,6 +61,7 @@ const setup = (history = graph()) => {
 	const frames = new Map<number, () => void>();
 	const element = { scrollTop: 0, scrollHeight: 200, clientHeight: 100, scrollIntoView: vi.fn() };
 	const context = {
+		getLastMessageId,
 		history,
 		messages: [] as ChatHistoryMessage[],
 		messagesCount: 8 as number | null,
@@ -322,4 +324,35 @@ it('refreshes the saved content without discarding local extensions and excludes
 	expect(context.history.messages.c.content).toBe('Server text');
 	expect(context.history.messages.c.annotation).toEqual({ rating: 1, extra: 'keep' });
 	expect(context.refreshChatList).toHaveBeenCalledWith('test-token');
+});
+
+it('branch navigation bounds cycles and missing links before touching persistence', async () => {
+	for (const name of ['gotoMessage', 'showPreviousMessage', 'showNextMessage'] as const) {
+		const { context, actions } = setup();
+		context.history.messages.c.childrenIds = ['b'];
+		if (name === 'showPreviousMessage') context.history.messages.u.childrenIds = ['b', 'a'];
+		const before = structuredClone(context.history.messages);
+		const action = actions[name];
+		const message = context.history.messages.a;
+		await runInNewContext('action(message, 1)', { action, message }, { timeout: 100 });
+		expect(context.history.currentId).toBe('c');
+		expect(context.history.messages).toEqual(before);
+	}
+	const { context, actions } = setup();
+	delete context.history.messages.u;
+	await actions.gotoMessage(context.history.messages.a, 1);
+	await actions.showNextMessage(context.history.messages.a);
+	expect(context.history.currentId).toBe('c');
+});
+
+it('deleting a branch terminates on a surviving cycle and preserves sibling data', async () => {
+	const { context, actions } = setup();
+	context.history.messages.c.childrenIds = ['v'];
+	const sibling = structuredClone(context.history.messages.a);
+	await runInNewContext('action("b")', { action: actions.deleteMessage }, { timeout: 100 });
+	expect(context.history.messages.a).toEqual(sibling);
+	expect(context.history.messages.u.childrenIds).toEqual(['a', 'c']);
+	expect(context.history.messages.b).toBeUndefined();
+	expect(context.history.messages.v).toBeUndefined();
+	expect(context.history.currentId).toBe('c');
 });

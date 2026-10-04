@@ -12,6 +12,8 @@
 		ChatMessageEdit
 	} from '$lib/utils/airis/chat_history';
 
+	import { getLastMessageId } from '$lib/utils/airis/chat_history';
+
 	import { toast } from 'svelte-sonner';
 	import { deleteChatMessageById, updateChatById } from '$lib/apis/chats';
 
@@ -220,7 +222,7 @@
 		// Determine the correct sibling list (either parent's children or root messages)
 		let siblings;
 		if (message.parentId !== null) {
-			siblings = history.messages[message.parentId].childrenIds;
+			siblings = history.messages[message.parentId]?.childrenIds ?? [];
 		} else {
 			siblings = Object.values(history.messages)
 				.filter((msg) => msg.parentId === null)
@@ -235,11 +237,7 @@
 		// If we're navigating to a different message
 		if (message.id !== messageId) {
 			// Drill down to the deepest child of that branch
-			let messageChildrenIds = history.messages[messageId].childrenIds;
-			while (messageChildrenIds.length !== 0) {
-				messageId = messageChildrenIds.at(-1)!;
-				messageChildrenIds = history.messages[messageId].childrenIds;
-			}
+			messageId = getLastMessageId(history, messageId) ?? history.currentId!;
 
 			history.currentId = messageId;
 		}
@@ -261,18 +259,12 @@
 
 	const showPreviousMessage = async (message: ChatHistoryMessage): Promise<void> => {
 		if (message.parentId !== null) {
-			let messageId =
-				history.messages[message.parentId].childrenIds[
-					Math.max(history.messages[message.parentId].childrenIds.indexOf(message.id) - 1, 0)
-				];
+			let messageId = (history.messages[message.parentId]?.childrenIds ?? [])[
+				Math.max((history.messages[message.parentId]?.childrenIds ?? []).indexOf(message.id) - 1, 0)
+			];
 
 			if (message.id !== messageId) {
-				let messageChildrenIds = history.messages[messageId].childrenIds;
-
-				while (messageChildrenIds.length !== 0) {
-					messageId = messageChildrenIds.at(-1)!;
-					messageChildrenIds = history.messages[messageId].childrenIds;
-				}
+				messageId = getLastMessageId(history, messageId) ?? history.currentId!;
 
 				history.currentId = messageId;
 			}
@@ -283,12 +275,7 @@
 			let messageId = childrenIds[Math.max(childrenIds.indexOf(message.id) - 1, 0)];
 
 			if (message.id !== messageId) {
-				let messageChildrenIds = history.messages[messageId].childrenIds;
-
-				while (messageChildrenIds.length !== 0) {
-					messageId = messageChildrenIds.at(-1)!;
-					messageChildrenIds = history.messages[messageId].childrenIds;
-				}
+				messageId = getLastMessageId(history, messageId) ?? history.currentId!;
 
 				history.currentId = messageId;
 			}
@@ -310,21 +297,15 @@
 
 	const showNextMessage = async (message: ChatHistoryMessage): Promise<void> => {
 		if (message.parentId !== null) {
-			let messageId =
-				history.messages[message.parentId].childrenIds[
-					Math.min(
-						history.messages[message.parentId].childrenIds.indexOf(message.id) + 1,
-						history.messages[message.parentId].childrenIds.length - 1
-					)
-				];
+			let messageId = (history.messages[message.parentId]?.childrenIds ?? [])[
+				Math.min(
+					(history.messages[message.parentId]?.childrenIds ?? []).indexOf(message.id) + 1,
+					(history.messages[message.parentId]?.childrenIds ?? []).length - 1
+				)
+			];
 
 			if (message.id !== messageId) {
-				let messageChildrenIds = history.messages[messageId].childrenIds;
-
-				while (messageChildrenIds.length !== 0) {
-					messageId = messageChildrenIds.at(-1)!;
-					messageChildrenIds = history.messages[messageId].childrenIds;
-				}
+				messageId = getLastMessageId(history, messageId) ?? history.currentId!;
 
 				history.currentId = messageId;
 			}
@@ -336,12 +317,7 @@
 				childrenIds[Math.min(childrenIds.indexOf(message.id) + 1, childrenIds.length - 1)];
 
 			if (message.id !== messageId) {
-				let messageChildrenIds = history.messages[messageId].childrenIds;
-
-				while (messageChildrenIds.length !== 0) {
-					messageId = messageChildrenIds.at(-1)!;
-					messageChildrenIds = history.messages[messageId].childrenIds;
-				}
+				messageId = getLastMessageId(history, messageId) ?? history.currentId!;
 
 				history.currentId = messageId;
 			}
@@ -508,16 +484,7 @@
 			delete history.messages[id];
 		});
 
-		let nextMessageId = parentMessageId;
-		let nextChildrenIds =
-			nextMessageId === null
-				? Object.keys(history.messages).filter((id) => history.messages[id].parentId === null)
-				: (history.messages[nextMessageId]?.childrenIds ?? []);
-		while (nextChildrenIds.length > 0) {
-			nextMessageId = nextChildrenIds.at(-1)!;
-			nextChildrenIds = history.messages[nextMessageId]?.childrenIds ?? [];
-		}
-		history.currentId = nextMessageId;
+		history.currentId = getLastMessageId(history, parentMessageId);
 		history = history;
 
 		if (!$temporaryChatEnabled) {

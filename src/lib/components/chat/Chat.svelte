@@ -81,6 +81,7 @@
 	import { AudioQueue } from '$lib/utils/audio';
 	import { createTemporaryChatId, isTemporaryChatId } from '$lib/utils/chatId';
 	import { getOutputText } from './Messages/structuredOutput';
+	import { getLastMessageId } from '$lib/utils/airis/chat_history';
 	import type { ChatHistoryMessage } from '$lib/utils/airis/chat_history';
 	import { trackEvent } from '$lib/utils/analytics';
 
@@ -307,7 +308,7 @@
 				hasUsageCheckpoint = true;
 				estimatedTokens =
 					Number(inputTokens || 0) +
-					Number(usage.output_tokens ?? usage.completion_tokens ?? 0) +
+					Number(usage?.output_tokens ?? usage?.completion_tokens ?? 0) +
 					estimateMessagesTokens(activeMessages.slice(idx + 1));
 				break;
 			}
@@ -887,25 +888,14 @@
 		}
 	};
 
-	const showMessage = async (message, scroll = true, save = true) => {
+	const showMessage = async (
+		message: { id: string | null },
+		scroll = true,
+		save = true
+	): Promise<void> => {
 		const _chatId = JSON.parse(JSON.stringify($chatId));
-		let _messageId = JSON.parse(JSON.stringify(message.id));
-
-		let messageChildrenIds = [];
-		if (_messageId === null) {
-			messageChildrenIds = Object.keys(history.messages).filter(
-				(id) => history.messages[id].parentId === null
-			);
-		} else {
-			messageChildrenIds = history.messages[_messageId].childrenIds;
-		}
-
-		while (messageChildrenIds.length !== 0) {
-			_messageId = messageChildrenIds.at(-1);
-			messageChildrenIds = history.messages[_messageId].childrenIds;
-		}
-
-		history.currentId = _messageId;
+		// Keep the existing dynamically populated history boundary.
+		(history as { currentId: string | null }).currentId = getLastMessageId(history, message.id);
 
 		await tick();
 
@@ -2248,7 +2238,8 @@
 			id: responseMessageId
 		}).catch((error) => {
 			toast.error(`${error}`);
-			messages.at(-1).error = { content: error };
+			const lastMessage = messages.at(-1);
+			if (lastMessage) lastMessage.error = { content: error };
 			return null;
 		});
 
