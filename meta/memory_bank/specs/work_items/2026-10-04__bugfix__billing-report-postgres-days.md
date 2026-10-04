@@ -1,10 +1,10 @@
 # Исправить дневные денежные графики PostgreSQL
 
 - Type: bugfix
-- Status: in_progress
+- Status: completed (technical release)
 - Owner: Codex
 - Branch: codex/bugfix/billing-report-postgres-days
-- SDD Spec: meta/sdd/specs/active/analytics-billing-ui-2026-10-04-118.json
+- SDD Spec: meta/sdd/specs/completed/analytics-billing-ui-2026-10-04-118.json
 
 ## Goal / Acceptance Criteria
 
@@ -21,3 +21,7 @@ SELECT и GROUP BY создавали отдельные SQLAlchemy выраже
 ## Verification / rollout
 
 Red: old exact image + PostgreSQL full report fails GroupingError, SQLite passes. Green: 11 reporting checks pass including the same full report on fresh PostgreSQL16. Black changed files and Ruff changed files pass. Pending: independent review, PR and exact one-file image overlay. Public acceptance belongs to the existing active task-2-2.
+
+## Завершение
+
+PR217 merged b076d595cd762c3ecd78745603e6b32dcb31fe0a; source 0d30ff9d37451745eccbe2ab61cc86b6b819fb4f. Независимая проверка, все CI tiers и exact image прошли. Исправление опубликовано в образе 6ef4 и сохранено в последующем fb0583 образе. Production read-only money/funnel и суммы трёх дневных серий прошли. Реальные финансовые записи не изменялись.
