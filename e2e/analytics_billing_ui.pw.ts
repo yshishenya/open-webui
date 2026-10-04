@@ -590,7 +590,9 @@ for (const width of [360, 1280])
 					page.getByText('Проверочная модель', { exact: true }).filter({ visible: true }).first()
 				).toBeVisible();
 			else if (name === 'plans')
-				await expect(page.getByText('Проверочная подписка', { exact: true })).toBeVisible();
+				await expect(
+					page.getByRole('link').filter({ hasText: 'Проверочная подписка', visible: true }).first()
+				).toBeVisible();
 			else if (name === 'create')
 				await expect(page.locator('input[placeholder]').first()).toBeVisible();
 			else if (name === 'edit')
