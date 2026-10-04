@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { decode } from 'html-entities';
-	import { v4 as uuidv4 } from 'uuid';
-
 	import { getContext } from 'svelte';
-	const i18n = getContext('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	import dayjs from '$lib/dayjs';
 	import duration from 'dayjs/plugin/duration';
@@ -12,7 +11,7 @@
 	dayjs.extend(duration);
 	dayjs.extend(relativeTime);
 
-	async function loadLocale(locales) {
+	function loadLocale(locales: readonly string[] | undefined): void {
 		if (!locales || !Array.isArray(locales)) {
 			return;
 		}
@@ -43,8 +42,12 @@
 		'w-fit py-1 text-[0.9375rem] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition';
 
 	export let id = '';
-	export let title = null;
-	export let attributes = null;
+	export let title: string | null = null;
+	export let attributes: {
+		type?: string;
+		done?: string;
+		duration?: string | number;
+	} | null = null;
 	export let chevronClassName = 'size-3';
 	export let chevronStrokeWidth = '2.75';
 
@@ -55,9 +58,13 @@
 	export let messageDone = false;
 	export let hide = false;
 
-	export let onChange: Function = () => {};
+	export let onChange: (open: boolean) => void = () => {};
 
-	const toggleOpen = () => {
+	$: durationSeconds = Number(attributes?.duration);
+	$: hasDuration =
+		!!attributes?.duration && Number.isFinite(durationSeconds * 1000) && durationSeconds >= 0;
+
+	const toggleOpen = (): void => {
 		if (disabled) {
 			return;
 		}
@@ -65,8 +72,6 @@
 		open = !open;
 		onChange(open);
 	};
-
-	const collapsibleId = uuidv4();
 </script>
 
 <div {id} class={className}>
@@ -94,16 +99,16 @@
 
 				<div class="">
 					{#if attributes?.type === 'reasoning'}
-						{#if (attributes?.done === 'true' || messageDone) && attributes?.duration}
-							{#if attributes.duration < 1}
+						{#if (attributes?.done === 'true' || messageDone) && hasDuration}
+							{#if durationSeconds < 1}
 								{$i18n.t('Thought for less than a second')}
-							{:else if attributes.duration < 60}
+							{:else if durationSeconds < 60}
 								{$i18n.t('Thought for {{DURATION}} seconds', {
-									DURATION: attributes.duration
+									DURATION: attributes?.duration
 								})}
 							{:else}
 								{$i18n.t('Thought for {{DURATION}}', {
-									DURATION: dayjs.duration(attributes.duration, 'seconds').humanize()
+									DURATION: dayjs.duration(durationSeconds, 'seconds').humanize()
 								})}
 							{/if}
 						{:else if attributes?.done === 'true' || messageDone}
