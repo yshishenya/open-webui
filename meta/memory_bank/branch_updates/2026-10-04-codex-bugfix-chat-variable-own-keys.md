@@ -1,7 +1,9 @@
-- [ ] **[BUG][CHAT]** Correct inherited keys in chat variable forms
+- [x] **[BUG][CHAT]** Correct inherited keys in chat variable forms
   - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__chat-variable-own-keys.md`
   - Owner: Codex
   - Branch: `codex/bugfix/chat-variable-own-keys`
   - Started: 2026-10-04
   - Summary: Reproduce constructor schema failure and inherited value bypass; fix the shared form path with existing ModelMeta types and verify source/candidate/runtime separately.
   - Update 2026-10-04: 6 accepted-baseline regressions reproduced; 10 regression checks and all 490 frontend tests pass. Twelve type errors removed/zero added, all 1419 lint diagnostics unchanged. Production-configured candidate passes 16/16 full-path browser cases; SDD 3/3 completed. Source CI/merge and production rollout remain separate gates.
+  - Done: 2026-10-04
+  - Production: PR250 merge 127f7f930; source fbca38758; digest bd9b5307 accepted with 4913/425 file hashes, preserved runtime environment/13 neighbors, backup/migration/rollback/default image. Existing chat reload: two messages, empty input, zero console errors. Constructor form proof is compiled/local because production has no variable-schema models. Overall goal remains active.
