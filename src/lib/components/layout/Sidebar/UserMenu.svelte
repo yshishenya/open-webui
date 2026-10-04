@@ -2,11 +2,13 @@
 	import { createEventDispatcher, getContext, tick } from 'svelte';
 
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { getBillingReturnTo } from '$lib/utils/airis/return_to';
 
 	import { getUsage } from '$lib/apis';
 	import { getSessionUser, userSignOut } from '$lib/apis/auths';
 
-	import { showSettings, mobile, showSidebar, user, config, settings } from '$lib/stores';
+	import { chatId, showSettings, mobile, showSidebar, user, config, settings } from '$lib/stores';
 
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
@@ -54,6 +56,10 @@
 	const DEFAULT_PINNED_ITEMS = ['notes', 'workspace'];
 
 	$: pinnedItems = $settings?.pinnedMenuItems ?? DEFAULT_PINNED_ITEMS;
+	$: billingReturnTo = getBillingReturnTo($page.url, $chatId);
+	$: billingHref = billingReturnTo
+		? `/billing/dashboard?return_to=${encodeURIComponent(billingReturnTo)}`
+		: '/billing/dashboard';
 
 	const isPinned = (id: string) => {
 		return pinnedItems.includes(id);
@@ -567,13 +573,13 @@
 
 			<a
 				data-testid="user-menu-billing"
-				href="/billing/dashboard"
+				href={billingHref}
 				draggable="false"
 				class="no-drag-region flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[13px] w-full hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none"
 				on:click={async (event) => {
 					event.preventDefault();
 					show = false;
-					await goto('/billing/dashboard');
+					await goto(billingHref);
 					await closeMobileSidebar();
 				}}
 			>

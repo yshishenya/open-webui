@@ -1,4 +1,4 @@
-import { WEBUI_BASE_URL } from '$lib/constants';
+import { WEBUI_BASE_URL, type DEFAULT_CAPABILITIES } from '$lib/constants';
 import { convertOpenApiToToolPayload } from '$lib/utils';
 import { getOpenAIModelsDirect } from './openai';
 
@@ -257,8 +257,19 @@ export const chatCompleted = async (token: string, body: ChatCompletedForm) => {
 
 type ChatActionForm = {
 	model: string;
-	messages: string[];
+	messages: {
+		id: string;
+		role: string;
+		content?: string;
+		info?: Record<string, unknown>;
+		timestamp?: number;
+		sources?: unknown[];
+	}[];
 	chat_id: string;
+	event?: unknown;
+	model_item?: unknown;
+	session_id?: string;
+	id?: string;
 };
 
 export const chatAction = async (token: string, action_id: string, body: ChatActionForm) => {
@@ -515,7 +526,7 @@ export const executeToolServer = async (
 
 	try {
 		// Find the matching operationId in the OpenAPI spec (only valid HTTP methods)
-		const matchingRoute = Object.entries(serverData.openapi.paths).find(([_, methods]) =>
+		const matchingRoute = Object.entries(serverData.openapi.paths).find(([, methods]) =>
 			Object.entries(methods as any).some(
 				([method, operation]: any) =>
 					OPENAPI_HTTP_METHODS.has(method) &&
@@ -568,7 +579,7 @@ export const executeToolServer = async (
 			const paramName = param?.name;
 			if (!paramName) continue;
 			const paramIn = param?.in;
-			if (params.hasOwnProperty(paramName)) {
+			if (Object.prototype.hasOwnProperty.call(params, paramName)) {
 				if (paramIn === 'path') {
 					pathParams[paramName] = params[paramName];
 				} else if (paramIn === 'query') {
@@ -796,9 +807,9 @@ export const generateTitle = async (
 export const generateTags = async (
 	token: string = '',
 	model: string,
-	messages: string,
+	messages: { role: string; content?: string }[],
 	chat_id?: string
-) => {
+): Promise<unknown[]> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/tasks/tags/completions`, {
@@ -1695,11 +1706,16 @@ export interface ModelConfig {
 }
 
 export interface ModelMeta {
-	toolIds: never[];
+	toolIds?: string[] | null;
 	description?: string;
-	capabilities?: object;
+	capabilities?:
+		| (Partial<Record<keyof typeof DEFAULT_CAPABILITIES, boolean>> & Record<string, unknown>)
+		| null;
+	chat_variables_schema?: {
+		fields: Array<Record<string, unknown> & { key: string; type: string; required: boolean }>;
+	} | null;
 	profile_image_url?: string;
 	lead_magnet?: boolean;
 }
 
-export interface ModelParams {}
+export type ModelParams = Record<string, unknown> & { compact_token_threshold?: number };

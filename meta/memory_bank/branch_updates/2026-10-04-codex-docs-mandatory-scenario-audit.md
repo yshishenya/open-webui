@@ -1,0 +1,8 @@
+- [x] **[DOCS][REVIEW]** Reconcile required onboarding scenario evidence
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__docs__mandatory-scenario-audit.md`
+  - Owner: Codex
+  - Branch: `codex/docs/mandatory-scenario-audit`
+  - Done: 2026-10-04
+  - Summary: Full backend and real PostgreSQL verification; distinguish mocked browser checks from complete paths.
+  - Tests: 900 passed / 5 PostgreSQL-only skips; separate PostgreSQL 111 + 2 passed / 0 skips, all five identities proven. Frozen source 82e907049; backend unchanged through ca358dd8f and production cce5a05de. No runtime changes.
+  - Risks: Matrix 13.09, full quality, complete browser paths and real pilot remain open; no real delivery or money acceptance inferred.

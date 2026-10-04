@@ -3316,5 +3316,18 @@
 	"Payment funnel": "Payment funnel",
 	"Confirmed payments and refunds in period": "Confirmed payments and refunds in period",
 	"Model usage": "Model usage",
-	"Product funnel": "Product funnel"
+	"Product funnel": "Product funnel",
+	"Historical rate is unavailable in these details": "Historical rate is unavailable in these details",
+	"Saved pricing version": "Saved pricing version",
+	"Saved rate reference": "Saved rate reference",
+	"Saved input rate reference": "Saved input rate reference",
+	"Saved output rate reference": "Saved output rate reference",
+	"Reserved before this reply": "Reserved before this reply",
+	"Reserve for this reply could not be confirmed": "Reserve for this reply could not be confirmed",
+	"Open original payment": "Open original payment",
+	"Open related wallet records": "Open related wallet records",
+	"Related records are shown across all dates; financial totals keep the selected period.": "Related records are shown across all dates; financial totals keep the selected period.",
+	"Show all customer operations": "Show all customer operations",
+	"New subscriptions are disabled. Existing plans and subscription history remain available.": "New subscriptions are disabled. Existing plans and subscription history remain available.",
+	"New subscriptions are enabled.": "New subscriptions are enabled."
 }

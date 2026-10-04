@@ -1,0 +1,8 @@
+- [x] **[BUG][CHAT][TYPES]** Describe message input ID lists
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__message-input-id-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/message-input-id-contracts`
+  - Done: 2026-10-04
+  - Summary: Correct single-empty-model tuple and implicit integration arrays; describe nullable UUID task list. Five type annotations, executable component preserved.
+  - Tests:469/469;types3967/164 (24removed/0added);ESLint1419 unchanged;strict Chat/MessageInput/test lint passes. Child client/server identity, parent only2 ignored compiled properties, SDD3/3/valid. PR241 source43054d4d3/merge4d9666311:10CI success/1skip,8files SHA256 identical; candidate12/12,0pageerrors/modelcalls. Combined production PR242 accepted:runtime2037787c,4913frontend/425backendPython hashes,14neighbors/ENV preserved;healthy/restarts0/live existing2messages/0errors/0sentmessages.
+  - Risks: Overall quality and real pilot criteria remain open.

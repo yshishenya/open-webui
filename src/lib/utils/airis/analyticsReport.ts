@@ -35,7 +35,11 @@ export interface FunnelReport {
 	summary: FunnelSummary;
 	sequence: FunnelSequence;
 	rows: Array<
-		Omit<FunnelSummary, 'next_maturity_at'> & { cohort: string; median_hours_to_pay: number | null }
+		Omit<FunnelSummary, 'next_maturity_at'> & {
+			cohort: string;
+			median_hours_to_pay: number | null;
+			sequence?: FunnelSequence;
+		}
 	>;
 	financial: Record<
 		string,

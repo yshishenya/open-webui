@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 	import DOMPurify from 'dompurify';
 	import { toast } from 'svelte-sonner';
 
@@ -11,7 +12,7 @@
 	dayjs.extend(duration);
 	dayjs.extend(relativeTime);
 
-	import { onMount, tick, getContext, createEventDispatcher } from 'svelte';
+	import { onMount, onDestroy, tick, getContext, createEventDispatcher } from 'svelte';
 
 	import { createPicker } from '$lib/utils/google-drive-picker';
 	import { pickAndDownloadFile } from '$lib/utils/onedrive-file-picker';
@@ -122,9 +123,9 @@
 	export let uploadPending = false;
 
 	export let atSelectedModel: Model | undefined = undefined;
-	export let selectedModels: [''];
+	export let selectedModels: string[];
 
-	let selectedModelIds = [];
+	let selectedModelIds: string[] = [];
 	$: selectedModelIds = atSelectedModel !== undefined ? [atSelectedModel.id] : selectedModels;
 	$: hasChatVariables = selectedModelIds.some(
 		(modelId) =>
@@ -133,7 +134,7 @@
 	);
 
 	export let history;
-	export let taskIds = null;
+	export let taskIds: string[] | null = null;
 
 	$: isActive =
 		(taskIds && taskIds.length > 0) ||
@@ -141,11 +142,11 @@
 		generating;
 
 	export let prompt = '';
-	export let files = [];
+	export let files: ChatAttachment[] = [];
 
-	export let selectedToolIds = [];
-	export let selectedSkillIds = [];
-	export let selectedFilterIds = [];
+	export let selectedToolIds: string[] = [];
+	export let selectedSkillIds: string[] = [];
+	export let selectedFilterIds: string[] = [];
 
 	export let imageGenerationEnabled = false;
 	export let webSearchEnabled = false;
@@ -166,6 +167,8 @@
 
 	let showInputVariablesModal = false;
 	let inputVariablesModalCallback: (variableValues: Record<string, unknown>) => void = () => {};
+	let inputVariablesModalCancelCallback: () => void = () => {};
+	onDestroy(() => inputVariablesModalCancelCallback());
 	let inputVariables = {};
 	let inputVariableValues = {};
 
@@ -199,7 +202,8 @@
 		codeInterpreterEnabled
 	});
 
-	const inputVariableHandler = async (text: string): Promise<string> => {
+	const inputVariableHandler = async (text: string): Promise<string | null> => {
+		inputVariablesModalCancelCallback();
 		inputVariables = extractInputVariables(text);
 
 		// No variables? return the original text immediately.
@@ -209,10 +213,20 @@
 
 		// Show modal and wait for the user's input.
 		showInputVariablesModal = true;
-		return await new Promise<string>((resolve) => {
+		return await new Promise<string | null>((resolve) => {
+			let settled = false;
+			inputVariablesModalCancelCallback = () => {
+				if (settled) return;
+				settled = true;
+				showInputVariablesModal = false;
+				resolve(null);
+			};
 			inputVariablesModalCallback = (variableValues) => {
-				inputVariableValues = { ...inputVariableValues, ...variableValues };
-				replaceVariables(inputVariableValues);
+				if (settled) return;
+				const values = { ...inputVariableValues, ...variableValues };
+				replaceVariables(values);
+				inputVariableValues = values;
+				settled = true;
 				showInputVariablesModal = false;
 				resolve(text);
 			};
@@ -351,7 +365,8 @@
 		}
 	};
 
-	export const setText = async (text?: string, cb?: (text: string) => void) => {
+	export const setText = async (text?: string, cb?: (text: string) => void): Promise<boolean> => {
+		inputVariablesModalCancelCallback();
 		const chatInput = document.getElementById('chat-input');
 
 		if (chatInput) {
@@ -365,12 +380,14 @@
 			}
 
 			if (text !== '') {
-				text = await inputVariableHandler(text);
+				if ((await inputVariableHandler(text)) === null) return false;
 			}
 
 			await tick();
 			if (cb) await cb(text);
+			return true;
 		}
+		return false;
 	};
 
 	export const showStatus = async () => {
@@ -503,7 +520,8 @@
 		chatInputElement?.replaceCommandWithText(text);
 	};
 
-	const insertTextAtCursor = async (text: string) => {
+	const insertTextAtCursor = async (text: string): Promise<void> => {
+		inputVariablesModalCancelCallback();
 		const chatInput = document.getElementById('chat-input');
 		if (!chatInput) return;
 
@@ -516,7 +534,7 @@
 		}
 
 		await tick();
-		text = await inputVariableHandler(text);
+		if ((await inputVariableHandler(text)) === null) return;
 		await tick();
 
 		const chatInputContainer = document.getElementById('chat-input-container');
@@ -650,9 +668,12 @@
 	);
 
 	let toggleFilters = [];
-	$: toggleFilters = (atSelectedModel?.id ? [atSelectedModel.id] : selectedModels)
-		.map((id) => ($models.find((model) => model.id === id) || {})?.filters ?? [])
-		.reduce((acc, filters) => acc.filter((f1) => filters.some((f2) => f2.id === f1.id)));
+	$: toggleFilters =
+		atSelectedModel?.id || selectedModels.length
+			? (atSelectedModel?.id ? [atSelectedModel.id] : selectedModels)
+					.map((id) => ($models.find((model) => model.id === id) || {})?.filters ?? [])
+					.reduce((acc, filters) => acc.filter((f1) => filters.some((f2) => f2.id === f1.id)))
+			: [];
 
 	let showToolsButton = false;
 	$: showToolsButton = ($tools ?? []).length > 0 || ($toolServers ?? []).length > 0;
@@ -735,7 +756,11 @@
 		}
 	};
 
-	const uploadFileHandler = async (file, process = true, itemData = {}) => {
+	const uploadFileHandler = async (
+		file: File,
+		process = true,
+		itemData: Partial<ChatAttachment> = {}
+	): Promise<null | void> => {
 		if ($_user?.role !== 'admin' && !($_user?.permissions?.chat?.file_upload ?? true)) {
 			toast.error($i18n.t('You do not have permission to upload files.'));
 			return null;
@@ -747,7 +772,7 @@
 		}
 
 		const tempItemId = uuidv4();
-		const fileItem = {
+		const fileItem: ChatAttachment = {
 			type: 'file',
 			file: '',
 			id: null,
@@ -930,7 +955,7 @@
 				let reader = new FileReader();
 
 				reader.onload = async (event) => {
-					let imageUrl = event.target.result;
+					let imageUrl = event.target!.result as string;
 
 					// Compress the image if settings or config require it
 					imageUrl = await compressImageHandler(imageUrl, $settings, $config);
@@ -1316,6 +1341,7 @@
 	bind:show={showInputVariablesModal}
 	variables={inputVariables}
 	onSave={inputVariablesModalCallback}
+	onCancel={inputVariablesModalCancelCallback}
 />
 
 <ValvesModal

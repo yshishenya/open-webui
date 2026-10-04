@@ -931,3 +931,14 @@ html.high-contrast:not(.dark) .shimmer {
 	color: var(--color-gray-700);
 	-webkit-text-fill-color: var(--color-gray-700);
 }
+
+/* Report labels must be readable without enabling the optional high-contrast mode. */
+@layer utilities {
+	html:not(:where(.dark)) :where(.airis-reporting-scope) :is(.text-gray-400, .text-gray-500),
+	html:not(:where(.dark)) :where(.airis-reporting-scope) nav .text-gray-300 {
+		color: var(--color-gray-600);
+	}
+	html:where(.dark) :where(.airis-reporting-scope) :is(.dark\:text-gray-600, .dark\:text-gray-700) {
+		color: var(--color-gray-400);
+	}
+}

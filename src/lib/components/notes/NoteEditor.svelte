@@ -21,7 +21,7 @@
 	dayjs.extend(duration);
 	dayjs.extend(relativeTime);
 
-	import { PaneGroup, Pane, PaneResizer } from 'paneforge';
+	import { PaneGroup, Pane } from 'paneforge';
 
 	import { compressImage, copyToClipboard, convertHeicToJpeg } from '$lib/utils';
 	import { WEBUI_BASE_URL } from '$lib/constants';
@@ -70,7 +70,8 @@
 		updateNoteById,
 		updateNoteAccessGrants,
 		toggleNotePinnedStatusById,
-		getPinnedNoteList
+		getPinnedNoteList,
+		type NoteForm
 	} from '$lib/apis/notes';
 	import { deleteChatById } from '$lib/apis/chats';
 
@@ -98,31 +99,6 @@
 
 	let editor = null;
 	let note = null;
-
-	const newNote = {
-		title: '',
-		data: {
-			content: {
-				json: null,
-				html: '',
-				md: ''
-			},
-			versions: [],
-			files: null
-		},
-		// pages: [], // TODO: Implement pages for notes to allow users to create multiple pages in a note
-		meta: null,
-		access_grants: []
-	};
-
-	const hasPublicReadGrant = (grants) =>
-		Array.isArray(grants) &&
-		grants.some(
-			(grant) =>
-				grant?.principal_type === 'user' &&
-				grant?.principal_id === '*' &&
-				grant?.permission === 'read'
-		);
 
 	let files = [];
 
@@ -175,61 +151,86 @@
 		note?.data?.content?.html ||
 		(note?.data?.content?.md ? marked.parse(note.data.content.md) : '');
 
-	const init = async () => {
+	let loadGeneration = 0;
+	let destroyed = false;
+
+	const init = async (): Promise<void> => {
+		if (!id) return;
+		const requestedId = id;
+		if (note?.id !== requestedId) {
+			showAccessControlModal = false;
+			showDeleteConfirm = false;
+		}
+		const token = localStorage.token;
+		const generation = ++loadGeneration;
+		const isCurrent = (): boolean =>
+			!destroyed &&
+			generation === loadGeneration &&
+			id === requestedId &&
+			localStorage.token === token;
 		loading = true;
-		const res = await getNoteById(localStorage.token, id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (res) {
+		try {
+			const res = await getNoteById(token, requestedId);
+			if (!isCurrent()) return;
 			note = res;
-			if (!Array.isArray(note?.access_grants)) {
-				note.access_grants = [];
-			}
-			files = res.data.files || [];
-
-			$socket?.emit('join-note', {
-				note_id: id,
-				auth: {
-					token: localStorage.token
-				}
-			});
+			files = res.data.files;
+			$socket?.emit('join-note', { note_id: requestedId, auth: { token } });
 			$socket?.off('events:note', noteEventHandler);
 			$socket?.on('events:note', noteEventHandler);
-		} else {
-			goto('/');
-			return;
+		} catch (error) {
+			if (isCurrent()) toast.error(`${error}`);
+		} finally {
+			if (isCurrent()) loading = false;
 		}
-
-		loading = false;
 	};
 
-	let debounceTimeout: NodeJS.Timeout | null = null;
+	const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-	const changeDebounceHandler = () => {
-		if (debounceTimeout) {
-			clearTimeout(debounceTimeout);
+	const changeDebounceHandler = (): void => {
+		if (!note) return;
+		const noteId: string = note.id;
+		const token: string = localStorage.token;
+		const payload: NoteForm = structuredClone({
+			title: note.title === '' ? $i18n.t('Untitled') : note.title,
+			data: { files },
+			access_grants: note.access_grants ?? []
+		});
+		const previous = saveTimers.get(noteId);
+		if (previous !== undefined) clearTimeout(previous);
+		saveTimers.set(
+			noteId,
+			setTimeout(async (): Promise<void> => {
+				saveTimers.delete(noteId);
+				// Do not issue a delayed write after logout/account change.
+				if (localStorage.token !== token) return;
+				try {
+					await updateNoteById(token, noteId, payload);
+					if (localStorage.token !== token) return;
+					const pinned = await getPinnedNoteList(token);
+					if (localStorage.token === token) pinnedNotes.set(pinned);
+				} catch (error) {
+					if (localStorage.token === token) toast.error(`${error}`);
+				}
+			}, 200)
+		);
+	};
+
+	const pinHandler = async (): Promise<void> => {
+		if (!note) return;
+		const noteId: string = note.id;
+		const token: string = localStorage.token;
+		try {
+			await toggleNotePinnedStatusById(token, noteId);
+			// Pinning changes the list, not the editable draft.
+			const pinned = await getPinnedNoteList(token);
+			if (localStorage.token === token) pinnedNotes.set(pinned);
+		} catch (error) {
+			if (localStorage.token === token) toast.error(`${error}`);
 		}
-
-		debounceTimeout = setTimeout(async () => {
-			const res = await updateNoteById(localStorage.token, id, {
-				title: note?.title === '' ? $i18n.t('Untitled') : note.title,
-				data: {
-					files: files
-				},
-				access_grants: note?.access_grants ?? []
-			}).catch((e) => {
-				toast.error(`${e}`);
-			});
-
-			if (res) {
-				pinnedNotes.set(await getPinnedNoteList(localStorage.token).catch(() => []));
-			}
-		}, 200);
 	};
 
 	const applyExternalNoteContent = async (_note) => {
+		if (!note || _note.id !== id || _note.id !== note.id) return false;
 		const incomingContent = _note.data?.content;
 		const contentLength = incomingContent?.md?.length ?? incomingContent?.html?.length ?? 0;
 
@@ -340,7 +341,9 @@
 		return false;
 	}
 
-	const generateTitleHandler = async () => {
+	const generateTitleHandler = async (): Promise<void> => {
+		if (titleGenerating) return;
+		const targetNote = note;
 		const content = note.data.content.md;
 		const DEFAULT_TITLE_GENERATION_PROMPT_TEMPLATE = `### Task:
 Generate a concise title summarizing the content in the content's primary language.
@@ -365,110 +368,51 @@ JSON format: { "title": "your concise title here" }
 ${content}
 </content>`;
 
-		const oldTitle = JSON.parse(JSON.stringify(note.title));
-		note.title = '';
 		titleGenerating = true;
 
-		const res = await generateOpenAIChatCompletion(
-			localStorage.token,
-			{
-				model: selectedModelId,
-				stream: false,
-				messages: [
-					{
-						role: 'user',
-						content: DEFAULT_TITLE_GENERATION_PROMPT_TEMPLATE
-					}
-				]
-			},
-			`${WEBUI_BASE_URL}/api`
-		);
-		if (res) {
-			// Step 1: Safely extract the response string
-			const response = res?.choices[0]?.message?.content ?? '';
+		try {
+			const res = await generateOpenAIChatCompletion(
+				localStorage.token,
+				{
+					model: selectedModelId,
+					stream: false,
+					messages: [
+						{
+							role: 'user',
+							content: DEFAULT_TITLE_GENERATION_PROMPT_TEMPLATE
+						}
+					]
+				},
+				`${WEBUI_BASE_URL}/api`
+			);
+			if (note !== targetNote) return;
+			const response = res?.choices?.[0]?.message?.content ?? '';
+			const jsonStartIndex = response.indexOf('{');
+			const jsonEndIndex = response.lastIndexOf('}');
 
-			try {
-				const jsonStartIndex = response.indexOf('{');
-				const jsonEndIndex = response.lastIndexOf('}');
-
-				if (jsonStartIndex !== -1 && jsonEndIndex !== -1) {
-					const jsonResponse = response.substring(jsonStartIndex, jsonEndIndex + 1);
-					const parsed = JSON.parse(jsonResponse);
-
-					if (parsed && parsed.title) {
-						note.title = parsed.title.trim();
-					}
+			if (jsonStartIndex !== -1 && jsonEndIndex !== -1) {
+				const parsed: unknown = JSON.parse(response.substring(jsonStartIndex, jsonEndIndex + 1));
+				if (
+					parsed &&
+					typeof parsed === 'object' &&
+					'title' in parsed &&
+					typeof parsed.title === 'string'
+				) {
+					const generatedTitle = parsed.title.trim();
+					if (generatedTitle) note.title = generatedTitle;
 				}
-			} catch (e) {
-				console.error('Error parsing JSON response:', e);
-				toast.error($i18n.t('Failed to generate title'));
 			}
+		} catch {
+			console.error('Failed to generate note title');
+			toast.error($i18n.t('Failed to generate title'));
+			return;
+		} finally {
+			titleGenerating = false;
 		}
 
-		if (!note.title) {
-			note.title = oldTitle;
-		}
-
-		titleGenerating = false;
 		await tick();
-		changeDebounceHandler();
+		if (note === targetNote) changeDebounceHandler();
 	};
-
-	function setContentByVersion(versionIdx) {
-		if (!note.data.versions?.length) return;
-		let idx = versionIdx;
-
-		if (idx === null) idx = note.data.versions.length - 1; // latest
-		const v = note.data.versions[idx];
-
-		note.data.content.json = v.json;
-		note.data.content.html = v.html;
-		note.data.content.md = v.md;
-
-		if (versionIdx === null) {
-			const lastVersion = note.data.versions.at(-1);
-			const currentContent = note.data.content;
-
-			if (areContentsEqual(lastVersion, currentContent)) {
-				// remove the last version
-				note.data.versions = note.data.versions.slice(0, -1);
-			}
-		}
-	}
-
-	// Navigation
-	function versionNavigateHandler(direction) {
-		if (!note.data.versions || note.data.versions.length === 0) return;
-
-		if (versionIdx === null) {
-			// Get latest snapshots
-			const lastVersion = note.data.versions.at(-1);
-			const currentContent = note.data.content;
-
-			if (!areContentsEqual(lastVersion, currentContent)) {
-				// If the current content is different from the last version, insert a new version
-				insertNoteVersion(note);
-				versionIdx = note.data.versions.length - 1;
-			} else {
-				versionIdx = note.data.versions.length;
-			}
-		}
-
-		if (direction === 'prev') {
-			if (versionIdx > 0) versionIdx -= 1;
-		} else if (direction === 'next') {
-			if (versionIdx < note.data.versions.length - 1) versionIdx += 1;
-			else versionIdx = null; // Reset to latest
-
-			if (versionIdx === note.data.versions.length - 1) {
-				// If we reach the latest version, reset to null
-				versionIdx = null;
-			}
-		}
-
-		setContentByVersion(versionIdx);
-	}
-
 	const uploadFileHandler = async (file) => {
 		const tempItemId = uuidv4();
 		const fileItem = {
@@ -585,7 +529,11 @@ ${content}
 		return imageUrl;
 	};
 
-	const inputFileHandler = async (file) => {
+	type NoteImage = { id: string; type: 'image'; url: string };
+
+	const inputFileHandler = async (
+		file: File
+	): Promise<Awaited<ReturnType<typeof uploadFileHandler>> | NoteImage | undefined> => {
 		console.log('Processing file:', {
 			name: file.name,
 			type: file.type,
@@ -610,7 +558,9 @@ ${content}
 		}
 
 		if (file['type'].startsWith('image/')) {
-			const uploadImagePromise = new Promise(async (resolve, reject) => {
+			const imageFile = file.type === 'image/heic' ? await convertHeicToJpeg(file) : file;
+			if (Array.isArray(imageFile)) throw new Error('Expected a single converted image');
+			const uploadImagePromise = new Promise<NoteImage>((resolve, reject) => {
 				let reader = new FileReader();
 				reader.onload = async (event) => {
 					try {
@@ -618,7 +568,7 @@ ${content}
 						imageUrl = await compressImageHandler(imageUrl, $settings, $config);
 
 						const fileId = uuidv4();
-						const fileItem = {
+						const fileItem: NoteImage = {
 							id: fileId,
 							type: 'image',
 							url: `${imageUrl}`
@@ -636,7 +586,8 @@ ${content}
 					}
 				};
 
-				reader.readAsDataURL(file['type'] === 'image/heic' ? await convertHeicToJpeg(file) : file);
+				reader.onerror = () => reject(reader.error ?? new Error('Failed to read image'));
+				reader.readAsDataURL(imageFile);
 			});
 
 			return await uploadImagePromise;
@@ -805,52 +756,6 @@ ${content}
 		}
 	};
 
-	const onDragOver = (e) => {
-		e.preventDefault();
-
-		if (
-			e.dataTransfer?.types?.includes('text/plain') ||
-			e.dataTransfer?.types?.includes('text/html')
-		) {
-			dragged = false;
-			return;
-		}
-
-		// Check if the dragged item is a file or image
-		if (e.dataTransfer?.types?.includes('Files') && e.dataTransfer?.items) {
-			const items = Array.from(e.dataTransfer.items);
-			const hasFiles = items.some((item) => item.kind === 'file');
-			const hasImages = items.some((item) => item.type.startsWith('image/'));
-
-			if (hasFiles && !hasImages) {
-				dragged = true;
-			} else {
-				dragged = false;
-			}
-		} else {
-			dragged = false;
-		}
-	};
-
-	const onDragLeave = () => {
-		dragged = false;
-	};
-
-	const onDrop = async (e) => {
-		e.preventDefault();
-		console.log(e);
-
-		if (e.dataTransfer?.files) {
-			const inputFiles = Array.from(e.dataTransfer?.files);
-			if (inputFiles && inputFiles.length > 0) {
-				console.log(inputFiles);
-				inputFilesHandler(inputFiles);
-			}
-		}
-
-		dragged = false;
-	};
-
 	const insertHandler = (content) => {
 		insertNoteVersion(note);
 		inputElement?.insertContent(content);
@@ -858,7 +763,7 @@ ${content}
 
 	const noteEventHandler = async (_note) => {
 		console.log('noteEventHandler', _note);
-		if (_note.id !== id) return;
+		if (!note || _note.id !== id || _note.id !== note.id) return;
 
 		if (_note.updated_at && note?.updated_at && _note.updated_at < note.updated_at) {
 			console.info('[note-chat] external note event skipped', {
@@ -934,27 +839,14 @@ ${content}
 			selectedModelId =
 				$models.filter((model) => !(model?.info?.meta?.hidden ?? false)).at(0)?.id || '';
 		}
-
-		const dropzoneElement = document.getElementById('note-editor');
-
-		// dropzoneElement?.addEventListener('dragover', onDragOver);
-		// dropzoneElement?.addEventListener('drop', onDrop);
-		// dropzoneElement?.addEventListener('dragleave', onDragLeave);
 	});
 
 	onDestroy(() => {
+		destroyed = true;
 		console.log('destroy');
 		$socket?.off('events:note', noteEventHandler);
 		if (pendingNoteEventTimer) {
 			clearTimeout(pendingNoteEventTimer);
-		}
-
-		const dropzoneElement = document.getElementById('note-editor');
-
-		if (dropzoneElement) {
-			// dropzoneElement?.removeEventListener('dragover', onDragOver);
-			// dropzoneElement?.removeEventListener('drop', onDrop);
-			// dropzoneElement?.removeEventListener('dragleave', onDragLeave);
 		}
 	});
 </script>
@@ -1012,7 +904,7 @@ ${content}
 						<Spinner className="size-5" />
 					</div>
 				</div>
-			{:else}
+			{:else if note && note.id === id}
 				<div class=" w-full flex flex-col {loading ? 'opacity-20' : ''}">
 					<div class="shrink-0 w-full flex justify-between items-center px-3">
 						<div class="w-full min-w-0 flex items-center">
@@ -1049,7 +941,7 @@ ${content}
 								on:focus={() => {
 									titleInputFocused = true;
 								}}
-								on:blur={(e) => {
+								on:blur={(): void => {
 									// check if target is generate button
 									if (ignoreBlur) {
 										ignoreBlur = false;
@@ -1098,7 +990,6 @@ ${content}
 													class="self-center p-1 hover:enabled:bg-black/5 dark:hover:enabled:bg-white/5 dark:hover:enabled:text-white hover:enabled:text-black rounded-md transition disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:text-gray-500"
 													on:click={() => {
 														editor.chain().focus().undo().run();
-														// versionNavigateHandler('prev');
 													}}
 													disabled={!editor.can().undo()}
 												>
@@ -1109,7 +1000,6 @@ ${content}
 													class="self-center p-1 hover:enabled:bg-black/5 dark:hover:enabled:bg-white/5 dark:hover:enabled:text-white hover:enabled:text-black rounded-md transition disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:text-gray-500"
 													on:click={() => {
 														editor.chain().focus().redo().run();
-														// versionNavigateHandler('next');
 													}}
 													disabled={!editor.can().redo()}
 												>
@@ -1220,11 +1110,7 @@ ${content}
 										showDeleteConfirm = true;
 									}}
 									isPinned={$pinnedNotes.some((n) => n.id === note.id)}
-									onPin={async () => {
-										await toggleNotePinnedStatusById(localStorage.token, note.id);
-										note = await getNoteById(localStorage.token, note.id);
-										pinnedNotes.set(await getPinnedNoteList(localStorage.token).catch(() => []));
-									}}
+									onPin={pinHandler}
 								>
 									<div class="p-1 bg-transparent hover:bg-white/5 transition rounded-lg">
 										<EllipsisHorizontal className="size-5" />
@@ -1381,7 +1267,7 @@ ${content}
 							fileHandler={true}
 							onFileDrop={(currentEditor, files, pos) => {
 								files.forEach(async (file) => {
-									const fileItem = await inputFileHandler(file).catch((error) => {
+									const fileItem = await inputFileHandler(file).catch((): null => {
 										return null;
 									});
 
@@ -1414,7 +1300,7 @@ ${content}
 											const blob = item.getAsFile();
 											const fileItem = await inputFileHandler(blob);
 
-											if (editor) {
+											if (editor && fileItem?.type === 'image') {
 												editor
 													?.chain()
 													.insertContentAt(editor.state.selection.$anchor.pos, {
@@ -1436,6 +1322,11 @@ ${content}
 							}}
 						/>
 					</div>
+				</div>
+			{:else}
+				<div class="m-auto text-center">
+					<p>{$i18n.t('Something went wrong :/')}</p>
+					<button type="button" class="mt-2 underline" on:click={init}>{$i18n.t('Retry')}</button>
 				</div>
 			{/if}
 		</div>

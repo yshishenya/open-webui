@@ -1,0 +1,6 @@
+- [x] **[DOCS][CHAT]** Record accepted own-key form production release
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__chat-variable-own-keys.md`
+  - Owner: Codex
+  - Branch: `codex/docs/chat-variable-production`
+  - Done: 2026-10-04
+  - Summary: Separate accepted source/candidate/runtime proofs and preserve the limits of live constructor form testing. No runtime changes.

@@ -1,0 +1,169 @@
+{
+	"spec_id": "airis-input-variable-cancel-2026-10-04-001",
+	"title": "AIRIS input variable cancellation",
+	"generated": "2026-10-04T04:33:51.251899Z",
+	"last_updated": "2026-10-04T05:19:47.093095Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "medium",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__input-variable-cancellation.md",
+		"status": "completed",
+		"activated_date": "2026-10-04T04:35:55.082665Z",
+		"progress_percentage": 100,
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-04T05:19:47.092711Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS input variable cancellation",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 3,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Reproduce and fix cancellation without dispatch",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-04T05:04:13.871285Z",
+				"journaled_at": "2026-10-04T05:04:14.199601Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Validate and integrate exact source",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-04T05:19:46.602349Z",
+				"journaled_at": "2026-10-04T05:19:46.604720Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce all close routes in chat and channel",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-04T04:35:55.324446Z",
+				"needs_journaling": false,
+				"status_note": "Actual modal and both real handler initializers:10 failed close-route assertions,0 harness errors; direct VM remains pending until later Save. Automatic onSelect continuation traced.",
+				"journaled_at": "2026-10-04T04:35:55.325480Z",
+				"file_path": "tests/input-variable-cancellation.test.ts"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Settle cancelled requests without continuation or replacement",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-04T05:04:13.871130Z",
+				"needs_journaling": false,
+				"status_note": "31 regression tests and28 real browser cases pass: cancel/null/once, supersession, clear, deferred callback teardown and failed-save cancellation; full437 tests;0 new type/lint diagnostics.",
+				"journaled_at": "2026-10-04T05:04:14.193998Z",
+				"file_path": "src/lib/components/chat/MessageInput/InputVariablesModal.svelte"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Review exact-source checks and integrate",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__input-variable-cancellation.md",
+				"completed_at": "2026-10-04T05:19:46.602190Z",
+				"needs_journaling": false,
+				"status_note": "PR229/source89b869201 merged3d421e035;10 successful CI checks/1dependency skip, CodeRabbit advisory review disabled;6 hashes unchanged. Full437 frontend/900backend plus11PostgreSQL pass; frontend frozen build passes4096MiB. Production separate.",
+				"journaled_at": "2026-10-04T05:19:46.603531Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-04T04:35:55.325475Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce all close routes in chat and channel",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Actual modal and both real handler initializers:10 failed close-route assertions,0 harness errors; direct VM remains pending until later Save. Automatic onSelect continuation traced.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-04T05:04:14.193974Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Settle cancelled requests without continuation or replacement",
+			"author": "Codex",
+			"content": "Task task-1-2 marked as completed. \nNote: 31 regression tests and28 real browser cases pass: cancel/null/once, supersession, clear, deferred callback teardown and failed-save cancellation; full437 tests;0 new type/lint diagnostics.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-04T05:04:14.199588Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Reproduce and fix cancellation without dispatch",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-04T05:19:46.603526Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Review exact-source checks and integrate",
+			"author": "Codex",
+			"content": "Task task-2-1 marked as completed. \nNote: PR229/source89b869201 merged3d421e035;10 successful CI checks/1dependency skip, CodeRabbit advisory review disabled;6 hashes unchanged. Full437 frontend/900backend plus11PostgreSQL pass; frontend frozen build passes4096MiB. Production separate.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-04T05:19:46.604715Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Validate and integrate exact source",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}

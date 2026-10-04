@@ -1,12 +1,5 @@
 <script lang="ts">
-	import { toast } from 'svelte-sonner';
-
-	import { tick, getContext, onMount, createEventDispatcher } from 'svelte';
-	const dispatch = createEventDispatcher();
-	const i18n = getContext('i18n');
-
 	import { settings } from '$lib/stores';
-	import { copyToClipboard } from '$lib/utils';
 
 	import MultiResponseMessages from './MultiResponseMessages.svelte';
 	import ResponseMessage from './ResponseMessage.svelte';
@@ -21,7 +14,7 @@
 
 	export let user;
 
-	export let setInputText: Function = () => {};
+	export let setInputText: (text: string) => void = () => {};
 	export let gotoMessage;
 	export let showPreviousMessage;
 	export let showNextMessage;
@@ -39,7 +32,7 @@
 	export let mergeResponses;
 
 	export let addMessages;
-	export let forkHandler: Function | null = null;
+	export let forkHandler: ((messageId?: string | null) => void | Promise<void>) | null = null;
 	export let triggerScroll;
 	export let readOnly = false;
 	export let allowDelete = true;

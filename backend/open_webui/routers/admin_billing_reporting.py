@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import time
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import StreamingResponse
@@ -131,12 +131,16 @@ async def get_reporting_payments(
     attention: Literal['stale_pending', 'uncredited'] | None = None,
     is_test: bool | None = None,
     older_than_hours: int | None = Query(None, ge=1, le=8784),
+    payment_id: Annotated[str | None, Query(min_length=1, max_length=128)] = None,
     _: object = Depends(get_admin_user),
     session: AsyncSession = Depends(get_async_session),
 ) -> dict[str, object]:
     start, end = _range_or_400(from_ts, to_ts)
-    if attention:
+    if payment_id and not user_id:
+        raise HTTPException(status_code=400, detail='user_id is required for related payments')
+    if attention or payment_id:
         start, end = 0, int(time.time()) + 1
+    if attention:
         if attention == 'stale_pending':
             status, older_than_hours = 'pending', 24
         else:
@@ -151,9 +155,10 @@ async def get_reporting_payments(
         kind=kind,
         credit_status=credit_status,
         is_test=is_test,
-        older_than=int(time.time()) - older_than_hours * 3600 if older_than_hours is not None else None,
+        older_than=(int(time.time()) - older_than_hours * 3600 if older_than_hours is not None else None),
         page=page,
         page_size=size,
+        payment_id=payment_id,
     )
     return {
         'items': items,
@@ -169,7 +174,7 @@ async def get_reporting_payments(
         'time_semantics': 'topup_ledger_refund_provider_created_at',
         'truncated': False,
         'attention': attention,
-        'scope': 'lifetime_current' if attention else 'selected_period',
+        'scope': 'lifetime_current' if attention or payment_id else 'selected_period',
     }
 
 
@@ -211,10 +216,15 @@ async def get_reporting_ledger(
     user_id: str | None = Query(None, max_length=128),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=REPORTING_PAGE_MAX),
+    reference_id: Annotated[str | None, Query(min_length=1, max_length=128)] = None,
     _: object = Depends(get_admin_user),
     session: AsyncSession = Depends(get_async_session),
 ) -> dict[str, object]:
     start, end = _range_or_400(from_ts, to_ts)
+    if reference_id and not user_id:
+        raise HTTPException(status_code=400, detail='user_id is required for related wallet records')
+    if reference_id:
+        start, end = 0, int(time.time()) + 1
     size = _page_size(page_size)
     rows, total = await BillingReportingService(session).ledger_rows(
         from_ts=start,
@@ -223,6 +233,7 @@ async def get_reporting_ledger(
         user_id=user_id,
         limit=size,
         offset=(page - 1) * size,
+        reference_id=reference_id,
     )
     return {
         'items': rows,
@@ -234,6 +245,7 @@ async def get_reporting_ledger(
         'from': start,
         'to': end,
         'as_of': int(time.time()),
+        'scope': 'lifetime_current' if reference_id else 'selected_period',
     }
 
 

@@ -10,7 +10,7 @@ export const resolveRequestedModels = (
 };
 
 type MessageInputLike = {
-	setText: (text: string) => void;
+	setText: (text: string) => void | boolean | Promise<void | boolean>;
 };
 
 type WelcomePresetPromptPayload = {
@@ -70,8 +70,7 @@ export const setTextWithRetries = async (
 	for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
 		const messageInput = getMessageInput();
 		if (messageInput) {
-			messageInput.setText(text);
-			return true;
+			return (await messageInput.setText(text)) !== false;
 		}
 		await wait();
 	}

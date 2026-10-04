@@ -76,6 +76,8 @@ const mocks = vi.hoisted(() => {
 	});
 
 	return {
+		chatIdStore: createStore(''),
+		pageStore: createStore({ url: new URL('http://localhost/') }),
 		gotoMock,
 		getUsageMock,
 		getSessionUserMock,
@@ -93,6 +95,7 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock('$app/navigation', () => ({ goto: mocks.gotoMock }), { virtual: true });
+vi.mock('$app/stores', () => ({ page: mocks.pageStore }));
 vi.mock(
 	'$lib/constants',
 	() => ({
@@ -115,6 +118,7 @@ vi.mock('$lib/apis/users', () => ({ updateUserStatus: mocks.updateUserStatusMock
 vi.mock(
 	'$lib/stores',
 	() => ({
+		chatId: mocks.chatIdStore,
 		showSettings: mocks.showSettingsStore,
 		mobile: mocks.mobileStore,
 		showSidebar: mocks.showSidebarStore,
@@ -151,6 +155,8 @@ describe('UserMenu', () => {
 
 		localStorage.token = 'test-token';
 		mocks.gotoMock.mockReset();
+		mocks.chatIdStore.set('');
+		mocks.pageStore.set({ url: new URL('http://localhost/') });
 		mocks.getUsageMock.mockReset().mockResolvedValue(null);
 		mocks.getSessionUserMock.mockReset().mockResolvedValue(null);
 		mocks.userSignOutMock.mockReset().mockResolvedValue({ redirect_url: '/auth' });
@@ -243,5 +249,17 @@ describe('UserMenu', () => {
 		await flushPromises();
 
 		expect(mocks.gotoMock).toHaveBeenCalledWith('/billing/dashboard');
+	});
+
+	it('preserves the new chat through the mobile billing entry', async () => {
+		mocks.mobileStore.set(true);
+		mocks.chatIdStore.set('saved-chat');
+		renderMenu();
+		await flushPromises();
+		const item = document.body.querySelector('[data-testid="user-menu-billing"]');
+		expect(item?.getAttribute('href')).toBe('/billing/dashboard?return_to=%2Fc%2Fsaved-chat');
+		item?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		await flushPromises();
+		expect(mocks.gotoMock).toHaveBeenCalledWith('/billing/dashboard?return_to=%2Fc%2Fsaved-chat');
 	});
 });

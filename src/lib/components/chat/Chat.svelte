@@ -81,6 +81,12 @@
 	import { AudioQueue } from '$lib/utils/audio';
 	import { createTemporaryChatId, isTemporaryChatId } from '$lib/utils/chatId';
 	import { getOutputText } from './Messages/structuredOutput';
+	import { getLastMessageId } from '$lib/utils/airis/chat_history';
+	import type {
+		ChatAttachment,
+		ChatHistory,
+		ChatHistoryMessage
+	} from '$lib/utils/airis/chat_history';
 	import { trackEvent } from '$lib/utils/analytics';
 
 	import {
@@ -102,6 +108,7 @@
 		generateQueries,
 		chatAction,
 		generateMoACompletion,
+		type ModelMeta,
 		stopTask,
 		stopTasksByChatId,
 		getTaskIdsByChatId
@@ -187,7 +194,7 @@
 	}
 	let selectedModels = [''];
 	let atSelectedModel: Model | undefined;
-	let selectedModelIds = [];
+	let selectedModelIds: string[] = [];
 	$: if (atSelectedModel !== undefined) {
 		selectedModelIds = [atSelectedModel.id];
 	} else {
@@ -306,7 +313,7 @@
 				hasUsageCheckpoint = true;
 				estimatedTokens =
 					Number(inputTokens || 0) +
-					Number(usage.output_tokens ?? usage.completion_tokens ?? 0) +
+					Number(usage?.output_tokens ?? usage?.completion_tokens ?? 0) +
 					estimateMessagesTokens(activeMessages.slice(idx + 1));
 				break;
 			}
@@ -328,9 +335,9 @@
 	$: contextUsage = getContextUsage() ?? (contextCompactionEnabled ? serverContextUsage : null);
 	$: embeddedHeaderTitle = embeddedTitle || $chatTitle || $i18n.t('Chat');
 
-	let selectedToolIds = [];
-	let selectedSkillIds = [];
-	let selectedFilterIds = [];
+	let selectedToolIds: string[] = [];
+	let selectedSkillIds: string[] = [];
+	let selectedFilterIds: string[] = [];
 	let pendingOAuthTools = [];
 
 	let imageGenerationEnabled = false;
@@ -395,26 +402,35 @@
 
 	let chatTasks = [];
 
-	let history = {
+	let history: ChatHistory & { state?: unknown } = {
 		messages: {},
 		currentId: null
 	};
 
-	let taskIds = null;
+	let taskIds: string[] | null = null;
 
 	// Chat Input
 	let prompt = '';
-	let chatFiles = [];
-	let files = [];
+	let chatFiles: ChatAttachment[] = [];
+	let files: ChatAttachment[] = [];
 	let params = {};
-	let chatVariables = {};
+	let chatVariables: Record<string, unknown> = {};
 	let showChatVariablesModal = false;
 	let loadedChatIdProp = '';
 	let currentDraftKey = '';
 
-	const mergeChatVariableSchemas = (modelIds = [], availableModels = []) => {
-		const byKey: Record<string, any> = {};
-		const conflicts: any[] = [];
+	type ChatVariableField = NonNullable<ModelMeta['chat_variables_schema']>['fields'][number];
+	type ChatVariableConflict = { key: string; modelIds: string[] };
+	const mergeChatVariableSchemas = (
+		modelIds: string[] = [],
+		availableModels: Model[] = []
+	): { fields: ChatVariableField[]; conflicts: ChatVariableConflict[] } => {
+		// A valid field named constructor must not resolve to Object.prototype.
+		const byKey: Record<
+			string,
+			{ field: ChatVariableField; modelIds: string[]; shape: Record<string, unknown> }
+		> = Object.create(null);
+		const conflicts: ChatVariableConflict[] = [];
 
 		for (const modelId of modelIds.filter(Boolean)) {
 			const fields =
@@ -456,37 +472,49 @@
 		}
 
 		return {
-			fields: Object.values(byKey).map((item: any) => item.field),
+			fields: Object.values(byKey).map((item) => item.field),
 			conflicts
 		};
 	};
 
-	const hasValue = (value) => value !== undefined && value !== null && value !== '';
+	const hasValue = (value: unknown): boolean =>
+		value !== undefined && value !== null && value !== '';
 
-	const getChatVariablesForm = (modelIds = [], values = {}, availableModels = []) => {
+	const getChatVariablesForm = (
+		modelIds: string[] = [],
+		values: Record<string, unknown> = {},
+		availableModels: Model[] = []
+	): {
+		conflicts: ChatVariableConflict[];
+		empty: boolean;
+		missing: boolean;
+		variables: Record<string, Record<string, unknown>>;
+	} => {
+		const readValue = (key: string): unknown =>
+			Object.hasOwn(values ?? {}, key) ? values[key] : undefined;
 		const { fields, conflicts } = mergeChatVariableSchemas(modelIds, availableModels);
 		const empty =
 			fields.length > 0 &&
-			fields.every((field) => !hasValue(values?.[field.key]) && !hasValue(field.default));
+			fields.every((field) => !hasValue(readValue(field.key)) && !hasValue(field.default));
 		const missing = fields.some(
-			(field) => field.required && !hasValue(values?.[field.key]) && !hasValue(field.default)
+			(field) => field.required && !hasValue(readValue(field.key)) && !hasValue(field.default)
 		);
 		const variables = fields.reduce(
 			(acc, field) => {
 				const { key, ...inputField } = field;
 				acc[key] = {
 					...inputField,
-					default: hasValue(values?.[key]) ? values[key] : inputField.default
+					default: hasValue(readValue(key)) ? readValue(key) : inputField.default
 				};
 				return acc;
 			},
-			{} as Record<string, any>
+			{} as Record<string, Record<string, unknown>>
 		);
 
 		return { conflicts, empty, missing, variables };
 	};
 
-	const saveChatVariables = async (values) => {
+	const saveChatVariables = async (values: Record<string, unknown>): Promise<void> => {
 		chatVariables = { ...chatVariables, ...values };
 
 		if ($chatId && !$temporaryChatEnabled && !isTemporaryChatId($chatId)) {
@@ -511,7 +539,10 @@
 		oldSelectedModelIds = structuredClone(selectedModelIds);
 	};
 
-	const mergeFiles = (current, incoming) => {
+	const mergeFiles = (
+		current: ChatAttachment[] | null | undefined,
+		incoming: ChatAttachment[] | null | undefined
+	): ChatAttachment[] => {
 		const seen = new Set();
 		return [...(incoming ?? []), ...(current ?? [])].filter((file) => {
 			const key = `${file?.type ?? ''}:${file?.id ?? file?.url ?? file?.name ?? ''}`;
@@ -886,25 +917,14 @@
 		}
 	};
 
-	const showMessage = async (message, scroll = true, save = true) => {
+	const showMessage = async (
+		message: { id: string | null },
+		scroll = true,
+		save = true
+	): Promise<void> => {
 		const _chatId = JSON.parse(JSON.stringify($chatId));
-		let _messageId = JSON.parse(JSON.stringify(message.id));
-
-		let messageChildrenIds = [];
-		if (_messageId === null) {
-			messageChildrenIds = Object.keys(history.messages).filter(
-				(id) => history.messages[id].parentId === null
-			);
-		} else {
-			messageChildrenIds = history.messages[_messageId].childrenIds;
-		}
-
-		while (messageChildrenIds.length !== 0) {
-			_messageId = messageChildrenIds.at(-1);
-			messageChildrenIds = history.messages[_messageId].childrenIds;
-		}
-
-		history.currentId = _messageId;
+		// Keep the existing dynamically populated history boundary.
+		history.currentId = getLastMessageId(history, message.id);
 
 		await tick();
 
@@ -1948,22 +1968,20 @@
 				}
 
 				if (query || eventFiles?.length) {
-					if (query) {
-						messageInput?.setText(query);
+					const ready = !query || (await setTextWithRetries(() => messageInput, tick, query));
+					if (ready) {
+						await tick();
+						submitHandler(query ? prompt : '');
 					}
-					await tick();
-					submitHandler(query || '');
 				}
 			}
 		} else if ($page.url.searchParams.get('q')) {
 			const q = $page.url.searchParams.get('q') ?? '';
-			await setTextWithRetries(() => messageInput, tick, q);
+			const ready = await setTextWithRetries(() => messageInput, tick, q);
 
-			if (q) {
-				if (($page.url.searchParams.get('submit') ?? 'true') === 'true') {
-					await tick();
-					submitHandler(q);
-				}
+			if (ready && q && ($page.url.searchParams.get('submit') ?? 'true') === 'true') {
+				await tick();
+				submitHandler(prompt);
 			}
 		} else {
 			const presetPrompt = consumeWelcomePresetPrompt();
@@ -2223,11 +2241,17 @@
 		}
 	};
 
-	const chatActionHandler = async (_chatId, actionId, modelId, responseMessageId, event = null) => {
+	const chatActionHandler = async (
+		_chatId: string,
+		actionId: string,
+		modelId: string | undefined,
+		responseMessageId: string,
+		event: unknown = null
+	): Promise<void> => {
 		const messages = createMessagesList(history, responseMessageId);
 
 		const res = await chatAction(localStorage.token, actionId, {
-			model: modelId,
+			model: modelId!,
 			messages: messages.map((m) => ({
 				id: m.id,
 				role: m.role,
@@ -2243,7 +2267,8 @@
 			id: responseMessageId
 		}).catch((error) => {
 			toast.error(`${error}`);
-			messages.at(-1).error = { content: error };
+			const lastMessage = messages.at(-1);
+			if (lastMessage) lastMessage.error = { content: error };
 			return null;
 		});
 
@@ -3444,11 +3469,14 @@
 		await sendMessage(history, userMessageId);
 	};
 
-	const regenerateResponse = async (message, suggestionPrompt = null) => {
+	const regenerateResponse = async (
+		message: ChatHistoryMessage,
+		suggestionPrompt: string | null = null
+	): Promise<void> => {
 		console.log('regenerateResponse');
 
 		if (history.currentId) {
-			let userMessage = history.messages[message.parentId];
+			let userMessage = history.messages[message.parentId!];
 
 			if (!userMessage) {
 				toast.error($i18n.t('Parent message not found'));
@@ -3849,7 +3877,7 @@
 		: 'h-screen max-h-[100dvh]'} transition-width duration-200 ease-in-out {$showSidebar &&
 	!embedded
 		? '  md:max-w-[calc(100%-var(--sidebar-width))]'
-		: ' '} w-full max-w-full flex flex-col"
+		: ' '} w-full min-w-0 max-w-full flex flex-col"
 	id={chatContainerId}
 >
 	{#if !loading}
@@ -3992,7 +4020,6 @@
 										{readOnly}
 										bind:history
 										bind:autoScroll
-										bind:prompt
 										setInputText={(text) => {
 											messageInput?.setText(text);
 										}}
@@ -4000,7 +4027,6 @@
 										{atSelectedModel}
 										className={embedded ? 'h-full flex pt-4' : 'h-full flex pt-18'}
 										{sendMessage}
-										{showMessage}
 										{submitMessage}
 										{continueResponse}
 										{regenerateResponse}
@@ -4053,7 +4079,7 @@
 										compactHandler={handleManualCompact}
 										statusHandler={handleStatusCommand}
 										forkHandler={handleForkChat}
-										toolServers={$toolServers}
+
 										{generating}
 										{stopResponse}
 										{createMessagePair}
@@ -4172,7 +4198,7 @@
 										compactHandler={handleManualCompact}
 										statusHandler={handleStatusCommand}
 										forkHandler={handleForkChat}
-										toolServers={$toolServers}
+
 										{generating}
 										{stopResponse}
 										{createMessagePair}
@@ -4249,7 +4275,7 @@
 						bind:pane={controlPane}
 						chatId={$chatId}
 						modelId={selectedModelIds?.at(0) ?? null}
-						models={selectedModelIds.reduce((a, e, i, arr) => {
+						models={selectedModelIds.reduce<Model[]>((a, e, i, arr) => {
 							const model = $models.find((m) => m.id === e);
 							if (model) {
 								return [...a, model];

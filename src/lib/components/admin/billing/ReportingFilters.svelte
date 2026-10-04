@@ -42,7 +42,7 @@
 		<label class="text-xs text-gray-500"
 			>{$i18n.t('Currency')}<select
 				bind:value={filters.currency}
-				class="min-h-11 mt-1 block rounded-lg border border-gray-200 bg-transparent p-2 text-sm dark:border-gray-700"
+				class="min-h-11 mt-1 block rounded-lg border border-gray-200 bg-transparent p-2 pr-8 text-sm dark:border-gray-700"
 				><option>RUB</option><option>USD</option><option>EUR</option></select
 			></label
 		>

@@ -1,0 +1,188 @@
+{
+  "spec_id": "airis-note-title-recovery-2026-10-04-001",
+  "title": "AIRIS note title recovery",
+  "generated": "2026-10-04T01:22:58.685570Z",
+  "last_updated": "2026-10-04T01:58:03.065728Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 2,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__note-title-recovery.md",
+    "status": "completed",
+    "activated_date": "2026-10-04T01:24:19.164256Z",
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-04T01:58:03.065304Z",
+    "actual_hours": 0.562
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS note title recovery",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and fix title failure",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T01:39:49.280295Z",
+        "journaled_at": "2026-10-04T01:39:49.284274Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Exact source CI and integration",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T01:58:02.559050Z",
+        "journaled_at": "2026-10-04T01:58:02.562108Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce real API rejections and trace callers",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "investigation",
+        "file_path": "tests/note-title-recovery.test.ts",
+        "estimated_hours": 0.5,
+        "completed_at": "2026-10-04T01:24:19.437010Z",
+        "needs_journaling": false,
+        "status_note": "Actual API helper plus current handler reproduces network/403 rejection and cleared pending title: 3 failed, 5 passed. API callers and NoteForm traced.",
+        "journaled_at": "2026-10-04T01:24:19.438025Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Preserve title and clear loading after every outcome",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "src/lib/components/notes/NoteEditor.svelte",
+        "estimated_hours": 0.5,
+        "started_at": "2026-10-04T01:24:19.700068Z",
+        "completed_at": "2026-10-04T01:39:49.280089Z",
+        "needs_journaling": false,
+        "status_note": "Final 323 Docker frontend tests including16 note cases; 41 type/12lint removed,0 added diagnostics. Title/model errors and stale-response safety verified; image conversion/read/compression settle. Fullcheck4335/176 andlint1517 remain open; source CI and production pending.",
+        "actual_hours": 0.258,
+        "journaled_at": "2026-10-04T01:39:49.282668Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Accept exact source checks and integration",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "investigation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__note-title-recovery.md",
+        "estimated_hours": 0.5,
+        "started_at": "2026-10-04T01:39:49.680135Z",
+        "completed_at": "2026-10-04T01:58:02.558773Z",
+        "needs_journaling": false,
+        "status_note": "PR219 exact source9f51694ebb77a0b31e7264ae1b3cd7dfde424699 accepted: 10CI success/1dependency-review skip. 324frontend/17note, full source check4335/176,41removed/0added andlint1517. Source integrated; production and G14 pending. Interrupted logs excluded; final proof uses typecheck-source.log with heap1536.",
+        "actual_hours": 0.304,
+        "journaled_at": "2026-10-04T01:58:02.560961Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-04T01:24:19.438020Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce real API rejections and trace callers",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Actual API helper plus current handler reproduces network/403 rejection and cleared pending title: 3 failed, 5 passed. API callers and NoteForm traced.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-04T01:39:49.282659Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Preserve title and clear loading after every outcome",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed. \nNote: Final 323 Docker frontend tests including16 note cases; 41 type/12lint removed,0 added diagnostics. Title/model errors and stale-response safety verified; image conversion/read/compression settle. Fullcheck4335/176 andlint1517 remain open; source CI and production pending.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-04T01:39:49.284268Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce and fix title failure",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-04T01:58:02.560956Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Accept exact source checks and integration",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: PR219 exact source9f51694ebb77a0b31e7264ae1b3cd7dfde424699 accepted: 10CI success/1dependency-review skip. 324frontend/17note, full source check4335/176,41removed/0added andlint1517. Source integrated; production and G14 pending. Interrupted logs excluded; final proof uses typecheck-source.log with heap1536.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-04T01:58:02.562104Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Exact source CI and integration",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

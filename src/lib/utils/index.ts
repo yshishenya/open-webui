@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Writable } from 'svelte/store';
+import type { ChatHistoryMessage } from './airis/chat_history';
 import { v4 as uuidv4 } from 'uuid';
 import sha256 from 'js-sha256';
 import DOMPurify from 'dompurify';
@@ -1447,20 +1448,29 @@ export const getWeekday = () => {
 	return weekdays[date.getDay()];
 };
 
-export const createMessagesList = (history, messageId) => {
-	const list = [];
+type MessageList<H extends { messages: Record<string, ChatHistoryMessage> }> = (
+	keyof H['messages'] extends never ? ChatHistoryMessage : H['messages'][keyof H['messages']]
+)[];
+
+export const createMessagesList = <H extends { messages: Record<string, ChatHistoryMessage> }>(
+	history: H,
+	messageId: string | null | undefined
+): MessageList<H> => {
+	const list: ChatHistoryMessage[] = [];
+	const visited = new Set<string>();
 	let currentId = messageId;
 
-	while (currentId !== null && currentId !== undefined) {
+	while (currentId !== null && currentId !== undefined && !visited.has(currentId)) {
 		const message = history.messages[currentId];
 		if (message === undefined) {
 			break;
 		}
+		visited.add(currentId);
 		list.push(message);
 		currentId = message.parentId;
 	}
 
-	return list.reverse();
+	return list.reverse() as MessageList<H>;
 };
 
 export const formatFileSize = (size: unknown): string => {
@@ -1885,7 +1895,7 @@ async function ensurePDFjsLoaded() {
 	return window.pdfjsLib;
 }
 
-export const extractContentFromFile = async (file: File) => {
+export const extractContentFromFile = async (file: File): Promise<string> => {
 	// Known text file extensions for extra fallback
 	const textExtensions = [
 		'.txt',
@@ -1923,10 +1933,10 @@ export const extractContentFromFile = async (file: File) => {
 	}
 
 	// Reads file as text using FileReader
-	function readAsText(file: File) {
-		return new Promise((resolve, reject) => {
+	function readAsText(file: File): Promise<string> {
+		return new Promise<string>((resolve, reject) => {
 			const reader = new FileReader();
-			reader.onload = () => resolve(reader.result);
+			reader.onload = () => resolve(reader.result as string);
 			reader.onerror = reject;
 			reader.readAsText(file);
 		});

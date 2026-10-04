@@ -160,6 +160,7 @@ export const getBillingReportingPayments = (
 		from?: number;
 		to?: number;
 		user_id?: string;
+		payment_id?: string;
 		status?: string;
 		kind?: string;
 		credit_status?: string;
@@ -182,6 +183,7 @@ export const getBillingReportingLedger = (
 		from?: number;
 		to?: number;
 		user_id?: string;
+		reference_id?: string;
 		page?: number;
 		page_size?: number;
 	} = {}

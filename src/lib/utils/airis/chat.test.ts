@@ -99,6 +99,52 @@ describe('airis/chat', () => {
 			expect(wait).toHaveBeenCalledTimes(2);
 		});
 
+		it.each([true, false])(
+			'waits for async setText and returns %s without retrying',
+			async (saved) => {
+				let finish!: (value: boolean) => void;
+				const setText = vi.fn(
+					() =>
+						new Promise<boolean>((resolve) => {
+							finish = resolve;
+						})
+				);
+				const wait = vi.fn(async () => {});
+				let settled = false;
+				const pending = setTextWithRetries(() => ({ setText }), wait, '{{NAME}}').then((ok) => {
+					settled = true;
+					return ok;
+				});
+				await Promise.resolve();
+				expect(settled).toBe(false);
+				finish(saved);
+				expect(await pending).toBe(saved);
+				expect(setText).toHaveBeenCalledOnce();
+				expect(wait).not.toHaveBeenCalled();
+			}
+		);
+
+		it('accepts an async legacy setter returning void', async () => {
+			expect(
+				await setTextWithRetries(
+					() => ({ setText: async () => {} }),
+					async () => {},
+					'Hello'
+				)
+			).toBe(true);
+		});
+
+		it('propagates a setter failure without retrying or claiming success', async () => {
+			const error = new Error('Editor unavailable');
+			const setText = vi.fn(async () => {
+				throw error;
+			});
+			const wait = vi.fn(async () => {});
+			await expect(setTextWithRetries(() => ({ setText }), wait, 'Hello')).rejects.toThrow(error);
+			expect(setText).toHaveBeenCalledOnce();
+			expect(wait).not.toHaveBeenCalled();
+		});
+
 		it('returns false when input never appears', async () => {
 			const setText = vi.fn();
 			const wait = vi.fn(async () => {});

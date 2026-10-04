@@ -4,7 +4,7 @@
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 
-	import { WEBUI_NAME, user } from '$lib/stores';
+	import { WEBUI_NAME, user, config } from '$lib/stores';
 	import {
 		getPlansWithStats,
 		deletePlan,
@@ -205,6 +205,17 @@
 				'Subscription settings are separate from wallet top-ups. Calculated monthly income is not received cash.'
 			)}
 		</p>
+		{#if $config?.features?.enable_billing_subscriptions === false}
+			<p
+				class="my-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
+			>
+				{$i18n.t(
+					'New subscriptions are disabled. Existing plans and subscription history remain available.'
+				)}
+			</p>
+		{:else if $config?.features?.enable_billing_subscriptions === true}
+			<p class="my-3 text-sm text-gray-500">{$i18n.t('New subscriptions are enabled.')}</p>
+		{/if}
 		{#if loadError}<p role="alert" class="my-3 text-red-700">
 				{loadError}
 				<button type="button" class="underline" on:click={loadPlans}>{$i18n.t('Retry')}</button>
@@ -334,6 +345,7 @@
 							<div class="flex flex-row gap-0.5 self-center">
 									<Tooltip content={$i18n.t('Delete')}>
 										<button
+										aria-label={$i18n.t('Delete')}
 											class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
 											type="button"
 											disabled={planStat.active_subscriptions > 0}
@@ -368,6 +380,7 @@
 
 									<Tooltip content={$i18n.t('Analytics')}>
 										<button
+										aria-label={$i18n.t('Analytics')}
 											class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
 											type="button"
 											on:click={() => goto(`/admin/billing/plans/${planStat.plan.id}/analytics`)}

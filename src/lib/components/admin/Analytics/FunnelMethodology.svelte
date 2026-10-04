@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/stores';
 	import type { FunnelReport } from '$lib/utils/airis/analyticsReport';
 
 	export let report: FunnelReport;
@@ -10,6 +11,7 @@
 <details
 	bind:this={methodology}
 	id="funnel-methodology"
+	open={$page.url.hash === '#data-quality' || $page.url.hash === '#funnel-methodology'}
 	class="border-t border-gray-200 pt-4 text-sm dark:border-gray-800"
 >
 	<summary class="cursor-pointer py-2 font-medium">Качество данных и ограничения</summary>
@@ -37,7 +39,7 @@
 				? 'нет данных'
 				: number(report.coverage.excluded_existing_accounts)}.
 		</p>
-		<details>
+		<details id="data-quality" open={$page.url.hash === '#data-quality'}>
 			<summary class="cursor-pointer py-2 font-medium"
 				>Покрытие и передача событий за всё время</summary
 			>
@@ -52,7 +54,31 @@
 					<p>{item.destination}: {item.state} — {number(item.count)}</p>
 				{:else}<p>Записей о передаче событий нет.</p>{/each}
 				<p>Это передача событий во внешнюю аналитику, не доставка писем.</p>
+				<a
+					class="underline"
+					href="https://metrika.yandex.ru/overview?id=111392024"
+					target="_blank"
+					rel="noopener noreferrer">Яндекс Метрика</a
+				>
+				·
+				<a
+					class="underline"
+					href="https://analytics.2brain.pro/project/2/dashboard/3"
+					target="_blank"
+					rel="noopener noreferrer">PostHog</a
+				>
 			</div>
+		</details>
+		<details>
+			<summary class="cursor-pointer py-2 font-medium"
+				>Попытки оплаты за выбранные календарные даты</summary
+			>
+			<p class="mt-2">
+				Создано: {number(report.payment_funnel.created)}; подтверждено к текущему моменту: {number(
+					report.payment_funnel.confirmed
+				)}.
+			</p>
+			<p>Это попытки, а не люди. Незавершённые оплаты ещё могут быть подтверждены.</p>
 		</details>
 		<details>
 			<summary class="cursor-pointer py-2 font-medium"

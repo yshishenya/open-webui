@@ -1,0 +1,6 @@
+- [x] **[DOCS]** Документы приёмки загрузки и сохранения заметок
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__docs__note-load-save-source-acceptance.md`
+  - Owner: Codex
+  - Done: 2026-10-04
+  - Branch: codex/docs/note-load-save-source-acceptance
+  - Summary: Принятый PR223/sourcecc2f51938/merged60721746 записан, SDD3/3 закрыт, литеральный путь Spec исправлен. Выпуск, общий G14 и реальные условия пилота остаются открытыми.

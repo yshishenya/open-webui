@@ -12,11 +12,18 @@
 	 * therefore force-closes whichever one is still up.
 	 */
 	let closeActiveHoverPreview: (() => void) | null = null;
+
+	const claimHoverPreview = (close: () => void): void => {
+		if (closeActiveHoverPreview !== close) {
+			closeActiveHoverPreview?.();
+			closeActiveHoverPreview = close;
+		}
+	};
 </script>
 
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { goto, invalidate, invalidateAll } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { onMount, getContext, createEventDispatcher, tick } from 'svelte';
 	import { LinkPreview } from 'bits-ui';
 	import {
@@ -25,7 +32,6 @@
 		deleteChatById,
 		getAllTags,
 		getChatById,
-		getChatListByTagName,
 		markChatUnreadById,
 		updateChatById,
 		updateChatFolderIdById
@@ -56,6 +62,7 @@
 	import GarbageBinIcon from '$lib/components/icons/GarbageBin.svelte';
 	import { generateTitle } from '$lib/apis';
 	import { createMessagesList } from '$lib/utils';
+	import type { ChatHistoryMessage } from '$lib/utils/airis/chat_history';
 	import { getOutputText } from '$lib/components/chat/Messages/structuredOutput';
 
 	const i18n = getContext('i18n');
@@ -111,10 +118,7 @@
 		}
 	};
 
-	$: if (openPreview && closeActiveHoverPreview !== closeHoverPreview) {
-		closeActiveHoverPreview?.();
-		closeActiveHoverPreview = closeHoverPreview;
-	}
+	$: if (openPreview) claimHoverPreview(closeHoverPreview);
 
 	// Local state: tracks the last updatedAt seen while the user was viewing
 	// this chat.  Survives prop refreshes from sidebar data re-fetches that
@@ -133,13 +137,6 @@
 		(effectiveReadAt === null || (updatedAt !== null && updatedAt > effectiveReadAt));
 	$: showInlineActions = id === $chatId || confirmEdit || mouseOver || selected;
 
-	const loadChat = async () => {
-		if (!chat) {
-			draggable = false;
-			chat = await getChatById(localStorage.token, id);
-			draggable = true;
-		}
-	};
 
 	const markUnreadHandler = async () => {
 		const res = await markChatUnreadById(localStorage.token, id).catch((error) => {
@@ -275,7 +272,6 @@
 
 	let generating = false;
 
-	let ignoreBlur = false;
 	let doubleClicked = false;
 
 	let dragged = false;
@@ -384,7 +380,7 @@
 		}, 0);
 	};
 
-	const generateTitleHandler = async () => {
+	const generateTitleHandler = async (): Promise<void> => {
 		generating = true;
 		chat = await getChatById(localStorage.token, id);
 
@@ -396,12 +392,12 @@
 		const history = chatContent?.history;
 		let messages = [];
 		if (history?.messages && history?.currentId) {
-			messages = createMessagesList(history, history.currentId).map((message: any) => ({
+			messages = createMessagesList(history, history.currentId).map((message: ChatHistoryMessage) => ({
 				role: message.role,
 				content: getOutputText(message.output) || message.content || ''
 			}));
 		} else {
-			messages = (chatContent?.messages ?? []).map((message: any) => ({
+			messages = (chatContent?.messages ?? []).map((message: ChatHistoryMessage) => ({
 				role: message.role,
 				content: getOutputText(message.output) || message.content || ''
 			}));
@@ -416,20 +412,16 @@
 		if (id === $chatId) {
 			try {
 				model = JSON.parse(sessionStorage.selectedModels || '[]').find((m) => m) ?? '';
-			} catch {}
+			} catch {
+				model = '';
+			}
 		}
 
 		if (!model && history?.messages && history?.currentId) {
-			let currentId = history.currentId;
-			while (currentId) {
-				const msg = history.messages[currentId];
-				if (!msg) break;
-				if (msg.role === 'assistant' && msg.model) {
-					model = msg.model;
-					break;
-				}
-				currentId = msg.parentId;
-			}
+			model =
+				createMessagesList(history, history.currentId)
+					.reverse()
+					.find((msg: ChatHistoryMessage) => msg.role === 'assistant' && msg.model)?.model ?? '';
 		}
 
 		// Fallback to top-level models if no model was found in the history

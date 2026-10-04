@@ -1,4 +1,4 @@
-- [ ] **[FEATURE][BILLING][ANALYTICS]** Понятные аналитика и деньги
+- [x] **[FEATURE][BILLING][ANALYTICS]** Понятные аналитика и деньги
   - Spec: meta/memory_bank/specs/work_items/2026-10-04**feature**analytics-billing-ui.md
   - Owner: Codex
   - Branch: codex/feature/analytics-billing-ui
@@ -28,3 +28,9 @@
 - Typecheck: 4 398 errors / 176 warnings против 4 419 / 177 в исходной версии; после нормализации порядка union типов и путей node_modules новых диагностик нет. Мобильные подписи и синхронное форматирование денег исправлены.
 - ESLint: 1 532 прежних диагностик src против 1 540 исходных; новых диагностик в src нет. Два замечания новых браузерных тестов устранены, целевой lint прошёл.
 - Сборка production с PUBLIC_YANDEX_METRICA_ID=111392024 прошла. Для выпуска требуется новая сборка с SHA итогового коммита. Первый браузерный прогон: 16/18 пользовательских сценариев прошли, два тайм-аута на загрузке; последовательный повтор начат. Полная приёмка и публикация пока pending.
+
+## Техническое завершение 2026-10-04
+
+- Done: 2026-10-04
+- Summary: PR212/217/220 слиты и опубликованы, точные source/image/CI и работающие денежные/воронка отчёты проверены. Техническая SDD закрыта; пользовательское испытание и production admin browser session не объявлены пройденными.
+- Acceptance: meta/memory_bank/specs/work_items/2026-10-04**docs**analytics-billing-ui-production-acceptance.md

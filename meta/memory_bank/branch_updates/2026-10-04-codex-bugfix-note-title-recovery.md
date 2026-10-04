@@ -1,0 +1,8 @@
+- [x] **[BUG]** Сохранить заголовок и возможность редактировать заметку при отказе модели
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__note-title-recovery.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/note-title-recovery`
+  - Done: 2026-10-04
+  - Summary: Отказ fetch/403 оставляет пустой заголовок и включённый индикатор; общий обработчик должен завершаться без потери данных.
+  - Tests: Исходная проверка3failed/5passed; окончательно324frontend/17note,41type/12lint удалены,0новых диагностик; fullcheck4335/176,lint1517. PR219 source9f51694ebb77a0b31e7264ae1b3cd7dfde424699 / merge34194e65fbf1cfe2fcdd04c46715ccaf344e4c90:10CI success/1skip; SDD3/3 закрыт. Итоговый typecheck-source.log, прерванные логи исключены.
+  - Risks: Полная типизация заметок, общий G14, выпуск и реальный пилот остаются открытыми.

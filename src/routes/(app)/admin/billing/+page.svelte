@@ -6,6 +6,7 @@
 	import { goto } from '$app/navigation';
 	import { WEBUI_NAME, user } from '$lib/stores';
 	import ReportingFilters from '$lib/components/admin/billing/ReportingFilters.svelte';
+	import ChartLine from '$lib/components/admin/Analytics/ChartLine.svelte';
 	import {
 		getBillingReportingOverview,
 		type BillingReportingOverview
@@ -96,6 +97,28 @@
 				}
 			]
 		: [];
+	$: dailyAmounts = new Map(overview?.series.map((row) => [row.date, row]) || []);
+	$: series = overview
+		? Array.from(
+				{ length: Math.ceil(overview.to / 86400) - Math.floor(overview.from / 86400) },
+				(_, index) => {
+					const date = new Date((Math.floor(overview!.from / 86400) + index) * 86400000)
+						.toISOString()
+						.slice(0, 10);
+					const row = dailyAmounts.get(date);
+					return {
+						date,
+						models: {
+							[$i18n.t('Top-ups')]: row?.paid_kopeks || 0,
+							[$i18n.t('Refunds')]: row?.refund_kopeks || 0,
+							[$i18n.t('Usage charged')]: row?.usage_kopeks || 0
+						}
+					};
+				}
+			)
+		: [];
+	$: seriesNames = [$i18n.t('Top-ups'), $i18n.t('Refunds'), $i18n.t('Usage charged')];
+	const seriesColors = ['#2563eb', '#dc2626', '#059669'];
 </script>
 
 <svelte:head><title>{$i18n.t('Money')} • {$WEBUI_NAME}</title></svelte:head>
@@ -168,9 +191,35 @@
 		</section>
 		<section class="mt-6">
 			<h2 class="mb-3 font-medium">{$i18n.t('Top-ups and refunds by day')}</h2>
-			{#if overview.series.length}<div
-					class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800"
-				>
+			{#if overview.series.length}
+				<p class="mb-2 text-xs text-gray-600 dark:text-gray-300">
+					UTC · {overview.currency} · 0 — {money(
+						Math.max(
+							1,
+							...overview.series.flatMap((row) => [
+								row.paid_kopeks,
+								row.refund_kopeks,
+								row.usage_kopeks
+							])
+						)
+					)}
+				</p>
+				<ChartLine
+					data={series}
+					models={seriesNames}
+					colors={seriesColors}
+					height={200}
+					label={$i18n.t('Top-ups and refunds by day')}
+					formatValue={money}
+					showPercent={false}
+					period="month"
+				/>
+				<div class="my-3 flex flex-wrap gap-3 text-sm">
+					{#each seriesNames as name, index}<span
+							><span style:color={seriesColors[index]} aria-hidden="true">●</span> {name}</span
+						>{/each}
+				</div>
+				<div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
 					<table class="w-full min-w-[420px] text-sm">
 						<thead class="text-left text-gray-500"
 							><tr

@@ -1,0 +1,183 @@
+{
+  "spec_id": "airis-empty-model-filters-2026-10-04-001",
+  "title": "Airis empty model filters",
+  "generated": "2026-10-04T10:09:47.785802Z",
+  "last_updated": "2026-10-04T10:15:48.874466Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__empty-model-filters.md",
+    "status": "completed",
+    "activated_date": "2026-10-04T10:10:58.973646Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-04T10:15:48.874198Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis empty model filters",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce empty selection and trace all callers",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T10:11:48.733931Z",
+        "journaled_at": "2026-10-04T10:11:48.735869Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Guard shared reactive intersection without changing non-empty behavior",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T10:11:48.957279Z",
+        "journaled_at": "2026-10-04T10:11:48.958938Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify regression, full frontend and diagnostics",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T10:15:48.436408Z",
+        "journaled_at": "2026-10-04T10:15:48.438919Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce empty selection and trace all callers",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "file_path": "src/lib/components/chat/MessageInput.svelte",
+        "completed_at": "2026-10-04T10:11:48.733777Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-04T10:11:48.734891Z"
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Guard shared reactive intersection without changing non-empty behavior",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "metadata": {
+        "file_path": "src/lib/components/chat/MessageInput.svelte",
+        "completed_at": "2026-10-04T10:11:48.957132Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-04T10:11:48.957978Z"
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify regression, full frontend and diagnostics",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "metadata": {
+        "file_path": "tests/message-input-empty-filters.test.ts",
+        "completed_at": "2026-10-04T10:15:48.435989Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-04T10:15:48.437676Z"
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-04T10:11:48.734887Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce empty selection and trace all callers",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-04T10:11:48.735863Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce empty selection and trace all callers",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-04T10:11:48.957973Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Guard shared reactive intersection without changing non-empty behavior",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-04T10:11:48.958934Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Guard shared reactive intersection without changing non-empty behavior",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-04T10:15:48.437672Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify regression, full frontend and diagnostics",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-04T10:15:48.438913Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify regression, full frontend and diagnostics",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

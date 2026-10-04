@@ -2,6 +2,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { afterNavigate, goto } from '$app/navigation';
+	import FunnelSequence from './FunnelSequence.svelte';
 	import FunnelMethodology from './FunnelMethodology.svelte';
 	import {
 		cohortLabel,
@@ -10,7 +11,6 @@
 		getFunnelReport,
 		reportDateRange,
 		reportPresetDates,
-		transitionPercent,
 		type FunnelReport
 	} from '$lib/utils/airis/analyticsReport';
 	export let overview = false;
@@ -43,7 +43,6 @@
 	let loadedURL = '';
 	let preset = 'custom';
 	let methodology: HTMLDetailsElement;
-	const today = defaultReportDates().to;
 	const number = (value: number): string => value.toLocaleString('ru-RU');
 	const percent = (value: number | null): string =>
 		value === null ? '—' : `${value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}%`;
@@ -119,27 +118,13 @@
 		draft.to !== applied.to ||
 		draft.days !== applied.days ||
 		draft.group !== applied.group;
-	$: sequence = report?.sequence;
-	$: steps = sequence
-		? [
-				{ label: 'Первый визит', count: sequence.mature_visitors, previous: null },
-				{
-					label: 'Регистрация после визита',
-					count: sequence.mature_registered,
-					previous: sequence.mature_visitors
-				},
-				{
-					label: 'Первый ответ после регистрации',
-					count: sequence.mature_responded,
-					previous: sequence.mature_registered
-				},
-				{
-					label: 'Первое пополнение после ответа',
-					count: sequence.mature_paid_after_response,
-					previous: sequence.mature_responded
-				}
-			]
-		: [];
+	$: failedDeliveries =
+		report?.delivery.reduce(
+			(count, item) => count + (item.state === 'failed' ? item.count : 0),
+			0
+		) ?? 0;
+	const funnelLink = (): string =>
+		`/admin/analytics/funnel?${new URLSearchParams({ from: applied.from, to: applied.to, window_days: String(applied.days), breakdown: applied.group })}`;
 	const partialWeek = (cohort: string): boolean => {
 		const week = applied.group === 'week' ? cohortWeekDates(cohort) : null;
 		return week !== null && (applied.from > week.from || applied.to < week.to);
@@ -181,7 +166,6 @@
 				>Первый визит с<input
 					type="date"
 					required
-					max={today}
 					bind:value={draft.from}
 					on:input={() => {
 						preset = 'custom';
@@ -194,7 +178,6 @@
 				>Первый визит по<input
 					type="date"
 					required
-					max={today}
 					bind:value={draft.to}
 					on:input={() => {
 						preset = 'custom';
@@ -342,6 +325,10 @@
 												</p>{/if}
 											<details class="mt-2">
 												<summary class="min-h-11 cursor-pointer py-2">Подробности</summary>
+												<FunnelSequence sequence={row.sequence} />
+												{#if row.mature_visitors > 0 && row.mature_visitors < 20}<p class="text-xs">
+														Мало наблюдений
+													</p>{/if}
 												<div class="space-y-2 py-2 text-xs text-gray-600 dark:text-gray-300">
 													<p>
 														Повторно пополнили: {number(row.repeated)}. В пределах того же срока
@@ -383,41 +370,29 @@
 					<summary class="min-h-11 cursor-pointer font-medium"
 						>Последовательность событий для завершённых наблюдений</summary
 					>
-					<div class="mt-3 space-y-3">
-						<p class="text-gray-600 dark:text-gray-300">
-							Только проверенный порядок визит → регистрация → ответ → пополнение. Другие пути также
-							включены в общий результат.
-						</p>
-						{#each steps as step}<p class="flex justify-between gap-3">
-								<span>{step.label}</span><span class="shrink-0 tabular-nums"
-									>{number(step.count)}{#if step.previous !== null}
-										· {percent(transitionPercent(step.count, step.previous))} от предыдущего шага{/if}</span
-								>
-							</p>{/each}{#if sequence}<p>
-								Пополнили до первого ответа: <strong
-									>{number(sequence.mature_paid_before_response)}</strong
-								>
-							</p>
-							<p>
-								Пополнили, но ответ не наблюдается: <strong
-									>{number(sequence.mature_paid_without_observed_response)}</strong
-								>
-							</p>
-							<p>
-								Пополнили с неполным порядком событий: <strong
-									>{number(sequence.mature_incomplete_paid)}</strong
-								>
-							</p>{/if}
-					</div>
+					<FunnelSequence sequence={report.sequence} />
 				</details>
 			{:else if !overview}<p>
 					За выбранный период подходящих новых наблюдаемых посетителей не найдено.
 				</p>{/if}
-			{#if overview}<a
-					class="secondary inline-flex"
-					href={`/admin/analytics/funnel?${new URLSearchParams({ from: applied.from, to: applied.to, window_days: String(applied.days), breakdown: applied.group })}`}
+			{#if overview}<a class="secondary inline-flex" href={funnelLink()}
 					>Посмотреть группы и воронку</a
 				>{/if}
+			{#if overview && (failedDeliveries > 0 || report.sequence.mature_incomplete_paid > 0)}
+				<section class="space-y-2 rounded-xl border border-amber-300 p-4 dark:border-amber-800">
+					<h2 class="font-medium">Требует внимания</h2>
+					{#if report.sequence.mature_incomplete_paid > 0}<p class="text-sm">
+							У пополнивших баланс неполный порядок наблюдаемых событий: {number(
+								report.sequence.mature_incomplete_paid
+							)}.
+							<a class="underline" href={funnelLink()}>Посмотреть пути к пополнению</a>
+						</p>{/if}
+					{#if failedDeliveries > 0}<p class="text-sm">
+							Не удалось отправить событий во внешнюю аналитику: {number(failedDeliveries)} за всё время.
+							<a class="underline" href={`${funnelLink()}#data-quality`}>Проверить отправку</a>
+						</p>{/if}
+				</section>
+			{/if}
 			<section class="space-y-3 border-t border-gray-200 pt-4 dark:border-gray-800">
 				<h2 class="text-lg font-medium">Платежи всех клиентов</h2>
 				<p class="text-sm text-gray-600 dark:text-gray-300">

@@ -110,6 +110,7 @@ describe('ProductFunnel applied report and truthful states', () => {
 		localStorage.token = 'local-test';
 	});
 	afterEach(async () => {
+		vi.useRealTimers();
 		if (mounted) await unmount(mounted);
 		mounted = null;
 		target.remove();
@@ -228,6 +229,30 @@ describe('ProductFunnel applied report and truthful states', () => {
 		await show();
 		expect(target.textContent).toContain('Нет новых наблюдаемых посетителей');
 		expect(target.querySelector('table')).toBeNull();
+	});
+	it('allows a preset selected after UTC midnight and still rejects future dates', async () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(new Date('2026-10-04T23:59:00Z'));
+		await show();
+		vi.setSystemTime(new Date('2026-10-05T00:01:00Z'));
+		const preset = target.querySelector('select') as HTMLSelectElement;
+		preset.value = '7';
+		preset.dispatchEvent(new Event('change', { bubbles: true }));
+		await tick();
+		expect(target.querySelector('form')?.checkValidity()).toBe(true);
+		await click('Применить');
+		await vi.waitFor(() => expect(state.request).toHaveBeenCalledTimes(2));
+		expect(state.request.mock.lastCall?.[1].end).toBe(Date.parse('2026-10-06T00:00:00Z') / 1000);
+		await vi.waitFor(() =>
+			expect(target.querySelector<HTMLButtonElement>('button.primary')?.disabled).toBe(false)
+		);
+		const end = target.querySelectorAll<HTMLInputElement>('input[type=date]')[1];
+		end.value = '2026-10-06';
+		end.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		await click('Применить');
+		expect(state.request).toHaveBeenCalledTimes(2);
+		expect(target.textContent).toContain('Конечная дата не может быть позже сегодняшней даты UTC');
 	});
 	it('does not invent zero exclusions when coverage information is missing', async () => {
 		const result = fixture();
