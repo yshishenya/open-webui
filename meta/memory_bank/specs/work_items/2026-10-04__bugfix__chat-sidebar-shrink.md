@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/bugfix/chat-sidebar-shrink
-- SDD Spec: meta/sdd/specs/active/airis-chat-sidebar-shrink-2026-10-04-1600.json
+- SDD Spec: meta/sdd/specs/active/airis-chat-sidebar-shrink-2026-10-04-001.json
 - Created: 2026-10-04
 
 ## Problem and measurable goal
