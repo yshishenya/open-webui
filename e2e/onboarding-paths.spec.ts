@@ -197,6 +197,35 @@ test('failed provider response consumes no quota, money or completed success', a
 	expect((await billing(request, account, 'balance')).balance_topup_kopeks).toBe(0);
 });
 
+test('empty chat sidebar and embedded note chat fit their available width without sending', async ({
+	page,
+	request,
+	account
+}) => {
+	const providerBefore = (await state(request)).calls.length;
+	await page.goto('/auth?form=1');
+	await signIn(page, account);
+	await openSidebar(page);
+	await page.getByRole('button', { name: 'Close Sidebar', exact: true }).click();
+	const created = await request.post('/api/v1/notes/create', {
+		headers: { Authorization: `Bearer ${account.token}` },
+		data: { title: 'Local sidebar layout note' }
+	});
+	expect(created.ok()).toBe(true);
+	const note = (await created.json()) as { id: string };
+	await page.goto(`/notes/${note.id}`);
+	await page.getByRole('button', { name: 'Chat', exact: true }).click();
+	const embedded = page.locator('#note-chat-container');
+	await expect(embedded).toBeVisible();
+	const bounds = await embedded.boundingBox();
+	expect(bounds!.width).toBeGreaterThan(0);
+	expect(bounds!.x).toBeGreaterThanOrEqual(0);
+	expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+	await expect(embedded.getByRole('log').getByRole('listitem')).toHaveCount(0);
+	expect((await state(request)).calls.length).toBe(providerBefore);
+	expect(await facts(request, account)).toEqual({ successes: 0, usage: [], ledger: [] });
+});
+
 test('checkout → exact credit → visible history → one service email, replay gives zero duplicates', async ({
 	page,
 	request,

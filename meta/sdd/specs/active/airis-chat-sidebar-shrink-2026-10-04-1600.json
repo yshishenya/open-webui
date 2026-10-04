@@ -1,131 +1,138 @@
 {
-  "spec_id": "airis-chat-sidebar-shrink-2026-10-04-1600",
-  "title": "Airis chat sidebar shrink",
-  "generated": "2026-10-04T13:00:05.888112Z",
-  "last_updated": "2026-10-04T13:03:58.143620Z",
-  "metadata": {
-    "template": "simple",
-    "complexity": "low",
-    "risk_level": "low",
-    "estimated_hours": 8,
-    "security_sensitive": false,
-    "status": "active",
-    "activated_date": "2026-10-04T13:00:31.725873Z",
-    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__chat-sidebar-shrink.md",
-    "progress_percentage": 33
-  },
-  "hierarchy": {
-    "spec-root": {
-      "type": "spec",
-      "title": "Airis chat sidebar shrink",
-      "status": "in_progress",
-      "parent": null,
-      "children": [
-        "phase-1",
-        "phase-2"
-      ],
-      "total_tasks": 3,
-      "completed_tasks": 1,
-      "metadata": {}
-    },
-    "phase-1": {
-      "type": "phase",
-      "title": "Phase 1: [To Be Defined]",
-      "status": "completed",
-      "parent": "spec-root",
-      "children": [
-        "task-1-1"
-      ],
-      "total_tasks": 1,
-      "completed_tasks": 1,
-      "metadata": {
-        "needs_journaling": false,
-        "completed_at": "2026-10-04T13:03:58.141724Z",
-        "journaled_at": "2026-10-04T13:03:58.143564Z"
-      }
-    },
-    "phase-2": {
-      "type": "phase",
-      "title": "Phase 2: [To Be Defined]",
-      "status": "pending",
-      "parent": "spec-root",
-      "children": [
-        "task-2-1",
-        "task-2-2"
-      ],
-      "total_tasks": 2,
-      "completed_tasks": 0,
-      "metadata": {}
-    },
-    "task-1-1": {
-      "type": "task",
-      "title": "Reproduce offscreen rail and verify shared flex root cause",
-      "status": "completed",
-      "parent": "phase-1",
-      "children": [],
-      "dependencies": {
-        "blocks": [],
-        "blocked_by": [],
-        "depends": []
-      },
-      "total_tasks": 1,
-      "completed_tasks": 1,
-      "metadata": {
-        "completed_at": "2026-10-04T13:03:58.141468Z",
-        "needs_journaling": false,
-        "status_note": "Production and prior compiled regression both reproduce Open Sidebar x=-38 at 1280 width; flex Chat root min-width:auto prevents shrinking next to fixed 42px rail. Original user tab/viewport restored, no new production messages.",
-        "journaled_at": "2026-10-04T13:03:58.142459Z"
-      }
-    },
-    "task-2-1": {
-      "type": "task",
-      "title": "Apply minimum flex shrink fix and verify visible button paths",
-      "status": "pending",
-      "parent": "phase-2",
-      "children": [],
-      "dependencies": {
-        "blocks": [],
-        "blocked_by": [],
-        "depends": []
-      },
-      "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
-    },
-    "task-2-2": {
-      "type": "task",
-      "title": "Verify exact source CI and accepted production artifact",
-      "status": "pending",
-      "parent": "phase-2",
-      "children": [],
-      "dependencies": {
-        "blocks": [],
-        "blocked_by": [],
-        "depends": []
-      },
-      "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
-    }
-  },
-  "journal": [
-    {
-      "timestamp": "2026-10-04T13:03:58.142454Z",
-      "entry_type": "status_change",
-      "title": "Task Completed: Reproduce offscreen rail and verify shared flex root cause",
-      "author": "claude-code",
-      "content": "Task task-1-1 marked as completed. \nNote: Production and prior compiled regression both reproduce Open Sidebar x=-38 at 1280 width; flex Chat root min-width:auto prevents shrinking next to fixed 42px rail. Original user tab/viewport restored, no new production messages.",
-      "metadata": {},
-      "task_id": "task-1-1"
-    },
-    {
-      "timestamp": "2026-10-04T13:03:58.143553Z",
-      "entry_type": "status_change",
-      "title": "Phase Completed: Phase 1: [To Be Defined]",
-      "author": "claude-code",
-      "content": "All child tasks in phase phase-1 have been completed.",
-      "metadata": {},
-      "task_id": "phase-1"
-    }
-  ]
+	"spec_id": "airis-chat-sidebar-shrink-2026-10-04-1600",
+	"title": "Airis chat sidebar shrink",
+	"generated": "2026-10-04T13:00:05.888112Z",
+	"last_updated": "2026-10-04T13:14:21.718803Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"status": "active",
+		"activated_date": "2026-10-04T13:00:31.725873Z",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__chat-sidebar-shrink.md",
+		"progress_percentage": 66,
+		"current_phase": "phase-2"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis chat sidebar shrink",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Phase 1: [To Be Defined]",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-04T13:03:58.141724Z",
+				"journaled_at": "2026-10-04T13:03:58.143564Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Phase 2: [To Be Defined]",
+			"status": "in_progress",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 1,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce offscreen rail and verify shared flex root cause",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-04T13:03:58.141468Z",
+				"needs_journaling": false,
+				"status_note": "Production and prior compiled regression both reproduce Open Sidebar x=-38 at 1280 width; flex Chat root min-width:auto prevents shrinking next to fixed 42px rail. Original user tab/viewport restored, no new production messages.",
+				"journaled_at": "2026-10-04T13:03:58.142459Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Apply minimum flex shrink fix and verify visible button paths",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-04T13:14:21.717027Z",
+				"needs_journaling": false,
+				"status_note": "Prior compiled regression fails at x=-38; one min-w-0 class fixes it. Accepted exact-source artifact passes full Chromium/Firefox 10/10 plus empty/embedded 2/2, zero errors/skips; 480 frontend tests and zero type/style delta.",
+				"journaled_at": "2026-10-04T13:14:21.718312Z"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Verify exact source CI and accepted production artifact",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-04T13:03:58.142454Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce offscreen rail and verify shared flex root cause",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Production and prior compiled regression both reproduce Open Sidebar x=-38 at 1280 width; flex Chat root min-width:auto prevents shrinking next to fixed 42px rail. Original user tab/viewport restored, no new production messages.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-04T13:03:58.143553Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Phase 1: [To Be Defined]",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-04T13:14:21.718307Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Apply minimum flex shrink fix and verify visible button paths",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Prior compiled regression fails at x=-38; one min-w-0 class fixes it. Accepted exact-source artifact passes full Chromium/Firefox 10/10 plus empty/embedded 2/2, zero errors/skips; 480 frontend tests and zero type/style delta.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		}
+	]
 }
