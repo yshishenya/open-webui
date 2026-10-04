@@ -1,0 +1,5 @@
+- [ ] **[DOCS][FILES]** Record attachment runtime acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__docs__file-item-acceptance.md`
+  - Owner: Codex
+  - Started: 2026-10-04
+  - Summary: Final source/candidate/production evidence recorded; exact documentation delivery CI and merge pending. No runtime change, full onboarding goal remains active.
