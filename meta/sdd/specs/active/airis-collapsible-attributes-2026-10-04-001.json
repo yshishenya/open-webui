@@ -1,8 +1,8 @@
 {
-  "spec_id": "airis-collapsible-attributes-2026-10-04-2247",
+  "spec_id": "airis-collapsible-attributes-2026-10-04-001",
   "title": "Airis collapsible attributes",
   "generated": "2026-10-04T19:47:58.315916Z",
-  "last_updated": "2026-10-04T19:59:13.180896Z",
+  "last_updated": "2026-10-04T20:01:13.094162Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -76,7 +76,8 @@
         "completed_at": "2026-10-04T19:56:19.954245Z",
         "needs_journaling": false,
         "status_note": "Actual baseline: 3 failed/13 passed, no unhandled errors. Numeric strings accepted; invalid, negative and Infinity labels wrong. All callers inspected including common/Folder.",
-        "journaled_at": "2026-10-04T19:56:19.955101Z"
+        "journaled_at": "2026-10-04T19:56:19.955101Z",
+        "file_path": "tests/collapsible-attributes.test.ts"
       }
     },
     "task-1-2": {
@@ -97,7 +98,8 @@
         "completed_at": "2026-10-04T19:59:13.178785Z",
         "needs_journaling": false,
         "status_note": "Shared duration guard and concrete nullable contracts;547 frontend tests pass.20type and3lint diagnostics removed,0new;4old dir diagnostics only refine signatures.",
-        "journaled_at": "2026-10-04T19:59:13.179662Z"
+        "journaled_at": "2026-10-04T19:59:13.179662Z",
+        "file_path": "src/lib/components/common/Collapsible.svelte"
       }
     },
     "task-2-1": {
@@ -114,7 +116,8 @@
       "total_tasks": 1,
       "completed_tasks": 0,
       "metadata": {
-        "estimated_hours": 2.0
+        "estimated_hours": 2.0,
+        "file_path": "tests/collapsible-attributes.test.ts"
       }
     }
   },

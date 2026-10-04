@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/bugfix/collapsible-attributes
-- SDD Spec: meta/sdd/specs/active/airis-collapsible-attributes-2026-10-04-2247.json
+- SDD Spec: meta/sdd/specs/active/airis-collapsible-attributes-2026-10-04-001.json
 - Created: 2026-10-04
 
 ## Context / root cause
