@@ -226,17 +226,21 @@ class BillingReportingService:
             lambda: {'paid_kopeks': 0, 'usage_kopeks': 0, 'refund_kopeks': 0}
         )
         topups = topup_query(currency=currency).subquery()
+        # Reuse the expressions so PostgreSQL sees identical bind parameters in SELECT/GROUP BY.
+        paid_day = cast(func.floor(topups.c.credited_at / 86400), Integer)
+        refund_day = cast(func.floor(AnalyticsRefund.occurred_at / 86400), Integer)
+        usage_day = cast(func.floor(UsageEvent.created_at / 86400), Integer)
         queries = [
             (
                 'paid_kopeks',
-                select(cast(func.floor(topups.c.credited_at / 86400), Integer), func.sum(topups.c.amount_kopeks))
+                select(paid_day, func.sum(topups.c.amount_kopeks))
                 .where(topups.c.credited_at >= from_ts, topups.c.credited_at < to_ts)
-                .group_by(cast(func.floor(topups.c.credited_at / 86400), Integer)),
+                .group_by(paid_day),
             ),
             (
                 'refund_kopeks',
                 select(
-                    cast(func.floor(AnalyticsRefund.occurred_at / 86400), Integer),
+                    refund_day,
                     func.sum(AnalyticsRefund.amount_kopeks),
                 )
                 .where(
@@ -245,16 +249,14 @@ class BillingReportingService:
                     AnalyticsRefund.occurred_at >= from_ts,
                     AnalyticsRefund.occurred_at < to_ts,
                 )
-                .group_by(cast(func.floor(AnalyticsRefund.occurred_at / 86400), Integer)),
+                .group_by(refund_day),
             ),
             (
                 'usage_kopeks',
-                select(
-                    cast(func.floor(UsageEvent.created_at / 86400), Integer), func.sum(UsageEvent.cost_charged_kopeks)
-                )
+                select(usage_day, func.sum(UsageEvent.cost_charged_kopeks))
                 .join(Wallet, Wallet.id == UsageEvent.wallet_id)
                 .where(Wallet.currency == currency, UsageEvent.created_at >= from_ts, UsageEvent.created_at < to_ts)
-                .group_by(cast(func.floor(UsageEvent.created_at / 86400), Integer)),
+                .group_by(usage_day),
             ),
         ]
         for name, query in queries:
