@@ -2,7 +2,7 @@
 	"spec_id": "airis-input-variable-contracts-2026-10-04-001",
 	"title": "AIRIS input variable contracts",
 	"generated": "2026-10-04T03:20:35.475347Z",
-	"last_updated": "2026-10-04T04:11:32.325810Z",
+	"last_updated": "2026-10-04T04:24:22.049760Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "low",
@@ -10,20 +10,21 @@
 		"estimated_hours": 8,
 		"security_sensitive": false,
 		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__input-variable-contracts.md",
-		"status": "active",
+		"status": "completed",
 		"activated_date": "2026-10-04T03:21:46.283916Z",
-		"progress_percentage": 66,
-		"current_phase": "phase-1"
+		"progress_percentage": 100,
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-04T04:24:22.049466Z"
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
 			"title": "AIRIS input variable contracts",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2"],
 			"total_tasks": 3,
-			"completed_tasks": 2,
+			"completed_tasks": 3,
 			"metadata": {}
 		},
 		"phase-1": {
@@ -43,12 +44,16 @@
 		"phase-2": {
 			"type": "phase",
 			"title": "Validate and integrate exact source",
-			"status": "pending",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-2-1"],
 			"total_tasks": 1,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-04T04:24:21.555870Z",
+				"journaled_at": "2026-10-04T04:24:21.558431Z"
+			}
 		},
 		"task-1-1": {
 			"type": "task",
@@ -93,7 +98,7 @@
 		"task-2-1": {
 			"type": "task",
 			"title": "Review exact-source checks and integrate",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-2",
 			"children": [],
 			"dependencies": {
@@ -102,8 +107,13 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-04T04:24:21.555635Z",
+				"needs_journaling": false,
+				"status_note": "Source5e09103d2:11 CI success/1 dependency skip; PR226 merged.393 tests,79 errors/2 warnings and12 lint removed,0 added; real form and Leaflet tested through700ms after close. Source acceptance only; G14/production/pilot remain open.",
+				"journaled_at": "2026-10-04T04:24:21.557303Z"
+			}
 		}
 	},
 	"journal": [
@@ -141,6 +151,24 @@
 			"author": "claude-code",
 			"content": "CI at 734bdd8 failed on four existing map diagnostics. Final map now skips empty fitBounds, reports bounds errors and has typed callback/paired markup. Delayed browser collection reproduced Leaflet1.9.4 zoom after remove twice; public zoomAnimation:false fixes shared cause.393 tests pass; final type/lint reports are rerunning. Earlier JSDoc-only/runtime-unchanged and immediate browser-zero-error claims are historical and superseded.",
 			"metadata": {}
+		},
+		{
+			"timestamp": "2026-10-04T04:24:21.557297Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Review exact-source checks and integrate",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Source5e09103d2:11 CI success/1 dependency skip; PR226 merged.393 tests,79 errors/2 warnings and12 lint removed,0 added; real form and Leaflet tested through700ms after close. Source acceptance only; G14/production/pilot remain open.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-04T04:24:21.558425Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Validate and integrate exact source",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
 		}
 	]
 }

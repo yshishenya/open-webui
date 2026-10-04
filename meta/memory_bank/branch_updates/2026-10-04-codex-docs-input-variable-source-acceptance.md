@@ -1,0 +1,8 @@
+- [x] **[DOCS][UI]** Close shared input variable source acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__docs__input-variable-source-acceptance.md`
+  - Owner: Codex
+  - Branch: `codex/docs/input-variable-source-acceptance`
+  - Done: 2026-10-04
+  - Summary: Record PR226 exact CI/merge, close SDD3/3 and preserve all6 source hashes; production/G14 stay open.
+  - Tests: Documentation links/SDD/format and provider CI; no runtime changes.
+  - Risks: N/A; do not infer production or independent review from source closure.
