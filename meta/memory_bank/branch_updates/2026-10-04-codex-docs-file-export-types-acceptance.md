@@ -1,0 +1,7 @@
+- [x] **[DOCS]** Record accepted file-export type contract
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__file-saver-types.md`
+  - Owner: Codex
+  - Done: 2026-10-04
+  - Summary: PR234 source e35a66e55073ffd2e894d22c513878ce97ce13c7 merged 2ef78e24ce32d6a880d5c4dbc2c45dcba061686f;10 CI success/1 skip,21 type errors removed and0added. General G14 stays open.
+  - Tests: Documentation-only closure; exact source checks and declaration hash retained.
+  - Risks: No runtime or dependency mutation; no redeployment.
