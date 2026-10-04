@@ -2,7 +2,7 @@
 	"spec_id": "airis-input-variable-cancel-2026-10-04-001",
 	"title": "AIRIS input variable cancellation",
 	"generated": "2026-10-04T04:33:51.251899Z",
-	"last_updated": "2026-10-04T05:04:14.199662Z",
+	"last_updated": "2026-10-04T05:19:47.093095Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "low",
@@ -10,20 +10,21 @@
 		"estimated_hours": 8,
 		"security_sensitive": false,
 		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__input-variable-cancellation.md",
-		"status": "active",
+		"status": "completed",
 		"activated_date": "2026-10-04T04:35:55.082665Z",
-		"progress_percentage": 66,
-		"current_phase": "phase-1"
+		"progress_percentage": 100,
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-04T05:19:47.092711Z"
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
 			"title": "AIRIS input variable cancellation",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2"],
 			"total_tasks": 3,
-			"completed_tasks": 2,
+			"completed_tasks": 3,
 			"metadata": {}
 		},
 		"phase-1": {
@@ -43,12 +44,16 @@
 		"phase-2": {
 			"type": "phase",
 			"title": "Validate and integrate exact source",
-			"status": "pending",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-2-1"],
 			"total_tasks": 1,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-04T05:19:46.602349Z",
+				"journaled_at": "2026-10-04T05:19:46.604720Z"
+			}
 		},
 		"task-1-1": {
 			"type": "task",
@@ -95,7 +100,7 @@
 		"task-2-1": {
 			"type": "task",
 			"title": "Review exact-source checks and integrate",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-2",
 			"children": [],
 			"dependencies": {
@@ -104,9 +109,13 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"metadata": {
-				"file_path": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__input-variable-cancellation.md"
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__input-variable-cancellation.md",
+				"completed_at": "2026-10-04T05:19:46.602190Z",
+				"needs_journaling": false,
+				"status_note": "PR229/source89b869201 merged3d421e035;10 successful CI checks/1dependency skip, CodeRabbit advisory review disabled;6 hashes unchanged. Full437 frontend/900backend plus11PostgreSQL pass; frontend frozen build passes4096MiB. Production separate.",
+				"journaled_at": "2026-10-04T05:19:46.603531Z"
 			}
 		}
 	},
@@ -137,6 +146,24 @@
 			"content": "All child tasks in phase phase-1 have been completed.",
 			"metadata": {},
 			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-04T05:19:46.603526Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Review exact-source checks and integrate",
+			"author": "Codex",
+			"content": "Task task-2-1 marked as completed. \nNote: PR229/source89b869201 merged3d421e035;10 successful CI checks/1dependency skip, CodeRabbit advisory review disabled;6 hashes unchanged. Full437 frontend/900backend plus11PostgreSQL pass; frontend frozen build passes4096MiB. Production separate.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-04T05:19:46.604715Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Validate and integrate exact source",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
 		}
 	]
 }

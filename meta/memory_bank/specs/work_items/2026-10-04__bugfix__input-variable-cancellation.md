@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: `codex/bugfix/input-variable-cancellation`
-- SDD Spec: `meta/sdd/specs/active/airis-input-variable-cancel-2026-10-04-001.json`
+- SDD Spec: `meta/sdd/specs/completed/airis-input-variable-cancel-2026-10-04-001.json`
 - Created: 2026-10-04
 - Updated: 2026-10-04
 
@@ -23,7 +23,7 @@ Cancel закрывает общую форму, но inputVariableHandler в ч
 - [x] Save проходит ровно один раз;0 отмен после Save; черновик остаётся.
 - [x] Новый программный запрос завершает прежний; поздний старый callback не заменяет значения.
 - [x] Полные тесты/типы/ESLint завершены,0 новых диагностик; изменённые файлы проходят строгий ESLint/форматирование.
-- [ ] Настоящий браузер и exact-source CI/merge приняты.
+- [x] Настоящий браузер и exact-source CI/merge приняты.
 
 ## Scope / Upstream impact
 
@@ -46,3 +46,9 @@ Docker Compose-first: mounted regression, полный Vitest1 worker, typecheck
 Дополнительно воспроизведены2 ошибки уничтожения с поздно назначенным callback и3 ошибки отмены после отказа Save. Текущий обработчик отмены сохраняется при открытии; владелец завершает ожидание даже до первого отображения. При отказе замены переменных значения и флаг завершения не публикуются, окно остаётся доступным для отмены; исключение не маскируется успехом.
 
 Полные типы4225/174 и ESLint1503 завершены; сравнение всех4399 сообщений типов и1503 сообщений ESLint с базой:0 добавлено/0 удалено. Все6 изменённых исходников/тестов проходят строгие ESLint/Prettier. Вpackage.json нет preflight; выполнены предусмотренные проектом Docker-команды вместо отсутствующей команды. Общий долг сохраняется, G14 не закрыт. Backend/DB/dependencies не изменялись. SDD2/3; exact-source CI/merge ещё ожидаются.
+
+### 04.10.2026 — исходники приняты
+
+PR229: source89b8692010caa2df934d0dc4ff260e537dd25a3e, merge3d421e035f6ec6a6fe45e4ff717ff760632a171f.10 CI проверок success/1 dependency-review skip; CodeRabbit сообщает review disabled для базы и не является независимым обзором. Все6 исходников/тестов SHA256-identical после объединения. SDD3/3, check-complete/complete-spec пройдены.
+
+Полный backend точного source:900 passed/5 PostgreSQL-only skips; отдельная одноразовая PostgreSQL16 через штатный psycopg3.3.4:11 passed/0 skipped, включены все5 пропущенных сценариев и6 lifecycle cases. Первый проверочный запуск ошибочно использовал отсутствующий asyncpg и исключён; зависимости не добавлялись. Сборка frontend изgit archive source89b869201 успешно проходит со штатной4096MiB; первая1536MiB упала на heap limit и исключена. Это приёмка исходников/сборки, выпуск на рабочий сервер и весь G14 остаются отдельными шагами.
