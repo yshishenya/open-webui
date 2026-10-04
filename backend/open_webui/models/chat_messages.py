@@ -519,15 +519,18 @@ class ChatMessageTable:
                 ChatMessage.model_id.isnot(None),
             )
 
-            if start_date:
+            if start_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at >= start_date)
-            if end_date:
-                stmt = stmt.filter(ChatMessage.created_at <= end_date)
+            if end_date is not None:
+                stmt = stmt.filter(ChatMessage.created_at < end_date)
             if group_id:
                 group_users = select(GroupMember.user_id).filter(GroupMember.group_id == group_id).scalar_subquery()
                 stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
 
             stmt = stmt.group_by(ChatMessage.model_id)
+            from open_webui.utils.airis.analytics_usage_reporting import visible_messages
+
+            stmt = visible_messages(stmt)
             result = await db.execute(stmt)
             return {row.model_id: row.count for row in result.all()}
 
@@ -551,15 +554,18 @@ class ChatMessageTable:
                 ChatMessage.model_id.isnot(None),
             )
 
-            if start_date:
+            if start_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at >= start_date)
-            if end_date:
-                stmt = stmt.filter(ChatMessage.created_at <= end_date)
+            if end_date is not None:
+                stmt = stmt.filter(ChatMessage.created_at < end_date)
             if group_id:
                 group_users = select(GroupMember.user_id).filter(GroupMember.group_id == group_id).scalar_subquery()
                 stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
 
             stmt = stmt.group_by(ChatMessage.model_id)
+            from open_webui.utils.airis.analytics_usage_reporting import visible_messages
+
+            stmt = visible_messages(stmt)
             result = await db.execute(stmt)
             return {
                 row.model_id: {
@@ -598,15 +604,18 @@ class ChatMessageTable:
                 ChatMessage.usage.isnot(None),
             )
 
-            if start_date:
+            if start_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at >= start_date)
-            if end_date:
-                stmt = stmt.filter(ChatMessage.created_at <= end_date)
+            if end_date is not None:
+                stmt = stmt.filter(ChatMessage.created_at < end_date)
             if group_id:
                 group_users = select(GroupMember.user_id).filter(GroupMember.group_id == group_id).scalar_subquery()
                 stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
 
             stmt = stmt.group_by(ChatMessage.model_id)
+            from open_webui.utils.airis.analytics_usage_reporting import visible_messages
+
+            stmt = visible_messages(stmt)
             result = await db.execute(stmt)
 
             return {
@@ -646,15 +655,18 @@ class ChatMessageTable:
                 ChatMessage.usage.isnot(None),
             )
 
-            if start_date:
+            if start_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at >= start_date)
-            if end_date:
-                stmt = stmt.filter(ChatMessage.created_at <= end_date)
+            if end_date is not None:
+                stmt = stmt.filter(ChatMessage.created_at < end_date)
             if group_id:
                 group_users = select(GroupMember.user_id).filter(GroupMember.group_id == group_id).scalar_subquery()
                 stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
 
             stmt = stmt.group_by(ChatMessage.user_id)
+            from open_webui.utils.airis.analytics_usage_reporting import visible_messages
+
+            stmt = visible_messages(stmt)
             result = await db.execute(stmt)
 
             return {
@@ -908,15 +920,18 @@ class ChatMessageTable:
                 ChatMessage.role == 'assistant',
             )
 
-            if start_date:
+            if start_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at >= start_date)
-            if end_date:
-                stmt = stmt.filter(ChatMessage.created_at <= end_date)
+            if end_date is not None:
+                stmt = stmt.filter(ChatMessage.created_at < end_date)
             if group_id:
                 group_users = select(GroupMember.user_id).filter(GroupMember.group_id == group_id).scalar_subquery()
                 stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
 
             stmt = stmt.group_by(ChatMessage.user_id)
+            from open_webui.utils.airis.analytics_usage_reporting import visible_messages
+
+            stmt = visible_messages(stmt)
             result = await db.execute(stmt)
             return {row.user_id: row.count for row in result.all()}
 
@@ -934,15 +949,18 @@ class ChatMessageTable:
                 ChatMessage.role == 'assistant',
             )
 
-            if start_date:
+            if start_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at >= start_date)
-            if end_date:
-                stmt = stmt.filter(ChatMessage.created_at <= end_date)
+            if end_date is not None:
+                stmt = stmt.filter(ChatMessage.created_at < end_date)
             if group_id:
                 group_users = select(GroupMember.user_id).filter(GroupMember.group_id == group_id).scalar_subquery()
                 stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
 
             stmt = stmt.group_by(ChatMessage.chat_id)
+            from open_webui.utils.airis.analytics_usage_reporting import visible_messages
+
+            stmt = visible_messages(stmt)
             result = await db.execute(stmt)
             return {row.chat_id: row.count for row in result.all()}
 
@@ -950,12 +968,12 @@ class ChatMessageTable:
         self,
         start_date: Optional[int] = None,
         end_date: Optional[int] = None,
-        group_id: Optional[str] = None,
+        group_id: str | None = None,
         db: Optional[AsyncSession] = None,
     ) -> dict[str, dict[str, int]]:
         """Get message counts grouped by day and model."""
         async with get_async_db_context(db) as db:
-            from datetime import datetime, timedelta
+            import datetime as dt
 
             from open_webui.models.groups import GroupMember
 
@@ -964,34 +982,37 @@ class ChatMessageTable:
                 ChatMessage.model_id.isnot(None),
             )
 
-            if start_date:
+            if start_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at >= start_date)
-            if end_date:
-                stmt = stmt.filter(ChatMessage.created_at <= end_date)
+            if end_date is not None:
+                stmt = stmt.filter(ChatMessage.created_at < end_date)
             if group_id:
                 group_users = select(GroupMember.user_id).filter(GroupMember.group_id == group_id).scalar_subquery()
                 stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
 
+            from open_webui.utils.airis.analytics_usage_reporting import visible_messages
+
+            stmt = visible_messages(stmt)
             result = await db.execute(stmt)
             results = result.all()
 
             # Group by date -> model -> count
             daily_counts: dict[str, dict[str, int]] = {}
             for timestamp, model_id in results:
-                date_str = datetime.fromtimestamp(_normalize_timestamp(timestamp)).strftime('%Y-%m-%d')
+                date_str = dt.datetime.fromtimestamp(_normalize_timestamp(timestamp), dt.UTC).strftime('%Y-%m-%d')
                 if date_str not in daily_counts:
                     daily_counts[date_str] = {}
                 daily_counts[date_str][model_id] = daily_counts[date_str].get(model_id, 0) + 1
 
             # Fill in missing days
             if start_date and end_date:
-                current = datetime.fromtimestamp(_normalize_timestamp(start_date))
-                end_dt = datetime.fromtimestamp(_normalize_timestamp(end_date))
-                while current <= end_dt:
+                current = dt.datetime.fromtimestamp(_normalize_timestamp(start_date), dt.UTC)
+                end_dt = dt.datetime.fromtimestamp(_normalize_timestamp(end_date), dt.UTC)
+                while current < end_dt:
                     date_str = current.strftime('%Y-%m-%d')
                     if date_str not in daily_counts:
                         daily_counts[date_str] = {}
-                    current += timedelta(days=1)
+                    current += dt.timedelta(days=1)
 
             return daily_counts
 
@@ -1000,43 +1021,54 @@ class ChatMessageTable:
         start_date: Optional[int] = None,
         end_date: Optional[int] = None,
         db: Optional[AsyncSession] = None,
+        group_id: str | None = None,
     ) -> dict[str, dict[str, int]]:
         """Get message counts grouped by hour and model."""
         async with get_async_db_context(db) as db:
-            from datetime import datetime, timedelta
+            import datetime as dt
 
             stmt = select(ChatMessage.created_at, ChatMessage.model_id).filter(
                 ChatMessage.role == 'assistant',
                 ChatMessage.model_id.isnot(None),
             )
 
-            if start_date:
+            if start_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at >= start_date)
-            if end_date:
-                stmt = stmt.filter(ChatMessage.created_at <= end_date)
+            if end_date is not None:
+                stmt = stmt.filter(ChatMessage.created_at < end_date)
 
+            if group_id:
+                from open_webui.models.groups import GroupMember
+
+                stmt = stmt.where(
+                    ChatMessage.user_id.in_(select(GroupMember.user_id).where(GroupMember.group_id == group_id))
+                )
+
+            from open_webui.utils.airis.analytics_usage_reporting import visible_messages
+
+            stmt = visible_messages(stmt)
             result = await db.execute(stmt)
             results = result.all()
 
             # Group by hour -> model -> count
             hourly_counts: dict[str, dict[str, int]] = {}
             for timestamp, model_id in results:
-                hour_str = datetime.fromtimestamp(_normalize_timestamp(timestamp)).strftime('%Y-%m-%d %H:00')
+                hour_str = dt.datetime.fromtimestamp(_normalize_timestamp(timestamp), dt.UTC).strftime('%Y-%m-%d %H:00')
                 if hour_str not in hourly_counts:
                     hourly_counts[hour_str] = {}
                 hourly_counts[hour_str][model_id] = hourly_counts[hour_str].get(model_id, 0) + 1
 
             # Fill in missing hours
             if start_date and end_date:
-                current = datetime.fromtimestamp(_normalize_timestamp(start_date)).replace(
+                current = dt.datetime.fromtimestamp(_normalize_timestamp(start_date), dt.UTC).replace(
                     minute=0, second=0, microsecond=0
                 )
-                end_dt = datetime.fromtimestamp(_normalize_timestamp(end_date))
-                while current <= end_dt:
+                end_dt = dt.datetime.fromtimestamp(_normalize_timestamp(end_date), dt.UTC)
+                while current < end_dt:
                     hour_str = current.strftime('%Y-%m-%d %H:00')
                     if hour_str not in hourly_counts:
                         hourly_counts[hour_str] = {}
-                    current += timedelta(hours=1)
+                    current += dt.timedelta(hours=1)
 
             return hourly_counts
 

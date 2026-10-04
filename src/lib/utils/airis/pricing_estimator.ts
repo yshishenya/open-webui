@@ -28,11 +28,24 @@ export const calculateTextEstimate = (
 	tokensInPerMessage: number,
 	tokensOutPerMessage: number,
 	messagesPerDay: number,
-	uncertainty: { min: number; max: number }
+	uncertainty: { min: number; max: number },
+	scenario: 'continuous' | 'separate' = 'continuous'
 ): EstimateRange | null => {
 	if (!model || !hasTextRates(model)) return null;
+	if (
+		![
+			model.rates.text_in_1000_tokens,
+			model.rates.text_out_1000_tokens,
+			tokensInPerMessage,
+			tokensOutPerMessage
+		].every((value) => typeof value === 'number' && Number.isFinite(value) && value >= 0)
+	)
+		return null;
 
-	const safeMessagesPerDay = Math.max(0, Math.floor(Number(messagesPerDay) || 0));
+	const safeMessagesPerDay = Math.min(
+		1000,
+		Math.max(0, Math.floor(Number.isFinite(messagesPerDay) ? messagesPerDay : 0))
+	);
 	const totalMessages = safeMessagesPerDay * 30;
 	const rateIn = model.rates.text_in_1000_tokens ?? 0;
 	const rateOut = model.rates.text_out_1000_tokens ?? 0;
@@ -41,14 +54,43 @@ export const calculateTextEstimate = (
 	for (let messageIndex = 0; messageIndex < totalMessages; messageIndex += 1) {
 		// Each request sends the previous conversation turns again; billing rounds each request to kopeks.
 		const contextTokens =
-			tokensInPerMessage + messageIndex * (tokensInPerMessage + tokensOutPerMessage);
+			tokensInPerMessage +
+			(scenario === 'continuous' ? messageIndex : 0) * (tokensInPerMessage + tokensOutPerMessage);
 		const costIn = Math.ceil((contextTokens / 1000) * rateIn);
 		const costOut = Math.ceil((tokensOutPerMessage / 1000) * rateOut);
 		total += costIn + costOut;
 	}
 
-	return {
-		min: Math.floor(total * uncertainty.min),
-		max: Math.ceil(total * uncertainty.max)
-	};
+	const min = Math.floor(total * uncertainty.min);
+	const max = Math.ceil(total * uncertainty.max);
+	return Number.isSafeInteger(min) && Number.isSafeInteger(max) && min >= 0 && max >= min
+		? { min, max }
+		: null;
+};
+
+export type EstimateUsageKind = 'image' | 'tts' | 'stt';
+/** Bound examples to realistic quantities and reject invalid money before rendering. */
+export const calculateUsageEstimate = (
+	rate: number | null,
+	quantity: number,
+	kind: EstimateUsageKind,
+	uncertainty: { min: number; max: number }
+): EstimateRange | null => {
+	const maximum = kind === 'image' ? 10000 : kind === 'tts' ? 10000000 : 43200;
+	if (
+		rate === null ||
+		!Number.isFinite(rate) ||
+		rate < 0 ||
+		!Number.isFinite(quantity) ||
+		quantity <= 0 ||
+		quantity > maximum ||
+		(kind !== 'stt' && !Number.isSafeInteger(quantity))
+	)
+		return null;
+	const total = Math.ceil((rate * quantity) / (kind === 'tts' ? 1000 : 1));
+	const min = Math.floor(total * uncertainty.min);
+	const max = Math.ceil(total * uncertainty.max);
+	return Number.isSafeInteger(min) && Number.isSafeInteger(max) && min >= 0 && max >= min
+		? { min, max }
+		: null;
 };

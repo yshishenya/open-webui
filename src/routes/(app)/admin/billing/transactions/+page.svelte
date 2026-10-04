@@ -1,159 +1,298 @@
 <script lang="ts">
-	import { onMount, getContext } from 'svelte';
+	import { onMount, onDestroy, getContext } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import type { i18n as I18nType } from 'i18next';
+	import { page as route } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { page as pageStore } from '$app/stores';
 	import { WEBUI_NAME, user } from '$lib/stores';
-	import Spinner from '$lib/components/common/Spinner.svelte';
+	import ReportingFilters from '$lib/components/admin/billing/ReportingFilters.svelte';
+	import ReportingPagination from '$lib/components/admin/billing/ReportingPagination.svelte';
+	import ReportingRecords from '$lib/components/admin/billing/ReportingRecords.svelte';
+	import ReportingCustomerPicker from '$lib/components/admin/billing/ReportingCustomerPicker.svelte';
 	import {
-		getBillingReportingLedger,
 		getBillingReportingPayments,
+		getBillingReportingRefunds,
+		getBillingReportingLedger,
 		getBillingReportingUsage,
 		getBillingReportingExportUrl,
 		type BillingReportingPayment,
+		type BillingReportingRefund,
 		type BillingReportingRow
 	} from '$lib/apis/admin/billing_reporting';
-
+	import {
+		moneyPage,
+		moneyFilters,
+		moneyRange,
+		moneyQuery,
+		customerHref
+	} from '$lib/utils/airis/billing_reporting_ui';
 	const i18n = getContext<Readable<I18nType>>('i18n');
-	let loaded = false;
-	let loading = true;
-	let errorMessage = '';
-	let activeTab: 'payments' | 'ledger' | 'usage' = 'payments';
+	onDestroy(() => {
+		request++;
+		exportRequest++;
+	});
+	type Tab = 'payments' | 'refunds' | 'usage' | 'ledger';
+	let draft = moneyFilters($route.url);
+	let applied = { ...draft };
+	let tab: Tab = ['payments', 'refunds', 'usage', 'ledger'].includes(
+		$route.url.searchParams.get('tab') || ''
+	)
+		? ($route.url.searchParams.get('tab') as Tab)
+		: 'payments';
+	let page = moneyPage($route.url.searchParams.get('page'));
+	let userId = $route.url.searchParams.get('user_id') || '';
+	let appliedUser = userId;
+	let status = $route.url.searchParams.get('status') || '';
+	let appliedStatus = status;
+	let kind = $route.url.searchParams.get('kind') || '';
+	let appliedKind = kind;
+	let creditStatus = $route.url.searchParams.get('credit_status') || '';
+	let older = $route.url.searchParams.get('older_than_hours') || '';
+	let attention: 'stale_pending' | 'uncredited' | '' = ['stale_pending', 'uncredited'].includes(
+		$route.url.searchParams.get('attention') || ''
+	)
+		? ($route.url.searchParams.get('attention') as 'stale_pending' | 'uncredited')
+		: '';
+	let excludeTests = $route.url.searchParams.get('is_test') === 'false';
+	let loading = false;
+	let exporting = false;
+	let exportRequest = 0;
+	let error = '';
 	let payments: BillingReportingPayment[] = [];
-	let ledger: BillingReportingRow[] = [];
-	let usage: BillingReportingRow[] = [];
-	let page = 1;
-	let totalPages = 1;
+	let refunds: BillingReportingRefund[] = [];
+	let rows: BillingReportingRow[] = [];
 	let total = 0;
-	let status = '';
-	let userId = '';
-	let currency = 'RUB';
-	let fromDate = '';
-	let toDate = '';
-	const supportedCurrencies = new Set(['RUB', 'USD', 'EUR']);
-
-	const money = (kopeks: number, currencyCode = currency): string => new Intl.NumberFormat($i18n.language, { style: 'currency', currency: currencyCode, maximumFractionDigits: 2 }).format(kopeks / 100);
-	const dateTime = (value: number | null): string => (value ? new Date(value * 1000).toLocaleString($i18n.language) : '—');
-	const epoch = (value: string, end = false): number | undefined => {
-		if (!value) return undefined;
-		const date = new Date(`${value}T${end ? '23:59:59' : '00:00:00'}`);
-		return Number.isNaN(date.getTime()) ? undefined : Math.floor(date.getTime() / 1000);
-	};
-
-	const load = async (): Promise<void> => {
-		loading = true;
-		errorMessage = '';
+	let totalPages = 1;
+	let truncated = false;
+	let request = 0;
+	const currentUrl = (): string =>
+		`/admin/billing/transactions?${moneyQuery(applied, { tab, page, user_id: appliedUser, status: appliedStatus, kind: appliedKind, credit_status: creditStatus, older_than_hours: older, attention, is_test: excludeTests ? 'false' : '' })}`;
+	const load = async (apply = false): Promise<void> => {
+		const next = apply ? { ...draft } : { ...applied };
+		let range: ReturnType<typeof moneyRange>;
 		try {
-			const filters = {
-				currency,
-				from: epoch(fromDate),
-				to: epoch(toDate, true),
-				page,
-				page_size: 50,
-				user_id: userId.trim() || undefined
-			};
-			if (activeTab === 'payments') {
-				const result = await getBillingReportingPayments(localStorage.token, { ...filters, status: status || undefined });
-				payments = result.items; total = result.total; totalPages = Math.max(1, result.total_pages);
-			} else if (activeTab === 'ledger') {
-				const result = await getBillingReportingLedger(localStorage.token, filters);
-				ledger = result.items; total = result.total; totalPages = Math.max(1, result.total_pages);
-			} else {
-				const result = await getBillingReportingUsage(localStorage.token, filters);
-				usage = result.items; total = result.total; totalPages = Math.max(1, result.total_pages);
-			}
-		} catch (error) {
-			console.error('Failed to load billing transactions:', error);
-			errorMessage = $i18n.t('Failed to load billing transactions');
-		} finally {
+			range = moneyRange(next);
+		} catch (e) {
+			request++;
 			loading = false;
-		}
-	};
-
-	const selectTab = async (tab: typeof activeTab): Promise<void> => { activeTab = tab; page = 1; await load(); };
-	const exportData = async (): Promise<void> => {
-		if (activeTab !== 'payments' && !userId.trim()) {
-			errorMessage = $i18n.t('Enter a user ID to export this view');
+			error = e instanceof Error ? e.message : 'Choose a valid date range';
 			return;
 		}
+		const id = ++request;
+		const nextPage = apply ? 1 : page;
+		const nextUser = apply ? userId.trim() : appliedUser;
+		const nextStatus = apply ? status : appliedStatus;
+		const nextKind = apply ? kind : appliedKind;
+		const selected = tab;
+		loading = true;
+		error = '';
+		payments = [];
+		refunds = [];
+		rows = [];
 		try {
-			const response = await fetch(getBillingReportingExportUrl({
-				dataset: activeTab,
-				currency,
-				from: epoch(fromDate),
-				to: epoch(toDate, true),
-				user_id: userId.trim() || undefined,
-				status: activeTab === 'payments' ? status || undefined : undefined
-			}), { headers: { Authorization: `Bearer ${localStorage.token}` } });
-			if (!response.ok) throw new Error(`Export failed (${response.status})`);
-			const blob = await response.blob();
-			const url = URL.createObjectURL(blob);
-			const link = document.createElement('a');
-			link.href = url;
-			link.download = `billing-${activeTab}.csv`;
-			link.click();
-			URL.revokeObjectURL(url);
-		} catch (error) {
-			console.error('Failed to export billing transactions:', error);
-			errorMessage = $i18n.t('Failed to export billing transactions');
+			const values = { ...range, page: nextPage, page_size: 50, user_id: nextUser || undefined };
+			const result =
+				selected === 'payments'
+					? await getBillingReportingPayments(localStorage.token, {
+							...values,
+							status: nextStatus || undefined,
+							kind: nextKind || undefined,
+							credit_status: creditStatus || undefined,
+							older_than_hours: older ? Number(older) : undefined,
+							attention: attention || undefined,
+							is_test: excludeTests ? false : undefined
+						})
+					: selected === 'refunds'
+						? await getBillingReportingRefunds(localStorage.token, values)
+						: selected === 'usage'
+							? await getBillingReportingUsage(localStorage.token, values)
+							: await getBillingReportingLedger(localStorage.token, values);
+			if (id !== request) return;
+			if (selected === 'payments') payments = result.items as BillingReportingPayment[];
+			else if (selected === 'refunds') refunds = result.items as BillingReportingRefund[];
+			else rows = result.items as BillingReportingRow[];
+			total = result.total;
+			totalPages = Math.max(1, result.total_pages);
+			truncated = Boolean(result.truncated);
+			applied = next;
+			appliedUser = nextUser;
+			appliedStatus = nextStatus;
+			appliedKind = nextKind;
+			page = nextPage;
+			await goto(currentUrl(), { replaceState: true, noScroll: true, keepFocus: true });
+		} catch {
+			if (id === request) {
+				payments = [];
+				refunds = [];
+				rows = [];
+				total = 0;
+				totalPages = 1;
+				error = 'Failed to load billing transactions';
+			}
+		} finally {
+			if (id === request) loading = false;
 		}
 	};
-
-	onMount(async () => { if ($user?.role !== 'admin') { await goto('/'); return; } const requestedCurrency = $pageStore.url.searchParams.get('currency'); currency = requestedCurrency && supportedCurrencies.has(requestedCurrency) ? requestedCurrency : currency; fromDate = $pageStore.url.searchParams.get('from_date') || ''; toDate = $pageStore.url.searchParams.get('to_date') || ''; await load(); loaded = true; });
+	const select = (next: Tab): void => {
+		tab = next;
+		attention = '';
+		creditStatus = '';
+		older = '';
+		excludeTests = false;
+		page = 1;
+		payments = [];
+		refunds = [];
+		rows = [];
+		void load();
+	};
+	const exportData = async (): Promise<void> => {
+		const id = ++exportRequest;
+		const selected = tab;
+		exporting = true;
+		try {
+			const response = await fetch(
+				getBillingReportingExportUrl({
+					dataset: tab,
+					...moneyRange(applied),
+					user_id: appliedUser || undefined,
+					status: tab === 'payments' ? appliedStatus || undefined : undefined,
+					kind: tab === 'payments' ? appliedKind || undefined : undefined,
+					credit_status: tab === 'payments' ? creditStatus || undefined : undefined,
+					older_than_hours: tab === 'payments' && older ? Number(older) : undefined,
+					attention: tab === 'payments' ? attention || undefined : undefined,
+					is_test: tab === 'payments' && excludeTests ? false : undefined
+				}),
+				{
+					headers: { Authorization: `Bearer ${localStorage.token}` },
+					signal: AbortSignal.timeout(70000),
+					cache: 'no-store'
+				}
+			);
+			if (id !== exportRequest) return;
+			if (!response.ok) throw new Error();
+			const blob = await response.blob();
+			if (id !== exportRequest) return;
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `billing-${selected}.csv`;
+			a.click();
+			URL.revokeObjectURL(url);
+		} catch {
+			if (id === exportRequest) error = 'Failed to export billing transactions';
+		} finally {
+			if (id === exportRequest) exporting = false;
+		}
+	};
+	onMount(async () => {
+		if ($user?.role !== 'admin') {
+			await goto('/');
+			return;
+		}
+		await load();
+	});
 </script>
 
-<svelte:head><title>{$i18n.t('Billing transactions')} • {$WEBUI_NAME}</title></svelte:head>
-
-{#if !loaded || loading}
-	<div class="flex h-64 items-center justify-center"><Spinner className="size-5" /></div>
-{:else}
-	<div class="mx-auto max-w-7xl px-4 py-5">
-		<div class="mb-4 flex flex-wrap items-end justify-between gap-3">
-			<div>
-				<h1 class="text-xl font-semibold text-gray-900 dark:text-white">{$i18n.t('Transactions')}</h1>
-				<p class="mt-1 text-sm text-gray-500">{total} {$i18n.t('events in this view')}</p>
-			</div>
-			<div class="flex flex-wrap items-end gap-2">
-				<label class="text-xs text-gray-500">{$i18n.t('Currency')}
-					<select bind:value={currency} on:change={() => { page = 1; load(); }} class="mt-1 block rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm dark:border-gray-700 dark:bg-gray-900">
-						<option>RUB</option><option>USD</option><option>EUR</option>
-					</select>
-				</label>
-				<label class="text-xs text-gray-500">{$i18n.t('From')}
-					<input bind:value={fromDate} on:change={() => { page = 1; load(); }} type="date" class="mt-1 block rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm dark:border-gray-700 dark:bg-gray-900" />
-				</label>
-				<label class="text-xs text-gray-500">{$i18n.t('To')}
-					<input bind:value={toDate} on:change={() => { page = 1; load(); }} type="date" class="mt-1 block rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm dark:border-gray-700 dark:bg-gray-900" />
-				</label>
-				<label class="sr-only" for="transaction-user">{$i18n.t('User ID')}</label>
-				<input id="transaction-user" bind:value={userId} placeholder={$i18n.t('Filter by user ID')} class="w-48 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900" on:change={() => { page = 1; load(); }} />
-				{#if activeTab === 'payments'}
-					<label class="sr-only" for="transaction-status">{$i18n.t('Payment status')}</label>
-					<select id="transaction-status" bind:value={status} on:change={() => { page = 1; load(); }} class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900">
-						<option value="">{$i18n.t('All statuses')}</option><option value="succeeded">{$i18n.t('succeeded')}</option><option value="pending">{$i18n.t('pending')}</option><option value="failed">{$i18n.t('failed')}</option><option value="canceled">{$i18n.t('canceled')}</option>
-					</select>
-				{/if}
-				<button type="button" disabled={activeTab !== 'payments' && !userId.trim()} title={activeTab !== 'payments' && !userId.trim() ? $i18n.t('Enter a user ID to export this view') : undefined} on:click={exportData} class="rounded-lg border border-gray-200 px-3 py-2 text-sm disabled:opacity-40 dark:border-gray-700">{$i18n.t('Export CSV')}</button>
-			</div>
-		</div>
-		{#if errorMessage}<div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">{errorMessage} <button type="button" class="ml-2 underline" on:click={load}>{$i18n.t('Retry')}</button></div>{/if}
-		<div class="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-			<div class="flex gap-1 border-b border-gray-200 p-2 dark:border-gray-800" role="tablist" aria-label={$i18n.t('Billing transaction views')}>
-				{#each [['payments', 'Payments'], ['ledger', 'Wallet ledger'], ['usage', 'Usage charges']] as tab}
-					<button type="button" role="tab" aria-selected={activeTab === tab[0]} tabindex={activeTab === tab[0] ? 0 : -1} class={`rounded-lg px-3 py-2 text-sm ${activeTab === tab[0] ? 'bg-gray-100 font-medium dark:bg-gray-800' : 'text-gray-500'}`} on:click={() => selectTab(tab[0] as typeof activeTab)}>{$i18n.t(tab[1])}</button>
-				{/each}
-			</div>
-			<div class="overflow-x-auto p-3">
-				{#if activeTab === 'payments'}
-					<table class="min-w-[900px] w-full text-left text-sm"><caption class="sr-only">{$i18n.t('Provider payments')}</caption><thead class="text-xs text-gray-500"><tr><th scope="col" class="px-2 py-2">{$i18n.t('Time')}</th><th scope="col" class="px-2 py-2">{$i18n.t('Customer')}</th><th scope="col" class="px-2 py-2">{$i18n.t('Type')}</th><th scope="col" class="px-2 py-2">{$i18n.t('Status')}</th><th scope="col" class="px-2 py-2 text-right">{$i18n.t('Amount')}</th><th scope="col" class="px-2 py-2">{$i18n.t('Provider')}</th><th scope="col" class="px-2 py-2">ID</th></tr></thead><tbody>{#each payments as row}<tr class="border-t border-gray-100 dark:border-gray-800"><td class="px-2 py-2 text-xs">{dateTime(row.processed_at)}</td><td class="px-2 py-2"><button type="button" class="text-left underline" on:click={() => goto(`/admin/billing/customers/${encodeURIComponent(row.user_id)}`)}>{row.name?.trim() || row.user_id}</button></td><td class="px-2 py-2">{$i18n.t(row.kind)}</td><td class="px-2 py-2">{row.status}</td><td class="px-2 py-2 text-right tabular-nums">{money(row.amount_kopeks, row.currency)}</td><td class="px-2 py-2">{row.provider}</td><td class="px-2 py-2 font-mono text-xs">{row.id}</td></tr>{:else}<tr><td colspan="7" class="px-2 py-8 text-center text-gray-500">{$i18n.t('No transactions')}</td></tr>{/each}</tbody></table>
-				{:else if activeTab === 'ledger'}
-					<table class="min-w-[950px] w-full text-left text-sm"><caption class="sr-only">{$i18n.t('Wallet ledger entries')}</caption><thead class="text-xs text-gray-500"><tr><th scope="col" class="px-2 py-2">{$i18n.t('Time')}</th><th scope="col" class="px-2 py-2">{$i18n.t('Customer')}</th><th scope="col" class="px-2 py-2">{$i18n.t('Type')}</th><th scope="col" class="px-2 py-2 text-right">{$i18n.t('Delta')}</th><th scope="col" class="px-2 py-2 text-right">{$i18n.t('Balance after')}</th><th scope="col" class="px-2 py-2">{$i18n.t('Reference')}</th></tr></thead><tbody>{#each ledger as row}<tr class="border-t border-gray-100 dark:border-gray-800"><td class="px-2 py-2 text-xs">{dateTime(Number(row.created_at))}</td><td class="px-2 py-2">{row.name || row.user_id}</td><td class="px-2 py-2">{row.type}</td><td class="px-2 py-2 text-right tabular-nums">{money(Number(row.amount_kopeks), typeof row.currency === 'string' ? row.currency : currency)}</td><td class="px-2 py-2 text-right tabular-nums">{money(Number(row.balance_topup_after), typeof row.currency === 'string' ? row.currency : currency)}</td><td class="px-2 py-2 font-mono text-xs">{row.reference_id || '—'}</td></tr>{:else}<tr><td colspan="6" class="px-2 py-8 text-center text-gray-500">{$i18n.t('No ledger entries')}</td></tr>{/each}</tbody></table>
-				{:else}
-					<table class="min-w-[1000px] w-full text-left text-sm"><caption class="sr-only">{$i18n.t('Usage charges')}</caption><thead class="text-xs text-gray-500"><tr><th scope="col" class="px-2 py-2">{$i18n.t('Time')}</th><th scope="col" class="px-2 py-2">{$i18n.t('Customer')}</th><th scope="col" class="px-2 py-2">{$i18n.t('Model')}</th><th scope="col" class="px-2 py-2">{$i18n.t('Modality')}</th><th scope="col" class="px-2 py-2 text-right">{$i18n.t('Charged')}</th><th scope="col" class="px-2 py-2">{$i18n.t('Source')}</th><th scope="col" class="px-2 py-2">{$i18n.t('Request')}</th></tr></thead><tbody>{#each usage as row}<tr class="border-t border-gray-100 dark:border-gray-800"><td class="px-2 py-2 text-xs">{dateTime(Number(row.created_at))}</td><td class="px-2 py-2">{row.name || row.user_id}</td><td class="px-2 py-2">{row.model_id}</td><td class="px-2 py-2">{row.modality}</td><td class="px-2 py-2 text-right tabular-nums">{money(Number(row.cost_charged_kopeks), typeof row.currency === 'string' ? row.currency : currency)}</td><td class="px-2 py-2">{row.billing_source}</td><td class="px-2 py-2 font-mono text-xs">{row.request_id}</td></tr>{:else}<tr><td colspan="7" class="px-2 py-8 text-center text-gray-500">{$i18n.t('No usage charges')}</td></tr>{/each}</tbody></table>
-				{/if}
-			</div>
-			<div class="flex items-center justify-between border-t border-gray-100 px-4 py-3 text-sm dark:border-gray-800"><span class="text-gray-500">{$i18n.t('Page')} {page} / {totalPages}</span><div class="flex gap-2"><button type="button" disabled={page <= 1} on:click={() => { page -= 1; load(); }} class="rounded-lg border border-gray-200 px-3 py-1.5 disabled:opacity-40 dark:border-gray-700">{$i18n.t('Previous')}</button><button type="button" disabled={page >= totalPages} on:click={() => { page += 1; load(); }} class="rounded-lg border border-gray-200 px-3 py-1.5 disabled:opacity-40 dark:border-gray-700">{$i18n.t('Next')}</button></div></div>
-		</div>
+<svelte:head><title>{$i18n.t('Money operations')} • {$WEBUI_NAME}</title></svelte:head>
+<div class="mx-auto w-full min-w-0 max-w-7xl px-4 py-5">
+	<h1 class="mb-4 text-xl font-semibold">{$i18n.t('Money operations')}</h1>
+	<div class="mb-4 flex flex-wrap gap-2" aria-label={$i18n.t('Money operation views')}>
+		{#each [['payments', 'Top-ups and payment attempts'], ['refunds', 'Refunds'], ['usage', 'Usage charged'], ['ledger', 'Technical wallet journal']] as item}<button
+				type="button"
+				aria-pressed={tab === item[0]}
+				on:click={() => select(item[0] as Tab)}
+				class={`min-h-11 rounded-lg px-3 py-2 text-sm ${tab === item[0] ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'border border-gray-200 dark:border-gray-700'}`}
+				>{$i18n.t(item[1])}</button
+			>{/each}
 	</div>
-{/if}
+	<ReportingFilters bind:filters={draft} {loading} {error} onApply={() => load(true)}
+		><ReportingCustomerPicker bind:userId currency={draft.currency} />{#if tab === 'payments'}<label
+				class="text-xs text-gray-500"
+				>{$i18n.t('Payment status')}<select
+					bind:value={status}
+					class="min-h-11 mt-1 block rounded-lg border border-gray-200 bg-transparent p-2 text-sm dark:border-gray-700"
+					><option value="">{$i18n.t('All statuses')}</option><option value="succeeded"
+						>{$i18n.t('Payment confirmed')}</option
+					><option value="pending">{$i18n.t('Awaiting payment')}</option><option value="failed"
+						>{$i18n.t('Payment failed')}</option
+					><option value="canceled">{$i18n.t('Payment canceled')}</option></select
+				></label
+			><label class="text-xs text-gray-500"
+				>{$i18n.t('Payment type')}<select
+					bind:value={kind}
+					class="min-h-11 mt-1 block rounded-lg border border-gray-200 bg-transparent p-2 text-sm dark:border-gray-700"
+					><option value="">{$i18n.t('All types')}</option><option value="topup"
+						>{$i18n.t('Wallet top-up')}</option
+					><option value="subscription">{$i18n.t('Subscription payment')}</option></select
+				></label
+			>{/if}</ReportingFilters
+	>
+	{#if creditStatus || older || attention || excludeTests}<div class="mb-4 text-sm text-gray-500">
+			{$i18n.t(
+				attention === 'uncredited' || creditStatus === 'not_credited'
+					? 'Only payments without wallet credit'
+					: attention === 'stale_pending' || older
+						? 'Only payments pending over 24 hours'
+						: 'Only credited non-test wallet top-ups'
+			)}
+			<button
+				type="button"
+				class="min-h-11 ml-2 underline"
+				on:click={() => {
+					creditStatus = '';
+					older = '';
+					attention = '';
+					excludeTests = false;
+					page = 1;
+					void load();
+				}}>{$i18n.t('Clear')}</button
+			>
+		</div>{/if}
+	<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+		<p class="text-sm text-gray-500">
+			{#if attention}{$i18n.t(
+					'All history; current problems, regardless of selected dates'
+				)}{:else}{applied.fromDate} — {applied.toDate}{/if} · {total}
+			{$i18n.t('records')}
+		</p>
+		<button
+			type="button"
+			on:click={exportData}
+			disabled={loading || exporting || ((tab === 'usage' || tab === 'ledger') && !appliedUser)}
+			class="min-h-11 rounded-lg border border-gray-200 px-3 py-2 text-sm disabled:opacity-40 dark:border-gray-700"
+			>{$i18n.t(exporting ? 'Exporting...' : 'Export CSV')}</button
+		>
+	</div>
+	<p class="mb-4 text-xs text-gray-500">
+		{$i18n.t(
+			tab === 'ledger' || tab === 'usage'
+				? 'CSV export: one selected customer, up to 50000 records'
+				: 'CSV export: applied filters, up to 50000 records'
+		)}
+	</p>
+	{#if loading}<p role="status" class="mb-3 text-sm text-gray-500">
+			{$i18n.t('Updating report')}
+		</p>{/if}{#if truncated}<p role="alert" class="mb-3 text-sm text-amber-700">
+			{$i18n.t('This list is limited to 50000 records; narrow the period')}
+		</p>{/if}
+	<ReportingRecords
+		dataset={tab}
+		{payments}
+		{refunds}
+		{rows}
+		currency={applied.currency}
+		{loading}
+		error={Boolean(error)}
+		onCustomer={(id) => goto(customerHref(id, applied, currentUrl()))}
+	/>
+	<ReportingPagination
+		{page}
+		{totalPages}
+		{total}
+		{loading}
+		onPage={(next) => {
+			page = next;
+			void load();
+		}}
+	/>
+</div>

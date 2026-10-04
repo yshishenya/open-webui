@@ -15,6 +15,8 @@ export const getModelAnalytics = async (
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/analytics/models?${searchParams.toString()}`, {
 		method: 'GET',
+		signal: AbortSignal.timeout(25000),
+		cache: 'no-store',
 		headers: {
 			Accept: 'application/json',
 			'Content-Type': 'application/json',
@@ -26,8 +28,7 @@ export const getModelAnalytics = async (
 			return res.json();
 		})
 		.catch((err) => {
-			error = err.detail;
-			console.error(err);
+			error = err?.detail || 'Не удалось загрузить данные. Повторите попытку.';
 			return null;
 		});
 
@@ -55,6 +56,8 @@ export const getUserAnalytics = async (
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/analytics/users?${searchParams.toString()}`, {
 		method: 'GET',
+		signal: AbortSignal.timeout(25000),
+		cache: 'no-store',
 		headers: {
 			Accept: 'application/json',
 			'Content-Type': 'application/json',
@@ -66,8 +69,7 @@ export const getUserAnalytics = async (
 			return res.json();
 		})
 		.catch((err) => {
-			error = err.detail;
-			console.error(err);
+			error = err?.detail || 'Не удалось загрузить данные. Повторите попытку.';
 			return null;
 		});
 
@@ -101,6 +103,8 @@ export const getMessages = async (
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/analytics/messages?${searchParams.toString()}`, {
 		method: 'GET',
+		signal: AbortSignal.timeout(25000),
+		cache: 'no-store',
 		headers: {
 			Accept: 'application/json',
 			'Content-Type': 'application/json',
@@ -112,8 +116,7 @@ export const getMessages = async (
 			return res.json();
 		})
 		.catch((err) => {
-			error = err.detail;
-			console.error(err);
+			error = err?.detail || 'Не удалось загрузить данные. Повторите попытку.';
 			return null;
 		});
 
@@ -139,6 +142,8 @@ export const getSummary = async (
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/analytics/summary?${searchParams.toString()}`, {
 		method: 'GET',
+		signal: AbortSignal.timeout(25000),
+		cache: 'no-store',
 		headers: {
 			Accept: 'application/json',
 			'Content-Type': 'application/json',
@@ -150,8 +155,7 @@ export const getSummary = async (
 			return res.json();
 		})
 		.catch((err) => {
-			error = err.detail;
-			console.error(err);
+			error = err?.detail || 'Не удалось загрузить данные. Повторите попытку.';
 			return null;
 		});
 
@@ -179,6 +183,8 @@ export const getDailyStats = async (
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/analytics/daily?${searchParams.toString()}`, {
 		method: 'GET',
+		signal: AbortSignal.timeout(25000),
+		cache: 'no-store',
 		headers: {
 			Accept: 'application/json',
 			'Content-Type': 'application/json',
@@ -190,8 +196,7 @@ export const getDailyStats = async (
 			return res.json();
 		})
 		.catch((err) => {
-			error = err.detail;
-			console.error(err);
+			error = err?.detail || 'Не удалось загрузить данные. Повторите попытку.';
 			return null;
 		});
 
@@ -217,6 +222,8 @@ export const getTokenUsage = async (
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/analytics/tokens?${searchParams.toString()}`, {
 		method: 'GET',
+		signal: AbortSignal.timeout(25000),
+		cache: 'no-store',
 		headers: {
 			Accept: 'application/json',
 			'Content-Type': 'application/json',
@@ -228,8 +235,7 @@ export const getTokenUsage = async (
 			return res.json();
 		})
 		.catch((err) => {
-			error = err.detail;
-			console.error(err);
+			error = err?.detail || 'Не удалось загрузить данные. Повторите попытку.';
 			return null;
 		});
 
@@ -248,7 +254,8 @@ export const getModelChats = async (
 	skip: number = 0,
 	limit: number = 50,
 	orderBy: string | null = null,
-	direction: string | null = null
+	direction: string | null = null,
+	groupId: string | null = null
 ) => {
 	let error = null;
 
@@ -259,11 +266,14 @@ export const getModelChats = async (
 	if (limit) searchParams.append('limit', limit.toString());
 	if (orderBy) searchParams.append('order_by', orderBy);
 	if (direction) searchParams.append('direction', direction);
+	if (groupId) searchParams.append('group_id', groupId);
 
 	const res = await fetch(
 		`${WEBUI_API_BASE_URL}/analytics/models/${encodeURIComponent(modelId)}/chats?${searchParams.toString()}`,
 		{
 			method: 'GET',
+			signal: AbortSignal.timeout(25000),
+			cache: 'no-store',
 			headers: {
 				Accept: 'application/json',
 				'Content-Type': 'application/json',
@@ -276,8 +286,7 @@ export const getModelChats = async (
 			return res.json();
 		})
 		.catch((err) => {
-			error = err.detail;
-			console.error(err);
+			error = err?.detail || 'Не удалось загрузить данные. Повторите попытку.';
 			return null;
 		});
 
@@ -288,16 +297,28 @@ export const getModelChats = async (
 	return res;
 };
 
-export const getModelOverview = async (token: string = '', modelId: string, days: number = 30) => {
+export const getModelOverview = async (
+	token: string = '',
+	modelId: string,
+	days: number = 30,
+	startDate: number | null = null,
+	endDate: number | null = null,
+	groupId: string | null = null
+) => {
 	let error = null;
 
 	const searchParams = new URLSearchParams();
 	searchParams.append('days', days.toString());
+	if (startDate !== null) searchParams.append('start_date', String(startDate));
+	if (endDate !== null) searchParams.append('end_date', String(endDate));
+	if (groupId) searchParams.append('group_id', groupId);
 
 	const res = await fetch(
 		`${WEBUI_API_BASE_URL}/analytics/models/${encodeURIComponent(modelId)}/overview?${searchParams.toString()}`,
 		{
 			method: 'GET',
+			signal: AbortSignal.timeout(25000),
+			cache: 'no-store',
 			headers: {
 				Accept: 'application/json',
 				'Content-Type': 'application/json',
@@ -310,8 +331,7 @@ export const getModelOverview = async (token: string = '', modelId: string, days
 			return res.json();
 		})
 		.catch((err) => {
-			error = err.detail;
-			console.error(err);
+			error = err?.detail || 'Не удалось загрузить данные. Повторите попытку.';
 			return null;
 		});
 

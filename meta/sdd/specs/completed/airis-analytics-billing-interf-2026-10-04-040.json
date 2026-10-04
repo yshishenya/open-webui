@@ -1,0 +1,209 @@
+{
+  "spec_id": "airis-analytics-billing-interf-2026-10-04-040",
+  "title": "Airis analytics billing interface audit 20261004",
+  "generated": "2026-10-03T21:40:01.035364Z",
+  "last_updated": "2026-10-03T22:10:38.096249Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "investigation",
+    "status": "completed",
+    "activated_date": "2026-10-03T21:41:38.105555Z",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__docs__analytics-billing-interface-audit.md",
+    "progress_percentage": 100,
+    "current_phase": "phase-2",
+    "completed_date": "2026-10-03T22:10:38.093537Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis analytics billing interface audit 20261004",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 4,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "\u0422\u0435\u043a\u0443\u0449\u0438\u0435 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u044b \u0438 \u0441\u043c\u044b\u0441\u043b \u0434\u0430\u043d\u043d\u044b\u0445",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T21:55:42.831346Z",
+        "journaled_at": "2026-10-03T21:55:42.836263Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "\u041f\u0440\u043e\u0435\u043a\u0442 \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0430 \u0438 \u043d\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043c\u0430\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T22:09:52.193470Z",
+        "journaled_at": "2026-10-03T22:09:52.206341Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Inventory live and source pages with evidence",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T21:55:42.025741Z",
+        "needs_journaling": false,
+        "status_note": "Inventory completed: live ordinary pages plus source of all admin surfaces; scope and live limitation documented.",
+        "journaled_at": "2026-10-03T21:55:42.027286Z",
+        "task_category": "investigation"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Reconcile funnel and money semantics",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T21:55:42.831053Z",
+        "needs_journaling": false,
+        "status_note": "Analytics and money reviewed independently; six production backend module hashes match source; public billing configuration verified.",
+        "journaled_at": "2026-10-03T21:55:42.833199Z",
+        "task_category": "investigation"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Design page map copy and acceptance criteria",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T22:09:08.738568Z",
+        "needs_journaling": false,
+        "status_note": "\u041f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u043b\u0435\u043d\u044b \u043f\u043e\u0441\u0442\u0440\u0430\u043d\u0438\u0447\u043d\u044b\u0435 \u0440\u0435\u0448\u0435\u043d\u0438\u044f, \u043d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044f, \u0434\u0435\u043d\u0435\u0436\u043d\u0430\u044f \u043c\u0435\u0442\u043e\u0434\u0438\u043a\u0430, \u043f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442\u044b \u0438 \u043f\u0440\u0438\u0451\u043c\u043a\u0430; \u0441\u043e\u0437\u0434\u0430\u043d \u0438\u043d\u0442\u0435\u0440\u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0439 \u043f\u0440\u0438\u043c\u0435\u0440 \u0432\u043e\u0441\u044c\u043c\u0438 \u043e\u0441\u043d\u043e\u0432\u043d\u044b\u0445 \u044d\u043a\u0440\u0430\u043d\u043e\u0432 \u043d\u0430 \u0432\u044b\u043c\u044b\u0448\u043b\u0435\u043d\u043d\u044b\u0445 \u0434\u0430\u043d\u043d\u044b\u0445.",
+        "journaled_at": "2026-10-03T22:09:08.742301Z",
+        "task_category": "investigation"
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Verify complete audit and interactive proposal",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-03T22:09:52.188485Z",
+        "needs_journaling": false,
+        "status_note": "\u041d\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043c\u0430\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430 \u0438 \u043c\u0430\u0442\u0435\u043c\u0430\u0442\u0438\u043a\u0438 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0430; \u0437\u0430\u043c\u0435\u0447\u0430\u043d\u0438\u044f \u0438\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u044b. \u041c\u0430\u043a\u0435\u0442: 8 \u044d\u043a\u0440\u0430\u043d\u043e\u0432, 40 \u043f\u0440\u043e\u0432\u0435\u0440\u043e\u043a \u0448\u0438\u0440\u0438\u043d\u044b \u0431\u0435\u0437 \u043f\u0435\u0440\u0435\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u044f, \u0444\u0438\u043b\u044c\u0442\u0440\u044b/\u043f\u0435\u0440\u0435\u0445\u043e\u0434\u044b/\u043a\u043b\u0430\u0432\u0438\u0430\u0442\u0443\u0440\u0430/\u0442\u0435\u043c\u044b \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u044b; production admin \u0438 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c\u0441\u043a\u0438\u0435 \u0438\u0441\u043f\u044b\u0442\u0430\u043d\u0438\u044f \u044f\u0432\u043d\u043e \u043e\u0441\u0442\u0430\u044e\u0442\u0441\u044f \u043d\u0435\u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043d\u044b\u043c\u0438.",
+        "journaled_at": "2026-10-03T22:09:52.200550Z",
+        "task_category": "investigation"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-03T21:55:42.027278Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Inventory live and source pages with evidence",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Inventory completed: live ordinary pages plus source of all admin surfaces; scope and live limitation documented.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-03T21:55:42.833185Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reconcile funnel and money semantics",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed. \nNote: Analytics and money reviewed independently; six production backend module hashes match source; public billing configuration verified.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-03T21:55:42.836253Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: \u0422\u0435\u043a\u0443\u0449\u0438\u0435 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u044b \u0438 \u0441\u043c\u044b\u0441\u043b \u0434\u0430\u043d\u043d\u044b\u0445",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-03T22:09:08.742279Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Design page map copy and acceptance criteria",
+      "author": "Codex",
+      "content": "Task task-2-1 marked as completed. \nNote: \u041f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u043b\u0435\u043d\u044b \u043f\u043e\u0441\u0442\u0440\u0430\u043d\u0438\u0447\u043d\u044b\u0435 \u0440\u0435\u0448\u0435\u043d\u0438\u044f, \u043d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044f, \u0434\u0435\u043d\u0435\u0436\u043d\u0430\u044f \u043c\u0435\u0442\u043e\u0434\u0438\u043a\u0430, \u043f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442\u044b \u0438 \u043f\u0440\u0438\u0451\u043c\u043a\u0430; \u0441\u043e\u0437\u0434\u0430\u043d \u0438\u043d\u0442\u0435\u0440\u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0439 \u043f\u0440\u0438\u043c\u0435\u0440 \u0432\u043e\u0441\u044c\u043c\u0438 \u043e\u0441\u043d\u043e\u0432\u043d\u044b\u0445 \u044d\u043a\u0440\u0430\u043d\u043e\u0432 \u043d\u0430 \u0432\u044b\u043c\u044b\u0448\u043b\u0435\u043d\u043d\u044b\u0445 \u0434\u0430\u043d\u043d\u044b\u0445.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-03T22:09:52.200532Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify complete audit and interactive proposal",
+      "author": "Codex",
+      "content": "Task task-2-2 marked as completed. \nNote: \u041d\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043c\u0430\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430 \u0438 \u043c\u0430\u0442\u0435\u043c\u0430\u0442\u0438\u043a\u0438 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0430; \u0437\u0430\u043c\u0435\u0447\u0430\u043d\u0438\u044f \u0438\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u044b. \u041c\u0430\u043a\u0435\u0442: 8 \u044d\u043a\u0440\u0430\u043d\u043e\u0432, 40 \u043f\u0440\u043e\u0432\u0435\u0440\u043e\u043a \u0448\u0438\u0440\u0438\u043d\u044b \u0431\u0435\u0437 \u043f\u0435\u0440\u0435\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u044f, \u0444\u0438\u043b\u044c\u0442\u0440\u044b/\u043f\u0435\u0440\u0435\u0445\u043e\u0434\u044b/\u043a\u043b\u0430\u0432\u0438\u0430\u0442\u0443\u0440\u0430/\u0442\u0435\u043c\u044b \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u044b; production admin \u0438 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c\u0441\u043a\u0438\u0435 \u0438\u0441\u043f\u044b\u0442\u0430\u043d\u0438\u044f \u044f\u0432\u043d\u043e \u043e\u0441\u0442\u0430\u044e\u0442\u0441\u044f \u043d\u0435\u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043d\u044b\u043c\u0438.",
+      "metadata": {},
+      "task_id": "task-2-2"
+    },
+    {
+      "timestamp": "2026-10-03T22:09:52.206330Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: \u041f\u0440\u043e\u0435\u043a\u0442 \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0430 \u0438 \u043d\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043c\u0430\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

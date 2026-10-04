@@ -15,7 +15,11 @@
 	export let detail: BillingBlockedDetail | null = null;
 	export let returnTo: string | null = null;
 
-	const formatMoney = (kopeks: number | null, currency: string | null, locale: string = getI18nLocale($i18n)): string => {
+	const formatMoney = (
+		kopeks: number | null,
+		currency: string | null,
+		locale: string = getI18nLocale($i18n)
+	): string => {
 		if (kopeks === null || currency === null) {
 			return $i18n.t('—');
 		}
@@ -28,7 +32,10 @@
 		}
 	};
 
-	const formatDateTime = (timestamp: number | null, locale: string = getI18nLocale($i18n)): string => {
+	const formatDateTime = (
+		timestamp: number | null,
+		locale: string = getI18nLocale($i18n)
+	): string => {
 		if (!timestamp) return $i18n.t('Never');
 		return new Date(timestamp * 1000).toLocaleString(locale, {
 			year: 'numeric',
@@ -105,7 +112,7 @@
 				<button
 					type="button"
 					aria-label={$i18n.t('Close')}
-					class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition px-2 -my-1"
+					class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition min-h-11 min-w-11 px-2 -my-1"
 					on:click={() => (open = false)}
 				>
 					&times;
@@ -117,13 +124,21 @@
 					<div class="flex items-center justify-between gap-3">
 						<span class="text-gray-500">{$i18n.t('Available now')}</span>
 						<span class="font-medium">
-							{formatMoney(insufficientFundsDetail?.available_kopeks ?? null, currency, getI18nLocale($i18n))}
+							{formatMoney(
+								insufficientFundsDetail?.available_kopeks ?? null,
+								currency,
+								getI18nLocale($i18n)
+							)}
 						</span>
 					</div>
 					<div class="flex items-center justify-between gap-3">
-						<span class="text-gray-500">{$i18n.t('Required for this reply')}</span>
+						<span class="text-gray-500">{$i18n.t('Reserved before starting the reply')}</span>
 						<span class="font-medium">
-							{formatMoney(insufficientFundsDetail?.required_kopeks ?? null, currency, getI18nLocale($i18n))}
+							{formatMoney(
+								insufficientFundsDetail?.required_kopeks ?? null,
+								currency,
+								getI18nLocale($i18n)
+							)}
 						</span>
 					</div>
 					{#if shortfallKopeks !== null && shortfallKopeks > 0}
@@ -138,7 +153,9 @@
 						</div>
 					{/if}
 					<div class="mt-3 text-xs text-gray-500">
-						{$i18n.t('After payment, return to chat and try again')}
+						{$i18n.t(
+							'The final charge may be lower. Unused reserved money returns to your balance.'
+						)}
 					</div>
 
 					{#if insufficientFundsDetail?.auto_topup_status === 'created' || insufficientFundsDetail?.auto_topup_status === 'pending'}
@@ -174,7 +191,9 @@
 					{#if detail.daily_reset_at}
 						<div class="flex items-center justify-between gap-3">
 							<span class="text-gray-500">{$i18n.t('Resets at')}</span>
-							<span class="font-medium">{formatDateTime(detail.daily_reset_at ?? null, getI18nLocale($i18n))}</span>
+							<span class="font-medium"
+								>{formatDateTime(detail.daily_reset_at ?? null, getI18nLocale($i18n))}</span
+							>
 						</div>
 					{/if}
 				{:else}
@@ -185,8 +204,10 @@
 						</span>
 					</div>
 					<div class="flex items-center justify-between gap-3">
-						<span class="text-gray-500">{$i18n.t('Required for this reply')}</span>
-						<span class="font-medium">{formatMoney(detail.required_kopeks ?? null, 'RUB', getI18nLocale($i18n))}</span>
+						<span class="text-gray-500">{$i18n.t('Reserved before starting the reply')}</span>
+						<span class="font-medium"
+							>{formatMoney(detail.required_kopeks ?? null, 'RUB', getI18nLocale($i18n))}</span
+						>
 					</div>
 				{/if}
 			</div>
@@ -195,7 +216,7 @@
 				{#if showAutoTopupCTA}
 					<button
 						type="button"
-						class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
+						class="min-h-11 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
 						on:click={() => handleNavigate(autoTopupHref)}
 					>
 						{$i18n.t('Manage limits & auto-topup')}
@@ -203,7 +224,7 @@
 				{/if}
 				<button
 					type="button"
-					class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
+					class="min-h-11 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
 					on:click={() => handleNavigate(topupHref)}
 				>
 					{#if detail.error === 'insufficient_funds'}

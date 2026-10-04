@@ -1,121 +1,106 @@
 <script lang="ts">
-	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { getContext } from 'svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
-	import Spinner from '$lib/components/common/Spinner.svelte';
-
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
+	import { parseBillingMoney } from '$lib/utils/airis/billing_ui';
 	const i18n = getContext('i18n');
-
 	export let autoTopupEnabled = false;
 	export let autoTopupThreshold = '';
 	export let autoTopupAmount = '';
+	export let packages: number[] = [];
+	export let currency = 'RUB';
 	export let savingAutoTopup = false;
 	export let dirty = false;
 	export let paymentMethodSaved = false;
 	export let autoTopupFailCount: number | null = null;
 	export let autoTopupLastFailedAt: number | null = null;
+	export let errorMessage = '';
+	export let successMessage = '';
 	export let onSave: () => void;
-	const toggleLabelId = 'auto-topup-toggle-label';
-
-	const formatDateTime = (timestamp: number | null | undefined, locale: string = getI18nLocale($i18n)): string => {
-		if (!timestamp) return $i18n.t('Never');
-		return new Date(timestamp * 1000).toLocaleString(locale, {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	};
+	const money = (value: number): string =>
+		new Intl.NumberFormat(getI18nLocale($i18n), { style: 'currency', currency }).format(
+			value / 100
+		);
+	$: threshold = parseBillingMoney(autoTopupThreshold);
+	$: amount = parseBillingMoney(autoTopupAmount);
 </script>
 
-<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4">
-	<div class="flex items-center justify-between mb-3">
-		<div class="text-sm font-medium" id={toggleLabelId}>
-			{$i18n.t('Auto-topup')}
-		</div>
+<section class="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+	<div class="flex flex-wrap items-center justify-between gap-3">
+		<h2 id="auto-topup-label" class="text-base font-semibold">{$i18n.t('Auto-topup')}</h2>
 		<Switch
 			state={autoTopupEnabled}
-			ariaLabelledbyId={toggleLabelId}
+			ariaLabelledbyId="auto-topup-label"
 			on:change={(e) => (autoTopupEnabled = e.detail)}
 		/>
 	</div>
-
-	{#if autoTopupFailCount && autoTopupFailCount >= 3}
-		<div class="mb-3 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
-			{$i18n.t('Auto-topup disabled after failed attempts')}.
-		</div>
-	{/if}
-
-	{#if autoTopupEnabled && !paymentMethodSaved}
-		<div class="mb-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
-			{$i18n.t('Enable auto-topup, then make one top-up to save your payment method')}
-			<span class="mx-1">•</span>
-			{$i18n.t("We don't store card details")}.
-		</div>
-	{:else if autoTopupEnabled && paymentMethodSaved}
-		<div class="mb-3 text-xs text-emerald-700 dark:text-emerald-300">
-			{$i18n.t('Payment method is saved for auto-topup')}
-		</div>
-	{/if}
-
-	<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-		<label class="flex flex-col gap-1 text-sm">
-			<span class="text-gray-500">{$i18n.t('Threshold')}</span>
-			<input
-				type="text"
-				name="auto_topup_threshold"
-				autocomplete="off"
-				inputmode="decimal"
-				placeholder={$i18n.t('0.00…')}
-				bind:value={autoTopupThreshold}
-				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
-				disabled={!autoTopupEnabled}
-			/>
-		</label>
-		<label class="flex flex-col gap-1 text-sm">
-			<span class="text-gray-500">{$i18n.t('Amount')}</span>
-			<input
-				type="text"
-				name="auto_topup_amount"
-				autocomplete="off"
-				inputmode="decimal"
-				placeholder={$i18n.t('0.00…')}
-				bind:value={autoTopupAmount}
-				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
-				disabled={!autoTopupEnabled}
-			/>
-		</label>
-	</div>
-
-	<div class="flex items-center justify-between mt-3">
-		{#if (autoTopupFailCount ?? 0) > 0}
-			<div class="text-xs text-gray-500">
-				{$i18n.t('Failed attempts')}: {autoTopupFailCount ?? 0}
-			</div>
-		{:else}
-			<div></div>
-		{/if}
-		<button
-			type="button"
-			on:click={onSave}
-			disabled={savingAutoTopup || !dirty}
-			class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
+	<p class="mt-2 text-sm text-gray-600 dark:text-gray-300" role="status">
+		{!autoTopupEnabled
+			? $i18n.t('Disabled')
+			: !paymentMethodSaved
+				? $i18n.t('A saved payment method is required')
+				: $i18n.t('Payment method is saved for auto-topup')}{dirty
+			? ` · ${$i18n.t('Changes take effect after saving')}`
+			: ''}
+	</p>
+	{#if (autoTopupFailCount ?? 0) >= 3}<p
+			class="mt-3 text-sm text-red-700 dark:text-red-300"
+			role="alert"
 		>
-			{#if savingAutoTopup}
-				<div class="flex items-center gap-2">
-					<Spinner className="size-4" />
-					<span>{$i18n.t('Saving…')}</span>
-				</div>
-			{:else}
-				{$i18n.t('Save')}
-			{/if}
-		</button>
+			{$i18n.t('Auto-topup disabled after failed attempts')}
+		</p>{/if}
+	<div class="mt-4 grid gap-4 sm:grid-cols-2">
+		<label class="text-sm"
+			><span>{$i18n.t('Balance threshold, ₽')}</span><input
+				name="auto_topup_threshold"
+				inputmode="decimal"
+				autocomplete="off"
+				bind:value={autoTopupThreshold}
+				disabled={!autoTopupEnabled}
+				aria-invalid={Boolean(errorMessage)}
+				class="mt-2 min-h-11 w-full rounded-xl border border-gray-300 bg-transparent px-3 dark:border-gray-700 disabled:opacity-50"
+			/></label
+		>
+		<label class="text-sm"
+			><span>{$i18n.t('Top-up amount')}</span><select
+				name="auto_topup_amount"
+				bind:value={autoTopupAmount}
+				disabled={!autoTopupEnabled}
+				class="mt-2 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 dark:border-gray-700 dark:bg-gray-900 disabled:opacity-50"
+				><option value="">{$i18n.t('Choose an amount')}</option>{#each packages as pack}<option
+						value={(pack / 100).toFixed(2)}>{money(pack)}</option
+					>{/each}</select
+			></label
+		>
 	</div>
-
-	{#if (autoTopupFailCount ?? 0) > 0}
-		<div class="text-xs text-gray-500 mt-2">
-			{$i18n.t('Last failed')}: {formatDateTime(autoTopupLastFailedAt, getI18nLocale($i18n))}
-		</div>
-	{/if}
-</div>
+	{#if autoTopupEnabled && threshold !== null && amount !== null}<p class="mt-3 text-sm">
+			{$i18n.t(
+				'Before a paid request, top up {{amount}} when the available balance is at most {{threshold}} or is insufficient.',
+				{ amount: money(amount), threshold: money(threshold) }
+			)}
+		</p>{/if}
+	{#if autoTopupEnabled && !paymentMethodSaved}<p class="mt-3 text-sm">
+			{$i18n.t('Save these settings, then make a manual top-up to save your payment method.')}
+		</p>{/if}
+	{#if errorMessage}<p class="mt-3 text-sm text-red-700 dark:text-red-300" role="alert">
+			{errorMessage}
+		</p>{/if}
+	{#if autoTopupLastFailedAt}<p class="mt-3 text-sm text-gray-600 dark:text-gray-300">
+			{$i18n.t('Last failed')}: {new Date(autoTopupLastFailedAt * 1000).toLocaleString(
+				getI18nLocale($i18n)
+			)}
+		</p>{/if}
+	{#if successMessage}<p
+			class="mt-3 text-sm text-emerald-700 dark:text-emerald-300"
+			role="status"
+			aria-live="polite"
+		>
+			{successMessage}
+		</p>{/if}
+	<button
+		type="button"
+		class="mt-4 min-h-11 rounded-xl bg-black px-4 text-sm font-medium text-white dark:bg-white dark:text-black disabled:opacity-50"
+		disabled={savingAutoTopup || !dirty}
+		on:click={onSave}>{savingAutoTopup ? $i18n.t('Saving…') : $i18n.t('Save auto-topup')}</button
+	>
+</section>

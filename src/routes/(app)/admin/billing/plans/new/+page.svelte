@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { onMount, getContext } from 'svelte';
+	import { v4 as uuidv4 } from 'uuid';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 
@@ -21,7 +22,7 @@
 
 	// Form data
 	let formData: CreatePlanRequest = {
-		id: '',
+		id: `plan-${uuidv4()}`,
 		name: '',
 		name_ru: '',
 		description: '',
@@ -39,14 +40,6 @@
 		display_order: 0,
 		plan_extra_metadata: {}
 	};
-
-	// Auto-generate ID from name
-	$: if (formData.name) {
-		formData.id = formData.name
-			.replace(/\s+/g, '_')
-			.toLowerCase()
-			.replace(/[^a-z0-9_-]/g, '');
-	}
 
 	// Features management
 	let newFeature = '';
@@ -103,6 +96,7 @@
 	});
 
 	const validateForm = (): boolean => {
+		if (!formData.name?.trim() && formData.name_ru?.trim()) formData.name = formData.name_ru.trim();
 		if (!formData.id.trim()) {
 			toast.error($i18n.t('Plan ID is required'));
 			return false;
@@ -185,6 +179,7 @@
 		<form class="flex flex-col max-h-[100dvh] h-full" on:submit|preventDefault={handleSave}>
 			<div class="flex flex-col flex-1 overflow-auto h-0 rounded-lg">
 				<!-- Header -->
+				<h1 class="px-1 mb-2 text-xl font-medium">{$i18n.t('Create Plan')}</h1>
 				<div class="w-full mb-2 flex flex-col gap-0.5">
 					<div class="flex w-full items-center">
 						<div class="shrink-0 mr-2">
@@ -204,8 +199,8 @@
 								<input
 									class="w-full text-2xl font-medium bg-transparent outline-hidden font-primary"
 									type="text"
-									placeholder={$i18n.t('Plan Name')}
-									bind:value={formData.name}
+									placeholder={$i18n.t('Name (Russian)')}
+									bind:value={formData.name_ru}
 									required
 								/>
 							</Tooltip>
@@ -216,71 +211,82 @@
 						</div>
 					</div>
 
-					<div class="flex gap-2 px-1 items-center">
-						<Tooltip
-							className="w-full"
-							content={$i18n.t('e.g. professional')}
-							placement="top-start"
-						>
-							<input
-								class="w-full text-sm text-gray-500 bg-transparent outline-hidden"
-								type="text"
-								placeholder={$i18n.t('Plan ID')}
-								bind:value={formData.id}
-								required
-							/>
-						</Tooltip>
+					<details class="mt-2 text-sm">
+						<summary class="cursor-pointer text-gray-500">{$i18n.t('Technical details')}</summary>
+						<div class="flex gap-2 px-1 items-center">
+							<Tooltip
+								className="w-full"
+								content={$i18n.t('e.g. professional')}
+								placement="top-start"
+							>
+								<input
+									class="w-full text-sm text-gray-500 bg-transparent outline-hidden"
+									type="text"
+									placeholder={$i18n.t('Plan ID')}
+									bind:value={formData.id}
+									required
+								/>
+							</Tooltip>
 
-						<Tooltip
-							className="w-full self-center items-center flex"
-							content={$i18n.t('e.g. For growing teams')}
-							placement="top-start"
-						>
-							<input
-								class="w-full text-sm bg-transparent outline-hidden"
-								type="text"
-								placeholder={$i18n.t('Description (English)')}
-								bind:value={formData.description}
-							/>
-						</Tooltip>
-					</div>
+							<Tooltip
+								className="w-full self-center items-center flex"
+								content={$i18n.t('e.g. For growing teams')}
+								placement="top-start"
+							>
+								<input
+									class="w-full text-sm bg-transparent outline-hidden"
+									type="text"
+									placeholder={$i18n.t('Description (English)')}
+									bind:value={formData.description}
+								/>
+							</Tooltip>
+						</div>
+					</details>
 				</div>
 
 				<!-- Main Content -->
 				<div class="mb-2 flex-1 overflow-auto h-0 px-1">
 					<div class="space-y-4">
 						<!-- Localization -->
-						<div class="grid grid-cols-2 gap-4">
-							<div>
-								<label for="plan-new-name_ru" class="block text-xs text-gray-500 mb-1">{$i18n.t('Name (Russian)')}</label>
-								<input
-									id="plan-new-name_ru"
-									type="text"
-									bind:value={formData.name_ru}
-									placeholder={$i18n.t('Professional')}
-									class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
-								/>
+						<details class="mb-4 text-sm">
+							<summary class="mb-2 cursor-pointer text-gray-500"
+								>{$i18n.t('Additional language fields')}</summary
+							>
+							<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+								<div>
+									<label for="plan-new-name_ru" class="block text-xs text-gray-500 mb-1"
+										>{$i18n.t('Name (English)')}</label
+									>
+									<input
+										id="plan-new-name_ru"
+										type="text"
+										bind:value={formData.name}
+										placeholder={$i18n.t('Professional')}
+										class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
+									/>
+								</div>
+								<div>
+									<label for="plan-new-description_ru" class="block text-xs text-gray-500 mb-1"
+										>{$i18n.t('Description (Russian)')}</label
+									>
+									<input
+										id="plan-new-description_ru"
+										type="text"
+										bind:value={formData.description_ru}
+										placeholder={$i18n.t('For growing teams')}
+										class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
+									/>
+								</div>
 							</div>
-							<div>
-								<label for="plan-new-description_ru" class="block text-xs text-gray-500 mb-1"
-									>{$i18n.t('Description (Russian)')}</label
-								>
-								<input
-									id="plan-new-description_ru"
-									type="text"
-									bind:value={formData.description_ru}
-									placeholder={$i18n.t('For growing teams')}
-									class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
-								/>
-							</div>
-						</div>
-
+						</details>
 						<!-- Pricing -->
 						<div>
 							<div class="text-xs text-gray-500 mb-2 font-medium">{$i18n.t('Pricing')}</div>
-							<div class="grid grid-cols-3 gap-3">
+							<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
 								<div>
-									<label for="plan-new-price" class="block text-xs text-gray-500 mb-1">{$i18n.t('Price')}</label>
+									<label for="plan-new-price" class="block text-xs text-gray-500 mb-1"
+										>{$i18n.t('Price')}</label
+									>
 									<input
 										id="plan-new-price"
 										type="number"
@@ -291,7 +297,9 @@
 									/>
 								</div>
 								<div>
-									<label for="plan-new-currency" class="block text-xs text-gray-500 mb-1">{$i18n.t('Currency')}</label>
+									<label for="plan-new-currency" class="block text-xs text-gray-500 mb-1"
+										>{$i18n.t('Currency')}</label
+									>
 									<select
 										id="plan-new-currency"
 										bind:value={formData.currency}
@@ -303,7 +311,9 @@
 									</select>
 								</div>
 								<div>
-									<label for="plan-new-interval" class="block text-xs text-gray-500 mb-1">{$i18n.t('Interval')}</label>
+									<label for="plan-new-interval" class="block text-xs text-gray-500 mb-1"
+										>{$i18n.t('Interval')}</label
+									>
 									<select
 										id="plan-new-interval"
 										bind:value={formData.interval}
@@ -321,10 +331,17 @@
 						<!-- Quotas -->
 						<div>
 							<div class="text-xs text-gray-500 mb-2 font-medium">{$i18n.t('Usage Quotas')}</div>
+							<p class="mb-3 text-xs text-gray-500">
+								{$i18n.t(
+									'Subscription quotas must be positive or unlimited. Zero quota is not supported in this form.'
+								)}
+							</p>
 							<div class="space-y-3">
 								<div class="flex items-center gap-3">
 									<div class="flex-1">
-										<label for="plan-new-quotas-tokens_input" class="block text-xs text-gray-500 mb-1">{$i18n.t('Input Tokens')}</label
+										<label
+											for="plan-new-quotas-tokens_input"
+											class="block text-xs text-gray-500 mb-1">{$i18n.t('Input Tokens')}</label
 										>
 										<input
 											id="plan-new-quotas-tokens_input"
@@ -344,8 +361,9 @@
 
 								<div class="flex items-center gap-3">
 									<div class="flex-1">
-										<label for="plan-new-quotas-tokens_output" class="block text-xs text-gray-500 mb-1"
-											>{$i18n.t('Output Tokens')}</label
+										<label
+											for="plan-new-quotas-tokens_output"
+											class="block text-xs text-gray-500 mb-1">{$i18n.t('Output Tokens')}</label
 										>
 										<input
 											id="plan-new-quotas-tokens_output"
@@ -365,7 +383,9 @@
 
 								<div class="flex items-center gap-3">
 									<div class="flex-1">
-										<label for="plan-new-quotas-requests" class="block text-xs text-gray-500 mb-1">{$i18n.t('Requests')}</label>
+										<label for="plan-new-quotas-requests" class="block text-xs text-gray-500 mb-1"
+											>{$i18n.t('Requests')}</label
+										>
 										<input
 											id="plan-new-quotas-requests"
 											type="number"
@@ -429,7 +449,7 @@
 						<!-- Settings -->
 						<div>
 							<div class="text-xs text-gray-500 mb-2 font-medium">{$i18n.t('Settings')}</div>
-							<div class="grid grid-cols-2 gap-4">
+							<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 								<div class="flex items-center gap-3">
 									<label class="flex items-center gap-2 text-sm">
 										<input type="checkbox" bind:checked={formData.is_active} class="rounded" />
@@ -440,7 +460,9 @@
 									>
 								</div>
 								<div>
-									<label for="plan-new-display_order" class="block text-xs text-gray-500 mb-1">{$i18n.t('Display Order')}</label>
+									<label for="plan-new-display_order" class="block text-xs text-gray-500 mb-1"
+										>{$i18n.t('Display Order')}</label
+									>
 									<input
 										id="plan-new-display_order"
 										type="number"
@@ -487,15 +509,21 @@
 								>
 									<div>
 										{$i18n.t('Input')}:
-										<span class="font-medium">{formatNumber(formData.quotas.tokens_input, getI18nLocale($i18n))}</span>
+										<span class="font-medium"
+											>{formatNumber(formData.quotas.tokens_input, getI18nLocale($i18n))}</span
+										>
 									</div>
 									<div>
 										{$i18n.t('Output')}:
-										<span class="font-medium">{formatNumber(formData.quotas.tokens_output, getI18nLocale($i18n))}</span>
+										<span class="font-medium"
+											>{formatNumber(formData.quotas.tokens_output, getI18nLocale($i18n))}</span
+										>
 									</div>
 									<div>
 										{$i18n.t('Requests')}:
-										<span class="font-medium">{formatNumber(formData.quotas.requests, getI18nLocale($i18n))}</span>
+										<span class="font-medium"
+											>{formatNumber(formData.quotas.requests, getI18nLocale($i18n))}</span
+										>
 									</div>
 								</div>
 								{#if formData.features.length > 0}

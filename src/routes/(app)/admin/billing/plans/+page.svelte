@@ -32,7 +32,15 @@
 	let planToDelete: PlanStats | null = null;
 	let actionInProgress = false;
 	let query = '';
-	let shiftKey = false;
+	let loadError = '';
+	$: mrrByCurrency = Array.from(new Set(plansWithStats.map((item) => item.plan.currency))).map(
+		(currency) => ({
+			currency,
+			amount: plansWithStats
+				.filter((item) => item.plan.currency === currency)
+				.reduce((sum, item) => sum + item.mrr, 0)
+		})
+	);
 	let showUnlimitedOnly = false;
 
 	const isUnlimitedPlan = (plan: PlanStats['plan']): boolean => {
@@ -59,30 +67,11 @@
 		}
 		await loadPlans();
 
-		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === 'Shift') shiftKey = true;
-		};
-		const onKeyUp = (event: KeyboardEvent) => {
-			if (event.key === 'Shift') shiftKey = false;
-		};
-		const onBlur = () => {
-			shiftKey = false;
-		};
-
-		window.addEventListener('keydown', onKeyDown);
-		window.addEventListener('keyup', onKeyUp);
-		window.addEventListener('blur', onBlur);
-
 		loaded = true;
-
-		return () => {
-			window.removeEventListener('keydown', onKeyDown);
-			window.removeEventListener('keyup', onKeyUp);
-			window.removeEventListener('blur', onBlur);
-		};
 	});
 
 	const loadPlans = async () => {
+		loadError = '';
 		try {
 			const result = await getPlansWithStats(localStorage.token);
 			if (result) {
@@ -90,7 +79,8 @@
 			}
 		} catch (error) {
 			console.error('Failed to load plans:', error);
-			toast.error($i18n.t('Failed to load plans'));
+			loadError = $i18n.t('Failed to load plans');
+			toast.error(loadError);
 		}
 	};
 
@@ -161,7 +151,11 @@
 		}
 	};
 
-	const formatPrice = (price: number, currency: string, locale: string = getI18nLocale($i18n)): string => {
+	const formatPrice = (
+		price: number,
+		currency: string,
+		locale: string = getI18nLocale($i18n)
+	): string => {
 		return new Intl.NumberFormat(locale, {
 			style: 'currency',
 			currency: currency,
@@ -170,11 +164,14 @@
 		}).format(price);
 	};
 
-	const formatMRR = (mrr: number, locale: string = getI18nLocale($i18n)): string => {
-		if (mrr === 0) return '0₽';
+	const formatMRR = (
+		mrr: number,
+		currency: string,
+		locale: string = getI18nLocale($i18n)
+	): string => {
 		return new Intl.NumberFormat(locale, {
 			style: 'currency',
-			currency: 'RUB',
+			currency,
 			minimumFractionDigits: 0,
 			maximumFractionDigits: 0
 		}).format(mrr);
@@ -193,7 +190,7 @@
 
 <svelte:head>
 	<title>
-		{$i18n.t('Billing Plans')} • {$WEBUI_NAME}
+		{$i18n.t('Subscriptions')} • {$WEBUI_NAME}
 	</title>
 </svelte:head>
 
@@ -203,11 +200,20 @@
 	</div>
 {:else}
 	<div class="px-4.5 w-full">
+		<p class="my-4 text-sm text-gray-500">
+			{$i18n.t(
+				'Subscription settings are separate from wallet top-ups. Calculated monthly income is not received cash.'
+			)}
+		</p>
+		{#if loadError}<p role="alert" class="my-3 text-red-700">
+				{loadError}
+				<button type="button" class="underline" on:click={loadPlans}>{$i18n.t('Retry')}</button>
+			</p>{/if}
 		<div class="flex flex-col gap-1 px-1 mt-2.5 mb-2">
 			<div class="flex justify-between items-center mb-1 w-full">
 				<div class="flex justify-between items-center w-full">
 					<div class="flex items-center md:self-center text-xl font-medium px-0.5 gap-2 shrink-0">
-						<div>{$i18n.t('Billing Plans')}</div>
+						<h1>{$i18n.t('Subscriptions')}</h1>
 						<div class="text-lg font-medium text-gray-500 dark:text-gray-500">
 							{filteredPlans.length}
 						</div>
@@ -292,8 +298,9 @@
 												<div class="text-gray-500 text-xs font-medium shrink-0">
 													{formatPrice(
 														planStat.plan.price,
-														planStat.plan.currency
-													, getI18nLocale($i18n))}/{getIntervalLabel(planStat.plan.interval)}
+														planStat.plan.currency,
+														getI18nLocale($i18n)
+													)}/{getIntervalLabel(planStat.plan.interval)}
 												</div>
 											</div>
 										</Tooltip>
@@ -305,7 +312,11 @@
 											</div>
 											{#if planStat.mrr > 0}
 												<div class="text-xs text-gray-500">
-													• MRR: {formatMRR(planStat.mrr, getI18nLocale($i18n))}
+													• {$i18n.t('Calculated monthly income')}: {formatMRR(
+														planStat.mrr,
+														planStat.plan.currency,
+														getI18nLocale($i18n)
+													)}
 												</div>
 											{/if}
 											{#if planStat.plan.description_ru || planStat.plan.description}
@@ -321,7 +332,6 @@
 							</a>
 
 							<div class="flex flex-row gap-0.5 self-center">
-								{#if shiftKey}
 									<Tooltip content={$i18n.t('Delete')}>
 										<button
 											class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
@@ -332,9 +342,9 @@
 											<GarbageBin />
 										</button>
 									</Tooltip>
-								{:else}
 									<Tooltip content={$i18n.t('Subscribers')}>
-										<button aria-label={$i18n.t('Subscribers')}
+									<button
+										aria-label={$i18n.t('Subscribers')}
 											class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
 											type="button"
 											on:click={() => goto(`/admin/billing/plans/${planStat.plan.id}/subscribers`)}
@@ -367,7 +377,8 @@
 									</Tooltip>
 
 									<Tooltip content={$i18n.t('Duplicate')}>
-										<button aria-label={$i18n.t('Duplicate')}
+									<button
+										aria-label={$i18n.t('Duplicate')}
 											class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
 											type="button"
 											disabled={actionInProgress}
@@ -389,7 +400,6 @@
 											</svg>
 										</button>
 									</Tooltip>
-								{/if}
 
 								<div class="self-center mx-1">
 									<Tooltip
@@ -414,7 +424,7 @@
 							{#if query}
 								{$i18n.t('Try adjusting your search to find what you are looking for.')}
 							{:else}
-								{$i18n.t('Create your first billing plan to get started.')}
+								{$i18n.t('Wallet top-ups work without subscription plans.')}
 							{/if}
 						</div>
 					</div>
@@ -424,7 +434,7 @@
 
 		<!-- Summary Stats -->
 		{#if plansWithStats.length > 0}
-			<div class="mt-4 grid grid-cols-3 gap-2 text-sm">
+			<div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
 				<div
 					class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
 				>
@@ -447,9 +457,11 @@
 				<div
 					class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/30 dark:border-gray-850/30 p-3"
 				>
-					<div class="text-xs text-gray-500">{$i18n.t('Total MRR')}</div>
+					<div class="text-xs text-gray-500">{$i18n.t('Calculated monthly income')}</div>
 					<div class="text-lg font-medium">
-						{formatMRR(plansWithStats.reduce((sum, p) => sum + p.mrr, 0), getI18nLocale($i18n))}
+						{#each mrrByCurrency as row}<div>
+								{formatMRR(row.amount, row.currency, getI18nLocale($i18n))}
+							</div>{/each}
 					</div>
 					<div class="text-xs text-gray-400">{$i18n.t('monthly')}</div>
 				</div>

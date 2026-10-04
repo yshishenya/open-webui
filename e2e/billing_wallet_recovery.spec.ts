@@ -1,6 +1,4 @@
-import { expect, test } from '@playwright/test';
-
-test.use({ storageState: 'e2e/.auth/admin.json' });
+import { expect, test } from './helpers/billing-ui-local-auth';
 
 const lowBalanceResponse = {
 	balance_topup_kopeks: 0,
@@ -11,7 +9,7 @@ const lowBalanceResponse = {
 	daily_spent_kopeks: 0,
 	auto_topup_enabled: false,
 	auto_topup_threshold_kopeks: 5000,
-	auto_topup_amount_kopeks: 19900,
+	auto_topup_amount_kopeks: 50000,
 	auto_topup_fail_count: 0,
 	auto_topup_last_failed_at: null,
 	currency: 'RUB'
@@ -67,6 +65,28 @@ const paidOnlyModelsResponse = {
 
 test.describe('Billing wallet recovery (smoke)', () => {
 	test.beforeEach(async ({ page }) => {
+		await page.addInitScript(() => {
+			localStorage.setItem('locale', 'en-US');
+			localStorage.setItem('settings', JSON.stringify({ version: '0.11.0' }));
+		});
+		await page.route('**/api/v1/users/user/settings', (route) =>
+			route.fulfill({ json: { ui: { version: '0.11.0' } } })
+		);
+		await page.route('**/api/v1/billing/summary?*', (route) =>
+			route.fulfill({
+				json: { currency: 'RUB', topup_kopeks: 19900, spent_kopeks: 500, refund_kopeks: 0 }
+			})
+		);
+		await page.route('**/api/v1/billing/refunds?*', (route) =>
+			route.fulfill({ json: { items: [], total: 0 } })
+		);
+		await page.route('**/api/v1/billing/public/pricing-config', (route) =>
+			route.fulfill({ json: { topup_amounts_rub: [500, 1000, 2000] } })
+		);
+		await page.route('**/api/v1/billing/topup/reconcile', (route) =>
+			route.fulfill({ json: { credited: false, provider_status: 'pending' } })
+		);
+
 		await page.route('**/api/v1/legal/status', async (route) => {
 			await route.fulfill({
 				json: {
@@ -133,9 +153,6 @@ test.describe('Billing wallet recovery (smoke)', () => {
 		});
 
 		await page.goto('/billing/balance');
-		await page.waitForResponse('**/api/models**');
-		await page.waitForResponse('**/api/v1/billing/balance');
-		await page.waitForResponse('**/api/v1/billing/lead-magnet');
 
 		const whatsNewDialog = page.getByRole('dialog').filter({ hasText: "What's New" });
 		const whatsNewCloseButton = whatsNewDialog.getByRole('button', { name: 'Close' });
@@ -143,17 +160,19 @@ test.describe('Billing wallet recovery (smoke)', () => {
 			await whatsNewCloseButton.first().click();
 		}
 
-		await expect(page.getByRole('heading', { name: 'Balance' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Balance and spending' })).toBeVisible();
 		await expect(page.getByText('Low balance')).toHaveCount(0);
 		await expect(page.getByTestId('wallet-low-balance-hint')).toHaveCount(0);
 		await expect(page.getByTestId('topup-proceed')).toBeDisabled();
 		await expect(page.locator('[data-testid="topup-preset"][aria-pressed="true"]')).toHaveCount(0);
-		const heroHeading = page.getByRole('heading', { name: 'Balance' });
+		const heroHeading = page.getByRole('heading', { name: 'Balance and spending' });
 		const heroRow = heroHeading.locator('xpath=../../..');
-		await expect(heroRow.getByRole('button', { name: 'Top up' })).toBeVisible();
+		await expect(
+			heroRow.getByRole('button', { name: 'Top up balance', exact: true })
+		).toBeVisible();
 
 		const leadMagnetSection = page.getByTestId('lead-magnet-section');
-		await expect(leadMagnetSection.getByText('Free limit')).toBeVisible();
+		await expect(leadMagnetSection.getByText('Free usage', { exact: true })).toBeVisible();
 
 		await expect(page.getByTestId('wallet-low-balance-hint-topup')).toHaveCount(0);
 	});
@@ -165,7 +184,6 @@ test.describe('Billing wallet recovery (smoke)', () => {
 		});
 
 		await page.goto('/billing/balance');
-		await page.waitForResponse('**/api/v1/billing/lead-magnet');
 
 		const leadMagnetSection = page.getByTestId('lead-magnet-section');
 		const limitsButton = leadMagnetSection.locator('button[aria-controls="free-limit-details"]');
@@ -192,9 +210,6 @@ test.describe('Billing wallet recovery (smoke)', () => {
 		page
 	}) => {
 		await page.goto('/billing/balance');
-		await page.waitForResponse('**/api/models**');
-		await page.waitForResponse('**/api/v1/billing/balance');
-		await page.waitForResponse('**/api/v1/billing/lead-magnet');
 
 		await expect(page.getByText('Low balance')).toBeVisible();
 		await expect(page.getByTestId('wallet-low-balance-hint-topup')).toBeVisible();

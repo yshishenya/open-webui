@@ -116,6 +116,8 @@ async def test_feedback_changed_during_auth_is_unsent_then_renders_current_facts
     from open_webui.utils import email
 
     now = int(time.time())
+    # Enqueue and claim must share a clock; crossing a second must not hide the job.
+    monkeypatch.setattr(worker.time, 'time', lambda: now)
     async with database() as db:
         await db.execute(
             update(User).where(User.id == '1').values(created_at=now - 14 * scenarios.DAY, name='<script>')

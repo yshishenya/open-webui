@@ -9,19 +9,22 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict
-from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
-from open_webui.models.billing_models import Transaction
+from open_webui.models.analytics_refunds import AnalyticsRefund
 from open_webui.models.billing_wallet import (
     LedgerEntry,
-    Payment,
-    PaymentStatus,
     UsageEvent,
     Wallet,
 )
 from open_webui.models.users import User
-from sqlalchemy import and_, case, func, or_, select
+from open_webui.utils.airis.billing_reporting_facts import (
+    PaymentFact,
+    live_refund_condition,
+    payment_query,
+    topup_query,
+)
+from sqlalchemy import Integer, and_, case, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 REPORTING_PAGE_MAX = 100
@@ -30,37 +33,20 @@ REPORTING_DEFAULT_DAYS = 30
 REPORTING_MAX_DAYS = 366
 
 
-@dataclass(frozen=True)
-class PaymentFact:
-    id: str
-    user_id: str
-    kind: str
-    status: str
-    amount_kopeks: int
-    currency: str
-    provider: str
-    provider_payment_id: str | None
-    processed_at: int
-    source: str
-    wallet_id: str | None
-    subscription_id: str | None
-    name: str | None = None
-
-
 def amount_to_kopeks(value: object) -> int:
     """Convert a legacy decimal amount to integer kopeks without float math."""
 
     try:
-        return int((Decimal(str(value)) * Decimal('100')).quantize(Decimal('1')))
+        return int((Decimal(str(value)) * Decimal('100')).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
     except (InvalidOperation, ValueError, TypeError):
         return 0
 
 
 def normalize_range(from_ts: int | None, to_ts: int | None) -> tuple[int, int]:
     now = int(time.time())
-    end = min(int(to_ts or now), now)
-    start = int(from_ts or (end - REPORTING_DEFAULT_DAYS * 86400))
-    if start > end:
+    end = min(int(to_ts if to_ts is not None else now), now)
+    start = int(from_ts if from_ts is not None else end - REPORTING_DEFAULT_DAYS * 86400)
+    if start >= end:
         raise ValueError('from must be before to')
     if end - start > REPORTING_MAX_DAYS * 86400:
         raise ValueError('date range cannot exceed 366 days')
@@ -73,7 +59,7 @@ class BillingReportingService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def payment_facts(  # noqa: C901 - normalization spans two legacy payment stores
+    async def payment_facts(
         self,
         *,
         from_ts: int,
@@ -83,206 +69,270 @@ class BillingReportingService:
         status: str | None = None,
         kind: str | None = None,
         limit: int = REPORTING_EXPORT_MAX,
+        credit_status: str | None = None,
+        older_than: int | None = None,
+        is_test: bool | None = None,
     ) -> list[PaymentFact]:
-        payment_stmt = (
-            select(Payment, User.name)
-            .outerjoin(User, User.id == Payment.user_id)
-            .where(
-                func.coalesce(Payment.updated_at, Payment.created_at) >= from_ts,
-                func.coalesce(Payment.updated_at, Payment.created_at) <= to_ts,
-                Payment.currency == currency,
-            )
-        )
-        if user_id:
-            payment_stmt = payment_stmt.where(Payment.user_id == user_id)
-        if status:
-            payment_stmt = payment_stmt.where(Payment.status == status)
-        if kind:
-            payment_stmt = payment_stmt.where(Payment.kind == kind)
-        # Fetch a bounded window from each legacy store, merge deterministically,
-        # then apply the global cap below.  Callers must surface truncation when
-        # the cap is reached; this keeps reporting requests memory-bounded.
-        payment_stmt = payment_stmt.order_by(Payment.created_at.desc()).limit(limit)
-        payment_rows = (await self.session.execute(payment_stmt)).all()
-
-        transaction_stmt = (
-            select(Transaction, User.name)
-            .outerjoin(User, User.id == Transaction.user_id)
-            .where(
-                func.coalesce(Transaction.updated_at, Transaction.created_at) >= from_ts,
-                func.coalesce(Transaction.updated_at, Transaction.created_at) <= to_ts,
-                Transaction.currency == currency,
-            )
-        )
-        if user_id:
-            transaction_stmt = transaction_stmt.where(Transaction.user_id == user_id)
-        if status:
-            transaction_stmt = transaction_stmt.where(Transaction.status == status)
-        if kind and kind != 'subscription':
-            transaction_stmt = transaction_stmt.where(False)
-        transaction_stmt = transaction_stmt.order_by(Transaction.created_at.desc()).limit(limit)
-        transaction_rows = (await self.session.execute(transaction_stmt)).all()
-
-        facts: list[PaymentFact] = []
-        provider_ids: set[str] = set()
-        for row, name in payment_rows:
-            provider_id = row.provider_payment_id
-            if provider_id:
-                provider_ids.add(provider_id)
-            facts.append(
-                PaymentFact(
-                    id=row.id,
-                    user_id=row.user_id,
-                    kind=row.kind,
-                    status=row.status,
-                    amount_kopeks=int(row.amount_kopeks or 0),
-                    currency=row.currency,
-                    provider=row.provider,
-                    provider_payment_id=provider_id,
-                    processed_at=int(row.updated_at or row.created_at),
-                    source='billing_payment',
-                    wallet_id=row.wallet_id,
-                    subscription_id=row.subscription_id,
-                    name=name,
-                )
-            )
-
-        for row, name in transaction_rows:
-            # A subscription can exist in both stores during migration. Do not
-            # double-count it when the provider id is already canonicalized.
-            if row.yookassa_payment_id and row.yookassa_payment_id in provider_ids:
-                continue
-            facts.append(
-                PaymentFact(
-                    id=row.id,
-                    user_id=row.user_id,
-                    kind='subscription',
-                    status=row.status,
-                    amount_kopeks=amount_to_kopeks(row.amount),
-                    currency=row.currency,
-                    provider='yookassa',
-                    provider_payment_id=row.yookassa_payment_id,
-                    processed_at=int(row.updated_at or row.created_at),
-                    source='billing_transaction',
-                    wallet_id=None,
-                    subscription_id=row.subscription_id,
-                    name=name,
-                )
-            )
-
-        facts.sort(key=lambda item: (item.processed_at, item.id), reverse=True)
-        return facts[:limit]
-
-    async def overview(self, *, from_ts: int, to_ts: int, currency: str) -> dict[str, object]:
-        facts = await self.payment_facts(
+        query = payment_query(
             from_ts=from_ts,
             to_ts=to_ts,
             currency=currency,
-            limit=REPORTING_EXPORT_MAX,
+            user_id=user_id,
+            status=status,
+            kind=kind,
+            credit_status=credit_status,
+            older_than=older_than,
+            is_test=is_test,
         )
-        successful = [fact for fact in facts if fact.status == PaymentStatus.SUCCEEDED.value]
+        rows = (
+            (
+                await self.session.execute(
+                    query.order_by(query.selected_columns.processed_at.desc(), query.selected_columns.id.desc()).limit(
+                        limit
+                    )
+                )
+            )
+            .mappings()
+            .all()
+        )
+        return [PaymentFact(**dict(row)) for row in rows]
+
+    async def payment_page(
+        self,
+        *,
+        from_ts: int,
+        to_ts: int,
+        currency: str,
+        user_id: str | None,
+        status: str | None,
+        kind: str | None,
+        page: int,
+        page_size: int,
+        credit_status: str | None = None,
+        older_than: int | None = None,
+        is_test: bool | None = None,
+    ) -> tuple[list[dict[str, object]], int]:
+        query = payment_query(
+            from_ts=from_ts,
+            to_ts=to_ts,
+            currency=currency,
+            user_id=user_id,
+            status=status,
+            kind=kind,
+            credit_status=credit_status,
+            older_than=older_than,
+            is_test=is_test,
+        )
+        total = int((await self.session.execute(select(func.count()).select_from(query.subquery()))).scalar_one())
+        rows = (
+            (
+                await self.session.execute(
+                    query.order_by(query.selected_columns.processed_at.desc(), query.selected_columns.id.desc())
+                    .offset((page - 1) * page_size)
+                    .limit(page_size)
+                )
+            )
+            .mappings()
+            .all()
+        )
+        return [self._payment_payload(PaymentFact(**dict(row))) for row in rows], total
+
+    async def financial_totals(
+        self, *, from_ts: int, to_ts: int, currency: str, user_id: str | None = None
+    ) -> dict[str, int]:
+        topups = topup_query(currency=currency, user_id=user_id).subquery()
+        payment_stmt = select(
+            func.coalesce(func.sum(topups.c.amount_kopeks), 0),
+            func.count(),
+            func.count(func.distinct(topups.c.user_id)),
+        ).where(topups.c.credited_at >= from_ts, topups.c.credited_at < to_ts)
+        paid, count, payers = (await self.session.execute(payment_stmt)).one()
+        refund_stmt = select(func.coalesce(func.sum(AnalyticsRefund.amount_kopeks), 0), func.count()).where(
+            AnalyticsRefund.currency == currency,
+            live_refund_condition(),
+            AnalyticsRefund.occurred_at >= from_ts,
+            AnalyticsRefund.occurred_at < to_ts,
+        )
         usage_stmt = (
-            select(
-                func.coalesce(func.sum(UsageEvent.cost_charged_kopeks), 0),
-                func.count(UsageEvent.id),
-            )
+            select(func.coalesce(func.sum(UsageEvent.cost_charged_kopeks), 0), func.count())
             .join(Wallet, Wallet.id == UsageEvent.wallet_id)
-            .where(
-                UsageEvent.created_at >= from_ts,
-                UsageEvent.created_at <= to_ts,
-                Wallet.currency == currency,
+            .where(Wallet.currency == currency, UsageEvent.created_at >= from_ts, UsageEvent.created_at < to_ts)
+        )
+        if user_id:
+            refund_stmt = refund_stmt.where(AnalyticsRefund.user_id == user_id)
+            usage_stmt = usage_stmt.where(UsageEvent.user_id == user_id)
+        refunded, refunds = (await self.session.execute(refund_stmt)).one()
+        spent, usages = (await self.session.execute(usage_stmt)).one()
+        other = payment_query(
+            from_ts=from_ts, to_ts=to_ts, currency=currency, user_id=user_id, status='succeeded'
+        ).subquery()
+        other_sum = (
+            await self.session.execute(
+                select(func.coalesce(func.sum(other.c.amount_kopeks), 0)).where(
+                    other.c.kind != 'topup', or_(other.c.is_test.is_(None), other.c.is_test.is_(False))
+                )
             )
-        )
-        usage_total, usage_count = (await self.session.execute(usage_stmt)).one()
+        ).scalar_one()
+        return {
+            'successful_payments_kopeks': int(paid),
+            'successful_payment_count': int(count),
+            'payer_count': int(payers),
+            'refund_kopeks': int(refunded),
+            'refund_count': int(refunds),
+            'net_kopeks': int(paid) - int(refunded),
+            'usage_spend_kopeks': int(spent),
+            'usage_event_count': int(usages),
+            'other_payments_kopeks': int(other_sum),
+        }
 
-        wallet_stmt = select(
-            func.coalesce(func.sum(Wallet.balance_topup_kopeks), 0),
-            func.coalesce(func.sum(Wallet.balance_included_kopeks), 0),
-            func.count(Wallet.id),
-        ).where(Wallet.currency == currency)
-        paid_balance, included_balance, wallet_count = (await self.session.execute(wallet_stmt)).one()
-
-        negative_stmt = select(func.count(Wallet.id)).where(
-            Wallet.currency == currency,
-            or_(Wallet.balance_topup_kopeks < 0, Wallet.balance_included_kopeks < 0),
-        )
-        negative_balances = int((await self.session.execute(negative_stmt)).scalar_one() or 0)
-
-        stale_pending_stmt = select(func.count(Payment.id)).where(
-            Payment.currency == currency,
-            Payment.status == PaymentStatus.PENDING.value,
-            Payment.created_at < int(time.time()) - 86400,
-        )
-        stale_pending = int((await self.session.execute(stale_pending_stmt)).scalar_one() or 0)
-
-        unlinked_stmt = (
-            select(func.count(Payment.id))
-            .outerjoin(
-                LedgerEntry,
-                and_(
-                    LedgerEntry.reference_type == 'payment',
-                    LedgerEntry.reference_id == Payment.provider_payment_id,
-                    LedgerEntry.type == 'topup',
-                ),
+    async def overview(self, *, from_ts: int, to_ts: int, currency: str) -> dict[str, object]:
+        metrics = await self.financial_totals(from_ts=from_ts, to_ts=to_ts, currency=currency)
+        now = int(time.time())
+        paid, included, wallets, reserved = (
+            await self.session.execute(
+                select(
+                    func.coalesce(func.sum(Wallet.balance_topup_kopeks), 0),
+                    func.coalesce(func.sum(Wallet.balance_included_kopeks), 0),
+                    func.count(),
+                    func.coalesce(func.sum(Wallet.daily_reserved_kopeks), 0),
+                ).where(Wallet.currency == currency)
             )
-            .where(
-                Payment.currency == currency,
-                Payment.kind == 'topup',
-                Payment.status == PaymentStatus.SUCCEEDED.value,
-                LedgerEntry.id.is_(None),
-            )
+        ).one()
+        metrics.update(
+            paid_balance_kopeks=int(paid),
+            included_balance_kopeks=int(included),
+            wallet_count=int(wallets),
+            daily_reserved_kopeks=int(reserved),
         )
-        unlinked_topups = int((await self.session.execute(unlinked_stmt)).scalar_one() or 0)
-
-        series: dict[str, dict[str, int]] = defaultdict(lambda: {'paid_kopeks': 0, 'usage_kopeks': 0})
-        for fact in successful:
-            day = time.strftime('%Y-%m-%d', time.gmtime(fact.processed_at))
-            series[day]['paid_kopeks'] += fact.amount_kopeks
-        usage_rows_stmt = (
-            select(UsageEvent.created_at, UsageEvent.cost_charged_kopeks)
-            .join(Wallet, Wallet.id == UsageEvent.wallet_id)
-            .where(
-                UsageEvent.created_at >= from_ts,
-                UsageEvent.created_at <= to_ts,
-                Wallet.currency == currency,
+        negative = (
+            await self.session.execute(
+                select(func.count())
+                .select_from(Wallet)
+                .where(
+                    Wallet.currency == currency,
+                    or_(Wallet.balance_topup_kopeks < 0, Wallet.balance_included_kopeks < 0),
+                )
             )
+        ).scalar_one()
+        pending = payment_query(
+            from_ts=0, to_ts=now + 1, currency=currency, status='pending', older_than=now - 86400
+        ).subquery()
+        missing = payment_query(
+            from_ts=0, to_ts=now + 1, currency=currency, status='succeeded', kind='topup', credit_status='not_credited'
+        ).subquery()
+        stale = (await self.session.execute(select(func.count()).select_from(pending))).scalar_one()
+        unlinked = (await self.session.execute(select(func.count()).select_from(missing))).scalar_one()
+        series: dict[int, dict[str, int]] = defaultdict(
+            lambda: {'paid_kopeks': 0, 'usage_kopeks': 0, 'refund_kopeks': 0}
         )
-        for created_at, cost in (await self.session.execute(usage_rows_stmt)).all():
-            day = time.strftime('%Y-%m-%d', time.gmtime(int(created_at)))
-            series[day]['usage_kopeks'] += int(cost or 0)
-
-        payer_count = len({fact.user_id for fact in successful})
+        topups = topup_query(currency=currency).subquery()
+        queries = [
+            (
+                'paid_kopeks',
+                select(cast(func.floor(topups.c.credited_at / 86400), Integer), func.sum(topups.c.amount_kopeks))
+                .where(topups.c.credited_at >= from_ts, topups.c.credited_at < to_ts)
+                .group_by(cast(func.floor(topups.c.credited_at / 86400), Integer)),
+            ),
+            (
+                'refund_kopeks',
+                select(
+                    cast(func.floor(AnalyticsRefund.occurred_at / 86400), Integer),
+                    func.sum(AnalyticsRefund.amount_kopeks),
+                )
+                .where(
+                    AnalyticsRefund.currency == currency,
+                    live_refund_condition(),
+                    AnalyticsRefund.occurred_at >= from_ts,
+                    AnalyticsRefund.occurred_at < to_ts,
+                )
+                .group_by(cast(func.floor(AnalyticsRefund.occurred_at / 86400), Integer)),
+            ),
+            (
+                'usage_kopeks',
+                select(
+                    cast(func.floor(UsageEvent.created_at / 86400), Integer), func.sum(UsageEvent.cost_charged_kopeks)
+                )
+                .join(Wallet, Wallet.id == UsageEvent.wallet_id)
+                .where(Wallet.currency == currency, UsageEvent.created_at >= from_ts, UsageEvent.created_at < to_ts)
+                .group_by(cast(func.floor(UsageEvent.created_at / 86400), Integer)),
+            ),
+        ]
+        for name, query in queries:
+            for day, total in (await self.session.execute(query)).all():
+                series[int(day)][name] = int(total)
         return {
             'currency': currency,
             'from': from_ts,
             'to': to_ts,
-            'as_of': int(time.time()),
-            'time_semantics': 'processed_at_fallback',
-            'metrics': {
-                'successful_payments_kopeks': sum(fact.amount_kopeks for fact in successful),
-                'successful_payment_count': len(successful),
-                'payer_count': payer_count,
-                'usage_spend_kopeks': int(usage_total or 0),
-                'usage_event_count': int(usage_count or 0),
-                'paid_balance_kopeks': int(paid_balance or 0),
-                'included_balance_kopeks': int(included_balance or 0),
-                'wallet_count': int(wallet_count or 0),
-            },
+            'as_of': now,
+            'timezone': 'UTC',
+            'time_semantics': 'topup_ledger_refund_provider_created_at',
+            'metrics': metrics,
             'warnings': {
-                'negative_balances': negative_balances,
-                'stale_pending_payments': stale_pending,
-                'successful_topups_without_ledger': unlinked_topups,
-                'payment_fact_limit_reached': int(len(facts) >= REPORTING_EXPORT_MAX),
+                'negative_balances': int(negative),
+                'stale_pending_payments': int(stale),
+                'successful_topups_without_ledger': int(unlinked),
+                'payment_fact_limit_reached': 0,
             },
-            'series': [{'date': day, **values} for day, values in sorted(series.items())],
+            'series': [
+                {'date': time.strftime('%Y-%m-%d', time.gmtime(day * 86400)), **values}
+                for day, values in sorted(series.items())
+            ],
             'definitions': {
-                'successful_payments': 'Successful top-ups and subscription payments; refunds are not included.',
-                'paid_balance': 'Current balance_topup_kopeks liability, not revenue.',
-                'included_balance': 'Current bonus/included balance; never counted as cash paid.',
-                'usage_spend': 'Sum of billing_usage_event.cost_charged_kopeks.',
-                'time': 'processed_at is local processing time until provider paid_at is persisted.',
+                'successful_payments': (
+                    'Provider-confirmed TOPUP matched to its applied ledger; ' 'legacy subscriptions are separate.'
+                ),
+                'refund': (
+                    'Verified succeeded provider refund, dated by provider created_at. '
+                    'Wallet reflection requires separate verification.'
+                ),
+                'paid_balance': 'Current available paid funds, not historical balance or profit.',
+                'included_balance': 'Current included/bonus funds, not cash paid.',
+                'daily_reserved': 'Current daily limit reservation, not all active monetary holds.',
+                'usage_spend': 'Final UsageEvent cost, including paid/included sources; not provider cost.',
+                'time': 'All period totals use [from,to), UTC; balances are current.',
             },
         }
+
+    async def refund_rows(
+        self, *, from_ts: int, to_ts: int, currency: str, user_id: str | None, limit: int, offset: int
+    ) -> tuple[list[dict[str, object]], int]:
+        conditions = [
+            AnalyticsRefund.currency == currency,
+            live_refund_condition(),
+            AnalyticsRefund.occurred_at >= from_ts,
+            AnalyticsRefund.occurred_at < to_ts,
+        ]
+        if user_id:
+            conditions.append(AnalyticsRefund.user_id == user_id)
+        query = (
+            select(AnalyticsRefund, User.name).outerjoin(User, User.id == AnalyticsRefund.user_id).where(*conditions)
+        )
+        total = int(
+            (
+                await self.session.execute(select(func.count()).select_from(AnalyticsRefund).where(*conditions))
+            ).scalar_one()
+        )
+        rows = (
+            await self.session.execute(
+                query.order_by(AnalyticsRefund.occurred_at.desc(), AnalyticsRefund.id.desc())
+                .offset(offset)
+                .limit(limit)
+            )
+        ).all()
+        return [
+            {
+                'id': refund.id,
+                'user_id': refund.user_id,
+                'name': name,
+                'payment_id': refund.payment_id,
+                'amount_kopeks': int(refund.amount_kopeks),
+                'currency': refund.currency,
+                'occurred_at': int(refund.occurred_at),
+                'wallet_reflection': 'requires_verification',
+            }
+            for refund, name in rows
+        ], total
 
     async def customers(
         self,
@@ -295,105 +345,183 @@ class BillingReportingService:
         page_size: int,
         sort: str,
         direction: str,
+        status: str | None = None,
     ) -> dict[str, object]:
-        # The customer set is intentionally bounded by wallets; all aggregates
-        # remain in SQL and only the page is serialized.
-        wallet_stmt = select(Wallet, User).join(User, User.id == Wallet.user_id).where(Wallet.currency == currency)
-        if query:
-            pattern = f'%{query.strip()}%'
-            wallet_stmt = wallet_stmt.where(
-                or_(User.id.ilike(pattern), User.email.ilike(pattern), User.name.ilike(pattern))
+        """Aggregate complete customer histories in SQL; paginate only final rows."""
+        now = int(time.time())
+        paid = topup_query(currency=currency).subquery()
+        payments = (
+            select(
+                paid.c.user_id,
+                func.sum(paid.c.amount_kopeks).label('paid_kopeks'),
+                func.sum(
+                    case(
+                        (and_(paid.c.credited_at >= from_ts, paid.c.credited_at < to_ts), paid.c.amount_kopeks), else_=0
+                    )
+                ).label('period_paid_kopeks'),
+                func.count().label('successful_payment_count'),
+                func.max(paid.c.credited_at).label('last_payment_at'),
             )
-        wallet_rows = (await self.session.execute(wallet_stmt)).all()
-        facts = await self.payment_facts(
-            from_ts=0,
-            to_ts=to_ts,
-            currency=currency,
-            limit=REPORTING_EXPORT_MAX,
+            .where(paid.c.credited_at <= now)
+            .group_by(paid.c.user_id)
+            .subquery()
         )
-        payment_by_user: dict[str, list[PaymentFact]] = defaultdict(list)
-        for fact in facts:
-            payment_by_user[fact.user_id].append(fact)
-
-        usage_stmt = (
+        usages = (
             select(
                 UsageEvent.user_id,
-                func.coalesce(func.sum(UsageEvent.cost_charged_kopeks), 0),
-                func.coalesce(
-                    func.sum(
-                        case(
-                            (
-                                and_(UsageEvent.created_at >= from_ts, UsageEvent.created_at <= to_ts),
-                                UsageEvent.cost_charged_kopeks,
-                            ),
-                            else_=0,
-                        )
-                    ),
-                    0,
-                ),
-                func.max(UsageEvent.created_at),
+                func.sum(UsageEvent.cost_charged_kopeks).label('spent_kopeks'),
+                func.sum(
+                    case(
+                        (
+                            and_(UsageEvent.created_at >= from_ts, UsageEvent.created_at < to_ts),
+                            UsageEvent.cost_charged_kopeks,
+                        ),
+                        else_=0,
+                    )
+                ).label('period_spent_kopeks'),
+                func.max(UsageEvent.created_at).label('last_usage_at'),
             )
             .join(Wallet, Wallet.id == UsageEvent.wallet_id)
-            .where(
-                Wallet.currency == currency,
-                UsageEvent.created_at <= to_ts,
-            )
+            .where(Wallet.currency == currency, UsageEvent.created_at <= now)
             .group_by(UsageEvent.user_id)
+            .subquery()
         )
-        usage_by_user = {
-            str(user_id): {
-                'spent_kopeks': int(total or 0),
-                'period_spent_kopeks': int(period_total or 0),
-                'last_usage_at': int(last_usage or 0) or None,
-            }
-            for user_id, total, period_total, last_usage in (await self.session.execute(usage_stmt)).all()
-        }
-
-        items: list[dict[str, object]] = []
-        for wallet, user in wallet_rows:
-            user_facts = payment_by_user.get(user.id, [])
-            successful = [fact for fact in user_facts if fact.status == PaymentStatus.SUCCEEDED.value]
-            period_successful = [fact for fact in successful if fact.processed_at >= from_ts]
-            failed = [fact for fact in user_facts if fact.status in {'failed', 'canceled'}]
-            usage = usage_by_user.get(user.id, {})
-            items.append(
-                {
-                    'user_id': user.id,
-                    'name': user.name,
-                    'email': user.email,
-                    'role': user.role,
-                    'currency': currency,
-                    'paid_kopeks': sum(fact.amount_kopeks for fact in successful),
-                    'period_paid_kopeks': sum(fact.amount_kopeks for fact in period_successful),
-                    'spent_kopeks': int(usage.get('spent_kopeks', 0)),
-                    'period_spent_kopeks': int(usage.get('period_spent_kopeks', 0)),
-                    'balance_topup_kopeks': int(wallet.balance_topup_kopeks or 0),
-                    'balance_included_kopeks': int(wallet.balance_included_kopeks or 0),
-                    'last_payment_at': max((fact.processed_at for fact in successful), default=None),
-                    'last_usage_at': usage.get('last_usage_at'),
-                    'successful_payment_count': len(successful),
-                    'failed_payment_count': len(failed),
-                    'status': (
-                        'negative_balance'
-                        if int(wallet.balance_topup_kopeks or 0) < 0
-                        else 'healthy' if successful else 'never_paid'
-                    ),
-                }
+        refunds = (
+            select(
+                AnalyticsRefund.user_id,
+                func.sum(AnalyticsRefund.amount_kopeks).label('refund_kopeks'),
+                func.sum(
+                    case(
+                        (
+                            and_(AnalyticsRefund.occurred_at >= from_ts, AnalyticsRefund.occurred_at < to_ts),
+                            AnalyticsRefund.amount_kopeks,
+                        ),
+                        else_=0,
+                    )
+                ).label('period_refund_kopeks'),
             )
-
-        reverse = direction == 'desc'
-        sort_key = {
+            .where(AnalyticsRefund.currency == currency, live_refund_condition(), AnalyticsRefund.occurred_at <= now)
+            .group_by(AnalyticsRefund.user_id)
+            .subquery()
+        )
+        attempts = payment_query(from_ts=0, to_ts=now + 1, currency=currency).subquery()
+        problems = (
+            select(
+                attempts.c.user_id,
+                func.sum(case((attempts.c.status.in_(['failed', 'canceled']), 1), else_=0)).label(
+                    'failed_payment_count'
+                ),
+                func.sum(
+                    case(
+                        (
+                            and_(
+                                attempts.c.kind == 'topup',
+                                attempts.c.status == 'succeeded',
+                                attempts.c.credit_status == 'not_credited',
+                            ),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label('uncredited_payment_count'),
+                func.sum(
+                    case((and_(attempts.c.status == 'pending', attempts.c.created_at < now - 86400), 1), else_=0)
+                ).label('stale_payment_count'),
+            )
+            .group_by(attempts.c.user_id)
+            .subquery()
+        )
+        statement = (
+            select(
+                User.id.label('user_id'),
+                User.name,
+                User.email,
+                User.role,
+                Wallet.balance_topup_kopeks,
+                Wallet.balance_included_kopeks,
+                *[
+                    func.coalesce(payments.c[key], 0).label(key)
+                    for key in ('paid_kopeks', 'period_paid_kopeks', 'successful_payment_count')
+                ],
+                payments.c.last_payment_at,
+                *[func.coalesce(usages.c[key], 0).label(key) for key in ('spent_kopeks', 'period_spent_kopeks')],
+                usages.c.last_usage_at,
+                *[func.coalesce(refunds.c[key], 0).label(key) for key in ('refund_kopeks', 'period_refund_kopeks')],
+                *[
+                    func.coalesce(problems.c[key], 0).label(key)
+                    for key in ('failed_payment_count', 'uncredited_payment_count', 'stale_payment_count')
+                ],
+            )
+            .select_from(Wallet)
+            .join(User, User.id == Wallet.user_id)
+            .outerjoin(payments, payments.c.user_id == User.id)
+            .outerjoin(usages, usages.c.user_id == User.id)
+            .outerjoin(refunds, refunds.c.user_id == User.id)
+            .outerjoin(problems, problems.c.user_id == User.id)
+            .where(Wallet.currency == currency)
+        )
+        if query and query.strip():
+            pattern = '%' + query.strip().replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
+            statement = statement.where(
+                or_(
+                    User.id.ilike(pattern, escape='\\'),
+                    User.email.ilike(pattern, escape='\\'),
+                    User.name.ilike(pattern, escape='\\'),
+                )
+            )
+        if status == 'negative_balance':
+            statement = statement.where(or_(Wallet.balance_topup_kopeks < 0, Wallet.balance_included_kopeks < 0))
+        elif status == 'paid':
+            statement = statement.where(func.coalesce(payments.c.successful_payment_count, 0) > 0)
+        elif status == 'never_paid':
+            statement = statement.where(func.coalesce(payments.c.successful_payment_count, 0) == 0)
+        elif status == 'problems':
+            statement = statement.where(
+                or_(
+                    Wallet.balance_topup_kopeks < 0,
+                    Wallet.balance_included_kopeks < 0,
+                    func.coalesce(problems.c.uncredited_payment_count, 0) > 0,
+                    func.coalesce(problems.c.stale_payment_count, 0) > 0,
+                )
+            )
+        table = statement.subquery()
+        total = int((await self.session.execute(select(func.count()).select_from(table))).scalar_one())
+        key = {
             'paid': 'paid_kopeks',
             'spent': 'spent_kopeks',
             'balance': 'balance_topup_kopeks',
             'last_payment': 'last_payment_at',
             'last_usage': 'last_usage_at',
         }.get(sort, 'last_payment_at')
-        items.sort(key=lambda item: (item.get(sort_key) is None, item.get(sort_key) or 0), reverse=reverse)
-        total = len(items)
-        start = (page - 1) * page_size
+        column = table.c[key]
+        ordering = column.desc().nulls_last() if direction == 'desc' else column.asc().nulls_last()
+        rows = (
+            (
+                await self.session.execute(
+                    select(table).order_by(ordering, table.c.user_id).offset((page - 1) * page_size).limit(page_size)
+                )
+            )
+            .mappings()
+            .all()
+        )
+        items = []
+        for row in rows:
+            item = dict(row)
+            item.update(
+                currency=currency,
+                status=(
+                    'negative_balance'
+                    if row['balance_topup_kopeks'] < 0 or row['balance_included_kopeks'] < 0
+                    else (
+                        'payment_problem'
+                        if row['uncredited_payment_count'] or row['stale_payment_count']
+                        else 'healthy' if row['successful_payment_count'] else 'never_paid'
+                    )
+                ),
+            )
+            items.append(item)
         return {
-            'items': items[start : start + page_size],
+            'items': items,
             'total': total,
             'page': page,
             'page_size': page_size,
@@ -401,8 +529,10 @@ class BillingReportingService:
             'currency': currency,
             'from': from_ts,
             'to': to_ts,
-            'as_of': int(time.time()),
-            'payment_fact_limit_reached': len(facts) >= REPORTING_EXPORT_MAX,
+            'as_of': now,
+            'payment_fact_limit_reached': False,
+            'timezone': 'UTC',
+            'lifetime_scope': 'all_history_through_as_of',
         }
 
     async def customer_detail(
@@ -414,56 +544,28 @@ class BillingReportingService:
         wallet = (
             await self.session.execute(select(Wallet).where(Wallet.user_id == user_id, Wallet.currency == currency))
         ).scalar_one_or_none()
-        all_facts = await self.payment_facts(
-            from_ts=0,
+        now = int(time.time())
+        period = await self.financial_totals(from_ts=from_ts, to_ts=to_ts, currency=currency, user_id=user_id)
+        lifetime = await self.financial_totals(from_ts=0, to_ts=now + 1, currency=currency, user_id=user_id)
+        payments, payment_total = await self.payment_page(
+            from_ts=from_ts,
             to_ts=to_ts,
             currency=currency,
             user_id=user_id,
-            limit=REPORTING_EXPORT_MAX,
+            status=None,
+            kind=None,
+            page=1,
+            page_size=limit,
         )
-        facts = all_facts[:limit]
-        ledger_stmt = (
-            select(LedgerEntry)
-            .where(LedgerEntry.user_id == user_id, LedgerEntry.currency == currency)
-            .order_by(LedgerEntry.created_at.desc())
-            .limit(limit)
+        ledger, ledger_total = await self.ledger_rows(
+            from_ts=from_ts, to_ts=to_ts, currency=currency, user_id=user_id, limit=limit, offset=0
         )
-        ledger = (await self.session.execute(ledger_stmt)).scalars().all()
-        usage_stmt = (
-            select(UsageEvent)
-            .join(Wallet, Wallet.id == UsageEvent.wallet_id)
-            .where(
-                UsageEvent.user_id == user_id,
-                UsageEvent.created_at >= 0,
-                UsageEvent.created_at <= to_ts,
-                Wallet.currency == currency,
-            )
-            .order_by(UsageEvent.created_at.desc())
-            .limit(limit)
+        usage, usage_total = await self.usage_rows(
+            from_ts=from_ts, to_ts=to_ts, currency=currency, user_id=user_id, limit=limit, offset=0
         )
-        usage = (await self.session.execute(usage_stmt)).scalars().all()
-        spend_stmt = (
-            select(
-                func.coalesce(func.sum(UsageEvent.cost_charged_kopeks), 0),
-                func.coalesce(
-                    func.sum(
-                        case(
-                            (UsageEvent.created_at >= from_ts, UsageEvent.cost_charged_kopeks),
-                            else_=0,
-                        )
-                    ),
-                    0,
-                ),
-            )
-            .join(Wallet, Wallet.id == UsageEvent.wallet_id)
-            .where(
-                UsageEvent.user_id == user_id,
-                UsageEvent.created_at <= to_ts,
-                Wallet.currency == currency,
-            )
+        refunds, refund_total = await self.refund_rows(
+            from_ts=from_ts, to_ts=to_ts, currency=currency, user_id=user_id, limit=limit, offset=0
         )
-        spent_kopeks, period_spent_kopeks = (await self.session.execute(spend_stmt)).one()
-        successful = [fact for fact in all_facts if fact.status == PaymentStatus.SUCCEEDED.value]
         return {
             'user': {'id': user.id, 'name': user.name, 'email': user.email, 'role': user.role},
             'wallet': {
@@ -473,22 +575,37 @@ class BillingReportingService:
                 'balance_included_kopeks': int(wallet.balance_included_kopeks or 0) if wallet else 0,
                 'daily_spent_kopeks': int(wallet.daily_spent_kopeks or 0) if wallet else 0,
                 'daily_cap_kopeks': wallet.daily_cap_kopeks if wallet else None,
+                'daily_reserved_kopeks': int(wallet.daily_reserved_kopeks or 0) if wallet else 0,
+                'topup_expires_at': wallet.topup_expires_at if wallet else None,
             },
             'metrics': {
-                'paid_kopeks': sum(fact.amount_kopeks for fact in successful),
-                'period_paid_kopeks': sum(fact.amount_kopeks for fact in successful if fact.processed_at >= from_ts),
-                'payment_count': len(successful),
-                'spent_kopeks': int(spent_kopeks or 0),
-                'period_spent_kopeks': int(period_spent_kopeks or 0),
+                'paid_kopeks': lifetime['successful_payments_kopeks'],
+                'period_paid_kopeks': period['successful_payments_kopeks'],
+                'payment_count': lifetime['successful_payment_count'],
+                'period_payment_count': period['successful_payment_count'],
+                'spent_kopeks': lifetime['usage_spend_kopeks'],
+                'period_spent_kopeks': period['usage_spend_kopeks'],
+                'refund_kopeks': lifetime['refund_kopeks'],
+                'period_refund_kopeks': period['refund_kopeks'],
+                'other_payments_kopeks': lifetime['other_payments_kopeks'],
+                'period_other_payments_kopeks': period['other_payments_kopeks'],
             },
-            'payments': [self._payment_payload(fact) for fact in facts],
-            'ledger': [self._ledger_payload(entry) for entry in ledger],
-            'usage': [self._usage_payload(event) for event in usage],
+            'payments': payments,
+            'ledger': ledger,
+            'usage': usage,
+            'refunds': refunds,
+            'record_totals': {
+                'payments': payment_total,
+                'ledger': ledger_total,
+                'usage': usage_total,
+                'refunds': refund_total,
+            },
             'from': from_ts,
             'to': to_ts,
-            'as_of': int(time.time()),
-            'time_semantics': 'processed_at_fallback',
-            'payment_fact_limit_reached': len(all_facts) >= REPORTING_EXPORT_MAX,
+            'as_of': now,
+            'timezone': 'UTC',
+            'time_semantics': 'topup_ledger_refund_provider_created_at',
+            'payment_fact_limit_reached': False,
         }
 
     async def ledger_rows(
@@ -496,14 +613,14 @@ class BillingReportingService:
     ) -> tuple[list[dict[str, object]], int]:
         filters = [
             LedgerEntry.created_at >= from_ts,
-            LedgerEntry.created_at <= to_ts,
+            LedgerEntry.created_at < to_ts,
             LedgerEntry.currency == currency,
         ]
         if user_id:
             filters.append(LedgerEntry.user_id == user_id)
         stmt = (
             select(LedgerEntry, User.name, User.email)
-            .join(User, User.id == LedgerEntry.user_id)
+            .outerjoin(User, User.id == LedgerEntry.user_id)
             .where(*filters)
             .order_by(LedgerEntry.created_at.desc(), LedgerEntry.id.desc())
             .offset(offset)
@@ -519,7 +636,7 @@ class BillingReportingService:
     ) -> tuple[list[dict[str, object]], int]:
         filters = [
             UsageEvent.created_at >= from_ts,
-            UsageEvent.created_at <= to_ts,
+            UsageEvent.created_at < to_ts,
             Wallet.currency == currency,
         ]
         if user_id:
@@ -527,7 +644,7 @@ class BillingReportingService:
         stmt = (
             select(UsageEvent, User.name, User.email)
             .join(Wallet, Wallet.id == UsageEvent.wallet_id)
-            .join(User, User.id == UsageEvent.user_id)
+            .outerjoin(User, User.id == UsageEvent.user_id)
             .where(*filters)
             .order_by(UsageEvent.created_at.desc(), UsageEvent.id.desc())
             .offset(offset)
@@ -554,6 +671,11 @@ class BillingReportingService:
             'source': fact.source,
             'wallet_id': fact.wallet_id,
             'subscription_id': fact.subscription_id,
+            'created_at': fact.created_at,
+            'credited_at': fact.credited_at,
+            'credit_status': fact.credit_status,
+            'refunded_kopeks': fact.refunded_kopeks,
+            'is_test': fact.is_test,
         }
 
     @staticmethod

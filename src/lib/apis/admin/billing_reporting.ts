@@ -11,7 +11,7 @@ export interface BillingReportingOverview {
 	time_semantics: string;
 	metrics: Record<string, number>;
 	warnings: Record<string, number>;
-	series: Array<{ date: string; paid_kopeks: number; usage_kopeks: number }>;
+	series: Array<{ date: string; paid_kopeks: number; usage_kopeks: number; refund_kopeks: number }>;
 	definitions: Record<string, string>;
 }
 
@@ -32,6 +32,8 @@ export interface BillingReportingCustomer {
 	successful_payment_count: number;
 	failed_payment_count: number;
 	status: string;
+	refund_kopeks: number;
+	period_refund_kopeks: number;
 }
 
 export interface BillingReportingPage<T> {
@@ -44,6 +46,9 @@ export interface BillingReportingPage<T> {
 	from: number;
 	to: number;
 	as_of: number;
+	truncated?: boolean;
+	payment_fact_limit_reached?: boolean;
+	scope?: string;
 }
 
 export interface BillingReportingPayment {
@@ -57,6 +62,12 @@ export interface BillingReportingPayment {
 	provider: string;
 	provider_payment_id: string | null;
 	processed_at: number;
+	created_at: number;
+	credited_at: number | null;
+	credit_status: 'credited' | 'not_credited' | 'not_applicable';
+	is_test: boolean | null;
+	refunded_kopeks: number;
+	refund_wallet_status?: string;
 	source: string;
 	wallet_id: string | null;
 	subscription_id: string | null;
@@ -88,7 +99,9 @@ export interface BillingReportingRow {
 
 const get = async <T>(token: string, path: string): Promise<T> => {
 	const response = await fetch(`${WEBUI_API_BASE_URL}${path}`, {
-		headers: { Authorization: `Bearer ${token}` }
+		headers: { Authorization: `Bearer ${token}` },
+		signal: AbortSignal.timeout(25000),
+		cache: 'no-store'
 	});
 	if (!response.ok) {
 		const body = await response.json().catch(() => ({}));
@@ -97,7 +110,7 @@ const get = async <T>(token: string, path: string): Promise<T> => {
 	return response.json();
 };
 
-const params = (values: Record<string, string | number | undefined>): string => {
+const params = (values: Record<string, string | number | boolean | undefined>): string => {
 	const search = new URLSearchParams();
 	for (const [key, value] of Object.entries(values)) {
 		if (value !== undefined && value !== '') search.set(key, String(value));
@@ -122,6 +135,7 @@ export const getBillingReportingCustomers = (
 		page_size?: number;
 		sort?: ReportingSort;
 		direction?: ReportingDirection;
+		status?: 'paid' | 'never_paid' | 'problems' | 'negative_balance';
 	} = {}
 ): Promise<BillingReportingPage<BillingReportingCustomer>> =>
 	get<BillingReportingPage<BillingReportingCustomer>>(
@@ -148,6 +162,10 @@ export const getBillingReportingPayments = (
 		user_id?: string;
 		status?: string;
 		kind?: string;
+		credit_status?: string;
+		older_than_hours?: number;
+		attention?: 'stale_pending' | 'uncredited';
+		is_test?: boolean;
 		page?: number;
 		page_size?: number;
 	} = {}
@@ -159,7 +177,14 @@ export const getBillingReportingPayments = (
 
 export const getBillingReportingLedger = (
 	token: string,
-	values: { currency?: string; from?: number; to?: number; user_id?: string; page?: number; page_size?: number } = {}
+	values: {
+		currency?: string;
+		from?: number;
+		to?: number;
+		user_id?: string;
+		page?: number;
+		page_size?: number;
+	} = {}
 ): Promise<BillingReportingPage<BillingReportingRow>> =>
 	get<BillingReportingPage<BillingReportingRow>>(
 		token,
@@ -168,21 +193,53 @@ export const getBillingReportingLedger = (
 
 export const getBillingReportingUsage = (
 	token: string,
-	values: { currency?: string; from?: number; to?: number; user_id?: string; page?: number; page_size?: number } = {}
+	values: {
+		currency?: string;
+		from?: number;
+		to?: number;
+		user_id?: string;
+		page?: number;
+		page_size?: number;
+	} = {}
 ): Promise<BillingReportingPage<BillingReportingRow>> =>
 	get<BillingReportingPage<BillingReportingRow>>(
 		token,
 		`/admin/billing/reporting/usage?${params(values)}`
 	);
 
-export const getBillingReportingExportUrl = (
+export const getBillingReportingExportUrl = (values: {
+	dataset: 'payments' | 'ledger' | 'usage' | 'refunds';
+	currency?: string;
+	from?: number;
+	to?: number;
+	user_id?: string;
+	status?: string;
+	kind?: string;
+	credit_status?: string;
+	older_than_hours?: number;
+	attention?: 'stale_pending' | 'uncredited';
+	is_test?: boolean;
+}): string => `${WEBUI_API_BASE_URL}/admin/billing/reporting/export?${params(values)}`;
+
+export interface BillingReportingRefund {
+	id: string;
+	user_id: string;
+	name: string | null;
+	payment_id: string;
+	amount_kopeks: number;
+	currency: string;
+	occurred_at: number;
+	wallet_reflection: 'requires_verification';
+}
+export const getBillingReportingRefunds = (
+	token: string,
 	values: {
-		dataset: 'payments' | 'ledger' | 'usage';
 		currency?: string;
 		from?: number;
 		to?: number;
 		user_id?: string;
-		status?: string;
-		kind?: string;
-	}
-): string => `${WEBUI_API_BASE_URL}/admin/billing/reporting/export?${params(values)}`;
+		page?: number;
+		page_size?: number;
+	} = {}
+): Promise<BillingReportingPage<BillingReportingRefund>> =>
+	get(token, `/admin/billing/reporting/refunds?${params(values)}`);

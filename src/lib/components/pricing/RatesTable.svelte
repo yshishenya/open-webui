@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { trackEvent } from '$lib/utils/analytics';
 	import type { PublicRateCardModel } from '$lib/apis/billing';
 
@@ -59,7 +60,14 @@
 	$: filteredModels = models.filter((model) => {
 		const name = `${model.display_name} ${model.provider ?? ''}`.toLowerCase();
 		const matchesQuery = normalizedQuery ? name.includes(normalizedQuery) : true;
-		const matchesFilter = filter === 'all' ? true : model.capabilities.includes(filter);
+		const matchesFilter =
+			filter === 'all'
+				? true
+				: filter === 'text'
+					? model.rates.text_in_1000_tokens !== null && model.rates.text_out_1000_tokens !== null
+					: filter === 'image'
+						? model.rates.image_1024 !== null
+						: model.rates.tts_1000_chars !== null || model.rates.stt_minute !== null;
 		return matchesQuery && matchesFilter;
 	});
 
@@ -94,6 +102,9 @@
 		showAll = true;
 		trackEvent('pricing_rates_expand_all_click');
 	};
+	onDestroy(() => {
+		if (searchTimeout) clearTimeout(searchTimeout);
+	});
 </script>
 
 <div class="space-y-6">
@@ -106,15 +117,16 @@
 				value={searchQuery}
 				on:input={(event) => handleSearch((event.target as HTMLInputElement).value)}
 				placeholder="Поиск модели..."
-				class="w-full rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-black/60"
+				class="min-h-11 w-full rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-black/60"
 			/>
 		</div>
 		<div class="flex flex-wrap gap-2">
 			{#each [{ id: 'all', label: 'Все' }, { id: 'text', label: 'Текст' }, { id: 'image', label: 'Изображения' }, { id: 'audio', label: 'Аудио' }] as option}
 				<button
 					type="button"
+					aria-pressed={filter === option.id}
 					on:click={() => handleFilterChange(option.id as 'all' | 'text' | 'image' | 'audio')}
-					class={`rounded-full border px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 ${
+					class={`min-h-11 rounded-full border px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 ${
 						filter === option.id
 							? 'border-gray-900 bg-gray-900 text-white'
 							: 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
@@ -134,7 +146,7 @@
 		<div class="space-y-3">
 			{#each [0, 1, 2, 3, 4, 5] as index}
 				<div
-					class="h-12 rounded-xl bg-gray-200/70 animate-pulse"
+					class="h-12 rounded-xl bg-gray-200/70 animate-pulse motion-reduce:animate-none"
 					data-skeleton-index={index}
 					aria-hidden="true"
 				></div>
@@ -149,7 +161,22 @@
 			Нет моделей по выбранным условиям.
 		</div>
 	{:else}
-		<div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+		<div class="grid gap-3 md:hidden">
+			{#each visibleModels as model (model.id)}<article
+					class="rounded-xl border border-gray-200 bg-white p-4"
+				>
+					<h3 class="font-semibold text-gray-900 break-words">{model.display_name}</h3>
+					<dl class="mt-3 space-y-2 text-sm text-gray-700">
+						{#each [{ label: 'Ввод: 1 000 токенов', rate: model.rates.text_in_1000_tokens }, { label: 'Ответ: 1 000 токенов', rate: model.rates.text_out_1000_tokens }, { label: 'Изображение: 1024px', rate: model.rates.image_1024 }, { label: 'Озвучка: 1 000 символов', rate: model.rates.tts_1000_chars }, { label: 'Распознавание: 1 минута', rate: model.rates.stt_minute }] as item}{#if item.rate !== null}<div
+									class="flex justify-between gap-3"
+								>
+									<dt>{item.label}</dt>
+									<dd class="shrink-0 tabular-nums">{formatRate(item.rate)}</dd>
+								</div>{/if}{/each}
+					</dl>
+				</article>{/each}
+		</div>
+		<div class="hidden md:block overflow-x-auto rounded-2xl border border-gray-200 bg-white">
 			<table class="min-w-[840px] w-full text-sm text-gray-700 tabular-nums">
 				<thead class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
 					<tr>

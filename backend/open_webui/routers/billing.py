@@ -77,7 +77,12 @@ from open_webui.env import (
     YOOKASSA_WEBHOOK_TOKEN,
     YOOKASSA_WEBHOOK_TRUST_X_FORWARDED_FOR,
 )
-from open_webui.models.users import Users
+from open_webui.models.users import Users, UserModel
+from open_webui.models.billing_wallet import Wallet
+from open_webui.internal.db import get_async_session
+from open_webui.utils.airis.billing_reporting import BillingReportingService, normalize_range
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from open_webui.models.models import Models
 from open_webui.models.access_grants import has_public_read_access_grant
 
@@ -330,6 +335,8 @@ class BalanceResponse(BaseModel):
     balance_topup_kopeks: int
     balance_included_kopeks: int
     included_expires_at: Optional[int] = None
+    topup_expires_at: int | None = None
+    daily_reserved_kopeks: int = 0
     max_reply_cost_kopeks: Optional[int] = None
     daily_cap_kopeks: Optional[int] = None
     daily_spent_kopeks: int
@@ -458,6 +465,8 @@ def get_balance(user=Depends(get_verified_user)):
             balance_topup_kopeks=wallet.balance_topup_kopeks,
             balance_included_kopeks=wallet.balance_included_kopeks,
             included_expires_at=wallet.included_expires_at,
+            topup_expires_at=wallet.topup_expires_at,
+            daily_reserved_kopeks=wallet.daily_reserved_kopeks,
             max_reply_cost_kopeks=wallet.max_reply_cost_kopeks,
             daily_cap_kopeks=wallet.daily_cap_kopeks,
             daily_spent_kopeks=wallet.daily_spent_kopeks,
@@ -475,6 +484,84 @@ def get_balance(user=Depends(get_verified_user)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
+
+
+@router.get('/summary')
+async def get_billing_summary(
+    response: Response,
+    from_ts: int | None = Query(None, alias='from', ge=0),
+    to_ts: int | None = Query(None, alias='to', ge=0),
+    user: UserModel = Depends(get_verified_user),
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, object]:
+    """Read complete period totals for the authenticated user's wallet."""
+    if not ENABLE_BILLING_WALLET:
+        raise HTTPException(status_code=404, detail='Billing wallet is disabled')
+    try:
+        start, end = normalize_range(from_ts, to_ts)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    currency = BILLING_DEFAULT_CURRENCY
+    wallet = (
+        await session.execute(select(Wallet).where(Wallet.user_id == user.id, Wallet.currency == currency))
+    ).scalar_one_or_none()
+    totals = await BillingReportingService(session).financial_totals(
+        from_ts=start, to_ts=end, currency=currency, user_id=user.id
+    )
+    response.headers['Cache-Control'] = 'no-store'
+    return {
+        'from': start,
+        'to': end,
+        'currency': currency,
+        'timezone': 'UTC',
+        'as_of': int(time.time()),
+        'topup_kopeks': totals['successful_payments_kopeks'],
+        'topup_count': totals['successful_payment_count'],
+        'refund_kopeks': totals['refund_kopeks'],
+        'refund_count': totals['refund_count'],
+        'net_kopeks': totals['net_kopeks'],
+        'spent_kopeks': totals['usage_spend_kopeks'],
+        'usage_count': totals['usage_event_count'],
+        'refund_wallet_reflection': 'requires_verification',
+        'current_balance': {
+            'balance_kopeks': int(wallet.balance_topup_kopeks or 0) if wallet else 0,
+            'included_balance_kopeks': int(wallet.balance_included_kopeks or 0) if wallet else 0,
+            'daily_reserved_kopeks': int(wallet.daily_reserved_kopeks or 0) if wallet else 0,
+            'topup_expires_at': wallet.topup_expires_at if wallet else None,
+        },
+    }
+
+
+@router.get('/refunds')
+async def get_billing_refunds(
+    response: Response,
+    from_ts: int | None = Query(None, alias='from', ge=0),
+    to_ts: int | None = Query(None, alias='to', ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    skip: int = Query(0, ge=0),
+    user: UserModel = Depends(get_verified_user),
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, object]:
+    """Show verified provider refunds separately from wallet adjustments."""
+    if not ENABLE_BILLING_WALLET:
+        raise HTTPException(status_code=404, detail='Billing wallet is disabled')
+    try:
+        start, end = (0, int(time.time())) if from_ts is None and to_ts is None else normalize_range(from_ts, to_ts)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    rows, total = await BillingReportingService(session).refund_rows(
+        from_ts=start, to_ts=end, currency=BILLING_DEFAULT_CURRENCY, user_id=user.id, limit=limit, offset=skip
+    )
+    response.headers['Cache-Control'] = 'no-store'
+    return {
+        'items': [{key: value for key, value in row.items() if key not in {'name', 'user_id'}} for row in rows],
+        'total': total,
+        'limit': limit,
+        'skip': skip,
+        'from': start,
+        'to': end,
+        'currency': BILLING_DEFAULT_CURRENCY,
+    }
 
 
 @router.get("/ledger", response_model=List[LedgerEntryModel])

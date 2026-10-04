@@ -1,15 +1,16 @@
+import datetime as dt
 import logging
-from collections import defaultdict
-from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from open_webui.config import ENABLE_ADMIN_CHAT_ACCESS
+from open_webui.constants import ERROR_MESSAGES
 from open_webui.internal.db import get_async_session
 from open_webui.models.chat_messages import ChatMessageModel, ChatMessages
 from open_webui.models.chats import Chats
 from open_webui.models.feedbacks import Feedbacks
-from open_webui.models.groups import Groups
-from open_webui.models.users import Users
+from open_webui.models.users import UserModel, Users
+from open_webui.utils.airis.analytics_usage_reporting import model_tag_counts
 from open_webui.utils.auth import get_admin_user
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +18,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 log = logging.getLogger(__name__)
 
 
-router = APIRouter()
+def _no_store(response: Response) -> None:
+    response.headers['Cache-Control'] = 'no-store'
+
+
+router = APIRouter(dependencies=[Depends(_no_store)])
 
 
 ####################
@@ -207,7 +212,9 @@ async def get_daily_stats(
 ):
     """Get message counts grouped by model for time-series chart."""
     if granularity == 'hourly':
-        counts = await ChatMessages.get_hourly_message_counts_by_model(start_date=start_date, end_date=end_date, db=db)
+        counts = await ChatMessages.get_hourly_message_counts_by_model(
+            start_date=start_date, end_date=end_date, group_id=group_id, db=db
+        )
     else:
         counts = await ChatMessages.get_daily_message_counts_by_model(
             start_date=start_date, end_date=end_date, group_id=group_id, db=db
@@ -284,21 +291,28 @@ MODEL_CHAT_ORDER_FIELDS = {'title', 'updated_at', 'user_name'}
 
 @router.get('/models/{model_id:path}/chats', response_model=ModelChatsResponse)
 async def get_model_chats(
+    request: Request,
     model_id: str,
-    start_date: Optional[int] = Query(None),
-    end_date: Optional[int] = Query(None),
+    start_date: int | None = Query(None),
+    end_date: int | None = Query(None),
     skip: int = Query(0),
     limit: int = Query(50, le=100),
+    group_id: str | None = Query(None),
     order_by: str = Query('updated_at'),
     direction: str = Query('desc'),
-    user=Depends(get_admin_user),
+    user: UserModel = Depends(get_admin_user),
     db: AsyncSession = Depends(get_async_session),
-):
+) -> ModelChatsResponse:
     """Get chats that used a specific model, with preview and feedback info."""
-    filter = {}
-    if start_date:
+    if not ENABLE_ADMIN_CHAT_ACCESS:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail=ERROR_MESSAGES.ACCESS_PROHIBITED)
+
+    filter: dict[str, str | int] = {}
+    if group_id:
+        filter['group_id'] = group_id
+    if start_date is not None:
         filter['start_date'] = start_date
-    if end_date:
+    if end_date is not None:
         filter['end_date'] = end_date
     if order_by in MODEL_CHAT_ORDER_FIELDS:
         filter['order_by'] = order_by
@@ -343,79 +357,36 @@ class ModelOverviewResponse(BaseModel):
 @router.get('/models/{model_id:path}/overview', response_model=ModelOverviewResponse)
 async def get_model_overview(
     model_id: str,
-    days: int = Query(30, description='Number of days of history (0 for all)'),
+    days: int = Query(30, ge=0, le=366, description='Legacy history window; explicit dates take precedence'),
+    start_date: int | None = Query(None, ge=0),
+    end_date: int | None = Query(None, ge=0),
+    group_id: str | None = Query(None),
     user=Depends(get_admin_user),
     db: AsyncSession = Depends(get_async_session),
-):
-    """Get model overview with feedback history and chat tags."""
-
-    # Calculate start date for history
-    now = datetime.now()
-    start_dt = None
-    if days > 0:
-        start_dt = now - timedelta(days=days)
-
-    # Get chat IDs that used this model
-    chat_ids = await ChatMessages.get_chat_ids_by_model_id(
-        model_id=model_id,
-        start_date=None,
-        end_date=None,
-        skip=0,
-        limit=10000,  # Get all chats
-        db=db,
+) -> ModelOverviewResponse:
+    """Preserve the selected period and group across every model detail panel."""
+    now = dt.datetime.now(dt.UTC)
+    start = (
+        start_date if start_date is not None else int((now - dt.timedelta(days=days)).timestamp()) if days > 0 else None
     )
-
+    end = end_date if end_date is not None else int(now.timestamp())
     history_rows = await Feedbacks.get_model_feedback_counts_by_day(
-        model_id=model_id,
-        start_date=int(start_dt.timestamp()) if start_dt else None,
-        db=db,
+        model_id=model_id, start_date=start, end_date=end, group_id=group_id, db=db
     )
-    history_counts = {
-        entry.date: {
-            'won': entry.won,
-            'lost': entry.lost,
-        }
-        for entry in history_rows
-    }
-
-    # Fill in missing days
-    history = []
-    if history_counts or days > 0:
-        end_dt = now
-        if days > 0:
-            current = start_dt
-        elif history_counts:
-            # Find earliest date
-            min_date = min(history_counts.keys())
-            current = datetime.strptime(min_date, '%Y-%m-%d')
-        else:
-            current = now
-
-        while current <= end_dt:
-            date_str = current.strftime('%Y-%m-%d')
-            counts = history_counts.get(date_str, {'won': 0, 'lost': 0})
-            history.append(
-                HistoryEntry(
-                    date=date_str,
-                    won=counts['won'],
-                    lost=counts['lost'],
-                )
-            )
-            current += timedelta(days=1)
-
-    # Get chat tags
-    tag_counts: dict[str, int] = defaultdict(int)
-    if chat_ids:
-        chat_metas = await Chats.get_chat_metas_by_chat_ids(
-            chat_ids,
-            include_archived=True,
-            db=db,
+    history_counts = {entry.date: {'won': entry.won, 'lost': entry.lost} for entry in history_rows}
+    history: list[HistoryEntry] = []
+    if start is not None or history_counts:
+        current = (
+            dt.datetime.fromtimestamp(start, dt.UTC)
+            if start is not None
+            else dt.datetime.strptime(min(history_counts), '%Y-%m-%d').replace(tzinfo=dt.UTC)
         )
-        for meta in chat_metas:
-            for tag in meta.get('tags', []):
-                tag_counts[tag] += 1
-
-    # Sort by count and take top 10
-    tags = [TagEntry(tag=tag, count=count) for tag, count in sorted(tag_counts.items(), key=lambda x: -x[1])[:10]]
-
-    return ModelOverviewResponse(history=history, tags=tags)
+        current = current.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_dt = dt.datetime.fromtimestamp(end, dt.UTC)
+        while current < end_dt:
+            date = current.strftime('%Y-%m-%d')
+            counts = history_counts.get(date, {'won': 0, 'lost': 0})
+            history.append(HistoryEntry(date=date, **counts))
+            current += dt.timedelta(days=1)
+    tags = await model_tag_counts(db, model_id, start, end, group_id)
+    return ModelOverviewResponse(history=history, tags=[TagEntry(**tag) for tag in tags])

@@ -83,7 +83,7 @@ class LedgerEntriesTable:
             entries = (
                 db.query(LedgerEntry)
                 .filter(LedgerEntry.user_id == user_id)
-                .order_by(LedgerEntry.created_at.desc())
+                .order_by(LedgerEntry.created_at.desc(), LedgerEntry.id.desc())
                 .offset(offset)
                 .limit(limit)
                 .all()
@@ -213,7 +213,7 @@ class UsageEventsTable:
             if billing_source:
                 query = query.filter(UsageEvent.billing_source == billing_source)
             events = (
-                query.order_by(UsageEvent.created_at.desc())
+                query.order_by(UsageEvent.created_at.desc(), UsageEvent.id.desc())
                 .offset(offset)
                 .limit(limit)
                 .all()

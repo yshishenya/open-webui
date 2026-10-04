@@ -1,6 +1,8 @@
 	<script lang="ts">
 		import { onMount, getContext } from 'svelte';
 		import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { priceToKopeks } from '$lib/utils/airis/billing_reporting_ui';
 		import { toast } from 'svelte-sonner';
 
 		import { WEBUI_NAME, user } from '$lib/stores';
@@ -119,7 +121,8 @@
 		let rateCardKeyIndex = new Set<string>();
 			let modelRateDisplayIndex: Record<string, ModelRateDisplay | undefined> = {};
 
-	let searchValue = '';
+	let searchValue = $page.url.searchParams.get('query') || '';
+	let onlyFreeModels = $page.url.searchParams.get('free') === '1';
 	let statusFilter: StatusFilter = 'all';
 		let pricingFocus: PricingFocus = 'text';
 		let sortKey: SortKey = 'text_in';
@@ -146,6 +149,8 @@
 	let exportMode: RateCardXlsxExportMode = 'active_only';
 
 	let showImportModal = false;
+	let saveResult = '';
+	let completedChanges = 0;
 	let importing = false;
 	let importMode: RateCardXlsxImportMode = 'patch';
 	let importFile: File | null = null;
@@ -213,13 +218,13 @@
 			tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
 		},
 		tts: {
-			label: 'TTS',
+			label: 'Speech synthesis',
 			shortDescription: 'Speech · per 1k chars',
 			icon: SoundHigh,
 			tone: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-200'
 		},
 		stt: {
-			label: 'STT',
+			label: 'Speech recognition',
 			shortDescription: 'Speech · per minute',
 			icon: MicSolid,
 			tone: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200'
@@ -390,9 +395,7 @@
 						minimumFractionDigits: 0,
 						maximumFractionDigits: 0
 					});
-					return (
-						formatter.formatToParts(0).find((part) => part.type === 'currency')?.value ?? currency
-					);
+			return formatter.formatToParts(0).find((part) => part.type === 'currency')?.value ?? currency;
 				} catch {
 					return currency;
 				}
@@ -424,8 +427,8 @@
 	};
 
 	const getModalTitle = (): string => {
-		if (!selectedModel) return $i18n.t('Rate Card');
-		return `${$i18n.t('Rate Card')} — ${getModelDisplayName(selectedModel)}`;
+		if (!selectedModel) return $i18n.t('Model prices');
+		return `${$i18n.t('Model prices')} — ${getModelDisplayName(selectedModel)}`;
 	};
 
 	const getModalSubtitle = (): string => {
@@ -445,8 +448,12 @@
 
 	const getUnitLabel = (modality: string, unit: string): string => {
 		const hint = getRawCostHint(modality, unit);
+		if (modality === 'text')
+			return $i18n.t(
+				unit === 'token_in' ? 'Input price per 1000 tokens' : 'Output price per 1000 tokens'
+			);
 		if (!hint) return unit;
-		return `${unit} — ${hint}`;
+		return hint;
 	};
 
 	const getModalityLabel = (modality: ModalityKey): string => {
@@ -468,7 +475,7 @@
 
 	const getSortLabel = (key: SortKey): string => {
 		if (key === 'model') return $i18n.t('Model');
-		if (key === 'lead') return $i18n.t('Lead magnet');
+		if (key === 'lead') return $i18n.t('Free access');
 		if (key === 'text_in') return $i18n.t('Input');
 		if (key === 'text_out') return $i18n.t('Output');
 		if (key === 'image') return $i18n.t('Images');
@@ -578,7 +585,9 @@
 		});
 	};
 
-	const openModal = (model: ModelRow) => {
+	const openModal = (model: ModelRow): void => {
+		saveResult = '';
+		completedChanges = 0;
 		selectedModel = model;
 		formMode = model.status === 'configured' ? 'edit' : 'add';
 		initializeModalState(model.id);
@@ -746,7 +755,12 @@
 			}
 
 			console.error('Failed to apply rate card XLSX import:', error);
-			toast.error($i18n.t('Failed to apply import'));
+			importPreview = null;
+			await loadData();
+			importPreviewError = $i18n.t(
+				'Import status could not be confirmed. Prices have been reloaded; run preview again before applying.'
+			);
+			toast.error(importPreviewError);
 		} finally {
 			importing = false;
 		}
@@ -817,7 +831,7 @@
 				hasActive = hasActive || entry.is_active;
 				nextState[modality].units[unit] = {
 					unit,
-					cost: String(entry.raw_cost_per_unit_kopeks ?? 0),
+					cost: String((entry.raw_cost_per_unit_kopeks ?? 0) / 100),
 					originalCost: entry.raw_cost_per_unit_kopeks ?? null,
 					exists: true,
 					id: entry.id,
@@ -911,20 +925,9 @@
 	};
 
 	const parseRequiredInt = (value: string, label: string): number | null => {
-		const trimmed = value.trim();
-		if (!trimmed) {
-			toast.error($i18n.t('{{label}} is required', { label }));
-			return null;
-		}
-		if (!/^[0-9]+$/.test(trimmed)) {
-			toast.error($i18n.t('Invalid value for {{label}}', { label }));
-			return null;
-		}
-		const parsed = Number.parseInt(trimmed, 10);
-		if (Number.isNaN(parsed) || parsed < 0) {
-			toast.error($i18n.t('Invalid value for {{label}}', { label }));
-			return null;
-		}
+		const parsed = priceToKopeks(value);
+		if (parsed === null)
+			toast.error($i18n.t('Price must be non-negative with at most two decimals', { label }));
 		return parsed;
 	};
 
@@ -951,14 +954,17 @@
 		return { create, update, disable, total: create + update + disable };
 	};
 
-		const handleSave = async () => {
-			if (saving || !selectedModel) return;
+	const handleSave = async (): Promise<void> => {
+		if (saving || !selectedModel) return;
+		saveResult = '';
+		completedChanges = 0;
 			const activeModel = selectedModel;
+ const requestedLeadMagnet=leadMagnetEnabled;
 
 		const updateRequests: Array<{ id: string; data: RateCardUpdateRequest }> = [];
 		const createRequests: RateCardCreateRequest[] = [];
 		const deactivatedKeys = new Set<string>();
-			const leadMagnetChanged = Boolean(activeModel.meta?.lead_magnet) !== Boolean(leadMagnetEnabled);
+			const leadMagnetChanged = Boolean(activeModel.meta?.lead_magnet) !== Boolean(requestedLeadMagnet);
 			let hasValidationError = false;
 
 		(Object.keys(modalState) as ModalityKey[]).forEach((modality) => {
@@ -975,7 +981,7 @@
 						return;
 					}
 					if (unitState.exists) {
-						const previousCost = unitState.originalCost ?? Number.parseInt(unitState.cost, 10);
+						const previousCost = unitState.originalCost ?? priceToKopeks(unitState.cost) ?? 0;
 						if (cost === previousCost) {
 							updateRequests.push({
 								id: unitState.id as string,
@@ -1045,8 +1051,8 @@
 				}
 
 				if (leadMagnetChanged) {
-					const nextMeta = { ...(selectedModel.meta ?? {}) };
-					if (leadMagnetEnabled) {
+					const nextMeta = { ...(activeModel.meta ?? {}) };
+					if (requestedLeadMagnet) {
 						nextMeta.lead_magnet = true;
 					} else {
 						delete nextMeta.lead_magnet;
@@ -1054,29 +1060,38 @@
 
 					await ensureWorkspaceBaseModelExists(activeModel, nextMeta);
 
-					const updatedModel = await updateModelById(localStorage.token, selectedModel.id, {
-						id: selectedModel.id,
-						name: selectedModel.name ?? selectedModel.id,
-						base_model_id: selectedModel.base_model_id ?? null,
-					params: selectedModel.params ?? {},
-					access_control: selectedModel.access_control ?? null,
-					is_active: selectedModel.is_active ?? true,
+					const updatedModel = await updateModelById(localStorage.token, activeModel.id, {
+						id: activeModel.id,
+						name: activeModel.name ?? activeModel.id,
+						base_model_id: activeModel.base_model_id ?? null,
+					params: activeModel.params ?? {},
+					access_control: activeModel.access_control ?? null,
+					is_active: activeModel.is_active ?? true,
 					meta: nextMeta
 				});
 				if (!updatedModel) {
 					throw new Error('Failed to update model');
 				}
+				completedChanges += 1;
 			}
 			for (const request of createRequests) {
 				await createRateCard(localStorage.token, request);
+				completedChanges += 1;
 			}
 			for (const request of updateRequests) {
 				await updateRateCard(localStorage.token, request.id, request.data);
+				completedChanges += 1;
 			}
 			toast.success($i18n.t(formMode === 'add' ? 'Rate card created' : 'Rate card updated'));
-			closeModal();
+			if(selectedModel?.id===activeModel.id)closeModal();
 			await loadData();
 		} catch (error) {
+			saveResult = $i18n.t(
+				'Saving interrupted. Applied changes: {{count}}. Current prices have been reloaded; check them before trying again.',
+				{ count: completedChanges }
+			);
+			await loadData();
+			if (selectedModel?.id===activeModel.id) initializeModalState(activeModel.id);
 			const message = error instanceof Error ? error.message : String(error);
 			if (message.includes('already exists')) {
 				toast.error($i18n.t('Rate card already exists. Refreshing list.'));
@@ -1099,7 +1114,9 @@
 				!needle ||
 					getModelDisplayName(model).toLowerCase().includes(needle) ||
 					model.id.toLowerCase().includes(needle);
-				const matchesStatus = statusFilter === 'all' ? true : model.status === statusFilter;
+			const matchesStatus =
+				(statusFilter === 'all' || model.status === statusFilter) &&
+				(!onlyFreeModels || Boolean(model.meta?.lead_magnet));
 				if (!(matchesSearch && matchesStatus)) return false;
 
 				const anyPricingFilter = showMissingPrices || showPartialPrices || showZeroPrices;
@@ -1119,7 +1136,8 @@
 		);
 
 	$: previewCounts = calculatePreviewCounts();
-	$: applyDisabled = !importFile ||
+	$: applyDisabled =
+		!importFile ||
 		!importPreview ||
 		Boolean(importPreview?.errors?.length) ||
 		(importPreview?.summary?.rows_invalid ?? 0) > 0;
@@ -1139,7 +1157,7 @@
 </script>
 
 <svelte:head>
-	<title>{$i18n.t('Model Pricing')} • {$WEBUI_NAME}</title>
+	<title>{$i18n.t('Model prices')} • {$WEBUI_NAME}</title>
 </svelte:head>
 
 {#if !loaded}
@@ -1224,8 +1242,10 @@
 						bind:value={importMode}
 						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent text-sm"
 					>
-						<option value="patch">{$i18n.t('Patch (only update provided rows)')}</option>
-						<option value="full_sync">{$i18n.t('Full sync (deactivate missing units)')}</option>
+						<option value="patch">{$i18n.t('Change only rows from the file')}</option>
+						<option value="full_sync"
+							>{$i18n.t('Also disable missing prices for selected models')}</option
+						>
 					</select>
 				</div>
 
@@ -1319,6 +1339,37 @@
 							</div>
 						</div>
 
+						<p class="mt-3 break-all">
+							{$i18n.t('Selected models')}: {Array.from(selectedModelIds).join(', ')}
+						</p>
+						<div class="mt-3 max-h-56 overflow-auto">
+							<table class="w-full text-xs">
+								<thead
+									><tr
+										><th>{$i18n.t('Model')}</th><th>{$i18n.t('Price changes')}</th><th
+											>{$i18n.t('Operation')}</th
+										></tr
+									></thead
+								><tbody
+									>{#each importPreview.actions_preview as action}{@const previous =
+											rateCardIndex[String(action.model_id)]?.[
+												getRateCardKey(String(action.modality), String(action.unit))
+											]}<tr class="border-t border-gray-200 dark:border-gray-700"
+											><td class="p-2 break-all"
+												>{String(action.model_id)} · {getUnitLabel(
+													String(action.modality),
+													String(action.unit)
+												)}</td
+											><td class="p-2"
+												>{previous ? formatMoney(previous.raw_cost_per_unit_kopeks) : '—'} → {action.desired_active
+													? formatMoney(Number(action.desired_price || 0))
+													: $i18n.t('Disabled')}</td
+											><td class="p-2">{$i18n.t(String(action.action))}</td></tr
+										>{/each}</tbody
+								>
+							</table>
+						</div>
+						<p class="mt-2 text-xs">{$i18n.t('Preview shows up to 200 changes')}</p>
 						{#if importPreview.warnings?.length}
 							<div class="mt-3 text-amber-700 dark:text-amber-300">
 								{$i18n.t('Warnings: {{count}}', { count: importPreview.warnings.length })}
@@ -1383,7 +1434,7 @@
 		<div class="flex flex-col gap-1 px-1 mt-2.5 mb-4">
 			<div class="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
 				<div class="flex items-center text-xl font-medium gap-2">
-					<div>{$i18n.t('Model Pricing')}</div>
+					<h1>{$i18n.t('Model prices')}</h1>
 					<div class="text-lg font-medium text-gray-500 dark:text-gray-500">
 						{modelRows.length}
 					</div>
@@ -1397,6 +1448,13 @@
 				</button>
 			</div>
 			<div class="flex flex-col lg:flex-row gap-3">
+				{#if onlyFreeModels}<button
+						type="button"
+						class="text-sm underline"
+						on:click={() => {
+							onlyFreeModels = false;
+						}}>{$i18n.t('Free access models only — clear')}</button
+					>{/if}
 				<label class="flex-1">
 					<span class="sr-only">{$i18n.t('Search models')}</span>
 					<input
@@ -1545,23 +1603,23 @@
 							type="button"
 							on:click={() => (showDeactivateModelsConfirm = true)}
 							class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition"
-							aria-label={$i18n.t('Deactivate models')}
-							title={$i18n.t('Deactivate models')}
+							aria-label={$i18n.t('Disable prices')}
+							title={$i18n.t('Disable prices')}
 						>
 							<span class="whitespace-nowrap">
-								{$i18n.t('Deactivate models')} ({selectedModelIds.size})
+								{$i18n.t('Disable prices')} ({selectedModelIds.size})
 							</span>
 						</button>
 						<button
 							type="button"
 							on:click={() => (showDeleteModelsConfirm = true)}
 							class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition"
-							aria-label={$i18n.t('Delete models')}
-							title={$i18n.t('Delete models')}
+							aria-label={$i18n.t('Delete prices')}
+							title={$i18n.t('Delete prices')}
 						>
 							<GarbageBin className="size-4" />
 							<span class="whitespace-nowrap">
-								{$i18n.t('Delete models')} ({selectedModelIds.size})
+								{$i18n.t('Delete prices')} ({selectedModelIds.size})
 							</span>
 						</button>
 					</div>
@@ -1656,7 +1714,9 @@
 											title={`${getSortButtonLabel('text_in')} — ${getModalityShortDescription('text')}`}
 										>
 												{$i18n.t('Input')}
-													<span class="text-[10px] text-gray-400 dark:text-gray-500">{rateCardCurrencySymbol}/1k tok</span>
+											<span class="text-[10px] text-gray-400 dark:text-gray-500"
+												>{rateCardCurrencySymbol}/1k tok</span
+											>
 												{#if sortKey === 'text_in'}
 													{#if sortDirection === 'asc'}
 														<ChevronUp className="size-3.5" />
@@ -1681,7 +1741,9 @@
 											title={`${getSortButtonLabel('text_out')} — ${getModalityShortDescription('text')}`}
 										>
 												{$i18n.t('Output')}
-													<span class="text-[10px] text-gray-400 dark:text-gray-500">{rateCardCurrencySymbol}/1k tok</span>
+											<span class="text-[10px] text-gray-400 dark:text-gray-500"
+												>{rateCardCurrencySymbol}/1k tok</span
+											>
 												{#if sortKey === 'text_out'}
 													{#if sortDirection === 'asc'}
 														<ChevronUp className="size-3.5" />
@@ -1707,7 +1769,9 @@
 											title={`${getSortButtonLabel('image')} — ${getModalityShortDescription('image')}`}
 										>
 												{$i18n.t('Images')}
-													<span class="text-[10px] text-gray-400 dark:text-gray-500">{rateCardCurrencySymbol}/img</span>
+											<span class="text-[10px] text-gray-400 dark:text-gray-500"
+												>{rateCardCurrencySymbol}/img</span
+											>
 												{#if sortKey === 'image'}
 													{#if sortDirection === 'asc'}
 														<ChevronUp className="size-3.5" />
@@ -1733,7 +1797,9 @@
 											title={`${getSortButtonLabel('tts')} — ${getModalityShortDescription('tts')}`}
 										>
 												TTS
-													<span class="text-[10px] text-gray-400 dark:text-gray-500">{rateCardCurrencySymbol}/1k chars</span>
+											<span class="text-[10px] text-gray-400 dark:text-gray-500"
+												>{rateCardCurrencySymbol}/1k chars</span
+											>
 												{#if sortKey === 'tts'}
 													{#if sortDirection === 'asc'}
 														<ChevronUp className="size-3.5" />
@@ -1758,7 +1824,9 @@
 											title={`${getSortButtonLabel('stt')} — ${getModalityShortDescription('stt')}`}
 										>
 												STT
-													<span class="text-[10px] text-gray-400 dark:text-gray-500">{rateCardCurrencySymbol}/min</span>
+											<span class="text-[10px] text-gray-400 dark:text-gray-500"
+												>{rateCardCurrencySymbol}/min</span
+											>
 												{#if sortKey === 'stt'}
 													{#if sortDirection === 'asc'}
 														<ChevronUp className="size-3.5" />
@@ -1809,7 +1877,7 @@
 										aria-label={getSortButtonLabel('lead')}
 										title={getSortButtonLabel('lead')}
 									>
-										{$i18n.t('Lead magnet')}
+										{$i18n.t('Free access')}
 										{#if sortKey === 'lead'}
 											{#if sortDirection === 'asc'}
 												<ChevronUp className="size-3.5" />
@@ -1951,7 +2019,9 @@
 																		tippyOptions={{ maxWidth: 260, appendTo: () => document.body }}
 																	>
 																		<div class="flex items-center justify-between gap-3 text-xs">
-																			<div class="inline-flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+																		<div
+																			class="inline-flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400"
+																		>
 																				<span
 																					class={`inline-flex items-center justify-center rounded-full px-2 py-1 font-medium ${getModalityTone(
 																						modality
@@ -1961,7 +2031,9 @@
 																				</span>
 																				<span class="font-medium">{label}</span>
 																			</div>
-																			<div class="min-w-0 text-right font-medium text-gray-700 dark:text-gray-200">
+																		<div
+																			class="min-w-0 text-right font-medium text-gray-700 dark:text-gray-200"
+																		>
 																				{#if modality === 'text'}
 																					{@const textIn = rates.text_in_1000_tokens ?? null}
 																					{@const textOut = rates.text_out_1000_tokens ?? null}
@@ -2005,7 +2077,7 @@
 											<span
 												class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-sky-500/15 text-sky-700 dark:text-sky-300"
 											>
-												{$i18n.t('Lead magnet')}
+												{$i18n.t('Free access')}
 											</span>
 										{:else}
 											<span class="text-[11px] text-gray-400">—</span>
@@ -2172,8 +2244,7 @@
 													{/if}
 												</span>
 											</div>
-										{:else}
-											{#if rates && model.modalities.length > 0}
+									{:else if rates && model.modalities.length > 0}
 												{#each MODALITY_ORDER as modality}
 													{#if model.modalities.includes(modality)}
 														{@const label = getModalityLabel(modality)}
@@ -2216,7 +2287,6 @@
 											{:else}
 												<span class="text-[11px] text-gray-400">—</span>
 											{/if}
-										{/if}
 									{/key}
 								</div>
 							<div class="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
@@ -2227,7 +2297,7 @@
 									<span
 										class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-sky-500/15 text-sky-700 dark:text-sky-300"
 									>
-										{$i18n.t('Lead magnet')}
+										{$i18n.t('Free access')}
 									</span>
 								{:else}
 									<span class="text-[11px] text-gray-400">—</span>
@@ -2263,7 +2333,7 @@
 			<div class="flex items-center justify-between gap-3 mb-4">
 				<div>
 					<div class="text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">
-						{$i18n.t('Lead magnet')}
+						{$i18n.t('Free access')}
 					</div>
 					<div class="text-[11px] text-gray-400">
 						{$i18n.t('Allow free usage via lead magnet quotas for this model')}
@@ -2284,7 +2354,7 @@
 						<div class="flex items-start justify-between gap-3 mb-3">
 							<div>
 								<div class="text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">
-									{modalityKey}
+									{$i18n.t(getModalityLabel(modalityKey))}
 								</div>
 								<div class="text-[11px] text-gray-400">
 									{$i18n.t('Enable modality')}
@@ -2317,11 +2387,11 @@
 										<div class="text-xs font-medium">
 											{getUnitLabel(modalityKey, unitState.unit)}
 										</div>
-										<div class="text-[11px] text-gray-400">{$i18n.t('Kopeks per unit')}</div>
+										<div class="text-[11px] text-gray-400">{$i18n.t('RUB per displayed unit')}</div>
 									</div>
 									<input
 										type="text"
-										inputmode="numeric"
+										inputmode="decimal"
 										value={unitState.cost}
 										on:input={(event) => {
 											updateUnitCost(modalityKey, unitState.unit, getInputValue(event));
@@ -2329,6 +2399,7 @@
 										placeholder={$i18n.t('0')}
 										disabled={!modalityState.enabled ||
 											(linkTextPrices && modalityKey === 'text' && unitState.unit === 'token_out')}
+										aria-label={`${getUnitLabel(modalityKey, unitState.unit)} · RUB`}
 										class="w-28 px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-transparent text-xs disabled:opacity-50"
 									/>
 								</div>
@@ -2338,6 +2409,40 @@
 				{/each}
 			</div>
 
+			<div class="mt-4 rounded-lg bg-gray-50 p-3 text-xs dark:bg-gray-800">
+				<p class="mb-2 font-medium">{$i18n.t('Price changes')}</p>
+				{#each MODALITY_ORDER as modality}{#each Object.values(modalState[modality].units) as unit}<div
+							class="flex flex-wrap justify-between gap-2"
+						>
+							<span>{getUnitLabel(modality, unit.unit)}</span><span
+								>{unit.originalCost === null || unit.originalCost === undefined
+									? '—'
+									: formatMoney(unit.originalCost)} → {modalState[modality].enabled
+									? priceToKopeks(
+											modality === 'text' && linkTextPrices && unit.unit === 'token_out'
+												? modalState.text.units.token_in.cost
+												: unit.cost
+										) === null
+										? $i18n.t('Invalid price')
+										: formatMoney(
+												priceToKopeks(
+													modality === 'text' && linkTextPrices && unit.unit === 'token_out'
+														? modalState.text.units.token_in.cost
+														: unit.cost
+												) ?? 0
+											)
+									: $i18n.t('Disabled')}</span
+							>
+						</div>{/each}{/each}
+				<p class="mt-2">
+					{$i18n.t(
+						'Saved usage keeps its original price. Zero price is separate from free allowance.'
+					)}
+				</p>
+			</div>
+			{#if saveResult}<p role="alert" class="mt-3 text-sm text-amber-700 dark:text-amber-300">
+					{saveResult}
+				</p>{/if}
 			<div class="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
 				<div class="text-xs text-gray-500">
 					{$i18n.t('Will create {{count}} entries', { count: previewCounts.create })}

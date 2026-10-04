@@ -1,12 +1,17 @@
 <script lang="ts">
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
-	import { onMount, getContext } from 'svelte';
+	import { onMount, onDestroy, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
 	import { WEBUI_NAME, user } from '$lib/stores';
-	import { getPlan, updatePlan, getPlanSubscribers } from '$lib/apis/admin/billing';
+	import {
+		getPlan,
+		updatePlan,
+		getPlanSubscribers,
+		getPlansWithStats
+	} from '$lib/apis/admin/billing';
 	import type { Plan, UpdatePlanRequest, PlanSubscriber } from '$lib/apis/admin/billing';
 	import {
 		formatCompactNumber,
@@ -24,13 +29,14 @@
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext('i18n'); let alive=true;let mounted=false;let loadVersion=0; onDestroy(()=>{alive=false;mounted=false;loadVersion++;});
 
 	let planId = '';
-	let loading = true;
+	let loading = true; let loadError='';
 	let saving = false;
 	let originalPlan: Plan | null = null;
 	let subscribers: PlanSubscriber[] = [];
+	let activeSubscriberCount: number | null = null;
 
 	// Form data
 	let formData: UpdatePlanRequest = {
@@ -125,7 +131,7 @@
 		originalPlan && formData.price !== undefined && formData.price !== originalPlan.price;
 
 	// Has active subscribers
-	$: hasActiveSubscribers = subscribers.length > 0;
+	$: hasActiveSubscribers = activeSubscriberCount !== null && activeSubscriberCount > 0;
 
 	onMount(async () => {
 		if ($user?.role !== 'admin') {
@@ -133,17 +139,21 @@
 			return;
 		}
 
-		planId = $page.params.id;
+		planId = $page.params.id || '';mounted=true;
 		await loadPlan();
 	});
 
-	const loadPlan = async () => {
-		loading = true;
+	const loadPlan = async (): Promise<void> => {
+		const version=++loadVersion;const selectedPlan=planId; loading = true;loadError='';activeSubscriberCount=null;subscribers=[];
 		try {
-			const plan = await getPlan(localStorage.token, planId);
+			const [plan, allStats] = await Promise.all([
+				getPlan(localStorage.token, selectedPlan),
+				getPlansWithStats(localStorage.token)
+			]);
+			if(!alive || version!==loadVersion || selectedPlan!==String($page.params.id))return; activeSubscriberCount =
+				allStats.find((item) => item.plan.id === selectedPlan)?.active_subscriptions ?? null;
 			if (!plan) {
-				toast.error($i18n.t('Plan not found'));
-				goto('/admin/billing/plans');
+				loadError='Plan not found';
 				return;
 			}
 
@@ -171,20 +181,21 @@
 			unlimitedRequests = plan.quotas.requests === null;
 
 			// Load subscribers
-			const subs = await getPlanSubscribers(localStorage.token, planId);
+			const subs = await getPlanSubscribers(localStorage.token, selectedPlan);
+ if(!alive || version!==loadVersion || selectedPlan!==String($page.params.id))return;
 			if (subs) {
 				subscribers = subs.items || subs;
 			}
 		} catch (error) {
 			console.error('Failed to load plan:', error);
-			toast.error($i18n.t('Failed to load plan'));
-			goto('/admin/billing/plans');
+			if(alive && version===loadVersion)loadError='Failed to load plan';
 		} finally {
-			loading = false;
+			if(version===loadVersion)loading = false;
 		}
 	};
 
 	const validateForm = (): boolean => {
+		if (!formData.name?.trim() && formData.name_ru?.trim()) formData.name = formData.name_ru.trim();
 		if (!formData.name || !formData.name.trim()) {
 			toast.error($i18n.t('Plan name is required'));
 			return false;
@@ -221,17 +232,24 @@
 		return true;
 	};
 
-	const handleSave = async () => {
+	const handleSave = async (): Promise<void> => {
+ const selectedPlan=planId;
+		if (activeSubscriberCount === null) {
+			toast.error($i18n.t('Subscription totals unavailable; reload before saving'));
+			return;
+		}
 		if (!validateForm() || saving) return;
 
 		saving = true;
 		try {
-			const result = await updatePlan(localStorage.token, planId, formData);
+			const result = await updatePlan(localStorage.token, selectedPlan, formData);
+ if(!alive || selectedPlan!==String($page.params.id))return;
 			if (result) {
 				toast.success($i18n.t('Plan updated successfully'));
-				goto('/admin/billing/plans');
+				if(alive)goto('/admin/billing/plans');
 			}
 		} catch (error: unknown) {
+			if(!alive || selectedPlan!==String($page.params.id))return;
 			console.error('Failed to update plan:', error);
 			toast.error(
 				(typeof error === 'object' &&
@@ -255,6 +273,7 @@
 			day: 'numeric'
 		});
 	};
+ $: if(mounted && planId!==String($page.params.id)){planId=String($page.params.id);originalPlan=null;void loadPlan();}
 </script>
 
 <svelte:head>
@@ -267,12 +286,14 @@
 	<div class="w-full h-full flex justify-center items-center">
 		<Spinner className="size-5" />
 	</div>
+{:else if loadError}<div class="p-4"><p role="alert">{$i18n.t(loadError)}</p><button type="button" class="mt-2 underline" on:click={loadPlan}>{$i18n.t('Retry')}</button><a href="/admin/billing/plans" class="ml-3 underline">{$i18n.t('Back')}</a></div>
 {:else}
 	<div class="flex flex-col justify-between w-full overflow-y-auto h-full">
 		<div class="mx-auto w-full md:px-0 h-full">
 			<form class="flex flex-col max-h-[100dvh] h-full" on:submit|preventDefault={handleSave}>
 				<div class="flex flex-col flex-1 overflow-auto h-0 rounded-lg">
 					<!-- Header -->
+					<h1 class="px-1 mb-2 text-xl font-medium">{$i18n.t('Edit Plan')}</h1>
 					<div class="w-full mb-2 flex flex-col gap-0.5">
 						<div class="flex w-full items-center">
 							<div class="shrink-0 mr-2">
@@ -292,8 +313,8 @@
 									<input
 										class="w-full text-2xl font-medium bg-transparent outline-hidden font-primary"
 										type="text"
-										placeholder={$i18n.t('Plan Name')}
-										bind:value={formData.name}
+										placeholder={$i18n.t('Name (Russian)')}
+										bind:value={formData.name_ru}
 										required
 									/>
 								</Tooltip>
@@ -335,7 +356,9 @@
 							{/if}
 							{#if priceChanged}
 								<div class="text-yellow-700 dark:text-yellow-300">
-									{$i18n.t('Price changes will affect new subscriptions only')}
+									{$i18n.t(
+										'Price changes may affect renewals; check existing subscription terms before saving'
+									)}
 								</div>
 							{/if}
 						</div>
@@ -345,14 +368,19 @@
 					<div class="mb-2 flex-1 overflow-auto h-0 px-1">
 						<div class="space-y-4">
 							<!-- Localization -->
-							<div class="grid grid-cols-2 gap-4">
+							<details class="mb-4 text-sm">
+								<summary class="mb-2 cursor-pointer text-gray-500"
+									>{$i18n.t('Additional language fields')}</summary
+								>
+								<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 								<div>
-									<label for="plan-edit-name_ru" class="block text-xs text-gray-500 mb-1">{$i18n.t('Name (Russian)')}</label
+										<label for="plan-edit-name_ru" class="block text-xs text-gray-500 mb-1"
+											>{$i18n.t('Name (English)')}</label
 									>
 									<input
 										id="plan-edit-name_ru"
 										type="text"
-										bind:value={formData.name_ru}
+											bind:value={formData.name}
 										placeholder={$i18n.t('Professional')}
 										class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
 									/>
@@ -370,13 +398,15 @@
 									/>
 								</div>
 							</div>
-
+							</details>
 							<!-- Pricing -->
 							<div>
 								<div class="text-xs text-gray-500 mb-2 font-medium">{$i18n.t('Pricing')}</div>
-								<div class="grid grid-cols-3 gap-3">
+								<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
 									<div>
-										<label for="plan-edit-price" class="block text-xs text-gray-500 mb-1">{$i18n.t('Price')}</label>
+										<label for="plan-edit-price" class="block text-xs text-gray-500 mb-1"
+											>{$i18n.t('Price')}</label
+										>
 										<input
 											id="plan-edit-price"
 											type="number"
@@ -387,7 +417,9 @@
 										/>
 									</div>
 									<div>
-										<label for="plan-edit-currency" class="block text-xs text-gray-500 mb-1">{$i18n.t('Currency')}</label>
+										<label for="plan-edit-currency" class="block text-xs text-gray-500 mb-1"
+											>{$i18n.t('Currency')}</label
+										>
 										<select
 											id="plan-edit-currency"
 											bind:value={formData.currency}
@@ -399,7 +431,9 @@
 										</select>
 									</div>
 									<div>
-										<label for="plan-edit-interval" class="block text-xs text-gray-500 mb-1">{$i18n.t('Interval')}</label>
+										<label for="plan-edit-interval" class="block text-xs text-gray-500 mb-1"
+											>{$i18n.t('Interval')}</label
+										>
 										<select
 											id="plan-edit-interval"
 											bind:value={formData.interval}
@@ -417,10 +451,18 @@
 							<!-- Quotas -->
 							<div>
 								<div class="text-xs text-gray-500 mb-2 font-medium">{$i18n.t('Usage Quotas')}</div>
+								<p class="mb-3 text-xs text-gray-500">
+									{$i18n.t(
+										'Subscription quotas must be positive or unlimited. Zero quota is not supported in this form.'
+									)}
+								</p>
 								<div class="space-y-3">
 									<div class="flex items-center gap-3">
 										<div class="flex-1">
-											<label for="plan-edit-quotas-tokens_input" class="block text-xs text-gray-500 mb-1">
+											<label
+												for="plan-edit-quotas-tokens_input"
+												class="block text-xs text-gray-500 mb-1"
+											>
 												{$i18n.t('Input Tokens')}
 												{#if hasActiveSubscribers && originalPlan?.quotas.tokens_input !== null}
 													<span class="text-gray-400"
@@ -447,7 +489,10 @@
 
 									<div class="flex items-center gap-3">
 										<div class="flex-1">
-											<label for="plan-edit-quotas-tokens_output" class="block text-xs text-gray-500 mb-1">
+											<label
+												for="plan-edit-quotas-tokens_output"
+												class="block text-xs text-gray-500 mb-1"
+											>
 												{$i18n.t('Output Tokens')}
 												{#if hasActiveSubscribers && originalPlan?.quotas.tokens_output !== null}
 													<span class="text-gray-400"
@@ -474,7 +519,10 @@
 
 									<div class="flex items-center gap-3">
 										<div class="flex-1">
-											<label for="plan-edit-quotas-requests" class="block text-xs text-gray-500 mb-1">
+											<label
+												for="plan-edit-quotas-requests"
+												class="block text-xs text-gray-500 mb-1"
+											>
 												{$i18n.t('Requests')}
 												{#if hasActiveSubscribers && originalPlan?.quotas.requests !== null}
 													<span class="text-gray-400"
@@ -546,7 +594,7 @@
 							<!-- Settings -->
 							<div>
 								<div class="text-xs text-gray-500 mb-2 font-medium">{$i18n.t('Settings')}</div>
-								<div class="grid grid-cols-2 gap-4">
+								<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 									<div class="flex items-center gap-3">
 										<label class="flex items-center gap-2 text-sm">
 											<input type="checkbox" bind:checked={formData.is_active} class="rounded" />
@@ -586,7 +634,7 @@
 										>
 											<ChevronDown className="size-3.5" />
 										</span>
-										{$i18n.t('Subscribers')} ({subscribers.length})
+										{$i18n.t('Recent subscribers')} ({subscribers.length})
 									</button>
 
 									{#if subscribersExpanded}
@@ -814,7 +862,7 @@
 							<div class="text-xs text-gray-500 line-clamp-2">
 								{#if hasActiveSubscribers}
 									{$i18n.t('{count} active subscribers. Changes may affect existing users.', {
-										count: subscribers.length
+										count: activeSubscriberCount ?? 0
 									})}
 								{:else}
 									{$i18n.t('No active subscribers. Changes can be made freely.')}

@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { onMount, getContext } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import { models } from '$lib/stores';
 	import {
 		getSummary,
@@ -9,613 +11,410 @@
 		getTokenUsage
 	} from '$lib/apis/analytics';
 	import { getGroups } from '$lib/apis/groups';
-	import Spinner from '$lib/components/common/Spinner.svelte';
-	import ChevronUp from '$lib/components/icons/ChevronUp.svelte';
-	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
+	import { defaultReportDates, reportDateRange } from '$lib/utils/airis/analyticsReport';
 	import ChartLine from './ChartLine.svelte';
 	import AnalyticsModelModal from './AnalyticsModelModal.svelte';
-	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import { WEBUI_API_BASE_URL } from '$lib/constants';
-	import { formatNumber } from '$lib/utils';
-	import { goto } from '$app/navigation';
 
-	const i18n = getContext('i18n');
-
-	// Time period - persist in localStorage
-	let selectedPeriod =
-		(typeof localStorage !== 'undefined' && localStorage.getItem('analyticsPeriod')) || '7d';
-
-	// Custom date range (YYYY-MM-DD) - persist in localStorage
-	let customStart =
-		(typeof localStorage !== 'undefined' && localStorage.getItem('analyticsCustomStart')) || '';
-	let customEnd =
-		(typeof localStorage !== 'undefined' && localStorage.getItem('analyticsCustomEnd')) || '';
-
-	$: periods = [
-		{ value: '24h', label: $i18n.t('Last 24 hours') },
-		{ value: '7d', label: $i18n.t('Last 7 days') },
-		{ value: '30d', label: $i18n.t('Last 30 days') },
-		{ value: '90d', label: $i18n.t('Last 90 days') },
-		{ value: 'all', label: $i18n.t('All time') },
-		{ value: 'custom', label: $i18n.t('Custom range') }
-	];
-
-	// User group filter
-	let groups: Array<{ id: string; name: string }> = [];
-	let selectedGroupId: string | null = null;
-
-	const getDateRange = (period: string): { start: number | null; end: number | null } => {
-		const now = Math.floor(Date.now() / 1000);
-		const day = 86400;
-		switch (period) {
-			case '24h':
-				return { start: now - day, end: now };
-			case '7d':
-				return { start: now - 7 * day, end: now };
-			case '30d':
-				return { start: now - 30 * day, end: now };
-			case '90d':
-				return { start: now - 90 * day, end: now };
-			case 'custom': {
-				// Parse YYYY-MM-DD inputs; end date is inclusive (covers the full day)
-				const start = customStart ? Math.floor(new Date(customStart).getTime() / 1000) : null;
-				const end = customEnd ? Math.floor(new Date(customEnd).getTime() / 1000) + day - 1 : null;
-				return { start, end };
-			}
-			default:
-				return { start: null, end: null };
-		}
-	};
-
-	// Data
-	let summary = { total_messages: 0, total_chats: 0, total_models: 0, total_users: 0 };
-	let modelStats: Array<{
+	type ModelStat = {
 		model_id: string;
 		count: number;
-		unique_users?: number;
-		unique_chats?: number;
+		unique_users: number;
+		unique_chats: number;
+		name: string;
+	};
+	type UserStat = {
+		user_id: string;
 		name?: string;
-	}> = [];
-	let userStats: Array<{ user_id: string; name?: string; email?: string; count: number }> = [];
+		email?: string;
+		count: number;
+		total_tokens: number;
+	};
+	type ModelSort = 'name' | 'count' | 'unique_users' | 'unique_chats' | 'tokens';
+	type UserSort = 'name' | 'count' | 'total_tokens';
+	const initial = defaultReportDates();
+	let fromDate = $page.url.searchParams.get('from') || initial.from;
+	let toDate = $page.url.searchParams.get('to') || initial.to;
+	let selectedGroupId = $page.url.searchParams.get('group_id') || '';
+	let granularity: 'hourly' | 'daily' =
+		$page.url.searchParams.get('granularity') === 'hourly' ? 'hourly' : 'daily';
+	let groups: Array<{ id: string; name: string }> = [];
+	let groupsError = '';
+	let summary = { total_messages: 0, total_chats: 0, total_models: 0, total_users: 0 };
+	let modelStats: ModelStat[] = [];
+	let userStats: UserStat[] = [];
 	let dailyStats: Array<{ date: string; models: Record<string, number> }> = [];
-	let tokenStats: Record<
-		string,
-		{ input_tokens: number; output_tokens: number; total_tokens: number }
-	> = {};
-	let totalTokens = { input: 0, output: 0, total: 0 };
-
-	let loading = true;
-
-	// Selected model for drill-down
+	let tokenStats: Record<string, { total_tokens: number }> = {};
+	let totalTokens = 0;
+	let loading = false;
+	let error = '';
+	let generation = 0;
+	let applied: {
+		from: string;
+		to: string;
+		start: number | null;
+		end: number | null;
+		group: string;
+		granularity: 'hourly' | 'daily';
+	} = { from: fromDate, to: toDate, start: null, end: null, group: '', granularity };
 	let selectedModel: { id: string; name: string } | null = null;
 	let showModelModal = false;
-
-	// Sorting
-	let modelOrderBy = 'count';
-	let modelDirection: 'asc' | 'desc' = 'desc';
-	let userOrderBy = 'count';
-	let userDirection: 'asc' | 'desc' = 'desc';
-
-	const toggleModelSort = (key: string) => {
-		if (modelOrderBy === key) {
-			modelDirection = modelDirection === 'asc' ? 'desc' : 'asc';
-		} else {
-			modelOrderBy = key;
-			modelDirection = key === 'name' ? 'asc' : 'desc';
-		}
+	let modelOrderBy: ModelSort = 'count';
+	let modelDirection = -1;
+	let userOrderBy: UserSort = 'count';
+	let userDirection = -1;
+	const number = (value: number): string => value.toLocaleString('ru-RU');
+	const modelColumns: Array<{ key: ModelSort; label: string }> = [
+		{ key: 'name', label: 'Модель' },
+		{ key: 'count', label: 'Ответы' },
+		{ key: 'unique_users', label: 'Люди' },
+		{ key: 'unique_chats', label: 'Чаты' },
+		{ key: 'tokens', label: 'Токены' }
+	];
+	const userColumns: Array<{ key: UserSort; label: string }> = [
+		{ key: 'name', label: 'Пользователь' },
+		{ key: 'count', label: 'Ответы' },
+		{ key: 'total_tokens', label: 'Токены' }
+	];
+	const colors = [
+		'#3b82f6',
+		'#10b981',
+		'#f59e0b',
+		'#ef4444',
+		'#8b5cf6',
+		'#ec4899',
+		'#06b6d4',
+		'#84cc16'
+	];
+	const sortModels = (key: ModelSort): void => {
+		modelDirection = modelOrderBy === key ? -modelDirection : key === 'name' ? 1 : -1;
+		modelOrderBy = key;
 	};
-
-	const toggleUserSort = (key: string) => {
-		if (userOrderBy === key) {
-			userDirection = userDirection === 'asc' ? 'desc' : 'asc';
-		} else {
-			userOrderBy = key;
-			userDirection = key === 'user_id' ? 'asc' : 'desc';
-		}
+	const sortUsers = (key: UserSort): void => {
+		userDirection = userOrderBy === key ? -userDirection : key === 'name' ? 1 : -1;
+		userOrderBy = key;
 	};
-
-	const loadDashboard = async () => {
+	const modelValue = (model: ModelStat, key: ModelSort): number =>
+		key === 'tokens'
+			? (tokenStats[model.model_id]?.total_tokens ?? 0)
+			: key === 'name'
+				? 0
+				: model[key];
+	const openModel = (model: ModelStat): void => {
+		selectedModel = { id: model.model_id, name: model.name };
+		showModelModal = true;
+	};
+	const load = async (persist = true): Promise<void> => {
+		const current = ++generation;
+		error = '';
+		let range: { start: number; end: number };
+		try {
+			range = reportDateRange(fromDate, toDate);
+		} catch (cause) {
+			error = cause instanceof Error ? cause.message : 'Проверьте даты';
+			loading = false;
+			return;
+		}
+		const selected = { from: fromDate, to: toDate, ...range, group: selectedGroupId, granularity };
 		loading = true;
 		try {
-			const { start, end } = getDateRange(selectedPeriod);
-			const granularity = selectedPeriod === '24h' ? 'hourly' : 'daily';
-			const [summaryRes, modelsRes, usersRes, dailyRes, tokensRes] = await Promise.all([
-				getSummary(localStorage.token, start, end, selectedGroupId),
-				getModelAnalytics(localStorage.token, start, end, selectedGroupId),
-				getUserAnalytics(localStorage.token, start, end, 50, selectedGroupId),
-				getDailyStats(localStorage.token, start, end, granularity, selectedGroupId),
-				getTokenUsage(localStorage.token, start, end, selectedGroupId)
+			const [overview, modelData, userData, daily, tokens] = await Promise.all([
+				getSummary(localStorage.token, range.start, range.end, selected.group || null),
+				getModelAnalytics(localStorage.token, range.start, range.end, selected.group || null),
+				getUserAnalytics(localStorage.token, range.start, range.end, 50, selected.group || null),
+				getDailyStats(
+					localStorage.token,
+					range.start,
+					range.end,
+					selected.granularity,
+					selected.group || null
+				),
+				getTokenUsage(localStorage.token, range.start, range.end, selected.group || null)
 			]);
-
-			summary = summaryRes ?? summary;
-
-			const modelsMap = new Map($models.map((m) => [m.id, m.name || m.id]));
-			modelStats = (modelsRes?.models ?? []).map((entry) => ({
+			if (current !== generation) return;
+			if (!overview || !modelData || !userData || !daily || !tokens)
+				throw new Error('Не все данные загрузились. Повторите попытку.');
+			summary = overview;
+			const names = new Map($models.map((model) => [model.id, model.name || model.id]));
+			modelStats = modelData.models.map((entry: Omit<ModelStat, 'name'>) => ({
 				...entry,
-				name: modelsMap.get(entry.model_id) || entry.model_id
+				name: names.get(entry.model_id) || entry.model_id
 			}));
-
-			userStats = usersRes?.users ?? [];
-			dailyStats = dailyRes?.data ?? [];
-
-			// Process token data
-			if (tokensRes) {
-				tokenStats = {};
-				for (const m of tokensRes.models) {
-					tokenStats[m.model_id] = {
-						input_tokens: m.input_tokens,
-						output_tokens: m.output_tokens,
-						total_tokens: m.total_tokens
-					};
-				}
-				totalTokens = {
-					input: tokensRes.total_input_tokens,
-					output: tokensRes.total_output_tokens,
-					total: tokensRes.total_tokens
-				};
+			userStats = userData.users;
+			dailyStats = daily.data;
+			tokenStats = Object.fromEntries(
+				tokens.models.map((entry: { model_id: string; total_tokens: number }) => [
+					entry.model_id,
+					entry
+				])
+			);
+			totalTokens = tokens.total_tokens;
+			applied = selected;
+			if (persist) {
+				const params = new URLSearchParams($page.url.searchParams);
+				params.set('from', selected.from);
+				params.set('to', selected.to);
+				params.set('granularity', selected.granularity);
+				if (selected.group) params.set('group_id', selected.group);
+				else params.delete('group_id');
+				await goto(`${$page.url.pathname}?${params}`, {
+					replaceState: true,
+					noScroll: true,
+					keepFocus: true
+				});
 			}
-		} catch (err) {
-			console.error('Dashboard load failed:', err);
+		} catch {
+			if (current === generation) error = 'Не удалось загрузить отчёт. Повторите попытку.';
+		} finally {
+			if (current === generation) loading = false;
 		}
-		loading = false;
 	};
-
-	// Reload when the period, group, or custom range changes.
-	// In custom mode, wait until both dates are set to avoid a half-specified query.
-	$: if (selectedPeriod === 'custom' ? customStart && customEnd : selectedPeriod) {
-		// reference customStart/customEnd so this block reruns when they change
-		customStart;
-		customEnd;
-		selectedGroupId;
-		loadDashboard();
-	}
-
-	onMount(async () => {
-		// Load groups for filter
-		try {
-			const res = await getGroups(localStorage.token);
-			groups = res ?? [];
-		} catch (e) {
-			console.error('Failed to load groups:', e);
-		}
+	onDestroy(() => {
+		++generation;
 	});
-
-	$: sortedModels = [...modelStats].sort((a, b) => {
-		if (modelOrderBy === 'name') {
-			return modelDirection === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
-		}
-		if (modelOrderBy === 'tokens') {
-			const aTokens = tokenStats[a.model_id]?.total_tokens ?? 0;
-			const bTokens = tokenStats[b.model_id]?.total_tokens ?? 0;
-			return modelDirection === 'asc' ? aTokens - bTokens : bTokens - aTokens;
-		}
-		if (modelOrderBy === 'users') {
-			const aUsers = a.unique_users ?? 0;
-			const bUsers = b.unique_users ?? 0;
-			return modelDirection === 'asc' ? aUsers - bUsers : bUsers - aUsers;
-		}
-		if (modelOrderBy === 'chats') {
-			const aChats = a.unique_chats ?? 0;
-			const bChats = b.unique_chats ?? 0;
-			return modelDirection === 'asc' ? aChats - bChats : bChats - aChats;
-		}
-		return modelDirection === 'asc' ? a.count - b.count : b.count - a.count;
+	onMount(() => {
+		void load(false);
+		void getGroups(localStorage.token)
+			.then((result) => {
+				groups = result || [];
+			})
+			.catch(() => {
+				groupsError = 'Список групп не загрузился. Отчёт сохраняет выбранную группу.';
+			});
 	});
-
-	$: sortedUsers = [...userStats].sort((a, b) => {
-		if (userOrderBy === 'name') {
-			const nameA = a.name || a.user_id;
-			const nameB = b.name || b.user_id;
-			return userDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
-		}
-		if (userOrderBy === 'tokens') {
-			const aTokens = a.total_tokens ?? 0;
-			const bTokens = b.total_tokens ?? 0;
-			return userDirection === 'asc' ? aTokens - bTokens : bTokens - aTokens;
-		}
-		return userDirection === 'asc' ? a.count - b.count : b.count - a.count;
-	});
-
-	$: totalModelMessages = modelStats.reduce((sum, m) => sum + m.count, 0);
-
-	// Persist period selection
-	$: if (typeof localStorage !== 'undefined' && selectedPeriod) {
-		localStorage.setItem('analyticsPeriod', selectedPeriod);
-	}
-
-	// Persist custom date range
-	$: if (typeof localStorage !== 'undefined') {
-		localStorage.setItem('analyticsCustomStart', customStart);
-		localStorage.setItem('analyticsCustomEnd', customEnd);
-	}
+	$: sortedModels = [...modelStats].sort(
+		(a, b) =>
+			modelDirection *
+			(modelOrderBy === 'name'
+				? a.name.localeCompare(b.name)
+				: modelValue(a, modelOrderBy) - modelValue(b, modelOrderBy))
+	);
+	$: sortedUsers = [...userStats].sort(
+		(a, b) =>
+			userDirection *
+			(userOrderBy === 'name'
+				? (a.name || a.user_id).localeCompare(b.name || b.user_id)
+				: a[userOrderBy] - b[userOrderBy])
+	);
+	$: topModels = [...modelStats]
+		.sort((a, b) => b.count - a.count)
+		.slice(0, 8)
+		.map((model) => model.model_id);
 </script>
 
-<div class="flex items-center justify-between mb-2 gap-2">
-	<h2 class="text-sm font-medium text-gray-900 dark:text-white shrink-0">
-		{$i18n.t('Analytics')}
-	</h2>
-	<div class="flex items-center gap-2 flex-wrap justify-end min-w-0">
-		{#if groups.length > 0}
-			<select
-				bind:value={selectedGroupId}
-				class="w-fit pr-8 rounded-sm px-2 text-xs bg-transparent outline-none text-right"
-			>
-				<option value={null}>{$i18n.t('All Users')}</option>
-				{#each groups as group}
-					<option value={group.id}>{group.name}</option>
-				{/each}
-			</select>
-		{/if}
-		{#if selectedPeriod === 'custom'}
-			<input
-				type="date"
-				bind:value={customStart}
-				max={customEnd || undefined}
-				class="w-fit rounded-sm px-2 text-xs bg-transparent outline-none dark:scheme-dark"
-			/>
-			<span class="text-xs text-gray-400">–</span>
-			<input
-				type="date"
-				bind:value={customEnd}
-				min={customStart || undefined}
-				class="w-fit rounded-sm px-2 text-xs bg-transparent outline-none dark:scheme-dark"
-			/>
-		{/if}
-		<select
-			bind:value={selectedPeriod}
-			class="w-fit pr-8 rounded-sm px-2 text-xs bg-transparent outline-none text-right"
-		>
-			{#each periods as period}
-				<option value={period.value}>{period.label}</option>
-			{/each}
-		</select>
+<section class="space-y-5" data-testid="model-usage">
+	<div>
+		<h1 class="text-2xl font-semibold">Использование моделей</h1>
+		<p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+			Сохранённые ответы и токены за календарные даты. Расходы в рублях — в разделе «Деньги».
+		</p>
 	</div>
-</div>
-
-<!-- Model Details Modal -->
+	<form class="flex flex-wrap items-end gap-3" on:submit|preventDefault={() => load()}>
+		<label class="flex flex-col gap-1 text-sm"
+			>Ответы с<input
+				type="date"
+				bind:value={fromDate}
+				required
+				class="min-h-11 rounded-lg border bg-transparent px-3 dark:border-gray-700"
+			/></label
+		>
+		<label class="flex flex-col gap-1 text-sm"
+			>по<input
+				type="date"
+				bind:value={toDate}
+				required
+				class="min-h-11 rounded-lg border bg-transparent px-3 dark:border-gray-700"
+			/></label
+		>
+		<label class="flex flex-col gap-1 text-sm"
+			>Группа<select
+				bind:value={selectedGroupId}
+				class="min-h-11 rounded-lg border bg-transparent px-3 dark:border-gray-700"
+				><option value="">Все пользователи</option
+				>{#if selectedGroupId && !groups.some((group) => group.id === selectedGroupId)}<option
+						value={selectedGroupId}>Выбранная группа</option
+					>{/if}{#each groups as group}<option value={group.id}>{group.name}</option>{/each}</select
+			></label
+		>
+		<label class="flex flex-col gap-1 text-sm"
+			>График<select
+				bind:value={granularity}
+				class="min-h-11 rounded-lg border bg-transparent px-3 dark:border-gray-700"
+				><option value="daily">По дням</option><option value="hourly">По часам</option></select
+			></label
+		>
+		<button
+			disabled={loading}
+			class="min-h-11 rounded-lg bg-gray-900 px-4 text-sm text-white dark:bg-gray-100 dark:text-gray-900"
+			>Применить</button
+		>
+	</form>
+	{#if groupsError}<p role="status" class="text-sm">{groupsError}</p>{/if}
+	{#if loading}<p role="status">Загружаем отчёт…</p>
+	{:else if error}<div role="alert" class="space-y-2 rounded-lg border border-red-300 p-3 text-sm">
+			<p>{error}</p>
+			<button class="underline" on:click={() => load()}>Повторить загрузку</button>
+		</div>
+	{:else}
+		<p class="text-sm text-gray-600 dark:text-gray-300">
+			{applied.from} — {applied.to} · UTC · {applied.group
+				? groups.find((group) => group.id === applied.group)?.name || 'Выбранная группа'
+				: 'Все пользователи'}
+		</p>
+		<div class="grid gap-3 sm:grid-cols-3">
+			{#each [{ label: 'Сохранённых ответов', value: summary.total_messages }, { label: 'Людей с ответами', value: summary.total_users }, { label: 'Чатов с ответами', value: summary.total_chats }] as item}<article
+					class="min-w-0 rounded-xl border p-3 dark:border-gray-800"
+				>
+					<h2 class="text-sm text-gray-600 dark:text-gray-300">{item.label}</h2>
+					<p class="mt-2 break-words text-2xl font-semibold tabular-nums">{number(item.value)}</p>
+				</article>{/each}
+		</div>
+		{#if dailyStats.length}
+			<section class="space-y-3">
+				<h2 class="font-medium">
+					Сохранённые ответы {applied.granularity === 'hourly' ? 'по часам' : 'по дням'} · UTC
+				</h2>
+				<ChartLine
+					data={dailyStats}
+					models={topModels}
+					{colors}
+					height={200}
+					period={applied.granularity === 'hourly' ? 'hour' : 'month'}
+				/>
+				<div class="flex flex-wrap gap-3 text-xs">
+					{#each topModels as id, index}<span
+							><span aria-hidden="true" style="color: {colors[index]}">●</span>
+							{modelStats.find((model) => model.model_id === id)?.name || id}</span
+						>{/each}
+				</div>
+				<p class="text-xs text-gray-600 dark:text-gray-300">
+					На графике до 8 наиболее используемых моделей. Полные значения — ниже.
+				</p>
+				<details>
+					<summary class="cursor-pointer text-sm">Значения графика</summary>
+					<div class="mt-3 max-h-72 overflow-auto">
+						<table class="w-full text-left text-sm">
+							<thead
+								><tr><th class="p-2">Дата UTC</th><th class="p-2">Ответы всех моделей</th></tr
+								></thead
+							><tbody
+								>{#each dailyStats as row}<tr
+										><td class="p-2">{row.date}</td><td class="p-2 tabular-nums"
+											>{number(
+												Object.values(row.models).reduce((sum, count) => sum + count, 0)
+											)}</td
+										></tr
+									>{/each}</tbody
+							>
+						</table>
+					</div>
+				</details>
+			</section>
+		{/if}
+		<div class="grid gap-6 xl:grid-cols-2">
+			<section>
+				<h2 class="mb-3 text-lg font-medium">Модели</h2>
+				<div class="overflow-x-auto">
+					<table class="w-full text-left text-sm">
+						<thead
+							><tr
+								>{#each modelColumns as column}<th
+										class="p-2"
+										aria-sort={modelOrderBy === column.key
+											? modelDirection === 1
+												? 'ascending'
+												: 'descending'
+											: 'none'}
+										><button
+											class="min-h-11 whitespace-nowrap"
+											on:click={() => sortModels(column.key)}
+											>{column.label}{modelOrderBy === column.key
+												? modelDirection === 1
+													? ' ↑'
+													: ' ↓'
+												: ''}</button
+										></th
+									>{/each}</tr
+							></thead
+						><tbody
+							>{#each sortedModels as model}<tr class="border-t dark:border-gray-800"
+									><td class="p-2"
+										><button
+											class="min-h-11 max-w-52 break-words text-left underline"
+											on:click={() => openModel(model)}>{model.name}</button
+										></td
+									><td class="p-2 tabular-nums">{number(model.count)}</td><td
+										class="p-2 tabular-nums">{number(model.unique_users)}</td
+									><td class="p-2 tabular-nums">{number(model.unique_chats)}</td><td
+										class="p-2 tabular-nums"
+										>{number(tokenStats[model.model_id]?.total_tokens ?? 0)}</td
+									></tr
+								>{:else}<tr><td colspan="5" class="p-3">За выбранные даты ответов нет.</td></tr
+								>{/each}</tbody
+						>
+					</table>
+				</div>
+			</section>
+			<section>
+				<h2 class="mb-1 text-lg font-medium">Активные пользователи</h2>
+				<p class="mb-3 text-xs text-gray-600 dark:text-gray-300">
+					До 50 пользователей с наибольшим числом сохранённых ответов. Сортировка действует внутри
+					этого списка.
+				</p>
+				<div class="overflow-x-auto">
+					<table class="w-full text-left text-sm">
+						<thead
+							><tr
+								>{#each userColumns as column}<th
+										class="p-2"
+										aria-sort={userOrderBy === column.key
+											? userDirection === 1
+												? 'ascending'
+												: 'descending'
+											: 'none'}
+										><button class="min-h-11" on:click={() => sortUsers(column.key)}
+											>{column.label}{userOrderBy === column.key
+												? userDirection === 1
+													? ' ↑'
+													: ' ↓'
+												: ''}</button
+										></th
+									>{/each}</tr
+							></thead
+						><tbody
+							>{#each sortedUsers as user}<tr class="border-t dark:border-gray-800"
+									><td class="p-2"
+										><a
+											class="inline-flex min-h-11 items-center break-all underline"
+											href={`/admin/billing/customers/${encodeURIComponent(user.user_id)}?${new URLSearchParams({ from: applied.from, to: applied.to })}`}
+											>{user.name || user.email || user.user_id}</a
+										></td
+									><td class="p-2 tabular-nums">{number(user.count)}</td><td
+										class="p-2 tabular-nums">{number(user.total_tokens)}</td
+									></tr
+								>{:else}<tr
+									><td colspan="3" class="p-3">Нет пользователей с ответами за эти даты.</td></tr
+								>{/each}</tbody
+						>
+					</table>
+				</div>
+			</section>
+		</div>
+		<details class="border-t pt-4 text-sm dark:border-gray-800">
+			<summary class="cursor-pointer">Токены и методика расчёта</summary>
+			<p class="mt-3">Токенов по сохранённым данным: {number(totalTokens)}</p>
+			<p class="mt-3 text-gray-600 dark:text-gray-300">
+				Считаем сохранённые ответы ассистента с известной моделью, исключая внутренние служебные
+				чаты. Эти записи не доказывают успешный запрос или полезность ответа. Токены берём из
+				сохранённых данных; они могут отличаться от учёта поставщика. Стоимость поставщиков и
+				прибыль здесь не рассчитываются.
+			</p>
+		</details>
+	{/if}
+</section>
 <AnalyticsModelModal
 	bind:show={showModelModal}
 	model={selectedModel}
-	startDate={getDateRange(selectedPeriod).start}
-	endDate={getDateRange(selectedPeriod).end}
+	startDate={applied.start}
+	endDate={applied.end}
+	groupId={applied.group || null}
 />
-
-<!-- Summary stats -->
-{#if !loading}
-	<div class="flex gap-3 text-xs text-gray-500 dark:text-gray-400 px-0.5 pb-2">
-		<span
-			><span class="font-normal text-gray-900 dark:text-gray-300"
-				>{summary.total_messages.toLocaleString()}</span
-			>
-			{$i18n.t('messages')}</span
-		>
-		<Tooltip content={$i18n.t('Token counts are estimates and may not reflect actual API usage')}>
-			<span class="cursor-help"
-				><span class="font-normal text-gray-900 dark:text-gray-300"
-					>{formatNumber(totalTokens.total)}</span
-				>
-				{$i18n.t('tokens')}</span
-			>
-		</Tooltip>
-		<span
-			><span class="font-normal text-gray-900 dark:text-gray-300"
-				>{summary.total_chats.toLocaleString()}</span
-			>
-			{$i18n.t('chats')}</span
-		>
-		<span
-			><span class="font-normal text-gray-900 dark:text-gray-300">{summary.total_users}</span>
-			{$i18n.t('users')}</span
-		>
-	</div>
-
-	<!-- Daily usage chart -->
-	{#if dailyStats.length > 1}
-		{@const allModels = [...new Set(dailyStats.flatMap((d) => Object.keys(d.models || {})))]}
-		{@const topModels = allModels.slice(0, 8)}
-		{@const chartColors = [
-			'#3b82f6',
-			'#10b981',
-			'#f59e0b',
-			'#ef4444',
-			'#8b5cf6',
-			'#ec4899',
-			'#06b6d4',
-			'#84cc16'
-		]}
-		{@const periodMap = { '24h': 'hour', '7d': 'week', '30d': 'month', '90d': 'year', all: 'all' }}
-		<div class="mb-4">
-			<div class="text-xs font-normal text-gray-600 dark:text-gray-400 mb-2 px-0.5">
-				{selectedPeriod === '24h' ? $i18n.t('Hourly Messages') : $i18n.t('Daily Messages')}
-			</div>
-			<ChartLine
-				data={dailyStats}
-				models={topModels}
-				colors={chartColors}
-				height={200}
-				period={periodMap[selectedPeriod] || 'week'}
-			/>
-		</div>
-	{/if}
-{/if}
-
-{#if loading}
-	<div class="my-10 flex justify-center">
-		<Spinner className="size-5" />
-	</div>
-{:else}
-	<div class="grid md:grid-cols-2 gap-4">
-		<!-- Model Usage Table -->
-		<div>
-			<div class="text-xs font-normal text-gray-700 dark:text-gray-300 mb-1 px-0.5">
-				{$i18n.t('Model Usage')}
-			</div>
-			<div class="scrollbar-hidden relative whitespace-nowrap overflow-x-auto max-w-full">
-				<table class="w-full text-sm text-left text-gray-500 dark:text-gray-400 table-auto">
-					<thead class="text-xs text-gray-800 uppercase bg-transparent dark:text-gray-200">
-						<tr class="border-b-[1.5px] border-gray-50 dark:border-gray-850/30">
-							<th scope="col" class="px-2.5 py-2 w-8">#</th>
-							<th
-								scope="col"
-								class="px-2.5 py-2 cursor-pointer select-none"
-								on:click={() => toggleModelSort('name')}
-							>
-								<div class="flex gap-1.5 items-center">
-									{$i18n.t('Model')}
-									{#if modelOrderBy === 'name'}
-										<span class="font-normal">
-											{#if modelDirection === 'asc'}<ChevronUp
-													className="size-2"
-												/>{:else}<ChevronDown className="size-2" />{/if}
-										</span>
-									{:else}
-										<span class="invisible"><ChevronUp className="size-2" /></span>
-									{/if}
-								</div>
-							</th>
-							<th
-								scope="col"
-								class="px-2.5 py-2 cursor-pointer select-none text-right"
-								on:click={() => toggleModelSort('count')}
-							>
-								<div class="flex gap-1.5 items-center justify-end">
-									{$i18n.t('Messages')}
-									{#if modelOrderBy === 'count'}
-										<span class="font-normal">
-											{#if modelDirection === 'asc'}<ChevronUp
-													className="size-2"
-												/>{:else}<ChevronDown className="size-2" />{/if}
-										</span>
-									{:else}
-										<span class="invisible"><ChevronUp className="size-2" /></span>
-									{/if}
-								</div>
-							</th>
-							<th
-								scope="col"
-								class="px-2.5 py-2 cursor-pointer select-none text-right"
-								on:click={() => toggleModelSort('users')}
-							>
-								<div class="flex gap-1.5 items-center justify-end">
-									{$i18n.t('Users')}
-									{#if modelOrderBy === 'users'}
-										<span class="font-normal">
-											{#if modelDirection === 'asc'}<ChevronUp
-													className="size-2"
-												/>{:else}<ChevronDown className="size-2" />{/if}
-										</span>
-									{:else}
-										<span class="invisible"><ChevronUp className="size-2" /></span>
-									{/if}
-								</div>
-							</th>
-							<th
-								scope="col"
-								class="px-2.5 py-2 cursor-pointer select-none text-right"
-								on:click={() => toggleModelSort('chats')}
-							>
-								<div class="flex gap-1.5 items-center justify-end">
-									{$i18n.t('Chats')}
-									{#if modelOrderBy === 'chats'}
-										<span class="font-normal">
-											{#if modelDirection === 'asc'}<ChevronUp
-													className="size-2"
-												/>{:else}<ChevronDown className="size-2" />{/if}
-										</span>
-									{:else}
-										<span class="invisible"><ChevronUp className="size-2" /></span>
-									{/if}
-								</div>
-							</th>
-							<th
-								scope="col"
-								class="px-2.5 py-2 cursor-pointer select-none text-right"
-								on:click={() => toggleModelSort('tokens')}
-							>
-								<div class="flex gap-1.5 items-center justify-end">
-									{$i18n.t('Tokens')}
-									{#if modelOrderBy === 'tokens'}
-										<span class="font-normal">
-											{#if modelDirection === 'asc'}<ChevronUp
-													className="size-2"
-												/>{:else}<ChevronDown className="size-2" />{/if}
-										</span>
-									{:else}
-										<span class="invisible"><ChevronUp className="size-2" /></span>
-									{/if}
-								</div>
-							</th>
-							<th
-								scope="col"
-								class="px-2.5 py-2 cursor-pointer select-none text-right w-16"
-								on:click={() => toggleModelSort('percentage')}
-							>
-								<div class="flex gap-1.5 items-center justify-end">
-									%
-									{#if modelOrderBy === 'percentage'}
-										<span class="font-normal">
-											{#if modelDirection === 'asc'}<ChevronUp
-													className="size-2"
-												/>{:else}<ChevronDown className="size-2" />{/if}
-										</span>
-									{:else}
-										<span class="invisible"><ChevronUp className="size-2" /></span>
-									{/if}
-								</div>
-							</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each sortedModels as model, idx (model.model_id)}
-							<tr
-								class="dark:border-gray-850 text-xs cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-								on:click={() => {
-									selectedModel = { id: model.model_id, name: model.name };
-									showModelModal = true;
-								}}
-							>
-								<td class="px-3 py-1 text-gray-400">{idx + 1}</td>
-								<td class="px-3 py-1 font-normal text-gray-900 dark:text-white">
-									<div class="flex items-center gap-2">
-										<img
-											src="{WEBUI_API_BASE_URL}/models/model/profile/image?id={model.model_id}"
-											alt={model.name}
-											class="size-5 rounded-full object-cover shrink-0"
-											on:error={(e) => {
-												e.target.src = '/favicon.png';
-											}}
-										/>
-										<span class="truncate max-w-[150px]">{model.name}</span>
-									</div>
-								</td>
-								<td class="px-3 py-1 text-right">{model.count.toLocaleString()}</td>
-								<td class="px-3 py-1 text-right">{(model.unique_users ?? 0).toLocaleString()}</td>
-								<td class="px-3 py-1 text-right">{(model.unique_chats ?? 0).toLocaleString()}</td>
-								<td class="px-3 py-1 text-right"
-									>{formatNumber(tokenStats[model.model_id]?.total_tokens ?? 0)}</td
-								>
-								<td class="px-3 py-1 text-right text-gray-400">
-									{totalModelMessages > 0
-										? ((model.count / totalModelMessages) * 100).toFixed(1)
-										: 0}%
-								</td>
-							</tr>
-						{/each}
-						{#if sortedModels.length === 0}
-							<tr
-								><td colspan="7" class="px-3 py-2 text-center text-gray-400"
-									>{$i18n.t('No data')}</td
-								></tr
-							>
-						{/if}
-					</tbody>
-				</table>
-			</div>
-		</div>
-
-		<!-- User Activity Table -->
-		<div>
-			<div class="text-xs font-normal text-gray-700 dark:text-gray-300 mb-1 px-0.5">
-				{$i18n.t('User Activity')}
-			</div>
-			<div class="scrollbar-hidden relative whitespace-nowrap overflow-x-auto max-w-full">
-				<table class="w-full text-sm text-left text-gray-500 dark:text-gray-400 table-auto">
-					<thead class="text-xs text-gray-800 uppercase bg-transparent dark:text-gray-200">
-						<tr class="border-b-[1.5px] border-gray-50 dark:border-gray-850/30">
-							<th scope="col" class="px-2.5 py-2 w-8">#</th>
-							<th
-								scope="col"
-								class="px-2.5 py-2 cursor-pointer select-none"
-								on:click={() => toggleUserSort('name')}
-							>
-								<div class="flex gap-1.5 items-center">
-									{$i18n.t('User')}
-									{#if userOrderBy === 'name'}
-										<span class="font-normal">
-											{#if userDirection === 'asc'}<ChevronUp
-													className="size-2"
-												/>{:else}<ChevronDown className="size-2" />{/if}
-										</span>
-									{:else}
-										<span class="invisible"><ChevronUp className="size-2" /></span>
-									{/if}
-								</div>
-							</th>
-							<th
-								scope="col"
-								class="px-2.5 py-2 cursor-pointer select-none text-right"
-								on:click={() => toggleUserSort('count')}
-							>
-								<div class="flex gap-1.5 items-center justify-end">
-									{$i18n.t('Messages')}
-									{#if userOrderBy === 'count'}
-										<span class="font-normal">
-											{#if userDirection === 'asc'}<ChevronUp
-													className="size-2"
-												/>{:else}<ChevronDown className="size-2" />{/if}
-										</span>
-									{:else}
-										<span class="invisible"><ChevronUp className="size-2" /></span>
-									{/if}
-								</div>
-							</th>
-							<th
-								scope="col"
-								class="px-2.5 py-2 cursor-pointer select-none text-right"
-								on:click={() => toggleUserSort('tokens')}
-							>
-								<div class="flex gap-1.5 items-center justify-end">
-									{$i18n.t('Tokens')}
-									{#if userOrderBy === 'tokens'}
-										<span class="font-normal">
-											{#if userDirection === 'asc'}<ChevronUp
-													className="size-2"
-												/>{:else}<ChevronDown className="size-2" />{/if}
-										</span>
-									{:else}
-										<span class="invisible"><ChevronUp className="size-2" /></span>
-									{/if}
-								</div>
-							</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each sortedUsers as user, idx (user.user_id)}
-							<tr class="dark:border-gray-850 text-xs">
-								<td class="px-3 py-1 text-gray-400">{idx + 1}</td>
-								<td class="px-3 py-1 font-normal text-gray-900 dark:text-white">
-									<div class="flex items-center gap-2">
-										<img
-											src="{WEBUI_API_BASE_URL}/users/{user.user_id}/profile/image"
-											alt={user.name || 'User'}
-											class="size-5 rounded-full object-cover shrink-0"
-											on:error={(e) => {
-												e.target.src = '/user.png';
-											}}
-										/>
-										<span class="truncate max-w-[150px]"
-											>{user.name || user.email || user.user_id.substring(0, 8)}</span
-										>
-									</div>
-								</td>
-								<td class="px-3 py-1 text-right">{user.count.toLocaleString()}</td>
-								<td class="px-3 py-1 text-right">{formatNumber(user.total_tokens ?? 0)}</td>
-							</tr>
-						{/each}
-						{#if sortedUsers.length === 0}
-							<tr
-								><td colspan="4" class="px-3 py-2 text-center text-gray-400"
-									>{$i18n.t('No data')}</td
-								></tr
-							>
-						{/if}
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
-
-	<div class="text-gray-500 text-xs mt-1.5 text-right">
-		ⓘ {$i18n.t('Message counts are based on assistant responses.')}
-	</div>
-{/if}

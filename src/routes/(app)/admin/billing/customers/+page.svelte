@@ -1,111 +1,271 @@
 <script lang="ts">
-	import { onMount, getContext } from 'svelte';
+	import { onMount, onDestroy, getContext } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import type { i18n as I18nType } from 'i18next';
+	import { page as route } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { page as pageStore } from '$app/stores';
 	import { WEBUI_NAME, user } from '$lib/stores';
-	import Spinner from '$lib/components/common/Spinner.svelte';
+	import ReportingFilters from '$lib/components/admin/billing/ReportingFilters.svelte';
+	import ReportingPagination from '$lib/components/admin/billing/ReportingPagination.svelte';
 	import {
 		getBillingReportingCustomers,
 		type BillingReportingCustomer,
 		type ReportingSort
 	} from '$lib/apis/admin/billing_reporting';
-
+	import {
+		moneyPage,
+		moneyFilters,
+		moneyRange,
+		moneyQuery,
+		customerHref,
+		formatReportMoney,
+		formatReportTime
+	} from '$lib/utils/airis/billing_reporting_ui';
 	const i18n = getContext<Readable<I18nType>>('i18n');
-	let loaded = false;
-	let loading = true;
-	let errorMessage = '';
-	let rows: BillingReportingCustomer[] = [];
-	let query = '';
-	let submittedQuery = '';
-	let page = 1;
-	let totalPages = 1;
+	onDestroy(() => {
+		request++;
+	});
+	let draft = moneyFilters($route.url);
+	let applied = { ...draft };
+	let query = $route.url.searchParams.get('query') || '';
+	let submittedQuery = query;
+	let status = ($route.url.searchParams.get('status') || '') as
+		| ''
+		| 'paid'
+		| 'never_paid'
+		| 'problems';
+	let appliedStatus = status;
+	let page = moneyPage($route.url.searchParams.get('page'));
 	let total = 0;
-	let sort: ReportingSort = 'last_payment';
-	let direction: 'asc' | 'desc' = 'desc';
-	let currency = 'RUB';
-	let fromDate = '';
-	let toDate = '';
-	const supportedCurrencies = new Set(['RUB', 'USD', 'EUR']);
-
-	const money = (kopeks: number, currencyCode = currency): string =>
-		new Intl.NumberFormat($i18n.language, { style: 'currency', currency: currencyCode, maximumFractionDigits: 2 }).format(
-			kopeks / 100
-		);
-	const dateTime = (value: number | null): string => (value ? new Date(value * 1000).toLocaleString($i18n.language) : '—');
-	const epoch = (value: string, end = false): number | undefined => {
-		if (!value) return undefined;
-		const date = new Date(`${value}T${end ? '23:59:59' : '00:00:00'}`);
-		return Number.isNaN(date.getTime()) ? undefined : Math.floor(date.getTime() / 1000);
-	};
-
-	const load = async (): Promise<void> => {
+	let totalPages = 1;
+	let loading = false;
+	let error = '';
+	let rows: BillingReportingCustomer[] = [];
+	let asOf = 0;
+	let request = 0;
+	let truncation = false;
+	let sort: ReportingSort = ['paid', 'spent', 'balance', 'last_payment', 'last_usage'].includes(
+		$route.url.searchParams.get('sort') || ''
+	)
+		? ($route.url.searchParams.get('sort') as ReportingSort)
+		: 'last_payment';
+	let direction: 'asc' | 'desc' =
+		$route.url.searchParams.get('direction') === 'asc' ? 'asc' : 'desc';
+	const currentUrl = (): string =>
+		`/admin/billing/customers?${moneyQuery(applied, { query: submittedQuery, status: appliedStatus, page, sort, direction })}`;
+	const open = (id: string): Promise<void> => goto(customerHref(id, applied, currentUrl()));
+	const money = (value: number): string =>
+		formatReportMoney(value, applied.currency, $i18n.language);
+	const stateLabel = (row: BillingReportingCustomer): string =>
+		row.status === 'negative_balance'
+			? 'Negative balance'
+			: row.status === 'payment_problem'
+				? 'Payment needs review'
+				: row.status === 'never_paid'
+					? 'Never paid'
+					: 'Has successful payments';
+	const load = async (apply = false): Promise<void> => {
+		const next = apply ? { ...draft } : { ...applied };
+		let range: ReturnType<typeof moneyRange>;
+		try {
+			range = moneyRange(next);
+		} catch (e) {
+			request++;
+			loading = false;
+			error = e instanceof Error ? e.message : 'Choose a valid date range';
+			return;
+		}
+		const id = ++request;
 		loading = true;
-		errorMessage = '';
+		error = '';
+		rows = [];
+		const nextQuery = apply ? query.trim() : submittedQuery;
+		const nextStatus = apply ? status : appliedStatus;
+		const nextPage = apply ? 1 : page;
 		try {
 			const result = await getBillingReportingCustomers(localStorage.token, {
-				currency,
-				from: epoch(fromDate),
-				to: epoch(toDate, true),
-				query: submittedQuery,
-				page,
+				...range,
+				query: nextQuery,
+				status: nextStatus || undefined,
+				page: nextPage,
 				page_size: 50,
 				sort,
 				direction
 			});
+			if (id !== request) return;
 			rows = result.items;
 			total = result.total;
 			totalPages = Math.max(1, result.total_pages);
-		} catch (error) {
-			console.error('Failed to load billing customers:', error);
-			errorMessage = $i18n.t('Failed to load billing customers');
+			asOf = result.as_of;
+			truncation = Boolean(result.payment_fact_limit_reached);
+			applied = next;
+			submittedQuery = nextQuery;
+			appliedStatus = nextStatus;
+			page = nextPage;
+			await goto(currentUrl(), { replaceState: true, noScroll: true, keepFocus: true });
+		} catch {
+			if (id === request) {
+				rows = [];
+				total = 0;
+				totalPages = 1;
+				error = 'Failed to load billing customers';
+			}
 		} finally {
-			loading = false;
+			if (id === request) loading = false;
 		}
 	};
-
-	const search = async (): Promise<void> => {
+	const changeSort = (key: ReportingSort): void => {
+		direction = sort === key && direction === 'desc' ? 'asc' : 'desc';
+		sort = key;
 		page = 1;
-		submittedQuery = query.trim();
-		await load();
+		void load();
 	};
-
-	const changeSort = async (next: ReportingSort): Promise<void> => {
-		if (sort === next) direction = direction === 'asc' ? 'desc' : 'asc';
-		else {
-			sort = next;
-			direction = 'desc';
-		}
-		await load();
-	};
-
-	const openCustomer = async (userId: string): Promise<void> => {
-		await goto(`/admin/billing/customers/${encodeURIComponent(userId)}`);
-	};
-
 	onMount(async () => {
 		if ($user?.role !== 'admin') {
 			await goto('/');
 			return;
 		}
-		const requestedCurrency = $pageStore.url.searchParams.get('currency');
-		currency = requestedCurrency && supportedCurrencies.has(requestedCurrency) ? requestedCurrency : currency;
-		fromDate = $pageStore.url.searchParams.get('from_date') || '';
-		toDate = $pageStore.url.searchParams.get('to_date') || '';
 		await load();
-		loaded = true;
 	});
 </script>
 
-<svelte:head><title>{$i18n.t('Billing customers')} • {$WEBUI_NAME}</title></svelte:head>
-
-{#if !loaded || loading}
-	<div class="flex h-64 items-center justify-center"><Spinner className="size-5" /></div>
-{:else}
-	<div class="mx-auto max-w-7xl px-4 py-5">
-		<div class="mb-4 flex flex-wrap items-end justify-between gap-3"><div><h1 class="text-xl font-semibold text-gray-900 dark:text-white">{$i18n.t('Customers')}</h1><p class="mt-1 text-sm text-gray-500">{total} {$i18n.t('customers in this view')}</p></div><div class="flex flex-wrap items-end gap-2"><label class="text-xs text-gray-500">{$i18n.t('Currency')}<select bind:value={currency} on:change={() => { page = 1; load(); }} class="mt-1 block rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"><option>RUB</option><option>USD</option><option>EUR</option></select></label><label class="text-xs text-gray-500">{$i18n.t('From')}<input bind:value={fromDate} on:change={() => { page = 1; load(); }} type="date" class="mt-1 block rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm dark:border-gray-700 dark:bg-gray-900" /></label><label class="text-xs text-gray-500">{$i18n.t('To')}<input bind:value={toDate} on:change={() => { page = 1; load(); }} type="date" class="mt-1 block rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm dark:border-gray-700 dark:bg-gray-900" /></label><form class="flex gap-2" on:submit|preventDefault={search}><label class="sr-only" for="customer-search">{$i18n.t('Search customers')}</label><input id="customer-search" bind:value={query} placeholder={$i18n.t('Name, email or ID')} class="w-64 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900" /><button type="submit" class="rounded-lg bg-gray-900 px-3 py-2 text-sm text-white dark:bg-white dark:text-gray-900">{$i18n.t('Search')}</button></form></div></div>
-		{#if errorMessage}<div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">{errorMessage} <button class="ml-2 underline" on:click={load}>{$i18n.t('Retry')}</button></div>{/if}
-		<div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"><div class="overflow-x-auto"><table class="min-w-[1080px] w-full text-left text-sm"><caption class="sr-only">{$i18n.t('Customer financial balances and payment activity')}</caption><thead class="bg-gray-50 text-xs text-gray-500 dark:bg-gray-950"><tr><th scope="col" class="px-4 py-3">{$i18n.t('Customer')}</th><th scope="col" class="px-4 py-3 text-right" aria-sort={sort === 'paid' ? direction === 'asc' ? 'ascending' : 'descending' : 'none'}><button type="button" aria-label={`${$i18n.t('Sort by Paid')}; ${sort === 'paid' ? direction : 'none'}`} on:click={() => changeSort('paid')} class="underline-offset-2 hover:underline">{$i18n.t('Paid')}</button></th><th scope="col" class="px-4 py-3 text-right" aria-sort={sort === 'spent' ? direction === 'asc' ? 'ascending' : 'descending' : 'none'}><button type="button" aria-label={`${$i18n.t('Sort by Spent')}; ${sort === 'spent' ? direction : 'none'}`} on:click={() => changeSort('spent')} class="underline-offset-2 hover:underline">{$i18n.t('Spent')}</button></th><th scope="col" class="px-4 py-3 text-right" aria-sort={sort === 'balance' ? direction === 'asc' ? 'ascending' : 'descending' : 'none'}><button type="button" aria-label={`${$i18n.t('Sort by Balance')}; ${sort === 'balance' ? direction : 'none'}`} on:click={() => changeSort('balance')} class="underline-offset-2 hover:underline">{$i18n.t('Balance')}</button></th><th scope="col" class="px-4 py-3">{$i18n.t('Last payment')}</th><th scope="col" class="px-4 py-3">{$i18n.t('Last usage')}</th><th scope="col" class="px-4 py-3">{$i18n.t('Status')}</th></tr></thead><tbody>{#each rows as row}<tr class="cursor-pointer border-t border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-850" on:click={() => openCustomer(row.user_id)} on:keydown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openCustomer(row.user_id); } }} role="link" aria-label={`${$i18n.t('Open customer')} ${row.name || row.email || row.user_id}`} tabindex="0"><td class="px-4 py-3"><div class="font-medium text-gray-900 dark:text-white">{row.name || '—'}</div><div class="text-xs text-gray-500">{row.email}<span class="ml-2 text-gray-400">{row.user_id}</span></div></td><td class="px-4 py-3 text-right tabular-nums">{money(row.paid_kopeks, row.currency)}<div class="text-xs text-gray-400">{row.successful_payment_count} {$i18n.t('payments')}</div></td><td class="px-4 py-3 text-right tabular-nums">{money(row.spent_kopeks, row.currency)}<div class="text-xs text-gray-400">{money(row.period_spent_kopeks, row.currency)} {$i18n.t('period')}</div></td><td class="px-4 py-3 text-right tabular-nums"><div>{money(row.balance_topup_kopeks, row.currency)}</div><div class="text-xs text-amber-600">+ {money(row.balance_included_kopeks, row.currency)} {$i18n.t('bonus')}</div></td><td class="px-4 py-3 text-xs tabular-nums">{dateTime(row.last_payment_at)}</td><td class="px-4 py-3 text-xs tabular-nums">{dateTime(row.last_usage_at)}</td><td class="px-4 py-3"><span class={`rounded-full px-2 py-1 text-xs ${row.status === 'negative_balance' ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-200' : row.status === 'never_paid' ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200'}`}>{$i18n.t(row.status)}</span></td></tr>{:else}<tr><td colspan="7" class="px-4 py-12 text-center text-sm text-gray-500">{$i18n.t('No customers found')}</td></tr>{/each}</tbody></table></div><div class="flex items-center justify-between border-t border-gray-100 px-4 py-3 text-sm dark:border-gray-800"><span class="text-gray-500">{$i18n.t('Page')} {page} / {totalPages}</span><div class="flex gap-2"><button type="button" disabled={page <= 1} on:click={() => { page -= 1; load(); }} class="rounded-lg border border-gray-200 px-3 py-1.5 disabled:opacity-40 dark:border-gray-700">{$i18n.t('Previous')}</button><button type="button" disabled={page >= totalPages} on:click={() => { page += 1; load(); }} class="rounded-lg border border-gray-200 px-3 py-1.5 disabled:opacity-40 dark:border-gray-700">{$i18n.t('Next')}</button></div></div></div>
+<svelte:head><title>{$i18n.t('Customers')} • {$WEBUI_NAME}</title></svelte:head>
+<div class="mx-auto w-full min-w-0 max-w-7xl px-4 py-5">
+	<h1 class="mb-4 text-xl font-semibold">{$i18n.t('Customers')}</h1>
+	<ReportingFilters bind:filters={draft} {loading} {error} onApply={() => load(true)}>
+		<label class="min-w-0 text-xs text-gray-500"
+			>{$i18n.t('Search customers')}<input
+				bind:value={query}
+				placeholder={$i18n.t('Name, email or ID')}
+				class="min-h-11 mt-1 block w-full rounded-lg border border-gray-200 bg-transparent p-2 text-sm dark:border-gray-700"
+			/></label
+		>
+		<label class="text-xs text-gray-500"
+			>{$i18n.t('Customer filter')}<select
+				bind:value={status}
+				class="min-h-11 mt-1 block rounded-lg border border-gray-200 bg-transparent p-2 text-sm dark:border-gray-700"
+				><option value="">{$i18n.t('All wallet customers')}</option><option value="paid"
+					>{$i18n.t('Has successful payments')}</option
+				><option value="never_paid">{$i18n.t('Never paid')}</option><option value="problems"
+					>{$i18n.t('Needs financial review')}</option
+				></select
+			></label
+		>
+	</ReportingFilters>
+	<p class="mb-4 text-sm text-gray-500">
+		{$i18n.t('All customers with wallets; period amounts and current balances are separate')}. {applied.fromDate}
+		— {applied.toDate} · {total}
+		{$i18n.t('customers')}
+	</p>
+	{#if loading}<p role="status" class="mb-3 text-sm text-gray-500">
+			{$i18n.t('Updating report')}
+		</p>{/if}
+	{#if truncation}<p role="alert" class="mb-3 text-sm text-amber-700">
+			{$i18n.t('Payment history is incomplete; totals may be limited')}
+		</p>{/if}
+	<div
+		class="hidden overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800 md:block"
+	>
+		<table class="w-full min-w-[850px] text-sm">
+			<thead class="text-left text-gray-500"
+				><tr
+					><th class="p-3">{$i18n.t('Customer')}</th
+					>{#each [['paid', 'Top-ups in period'], ['spent', 'Usage in period'], ['balance', 'Paid balance now']] as col}<th
+							class="p-3 text-right"
+							aria-sort={sort === col[0]
+								? direction === 'asc'
+									? 'ascending'
+									: 'descending'
+								: 'none'}
+							><button
+								type="button"
+								on:click={() => changeSort(col[0] as ReportingSort)}
+								class="underline"
+								>{$i18n.t(col[1])}{sort === col[0]
+									? direction === 'asc'
+										? ' ↑'
+										: ' ↓'
+									: ''}</button
+							></th
+						>{/each}<th class="p-3">{$i18n.t('Last activity')}</th><th class="p-3"
+						>{$i18n.t('Status')}</th
+					></tr
+				></thead
+			><tbody
+				>{#each rows as row}<tr class="border-t border-gray-100 dark:border-gray-800"
+						><td class="p-3"
+							><button
+								type="button"
+								class="min-h-11 text-left underline"
+								on:click={() => open(row.user_id)}>{row.name || row.email || row.user_id}</button
+							>
+							<div class="text-xs text-gray-500">{row.email}</div></td
+						><td class="p-3 text-right tabular-nums"
+							>{money(row.period_paid_kopeks)}
+							<div class="text-xs text-gray-500">
+								{$i18n.t('Refunds')}: {money(row.period_refund_kopeks)}
+							</div></td
+						><td class="p-3 text-right tabular-nums">{money(row.period_spent_kopeks)}</td><td
+							class="p-3 text-right tabular-nums"
+							>{money(row.balance_topup_kopeks)}
+							<div class="text-xs text-gray-500">
+								{$i18n.t('Bonus')}: {money(row.balance_included_kopeks)}
+							</div></td
+						><td class="p-3 text-xs"
+							>{formatReportTime(
+								Math.max(row.last_usage_at || 0, row.last_payment_at || 0),
+								$i18n.language
+							)} UTC</td
+						><td class="p-3 text-xs">{$i18n.t(stateLabel(row))}</td></tr
+					>{:else}{#if !loading && !error}<tr
+							><td colspan="6" class="p-8 text-center text-gray-500"
+								>{$i18n.t('No customers found')}</td
+							></tr
+						>{/if}{/each}</tbody
+			>
+		</table>
 	</div>
-{/if}
+	<div class="space-y-3 md:hidden">
+		{#each rows as row}<article
+				class="min-w-0 rounded-xl border border-gray-200 p-4 dark:border-gray-800"
+			>
+				<h2 class="break-words font-medium">{row.name || row.email || row.user_id}</h2>
+				<p class="mt-1 break-all text-xs text-gray-500">{row.email}</p>
+				<dl class="mt-3 space-y-2 text-sm">
+					<div class="flex flex-wrap justify-between gap-2">
+						<dt>{$i18n.t('Paid balance now')}</dt>
+						<dd class="font-semibold tabular-nums">{money(row.balance_topup_kopeks)}</dd>
+					</div>
+					<div class="flex flex-wrap justify-between gap-2">
+						<dt>{$i18n.t('Top-ups in period')}</dt>
+						<dd class="tabular-nums">{money(row.period_paid_kopeks)}</dd>
+					</div>
+					<div class="flex flex-wrap justify-between gap-2">
+						<dt>{$i18n.t('Usage in period')}</dt>
+						<dd class="tabular-nums">{money(row.period_spent_kopeks)}</dd>
+					</div>
+					<div class="flex flex-wrap justify-between gap-2">
+						<dt>{$i18n.t('Refunds')}</dt>
+						<dd class="tabular-nums">{money(row.period_refund_kopeks)}</dd>
+					</div>
+				</dl>
+				<p class="mt-3 text-xs text-gray-500">{$i18n.t(stateLabel(row))}</p>
+				<button type="button" on:click={() => open(row.user_id)} class="min-h-11 mt-3 underline"
+					>{$i18n.t('Details')}</button
+				>
+			</article>{:else}{#if !loading && !error}<p>{$i18n.t('No customers found')}</p>{/if}{/each}
+	</div>
+	<ReportingPagination
+		{page}
+		{totalPages}
+		{total}
+		{loading}
+		onPage={(next) => {
+			page = next;
+			void load();
+		}}
+	/>
+	{#if asOf}<p class="mt-4 text-xs text-gray-500">
+			{$i18n.t('Current balances as of')}: {formatReportTime(asOf, $i18n.language)} UTC
+		</p>{/if}
+</div>

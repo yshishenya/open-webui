@@ -81,7 +81,7 @@
 								class="min-w-fit px-1 text-sm {$page.url.pathname.includes('/admin/analytics')
 									? ''
 									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-								href="/admin/analytics">{$i18n.t('Analytics')}</a
+								href="/admin/analytics">{$i18n.t('Product overview')}</a
 							>
 						{/if}
 
@@ -108,7 +108,7 @@
 							class="min-w-fit px-1 text-sm {$page.url.pathname.includes('/admin/billing')
 								? ''
 								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-							href="/admin/billing">{$i18n.t('Billing')}</a
+							href="/admin/billing">{$i18n.t('Money')}</a
 						>
 
 						<a

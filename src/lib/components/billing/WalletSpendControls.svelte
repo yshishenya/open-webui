@@ -1,111 +1,107 @@
 <script lang="ts">
-	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { getContext } from 'svelte';
-	import Spinner from '$lib/components/common/Spinner.svelte';
-
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	const i18n = getContext('i18n');
-
 	export let maxReplyCost = '';
 	export let dailyCap = '';
 	export let currentMaxReply: number | null = null;
 	export let currentDailyCap: number | null = null;
 	export let dailySpent: number | null = null;
+	export let dailyReserved = 0;
 	export let dailyResetAt: number | null = null;
-	export let currency: string;
+	export let currency = 'RUB';
 	export let savingPreferences = false;
 	export let dirty = false;
+	export let errorMessage = '';
+	export let successMessage = '';
 	export let onSave: () => void;
-
-	const formatMoney = (kopeks: number | null | undefined, currencyCode: string, locale: string = getI18nLocale($i18n)): string => {
-		if (kopeks === null || kopeks === undefined) {
-			return $i18n.t('Not set');
-		}
-		const amount = kopeks / 100;
-		try {
-			return new Intl.NumberFormat(locale, {
-				style: 'currency',
-				currency: currencyCode
-			}).format(amount);
-		} catch (error) {
-			console.warn('Invalid currency code:', currencyCode, error);
-			return `${amount.toFixed(2)} ${currencyCode}`.trim();
-		}
-	};
-
-	const formatDateTime = (timestamp: number | null | undefined, locale: string = getI18nLocale($i18n)): string => {
-		if (!timestamp) return $i18n.t('Never');
-		return new Date(timestamp * 1000).toLocaleString(locale, {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	};
+	const money = (value: number): string =>
+		new Intl.NumberFormat(getI18nLocale($i18n), { style: 'currency', currency }).format(
+			value / 100
+		);
+	const reset = (value: number): string =>
+		new Date(value * 1000).toLocaleString(getI18nLocale($i18n));
 </script>
 
-<div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 p-4">
-	<div class="text-sm font-medium mb-3">{$i18n.t('Spend controls')}</div>
-	<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-		<label class="flex flex-col gap-1 text-sm">
-			<span class="text-gray-500">{$i18n.t('Max reply cost')}</span>
-			<input
-				type="text"
-				name="max_reply_cost"
-				autocomplete="off"
-				inputmode="decimal"
-				placeholder={$i18n.t('0.00…')}
-				bind:value={maxReplyCost}
-				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
-			/>
-			<span class="text-xs text-gray-500">
-				{$i18n.t('Current')}: {formatMoney(currentMaxReply, currency, getI18nLocale($i18n))}
-			</span>
-		</label>
-		<label class="flex flex-col gap-1 text-sm">
-			<span class="text-gray-500">{$i18n.t('Daily cap')}</span>
-			<input
-				type="text"
-				name="daily_cap"
-				autocomplete="off"
-				inputmode="decimal"
-				placeholder={$i18n.t('0.00…')}
-				bind:value={dailyCap}
-				class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
-			/>
-			<span class="text-xs text-gray-500">
-				{$i18n.t('Current')}: {formatMoney(currentDailyCap, currency, getI18nLocale($i18n))}
-			</span>
-		</label>
-	</div>
-	<div class="text-xs text-gray-500 mt-2">
-		{$i18n.t('Set limits to control spending')}
-	</div>
-	{#if currentDailyCap !== null && dailySpent !== null}
-		<div class="text-xs text-gray-500 mt-1">
-			{$i18n.t('Spent today')}: {formatMoney(dailySpent, currency, getI18nLocale($i18n))} / {formatMoney(currentDailyCap, currency, getI18nLocale($i18n))}
+<section class="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+	<h2 class="text-base font-semibold">{$i18n.t('Spend controls')}</h2>
+	<p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+		{$i18n.t('Limits are checked before a paid request starts. Zero blocks paid use.')}
+	</p>
+	<div class="mt-4 grid gap-4 sm:grid-cols-2">
+		<div>
+			<label class="block text-sm" for="max-reply-cost">{$i18n.t('Maximum per reply, ₽')}</label>
+			<label class="mt-2 flex min-h-11 items-center gap-2 text-sm"
+				><input
+					type="checkbox"
+					checked={maxReplyCost === ''}
+					on:change={(e) =>
+						(maxReplyCost = e.currentTarget.checked
+							? ''
+							: currentMaxReply !== null
+								? (currentMaxReply / 100).toFixed(2)
+								: '0')}
+				/>{$i18n.t('No limit')}</label
+			>
+			{#if maxReplyCost !== ''}<input
+					id="max-reply-cost"
+					name="max_reply_cost"
+					inputmode="decimal"
+					autocomplete="off"
+					bind:value={maxReplyCost}
+					aria-invalid={Boolean(errorMessage)}
+					class="min-h-11 w-full rounded-xl border border-gray-300 bg-transparent px-3 dark:border-gray-700"
+				/>{/if}
 		</div>
-		{#if dailyResetAt}
-			<div class="text-xs text-gray-500 mt-1">
-				{$i18n.t('Resets at')}: {formatDateTime(dailyResetAt, getI18nLocale($i18n))}
-			</div>
-		{/if}
-	{/if}
-	<div class="flex justify-end mt-4">
-		<button
-			type="button"
-			on:click={onSave}
-			disabled={savingPreferences || !dirty}
-			class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
-		>
-			{#if savingPreferences}
-					<div class="flex items-center gap-2">
-						<Spinner className="size-4" />
-						<span>{$i18n.t('Saving…')}</span>
-					</div>
-			{:else}
-				{$i18n.t('Save')}
-			{/if}
-		</button>
+		<div>
+			<label class="block text-sm" for="daily-cap">{$i18n.t('Maximum per day, ₽')}</label>
+			<label class="mt-2 flex min-h-11 items-center gap-2 text-sm"
+				><input
+					type="checkbox"
+					checked={dailyCap === ''}
+					on:change={(e) =>
+						(dailyCap = e.currentTarget.checked
+							? ''
+							: currentDailyCap !== null
+								? (currentDailyCap / 100).toFixed(2)
+								: '0')}
+				/>{$i18n.t('No limit')}</label
+			>
+			{#if dailyCap !== ''}<input
+					id="daily-cap"
+					name="daily_cap"
+					inputmode="decimal"
+					autocomplete="off"
+					bind:value={dailyCap}
+					aria-invalid={Boolean(errorMessage)}
+					class="min-h-11 w-full rounded-xl border border-gray-300 bg-transparent px-3 dark:border-gray-700"
+				/>{/if}
+		</div>
 	</div>
-</div>
+	{#if dailySpent !== null}<p class="mt-3 text-sm">
+			{$i18n.t('Spent today')}: {money(dailySpent)}{#if currentDailyCap !== null}
+				/ {money(currentDailyCap)}{/if}
+		</p>{/if}
+	{#if dailyReserved > 0}<p class="mt-2 text-sm">
+			{$i18n.t('Reserved today')}: {money(dailyReserved)}
+		</p>{/if}
+	{#if dailyResetAt}<p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+			{$i18n.t('Resets at')}: {reset(dailyResetAt)}
+		</p>{/if}
+	{#if errorMessage}<p class="mt-3 text-sm text-red-700 dark:text-red-300" role="alert">
+			{errorMessage}
+		</p>{/if}
+	{#if successMessage}<p
+			class="mt-3 text-sm text-emerald-700 dark:text-emerald-300"
+			role="status"
+			aria-live="polite"
+		>
+			{successMessage}
+		</p>{/if}
+	<button
+		type="button"
+		class="mt-4 min-h-11 rounded-xl bg-black px-4 text-sm font-medium text-white dark:bg-white dark:text-black disabled:opacity-50"
+		disabled={savingPreferences || !dirty}
+		on:click={onSave}>{savingPreferences ? $i18n.t('Saving…') : $i18n.t('Save limits')}</button
+	>
+</section>

@@ -23,9 +23,14 @@
 </script>
 
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { trackEvent } from '$lib/utils/analytics';
 	import type { PublicRateCardResponse, PublicRateCardModel } from '$lib/apis/billing';
-	import { calculateTextEstimate, pickCheapestTextModel } from '$lib/utils/airis/pricing_estimator';
+	import {
+		calculateTextEstimate,
+		calculateUsageEstimate,
+		pickCheapestTextModel
+	} from '$lib/utils/airis/pricing_estimator';
 
 	export let config: PricingEstimatorConfig;
 	export let rateCard: PublicRateCardResponse | null = null;
@@ -40,6 +45,10 @@
 	export let onPrimaryAction: (() => void) | null = null;
 	export let onScrollToCalculation: (() => void) | null = null;
 
+	let selectedTextModel = '';
+	let selectedImageModel = '';
+	let selectedAudioModel = '';
+	let textScenario: 'continuous' | 'separate' = 'separate';
 	let activeTab: 'text' | 'image' | 'audio' = 'text';
 	let textMessagesPerDay = config.text.default.messagesPerDay;
 
@@ -63,12 +72,6 @@
 		} catch {
 			return `${amount.toFixed(2)} ${currency}`.trim();
 		}
-	};
-
-	const applyUncertainty = (total: number): { min: number; max: number } => {
-		const min = Math.floor(total * config.uncertainty.min);
-		const max = Math.ceil(total * config.uncertainty.max);
-		return { min, max };
 	};
 
 	const resolveModel = (
@@ -97,10 +100,15 @@
 
 	// Keep the async rate-card dependency explicit so the estimate recalculates after the API response.
 	$: rateCardModels = rateCard?.models ?? [];
-	$: textModelPreference = config.text.modelId ?? recommendedModelIdByType.text;
+	$: textModelPreference =
+		selectedTextModel || config.text.modelId || recommendedModelIdByType.text;
 	$: textModel = pickCheapestTextModel(rateCardModels, textModelPreference);
-	$: imageModel = rateCard ? resolveModel(recommendedModelIdByType.image, hasImageRates) : null;
-	$: audioModel = rateCard ? resolveModel(recommendedModelIdByType.audio, hasAudioRates) : null;
+	$: imageModel = rateCard
+		? resolveModel(selectedImageModel || recommendedModelIdByType.image, hasImageRates)
+		: null;
+	$: audioModel = rateCard
+		? resolveModel(selectedAudioModel || recommendedModelIdByType.audio, hasAudioRates)
+		: null;
 
 	$: textRatesAvailable = textModel ? hasTextRates(textModel) : false;
 	$: imageRatesAvailable = imageModel ? hasImageRates(imageModel) : false;
@@ -128,38 +136,25 @@
 		audioMode = audioModesAvailable[0].id;
 	}
 
-	const computeTextEstimate = (messagesPerDay: number): { min: number; max: number } | null => {
-		if (!textRatesAvailable) return null;
-		return calculateTextEstimate(
-			textModel,
-			config.text.tokensInPerMessage,
-			config.text.tokensOutPerMessage,
-			messagesPerDay,
-			config.uncertainty
-		);
-	};
-
-	const computeImageEstimate = (count: number): { min: number; max: number } | null => {
-		if (!imageModel || !imageRatesAvailable) return null;
-		const rate = imageModel.rates.image_1024 ?? 0;
-		const total = Math.ceil(rate * (Number(count) || 0));
-		return applyUncertainty(total);
-	};
-
-	const computeAudioEstimate = (): { min: number; max: number } | null => {
-		if (!audioModel || !audioRatesAvailable) return null;
-		if (audioMode === 'tts') {
-			const rate = audioModel.rates.tts_1000_chars;
-			if (rate === null) return null;
-			const total = Math.ceil(((Number(audioChars) || 0) / 1000) * rate);
-			return applyUncertainty(total);
-		}
-		const rate = audioModel.rates.stt_minute;
-		if (rate === null) return null;
-		const total = Math.ceil((Number(audioMinutes) || 0) * rate);
-		return applyUncertainty(total);
-	};
-
+	const computeImageEstimate = (
+		model: PublicRateCardModel | null,
+		count: number
+	): { min: number; max: number } | null =>
+		calculateUsageEstimate(model?.rates.image_1024 ?? null, count, 'image', config.uncertainty);
+	const computeAudioEstimate = (
+		model: PublicRateCardModel | null,
+		mode: 'tts' | 'stt',
+		chars: number,
+		minutes: number
+	): { min: number; max: number } | null =>
+		mode === 'tts'
+			? calculateUsageEstimate(
+					model?.rates.tts_1000_chars ?? null,
+					chars,
+					'tts',
+					config.uncertainty
+				)
+			: calculateUsageEstimate(model?.rates.stt_minute ?? null, minutes, 'stt', config.uncertainty);
 	const formatRange = (range: { min: number; max: number } | null): string => {
 		if (!range) return '—';
 		return `${formatMoney(range.min)} – ${formatMoney(range.max)}`;
@@ -185,7 +180,10 @@
 			return;
 		}
 		const target = document.getElementById('calculation');
-		target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		target?.scrollIntoView({
+			behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+			block: 'start'
+		});
 	};
 
 	const handlePrimaryAction = (): void => {
@@ -194,21 +192,40 @@
 		}
 	};
 
+	onDestroy(() => {
+		if (changeTimeout) clearTimeout(changeTimeout);
+	});
 	// Keep model/rate dependencies in the reactive statements; the helpers intentionally hide their reads.
-	$: textEstimate = textRatesAvailable ? computeTextEstimate(textMessagesPerDay) : null;
-	$: imageEstimate = imageRatesAvailable ? computeImageEstimate(imageCount) : null;
-	$: audioEstimate = audioRatesAvailable ? computeAudioEstimate() : null;
+	$: textInputValid =
+		Number.isSafeInteger(textMessagesPerDay) &&
+		textMessagesPerDay > 0 &&
+		textMessagesPerDay <= 1000;
+	$: textEstimate = textInputValid
+		? calculateTextEstimate(
+				textModel,
+				config.text.tokensInPerMessage,
+				config.text.tokensOutPerMessage,
+				textMessagesPerDay,
+				config.uncertainty,
+				textScenario
+			)
+		: null;
+	$: imageEstimate = computeImageEstimate(imageModel, imageCount);
+	$: audioEstimate = computeAudioEstimate(audioModel, audioMode, audioChars, audioMinutes);
 </script>
 
 <div class="space-y-8">
 	<p class="text-xs text-gray-500">
-		Ориентир для обычного длинного чата: история сообщений тоже учитывается. Реальная сумма зависит
-		от содержания запросов и выбранной модели.
+		Выберите модель и сценарий. Это примерная стоимость без учёта бесплатного остатка, а не
+		обещанная сумма списания.
 	</p>
 
 	<div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
 		{#if loading}
-			<div class="h-24 rounded-xl bg-gray-200/70 animate-pulse" aria-hidden="true"></div>
+			<div
+				class="h-24 rounded-xl bg-gray-200/70 animate-pulse motion-reduce:animate-none"
+				aria-hidden="true"
+			></div>
 		{:else}
 			{#if error}
 				<p class="text-sm text-gray-500">{error}</p>
@@ -219,16 +236,15 @@
 					Расчёт временно недоступен: для выбранных функций пока нет актуальной ставки.
 				</p>
 			{:else}
-				<div role="tablist" class="flex flex-wrap gap-2">
+				<div role="group" aria-label="Тип задачи" class="flex flex-wrap gap-2">
 					{#each availableTabs as tab}
 						<button
 							type="button"
-							role="tab"
 							id={`estimator-tab-${tab.id}`}
-							aria-selected={activeTab === tab.id}
+							aria-pressed={activeTab === tab.id}
 							aria-controls={`estimator-panel-${tab.id}`}
 							on:click={() => handleTabChange(tab.id as 'text' | 'image' | 'audio')}
-							class={`rounded-full border px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 ${
+							class={`min-h-11 rounded-full border px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 ${
 								activeTab === tab.id
 									? 'border-gray-900 bg-gray-900 text-white'
 									: 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
@@ -243,23 +259,54 @@
 					{#if activeTab === 'text'}
 						<div
 							id="estimator-panel-text"
-							role="tabpanel"
+							role="region"
 							aria-labelledby="estimator-tab-text"
 							class="space-y-4"
 						>
+							<label class="block text-sm text-gray-700"
+								>Модель
+								<select
+									value={textModel?.id ?? ''}
+									on:change={(event) => {
+										selectedTextModel = event.currentTarget.value;
+										scheduleEstimatorChange();
+									}}
+									class="mt-2 block min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-gray-900"
+								>
+									{#each rateCardModels.filter(hasTextRates) as model}<option value={model.id}
+											>{model.display_name}</option
+										>{/each}
+								</select></label
+							>
+							<label class="block text-sm text-gray-700"
+								>Как вы общаетесь
+								<select
+									bind:value={textScenario}
+									on:change={scheduleEstimatorChange}
+									class="mt-2 block min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-gray-900"
+									><option value="separate">Каждый запрос — новый чат</option><option
+										value="continuous">Все сообщения — один длинный чат</option
+									></select
+								></label
+							>
 							<div class="grid gap-4 md:grid-cols-[minmax(0,18rem)_1fr] md:items-end">
 								<label class="text-sm text-gray-600">
 									Сообщений в день
 									<input
 										type="number"
 										min="1"
+										max="1000"
 										bind:value={textMessagesPerDay}
 										on:input={scheduleEstimatorChange}
-										class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+										class="mt-2 min-h-11 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
 									/>
 								</label>
 								<p class="text-xs text-gray-500">
-									В расчёте учитывается накопление истории одного чата.
+									{textScenario === 'continuous'
+										? 'За 30 дней вся предыдущая переписка снова отправляется модели и входит в стоимость.'
+										: '30 дней, без предыдущей переписки: каждый запрос начинается с пустого чата.'}
+									Пример: {config.text.tokensInPerMessage} токенов в запросе и {config.text
+										.tokensOutPerMessage} в ответе. Токены — короткие части текста.
 								</p>
 							</div>
 							<div class="text-lg font-semibold text-gray-900 tabular-nums">
@@ -269,18 +316,33 @@
 					{:else if activeTab === 'image'}
 						<div
 							id="estimator-panel-image"
-							role="tabpanel"
+							role="region"
 							aria-labelledby="estimator-tab-image"
 							class="space-y-4"
 						>
+							<label class="block text-sm text-gray-700"
+								>Модель<select
+									value={imageModel?.id ?? ''}
+									on:change={(event) => {
+										selectedImageModel = event.currentTarget.value;
+										scheduleEstimatorChange();
+									}}
+									class="mt-2 block min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-gray-900"
+									>{#each rateCardModels.filter(hasImageRates) as model}<option value={model.id}
+											>{model.display_name}</option
+										>{/each}</select
+								></label
+							>
 							<label class="text-sm text-gray-600">
 								Количество изображений
 								<input
 									type="number"
 									min="1"
+									max="10000"
+									step="1"
 									bind:value={imageCount}
 									on:input={scheduleEstimatorChange}
-									class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+									class="mt-2 min-h-11 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
 								/>
 							</label>
 							<div class="text-lg font-semibold text-gray-900 tabular-nums">
@@ -290,10 +352,23 @@
 					{:else if activeTab === 'audio'}
 						<div
 							id="estimator-panel-audio"
-							role="tabpanel"
+							role="region"
 							aria-labelledby="estimator-tab-audio"
 							class="space-y-4"
 						>
+							<label class="block text-sm text-gray-700"
+								>Модель<select
+									value={audioModel?.id ?? ''}
+									on:change={(event) => {
+										selectedAudioModel = event.currentTarget.value;
+										scheduleEstimatorChange();
+									}}
+									class="mt-2 block min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-gray-900"
+									>{#each rateCardModels.filter(hasAudioRates) as model}<option value={model.id}
+											>{model.display_name}</option
+										>{/each}</select
+								></label
+							>
 							<div class="flex flex-wrap gap-2">
 								{#each audioModesAvailable as mode}
 									<button
@@ -302,7 +377,7 @@
 											audioMode = mode.id;
 											scheduleEstimatorChange();
 										}}
-										class={`rounded-full border px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 ${
+										class={`min-h-11 rounded-full border px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/60 ${
 											audioMode === mode.id
 												? 'border-gray-900 bg-gray-900 text-white'
 												: 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
@@ -318,9 +393,11 @@
 									<input
 										type="number"
 										min="1"
+										max="10000000"
+										step="1"
 										bind:value={audioChars}
 										on:input={scheduleEstimatorChange}
-										class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+										class="mt-2 min-h-11 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
 									/>
 								</label>
 							{:else}
@@ -328,10 +405,12 @@
 									Минут распознавания
 									<input
 										type="number"
-										min="1"
+										min="0.01"
+										max="43200"
+										step="any"
 										bind:value={audioMinutes}
 										on:input={scheduleEstimatorChange}
-										class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+										class="mt-2 min-h-11 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
 									/>
 								</label>
 							{/if}
@@ -343,17 +422,29 @@
 				</div>
 			{/if}
 
+			{#if !loading && availableTabs.length && ((activeTab === 'text' && !textInputValid) || (activeTab === 'image' && imageEstimate === null) || (activeTab === 'audio' && audioEstimate === null))}<p
+					class="mt-4 text-sm text-red-700"
+					role="alert"
+				>
+					{activeTab === 'text'
+						? 'Укажите целое число сообщений от 1 до 1 000.'
+						: activeTab === 'image'
+							? 'Укажите целое число изображений от 1 до 10 000.'
+							: audioMode === 'tts'
+								? 'Укажите целое число символов от 1 до 10 000 000.'
+								: 'Укажите длительность больше нуля, не более 43 200 минут. Дробные минуты допустимы.'}
+				</p>{/if}
 			<div class="mt-6 flex flex-wrap items-center gap-4">
 				<button
 					type="button"
-					class="inline-flex items-center justify-center rounded-full bg-black px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-900"
+					class="inline-flex min-h-11 items-center justify-center rounded-full bg-black px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-900"
 					on:click={handlePrimaryAction}
 				>
 					{primaryLabel}
 				</button>
 				<button
 					type="button"
-					class="text-sm font-semibold text-gray-600 hover:text-gray-900"
+					class="min-h-11 text-sm font-semibold text-gray-600 hover:text-gray-900"
 					on:click={scrollToCalculation}
 				>
 					Как считается стоимость

@@ -5,10 +5,15 @@ import { mount, unmount } from 'svelte';
 import WalletLeadMagnetSection from './WalletLeadMagnetSection.svelte';
 import type { LeadMagnetInfo } from '$lib/apis/billing';
 
-const i18nStore = {
+type I18nStore = {
+	locale: string;
+	t: (key: string) => string;
+	subscribe: (run: (value: I18nStore) => void) => () => void;
+};
+const i18nStore: I18nStore = {
 	locale: 'en-US',
 	t: (key: string) => key,
-	subscribe: (run: (value: typeof i18nStore) => void) => {
+	subscribe: (run: (value: I18nStore) => void) => {
 		run(i18nStore);
 		return () => undefined;
 	}
