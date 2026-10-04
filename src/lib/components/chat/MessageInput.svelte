@@ -124,7 +124,7 @@
 	export let atSelectedModel: Model | undefined = undefined;
 	export let selectedModels: string[];
 
-	let selectedModelIds = [];
+	let selectedModelIds: string[] = [];
 	$: selectedModelIds = atSelectedModel !== undefined ? [atSelectedModel.id] : selectedModels;
 	$: hasChatVariables = selectedModelIds.some(
 		(modelId) =>
