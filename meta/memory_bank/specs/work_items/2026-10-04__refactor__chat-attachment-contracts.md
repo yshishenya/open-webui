@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: refactor
-- Status: implementation verified; exact-head CI/merge pending
+- Status: done
 - Owner: Codex
 - Branch: codex/refactor/chat-attachment-contracts
 - SDD Spec: meta/sdd/specs/completed/airis-chat-attachment-contracts-2026-10-04-001.json
@@ -15,7 +15,7 @@
 - [x] Temporary images, extracted text, upload placeholders/results, web content, collection/chat/folder/note references retain their optional fields and unknown extensions. Numeric IDs/URLs/sizes and invalid lists are rejected by a strict probe.
 - [x] All changed complete component client/server JavaScript and shared module runtime are byte identical.
 - [x] All frontend tests pass; diagnostic delta is fully accounted for: removed, refined and newly exposed existing incompatibilities; no new executable behavior or suppression. Global debt remains visible.
-- [ ] SDD closed/valid, work item and branch log updated, source/tests/docs committed and pushed for exact CI/review against airis_b2c.
+- [x] SDD closed/valid, work item and branch log updated, source/tests/docs committed and pushed for exact CI/review against airis_b2c.
 
 ## Traced flow / Scope
 
@@ -50,3 +50,5 @@ The first CI lint run found 14 existing errors in ChatControls/Controls/FileItem
 The native FileReader string assertions are supported by the initiating readAsText/readAsDataURL methods and successful load callbacks; real jsdom native reads are checked. These erase from JavaScript and do not assert a provider response shape. Real nullable-field handling is a separate behavior fix with its own acceptance; keep it visible in G14/13.11.
 
 SDD: 3/3 tasks completed and JSON validation has zero errors/warnings. Review: scope and all consumers traced; upstream formatting debt preserved; frontend test/diagnostic/runtime proofs accepted. Backend/migrations/environment are untouched. Exact-head CI and merge evidence will complete source delivery.
+
+Accepted 2026-10-04T16:55:18Z: PR253 head74a30c4195c02b979d89159fc4d06052a6f530ec / merge74a4ed6f7fe6ad7f0ce717cb53af2e40e459f5d1, ten unique successful CI checks and one dependency-review skip. All nine final files match head/merge SHA256; unrelated controls and prior history SDD preserved. Runtime unchanged, no deploy required. Overall G14 and the full onboarding goal remain open; shared FileItem repair is a separate work item.

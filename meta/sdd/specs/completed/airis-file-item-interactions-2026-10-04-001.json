@@ -1,0 +1,175 @@
+{
+	"spec_id": "airis-file-item-interactions-2026-10-04-001",
+	"title": "Airis file item interactions",
+	"generated": "2026-10-04T16:58:14.950327Z",
+	"last_updated": "2026-10-04T17:12:08.384684Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "implementation",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__file-item-interactions.md",
+		"status": "completed",
+		"activated_date": "2026-10-04T17:00:49.792289Z",
+		"progress_percentage": 100,
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-04T17:12:08.384431Z",
+		"actual_hours": 0.04
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis file item interactions",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 3,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace and repair native attachment controls",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-04T17:05:52.453378Z",
+				"journaled_at": "2026-10-04T17:05:52.455686Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify source and compiled component acceptance",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-04T17:12:07.921773Z",
+				"journaled_at": "2026-10-04T17:12:07.924270Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce actual renderer and trace every caller",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"task_category": "investigation",
+				"completed_at": "2026-10-04T17:05:52.187616Z",
+				"needs_journaling": false,
+				"status_note": "Actual SSR/native parsing and four baseline regressions fail; all six caller sites and modal descriptor mutations traced. Existing backend FileModelResponse confirms nullable dictionary data.",
+				"journaled_at": "2026-10-04T17:05:52.188704Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Repair independent native controls and actual descriptor props",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "src/lib/components/common/FileItem.svelte",
+				"task_category": "implementation",
+				"completed_at": "2026-10-04T17:05:52.453165Z",
+				"needs_journaling": false,
+				"status_note": "Independent native open/remove buttons; translated fallback and optional descriptor props; five unit regressions pass, full suite/check/lint and browser acceptance underway.",
+				"journaled_at": "2026-10-04T17:05:52.454502Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify regression, diagnostic delta and compiled component browser",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-04__bugfix__file-item-interactions.md",
+				"task_category": "implementation",
+				"started_at": "2026-10-04T17:09:45.290559Z",
+				"completed_at": "2026-10-04T17:12:07.921624Z",
+				"needs_journaling": false,
+				"status_note": "All five regressions fail before/pass after; 498 frontend tests; types 3799 to 3789/163 and lint1419 to1416 without new messages. Actual component Chrome keyboard opens2/dismissals2, native focus/removal visible, user text preserved, console0. Source delivery and full candidate/production gates remain tracked in the work item.",
+				"actual_hours": 0.04,
+				"journaled_at": "2026-10-04T17:12:07.923179Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-04T17:05:52.188699Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce actual renderer and trace every caller",
+			"author": "Codex",
+			"content": "Task task-1-1 marked as completed. \nNote: Actual SSR/native parsing and four baseline regressions fail; all six caller sites and modal descriptor mutations traced. Existing backend FileModelResponse confirms nullable dictionary data.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-04T17:05:52.454494Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Repair independent native controls and actual descriptor props",
+			"author": "Codex",
+			"content": "Task task-1-2 marked as completed. \nNote: Independent native open/remove buttons; translated fallback and optional descriptor props; five unit regressions pass, full suite/check/lint and browser acceptance underway.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-04T17:05:52.455681Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace and repair native attachment controls",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-04T17:12:07.923175Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify regression, diagnostic delta and compiled component browser",
+			"author": "Codex",
+			"content": "Task task-2-1 marked as completed. \nNote: All five regressions fail before/pass after; 498 frontend tests; types 3799 to 3789/163 and lint1419 to1416 without new messages. Actual component Chrome keyboard opens2/dismissals2, native focus/removal visible, user text preserved, console0. Source delivery and full candidate/production gates remain tracked in the work item.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-04T17:12:07.924264Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify source and compiled component acceptance",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}

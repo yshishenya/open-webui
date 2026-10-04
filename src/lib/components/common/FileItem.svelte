@@ -1,4 +1,7 @@
 <script lang="ts">
+	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
+	import type { i18n as I18n } from 'i18next';
+	import type { Readable } from 'svelte/store';
 	import { createEventDispatcher, getContext } from 'svelte';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
@@ -6,12 +9,11 @@
 	import { settings } from '$lib/stores';
 
 	import FileItemModal from './FileItemModal.svelte';
-	import GarbageBin from '../icons/GarbageBin.svelte';
 	import Spinner from './Spinner.svelte';
 	import Tooltip from './Tooltip.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 	const dispatch = createEventDispatcher();
 
 	export let className = 'w-60';
@@ -23,13 +25,13 @@
 	export let modal = false;
 	export let loading = false;
 
-	export let item = null;
+	export let item: ChatAttachment | null = null;
 	export let edit = false;
 	export let small = false;
 
-	export let name: string;
-	export let type: string;
-	export let size: number;
+	export let name: string | undefined = undefined;
+	export let type: string | undefined = undefined;
+	export let size: number | undefined = undefined;
 
 	import DocumentPage from '../icons/DocumentPage.svelte';
 	import Database from '../icons/Database.svelte';
@@ -38,26 +40,35 @@
 	import Folder from '../icons/Folder.svelte';
 	let showModal = false;
 
-	const decodeString = (str: string) => {
+	const decodeString = (str: string): string => {
 		try {
 			return decodeURIComponent(str);
-		} catch (e) {
+		} catch {
 			return str;
 		}
 	};
+	$: displayName = decodeString(name || $i18n.t('File'));
 </script>
 
 {#if item}
 	<FileItemModal bind:show={showModal} bind:item {edit} />
 {/if}
 
-<button
-	class="relative group p-1.5 {className} flex items-center gap-1 {colorClassName} {small
+<div
+	class="relative group p-1.5 {className} {colorClassName} {small
 		? 'rounded-xl p-2'
 		: 'rounded-2xl'} text-left"
+>
+<button
+	class="flex items-center gap-1 w-full text-left"
 	type="button"
 	on:click={async () => {
-		if (item?.file?.data?.content || item?.type === 'file' || item?.content || modal) {
+		if (
+			(typeof item?.file === 'object' && item.file?.data?.content) ||
+			item?.type === 'file' ||
+			item?.content ||
+			modal
+		) {
 			showModal = !showModal;
 		} else {
 			if (url) {
@@ -137,7 +148,7 @@
 	{#if !small}
 		<div class="flex flex-col justify-center -space-y-0.5 px-2.5 w-full">
 			<div class=" dark:text-gray-100 text-sm font-normal line-clamp-1 mb-1">
-				{decodeString(name)}
+				{displayName}
 			</div>
 
 			<div
@@ -162,10 +173,10 @@
 			</div>
 		</div>
 	{:else}
-		<Tooltip content={decodeString(name)} className="flex flex-col w-full" placement="top-start">
+		<Tooltip content={displayName} className="flex flex-col w-full" placement="top-start">
 			<div class="flex flex-col justify-center -space-y-0.5 px-1 w-full">
 				<div class=" dark:text-gray-100 text-sm flex justify-between items-center">
-					<div class="font-normal line-clamp-1 flex-1 pr-1">{decodeString(name)}</div>
+					<div class="font-normal line-clamp-1 flex-1 pr-1">{displayName}</div>
 					{#if size}
 						<div class="text-gray-500 text-xs capitalize shrink-0">{formatFileSize(size)}</div>
 					{:else}
@@ -175,7 +186,7 @@
 			</div>
 		</Tooltip>
 	{/if}
-
+</button>
 	{#if dismissible}
 		<div class=" absolute -top-1 -right-1">
 			<button
@@ -183,7 +194,7 @@
 				class=" bg-white text-black border border-gray-50 rounded-full {($settings?.highContrastMode ??
 				false)
 					? ''
-					: 'outline-hidden focus:outline-hidden group-hover:visible invisible transition'}"
+					: 'outline-hidden focus:outline-hidden group-hover:visible group-focus-within:visible invisible transition'}"
 				type="button"
 				on:click|stopPropagation={() => {
 					dispatch('dismiss');
@@ -191,15 +202,6 @@
 			>
 				<XMark className={'size-4'} />
 			</button>
-
-			<!-- <button
-				class=" p-1 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-full group-hover:visible invisible transition"
-				type="button"
-				on:click={() => {
-				}}
-			>
-				<GarbageBin />
-			</button> -->
 		</div>
 	{/if}
-</button>
+</div>
