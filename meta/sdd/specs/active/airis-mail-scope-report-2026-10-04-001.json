@@ -1,0 +1,196 @@
+{
+  "spec_id": "airis-mail-scope-report-2026-10-04-001",
+  "title": "AIRIS mail scope report",
+  "generated": "2026-10-03T23:17:33.949997Z",
+  "last_updated": "2026-10-04T00:02:22.183581Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "medium",
+    "risk_level": "high",
+    "estimated_hours": 8,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__feature__mail-scope-report.md",
+    "status": "active",
+    "activated_date": "2026-10-03T23:19:58.967941Z",
+    "progress_percentage": 75,
+    "current_phase": "phase-2"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS mail scope report",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Coverage contract and read-only calculation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-03T23:55:29.928304Z",
+        "journaled_at": "2026-10-03T23:55:29.931432Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verification and production acceptance",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Define observed units, coverage and acceptance matrix",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 1.0,
+        "started_at": "2026-10-03T23:19:59.220567Z",
+        "category": "investigation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-04__feature__mail-scope-report.md",
+        "completed_at": "2026-10-03T23:25:52.519187Z",
+        "needs_journaling": false,
+        "status_note": "Six-type observed units, linked numerator, bounded source completeness, no backfill and manual matrix defined.",
+        "actual_hours": 0.098,
+        "journaled_at": "2026-10-03T23:25:52.523266Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Implement bounded read-only scope report and protected GET",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 2.0,
+        "category": "implementation",
+        "file_path": "backend/open_webui/utils/airis/email_scope_report.py",
+        "started_at": "2026-10-03T23:25:52.838992Z",
+        "completed_at": "2026-10-03T23:55:29.927894Z",
+        "needs_journaling": false,
+        "status_note": "Bounded report and protected GET implemented; 47 SQLite and PostgreSQL cases cover stable snapshots and count conservation.",
+        "actual_hours": 0.494,
+        "journaled_at": "2026-10-03T23:55:29.930118Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify SQLite and PostgreSQL counts, privacy and no mutations",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 2.0,
+        "category": "implementation",
+        "file_path": "backend/open_webui/test/util/test_email_scope_report.py",
+        "started_at": "2026-10-03T23:55:30.194916Z",
+        "completed_at": "2026-10-04T00:02:01.431771Z",
+        "needs_journaling": false,
+        "status_note": "885 backend, 47 per-database report cases and 280 isolated PostgreSQL checks; privacy, zero DML/SMTP, money/consent/journal fingerprints and concurrent snapshots verified.",
+        "actual_hours": 0.109,
+        "journaled_at": "2026-10-04T00:02:01.837061Z"
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Accept exact-source CI, image and guarded production reads",
+      "status": "in_progress",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 2.0,
+        "category": "implementation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-04__feature__mail-scope-report.md",
+        "started_at": "2026-10-04T00:02:22.182552Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-03T23:25:52.523258Z",
+      "entry_type": "status_change",
+      "title": "Scope report contract selected",
+      "author": "Codex",
+      "content": "Reuse journal/queue and protected router; no schema/dependency/frontend change. Partial/source-lost/new-payment/old-rule/diagnostic/ambiguous-latest scopes retain null fractions. Account and payment scenario units separated; future jobs may link before ready. Legacy reason strings sanitized. Stop/release/privacy checks remain independent; overall189/244 active.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-03T23:55:29.930111Z",
+      "entry_type": "status_change",
+      "title": "Scope report implementation",
+      "author": "Codex",
+      "content": "Reuse existing summaries, journal sources and administrative router. Two fork-owned helpers remain below500lines and all functions below50; no schema/dependency/frontend change. Invalid associations and future acceptance produce unknown fractions. Complete source/image/production verification remains pending.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-03T23:55:29.931426Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Coverage contract and read-only calculation",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-04T00:02:01.837023Z",
+      "entry_type": "status_change",
+      "title": "Source verification",
+      "author": "Codex",
+      "content": "Black/Ruff clean for all touched backend files, SDD valid and Markdown links clean. Frontend251passed/51files; existing4419errors/177warnings and1540ESLint remain open. Source checks do not prove exact image, production report or volunteer calendar windows; task2-2 pending.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    }
+  ]
+}
