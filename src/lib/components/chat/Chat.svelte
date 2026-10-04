@@ -81,6 +81,7 @@
 	import { AudioQueue } from '$lib/utils/audio';
 	import { createTemporaryChatId, isTemporaryChatId } from '$lib/utils/chatId';
 	import { getOutputText } from './Messages/structuredOutput';
+	import type { ChatHistoryMessage } from '$lib/utils/airis/chat_history';
 	import { trackEvent } from '$lib/utils/analytics';
 
 	import {
@@ -2221,11 +2222,17 @@
 		}
 	};
 
-	const chatActionHandler = async (_chatId, actionId, modelId, responseMessageId, event = null) => {
+	const chatActionHandler = async (
+		_chatId: string,
+		actionId: string,
+		modelId: string | undefined,
+		responseMessageId: string,
+		event: unknown = null
+	): Promise<void> => {
 		const messages = createMessagesList(history, responseMessageId);
 
 		const res = await chatAction(localStorage.token, actionId, {
-			model: modelId,
+			model: modelId!,
 			messages: messages.map((m) => ({
 				id: m.id,
 				role: m.role,
@@ -3442,11 +3449,14 @@
 		await sendMessage(history, userMessageId);
 	};
 
-	const regenerateResponse = async (message, suggestionPrompt = null) => {
+	const regenerateResponse = async (
+		message: ChatHistoryMessage,
+		suggestionPrompt: string | null = null
+	): Promise<void> => {
 		console.log('regenerateResponse');
 
 		if (history.currentId) {
-			let userMessage = history.messages[message.parentId];
+			let userMessage = (history.messages as Record<string, ChatHistoryMessage>)[message.parentId!];
 
 			if (!userMessage) {
 				toast.error($i18n.t('Parent message not found'));
@@ -3990,7 +4000,6 @@
 										{readOnly}
 										bind:history
 										bind:autoScroll
-										bind:prompt
 										setInputText={(text) => {
 											messageInput?.setText(text);
 										}}
@@ -3998,7 +4007,6 @@
 										{atSelectedModel}
 										className={embedded ? 'h-full flex pt-4' : 'h-full flex pt-18'}
 										{sendMessage}
-										{showMessage}
 										{submitMessage}
 										{continueResponse}
 										{regenerateResponse}

@@ -9,6 +9,7 @@ export type ChatHistoryMessage = {
 	content?: string;
 	timestamp?: number;
 	model?: string;
+	modelIdx?: number;
 	models?: string[];
 	done?: boolean;
 	files?: Record<string, unknown>[];

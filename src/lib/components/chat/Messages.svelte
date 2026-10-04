@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { v4 as uuidv4 } from 'uuid';
-	import { config, settings, user as _user, mobile, temporaryChatEnabled } from '$lib/stores';
+	import { settings, user as _user, temporaryChatEnabled } from '$lib/stores';
 	import { refreshChatList } from '$lib/stores/chatList';
-	import { tick, getContext, onMount, onDestroy, createEventDispatcher } from 'svelte';
+	import { tick, getContext, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as I18n } from 'i18next';
 	import type { Model } from '$lib/stores';
@@ -11,11 +11,9 @@
 		ChatHistoryMessage,
 		ChatMessageEdit
 	} from '$lib/utils/airis/chat_history';
-	const dispatch = createEventDispatcher();
 
 	import { toast } from 'svelte-sonner';
 	import { deleteChatMessageById, updateChatById } from '$lib/apis/chats';
-	import { copyToClipboard, extractCurlyBraceWords } from '$lib/utils';
 
 	import Message from './Messages/Message.svelte';
 	import Loader from '../common/Loader.svelte';
@@ -30,25 +28,40 @@
 	export let chatId = '';
 	export let user = $_user;
 
-	export let prompt;
 	export let history: ChatHistory = { messages: {}, currentId: null };
 	export let selectedModels: string[];
 	export let atSelectedModel: Model | null | undefined;
 
 	let messages: ChatHistoryMessage[] = [];
 
-	export let setInputText: Function = () => {};
+	export let setInputText: (text: string) => void = () => {};
 
-	export let sendMessage: Function;
-	export let continueResponse: Function;
-	export let regenerateResponse: Function;
-	export let mergeResponses: Function;
+	export let sendMessage: (history: ChatHistory, parentId: string) => void | Promise<void>;
+	export let continueResponse: () => void | Promise<void>;
+	export let regenerateResponse: (
+		message: ChatHistoryMessage,
+		prompt?: string | null
+	) => void | Promise<void>;
+	export let mergeResponses: (
+		messageId: string,
+		responses: string[],
+		chatId: string
+	) => void | Promise<void>;
 
-	export let chatActionHandler: Function;
-	export let showMessage: Function = () => {};
-	export let submitMessage: Function = () => {};
-	export let addMessages: Function = () => {};
-	export let forkHandler: Function | null = null;
+	export let chatActionHandler: (
+		chatId: string,
+		actionId: string,
+		modelId: string | undefined,
+		messageId: string,
+		event?: unknown
+	) => void | Promise<void>;
+	export let submitMessage: (parentId: string, prompt: string) => void | Promise<void> = () => {};
+	export let addMessages: (request: {
+		modelId: string;
+		parentId: string | null;
+		messages: ChatHistoryMessage[];
+	}) => void | Promise<void> = () => {};
+	export let forkHandler: ((messageId?: string | null) => void | Promise<void>) | null = null;
 
 	export let readOnly = false;
 	export let allowDelete = true;
@@ -540,7 +553,7 @@
 					<h2 class="sr-only" id="chat-conversation">{$i18n.t('Chat Conversation')}</h2>
 					{#if messages.at(0)?.parentId !== null}
 						<Loader
-							on:visible={(e) => {
+							on:visible={() => {
 								console.log('visible');
 								if (!messagesLoading) {
 									loadMoreMessages();
@@ -589,9 +602,9 @@
 						{/each}
 					</ul>
 				</section>
-				<div class="pb-18" />
+				<div class="pb-18"></div>
 				{#if bottomPadding}
-					<div class="  pb-6" />
+					<div class="  pb-6"></div>
 				{/if}
 			{/key}
 		</div>

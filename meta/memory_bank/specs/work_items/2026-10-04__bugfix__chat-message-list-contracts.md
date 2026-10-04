@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: done
+- Status: done (source checks; CI/merge and production separate)
 - Owner: Codex
 - Branch: codex/bugfix/chat-history-contracts
 - SDD Spec: meta/sdd/specs/completed/airis-chat-history-contracts-2026-10-04-001.json
@@ -12,43 +12,42 @@
 
 ## Context
 
-The shared message list initializes its history to an untyped empty object and its messages to an untyped array. Message graph fields and action arguments are therefore unchecked; the full frontend check reports 110 errors in Messages.svelte. All six consumers (regular chat, shared chat, search preview, hover preview and both export menus) supply a history graph; existing undeclared preview props remain separate debt. The parent/children representation is already persisted and repaired by existing helpers; no new persistence format is needed.
+Empty object/array inference causes 110 errors in the shared Messages component. Its six consumers use the existing persisted parent/children graph. Callback Function types and unused props also prevent touched-file CI lint from passing. A stored empty chat without history gives the hover preview a null value instead of the component default.
 
 ## Goal / Acceptance Criteria
 
-- [x] Describe the actual message graph and edit payload with concrete types, preserving structured output and attachments.
-- [x] All source-handler checks pass for empty history, paging, streaming updates, branch navigation, user/assistant editing, annotation and deletion, including persistence failures.
-- [x] Complete frontend diagnostics shrink with zero added diagnostics; all frontend tests pass.
-- [x] Freeze exact tested source and prepare a reviewable PR; keep production and final product acceptance separate.
-
-## Non-goals
-
-No provider, billing, database or dependency changes. Existing TypeScript 5.9.3 is retained with the repository toolchain; current registry stable 7.0.2 was checked, and a compiler/toolchain upgrade is a separate compatibility task. Official object and optional-property documentation was read. No invented universal message schema. Cyclic ancestry and repeated child descent discovered during tracing require a separately verified shared traversal fix; they are not declared solved by type annotations.
+- [x] Describe the repaired graph and edit payload with concrete types, preserving output and attachments.
+- [x] All source-handler checks pass for paging, streaming updates, branch navigation, editing, annotations, deletion and persistence failure.
+- [x] The actual empty Messages component mounts without an uncaught error when history is undefined.
+- [x] All six changed source/test files pass strict ESLint, without new rule disables.
+- [x] Full diagnostics shrink with zero added diagnostics; all frontend tests pass.
+- [x] Freeze a reviewable source revision; production and final product acceptance remain separate.
 
 ## Scope and implementation
 
-Add a small graph contract under src/lib/utils/airis and annotate Messages.svelte. Reuse the existing OutputItem type. Keep current persistence and branch algorithms. Use a valid empty history as the component default; both callers already supply history. Preserve unknown message extensions through existing object spread and API round trips.
+Add the small graph/edit contract under src/lib/utils/airis, reusing OutputItem. Type Messages state/actions and two existing Chat callbacks. Remove dead imports, prompt/showMessage props and their caller bindings. Map null hover history to undefined so Messages uses its valid empty default. Keep persistence, send/edit/delete/branch algorithms and unknown fields in existing round trips.
+
+## Non-goals
+
+No provider, billing, database, persistence-format or dependency change. Existing TypeScript 5.9.3 is retained for repository toolchain compatibility; registry stable 7.0.2 and official optional-property documentation were checked. A toolchain upgrade is separate work. Cyclic ancestry and child descent require a separately verified traversal fix.
 
 ## Upstream impact
 
-Messages.svelte is upstream-owned. Its diff is limited to type annotations and removing unused imports in this component; the empty default graph is made explicit. Do not reformat unrelated components. The first block does not yet type Chat.svelte or shared chat API responses.
+Messages.svelte: types, valid empty default, unused imports/props, two explicit div closing tags and unused Loader callback argument. Chat.svelte: two typed callbacks and removal of the dead Messages props. ChatHoverPreview.svelte: concrete context/history and empty-history default mapping. Existing unrelated formatting is preserved; Chat.svelte has five pre-existing Prettier differences, outside the changed lines. The graph contract and two runnable checks are additive.
 
 ## Verification
 
-Docker Compose frontend tests, full svelte-check and full ESLint compared with the exact pre-change baseline, strict changed files, component behavior checks, SDD validation and source review. Backend code is unchanged. Runtime default differences must be reported honestly; deployment acceptance is a separate step.
+Docker Compose frontend suite: 458/458 tests, 68 files. Fourteen source-handler checks plus one actual Svelte/jsdom empty mount. The previous source fails the concrete-type probe while its thirteen unchanged-behavior scenarios pass. Full svelte-check: 4204/174 to 4087/170; 117 errors and four warnings removed. Four existing consumer diagnostics rewrite generated prop schemas at unchanged locations; zero added diagnostics. Full ESLint: 1503 to 1477, 26 removed / zero added, compared with an archived exact baseline source. Strict ESLint passes for all six changed source/test files. Five changed files pass complete Prettier; changed lines in Chat are formatted, and its five unrelated baseline differences are retained.
+
+All 16 Messages handlers and the two annotated Chat handlers emit identical JavaScript after type erasure. Runtime differences: valid empty default history, null hover history mapping, unused default callback argument and dead props/imports removed. This is not whole-component byte identity or production/browser acceptance.
 
 ## Risks / Rollback
 
-Existing histories may contain malformed nodes; graph types describe repaired client state, not validation of arbitrary server JSON. Keep the existing repair boundary and algorithms. Revert this narrow source change if consumer diagnostics regress.
+Graph types describe repaired client state, not validation of arbitrary server JSON. Existing repair boundaries remain. Revert this narrow source change if a consumer regresses. Browser/candidate/deployment evidence for the runtime defaults is still required; the common quality criterion remains open while full types/lint fail.
 
 ## Completion Checklist
 
-- [x] Close linked SDD after verified checks.
-- [x] Mark branch entry Done with evidence.
-- [ ] CI and merge receipt are recorded separately after the frozen source is reviewed.
-
-## Source verification result
-
-All 110 message-list errors are removed. Full svelte-check is 4094 errors / 174 warnings (baseline 4204 / 174); four existing caller diagnostics change their printed prop schemas but retain the same source locations and causes. Raw text delta is 114 removed / 4 rewritten, with zero added error locations. Full ESLint is 1500 (baseline 1503), three removed / zero added. All 457 frontend tests pass in 67 files, including 14 message-list checks. The previous source fails the concrete-type probe and passes the other 13 behavior checks. Strict new contract/test ESLint passes.
-
-All 16 existing runtime handlers emit identical JavaScript after annotation erasure. The default history becomes a usable empty graph; the unused default onSelect argument is removed. This is not a claim of whole-component byte identity or production acceptance. Existing callback Function types and preview prop mismatches remain tracked debt; no new rule disables are introduced. Browser/candidate/deployment evidence for runtime changes must be obtained separately.
+- [x] Source checks and SDD are recorded, including the CI-driven callback/empty-preview follow-up.
+- [x] Branch entry has source evidence.
+- [ ] Accepted CI and exact merge receipt.
+- [ ] Browser and production receipt for runtime defaults.

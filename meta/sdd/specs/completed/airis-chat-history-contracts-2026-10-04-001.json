@@ -2,7 +2,7 @@
 	"spec_id": "airis-chat-history-contracts-2026-10-04-001",
 	"title": "AIRIS message list history contracts",
 	"generated": "2026-10-04T07:20:38.403774Z",
-	"last_updated": "2026-10-04T07:35:05.665147Z",
+	"last_updated": "2026-10-04T07:53:12.836937Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "low",
@@ -164,6 +164,14 @@
 			"content": "All child tasks in phase phase-2 have been completed.",
 			"metadata": {},
 			"task_id": "phase-2"
+		},
+		{
+			"timestamp": "2026-10-04T07:53:12.836937Z",
+			"entry_type": "verification",
+			"title": "CI-driven callback and empty-preview follow-up",
+			"author": "Codex",
+			"content": "Old PR head failed touched-file lint on 21 existing Messages errors. Replaced Function contracts, removed dead imports/props, typed Chat callbacks and mapped null hover history to the empty list default. Actual Svelte mount passes without uncaught errors. Revised source:458/458frontend68files;4204/174 to4087/170;1503 to1477 ESLint;zero added diagnostics and strict sixchangedfiles pass.18emittedhandlers unchanged. Five pre-existing Chat formatting differences retained. CI/merge/browser/production are separate receipts.",
+			"metadata": {}
 		}
 	]
 }

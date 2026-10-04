@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { getContext, onDestroy, tick } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { ChatHistory } from '$lib/utils/airis/chat_history';
 	import { LinkPreview } from 'bits-ui';
 
 	import { getChatById } from '$lib/apis/chats';
@@ -7,7 +10,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import { user } from '$lib/stores';
 
-	const i18n: any = getContext('i18n');
+	const i18n = getContext<Writable<I18n>>('i18n');
 
 	export let chatId = '';
 	export let title = '';
@@ -19,7 +22,7 @@
 	let messagesContainerElement: HTMLElement | null = null;
 
 	let selectedModels = [''];
-	let history: any = null;
+	let history: ChatHistory | null = null;
 	let previewReady = false;
 	let loading = false;
 	let error = '';
@@ -126,12 +129,11 @@
 						className="flex w-full pt-2 pb-0 [&_.message-listitem]:!mb-1 [&_.message-listitem]:!max-w-none [&_.message-listitem]:!px-3 [&_.pb-18]:!pb-1.5 [&_.markdown-prose]:!text-xs [&_.markdown-prose]:!leading-snug [&_.whitespace-pre-wrap]:!text-xs [&_.whitespace-pre-wrap]:!leading-snug [&_.text-\[0\.9375rem\]]:!text-xs [&_.text-sm]:!text-xs [&_.tool-call-body_pre]:!text-[11px] [&_.rounded-3xl]:!rounded-2xl [&_.chat-user_.rounded-3xl]:!bg-gray-50 dark:[&_.chat-user_.rounded-3xl]:!bg-gray-800 [&_.px-4]:!px-3 [&_.py-3]:!py-2 [&_.py-1\.5]:!py-1"
 						chatId={`chat-hover-preview-${chatId}`}
 						user={$user}
-						prompt=""
 						readOnly={true}
 						compactPreview={true}
 						{selectedModels}
 						atSelectedModel={null}
-						{history}
+						history={history ?? undefined}
 						autoScroll={true}
 						{messagesContainerId}
 						messagesCount={8}
