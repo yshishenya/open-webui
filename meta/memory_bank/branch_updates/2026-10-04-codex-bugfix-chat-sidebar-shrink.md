@@ -6,3 +6,12 @@
   - Summary: Reproduced a 42-pixel offscreen rail in a long saved desktop chat; trace flex sizing, apply the minimum constraint and assert real visible-button navigation.
   - Tests: Prior-artifact regression and fixed full paths pending.
   - Risks: Preserve existing pane sizing, embedded chat, analytics and real pilot boundaries.
+
+- [x] **[BUG][UI]** Keep the collapsed chat sidebar opening button on screen
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__chat-sidebar-shrink.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-sidebar-shrink`
+  - Done: 2026-10-04
+  - Summary: PR247 merged and guarded production artifact accepted; one min-w-0 class fixes the shared flex root. Desktop visible-button/reload/wallet return and narrow drawer accepted; SDD 3/3 completed.
+  - Tests: Prior regression fails; fixed 10 full paths + 2 empty/embedded cases, 480 frontend tests, 10 CI successes/1 documented skip, exact artifact/live file equality, no new type/style diagnostics.
+  - Risks: Existing full quality debt and real customer/pilot conditions remain open; private operational receipts stay local.
