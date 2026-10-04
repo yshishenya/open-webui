@@ -259,7 +259,7 @@
 	description="Прозрачные тарифы Airis: пополнение баланса, списания только за использование и бесплатный старт."
 	showHero={false}
 >
-	<section class="relative overflow-hidden">
+	<section class="airis-reporting-scope relative overflow-hidden">
 		<div
 			class="absolute -top-20 -right-32 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.12),transparent_70%)]"
 		></div>
@@ -349,7 +349,7 @@
 		</div>
 	</section>
 
-	<section class="bg-[#f7f7f8] py-16">
+	<section class="airis-reporting-scope bg-[#f7f7f8] py-16">
 		<div class="mx-auto max-w-[1200px] px-4">
 			<SectionHeader
 				id="estimator"
@@ -371,7 +371,7 @@
 		</div>
 	</section>
 
-	<section class="py-16">
+	<section class="airis-reporting-scope py-16">
 		<div class="mx-auto max-w-[1200px] px-4">
 			<SectionHeader
 				id="free"
@@ -407,7 +407,7 @@
 		</div>
 	</section>
 
-	<section class="bg-[#f7f7f8] py-16">
+	<section class="airis-reporting-scope bg-[#f7f7f8] py-16">
 		<div class="mx-auto max-w-[1200px] px-4">
 			<SectionHeader
 				id="rates"
@@ -428,7 +428,7 @@
 		</div>
 	</section>
 
-	<section class="py-16">
+	<section class="airis-reporting-scope py-16">
 		<div class="mx-auto max-w-[1200px] px-4">
 			<SectionHeader
 				id="calculation"
@@ -455,7 +455,7 @@
 		</div>
 	</section>
 
-	<section class="py-16">
+	<section class="airis-reporting-scope py-16">
 		<div class="mx-auto max-w-[1200px] px-4">
 			<SectionHeader id="faq" title="Часто задаваемые вопросы" />
 			<div class="mt-8 max-w-3xl">

@@ -307,6 +307,47 @@ for (const width of [360, 390, 768, 1280])
 				await expect
 					.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
 					.toBe(true);
+				if (path === '/admin/billing') {
+					const ratio = await page
+						.getByRole('link')
+						.filter({ hasText: 'Зачисленные пополнения' })
+						.locator('div')
+						.first()
+						.evaluate((element) => {
+							const canvas = document.createElement('canvas');
+							canvas.width = canvas.height = 1;
+							const context = canvas.getContext('2d')!;
+							const luminance = (color: string): number => {
+								context.clearRect(0, 0, 1, 1);
+								context.fillStyle = color;
+								context.fillRect(0, 0, 1, 1);
+								return Array.from(context.getImageData(0, 0, 1, 1).data)
+									.slice(0, 3)
+									.reduce((sum, value, i) => {
+										const s = value / 255;
+										return (
+											sum +
+											[0.2126, 0.7152, 0.0722][i] *
+												(s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4)
+										);
+									}, 0);
+							};
+							let parent: Element | null = element;
+							let background = 'white';
+							while (parent) {
+								const color = getComputedStyle(parent).backgroundColor;
+								if (color !== 'rgba(0, 0, 0, 0)' && color !== 'transparent') {
+									background = color;
+									break;
+								}
+								parent = parent.parentElement;
+							}
+							const a = luminance(getComputedStyle(element).color),
+								b = luminance(background);
+							return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+						});
+					expect(ratio, `${width}px ${theme}: money label contrast`).toBeGreaterThanOrEqual(4.5);
+				}
 				await page.screenshot({
 					path: `artifacts/analytics-ui/${width}-${theme}-${path.replaceAll('/', '_')}.png`,
 					fullPage: true
