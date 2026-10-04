@@ -1,0 +1,8 @@
+- [ ] **[BUG][UI]** Исправить общий ввод переменных
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__input-variable-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/refactor/input-variable-contracts`
+  - Started: 2026-10-04
+  - Summary: Проверить реальные скалярные значения, false, обязательный select и три потребителя; G14 остаётся открытым.
+  - Tests: 389 frontend; 36 новых сценариев + 5 прежних проверок; типы 4225/175 и ESLint 1507, новых диагностик 0; Chrome компонент, 0 page errors. CI/merge pending.
+  - Risks: Изменяется обработка строкового false и обязательность списка; платежи и письма не затрагиваются.
