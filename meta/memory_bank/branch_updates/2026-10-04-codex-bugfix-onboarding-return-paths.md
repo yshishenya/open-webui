@@ -1,0 +1,8 @@
+- [ ] **[BUG][TEST][ONBOARDING]** Preserve new chat through checkout and verify full paths
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__test__onboarding-full-paths.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/onboarding-return-paths`
+  - Started: 2026-10-04
+  - Summary: Real local application and billing/queue, only external protocols replaced; exact usage and replay assertions.
+  - Tests: Pending Chromium/Firefox, negative provider/pending payment, full regressions and source receipts.
+  - Risks: Local fixtures are not real pilot, external delivery, money or fiscal proof. Three thin Chat history hooks change to the installed SvelteKit API; rebuilt candidate and production acceptance are required.

@@ -1,0 +1,74 @@
+services:
+  onboarding-paths:
+    image: ${ONBOARDING_PATHS_IMAGE:?Set the compiled AIRIS candidate image}
+    working_dir: /app/backend
+    command:
+      ['python', '-m', 'uvicorn', 'onboarding_paths:app', '--host', '0.0.0.0', '--port', '8080']
+    volumes:
+      - ./fixtures:/fixtures:ro
+    tmpfs:
+      - /app/backend/data
+    environment:
+      PYTHONPATH: /app/backend:/fixtures
+      AIRIS_ONBOARDING_PATHS_TEST: '1'
+      DATABASE_URL: sqlite:////app/backend/data/onboarding-paths.db
+      STATIC_DIR: /app/backend/data/static
+      WEBUI_SECRET_KEY: local-onboarding-paths-only-32-byte-key
+      WEBUI_URL: http://onboarding-paths:8080
+      FRONTEND_URL: https://chat.airis.you
+      OFFLINE_MODE: 'true'
+      ENABLE_SIGNUP: 'true'
+      ENABLE_INITIAL_ADMIN_SIGNUP: 'true'
+      DEFAULT_USER_ROLE: user
+      ENABLE_OPENAI_API: 'true'
+      OPENAI_API_BASE_URL: http://127.0.0.1:8080/_fixture/v1
+      OPENAI_API_KEY: local-fixture-only
+      ENABLE_OLLAMA_API: 'false'
+      ENABLE_BASE_MODELS_CACHE: 'false'
+      ENABLE_TITLE_GENERATION: 'false'
+      ENABLE_TAGS_GENERATION: 'false'
+      ENABLE_FOLLOW_UP_GENERATION: 'false'
+      ENABLE_BILLING_WALLET: 'true'
+      ENABLE_BILLING_SUBSCRIPTIONS: 'false'
+      LEAD_MAGNET_ENABLED: 'true'
+      LEAD_MAGNET_QUOTAS: '{"tokens_input":100000,"tokens_output":100000,"images":0,"tts_seconds":0,"stt_seconds":0}'
+      BILLING_TOPUP_PACKAGES_KOPEKS: '50000'
+      YOOKASSA_SHOP_ID: local-fixture-only
+      YOOKASSA_SECRET_KEY: local-fixture-only
+      YOOKASSA_API_URL: http://127.0.0.1:8080/_fixture/v3
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: '2525'
+      SMTP_USERNAME: local-fixture-only
+      SMTP_PASSWORD: local-fixture-only
+      SMTP_USE_TLS: 'false'
+      SMTP_REPLY_TO: support@airis.you
+      AIRIS_EMAIL_QUEUE_ENABLED: 'true'
+      AIRIS_EMAIL_RELEASE_A_ENABLED: 'false'
+      AIRIS_EMAIL_RELEASE_B_ENABLED: 'true'
+      AIRIS_EMAIL_CREDITED_START_AT: '1'
+      AIRIS_EMAIL_PILOT_ONLY: 'false'
+      AIRIS_EMAIL_DRY_RUN: 'false'
+      AIRIS_PRODUCT_EMAILS_ENABLED: 'false'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3)"
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 40
+  e2e:
+    image: airis-e2e:playwright-1.62.1-node22
+    working_dir: /work
+    volumes:
+      - ../:/work
+      - onboarding-paths-node-modules:/work/node_modules
+    environment:
+      PLAYWRIGHT_BASE_URL: http://onboarding-paths:8080
+      NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
+    entrypoint: ['bash', '-lc']
+volumes:
+  onboarding-paths-node-modules: {}

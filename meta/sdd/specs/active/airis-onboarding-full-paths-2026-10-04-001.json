@@ -1,0 +1,188 @@
+{
+  "spec_id": "airis-onboarding-full-paths-2026-10-04-001",
+  "title": "Airis onboarding full paths",
+  "generated": "2026-10-04T11:00:55.879798Z",
+  "last_updated": "2026-10-04T11:37:45.597998Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__test__onboarding-full-paths.md",
+    "status": "active",
+    "activated_date": "2026-10-04T11:05:26.140374Z",
+    "progress_percentage": 66
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis onboarding full paths",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T11:27:50.689855Z",
+        "journaled_at": "2026-10-04T11:27:50.691862Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Phase 2: [To Be Defined]",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T11:33:33.472739Z",
+        "journaled_at": "2026-10-04T11:33:33.475084Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Phase 3: [To Be Defined]",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1",
+        "task-3-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace real application paths and isolate only external boundaries",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-04T11:27:50.689681Z",
+        "needs_journaling": false,
+        "status_note": "Traced real signup verification, guide login completion, usage quota, provider reconcile and queue SMTP; test-only external protocol wrapper, unchanged production application.",
+        "journaled_at": "2026-10-04T11:27:50.690807Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Add complete guide quota and checkout mail browser scenarios",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-04T11:33:33.472379Z",
+        "needs_journaling": false,
+        "status_note": "Guide exact usage and provider failure passed in both browsers; checkout credit/history/Reply-To and two reconcile/drain replays passed in Chromium. Added actual chat return preservation for final two-browser run.",
+        "journaled_at": "2026-10-04T11:33:33.473841Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify two browsers, negative cases, regressions and exact source",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": "Fix stale route state and verify wallet returns to the newly created chat",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {},
+      "description": "Two browsers reproduce native history URL replacement leaving page.url stale. Replace the three shared Chat history updates with the installed SvelteKit API, preserve page state, verify full payment and new chat flows on a rebuilt candidate."
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-04T11:27:50.690802Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace real application paths and isolate only external boundaries",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Traced real signup verification, guide login completion, usage quota, provider reconcile and queue SMTP; test-only external protocol wrapper, unchanged production application.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-04T11:27:50.691858Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: [To Be Defined]",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-04T11:33:33.473836Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add complete guide quota and checkout mail browser scenarios",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Guide exact usage and provider failure passed in both browsers; checkout credit/history/Reply-To and two reconcile/drain replays passed in Chromium. Added actual chat return preservation for final two-browser run.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-04T11:33:33.475079Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: [To Be Defined]",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
