@@ -97,9 +97,12 @@ async function signIn(page: Page, account: Account): Promise<void> {
 }
 
 async function openSidebar(page: Page): Promise<void> {
-	if ((page.viewportSize()?.width ?? 1000) < 640)
-		await page.getByRole('button', { name: 'Open Sidebar', exact: true }).click();
-	else await page.keyboard.press('Control+Shift+S');
+	const button = page.getByRole('button', { name: 'Open Sidebar', exact: true });
+	await expect(button).toBeVisible();
+	await expect.poll(async () => (await button.boundingBox())?.x ?? -1).toBeGreaterThanOrEqual(0);
+	const bounds = await button.boundingBox();
+	expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+	await button.click();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -158,6 +161,8 @@ for (const example of ['написать текст', 'разобраться в
 				usage: { prompt_tokens: 17, completion_tokens: 3, total_tokens: 20 }
 			}
 		]);
+		await openSidebar(page);
+		await page.getByRole('button', { name: 'Close Sidebar', exact: true }).click();
 		await page.reload();
 		await expect(
 			page.getByRole('log').getByText('AIRIS deterministic answer.', { exact: true })

@@ -1,0 +1,8 @@
+- [ ] **[BUG][UI]** Keep the collapsed chat sidebar opening button on screen
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-04__bugfix__chat-sidebar-shrink.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-sidebar-shrink`
+  - Started: 2026-10-04
+  - Summary: Reproduced a 42-pixel offscreen rail in a long saved desktop chat; trace flex sizing, apply the minimum constraint and assert real visible-button navigation.
+  - Tests: Prior-artifact regression and fixed full paths pending.
+  - Risks: Preserve existing pane sizing, embedded chat, analytics and real pilot boundaries.
