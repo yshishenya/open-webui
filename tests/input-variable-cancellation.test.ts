@@ -197,13 +197,13 @@ const caller = (kind: 'chat' | 'channel') => {
 	};
 	const evaluate = (
 		name: string
-	): ((text: string, cb?: (text: string) => void) => Promise<string | null | void>) =>
+	): ((text: string, cb?: (text: string) => void) => Promise<string | null | void | boolean>) =>
 		runInNewContext(
 			ts.transpileModule(`(${initializer(kind, name)})`, {
 				compilerOptions: { target: ts.ScriptTarget.ES2022 }
 			}).outputText,
 			context
-		) as (text: string, cb?: (text: string) => void) => Promise<string | null | void>;
+		) as (text: string, cb?: (text: string) => void) => Promise<string | null | void | boolean>;
 	context.inputVariableHandler = evaluate('inputVariableHandler');
 	return { context, input, replacement, evaluate, draft: (): string => draft };
 };
@@ -221,7 +221,8 @@ it.each(
 	expect(c.context.showInputVariablesModal).toBe(true);
 	if (save) c.context.inputVariablesModalCallback({ NAME: 'Alice' });
 	else c.context.inputVariablesModalCancelCallback();
-	await pending;
+	const result = await pending;
+	if (method === 'setText') expect(result).toBe(save);
 	expect(c.draft()).toBe('{{NAME}}');
 	expect(c.replacement).toHaveBeenCalledTimes(save ? 1 : 0);
 	expect(continuation).toHaveBeenCalledTimes(method === 'setText' && save ? 1 : 0);
@@ -257,10 +258,18 @@ it.each(kinds)('settles pending %s input when the editor is cleared', async (kin
 	expect(continuation).not.toHaveBeenCalled();
 	expect(c.context.showInputVariablesModal).toBe(false);
 });
+it.each(kinds)('returns false for %s when the editor is absent', async (kind) => {
+	const c = caller(kind);
+	c.context.document = { getElementById: () => null };
+	const continuation = vi.fn();
+	expect(await c.evaluate('setText')('Plain', continuation)).toBe(false);
+	expect(continuation).not.toHaveBeenCalled();
+	expect(c.draft()).toBe('');
+});
 it.each(kinds)('passes %s text without variables through without a modal', async (kind) => {
 	const c = caller(kind);
 	const continuation = vi.fn();
-	await c.evaluate('setText')('Plain', continuation);
+	expect(await c.evaluate('setText')('Plain', continuation)).toBe(true);
 	expect(c.draft()).toBe('Plain');
 	expect(continuation).toHaveBeenCalledWith('Plain');
 	expect(c.context.showInputVariablesModal).toBe(false);
