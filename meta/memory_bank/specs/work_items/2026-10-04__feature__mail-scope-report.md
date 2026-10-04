@@ -3,11 +3,11 @@
 ## Meta
 
 - Type: feature
-- Status: active
+- Status: completed
 - Owner: Codex
 - Branch: codex/feature/mail-scope-report
 - Base: airis_b2c after PR211, cf726e18fafcec88f4832d9b187697b479a6c75b
-- SDD Spec: meta/sdd/specs/active/airis-mail-scope-report-2026-10-04-001.json
+- SDD Spec: meta/sdd/specs/completed/airis-mail-scope-report-2026-10-04-001.json
 - Related: 08.09/09.07 of the private onboarding implementation plan; completed atomic queue observation from PR210.
 
 ## Финальный результат и измеримые критерии
@@ -24,7 +24,7 @@
 - [x] Повторное чтение без событий возвращает одинаковые показатели: 0 DML от расчёта, 0 вызовов SMTP/наблюдателя/reconcile, 0 изменений денег/согласий/очереди/истории.
 - [x] GET защищён get_admin_user и no-store на успехе/отказе/валидации; anonymous/ordinary получают401/403. Экспорт не содержит адресов, текста, токенов, идентификаторов получателей/платежей или провайдерских ответов. Предел500участников, ограниченные источники/история и20секундный таймаут не позволяют бесконечную выгрузку.
 - [x] Ручная контрольная матрица всех шести типов совпадает с расчётом на SQLite/PostgreSQL. Проверены отрицательные/будущие/частичные/утраченные/старые состояния, две попытки одного человека, повтор и конкурентный снимок.
-- [ ] Полный backend, стиль, SDD и CI проверены на точном source; точный образ/копия БД/защищённый выпуск и рабочее чтение приняты. Пилот, настоящие календарные окна и полезность остаются самостоятельными критериями.
+- [x] Полный backend, стиль, SDD и CI проверены на точном source; точный образ/копия БД/защищённый выпуск и рабочее чтение приняты. Пилот, настоящие календарные окна и полезность остаются самостоятельными критериями.
 
 ## Реализация и повторное использование
 
@@ -73,3 +73,13 @@ SQLAlchemy2.0.50 сохраняется по исключению совмест
 Полный source backend:885passed/4PostgreSQL-only skipped/19warnings. Изолированный PostgreSQL:205passed и75passed/1отдельный consent-onlyskip; отдельная проверка consent/task-success выполняется с их собственными PostgreSQL-переменными. Frontend:251passed/51files; ESLint1540errors прежние. Первый общий check был остановлен памятью; отдельныйcheck ещё выполняется. Exact CI/image/production остаются открыты.
 
 Отдельныйcheck завершён:4419errors/177warnings/270files, прежний показатель;1540ESLinterrors иG14остаются открытыми. Повторный review: bounded queries, exact identity, conservative null fractions, safe whitelists and readonly transaction verified; no independent reviewer is claimed.
+
+## Рабочая приёмка04.10.2026
+
+Принято: source`b3c377cfea569b5ef48ba11b3ab9b3917567aac2`,PR213,merge`ac10f64a3a1b6ad17cfec48feb01b769e794b7c5`,digest`sha256:a744b6f64c0e8c2a850e707497fc3995897fee5715948ab43fa06871025f37db`. SourceCI11success/1dependency-review skipped. Точный образ885passed/4PostgreSQL-onlyskips,330PostgreSQLpassed без пропусков. Проверки используют только тесты, замороженные на sourceSHA;runtimeмодули читаются из образа. Первые попытки с прежним каталогом тестов и неполным встроенным набором не являются доказательствами; принятые проверки повторены полностью.
+
+Свежая копия:78таблиц/20722строки,все схемы/строки неизменны после hardAlembic,head`o1a020261003`. Guardedbackup/release приняты;4904frontend и499immutablebackend хешей подтверждены, ENV/тома/сети/порты/команды/restartpolicy и13соседей сохранены,restarts0,10795344КиБ свободно. Frontendversion`90674f905…` сохранён намеренно;backendsource доказывают OCIlabel и хеши.
+
+Две существующие закрытые диагностические группы по139участников читаются с6строками и stablecounts,complete_traversal не становится добровольным пилотом.9HTTPSпроверок admin/ordinary/anonymous,200/404/422/no-store приняты.0DML от расчёта,0observer/SMTP;все финансовые/согласия/очередь и журнал совпадают до/после. Обычный служебный механизм авторизации обновляет last_active_at отдельно от расчёта. Новой dispatchгруппы не создавали,рассылка/A/B выключены,selector отсутствует/defaultempty.
+
+[Документ выпуска](2026-10-04__docs__mail-scope-report-production-acceptance.md). Общая цель/зрелая когорта/реальные окна/доставка/полезность и общийfrontendдолг сохраняются открытыми.
