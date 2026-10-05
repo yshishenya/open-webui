@@ -1,0 +1,163 @@
+{
+	"spec_id": "airis-chat-controls-pane-lifecycle-2026-10-05-001",
+	"title": "airis-chat-controls-pane-lifecycle",
+	"generated": "2026-10-05T11:32:19.087213Z",
+	"last_updated": "2026-10-05T17:33:02.710444Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "medium",
+		"estimated_hours": 4,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-05__bugfix__chat-controls-pane-lifecycle.md",
+		"status": "completed",
+		"activated_date": "2026-10-05T11:33:05.108072Z",
+		"progress_percentage": 100,
+		"current_phase": "phase-2",
+		"completed_date": "2026-10-05T17:33:02.710050Z",
+		"actual_hours": 5.477
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-chat-controls-pane-lifecycle",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Reproduce and repair pane lifecycle",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"journaled_at": "2026-10-05T12:34:59.378121Z",
+				"completed_at": "2026-10-05T12:34:59.375772Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce and repair pane lifecycle",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"estimated_hours": 2,
+				"started_at": "2026-10-05T12:31:56.774051Z",
+				"file_path": "src/lib/components/chat/ChatControls.svelte",
+				"completed_at": "2026-10-05T12:34:59.375443Z",
+				"needs_journaling": false,
+				"actual_hours": 0.051,
+				"journaled_at": "2026-10-05T12:34:59.377145Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify exact source, candidate and production",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-05T17:33:02.059218Z",
+				"journaled_at": "2026-10-05T17:33:02.062132Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify exact source, candidate and production",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"estimated_hours": 2,
+				"file_path": "src/lib/components/chat/ChatControls.svelte",
+				"started_at": "2026-10-05T12:07:29.982137Z",
+				"completed_at": "2026-10-05T17:33:02.059060Z",
+				"needs_journaling": false,
+				"status_note": "PR264/265 exact-head CI and trees verified. Final 555 frontend / 20 compiled browser paths pass; production selected-terminal open/closed breakpoint accepted, immutable files/env/13 neighbors/backup/rollback verified. General baseline debt and complete onboarding goal remain open.",
+				"actual_hours": 5.426,
+				"journaled_at": "2026-10-05T17:33:02.060993Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-05T12:07:29.713384Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce and repair pane lifecycle",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-05T12:07:29.714366Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Reproduce and repair pane lifecycle",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-05T12:34:59.377142Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce and repair pane lifecycle",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-05T12:34:59.378116Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Reproduce and repair pane lifecycle",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-05T17:33:02.060989Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify exact source, candidate and production",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: PR264/265 exact-head CI and trees verified. Final 555 frontend / 20 compiled browser paths pass; production selected-terminal open/closed breakpoint accepted, immutable files/env/13 neighbors/backup/rollback verified. General baseline debt and complete onboarding goal remain open.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-05T17:33:02.062127Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify exact source, candidate and production",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}

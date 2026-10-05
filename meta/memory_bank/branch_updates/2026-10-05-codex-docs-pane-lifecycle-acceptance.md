@@ -1,0 +1,7 @@
+- [x] **[DOCS][CHAT]** Record pane lifecycle release acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-05__docs__pane-lifecycle-release-acceptance.md`
+  - Owner: Codex
+  - Branch: `codex/docs/pane-lifecycle-acceptance`
+  - Done: 2026-10-05
+  - Summary: Record source/candidate/production evidence and close the original SDD only after the selected-terminal breakpoint acceptance.
+  - Tests: Original SDD 2/2 complete; final source/candidate/production acceptance documented. Documentation-only CI pending.

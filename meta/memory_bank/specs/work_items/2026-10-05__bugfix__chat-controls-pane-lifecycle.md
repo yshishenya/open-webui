@@ -3,11 +3,11 @@
 ## Meta
 
 - Type: bugfix
-- Status: source verified; candidate and production pending
+- Status: done
 - Owner: Codex
 - Branch: codex/bugfix/chat-controls-pane-lifecycle
 - Created: 2026-10-05
-- SDD Spec: meta/sdd/specs/active/airis-chat-controls-pane-lifecycle-2026-10-05-001.json
+- SDD Spec: meta/sdd/specs/completed/airis-chat-controls-pane-lifecycle-2026-10-05-001.json
 
 ## Goal
 
@@ -23,8 +23,8 @@ ChatControls creates a new Pane with defaultSize=0 when largeScreen becomes true
 - [x] Prove the library's bound pane API and callback order for the pinned version; document any compatibility constraint without upgrading dependencies.
 - [x] Add the smallest regression covering the failed lifecycle, restoration and a closed panel; baseline fails, repair passes.
 - [x] Open/closed state and existing width persist across the breakpoint; no exception for a detached/zero-width container or unavailable pane API.
-- [ ] Preserve ordinary controls, file access and conversation permissions, history, draft and submitted request count.
-- [ ] Pass applicable Compose frontend tests, mapped type/lint checks and exact-head CI; prove candidate/browser and production acceptance separately if executable code changes.
+- [x] Preserve ordinary controls, file access and conversation permissions, history, draft and submitted request count.
+- [x] Pass applicable Compose frontend tests, mapped type/lint checks and exact-head CI; prove candidate/browser and production acceptance separately if executable code changes.
 
 ## Upstream impact
 
@@ -55,3 +55,7 @@ PR264 merged with 10 successful CI checks / 1 dependency-review skip; candidate 
 Cause: the terminal-selection reactive block also depends directly on largeScreen, replaying showControls.set(default true) on every breakpoint. Two added mounted cases reproduce this with a selection made on desktop or mobile: baseline 2 failed / 6 passed. Keep selection handling dependent on the terminal/tab condition; read screen and preference inside the existing component callback so a breakpoint does not replay selection. Desktop selection still auto-opens; mobile selection stays closed.
 
 After repair: 8/8 mounted cases and 555/555 full frontend tests pass. Full svelte-check remains 3733 errors / 159 warnings, 0 new mapped diagnostics versus the original baseline. Focused ESLint/Prettier pass. Follow-up exact-head CI, compiled browser paths and production verification remain required before closing this work item.
+
+## Final acceptance — 2026-10-05
+
+Both defects are accepted on production after PR265: 555/555 frontend, 20/20 compiled paths, 8/8 mounted cases; selected-terminal open state preserves exact width and manually closed state stays closed at 1280 → 390 → 1280. Saved messages/input retained; 0 new requests, payments or console errors. Exact image/files/configuration/environment, 13 neighbors, backup/rollback and migration verified. Original SDD 2/2 closed. Earlier pending statements above record intermediate stages; final [release acceptance](2026-10-05__docs__pane-lifecycle-release-acceptance.md) supersedes them. General frontend checks and complete onboarding objective remain open.

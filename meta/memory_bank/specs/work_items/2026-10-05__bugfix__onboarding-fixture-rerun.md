@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix (test infrastructure only, small guard change)
-- Status: in progress
+- Status: done
 - Owner: Codex
 - Branch: codex/bugfix/onboarding-fixture-rerun
 - Created: 2026-10-05
@@ -21,7 +21,7 @@ Use the existing GET /api/v1/models/model?id=airis-constructor-form endpoint. Cr
 - [x] Reproduce second setup failure with an existing derived model.
 - [x] Fresh fixture creates the missing model exactly once; second setup succeeds without recreating it.
 - [x] Run compiled browser scenarios with the corrected setup; 0 failures and no application source delta.
-- [ ] Focused formatter/lint checks and exact-head CI pass; merge tree equals source tree.
+- [x] Focused formatter/lint checks and exact-head CI pass; merge tree equals source tree.
 
 ## Upstream impact
 
@@ -29,4 +29,6 @@ Only e2e/onboarding-paths.setup.ts changes its model existence query and error g
 
 ## Local verification
 
-Fresh setup followed by immediate repeat: Chromium and Firefox each pass twice (2/2 + 2/2); same disposable model remains valid. Docker Compose focused Prettier and ESLint pass. Full compiled candidate suite: 20/20. Exact-head CI and merge verification remain pending.
+Fresh setup followed by immediate repeat: Chromium and Firefox each pass twice (2/2 + 2/2); same disposable model remains valid. Docker Compose focused Prettier and ESLint pass. Full compiled candidate suite: 20/20. Exact-head CI and merge verification completed as recorded below.
+
+Final verification: [PR266](https://github.com/yshishenya/open-webui/pull/266), source `752623941cc15cb9a0c780c660f2d20f0a3fe5d5`, merge `eb0cc76a7190221552cfab2e019f08f1dc344cf3`, 10 successful CI checks / 1 dependency-review skip; complete trees equal. No executable app delta; no deployment needed.
