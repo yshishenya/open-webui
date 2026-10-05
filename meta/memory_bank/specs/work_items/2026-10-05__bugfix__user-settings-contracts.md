@@ -3,7 +3,7 @@
 - Type: bugfix
 - Status: done (implementation and local verification; integration proof recorded in PR)
 - Branch: codex/bugfix/user-settings-contracts
-- SDD Spec: meta/sdd/specs/completed/airis-user-settings-contracts-2026-10-05-2049.json
+- SDD Spec: meta/sdd/specs/completed/airis-user-settings-contracts-2026-10-05-001.json
 
 ## Problem and root cause
 

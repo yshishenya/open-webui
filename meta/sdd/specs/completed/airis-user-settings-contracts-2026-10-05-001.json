@@ -1,5 +1,5 @@
 {
-	"spec_id": "airis-user-settings-contracts-2026-10-05-2049",
+	"spec_id": "airis-user-settings-contracts-2026-10-05-001",
 	"title": "Airis user settings contracts",
 	"generated": "2026-10-05T17:49:30.989551Z",
 	"last_updated": "2026-10-05T17:55:11.281100Z",
@@ -73,7 +73,9 @@
 				"completed_at": "2026-10-05T17:55:10.392492Z",
 				"needs_journaling": false,
 				"status_note": "All producers and sibling callers traced; baseline strict probe fails on eleven diagnostics; shared declaration-only repair implemented.",
-				"journaled_at": "2026-10-05T17:55:10.393667Z"
+				"journaled_at": "2026-10-05T17:55:10.393667Z",
+				"category": "refactoring",
+				"file_path": "src/lib/stores/index.ts"
 			}
 		},
 		"task-2-1": {
@@ -94,7 +96,11 @@
 				"completed_at": "2026-10-05T17:55:10.685841Z",
 				"needs_journaling": false,
 				"status_note": "Strict probe zero errors; full frontend555; strict errors3733 to3662,71 removed,0new; lint1384 unchanged; emitted runtime2/2 byte-identical.",
-				"journaled_at": "2026-10-05T17:55:10.688342Z"
+				"journaled_at": "2026-10-05T17:55:10.688342Z",
+				"verification_type": "auto",
+				"file_path": "src/lib/utils/airis/user-settings.typecheck.ts",
+				"command": "npm run test:frontend; npm run check; npm run lint:frontend",
+				"expected": "555 frontend tests pass; strict probe 0 errors; 71 application type diagnostics removed and zero additions; existing full-check/lint debt recorded separately."
 			}
 		}
 	},
