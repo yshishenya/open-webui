@@ -186,6 +186,7 @@
 
 	<EmojiPicker
 		onSubmit={(shortCode) => {
+			if (shortCode === null) return;
 			const codepoint = $shortCodesToEmojis[shortCode];
 			if (codepoint) {
 				const emoji = codepoint

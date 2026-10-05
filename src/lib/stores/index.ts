@@ -7,6 +7,8 @@ import type { AudioQueue } from '$lib/utils/audio';
 import type {
 	DirectTerminalSettings,
 	FrontendConfig,
+	FolderListItem,
+	SelectedFolder,
 	GenerationParams,
 	ImageCompressionSize,
 	SpeechSettings,
@@ -69,9 +71,9 @@ export const channelId = writable(null);
 export { chats, pinnedChats } from './chatList';
 export const pinnedNotes = writable([]);
 export const tags = writable([]);
-export const folders = writable([]);
+export const folders = writable<FolderListItem[]>([]);
 
-export const selectedFolder = writable(null);
+export const selectedFolder = writable<SelectedFolder | null>(null);
 
 export const models: Writable<Model[]> = writable([]);
 

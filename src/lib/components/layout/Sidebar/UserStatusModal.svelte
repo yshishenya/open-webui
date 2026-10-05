@@ -1,10 +1,8 @@
 <script lang="ts">
-	import { getContext, createEventDispatcher, onMount, tick } from 'svelte';
+	import { getContext, tick } from 'svelte';
 	const i18n = getContext('i18n');
 
 	import { toast } from 'svelte-sonner';
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
 
 	import { updateUserStatus } from '$lib/apis/users';
 	import { settings, user } from '$lib/stores';
@@ -17,9 +15,9 @@
 	import Emoji from '$lib/components/common/Emoji.svelte';
 
 	export let show = false;
-	export let onSave: Function = () => {};
+	export let onSave: () => unknown = () => {};
 
-	let emoji = '';
+	let emoji: string | null = '';
 	let message = '';
 
 	let loading = false;

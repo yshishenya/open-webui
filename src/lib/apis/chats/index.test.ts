@@ -1,12 +1,16 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.hoisted(() => {
 	(globalThis as typeof globalThis & { APP_VERSION: string }).APP_VERSION = 'test';
 	(globalThis as typeof globalThis & { APP_BUILD_HASH: string }).APP_BUILD_HASH = 'test';
 });
 
-import { getChatById } from './index';
+import { getAllChats, getChatById } from './index';
+
+afterEach(() => {
+	vi.unstubAllGlobals();
+});
 
 describe('getChatById', () => {
 	beforeEach(() => {
@@ -26,5 +30,24 @@ describe('getChatById', () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('not-json', { status: 502 })));
 
 		await expect(getChatById('token', 'chat-1')).rejects.toThrow('Chat request failed: 502');
+	});
+});
+
+describe('chat export stream', () => {
+	it('joins fragmented UTF-8 and keeps the final line without a newline', async () => {
+		const bytes = new TextEncoder().encode('{"title":"Привет"}\n\n{"id":"last"}');
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller): void {
+				for (const byte of bytes) controller.enqueue(new Uint8Array([byte]));
+				controller.close();
+			}
+		});
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(stream)));
+		await expect(getAllChats('')).resolves.toEqual([{ title: 'Привет' }, { id: 'last' }]);
+	});
+
+	it('finishes on an empty stream', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('')));
+		await expect(getAllChats('')).resolves.toEqual([]);
 	});
 });
