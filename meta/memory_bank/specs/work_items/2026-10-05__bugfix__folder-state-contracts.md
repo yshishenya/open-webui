@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: done (local implementation/verification; exact-source integration tracked separately)
+- Status: locally verified; revised exact-source CI, integration and deployment pending
 - Owner: Codex
 - Branch: codex/bugfix/folder-state-contracts
 - Created: 2026-10-05
@@ -17,7 +17,7 @@ The folders store starts with [] inferred as never[]; selectedFolder starts with
 
 - [x] Strict compile-only regression fails before repair and passes after; valid list/full/clear states accepted, invalid IDs/dates/model arrays rejected.
 - [x] Whole application diagnostics reduce with zero new errors; changed messages on existing issues stay open.
-- [x] Complete emitted modules are byte-identical; all frontend tests pass and full ESLint has zero new issues.
+- [x] Complete emitted modules are hashed and differences recorded; all frontend tests pass and full ESLint has zero new issues. Initial byte equality is superseded by the CI repair below.
 - [ ] SDD schema/policy and exact-source CI/integration verified before final closure.
 
 ## Upstream impact
@@ -26,8 +26,14 @@ Generic arguments/type imports in stores/index.ts; fork-owned declarations/probe
 
 ## Full-goal boundary
 
-G14/13.11 and the 193/244 A/B goal remain open. Remaining nullable FolderTitle callback diagnostics, Sidebar placeholder dictionaries, nullable move parameters and channels are separate causes, not claimed fixed here.
+G14/13.11 and the 193/244 A/B goal remain open. Remaining nullable FolderTitle lifecycle diagnostics, Sidebar placeholder dictionaries and channels are separate causes, not claimed fixed here. Nullable move parameters are included in the revised candidate below.
 
-## Verified local result
+## CI repair and final local result
 
-Whole strict app3643→3593 errors:50 removed,0 new;159 warnings remain. Complete regression13→0;valid list/full/clear states accepted and wrong scalar values rejected. All555 frontend tests in80 files pass. Full ESLint1384 unchanged after source-line offsets mapped,focused lint/format pass. All9 full emitted outputs (stores/contracts/chat API;FolderTitle/FolderModal/EmojiPicker client+server) byte-identical. Initial []/null,folderId ?? null,all callbacks and serialization remain unchanged. General check/lint still exit1 on existing debt. SDD2/2 closed;exact-source CI/merge proof must be recorded before accepting delivery. No numbered A/B task is closed by this declaration repair.
+CI on the initial source 4402afa782a6eb1649022a173047872c534b14f3 failed changed-file ESLint on 16 existing issues. The initial byte-identical proof applies only to that superseded candidate. Remove unused imports/parameters and the unused EmojiPicker user prop (all five consumers traced; none passes it). Replace broad Function callbacks with concrete signatures, including the always-present parent_id key whose value can be undefined. Describe EmojiPicker's actual string/null callback; status accepts null as the server form does, reaction/formatting callers skip null instead of sending an invalid reaction or indexing it. Replace the constant-condition stream loop with the equivalent for (;;) and test empty/fragmented UTF-8/final-line handling in the existing chat API test file.
+
+Trace all chat/folder move callers and the nullable server forms; admit existing root null values in both API parameters. Existing FolderForm and access-grant payload types use unknown without changing serialization. No weakening of lint/check configuration or new dependency.
+
+Final strict app3643→3584 errors:59 removed,0 new;159→158 warnings. Original folder-state regression13→0, move regression2→0 with eight compile assertions; strings/omitted destinations accepted and numeric destinations rejected. All557 frontend tests in80 files pass. Full ESLint1384→1360:24 removed,0 new after source-line offsets; all changed source files pass lint and formatting. General check/lint still exit1 on remaining debt. The revised emitted outputs differ; deployment remains pending and the old no-deployment claim is withdrawn. Exact-source CI, merge and release proof must be recorded before accepting delivery. No numbered A/B task is closed here.
+
+Upstream impact additionally includes minimal null guards in channel/Messages/Message.svelte and RichTextInput/FormattingButtons.svelte, nullable status/callback declarations and unused imports in Sidebar/UserStatusModal.svelte, two API parameter unions, existing chat API tests and removal of existing explicit any payload annotations in apis/folders/index.ts. Initial stores []/null, request bodies, server permissions and persistence are preserved. Remaining dictionaries and nullable folder handler lifecycle errors stay open.

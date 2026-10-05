@@ -447,7 +447,7 @@ export const getAllChats = async (token: string) => {
 	const chats: object[] = [];
 	let buffer = '';
 
-	while (true) {
+	for (;;) {
 		const { done, value } = await reader.read();
 		if (done) break;
 
@@ -1084,7 +1084,11 @@ export const shareChatById = async (token: string, id: string) => {
 	return res;
 };
 
-export const updateChatFolderIdById = async (token: string, id: string, folderId?: string) => {
+export const updateChatFolderIdById = async (
+	token: string,
+	id: string,
+	folderId?: string | null
+) => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/chats/${id}/folder`, {

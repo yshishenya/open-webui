@@ -5,3 +5,9 @@
   - Done: 2026-10-05
   - Summary: Trace server shapes and all store assignments; preserve list/full distinction and nullable state without runtime changes.
   - Tests: strict probe13→0;app3643→3593/50removed/0new;Compose555/555;full ESLint1384 mapped-identical;9 emitted outputs byte-identical;SDD2/2. Exact-source CI/integration tracked separately.
+- [ ] **[BUG][FRONTEND][CI]** Revised folder contracts after changed-file lint rejection
+  - Spec: meta/memory_bank/specs/work_items/2026-10-05**bugfix**folder-state-contracts.md
+  - Owner: Codex
+  - Branch: codex/bugfix/folder-state-contracts
+  - Started: 2026-10-05
+  - Summary: Initial source4402afa failed CI on16 existing lint errors. Revised local candidate3643→3584 errors/159→158 warnings and1384→1360 ESLint,0 new;557 tests pass. Root null move parameters and actual nullable emoji callbacks described; unused code removed. Old byte-identical proof is superseded. Revised CI/merge/deployment pending;193/244 and full goal remain open.

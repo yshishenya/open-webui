@@ -2,8 +2,6 @@
 	import { getContext } from 'svelte';
 	const i18n = getContext('i18n');
 
-	import DOMPurify from 'dompurify';
-
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
@@ -24,7 +22,6 @@
 	import FolderShareModal from '$lib/components/layout/Sidebar/Folders/FolderShareModal.svelte';
 
 	import Folder from '$lib/components/icons/Folder.svelte';
-	import XMark from '$lib/components/icons/XMark.svelte';
 	import FolderMenu from '$lib/components/layout/Sidebar/Folders/FolderMenu.svelte';
 	import EllipsisHorizontal from '$lib/components/icons/EllipsisHorizontal.svelte';
 	import DeleteConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
@@ -34,8 +31,8 @@
 	export let folder: SelectedFolder | null = null;
 	export let readOnly: boolean = false;
 
-	export let onUpdate: Function = (folderId) => {};
-	export let onDelete: Function = (folderId) => {};
+	export let onUpdate: (folder?: SelectedFolder) => unknown = () => {};
+	export let onDelete: (folder: SelectedFolder | null) => unknown = () => {};
 
 	let showFolderModal = false;
 	let showCreateSubFolderModal = false;
@@ -269,7 +266,7 @@
 					<button
 						class="p-1.5 dark:hover:bg-gray-850 rounded-full touch-auto"
 						aria-label={$i18n.t('Folder options')}
-						on:click={(e) => {}}
+						on:click={() => {}}
 					>
 						<EllipsisHorizontal className="size-4" strokeWidth="2.5" />
 					</button>

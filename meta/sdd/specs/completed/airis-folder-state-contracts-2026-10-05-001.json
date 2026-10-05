@@ -54,7 +54,7 @@
 				"file_path": "src/lib/stores/index.ts",
 				"completed_at": "2026-10-05T19:27:54.730038Z",
 				"needs_journaling": false,
-				"status_note": "Traced list/full folder responses and all assignments; describe shared stores, nullable title/modal/icon props and already normalized undefined creation parameter. No runtime algorithm changes.",
+				"status_note": "Traced folder stores, all nullable move callers and emoji callbacks; concrete signatures, null guards and unused-code cleanup after changed-file CI rejected16 existing lint issues. Runtime output changes; release pending.",
 				"actual_hours": 0.142,
 				"journaled_at": "2026-10-05T19:27:54.731299Z"
 			},
@@ -72,7 +72,7 @@
 				"file_path": "src/lib/utils/airis/folder-state.typecheck.ts",
 				"completed_at": "2026-10-05T19:27:54.963906Z",
 				"needs_journaling": false,
-				"status_note": "Strict probe13 to0; app3643 to3593,50 removed/0new;555 tests;full ESLint1384 mapped-identical;9 complete emitted outputs byte-identical.",
+				"status_note": "Final app3643 to3584,59 errors/1 warning removed,0new;probes13 and2 to0;557 tests;ESLint1384 to1360,24 removed/0new. Revised exact-source CI, integration and runtime release remain pending; original runtime equality superseded.",
 				"journaled_at": "2026-10-05T19:27:54.964766Z"
 			},
 			"completed_tasks": 1,

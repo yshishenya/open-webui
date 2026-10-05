@@ -17,10 +17,9 @@
 	const i18n = getContext('i18n');
 
 	export let onClose = () => {};
-	export let onSubmit = (name) => {};
+	export let onSubmit: (name: string | null) => unknown = () => {};
 	export let side = 'top';
 	export let align = 'start';
-	export let user = null;
 	export let selected: string | null = null;
 
 	const MAX_RECENT = 30;
