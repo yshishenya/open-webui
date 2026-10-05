@@ -6,7 +6,7 @@
 - Status: done (implementation/local verification; exact-source integration recorded separately)
 - Owner: Codex
 - Branch: codex/bugfix/chat-list-record-contract
-- SDD Spec: meta/sdd/specs/completed/airis-chat-list-record-contrac-2026-10-05-2149.json
+- SDD Spec: meta/sdd/specs/completed/airis-chat-list-record-contract-2026-10-05-001.json
 - Created: 2026-10-05
 
 ## Cause and traced flow
