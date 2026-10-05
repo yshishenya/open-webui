@@ -15,7 +15,7 @@
 	export let className = 'flex';
 
 	export let placement: TippyPlacement = 'top';
-	export let content = `I'm a tooltip!`;
+	export let content: string | null | undefined = `I'm a tooltip!`;
 	export let touch = true;
 	export let theme = '';
 	export let offset: TippyProps['offset'] = [0, 4];
@@ -41,7 +41,7 @@
 		if (elementId) {
 			tooltipContent = document.getElementById(elementId);
 		} else {
-			tooltipContent = DOMPurify.sanitize(content);
+			tooltipContent = DOMPurify.sanitize(content!);
 		}
 
 		// After the element changes, the old instance must be destroyed, otherwise the detached tippy floating DOM will be left behind

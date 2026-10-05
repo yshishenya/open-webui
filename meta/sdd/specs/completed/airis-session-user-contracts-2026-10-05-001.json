@@ -1,0 +1,131 @@
+{
+	"spec_id": "airis-session-user-contracts-2026-10-05-001",
+	"title": "Airis session user contracts",
+	"generated": "2026-10-05T18:15:36.625355Z",
+	"last_updated": "2026-10-05T18:28:38.658525Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-05__bugfix__session-user-contracts.md",
+		"status": "completed",
+		"activated_date": "2026-10-05T18:18:08.857080Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-05T18:28:38.658185Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis session user contracts",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace session values and repair shared declarations",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-05T18:28:37.884253Z",
+				"journaled_at": "2026-10-05T18:28:37.886104Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify source and complete runtime equality",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-05T18:28:38.137454Z",
+				"journaled_at": "2026-10-05T18:28:38.139809Z"
+			}
+		},
+		"task-1": {
+			"type": "task",
+			"title": "Reproduce session contract errors and repair declarations",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"category": "refactoring",
+				"file_path": "src/lib/stores/index.ts",
+				"completed_at": "2026-10-05T18:28:37.884075Z",
+				"needs_journaling": false,
+				"status_note": "Session response, all restore/logout callers and Tooltip guard traced; shared declarations repaired; baseline compiler probe11 errors.",
+				"journaled_at": "2026-10-05T18:28:37.885090Z"
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1
+		},
+		"task-2": {
+			"type": "task",
+			"title": "Verify strict assertions, frontend tests and complete emitted JavaScript",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"metadata": {
+				"category": "refactoring",
+				"file_path": "src/lib/utils/airis/session-user.typecheck.ts",
+				"completed_at": "2026-10-05T18:28:38.137229Z",
+				"needs_journaling": false,
+				"status_note": "Final compiler probe0; application3662->3651,11 removed,0new,17 existing messages reworded; lint1384 unchanged; frontend555; five whole emitted outputs byte-identical.",
+				"journaled_at": "2026-10-05T18:28:38.138513Z"
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-05T18:28:37.885084Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce session contract errors and repair declarations",
+			"author": "claude-code",
+			"content": "Task task-1 marked as completed. \nNote: Session response, all restore/logout callers and Tooltip guard traced; shared declarations repaired; baseline compiler probe11 errors.",
+			"metadata": {},
+			"task_id": "task-1"
+		},
+		{
+			"timestamp": "2026-10-05T18:28:37.886100Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace session values and repair shared declarations",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-05T18:28:38.138502Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify strict assertions, frontend tests and complete emitted JavaScript",
+			"author": "claude-code",
+			"content": "Task task-2 marked as completed. \nNote: Final compiler probe0; application3662->3651,11 removed,0new,17 existing messages reworded; lint1384 unchanged; frontend555; five whole emitted outputs byte-identical.",
+			"metadata": {},
+			"task_id": "task-2"
+		},
+		{
+			"timestamp": "2026-10-05T18:28:38.139805Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify source and complete runtime equality",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
