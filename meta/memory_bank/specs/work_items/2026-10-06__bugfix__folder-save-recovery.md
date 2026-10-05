@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: `codex/bugfix/folder-save-recovery`
-- SDD Spec: `meta/sdd/specs/active/airis-folder-save-recovery-2026-10-06-0021.json`
+- SDD Spec: `meta/sdd/specs/active/airis-folder-save-recovery-2026-10-06-001.json`
 - Created: 2026-10-06
 - Updated: 2026-10-06
 
