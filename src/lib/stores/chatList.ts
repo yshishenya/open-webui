@@ -3,6 +3,15 @@ import { getChatList, getPinnedChatList } from '$lib/apis/chats';
 
 type ChatListItem = {
 	id: string;
+	title?: string;
+	created_at?: number;
+	updated_at?: number;
+	last_read_at?: number | null;
+	snippet?: string | null;
+	active?: boolean;
+	time_range?: string;
+	folder_id?: string | null;
+	pinned?: boolean | null;
 	[key: string]: unknown;
 };
 
