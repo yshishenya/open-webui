@@ -25,7 +25,7 @@ export const WEBUI_VERSION = writable(null);
 export const WEBUI_DEPLOYMENT_ID = writable(null);
 
 export const config: Writable<FrontendConfig | undefined> = writable(undefined);
-export const user: Writable<SessionUser | undefined> = writable(undefined);
+export const user: Writable<SessionUser | null | undefined> = writable(undefined);
 
 // Electron App
 export const isApp = writable(false);
@@ -332,4 +332,13 @@ export type SessionUser = {
 	name: string;
 	role: string;
 	profile_image_url: string;
+	token?: string;
+	token_type?: string;
+	expires_at?: number | null;
+	bio?: string | null;
+	gender?: string | null;
+	date_of_birth?: string | null;
+	status_emoji?: string | null;
+	status_message?: string | null;
+	status_expires_at?: number | null;
 };
