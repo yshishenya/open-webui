@@ -190,4 +190,48 @@ describe('FolderModal loading', () => {
 			parent_id: 'parent-b'
 		});
 	});
+	it.each(['false', 'rejected'])(
+		'retains the draft after a %s save and permits retry',
+		async (failure) => {
+			if (failure === 'false') api.submit.mockResolvedValueOnce(false);
+			else api.submit.mockRejectedValueOnce(new Error('Write unavailable'));
+			api.submit.mockResolvedValueOnce(true);
+			mount({ parentId: 'parent' });
+			await tick();
+			input().value = 'Unsaved draft';
+			input().dispatchEvent(new Event('input', { bubbles: true }));
+			await submit();
+			await settleLoad();
+			expect(input().value).toBe('Unsaved draft');
+			expect(input().matches(':disabled')).toBe(false);
+			expect(api.error).toHaveBeenCalledTimes(failure === 'rejected' ? 1 : 0);
+			await submit();
+			await settleLoad();
+			expect(api.submit).toHaveBeenCalledTimes(2);
+			expect(api.submit.mock.calls[1][0]).toEqual(api.submit.mock.calls[0][0]);
+			expect(document.querySelector('form')).toBeNull();
+		}
+	);
+	it('blocks duplicate saves while pending and ignores completion after closing and reopening', async () => {
+		let resolve!: (value: boolean) => void;
+		api.submit.mockReturnValueOnce(
+			new Promise<boolean>((done) => {
+				resolve = done;
+			})
+		);
+		mount({ folderId: 'a', edit: true });
+		await settleLoad();
+		await submit();
+		await submit();
+		expect(api.submit).toHaveBeenCalledOnce();
+		expect(input().matches(':disabled')).toBe(true);
+		mounted?.$set({ show: false });
+		await tick();
+		mounted?.$set({ show: true, folderId: 'b' });
+		await settleLoad();
+		resolve(true);
+		await settleLoad();
+		expect(input().value).toBe('Existing');
+		expect(input().matches(':disabled')).toBe(false);
+	});
 });

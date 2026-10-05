@@ -453,10 +453,11 @@
 		}
 	};
 
+	/** @param {import('$lib/apis/folders').FolderForm} form @returns {Promise<boolean>} */
 	const updateHandler = async ({ name, meta, data }) => {
-		if (name === '') {
+		if (!name?.trim()) {
 			toast.error($i18n.t('Folder name cannot be empty.'));
-			return;
+			return false;
 		}
 
 		const currentName = folders[folderId].name;
@@ -496,6 +497,7 @@
 			}
 			dispatch('update');
 		}
+		return Boolean(res);
 	};
 
 	const isExpandedUpdateHandler = async () => {
@@ -644,10 +646,11 @@
 		saveAs(blob, `folder-${folders[folderId].name}-export-${Date.now()}.json`);
 	};
 
+	/** @param {import('$lib/apis/folders').FolderForm} form @returns {Promise<boolean>} */
 	const createSubFolderHandler = async ({ name, meta, data, parent_id }) => {
-		if (name === '') {
+		if (!name?.trim()) {
 			toast.error($i18n.t('Folder name cannot be empty.'));
-			return;
+			return false;
 		}
 
 		name = name.trim();
@@ -666,6 +669,7 @@
 			toast.success($i18n.t('Folder created successfully'));
 			dispatch('update');
 		}
+		return Boolean(res);
 	};
 </script>
 

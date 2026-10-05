@@ -76,6 +76,7 @@
 	import ChannelModal from './Sidebar/ChannelModal.svelte';
 	import ChannelItem from './Sidebar/ChannelItem.svelte';
 	import SearchModal from './SearchModal.svelte';
+	import type { FolderForm } from '$lib/apis/folders';
 	import FolderModal from './Sidebar/Folders/FolderModal.svelte';
 	import PinnedModelList from './Sidebar/PinnedModelList.svelte';
 	import PinnedNoteList from './Sidebar/PinnedNoteList.svelte';
@@ -304,16 +305,17 @@
 		await initFolders();
 	};
 
-	const createFolder = async ({ name, data, parent_id }) => {
+	const createFolder = async ({ name, meta, data, parent_id }: FolderForm): Promise<boolean> => {
 		name = name?.trim();
 		if (!name) {
 			toast.error($i18n.t('Folder name cannot be empty.'));
-			return;
+			return false;
 		}
 
 		// Check for duplicate names in the same parent
 		const siblings = Object.values(folders).filter((folder) => folder.parent_id === parent_id);
-		if (siblings.find((folder) => folder.name.toLowerCase() === name.toLowerCase())) {
+		const normalizedName = name.toLowerCase();
+		if (siblings.find((folder) => folder.name.toLowerCase() === normalizedName)) {
 			// If a folder with the same name already exists, append a number to the name
 			let i = 1;
 			while (
@@ -340,6 +342,7 @@
 
 		const res = await createNewFolder(localStorage.token, {
 			name,
+			meta,
 			data,
 			parent_id
 		}).catch((error) => {
@@ -347,11 +350,14 @@
 			return null;
 		});
 
+		Reflect.deleteProperty(folders, tempId);
+		folders = { ...folders };
 		if (res) {
 			// newFolderId = res.id;
-			await initFolders();
+			await initFolders().catch((error: unknown) => toast.error(`${error}`));
 			showFolders = true;
 		}
+		return Boolean(res);
 	};
 
 	const initChannels = async () => {
@@ -882,13 +888,7 @@
 	}}
 />
 
-<FolderModal
-	bind:show={showCreateFolderModal}
-	onSubmit={async (folder) => {
-		await createFolder(folder);
-		showCreateFolderModal = false;
-	}}
-/>
+<FolderModal bind:show={showCreateFolderModal} onSubmit={createFolder} />
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 

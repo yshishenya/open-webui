@@ -19,7 +19,7 @@
 		meta: Record<string, unknown>;
 		data: Record<string, unknown>;
 		parent_id: string | null | undefined;
-	}) => unknown = () => {};
+	}) => boolean | void | Promise<boolean | void> = () => {};
 
 	export let folderId: string | null = null;
 	export let parentId: string | null = null;
@@ -59,14 +59,20 @@
 			return;
 		}
 
-		await onSubmit({
-			name,
-			meta,
-			data,
-			parent_id: edit ? undefined : parentId
-		});
-		show = false;
-		loading = false;
+		const version = loadVersion;
+		try {
+			const saved = await onSubmit({
+				name,
+				meta,
+				data,
+				parent_id: edit ? undefined : parentId
+			});
+			if (saved !== false && version === loadVersion && show) show = false;
+		} catch (error) {
+			if (version === loadVersion && show) toast.error(`${error}`);
+		} finally {
+			loading = false;
+		}
 	};
 
 	const invalidateLoad = (): void => {

@@ -1,6 +1,6 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 
-type FolderForm = {
+export type FolderForm = {
 	name?: string;
 	data?: Record<string, unknown>;
 	meta?: Record<string, unknown>;
