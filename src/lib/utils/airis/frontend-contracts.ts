@@ -172,3 +172,29 @@ export type FrontendConfig = {
 		input_footer?: string;
 	} | null;
 };
+
+export type FolderListItem = {
+	id: string;
+	name: string;
+	created_at: number;
+	updated_at: number;
+	parent_id?: string | null;
+	is_expanded?: boolean;
+	unread_count?: number;
+	meta?: { icon?: string | null; [key: string]: unknown } | null;
+	[key: string]: unknown;
+};
+
+export type SelectedFolder = FolderListItem & {
+	user_id: string;
+	data?: { model_ids?: string[] | null; [key: string]: unknown } | null;
+	meta?: {
+		icon?: string | null;
+		background_image_url?: string | null;
+		[key: string]: unknown;
+	} | null;
+	items?: Record<string, unknown> | null;
+	access_grants?: unknown[];
+	permission?: string;
+	shared?: boolean;
+};

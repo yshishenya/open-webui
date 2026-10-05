@@ -10,6 +10,7 @@
 	import { toast } from 'svelte-sonner';
 
 	import { selectedFolder } from '$lib/stores';
+	import type { SelectedFolder } from '$lib/utils/airis/frontend-contracts';
 
 	import {
 		deleteFolderById,
@@ -30,7 +31,7 @@
 	import Emoji from '$lib/components/common/Emoji.svelte';
 	import EmojiPicker from '$lib/components/common/EmojiPicker.svelte';
 
-	export let folder = null;
+	export let folder: SelectedFolder | null = null;
 	export let readOnly: boolean = false;
 
 	export let onUpdate: Function = (folderId) => {};

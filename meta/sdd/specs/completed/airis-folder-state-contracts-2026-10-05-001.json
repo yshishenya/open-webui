@@ -1,0 +1,111 @@
+{
+	"spec_id": "airis-folder-state-contracts-2026-10-05-001",
+	"title": "Airis folder state contracts",
+	"generated": "2026-10-05T19:17:56.450758Z",
+	"last_updated": "2026-10-05T19:27:55.421998Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 2,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-05__bugfix__folder-state-contracts.md",
+		"status": "completed",
+		"activated_date": "2026-10-05T19:19:22.512234Z",
+		"progress_percentage": 100,
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-05T19:27:55.421756Z",
+		"actual_hours": 0.142
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis folder state contracts",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace, describe and verify shared folder states",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1", "task-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-05T19:27:54.964063Z",
+				"journaled_at": "2026-10-05T19:27:54.965735Z"
+			}
+		},
+		"task-1": {
+			"type": "task",
+			"title": "Trace list/full responses and repair shared folder store declarations",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"started_at": "2026-10-05T19:19:22.814696Z",
+				"category": "refactoring",
+				"file_path": "src/lib/stores/index.ts",
+				"completed_at": "2026-10-05T19:27:54.730038Z",
+				"needs_journaling": false,
+				"status_note": "Traced list/full folder responses and all assignments; describe shared stores, nullable title/modal/icon props and already normalized undefined creation parameter. No runtime algorithm changes.",
+				"actual_hours": 0.142,
+				"journaled_at": "2026-10-05T19:27:54.731299Z"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		},
+		"task-2": {
+			"type": "task",
+			"title": "Verify strict regression, mapped debt and byte-identical runtime",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"category": "refactoring",
+				"file_path": "src/lib/utils/airis/folder-state.typecheck.ts",
+				"completed_at": "2026-10-05T19:27:54.963906Z",
+				"needs_journaling": false,
+				"status_note": "Strict probe13 to0; app3643 to3593,50 removed/0new;555 tests;full ESLint1384 mapped-identical;9 complete emitted outputs byte-identical.",
+				"journaled_at": "2026-10-05T19:27:54.964766Z"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-05T19:27:54.731295Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Trace list/full responses and repair shared folder store declarations",
+			"author": "Codex",
+			"content": "Task task-1 marked as completed. \nNote: Traced list/full folder responses and all assignments; describe shared stores, nullable title/modal/icon props and already normalized undefined creation parameter. No runtime algorithm changes.",
+			"metadata": {},
+			"task_id": "task-1"
+		},
+		{
+			"timestamp": "2026-10-05T19:27:54.964761Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify strict regression, mapped debt and byte-identical runtime",
+			"author": "Codex",
+			"content": "Task task-2 marked as completed. \nNote: Strict probe13 to0; app3643 to3593,50 removed/0new;555 tests;full ESLint1384 mapped-identical;9 complete emitted outputs byte-identical.",
+			"metadata": {},
+			"task_id": "task-2"
+		},
+		{
+			"timestamp": "2026-10-05T19:27:54.965731Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace, describe and verify shared folder states",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}

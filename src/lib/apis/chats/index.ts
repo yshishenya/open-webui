@@ -61,7 +61,7 @@ export const updateChatConfig = async (token: string, config: object) => {
 export const createNewChat = async (
 	token: string,
 	chat: object,
-	folderId: string | null,
+	folderId: string | null | undefined,
 	variables: object | null = null
 ) => {
 	let error = null;

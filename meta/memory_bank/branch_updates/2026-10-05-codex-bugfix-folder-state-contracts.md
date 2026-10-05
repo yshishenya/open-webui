@@ -1,0 +1,7 @@
+- [x] **[BUG]** Describe shared list and selected folder states
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-05__bugfix__folder-state-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/folder-state-contracts`
+  - Done: 2026-10-05
+  - Summary: Trace server shapes and all store assignments; preserve list/full distinction and nullable state without runtime changes.
+  - Tests: strict probe13→0;app3643→3593/50removed/0new;Compose555/555;full ESLint1384 mapped-identical;9 emitted outputs byte-identical;SDD2/2. Exact-source CI/integration tracked separately.
