@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: refactor
-- Status: in progress
+- Status: done
 - Owner: Codex
 - Branch: `codex/refactor/model-visibility-contract`
 - Created:2026-10-06
@@ -16,7 +16,7 @@ The common ModelMeta type omits hidden although model selection, notes, automati
 - [x] Existing hidden-field diagnostics are removed with zero new diagnostics.
 - [x] TypeScript compilation of the API module produces identical JavaScript before and after.
 - [x] Changed-file lint passes and Docker frontend tests pass.
-- [ ] Exact source is committed/pushed, CI accepted and merged into airis_b2c.
+- [x] Exact source is committed/pushed, CI accepted and merged into airis_b2c.
 - [x] Production behavior is preserved; no rebuild/restart for an erased type-only addition.
 
 ## Evidence and scope
@@ -29,4 +29,4 @@ One field in existing src/lib/apis/index.ts; no new helper, dependency, schema, 
 
 ## Local verification accepted
 
-Only `hidden?: boolean | null` is added to the existing interface. Full Docker check3567→3559 errors and158 warnings; all8 removed diagnostics concern hidden,0 added. Docker frontend567/567 tests in81 files pass. API module JavaScript is byte-identical under the lockfile-installed TypeScript5.9.3. Changed-file ESLint passes. Full Docker ESLint records1353 existing errors/0 warnings; it remains exit1. Whole-file Prettier reports the same pre-existing formatting failure before/after; no unrelated reformat. Exact-source CI/merge is still pending.
+Only `hidden?: boolean | null` is added to the existing interface. Full Docker check3567→3559 errors and158 warnings; all8 removed diagnostics concern hidden,0 added. Docker frontend567/567 tests in81 files pass. API module JavaScript is byte-identical under the lockfile-installed TypeScript5.9.3. Changed-file ESLint passes. Full Docker ESLint records1353 existing errors/0 warnings; it remains exit1. Whole-file Prettier reports the same pre-existing formatting failure before/after; no unrelated reformat. Exact-source CI/merge was accepted: source 692748269dac59f026dec026d0561055bb42f889, merge 603a6ed272c8aa0a5e69c88569f2a63f569970b9; ten checks succeeded and dependency review was skipped. Expected and actual integration trees match (6058bf5c902c0718294e46c68dc51488d1492e26). Production was not recreated.
