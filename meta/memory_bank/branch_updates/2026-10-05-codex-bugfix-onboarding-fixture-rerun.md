@@ -1,0 +1,7 @@
+- [ ] **[BUG][TEST]** Make onboarding fixture setup repeatable
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-05__bugfix__onboarding-fixture-rerun.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/onboarding-fixture-rerun`
+  - Started: 2026-10-05
+  - Summary: Query the derived model by ID; create only on 404 and fail on other API errors. Preserve fixture-only hostname guard.
+  - Tests: Baseline second-run failure reproduced; fresh and repeated corrected setup 2/2 + 2/2; full compiled candidate 20/20; focused Prettier/ESLint pass. CI and merge pending.
