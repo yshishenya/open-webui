@@ -47,3 +47,11 @@ The mounted regression failed before the fix (open state became false); all 6 ca
 ChatControls distinguishes initial pane collapse from a user close and restores the previous open state after Svelte mounts the desktop pane. openPane validates the bound API, container width and saved positive size. The parent Chat uses PaneAPI for its binding (2-line type-only change); chatId is explicitly string|null. No application dependency, backend, database or permission changes.
 
 Candidate compiled-path tests, public responsive acceptance, exact-head CI, immutable image identity, backup/rollback and environment preservation are still pending. npm run preflight is absent; existing Compose checks replace that unavailable script.
+
+## Additional production acceptance finding
+
+PR264 merged with 10 successful CI checks / 1 dependency-review skip; candidate passed 18 browser paths and was released. Public 1280 → 390 → 1280 retained the open Files tab, exact width (346.359375 px), saved chat and empty input. However, a manually closed panel reopened on return to desktop when a terminal was selected. Production acceptance is therefore incomplete; release task remains active.
+
+Cause: the terminal-selection reactive block also depends directly on largeScreen, replaying showControls.set(default true) on every breakpoint. Two added mounted cases reproduce this with a selection made on desktop or mobile: baseline 2 failed / 6 passed. Keep selection handling dependent on the terminal/tab condition; read screen and preference inside the existing component callback so a breakpoint does not replay selection. Desktop selection still auto-opens; mobile selection stays closed.
+
+After repair: 8/8 mounted cases and 555/555 full frontend tests pass. Full svelte-check remains 3733 errors / 159 warnings, 0 new mapped diagnostics versus the original baseline. Focused ESLint/Prettier pass. Follow-up exact-head CI, compiled browser paths and production verification remain required before closing this work item.
