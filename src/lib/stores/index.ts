@@ -5,6 +5,7 @@ import type { Banner } from '$lib/types';
 import type { Socket } from 'socket.io-client';
 import type { AudioQueue } from '$lib/utils/audio';
 import type {
+	DirectModelConnections,
 	DirectTerminalSettings,
 	FrontendConfig,
 	FolderListItem,
@@ -261,7 +262,7 @@ type Settings = {
 	scrollOnBranchChange?: boolean;
 	scrollOnResponseGeneration?: boolean;
 	showFilesOnTerminalSelect?: boolean;
-	directConnections?: null;
+	directConnections?: DirectModelConnections | null;
 	chatBubble?: boolean;
 	copyFormatted?: boolean;
 	models?: string[];
