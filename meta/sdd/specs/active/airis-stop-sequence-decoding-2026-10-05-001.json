@@ -1,0 +1,120 @@
+{
+  "spec_id": "airis-stop-sequence-decoding-2026-10-05-001",
+  "title": "Airis stop sequence decoding",
+  "generated": "2026-10-05T03:00:53.088758Z",
+  "last_updated": "2026-10-05T03:40:05.486355Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-05__bugfix__stop-sequence-decoding.md",
+    "status": "active",
+    "activated_date": "2026-10-05T03:01:59.945087Z",
+    "progress_percentage": 50
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis stop sequence decoding",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce model stop corruption and repair shared decoding",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-05T03:40:05.484548Z",
+        "journaled_at": "2026-10-05T03:40:05.486327Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify provider paths and release acceptance",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce actual provider conversion and implement shared decoder",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 1.0,
+        "completed_at": "2026-10-05T03:40:05.484412Z",
+        "needs_journaling": false,
+        "status_note": "Both actual provider mappers:20failed/10passed baseline,30passed after shared stdlib decoder. Whole strings, Unicode, legacy escapes, empty/unset/custom overrides and invalid types covered. Full backend930passed/5unchanged PostgreSQL-only skips. Thin2mapping hooks.",
+        "journaled_at": "2026-10-05T03:40:05.485273Z",
+        "file_path": "backend/open_webui/utils/airis/stop_sequences.py"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify suites, exact source and candidate release",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 1.0,
+        "file_path": "backend/open_webui/test/util/test_stop_sequences.py"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-05T03:40:05.485268Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce actual provider conversion and implement shared decoder",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Both actual provider mappers:20failed/10passed baseline,30passed after shared stdlib decoder. Whole strings, Unicode, legacy escapes, empty/unset/custom overrides and invalid types covered. Full backend930passed/5unchanged PostgreSQL-only skips. Thin2mapping hooks.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-05T03:40:05.486322Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce model stop corruption and repair shared decoding",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}
