@@ -1,0 +1,6 @@
+- [x] Context usage release documentation
+  - Spec: meta/memory_bank/specs/work_items/2026-10-06__bugfix__context-usage-contract.md
+  - Owner: Codex
+  - Done: 2026-10-06
+  - Summary: Record PR281 exact-source CI/merge and guarded release, correct local SDD phase title and preserve full-goal limits. Documentation-only delivery is gated by this PR's exact-source CI and merged-tree receipt; no runtime rebuild.
+  - Tests: 120 tracked SDD schema/policy checks have0 errors/0 warnings; Markdown links pass. Prior untracked legacy SDD warning is preserved outside the PR.
