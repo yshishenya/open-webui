@@ -1,6 +1,6 @@
 import { WEBUI_BASE_URL, type DEFAULT_CAPABILITIES } from '$lib/constants';
 import { convertOpenApiToToolPayload } from '$lib/utils';
-import type { GenerationParams } from '$lib/utils/airis/frontend-contracts';
+import type { DirectModelConnections, GenerationParams } from '$lib/utils/airis/frontend-contracts';
 import { getOpenAIModelsDirect } from './openai';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -22,7 +22,7 @@ const OPENAPI_HTTP_METHODS = new Set([
 // the one for whom it was intended, and return answered.
 export const getModels = async (
 	token: string = '',
-	connections: Record<string, any> | null = null,
+	connections: DirectModelConnections | false | null = null,
 	base: boolean = false,
 	refresh: boolean = false
 ) => {

@@ -1,5 +1,22 @@
 import type { DEFAULT_PERMISSIONS } from '$lib/constants/permissions';
 import type { TerminalServer } from '$lib/apis/terminal';
+import type { updateOpenAIConfig } from '$lib/apis/openai';
+
+export type DirectModelConnections = Pick<
+	Parameters<typeof updateOpenAIConfig>[1],
+	'OPENAI_API_BASE_URLS' | 'OPENAI_API_KEYS'
+> & {
+	OPENAI_API_CONFIGS: Record<
+		string,
+		{
+			enable?: boolean | null;
+			model_ids?: string[] | null;
+			prefix_id?: string | null;
+			tags?: unknown[] | null;
+			[key: string]: unknown;
+		} | null
+	>;
+};
 
 export type UserPermissions = {
 	[Section in keyof typeof DEFAULT_PERMISSIONS]?: {
