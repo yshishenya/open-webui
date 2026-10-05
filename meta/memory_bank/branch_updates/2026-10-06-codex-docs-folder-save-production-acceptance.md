@@ -1,0 +1,8 @@
+- [x] **[DOCS][CHAT]** Record completed folder save production acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-06__bugfix__folder-save-recovery.md`
+  - Owner: Codex
+  - Branch: `codex/docs/folder-save-production-acceptance`
+  - Done:2026-10-06
+  - Summary: Record final source567 tests/32 browser cases/CI/merge and independently verified live files, environment, neighbors, permanent image pin and ordinary-user failure/retry. Close linked SDD3/3; overall quality and real pilot remain open.
+  - Tests: Markdown links and SDD validation; application checks belong to deployed source c6e57eb059f599441137868f88e09e9f2edf8bed.
+  - Risks: Documentation-only; no app/schema/dependency/configuration changes in this branch. Private evidence and account details excluded.
