@@ -1,0 +1,143 @@
+{
+  "spec_id": "airis-folder-save-recovery-2026-10-06-001",
+  "title": "Airis folder save recovery",
+  "generated": "2026-10-05T21:21:06.035851Z",
+  "last_updated": "2026-10-05T21:31:59.669142Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "medium",
+    "estimated_hours": 4,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__bugfix__folder-save-recovery.md",
+    "status": "active",
+    "activated_date": "2026-10-05T21:22:47.516964Z",
+    "progress_percentage": 33
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis folder save recovery",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Repair confirmed folder write failures",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-05T21:31:59.666804Z",
+        "journaled_at": "2026-10-05T21:31:59.669119Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify source and all shared consumers",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Integrate and accept the production release",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Preserve folder drafts after failed writes",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-05T21:31:59.666648Z",
+        "needs_journaling": false,
+        "status_note": "Root cause reproduced in two compiled browsers; all five callbacks expose persistence results, rejected saves retain draft and release loading. Mounted10/10, baseline3fail plus1rejection, full567 tests,0 new diagnostics.",
+        "journaled_at": "2026-10-05T21:31:59.668043Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify failure, retry, success and post-write refresh",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Complete exact-source CI, integration and live acceptance",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-05T21:31:59.668039Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Preserve folder drafts after failed writes",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Root cause reproduced in two compiled browsers; all five callbacks expose persistence results, rejected saves retain draft and release loading. Mounted10/10, baseline3fail plus1rejection, full567 tests,0 new diagnostics.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-05T21:31:59.669114Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Repair confirmed folder write failures",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}

@@ -4,14 +4,13 @@
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
-	import DOMPurify from 'dompurify';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 
-	import { chatId, mobile, selectedFolder, showSidebar, user } from '$lib/stores';
+	import { mobile, selectedFolder, showSidebar, user } from '$lib/stores';
 
 	import {
 		deleteFolderById,
@@ -237,7 +236,7 @@
 							} else if (type === 'chat') {
 								open = true;
 
-								let chat = await getChatById(localStorage.token, id).catch((error) => {
+								let chat = await getChatById(localStorage.token, id).catch(() => {
 									return null;
 								});
 								if (!chat && item) {
@@ -453,10 +452,11 @@
 		}
 	};
 
+	/** @param {import('$lib/apis/folders').FolderForm} form @returns {Promise<boolean>} */
 	const updateHandler = async ({ name, meta, data }) => {
-		if (name === '') {
+		if (!name?.trim()) {
 			toast.error($i18n.t('Folder name cannot be empty.'));
-			return;
+			return false;
 		}
 
 		const currentName = folders[folderId].name;
@@ -496,10 +496,11 @@
 			}
 			dispatch('update');
 		}
+		return Boolean(res);
 	};
 
 	const isExpandedUpdateHandler = async () => {
-		const res = await updateFolderIsExpandedById(localStorage.token, folderId, open).catch(
+		await updateFolderIsExpandedById(localStorage.token, folderId, open).catch(
 			(error) => {
 				toast.error(`${error}`);
 				return null;
@@ -551,7 +552,7 @@
 				);
 				chatsPage = nextPage;
 				hasMoreChats = res?.has_more ?? nextChats.length === SIDEBAR_CHATS_PAGE_SIZE;
-			} catch (error) {
+			} catch {
 				// Fallback to regular API
 				const fallback = await getChatListByFolderId(localStorage.token, folderId, nextPage).catch(
 					(error) => {
@@ -644,10 +645,11 @@
 		saveAs(blob, `folder-${folders[folderId].name}-export-${Date.now()}.json`);
 	};
 
+	/** @param {import('$lib/apis/folders').FolderForm} form @returns {Promise<boolean>} */
 	const createSubFolderHandler = async ({ name, meta, data, parent_id }) => {
-		if (name === '') {
+		if (!name?.trim()) {
 			toast.error($i18n.t('Folder name cannot be empty.'));
-			return;
+			return false;
 		}
 
 		name = name.trim();
@@ -666,6 +668,7 @@
 			toast.success($i18n.t('Folder created successfully'));
 			dispatch('update');
 		}
+		return Boolean(res);
 	};
 </script>
 
@@ -733,7 +736,6 @@
 			dispatch('open', state);
 		}}
 	>
-		<!-- svelte-ignore a11y-no-static-element-interactions -->
 		<div class="w-full group">
 			<div
 				id="folder-{folderId}-button"
@@ -741,7 +743,7 @@
 				folderId
 					? 'bg-gray-100/80 dark:bg-gray-850/50 selected'
 					: ''}"
-				on:dblclick={(e) => {
+				on:dblclick={() => {
 					if (folders[folderId]?.shared && folders[folderId]?.permission !== 'write') return;
 					if (clickTimer) {
 						clearTimeout(clickTimer); // cancel the single-click action

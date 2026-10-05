@@ -16,6 +16,7 @@
 		updateFolderById,
 		createNewFolder
 	} from '$lib/apis/folders';
+	import type { FolderForm } from '$lib/apis/folders';
 	import { getChatsByFolderId } from '$lib/apis/chats';
 
 	import FolderModal from '$lib/components/layout/Sidebar/Folders/FolderModal.svelte';
@@ -40,45 +41,47 @@
 	let showDeleteConfirm = false;
 	let deleteFolderContents = true;
 
-	const updateHandler = async ({ name, meta, data }) => {
-		if (name === '') {
+	const updateHandler = async ({ name, meta, data }: FolderForm): Promise<boolean> => {
+		const currentFolder = folder;
+		if (!currentFolder || !name?.trim()) {
 			toast.error($i18n.t('Folder name cannot be empty.'));
-			return;
+			return false;
 		}
 
-		const currentName = folder.name;
+		const currentName = currentFolder.name;
 
 		name = name.trim();
-		folder.name = name;
+		currentFolder.name = name;
 
-		const res = await updateFolderById(localStorage.token, folder.id, {
+		const res = await updateFolderById(localStorage.token, currentFolder.id, {
 			name,
 			...(meta ? { meta } : {}),
 			...(data ? { data } : {})
 		}).catch((error) => {
 			toast.error(`${error}`);
 
-			folder.name = currentName;
+			currentFolder.name = currentName;
 			return null;
 		});
 
 		if (res) {
-			folder.name = name;
+			currentFolder.name = name;
 			if (data) {
-				folder.data = data;
+				currentFolder.data = data;
 			}
 
 			toast.success($i18n.t('Folder updated successfully'));
 
-			const _folder = await getFolderById(localStorage.token, folder.id).catch((error) => {
+			const _folder = await getFolderById(localStorage.token, currentFolder.id).catch((error) => {
 				toast.error(`${error}`);
 				return null;
 			});
 
-			const updatedFolder = { ...folder, ..._folder };
+			const updatedFolder = { ...currentFolder, ..._folder };
 			await selectedFolder.set(updatedFolder);
 			onUpdate(updatedFolder);
 		}
+		return Boolean(res);
 	};
 
 	const updateIconHandler = async (iconName) => {
@@ -137,10 +140,15 @@
 		saveAs(blob, `folder-${folder.name}-export-${Date.now()}.json`);
 	};
 
-	const createSubFolderHandler = async ({ name, meta, data, parent_id }) => {
-		if (name === '') {
+	const createSubFolderHandler = async ({
+		name,
+		meta,
+		data,
+		parent_id
+	}: FolderForm): Promise<boolean> => {
+		if (!name?.trim()) {
 			toast.error($i18n.t('Folder name cannot be empty.'));
-			return;
+			return false;
 		}
 
 		name = name.trim();
@@ -159,6 +167,7 @@
 			toast.success($i18n.t('Folder created successfully'));
 			onUpdate();
 		}
+		return Boolean(res);
 	};
 </script>
 
