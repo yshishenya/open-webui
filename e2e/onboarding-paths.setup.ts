@@ -65,13 +65,11 @@ export default async function setup(config: FullConfig): Promise<void> {
 			});
 			expect(created.ok()).toBe(true);
 		}
-		const constructorModel = await client.get('/api/v1/models/base', { headers });
-		expect(constructorModel.ok()).toBe(true);
-		if (
-			!((await constructorModel.json()) as { id: string }[]).some(
-				(model) => model.id === 'airis-constructor-form'
-			)
-		) {
+		const constructorModel = await client.get('/api/v1/models/model', {
+			headers,
+			params: { id: 'airis-constructor-form' }
+		});
+		if (constructorModel.status() === 404) {
 			const created = await client.post('/api/v1/models/create', {
 				headers,
 				data: {
@@ -84,7 +82,7 @@ export default async function setup(config: FullConfig): Promise<void> {
 				}
 			});
 			expect(created.ok()).toBe(true);
-		}
+		} else expect(constructorModel.ok()).toBe(true);
 	} finally {
 		await client.dispose();
 	}
