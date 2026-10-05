@@ -78,7 +78,7 @@
         "estimated_hours": 1.0,
         "completed_at": "2026-10-04T23:41:21.840561Z",
         "needs_journaling": false,
-        "status_note": "All callers traced. FileNav has no onAttach reads/calls. Removed unreachable handler, dedicated imports and both desktop/mobile prop bindings; active terminal paths unchanged.",
+        "status_note": "Removed unreachable ChatControls upload handler and both caller props. FileNav unchanged. Concrete callbacks match Chat and CallOverlay; unused imports and div closing fixed.",
         "journaled_at": "2026-10-04T23:41:21.841398Z",
         "file_path": "src/lib/components/chat/ChatControls.svelte"
       }
@@ -100,9 +100,9 @@
         "estimated_hours": 1.0,
         "completed_at": "2026-10-05T00:16:22.451730Z",
         "needs_journaling": false,
-        "status_note": "547/547 frontend; both baseline/final components compile. FileNav exact source equal after deleting unused prop.3743/160 to3742/159 types/warnings;1393 to1391 lint; mapped comparison0added,2removed each. Public delivery separate.",
+        "status_note": "547/547 frontend; strict ChatControls lint/format pass; compilation0warnings. Full3743/160 to3742/159;1393 to1384 lint;0added diagnostics. FileNav unchanged. Exact-head CI/merge and production separate.",
         "journaled_at": "2026-10-05T00:16:22.452961Z",
-        "file_path": "src/lib/components/chat/FileNav.svelte"
+        "file_path": "src/lib/components/chat/ChatControls.svelte"
       }
     }
   },

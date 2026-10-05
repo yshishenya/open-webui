@@ -3,15 +3,12 @@
 </script>
 
 <script lang="ts">
-	import { SvelteFlowProvider } from '@xyflow/svelte';
-	import { slide } from 'svelte/transition';
 	import { Pane, PaneResizer } from 'paneforge';
 
-	import { onDestroy, onMount, tick, getContext } from 'svelte';
+	import { onMount, tick, getContext } from 'svelte';
 	import {
 		config,
 		terminalServers,
-		mobile,
 		showControls,
 		showCallOverlay,
 		showArtifacts,
@@ -42,9 +39,13 @@
 	export let params = {};
 
 	export let eventTarget: EventTarget;
-	export let submitPrompt: Function;
-	export let stopResponse: Function;
-	export let showMessage: Function;
+	export let submitPrompt: (prompt: string, options?: { _raw?: boolean }) => Promise<void>;
+	export let stopResponse: (processQueue?: boolean) => Promise<void>;
+	export let showMessage: (
+		message: { id: string | null },
+		scroll?: boolean,
+		save?: boolean
+	) => Promise<void>;
 	export let files;
 	export let modelId;
 
@@ -349,7 +350,7 @@
 		>
 			<div
 				class="absolute -left-1.5 -right-1.5 -top-0 -bottom-0 z-20 cursor-col-resize bg-transparent"
-			/>
+			></div>
 		</PaneResizer>
 	{/if}
 

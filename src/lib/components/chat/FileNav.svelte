@@ -49,6 +49,7 @@
 
 	const i18n = getContext('i18n');
 
+	export let onAttach: ((blob: Blob, name: string, contentType: string) => void) | null = null;
 	export let overlay = false;
 	export let chatId: string | null = null;
 
