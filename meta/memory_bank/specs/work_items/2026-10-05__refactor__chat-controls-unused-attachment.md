@@ -6,7 +6,7 @@
 - Status: source verified; delivery pending
 - Owner: Codex
 - Branch: codex/refactor/chat-controls-unused-attachment
-- SDD Spec: meta/sdd/specs/completed/airis-terminal-attachment-outc-2026-10-05-0237.json
+- SDD Spec: meta/sdd/specs/completed/airis-terminal-attachment-cleanup-2026-10-05-001.json
 - Created: 2026-10-05
 
 ## Context / root cause

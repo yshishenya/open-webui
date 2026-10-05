@@ -1,5 +1,5 @@
 {
-  "spec_id": "airis-terminal-attachment-outc-2026-10-05-0237",
+  "spec_id": "airis-terminal-attachment-cleanup-2026-10-05-001",
   "title": "Airis unused terminal attachment channel",
   "generated": "2026-10-04T23:37:46.005813Z",
   "last_updated": "2026-10-05T00:16:22.854551Z",
@@ -18,7 +18,7 @@
   "hierarchy": {
     "spec-root": {
       "type": "spec",
-      "title": "Airis terminal attachment outcomes",
+      "title": "Airis unused terminal attachment channel",
       "status": "completed",
       "parent": null,
       "children": [
@@ -31,7 +31,7 @@
     },
     "phase-1": {
       "type": "phase",
-      "title": "Phase 1: [To Be Defined]",
+      "title": "Trace and remove unused callback",
       "status": "completed",
       "parent": "spec-root",
       "children": [
@@ -47,7 +47,7 @@
     },
     "phase-2": {
       "type": "phase",
-      "title": "Phase 2: [To Be Defined]",
+      "title": "Verify source and diagnostic delta",
       "status": "completed",
       "parent": "spec-root",
       "children": [
@@ -79,7 +79,8 @@
         "completed_at": "2026-10-04T23:41:21.840561Z",
         "needs_journaling": false,
         "status_note": "All callers traced. FileNav has no onAttach reads/calls. Removed unreachable handler, dedicated imports and both desktop/mobile prop bindings; active terminal paths unchanged.",
-        "journaled_at": "2026-10-04T23:41:21.841398Z"
+        "journaled_at": "2026-10-04T23:41:21.841398Z",
+        "file_path": "src/lib/components/chat/ChatControls.svelte"
       }
     },
     "task-2-1": {
@@ -100,7 +101,8 @@
         "completed_at": "2026-10-05T00:16:22.451730Z",
         "needs_journaling": false,
         "status_note": "547/547 frontend; both baseline/final components compile. FileNav exact source equal after deleting unused prop.3743/160 to3742/159 types/warnings;1393 to1391 lint; mapped comparison0added,2removed each. Public delivery separate.",
-        "journaled_at": "2026-10-05T00:16:22.452961Z"
+        "journaled_at": "2026-10-05T00:16:22.452961Z",
+        "file_path": "src/lib/components/chat/FileNav.svelte"
       }
     }
   },
