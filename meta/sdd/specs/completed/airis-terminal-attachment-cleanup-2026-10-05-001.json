@@ -1,0 +1,147 @@
+{
+  "spec_id": "airis-terminal-attachment-cleanup-2026-10-05-001",
+  "title": "Airis unused terminal attachment channel",
+  "generated": "2026-10-04T23:37:46.005813Z",
+  "last_updated": "2026-10-05T00:16:22.854551Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-05__refactor__chat-controls-unused-attachment.md",
+    "status": "completed",
+    "activated_date": "2026-10-04T23:40:54.701450Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-05T00:16:22.854304Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis unused terminal attachment channel",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace and remove unused callback",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-04T23:41:21.840716Z",
+        "journaled_at": "2026-10-04T23:41:21.842387Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify source and diagnostic delta",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-05T00:16:22.452045Z",
+        "journaled_at": "2026-10-05T00:16:22.454093Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace callers and remove unreachable attachment channel",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 1.0,
+        "completed_at": "2026-10-04T23:41:21.840561Z",
+        "needs_journaling": false,
+        "status_note": "Removed unreachable ChatControls upload handler and both caller props. FileNav unchanged. Concrete callbacks match Chat and CallOverlay; unused imports and div closing fixed.",
+        "journaled_at": "2026-10-04T23:41:21.841398Z",
+        "file_path": "src/lib/components/chat/ChatControls.svelte"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify compiler, frontend suite and zero added diagnostics",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 1.0,
+        "completed_at": "2026-10-05T00:16:22.451730Z",
+        "needs_journaling": false,
+        "status_note": "547/547 frontend; strict ChatControls lint/format pass; compilation0warnings. Full3743/160 to3742/159;1393 to1384 lint;0added diagnostics. FileNav unchanged. Exact-head CI/merge and production separate.",
+        "journaled_at": "2026-10-05T00:16:22.452961Z",
+        "file_path": "src/lib/components/chat/ChatControls.svelte"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-04T23:41:21.841394Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace callers and remove unreachable attachment channel",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: All callers traced. FileNav has no onAttach reads/calls. Removed unreachable handler, dedicated imports and both desktop/mobile prop bindings; active terminal paths unchanged.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-04T23:41:21.842382Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: [To Be Defined]",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-05T00:16:22.452957Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify compiler, frontend suite and zero added diagnostics",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: 547/547 frontend; both baseline/final components compile. FileNav exact source equal after deleting unused prop.3743/160 to3742/159 types/warnings;1393 to1391 lint; mapped comparison0added,2removed each. Public delivery separate.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-05T00:16:22.454089Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 2: [To Be Defined]",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

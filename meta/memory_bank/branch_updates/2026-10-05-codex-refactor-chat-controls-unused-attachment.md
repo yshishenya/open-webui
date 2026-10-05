@@ -1,0 +1,8 @@
+- [x] **[REFACTOR]** Remove unused ChatControls upload logic and verify callback contracts
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-05__refactor__chat-controls-unused-attachment.md`
+  - Owner: Codex
+  - Branch: `codex/refactor/chat-controls-unused-attachment`
+  - Done: 2026-10-05
+  - Summary: Delete unreachable attachment handler; repair concrete callbacks, unused imports and div closing. FileNav remains unchanged.
+  - Tests:547/547 frontend; strict ChatControls ESLint/format;0added diagnostics,1type/1warning/9lint removed. Source verification complete; final exact-head CI/merge tracked separately.
+  - Risks: Public delivery separate; FileNav/generation/pane contracts and full-project quality debt remain.
