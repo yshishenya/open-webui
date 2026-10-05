@@ -1,0 +1,131 @@
+{
+	"spec_id": "airis-chat-list-record-contract-2026-10-05-001",
+	"title": "Airis chat list record contract",
+	"generated": "2026-10-05T18:49:28.864508Z",
+	"last_updated": "2026-10-05T18:54:58.710868Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-05__bugfix__chat-list-record-contract.md",
+		"status": "completed",
+		"activated_date": "2026-10-05T18:50:46.472442Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-05T18:54:58.710633Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis chat list record contract",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace list response fields and refine existing store record",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-05T18:54:57.994953Z",
+				"journaled_at": "2026-10-05T18:54:57.996667Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify strict consumers and byte-identical emitted module",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-05T18:54:58.229617Z",
+				"journaled_at": "2026-10-05T18:54:58.231756Z"
+			}
+		},
+		"task-1": {
+			"type": "task",
+			"title": "Trace list response fields and refine existing store record",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"category": "refactoring",
+				"file_path": "src/lib/stores/chatList.ts",
+				"completed_at": "2026-10-05T18:54:57.994808Z",
+				"needs_journaling": false,
+				"status_note": "Traced ChatTitleIdResponse, full ChatResponse and client time_range enrichment; sparse snapshot compatibility retained; strict baseline probe18 failures.",
+				"journaled_at": "2026-10-05T18:54:57.995681Z"
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1
+		},
+		"task-2": {
+			"type": "task",
+			"title": "Verify strict consumers and byte-identical emitted module",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"metadata": {
+				"category": "refactoring",
+				"file_path": "src/lib/utils/airis/chat-list-record.typecheck.ts",
+				"completed_at": "2026-10-05T18:54:58.229490Z",
+				"needs_journaling": false,
+				"status_note": "Probe0; app3651 to3643,8 removed/0new,1 old i18n diagnostic paired;555 tests;full ESLint1384 unchanged;whole emitted module byte identical.",
+				"journaled_at": "2026-10-05T18:54:58.230365Z"
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-05T18:54:57.995676Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Trace list response fields and refine existing store record",
+			"author": "claude-code",
+			"content": "Task task-1 marked as completed. \nNote: Traced ChatTitleIdResponse, full ChatResponse and client time_range enrichment; sparse snapshot compatibility retained; strict baseline probe18 failures.",
+			"metadata": {},
+			"task_id": "task-1"
+		},
+		{
+			"timestamp": "2026-10-05T18:54:57.996662Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace list response fields and refine existing store record",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-05T18:54:58.230360Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify strict consumers and byte-identical emitted module",
+			"author": "claude-code",
+			"content": "Task task-2 marked as completed. \nNote: Probe0; app3651 to3643,8 removed/0new,1 old i18n diagnostic paired;555 tests;full ESLint1384 unchanged;whole emitted module byte identical.",
+			"metadata": {},
+			"task_id": "task-2"
+		},
+		{
+			"timestamp": "2026-10-05T18:54:58.231749Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify strict consumers and byte-identical emitted module",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
