@@ -1,0 +1,11 @@
+- [ ] **[BUG]** Ignore stale folder modal loads and block editing before initialization
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-05__bugfix__folder-modal-load.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/folder-modal-load`
+  - Started: 2026-10-05
+  - Summary: Trace all five consumers, reproduce pending/null/stale GET responses, repair the shared modal without changing the frozen PR272 candidate.
+  - Tests: Mounted regression baseline and Docker checks in progress.
+  - Risks: Source, integration and production acceptance remain distinct.
+
+- Local acceptance:7 mounted cases and8 Chromium/Firefox cases; settled baseline6 failures/1 pass and2 null errors. Full tests562/562,2 type errors and6 lint errors removed,0 added. Compiled runtime differs and requires release.
+- SDD:2/2 local implementation/verification tasks completed; CI/integration/production pending.

@@ -224,7 +224,7 @@
 								onClose={() => (showButtons = false)}
 								onSubmit={(name) => {
 									showButtons = false;
-									if (onReaction) onReaction(name);
+									if (onReaction && name !== null) onReaction(name);
 								}}
 							>
 								<Tooltip content={$i18n.t('Add Reaction')}>
@@ -621,7 +621,7 @@
 									{#if onReaction}
 										<EmojiPicker
 											onSubmit={(name) => {
-												if (onReaction) onReaction(name);
+												if (onReaction && name !== null) onReaction(name);
 											}}
 										>
 											<Tooltip content={$i18n.t('Add Reaction')}>

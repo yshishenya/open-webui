@@ -2,8 +2,8 @@ import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 type FolderForm = {
 	name?: string;
-	data?: Record<string, any>;
-	meta?: Record<string, any>;
+	data?: Record<string, unknown>;
+	meta?: Record<string, unknown>;
 	parent_id?: string | null;
 };
 
@@ -167,7 +167,11 @@ export const updateFolderIsExpandedById = async (
 	return res;
 };
 
-export const updateFolderParentIdById = async (token: string, id: string, parentId?: string) => {
+export const updateFolderParentIdById = async (
+	token: string,
+	id: string,
+	parentId?: string | null
+) => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/folders/${id}/update/parent`, {
@@ -263,7 +267,11 @@ export const markFolderChatsReadById = async (token: string, id: string) => {
 	return res;
 };
 
-export const updateFolderAccessById = async (token: string, id: string, accessGrants: any[]) => {
+export const updateFolderAccessById = async (
+	token: string,
+	id: string,
+	accessGrants: unknown[]
+) => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/folders/${id}/access/update`, {
