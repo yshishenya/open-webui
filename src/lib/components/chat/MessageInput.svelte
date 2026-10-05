@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ContextUsage } from '$lib/utils/airis/frontend-contracts';
 	import { getAttachmentSource } from '$lib/utils/airis/attachment_source';
 	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 	import DOMPurify from 'dompurify';
@@ -116,7 +117,7 @@
 	export let statusHandler: () => void = () => {};
 	export let forkHandler: (messageId?: string | null) => void | Promise<void> = () => {};
 	export let chatId = '';
-	export let contextUsage = null;
+	export let contextUsage: ContextUsage | null = null;
 	export let contextCompactionEnabled = false;
 
 	export let autoScroll = false;
@@ -429,7 +430,7 @@
 			return next;
 		}, 0);
 
-	const getLocalContextUsage = () => {
+	const getLocalContextUsage = (): ContextUsage | null => {
 		if (!history?.currentId) {
 			return null;
 		}
@@ -498,10 +499,10 @@
 	);
 	$: contextValue = statusContextUsage
 		? contextHasThreshold
-			? `${contextPercent}% ${contextTokens}/${formatTokenCount(statusContextUsage.threshold)}`
+			? `${contextPercent}% ${contextTokens}/${formatTokenCount(statusContextUsage.threshold ?? 0)}`
 			: `${contextTokens} ${$i18n.t('tokens')}`
 		: $i18n.t('unknown');
-	$: contextBarPercent = contextHasThreshold ? Math.min(contextPercent, 100) : 0;
+	$: contextBarPercent = contextHasThreshold ? Math.min(contextPercent ?? 0, 100) : 0;
 
 	const getCommand = () => {
 		const chatInput = document.getElementById('chat-input');

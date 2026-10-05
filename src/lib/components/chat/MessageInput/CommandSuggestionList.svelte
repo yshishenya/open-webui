@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { ComponentProps } from 'svelte';
+	import type { ContextUsage } from '$lib/utils/airis/frontend-contracts';
 	import SlashCommands from './Commands/SlashCommands.svelte';
 	import AtCommands from './Commands/AtCommands.svelte';
 	import Knowledge from './Commands/Knowledge.svelte';
@@ -10,8 +12,8 @@
 	export let query = '';
 	export let command: (payload: { id: string; label: string }) => void;
 
-	export let onSelect: (e: any) => void = () => {};
-	export let onUpload: (e: any) => void = () => {};
+	export let onSelect: (e: unknown) => void = () => {};
+	export let onUpload: (e: unknown) => void = () => {};
 	export let onCompact: () => void = () => {};
 	export let onStatus: () => void = () => {};
 	export let onFork: () => void = () => {};
@@ -21,7 +23,7 @@
 	export let canStatus: boolean | (() => boolean) = false;
 	export let canFork: boolean | (() => boolean) = false;
 	export let forkDisabled: boolean | (() => boolean) = false;
-	export let contextUsage = null;
+	export let contextUsage: ContextUsage | null | (() => ContextUsage | null) = null;
 
 	$: compactAvailable = typeof canCompact === 'function' ? canCompact() : canCompact;
 	$: isCompactDisabled =
@@ -29,14 +31,22 @@
 	$: statusAvailable = typeof canStatus === 'function' ? canStatus() : canStatus;
 	$: forkAvailable = typeof canFork === 'function' ? canFork() : canFork;
 	$: isForkDisabled = typeof forkDisabled === 'function' ? forkDisabled() : forkDisabled;
-	$: resolvedContextUsage = typeof contextUsage === 'function' ? contextUsage() : contextUsage;
+	let resolvedContextUsage: ContextUsage | null = null;
+	// The editor updates query while keeping the same getter instance.
+	$: if (query !== undefined) {
+		resolvedContextUsage = typeof contextUsage === 'function' ? contextUsage() : contextUsage;
+	}
 	$: contextHasThreshold = Number(resolvedContextUsage?.threshold) > 0;
 	$: contextPercent = contextHasThreshold
 		? Math.max(0, Math.round(resolvedContextUsage?.percent ?? 0))
 		: null;
 
-	let suggestionElement: any = null;
-	let filteredItems: any[] = [];
+	let suggestionElement: {
+		selectUp: () => void;
+		selectDown: () => void;
+		select: () => void | Promise<void>;
+	} | null = null;
+	let filteredItems: ComponentProps<typeof SlashCommands>['filteredItems'] = [];
 
 	const onKeyDown = (event: KeyboardEvent) => {
 		if (!['ArrowUp', 'ArrowDown', 'Enter', 'Tab', 'Escape'].includes(event.key)) return false;
@@ -68,8 +78,7 @@
 	};
 
 	// This method will be called from the suggestion renderer
-	// @ts-ignore
-	export function _onKeyDown(event: KeyboardEvent) {
+	export function _onKeyDown(event: KeyboardEvent): boolean {
 		return onKeyDown(event);
 	}
 </script>
@@ -87,7 +96,7 @@
 					canStatus={statusAvailable}
 					canFork={forkAvailable}
 					forkDisabled={isForkDisabled}
-					{contextPercent}
+					contextPercent={contextPercent ?? 0}
 					{contextHasThreshold}
 					onSelect={(e) => {
 						const { type, data } = e;

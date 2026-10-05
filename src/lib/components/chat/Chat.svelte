@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ContextUsage } from '$lib/utils/airis/frontend-contracts';
 	/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
 	import { v4 as uuidv4 } from 'uuid';
 	import { toast } from 'svelte-sonner';
@@ -201,8 +202,8 @@
 	} else {
 		selectedModelIds = selectedModels;
 	}
-	let serverContextUsage = null;
-	let contextUsage = null;
+	let serverContextUsage: ContextUsage | null = null;
+	let contextUsage: ContextUsage | null = null;
 
 	const getAvailableModelIds = () =>
 		$models.filter((m) => !(m?.info?.meta?.hidden ?? false)).map((m) => m.id);
@@ -282,7 +283,7 @@
 		return Number.isFinite(threshold) && threshold > 0 ? threshold : null;
 	};
 
-	const getContextUsage = () => {
+	const getContextUsage = (): ContextUsage | null => {
 		if (!history?.currentId) {
 			return null;
 		}
@@ -328,7 +329,10 @@
 			tokens: estimatedTokens,
 			estimated_tokens: estimatedTokens,
 			threshold,
-			percent: threshold > 0 ? Math.max(0, Math.round((estimatedTokens / threshold) * 100)) : null,
+			percent:
+				threshold !== null && threshold > 0
+					? Math.max(0, Math.round((estimatedTokens / threshold) * 100))
+					: null,
 			source: 'estimated'
 		};
 	};
