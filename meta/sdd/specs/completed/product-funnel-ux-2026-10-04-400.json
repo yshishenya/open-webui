@@ -1,0 +1,210 @@
+{
+	"spec_id": "product-funnel-ux-2026-10-04-400",
+	"title": "product-funnel-ux",
+	"generated": "2026-10-04T01:00:53.198463Z",
+	"last_updated": "2026-10-05T17:41:54.775394Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-04__feature__product-funnel-ux.md",
+		"status": "completed",
+		"activated_date": "2026-10-04T01:02:03.738624Z",
+		"progress_percentage": 100,
+		"current_phase": "phase-2",
+		"completed_date": "2026-10-05T17:41:54.775143Z",
+		"actual_hours": 40.667
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "product-funnel-ux",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 4,
+			"completed_tasks": 4,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "\u0420\u0435\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u044f \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043e\u043a\u043d\u0430",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-04T18:38:01.584429Z",
+				"journaled_at": "2026-10-04T18:38:01.588644Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "PR, \u0432\u044b\u043f\u0443\u0441\u043a \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u0440\u043e\u0434\u0430\u043a\u0448\u0435\u043d\u0430",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-05T17:41:54.320678Z",
+				"journaled_at": "2026-10-05T17:41:54.325487Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "\u0420\u0435\u0430\u043b\u0438\u0437\u043e\u0432\u0430\u0442\u044c \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u043d\u043e\u0435 \u043e\u043a\u043d\u043e \u0438 \u0440\u0435\u0433\u0440\u0435\u0441\u0441\u0438\u043e\u043d\u043d\u044b\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"started_at": "2026-10-04T01:06:07.143726Z",
+				"file_path": "src/lib/components/admin/Analytics/ProductFunnel.svelte",
+				"task_category": "implementation",
+				"completed_at": "2026-10-04T01:29:52.586195Z",
+				"needs_journaling": false,
+				"status_note": "Parent review extracted FunnelMethodology; ProductFunnel is 498 lines. Native platform controls and existing report API retained; no dependencies or financial mutations. Integration base advanced without conflicts to cbbe9ab57dd4000018b6d6fe165aa237a6408a30.",
+				"actual_hours": 0.396,
+				"journaled_at": "2026-10-04T01:29:52.589241Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0438, \u0431\u0440\u0430\u0443\u0437\u0435\u0440 \u0438 \u043d\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043c\u044b\u0439 \u043e\u0431\u0437\u043e\u0440",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "src/lib/components/admin/Analytics/ProductFunnel.test.ts",
+				"task_category": "implementation",
+				"started_at": "2026-10-04T01:25:35.388886Z",
+				"status_note": "Docker frontend 511/511 on merged source204fc830f; backend900/5 skips with all5 PostgreSQL checks separately passed. Independent Lorentz review fixed stale UTC max; strict changed-file checks pass, inherited type/lint debt unchanged and explicitly accepted. Final packaged browser14/14 on production settings, source hashes4855+434 equal.",
+				"completed_at": "2026-10-04T18:38:01.584066Z",
+				"needs_journaling": false,
+				"actual_hours": 17.207,
+				"journaled_at": "2026-10-04T18:38:01.586888Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "PR \u0438 \u0441\u043b\u0438\u044f\u043d\u0438\u0435 \u0441 \u0442\u0435\u043a\u0443\u0449\u0438\u043c\u0438 CI",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-04__feature__product-funnel-ux.md",
+				"task_category": "implementation",
+				"completed_at": "2026-10-04T18:38:01.854726Z",
+				"needs_journaling": false,
+				"status_note": "PR255 merged2026-10-04T18:19:32Z. Source dd080b6bd8ef55b16bc46f926ed23cb794512763; merge204fc830f28eec3907735b47af5f5331e6a06f32 preserves current FileItem. PR gates pass; merge-medium37223999190 suites pass4/4; migration, security and SDD checks pass.",
+				"journaled_at": "2026-10-04T18:38:01.855735Z"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "\u041d\u0435\u0438\u0437\u043c\u0435\u043d\u044f\u0435\u043c\u044b\u0439 \u043e\u0431\u0440\u0430\u0437, guarded deploy \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 production",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-04__feature__product-funnel-ux.md",
+				"task_category": "implementation",
+				"started_at": "2026-10-04T18:38:02.132071Z",
+				"status_note": "PR255 is included in later production releases. Final observed runtime aa68736a977668e9a44eed1c9bd9612be6c6225a digest5dedd55efc12d36f63f4e384c8b90b91bfe6b193d97444c786c7f15e197878b8 healthy. Exact5 frontend +2 report server source hashes unchanged; real admin filters/grouping/refresh/history/methodology/payment navigation verified on live releases; anonymous denied401. Targeted Docker19 pass. Additional release-heavy37348243402 exactc81f1997656c307c1f073a16a895f77317c154b5 suites5/5 pass; actual runner success, unchanged85/65/85/70 thresholds. Obsolete candidate not deployed. Authorized targeted cache/image cleanup recovered15094935552 bytes; data/volumes/rollback tags/backups preserved; latestaa backup validated. No real payments/mail/model requests.",
+				"completed_at": "2026-10-05T17:41:54.320545Z",
+				"needs_journaling": false,
+				"actual_hours": 23.064,
+				"journaled_at": "2026-10-05T17:41:54.323715Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-04T01:29:52.589230Z",
+			"entry_type": "status_change",
+			"title": "Implementation and local acceptance",
+			"author": "Codex",
+			"content": "Separate observations/mature conversion, applied UTC filters, stale-response guards, comparable table and scoped payment navigation. Late-admin mount regression corrected. No production writes.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-04T18:38:01.586883Z",
+			"entry_type": "status_change",
+			"title": "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0438 \u043d\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043c\u044b\u0439 \u043e\u0431\u0437\u043e\u0440 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u044b",
+			"author": "Codex",
+			"content": "\u041e\u0431\u0437\u043e\u0440 \u0438 \u0440\u0435\u0433\u0440\u0435\u0441\u0441\u0438\u0438 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u044b; \u043f\u0440\u0435\u0436\u043d\u0438\u0439 \u0434\u043e\u043b\u0433 \u043f\u0440\u0438\u043d\u044f\u0442 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0435\u043c \u0431\u0435\u0437 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u044b\u0445 \u043f\u043e\u0440\u043e\u0433\u043e\u0432. \u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0440\u0435\u0430\u043b\u044c\u043d\u043e\u0433\u043e production \u043e\u0441\u0442\u0430\u0451\u0442\u0441\u044f \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u044b\u043c \u043d\u0435\u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043d\u043d\u044b\u043c \u044d\u0442\u0430\u043f\u043e\u043c.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-04T18:38:01.588637Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: \u0420\u0435\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u044f \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043e\u043a\u043d\u0430",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-04T18:38:01.855731Z",
+			"entry_type": "status_change",
+			"title": "PR255 \u043e\u0431\u044a\u0435\u0434\u0438\u043d\u0451\u043d \u0441 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435\u043c FileItem",
+			"author": "Codex",
+			"content": "\u0422\u043e\u0447\u043d\u044b\u0435 \u0444\u0430\u0439\u043b\u044b \u0432\u043e\u0440\u043e\u043d\u043a\u0438 \u0441\u043e\u0432\u043f\u0430\u0434\u0430\u044e\u0442 \u0441 \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043d\u044b\u043c source; PR \u0438 \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u044b\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0441\u043b\u0438\u044f\u043d\u0438\u044f \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u044b. \u041f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0441\u0442\u0432\u0435\u043d\u043d\u0430\u044f \u043e\u0441\u043d\u043e\u0432\u0430 \u0438\u0437\u043c\u0435\u043d\u0438\u043b\u0430\u0441\u044c \u0441 chat-variable \u043d\u0430 FileItem; \u0441\u0442\u0430\u0440\u044b\u0439 \u043a\u0430\u043d\u0434\u0438\u0434\u0430\u0442 \u043d\u0435 \u0432\u044b\u043f\u0443\u0449\u0435\u043d.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-05T17:41:54.323710Z",
+			"entry_type": "status_change",
+			"title": "Production acceptance and bounded cleanup completed",
+			"author": "Codex",
+			"content": "Live production report verified after both pane and terminal-pane releases; scoped files remain identical to merged PR255. All planned technical gates satisfied. No financial settlement, human comprehension or future mature-cohort result is inferred.",
+			"metadata": {},
+			"task_id": "task-2-2"
+		},
+		{
+			"timestamp": "2026-10-05T17:41:54.325481Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: PR, \u0432\u044b\u043f\u0443\u0441\u043a \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u0440\u043e\u0434\u0430\u043a\u0448\u0435\u043d\u0430",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
