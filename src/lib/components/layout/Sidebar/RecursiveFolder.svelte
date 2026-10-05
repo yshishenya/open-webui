@@ -4,14 +4,13 @@
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
-	import DOMPurify from 'dompurify';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 
-	import { chatId, mobile, selectedFolder, showSidebar, user } from '$lib/stores';
+	import { mobile, selectedFolder, showSidebar, user } from '$lib/stores';
 
 	import {
 		deleteFolderById,
@@ -237,7 +236,7 @@
 							} else if (type === 'chat') {
 								open = true;
 
-								let chat = await getChatById(localStorage.token, id).catch((error) => {
+								let chat = await getChatById(localStorage.token, id).catch(() => {
 									return null;
 								});
 								if (!chat && item) {
@@ -501,7 +500,7 @@
 	};
 
 	const isExpandedUpdateHandler = async () => {
-		const res = await updateFolderIsExpandedById(localStorage.token, folderId, open).catch(
+		await updateFolderIsExpandedById(localStorage.token, folderId, open).catch(
 			(error) => {
 				toast.error(`${error}`);
 				return null;
@@ -553,7 +552,7 @@
 				);
 				chatsPage = nextPage;
 				hasMoreChats = res?.has_more ?? nextChats.length === SIDEBAR_CHATS_PAGE_SIZE;
-			} catch (error) {
+			} catch {
 				// Fallback to regular API
 				const fallback = await getChatListByFolderId(localStorage.token, folderId, nextPage).catch(
 					(error) => {
@@ -737,7 +736,6 @@
 			dispatch('open', state);
 		}}
 	>
-		<!-- svelte-ignore a11y-no-static-element-interactions -->
 		<div class="w-full group">
 			<div
 				id="folder-{folderId}-button"
@@ -745,7 +743,7 @@
 				folderId
 					? 'bg-gray-100/80 dark:bg-gray-850/50 selected'
 					: ''}"
-				on:dblclick={(e) => {
+				on:dblclick={() => {
 					if (folders[folderId]?.shared && folders[folderId]?.permission !== 'write') return;
 					if (clickTimer) {
 						clearTimeout(clickTimer); // cancel the single-click action

@@ -48,3 +48,7 @@ Callback failures now leave the dialog open; confirmed writes still close it. Re
 - Full types3584→3567 errors/158 warnings;0 new diagnostics. Full ESLint1360→1360 errors;0 new diagnostics. Application-wide commands retain their existing failures.
 - Browser baseline:2/2 failed on compiled combined source after a real failed write; both preserve server data but close the draft. Combined candidate previously passed22/22 canonical/supplemental scenarios; no claim that those cover failed saves.
 - This source remains active until all five consumer browser cases, CI and production acceptance complete.
+
+## Required changed-file CI follow-up
+
+The CI check on35227 reports seven existing lint errors in the touched RecursiveFolder consumer. Remove only unused imports, variables, callback parameters and a stale Svelte suppression. All six changed frontend files now pass ESLint in Compose. Full frontend tests are rerunning with one worker after the unrestricted run was killed by local memory pressure; browser acceptance remains pending. Frozen525 candidate is superseded for release by this final source.
