@@ -2,7 +2,7 @@
   "spec_id": "airis-stop-sequence-decoding-2026-10-05-001",
   "title": "Airis stop sequence decoding",
   "generated": "2026-10-05T03:00:53.088758Z",
-  "last_updated": "2026-10-05T03:40:05.486355Z",
+  "last_updated": "2026-10-05T09:02:02.466302Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -10,22 +10,23 @@
     "estimated_hours": 8,
     "security_sensitive": false,
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-05__bugfix__stop-sequence-decoding.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-05T03:01:59.945087Z",
-    "progress_percentage": 50
+    "progress_percentage": 100,
+    "completed_date": "2026-10-05T09:02:02.466077Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Airis stop sequence decoding",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
         "phase-2"
       ],
       "total_tasks": 2,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {}
     },
     "phase-1": {
@@ -47,14 +48,18 @@
     "phase-2": {
       "type": "phase",
       "title": "Verify provider paths and release acceptance",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-2-1"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-05T09:02:02.037860Z",
+        "journaled_at": "2026-10-05T09:02:02.040013Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -81,7 +86,7 @@
     "task-2-1": {
       "type": "task",
       "title": "Verify suites, exact source and candidate release",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -90,10 +95,14 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "estimated_hours": 1.0,
-        "file_path": "backend/open_webui/test/util/test_stop_sequences.py"
+        "file_path": "backend/open_webui/test/util/test_stop_sequences.py",
+        "completed_at": "2026-10-05T09:02:02.037534Z",
+        "needs_journaling": false,
+        "status_note": "Source5c471189fc8e91615b88728806956d2c613a8021; PR262 merge4498289cb828b311b79832e750711ee26afc846c.946backend/5unchangedPostgreSQLskips;46actualmapper;30940codecParity;547frontend on identical UI.12CI success/1skip. Both compiled candidates16browser paths pass;4914frontend/426Python hashes match production sha256:5b761e0091d309028390ffc10046c7b2128e0bfe75b8d86a19965365baaaf23d. Healthy/restarts0;ENV and12originalneighbors preserved. Real saved chat2messages/emptyinput/controltoggle/error0. Fullgoal remains active, pilot not launched.",
+        "journaled_at": "2026-10-05T09:02:02.038938Z"
       }
     }
   },
@@ -115,6 +124,24 @@
       "content": "All child tasks in phase phase-1 have been completed.",
       "metadata": {},
       "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-05T09:02:02.038933Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify suites, exact source and candidate release",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Source5c471189fc8e91615b88728806956d2c613a8021; PR262 merge4498289cb828b311b79832e750711ee26afc846c.946backend/5unchangedPostgreSQLskips;46actualmapper;30940codecParity;547frontend on identical UI.12CI success/1skip. Both compiled candidates16browser paths pass;4914frontend/426Python hashes match production sha256:5b761e0091d309028390ffc10046c7b2128e0bfe75b8d86a19965365baaaf23d. Healthy/restarts0;ENV and12originalneighbors preserved. Real saved chat2messages/emptyinput/controltoggle/error0. Fullgoal remains active, pilot not launched.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-05T09:02:02.040008Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify provider paths and release acceptance",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
     }
   ]
 }

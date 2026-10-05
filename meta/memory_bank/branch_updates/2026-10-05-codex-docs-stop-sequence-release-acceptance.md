@@ -1,0 +1,7 @@
+- [x] **[DOCS][RELEASE]** Close verified stop sequence and ChatControls release
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-05__docs__stop-sequence-release-acceptance.md`
+  - Owner: Codex
+  - Branch: `codex/docs/stop-sequence-release-acceptance`
+  - Done: 2026-10-05
+  - Summary: Record exact source/CI/merge, both candidates, guarded release and browser acceptance; close original SDD (2/2). General quality debt and actual pilot remain separate.
+  - Tests: Documentation links, SDD and diff validation; exact-head CI before merge. Documentation does not change accepted source/runtime.
