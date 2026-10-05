@@ -4,7 +4,7 @@ import { mount, tick, unmount } from 'svelte';
 import { get, writable } from 'svelte/store';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import Harness from './fixtures/ChatControlsPaneHarness.svelte';
-import { showControls } from '../src/lib/stores';
+import { selectedTerminalId, showControls, terminalServers } from '../src/lib/stores';
 
 // Leave the actual pane, drawer and controls lifecycle mounted; heavy leaf views are unrelated.
 vi.mock('../src/lib/components/chat/Controls/Controls.svelte', () => ({ default: () => {} }));
@@ -52,6 +52,8 @@ beforeEach(() => {
 	width = 1280;
 	localStorage.clear();
 	showControls.set(false);
+	selectedTerminalId.set(null);
+	terminalServers.set([]);
 	vi.stubGlobal('matchMedia', () => ({
 		get matches() {
 			return wide;
@@ -147,3 +149,25 @@ it('leaves the existing pane unchanged when its container is detached or has zer
 	expect(() => component?.openPane()).not.toThrow();
 	expect(component.getSize()).toBe(size);
 });
+
+it.each([true, false])(
+	'keeps a selected terminal from reopening manually closed controls (selection on desktop=%s)',
+	async (desktop) => {
+		const i18n = createInstance();
+		await i18n.init({ lng: 'en', resources: {}, initImmediate: false });
+		component = mount(Harness, { target, context: new Map([['i18n', writable(i18n)]]) });
+		await settle();
+		if (!desktop) await resize(false);
+		terminalServers.set([{ id: 'test-terminal', name: 'Test', url: 'http://terminal.local' }]);
+		selectedTerminalId.set('test-terminal');
+		await settle();
+		expect(get(showControls)).toBe(desktop);
+		showControls.set(false);
+		await settle();
+		await resize(false);
+		await resize(true);
+		expect(get(showControls)).toBe(false);
+		expect(component.getSize()).toBe(0);
+		expect(target.querySelector('input')?.value).toBe('unfinished draft');
+	}
+);
