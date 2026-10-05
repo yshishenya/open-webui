@@ -15,6 +15,13 @@ export type StoredTerminalServer = Partial<Pick<TerminalServer, 'id' | 'name'>> 
 		specs?: Record<string, unknown>[];
 	};
 
+export type DirectTerminalSettings = Pick<StoredTerminalServer, 'url' | 'name'> & {
+	enabled: boolean;
+	key?: string;
+	auth_type?: string;
+	path?: string;
+};
+
 export type GenerationParams = {
 	stream_response?: boolean | null;
 	stream_delta_chunk_size?: number | null;

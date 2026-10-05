@@ -5,6 +5,7 @@ import type { Banner } from '$lib/types';
 import type { Socket } from 'socket.io-client';
 import type { AudioQueue } from '$lib/utils/audio';
 import type {
+	DirectTerminalSettings,
 	FrontendConfig,
 	GenerationParams,
 	ImageCompressionSize,
@@ -208,7 +209,10 @@ type OllamaModelDetails = {
 };
 
 type Settings = {
-	pinnedModels?: never[];
+	pinnedModels?: string[];
+	tools?: string[];
+	terminalServers?: DirectTerminalSettings[];
+	version?: string;
 	toolServers?: never[];
 	detectArtifacts?: boolean;
 	showUpdateToast?: boolean;
@@ -229,6 +233,18 @@ type Settings = {
 	hapticFeedback?: boolean;
 	responseAutoCopy?: boolean;
 	richTextInput?: boolean;
+	showFormattingToolbar?: boolean;
+	insertPromptAsRichText?: boolean;
+	temporaryChatByDefault?: boolean;
+	showFloatingActionButtons?: boolean;
+	chatFadeStreamingText?: boolean;
+	regenerateMenu?: boolean;
+	keepFollowUpPrompts?: boolean;
+	insertFollowUpPrompt?: boolean;
+	displayMultiModelResponsesInTabs?: boolean;
+	insertSuggestionPrompt?: boolean;
+	enableMessageQueue?: boolean;
+	imageCompressionInChannels?: boolean;
 	params?: GenerationParams;
 	userLocation?: boolean;
 	webSearch?: 'always' | null;
