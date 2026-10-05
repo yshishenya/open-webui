@@ -1,0 +1,8 @@
+- [ ] **[BUG]** Preserve stop sequence strings and Unicode for all provider converters
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-05__bugfix__stop-sequence-decoding.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/stop-sequence-encoding`
+  - Started: 2026-10-05
+  - Summary: Trace confirms both provider mappers iterate strings and corrupt Unicode; reuse one fork-owned decoder.
+  - Tests: Actual mapper30/30after20failbaseline; backend930passed/5knownskips; frontend547/547; strict new-file Ruff/Black; payload0new diagnostics. Candidate/CI/release pending.
+  - Risks: Escaped syntax must remain compatible; invalid types must fail explicitly.

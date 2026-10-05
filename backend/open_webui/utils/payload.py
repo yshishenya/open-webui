@@ -1,12 +1,13 @@
 import json
 from typing import Callable, Optional
 
+from open_webui.utils.airis.stop_sequences import decode_stop_sequences
+from open_webui.utils.chat_variables import render_chat_variables, render_user_variables
 from open_webui.utils.misc import (
     add_or_update_system_message,
     deep_update,
     replace_system_message_content,
 )
-from open_webui.utils.chat_variables import render_chat_variables, render_user_variables
 from open_webui.utils.task import prompt_template, prompt_variables_template
 
 
@@ -132,7 +133,7 @@ def apply_model_params_to_body_openai(params: dict, form_data: dict) -> dict:
         'presence_penalty': float,
         'reasoning_effort': str,
         'seed': lambda x: x,
-        'stop': lambda x: [bytes(s, 'utf-8').decode('unicode_escape') for s in x],
+        'stop': decode_stop_sequences,
         'logit_bias': lambda x: x,
         'response_format': dict,
     }
@@ -186,7 +187,7 @@ def apply_model_params_to_body_ollama(params: dict, form_data: dict) -> dict:
         'repeat_penalty': float,
         'presence_penalty': float,
         'frequency_penalty': float,
-        'stop': lambda x: [bytes(s, 'utf-8').decode('unicode_escape') for s in x],
+        'stop': decode_stop_sequences,
         'num_gpu': int,
         'use_mmap': bool,
         'use_mlock': bool,
