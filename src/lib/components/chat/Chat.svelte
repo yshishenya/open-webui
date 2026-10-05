@@ -2,7 +2,7 @@
 	/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
 	import { v4 as uuidv4 } from 'uuid';
 	import { toast } from 'svelte-sonner';
-	import { PaneGroup, Pane, PaneResizer } from 'paneforge';
+	import { PaneGroup, Pane, PaneResizer, type PaneAPI } from 'paneforge';
 
 	import { getContext, onDestroy, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
@@ -164,7 +164,7 @@
 	$: messageInputDropzoneId = embedded ? 'note-chat-input-dropzone' : 'chat-pane';
 
 	const eventTarget = new EventTarget();
-	let controlPane: Pane | undefined;
+	let controlPane: PaneAPI | undefined;
 	let controlPaneComponent: ChatControls | undefined;
 
 	let messageInput: MessageInput | undefined;

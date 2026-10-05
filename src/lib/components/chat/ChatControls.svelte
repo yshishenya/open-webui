@@ -3,7 +3,7 @@
 </script>
 
 <script lang="ts">
-	import { Pane, PaneResizer } from 'paneforge';
+	import { Pane, PaneResizer, type PaneAPI } from 'paneforge';
 
 	import { onMount, tick, getContext } from 'svelte';
 	import {
@@ -33,7 +33,7 @@
 	export let history;
 	export let models = [];
 
-	export let chatId = null;
+	export let chatId: string | null = null;
 
 	export let chatFiles = [];
 	export let params = {};
@@ -51,7 +51,7 @@
 
 	export let codeInterpreterEnabled = false;
 
-	export let pane: Pane | null = null;
+	export let pane: PaneAPI | undefined;
 	export let containerId = 'chat-container';
 
 	let largeScreen = false;
@@ -114,19 +114,22 @@
 		selectedTerminalId.set(null);
 	}
 
-	export const openPane = () => {
-		if (parseInt(localStorage?.chatControlsSize)) {
-			const container = document.getElementById(containerId);
-			let size = Math.floor(
-				(parseInt(localStorage?.chatControlsSize) / container.clientWidth) * 100
-			);
-			pane.resize(size);
-		} else {
-			pane.resize(minSize);
-		}
+	export const openPane = (): void => {
+		const container = document.getElementById(containerId);
+		if (!pane || !container?.clientWidth) return;
+		minSize = Math.floor((350 / container.clientWidth) * 100);
+		const savedSize = parseInt(localStorage.chatControlsSize);
+		const size =
+			Number.isFinite(savedSize) && savedSize > 0
+				? Math.floor((savedSize / container.clientWidth) * 100)
+				: minSize;
+		pane.resize(Math.max(minSize, size));
 	};
 
-	const handleMediaQuery = async (e) => {
+	const handleMediaQuery = async (e: Pick<MediaQueryListEvent, 'matches'>): Promise<void> => {
+		const wasOpen = $showControls;
+		// A newly mounted desktop pane starts collapsed; that is not a user close.
+		paneReady = false;
 		if (e.matches) {
 			largeScreen = true;
 			if ($showCallOverlay) {
@@ -141,8 +144,15 @@
 				await tick();
 				showCallOverlay.set(true);
 			}
-			pane = null;
+			pane = undefined;
 		}
+		await tick();
+		if (e.matches !== largeScreen) return;
+		if (largeScreen && wasOpen) {
+			showControls.set(true);
+			openPane();
+		}
+		paneReady = true;
 	};
 
 	const onMouseDown = () => {
@@ -358,13 +368,17 @@
 		bind:pane
 		defaultSize={0}
 		onResize={(size) => {
-			if ($showControls && pane.isExpanded()) {
+			if ($showControls && pane?.isExpanded()) {
 				if (size < minSize) pane.resize(minSize);
 				if (size < minSize) {
 					localStorage.chatControlsSize = 0;
 				} else {
 					const container = document.getElementById(containerId);
-					localStorage.chatControlsSize = Math.floor((size / 100) * container.clientWidth);
+					if (container?.clientWidth) {
+						localStorage.chatControlsSize = String(
+							Math.floor((size / 100) * container.clientWidth)
+						);
+					}
 				}
 			}
 		}}
