@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: refactor
-- Status: source verified; delivery pending
+- Status: source complete; integration and runtime delivery tracked separately
 - Owner: Codex
 - Branch: codex/refactor/chat-controls-unused-attachment
 - SDD Spec: meta/sdd/specs/completed/airis-terminal-attachment-cleanup-2026-10-05-001.json
