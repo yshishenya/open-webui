@@ -1,5 +1,6 @@
 import { WEBUI_BASE_URL, type DEFAULT_CAPABILITIES } from '$lib/constants';
 import { convertOpenApiToToolPayload } from '$lib/utils';
+import type { GenerationParams } from '$lib/utils/airis/frontend-contracts';
 import { getOpenAIModelsDirect } from './openai';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -1719,4 +1720,8 @@ export interface ModelMeta {
 	lead_magnet?: boolean;
 }
 
-export type ModelParams = Record<string, unknown> & { compact_token_threshold?: number };
+export type ModelParams = Record<string, unknown> &
+	Omit<GenerationParams, 'stop'> & {
+		system?: string | null;
+		stop?: string | string[] | null;
+	};

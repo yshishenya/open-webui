@@ -4,6 +4,7 @@
 
 <script lang="ts">
 	import { Pane, PaneResizer, type PaneAPI } from 'paneforge';
+	import type { ModelParams } from '$lib/apis';
 
 	import { onMount, tick, getContext } from 'svelte';
 	import {
@@ -36,7 +37,7 @@
 	export let chatId: string | null = null;
 
 	export let chatFiles = [];
-	export let params = {};
+	export let params: ModelParams = {};
 
 	export let eventTarget: EventTarget;
 	export let submitPrompt: (prompt: string, options?: { _raw?: boolean }) => Promise<void>;

@@ -109,6 +109,7 @@
 		chatAction,
 		generateMoACompletion,
 		type ModelMeta,
+		type ModelParams,
 		stopTask,
 		stopTasksByChatId,
 		getTaskIdsByChatId
@@ -413,7 +414,7 @@
 	let prompt = '';
 	let chatFiles: ChatAttachment[] = [];
 	let files: ChatAttachment[] = [];
-	let params = {};
+	let params: ModelParams = {};
 	let chatVariables: Record<string, unknown> = {};
 	let showChatVariablesModal = false;
 	let loadedChatIdProp = '';
