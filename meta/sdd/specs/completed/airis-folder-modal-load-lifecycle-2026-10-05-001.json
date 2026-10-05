@@ -1,0 +1,144 @@
+{
+	"spec_id": "airis-folder-modal-load-lifecycle-2026-10-05-001",
+	"title": "AIRIS folder modal load lifecycle",
+	"generated": "2026-10-05T20:34:51.760509Z",
+	"last_updated": "2026-10-05T20:53:11.043766Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-05__bugfix__folder-modal-load.md",
+		"status": "completed",
+		"activated_date": "2026-10-05T20:36:39.576710Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-05T20:53:11.043419Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS folder modal load lifecycle",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Reproduce and repair shared folder loading",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-05T20:46:09.116989Z",
+				"journaled_at": "2026-10-05T20:46:09.119303Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify and record exact source acceptance",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-05T20:53:10.537891Z",
+				"journaled_at": "2026-10-05T20:53:10.539917Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce and fix pending and stale folder loads",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-05T20:46:09.116813Z",
+				"needs_journaling": false,
+				"status_note": "Baseline four failed/two passed and two null dereferences; patched shared modal guards pending and stale loads. Seven mounted regressions and complete562 frontend tests pass; browser check next.",
+				"journaled_at": "2026-10-05T20:46:09.118195Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify regression and baseline quality and prepare review",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-05T20:53:10.537757Z",
+				"needs_journaling": false,
+				"status_note": "562/562 frontend tests,7 mounted cases and8 Chromium/Firefox cases pass; baseline4fail/3pass with2 null errors. Types3643 to3641, lint1384 to1378,0 new errors. Changed files lint clean; compiled client/server differ, deployment required. Local source acceptance only; CI/integration/production remain pending.",
+				"journaled_at": "2026-10-05T20:53:10.538698Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-05T20:46:09.118188Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce and fix pending and stale folder loads",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Baseline four failed/two passed and two null dereferences; patched shared modal guards pending and stale loads. Seven mounted regressions and complete562 frontend tests pass; browser check next.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-05T20:46:09.119299Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Reproduce and repair shared folder loading",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-05T20:53:10.538693Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify regression and baseline quality and prepare review",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: 562/562 frontend tests,7 mounted cases and8 Chromium/Firefox cases pass; baseline4fail/3pass with2 null errors. Types3643 to3641, lint1384 to1378,0 new errors. Changed files lint clean; compiled client/server differ, deployment required. Local source acceptance only; CI/integration/production remain pending.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-05T20:53:10.539912Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify and record exact source acceptance",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		},
+		{
+			"timestamp": "2026-10-05T20:55:56.864472+00:00",
+			"entry_type": "status_change",
+			"title": "Final settled asynchronous regression",
+			"author": "codex",
+			"content": "Final baseline with an event-loop boundary:6 failed/1 passed and2 null dereferences. Earlier4fail/3pass did not await all old focus/load microtasks. Patched source remains byte-identical to browser-accepted component; full final test run is repeated for the stronger test harness. CI/integration/production remain separate.",
+			"metadata": {}
+		}
+	]
+}

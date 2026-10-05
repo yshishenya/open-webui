@@ -1,13 +1,11 @@
 <script lang="ts">
-	import { getContext, createEventDispatcher, onMount, tick } from 'svelte';
+	import { getContext, onDestroy, tick } from 'svelte';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
 	import XMark from '../icons/XMark.svelte';
 
 	import { toast } from 'svelte-sonner';
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
 	import { user, config } from '$lib/stores';
 
 	import Textarea from '$lib/components/common/Textarea.svelte';
@@ -16,13 +14,20 @@
 	const i18n = getContext('i18n');
 
 	export let show = false;
-	export let onSubmit: Function = (e) => {};
+	export let onSubmit: (folder: {
+		name: string;
+		meta: Record<string, unknown>;
+		data: Record<string, unknown>;
+		parent_id: string | null | undefined;
+	}) => unknown = () => {};
 
-	export let folderId = null;
-	export let parentId = null;
+	export let folderId: string | null = null;
+	export let parentId: string | null = null;
 	export let edit = false;
 
-	let folder = null;
+	let nameInput: HTMLInputElement | null = null;
+	let loadVersion = 0;
+	let initializing = false;
 	let name = '';
 	let meta = {
 		background_image_url: null
@@ -34,7 +39,8 @@
 
 	let loading = false;
 
-	const submitHandler = async () => {
+	const submitHandler = async (): Promise<void> => {
+		if (initializing || loading || !show) return;
 		loading = true;
 
 		if ((data?.files ?? []).some((file) => file.status === 'uploading')) {
@@ -63,38 +69,43 @@
 		loading = false;
 	};
 
-	const init = async () => {
-		if (folderId) {
-			folder = await getFolderById(localStorage.token, folderId).catch((error) => {
-				toast.error(`${error}`);
-				return null;
-			});
-
-			name = folder.name;
-			meta = folder.meta || {
-				background_image_url: null
-			};
-			data = folder.data || {
-				system_prompt: '',
-				files: []
-			};
-		}
-
-		focusInput();
+	const invalidateLoad = (): void => {
+		loadVersion += 1;
+		initializing = false;
 	};
 
-	const focusInput = async () => {
-		await tick();
-		const input = document.getElementById('folder-name') as HTMLInputElement;
-		if (input) {
-			input.focus();
-			input.select();
+	const init = async (id: string | null): Promise<void> => {
+		const version = ++loadVersion;
+		initializing = Boolean(id);
+		try {
+			if (id) {
+				const folder = await getFolderById(localStorage.token, id);
+				if (version !== loadVersion || !show) return;
+				if (!folder) throw new Error($i18n.t('Something went wrong :/'));
+				name = folder.name;
+				meta = folder.meta || { background_image_url: null };
+				data = folder.data || { system_prompt: '', files: [] };
+			}
+			initializing = false;
+			await tick();
+			if (version === loadVersion && show) {
+				nameInput?.focus();
+				nameInput?.select();
+			}
+		} catch (error) {
+			if (version !== loadVersion || !show) return;
+			toast.error(`${error}`);
+			show = false;
 		}
 	};
 
 	$: if (show) {
-		init();
+		init(folderId);
+	} else {
+		invalidateLoad();
 	}
+
+	onDestroy(invalidateLoad);
 
 	$: if (!show && !edit) {
 		name = '';
@@ -130,8 +141,16 @@
 
 		<div class="flex flex-col md:flex-row w-full px-4 pb-4 md:space-x-4 dark:text-gray-200">
 			<div class=" flex flex-col w-full sm:flex-row sm:justify-center sm:space-x-6">
+				{#if initializing}
+					<div role="status" class="flex items-center gap-2 text-sm">
+						<Spinner />
+						{$i18n.t('Loading...')}
+					</div>
+				{/if}
 				<form
 					class="flex flex-col w-full"
+					inert={initializing}
+					aria-busy={initializing}
 					on:submit|preventDefault={() => {
 						submitHandler();
 					}}
@@ -142,6 +161,8 @@
 						<div class="flex-1">
 							<input
 								id="folder-name"
+								bind:this={nameInput}
+								disabled={initializing || loading}
 								class="w-full text-sm bg-transparent placeholder:text-gray-300 dark:placeholder:text-gray-700 outline-hidden"
 								type="text"
 								bind:value={name}
@@ -246,7 +267,7 @@
 								? ' cursor-not-allowed'
 								: ''}"
 							type="submit"
-							disabled={loading}
+							disabled={initializing || loading}
 						>
 							{$i18n.t('Save')}
 
