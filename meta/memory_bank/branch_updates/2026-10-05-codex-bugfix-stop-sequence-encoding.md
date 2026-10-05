@@ -6,3 +6,5 @@
   - Summary: Trace confirms both provider mappers iterate strings and corrupt Unicode; reuse one fork-owned decoder.
   - Tests: Actual mapper30/30after20failbaseline; backend930passed/5knownskips; frontend547/547; strict new-file Ruff/Black; payload0new diagnostics. Candidate/CI/release pending.
   - Risks: Escaped syntax must remain compatible; invalid types must fail explicitly.
+
+- 2026-10-05: Additional edge audit: initial decoder corrupted backslash+Cyrillic;2/46failed before,46/46pass after escape-only stdlib decoder.30940ASCII cases/0mismatches; full backend946pass/5sameknownskips,lint0new,Black3pass. Exact-head CI/candidate/release remain pending; initial frontend build failed2GiBheap.

@@ -24,7 +24,7 @@ AdvancedParams has five consumers. Main Chat normalizes its UI string/array, Gen
 
 ## Scope / upstream impact
 
-Thin import and two mapping hooks in upstream utils/payload.py; additive utils/airis/stop_sequences.py and one regression file. Stdlib codecs through str.encode/decode; no dependency/config/migration/API addition. Retain the legacy supported unicode_escape syntax using raw_unicode_escape for lossless input encoding. Main Chat stop conversion and UI parameters remain unchanged. Rollback: restore preceding source/image through guarded release with fresh backup/disk baseline; production mutation occurs only after candidate verification.
+Thin import and two mapping hooks in upstream utils/payload.py; additive utils/airis/stop_sequences.py and one regression file. Stdlib re selects original escape tokens, unicode_escape decodes those tokens; no dependency/config/migration/API addition. Retain the legacy supported unicode_escape syntax by decoding original escape tokens without re-encoding literal Unicode. Main Chat stop conversion and UI parameters remain unchanged. Rollback: restore preceding source/image through guarded release with fresh backup/disk baseline; production mutation occurs only after candidate verification.
 
 ## Verification
 
@@ -33,3 +33,7 @@ Compose-first isolated SQLite, offline runtime/noSMTP/API keys and existing exte
 ## Source results before PR
 
 Actual mapper regression20failed/10passed on baseline,30/30passed after repair. Full backend930passed/5PostgreSQL-onlyskips,0errors. Five skip identities match prior full PostgreSQL acceptance and those test sources are byte-identical; PostgreSQL has not been rerun for this decoder-only change and historical acceptance is kept distinct. New helper/test strict Ruff pass; upstream payloadRuff11→10 with0new through repository line-mapped checker. Black--target-versionpy311 checks all3files,gitdiffcheck passes. Codec behavior checked against officialPython3.11codec documentation: raw_unicode_escape leaves original backslashes and encodes other code points losslessly; unicode_escape decodes Latin-1, explaining the old UTF-8 corruption. Python3.11.16 runtime; no app dependency added. Candidate/release, exact-head CI pending. Frontend547/547passed; no src or dependency change.
+
+## Additional edge acceptance
+
+Pre-merge audit reproduced a second defect in the initial raw_unicode_escape implementation: literal backslash followed by Cyrillic became a textual Unicode escape. Both actual mappers failed2/46edge checks before repair and pass46/46after. Decode only original escape tokens through stdlib re/unicode_escape; preserve unknown non-ASCII escapes and reject malformed/truncated escapes. Exhaustive30940nonemptyASCII strings of length1–4 match Python unicode_escape with0mismatches. Full updated backend946passed/5samePostgreSQL-onlyskips/0errors; Black3files and repository lint gate10current/11base/0new pass. Frontend547tests were already run on the identical frontend sources. Previous frozen frontend build8a2724fc3 failed at default2GiBNode heap; do not release it. Fresh frozen source and sufficient heap pending.

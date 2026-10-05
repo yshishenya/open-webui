@@ -22,6 +22,8 @@ from open_webui.utils.payload import (
         (['СТОП', '结束', 'café', '😀'], ['СТОП', '结束', 'café', '😀']),
         ([r'\n\n', r'\t', r'\\', r'\u042f', r'\U0001f600', r'\x41'], ['\n\n', '\t', '\\', 'Я', '😀', 'A']),
         (r'\nСТОП\t', ['\nСТОП\t']),
+        ([r'\Я', r'C:\Путь', r'\\Я', r'\\u042f', r'\😀', r'\é'], [r'\Я', r'C:\Путь', '\\Я', r'\u042f', r'\😀', r'\é']),
+        ([r'\101', r'\N{CYRILLIC CAPITAL LETTER YA}', '\\\n'], ['A', 'Я', '']),
         (['END', 'STOP'], ['END', 'STOP']),
         ('', []),
         ([], []),
@@ -57,5 +59,12 @@ def test_custom_stop_override_and_unset_use_actual_provider_mapping(
 @pytest.mark.parametrize('convert', [apply_model_params_to_body_openai, apply_model_params_to_body_ollama])
 @pytest.mark.parametrize('value', [7, True, ['END', 7], {'stop': 'END'}])
 def test_provider_model_stops_reject_invalid_types(convert: Callable[[dict, dict], dict], value: object) -> None:
+    with pytest.raises(ValueError):
+        convert({'stop': value}, {})
+
+
+@pytest.mark.parametrize('convert', [apply_model_params_to_body_openai, apply_model_params_to_body_ollama])
+@pytest.mark.parametrize('value', ['\\', r'\xZ1', r'\u12', r'\U00110000', r'\N{NOT A UNICODE NAME}', r'\uЯ'])
+def test_provider_model_stops_reject_malformed_escapes(convert: Callable[[dict, dict], dict], value: str) -> None:
     with pytest.raises(ValueError):
         convert({'stop': value}, {})
