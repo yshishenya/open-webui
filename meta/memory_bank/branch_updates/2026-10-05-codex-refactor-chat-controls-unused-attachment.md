@@ -1,0 +1,8 @@
+- [ ] **[REFACTOR]** Remove the unused terminal attachment channel
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-05__refactor__chat-controls-unused-attachment.md`
+  - Owner: Codex
+  - Branch: `codex/refactor/chat-controls-unused-attachment`
+  - Started: 2026-10-05
+  - Summary: Trace confirms FileNav never invokes onAttach; remove unreachable upload logic rather than repair a speculative path.
+  - Tests: 547/547 frontend; both components compile; 0 added type/lint diagnostics; Prettier/diff check pass. Exact-head CI/merge pending.
+  - Risks: Existing full-project quality debt remains; public runtime acceptance is separate.
