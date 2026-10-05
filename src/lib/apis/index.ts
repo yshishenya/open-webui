@@ -1706,6 +1706,7 @@ export interface ModelConfig {
 }
 
 export interface ModelMeta {
+	hidden?: boolean | null;
 	toolIds?: string[] | null;
 	description?: string;
 	capabilities?:
