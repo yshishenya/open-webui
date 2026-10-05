@@ -215,3 +215,11 @@ export type SelectedFolder = FolderListItem & {
 	permission?: string;
 	shared?: boolean;
 };
+
+export type ContextUsage = {
+	tokens: number;
+	estimated_tokens: number;
+	threshold: number | null;
+	percent: number | null;
+	source: 'estimated';
+};

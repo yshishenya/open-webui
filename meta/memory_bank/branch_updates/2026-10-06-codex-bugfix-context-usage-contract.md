@@ -1,0 +1,5 @@
+- [ ] Context usage nullable contract
+  - Spec: meta/memory_bank/specs/work_items/2026-10-06__bugfix__context-usage-contract.md
+  - Owner: Codex
+  - Summary: Trace estimated usage and unknown thresholds; verify rendered commands and source/runtime boundaries.
+  - Started: 2026-10-06

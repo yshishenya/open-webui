@@ -1,0 +1,152 @@
+{
+  "spec_id": "airis-context-usage-2026-10-06-001",
+  "title": "Airis context usage nullable contract",
+  "generated": "2026-10-05T23:26:36.255633Z",
+  "last_updated": "2026-10-05T23:34:37.749388Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "status": "completed",
+    "activated_date": "2026-10-05T23:27:12.796391Z",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__bugfix__context-usage-contract.md",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-05T23:34:37.749108Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis context usage nullable contract",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Type producers and consumers, preserve unknown threshold",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-05T23:33:58.030844Z",
+        "journaled_at": "2026-10-05T23:33:58.033109Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Test mounted commands, full checks and source CI",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-05T23:34:37.124250Z",
+        "journaled_at": "2026-10-05T23:34:37.127136Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Type producers and consumers, preserve unknown threshold",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "depends": [],
+        "blocks": [],
+        "blocked_by": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "estimated_hours": 0.5,
+        "needs_journaling": false,
+        "file_path": "src/lib/utils/airis/frontend-contracts.ts",
+        "completed_at": "2026-10-05T23:33:58.030647Z",
+        "status_note": "All producers/callers traced; shared nullable shape and reused child props; mounted regression reproduced stale getter after query update and common component refresh applied.",
+        "journaled_at": "2026-10-05T23:33:58.031770Z"
+      }
+    },
+    "task-2-1": {
+      "type": "verify",
+      "title": "Test mounted commands, full checks and emitted code",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "depends": [],
+        "blocks": [],
+        "blocked_by": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "estimated_hours": 0.5,
+        "needs_journaling": false,
+        "verification_type": "auto",
+        "command": "npm run docker:test:frontend",
+        "expected": "579 frontend checks pass, 0 new mapped diagnostics; all executable differences accounted for",
+        "completed_at": "2026-10-05T23:34:37.124077Z",
+        "status_note": "579/579 Docker tests; 8 type errors and 5 lint errors removed, 0 added; changed-file lint passes; full emitted client/server differences accounted for, getter regression demonstrated before/after.",
+        "journaled_at": "2026-10-05T23:34:37.125720Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-05T23:33:58.031764Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Type producers and consumers, preserve unknown threshold",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: All producers/callers traced; shared nullable shape and reused child props; mounted regression reproduced stale getter after query update and common component refresh applied.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-05T23:33:58.033098Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Type producers and consumers, preserve unknown threshold",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-05T23:34:37.125710Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Test mounted commands, full checks and emitted code",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: 579/579 Docker tests; 8 type errors and 5 lint errors removed, 0 added; changed-file lint passes; full emitted client/server differences accounted for, getter regression demonstrated before/after.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-05T23:34:37.127125Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Test mounted commands, full checks and source CI",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
