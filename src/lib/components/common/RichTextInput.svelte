@@ -124,7 +124,13 @@
 	const i18n = getContext('i18n');
 	const eventDispatch = createEventDispatcher();
 
-	import { Fragment, Slice, DOMParser, type Node as ProseMirrorNode } from 'prosemirror-model';
+	import {
+		Fragment,
+		Slice,
+		DOMParser,
+		DOMSerializer,
+		type Node as ProseMirrorNode
+	} from 'prosemirror-model';
 	import { Plugin, PluginKey, TextSelection, Selection, type EditorState } from 'prosemirror-state';
 	import { Decoration, DecorationSet } from 'prosemirror-view';
 	import { Editor, Extension, markInputRule, type Content } from '@tiptap/core';
@@ -1160,9 +1166,15 @@
 						const { from, to } = state.selection;
 
 						// Only take the selected text & HTML, not the full doc
-						const plain = state.doc.textBetween(from, to, '\n');
-						const slice = state.doc.cut(from, to);
-						const html = editor.schema ? editor.getHTML(slice) : editor.getHTML(); // depending on your editor API
+						if (state.selection.empty) return false;
+						const plain = state.doc.textBetween(from, to, '\n', '\n');
+						const container = document.createElement('div');
+						container.appendChild(
+							DOMSerializer.fromSchema(state.schema).serializeFragment(
+								state.doc.slice(from, to).content
+							)
+						);
+						const html = container.innerHTML;
 
 						event.clipboardData.setData('text/plain', plain);
 						event.clipboardData.setData('text/html', html);

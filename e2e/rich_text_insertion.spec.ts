@@ -76,8 +76,35 @@ test('compiled plain input preserves pasted ranges and multiline prompt commands
 					)
 					.join('\n')
 			);
+
+		const replace = async (value: string): Promise<void> => {
+			await input.click();
+			await input.press('ControlOrMeta+A');
+			await input.press('Backspace');
+			if (value) await input.pressSequentially(value);
+			await expect.poll(text).toBe(value);
+		};
+		await replace('');
+		await paste('left One\nTwo right');
+		await expect.poll(text).toBe('left One\nTwo right');
+		const copied = await input.evaluate((element) => {
+			const paragraph = element.querySelector('p');
+			if (!paragraph?.firstChild || !paragraph.lastChild) throw new Error('Missing copy range');
+			const range = document.createRange();
+			range.setStart(paragraph.firstChild, 5);
+			range.setEnd(paragraph.lastChild, 3);
+			window.getSelection()?.removeAllRanges();
+			window.getSelection()?.addRange(range);
+			const data = new DataTransfer();
+			const event = new ClipboardEvent('copy', { bubbles: true, cancelable: true });
+			Object.defineProperty(event, 'clipboardData', { value: data });
+			element.dispatchEvent(event);
+			return { plain: data.getData('text/plain'), html: data.getData('text/html') };
+		});
+		expect(copied).toEqual({ plain: 'One\nTwo', html: 'One<br>Two' });
+
 		for (const pasted of ['one', '\n🌍\n\ntwo\n', 'one\r\ntwo']) {
-			await input.fill('left SELECT right');
+			await replace('left SELECT right');
 			await input.evaluate((element) => {
 				const node = element.querySelector('p')?.firstChild;
 				if (!node) throw new Error('Missing text');
@@ -93,7 +120,7 @@ test('compiled plain input preserves pasted ranges and multiline prompt commands
 			await expect.poll(text).toBe(`left ${pasted.replace(/\r\n/g, '\n')}X right`);
 			expect(await input.locator('strong').count()).toBe(0);
 		}
-		await input.fill(`left /${command} right`);
+		await replace(`left /${command} right`);
 		await input.evaluate((element, length) => {
 			const node = element.querySelector('p')?.firstChild;
 			if (!node) throw new Error('Missing command');
@@ -107,17 +134,13 @@ test('compiled plain input preserves pasted ranges and multiline prompt commands
 		await expect.poll(text).toBe('left \nOne\n\nTwo\n right');
 		await input.press('X');
 		await expect.poll(text).toBe('left \nOne\n\nTwo\nX right');
-		await input.click();
-		await input.press('ControlOrMeta+A');
-		await input.press('Backspace');
-		await input.pressSequentially('first');
-		await expect.poll(text).toBe('first');
+		await replace('first');
 		await input.press('End');
 		await paste('\n');
 		await input.pressSequentially(`/${command}`);
 		await page.getByRole('button', { name: new RegExp(`${command}.*Insertion fixture`) }).click();
 		await expect.poll(text).toBe('first\n\nOne\n\nTwo\n');
-		await input.fill('');
+		await replace('');
 		expect(errors).toEqual([]);
 	} finally {
 		await request.delete(`/api/v1/prompts/id/${prompt.id}/delete`, { headers });

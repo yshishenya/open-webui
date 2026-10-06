@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
-import { Fragment, Slice, Schema, DOMParser } from 'prosemirror-model';
+import { Fragment, Slice, Schema, DOMParser, DOMSerializer } from 'prosemirror-model';
 import { EditorState, TextSelection, Selection, type Transaction } from 'prosemirror-state';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -31,11 +31,22 @@ const definition = (name: string): string => {
 const schema = new Schema({
 	nodes: {
 		doc: { content: 'block+' },
-		paragraph: { content: 'inline*', group: 'block', parseDOM: [{ tag: 'p' }] },
+		paragraph: {
+			content: 'inline*',
+			group: 'block',
+			parseDOM: [{ tag: 'p' }],
+			toDOM: () => ['p', 0]
+		},
 		text: { group: 'inline' },
-		hardBreak: { inline: true, group: 'inline', selectable: false, parseDOM: [{ tag: 'br' }] }
+		hardBreak: {
+			inline: true,
+			group: 'inline',
+			selectable: false,
+			parseDOM: [{ tag: 'br' }],
+			toDOM: () => ['br']
+		}
 	},
-	marks: { bold: { parseDOM: [{ tag: 'strong' }] } }
+	marks: { bold: { parseDOM: [{ tag: 'strong' }], toDOM: () => ['strong', 0] } }
 });
 
 const setup = (text: string, from: number, to = from, rich = false) => {
@@ -75,6 +86,7 @@ const setup = (text: string, from: number, to = from, rich = false) => {
 		Fragment,
 		Slice,
 		DOMParser,
+		DOMSerializer,
 		TextSelection,
 		Selection,
 		DOMPurify,
@@ -226,4 +238,38 @@ it('finds and replaces a command after an inline line break', async () => {
 	await fixture.evaluate<(text: string) => Promise<void>>('replaceCommandWithText')('second');
 	expect(fixture.text()).toBe('first\nsecond');
 	expect(fixture.view.state.selection.from).toBe(13);
+});
+
+it('plain copy contains only the selected range and preserves inline breaks', () => {
+	const fixture = setup('left SELECT right', 6, 12);
+	const { state } = fixture.view;
+	const nodes = [
+		state.schema.text('One'),
+		state.schema.nodes.hardBreak.create(),
+		state.schema.text('Two')
+	];
+	let tr = state.tr.replaceSelection(new Slice(Fragment.fromArray(nodes), 0, 0));
+	tr = tr.setSelection(TextSelection.create(tr.doc, 6, 13));
+	fixture.view.dispatch(tr);
+	const data: Record<string, string> = {};
+	const event = {
+		clipboardData: {
+			setData: (type: string, value: string): void => {
+				data[type] = value;
+			}
+		},
+		preventDefault: vi.fn()
+	};
+	const copy =
+		fixture.evaluate<(view: typeof fixture.view, clipboardEvent: typeof event) => boolean>('copy');
+	expect(copy(fixture.view, event)).toBe(true);
+	expect(data['text/plain']).toBe('One\nTwo');
+	expect(data['text/html']).toBe('One<br>Two');
+	expect(event.preventDefault).toHaveBeenCalledOnce();
+	fixture.view.dispatch(
+		fixture.view.state.tr.setSelection(TextSelection.create(fixture.view.state.doc, 6))
+	);
+	event.preventDefault.mockClear();
+	expect(copy(fixture.view, event)).toBe(false);
+	expect(event.preventDefault).not.toHaveBeenCalled();
 });
