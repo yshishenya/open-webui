@@ -1,6 +1,6 @@
-- [ ] **[BUG][ADMIN]** Recover model settings Save after refusals
-  - Spec: meta/memory_bank/specs/work_items/2026-10-06**bugfix**admin-model-settings-save.md
+- [x] **[BUG][ADMIN]** Recover model settings Save after refusals
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-06__bugfix__admin-model-settings-save.md`
   - Owner: Codex
   - Branch: codex/bugfix/admin-model-settings-save
-  - Started: 2026-10-06
-  - Summary: Actual shared Save and order refresh retain busy flags; verify rejection recovery, retained input and retry before current-base release.
+  - Done: 2026-10-06
+  - Summary: Shared and child Save recover busy/draft state, report one safe error, await refresh and preserve latest order. Actual handlers13/13, Docker619/619, compiled Chromium/Firefox2/2, exact-source PR293 CI/merge and current-base guarded production acceptance completed; broader G14 and pilot remain open.
