@@ -1,0 +1,5 @@
+- [ ] **[BUG]** Saved-note state and response contract
+  - Spec: meta/memory_bank/specs/work_items/2026-10-06__bugfix__note-record-state-contract.md
+  - Owner: Codex
+  - Started: 2026-10-06
+  - Summary: Reuse existing note normalizer and concrete editor state; preserve valid fields and drafts, reject invalid existing fields explicitly, verify source and runtime. Final onboarding goal remains active.

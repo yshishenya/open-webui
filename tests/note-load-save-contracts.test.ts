@@ -44,7 +44,7 @@ const noteRecord = (id = 'A') => ({
 		content: { md: `Text ${id}`, html: `<p>${id}</p>`, json: { type: 'doc' } },
 		files: [{ id: `file-${id}` }]
 	},
-	access_grants: [{ principal_id: 'reader' }],
+	access_grants: [{ principal_type: 'user', principal_id: 'reader', permission: 'read' }],
 	write_access: true,
 	created_at: 1,
 	updated_at: 1
@@ -191,7 +191,7 @@ it('saves captured A when route already points to B', async () => {
 	expect(context.updateNoteById).toHaveBeenCalledWith('test-token', 'A', {
 		title: 'Title A',
 		data: { files: [{ id: 'file-A' }] },
-		access_grants: [{ principal_id: 'reader' }]
+		access_grants: [{ principal_type: 'user', principal_id: 'reader', permission: 'read' }]
 	});
 });
 it('saves both notes instead of cancelling A on editing B', async () => {
@@ -423,4 +423,69 @@ it('lets another note save while A is slow, then recovers the queued A after fai
 	await next;
 	expect(fetch).toHaveBeenCalledTimes(3);
 	expect(context.noteUpdates.size).toBe(0);
+});
+
+// Persisted metadata must be safe before the editor consumes it.
+it.each([
+	{ created_at: '1' },
+	{ updated_at: null },
+	{ created_at: NaN },
+	{ write_access: 'false' },
+	{ access_grants: [{ principal_type: 'user' }] },
+	{ data: { content: { json: { content: [null] } } } },
+	{ data: { content: { json: { marks: [{ type: 1 }] } } } },
+	{ data: { versions: 'broken' } },
+	{ data: { versions: [null] } },
+	{ data: { versions: [{ md: 42 }] } },
+	{ data: { files: [{ content_type: 42 }] } }
+])('rejects unsafe persisted note fields %s', (fields) => {
+	expect(() => normalizeNote({ ...noteRecord(), ...fields })).toThrow();
+});
+it('preserves sparse versions, attachments and nullable legacy lists', () => {
+	const original = {
+		...noteRecord(),
+		data: {
+			content: noteRecord().data.content,
+			files: [{ id: null, name: 'draft', type: 'file', status: 'uploading', custom: 42 }],
+			versions: [{ md: 'old', custom: { keep: true } }]
+		}
+	};
+	expect(normalizeNote(original)).toEqual(original);
+	expect(
+		normalizeNote({ ...noteRecord(), data: { versions: null, files: null } }).data.files
+	).toEqual([]);
+});
+
+it.each(['json', 'markdown', 'html', 'empty'])('keeps the shared rich-text %s path', (mode) => {
+	const doc = {
+		type: 'doc',
+		content: [{ type: 'paragraph', content: [{ type: 'text', text: 'New' }] }]
+	};
+	const setContent = vi.fn();
+	const clearContent = vi.fn();
+	const context = {
+		value: mode === 'json' ? doc : mode === 'empty' ? '' : 'New',
+		json: mode === 'json',
+		raw: mode === 'html',
+		preserveBreaks: false,
+		editor: {
+			getJSON: () => ({ type: 'doc' }),
+			getHTML: () => '<p>Old</p>',
+			commands: { setContent, clearContent }
+		},
+		turndownService: { turndown: () => 'Old' },
+		marked: { parse: (s: string) => `<p>${s}</p>` },
+		equal: (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b),
+		selectTemplate: vi.fn()
+	};
+	const change = evaluate<() => void>(
+		`(${initializer('src/lib/components/common/RichTextInput.svelte', 'onValueChange')})`,
+		context
+	);
+	change();
+	if (mode === 'empty') expect(clearContent).toHaveBeenCalledOnce();
+	else
+		expect(setContent).toHaveBeenCalledWith(
+			mode === 'json' ? doc : mode === 'html' ? 'New' : '<p>New</p>'
+		);
 });

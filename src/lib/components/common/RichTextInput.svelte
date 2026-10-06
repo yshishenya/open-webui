@@ -127,7 +127,13 @@
 	import { Fragment, DOMParser } from 'prosemirror-model';
 	import { EditorState, Plugin, PluginKey, TextSelection, Selection } from 'prosemirror-state';
 	import { Decoration, DecorationSet } from 'prosemirror-view';
-	import { Editor, Extension, markInputRule, mergeAttributes } from '@tiptap/core';
+	import {
+		Editor,
+		Extension,
+		markInputRule,
+		type Content,
+		type JSONContent
+	} from '@tiptap/core';
 
 	import { AIAutocompletion } from './RichTextInput/AutoCompletion.js';
 
@@ -291,7 +297,7 @@
 	export let onSelectionUpdate = (e) => {};
 
 	export let id = '';
-	export let value = '';
+	export let value: Content = '';
 	export let html = '';
 
 	export let json = false;
@@ -312,7 +318,7 @@
 
 	let content = null;
 	let htmlValue = '';
-	let jsonValue = '';
+	let jsonValue: JSONContent | string = '';
 	let mdValue = '';
 
 	let provider: SocketIOCollaborationProvider | null = null;
@@ -717,6 +723,7 @@
 				content = html ? html : null;
 			}
 		} else {
+			if (typeof value !== 'string') return;
 			if (preserveBreaks) {
 				turndownService.addRule('preserveBreaks', {
 					filter: 'br', // Target <br> elements
@@ -1319,6 +1326,7 @@
 				selectTemplate();
 			}
 		} else {
+			if (typeof value !== 'string') return;
 			if (raw) {
 				if (value !== htmlValue) {
 					editor.commands.setContent(value);

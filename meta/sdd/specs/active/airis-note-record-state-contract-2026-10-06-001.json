@@ -1,0 +1,80 @@
+{
+  "spec_id": "airis-note-record-state-contract-2026-10-06-001",
+  "title": "Airis note record state contract 2026-10-06",
+  "generated": "2026-10-06T04:23:30.674271Z",
+  "last_updated": "2026-10-06T04:26:17.724639Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "medium",
+    "estimated_hours": 2,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__bugfix__note-record-state-contract.md",
+    "status": "active",
+    "activated_date": "2026-10-06T04:26:17.724480Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis note record state contract 2026-10-06",
+      "status": "pending",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Repair saved note state contract",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Accept source and production",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Validate note state and preserve drafts",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "category": "implementation"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify Docker, browser, CI, merge and production",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "category": "implementation"
+      }
+    }
+  }
+}

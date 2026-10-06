@@ -9,7 +9,7 @@ import {
 } from 'y-prosemirror';
 import type { Socket } from 'socket.io-client';
 import type { SessionUser } from '$lib/stores';
-import { Editor, Extension } from '@tiptap/core';
+import { Editor, Extension, type Content } from '@tiptap/core';
 import { keymap } from 'prosemirror-keymap';
 import { tick } from 'svelte';
 
@@ -32,7 +32,7 @@ const generateUserColor = () => {
 export type EditorContentGetter = () => {
 	md: string;
 	html: string;
-	json: string;
+	json: Content;
 };
 
 // Custom Yjs Socket.IO provider
@@ -48,7 +48,7 @@ export class SocketIOCollaborationProvider {
 		private readonly documentId: string,
 		private readonly socket: Socket,
 		private readonly user: SessionUser,
-		private readonly initialContent: string | null = null
+		private readonly initialContent: Content = null
 	) {
 		this.setupEventListeners();
 	}
