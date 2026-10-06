@@ -1,0 +1,146 @@
+{
+  "spec_id": "airis-literal-markdown-tokens-2026-10-07-001",
+  "title": "Airis literal Markdown tokens",
+  "generated": "2026-10-06T23:43:13.229395Z",
+  "last_updated": "2026-10-06T23:49:03.589697Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 2,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__literal-markdown-tokens.md",
+    "status": "active",
+    "activated_date": "2026-10-06T23:44:07.344493Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis literal Markdown tokens",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and correct literal substitution",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T23:49:03.587057Z",
+        "journaled_at": "2026-10-06T23:49:03.589667Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Accept exact source and runtime",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce literal name corruption and trace shared callers",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-06T23:44:34.900155Z",
+        "needs_journaling": false,
+        "status_note": "Actual helper baseline:7failed/6passed including recursive token insertion; all renderer consumers traced. Dollar replacement directives corrupt model/user names and later passes expand tokens inside supplied names.",
+        "journaled_at": "2026-10-06T23:44:34.901102Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Use single-pass literal callbacks and preserve contracts",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-06T23:49:03.586883Z",
+        "needs_journaling": false,
+        "status_note": "744 frontend tests pass; 10000 ordinary cases identical; seven type errors removed, zero new type/lint messages. Global commands remain failing.",
+        "journaled_at": "2026-10-06T23:49:03.588346Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Accept exact source checks and guarded runtime",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-06T23:44:34.901098Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce literal name corruption and trace shared callers",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Actual helper baseline:7failed/6passed including recursive token insertion; all renderer consumers traced. Dollar replacement directives corrupt model/user names and later passes expand tokens inside supplied names.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-06T23:49:03.588339Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Use single-pass literal callbacks and preserve contracts",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed. \nNote: 744 frontend tests pass; 10000 ordinary cases identical; seven type errors removed, zero new type/lint messages. Global commands remain failing.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-06T23:49:03.589662Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce and correct literal substitution",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}
