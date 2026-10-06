@@ -1,0 +1,129 @@
+{
+	"spec_id": "airis-note-record-state-contract-2026-10-06-001",
+	"title": "Airis note record state contract 2026-10-06",
+	"generated": "2026-10-06T04:23:30.674271Z",
+	"last_updated": "2026-10-06T05:07:05.547713Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "medium",
+		"estimated_hours": 2,
+		"security_sensitive": false,
+		"default_category": "implementation",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__bugfix__note-record-state-contract.md",
+		"status": "completed",
+		"activated_date": "2026-10-06T04:26:17.724480Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-06T05:07:05.547434Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis note record state contract 2026-10-06",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Repair saved note state contract",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-06T04:47:53.027437Z",
+				"journaled_at": "2026-10-06T04:47:53.029171Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Accept source and production",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-06T05:07:05.077454Z",
+				"journaled_at": "2026-10-06T05:07:05.079706Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Validate note state and preserve drafts",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"completed_at": "2026-10-06T04:47:53.027306Z",
+				"needs_journaling": false,
+				"status_note": "Baseline17failure cases repaired; Docker646/646 and70 note/rich-text cases, types3428/150 andlint1288,0new mapped. All6 masked production notes compatible. Capture async attachment ownership and preserve sparse content. Existing cursor adapter limitation remains one documented compatibility gate; browser/CI/production pending.",
+				"journaled_at": "2026-10-06T04:47:53.028110Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify Docker, browser, CI, merge and production",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"completed_at": "2026-10-06T05:07:05.077288Z",
+				"needs_journaling": false,
+				"status_note": "Source e1f32 CI/merge85b4b2, Docker646/646 and70 cases; compiled notes2/2 plus shared paths16/16. Guarded current-base production fcda8956 accepted:4914frontend/426backend,66base layers,13neighbors/ENV/compiled Metrica preserved, backup/checksums/Alembic/healthy/restarts0, ordinary-account readonly smoke accepted. Plan193/244, pilot0, G14 and human/payment/window criteria remain open.",
+				"journaled_at": "2026-10-06T05:07:05.078564Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-06T04:47:53.028105Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Validate note state and preserve drafts",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Baseline17failure cases repaired; Docker646/646 and70 note/rich-text cases, types3428/150 andlint1288,0new mapped. All6 masked production notes compatible. Capture async attachment ownership and preserve sparse content. Existing cursor adapter limitation remains one documented compatibility gate; browser/CI/production pending.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-06T04:47:53.029166Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Repair saved note state contract",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-06T05:07:05.078555Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify Docker, browser, CI, merge and production",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Source e1f32 CI/merge85b4b2, Docker646/646 and70 cases; compiled notes2/2 plus shared paths16/16. Guarded current-base production fcda8956 accepted:4914frontend/426backend,66base layers,13neighbors/ENV/compiled Metrica preserved, backup/checksums/Alembic/healthy/restarts0, ordinary-account readonly smoke accepted. Plan193/244, pilot0, G14 and human/payment/window criteria remain open.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-06T05:07:05.079702Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Accept source and production",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
