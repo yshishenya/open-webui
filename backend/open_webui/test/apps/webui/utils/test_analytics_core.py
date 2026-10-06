@@ -472,3 +472,17 @@ def test_delivery_configuration_recovery(run_case: RunCase, monkeypatch: pytest.
             assert not (await db.execute(select(AnalyticsDelivery))).scalars().all()
 
     run_case(case)
+
+
+@pytest.mark.parametrize('offset', [-1, 0, 1])
+def test_touch_admission_has_the_same_expiry_boundary(offset: int, monkeypatch: pytest.MonkeyPatch) -> None:
+    from open_webui.routers.airis_analytics import Touch
+    from pydantic import ValidationError
+
+    now = 2000000000
+    monkeypatch.setattr(time, 'time', lambda: now)
+    if offset <= 0:
+        with pytest.raises(ValidationError):
+            Touch(occurred_at=now - 90 * 86400 + offset, utm_source='boundary')
+    else:
+        assert Touch(occurred_at=now - 90 * 86400 + offset, utm_source='boundary')

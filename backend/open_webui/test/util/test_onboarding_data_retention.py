@@ -87,6 +87,15 @@ async def seed(db: async_sessionmaker[AsyncSession], now: int, offset: int) -> s
             )
         )
         session.add(AnalyticsBinding(anonymous_id='browser', identity_id='identity'))
+        session.add(
+            AnalyticsEvent(
+                id='identity:replayed-browser-id',
+                identity_id='identity',
+                event_name='billing_wallet_view',
+                occurred_at=touch_time,
+                properties={'diagnostic': 'private-detail'},
+            )
+        )
         for state in ('delivered', 'pending', 'uploaded', 'uncertain'):
             session.add(
                 AnalyticsEvent(
@@ -94,7 +103,7 @@ async def seed(db: async_sessionmaker[AsyncSession], now: int, offset: int) -> s
                     identity_id='identity',
                     event_name='billing_wallet_view',
                     occurred_at=touch_time,
-                    properties={},
+                    properties={'diagnostic': 'private-detail'},
                 )
             )
             session.add(
@@ -226,7 +235,10 @@ async def test_exact_age_boundaries_and_repeat_preserve_sources(
         assert identity.last_touch == {'occurred_at': now, 'utm_source': 'new'}
         assert identity.lifetime == {'first_response_received': now - 90 * DAY + offset}
         assert await db.get(AnalyticsBinding, 'browser')
-        assert (await db.get(AnalyticsEvent, 'delivered') is None) == expired
+        assert (await db.get(AnalyticsEvent, 'delivered')).properties == (
+            {} if expired else {'diagnostic': 'private-detail'}
+        )
+        assert (await db.get(AnalyticsDelivery, 'delivered') is None) == expired
         assert (await db.get(queue.EmailDelivery, 'orphan-accepted') is None) == expired
         assert (await db.get(EmailDecisionEvent, 'decision') is None) == expired
         assert (await db.get(EmailScenarioObservation, 'observation') is None) == expired
@@ -272,6 +284,7 @@ async def test_old_source_replay_and_parallel_cleanup_never_send(
         assert await db.get(EmailObservationRun, 'run')
         assert await snapshot(db, EmailObservationCommand)
         assert len(await snapshot(db, AnalyticsDelivery)) == 3
+        assert not await analytics.add_event(db, identity, 'billing_wallet_view', 'replayed-browser-id', {}, now)
     assert calls.await_count == 0
 
 
@@ -303,7 +316,7 @@ async def test_batch_ceiling_drains_without_cascading_unbounded_history(
                     identity_id='identity',
                     event_name='billing_wallet_view',
                     occurred_at=now - 90 * DAY,
-                    properties={},
+                    properties={'diagnostic': 'private-detail'},
                 )
             )
             db.add(
@@ -330,14 +343,15 @@ async def test_batch_ceiling_drains_without_cascading_unbounded_history(
         await db.commit()
     await prefs.cleanup_product_email_records()
     async with retention_db() as db:
-        assert len(await snapshot(db, AnalyticsEvent)) == 4  # 1 terminal plus3 unresolved.
+        assert len(await snapshot(db, AnalyticsEvent)) == 1005  # Minimal event receipts remain.
+        assert sum(bool(row['properties']) for row in await snapshot(db, AnalyticsEvent)) == 5
         assert len(await snapshot(db, AnalyticsDelivery)) == 4
         assert len(await snapshot(db, EmailDecisionEvent)) == 1
         assert await db.get(EmailScenarioObservation, 'observation')
         assert await db.get(EmailObservationMember, 'member')
     await prefs.cleanup_product_email_records()
     async with retention_db() as db:
-        assert len(await snapshot(db, AnalyticsEvent)) == 3
+        assert sum(bool(row['properties']) for row in await snapshot(db, AnalyticsEvent)) == 3
         assert len(await snapshot(db, AnalyticsDelivery)) == 3
         assert not await snapshot(db, EmailDecisionEvent)
         assert not await snapshot(db, EmailScenarioObservation)
@@ -454,21 +468,7 @@ async def test_busy_identity_is_skipped_by_real_postgres_cleanup(
     await prefs.cleanup_product_email_records()
     async with retention_db() as db:
         assert not (await db.get(AnalyticsIdentity, 'identity')).first_touch
-        assert await db.get(AnalyticsEvent, 'delivered') is None
-
-
-@pytest.mark.parametrize('offset', [-1, 0, 1])
-def test_touch_admission_has_the_same_expiry_boundary(offset: int, monkeypatch: pytest.MonkeyPatch) -> None:
-    from open_webui.routers.airis_analytics import Touch
-    from pydantic import ValidationError
-
-    now = 2000000000
-    monkeypatch.setattr(time, 'time', lambda: now)
-    if offset <= 0:
-        with pytest.raises(ValidationError):
-            Touch(occurred_at=now - 90 * DAY + offset, utm_source='boundary')
-    else:
-        assert Touch(occurred_at=now - 90 * DAY + offset, utm_source='boundary')
+        assert (await db.get(AnalyticsEvent, 'delivered')).properties == {}
 
 
 @pytest.mark.asyncio

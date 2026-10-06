@@ -22,7 +22,7 @@ until source, both databases and production acceptance pass.
       mail/source receipts, success facts, consent/tokens/suppression,
       observation detail/commands and external-provider limits.
 - [x] Exact expiry boundary-1/0/+1: advertising touches expire after90days;
-      terminal analytics events expire after90days; live/uncertain/uploaded
+      terminal analytics detail expires after90days; minimal event receipt survives; live/uncertain/uploaded
       delivery remains protected and historical source replay creates0jobs.
 - [x] Orphan terminal mail expires after30days from unlink/update;
       attached/unknown/live/retryable mail remains, money changes0.
@@ -70,3 +70,5 @@ adds the actual dependent tables. First PG setup used an unavailable driver;
 corrected to existing psycopg, no dependency added.
 Read-only production inventory:0age candidates,5unresolved analytics protected.
 This is release preflight only:production cleanup/release acceptance pending.
+
+Late review caught a current-time browser replay after whole-event removal. Retain minimal event receipt while clearing properties; add same-key/current-time replay regression. Prior source/image evidence remains historical; renewed source checks required.

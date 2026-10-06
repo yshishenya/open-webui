@@ -13,7 +13,7 @@ from open_webui.models.email_observation_schema import (
     EmailScenarioObservation,
 )
 from open_webui.models.users import User
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 DAY = 86400
@@ -63,10 +63,8 @@ async def _analytics(session: AsyncSession, now: int) -> str | None:
     )
     jobs = select(AnalyticsDelivery.id).where(AnalyticsDelivery.event_id.in_(old)).limit(BATCH_SIZE)
     await session.execute(delete(AnalyticsDelivery).where(AnalyticsDelivery.id.in_(jobs)))
-    events = old.where(
-        ~select(AnalyticsDelivery.id).where(AnalyticsDelivery.event_id == AnalyticsEvent.id).exists()
-    ).limit(BATCH_SIZE)
-    await session.execute(delete(AnalyticsEvent).where(AnalyticsEvent.id.in_(events)))
+    events = old.where(AnalyticsEvent.properties != {}).limit(BATCH_SIZE)
+    await session.execute(update(AnalyticsEvent).where(AnalyticsEvent.id.in_(events)).values(properties={}))
     return identities[-1].id if len(identities) == BATCH_SIZE else None
 
 
