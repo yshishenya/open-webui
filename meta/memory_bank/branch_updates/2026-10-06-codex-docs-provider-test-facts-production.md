@@ -1,0 +1,8 @@
+- [x] **[DOCS]** Record accepted provider-test flag rollout and full-goal limits
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-06__docs__provider-test-facts-production.md`
+  - Owner: Codex
+  - Branch: `codex/docs/provider-test-facts-production`
+  - Done: 2026-10-06
+  - Summary: PR304 source/merge trees, immutable image,127 PostgreSQL checks, preserved frontend/runtime/environment/neighbors and identical financial snapshots verified. Real pilot and other acceptance conditions remain open.
+  - Tests: documentation follow-up checks; source/image verification already accepted separately. No runtime/schema/dependency changes.
+  - Risks: no new runtime release; private evidence stays private. Overall plan195/244 remains active.
