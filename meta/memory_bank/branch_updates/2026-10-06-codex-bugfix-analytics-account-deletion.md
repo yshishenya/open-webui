@@ -1,8 +1,9 @@
-- [ ] **[BUG][PRIVACY]** Remove account-bound analytics on common account deletion
+- [x] **[BUG][PRIVACY]** Remove account-bound analytics on common account deletion
   - Spec: `meta/memory_bank/specs/work_items/2026-10-06__bugfix__analytics-account-deletion.md`
   - Owner: Codex
   - Branch: `codex/bugfix/analytics-account-deletion`
-  - Started: 2026-10-06
+  - Done: 2026-10-06
   - Summary: Purge selected account analytics in the common transaction; prevent stale context recreation and align worker lock order with revocation.
-  - Tests: Reproduced original failures and both extra races; Docker regression PG77/SQLite72, frozen analytics22/22, Ruff0/Black5 unchanged, SDD0/0. Exact-source CI and actual-image/production acceptance pending.
+  - Tests: Reproduced original failures and both extra races; Docker regression PG77/SQLite72, frozen analytics22/22, Ruff0/Black5 unchanged, SDD0/0. Exact-source CI11 success, full backend990; actual image PG77/SQLite72; guarded production health/hashes/money accepted, SDD2/2 complete.
+  - Release: PR308/source37d5a0beb, merge20f1f9fb4, trees equal; registry digest088385d18. Local analytics only; external provider history and overall retention01.16 remain separate.
   - Risks: Existing account deletion boundary; no new money operation or automatic historic purge.

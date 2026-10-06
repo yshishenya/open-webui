@@ -3,11 +3,11 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: Done
 - Workflow: bug_fix
 - Owner: Codex
 - Branch: `codex/bugfix/analytics-account-deletion`
-- SDD Spec: `meta/sdd/specs/active/airis-analytics-account-deletion-2026-10-06-001.json`
+- SDD Spec: `meta/sdd/specs/completed/airis-analytics-account-deletion-2026-10-06-001.json`
 - Created: 2026-10-06
 
 ## Context
@@ -86,13 +86,13 @@ pinned dependency and must pass both source CI and actual candidate runtime.
 
 ## Release gates
 
-- [ ] Exact source CI, including the complete backend suite, is green.
-- [ ] Candidate inherits the current accepted production base; precisely
+- [x] Exact source CI, including the complete backend suite, is green.
+- [x] Candidate inherits the current accepted production base; precisely
       three Python files change, all frontend files/environment/base layers
       match, and actual-image SQLite/PostgreSQL acceptance passes.
-- [ ] Verified backup, current image/configuration CAS, migration and health
+- [x] Verified backup, current image/configuration CAS, migration and health
       gates pass; neighbors, money and ordinary browser flow remain intact.
-- [ ] Private acceptance/goal/plan retain 01.16 as open until the complete
+- [x] Private acceptance/goal/plan retain 01.16 as open until the complete
       purpose/period/expiry table and appropriate cleanup are accepted.
 
 
@@ -111,3 +111,37 @@ pinned dependency and must pass both source CI and actual candidate runtime.
 - No real account, financial record or provider state was changed to test the
   fix. Preservation of financial fixture fields is separate from production
   acceptance. Four existing SQLAlchemy/migration warnings are retained.
+
+
+## Accepted release
+
+Implementation [PR308](https://github.com/yshishenya/open-webui/pull/308):
+source `37d5a0beb9a67496d56d97a8839da6d422a68b59`, merge
+`20f1f9fb4d06e5b744a3bd2debc13e55e8eae110`; trees equal.
+11 applicable CI rows succeeded, including the full backend suite990 passed/
+9 skipped and billing confidence. Dependency review skipped; CodeRabbit
+reviews are disabled for this base and do not prove independent review.
+
+Candidate `analytics-deletion-37d5a0beb-20261006`, registry digest
+`sha256:088385d186716e79975cb970ea3401ef6910a78400dcacd6b76e80b5de6bfa85`:
+actual runtime acceptance PG77 passed/1 skip, SQLite72 passed/6 skips.
+426 runtime Python files matched the accepted candidate; precisely3 changed
+from the current base. All4914 frontend files,76 base layers and image env
+were preserved. Only tests were mounted for image acceptance; runtime source came from the candidate.
+
+Guarded production release completed2026-10-06; verified backup checksums,
+readable archive/dump list, hard Alembic and health gates passed. Image and
+source identity matched. Financial read-only snapshots remained equal before,
+after and after ordinary browser navigation (DML0). Existing environment,
+Compose and DB revision remained intact. Only the selected image keys were
+then persisted in the existing config without recreating the container.
+Initial12 neighbors retained their identities/state;2 additional per-user
+terminals predated rollout and1 arose from ordinary chat navigation. No such
+container was removed or restarted to simplify acceptance.
+
+Ordinary existing-account guide→prefilled Luna chat (no automatic submission)
+→wallet path passed, without a new payment/model request or deleting a real
+account. The first early container-health snapshot was `starting`; acceptance
+uses the later actual `healthy` snapshot with restarts0. No physical phone,
+independent usefulness, external Inbox, real volunteer or elapsed pilot window
+is claimed by this release. Overall retention01.16 remains open.

@@ -1,0 +1,8 @@
+- [x] **[DOCS][PRIVACY]** Record analytics account deletion production acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-06__docs__analytics-account-deletion-production.md`
+  - Owner: Codex
+  - Branch: `codex/docs/analytics-account-deletion-acceptance`
+  - Done: 2026-10-06
+  - Summary: Close the accepted PR308 implementation and SDD; record current-base filesystem, financial and ordinary-user checks while leaving full retention and real pilot criteria open.
+  - Tests: Implementation990 backend and candidate PG77/SQLite72; documentation SDD/link checks and exact-source CI.
+  - Risks: Documentation only; no repeat rollout, user deletion or monetary/provider operation.
