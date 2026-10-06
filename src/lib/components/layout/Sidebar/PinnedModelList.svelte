@@ -1,52 +1,68 @@
-<script>
+<script lang="ts">
 	import Sortable from 'sortablejs';
 
-	import { onDestroy, onMount, tick } from 'svelte';
+	import { getContext, onDestroy, onMount, tick } from 'svelte';
+	import { toast } from 'svelte-sonner';
+	const i18n = getContext('i18n');
 
 	import { chatId, config, mobile, models, settings, showSidebar } from '$lib/stores';
-	import { WEBUI_BASE_URL } from '$lib/constants';
 	import { updateUserSettings } from '$lib/apis/users';
 	import PinnedModelItem from './PinnedModelItem.svelte';
 
-	export let selectedChatId = null;
+	export let selectedChatId: string | null = null;
 	export let shiftKey = false;
 
-	let pinnedModels = [];
+	let pinnedModels: string[] = [];
+	let mounted = true;
+	let sortable: Sortable | null = null;
 
-	const initPinnedModelsSortable = () => {
+	const persistPinnedModels = async (ids: string[]): Promise<void> => {
+		settings.set({ ...$settings, pinnedModels: ids });
+		try {
+			const saved = await updateUserSettings(localStorage.token, { ui: $settings });
+			if (!saved) throw new Error('Settings update failed');
+		} catch {
+			if (mounted) toast.error($i18n.t('Failed to update settings'));
+		}
+	};
+
+	const initPinnedModelsSortable = (): void => {
 		const pinnedModelsList = document.getElementById('pinned-models-list');
-		if (pinnedModelsList && !$mobile) {
-			new Sortable(pinnedModelsList, {
+		if (mounted && pinnedModelsList && !$mobile) {
+			sortable = new Sortable(pinnedModelsList, {
 				animation: 150,
-				setData: function (dataTransfer, dragEl) {
+				setData: (dataTransfer: DataTransfer, dragEl: HTMLElement): void => {
 					dataTransfer.setData(
 						'text/plain',
-						JSON.stringify({
-							type: 'model',
-							id: dragEl.dataset.id
-						})
+						JSON.stringify({ type: 'model', id: dragEl.dataset.id })
 					);
 				},
-				onUpdate: async (event) => {
+				onUpdate: async (event: { item: HTMLElement; newIndex?: number }): Promise<void> => {
 					const modelId = event.item.dataset.id;
 					const newIndex = event.newIndex;
-
-					const pinnedModels = $settings.pinnedModels;
-					const oldIndex = pinnedModels.indexOf(modelId);
-
-					pinnedModels.splice(oldIndex, 1);
-					pinnedModels.splice(newIndex, 0, modelId);
-
-					settings.set({ ...$settings, pinnedModels: pinnedModels });
-					await updateUserSettings(localStorage.token, { ui: $settings });
+					const ids = [...($settings.pinnedModels ?? [])];
+					const oldIndex = modelId ? ids.indexOf(modelId) : -1;
+					if (
+						!mounted ||
+						!modelId ||
+						oldIndex < 0 ||
+						newIndex === undefined ||
+						!Number.isInteger(newIndex) ||
+						newIndex < 0 ||
+						newIndex >= ids.length
+					)
+						return;
+					ids.splice(oldIndex, 1);
+					ids.splice(newIndex, 0, modelId);
+					await persistPinnedModels(ids);
 				}
 			});
 		}
 	};
 
-	let unsubscribeSettings;
+	let unsubscribeSettings: (() => void) | undefined;
 
-	const cleanupStalePinnedModels = async (modelIds) => {
+	const cleanupStalePinnedModels = async (modelIds: string[]): Promise<void> => {
 		const validModels = modelIds.filter((id) => {
 			const model = $models.find((m) => m.id === id);
 			// Remove if model not found (deleted) or if hidden
@@ -54,40 +70,35 @@
 		});
 
 		if (validModels.length !== modelIds.length) {
-			pinnedModels = validModels;
-			settings.set({ ...$settings, pinnedModels: validModels });
-			await updateUserSettings(localStorage.token, { ui: $settings });
+			await persistPinnedModels(validModels);
 		}
 	};
 
-	onMount(async () => {
-		pinnedModels = $settings?.pinnedModels ?? [];
-
-		if (pinnedModels.length === 0 && $config?.default_pinned_models) {
-			const defaultPinnedModels = ($config?.default_pinned_models).split(',').filter((id) => id);
-			pinnedModels = defaultPinnedModels.filter((id) => $models.find((model) => model.id === id));
-
-			settings.set({ ...$settings, pinnedModels });
-			await updateUserSettings(localStorage.token, { ui: $settings });
-		}
-
-		// Auto-unpin hidden or deleted models
-		if (pinnedModels.length > 0) {
-			await cleanupStalePinnedModels(pinnedModels);
-		}
-
+	onMount(async (): Promise<void> => {
 		unsubscribeSettings = settings.subscribe((value) => {
 			pinnedModels = value?.pinnedModels ?? [];
 		});
+
+		if (pinnedModels.length === 0 && $config?.default_pinned_models) {
+			const defaultPinnedModels = $config.default_pinned_models.split(',').filter((id) => id);
+			pinnedModels = defaultPinnedModels.filter((id) => $models.find((model) => model.id === id));
+
+			await persistPinnedModels(pinnedModels);
+		}
+
+		// Auto-unpin hidden or deleted models
+		if (mounted && pinnedModels.length > 0) {
+			await cleanupStalePinnedModels(pinnedModels);
+		}
 
 		await tick();
 		initPinnedModelsSortable();
 	});
 
-	onDestroy(() => {
-		if (unsubscribeSettings) {
-			unsubscribeSettings();
-		}
+	onDestroy((): void => {
+		mounted = false;
+		unsubscribeSettings?.();
+		sortable?.destroy();
 	});
 </script>
 
@@ -106,10 +117,10 @@
 					}
 				}}
 				onUnpin={($settings?.pinnedModels ?? []).includes(modelId)
-					? () => {
-							const pinnedModels = $settings.pinnedModels.filter((id) => id !== modelId);
-							settings.set({ ...$settings, pinnedModels });
-							updateUserSettings(localStorage.token, { ui: $settings });
+					? async (): Promise<void> => {
+							await persistPinnedModels(
+								($settings.pinnedModels ?? []).filter((id) => id !== modelId)
+							);
 						}
 					: null}
 			/>

@@ -16,13 +16,16 @@ const publicConfig = {
  enable_login_form: true, enable_ldap: false, enable_websocket: true, enable_billing_subscriptions: false }
 } satisfies FrontendConfig;
 const authenticatedConfig = {
- ...publicConfig, default_models: 'model', default_pinned_models: [],
+ ...publicConfig, default_models: 'model', default_pinned_models: 'alpha,beta',
  default_prompt_suggestions: [{ content: 'Task', title: ['Title', 'Subtitle'] }],
  code: { engine: 'pyodide', interpreter_engine: 'pyodide' },
  audio: { tts: { engine: '', voice: '', split_on: 'punctuation' }, stt: { engine: 'web' } },
  file: { max_size: null, max_count: 10, image_compression: { width: null, height: null } },
  permissions: { chat: { file_upload: true } }, license_metadata: null
 } satisfies FrontendConfig;
+const emptyPins: FrontendConfig['default_pinned_models'] = null;
+// @ts-expect-error backend publishes comma-separated ids, not an array
+const invalidPins: FrontendConfig['default_pinned_models'] = [];
 const stored: typeof config extends import('svelte/store').Writable<infer Value> ? Value : never = publicConfig;
 const provider: string | undefined = stored.oauth.providers.vk.app_id;
 // @ts-expect-error Airis providers are objects, not upstream provider labels
