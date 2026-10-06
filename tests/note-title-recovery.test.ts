@@ -191,6 +191,10 @@ it.each(['png', 'heic', 'conversion-error', 'read-error', 'compression-error', '
 		}
 		const converted = new File(['image'], 'converted.jpg', { type: 'image/jpeg' });
 		const context = {
+			id: 'A',
+			loadGeneration: 1,
+			destroyed: false,
+			localStorage: { token: 'test' },
 			FileReader: ImageReader,
 			console: { log: vi.fn() },
 			$config: {},
@@ -199,7 +203,7 @@ it.each(['png', 'heic', 'conversion-error', 'read-error', 'compression-error', '
 			toast: { error: vi.fn() },
 			uuidv4: (): string => 'image-id',
 			files: [] as { id: string; type: string; url: string }[],
-			note: { data: { files: [] as { id: string; type: string; url: string }[] } },
+			note: { id: 'A', data: { files: [] as { id: string; type: string; url: string }[] } },
 			editor: { storage: { files: [] as { id: string; type: string; url: string }[] } },
 			changeDebounceHandler: vi.fn(),
 			convertHeicToJpeg: vi.fn().mockImplementation(async (): Promise<Blob | Blob[]> => {
@@ -236,5 +240,108 @@ it.each(['png', 'heic', 'conversion-error', 'read-error', 'compression-error', '
 			expect(context.editor.storage.files).toEqual([expected]);
 			expect(context.changeDebounceHandler).toHaveBeenCalledOnce();
 		}
+	}
+);
+
+it.each(['upload', 'lookup'])(
+	'does not attach a late %s result to a different note',
+	async (stage) => {
+		let done!: (value: object) => void;
+		const waiting = new Promise<object>((resolve) => {
+			done = resolve;
+		});
+		const original = { id: 'A', data: { files: [] } };
+		const replacement = { id: 'B', data: { files: [] } };
+		const context = {
+			note: original,
+			id: 'A',
+			files: [] as object[],
+			editor: { storage: { files: [] } },
+			loadGeneration: 1,
+			destroyed: false,
+			localStorage: { token: 'test' },
+			uuidv4: () => 'temp',
+			$settings: {},
+			console: { log: vi.fn(), warn: vi.fn() },
+			$i18n: { t: (s: string) => s },
+			toast: { error: vi.fn(), warning: vi.fn() },
+			changeDebounceHandler: vi.fn(),
+			uploadFile: vi
+				.fn()
+				.mockImplementation(() => (stage === 'upload' ? waiting : Promise.resolve({ id: 'file' }))),
+			getFileById: vi.fn().mockImplementation(() => waiting)
+		};
+		const handler = runInNewContext(
+			ts.transpileModule(
+				`(${initializer('src/lib/components/notes/NoteEditor.svelte', 'uploadFileHandler')})`,
+				{ compilerOptions: { target: ts.ScriptTarget.ES2022 } }
+			).outputText,
+			context
+		) as (f: File) => Promise<unknown>;
+		const pending = handler(new File(['content'], 'test.txt'));
+		for (let n = 0; n < 10; n++) await Promise.resolve();
+		context.note = replacement;
+		context.id = 'B';
+		context.files = [];
+		context.loadGeneration++;
+		done({ id: 'file' });
+		await pending;
+		expect(replacement.data.files).toEqual([]);
+		expect(context.files).toEqual([]);
+		expect(context.changeDebounceHandler).not.toHaveBeenCalled();
+	}
+);
+
+it.each(['note', 'session', 'destroyed', 'reload'])(
+	'discards a late image after %s changes',
+	async (mode) => {
+		let done!: (value: string) => void;
+		const waiting = new Promise<string>((resolve) => {
+			done = resolve;
+		});
+		class Reader {
+			onload: ((event: { target: { result: string } }) => Promise<void>) | null = null;
+			readAsDataURL(): void {
+				void this.onload?.({ target: { result: 'data:image/png;base64,TEST' } });
+			}
+		}
+		const original = { id: 'A', data: { files: [] } };
+		const context = {
+			note: original,
+			id: 'A',
+			files: [] as object[],
+			loadGeneration: 1,
+			destroyed: false,
+			localStorage: { token: 'test' },
+			FileReader: Reader,
+			console: { log: vi.fn() },
+			$settings: {},
+			$config: {},
+			uuidv4: () => 'image',
+			editor: { storage: { files: [] } },
+			changeDebounceHandler: vi.fn(),
+			compressImageHandler: vi.fn().mockImplementation(() => waiting)
+		};
+		const handler = runInNewContext(
+			ts.transpileModule(
+				`(${initializer('src/lib/components/notes/NoteEditor.svelte', 'inputFileHandler')})`,
+				{ compilerOptions: { target: ts.ScriptTarget.ES2022 } }
+			).outputText,
+			context
+		) as (f: File) => Promise<unknown>;
+		const pending = handler(new File(['image'], 'test.png', { type: 'image/png' }));
+		if (mode === 'note') {
+			context.note = { id: 'B', data: { files: [] } };
+			context.id = 'B';
+			context.files = [];
+		}
+		if (mode === 'session') context.localStorage.token = 'other';
+		if (mode === 'destroyed') context.destroyed = true;
+		if (mode === 'reload') context.loadGeneration++;
+		done('data:image/png;base64,TEST');
+		await pending;
+		expect(context.files).toEqual([]);
+		expect(context.note.data.files).toEqual([]);
+		expect(context.changeDebounceHandler).not.toHaveBeenCalled();
 	}
 );

@@ -75,6 +75,7 @@
 	} from '$lib/apis/notes';
 	import { deleteChatById } from '$lib/apis/chats';
 
+	import type { NoteRecord, NoteFile } from '$lib/utils/airis/notes';
 	import RichTextInput from '../common/RichTextInput.svelte';
 	import FileItem from '../common/FileItem.svelte';
 	import Spinner from '../common/Spinner.svelte';
@@ -98,7 +99,7 @@
 	export let id: null | string = null;
 
 	let editor = null;
-	let note = null;
+	let note: NoteRecord | null = null;
 
 	let files = [];
 
@@ -322,11 +323,11 @@
 		init();
 	}
 
-	function areContentsEqual(a, b) {
+	function areContentsEqual(a: unknown, b: unknown): boolean {
 		return equal(a, b);
 	}
 
-	function insertNoteVersion(note) {
+	function insertNoteVersion(note: NoteRecord): boolean {
 		const current = {
 			json: note.data.content.json,
 			html: note.data.content.html,
@@ -342,7 +343,7 @@
 	}
 
 	const generateTitleHandler = async (): Promise<void> => {
-		if (titleGenerating) return;
+		if (!note || titleGenerating) return;
 		const targetNote = note;
 		const content = note.data.content.md;
 		const DEFAULT_TITLE_GENERATION_PROMPT_TEMPLATE = `### Task:
@@ -413,9 +414,19 @@ ${content}
 		await tick();
 		if (note === targetNote) changeDebounceHandler();
 	};
-	const uploadFileHandler = async (file) => {
+	const uploadFileHandler = async (file: File): Promise<NoteFile | null | undefined> => {
+		if (!note) return;
+		const targetNote = note;
+		const token: string = localStorage.token;
+		const generation = loadGeneration;
+		const isCurrent = (): boolean =>
+			!destroyed &&
+			note === targetNote &&
+			id === targetNote.id &&
+			generation === loadGeneration &&
+			localStorage.token === token;
 		const tempItemId = uuidv4();
-		const fileItem = {
+		const fileItem: NoteFile = {
 			type: 'file',
 			file: '',
 			id: null,
@@ -448,7 +459,8 @@ ${content}
 			}
 
 			// During the file upload, file content is automatically extracted.
-			const uploadedFile = await uploadFile(localStorage.token, file, metadata);
+			const uploadedFile = await uploadFile(token, file, metadata);
+			if (!isCurrent()) return;
 
 			if (uploadedFile) {
 				console.log('File upload completed:', uploadedFile);
@@ -459,10 +471,11 @@ ${content}
 				}
 
 				fileItem.status = 'uploaded';
-				fileItem.file = await getFileById(localStorage.token, uploadedFile.id).catch((e) => {
-					toast.error(`${e}`);
+				fileItem.file = await getFileById(token, uploadedFile.id).catch((e) => {
+					if (isCurrent()) toast.error(`${e}`);
 					return null;
 				});
+				if (!isCurrent()) return;
 				fileItem.id = uploadedFile.id;
 				fileItem.collection_name =
 					uploadedFile?.meta?.collection_name || uploadedFile?.collection_name;
@@ -474,15 +487,12 @@ ${content}
 				files = files.filter((item) => item?.itemId !== tempItemId);
 			}
 		} catch (e) {
+			if (!isCurrent()) return;
 			toast.error(`${e}`);
 			files = files.filter((item) => item?.itemId !== tempItemId);
 		}
 
-		if (files.length > 0) {
-			note.data.files = files;
-		} else {
-			note.data.files = null;
-		}
+		targetNote.data.files = files;
 
 		if (editor) {
 			editor.storage.files = files;
@@ -534,6 +544,16 @@ ${content}
 	const inputFileHandler = async (
 		file: File
 	): Promise<Awaited<ReturnType<typeof uploadFileHandler>> | NoteImage | undefined> => {
+		if (!note) return;
+		const targetNote = note;
+		const token: string = localStorage.token;
+		const generation = loadGeneration;
+		const isCurrent = (): boolean =>
+			!destroyed &&
+			note === targetNote &&
+			id === targetNote.id &&
+			generation === loadGeneration &&
+			localStorage.token === token;
 		console.log('Processing file:', {
 			name: file.name,
 			type: file.type,
@@ -560,13 +580,17 @@ ${content}
 		if (file['type'].startsWith('image/')) {
 			const imageFile = file.type === 'image/heic' ? await convertHeicToJpeg(file) : file;
 			if (Array.isArray(imageFile)) throw new Error('Expected a single converted image');
-			const uploadImagePromise = new Promise<NoteImage>((resolve, reject) => {
+			const uploadImagePromise = new Promise<NoteImage | undefined>((resolve, reject) => {
 				let reader = new FileReader();
 				reader.onload = async (event) => {
 					try {
 						let imageUrl = event.target.result;
 						imageUrl = await compressImageHandler(imageUrl, $settings, $config);
 
+						if (!isCurrent()) {
+							resolve(undefined);
+							return;
+						}
 						const fileId = uuidv4();
 						const fileItem: NoteImage = {
 							id: fileId,
@@ -574,7 +598,7 @@ ${content}
 							url: `${imageUrl}`
 						};
 						files = [...files, fileItem];
-						note.data.files = files;
+						targetNote.data.files = files;
 						if (editor) {
 							editor.storage.files = files;
 						}
@@ -724,7 +748,8 @@ ${content}
 		noteChats = chats;
 	};
 
-	const downloadHandler = async (type) => {
+	const downloadHandler = async (type: string): Promise<void> => {
+		if (!note) return;
 		console.log('downloadHandler', type);
 		if (type === 'txt') {
 			const blob = new Blob([note.data.content.md], { type: 'text/plain' });
@@ -756,7 +781,8 @@ ${content}
 		}
 	};
 
-	const insertHandler = (content) => {
+	const insertHandler = (content: string): void => {
+		if (!note) return;
 		insertNoteVersion(note);
 		inputElement?.insertContent(content);
 	};
@@ -782,7 +808,7 @@ ${content}
 
 		if (_note.data && 'files' in _note.data) {
 			files = _note.data.files ?? [];
-			note.data.files = files.length > 0 ? files : null;
+			note.data.files = files;
 		}
 
 		if (_note.data?.content) {
@@ -868,7 +894,7 @@ ${content}
 		sharePublic={$user?.permissions?.sharing?.public_notes || $user?.role === 'admin'}
 		shareUsers={($user?.permissions?.access_grants?.allow_users ?? true) || $user?.role === 'admin'}
 		onChange={async () => {
-			if (id) {
+			if (id && note) {
 				try {
 					await updateNoteAccessGrants(localStorage.token, id, note.access_grants ?? []);
 					toast.success($i18n.t('Saved'));
@@ -882,18 +908,20 @@ ${content}
 
 <FilesOverlay show={dragged} />
 
-<DeleteConfirmDialog
-	bind:show={showDeleteConfirm}
-	title={$i18n.t('Delete note?')}
-	on:confirm={() => {
-		deleteNoteHandler(note.id);
-		showDeleteConfirm = false;
-	}}
->
-	<div class=" text-sm text-gray-500">
-		{$i18n.t('This will delete')} <span class="  font-normal">{note.title}</span>.
-	</div>
-</DeleteConfirmDialog>
+{#if note}
+	<DeleteConfirmDialog
+		bind:show={showDeleteConfirm}
+		title={$i18n.t('Delete note?')}
+		on:confirm={() => {
+			if (note) deleteNoteHandler(note.id);
+			showDeleteConfirm = false;
+		}}
+	>
+		<div class=" text-sm text-gray-500">
+			{$i18n.t('This will delete')} <span class="  font-normal">{note.title}</span>.
+		</div>
+	</DeleteConfirmDialog>
+{/if}
 
 <PaneGroup direction="horizontal" class="w-full h-full">
 	<Pane defaultSize={70} minSize={30} class="h-full flex flex-col w-full relative">
@@ -1083,6 +1111,7 @@ ${content}
 										downloadHandler(type);
 									}}
 									onCopyLink={async () => {
+										if (!note) return;
 										const baseUrl = window.location.origin;
 										const res = await copyToClipboard(`${baseUrl}/notes/${note.id}`);
 
@@ -1093,6 +1122,7 @@ ${content}
 										}
 									}}
 									onCopyToClipboard={async () => {
+										if (!note) return;
 										const res = await copyToClipboard(
 											note.data.content.md,
 											note.data.content.html,
@@ -1109,7 +1139,7 @@ ${content}
 									onDelete={() => {
 										showDeleteConfirm = true;
 									}}
-									isPinned={$pinnedNotes.some((n) => n.id === note.id)}
+									isPinned={$pinnedNotes.some((n) => n.id === note?.id)}
 									onPin={pinHandler}
 								>
 									<div class="p-1 bg-transparent hover:bg-white/5 transition rounded-lg">
@@ -1210,8 +1240,9 @@ ${content}
 										className="w-56 max-w-full"
 										colorClassName="bg-gray-50/60 dark:bg-white/[0.03] border border-gray-100/80 dark:border-white/5"
 										on:dismiss={() => {
+											if (!note) return;
 											files = files.filter((item) => item !== file);
-											note.data.files = files.length > 0 ? files : null;
+											note.data.files = files;
 											if (editor) {
 												editor.storage.files = files;
 											}
@@ -1255,6 +1286,7 @@ ${content}
 								}
 							}}
 							onChange={(content) => {
+								if (!note) return;
 								lastLocalContentChangeAt = Date.now();
 								note.data.content.html = content.html;
 								note.data.content.md = content.md;
