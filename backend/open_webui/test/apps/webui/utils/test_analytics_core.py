@@ -15,18 +15,22 @@ from open_webui.models.analytics import (
     AnalyticsEvent,
     AnalyticsIdentity,
 )
+from open_webui.models.users import User
 from open_webui.routers import airis_analytics as router
 from open_webui.utils.airis import analytics as core
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+RunCase = Callable[[Callable[[async_sessionmaker[AsyncSession]], Awaitable[None]]], None]
+
 
 @pytest.fixture
-def run_case(monkeypatch):
-    def run(test):
-        async def execute():
+def run_case(monkeypatch: pytest.MonkeyPatch) -> RunCase:
+    def run(test: Callable[[async_sessionmaker[AsyncSession]], Awaitable[None]]) -> None:
+        async def execute() -> None:
             engine = create_async_engine('sqlite+aiosqlite:///:memory:')
             tables = [
+                User.__table__,
                 AnalyticsIdentity.__table__,
                 AnalyticsBinding.__table__,
                 AnalyticsEvent.__table__,
@@ -36,6 +40,10 @@ def run_case(monkeypatch):
                 for table in tables:
                     await conn.run_sync(table.create)
             factory = async_sessionmaker(engine, expire_on_commit=False)
+            async with factory() as db:
+                for account in ['private-account-id', 'new-account', 'financial-account', 'existing-account']:
+                    db.add(User(id=account, name='Fixture', email=f'{account}@example.com'))
+                await db.commit()
 
             @asynccontextmanager
             async def context():

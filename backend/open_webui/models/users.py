@@ -723,6 +723,9 @@ class UsersTable:
             from open_webui.models.email_preferences import delete_product_preferences
 
             await session.scalar(select(User).where(User.id == id).with_for_update())
+            from open_webui.utils.airis.analytics import delete_account_analytics
+
+            await delete_account_analytics(session, id)
             await delete_product_preferences(session, id)
             from open_webui.models.task_success import delete_task_success
 
