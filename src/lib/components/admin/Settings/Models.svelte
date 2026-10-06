@@ -241,8 +241,8 @@
 		saveAs(blob, `models-export-${Date.now()}.json`);
 	};
 
-	const init = async () => {
-		models = null;
+	const init = async (resetView = true): Promise<void> => {
+		if (resetView) models = null;
 
 		modelsConfig = await getModelsConfig(localStorage.token);
 		modelOrderList = modelsConfig?.MODEL_ORDER_LIST ?? [];
@@ -298,47 +298,48 @@
 		);
 	};
 
-	const saveModelOrder = async (orderedModelIds: string[]) => {
+	const saveModelOrder = async (orderedModelIds: string[]): Promise<void> => {
 		savingModelOrder = true;
 
-		const res = await setModelsConfig(localStorage.token, {
-			DEFAULT_MODELS: defaultModelIds.join(','),
-			DEFAULT_PINNED_MODELS: defaultPinnedModelIds.join(','),
-			MODEL_ORDER_LIST: orderedModelIds,
-			DEFAULT_MODEL_METADATA: modelsConfig?.DEFAULT_MODEL_METADATA ?? null,
-			DEFAULT_MODEL_PARAMS: modelsConfig?.DEFAULT_MODEL_PARAMS ?? null
-		}).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (res) {
+		try {
+			const res = await setModelsConfig(localStorage.token, {
+				DEFAULT_MODELS: defaultModelIds.join(','),
+				DEFAULT_PINNED_MODELS: defaultPinnedModelIds.join(','),
+				MODEL_ORDER_LIST: orderedModelIds,
+				DEFAULT_MODEL_METADATA: modelsConfig?.DEFAULT_MODEL_METADATA ?? null,
+				DEFAULT_MODEL_PARAMS: modelsConfig?.DEFAULT_MODEL_PARAMS ?? null
+			});
+			if (!res) throw new Error('Model order save failed');
 			modelsConfig = res;
-			modelOrderDirty = false;
-			toast.success($i18n.t('Model order saved successfully'));
 			_models.set(
 				await getModels(
 					localStorage.token,
 					$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null)
 				)
 			);
+			modelOrderDirty = false;
+			toast.success($i18n.t('Model order saved successfully'));
+		} finally {
+			savingModelOrder = false;
 		}
-
-		savingModelOrder = false;
 	};
 
-	const saveModelsSettings = async () => {
+	const saveModelsSettings = async (): Promise<void> => {
 		savingModelsSettings = true;
 
-		if (modelOrderDirty) {
-			await saveModelOrder(modelOrderList);
-		}
+		try {
+			if (modelOrderDirty) {
+				await saveModelOrder(modelOrderList);
+			}
 
-		if (modelDefaultsDirty) {
-			await modelDefaultsPanel?.save();
+			if (modelDefaultsDirty) {
+				await modelDefaultsPanel?.save();
+			}
+		} catch {
+			toast.error($i18n.t('Something went wrong :/'));
+		} finally {
+			savingModelsSettings = false;
 		}
-
-		savingModelsSettings = false;
 	};
 
 	const saveModelDefaults = async (
@@ -729,7 +730,7 @@
 				<ModelDefaultsPanel
 					bind:this={modelDefaultsPanel}
 					bind:dirty={modelDefaultsDirty}
-					initHandler={init}
+					initHandler={() => init(false)}
 				/>
 
 				<div class="flex h-8 shrink-0 items-center w-full gap-2">

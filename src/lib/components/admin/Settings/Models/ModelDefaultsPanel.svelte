@@ -19,7 +19,6 @@
 	export let dirty = false;
 
 	let config = null;
-	let modelIds = [];
 	let loading = false;
 	let expanded = false;
 	let showCapabilities = false;
@@ -34,9 +33,9 @@
 	let promptSuggestions = [];
 
 	$: configuredParams = Object.entries(defaultParams ?? {}).filter(
-		([_, value]) => value !== null && value !== '' && value !== undefined
+		([, value]) => value !== null && value !== '' && value !== undefined
 	);
-	$: enabledCapabilities = Object.entries(defaultCapabilities ?? {}).filter(([_, value]) => value);
+	$: enabledCapabilities = Object.entries(defaultCapabilities ?? {}).filter(([, value]) => value);
 	$: availableFeatures = enabledCapabilities
 		.filter(([key]) => ['web_search', 'code_interpreter', 'image_generation'].includes(key))
 		.map(([key]) => key);
@@ -59,8 +58,6 @@
 		loading = true;
 		config = await getModelsConfig(localStorage.token);
 
-		modelIds = config?.MODEL_ORDER_LIST || [];
-
 		const savedMeta = config?.DEFAULT_MODEL_METADATA;
 		if (savedMeta && Object.keys(savedMeta).length > 0) {
 			defaultCapabilities = savedMeta.capabilities ?? { ...DEFAULT_CAPABILITIES };
@@ -79,41 +76,45 @@
 		loading = false;
 	};
 
+	/** @returns {Promise<boolean>} */
 	export const save = async () => {
 		if (loading || !dirty) {
 			return true;
 		}
 
-		const metadata = {
-			capabilities: defaultCapabilities,
-			...(defaultFeatureIds.length > 0 ? { defaultFeatureIds } : {}),
-			...(Object.keys(builtinTools).length > 0 ? { builtinTools } : {})
-		};
-
-		const res = await setModelsConfig(localStorage.token, {
-			DEFAULT_MODELS: config?.DEFAULT_MODELS ?? null,
-			DEFAULT_PINNED_MODELS: config?.DEFAULT_PINNED_MODELS ?? null,
-			MODEL_ORDER_LIST: modelIds,
-			DEFAULT_MODEL_METADATA: metadata,
-			DEFAULT_MODEL_PARAMS: Object.fromEntries(configuredParams)
-		}).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (res) {
+		try {
+			// Order and model selection can change while this panel remains mounted.
+			const currentConfig = await getModelsConfig(localStorage.token);
+			if (!currentConfig) throw new Error('Models configuration unavailable');
+			const res = await setModelsConfig(localStorage.token, {
+				DEFAULT_MODELS: currentConfig.DEFAULT_MODELS ?? null,
+				DEFAULT_PINNED_MODELS: currentConfig.DEFAULT_PINNED_MODELS ?? null,
+				MODEL_ORDER_LIST: currentConfig.MODEL_ORDER_LIST ?? [],
+				DEFAULT_MODEL_METADATA: {
+					capabilities: defaultCapabilities,
+					...(defaultFeatureIds.length > 0 ? { defaultFeatureIds } : {}),
+					...(Object.keys(builtinTools).length > 0 ? { builtinTools } : {})
+				},
+				DEFAULT_MODEL_PARAMS: Object.fromEntries(configuredParams)
+			});
+			if (!res) throw new Error('Models configuration save failed');
 			config = res;
-			promptSuggestions = promptSuggestions.filter((p) => p.content !== '');
-			promptSuggestions = await setDefaultPromptSuggestions(localStorage.token, promptSuggestions);
-			await appConfig.set(await getBackendConfig());
+			const savedSuggestions = await setDefaultPromptSuggestions(
+				localStorage.token,
+				promptSuggestions.filter((p) => p.content !== '')
+			);
+			if (!savedSuggestions) throw new Error('Prompt suggestions save failed');
+			const backendConfig = await getBackendConfig();
+			if (!backendConfig) throw new Error('Backend configuration unavailable');
+			await appConfig.set(backendConfig);
+			await initHandler();
+			promptSuggestions = savedSuggestions;
 			savedSnapshot = getSnapshot();
 			dirty = false;
-
 			toast.success($i18n.t('Models configuration saved successfully'));
-			initHandler();
 			return true;
-		} else {
-			toast.error($i18n.t('Failed to save models configuration'));
+		} catch {
+			toast.error($i18n.t('Something went wrong :/'));
 			return false;
 		}
 	};
@@ -168,7 +169,7 @@
 					</button>
 
 					{#if showCapabilities}
-						<div class="pb-2" on:click={updateDirty} on:change={updateDirty}>
+						<div role="presentation" class="pb-2" on:click={updateDirty} on:change={updateDirty}>
 							<Capabilities bind:capabilities={defaultCapabilities} />
 
 							{#if availableFeatures.length > 0}
@@ -204,6 +205,7 @@
 
 					{#if showParameters}
 						<div
+							role="presentation"
 							class="max-h-[24rem] overflow-y-auto pb-2 pr-1 scrollbar-hover"
 							on:click={updateDirty}
 							on:change={updateDirty}
@@ -231,7 +233,13 @@
 					</button>
 
 					{#if showPromptSuggestions}
-						<div class="pb-2" on:click={updateDirty} on:change={updateDirty} on:input={updateDirty}>
+						<div
+							role="presentation"
+							class="pb-2"
+							on:click={updateDirty}
+							on:change={updateDirty}
+							on:input={updateDirty}
+						>
 							<PromptSuggestions bind:promptSuggestions />
 						</div>
 					{/if}
