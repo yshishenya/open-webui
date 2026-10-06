@@ -1,0 +1,166 @@
+{
+	"spec_id": "airis-billing-full-path-recovery-2026-10-06-001",
+	"title": "Airis billing full path recovery",
+	"generated": "2026-10-06T06:24:01.088834Z",
+	"last_updated": "2026-10-06T06:39:54.703719Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"status": "completed",
+		"activated_date": "2026-10-06T06:24:47.541538Z",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__test__billing-full-path-recovery.md",
+		"progress_percentage": 100,
+		"current_phase": "phase-2",
+		"completed_date": "2026-10-06T06:39:54.703448Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis billing full path recovery",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 3,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace real application and external faults",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-06T06:32:33.611501Z",
+				"journaled_at": "2026-10-06T06:32:33.613672Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify recovery and record evidence",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-06T06:39:54.240056Z",
+				"journaled_at": "2026-10-06T06:39:54.242045Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Trace and extend isolated external faults with real AIRIS persistence",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-06T06:32:33.611370Z",
+				"needs_journaling": false,
+				"status_note": "Real app routes, persistence, signed notification and SMTP refusal boundaries traced; no app runtime changes.",
+				"journaled_at": "2026-10-06T06:32:33.612612Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify recovery and regressions in two browsers and PostgreSQL",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-06T06:39:54.008444Z",
+				"needs_journaling": false,
+				"status_note": "SQLite24/24 and PostgreSQL24/24, both browsers, no skips/page errors; exact unchanged test manifest and compiled application image.",
+				"journaled_at": "2026-10-06T06:39:54.009639Z"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Review exact source and record reproducible acceptance",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-06T06:39:54.239913Z",
+				"needs_journaling": false,
+				"status_note": "Exact source 7512440a5927cac6ab2a330f5af1f16e721885ae pushed in draft PR302; source review8 matching test hashes, no app changes, guards and proof limits recorded. Integration acceptance is separate and pending.",
+				"journaled_at": "2026-10-06T06:39:54.240870Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-06T06:32:33.612608Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Trace and extend isolated external faults with real AIRIS persistence",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Real app routes, persistence, signed notification and SMTP refusal boundaries traced; no app runtime changes.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-06T06:32:33.613667Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Phase 1: [To Be Defined]",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-06T06:39:54.009634Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify recovery and regressions in two browsers and PostgreSQL",
+			"author": "Codex",
+			"content": "Task task-2-1 marked as completed. \nNote: SQLite24/24 and PostgreSQL24/24, both browsers, no skips/page errors; exact unchanged test manifest and compiled application image.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-06T06:39:54.240866Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Review exact source and record reproducible acceptance",
+			"author": "Codex",
+			"content": "Task task-2-2 marked as completed. \nNote: Exact source 7512440a5927cac6ab2a330f5af1f16e721885ae pushed in draft PR302; source review8 matching test hashes, no app changes, guards and proof limits recorded. Integration acceptance is separate and pending.",
+			"metadata": {},
+			"task_id": "task-2-2"
+		},
+		{
+			"timestamp": "2026-10-06T06:39:54.242040Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify recovery and record evidence",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
