@@ -1,5 +1,7 @@
-- [ ] **[BUG]** Saved-note state and response contract
-  - Spec: meta/memory_bank/specs/work_items/2026-10-06__bugfix__note-record-state-contract.md
+- [x] **[BUG][NOTES]** Validate saved-note state and reject stale attachment results
+  - Spec: meta/memory_bank/specs/work_items/2026-10-06**bugfix**note-record-state-contract.md
   - Owner: Codex
-  - Started: 2026-10-06
-  - Summary: Reuse existing note normalizer and concrete editor state; preserve valid fields and drafts, reject invalid existing fields explicitly, verify source and runtime. Final onboarding goal remains active.
+  - Done: 2026-10-06
+  - Summary: Reuse concrete backend/editor contracts, preserve sparse data/extensions, reject malformed persisted fields and obsolete upload/image work. PR297 source e1f32a3dc / merge85b4b2fd9; guarded current-base production fcda8956 accepted, SDD2/2 closed.
+  - Tests: Docker646/646;70 focused cases; baseline17fail/51pass; Chromium/Firefox notes2/2 and shared paths16/16; CI/backend/wallet browser passed;4914frontend/426Python,ENV/13neighbors/health/public/ordinary chat accepted. Types65errors/1warning andlint34 removed,0new.
+  - Risks: Existing awareness adapter limitation and overall type/style debt remain; plan193/244 and goalactive, human/payment/pilot/time-window gates open.
