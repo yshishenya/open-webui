@@ -1,0 +1,8 @@
+- [x] **[TEST][ONBOARDING]** Verify activation time and interruption boundaries
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-06__test__activation-time-boundaries.md`
+  - Owner: Codex
+  - Branch: `codex/test/activation-time-boundaries`
+  - Done: 2026-10-06
+  - Summary: Verify plan item 08.08 using the existing lifecycle fixtures and unchanged application. Real pilot windows remain separate.
+  - Tests: PostgreSQL140/140; SQLite137 plus3 PostgreSQL-only identities separately passed; lifecycle14/14, Black/Ruff. Integration acceptance separate.
+  - Risks: Test-only; no new mail, payments or runtime rollout.

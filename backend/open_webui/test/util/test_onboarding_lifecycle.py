@@ -255,7 +255,7 @@ async def test_completion_minute_before_due_or_final_submission(
             'A visible completed answer',
         )
         assert checkpoint is not None
-        await successes.insert_success('1', checkpoint)
+        await asyncio.gather(*(successes.insert_success('1', checkpoint) for _ in range(2)))
         clock.now = deadline
 
     if during_connection:
@@ -305,6 +305,7 @@ async def test_late_verification_delays_activation_and_ten_day_restart_does_not_
         activation = next(job for job in await jobs(queue_database, user_id) if job.type == 'activation_24h')
         assert activation.status == 'pending' and activation.due_at == welcome.accepted_at + DAY
         assert smtp.send_message.await_count == 2
+
         clock.now = created_at + 10 * DAY
         scenarios._account_cursor, scenarios._payment_cursor = (0, ''), (0, '')
         await worker.drain_email_queue(config)
@@ -319,3 +320,121 @@ async def test_late_verification_delays_activation_and_ten_day_restart_does_not_
             'feedback_14d': 'pending',
         }
         assert smtp.send_message.await_count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('offset', [-1, 0, 1])
+async def test_activation_seven_day_expiry_at_one_second_precision(
+    queue_database: async_sessionmaker[AsyncSession], clock: Clock, smtp: AsyncMock, offset: int
+) -> None:
+    expiry = clock.now
+    job_id = await prepare_activation(queue_database, clock)
+    async with queue_database() as session:
+        await session.execute(update(User).where(User.id == '1').values(created_at=expiry - 7 * DAY))
+        await session.execute(
+            update(delivery.EmailDelivery)
+            .where(delivery.EmailDelivery.type == 'welcome')
+            .values(accepted_at=expiry - 2 * DAY, submitted_at=expiry - 2 * DAY)
+        )
+        await session.execute(
+            update(delivery.EmailDelivery)
+            .where(delivery.EmailDelivery.id == job_id)
+            .values(due_at=expiry - DAY, expires_at=expiry)
+        )
+        await session.commit()
+    clock.now = expiry + offset
+    claimed = await delivery.claim_email(clock.now)
+    if claimed is not None:
+        await worker.execute_email(claimed, queue_tests.config())
+    assert (await queue_tests.state(queue_database, job_id)).status == ('accepted' if offset < 0 else 'expired')
+    assert smtp.send_message.await_count == int(offset < 0)
+
+
+@pytest.mark.asyncio
+async def test_activation_abandoned_owner_recovers_across_utc_midnight_once(
+    queue_database: async_sessionmaker[AsyncSession], clock: Clock, smtp: AsyncMock
+) -> None:
+    clock.now = (clock.now // DAY + 1) * DAY - 10
+    job_id = await prepare_activation(queue_database, clock)
+    original = await delivery.claim_email(clock.now)
+    assert original is not None and original.id == job_id
+    clock.now += delivery.LEASE_SECONDS
+    scenarios._account_cursor, scenarios._payment_cursor = (0, ''), (0, '')
+    recovered = await delivery.claim_email(clock.now)
+    assert recovered is not None and recovered.id == job_id and recovered.claim_id != original.claim_id
+    await worker.execute_email(original, queue_tests.config())
+    smtp.send_message.assert_not_awaited()
+    await worker.execute_email(recovered, queue_tests.config())
+    for _ in range(2):
+        scenarios._account_cursor, scenarios._payment_cursor = (0, ''), (0, '')
+        await worker.drain_email_queue(replace(queue_tests.config(), release_b=False))
+    result = await queue_tests.state(queue_database, job_id)
+    assert result.status == 'accepted' and result.attempts == 1
+    smtp.send_message.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('offset', [-1, 0, 1])
+async def test_late_verification_respects_remaining_activation_window(
+    app: FastAPI, queue_database: async_sessionmaker[AsyncSession], clock: Clock, smtp: AsyncMock, offset: int
+) -> None:
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='https://test.invalid') as client:
+        user_id = await signup(client, True)
+        async with queue_database() as session:
+            user = await session.get(User, user_id)
+            created_at = user.created_at
+            token = await verification.EmailVerificationTokens.create_verification_token(
+                user_id, user.email, 8 * 24, db=session
+            )
+        clock.now = created_at + 6 * DAY + offset
+        response = await client.get('/api/v1/auths/verify-email', params={'token': token.token})
+        assert response.status_code == 200
+        config = scenarios.EmailQueueConfig.from_env()
+        await worker.drain_email_queue(config)
+        clock.now += 300
+        await worker.drain_email_queue(config)
+        queued = await jobs(queue_database, user_id)
+        welcome = next(job for job in queued if job.type == 'welcome')
+        activation = next(job for job in queued if job.type == 'activation_24h')
+        assert welcome.status == 'accepted'
+        assert activation.status == ('pending' if offset < 0 else 'expired')
+        assert activation.submitted_at is None
+        if offset < 0:
+            assert activation.due_at == welcome.accepted_at + DAY == created_at + 7 * DAY - 1
+        assert smtp.send_message.await_count == 2  # Verification and welcome only.
+
+
+@pytest.mark.asyncio
+async def test_public_unsubscribe_from_two_clients_after_claim_prevents_activation(
+    queue_database: async_sessionmaker[AsyncSession], clock: Clock, smtp: AsyncMock
+) -> None:
+    job_id = await prepare_activation(queue_database, clock)
+    token = await prefs.create_product_unsubscribe_token('1')
+    assert token is not None
+    application = FastAPI()
+    application.include_router(preference_routes.router, prefix='/api/v1/email-preferences')
+    transport = httpx.ASGITransport(app=application)
+
+    async def connect() -> AsyncMock:
+        async with (
+            httpx.AsyncClient(transport=transport, base_url='https://test.invalid') as first,
+            httpx.AsyncClient(transport=transport, base_url='https://test.invalid') as second,
+        ):
+            path = f'/api/v1/email-preferences/one-click/{token}'
+            assert (await first.get(path)).status_code == 200
+            assert (await prefs.get_product_preference('1')).can_receive
+            for client in (first, second):
+                response = await client.post(
+                    path,
+                    content='List-Unsubscribe=One-Click',
+                    headers={'Content-Type': 'application/x-www-form-urlencoded'},
+                )
+                assert response.status_code == 200
+        return smtp
+
+    email.email_service._create_connection = connect
+    await worker.execute_email(await delivery.claim_email(clock.now), queue_tests.config())
+    result = await queue_tests.state(queue_database, job_id)
+    assert result.status == 'suppressed' and result.reason == 'consent' and result.submitted_at is None
+    assert not (await prefs.get_product_preference('1')).can_receive
+    smtp.send_message.assert_not_awaited()
