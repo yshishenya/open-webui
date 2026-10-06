@@ -238,11 +238,11 @@
 			: ($terminalServers?.[0] ?? null);
 
 		const userTerminal = ($settings?.terminalServers ?? []).find(
-			(s) => s.url === $selectedTerminalId
+			(s) => s.url === ($selectedTerminalId ?? systemTerminal?.url)
 		);
 
-		const isSystem = !!systemTerminal;
-		const url = systemTerminal?.url ?? userTerminal?.url ?? '';
+		const isSystem = !!systemTerminal?.id;
+		const url = (isSystem ? systemTerminal?.url : userTerminal?.url) ?? '';
 		const key = isSystem ? localStorage.token : (userTerminal?.key ?? '');
 
 		return url ? { url, key } : null;
