@@ -1,0 +1,5 @@
+- [ ] **[BUG][EDITOR]** Preserve pasted text and command insertion
+  - Spec: meta/memory_bank/specs/work_items/2026-10-06**bugfix**rich-text-insertion-contract.md
+  - Owner: Codex
+  - Started: 2026-10-06
+  - Summary: Reproduce shared native editor insertion/lifecycle defects, then repair once for chat/channel/note callers.

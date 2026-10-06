@@ -124,8 +124,8 @@
 	const i18n = getContext('i18n');
 	const eventDispatch = createEventDispatcher();
 
-	import { Fragment, DOMParser } from 'prosemirror-model';
-	import { Plugin, PluginKey, TextSelection, Selection } from 'prosemirror-state';
+	import { Fragment, Slice, DOMParser, type Node as ProseMirrorNode } from 'prosemirror-model';
+	import { Plugin, PluginKey, TextSelection, Selection, type EditorState } from 'prosemirror-state';
 	import { Decoration, DecorationSet } from 'prosemirror-view';
 	import { Editor, Extension, markInputRule, type Content } from '@tiptap/core';
 
@@ -339,27 +339,18 @@
 		const { state } = editor.view;
 		const pos = state.selection.from;
 		const doc = state.doc;
-		const resolvedPos = doc.resolve(pos);
-		const textBlock = resolvedPos.parent;
-		const text = textBlock.textContent;
-		const offset = resolvedPos.parentOffset;
-
-		let wordStart = offset,
-			wordEnd = offset;
-		while (wordStart > 0 && !/\s/.test(text[wordStart - 1])) wordStart--;
-		while (wordEnd < text.length && !/\s/.test(text[wordEnd])) wordEnd++;
-
-		const word = text.slice(wordStart, wordEnd);
+		const { start, end } = getWordBoundsAtPos(doc, pos);
+		const word = doc.textBetween(start, end, '\n', '\n');
 
 		return word;
 	};
 
 	// Returns {start, end} of the word at pos
-	function getWordBoundsAtPos(doc, pos) {
+	function getWordBoundsAtPos(doc: ProseMirrorNode, pos: number): { start: number; end: number } {
 		const resolvedPos = doc.resolve(pos);
 		const textBlock = resolvedPos.parent;
 		const paraStart = resolvedPos.start();
-		const text = textBlock.textContent;
+		const text = textBlock.textBetween(0, textBlock.content.size, '\n', '\n');
 
 		const offset = resolvedPos.parentOffset;
 		let wordStart = offset,
@@ -372,7 +363,8 @@
 		};
 	}
 
-	export const replaceCommandWithText = async (text) => {
+	export const replaceCommandWithText = async (text: string): Promise<void> => {
+		if (!editor || editor.isDestroyed) return;
 		const { state, dispatch } = editor.view;
 		const { selection } = state;
 		const pos = selection.from;
@@ -389,6 +381,7 @@
 			const htmlContent = DOMPurify.sanitize(
 				marked
 					.parse(text, {
+						async: false,
 						breaks: true,
 						gfm: true
 					})
@@ -404,7 +397,7 @@
 
 			// Extract just the content, not the wrapper paragraphs
 			const content = fragment.content;
-			let nodesToInsert = [];
+			const nodesToInsert: ProseMirrorNode[] = [];
 
 			content.forEach((node) => {
 				if (node.type.name === 'paragraph') {
@@ -420,41 +413,10 @@
 			const newPos = start + nodesToInsert.reduce((sum, node) => sum + node.nodeSize, 0);
 			tr = tr.setSelection(Selection.near(tr.doc.resolve(newPos)));
 		} else {
-			if (text.includes('\n')) {
-				// Split the text into lines and create a <p> node for each line
-				const lines = text.split('\n');
-				const nodes = lines.map(
-					(line, index) =>
-						index === 0
-							? state.schema.text(line ? line : []) // First line is plain text
-							: state.schema.nodes.paragraph.create({}, line ? state.schema.text(line) : undefined) // Subsequent lines are paragraphs
-				);
-
-				// Build and dispatch the transaction to replace the word at cursor
-				tr = tr.replaceWith(start, end, nodes);
-
-				let newSelectionPos;
-
-				// +1 because the insert happens at start, so last para starts at (start + sum of all previous nodes' sizes)
-				let lastPos = start;
-				for (let i = 0; i < nodes.length; i++) {
-					lastPos += nodes[i].nodeSize;
-				}
-				// Place cursor inside the last paragraph at its end
-				newSelectionPos = lastPos;
-
-				tr = tr.setSelection(TextSelection.near(tr.doc.resolve(newSelectionPos)));
-			} else {
-				tr = tr.replaceWith(
-					start,
-					end, // replace this range
-					text !== '' ? state.schema.text(text) : []
-				);
-
-				tr = tr.setSelection(
-					state.selection.constructor.near(tr.doc.resolve(start + text.length + 1))
-				);
-			}
+			const nodes = textToNodes(state, text);
+			tr = tr.replaceWith(start, end, nodes);
+			const newPos = start + nodes.reduce((sum, node) => sum + node.nodeSize, 0);
+			tr = tr.setSelection(Selection.near(tr.doc.resolve(newPos)));
 		}
 
 		dispatch(tr);
@@ -517,9 +479,8 @@
 	};
 
 	// Convert text to ProseMirror nodes, using hardBreak for newlines
-	const textToNodes = (state, text) => {
-		if (!text.includes('\n')) return state.schema.text(text);
-		const nodes = [];
+	const textToNodes = (state: EditorState, text: string): ProseMirrorNode[] => {
+		const nodes: ProseMirrorNode[] = [];
 		text.split('\n').forEach((line, i) => {
 			if (i > 0) nodes.push(state.schema.nodes.hardBreak.create());
 			if (line) nodes.push(state.schema.text(line));
@@ -645,17 +606,23 @@
 		return false;
 	}
 
-	export const setContent = (content) => {
+	export const setContent = (content: Content): void => {
+		if (!editor || editor.isDestroyed) return;
 		editor.commands.setContent(content);
 	};
 
-	const selectTemplate = () => {
-		if (value !== '') {
+	const selectTemplate = (): void => {
+		const currentEditor = editor;
+		if (value !== '' && currentEditor && !currentEditor.isDestroyed) {
 			// After updating the state, try to find and select the next template
 			setTimeout(() => {
-				const templateFound = selectNextTemplate(editor.view.state, editor.view.dispatch);
+				if (editor !== currentEditor || currentEditor.isDestroyed) return;
+				const templateFound = selectNextTemplate(
+					currentEditor.view.state,
+					currentEditor.view.dispatch
+				);
 				if (!templateFound) {
-					editor.commands.focus('end');
+					currentEditor.commands.focus('end');
 				}
 			}, 0);
 		}
@@ -992,20 +959,8 @@
 							'\n'
 						);
 
-						const lines = plainText.split('\n');
-						const nodes = [];
-
-						lines.forEach((line, index) => {
-							if (index > 0) {
-								nodes.push(state.schema.nodes.hardBreak.create());
-							}
-							if (line.length > 0) {
-								nodes.push(state.schema.text(line));
-							}
-						});
-
-						const fragment = Fragment.fromArray(nodes);
-						dispatch(state.tr.replaceSelectionWith(fragment, false).scrollIntoView());
+						const slice = new Slice(Fragment.fromArray(textToNodes(state, plainText)), 0, 0);
+						dispatch(state.tr.replaceSelection(slice).scrollIntoView());
 
 						return true; // handled
 					}
@@ -1031,20 +986,9 @@
 
 							const { state, dispatch } = view;
 							const { from, to } = state.selection;
-							const lines = event.data.split('\n');
-							const nodes = [];
-
-							lines.forEach((line, index) => {
-								if (index > 0) {
-									nodes.push(state.schema.nodes.hardBreak.create());
-								}
-								if (line.length > 0) {
-									nodes.push(state.schema.text(line));
-								}
-							});
-
-							const fragment = Fragment.fromArray(nodes);
-							dispatch(state.tr.replaceWith(from, to, fragment).scrollIntoView());
+							dispatch(
+								state.tr.replaceWith(from, to, textToNodes(state, event.data)).scrollIntoView()
+							);
 							return true;
 						}
 						return false;
@@ -1176,20 +1120,7 @@
 									const { state, dispatch } = view;
 									const { from, to } = state.selection;
 
-									const lines = plainText.split('\n');
-									const nodes = [];
-
-									lines.forEach((line, index) => {
-										if (index > 0) {
-											nodes.push(state.schema.nodes.hardBreak.create());
-										}
-										if (line.length > 0) {
-											nodes.push(state.schema.text(line));
-										}
-									});
-
-									const fragment = Fragment.fromArray(nodes);
-									const tr = state.tr.replaceWith(from, to, fragment);
+									const tr = state.tr.replaceWith(from, to, textToNodes(state, plainText));
 									dispatch(tr.scrollIntoView());
 									event.preventDefault();
 									return true;
