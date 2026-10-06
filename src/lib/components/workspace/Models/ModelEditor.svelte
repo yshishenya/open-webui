@@ -3,6 +3,8 @@
 
 	import { onMount, getContext, tick } from 'svelte';
 	import { models, tools, functions, user } from '$lib/stores';
+	import type { Model } from '$lib/stores';
+	import type { InputVariable } from '$lib/utils/airis/input_variables';
 	import { WEBUI_BASE_URL, DEFAULT_CAPABILITIES } from '$lib/constants';
 
 	import { getTools } from '$lib/apis/tools';
@@ -22,7 +24,6 @@
 	import ActionsSelector from '$lib/components/workspace/Models/ActionsSelector.svelte';
 	import Capabilities from '$lib/components/workspace/Models/Capabilities.svelte';
 	import Textarea from '$lib/components/common/Textarea.svelte';
-	import AccessControl from '../common/AccessControl.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ChevronLeft from '$lib/components/icons/ChevronLeft.svelte';
 	import DefaultFiltersSelector from './DefaultFiltersSelector.svelte';
@@ -37,8 +38,8 @@
 
 	const i18n = getContext('i18n');
 
-	export let onSubmit: Function;
-	export let onBack: null | Function = null;
+	export let onSubmit: (modelInfo: typeof info) => unknown;
+	export let onBack: (() => void | Promise<void>) | null = null;
 
 	export let model = null;
 	export let edit = false;
@@ -46,7 +47,6 @@
 	export let preset = true;
 
 	let loading = false;
-	let success = false;
 
 	let filesInputElement;
 	let inputFiles;
@@ -133,7 +133,10 @@
 
 		const fields = Object.entries(variables)
 			.filter(([name]) => name.startsWith('chat.variables.'))
-			.map(([name, field]) => ({ key: name.replace('chat.variables.', ''), ...(field as any) }));
+			.map(([name, field]) => ({
+				key: name.replace('chat.variables.', ''),
+				...(field as Partial<Pick<InputVariable, 'type' | 'required' | 'options'>>)
+			}));
 		const userFields = Object.entries(variables)
 			.filter(([name]) => name.startsWith('user.variables.'))
 			.map(([name]) => ({ key: name.replace('user.variables.', '') }));
@@ -168,8 +171,14 @@
 
 	$: chatVariablesPreview = getChatVariablesPreview(system ?? '');
 
-	const getBaseModelItems = (models: any[] = []) => {
-		const currentModelId = (model as any)?.id;
+	const getBaseModelItems = (
+		models: (Pick<Model, 'id' | 'name' | 'info'> & {
+			owned_by: Model['owned_by'] | 'arena';
+			preset?: boolean;
+			direct?: boolean;
+		})[] = []
+	) => {
+		const currentModelId = (model as Model | null)?.id;
 
 		return models
 			.filter(
@@ -203,7 +212,7 @@
 		voices = res?.voices ?? [];
 	};
 
-	const toModelKnowledgeReference = (item: any) => {
+	const toModelKnowledgeReference = (item: unknown): unknown => {
 		if (!item || typeof item !== 'object') {
 			return item;
 		}
@@ -219,12 +228,17 @@
 				'collection_name',
 				'collection_names'
 			]
-				.filter((key) => item[key] !== undefined && item[key] !== null && item[key] !== '')
-				.map((key) => [key, item[key]])
+				.filter(
+					(key) =>
+						(item as Record<string, unknown>)[key] !== undefined &&
+						(item as Record<string, unknown>)[key] !== null &&
+						(item as Record<string, unknown>)[key] !== ''
+				)
+				.map((key) => [key, (item as Record<string, unknown>)[key]])
 		);
 	};
 
-	const submitHandler = async () => {
+	const submitHandler = async (): Promise<void> => {
 		loading = true;
 
 		info.id = id;
@@ -264,7 +278,8 @@
 		info.meta.capabilities = capabilities;
 
 		if (enableDescription) {
-			info.meta.description = info.meta.description.trim() === '' ? null : info.meta.description;
+			info.meta.description =
+				(info.meta.description ?? '').trim() === '' ? null : info.meta.description;
 		} else {
 			info.meta.description = null;
 		}
@@ -365,10 +380,13 @@
 			}
 		});
 
-		await onSubmit(info);
-
-		loading = false;
-		success = false;
+		try {
+			await onSubmit(info);
+		} catch (error) {
+			toast.error(typeof error === 'string' ? error : $i18n.t('Something went wrong :/'));
+		} finally {
+			loading = false;
+		}
 	};
 
 	onMount(async () => {
@@ -525,7 +543,7 @@
 						let originalImageUrl = `${event.target?.result}`;
 
 						// For animated formats (gif, webp), skip resizing to preserve animation
-						const fileType = (inputFiles[0] as any)?.['type'];
+						const fileType = (inputFiles[0] as File)?.['type'];
 						if (fileType === 'image/gif' || fileType === 'image/webp') {
 							info.meta.profile_image_url = originalImageUrl;
 							inputFiles = null;
@@ -579,12 +597,12 @@
 						inputFiles &&
 						inputFiles.length > 0 &&
 						['image/gif', 'image/webp', 'image/jpeg', 'image/png', 'image/svg+xml'].includes(
-							(inputFiles[0] as any)?.['type']
+							(inputFiles[0] as File)?.['type']
 						)
 					) {
 						reader.readAsDataURL(inputFiles[0]);
 					} else {
-						console.log(`Unsupported File Type '${(inputFiles[0] as any)?.['type']}'.`);
+						console.log(`Unsupported File Type '${(inputFiles[0] as File)?.['type']}'.`);
 						inputFiles = null;
 					}
 				}}
@@ -955,7 +973,7 @@
 									([key, value]) =>
 										value && ['web_search', 'code_interpreter', 'image_generation'].includes(key)
 								)
-								.map(([key, value]) => key)}
+								.map(([key]) => key)}
 
 							{#if availableFeatures.length > 0}
 								<div class="my-3">
@@ -1042,7 +1060,7 @@
 										value={JSON.stringify(info, null, 2)}
 										disabled
 										readonly
-									/>
+									></textarea>
 								</div>
 							{/if}
 						</div>

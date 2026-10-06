@@ -1,0 +1,8 @@
+- [ ] **[BUG][MODELS]** Restore save retry after model submission errors
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-06__bugfix__model-editor-save-recovery.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/model-editor-save-recovery`
+  - Started: 2026-10-06
+  - Summary: Actual handler reproduces null.trim() on retry and stuck loading on edit rejection; fix the common editor for all three consumers.
+  - Tests: Docker actual handler reproduction passed; regression and release acceptance pending.
+  - Risks: Shared editor save path; preserve parent contracts and existing valid payloads.
