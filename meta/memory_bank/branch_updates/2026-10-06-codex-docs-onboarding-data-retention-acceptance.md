@@ -1,0 +1,7 @@
+- [x] **[DOCS][DATA]** Record retention production acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-06__bugfix__onboarding-data-retention.md`
+  - Owner: Codex
+  - Done: 2026-10-06
+  - Summary: Close3/3 SDD after exact-source CI and guarded actual-image release; retain full-goal limits.
+  - Tests: SDD/link validation; source/merge equality; read-only runtime/money preservation.
+  - Risks: Documentation only; real pilot and fullG14 remain open.

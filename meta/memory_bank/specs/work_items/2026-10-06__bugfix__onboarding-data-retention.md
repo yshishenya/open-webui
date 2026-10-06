@@ -1,12 +1,12 @@
 # Onboarding data retention
 ## Meta
 - Type: bugfix
-- Status: active
+- Status: completed
 - Workflow: bug_fix
 - Owner: Codex
 - Branch: `codex/bugfix/onboarding-data-retention`
 - Created: 2026-10-06
-- SDD Spec: `meta/sdd/specs/active/airis-onboarding-data-retention-2026-10-06-001.json`
+- SDD Spec: `meta/sdd/specs/completed/airis-onboarding-data-retention-2026-10-06-001.json`
 
 ## Context and goal
 Age cleanup currently covers only preference events and unsubscribe tokens.
@@ -32,7 +32,7 @@ until source, both databases and production acceptance pass.
 - [x] At most1000 deleted rows per data class per pass; repeated/two-worker
       passes preserve source keys and do not send HTTP/SMTP.
 - [x] SQLite and PostgreSQL regressions, Ruff/Black, SDD/link checks pass.
-- [ ] Exact-source CI/merge, guarded image release/backup/health and current
+- [x] Exact-source CI/merge, guarded image release/backup/health and current
       read-only preservation evidence accepted before closing01.16.
 
 ## Scope and reuse
@@ -72,3 +72,19 @@ Read-only production inventory:0age candidates,5unresolved analytics protected.
 This is release preflight only:production cleanup/release acceptance pending.
 
 Late review caught a current-time browser replay after whole-event removal. Retain minimal event receipt while clearing properties; add same-key/current-time replay regression. Prior source/image evidence remains historical; renewed source checks required.
+
+## Production acceptance 2026-10-06
+PR310 source `6a2b5394518d4ac5bfc7e64039cc4db934a66107` merged as
+`6541c68aab11926b5fb71d18a98618fe6ecf04e5`; source/merge trees equal.
+11 applicable unique CI checks passed; dependency-review skipped and CodeRabbit
+review disabled. Backend1007passed/10skipped/186warnings; fullG14 remains open.
+Actual candidate image PG242passed,SQLite234passed/8 PG-only cases passed
+on PostgreSQL. Digest `sha256:c2703ce7337bea8bf6d481fec6e13c162c544b9e6e3a62e1dfd939bd3d05d31d`;
+427 Python/4914 frontend files equal the candidate, all frontend bytes preserved.
+Guarded checked backup, hard Alembic revision `o1a020261003`, no-deps/no-build
+rollout and image pin accepted. Healthy/restarts0; environment, three compose
+files and all12 current neighboring containers preserved. Only image keys in
+.env changed. Read-only before/after money hashes equal;0 age candidates and
+5 unresolved analytics remain. No experimental production cleanup.
+Browser guide/prefill/wallet acceptance recorded in private evidence; real
+Inbox/phone/voluntary pilot/calendar windows are separate full-goal conditions.
