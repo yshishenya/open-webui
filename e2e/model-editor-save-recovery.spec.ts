@@ -49,6 +49,8 @@ for (const mode of ['create', 'edit'] as const) {
 				exact: true
 			});
 			await expect(save).toBeEnabled();
+			const changelog = page.getByRole('button', { name: "Okay, Let's Go!" });
+			if ((await changelog.count()) > 0) await changelog.click();
 			if (mode === 'create') {
 				await save.click(); // Actual duplicate callback returns without navigating.
 				await expect(page.getByText(/already exists\. Please select/)).toBeVisible();
