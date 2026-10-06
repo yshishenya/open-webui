@@ -2,7 +2,7 @@
 	"spec_id": "airis-model-defaults-load-recovery-2026-10-06-001",
 	"title": "Airis model defaults load recovery 2026-10-06",
 	"generated": "2026-10-06T03:52:47.199123Z",
-	"last_updated": "2026-10-06T03:58:42.681491Z",
+	"last_updated": "2026-10-06T04:14:56.213839Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "low",
@@ -11,19 +11,20 @@
 		"security_sensitive": false,
 		"default_category": "implementation",
 		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__bugfix__model-defaults-load-recovery.md",
-		"status": "active",
+		"status": "completed",
 		"activated_date": "2026-10-06T03:53:28.491683Z",
-		"progress_percentage": 50
+		"progress_percentage": 100,
+		"completed_date": "2026-10-06T04:14:56.213562Z"
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
 			"title": "Airis model defaults load recovery 2026-10-06",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2"],
 			"total_tasks": 2,
-			"completed_tasks": 1,
+			"completed_tasks": 2,
 			"metadata": {}
 		},
 		"phase-1": {
@@ -43,12 +44,16 @@
 		"phase-2": {
 			"type": "phase",
 			"title": "Accept source and production",
-			"status": "pending",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-2-1"],
 			"total_tasks": 1,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-06T04:14:55.725274Z",
+				"journaled_at": "2026-10-06T04:14:55.727234Z"
+			}
 		},
 		"task-1-1": {
 			"type": "task",
@@ -69,13 +74,17 @@
 		"task-2-1": {
 			"type": "task",
 			"title": "Verify Docker, browser, CI, merge and guarded release",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-2",
 			"children": [],
 			"total_tasks": 1,
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"metadata": {
-				"category": "implementation"
+				"category": "implementation",
+				"completed_at": "2026-10-06T04:14:55.725074Z",
+				"needs_journaling": false,
+				"status_note": "Final source4fc6657fa: handlers16/16, Docker622/622, compiled Chromium/Firefox3902/2 with six refusal stages each and pageerrors0. Exact-source CI all applicable success, merge tree equal. Immutable current-base release accepted: backup/SHA256/archive/pg_restore/Alembic,4914 frontend/426Python,ENV/13neighbors preserved; healthy/restarts0, public/ordinary account accepted. General G14 and pilot/human/payment gates remain open.",
+				"journaled_at": "2026-10-06T04:14:55.726150Z"
 			}
 		}
 	},
@@ -97,6 +106,24 @@
 			"content": "All child tasks in phase phase-1 have been completed.",
 			"metadata": {},
 			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-06T04:14:55.726145Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify Docker, browser, CI, merge and guarded release",
+			"author": "Codex",
+			"content": "Task task-2-1 marked as completed. \nNote: Final source4fc6657fa: handlers16/16, Docker622/622, compiled Chromium/Firefox3902/2 with six refusal stages each and pageerrors0. Exact-source CI all applicable success, merge tree equal. Immutable current-base release accepted: backup/SHA256/archive/pg_restore/Alembic,4914 frontend/426Python,ENV/13neighbors preserved; healthy/restarts0, public/ordinary account accepted. General G14 and pilot/human/payment gates remain open.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-06T04:14:55.727229Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Accept source and production",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
 		}
 	]
 }

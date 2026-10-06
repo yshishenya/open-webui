@@ -4,3 +4,9 @@
   - Branch: codex/bugfix/model-defaults-load-recovery
   - Started: 2026-10-06
   - Summary: Actual config read refusal leaves loading=true and rejects without user-safe recovery; protect initial state and add retry before current-base production acceptance.
+
+- [x] **[BUG]** Model defaults initial load recovery accepted on production.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-06**bugfix**model-defaults-load-recovery.md
+  - Owner: Codex
+  - Done: 2026-10-06
+  - Summary: Rejected/null read releases loading and presents safe Retry without false editable defaults; retry loads confirmed settings. Source/CI/merge/compiled browsers/current-base backup/migration/runtime/public/ordinary-account accepted; SDD2/2 closed. General quality and human/pilot gates remain open.
