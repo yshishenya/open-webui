@@ -1,0 +1,109 @@
+{
+  "spec_id": "airis-admin-model-save-recovery-2026-10-06-001",
+  "title": "Airis admin model save recovery 2026-10-06",
+  "generated": "2026-10-06T01:50:03.536898Z",
+  "last_updated": "2026-10-06T02:00:19.883879Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "medium",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__bugfix__admin-model-save-recovery.md",
+    "status": "active",
+    "activated_date": "2026-10-06T01:50:45.099710Z",
+    "progress_percentage": 50
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis admin model save recovery 2026-10-06",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and repair all admin mutation callers",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T02:00:19.881904Z",
+        "journaled_at": "2026-10-06T02:00:19.883851Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Accept exact source and current production overlay",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Preserve editor fields and truthful single/batch state",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "category": "implementation",
+        "completed_at": "2026-10-06T02:00:19.881741Z",
+        "needs_journaling": false,
+        "status_note": "Actual helper/editor/sibling callers traced; rejected/null outcomes fixed.14handler checks and Docker602/602 pass; types3502\u21923496/157warnings, lint1335\u21921330, no new mapped diagnostics. Compiled browser/source/production phase remains open.",
+        "journaled_at": "2026-10-06T02:00:19.882839Z"
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify tests, CI, merge, image and guarded release",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "metadata": {
+        "category": "implementation"
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-06T02:00:19.882834Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Preserve editor fields and truthful single/batch state",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Actual helper/editor/sibling callers traced; rejected/null outcomes fixed.14handler checks and Docker602/602 pass; types3502\u21923496/157warnings, lint1335\u21921330, no new mapped diagnostics. Compiled browser/source/production phase remains open.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-06T02:00:19.883847Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce and repair all admin mutation callers",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}

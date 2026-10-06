@@ -61,6 +61,11 @@
 	import TagSelector from '$lib/components/workspace/common/TagSelector.svelte';
 
 	type ModelListItem = { id: string; name?: string };
+	type ModelMutation = ModelListItem & {
+		base_model_id?: string | null;
+		is_active?: boolean;
+		meta?: Record<string, unknown>;
+	};
 
 	let shiftKey = false;
 
@@ -168,69 +173,63 @@
 
 	$: canReorderModels = searchValue === '' && viewOption === '' && selectedTag === '';
 
-	const enableAllHandler = async () => {
-		const modelsToEnable = filteredModels.filter((m) => !(m.is_active ?? true));
-		// Optimistic UI update
-		modelsToEnable.forEach((m) => (m.is_active = true));
-		models = models;
-		// Sync with server
-		await Promise.all(
-			modelsToEnable.map((model) => upsertModelHandler(model, { is_active: true }, false))
+	const enableAllHandler = async (): Promise<void> => {
+		const modelsToEnable = filteredModels.filter((m: ModelMutation) => !(m.is_active ?? true));
+		const results = await Promise.allSettled(
+			modelsToEnable.map((model: ModelMutation) =>
+				upsertModelHandler(model, { is_active: true }, false)
+			)
 		);
+		if (results.some((result) => result.status === 'rejected')) {
+			toast.error($i18n.t('Something went wrong :/'));
+		}
 
-		await tick();
 		await init();
 	};
 
-	const disableAllHandler = async () => {
-		const modelsToDisable = filteredModels.filter((m) => m.is_active ?? true);
-		// Optimistic UI update
-		modelsToDisable.forEach((m) => (m.is_active = false));
-		models = models;
-		// Sync with server
-		await Promise.all(
-			modelsToDisable.map((model) => upsertModelHandler(model, { is_active: false }, false))
+	const disableAllHandler = async (): Promise<void> => {
+		const modelsToDisable = filteredModels.filter((m: ModelMutation) => m.is_active ?? true);
+		const results = await Promise.allSettled(
+			modelsToDisable.map((model: ModelMutation) =>
+				upsertModelHandler(model, { is_active: false }, false)
+			)
 		);
+		if (results.some((result) => result.status === 'rejected')) {
+			toast.error($i18n.t('Something went wrong :/'));
+		}
 
-		await tick();
 		await init();
 	};
 
-	const showAllHandler = async () => {
-		const modelsToShow = filteredModels.filter((m) => m?.meta?.hidden === true);
-		// Optimistic UI update
-		modelsToShow.forEach((m) => {
-			m.meta = { ...m.meta, hidden: false };
-		});
-		models = models;
-		// Sync with server
-		await Promise.all(
-			modelsToShow.map((model) =>
+	const showAllHandler = async (): Promise<void> => {
+		const modelsToShow = filteredModels.filter((m: ModelMutation) => m?.meta?.hidden === true);
+		const results = await Promise.allSettled(
+			modelsToShow.map((model: ModelMutation) =>
 				upsertModelHandler(model, { meta: { ...model.meta, hidden: false } }, false)
 			)
 		);
+		if (results.some((result) => result.status === 'rejected')) {
+			toast.error($i18n.t('Something went wrong :/'));
+		} else {
+			toast.success($i18n.t('All models are now visible'));
+		}
 
-		toast.success($i18n.t('All models are now visible'));
-		await tick();
 		await init();
 	};
 
-	const hideAllHandler = async () => {
-		const modelsToHide = filteredModels.filter((m) => !(m?.meta?.hidden ?? false));
-		// Optimistic UI update
-		modelsToHide.forEach((m) => {
-			m.meta = { ...m.meta, hidden: true };
-		});
-		models = models;
-		// Sync with server
-		await Promise.all(
-			modelsToHide.map((model) =>
+	const hideAllHandler = async (): Promise<void> => {
+		const modelsToHide = filteredModels.filter((m: ModelMutation) => !(m?.meta?.hidden ?? false));
+		const results = await Promise.allSettled(
+			modelsToHide.map((model: ModelMutation) =>
 				upsertModelHandler(model, { meta: { ...model.meta, hidden: true } }, false)
 			)
 		);
+		if (results.some((result) => result.status === 'rejected')) {
+			toast.error($i18n.t('Something went wrong :/'));
+		} else {
+			toast.success($i18n.t('All models are now hidden'));
+		}
 
-		toast.success($i18n.t('All models are now hidden'));
-		await tick();
 		await init();
 	};
 
@@ -447,55 +446,46 @@
 		});
 	}
 
-	const upsertModelHandler = async (model, overrides = {}, showToast = true) => {
+	const upsertModelHandler = async (
+		model: ModelMutation,
+		overrides: Partial<ModelMutation> = {},
+		showToast = true
+	): Promise<void> => {
 		model = { ...model, base_model_id: null, ...overrides };
-
-		if (workspaceModels.find((m) => m.id === model.id)) {
-			const res = await updateModelById(localStorage.token, model.id, model).catch((error) => {
-				return null;
-			});
-
-			if (res && showToast) {
-				toast.success($i18n.t('Model updated successfully'));
-			}
-		} else {
-			const res = await createNewModel(localStorage.token, {
-				meta: {},
-				id: model.id,
-				name: model.name,
-				base_model_id: null,
-				params: {},
-				access_grants: [],
-				...model
-			}).catch((error) => {
-				return null;
-			});
-
-			if (res && showToast) {
-				toast.success($i18n.t('Model updated successfully'));
-				await init();
-			}
+		const res = workspaceModels.some((m) => m.id === model.id)
+			? await updateModelById(localStorage.token, model.id, model)
+			: await createNewModel(localStorage.token, {
+					meta: {},
+					params: {},
+					access_grants: [],
+					...model
+				});
+		if (!res) throw new Error($i18n.t('Something went wrong :/'));
+		if (!workspaceModels.some((m) => m.id === model.id)) {
+			workspaceModels = [...workspaceModels, res];
 		}
+		if (showToast) toast.success($i18n.t('Model updated successfully'));
 	};
 
-	const toggleModelHandler = async (model) => {
-		if (!Object.keys(model).includes('base_model_id')) {
-			await createNewModel(localStorage.token, {
-				id: model.id,
-				name: model.name,
-				base_model_id: null,
-				meta: {},
-				params: {},
-				access_grants: [],
-				is_active: model.is_active
-			}).catch((error) => {
-				return null;
-			});
-		} else {
-			await toggleModelById(localStorage.token, model.id);
+	const toggleModelHandler = async (model: ModelMutation): Promise<void> => {
+		try {
+			if (!workspaceModels.some((m) => m.id === model.id)) {
+				await upsertModelHandler(
+					{ id: model.id, name: model.name, is_active: model.is_active },
+					{},
+					false
+				);
+			} else {
+				const res = await toggleModelById(localStorage.token, model.id);
+				if (!res) throw new Error($i18n.t('Something went wrong :/'));
+			}
+		} catch (error) {
+			model.is_active = !model.is_active;
+			models = models;
+			toast.error(typeof error === 'string' ? error : $i18n.t('Something went wrong :/'));
+			return;
 		}
 
-		// await init();
 		_models.set(
 			await getModels(
 				localStorage.token,
@@ -504,7 +494,7 @@
 		);
 	};
 
-	const hideModelHandler = async (model) => {
+	const hideModelHandler = async (model: ModelMutation): Promise<void> => {
 		const updatedModel = {
 			...model,
 			meta: {
@@ -513,7 +503,12 @@
 			}
 		};
 
-		await upsertModelHandler(updatedModel, { meta: updatedModel.meta }, false);
+		try {
+			await upsertModelHandler(updatedModel, { meta: updatedModel.meta }, false);
+		} catch (error) {
+			toast.error(typeof error === 'string' ? error : $i18n.t('Something went wrong :/'));
+			return;
+		}
 		models = models.map((model) => (model.id === updatedModel.id ? updatedModel : model));
 		_models.set(
 			await getModels(
@@ -581,7 +576,7 @@
 		}
 	};
 
-	const getFullModel = async (model: any) =>
+	const getFullModel = async (model: ModelListItem): Promise<ModelListItem> =>
 		workspaceModels.some((workspaceModel) => workspaceModel.id === model.id)
 			? ((await getModelById(localStorage.token, model.id).catch(() => null)) ?? model)
 			: model;
@@ -960,7 +955,7 @@
 									>
 										<Tooltip
 											content={marked.parse(
-												!!model?.meta?.description
+												model?.meta?.description
 													? model?.meta?.description
 													: model?.ollama?.digest
 														? `${model?.ollama?.digest} **(${model?.ollama?.modified_at})**`
@@ -1215,7 +1210,6 @@
 			model={models.find((m) => m.id === selectedModelId)}
 			preset={false}
 			onSubmit={async (model) => {
-				console.log(model);
 				await upsertModelHandler(model);
 				selectedModelId = null;
 				await init();
