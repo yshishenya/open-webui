@@ -614,30 +614,40 @@
 		await updateUserSettings(localStorage.token, { ui: $settings });
 	};
 
-	onMount(async () => {
-		await init();
+	onMount((): (() => void) => {
+		let disposed = false;
 
-		const onKeyDown = (event) => {
+		const onKeyDown = (event: KeyboardEvent): void => {
 			if (event.key === 'Shift') {
 				shiftKey = true;
 			}
 		};
 
-		const onKeyUp = (event) => {
+		const onKeyUp = (event: KeyboardEvent): void => {
 			if (event.key === 'Shift') {
 				shiftKey = false;
 			}
 		};
 
-		const onBlur = () => {
+		const onBlur = (): void => {
 			shiftKey = false;
 		};
 
-		window.addEventListener('keydown', onKeyDown);
-		window.addEventListener('keyup', onKeyUp);
-		window.addEventListener('blur', onBlur);
+		const initialize = async (): Promise<void> => {
+			await init();
+			if (disposed) return;
+			window.addEventListener('keydown', onKeyDown);
+			window.addEventListener('keyup', onKeyUp);
+			window.addEventListener('blur', onBlur);
+		};
+		void initialize().catch((error: unknown) => {
+			if (!disposed) {
+				toast.error(typeof error === 'string' ? error : $i18n.t('Something went wrong :/'));
+			}
+		});
 
-		return () => {
+		return (): void => {
+			disposed = true;
 			window.removeEventListener('keydown', onKeyDown);
 			window.removeEventListener('keyup', onKeyUp);
 			window.removeEventListener('blur', onBlur);
