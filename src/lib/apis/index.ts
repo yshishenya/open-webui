@@ -1709,6 +1709,10 @@ export interface ModelConfig {
 export interface ModelMeta {
 	hidden?: boolean | null;
 	toolIds?: string[] | null;
+	skillIds?: string[] | null;
+	defaultFilterIds?: string[] | null;
+	defaultFeatureIds?: string[] | null;
+	terminalId?: string | null;
 	description?: string;
 	capabilities?:
 		| (Partial<Record<keyof typeof DEFAULT_CAPABILITIES, boolean>> & Record<string, unknown>)
