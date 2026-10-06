@@ -32,10 +32,31 @@ test('model defaults retain failed edits, recover Save and persist retry', async
 	);
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
-	await page.goto('/?settings=admin%3Ageneral');
-	await page.locator('[role="tab"][aria-controls="tab-admin-models"]').click();
-	await expect(page.locator('[id="model-item-gpt-5.6-luna"]')).toBeVisible();
-	await page.getByRole('button', { name: 'Model Defaults', exact: true }).click();
+	for (const loadFailure of ['refused', 'null']) {
+		let reads = 0;
+		await page.route('**/api/v1/configs/models', async (route) => {
+			if (route.request().method() === 'GET' && ++reads === 2) {
+				await route.fulfill({
+					status: loadFailure === 'refused' ? 503 : 200,
+					json: loadFailure === 'refused' ? { detail: 'private fixture refusal' } : null
+				});
+			} else await route.continue();
+		});
+		await page.goto('/?settings=admin%3Ageneral');
+		await page.locator('[role="tab"][aria-controls="tab-admin-models"]').click();
+		await expect(page.locator('[id="model-item-gpt-5.6-luna"]')).toBeVisible();
+		await page.getByRole('button', { name: 'Model Defaults', exact: true }).click();
+		await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
+		await expect(page.getByRole('button', { name: /^Model Capabilities/ })).toHaveCount(0);
+		await expect(
+			page.locator('[data-sonner-toast]').filter({ hasText: 'Something went wrong :/' })
+		).toHaveCount(1);
+		await page.unroute('**/api/v1/configs/models');
+		await page.getByRole('button', { name: 'Retry', exact: true }).click();
+		await expect(page.getByRole('button', { name: /^Model Capabilities/ })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Retry', exact: true })).toHaveCount(0);
+		await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15000 });
+	}
 	await page.getByRole('button', { name: /^Model Capabilities/ }).click();
 	const vision = page.getByRole('checkbox', { name: 'Vision', exact: true });
 	const save = page.getByRole('button', { name: 'Save', exact: true });
