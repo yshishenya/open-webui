@@ -1,0 +1,43 @@
+# Model pull response error recovery
+
+- Type: bugfix
+- Status: active
+- Workflow: bug_fix
+- Owner: Codex
+- Branch: `codex/bugfix/model-pull-response-errors`
+- Created: 2026-10-07
+- SDD Spec: `meta/sdd/specs/active/airis-model-pull-response-errors-2026-10-07-001.json`
+
+## Root cause / callers
+
+All pullModel callers traced: Selector.pullModelHandler and ManageOllama.pullModelHandler/updateModelsHandler. Selector catches failure with null then destructures it; all3 paths read a possibly absent response body. Update loop also announces success after a failed pull. Source-only reproduction gives4 uncaught failures/6 cases; tests must additionally reject misleading success. MoA already checks response/body and does not share these runtime defects. API tuple contract is separately reviewed in PR314; preserve it.
+
+## Scope / acceptance
+
+- [x] Actual three handler regressions fail before fix; cover rejection, empty-body and successful stream.
+- [x] Failed/empty response settles, leaves no pool/controller entry or loading state, reports failure and never announces success.
+- [x] Successful stream still updates models/clears state; connection index preserves numeric API contract.
+- [x] Docker full suite and diagnostics accepted; no suppression/dependency change.
+- [ ] Exact-source CI/integration and compiled-browser/production evidence accepted before completion.
+
+## Upstream impact
+
+Minimal native tuple fallback/body guards in two existing Svelte callers. Keep existing stream/parser/store APIs; no new runtime abstraction, dependency, schema or backend change. Changed upstream files: `src/lib/components/chat/ModelSelector/Selector.svelte` and `src/lib/components/admin/Settings/Models/Manage/ManageOllama.svelte`. Test actual handler initializers with installed TypeScript/VM pattern. Runtime change needs its own candidate/release proof; no real provider downloads in tests.
+
+## Implementation notes
+
+Native tuple fallbacks and optional body guards keep failures on the existing path.
+The update loop records failure so it cannot announce that every model is current.
+Existing Download failed key reused; missing Russian value filled with general text
+that also fits existing file downloads. No new localization key/dependency.
+Original actual-handler tests:6failed/3passed; first correction9/9 passed.
+Extend the same regression with streamed provider error to cover update-loop failure.
+
+## Local source acceptance
+
+Extended original8failed/4passed; fixed15/15 includes stream error/cancellation.
+Docker full706/706; full svelte-check3393→3388 errors,141warnings unchanged;
+ESLint1277 unchanged;0new normalized messages (diagnostic line shifts accounted
+separately). Changed-file Prettier and test ESLint pass. General G14 stays open.
+Upstream impact also includes existing ru-RU Download failed translation value.
+No deployment or compiled-browser acceptance claimed.

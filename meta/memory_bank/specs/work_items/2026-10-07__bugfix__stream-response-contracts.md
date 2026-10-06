@@ -1,12 +1,12 @@
 # Streaming response and cancellation tuple contracts
 
 - Type: bugfix
-- Status: active
+- Status: completed
 - Workflow: bug_fix
 - Owner: Codex
 - Branch: `codex/bugfix/stream-response-contracts`
 - Created: 2026-10-07
-- SDD Spec: `meta/sdd/specs/active/airis-stream-response-contracts-2026-10-07-001.json`
+- SDD Spec: `meta/sdd/specs/completed/airis-stream-response-contracts-2026-10-07-001.json`
 
 ## Root cause / scope
 Three existing helpers return `[Response|null, AbortController]` without a tuple
@@ -25,7 +25,7 @@ network/error behavior as part of a type-only correction.
 - [x] Compiler regression fails on all3 missing tuples;2correct siblings pass.
 - [x] All5 typed position checks pass; emitted JavaScript of touched APIs unchanged.
 - [x] Docker frontend/style/type diagnostics show a measurable reduction and no new source lines with failures; narrower existing diagnostics recorded.
-- [ ] Exact-source CI/integration accepted, SDD closed; full G14 remains open.
+- [x] Exact-source CI/integration accepted, SDD closed; full G14 remains open.
 
 ## Upstream impact / verification
 Minimal return annotations in upstream API files, one compiler-based regression
@@ -52,3 +52,14 @@ Full ESLint1277→1277,0 new messages. Changed-file ESLint clean. Same caller
 source lines remain failing;2 highlighted columns move to the whole body expression.
 General G14/13.11 remains open; this change does not claim a green full type/lint gate.
 Frontend691/691; SDD validation0errors/0warnings; Markdown link check recorded.
+
+## Integration acceptance
+
+PR314 source `6da9ed005326ac9f4224c653f32a457137852dfa`, merge
+`161cb92245a629356064907b0663077ac45923f4`; identical trees. Ten distinct
+CI checks successful, dependency-review skipped; CodeRabbit disabled for the
+base and not an independent review. SDD3/3 completed, validation0errors/0warnings.
+Production/image/config/revision unchanged, healthy/restarts0; four money tables
+preserved in read-only audit. No deploy for byte-identical executable output.
+Runtime error recovery is tracked separately in the model-pull-response-errors
+work item; full G14 and human/calendar acceptance stay open.

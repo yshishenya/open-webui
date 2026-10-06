@@ -446,14 +446,16 @@
 			return;
 		}
 
-		const [res, controller] = await pullModel(localStorage.token, sanitizedModelTag, '0').catch(
+		const [res, controller] = await pullModel(localStorage.token, sanitizedModelTag, 0).catch(
 			(error) => {
 				toast.error(`${error}`);
-				return null;
+				return [null, null] as const;
 			}
 		);
 
-		if (res) {
+		if (res && !res.body) toast.error($i18n.t('Download failed'));
+
+		if (res?.body) {
 			const reader = res.body
 				.pipeThrough(new TextDecoderStream())
 				.pipeThrough(splitStream('\n'))

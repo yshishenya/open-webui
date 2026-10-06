@@ -76,6 +76,7 @@
 
 	const updateModelsHandler = async () => {
 		updateCancelled = false;
+		let updateFailed = false;
 		toast.info('Checking for model updates...');
 
 		for (const model of ollamaModels) {
@@ -88,10 +89,11 @@
 			updateModelId = model.id;
 			const [res, controller] = await pullModel(localStorage.token, model.id, urlIdx).catch(
 				(error) => {
+					updateFailed = true;
 					if (error.name !== 'AbortError') {
 						toast.error(`${error}`);
 					}
-					return [null, null];
+					return [null, null] as const;
 				}
 			);
 
@@ -100,7 +102,12 @@
 				[model.id]: controller
 			};
 
-			if (res) {
+			if (res && !res.body) {
+				updateFailed = true;
+				toast.error($i18n.t('Download failed'));
+			}
+
+			if (res?.body) {
 				const reader = res.body
 					.pipeThrough(new TextDecoderStream())
 					.pipeThrough(splitStream('\n'))
@@ -137,8 +144,10 @@
 							}
 						}
 					} catch (err) {
-						if (err.name !== 'AbortError') {
+						updateFailed = true;
+						if (!(err && typeof err === 'object' && 'name' in err && err.name === 'AbortError')) {
 							console.error(err);
+							toast.error(`${err}`);
 						}
 						break;
 					}
@@ -151,7 +160,7 @@
 
 		if (updateCancelled) {
 			toast.info('Model update cancelled');
-		} else {
+		} else if (!updateFailed) {
 			toast.success('All models are up to date');
 		}
 		updateModelId = null;
@@ -182,11 +191,13 @@
 				if (error.name !== 'AbortError') {
 					toast.error(`${error}`);
 				}
-				return [null, null];
+				return [null, null] as const;
 			}
 		);
 
-		if (res) {
+		if (res && !res.body) toast.error($i18n.t('Download failed'));
+
+		if (res?.body) {
 			const reader = res.body
 				.pipeThrough(new TextDecoderStream())
 				.pipeThrough(splitStream('\n'))
