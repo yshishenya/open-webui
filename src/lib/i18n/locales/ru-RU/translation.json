@@ -870,7 +870,7 @@
 	"Download as SVG": "Загрузить как SVG",
 	"Download canceled": "Загрузка отменена",
 	"Download every user's chat history as JSON.": "",
-	"Download failed": "",
+	"Download failed": "Загрузка не удалась",
 	"Download the application database when supported.": "",
 	"Download the current admin configuration as JSON.": "",
 	"Download your chat history as a JSON export.": "",

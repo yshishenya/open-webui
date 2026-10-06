@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { marked } from 'marked';
 	import Fuse from 'fuse.js';
 
 	import dayjs from '$lib/dayjs';
@@ -10,38 +9,27 @@
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import { flyAndScale } from '$lib/utils/transitions';
 
-	import { createEventDispatcher, onMount, getContext, tick } from 'svelte';
+	import { onMount, getContext, tick } from 'svelte';
 
 	import { deleteModel, getOllamaVersion, pullModel } from '$lib/apis/ollama';
 	import { deleteModelById } from '$lib/apis/models';
 	import { unloadModel } from '$lib/apis';
 
-	import {
-		user,
-		MODEL_DOWNLOAD_POOL,
-		models,
-		temporaryChatEnabled,
-		settings,
-		config,
-		showSettings
-	} from '$lib/stores';
+	import { user, MODEL_DOWNLOAD_POOL, models, settings, config, showSettings } from '$lib/stores';
+	import type { Model } from '$lib/stores';
 	import { toast } from 'svelte-sonner';
-	import { capitalizeFirstLetter, sanitizeResponseContent, splitStream } from '$lib/utils';
+	import { splitStream } from '$lib/utils';
 	import { getModels } from '$lib/apis';
 
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
-	import Check from '$lib/components/icons/Check.svelte';
 	import Search from '$lib/components/icons/Search.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import Switch from '$lib/components/common/Switch.svelte';
-	import ChatBubbleOval from '$lib/components/icons/ChatBubbleOval.svelte';
 	import Keyframes from '$lib/components/icons/Keyframes.svelte';
 	import TagSelector from '$lib/components/workspace/common/TagSelector.svelte';
 
 	import ModelItem from './ModelItem.svelte';
 
 	const i18n = getContext('i18n');
-	const dispatch = createEventDispatcher();
 
 	export let id = '';
 	export let value: string | null = '';
@@ -58,9 +46,14 @@
 	export let items: {
 		label: string;
 		value: string;
-		model: Model;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		[key: string]: any;
+		model: Pick<Model, 'id' | 'name' | 'info'> & {
+			owned_by: Model['owned_by'] | 'arena';
+			connection_type?: string;
+			tags?: { name: string }[];
+			direct?: boolean;
+			preset?: boolean;
+		};
+		[key: string]: unknown;
 	}[] = [];
 
 	export let className = 'w-[20rem]';
@@ -213,7 +206,7 @@
 
 	let tags = [];
 
-	let selectedModel = '';
+	let selectedModel: (typeof items)[number] | '' = '';
 	$: selectedValues = values ?? (value ? [value] : []);
 	$: primaryValue = selectedValues[0] ?? value ?? '';
 	$: selectedModel = items.find((item) => item.value === primaryValue) ?? '';
@@ -446,14 +439,16 @@
 			return;
 		}
 
-		const [res, controller] = await pullModel(localStorage.token, sanitizedModelTag, '0').catch(
+		const [res, controller] = await pullModel(localStorage.token, sanitizedModelTag, 0).catch(
 			(error) => {
 				toast.error(`${error}`);
-				return null;
+				return [null, null] as const;
 			}
 		);
 
-		if (res) {
+		if (res && !res.body) toast.error($i18n.t('Download failed'));
+
+		if (res?.body) {
 			const reader = res.body
 				.pipeThrough(new TextDecoderStream())
 				.pipeThrough(splitStream('\n'))
@@ -469,7 +464,7 @@
 				}
 			});
 
-			while (true) {
+			for (;;) {
 				try {
 					const { value, done } = await reader.read();
 					if (done) break;
@@ -520,11 +515,7 @@
 					}
 				} catch (error) {
 					console.log(error);
-					if (typeof error !== 'string') {
-						error = error.message;
-					}
-
-					toast.error(`${error}`);
+					toast.error(`${typeof error === 'string' ? error : error.message}`);
 					// opts.callback({ success: false, error, modelName: opts.modelName });
 					break;
 				}
@@ -556,7 +547,7 @@
 	};
 
 	const setOllamaVersion = async () => {
-		ollamaVersion = await getOllamaVersion(localStorage.token).catch((error) => false);
+		ollamaVersion = await getOllamaVersion(localStorage.token).catch(() => false);
 	};
 
 	onMount(() => {
@@ -619,9 +610,9 @@
 	};
 
 	let showDeleteConfirm = false;
-	let deleteModelTarget: any = null;
+	let deleteModelTarget: (typeof items)[number]['model'] | null = null;
 
-	const deleteModelHandler = async (model: any) => {
+	const deleteModelHandler = async (model: (typeof items)[number]['model']): Promise<void> => {
 		deleteModelTarget = model;
 		showDeleteConfirm = true;
 	};
@@ -742,6 +733,7 @@
 			false)
 				? 'dark:placeholder-gray-100 placeholder-gray-800'
 				: 'placeholder-gray-400'}"
+			role="group"
 			on:mouseenter={async () => {
 				models.set(
 					await getModels(
@@ -875,7 +867,6 @@
 								</div>
 							{/if}
 						{:else}
-							<!-- svelte-ignore a11y-no-static-element-interactions -->
 							<div
 								class="min-h-0 flex-1 overflow-y-auto"
 								style="max-height: 288px;"
@@ -887,7 +878,7 @@
 									listScrollTop = listContainer.scrollTop;
 								}}
 							>
-								<div style="height: {visibleStart * ITEM_HEIGHT}px;" />
+								<div style="height: {visibleStart * ITEM_HEIGHT}px;"></div>
 								{#each filteredItems.slice(visibleStart, visibleEnd) as item, i (item.value)}
 									{@const index = visibleStart + i}
 									<ModelItem
@@ -906,7 +897,7 @@
 										}}
 									/>
 								{/each}
-								<div style="height: {(filteredItems.length - visibleEnd) * ITEM_HEIGHT}px;" />
+								<div style="height: {(filteredItems.length - visibleEnd) * ITEM_HEIGHT}px;"></div>
 							</div>
 						{/if}
 
@@ -1009,11 +1000,11 @@
 						<div class="shrink-0 pb-1"></div>
 					{/if}
 
-					<div class="hidden w-[42rem]" />
-					<div class="hidden w-[28rem]" />
-					<div class="hidden w-[24rem]" />
-					<div class="hidden w-[22rem]" />
-					<div class="hidden w-[20rem]" />
+					<div class="hidden w-[42rem]"></div>
+					<div class="hidden w-[28rem]"></div>
+					<div class="hidden w-[24rem]"></div>
+					<div class="hidden w-[22rem]"></div>
+					<div class="hidden w-[20rem]"></div>
 				</slot>
 			</div>
 		</div>
