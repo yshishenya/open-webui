@@ -22,7 +22,7 @@ from open_webui.models.analytics import (
     AnalyticsBinding,
     AnalyticsIdentity,
 )
-from open_webui.models.users import UserModel
+from open_webui.models.users import User, UserModel
 from open_webui.utils.airis.analytics import (
     LIFETIME_EVENTS,
     add_event,
@@ -178,10 +178,17 @@ async def update_context_fields(
         )
 
 
+async def require_context_account(db: AsyncSession, user: UserModel | None) -> None:
+    """Serialize authenticated context creation with common account deletion."""
+    if user and not await db.scalar(select(User.id).where(User.id == user.id).with_for_update()):
+        raise HTTPException(401, 'Account unavailable')
+
+
 @router.post('/context', response_model=ContextResponse, dependencies=[Depends(limit_ingestion)])
 async def set_context(form: ContextForm, user: UserModel | None = Depends(optional_user)) -> ContextResponse:
     now = int(time.time())
     async with get_async_db_context() as db:
+        await require_context_account(db, user)
         identity = (
             await db.execute(
                 select(AnalyticsIdentity)
@@ -190,7 +197,7 @@ async def set_context(form: ContextForm, user: UserModel | None = Depends(option
                     AnalyticsBinding.identity_id == AnalyticsIdentity.id,
                 )
                 .where(AnalyticsBinding.anonymous_id == str(form.anonymous_id))
-                .with_for_update()
+                .with_for_update(of=AnalyticsIdentity)
             )
         ).scalar_one_or_none()
         account = None
@@ -281,7 +288,7 @@ async def ingest_event(form: EventForm, user: UserModel | None = Depends(optiona
                 )
                 .where(AnalyticsBinding.anonymous_id == str(form.anonymous_id))
             )
-        identity = (await db.execute(query.with_for_update())).scalar_one_or_none()
+        identity = (await db.execute(query.with_for_update(of=AnalyticsIdentity))).scalar_one_or_none()
         if identity is None:
             return EventResponse(accepted=False)
         ensure_owner(identity, user)

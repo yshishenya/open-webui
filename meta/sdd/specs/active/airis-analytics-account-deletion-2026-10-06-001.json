@@ -1,0 +1,120 @@
+{
+  "spec_id": "airis-analytics-account-deletion-2026-10-06-001",
+  "title": "airis-analytics-account-deletion-2026-10-06",
+  "generated": "2026-10-06T08:59:02.051465Z",
+  "last_updated": "2026-10-06T09:25:25.437276Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "medium",
+    "estimated_hours": 3,
+    "security_sensitive": true,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__bugfix__analytics-account-deletion.md",
+    "status": "active",
+    "activated_date": "2026-10-06T09:01:58.275058Z",
+    "progress_percentage": 50
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-analytics-account-deletion-2026-10-06",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce account deletion and shared lock ordering",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T09:15:55.789770Z",
+        "journaled_at": "2026-10-06T09:15:55.800917Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Fix common boundary and verify isolated databases",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce retained analytics and identify all deletion callers",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-06T09:15:55.788905Z",
+        "needs_journaling": false,
+        "status_note": "Common deletion and stale-context failures reproduced on SQLite; all four original lifecycle/lock cases failed on PostgreSQL before the fix. Metrica post-marker lock order separately reproduced.",
+        "journaled_at": "2026-10-06T09:15:55.793636Z",
+        "file_path": "backend/open_webui/test/util/test_analytics_account_deletion.py"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Fix transaction boundary, stale context and shared worker lock order; verify both databases",
+      "status": "in_progress",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "backend/open_webui/utils/airis/analytics.py",
+        "started_at": "2026-10-06T09:25:25.436221Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-06T09:15:55.793605Z",
+      "entry_type": "status_change",
+      "title": "Reproduced lifecycle and lock defects",
+      "author": "Codex",
+      "content": "Inspected Auths/admin/SCIM common caller boundary. Disposable PostgreSQL reproduction: 4 failures, 0 setup errors after correcting fixture DDL commit; additional Metrica lock test fails before the final correction.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-06T09:15:55.800891Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce account deletion and shared lock ordering",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}

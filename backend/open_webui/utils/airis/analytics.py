@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 import httpx
 from open_webui.internal.db import get_async_db_context
 from open_webui.models.analytics import (
+    AnalyticsBinding,
     AnalyticsDelivery,
     AnalyticsEvent,
     AnalyticsIdentity,
@@ -202,6 +203,16 @@ async def purge_identity(db: AsyncSession, identity: AnalyticsIdentity) -> None:
     identity.last_touch = {}
 
 
+async def delete_account_analytics(db: AsyncSession, user_id: str) -> None:
+    """Erase local analytics in the account transaction, after its User lock."""
+    identity = await db.scalar(select(AnalyticsIdentity).where(AnalyticsIdentity.user_id == user_id).with_for_update())
+    if identity is None:
+        return
+    await purge_identity(db, identity)
+    await db.execute(delete(AnalyticsBinding).where(AnalyticsBinding.identity_id == identity.id))
+    await db.delete(identity)
+
+
 def safe_posthog_host(host: str) -> str:
     parsed = urlparse(host)
     if (
@@ -272,20 +283,23 @@ async def deliver_metrica(
         # Crashes/timeouts reconcile by comment and never blindly resend.
         delivery.state = 'uncertain'
         await db.commit()
+        # The marker commit released both locks: reacquire in the shared order.
+        identity = (
+            await db.execute(
+                select(AnalyticsIdentity)
+                .where(AnalyticsIdentity.id == event.identity_id)
+                .with_for_update(skip_locked=True)
+                .execution_options(populate_existing=True)
+            )
+        ).scalar_one_or_none()
+        if identity is None or not identity.consent:
+            return
         delivery = (
             await db.execute(
                 select(AnalyticsDelivery).where(AnalyticsDelivery.id == delivery_id).with_for_update(skip_locked=True)
             )
         ).scalar_one_or_none()
-        identity = (
-            await db.execute(
-                select(AnalyticsIdentity)
-                .where(AnalyticsIdentity.id == event.identity_id)
-                .with_for_update()
-                .execution_options(populate_existing=True)
-            )
-        ).scalar_one_or_none()
-        if delivery is None or identity is None or not identity.consent:
+        if delivery is None:
             return
         response = await client.post(
             f'{base}/upload',
@@ -308,6 +322,17 @@ async def deliver_metrica(
 async def deliver_one(delivery_id: str, client: httpx.AsyncClient) -> None:
     """Hold identity lock through transmission: revoke serializes against active sends."""
     async with get_async_db_context() as db:
+        # Revocation/deletion also locks Identity before deleting its delivery jobs.
+        owner_id = await db.scalar(
+            select(AnalyticsEvent.identity_id)
+            .join(AnalyticsDelivery, AnalyticsDelivery.event_id == AnalyticsEvent.id)
+            .where(AnalyticsDelivery.id == delivery_id)
+        )
+        identity = await db.scalar(
+            select(AnalyticsIdentity).where(AnalyticsIdentity.id == owner_id).with_for_update(skip_locked=True)
+        )
+        if identity is None and await db.scalar(select(AnalyticsIdentity.id).where(AnalyticsIdentity.id == owner_id)):
+            return
         delivery = (
             await db.execute(
                 select(AnalyticsDelivery).where(AnalyticsDelivery.id == delivery_id).with_for_update(skip_locked=True)
@@ -325,11 +350,8 @@ async def deliver_one(delivery_id: str, client: httpx.AsyncClient) -> None:
             await db.delete(delivery)
             await db.commit()
             return
-        identity = (
-            await db.execute(
-                select(AnalyticsIdentity).where(AnalyticsIdentity.id == event.identity_id).with_for_update()
-            )
-        ).scalar_one_or_none()
+        if event.identity_id != owner_id:
+            return  # An intervening identity merge is retried with its current owner.
         if identity is None or not identity.consent or event.occurred_at < identity.granted_at:
             delivery.state = 'suppressed'
             await db.commit()
