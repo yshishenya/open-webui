@@ -12,6 +12,7 @@ from open_webui.internal.db import get_async_db
 from open_webui.models.analytics import AnalyticsIdentity
 from open_webui.models.analytics_refunds import AnalyticsFirstPayment, AnalyticsRefund
 from open_webui.models.billing import LedgerEntry, LedgerEntryType, Payment, PaymentKind, PaymentStatus
+from open_webui.utils.airis.billing_reporting_facts import live_payment_condition, live_refund_condition
 from open_webui.utils.yookassa import get_yookassa_client
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -63,6 +64,7 @@ def _confirmed_query() -> Select:
             Payment.status == PaymentStatus.SUCCEEDED.value,
             Payment.kind == PaymentKind.TOPUP.value,
             Payment.provider == 'yookassa',
+            live_payment_condition(),
         )
     )
 
@@ -90,26 +92,18 @@ async def record_confirmed_payment(provider_payment_id: str) -> bool:
         marker = await db.get(AnalyticsFirstPayment, payment_user_id)
         first = (
             await db.execute(
-                select(Payment, LedgerEntry)
-                .join(
-                    LedgerEntry,
-                    and_(
-                        LedgerEntry.reference_id == Payment.provider_payment_id,
-                        LedgerEntry.reference_type == 'payment',
-                        LedgerEntry.type == LedgerEntryType.TOPUP.value,
-                        LedgerEntry.wallet_id == Payment.wallet_id,
-                        LedgerEntry.user_id == Payment.user_id,
-                    ),
-                )
-                .where(
-                    Payment.user_id == payment.user_id,
-                    Payment.provider == 'yookassa',
-                    Payment.kind == PaymentKind.TOPUP.value,
-                )
+                _confirmed_query()
+                .where(Payment.user_id == payment.user_id)
                 .order_by(LedgerEntry.created_at, Payment.id)
                 .limit(1)
             )
         ).first()
+        if marker is not None and first is not None:
+            marked_payment = await db.get(Payment, marker.payment_id)
+            if marked_payment is not None and (marked_payment.raw_payload_json or {}).get('test') is True:
+                marker.payment_id = first[0].id
+                marker.occurred_at = int(first[1].created_at)
+                await db.commit()
         if marker is None and first is not None:
             marker = AnalyticsFirstPayment(
                 user_id=payment.user_id, payment_id=first[0].id, occurred_at=int(first[1].created_at)
@@ -269,7 +263,9 @@ async def record_confirmed_refund(refund_id: str) -> bool:
     if enabled_at() <= 0:
         return False
     async with get_async_db() as db:
-        refund = await db.get(AnalyticsRefund, refund_id)
+        refund = await db.scalar(
+            select(AnalyticsRefund).where(AnalyticsRefund.id == refund_id, live_refund_condition())
+        )
         if refund is None or refund.occurred_at < enabled_at():
             return False
         recorded = await record_account_event(
@@ -307,6 +303,7 @@ async def repair_confirmed_refunds(cursor: PaymentCursor | None = None, batch_si
                 AnalyticsIdentity.consent.is_(True),
                 AnalyticsRefund.occurred_at >= AnalyticsIdentity.granted_at,
                 AnalyticsRefund.occurred_at >= enabled_at(),
+                live_refund_condition(),
             )
         )
         if cursor is not None:
@@ -350,6 +347,7 @@ async def record_created_payment(local_payment_id: str) -> bool:
             or not payment.provider_payment_id
             or payment.provider != 'yookassa'
             or payment.kind != PaymentKind.TOPUP.value
+            or (payment.raw_payload_json or {}).get('test') is True
         ):
             return False
         result = await record_account_event(
@@ -387,6 +385,7 @@ async def repair_created_payments(cursor: PaymentCursor | None = None, batch_siz
                 Payment.created_at >= enabled_at(),
                 Payment.provider == 'yookassa',
                 Payment.kind == PaymentKind.TOPUP.value,
+                live_payment_condition(),
                 Payment.provider_payment_id.is_not(None),
             )
         )

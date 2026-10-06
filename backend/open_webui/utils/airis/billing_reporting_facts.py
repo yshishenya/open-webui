@@ -122,7 +122,7 @@ def payment_table() -> Subquery:
             literal(None).label('credited_at'),
             literal('not_applicable').label('credit_status'),
             literal(0).label('refunded_kopeks'),
-            literal(None).label('is_test'),
+            Transaction.extra_metadata['provider_test'].as_boolean().label('is_test'),
         )
         .outerjoin(User, User.id == Transaction.user_id)
         .where(~duplicate)
@@ -175,6 +175,11 @@ def topup_query(*, currency: str, user_id: str | None = None) -> Select:
     if user_id:
         query = query.where(table.c.user_id == user_id)
     return query
+
+
+def live_payment_condition() -> ColumnElement[bool]:
+    """Exclude explicit provider tests; retain historical unknown flags."""
+    return Payment.raw_payload_json['test'].as_boolean().is_not(True)
 
 
 def live_refund_condition() -> ColumnElement[bool]:

@@ -31,6 +31,7 @@ class Payment(Base):
     amount_kopeks = Column(BigInteger, default=1000)
     currency = Column(String, default='RUB')
     metadata_json = Column(JSON, default=dict)
+    raw_payload_json = Column(JSON, default=dict)
 
 
 class LedgerEntry(Base):
@@ -122,6 +123,10 @@ async def financial(tmp_path, monkeypatch):
     )
     module('open_webui.utils.airis.analytics', enabled_at=lambda: 100, record_account_event=record)
     module('open_webui.utils.yookassa', get_yookassa_client=lambda: None)
+    from open_webui.utils.airis import billing_reporting_facts
+
+    monkeypatch.setattr(billing_reporting_facts, 'Payment', Payment)
+    monkeypatch.setattr(billing_reporting_facts, 'AnalyticsRefund', Refund)
     path = Path(__file__).parents[5] / 'open_webui/utils/airis/analytics_payments.py'
     spec = importlib.util.spec_from_file_location('financial_under_test', path)
     tested = importlib.util.module_from_spec(spec)
@@ -150,6 +155,57 @@ async def financial(tmp_path, monkeypatch):
         await db.commit()
     yield tested, sessions
     await engine.dispose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('stale_marker', [False, True])
+async def test_explicit_tests_never_emit_purchase_or_steal_first_real_payment(financial, stale_marker: bool) -> None:
+    tested, sessions = financial
+    async with sessions() as db:
+        test_payment = await db.get(Payment, 'p0')
+        test_payment.raw_payload_json = {'test': True}
+        if stale_marker:
+            db.add(FirstPayment(user_id='user', payment_id='p0', occurred_at=120))
+        await db.commit()
+    assert not await tested.record_created_payment('p0')
+    assert not await tested.record_confirmed_payment('provider0')
+    assert await tested.record_confirmed_payment('provider1')
+    assert not await tested.record_confirmed_payment('provider1')
+    async with sessions() as db:
+        marker = await db.get(FirstPayment, 'user')
+        assert marker.payment_id == 'p1'
+        event = await db.get(Event, 'first_payment_confirmed')
+        assert event.properties['payment_id'] == 'p1'
+        assert await db.get(Event, 'payment_confirmed:p0') is None
+    assert await tested.repair_created_payments(batch_size=1) == (160, 'p1')
+    assert await tested.repair_confirmed_payments(batch_size=1) == (160, 'p1')
+
+
+@pytest.mark.asyncio
+async def test_verified_test_refund_is_persisted_but_never_emitted_or_repaired(financial) -> None:
+    tested, sessions = financial
+    async with sessions() as db:
+        payment = await db.get(Payment, 'p1')
+        payment.raw_payload_json = {'test': True}
+        await db.commit()
+
+    class Client:
+        async def get_refund(self, refund_id: str) -> dict[str, object]:
+            return {
+                'id': refund_id,
+                'payment_id': 'provider1',
+                'status': 'succeeded',
+                'amount': {'value': '4.00', 'currency': 'RUB'},
+                'created_at': '1970-01-01T00:03:00Z',
+            }
+
+    tested.get_yookassa_client = lambda: Client()
+    assert not await tested.record_verified_refund('test-refund', 'provider1')
+    assert not await tested.record_confirmed_refund('test-refund')
+    assert await tested.repair_confirmed_refunds(batch_size=1) is None
+    async with sessions() as db:
+        assert await db.get(Refund, 'test-refund') is not None
+        assert (await db.execute(select(Event))).scalars().all() == []
 
 
 @pytest.mark.asyncio
