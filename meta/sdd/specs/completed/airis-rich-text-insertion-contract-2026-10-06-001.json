@@ -1,0 +1,109 @@
+{
+	"spec_id": "airis-rich-text-insertion-contract-2026-10-06-001",
+	"title": "Airis rich text insertion contract",
+	"generated": "2026-10-06T05:13:33.977504Z",
+	"last_updated": "2026-10-06T06:05:29.974009Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "medium",
+		"estimated_hours": 2,
+		"security_sensitive": false,
+		"default_category": "implementation",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__bugfix__rich-text-insertion-contract.md",
+		"status": "completed",
+		"activated_date": "2026-10-06T05:16:14.175860Z",
+		"progress_percentage": 50,
+		"completed_date": "2026-10-06T06:05:29.973743Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis rich text insertion contract",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Repair native insertion and deferred lifecycle",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-06T05:21:59.622845Z",
+				"journaled_at": "2026-10-06T05:21:59.624649Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Accept source and guarded production",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": true,
+				"completed_at": "2026-10-06T06:05:29.521859Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Repair native insertion and deferred lifecycle",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"completed_at": "2026-10-06T05:21:59.622692Z",
+				"needs_journaling": false,
+				"status_note": "Native14 failures and hardbreak1 reproduced,31 insertion cases and Docker677/677 pass; type3400/150 andlint1288,0new mapped; shared native helper and editor ownership guards. Browser/CI/production pending.",
+				"journaled_at": "2026-10-06T05:21:59.623571Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Accept source and guarded production",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"completed_at": "2026-10-06T06:05:29.521713Z",
+				"needs_journaling": true,
+				"status_note": "Final source e82d481a16ddfca3bd78d64e2addf39cbdb8f10d: Docker frontend678/678, native32, compiled Chromium/Firefox2 clipboard +16 paths/0pageerrors; applicable CI success; PR299 merge d96c6536305230891ec3b4acbe50a7fd7b56a92b tree equal. Guarded production digest5ead6217b36355c10977cce6d79f23819d80c65834ddf362bc26ec335a28e146 healthy/restarts0;4914frontend/426Python equal,ENV/Metrica/13neighbors preserved;backup/migration/public/ordinary readonly browser accepted. Full type/lint baseline and real pilot/payment/human criteria remain open."
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-06T05:21:59.623566Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Repair native insertion and deferred lifecycle",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Native14 failures and hardbreak1 reproduced,31 insertion cases and Docker677/677 pass; type3400/150 andlint1288,0new mapped; shared native helper and editor ownership guards. Browser/CI/production pending.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-06T05:21:59.624645Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Repair native insertion and deferred lifecycle",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}
