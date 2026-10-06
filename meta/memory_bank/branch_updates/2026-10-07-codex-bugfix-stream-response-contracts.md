@@ -1,0 +1,7 @@
+- [ ] **[BUG][TYPES]** Distinguish streaming response from cancellation controller
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__stream-response-contracts.md`
+  - Owner: Codex
+  - Started: 2026-10-07
+  - Summary: Reuse native tuple contract across the3remaining helpers; preserve executable network/error behavior.
+  - Tests: Before3fail/2pass; after5/5; full691/691; types3396→3393/141warnings; ESLint1277 unchanged,0new; emitted JavaScript identical.
+  - Risks: Types only;3existing diagnostic messages refined at same source lines (2column shifts); full frontend gates and real pilot remain open.

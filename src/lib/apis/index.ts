@@ -1074,7 +1074,7 @@ export const generateMoACompletion = async (
 	model: string,
 	prompt: string,
 	responses: string[]
-) => {
+): Promise<[Response | null, AbortController]> => {
 	const controller = new AbortController();
 	let error = null;
 
