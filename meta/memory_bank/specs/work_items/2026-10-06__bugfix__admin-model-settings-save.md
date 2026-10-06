@@ -18,7 +18,7 @@ Actual saveModelsSettings retains its busy flag after child save rejects. saveMo
 - [x] Defaults save preserves latest server order/selected/pinned models; parent refresh rejection is handled, never detached.
 - [x] Post-write refresh refusal remains distinguishable from full save success; pending changes remain retryable, without claiming a transaction rollback.
 - [x] Docker frontend suite, changed-file format/lint and no new mapped global diagnostics.
-- [ ] Compiled Chromium and Firefox tests cover actual Save refusal, retained values, retry and backend confirmation, page errors zero.
+- [x] Compiled Chromium and Firefox tests cover actual Save refusal, retained values, retry and backend confirmation, page errors zero.
 - [ ] Exact-source CI and merged tree accepted before current-base immutable overlay, verified backup and guarded production rollout.
 
 ## Implementation and upstream impact
@@ -32,3 +32,5 @@ Reuse actual-source handler tests and disposable compiled onboarding fixture. Ex
 ## Source verification
 
 Actual handler checks13/13, full Docker frontend619/619 across88files; type3493/warnings157 and lint1330 retain existing debt, zero added mapped findings. CI required correction of existing child event-delegation wrappers: presentational containers now keep descendant controls accessible without inventing interactive parent roles. Removed two unused tuple bindings. Generated SDD identifier normalized to the required three-digit suffix. Initial test run used an unsupported matcher and the full concurrent run was killed for memory; retained as unaccepted evidence. Corrected matcher and sequential full run pass. No dependency/backend/schema changes.
+
+Compiled261bc5f1d browser2/2 passes: four refusal stages (config POST, suggestions POST, backend GET, parent tags refresh), retained Vision state and enabled Save, one safe error, no false step success, backend-confirmed retry and preserved order, pageerrors0. A test-only source reader now uses known literal script markers to avoid a CodeQL HTML-filter rule that does not apply to trusted source extraction. Final source CI and runtime acceptance remain pending. Types3493/151warnings and ESLint1322; zero new findings.
