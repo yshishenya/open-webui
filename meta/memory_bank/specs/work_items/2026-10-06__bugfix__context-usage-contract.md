@@ -3,7 +3,7 @@
 ## Meta
 
 - Type: bugfix
-- Status: in progress
+- Status: done
 - Owner: Codex
 - Branch: `codex/bugfix/context-usage-contract`
 - Created: 2026-10-06
@@ -20,8 +20,8 @@ CommandSuggestionList must pass changed-file lint; replace its existing Any and 
 - [x] Known, zero, negative and unknown limits preserve expected labels; percentage gauge preserves its existing 0–100 clamp.
 - [x] Mounted slash commands accept values and getters; updates, keyboard selection and disabled actions work.
 - [x] Full Docker frontend suite passes; mapped type/lint diagnostics add zero errors; changed-file lint passes.
-- [ ] Full client/server output comparison identifies every executable difference; source SHA CI and merge tree accepted.
-- [ ] Any executable change has separate compiled candidate and guarded production acceptance before being counted as shipped.
+- [x] Full client/server output comparison identifies every executable difference; source SHA CI and merge tree accepted.
+- [x] Any executable change has separate compiled candidate and guarded production acceptance before being counted as shipped.
 
 ## Upstream impact and rollback
 
@@ -29,4 +29,13 @@ Minimal annotations and nullable guards in Chat, MessageInput and CommandSuggest
 
 ## Local verification
 
-Docker579/579 in83 files. Full typecheck3526→3518 errors,8 removed/0 added,158 warnings. Full ESLint1353→1348,5 removed/0 added; changed-file lint passes. Complete client/server output comparison accounts for exactly the nullable guards, removed suppression comment and query-triggered getter refresh; type module output is identical. Backend and migrations untouched. Production acceptance and exact-source CI remain separate gates.
+Docker579/579 in83 files. Full typecheck3526→3518 errors,8 removed/0 added,158 warnings. Full ESLint1353→1348,5 removed/0 added; changed-file lint passes. Complete client/server output comparison accounts for exactly the nullable guards, removed suppression comment and query-triggered getter refresh; type module output is identical. Backend and migrations untouched. Exact-source CI and production acceptance are recorded below.
+
+
+## Source and production acceptance
+
+PR281 source `a498f86d765e0b9e702f8144a09c7ebe988c986c` has 10 successful checks and one expected dependency-review skip; CodeRabbit review is disabled for the base, so no independent review is claimed. Merge `e9bb03c2ebc09ef2fc18fe368b9880f2a80c1c27` has the identical source tree.
+
+The compiled immutable candidate passed 38/38 browser scenarios in Chromium and narrow Firefox. Registry digest `sha256:9e2546496befb39906d45958daa476ff9e2b00f758f0d7f1eff75cef4f0dc25e` was released after backup/checksum/archive/pg_restore, disk, configuration and Alembic gates. All 4914 frontend and 426 Python files match the candidate. Runtime environment and 13 neighboring containers are preserved; Docker healthy, restarts0. Persistent Compose pin changes only airis.image. Public version/env/guide/captions match; Metrica111392024 is preserved. The existing authenticated chat retains history and balance0 ₽; slash commands and token-only Status were checked with no new provider request.
+
+Whole-project G14/13.11 remains open:3518 type errors/158 warnings and1348 ESLint errors. This release does not establish external Inbox, both operators' responses, independent usefulness, real money/receipt, physical-phone or real pilot-window acceptance.

@@ -1,5 +1,7 @@
-- [ ] Context usage nullable contract
+- [x] **[BUG]** Context usage nullable contract
   - Spec: meta/memory_bank/specs/work_items/2026-10-06__bugfix__context-usage-contract.md
   - Owner: Codex
   - Summary: Trace estimated usage and unknown thresholds; verify rendered commands and source/runtime boundaries.
   - Started: 2026-10-06
+  - Done: 2026-10-06
+  - Acceptance: PR281 exact-source CI/merge accepted; 579/579 Docker tests, 38/38 compiled browser scenarios, immutable production file/environment/neighbor proofs and authenticated token-only Status accepted. Full project quality and external pilot criteria remain open.
