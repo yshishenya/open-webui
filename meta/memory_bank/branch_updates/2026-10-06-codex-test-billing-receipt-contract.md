@@ -1,0 +1,8 @@
+- [x] **[TEST][BILLING]** Preserve receipt contact and provider envelope contract
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-06__test__billing-receipt-contract.md`
+  - Owner: Codex
+  - Branch: `codex/test/billing-receipt-contract`
+  - Done: 2026-10-06
+  - Summary: Add eight focused receipt regressions using existing billing helpers/client. Keep registered fiscal receipts, wallet notifications and customer delivery as separate facts; private audit exceptions remain open.
+  - Tests: Isolated Docker Compose 61/61, zero skips/failures; changed-file Ruff and Black pass. Existing17 dependency/import deprecation warnings recorded.
+  - Risks: No runtime/schema/dependency change. Historical provider lookup exception and Inbox proof remain separate.

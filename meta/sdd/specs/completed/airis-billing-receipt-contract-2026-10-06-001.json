@@ -1,0 +1,147 @@
+{
+  "spec_id": "airis-billing-receipt-contract-2026-10-06-001",
+  "title": "Airis billing receipt contract",
+  "generated": "2026-10-06T07:01:06.694740Z",
+  "last_updated": "2026-10-06T07:03:37.429179Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "investigation",
+    "status": "completed",
+    "activated_date": "2026-10-06T07:01:55.746165Z",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__test__billing-receipt-contract.md",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-06T07:03:37.428922Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis billing receipt contract",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace receipt and existing provider records",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T07:02:58.041182Z",
+        "journaled_at": "2026-10-06T07:02:58.043124Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify contract and record acceptance",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T07:03:36.963857Z",
+        "journaled_at": "2026-10-06T07:03:36.966150Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace shared receipt flow and read existing provider facts",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-06T07:02:58.041032Z",
+        "needs_journaling": false,
+        "status_note": "Traced three callers; GET audit verified21 registered real receipts and preserved one404 historical record; no DML or external writes.",
+        "journaled_at": "2026-10-06T07:02:58.042001Z",
+        "task_category": "investigation"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify receipt regression and record acceptance limits",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-06T07:03:36.963677Z",
+        "needs_journaling": false,
+        "status_note": "61/61 isolated Docker Compose tests, eight new contracts, no failures/skips; changed-file Black/Ruff; private registered receipt evidence separated from404 and Inbox limits. Integration acceptance separate.",
+        "journaled_at": "2026-10-06T07:03:36.964903Z",
+        "file_path": "backend/open_webui/test/apps/webui/utils/test_billing_receipt_contract.py",
+        "task_category": "implementation"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-06T07:02:58.041997Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace shared receipt flow and read existing provider facts",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Traced three callers; GET audit verified21 registered real receipts and preserved one404 historical record; no DML or external writes.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-06T07:02:58.043119Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace receipt and existing provider records",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-06T07:03:36.964898Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify receipt regression and record acceptance limits",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: 61/61 isolated Docker Compose tests, eight new contracts, no failures/skips; changed-file Black/Ruff; private registered receipt evidence separated from404 and Inbox limits. Integration acceptance separate.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-06T07:03:36.966145Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify contract and record acceptance",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
