@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
 	testDir: '.',
-	testMatch: 'onboarding-paths.spec.ts',
+	testMatch: ['onboarding-paths.spec.ts', 'billing-full-path-recovery.spec.ts'],
 	globalSetup: './onboarding-paths.setup.ts',
 	workers: 1,
 	retries: 0,

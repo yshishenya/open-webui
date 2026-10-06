@@ -36,6 +36,11 @@ services:
       YOOKASSA_SHOP_ID: local-fixture-only
       YOOKASSA_SECRET_KEY: local-fixture-only
       YOOKASSA_API_URL: http://127.0.0.1:8080/_fixture/v3
+      YOOKASSA_WEBHOOK_TOKEN: local-fixture-only
+      YOOKASSA_WEBHOOK_SECRET: local-fixture-only
+      YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE: 'true'
+      YOOKASSA_WEBHOOK_ENFORCE_IP_ALLOWLIST: 'true'
+      YOOKASSA_WEBHOOK_ALLOWED_IP_RANGES: ${ONBOARDING_WEBHOOK_ALLOWED_IP_RANGES:-172.16.0.0/12,127.0.0.1/32}
       SMTP_HOST: 127.0.0.1
       SMTP_PORT: '2525'
       SMTP_USERNAME: local-fixture-only
