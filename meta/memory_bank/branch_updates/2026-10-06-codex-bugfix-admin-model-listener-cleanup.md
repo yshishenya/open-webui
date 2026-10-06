@@ -1,8 +1,9 @@
-- [ ] **[BUG][ADMIN][LIFECYCLE]** Remove model settings listeners on unmount
-  - Spec: meta/memory_bank/specs/work_items/2026-10-06__bugfix__admin-model-listener-cleanup.md
+- [x] **[BUG][ADMIN][LIFECYCLE]** Remove model settings listeners on unmount
+  - Spec: meta/memory_bank/specs/work_items/2026-10-06**bugfix**admin-model-listener-cleanup.md
   - Owner: Codex
   - Branch: codex/bugfix/admin-model-listener-cleanup
   - Started: 2026-10-06
-  - Summary: Return synchronous teardown, prevent delayed setup after unmount, report initialization refusal safely.
-  - Tests: Actual baseline leaves3listeners after unmount; further verification pending.
+  - Done: 2026-10-06
+  - Summary: Synchronous teardown removes all3handlers; delayed init after unmount adds0; refusal reports1toast only while mounted. PR291 merged and current-base production accepted; full onboarding remains active.
+  - Tests: Lifecycle4/4, Docker606/606, final compiled Chromium/Firefox3902/2; source CI12success/1skip, identical merge tree; guarded production45973b3b accepted, healthy/restarts0,4914frontend/426Python/ENV/13neighbors preserved.
   - Risks: Preserve successful initialization and modifier-key behavior; full onboarding goal remains active.
