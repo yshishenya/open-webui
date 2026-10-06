@@ -1,0 +1,174 @@
+{
+  "spec_id": "airis-stream-response-contracts-2026-10-07-001",
+  "title": "Stream response tuple contracts",
+  "generated": "2026-10-06T21:47:22.839802Z",
+  "last_updated": "2026-10-06T21:51:09.598002Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__stream-response-contracts.md",
+    "status": "active",
+    "activated_date": "2026-10-06T21:48:17.482477Z",
+    "progress_percentage": 66
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Stream response tuple contracts",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce all untyped streaming pairs",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T21:48:41.820410Z",
+        "journaled_at": "2026-10-06T21:48:41.823170Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce all untyped streaming pairs",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__stream-response-contracts.md",
+        "completed_at": "2026-10-06T21:48:41.820255Z",
+        "needs_journaling": false,
+        "status_note": "Actual helper declarations reproduce3compiler failures/2correct siblings; all5pair exports and frontend callers traced.",
+        "journaled_at": "2026-10-06T21:48:41.821450Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Annotate existing tuple returns and verify unchanged emitted JavaScript",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T21:51:09.595845Z",
+        "journaled_at": "2026-10-06T21:51:09.597973Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Annotate existing tuple returns and verify unchanged emitted JavaScript",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__stream-response-contracts.md",
+        "completed_at": "2026-10-06T21:51:09.595665Z",
+        "needs_journaling": false,
+        "status_note": "All5 actual helper contracts pass; emitted JavaScript in both touched API files is byte-identical with base using pinned TypeScript5.9.3.",
+        "journaled_at": "2026-10-06T21:51:09.596727Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Accept source checks and integration",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Accept source checks and integration",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__stream-response-contracts.md"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-06T21:48:41.821445Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce all untyped streaming pairs",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Actual helper declarations reproduce3compiler failures/2correct siblings; all5pair exports and frontend callers traced.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-06T21:48:41.823162Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce all untyped streaming pairs",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-06T21:51:09.596721Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Annotate existing tuple returns and verify unchanged emitted JavaScript",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: All5 actual helper contracts pass; emitted JavaScript in both touched API files is byte-identical with base using pinned TypeScript5.9.3.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-06T21:51:09.597967Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Annotate existing tuple returns and verify unchanged emitted JavaScript",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

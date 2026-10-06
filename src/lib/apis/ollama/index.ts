@@ -295,7 +295,10 @@ export const generateTextCompletion = async (token: string = '', model: string, 
 	return res;
 };
 
-export const generateChatCompletion = async (token: string = '', body: object) => {
+export const generateChatCompletion = async (
+	token: string = '',
+	body: object
+): Promise<[Response | null, AbortController]> => {
 	const controller = new AbortController();
 	let error = null;
 
@@ -414,7 +417,11 @@ export const deleteModel = async (token: string, tagName: string, urlIdx: string
 	return res;
 };
 
-export const pullModel = async (token: string, tagName: string, urlIdx: number | null = null) => {
+export const pullModel = async (
+	token: string,
+	tagName: string,
+	urlIdx: number | null = null
+): Promise<[Response | null, AbortController]> => {
 	let error = null;
 	const controller = new AbortController();
 
