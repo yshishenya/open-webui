@@ -31,6 +31,7 @@ from open_webui.utils.airis.analytics import (
     merge_identity_events,
     purge_identity,
 )
+from open_webui.utils.airis.data_retention import ANALYTICS_RETENTION_SECONDS, retained_touch
 from open_webui.utils.auth import bearer_security, get_current_user
 from open_webui.utils.rate_limit import RateLimiter
 from open_webui.utils.redis import get_redis_client
@@ -64,7 +65,7 @@ class Touch(BaseModel):
     @model_validator(mode='after')
     def validate_touch(self) -> Touch:
         now = int(time.time())
-        if not now - 90 * 86400 <= self.occurred_at <= now + 60:
+        if not now - ANALYTICS_RETENTION_SECONDS < self.occurred_at <= now + 60:
             raise ValueError('Touch timestamp outside permitted interval')
         for key, value in self.model_dump(exclude_none=True).items():
             if (
@@ -144,6 +145,8 @@ async def update_context_fields(
 ) -> None:
     if not identity.consent:
         identity.granted_at = now
+    identity.first_touch = retained_touch(identity.first_touch or {}, identity.granted_at, now)
+    identity.last_touch = retained_touch(identity.last_touch or {}, identity.granted_at, now)
     identity.consent = True
     if user:
         identity.user_id = user.id

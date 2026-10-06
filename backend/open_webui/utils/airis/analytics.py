@@ -22,6 +22,7 @@ from open_webui.models.analytics import (
     AnalyticsEvent,
     AnalyticsIdentity,
 )
+from open_webui.utils.airis.data_retention import ANALYTICS_RETENTION_SECONDS, retained_touch
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -71,7 +72,11 @@ async def add_event(
     properties: dict[str, Property],
     occurred_at: int,
 ) -> bool:
-    if not identity.consent or occurred_at < max(identity.granted_at, enabled_at()):
+    if (
+        not identity.consent
+        or occurred_at < max(identity.granted_at, enabled_at())
+        or occurred_at <= int(time.time()) - ANALYTICS_RETENTION_SECONDS
+    ):
         return False
     if name in LIFETIME_EVENTS:
         if name in (identity.lifetime or {}):
@@ -376,8 +381,20 @@ async def deliver_one(delivery_id: str, client: httpx.AsyncClient) -> None:
                         'properties': {
                             **event.properties,
                             '$process_person_profile': bool(identity.user_id),
-                            **{f'first_{k}': v for k, v in identity.first_touch.items() if k != 'occurred_at'},
-                            **{f'last_{k}': v for k, v in identity.last_touch.items() if k != 'occurred_at'},
+                            **{
+                                f'first_{k}': v
+                                for k, v in retained_touch(
+                                    identity.first_touch, identity.granted_at, int(time.time())
+                                ).items()
+                                if k != 'occurred_at'
+                            },
+                            **{
+                                f'last_{k}': v
+                                for k, v in retained_touch(
+                                    identity.last_touch, identity.granted_at, int(time.time())
+                                ).items()
+                                if k != 'occurred_at'
+                            },
                         },
                     },
                 )
@@ -417,6 +434,7 @@ async def repair_missing_deliveries(batch_size: int = 100) -> None:
                 .where(
                     AnalyticsIdentity.consent.is_(True),
                     AnalyticsEvent.occurred_at >= cutoff,
+                    AnalyticsEvent.occurred_at > int(time.time()) - ANALYTICS_RETENTION_SECONDS,
                     AnalyticsEvent.occurred_at >= AnalyticsIdentity.granted_at,
                     ~select(AnalyticsDelivery.id)
                     .where(

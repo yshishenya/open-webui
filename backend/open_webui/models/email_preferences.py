@@ -311,17 +311,19 @@ async def suppress_product_address(
 
 async def cleanup_product_email_records() -> None:
     """Bounded, idempotent cleanup; every scheduler instance may run it."""
+    from open_webui.utils.airis.data_retention import cleanup_onboarding_records
+
     now = int(time.time())
     async with get_async_db_context() as session:
         tokens = select(EmailUnsubscribeToken.token_hash).where(EmailUnsubscribeToken.expires_at <= now).limit(1000)
         events = (
             select(EmailPreferenceEvent.id)
-            .where(EmailPreferenceEvent.created_at < now - HISTORY_DAYS * 86400)
+            .where(EmailPreferenceEvent.created_at <= now - HISTORY_DAYS * 86400)
             .limit(1000)
         )
         await session.execute(delete(EmailUnsubscribeToken).where(EmailUnsubscribeToken.token_hash.in_(tokens)))
         await session.execute(delete(EmailPreferenceEvent).where(EmailPreferenceEvent.id.in_(events)))
-        await session.commit()
+        await cleanup_onboarding_records(session, now)
 
 
 async def cleanup_product_email_if_due(next_cleanup: float, now: float) -> float:

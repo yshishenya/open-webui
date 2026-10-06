@@ -366,8 +366,10 @@ def test_server_tracking_requires_configured_destination(run_case, monkeypatch):
     run_case(case)
 
 
-def test_delivery_configuration_recovery(run_case, monkeypatch):
-    async def case(factory):
+def test_delivery_configuration_recovery(run_case: RunCase, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(time, 'time', lambda: 100)
+
+    async def case(factory: async_sessionmaker[AsyncSession]) -> None:
         for key in ('AIRIS_POSTHOG_KEY', 'AIRIS_POSTHOG_HOST', 'AIRIS_METRICA_OAUTH_TOKEN'):
             monkeypatch.delenv(key, raising=False)
         async with factory() as db:

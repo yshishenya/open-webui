@@ -17,7 +17,17 @@ from open_webui.internal.db import Base
 from open_webui.models import auths, users
 from open_webui.models import email_delivery as delivery
 from open_webui.models import email_preferences as prefs
+from open_webui.models.analytics import AnalyticsDelivery, AnalyticsEvent, AnalyticsIdentity
 from open_webui.models.auths import Auth, SignupForm
+from open_webui.models.billing_wallet import Payment
+from open_webui.models.email_observation_commands import EmailObservationCommand
+from open_webui.models.email_observation_schema import (
+    EmailDecisionEvent,
+    EmailObservationMember,
+    EmailObservationRun,
+    EmailObservationScope,
+    EmailScenarioObservation,
+)
 from open_webui.models.task_success import TaskSuccess
 from open_webui.models.users import User, UserModel
 from open_webui.routers.airis import email_preferences as routes
@@ -39,9 +49,19 @@ async def accounts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIter
         TaskSuccess.__table__,
         delivery.EmailDelivery.__table__,
         delivery.EmailTransportWindow.__table__,
+        Payment.__table__,
         prefs.EmailPreference.__table__,
         prefs.EmailPreferenceEvent.__table__,
         prefs.EmailUnsubscribeToken.__table__,
+        AnalyticsIdentity.__table__,
+        AnalyticsEvent.__table__,
+        AnalyticsDelivery.__table__,
+        EmailObservationScope.__table__,
+        EmailObservationMember.__table__,
+        EmailObservationRun.__table__,
+        EmailScenarioObservation.__table__,
+        EmailDecisionEvent.__table__,
+        EmailObservationCommand.__table__,
     ]
     async with engine.begin() as connection:
         await connection.run_sync(lambda sync: Base.metadata.create_all(sync, tables=tables))

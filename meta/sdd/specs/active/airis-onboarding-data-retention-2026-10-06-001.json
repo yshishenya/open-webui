@@ -1,0 +1,172 @@
+{
+  "spec_id": "airis-onboarding-data-retention-2026-10-06-001",
+  "title": "airis-onboarding-data-retention-2026-10-06",
+  "generated": "2026-10-06T20:16:30.945218Z",
+  "last_updated": "2026-10-06T20:33:04.230676Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 4,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__bugfix__onboarding-data-retention.md",
+    "status": "active",
+    "activated_date": "2026-10-06T20:18:52.237116Z",
+    "progress_percentage": 66
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-onboarding-data-retention-2026-10-06",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce missing expiry and define purpose clocks",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T20:30:15.583512Z",
+        "journaled_at": "2026-10-06T20:30:15.585581Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Implement bounded lifecycle and prove both databases",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T20:33:04.228460Z",
+        "journaled_at": "2026-10-06T20:33:04.230648Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Accept source, image and guarded production",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce missing expiry and define purpose clocks",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-06T20:30:15.583332Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-06T20:30:15.584546Z",
+        "file_path": "meta/memory_bank/guides/onboarding_data_retention.md"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Implement bounded lifecycle and prove both databases",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "backend/open_webui/utils/airis/data_retention.py",
+        "completed_at": "2026-10-06T20:33:04.228321Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-06T20:33:04.229336Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Accept source, image and guarded production",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-06__bugfix__onboarding-data-retention.md"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-06T20:30:15.584540Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce missing expiry and define purpose clocks",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-06T20:30:15.585575Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce missing expiry and define purpose clocks",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-06T20:33:04.229331Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement bounded lifecycle and prove both databases",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-06T20:33:04.230644Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Implement bounded lifecycle and prove both databases",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
