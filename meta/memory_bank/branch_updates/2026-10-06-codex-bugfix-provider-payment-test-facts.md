@@ -1,0 +1,9 @@
+- [x] **[BUG]** Preserve YooKassa test facts at trusted boundaries and exclude tests from real payment metrics
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-06__bugfix__provider-payment-test-facts.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/provider-payment-test-facts`
+  - Done: 2026-10-06
+  - Summary: Traced creation, webhook, reconciliation, canonical financial facts, onboarding and analytics recovery. Reproduction precedes runtime edits; no historical payment classification or provider mutation.
+  - Tests: corrected pre-fix7 failures; final PostgreSQL127/127 and SQLite126 plus separately passed PG-only case; changed-file Black/Ruff and SDD2/2. No frontend/schema/dependency changes.
+  - Risks: historical unknown flags and provider lookup exceptions remain separate acceptance limits.
+  - Implementation: authoritative booleans persisted, unknown retained honestly, known proof preserved across incomplete reads; repeated credits unchanged; canonical cohort and analytics/recovery exclude explicit tests. Source/CI and guarded production evidence follow separately.

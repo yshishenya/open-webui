@@ -591,6 +591,7 @@ class BillingService:
                 self.transactions.create_transaction,
                 transaction,
             )
+            transaction_metadata = dict(transaction.extra_metadata or {})
         receipt = await self._build_receipt(
             user_id,
             payment_amount,
@@ -625,6 +626,10 @@ class BillingService:
             {
                 "yookassa_payment_id": payment["id"],
                 "yookassa_status": payment["status"],
+                "extra_metadata": {
+                    **transaction_metadata,
+                    "provider_test": self._provider_test(payment, transaction_metadata.get("provider_test")),
+                },
             },
         )
 
@@ -788,10 +793,7 @@ class BillingService:
         now = int(time.time())
         with get_db() as db:
             wallet = (
-                db.query(Wallet)
-                .filter(Wallet.id == wallet_id, Wallet.user_id == user_id)
-                .with_for_update()
-                .first()
+                db.query(Wallet).filter(Wallet.id == wallet_id, Wallet.user_id == user_id).with_for_update().first()
             )
             if not wallet:
                 raise ValueError("Wallet not found")
@@ -1131,6 +1133,7 @@ class BillingService:
         provider_amount: Decimal,
         provider_currency: str,
         provider_metadata: Dict[str, object],
+        provider_test: Optional[bool],
     ) -> SubscriptionModel:
         """Atomically activate the purchased plan, credit it, then mark paid."""
         now = int(time.time())
@@ -1151,6 +1154,10 @@ class BillingService:
                 raise WebhookVerificationError("Subscription currency does not match transaction")
 
             local_metadata = transaction.extra_metadata or {}
+            transaction.extra_metadata = {
+                **local_metadata,
+                "provider_test": self._provider_test({"test": provider_test}, local_metadata.get("provider_test")),
+            }
             local_plan_id = local_metadata.get("plan_id")
             provider_plan_id = provider_metadata.get("plan_id")
             if local_plan_id and provider_plan_id and local_plan_id != provider_plan_id:
@@ -1205,6 +1212,7 @@ class BillingService:
                     is not None
                 )
                 if credit_exists or int(plan.included_kopeks_per_period or 0) <= 0:
+                    db.commit()
                     return SubscriptionModel.model_validate(subscription)
 
             if plan.interval not in {"month", "year"}:
@@ -1386,6 +1394,7 @@ class BillingService:
                 "amount": amount_value,
                 "currency": currency_value,
                 "metadata": metadata,
+                "test": self._provider_test(provider_payment),
             }
             await run_in_threadpool(
                 self._process_topup_webhook,
@@ -1428,6 +1437,7 @@ class BillingService:
                 provider_amount,
                 currency_value,
                 metadata,
+                self._provider_test(provider_payment),
             )
 
         elif event_type == "payment.canceled":
@@ -1437,6 +1447,12 @@ class BillingService:
                 {
                     "status": TransactionStatus.CANCELED,
                     "yookassa_status": provider_status,
+                    "extra_metadata": {
+                        **(transaction.extra_metadata or {}),
+                        "provider_test": self._provider_test(
+                            provider_payment, (transaction.extra_metadata or {}).get("provider_test")
+                        ),
+                    },
                 },
             )
 
@@ -1447,6 +1463,12 @@ class BillingService:
                 transaction_id,
                 {
                     "yookassa_status": provider_status,
+                    "extra_metadata": {
+                        **(transaction.extra_metadata or {}),
+                        "provider_test": self._provider_test(
+                            provider_payment, (transaction.extra_metadata or {}).get("provider_test")
+                        ),
+                    },
                 },
             )
 
@@ -1528,6 +1550,7 @@ class BillingService:
                 "amount": amount_value,
                 "currency": currency_value,
                 "metadata": effective_metadata,
+                "test": self._provider_test(provider_payment),
             }
             await run_in_threadpool(
                 self._process_topup_webhook,
@@ -1571,6 +1594,12 @@ class BillingService:
         payment = self.payments.get_payment_by_provider_id(payment_id)
         if event_type == "payment.succeeded":
             if payment and payment.status == PaymentStatus.SUCCEEDED.value:
+                provider_test = self._provider_test(webhook_data)
+                if provider_test is not None and (payment.raw_payload_json or {}).get("test") is not provider_test:
+                    self.payments.update_payment_by_provider_id(
+                        payment_id,
+                        {"raw_payload_json": {**(payment.raw_payload_json or {}), "test": provider_test}},
+                    )
                 log.info(
                     "Topup payment %s already succeeded; ignoring duplicate webhook",
                     payment_id,
@@ -1685,7 +1714,7 @@ class BillingService:
                 {
                     "status": PaymentStatus.SUCCEEDED.value,
                     "status_details": {"yookassa_status": webhook_data.get("status")},
-                    "raw_payload_json": self._sanitize_webhook_payload(webhook_data),
+                    "raw_payload_json": self._sanitize_webhook_payload(webhook_data, payment.raw_payload_json),
                     "auto_topup_claim_key": None,
                 },
             )
@@ -1697,7 +1726,7 @@ class BillingService:
                 {
                     "status": PaymentStatus.CANCELED.value,
                     "status_details": {"yookassa_status": webhook_data.get("status")},
-                    "raw_payload_json": self._sanitize_webhook_payload(webhook_data),
+                    "raw_payload_json": self._sanitize_webhook_payload(webhook_data, payment.raw_payload_json),
                     "auto_topup_claim_key": None,
                 },
             )
@@ -1713,7 +1742,7 @@ class BillingService:
                 {
                     "status": PaymentStatus.PENDING.value,
                     "status_details": {"yookassa_status": webhook_data.get("status")},
-                    "raw_payload_json": self._sanitize_webhook_payload(webhook_data),
+                    "raw_payload_json": self._sanitize_webhook_payload(webhook_data, payment.raw_payload_json),
                 },
             )
 
@@ -1730,6 +1759,12 @@ class BillingService:
                 return None
         return None
 
+    @staticmethod
+    def _provider_test(payment: Dict[str, object], previous: object = None) -> Optional[bool]:
+        """Only the provider's JSON boolean is evidence of a test/live payment."""
+        value = payment.get("test")
+        return value if isinstance(value, bool) else previous if isinstance(previous, bool) else None
+
     def _sanitize_payment_payload(self, payment: Dict[str, object]) -> JsonDict:
         confirmation = payment.get("confirmation")
         sanitized_confirmation: Optional[JsonDict] = None
@@ -1742,6 +1777,7 @@ class BillingService:
         return {
             "id": payment.get("id"),
             "status": payment.get("status"),
+            "test": self._provider_test(payment),
             "amount": payment.get("amount"),
             "currency": (
                 payment.get("amount", {}).get("currency") if isinstance(payment.get("amount"), dict) else None
@@ -1749,11 +1785,14 @@ class BillingService:
             "confirmation": sanitized_confirmation,
         }
 
-    def _sanitize_webhook_payload(self, webhook_data: Dict[str, object]) -> JsonDict:
+    def _sanitize_webhook_payload(
+        self, webhook_data: Dict[str, object], previous_payload: Optional[JsonDict] = None
+    ) -> JsonDict:
         return {
             "event_type": webhook_data.get("event_type"),
             "payment_id": webhook_data.get("payment_id"),
             "status": webhook_data.get("status"),
+            "test": self._provider_test(webhook_data, (previous_payload or {}).get("test")),
             "amount": webhook_data.get("amount"),
             "currency": webhook_data.get("currency"),
             "metadata": webhook_data.get("metadata"),

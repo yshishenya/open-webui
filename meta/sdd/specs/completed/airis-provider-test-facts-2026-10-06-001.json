@@ -1,0 +1,147 @@
+{
+  "spec_id": "airis-provider-test-facts-2026-10-06-001",
+  "title": "Airis provider payment test facts",
+  "generated": "2026-10-06T07:30:31.256301Z",
+  "last_updated": "2026-10-06T07:40:43.785971Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__bugfix__provider-payment-test-facts.md",
+    "status": "completed",
+    "activated_date": "2026-10-06T07:31:33.463653Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-06T07:40:43.785572Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis provider payment test facts",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and fix authoritative provider flag",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T07:40:43.098978Z",
+        "journaled_at": "2026-10-06T07:40:43.100980Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify regression and release criteria",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T07:40:43.335201Z",
+        "journaled_at": "2026-10-06T07:40:43.337146Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce loss of provider flag and fix all trusted persistence paths",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-06T07:40:43.098854Z",
+        "needs_journaling": false,
+        "status_note": "Corrected reproduction:7 failures/11 passes; trusted creation/webhook/reconcile/replay and legacy subscription flag retention fixed. No money/provider writes or new dependencies.",
+        "journaled_at": "2026-10-06T07:40:43.099875Z",
+        "file_path": "backend/open_webui/utils/billing.py",
+        "task_category": "implementation"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify real-payment metrics and regression in isolated Compose",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-06T07:40:43.335062Z",
+        "needs_journaling": false,
+        "status_note": "Final isolated Compose:PostgreSQL127/127 no skips;SQLite126 with one PG-only case separately passed. Black/Ruff clean; canonical reports, analytics/first marker/refund exclusion, exactly-once credits verified. Integration/production acceptance is separate.",
+        "journaled_at": "2026-10-06T07:40:43.336044Z",
+        "file_path": "backend/open_webui/test/apps/webui/utils/test_provider_payment_test_facts.py",
+        "task_category": "implementation"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-06T07:40:43.099868Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce loss of provider flag and fix all trusted persistence paths",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Corrected reproduction:7 failures/11 passes; trusted creation/webhook/reconcile/replay and legacy subscription flag retention fixed. No money/provider writes or new dependencies.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-06T07:40:43.100975Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce and fix authoritative provider flag",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-06T07:40:43.336039Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify real-payment metrics and regression in isolated Compose",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Final isolated Compose:PostgreSQL127/127 no skips;SQLite126 with one PG-only case separately passed. Black/Ruff clean; canonical reports, analytics/first marker/refund exclusion, exactly-once credits verified. Integration/production acceptance is separate.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-06T07:40:43.337142Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify regression and release criteria",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

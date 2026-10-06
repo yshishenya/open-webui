@@ -185,6 +185,22 @@ async def test_distinct_paid_users_vs_payment_count_and_immature_payments(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize('flag,expected', [(True, 0), (False, 1), (None, 1)])
+async def test_provider_test_payments_do_not_count_as_real_payment_or_attempt(
+    database: async_sessionmaker[AsyncSession], flag: bool | None, expected: int
+) -> None:
+    await queue_tests.payment_fact(database, 'test-flag', 'succeeded', REGISTERED + 1, credit=True)
+    async with database() as db:
+        await db.execute(update(Payment).where(Payment.id == 'test-flag').values(raw_payload_json={'test': flag}))
+        await db.commit()
+    cohort = (await snapshot()).cohorts[0]
+    assert cohort.paid_users_14d.count == expected
+    assert cohort.confirmed_payments_14d_mature == expected
+    assert cohort.payment_attempts_14d_mature.created_attempts == expected
+    assert cohort.payment_attempts_14d_mature.credited_attempts == expected
+
+
+@pytest.mark.asyncio
 async def test_attempt_funnel_current_states_exact_credit_and_private_unknowns(
     database: async_sessionmaker[AsyncSession],
 ) -> None:

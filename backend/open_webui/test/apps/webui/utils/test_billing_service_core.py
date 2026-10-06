@@ -110,6 +110,7 @@ class TestBillingServiceCore:
                 return {
                     "id": "pay_1",
                     "status": "pending",
+                    "test": True,
                     "confirmation": {"confirmation_url": "https://pay.example.com/confirm"},
                 }
 
@@ -149,14 +150,14 @@ class TestBillingServiceCore:
         assert updates
         assert updates[-1][1]["yookassa_payment_id"] == "pay_1"
         assert updates[-1][1]["yookassa_status"] == "pending"
+        assert updates[-1][1]["extra_metadata"]["provider_test"] is True
+        assert updates[-1][1]["extra_metadata"]["provider_idempotency_key"] == fake_client.idempotence_key
         assert isinstance(fake_client.idempotence_key, str)
         assert fake_client.metadata["user_email"] == "payer@example.com"
         assert fake_client.description == "Subscription: Pro | payer: payer@example.com"
 
     @pytest.mark.asyncio
-    async def test_process_payment_webhook_provider_fetch_failure_is_retryable(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_process_payment_webhook_provider_fetch_failure_is_retryable(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.utils.billing as billing_utils
         from open_webui.utils.billing import WebhookRetryableError
 
@@ -239,7 +240,12 @@ class TestBillingServiceCore:
     @pytest.mark.parametrize(
         ("metadata", "amount", "currency", "match"),
         [
-            ({"amount_kopeks": 999, "user_id": "user_1", "wallet_id": "wallet_1"}, "10.00", "RUB", "metadata amount mismatch"),
+            (
+                {"amount_kopeks": 999, "user_id": "user_1", "wallet_id": "wallet_1"},
+                "10.00",
+                "RUB",
+                "metadata amount mismatch",
+            ),
             ({"user_id": "user_1", "wallet_id": "wallet_1"}, "20.00", "RUB", "amount does not match"),
             ({"user_id": "user_1", "wallet_id": "wallet_1"}, "10.00", "USD", "currency does not match"),
             ({"user_id": "user_1", "wallet_id": "wallet_2"}, "10.00", "RUB", "wallet does not match"),

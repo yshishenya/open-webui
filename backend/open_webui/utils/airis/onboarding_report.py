@@ -21,6 +21,7 @@ from open_webui.models.email_preferences import (
 )
 from open_webui.models.task_success import TaskSuccess
 from open_webui.models.users import User
+from open_webui.utils.airis.billing_reporting_facts import live_payment_condition
 from open_webui.utils.airis.email_scenarios import DAY, canceled_condition, credited_condition
 from open_webui.utils.airis.mail_outcome_report import (
     MailOutcome,
@@ -191,6 +192,7 @@ async def payment_counts(session: AsyncSession, ids: list[str], now: int) -> dic
             .where(
                 Payment.user_id.in_(ids),
                 credited_condition(),
+                live_payment_condition(),
                 LedgerEntry.created_at >= User.created_at,
                 LedgerEntry.created_at < User.created_at + 14 * DAY,
                 LedgerEntry.created_at <= now,
@@ -260,6 +262,7 @@ async def payment_funnel(session: AsyncSession, ids: list[str], now: int) -> Pay
             User.created_at + 14 * DAY <= now,
             Payment.provider == 'yookassa',
             Payment.kind == 'topup',
+            live_payment_condition(),
             Payment.created_at >= User.created_at,
             Payment.created_at < User.created_at + 14 * DAY,
         )
