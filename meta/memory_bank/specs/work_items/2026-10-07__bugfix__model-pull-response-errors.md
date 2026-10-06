@@ -61,3 +61,12 @@ Final minimal choice contract includes the existing arena owner. Docker changed-
 Prettier/ESLint pass; full706/706. Full diagnostics3393→3379 errors,141→131
 warnings; ESLint1277→1236. No new normalized diagnostic in any file.
 Compiled browser and exact-source CI remain required.
+
+## Browser-discovered empty-stream correction
+
+Chromium can expose a readable empty body for HTTP204. The update-all loop must
+require the native Ollama success message, rather than infer completion from EOF.
+An actual-handler empty200 regression fails1/18 before the correction; all18/18
+and full709/709 pass afterwards. Types remain3379/131warnings with no new messages;
+changed-file ESLint/Prettier pass. Browser acceptance covers HTTP204 and empty200.
+The earlier c5087c3ed compiled candidate is rejected despite green CI; do not deploy.

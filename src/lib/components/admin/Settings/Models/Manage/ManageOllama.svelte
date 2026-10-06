@@ -101,6 +101,7 @@
 			}
 
 			if (res?.body) {
+				let updateSucceeded = false;
 				const reader = res.body
 					.pipeThrough(new TextDecoderStream())
 					.pipeThrough(splitStream('\n'))
@@ -125,6 +126,7 @@
 									throw data.detail;
 								}
 								if (data.status) {
+									if (data.status === 'success') updateSucceeded = true;
 									if (data.digest) {
 										updateProgress = 0;
 										if (data.completed) {
@@ -144,6 +146,10 @@
 						}
 						break;
 					}
+				}
+				if (!updateSucceeded && !updateFailed) {
+					updateFailed = true;
+					toast.error($i18n.t('Download failed'));
 				}
 			}
 

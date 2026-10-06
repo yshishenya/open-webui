@@ -13,11 +13,9 @@ const callers = [
 
 it.each(
 	callers.flatMap(([path, name]) =>
-		['rejected', 'empty', 'stream-error', 'stream-aborted', 'success'].map((mode) => [
-			path,
-			name,
-			mode
-		])
+		['rejected', 'empty', 'stream-error', 'stream-empty', 'stream-aborted', 'success'].map(
+			(mode) => [path, name, mode]
+		)
 	)
 )('%s %s settles %s response', async (path, name, mode) => {
 	const source = readFileSync(path, 'utf8');
@@ -80,7 +78,11 @@ it.each(
 				mode === 'empty'
 					? new Response(null, { status: 204 })
 					: new Response(
-							mode === 'stream-error' ? '{"error":"fixture failed"}\n' : '{"status":"success"}\n'
+							mode === 'stream-empty'
+								? ''
+								: mode === 'stream-error'
+									? '{"error":"fixture failed"}\n'
+									: '{"status":"success"}\n'
 						),
 				controller
 			];
