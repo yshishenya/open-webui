@@ -5,9 +5,8 @@ import ts from 'typescript';
 import { expect, it, vi } from 'vitest';
 
 function handler(file: string, name: string): string {
-	const source = readFileSync(file, 'utf8')
-		.split(/<script[^>]*>/)[1]
-		.split('</script>')[0];
+	const marker = file === parent ? '<script lang="ts">' : '<script>';
+	const source = readFileSync(file, 'utf8').split(marker)[1].split('</script>')[0];
 	const ast = ts.createSourceFile('settings.ts', source, ts.ScriptTarget.Latest);
 	for (const statement of ast.statements) {
 		if (!ts.isVariableStatement(statement)) continue;
