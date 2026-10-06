@@ -4,7 +4,7 @@
 - Status: in progress
 - Owner: Codex
 - Branch: codex/bugfix/admin-model-settings-save
-- SDD Spec: meta/sdd/specs/active/airis-admin-model-settings-sav-2026-10-06-0616.json
+- SDD Spec: meta/sdd/specs/active/airis-admin-model-settings-save-2026-10-06-001.json
 - Created: 2026-10-06
 
 ## Cause and scope
@@ -31,4 +31,4 @@ Reuse actual-source handler tests and disposable compiled onboarding fixture. Ex
 
 ## Source verification
 
-Actual handler checks13/13, full Docker frontend619/619 across88files; type3493/warnings157 and lint1330 retain existing debt, zero added mapped findings. Existing child template accessibility findings remain tracked under G14. Initial test run used an unsupported matcher and the full concurrent run was killed for memory; retained as unaccepted evidence. Corrected matcher and sequential full run pass. No dependency/backend/schema changes.
+Actual handler checks13/13, full Docker frontend619/619 across88files; type3493/warnings157 and lint1330 retain existing debt, zero added mapped findings. CI required correction of existing child event-delegation wrappers: presentational containers now keep descendant controls accessible without inventing interactive parent roles. Removed two unused tuple bindings. Generated SDD identifier normalized to the required three-digit suffix. Initial test run used an unsupported matcher and the full concurrent run was killed for memory; retained as unaccepted evidence. Corrected matcher and sequential full run pass. No dependency/backend/schema changes.

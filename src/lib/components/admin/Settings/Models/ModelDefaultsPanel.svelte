@@ -33,9 +33,9 @@
 	let promptSuggestions = [];
 
 	$: configuredParams = Object.entries(defaultParams ?? {}).filter(
-		([_, value]) => value !== null && value !== '' && value !== undefined
+		([, value]) => value !== null && value !== '' && value !== undefined
 	);
-	$: enabledCapabilities = Object.entries(defaultCapabilities ?? {}).filter(([_, value]) => value);
+	$: enabledCapabilities = Object.entries(defaultCapabilities ?? {}).filter(([, value]) => value);
 	$: availableFeatures = enabledCapabilities
 		.filter(([key]) => ['web_search', 'code_interpreter', 'image_generation'].includes(key))
 		.map(([key]) => key);
@@ -169,7 +169,7 @@
 					</button>
 
 					{#if showCapabilities}
-						<div class="pb-2" on:click={updateDirty} on:change={updateDirty}>
+						<div role="presentation" class="pb-2" on:click={updateDirty} on:change={updateDirty}>
 							<Capabilities bind:capabilities={defaultCapabilities} />
 
 							{#if availableFeatures.length > 0}
@@ -205,6 +205,7 @@
 
 					{#if showParameters}
 						<div
+							role="presentation"
 							class="max-h-[24rem] overflow-y-auto pb-2 pr-1 scrollbar-hover"
 							on:click={updateDirty}
 							on:change={updateDirty}
@@ -232,7 +233,13 @@
 					</button>
 
 					{#if showPromptSuggestions}
-						<div class="pb-2" on:click={updateDirty} on:change={updateDirty} on:input={updateDirty}>
+						<div
+							role="presentation"
+							class="pb-2"
+							on:click={updateDirty}
+							on:change={updateDirty}
+							on:input={updateDirty}
+						>
 							<PromptSuggestions bind:promptSuggestions />
 						</div>
 					{/if}

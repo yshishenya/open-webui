@@ -38,7 +38,7 @@ test('model defaults retain failed edits, recover Save and persist retry', async
 	await page.getByRole('button', { name: 'Model Defaults', exact: true }).click();
 	await page.getByRole('button', { name: /^Model Capabilities/ }).click();
 	const vision = page.getByRole('checkbox', { name: 'Vision', exact: true });
-	const save = page.locator('#tab-admin-models').getByRole('button', { name: 'Save', exact: true });
+	const save = page.getByRole('button', { name: 'Save', exact: true });
 	for (const step of [
 		{ path: '/api/v1/configs/models', method: 'POST' },
 		{ path: '/api/v1/configs/suggestions', method: 'POST' },
