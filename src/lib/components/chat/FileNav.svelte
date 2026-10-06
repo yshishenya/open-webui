@@ -49,7 +49,6 @@
 
 	const i18n = getContext('i18n');
 
-	export let onAttach: ((blob: Blob, name: string, contentType: string) => void) | null = null;
 	export let overlay = false;
 	export let chatId: string | null = null;
 
@@ -227,7 +226,6 @@
 	// ── Delete confirmation ──────────────────────────────────────────────
 	let deleteTarget: { path: string; name: string } | null = null;
 	let showDeleteConfirm = false;
-	let shiftKey = false;
 
 	// ── Terminal resolution ──────────────────────────────────────────────
 	let selectedTerminal: { url: string; key: string } | null = null;
@@ -238,11 +236,11 @@
 			: ($terminalServers?.[0] ?? null);
 
 		const userTerminal = ($settings?.terminalServers ?? []).find(
-			(s) => s.url === $selectedTerminalId
+			(s) => s.url === ($selectedTerminalId ?? systemTerminal?.url)
 		);
 
-		const isSystem = !!systemTerminal;
-		const url = systemTerminal?.url ?? userTerminal?.url ?? '';
+		const isSystem = !!systemTerminal?.id;
+		const url = (isSystem ? systemTerminal?.url : userTerminal?.url) ?? '';
 		const key = isSystem ? localStorage.token : (userTerminal?.key ?? '');
 
 		return url ? { url, key } : null;
@@ -255,7 +253,7 @@
 	let prevChatId = chatId;
 	let mounted = false;
 	$: {
-		($selectedTerminalId, $terminalServers, $settings);
+		void ($selectedTerminalId, $terminalServers, $settings);
 		const terminal = getTerminal();
 		selectedTerminal = terminal;
 
@@ -270,7 +268,7 @@
 			if (chatChanged && chatId && !oldChatId) {
 				// Chat just got created (null → real ID): persist the current
 				// browsed path as the new session's cwd — don't re-fetch.
-				setCwd(terminal.url, terminal.key, savedPath, chatId);
+				setCwd(terminal.url, terminal.key, currentPath, chatId);
 			} else if (terminalChanged || chatChanged) {
 				// Terminal switched, new chat started, or switched between
 				// existing chats — re-fetch the session cwd.
@@ -283,8 +281,7 @@
 						terminalEnabled = config?.features?.terminal !== false;
 					}
 
-					savedPath = applyCwd(await getCwd(terminal.url, terminal.key, chatId ?? undefined));
-					loadDir(savedPath);
+					loadDir(applyCwd(await getCwd(terminal.url, terminal.key, chatId ?? undefined)));
 				})();
 			}
 		}
@@ -839,7 +836,12 @@
 
 	// Click outside panel to clear selection
 	const handleWindowClick = (e: MouseEvent) => {
-		if (selectedCount > 0 && containerEl && !containerEl.contains(e.target as Node)) {
+		if (
+			selectedCount > 0 &&
+			containerEl &&
+			(!containerEl.contains(e.target as Node) ||
+				(e.target instanceof HTMLElement && e.target.dataset.fileNavContent === 'true'))
+		) {
 			clearSelection();
 		}
 	};
@@ -920,31 +922,17 @@
 
 		mounted = true;
 
-		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === 'Shift') shiftKey = true;
-		};
-		const onKeyUp = (e: KeyboardEvent) => {
-			if (e.key === 'Shift') shiftKey = false;
-		};
-		const onBlur = () => (shiftKey = false);
-
 		const onVisibilityChange = () => {
 			if (document.visibilityState === 'visible' && !selectedFile && selectedTerminal && !loading) {
 				loadDir(currentPath);
 			}
 		};
 
-		window.addEventListener('keydown', onKeyDown);
-		window.addEventListener('keyup', onKeyUp);
-		window.addEventListener('blur', onBlur);
 		document.addEventListener('visibilitychange', onVisibilityChange);
 
 		return () => {
 			unsubFileNav();
 			unsubFileNavDir();
-			window.removeEventListener('keydown', onKeyDown);
-			window.removeEventListener('keyup', onKeyUp);
-			window.removeEventListener('blur', onBlur);
 			document.removeEventListener('visibilitychange', onVisibilityChange);
 		};
 	});
@@ -1320,12 +1308,7 @@
 		{/if}
 
 		<!-- Content -->
-		<div
-			class="flex-1 overflow-y-auto min-h-0 min-w-0"
-			on:click={(e) => {
-				if (e.target === e.currentTarget && selectedCount > 0) clearSelection();
-			}}
-		>
+		<div class="flex-1 overflow-y-auto min-h-0 min-w-0" data-file-nav-content="true">
 			{#if previewPort !== null}
 				<PortPreview
 					baseUrl={selectedTerminal?.url ?? ''}
@@ -1495,8 +1478,8 @@
 					<div class="relative cursor-row-resize group" on:mousedown={onHandleMouseDown}>
 						<div
 							class="h-px bg-transparent group-hover:bg-black/10 dark:group-hover:bg-white/10 transition"
-						/>
-						<div class="absolute inset-x-0 -top-1.5 -bottom-1.5" />
+						></div>
+						<div class="absolute inset-x-0 -top-1.5 -bottom-1.5"></div>
 					</div>
 				{/if}
 
@@ -1526,7 +1509,7 @@
 								: terminalConnecting
 									? 'bg-yellow-500 animate-pulse'
 									: 'bg-gray-400'}"
-						/>
+						></div>
 					{/if}
 
 					<svg
