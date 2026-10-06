@@ -54,26 +54,35 @@
 		dirty = savedSnapshot !== '' && getSnapshot() !== savedSnapshot;
 	};
 
+	/** @returns {Promise<void>} */
 	const init = async () => {
+		if (loading) return;
 		loading = true;
-		config = await getModelsConfig(localStorage.token);
+		try {
+			const savedConfig = await getModelsConfig(localStorage.token);
+			if (!savedConfig) throw new Error('Models configuration unavailable');
+			config = savedConfig;
 
-		const savedMeta = config?.DEFAULT_MODEL_METADATA;
-		if (savedMeta && Object.keys(savedMeta).length > 0) {
-			defaultCapabilities = savedMeta.capabilities ?? { ...DEFAULT_CAPABILITIES };
-			defaultFeatureIds = savedMeta.defaultFeatureIds ?? [];
-			builtinTools = savedMeta.builtinTools ?? {};
-		} else {
-			defaultCapabilities = { ...DEFAULT_CAPABILITIES };
-			defaultFeatureIds = [];
-			builtinTools = {};
+			const savedMeta = config?.DEFAULT_MODEL_METADATA;
+			if (savedMeta && Object.keys(savedMeta).length > 0) {
+				defaultCapabilities = savedMeta.capabilities ?? { ...DEFAULT_CAPABILITIES };
+				defaultFeatureIds = savedMeta.defaultFeatureIds ?? [];
+				builtinTools = savedMeta.builtinTools ?? {};
+			} else {
+				defaultCapabilities = { ...DEFAULT_CAPABILITIES };
+				defaultFeatureIds = [];
+				builtinTools = {};
+			}
+
+			defaultParams = config?.DEFAULT_MODEL_PARAMS ?? {};
+			promptSuggestions = $appConfig?.default_prompt_suggestions ?? [];
+			savedSnapshot = getSnapshot();
+			dirty = false;
+		} catch {
+			toast.error($i18n.t('Something went wrong :/'));
+		} finally {
+			loading = false;
 		}
-
-		defaultParams = config?.DEFAULT_MODEL_PARAMS ?? {};
-		promptSuggestions = $appConfig?.default_prompt_suggestions ?? [];
-		savedSnapshot = getSnapshot();
-		dirty = false;
-		loading = false;
 	};
 
 	/** @returns {Promise<boolean>} */
@@ -150,6 +159,14 @@
 	{#if expanded}
 		{#if loading}
 			<div class="py-1 text-xs text-gray-400 dark:text-gray-600">{$i18n.t('Loading...')}</div>
+		{:else if !config}
+			<button
+				type="button"
+				class="py-1 text-xs text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+				on:click={init}
+			>
+				{$i18n.t('Retry')}
+			</button>
 		{:else}
 			<div class="space-y-1 mt-0.5">
 				<div>

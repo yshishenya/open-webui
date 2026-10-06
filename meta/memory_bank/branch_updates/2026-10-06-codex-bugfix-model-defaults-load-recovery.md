@@ -1,0 +1,6 @@
+- [ ] **[BUG][ADMIN]** Recover initial model defaults loading
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-06__bugfix__model-defaults-load-recovery.md`
+  - Owner: Codex
+  - Branch: codex/bugfix/model-defaults-load-recovery
+  - Started: 2026-10-06
+  - Summary: Actual config read refusal leaves loading=true and rejects without user-safe recovery; protect initial state and add retry before current-base production acceptance.

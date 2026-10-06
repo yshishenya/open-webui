@@ -29,6 +29,9 @@ function settings() {
 	};
 	const context = {
 		loading: false,
+		DEFAULT_CAPABILITIES: { vision: true },
+		defaultParams: {},
+		$appConfig: { default_prompt_suggestions: [{ content: 'Saved suggestion' }] },
 		dirty: true,
 		savingModelsSettings: false,
 		savingModelOrder: false,
@@ -39,7 +42,7 @@ function settings() {
 		defaultModelIds: ['selected'],
 		defaultPinnedModelIds: ['pinned'],
 		modelsConfig: {},
-		config: { MODEL_ORDER_LIST: ['first', 'second'] },
+		config: { MODEL_ORDER_LIST: ['first', 'second'] } as Record<string, unknown> | null,
 		modelIds: ['first', 'second'],
 		defaultCapabilities: { vision: false },
 		defaultFeatureIds: [],
@@ -157,3 +160,44 @@ it.each([
 		expect(context.toast.success).toHaveBeenCalledTimes(1);
 	}
 );
+
+it.each(['reject', 'null'])('initial defaults %s refusal permits safe retry', async (step) => {
+	const { context, run } = settings();
+	context.config = null;
+	if (step === 'reject') context.getModelsConfig.mockRejectedValueOnce(new Error('private detail'));
+	else context.getModelsConfig.mockResolvedValueOnce(null);
+	const init = run<() => Promise<void>>(child, 'init');
+	await init();
+	expect(context.loading).toBe(false);
+	expect(context.config).toBeNull();
+	expect(context.defaultCapabilities).toEqual({ vision: false });
+	expect(context.savedSnapshot).toBe('before');
+	expect(context.toast.error).toHaveBeenCalledTimes(1);
+	expect(context.toast.error).toHaveBeenCalledWith('Something went wrong :/');
+	expect(context.setModelsConfig).not.toHaveBeenCalled();
+	const saved = {
+		DEFAULT_MODEL_METADATA: {
+			capabilities: { vision: true },
+			defaultFeatureIds: ['web_search'],
+			builtinTools: { time: true }
+		},
+		DEFAULT_MODEL_PARAMS: { temperature: 0.3 }
+	};
+	context.getModelsConfig.mockResolvedValueOnce(saved);
+	await init();
+	expect(context.loading).toBe(false);
+	expect(context.config).toEqual(saved);
+	expect(context.defaultCapabilities).toEqual(saved.DEFAULT_MODEL_METADATA.capabilities);
+	expect(context.defaultParams).toEqual(saved.DEFAULT_MODEL_PARAMS);
+	expect(context.promptSuggestions).toEqual([{ content: 'Saved suggestion' }]);
+	expect(context.dirty).toBe(false);
+	expect(context.toast.error).toHaveBeenCalledTimes(1);
+});
+
+it('initial defaults read does not duplicate a busy request', async () => {
+	const { context, run } = settings();
+	context.loading = true;
+	await run<() => Promise<void>>(child, 'init')();
+	expect(context.getModelsConfig).not.toHaveBeenCalled();
+	expect(context.loading).toBe(true);
+});

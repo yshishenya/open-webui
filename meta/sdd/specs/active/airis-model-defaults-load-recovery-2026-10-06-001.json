@@ -1,0 +1,102 @@
+{
+	"spec_id": "airis-model-defaults-load-recovery-2026-10-06-001",
+	"title": "Airis model defaults load recovery 2026-10-06",
+	"generated": "2026-10-06T03:52:47.199123Z",
+	"last_updated": "2026-10-06T03:58:42.681491Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "medium",
+		"estimated_hours": 2,
+		"security_sensitive": false,
+		"default_category": "implementation",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__bugfix__model-defaults-load-recovery.md",
+		"status": "active",
+		"activated_date": "2026-10-06T03:53:28.491683Z",
+		"progress_percentage": 50
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis model defaults load recovery 2026-10-06",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 1,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Repair defaults initial-load failure",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-06T03:58:42.679760Z",
+				"journaled_at": "2026-10-06T03:58:42.681461Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Accept source and production",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce refusal and implement safe retry",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"completed_at": "2026-10-06T03:58:42.679604Z",
+				"needs_journaling": false,
+				"status_note": "Actual handlers before3fail/13pass; after16/16, full Docker622/622. Shared init recovers busy, catches rejected/null config, prevents duplicate read; Retry without fake defaults. Types3493/151 and lint1322,0new mapped diagnostics. Compiled/browser/CI/current-base release task remains pending.",
+				"journaled_at": "2026-10-06T03:58:42.680471Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify Docker, browser, CI, merge and guarded release",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"category": "implementation"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-06T03:58:42.680467Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce refusal and implement safe retry",
+			"author": "Codex",
+			"content": "Task task-1-1 marked as completed. \nNote: Actual handlers before3fail/13pass; after16/16, full Docker622/622. Shared init recovers busy, catches rejected/null config, prevents duplicate read; Retry without fake defaults. Types3493/151 and lint1322,0new mapped diagnostics. Compiled/browser/CI/current-base release task remains pending.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-06T03:58:42.681456Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Repair defaults initial-load failure",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}
