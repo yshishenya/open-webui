@@ -1,0 +1,8 @@
+- [ ] **[BUG][ADMIN][LIFECYCLE]** Remove model settings listeners on unmount
+  - Spec: meta/memory_bank/specs/work_items/2026-10-06__bugfix__admin-model-listener-cleanup.md
+  - Owner: Codex
+  - Branch: codex/bugfix/admin-model-listener-cleanup
+  - Started: 2026-10-06
+  - Summary: Return synchronous teardown, prevent delayed setup after unmount, report initialization refusal safely.
+  - Tests: Actual baseline leaves3listeners after unmount; further verification pending.
+  - Risks: Preserve successful initialization and modifier-key behavior; full onboarding goal remains active.
