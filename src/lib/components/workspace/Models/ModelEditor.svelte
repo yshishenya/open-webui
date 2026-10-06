@@ -224,7 +224,7 @@
 		);
 	};
 
-	const submitHandler = async () => {
+	const submitHandler = async (): Promise<void> => {
 		loading = true;
 
 		info.id = id;
@@ -264,7 +264,8 @@
 		info.meta.capabilities = capabilities;
 
 		if (enableDescription) {
-			info.meta.description = info.meta.description.trim() === '' ? null : info.meta.description;
+			info.meta.description =
+				(info.meta.description ?? '').trim() === '' ? null : info.meta.description;
 		} else {
 			info.meta.description = null;
 		}
@@ -365,10 +366,14 @@
 			}
 		});
 
-		await onSubmit(info);
-
-		loading = false;
-		success = false;
+		try {
+			await onSubmit(info);
+		} catch (error) {
+			toast.error(typeof error === 'string' ? error : $i18n.t('Something went wrong :/'));
+		} finally {
+			loading = false;
+			success = false;
+		}
 	};
 
 	onMount(async () => {
