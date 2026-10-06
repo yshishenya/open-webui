@@ -1,0 +1,129 @@
+{
+	"spec_id": "airis-admin-model-listener-cleanup-2026-10-06-001",
+	"title": "Airis admin model listener cleanup 2026-10-06",
+	"generated": "2026-10-06T02:29:49.954779Z",
+	"last_updated": "2026-10-06T03:07:12.836869Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "implementation",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__bugfix__admin-model-listener-cleanup.md",
+		"status": "completed",
+		"activated_date": "2026-10-06T02:30:27.009548Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-06T03:07:12.836586Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis admin model listener cleanup 2026-10-06",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Repair listener lifetime",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-06T02:35:00.786592Z",
+				"journaled_at": "2026-10-06T02:35:00.788547Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Accept compiled current production",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-06T03:07:12.360156Z",
+				"journaled_at": "2026-10-06T03:07:12.362393Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce and fix cleanup, delayed init and init refusal",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"category": "implementation",
+				"completed_at": "2026-10-06T02:35:00.786376Z",
+				"needs_journaling": false,
+				"status_note": "Actual cleanup3failed/1expected pass before with2unhandled refusals; after4/4 pass. Docker606/606, changed-file lint/format pass. Types3496\u21923493, warnings157 and ESLint1330 preserved, zero new mapped diagnostics. Runtime changes limited to synchronous lifetime and late/error init handling; compiled/source/production phase remains open.",
+				"journaled_at": "2026-10-06T02:35:00.787316Z"
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify tests, CI, merge and guarded release",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"metadata": {
+				"category": "implementation",
+				"completed_at": "2026-10-06T03:07:12.360010Z",
+				"needs_journaling": false,
+				"status_note": "Final source95acc99b236402ea44c70039d483a20d1700bb31: Docker606/606, lifecycle4/4 and final compiled Chromium/Firefox3902/2. CI12success/1expected skip; identical source/precomputed/merged tree7053cb2199556702192cfd1669a5af8330493118. Guarded current-base production45973b3b:4914frontend/426backendfiles, backup/checksum/archive/pg_restore/Alembic, healthy/restarts0, ENV/13neighbors/pin/public/ordinary browser accepted. Whole quality and onboarding goal remain open.",
+				"journaled_at": "2026-10-06T03:07:12.361301Z"
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-06T02:35:00.787311Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce and fix cleanup, delayed init and init refusal",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Actual cleanup3failed/1expected pass before with2unhandled refusals; after4/4 pass. Docker606/606, changed-file lint/format pass. Types3496\u21923493, warnings157 and ESLint1330 preserved, zero new mapped diagnostics. Runtime changes limited to synchronous lifetime and late/error init handling; compiled/source/production phase remains open.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-06T02:35:00.788538Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Repair listener lifetime",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-06T03:07:12.361296Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify tests, CI, merge and guarded release",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Final source95acc99b236402ea44c70039d483a20d1700bb31: Docker606/606, lifecycle4/4 and final compiled Chromium/Firefox3902/2. CI12success/1expected skip; identical source/precomputed/merged tree7053cb2199556702192cfd1669a5af8330493118. Guarded current-base production45973b3b:4914frontend/426backendfiles, backup/checksum/archive/pg_restore/Alembic, healthy/restarts0, ENV/13neighbors/pin/public/ordinary browser accepted. Whole quality and onboarding goal remain open.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-06T03:07:12.362389Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Accept compiled current production",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
