@@ -1,9 +1,9 @@
 # Rich text insertion contract
 
 - Type: bugfix; workflow: bug_fix.
-- Status: In Progress; owner: Codex; started: 2026-10-06.
+- Status: Done; owner: Codex; started: 2026-10-06.
 - Branch: `codex/bugfix/rich-text-insertion-contract`; base: `013466ff0ddf5d619de90e75a05d309f264072ac` (`airis_b2c`).
-- SDD Spec: `meta/sdd/specs/active/airis-rich-text-insertion-contract-2026-10-06-001.json`.
+- SDD Spec: `meta/sdd/specs/completed/airis-rich-text-insertion-contract-2026-10-06-001.json`.
 
 ## Problem and scope
 
@@ -23,8 +23,8 @@ An independently reproduced plain-copy defect also sends the full editor HTML to
 - [x] Full Docker frontend suite passes; changed-file lint clean; zero new mapped type/lint diagnostics.
 - [x] Plain copy contains only selected plaintext/HTML, preserves hard breaks and leaves empty/rich selections to native handling.
 - [x] Native focus restoration follows the command transaction; compiled click-and-next-character regression added.
-- [ ] Compiled Chromium and Firefox scenarios pass without page errors; exact-SHA CI and merge accepted.
-- [ ] Guarded deployment preserves current base, backend, environment, compiled Metrica, neighbors and data; verified backup, Alembic, digest, public and authenticated smoke accepted.
+- [x] Compiled Chromium and Firefox scenarios pass without page errors; exact-SHA CI and merge accepted.
+- [x] Guarded deployment preserves current base, backend, environment, compiled Metrica, neighbors and data; verified backup, Alembic, digest, public and authenticated smoke accepted.
 
 ## Approach and dependency contract
 
@@ -36,4 +36,4 @@ Only `src/lib/components/common/RichTextInput.svelte` needs runtime edits: the n
 
 ## Verification and evidence
 
-Native baseline:14 failures/16 successes, plus one independently reproduced hard-break lookup failure. Final32 insertion/copy cases and678/678 full Docker frontend cases; types3428→3396/150 warnings, ESLint1288 unchanged, zero new mapped diagnostics, changed component/test lint clean. One initial test VM declaration collision and a returning test hook were corrected; rejected receipts retained. Compiled browser/CI/production still pending. Private evidence remains outside the public repository. Overall onboarding acceptance and real pilot/payment/human criteria are not closed by this component fix.
+Native baseline:14 failures/16 successes, plus one independently reproduced hard-break lookup failure. Final32 insertion/copy cases and678/678 full Docker frontend cases; types3428→3396/150 warnings, ESLint1288 unchanged, zero new mapped diagnostics, changed component/test lint clean. One initial test VM declaration collision and a returning test hook were corrected; rejected receipts retained. Compiled Chromium/Firefox:2/2 insertion/copy and16/16 onboarding paths,0pageerrors. All applicable exact-source CI passed; dependency-review intentionally skipped; CodeRabbit review disabled. PR299 merge d96c6536305230891ec3b4acbe50a7fd7b56a92b has the tested source tree. Guarded production accepted on 2026-10-06: immutable digest sha256:5ead6217b36355c10977cce6d79f23819d80c65834ddf362bc26ec335a28e146;4914frontend/426Python equal,69base layers/ENV/compiled Metrica/13neighbors preserved;verified backup,hard Alembic,healthy/restarts0 and23.53GiB free. Default Compose pins the new image without a second recreate. Public version and ordinary read-only browser retain history/answer/empty input/free Luna/zero balance/file manager,0console errors/0new generation. Private evidence remains outside the public repository. Overall onboarding acceptance and real pilot/payment/human criteria are not closed by this component fix.
