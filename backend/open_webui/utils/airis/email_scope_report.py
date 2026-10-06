@@ -12,6 +12,7 @@ from open_webui.models.email_observation_schema import (
     EmailObservationScope,
     EmailScenarioObservation,
 )
+from open_webui.utils.airis.data_retention import require_scope_history
 from open_webui.utils.airis.email_observation_admin import DiagnosticNotFound
 from open_webui.utils.airis.email_observer import (
     PAYMENT_TYPES,
@@ -252,6 +253,7 @@ async def scope_mail_report(scope_id: str) -> ScopeMailReport:
             scope = await session.get(EmailObservationScope, scope_id)
             if scope is None:
                 raise DiagnosticNotFound('observation_scope_missing')
+            require_scope_history(scope, now)
             members, observations, jobs, coverage = await scope_facts(session, scope, now)
             return ScopeMailReport(
                 generated_at=now,

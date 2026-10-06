@@ -11,6 +11,7 @@ from fastapi.routing import APIRoute
 from open_webui.models.email_observation_commands import ObservationCommandConflict
 from open_webui.models.users import UserModel
 from open_webui.utils.airis import email_observation_admin as service
+from open_webui.utils.airis.data_retention import HistoryRetentionExpired
 from open_webui.utils.airis.email_observer import ObservationPageConflict, ObservationPageError, observe_scope_page
 from open_webui.utils.airis.email_scope_report import ScopeMailReport, scope_mail_report
 from open_webui.utils.auth import get_admin_user
@@ -46,6 +47,8 @@ router = APIRouter(route_class=DiagnosticRoute)
 async def _operation(operation: Awaitable[T]) -> T:
     try:
         return await operation
+    except HistoryRetentionExpired:
+        raise HTTPException(410, 'Observation history retention expired', headers=NO_STORE) from None
     except service.DiagnosticNotFound:
         raise HTTPException(404, 'Diagnostic group not found', headers=NO_STORE) from None
     except (ObservationCommandConflict, service.DiagnosticOperationConflict, ObservationPageConflict) as error:
