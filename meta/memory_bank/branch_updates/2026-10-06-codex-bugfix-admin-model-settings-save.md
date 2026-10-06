@@ -1,0 +1,6 @@
+- [ ] **[BUG][ADMIN]** Recover model settings Save after refusals
+  - Spec: meta/memory_bank/specs/work_items/2026-10-06**bugfix**admin-model-settings-save.md
+  - Owner: Codex
+  - Branch: codex/bugfix/admin-model-settings-save
+  - Started: 2026-10-06
+  - Summary: Actual shared Save and order refresh retain busy flags; verify rejection recovery, retained input and retry before current-base release.

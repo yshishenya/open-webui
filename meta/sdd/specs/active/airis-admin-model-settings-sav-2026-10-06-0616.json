@@ -1,0 +1,101 @@
+{
+	"spec_id": "airis-admin-model-settings-sav-2026-10-06-0616",
+	"title": "Airis admin model settings save recovery 2026-10-06",
+	"generated": "2026-10-06T03:16:19.959200Z",
+	"last_updated": "2026-10-06T03:22:45.713328Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "low",
+		"risk_level": "medium",
+		"estimated_hours": 4,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__bugfix__admin-model-settings-save.md",
+		"status": "active",
+		"activated_date": "2026-10-06T03:17:40.222778Z",
+		"progress_percentage": 50
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis admin model settings save recovery 2026-10-06",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 1,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Repair shared save and refusal recovery",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-06T03:22:45.711530Z",
+				"journaled_at": "2026-10-06T03:22:45.713299Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Accept source and current production",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce and repair saving flags and child outcomes",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"completed_at": "2026-10-06T03:22:45.711397Z",
+				"needs_journaling": false,
+				"status_note": "Actual shared and child handlers13/13 pass; original10/10fail with1unhandled parent rejection. Docker619/619 across88files; no new mapped types/lint, busy reset and retained retry, latest order preservation. Compiled/source/runtime phase remains open.",
+				"journaled_at": "2026-10-06T03:22:45.712310Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify Docker tests, compiled browser, CI, merge and guarded release",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"category": "implementation"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-06T03:22:45.712305Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce and repair saving flags and child outcomes",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Actual shared and child handlers13/13 pass; original10/10fail with1unhandled parent rejection. Docker619/619 across88files; no new mapped types/lint, busy reset and retained retry, latest order preservation. Compiled/source/runtime phase remains open.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-06T03:22:45.713294Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Repair shared save and refusal recovery",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}

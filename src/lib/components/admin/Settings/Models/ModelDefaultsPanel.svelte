@@ -19,7 +19,6 @@
 	export let dirty = false;
 
 	let config = null;
-	let modelIds = [];
 	let loading = false;
 	let expanded = false;
 	let showCapabilities = false;
@@ -59,8 +58,6 @@
 		loading = true;
 		config = await getModelsConfig(localStorage.token);
 
-		modelIds = config?.MODEL_ORDER_LIST || [];
-
 		const savedMeta = config?.DEFAULT_MODEL_METADATA;
 		if (savedMeta && Object.keys(savedMeta).length > 0) {
 			defaultCapabilities = savedMeta.capabilities ?? { ...DEFAULT_CAPABILITIES };
@@ -79,41 +76,45 @@
 		loading = false;
 	};
 
+	/** @returns {Promise<boolean>} */
 	export const save = async () => {
 		if (loading || !dirty) {
 			return true;
 		}
 
-		const metadata = {
-			capabilities: defaultCapabilities,
-			...(defaultFeatureIds.length > 0 ? { defaultFeatureIds } : {}),
-			...(Object.keys(builtinTools).length > 0 ? { builtinTools } : {})
-		};
-
-		const res = await setModelsConfig(localStorage.token, {
-			DEFAULT_MODELS: config?.DEFAULT_MODELS ?? null,
-			DEFAULT_PINNED_MODELS: config?.DEFAULT_PINNED_MODELS ?? null,
-			MODEL_ORDER_LIST: modelIds,
-			DEFAULT_MODEL_METADATA: metadata,
-			DEFAULT_MODEL_PARAMS: Object.fromEntries(configuredParams)
-		}).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (res) {
+		try {
+			// Order and model selection can change while this panel remains mounted.
+			const currentConfig = await getModelsConfig(localStorage.token);
+			if (!currentConfig) throw new Error('Models configuration unavailable');
+			const res = await setModelsConfig(localStorage.token, {
+				DEFAULT_MODELS: currentConfig.DEFAULT_MODELS ?? null,
+				DEFAULT_PINNED_MODELS: currentConfig.DEFAULT_PINNED_MODELS ?? null,
+				MODEL_ORDER_LIST: currentConfig.MODEL_ORDER_LIST ?? [],
+				DEFAULT_MODEL_METADATA: {
+					capabilities: defaultCapabilities,
+					...(defaultFeatureIds.length > 0 ? { defaultFeatureIds } : {}),
+					...(Object.keys(builtinTools).length > 0 ? { builtinTools } : {})
+				},
+				DEFAULT_MODEL_PARAMS: Object.fromEntries(configuredParams)
+			});
+			if (!res) throw new Error('Models configuration save failed');
 			config = res;
-			promptSuggestions = promptSuggestions.filter((p) => p.content !== '');
-			promptSuggestions = await setDefaultPromptSuggestions(localStorage.token, promptSuggestions);
-			await appConfig.set(await getBackendConfig());
+			const savedSuggestions = await setDefaultPromptSuggestions(
+				localStorage.token,
+				promptSuggestions.filter((p) => p.content !== '')
+			);
+			if (!savedSuggestions) throw new Error('Prompt suggestions save failed');
+			const backendConfig = await getBackendConfig();
+			if (!backendConfig) throw new Error('Backend configuration unavailable');
+			await appConfig.set(backendConfig);
+			await initHandler();
+			promptSuggestions = savedSuggestions;
 			savedSnapshot = getSnapshot();
 			dirty = false;
-
 			toast.success($i18n.t('Models configuration saved successfully'));
-			initHandler();
 			return true;
-		} else {
-			toast.error($i18n.t('Failed to save models configuration'));
+		} catch {
+			toast.error($i18n.t('Something went wrong :/'));
 			return false;
 		}
 	};
