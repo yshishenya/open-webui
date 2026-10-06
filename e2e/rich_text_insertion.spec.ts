@@ -87,7 +87,7 @@ test('compiled plain input preserves pasted ranges and multiline prompt commands
 		await replace('');
 		await paste('left One\nTwo right');
 		await expect.poll(text).toBe('left One\nTwo right');
-		const copied = await input.evaluate((element) => {
+		await input.evaluate((element) => {
 			const paragraph = element.querySelector('p');
 			if (!paragraph?.firstChild || !paragraph.lastChild) throw new Error('Missing copy range');
 			const range = document.createRange();
@@ -95,6 +95,8 @@ test('compiled plain input preserves pasted ranges and multiline prompt commands
 			range.setEnd(paragraph.lastChild, 3);
 			window.getSelection()?.removeAllRanges();
 			window.getSelection()?.addRange(range);
+		});
+		const copied = await input.evaluate((element) => {
 			const data = new DataTransfer();
 			const event = new ClipboardEvent('copy', { bubbles: true, cancelable: true });
 			Object.defineProperty(event, 'clipboardData', { value: data });
