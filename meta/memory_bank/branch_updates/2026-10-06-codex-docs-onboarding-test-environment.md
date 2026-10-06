@@ -1,0 +1,8 @@
+- [x] **[DOCS][TEST][ONBOARDING]** Verify preparation of the existing test environment
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-06__docs__onboarding-test-environment.md`
+  - Owner: Codex
+  - Branch: `codex/docs/onboarding-test-environment`
+  - Done: 2026-10-06
+  - Summary: Reconcile PostgreSQL, account routes, SMTP capture, clocks and actual provider test-shop readiness; document repeatable commands and boundaries.
+  - Tests: Fresh two-browser PostgreSQL24/24; unchanged140-case backend proof; actual test-shop GET200/test=true, zero mutations. Integration acceptance separate.
+  - Risks: No new implementation, real payment or production rollout.
