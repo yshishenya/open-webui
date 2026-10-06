@@ -7,9 +7,7 @@ import { expect, it, vi } from 'vitest';
 function initializer(path: string, name: string): string {
 	const file = ts.createSourceFile(
 		'component.ts',
-		readFileSync(path, 'utf8')
-			.split(/<script[^>]*>/)[1]
-			.split('</script>')[0],
+		readFileSync(path, 'utf8').split('<script lang="ts">')[1].split('</script>')[0],
 		ts.ScriptTarget.Latest
 	);
 	for (const statement of file.statements) {
