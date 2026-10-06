@@ -1,3 +1,5 @@
+import type { ModelParams } from '$lib/apis';
+import type { ChatAttachment, ChatHistory, ChatHistoryMessage } from './chat_history';
 import type { DEFAULT_PERMISSIONS } from '$lib/constants/permissions';
 import type { TerminalServer } from '$lib/apis/terminal';
 import type { updateOpenAIConfig } from '$lib/apis/openai';
@@ -222,4 +224,29 @@ export type ContextUsage = {
 	threshold: number | null;
 	percent: number | null;
 	source: 'estimated';
+};
+
+// Stored chat response from ChatResponse/ChatModel, including legacy message payloads.
+export type SavedChat = {
+	id: string;
+	user_id: string;
+	title: string;
+	created_at: number;
+	updated_at: number;
+	archived: boolean;
+	pinned?: boolean | null;
+	folder_id?: string | null;
+	share_id?: string | null;
+	variables?: Record<string, unknown>;
+	current_message_id?: string | null;
+	context_usage?: ContextUsage | null;
+	tasks?: { id: string; content: string; status: string }[] | null;
+	chat: {
+		title: string;
+		models?: string[] | null;
+		history?: ChatHistory | null;
+		messages: ChatHistoryMessage[];
+		params?: ModelParams | null;
+		files?: ChatAttachment[] | null;
+	};
 };

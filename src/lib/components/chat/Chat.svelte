@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ContextUsage } from '$lib/utils/airis/frontend-contracts';
+	import type { ContextUsage, SavedChat } from '$lib/utils/airis/frontend-contracts';
 	/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
 	import { v4 as uuidv4 } from 'uuid';
 	import { toast } from 'svelte-sonner';
@@ -155,7 +155,8 @@
 	export let onInsertToNote: ((content: string) => void) | null = null;
 	export let onCloseEmbedded: (() => void) | null = null;
 	export let onNewEmbeddedChat: (() => void | Promise<void>) | null = null;
-	export let onCreateEmbeddedChat: (() => any | Promise<any>) | null = null;
+	export let onCreateEmbeddedChat: (() => SavedChat | null | Promise<SavedChat | null>) | null =
+		null;
 	export let onSelectEmbeddedChat: ((chatId: string) => void | Promise<void>) | null = null;
 	export let onDeleteEmbeddedChat: ((chatId: string) => void | Promise<void>) | null = null;
 	export let onEmbeddedChatTitle: ((chatId: string, title: string) => void | Promise<void>) | null =
@@ -399,7 +400,7 @@
 	let generationController = null;
 	let contextCompactionToastId = null;
 
-	let chat = null;
+	let chat: SavedChat | null = null;
 	let tags = [];
 
 	// Read-only when viewing someone else's chat (e.g. via shared folder access)
@@ -2051,10 +2052,11 @@
 					messageCount: Object.keys(chatContent?.history?.messages ?? {}).length
 				});
 
-				selectedModels =
+				selectedModels = (
 					(chatContent?.models ?? undefined) !== undefined
 						? chatContent.models
-						: [chatContent.models ?? ''];
+						: [chatContent.models ?? '']
+				) as string[];
 
 				if (!($user?.role === 'admin' || ($user?.permissions?.chat?.multiple_models ?? true))) {
 					selectedModels = selectedModels.length > 0 ? [selectedModels[0]] : [''];
@@ -2069,10 +2071,11 @@
 
 				oldSelectedModelIds = structuredClone(selectedModels);
 
-				history =
+				history = (
 					(chatContent?.history ?? undefined) !== undefined
 						? chatContent.history
-						: convertMessagesToHistory(chatContent.messages);
+						: convertMessagesToHistory(chatContent.messages)
+				) as ChatHistory;
 				if (chat?.current_message_id && history?.messages?.[chat.current_message_id]) {
 					history.currentId = chat.current_message_id;
 				}
@@ -3593,7 +3596,7 @@
 		const selectedFolderId = $selectedFolder?.id;
 
 		if (!$temporaryChatEnabled) {
-			chat = await createNewChat(
+			chat = (await createNewChat(
 				localStorage.token,
 				{
 					id: _chatId,
@@ -3608,7 +3611,7 @@
 				},
 				$selectedFolder?.id,
 				chatVariables
-			);
+			)) as SavedChat;
 
 			_chatId = chat.id;
 			await chatId.set(_chatId);
@@ -3654,7 +3657,7 @@
 
 	const saveControls = async () => {
 		if (!$chatId || $temporaryChatEnabled) return;
-		const loaded = chat?.chat ?? {};
+		const loaded: Partial<SavedChat['chat']> = chat?.chat ?? {};
 		if (equal(params, loaded.params ?? {}) && equal(chatFiles, loaded.files ?? [])) return;
 
 		const res = await updateChatById(localStorage.token, $chatId, {

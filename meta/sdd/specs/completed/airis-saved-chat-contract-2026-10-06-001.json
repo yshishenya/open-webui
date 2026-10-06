@@ -1,0 +1,149 @@
+{
+  "spec_id": "airis-saved-chat-contract-2026-10-06-001",
+  "title": "Airis saved chat contract",
+  "generated": "2026-10-06T00:05:10.984211Z",
+  "last_updated": "2026-10-06T00:14:29.994284Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-06__refactor__saved-chat-contract.md",
+    "status": "completed",
+    "activated_date": "2026-10-06T00:06:27.830840Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-06T00:14:29.993945Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis saved chat contract",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Describe saved server chat and reused fields",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T00:11:16.186647Z",
+        "journaled_at": "2026-10-06T00:11:16.189090Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify load/save contracts and emitted code",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T00:14:16.144224Z",
+        "journaled_at": "2026-10-06T00:14:16.146274Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Describe saved server chat and reused fields",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 0.5,
+        "completed_at": "2026-10-06T00:11:16.186423Z",
+        "needs_journaling": false,
+        "status_note": "All stored-state assignments and server producers traced; reused existing types, nullable embedded callback and erased branch assertions preserve original behavior.",
+        "journaled_at": "2026-10-06T00:11:16.187640Z"
+      }
+    },
+    "task-2-1": {
+      "type": "verify",
+      "title": "Verify load/save contracts and emitted code",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 0.5,
+        "verification_type": "auto",
+        "command": "npm run docker:test:frontend",
+        "expected": "582 frontend tests pass, 0 new mapped diagnostics; identical full emitted output",
+        "completed_at": "2026-10-06T00:14:16.144043Z",
+        "needs_journaling": false,
+        "status_note": "Docker 582/582; mapped type diagnostics 3518 to 3514, 0 added; ESLint 1348 unchanged; full client/server emit and type-module JS identical. Parallel run SIGKILL resolved by isolated suite with 2 workers.",
+        "journaled_at": "2026-10-06T00:14:16.145108Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-06T00:11:16.187633Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Describe saved server chat and reused fields",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: All stored-state assignments and server producers traced; reused existing types, nullable embedded callback and erased branch assertions preserve original behavior.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-06T00:11:16.189083Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Describe saved server chat and reused fields",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-06T00:14:16.145103Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify load/save contracts and emitted code",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Docker 582/582; mapped type diagnostics 3518 to 3514, 0 added; ESLint 1348 unchanged; full client/server emit and type-module JS identical. Parallel run SIGKILL resolved by isolated suite with 2 workers.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-06T00:14:16.146265Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify load/save contracts and emitted code",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
