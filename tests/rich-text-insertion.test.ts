@@ -48,6 +48,7 @@ const setup = (text: string, from: number, to = from, rich = false) => {
 		state = state.apply(tr);
 	});
 	const view = {
+		focus: vi.fn(),
 		get state() {
 			return state;
 		},
@@ -134,6 +135,7 @@ it.each(['one', 'one\ntwo', '\none', 'one\n', '\n\n', 'one\n\ntwo', '🌍 при
 		await fixture.evaluate<(text: string) => Promise<void>>('replaceCommandWithText')(text);
 		expect(fixture.text()).toBe(`left ${text} right`);
 		expect(fixture.view.state.selection.from).toBe(6 + text.length);
+		expect(fixture.view.focus).toHaveBeenCalledOnce();
 	}
 );
 

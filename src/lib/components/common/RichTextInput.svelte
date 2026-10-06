@@ -420,6 +420,8 @@
 		}
 
 		dispatch(tr);
+		// Restore the native selection before parent callers focus the DOM element.
+		editor.view.focus();
 
 		await tick();
 		// selectNextTemplate(state, dispatch);

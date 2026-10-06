@@ -9,6 +9,8 @@
 
 The shared RichTextInput supplies chat, channel and note inputs. Plain paste passes a Fragment to the single-Node replaceSelectionWith API. Plain command replacement constructs empty text on leading newlines and computes the single-line cursor with an extra position. Deferred template selection reads a mutable nullable editor. Native transaction reproduction confirms command text/cursor defects and obsolete editor access. Plain paste passes runtime cases but violates the documented single-Node API contract. Hard-break command lookup also merges adjacent lines because textContent omits leaf breaks.
 
+Compiled Chromium exposed a second cursor defect when a prompt button takes focus: parent HTMLElement.focus() restores the stale DOM selection after the transaction. Restore model selection with the existing native EditorView.focus() in shared command replacement before parent focus. The first compiled candidate is rejected and was not deployed. Firefox synthetic paste data is now supplied explicitly by the test.
+
 ## Acceptance
 
 - [x] Native ProseMirror reproduction fails before repair and passes afterward.
@@ -17,6 +19,7 @@ The shared RichTextInput supplies chat, channel and note inputs. Plain paste pas
 - [x] Android/WebView insertion and variable replacement preserve adjacent content and existing rich Markdown behavior.
 - [x] Deferred template selection has zero effects after editor destroy/replacement; valid current-editor selection still works.
 - [x] Full Docker frontend suite passes; changed-file lint clean; zero new mapped type/lint diagnostics.
+- [x] Native focus restoration follows the command transaction; compiled click-and-next-character regression added.
 - [ ] Compiled Chromium and Firefox scenarios pass without page errors; exact-SHA CI and merge accepted.
 - [ ] Guarded deployment preserves current base, backend, environment, compiled Metrica, neighbors and data; verified backup, Alembic, digest, public and authenticated smoke accepted.
 
