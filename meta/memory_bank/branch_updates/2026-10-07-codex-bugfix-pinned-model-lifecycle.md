@@ -1,6 +1,7 @@
-- [ ] **[BUG]** Keep pinned-model initialization alive after settings errors
+- [x] **[BUG]** Keep pinned-model initialization alive after settings errors
   - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__pinned-model-lifecycle.md`
   - Owner: Codex
   - Started: 2026-10-07
-  - Summary: Trace all settings-write paths; own subscription/Sortable destruction and prevent late initialization.
-  - Tests: Actual22/22regression, baseline21fail/1pass +1unhandlederror; full731/731frontend. New type diagnostics0; full3369errors/131warnings and1231ESLint errors remain global debt. Compiled browser/CI/production pending.
+  - Done: 2026-10-07
+  - Summary: All persistence paths settle; subscription and Sortable have one owner, late initialization cannot replace a new mount. PR317 merged and production accepted with preserved data/configuration.
+  - Tests: Frontend731/731, lifecycle22/22, baseline21fail/1pass plus1unhandled rejection, compiled8/8 with0pageerrors, full paths24/24. Changed-file checks pass; new normalized type/lint diagnostics0. Global3369type errors/131warnings and1231ESLint remain open. SDD3/3 completed.
