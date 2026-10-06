@@ -1,4 +1,4 @@
-- [ ] **[BUG]** Settle model pulls after rejected or empty responses
+- [x] **[BUG]** Settle model pulls after rejected or empty responses
   - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__model-pull-response-errors.md`
   - Owner: Codex
   - Started: 2026-10-07
@@ -9,3 +9,6 @@
   - Updated source checks: full706/706;types3379/131warnings;lint1236;0new normalized diagnostics, changed-file formatting/lint pass.
 
   - Browser found empty readable stream incorrectly accepted by update-all; native success marker now required. Original1failed/17passed; corrected18/18/full709/709, types3379/131 unchanged. Earlier compiled candidate rejected; final browser/release pending.
+
+  - Done: 2026-10-07
+  - Final acceptance: PR315 exact source63e3761cc/merge751ed465b, trees equal; ten distinct CI success/dependency-review skipped. Compiled browsers6/6 with48 attempts/0pageerrors; ordinary paths16passed and recovery8passed after fixture subnet correction. Guarded release/file hashes/healthy/restarts0, money and12 initial neighbors preserved; ordinary guide-prefill accepted. SDD3/3 completed. Global goal and G14 remain open.

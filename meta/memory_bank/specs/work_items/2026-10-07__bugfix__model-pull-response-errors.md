@@ -1,12 +1,12 @@
 # Model pull response error recovery
 
 - Type: bugfix
-- Status: active
+- Status: completed
 - Workflow: bug_fix
 - Owner: Codex
 - Branch: `codex/bugfix/model-pull-response-errors`
 - Created: 2026-10-07
-- SDD Spec: `meta/sdd/specs/active/airis-model-pull-response-errors-2026-10-07-001.json`
+- SDD Spec: `meta/sdd/specs/completed/airis-model-pull-response-errors-2026-10-07-001.json`
 
 ## Root cause / callers
 
@@ -18,7 +18,7 @@ All pullModel callers traced: Selector.pullModelHandler and ManageOllama.pullMod
 - [x] Failed/empty response settles, leaves no pool/controller entry or loading state, reports failure and never announces success.
 - [x] Successful stream still updates models/clears state; connection index preserves numeric API contract.
 - [x] Docker full suite and diagnostics accepted; no suppression/dependency change.
-- [ ] Exact-source CI/integration and compiled-browser/production evidence accepted before completion.
+- [x] Exact-source CI/integration and compiled-browser/production evidence accepted before completion.
 
 ## Upstream impact
 
@@ -70,3 +70,23 @@ An actual-handler empty200 regression fails1/18 before the correction; all18/18
 and full709/709 pass afterwards. Types remain3379/131warnings with no new messages;
 changed-file ESLint/Prettier pass. Browser acceptance covers HTTP204 and empty200.
 The earlier c5087c3ed compiled candidate is rejected despite green CI; do not deploy.
+
+## Final acceptance — 2026-10-07
+
+PR315 source `63e3761cc3b2e1eeba5777b5b9075de45cff682f`, merge
+`751ed465bbd24ec2a1712487bc412edec0602028`; trees equal. Ten distinct
+applicable CI checks succeeded; dependency-review skipped. CodeRabbit disabled;
+no independent review claimed. Compiled Chromium and Firefox at390px:6/6 cases,
+48 attempts including successful retries,0 uncaught page errors. Ordinary E2E
+16passed;8 recovery cases passed on a repeat after correcting only the fixture
+webhook subnet. Initial16pass/8fail run retained; no single24/24 run claimed.
+
+Guarded production release accepted:4914 frontend and427 Python files equal
+the candidate, runtime environment/compose/migration and12 initial neighboring
+containers preserved, healthy/restarts0. Image selection pinned without another
+restart. Ordinary account guide opens the exact letter draft with Luna and no
+automatic submission; wallet/free quota visible. Existing terminal integration
+started one account terminal during the browser path. Four money tables are
+unchanged. Backup and rollback retained. Pilot/optional sending remains disabled.
+Physical phone, real payment, external Inbox and human usefulness are not claimed.
+SDD3/3 completed. Global G14/type/lint debt and overall onboarding goal stay open.

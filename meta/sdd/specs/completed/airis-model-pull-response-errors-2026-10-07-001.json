@@ -1,0 +1,191 @@
+{
+	"spec_id": "airis-model-pull-response-errors-2026-10-07-001",
+	"title": "Model pull response error recovery",
+	"generated": "2026-10-06T22:01:35.427134Z",
+	"last_updated": "2026-10-06T22:51:18.731325Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 2,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__model-pull-response-errors.md",
+		"status": "completed",
+		"activated_date": "2026-10-06T22:02:21.295685Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-06T22:51:18.731070Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Model pull response error recovery",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2", "phase-3"],
+			"total_tasks": 3,
+			"completed_tasks": 3,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Reproduce all model pull callers",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-06T22:02:55.598306Z",
+				"journaled_at": "2026-10-06T22:02:55.600505Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce all model pull callers",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__model-pull-response-errors.md",
+				"completed_at": "2026-10-06T22:02:55.598129Z",
+				"needs_journaling": false,
+				"status_note": "All3 actual callers tested:6 failures/3passes; null destructuring, empty bodies, false update success and string connection index reproduced without provider requests.",
+				"journaled_at": "2026-10-06T22:02:55.599422Z"
+			},
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Guard failed and empty responses without false success",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-06T22:09:19.505930Z",
+				"journaled_at": "2026-10-06T22:09:19.507907Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Guard failed and empty responses without false success",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__model-pull-response-errors.md",
+				"completed_at": "2026-10-06T22:09:19.505784Z",
+				"needs_journaling": false,
+				"status_note": "Native tuple/body guards and accurate update failure feedback; original extended8fail/4pass, corrected15/15 incl streamed error and cancellation; full706/706. Types3393\u21923388/141warnings,lint1277 unchanged,0new normalized messages. Runtime release still pending.",
+				"journaled_at": "2026-10-06T22:09:19.506808Z"
+			},
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			}
+		},
+		"phase-3": {
+			"type": "phase",
+			"title": "Accept checks, integration and runtime release",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-3-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-06T22:51:18.258527Z",
+				"journaled_at": "2026-10-06T22:51:18.260878Z"
+			}
+		},
+		"task-3-1": {
+			"type": "task",
+			"title": "Accept checks, integration and runtime release",
+			"status": "completed",
+			"parent": "phase-3",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__model-pull-response-errors.md",
+				"completed_at": "2026-10-06T22:51:18.258363Z",
+				"needs_journaling": false,
+				"status_note": "Exact-source CI and merged tree accepted; compiled Chromium/Firefox six scenarios and 48 attempts pass. Production file hashes, health, neighbors, money, migration and ordinary guide-prefill path accepted; pilot remains disabled.",
+				"journaled_at": "2026-10-06T22:51:18.259656Z"
+			},
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-06T22:02:55.599414Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce all model pull callers",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: All3 actual callers tested:6 failures/3passes; null destructuring, empty bodies, false update success and string connection index reproduced without provider requests.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-06T22:02:55.600500Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Reproduce all model pull callers",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-06T22:09:19.506803Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Guard failed and empty responses without false success",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Native tuple/body guards and accurate update failure feedback; original extended8fail/4pass, corrected15/15 incl streamed error and cancellation; full706/706. Types3393\u21923388/141warnings,lint1277 unchanged,0new normalized messages. Runtime release still pending.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-06T22:09:19.507903Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Guard failed and empty responses without false success",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		},
+		{
+			"timestamp": "2026-10-06T22:51:18.259652Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Accept checks, integration and runtime release",
+			"author": "claude-code",
+			"content": "Task task-3-1 marked as completed. \nNote: Exact-source CI and merged tree accepted; compiled Chromium/Firefox six scenarios and 48 attempts pass. Production file hashes, health, neighbors, money, migration and ordinary guide-prefill path accepted; pilot remains disabled.",
+			"metadata": {},
+			"task_id": "task-3-1"
+		},
+		{
+			"timestamp": "2026-10-06T22:51:18.260873Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Accept checks, integration and runtime release",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-3 have been completed.",
+			"metadata": {},
+			"task_id": "phase-3"
+		}
+	]
+}
