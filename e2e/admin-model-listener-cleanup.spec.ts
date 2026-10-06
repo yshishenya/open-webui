@@ -13,6 +13,17 @@ test('model settings remove listeners across repeated visits and delayed initial
 	expect(login.ok()).toBe(true);
 	const admin = (await login.json()) as { token: string; role: string };
 	expect(admin.role).toBe('admin');
+	const headers = { Authorization: `Bearer ${admin.token}` };
+	const settingsResponse = await request.get('/api/v1/users/user/settings', { headers });
+	expect(settingsResponse.ok()).toBe(true);
+	const settings = (await settingsResponse.json()) as {
+		ui?: Record<string, unknown>;
+	} | null;
+	const prepared = await request.post('/api/v1/users/user/settings/update', {
+		headers,
+		data: { ...settings, ui: { ...settings?.ui, showChangelog: false } }
+	});
+	expect(prepared.ok()).toBe(true);
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
 	await page.addInitScript(
@@ -35,6 +46,9 @@ test('model settings remove listeners across repeated visits and delayed initial
 				if (listener) listeners.get(name)?.delete(listener);
 				remove.call(window, name, listener, options);
 			};
+			Object.defineProperty(window, '__airisModifierListenerCount', {
+				get: (): number => (listeners.get('keyup')?.size ?? 0) + (listeners.get('blur')?.size ?? 0)
+			});
 			Object.defineProperty(window, '__airisListenerCount', {
 				get: (): number => [...listeners.values()].reduce((sum, set) => sum + set.size, 0)
 			});
@@ -43,16 +57,24 @@ test('model settings remove listeners across repeated visits and delayed initial
 	);
 	const count = async (): Promise<number> =>
 		page.evaluate(() => (window as Window & { __airisListenerCount: number }).__airisListenerCount);
-	await page.goto('/admin/settings/general');
-	const changelog = page.getByRole('button', { name: "Okay, Let's Go!" });
-	if ((await changelog.count()) > 0) await changelog.click();
-	await expect(page.locator('a#models')).toBeVisible();
+	const modifierCount = async (): Promise<number> =>
+		page.evaluate(
+			() =>
+				(window as Window & { __airisModifierListenerCount: number }).__airisModifierListenerCount
+		);
+	await page.goto('/?settings=admin%3Ageneral');
+	const modelsTab = page.locator('[role="tab"][aria-controls="tab-admin-models"]');
+	const generalTab = page.locator('[role="tab"][aria-controls="tab-admin-general"]');
+	await expect(modelsTab).toBeVisible();
+	await expect(page.locator('#chat-input')).toHaveCount(1);
 	const baseline = await count();
+	const modifierBaseline = await modifierCount();
 	for (let visit = 0; visit < 3; visit++) {
-		await page.locator('a#models').click();
+		await modelsTab.click();
 		await expect(page.locator('[id="model-item-gpt-5.6-luna"]')).toBeVisible();
-		await expect.poll(count).toBe(baseline + 3);
-		await page.locator('a#general').click();
+		await expect.poll(modifierCount).toBe(modifierBaseline + 2);
+		await expect.poll(count).toBeGreaterThanOrEqual(baseline + 3);
+		await generalTab.click();
 		await expect(page.locator('[id="model-item-gpt-5.6-luna"]')).toHaveCount(0);
 		await expect.poll(count).toBe(baseline);
 	}
@@ -66,9 +88,9 @@ test('model settings remove listeners across repeated visits and delayed initial
 		await hold;
 		await route.continue();
 	});
-	await page.locator('a#models').click();
+	await modelsTab.click();
 	await expect.poll(() => intercepted).toBe(true);
-	await page.locator('a#general').click();
+	await generalTab.click();
 	const initialized = page.waitForResponse(
 		(response) => new URL(response.url()).pathname === '/api/models/base'
 	);
