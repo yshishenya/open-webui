@@ -41,3 +41,23 @@ ESLint1277 unchanged;0new normalized messages (diagnostic line shifts accounted
 separately). Changed-file Prettier and test ESLint pass. General G14 stays open.
 Upstream impact also includes existing ru-RU Download failed translation value.
 No deployment or compiled-browser acceptance claimed.
+
+## CI rejection and minimal component cleanup
+
+First candidate9652736ee rejected by changed-file ESLint:41 pre-existing
+diagnostics in the two touched Svelte components. Remove unused imports/dead
+progress assignments, use native infinite for loops and immutable caught-error
+formatting, close non-void elements, retain a group role and remove obsolete
+warning suppression. Fix existing undefined createModelTag display with the
+already-owned createModelName. Reuse Model store type through the same minimal
+Pick metadata contract already used by ModelEditor; avoid requiring full Ollama
+provider payload for a selector choice. No rule disable or new dependency.
+Initial type refinement revealed5caller diagnostics; correct the actual minimum
+choice contract and selectedModel state before accepting a new candidate.
+
+## Corrected source acceptance
+
+Final minimal choice contract includes the existing arena owner. Docker changed-file
+Prettier/ESLint pass; full706/706. Full diagnostics3393→3379 errors,141→131
+warnings; ESLint1277→1236. No new normalized diagnostic in any file.
+Compiled browser and exact-source CI remain required.

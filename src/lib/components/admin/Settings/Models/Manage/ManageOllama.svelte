@@ -1,25 +1,21 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { getContext, onMount } from 'svelte';
+	import { getContext } from 'svelte';
 	const i18n = getContext('i18n');
 
-	import { WEBUI_NAME, models, MODEL_DOWNLOAD_POOL, user, config, settings } from '$lib/stores';
+	import { models, MODEL_DOWNLOAD_POOL, config, settings } from '$lib/stores';
 	import { splitStream } from '$lib/utils';
 
 	import {
 		createModel,
 		deleteModel,
 		downloadModel,
-		getOllamaUrls,
-		getOllamaVersion,
 		pullModel,
 		uploadModel,
-		getOllamaConfig,
 		getOllamaModels
 	} from '$lib/apis/ollama';
 	import { getModels } from '$lib/apis';
 
-	import Modal from '$lib/components/common/Modal.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import ModelDeleteConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -52,9 +48,6 @@
 
 	let createModelDigest = '';
 	let createModelPullProgress = null;
-
-	let digest = '';
-	let pullProgress = null;
 
 	let modelUploadMode = 'file';
 	let modelInputFile: File[] | null = null;
@@ -113,7 +106,7 @@
 					.pipeThrough(splitStream('\n'))
 					.getReader();
 
-				while (true) {
+				for (;;) {
 					try {
 						const { value, done } = await reader.read();
 						if (done) break;
@@ -213,7 +206,7 @@
 				}
 			});
 
-			while (true) {
+			for (;;) {
 				try {
 					const { value, done } = await reader.read();
 					if (done) break;
@@ -263,11 +256,7 @@
 				} catch (err) {
 					if (err.name !== 'AbortError') {
 						console.error(err);
-						if (typeof err !== 'string') {
-							err = err.message;
-						}
-
-						toast.error(`${err}`);
+						toast.error(`${typeof err === 'string' ? err : err.message}`);
 						// opts.callback({ success: false, error, modelName: opts.modelName });
 					} else {
 						break;
@@ -339,7 +328,7 @@
 				.pipeThrough(splitStream('\n'))
 				.getReader();
 
-			while (true) {
+			for (;;) {
 				const { value, done } = await reader.read();
 				if (done) break;
 
@@ -390,7 +379,7 @@
 					.pipeThrough(splitStream('\n'))
 					.getReader();
 
-				while (true) {
+				for (;;) {
 					const { value, done } = await reader.read();
 					if (done) break;
 
@@ -417,16 +406,6 @@
 										!data.status.includes('sha256')
 									) {
 										toast.success(data.status);
-									} else {
-										if (data.digest) {
-											digest = data.digest;
-
-											if (data.completed) {
-												pullProgress = Math.round((data.completed / data.total) * 1000) / 10;
-											} else {
-												pullProgress = 100;
-											}
-										}
 									}
 								}
 							}
@@ -534,7 +513,7 @@
 				.pipeThrough(splitStream('\n'))
 				.getReader();
 
-			while (true) {
+			for (;;) {
 				const { value, done } = await reader.read();
 				if (done) break;
 
@@ -890,7 +869,7 @@
 								rows="6"
 								placeholder={`e.g. {"model": "my-modelfile", "from": "ollama:7b"})`}
 								disabled={createModelLoading}
-							/>
+							></textarea>
 						</div>
 
 						<div class="flex self-start">
@@ -925,7 +904,7 @@
 
 					{#if createModelDigest !== ''}
 						<div class="flex flex-col mt-1">
-							<div class="font-normal mb-1">{createModelTag}</div>
+							<div class="font-normal mb-1">{createModelName}</div>
 							<div class="">
 								<div class="flex flex-row justify-between space-x-4 pr-2">
 									<div class=" flex-1">
@@ -1095,7 +1074,7 @@
 										bind:value={modelFileContent}
 										class="{textareaClass} resize-none"
 										rows="6"
-									/>
+									></textarea>
 								</div>
 							</div>
 						{/if}
