@@ -67,6 +67,10 @@ test('compiled plain input preserves pasted ranges and multiline prompt commands
 				Array.from(element.querySelectorAll('p'))
 					.map((paragraph) =>
 						Array.from(paragraph.childNodes)
+							.filter(
+								(node) =>
+									!(node instanceof Element && node.classList.contains('ProseMirror-trailingBreak'))
+							)
 							.map((node) => (node.nodeName === 'BR' ? '\n' : (node.textContent ?? '')))
 							.join('')
 					)
@@ -103,7 +107,11 @@ test('compiled plain input preserves pasted ranges and multiline prompt commands
 		await expect.poll(text).toBe('left \nOne\n\nTwo\n right');
 		await input.press('X');
 		await expect.poll(text).toBe('left \nOne\n\nTwo\nX right');
-		await input.fill('first');
+		await input.click();
+		await input.press('ControlOrMeta+A');
+		await input.press('Backspace');
+		await input.pressSequentially('first');
+		await expect.poll(text).toBe('first');
 		await input.press('End');
 		await paste('\n');
 		await input.pressSequentially(`/${command}`);
