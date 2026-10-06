@@ -6,7 +6,7 @@
 - Owner: Codex
 - Branch: `codex/bugfix/pinned-model-lifecycle`
 - Created: 2026-10-07
-- SDD Spec: `meta/sdd/specs/active/airis-pinned-model-lifecycle-2-2026-10-07-0202.json`
+- SDD Spec: `meta/sdd/specs/active/airis-pinned-model-lifecycle-2026-10-07-001.json`
 
 ## Cause and scope
 
@@ -36,3 +36,6 @@ zero changed-file messages. Declare only installed Sortable constructor/destroy 
 no dependency, rule disable or new service. Reuse optimistic settings semantics:
 failure keeps local intent and emits a safe error, persistence success is not assumed.
 Source CI, compiled browser and production acceptance remain pending.
+
+SDD CI rejected the wrapper-generated four-digit suffix; rename only the spec id/file
+to the existing three-digit project policy, retaining hierarchy and journal.
