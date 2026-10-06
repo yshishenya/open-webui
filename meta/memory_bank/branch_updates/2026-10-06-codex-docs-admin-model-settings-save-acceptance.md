@@ -1,0 +1,6 @@
+- [x] **[DOCS][ADMIN]** Record model settings Save production acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-06__bugfix__admin-model-settings-save.md`
+  - Owner: Codex
+  - Branch: codex/docs/admin-model-settings-save-acceptance
+  - Done: 2026-10-06
+  - Summary: Close SDD2/2 and record verified source/CI/merge, candidate, backup and production acceptance. Runtime changes0; private operational evidence stays outside GitHub; current_tasks unchanged.
