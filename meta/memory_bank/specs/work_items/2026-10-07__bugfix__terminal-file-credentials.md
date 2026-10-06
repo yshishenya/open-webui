@@ -2,12 +2,12 @@
 
 ## Meta
 - Type: bugfix
-- Status: active
+- Status: done
 - Workflow: bug_fix
 - Owner: Codex
 - Branch: `codex/bugfix/terminal-file-credentials`
 - Created: 2026-10-07
-- SDD Spec: `meta/sdd/specs/active/airis-terminal-file-credentials-2026-10-07-001.json`
+- SDD Spec: `meta/sdd/specs/completed/airis-terminal-file-credentials-2026-10-07-001.json`
 
 ## Context / root cause
 FileNav defaults to the first stored terminal. Direct OpenAPI entries precede
@@ -24,7 +24,7 @@ Resolve once in existing getTerminal; preserve the default order and selection.
 key stays empty; unconfigured direct returns null and never a session token.
 - [x] Default/explicit system use session key; stale/no server yields no call.
 - [x] Regression tests, changed-file style/types and no new full-check diagnostics.
-- [ ] Exact source CI/merge, candidate/image and guarded production accepted.
+- [x] Exact source CI/merge, candidate/image and guarded production accepted.
 
 ## Scope / reuse
 Three credential lines in existing shared FileNav resolver, one runnable regression with
@@ -63,3 +63,29 @@ Candidate acceptance also covers directory navigation and deselection.
 
 R2: FileNav/test ESLint0; frontend686/686; all type errors unchanged3396,
 compiler warnings150→141. Existing full debt remains separate.
+
+## Release acceptance — 07.10.2026
+Source `9ed42fc570dc2d2597b893027eb8903de5b60190`, PR312 merge
+`111b0ef80e31ccbed7ba0721599d65a86598390b`; accepted trees equal.
+All applicable exact-source CI checks pass; dependency review skipped.
+CodeRabbit is disabled for this base and is not an independent review.
+Compiled candidate: direct/system × Chromium/Firefox narrow4/4, page errors0;
+configured file headers, directory navigation, selection, Escape and blank-area
+clearing accepted. This is isolated synthetic verification, not a physical phone.
+
+Production accepted after checked database/data/config backup, immutable digest,
+CAS, migration and health gates. Public version matches source;4914frontend/
+427backend hashes match the pulled candidate, backend remains unchanged.
+Runtime environment, analytics counter and12 persistent neighboring services
+preserved; a temporary user terminal expired before release and a new user
+terminal appeared during the ordinary-user browser check. Money tables match
+before/after/browser; healthy/restarts0. Persistent image pin changes only image
+repository/tag. Ordinary account: wallet/free access, guide3examples submit=false,
+Luna letter prefill and system file panel visible;0errors/0newgenerations.
+Rollback image and checked backup retained. Own disposable fixture stopped,
+shared network/volumes preserved. SDD3/3 completed.
+
+Full frontend debt remains:3396type errors/141warnings and1277lint errors;
+changed-file lint0 and no new type errors. General G14 and real mail delivery,
+operator replies, phone, voluntary usability and calendar pilot remain open.
+No numbered onboarding item is closed by this security correction.
