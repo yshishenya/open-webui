@@ -1,0 +1,7 @@
+- [x] **[DOCS]** Record terminal file credential production acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__docs__terminal-file-credentials-acceptance.md`
+  - Owner: Codex
+  - Done: 2026-10-07
+  - Summary: Record accepted source/candidate/production, close implementation SDD3/3, retain full frontend and real pilot limitations.
+  - Tests: SDD/Markdown links; documentation exact-source CI/merge pending.
+  - Risks: Documentation only; no runtime change or new rollout.
