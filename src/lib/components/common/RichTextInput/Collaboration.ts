@@ -32,7 +32,7 @@ const generateUserColor = () => {
 export type EditorContentGetter = () => {
 	md: string;
 	html: string;
-	json: Content;
+	json: string;
 };
 
 // Custom Yjs Socket.IO provider
@@ -71,7 +71,7 @@ export class SocketIOCollaborationProvider {
 					})
 				];
 
-				// @ts-ignore
+				// @ts-expect-error Existing JSON awareness adapter omits unused binary-protocol members.
 				plugins.push(yCursorPlugin(this.awareness));
 
 				return plugins;
@@ -266,12 +266,18 @@ export class SocketIOCollaborationProvider {
 	}
 }
 
+type AwarenessState = Record<string, unknown> | null;
+type AwarenessChanges = { added: number[]; updated: number[]; removed: number[] };
+type AwarenessChangeHandler = (changes: AwarenessChanges, origin: string) => void;
+const isAwarenessState = (value: unknown): value is AwarenessState =>
+	value === null || (typeof value === 'object' && !Array.isArray(value));
+
 // Simple awareness implementation
 class SimpleAwareness {
 	public readonly clientID: number;
-	private readonly _states: Map<number, any>;
-	private readonly _updateHandlers: any[];
-	private readonly _localState: any;
+	private readonly _states: Map<number, AwarenessState>;
+	private readonly _updateHandlers: AwarenessChangeHandler[];
+	private readonly _localState: Record<string, unknown>;
 
 	public constructor(public readonly doc: Y.Doc) {
 		// Yjs awareness expects clientID (not clientId) property
@@ -284,27 +290,27 @@ class SimpleAwareness {
 		this._states.set(this.clientID, this._localState);
 	}
 
-	public on(event: string, handler: any) {
+	public on(event: string, handler: AwarenessChangeHandler): void {
 		if (event === 'change') this._updateHandlers.push(handler);
 	}
 
-	public off(event: string, handler: any) {
+	public off(event: string, handler: AwarenessChangeHandler): void {
 		if (event === 'change') {
 			const i = this._updateHandlers.indexOf(handler);
 			if (i !== -1) this._updateHandlers.splice(i, 1);
 		}
 	}
 
-	public getLocalState() {
+	public getLocalState(): AwarenessState {
 		return this._states.get(this.clientID) || null;
 	}
 
-	public getStates() {
+	public getStates(): Map<number, AwarenessState> {
 		// Yjs returns a Map (clientID->state)
 		return this._states;
 	}
 
-	public setLocalStateField(field: string, value: any) {
+	public setLocalStateField(field: string, value: unknown): void {
 		let localState = this._states.get(this.clientID);
 		if (!localState) {
 			localState = {};
@@ -318,13 +324,15 @@ class SimpleAwareness {
 		}
 	}
 
-	public applyUpdate(update: Uint8Array, origin: string) {
+	public applyUpdate(update: Uint8Array, origin: string): void {
 		// Very simple: Accepts a serialized JSON state for now as Uint8Array
 		try {
 			const str = new TextDecoder().decode(update);
-			const obj = JSON.parse(str);
+			const obj: unknown = JSON.parse(str);
+			if (obj === null || !isAwarenessState(obj)) throw new Error('Invalid awareness state');
 			// Should be a plain object: { clientID: state, ... }
 			for (const [k, v] of Object.entries(obj)) {
+				if (!isAwarenessState(v)) throw new Error('Invalid awareness state');
 				this._states.set(+k, v);
 			}
 			for (const cb of this._updateHandlers) {
@@ -335,9 +343,9 @@ class SimpleAwareness {
 		}
 	}
 
-	public encodeUpdate(clients: number[]) {
+	public encodeUpdate(clients: number[]): Uint8Array {
 		// Encodes the states for the given clientIDs as Uint8Array (JSON)
-		const obj: Record<number, any> = {};
+		const obj: Record<number, AwarenessState> = {};
 		for (const id of clients || Array.from(this._states.keys())) {
 			const st = this._states.get(id);
 			if (st) obj[id] = st;

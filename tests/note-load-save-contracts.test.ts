@@ -489,3 +489,71 @@ it.each(['json', 'markdown', 'html', 'empty'])('keeps the shared rich-text %s pa
 			mode === 'json' ? doc : mode === 'html' ? 'New' : '<p>New</p>'
 		);
 });
+
+it('replaces variables with an own hasOwnProperty key and a null prototype', () => {
+	for (const variables of [
+		{ name: 'Kept', hasOwnProperty: 'shadow' },
+		Object.assign(Object.create(null), { name: 'Kept' })
+	]) {
+		const replaceWith = vi.fn().mockReturnThis();
+		const dispatch = vi.fn();
+		const state = {
+			doc: {
+				descendants: (visit: (node: object, pos: number) => void) =>
+					visit({ isText: true, text: '{{ name }}' }, 0)
+			},
+			tr: { replaceWith },
+			schema: { text: (text: string) => text }
+		};
+		const context = {
+			editor: { state, view: { dispatch } },
+			textToNodes: (_: object, text: string) => text
+		};
+		const replace = evaluate<(variables: Record<string, unknown>) => void>(
+			`(${initializer('src/lib/components/common/RichTextInput.svelte', 'replaceVariables')})`,
+			context
+		);
+		replace(variables);
+		expect(replaceWith).toHaveBeenCalledWith(0, 10, 'Kept');
+		expect(dispatch).toHaveBeenCalledOnce();
+	}
+});
+
+it('keeps valid JSON awareness states and rejects malformed decoded records', () => {
+	const path = 'src/lib/components/common/RichTextInput/Collaboration.ts';
+	const source = ts.createSourceFile(path, readFileSync(path, 'utf8'), ts.ScriptTarget.Latest);
+	const definition = source.statements.find(
+		(statement) => ts.isClassDeclaration(statement) && statement.name?.text === 'SimpleAwareness'
+	);
+	if (!definition) throw new Error('Missing SimpleAwareness');
+	type State = Record<string, unknown> | null;
+	type Change = { added: number[]; updated: number[]; removed: number[] };
+	type Fixture = {
+		setLocalStateField: (name: string, value: unknown) => void;
+		on: (event: string, handler: (change: Change, origin: string) => void) => void;
+		encodeUpdate: (clients: number[]) => Uint8Array;
+		applyUpdate: (update: Uint8Array, origin: string) => void;
+		getStates: () => Map<number, State>;
+	};
+	const warn = vi.fn();
+	const create = evaluate<(doc: { clientID: number }) => Fixture>(
+		`const isAwarenessState=${initializer(path, 'isAwarenessState')}; ${definition.getText(source)}; (doc=>new SimpleAwareness(doc))`,
+		{ TextEncoder, TextDecoder, console: { warn } }
+	);
+	const first = create({ clientID: 7 });
+	const changed = vi.fn();
+	first.on('change', changed);
+	const state = { name: 'User', custom: { keep: true } };
+	first.setLocalStateField('user', state);
+	expect(changed).toHaveBeenCalledOnce();
+	const second = create({ clientID: 8 });
+	second.applyUpdate(first.encodeUpdate([7]), 'server');
+	expect(second.getStates().get(7)).toEqual({ user: state });
+	second.applyUpdate(new TextEncoder().encode('{"9":null}'), 'server');
+	expect(second.getStates().get(9)).toBeNull();
+	for (const invalid of ['[]', 'null', '{"7":"broken"}']) {
+		second.applyUpdate(new TextEncoder().encode(invalid), 'server');
+		expect(second.getStates().get(7)).toEqual({ user: state });
+	}
+	expect(warn).toHaveBeenCalledTimes(3);
+});

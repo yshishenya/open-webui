@@ -55,7 +55,7 @@
 	// Add custom table header rule before using GFM plugin
 	turndownService.addRule('tableHeaders', {
 		filter: 'th',
-		replacement: function (content, node) {
+		replacement: function (content: string): string {
 			return content;
 		}
 	});
@@ -125,15 +125,9 @@
 	const eventDispatch = createEventDispatcher();
 
 	import { Fragment, DOMParser } from 'prosemirror-model';
-	import { EditorState, Plugin, PluginKey, TextSelection, Selection } from 'prosemirror-state';
+	import { Plugin, PluginKey, TextSelection, Selection } from 'prosemirror-state';
 	import { Decoration, DecorationSet } from 'prosemirror-view';
-	import {
-		Editor,
-		Extension,
-		markInputRule,
-		type Content,
-		type JSONContent
-	} from '@tiptap/core';
+	import { Editor, Extension, markInputRule, type Content } from '@tiptap/core';
 
 	import { AIAutocompletion } from './RichTextInput/AutoCompletion.js';
 
@@ -153,7 +147,6 @@
 
 	import FileHandler from '@tiptap/extension-file-handler';
 	import Typography from '@tiptap/extension-typography';
-	import Highlight from '@tiptap/extension-highlight';
 	import Code from '@tiptap/extension-code';
 	import Italic from '@tiptap/extension-italic';
 	import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
@@ -190,22 +183,23 @@
 
 	import { PASTED_TEXT_CHARACTER_LIMIT } from '$lib/constants';
 	import { createLowlight } from 'lowlight';
-	import hljs from 'highlight.js';
+	import hljs, { type LanguageFn } from 'highlight.js';
 
 	import type { SocketIOCollaborationProvider } from './RichTextInput/Collaboration';
 
-	export let oncompositionstart = (e) => {};
-	export let oncompositionend = (e) => {};
-	export let onChange = (e) => {};
+	export let oncompositionstart: (event: CompositionEvent) => void = () => {};
+	export let oncompositionend: (event: CompositionEvent) => void = () => {};
+	export let onChange: (content: { md: string; html: string; json: Content }) => void = () => {};
 
 	// create a lowlight instance with all languages loaded
 	const lowlight = createLowlight(
 		hljs.listLanguages().reduce(
 			(obj, lang) => {
-				obj[lang] = () => hljs.getLanguage(lang);
+				const language = hljs.getLanguage(lang);
+				if (language) obj[lang] = () => language;
 				return obj;
 			},
-			{} as Record<string, any>
+			{} as Record<string, LanguageFn>
 		)
 	);
 
@@ -294,7 +288,7 @@
 		return `${char}${label}`;
 	};
 
-	export let onSelectionUpdate = (e) => {};
+	export let onSelectionUpdate: (event: { editor: Editor }) => void = () => {};
 
 	export let id = '';
 	export let value: Content = '';
@@ -308,7 +302,8 @@
 	export let showFormattingToolbar = true;
 
 	export let preserveBreaks = false;
-	export let generateAutoCompletion: Function = async () => null;
+	export let generateAutoCompletion: ((text: string) => Promise<string | null>) | null = async () =>
+		null;
 	export let autocomplete = false;
 	export let messageInput = false;
 	export let shiftEnter = false;
@@ -318,7 +313,7 @@
 
 	let content = null;
 	let htmlValue = '';
-	let jsonValue: JSONContent | string = '';
+	let jsonValue = '';
 	let mdValue = '';
 
 	let provider: SocketIOCollaborationProvider | null = null;
@@ -328,10 +323,6 @@
 	let element: Element | null = null;
 
 	let pendingUpdate = null;
-
-	const options = {
-		throwOnError: false
-	};
 
 	$: if (editor) {
 		editor.setOptions({
@@ -343,14 +334,13 @@
 		editor.commands.setContent(html);
 	}
 
-	export const getWordAtDocPos = () => {
+	export const getWordAtDocPos = (): string => {
 		if (!editor) return '';
 		const { state } = editor.view;
 		const pos = state.selection.from;
 		const doc = state.doc;
 		const resolvedPos = doc.resolve(pos);
 		const textBlock = resolvedPos.parent;
-		const paraStart = resolvedPos.start();
 		const text = textBlock.textContent;
 		const offset = resolvedPos.parentOffset;
 
@@ -514,10 +504,8 @@
 		focus();
 	};
 
-	export const insertContent = (content) => {
+	export const insertContent = (content: string): void => {
 		if (!editor || !editor.view) return;
-		const { state, view } = editor;
-		const { schema, tr } = state;
 
 		// If content is a string, convert it to a ProseMirror node
 		const htmlContent = marked.parse(content);
@@ -539,14 +527,13 @@
 		return nodes;
 	};
 
-	export const replaceVariables = (variables) => {
+	export const replaceVariables = (variables: Record<string, unknown>): void => {
 		if (!editor || !editor.view) return;
 		const { state, view } = editor;
 		const { doc } = state;
 
 		// Create a transaction to replace variables
 		let tr = state.tr;
-		let offset = 0; // Track position changes due to text length differences
 
 		// Collect all replacements first to avoid position conflicts
 		const replacements = [];
@@ -556,7 +543,7 @@
 				const text = node.text;
 				const replacedText = text.replace(/{{\s*([^|}]+)(?:\|[^}]*)?\s*}}/g, (match, varName) => {
 					const trimmedVarName = varName.trim();
-					return variables.hasOwnProperty(trimmedVarName)
+					return Object.prototype.hasOwnProperty.call(variables, trimmedVarName)
 						? String(variables[trimmedVarName])
 						: match;
 				});
@@ -727,20 +714,20 @@
 			if (preserveBreaks) {
 				turndownService.addRule('preserveBreaks', {
 					filter: 'br', // Target <br> elements
-					replacement: function (content) {
+					replacement: function (): string {
 						return '<br/>';
 					}
 				});
 			}
 
 			if (!raw) {
-				async function tryParse(value, attempts = 3, interval = 100) {
+				const tryParse = async (value: string, attempts = 3, interval = 100): Promise<string> => {
 					try {
 						// Try parsing the value
 						return marked.parse(value.replaceAll(`\n<br/>`, `<br/>`), {
 							breaks: false
 						});
-					} catch (error) {
+					} catch {
 						// If no attempts remain, fallback to plain text
 						if (attempts <= 1) {
 							return value;
@@ -749,7 +736,7 @@
 						await new Promise((resolve) => setTimeout(resolve, interval));
 						return tryParse(value, attempts - 1, interval); // Recursive call
 					}
-				}
+				};
 
 				// Usage example
 				content = await tryParse(value);
@@ -839,7 +826,7 @@
 										return null;
 									}
 
-									const suggestion = await generateAutoCompletion(text).catch(() => null);
+									const suggestion = await generateAutoCompletion?.(text)?.catch(() => null);
 									if (!suggestion || suggestion.trim().length === 0) {
 										return null;
 									}
@@ -859,7 +846,7 @@
 									placement: 'top',
 									offset: 2
 								},
-								shouldShow: ({ editor, view, state, oldState, from, to }) => {
+								shouldShow: ({ editor, view, from, to }) => {
 									// safety check
 									if (!editor || !editor.view || editor.isDestroyed) {
 										return false;
@@ -876,7 +863,7 @@
 									placement: floatingMenuPlacement,
 									offset: 4
 								},
-								shouldShow: ({ editor, view, state, oldState }) => {
+								shouldShow: ({ editor, view, state }) => {
 									// safety check
 									if (!editor || !editor.view || editor.isDestroyed) {
 										return false;
@@ -987,7 +974,7 @@
 								// Swallow the drop — let the parent handler deal with it
 								return true;
 							}
-						} catch (_) {
+						} catch {
 							// Not JSON, let ProseMirror handle normally
 						}
 					}
@@ -1077,7 +1064,7 @@
 							const { $head } = state.selection;
 
 							// Recursive function to check ancestors for specific node types
-							function isInside(nodeTypes: string[]): boolean {
+							const isInside = (nodeTypes: string[]): boolean => {
 								let currentNode = $head;
 								while (currentNode) {
 									if (nodeTypes.includes(currentNode.parent.type.name)) {
@@ -1087,7 +1074,7 @@
 									currentNode = state.doc.resolve(currentNode.before()); // Move to the parent node
 								}
 								return false;
-							}
+							};
 
 							// Handle Tab Key
 							if (event.key === 'Tab') {
@@ -1373,4 +1360,4 @@
 	bind:this={element}
 	dir="auto"
 	class="relative w-full min-w-full {className} {!editable ? 'cursor-not-allowed' : ''}"
-/>
+></div>
