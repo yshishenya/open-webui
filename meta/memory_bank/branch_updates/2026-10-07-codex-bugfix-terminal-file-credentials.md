@@ -4,5 +4,5 @@
   - Branch: `codex/bugfix/terminal-file-credentials`
   - Started: 2026-10-07
   - Summary: Classify default terminal by system id, resolve direct key by matching URL in settings; shared file-operation resolver.
-  - Tests: Synthetic regression8/8; frontend686/686; full diagnostic lists unchanged,0new; production acceptance pending.
+  - Tests: Synthetic regression8/8; frontend686/686; types3396 unchanged/warnings141; changed-file lint0; production acceptance pending.
   - Risks: Prior default direct path may choose session token; verify only isolated synthetic data.

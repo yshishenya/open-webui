@@ -27,7 +27,7 @@ key stays empty; unconfigured direct returns null and never a session token.
 - [ ] Exact source CI/merge, candidate/image and guarded production accepted.
 
 ## Scope / reuse
-Three lines in existing shared FileNav resolver, one runnable regression with
+Three credential lines in existing shared FileNav resolver, one runnable regression with
 synthetic keys. No dependency, backend, schema, permissions or config change.
 No real external endpoint/credential used in verification. Existing TypeScript
 5.9.3/Svelte5.56.0/Vitest1.6.1 graph retained; upgrades separate.
@@ -51,3 +51,15 @@ Existing TypeScript5.9.3 docs read;latest7.0.2 recorded. No dependency upgrade
 or new runtime module; existing compiler graph retained. Docker network pools
 exhausted on first attempt; test containers now network:none, no networks pruned.
 Production/source CI/image task remains open; no deployed fix claimed yet.
+
+## Required changed-file gate
+The initial PR lint failed on all11 existing FileNav diagnostics (not the new
+regression). Remove unused onAttach (no callers) and unused shift listeners,
+keep event.shiftKey range selection; use currentPath for new chat CWD and let
+loadDir persist the resolved path; explicit void retains store dependencies.
+Delegate blank-area deselection to the existing window handler, preserving
+Escape. Close3 existing non-void divs. No lint rules/checks disabled.
+Candidate acceptance also covers directory navigation and deselection.
+
+R2: FileNav/test ESLint0; frontend686/686; all type errors unchanged3396,
+compiler warnings150→141. Existing full debt remains separate.
