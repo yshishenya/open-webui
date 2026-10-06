@@ -52,6 +52,11 @@ for (const mode of ['create', 'update'] as const) {
 			const system = page.getByPlaceholder(/Write your model system prompt content here/);
 			const newName = `Admin retry ${randomUUID()}`;
 			await name.fill(newName);
+			const defaultDescription = page.getByRole('button', {
+				name: 'Default description enabled',
+				exact: true
+			});
+			if ((await defaultDescription.count()) > 0) await defaultDescription.click();
 			await description.fill('Keep this description');
 			await system.fill('Keep this instruction');
 			let calls = 0;
