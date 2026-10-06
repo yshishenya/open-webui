@@ -1,0 +1,21 @@
+# Optional disposable production-dialect check; no host ports or durable volume.
+services:
+  onboarding-paths:
+    environment:
+      DATABASE_URL: postgresql://fullpaths:local-fixture-only@onboarding-postgres:5432/fullpaths
+    depends_on:
+      onboarding-postgres:
+        condition: service_healthy
+  onboarding-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fullpaths
+      POSTGRES_PASSWORD: local-fixture-only
+      POSTGRES_DB: fullpaths
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U fullpaths -d fullpaths']
+      interval: 2s
+      timeout: 3s
+      retries: 30

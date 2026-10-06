@@ -4,12 +4,14 @@ import asyncio
 import json
 import logging
 import os
+import time
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from email import policy
 from email.parser import BytesParser
 from html import escape
+from typing import Literal
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException
@@ -37,6 +39,7 @@ ANSWER = 'AIRIS deterministic answer.'
 USAGE = {'prompt_tokens': 17, 'completion_tokens': 3, 'total_tokens': 20}
 calls: list[dict[str, object]] = []
 mail: list[dict[str, str]] = []
+smtp_refusals: set[str] = set()
 
 
 async def capture_message(reader: asyncio.StreamReader, recipient: str) -> dict[str, str]:
@@ -77,7 +80,12 @@ async def smtp(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> No
             elif verb == 'RCPT':
                 address = command.split(':', 1)[-1].strip().split(' ')[0].strip('<>').lower()
                 recipient = address if address.startswith('fullpaths-') and address.endswith('@airis.you') else ''
-                await reply(b'250 recipient' if recipient else b'550 forbidden recipient')
+                if recipient in smtp_refusals:
+                    smtp_refusals.remove(recipient)
+                    await reply(b'451 fixture temporary refusal')
+                    recipient = ''
+                else:
+                    await reply(b'250 recipient' if recipient else b'550 forbidden recipient')
             elif verb == 'DATA':
                 if recipient:
                     await reply(b'354 end with dot')
@@ -90,9 +98,12 @@ async def smtp(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> No
                 break
             else:
                 await reply(
-                    {'AUTH': b'235 authenticated', 'MAIL': b'250 ok', 'RSET': b'250 ok', 'NOOP': b'250 ok'}.get(
-                        verb, b'502 unsupported'
-                    )
+                    {
+                        'AUTH': b'235 authenticated',
+                        'MAIL': b'250 ok',
+                        'RSET': b'250 ok',
+                        'NOOP': b'250 ok',
+                    }.get(verb, b'502 unsupported')
                 )
     except (TimeoutError, ConnectionError):
         logging.warning('Local SMTP connection ended before a complete fixture exchange')
@@ -185,6 +196,7 @@ class PaymentState(PaymentBody):
 
 
 payments: dict[str, PaymentState] = {}
+unavailable_payments: set[str] = set()
 
 
 @app.post('/_fixture/v3/payments')
@@ -205,7 +217,105 @@ async def create_payment(body: PaymentBody) -> dict[str, object]:
 
 @app.get('/_fixture/v3/payments/{payment_id}')
 async def get_payment(payment_id: str) -> dict[str, object]:
+    if payment_id in unavailable_payments:
+        raise HTTPException(503, 'Fixture provider lookup unavailable')
     return payments[payment_id].model_dump()
+
+
+class PaymentControl(BaseModel):
+    status: Literal['pending', 'succeeded', 'canceled'] = 'pending'
+    paid: bool = False
+    unavailable: bool = False
+
+
+@app.post('/_fixture/payment/{payment_id}')
+async def control_payment(payment_id: str, body: PaymentControl) -> dict[str, bool]:
+    """Change only the disposable external provider's state."""
+    if payment_id not in payments:
+        raise HTTPException(404, 'Unknown fixture payment')
+    payment = payments[payment_id]
+    payment.status, payment.paid = body.status, body.paid
+    if body.unavailable:
+        unavailable_payments.add(payment_id)
+    else:
+        unavailable_payments.discard(payment_id)
+    return {'completed': True}
+
+
+@app.post('/_fixture/smtp/refuse-once')
+async def refuse_smtp(recipient: str) -> dict[str, bool]:
+    """Refuse one future RCPT before accepting any DATA."""
+    if not recipient.startswith('fullpaths-') or not recipient.endswith('@airis.you'):
+        raise HTTPException(400, 'Not a fixture recipient')
+    smtp_refusals.add(recipient)
+    return {'completed': True}
+
+
+@app.get('/_fixture/deliveries/{user_id}')
+async def deliveries(user_id: str) -> list[dict[str, object]]:
+    """Observe real durable jobs without changing them."""
+    from open_webui.internal.db import get_async_db_context
+    from open_webui.models.billing_wallet import Payment
+    from open_webui.models.email_delivery import EmailDelivery
+    from sqlalchemy import select
+
+    async with get_async_db_context() as session:
+        rows = await session.execute(
+            select(EmailDelivery, Payment.provider_payment_id)
+            .outerjoin(Payment, Payment.id == EmailDelivery.payment_id)
+            .where(EmailDelivery.user_id == user_id)
+        )
+        return [
+            {
+                'provider_payment_id': provider_id,
+                **{
+                    key: getattr(row, key)
+                    for key in (
+                        'id',
+                        'type',
+                        'payment_id',
+                        'status',
+                        'reason',
+                        'attempts',
+                        'provider_id',
+                        'due_at',
+                        'updated_at',
+                        'submitted_at',
+                    )
+                },
+            }
+            for row, provider_id in rows
+        ]
+
+
+@app.post('/_fixture/retry-due/{job_id}')
+async def retry_due(job_id: str) -> dict[str, bool]:
+    """Explicit test scheduling: only a proven-unsent first temporary retry."""
+    from open_webui.internal.db import get_async_db_context
+    from open_webui.models.email_delivery import EmailDelivery
+    from open_webui.models.users import User
+    from sqlalchemy import select, update
+
+    async with get_async_db_context() as session:
+        users = select(User.id).where(User.email.like('fullpaths-%@airis.you'))
+        changed = await session.scalar(
+            update(EmailDelivery)
+            .where(
+                EmailDelivery.id == job_id,
+                EmailDelivery.user_id.in_(users),
+                EmailDelivery.type == 'topup_credited',
+                EmailDelivery.status == 'retry',
+                EmailDelivery.reason == 'smtp_temporary',
+                EmailDelivery.attempts == 1,
+                EmailDelivery.submitted_at.is_(None),
+            )
+            .values(due_at=int(time.time()))
+            .returning(EmailDelivery.id)
+        )
+        if not changed:
+            raise HTTPException(409, 'Not a proven-unsent fixture first retry')
+        await session.commit()
+    return {'completed': True}
 
 
 @app.get('/_fixture/checkout/{payment_id}', response_class=HTMLResponse)
