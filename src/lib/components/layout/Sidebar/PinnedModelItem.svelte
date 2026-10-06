@@ -3,15 +3,16 @@
 
 	const i18n = getContext('i18n');
 
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+	import { WEBUI_API_BASE_URL } from '$lib/constants';
+	import type { Model } from '$lib/stores';
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import PinSlash from './icons/PinSlash.svelte';
 
-	export let model = null;
+	export let model: Model | null = null;
 	export let shiftKey = false;
-	export let onClick = () => {};
-	export let onUnpin = () => {};
+	export let onClick: () => void = () => {};
+	export let onUnpin: (() => void | Promise<void>) | null = null;
 
 	let mouseOver = false;
 </script>
@@ -21,10 +22,10 @@
 	<div
 		class=" flex justify-center text-gray-800 dark:text-gray-200 cursor-grab relative group"
 		data-id={model?.id}
-		on:mouseenter={(e) => {
+		on:mouseenter={() => {
 			mouseOver = true;
 		}}
-		on:mouseleave={(e) => {
+		on:mouseleave={() => {
 			mouseOver = false;
 		}}
 	>
@@ -39,8 +40,8 @@
 					src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model.id}&lang=${$i18n.language}`}
 					class=" size-4 rounded-full"
 					alt="logo"
-					on:error={(e) => {
-						e.currentTarget.src = '/favicon.png';
+					on:error={(e: Event): void => {
+						if (e.currentTarget instanceof HTMLImageElement) e.currentTarget.src = '/favicon.png';
 					}}
 				/>
 			</div>
@@ -58,8 +59,9 @@
 					<Tooltip content={$i18n.t('Unpin')} className="flex items-center">
 						<button
 							class=" self-center dark:hover:text-white transition"
-							on:click={() => {
-								onUnpin();
+							aria-label={$i18n.t('Unpin')}
+							on:click={(): void => {
+								onUnpin?.();
 							}}
 							type="button"
 						>

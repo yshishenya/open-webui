@@ -157,7 +157,7 @@ export type FrontendConfig = {
 		>
 	> & { folder_max_file_count?: number; web_search_confirmation_content?: string };
 	default_models?: string;
-	default_pinned_models?: string[];
+	default_pinned_models?: string | null;
 	default_prompt_suggestions?: { content: string; title: [string, string] }[];
 	user_count?: number;
 	active_entries?: number;

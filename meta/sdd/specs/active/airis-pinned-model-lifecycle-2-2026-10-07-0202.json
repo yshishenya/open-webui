@@ -1,0 +1,175 @@
+{
+  "spec_id": "airis-pinned-model-lifecycle-2-2026-10-07-0202",
+  "title": "Airis pinned model lifecycle 2026-10-07",
+  "generated": "2026-10-06T23:02:50.880822Z",
+  "last_updated": "2026-10-06T23:13:54.538569Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "medium",
+    "estimated_hours": 2,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__pinned-model-lifecycle.md",
+    "status": "active",
+    "activated_date": "2026-10-06T23:03:38.724150Z",
+    "progress_percentage": 66
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis pinned model lifecycle 2026-10-07",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce initialization and lifecycle failures",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T23:05:04.959067Z",
+        "journaled_at": "2026-10-06T23:05:04.960966Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Use existing settings and owned Sortable lifecycle",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-06T23:13:54.536209Z",
+        "journaled_at": "2026-10-06T23:13:54.538543Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce initialization and lifecycle failures",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__pinned-model-lifecycle.md",
+        "completed_at": "2026-10-06T23:05:04.958919Z",
+        "needs_journaling": false,
+        "status_note": "All three settings writes and Sidebar parent traced; actual lifecycle/native Sortable regression12/12 failures reproduces rejected init, late subscription, missing destruction, array mutation and invalid ids/indices.",
+        "journaled_at": "2026-10-06T23:05:04.959888Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Use existing settings and owned Sortable lifecycle",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__pinned-model-lifecycle.md",
+        "completed_at": "2026-10-06T23:13:54.536071Z",
+        "needs_journaling": false,
+        "status_note": "Actual22/22, full731/731, before21fail/1pass with unhandled unpin rejection. Zero new normalized types;3369errors/131warnings,1231ESLint existing global debt. Changed-file checks pass; compiled browser/CI/runtime acceptance pending.",
+        "journaled_at": "2026-10-06T23:13:54.537376Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Accept exact-source checks and runtime release",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Accept exact-source checks and runtime release",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__pinned-model-lifecycle.md"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-06T23:05:04.959882Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce initialization and lifecycle failures",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: All three settings writes and Sidebar parent traced; actual lifecycle/native Sortable regression12/12 failures reproduces rejected init, late subscription, missing destruction, array mutation and invalid ids/indices.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-06T23:05:04.960961Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce initialization and lifecycle failures",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-06T23:13:54.537370Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Use existing settings and owned Sortable lifecycle",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Actual22/22, full731/731, before21fail/1pass with unhandled unpin rejection. Zero new normalized types;3369errors/131warnings,1231ESLint existing global debt. Changed-file checks pass; compiled browser/CI/runtime acceptance pending.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-06T23:13:54.538537Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Use existing settings and owned Sortable lifecycle",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
