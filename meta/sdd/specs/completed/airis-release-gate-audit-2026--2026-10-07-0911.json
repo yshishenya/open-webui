@@ -1,0 +1,173 @@
+{
+	"spec_id": "airis-release-gate-audit-2026--2026-10-07-0911",
+	"title": "Airis release gate audit 2026-10-07",
+	"generated": "2026-10-07T06:11:07.218300Z",
+	"last_updated": "2026-10-07T06:21:16.022921Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "investigation",
+		"status": "completed",
+		"activated_date": "2026-10-07T06:11:26.579999Z",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__docs__onboarding-release-gate-audit.md",
+		"progress_percentage": 100,
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-07T06:21:16.022618Z",
+		"actual_hours": 0.071
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis release gate audit 2026-10-07",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 3,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Read-only implementation and evidence audit",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T06:21:15.313305Z",
+				"journaled_at": "2026-10-07T06:21:15.315252Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Publication and private reconciliation",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T06:21:15.550978Z",
+				"journaled_at": "2026-10-07T06:21:15.553092Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Verify full implementation checks and disposable PostgreSQL",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-07__docs__onboarding-release-gate-audit.md",
+				"started_at": "2026-10-07T06:14:14.561037Z",
+				"completed_at": "2026-10-07T06:18:31.573273Z",
+				"needs_journaling": false,
+				"status_note": "Full backend 1017/0 skip, frontend 861; all global debt and warnings recorded, source hashes unchanged",
+				"actual_hours": 0.071,
+				"journaled_at": "2026-10-07T06:18:31.574780Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Map required scenarios and launch prerequisites to evidence",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-07__docs__onboarding-release-gate-audit.md",
+				"completed_at": "2026-10-07T06:21:15.313138Z",
+				"needs_journaling": false,
+				"status_note": "25 scenario mappings; full quality and real pilot remain open, default discovery contains31 fixture cases",
+				"journaled_at": "2026-10-07T06:21:15.314125Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Publish concrete findings and reconcile private checklist",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-07__docs__onboarding-release-gate-audit.md",
+				"completed_at": "2026-10-07T06:21:15.550811Z",
+				"needs_journaling": false,
+				"status_note": "Aggregate findings and private measurable critical-path checklist prepared; acceptance requires exact-SHA docs CI and sync",
+				"journaled_at": "2026-10-07T06:21:15.551990Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-07T06:18:31.574774Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify full implementation checks and disposable PostgreSQL",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Full backend 1017/0 skip, frontend 861; all global debt and warnings recorded, source hashes unchanged",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-07T06:21:15.314121Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Map required scenarios and launch prerequisites to evidence",
+			"author": "claude-code",
+			"content": "Task task-1-2 marked as completed. \nNote: 25 scenario mappings; full quality and real pilot remain open, default discovery contains31 fixture cases",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-07T06:21:15.315247Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Read-only implementation and evidence audit",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-07T06:21:15.551985Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Publish concrete findings and reconcile private checklist",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Aggregate findings and private measurable critical-path checklist prepared; acceptance requires exact-SHA docs CI and sync",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-07T06:21:15.553088Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Publication and private reconciliation",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
