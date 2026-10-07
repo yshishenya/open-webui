@@ -1,0 +1,8 @@
+- [x] **[DOCS][REVIEW]** Audit the complete onboarding release gates
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__docs__onboarding-release-gate-audit.md`
+  - Owner: Codex
+  - Branch: `codex/docs/onboarding-release-gate-audit`
+  - Done: 2026-10-07
+  - Summary: Full backend1017/0skips and frontend861 passed; 25 scenarios mapped. Global type/lint/format and pilot remain open; default E2E discovery includes31 fixture-dependent cases.
+  - Tests: Full backend/PostgreSQL and frontend; complete type/lint/format diagnostics, E2E discovery, runtime lineage and read-only production; links/SDD checked before commit.
+  - Risks: Documentation/test execution only; production and private identifiers are preserved.
