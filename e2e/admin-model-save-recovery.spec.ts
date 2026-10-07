@@ -7,7 +7,7 @@ for (const mode of ['create', 'update'] as const) {
 		request,
 		baseURL
 	}) => {
-		if (!baseURL || new URL(baseURL).hostname !== 'onboarding-paths')
+		if (!baseURL || new URL(baseURL).origin !== 'http://localhost:8082')
 			throw new Error('Requires disposable onboarding-paths fixture');
 		const login = await request.post('/api/v1/auths/signin', {
 			data: { email: 'fullpaths-admin@airis.you', password: 'local-fixture-only' }

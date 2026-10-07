@@ -1,11 +1,18 @@
 import { expect, test } from '@playwright/test';
 
+declare global {
+	interface Window {
+		readonly __airisListenerCount: number;
+		readonly __airisModifierListenerCount: number;
+	}
+}
+
 test('model settings remove listeners across repeated visits and delayed initialization', async ({
 	page,
 	request,
 	baseURL
 }) => {
-	if (!baseURL || new URL(baseURL).hostname !== 'onboarding-paths')
+	if (!baseURL || new URL(baseURL).origin !== 'http://localhost:8082')
 		throw new Error('Requires disposable onboarding-paths fixture');
 	const login = await request.post('/api/v1/auths/signin', {
 		data: { email: 'fullpaths-admin@airis.you', password: 'local-fixture-only' }
@@ -55,13 +62,9 @@ test('model settings remove listeners across repeated visits and delayed initial
 		},
 		{ token: admin.token }
 	);
-	const count = async (): Promise<number> =>
-		page.evaluate(() => (window as Window & { __airisListenerCount: number }).__airisListenerCount);
+	const count = async (): Promise<number> => page.evaluate(() => window.__airisListenerCount);
 	const modifierCount = async (): Promise<number> =>
-		page.evaluate(
-			() =>
-				(window as Window & { __airisModifierListenerCount: number }).__airisModifierListenerCount
-		);
+		page.evaluate(() => window.__airisModifierListenerCount);
 	await page.goto('/?settings=admin%3Ageneral');
 	const modelsTab = page.locator('[role="tab"][aria-controls="tab-admin-models"]');
 	const generalTab = page.locator('[role="tab"][aria-controls="tab-admin-general"]');

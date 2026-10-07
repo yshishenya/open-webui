@@ -5,7 +5,7 @@ test('notes preserve sparse content and recover malformed persisted fields', asy
 	request,
 	baseURL
 }) => {
-	if (!baseURL || new URL(baseURL).hostname !== 'onboarding-paths')
+	if (!baseURL || new URL(baseURL).origin !== 'http://localhost:8082')
 		throw new Error('Requires disposable onboarding-paths fixture');
 	const login = await request.post('/api/v1/auths/signin', {
 		data: { email: 'fullpaths-admin@airis.you', password: 'local-fixture-only' }
@@ -61,7 +61,9 @@ test('notes preserve sparse content and recover malformed persisted fields', asy
 			await page.route(`**/api/v1/notes/${note.id}`, async (route) => {
 				if (route.request().method() === 'GET' && refused === 0) {
 					refused++;
-					const response = await route.fetch();
+					const response = await route.fetch({
+						headers: { ...route.request().headers(), 'accept-encoding': 'identity' }
+					});
 					const original = await response.json();
 					if (broken === 'versions') original.data.versions = 'broken';
 					else original.data.content.json = { type: 'doc', content: [null] };

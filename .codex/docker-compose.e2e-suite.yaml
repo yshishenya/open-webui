@@ -1,0 +1,42 @@
+services:
+  airis-e2e:
+    network_mode: service:onboarding-paths
+    extends:
+      file: docker-compose.codex.yaml
+      service: airis-e2e
+    image: ${ONBOARDING_PATHS_IMAGE:?Set the compiled AIRIS candidate image}
+    build: !reset null
+    volumes: !reset []
+    tmpfs:
+      - /app/backend/data
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3)"
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 40
+  onboarding-paths:
+    extends:
+      file: docker-compose.onboarding-paths.yaml
+      service: onboarding-paths
+  e2e:
+    extends:
+      file: docker-compose.onboarding-paths.yaml
+      service: e2e
+    network_mode: service:onboarding-paths
+    environment:
+      PLAYWRIGHT_BASE_URL: http://localhost:8080
+      PLAYWRIGHT_ONBOARDING_BASE_URL: http://localhost:8082
+      PLAYWRIGHT_JUNIT_OUTPUT_FILE: /work/artifacts/e2e-suite/results.xml
+    depends_on:
+      airis-e2e:
+        condition: service_healthy
+      onboarding-paths:
+        condition: service_healthy
+volumes:
+  onboarding-paths-node-modules: {}

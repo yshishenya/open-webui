@@ -3,7 +3,7 @@ services:
     image: ${ONBOARDING_PATHS_IMAGE:?Set the compiled AIRIS candidate image}
     working_dir: /app/backend
     command:
-      ['python', '-m', 'uvicorn', 'onboarding_paths:app', '--host', '0.0.0.0', '--port', '8080']
+      ['python', '-m', 'uvicorn', 'onboarding_paths:app', '--host', '0.0.0.0', '--port', '8082']
     volumes:
       - ./fixtures:/fixtures:ro
     tmpfs:
@@ -14,14 +14,14 @@ services:
       DATABASE_URL: sqlite:////app/backend/data/onboarding-paths.db
       STATIC_DIR: /app/backend/data/static
       WEBUI_SECRET_KEY: local-onboarding-paths-only-32-byte-key
-      WEBUI_URL: http://onboarding-paths:8080
+      WEBUI_URL: http://localhost:8082
       FRONTEND_URL: https://chat.airis.you
       OFFLINE_MODE: 'true'
       ENABLE_SIGNUP: 'true'
       ENABLE_INITIAL_ADMIN_SIGNUP: 'true'
       DEFAULT_USER_ROLE: user
       ENABLE_OPENAI_API: 'true'
-      OPENAI_API_BASE_URL: http://127.0.0.1:8080/_fixture/v1
+      OPENAI_API_BASE_URL: http://127.0.0.1:8082/_fixture/v1
       OPENAI_API_KEY: local-fixture-only
       ENABLE_OLLAMA_API: 'false'
       ENABLE_BASE_MODELS_CACHE: 'false'
@@ -35,7 +35,7 @@ services:
       BILLING_TOPUP_PACKAGES_KOPEKS: '50000'
       YOOKASSA_SHOP_ID: local-fixture-only
       YOOKASSA_SECRET_KEY: local-fixture-only
-      YOOKASSA_API_URL: http://127.0.0.1:8080/_fixture/v3
+      YOOKASSA_API_URL: http://127.0.0.1:8082/_fixture/v3
       YOOKASSA_WEBHOOK_TOKEN: local-fixture-only
       YOOKASSA_WEBHOOK_SECRET: local-fixture-only
       YOOKASSA_WEBHOOK_ENFORCE_SIGNATURE: 'true'
@@ -60,19 +60,20 @@ services:
           'CMD',
           'python',
           '-c',
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3)"
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health',timeout=3)"
         ]
       interval: 5s
       timeout: 4s
       retries: 40
   e2e:
+    network_mode: service:onboarding-paths
     image: airis-e2e:playwright-1.62.1-node22
     working_dir: /work
     volumes:
       - ../:/work
       - onboarding-paths-node-modules:/work/node_modules
     environment:
-      PLAYWRIGHT_BASE_URL: http://onboarding-paths:8080
+      PLAYWRIGHT_BASE_URL: http://localhost:8082
       PLAYWRIGHT_JUNIT_OUTPUT_FILE: /work/artifacts/onboarding-paths/results.xml
       NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
     entrypoint: ['bash', '-lc']

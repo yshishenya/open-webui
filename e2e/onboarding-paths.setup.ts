@@ -2,7 +2,7 @@ import { expect, request, type FullConfig } from '@playwright/test';
 
 export default async function setup(config: FullConfig): Promise<void> {
 	const baseURL = config.projects[0].use.baseURL;
-	if (!baseURL || new URL(baseURL).hostname !== 'onboarding-paths')
+	if (!baseURL || new URL(baseURL).origin !== 'http://localhost:8082')
 		throw new Error('Full-path tests require the disposable onboarding-paths Compose service');
 	const client = await request.newContext({ baseURL });
 	try {

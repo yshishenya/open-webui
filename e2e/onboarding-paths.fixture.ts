@@ -32,6 +32,9 @@ export const test = base.extend<{ account: Account }>({
 			localStorage.setItem('settings', JSON.stringify({ version: '0.11.0' }));
 			localStorage.setItem('airis.analytics.consent.v1', 'denied');
 		});
+		await page.goto('/health');
+		expect(await page.evaluate(() => window.isSecureContext)).toBe(true);
+		expect(await page.evaluate(() => typeof crypto.randomUUID)).toBe('function');
 		await use(page);
 		expect(errors).toEqual([]);
 	},

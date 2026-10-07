@@ -969,3 +969,100 @@ test('money records and model price modal support keyboard inspection without wr
 	await expect(page.getByRole('dialog')).toHaveCount(0);
 	expect(writes).toEqual([]);
 });
+
+test('the real report distinguishes mature conversion from an unfinished observation window', async ({
+	page
+}) => {
+	await setup(page);
+	const requests: URL[] = [];
+	let failNext = false;
+	const mature = {
+		...summary,
+		visitors: 10,
+		registered: 5,
+		activated: 4,
+		paid: 2,
+		repeated: 1,
+		mature_visitors: 10,
+		mature_paid: 2,
+		immature_visitors: 0,
+		conversion_percent: 20,
+		next_maturity_at: null
+	};
+	const fresh = {
+		...summary,
+		visitors: 3,
+		registered: 1,
+		activated: 1,
+		paid: 1,
+		repeated: 0,
+		mature_visitors: 0,
+		mature_paid: 0,
+		immature_visitors: 3,
+		conversion_percent: null
+	};
+	await page.route('**/api/v1/analytics/funnel-report?*', async (route) => {
+		requests.push(new URL(route.request().url()));
+		if (failNext) {
+			failNext = false;
+			await route.fulfill({ status: 500, json: { detail: 'test failure' } });
+			return;
+		}
+		await route.fulfill({
+			json: {
+				...funnel,
+				summary: {
+					...mature,
+					visitors: 13,
+					registered: 6,
+					activated: 5,
+					paid: 3,
+					immature_visitors: 3
+				},
+				rows: [
+					{ ...mature, cohort: 'mature', median_hours_to_pay: 6 },
+					{ ...fresh, cohort: 'fresh', median_hours_to_pay: 2 }
+				],
+				financial: {
+					RUB: {
+						confirmed_payments: 3,
+						gross_kopeks: 150000,
+						refund_kopeks: 50000,
+						net_kopeks: 100000
+					}
+				}
+			}
+		});
+	});
+	await page.goto('/admin/analytics?from=2026-01-01&to=2026-01-10&window_days=30');
+	await expect(page.getByText('20% · 2 из 10', { exact: true })).toBeVisible();
+	await expect(page.getByText('Ещё наблюдаем: 3', { exact: true })).toBeVisible();
+	await expect(page.getByText(/После возвратов 1\s*000,00/)).toBeVisible();
+	await page.getByRole('link', { name: 'Посмотреть группы и воронку', exact: true }).click();
+	const matureRow = page
+		.getByRole('row')
+		.filter({ has: page.getByRole('rowheader', { name: /^mature/ }) });
+	const freshRow = page
+		.getByRole('row')
+		.filter({ has: page.getByRole('rowheader', { name: /^fresh/ }) });
+	await expect(matureRow).toContainText('20% · 2 из 10');
+	await expect(freshRow).toContainText('Пока недоступен');
+	await expect(freshRow).toContainText('Завершили наблюдение: 0 из 3. Ещё наблюдаем: 3.');
+	await page.getByLabel('Учитывать действия после визита в течение').selectOption('7');
+	await page.getByRole('button', { name: 'Применить', exact: true }).click();
+	await expect.poll(() => requests.at(-1)?.searchParams.get('window_days')).toBe('7');
+	await page.getByLabel('Сравнить по').selectOption('utm_source');
+	await page.getByRole('button', { name: 'Применить изменения', exact: true }).click();
+	await expect.poll(() => requests.at(-1)?.searchParams.get('breakdown')).toBe('utm_source');
+	await page.getByLabel('Первый визит с', { exact: true }).fill('2026-01-02');
+	await page.getByLabel('Первый визит по', { exact: true }).fill('2026-01-11');
+	await page.getByRole('button', { name: 'Применить', exact: true }).click();
+	await expect.poll(() => requests.at(-1)?.searchParams.get('start')).toBe('1767312000');
+	await expect.poll(() => requests.at(-1)?.searchParams.get('end')).toBe('1768176000');
+	failNext = true;
+	await page.getByRole('button', { name: 'Обновить', exact: true }).click();
+	await expect(page.getByRole('alert')).toContainText('Сохранён предыдущий отчёт');
+	await expect(matureRow).toContainText('20% · 2 из 10');
+	await page.getByRole('button', { name: 'Повторить', exact: true }).click();
+	await expect(page.getByRole('alert')).not.toBeVisible();
+});
