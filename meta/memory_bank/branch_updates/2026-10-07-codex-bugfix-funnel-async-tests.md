@@ -1,0 +1,7 @@
+- [ ] **[BUG][TEST]** Wait for actual analytics completion
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__funnel-test-completion.md`
+  - Owner: Codex
+  - Started: 2026-10-07
+  - Summary: Replace25ms timing assumption with existing completion promises and identity callbacks.
+  - Tests: Slow provider reproduced one false failure; acceptance pending.
+  - Risks: Test-only; no runtime changes or deployment required.
