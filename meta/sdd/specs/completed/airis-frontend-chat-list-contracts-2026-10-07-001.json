@@ -1,0 +1,183 @@
+{
+  "spec_id": "airis-frontend-chat-list-contracts-2026-10-07-001",
+  "title": "airis-frontend-chat-list-contracts-2026-10-07",
+  "generated": "2026-10-07T07:49:24.389602Z",
+  "last_updated": "2026-10-07T07:57:07.611513Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 3,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__frontend-chat-list-contracts.md",
+    "status": "completed",
+    "activated_date": "2026-10-07T07:50:41.724107Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-07T07:57:07.611081Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-frontend-chat-list-contracts-2026-10-07",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace backend responses and reproduce untyped list boundaries",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-07T07:50:41.960922Z",
+        "journaled_at": "2026-10-07T07:50:41.962912Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Share response contracts and annotate the complete list path",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-07T07:55:55.193368Z",
+        "journaled_at": "2026-10-07T07:55:55.197088Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Accept full local diagnostics, tests and emitted runtime; prepare publication",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-07T07:57:07.138047Z",
+        "journaled_at": "2026-10-07T07:57:07.140244Z"
+      }
+    },
+    "task-1": {
+      "type": "task",
+      "title": "Trace backend responses and reproduce untyped list boundaries",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "category": "investigation",
+        "completed_at": "2026-10-07T07:50:41.960746Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-07T07:50:41.961922Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-2": {
+      "type": "task",
+      "title": "Share response contracts and annotate the complete list path",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "metadata": {
+        "category": "implementation",
+        "completed_at": "2026-10-07T07:55:55.193136Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-07T07:55:55.195820Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-3": {
+      "type": "task",
+      "title": "Accept full local diagnostics, tests and emitted runtime; prepare publication",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "metadata": {
+        "category": "implementation",
+        "completed_at": "2026-10-07T07:57:07.137851Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-07T07:57:07.138987Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-07T07:50:41.961918Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace backend responses and reproduce untyped list boundaries",
+      "author": "claude-code",
+      "content": "Task task-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1"
+    },
+    {
+      "timestamp": "2026-10-07T07:50:41.962907Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace backend responses and reproduce untyped list boundaries",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-07T07:55:55.195812Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Share response contracts and annotate the complete list path",
+      "author": "claude-code",
+      "content": "Task task-2 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2"
+    },
+    {
+      "timestamp": "2026-10-07T07:55:55.197082Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Share response contracts and annotate the complete list path",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-07T07:57:07.138980Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Accept full local diagnostics, tests and emitted runtime; prepare publication",
+      "author": "claude-code",
+      "content": "Task task-3 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3"
+    },
+    {
+      "timestamp": "2026-10-07T07:57:07.140238Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Accept full local diagnostics, tests and emitted runtime; prepare publication",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}
