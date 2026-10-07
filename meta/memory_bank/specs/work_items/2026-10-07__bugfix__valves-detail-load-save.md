@@ -3,10 +3,10 @@
 - Type: bugfix
 - Workflow: bug_fix / workflow-compliance
 - Owner: Codex
-- Status: in progress
+- Status: completed
 - Branch: `codex/bugfix/valves-detail-load-save`
 - Created: 2026-10-07
-- SDD Spec: `meta/sdd/specs/active/airis-valves-detail-load-save-2026-10-07-001.json`
+- SDD Spec: `meta/sdd/specs/completed/airis-valves-detail-load-save-2026-10-07-001.json`
 
 ## Cause and scope
 
@@ -28,8 +28,8 @@ its admin API/lifecycle behavior is not changed by this release.
 - [x] Debounce remains bound to selection; no cross-tool updates, no duplicate form/timer submission.
 - [x] Arrays roundtrip without modifying editor state; null/default and multiselect preserved; repeated saves work.
 - [x] Full frontend and compiled Chromium/mobile Firefox pass; no new normalized diagnostics, targeted lint clean.
-- [ ] Exact source/CI, candidate paths, preserved production backend/static/ENV/data/money and rollback accepted.
-- [ ] SDD and private acceptance closed after release; overall onboarding criteria remain separate.
+- [x] Exact source/CI, candidate paths, preserved production backend/static/ENV/data/money and rollback accepted.
+- [x] SDD closed after release; private acceptance remains a separate local record. Overall onboarding criteria remain separate.
 
 ## Upstream impact
 
@@ -67,3 +67,11 @@ uncompleted output; rejected and final completed diagnostic accepted. First
 compiled submit case found duplicate timer/save event; guard saving in debounce
 fixed it and54checks passed. Expanded multiselect locator initially used visible
 selected text instead of existing aria-label; corrected fixture locator.
+
+## Accepted release
+
+[PR339](https://github.com/yshishenya/open-webui/pull/339): source `3668d5c7f6310535fe6469936683d33d1e55d0b7`, merge `dccf9fb9e13912b7127039a0d4708225b75deb78`; trees equal.11 applicable CI checks succeeded; dependency-review skipped. Full frontend861/861,66 compiled detail cases,18 list cases,24 candidate full-path cases accepted. Final types3245/warnings121 and ESLint1180 remain existing debt;new normalized diagnostics0. Local SDD0errors/0warnings after supplying required task file paths.
+
+Production digest `sha256:f09649726d573dcffad433bbf0b64653784b90cc028d3c89a968b5c3c79a7d00`;4915frontend/427backend file hashes match;3955static and analytics preserved. Environment/configuration/data mount/12neighbors and money hashes preserved, healthy/restarts0. Verified backup and rollback retained; Alembic passed; default image pin without another recreate. This closes this bug only. General frontend gate and ordinary-user/phone/mail/pilot/cohort acceptance remain open.
+
+Retained rejected verification: source9e870 failed changed-file CI; missing SDD file_path metadata fixed. Shared-network candidate run hit two DNS targets (old/new fixtures); isolated internal network accepted24/24 without source changes. Address-pool exhaustion resolved with a nonoverlapping private test subnet, no network deletion. Initial post-release Docker health snapshot starting rejected; next healthy snapshot accepted.
