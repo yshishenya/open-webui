@@ -1,0 +1,128 @@
+{
+  "spec_id": "airis-valves-list-load-recovery-2026-10-07-001",
+  "title": "AIRIS valves list load recovery",
+  "generated": "2026-10-07T04:51:36.356956Z",
+  "last_updated": "2026-10-07T04:55:35.886082Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__valves-list-load-recovery.md",
+    "status": "active",
+    "activated_date": "2026-10-07T04:52:08.897362Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS valves list load recovery",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce, recover and release nullable list loading",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace list callers and reproduce rejected/null loaders",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "tests/valves-list-initialization.test.ts",
+        "started_at": "2026-10-07T04:52:09.144592Z",
+        "completed_at": "2026-10-07T04:53:30.694960Z",
+        "needs_journaling": false,
+        "actual_hours": 0.023,
+        "journaled_at": "2026-10-07T04:53:30.697120Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Recover independent lists and accept compiled browser and diagnostics",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/lib/components/chat/Controls/Valves.svelte",
+        "started_at": "2026-10-07T04:53:30.948496Z",
+        "completed_at": "2026-10-07T04:55:35.641047Z",
+        "needs_journaling": false,
+        "actual_hours": 0.035,
+        "journaled_at": "2026-10-07T04:55:35.642765Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Accept exact source CI and guarded production release",
+      "status": "in_progress",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__valves-list-load-recovery.md",
+        "started_at": "2026-10-07T04:55:35.885811Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-07T04:53:30.697116Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace list callers and reproduce rejected/null loaders",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-07T04:55:35.642755Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Recover independent lists and accept compiled browser and diagnostics",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    }
+  ]
+}
