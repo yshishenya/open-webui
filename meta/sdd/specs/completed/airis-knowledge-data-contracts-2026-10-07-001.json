@@ -1,0 +1,191 @@
+{
+	"spec_id": "airis-knowledge-data-contracts-2026-10-07-001",
+	"title": "Airis knowledge data contracts",
+	"generated": "2026-10-07T16:54:25.816220Z",
+	"last_updated": "2026-10-07T19:40:05.162160Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "high",
+		"risk_level": "medium",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__refactor__knowledge-data-contracts.md",
+		"status": "completed",
+		"activated_date": "2026-10-07T16:56:20.657596Z",
+		"progress_percentage": 100,
+		"current_phase": "phase-2",
+		"completed_date": "2026-10-07T19:40:05.161770Z",
+		"actual_hours": 2.729
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis knowledge data contracts",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 4,
+			"completed_tasks": 4,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace and align shared knowledge records",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T17:33:22.929503Z",
+				"journaled_at": "2026-10-07T17:33:22.931614Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify and integrate coherent contracts",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T19:40:04.647714Z",
+				"journaled_at": "2026-10-07T19:40:04.650439Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Trace all server/API/store/component consumers",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"file_path": "backend/open_webui/routers/knowledge.py",
+				"category": "refactoring",
+				"started_at": "2026-10-07T16:56:20.880303Z",
+				"status_note": "Traced actual knowledge, directory and file producers and sibling consumers. Obsolete local four-field Document is not DOM.",
+				"completed_at": "2026-10-07T17:33:22.701864Z",
+				"needs_journaling": false,
+				"actual_hours": 0.617,
+				"journaled_at": "2026-10-07T17:33:22.703352Z"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Align shared record/file/directory contracts and consumers",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"file_path": "src/lib/apis/knowledge/index.ts",
+				"category": "refactoring",
+				"completed_at": "2026-10-07T17:33:22.929303Z",
+				"needs_journaling": false,
+				"status_note": "Shared contracts aligned; type-only tranche emitted identical JS in 12 existing modules. Final mechanical changes need new verification.",
+				"journaled_at": "2026-10-07T17:33:22.930510Z"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify normalized diagnostics and actual behavior",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"metadata": {
+				"file_path": "src/lib/components/workspace/Knowledge/KnowledgeBase.svelte",
+				"category": "refactoring",
+				"started_at": "2026-10-07T17:33:23.154662Z",
+				"status_note": "Final source09866:935 frontend checks,0new diagnostics,modified types/lint0,build0,compiled browser84/84 and applicable CI accepted; full quality debt retained.",
+				"completed_at": "2026-10-07T19:34:48.463256Z",
+				"needs_journaling": false,
+				"actual_hours": 2.024,
+				"journaled_at": "2026-10-07T19:34:48.465130Z"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Integrate exact source; release only if executable changes require it",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-07__refactor__knowledge-data-contracts.md",
+				"category": "refactoring",
+				"started_at": "2026-10-07T19:34:48.720893Z",
+				"status_note": "PR359 merge722d3b4a equals source09866; runtime digestd71f accepted:4915frontend/427Python/fullbackend496 audited,money/config/mounts/14neighbors unchanged,backup11files/rollback accepted,pinned without recreate.",
+				"completed_at": "2026-10-07T19:40:04.647547Z",
+				"needs_journaling": false,
+				"actual_hours": 0.088,
+				"journaled_at": "2026-10-07T19:40:04.649287Z"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-07T17:33:22.703348Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Trace all server/API/store/component consumers",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Traced actual knowledge, directory and file producers and sibling consumers. Obsolete local four-field Document is not DOM.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-07T17:33:22.930505Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Align shared record/file/directory contracts and consumers",
+			"author": "claude-code",
+			"content": "Task task-1-2 marked as completed. \nNote: Shared contracts aligned; type-only tranche emitted identical JS in 12 existing modules. Final mechanical changes need new verification.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-07T17:33:22.931609Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace and align shared knowledge records",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-07T19:34:48.465123Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify normalized diagnostics and actual behavior",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Final source09866:935 frontend checks,0new diagnostics,modified types/lint0,build0,compiled browser84/84 and applicable CI accepted; full quality debt retained.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-07T19:40:04.649282Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Integrate exact source; release only if executable changes require it",
+			"author": "claude-code",
+			"content": "Task task-2-2 marked as completed. \nNote: PR359 merge722d3b4a equals source09866; runtime digestd71f accepted:4915frontend/427Python/fullbackend496 audited,money/config/mounts/14neighbors unchanged,backup11files/rollback accepted,pinned without recreate.",
+			"metadata": {},
+			"task_id": "task-2-2"
+		},
+		{
+			"timestamp": "2026-10-07T19:40:04.650434Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify and integrate coherent contracts",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
