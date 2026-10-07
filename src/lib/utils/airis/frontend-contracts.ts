@@ -312,3 +312,34 @@ export type SavedChat = {
 		files?: ChatAttachment[] | null;
 	};
 };
+
+export type ChatListItem = {
+	id: string;
+	title?: string;
+	created_at?: number;
+	updated_at?: number;
+	last_read_at?: number | null;
+	snippet?: string | null;
+	active?: boolean;
+	time_range?: string;
+	folder_id?: string | null;
+	pinned?: boolean | null;
+	[key: string]: unknown;
+};
+
+// backend.models.chats.ChatTitleIdResponse.
+export type ChatTitleIdResponse = Pick<ChatListItem, 'last_read_at' | 'snippet' | 'active'> & {
+	id: string;
+	title: string;
+	created_at: number;
+	updated_at: number;
+};
+
+// backend.models.shared_chats.SharedChatResponse; id is the share token.
+export type SharedChatTitleResponse = Pick<
+	ChatTitleIdResponse,
+	'id' | 'title' | 'created_at' | 'updated_at'
+> & {
+	chat_id: string;
+	share_id: string | null;
+};

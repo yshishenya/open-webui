@@ -1,19 +1,6 @@
 import { get, readonly, writable } from 'svelte/store';
 import { getChatList, getPinnedChatList } from '$lib/apis/chats';
-
-type ChatListItem = {
-	id: string;
-	title?: string;
-	created_at?: number;
-	updated_at?: number;
-	last_read_at?: number | null;
-	snippet?: string | null;
-	active?: boolean;
-	time_range?: string;
-	folder_id?: string | null;
-	pinned?: boolean | null;
-	[key: string]: unknown;
-};
+import type { ChatListItem } from '$lib/utils/airis/frontend-contracts';
 
 const chatsStore = writable<ChatListItem[] | null>(null);
 const pinnedChatsStore = writable<ChatListItem[]>([]);
@@ -46,9 +33,9 @@ export const refreshChatList = async (
 	loadingNextPage = false;
 
 	const [nextChats, nextPinnedChats] = await Promise.all([
-		getChatList(token, 1) as Promise<ChatListItem[]>,
+		getChatList(token, 1),
 		options.refreshPinned && !options.clearPinned
-			? (getPinnedChatList(token) as Promise<ChatListItem[]>)
+			? getPinnedChatList(token)
 			: Promise.resolve(undefined as ChatListItem[] | undefined)
 	]);
 
@@ -101,7 +88,7 @@ export const loadNextChatListPage = async (token: string = ''): Promise<ChatList
 	loadingNextPage = true;
 
 	try {
-		const nextChats = (await getChatList(token, nextPage)) as ChatListItem[];
+		const nextChats = await getChatList(token, nextPage);
 
 		if (generation !== requestGeneration) {
 			return { accepted: false, allLoaded };

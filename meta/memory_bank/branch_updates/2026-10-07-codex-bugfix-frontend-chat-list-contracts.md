@@ -1,0 +1,10 @@
+- [x] **[BUG]** Type the shared chat list API path
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__frontend-chat-list-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/frontend-chat-list-contracts`
+  - Started: 2026-10-07
+  - Done: 2026-10-07
+  - Summary: Reuse the existing list contract at API boundaries and check all consumers without changing runtime behavior.
+  - Tests: 861/861 frontend; types 3245 to 3234, warnings 121 unchanged, new diagnostics 0; full ESLint 1180 unchanged, scoped lint/format clean; static original/fixed contract 5/0; three bundler runtime modules identical
+  - Risks: incorrect response declaration; no new dependencies or persistence changes
+  - Publication: implementation complete; exact-head CI and merge pending. Global release quality and pilot conditions remain open.
