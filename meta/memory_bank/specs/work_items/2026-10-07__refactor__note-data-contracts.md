@@ -1,10 +1,10 @@
 # Shared note data contracts
 
 - Type: refactor
-- Status: In Progress
+- Status: Done
 - Owner: Codex
 - Branch: codex/refactor/note-data-contracts
-- SDD Spec: meta/sdd/specs/active/airis-note-data-contracts-2026-10-07-001.json
+- SDD Spec: meta/sdd/specs/completed/airis-note-data-contracts-2026-10-07-001.json
 - Base: dbb48b0fca13998a3524c0c2d16d1ded24bab40c; application matches accepted09866.
 - Plan: global quality G14/13.11, overall198/244 remains active.
 
@@ -17,8 +17,8 @@ Align every selected note list/details/file/event and linked-chat producer with 
 - [x] Selected note components/API contracts reach0type/lint errors; whole-project normalized new diagnostics0.
 - [x] Modified files pass formatting; no new dependency, Any, suppression or configuration relaxation.
 - [x] Full935+frontend suite passes; minimal actual-code checks protect any executable delta.
-- [ ] Type-only JS/CSS emissions match; reproduce and verify any behavior change in compiled mandatory paths.
-- [ ] Exact-source CI/integration and required guarded runtime accepted; SDD/docs completed, branch committed/pushed.
+- [x] API/store/type-module erased JavaScript identical; executable component deltas reproduced and verified in compiled paths.
+- [x] Exact-source CI/integration and guarded runtime accepted; implementation SDD completed, source branch committed/pushed.
 
 ## Existing causal evidence and scope
 
@@ -45,3 +45,13 @@ Initial private evidence: airis-knowledge-data-contracts-20261007/next-block-cau
 - No new dependencies/backend/schema/config relaxation. Existing preflight command absent; Compose frontend/type/lint/format and SDD native schema checks used.
 
 Final local verification:939/939frontend tests/120files and scoped ESLint passed after Retry guard; final typecheck2318errors/108warnings,0normalizednew and0modifiederrors. Native schema163specs,0errors/warnings. Browser/exact-source CI/production remain pending.
+
+## Accepted source and production
+
+Source `511e50d43d025b0a38dafac72e4572c8beebfe88`; PR361 merge `b3fa9375401be4ca4a1acaefbfde7aacff7d0800`, equal trees. Applicable exact-source CI accepted; dependency-review and independent bot review skipped as reported by CI. Full939/939frontend checks and Chromium42/42 + Firefox390px42/42,84/84,0failures/errors/skips. Frozen6586source files and3private test files preserved. API/store/types erased JavaScript identical; executable component deltas have actual-code and compiled-path evidence.
+
+Release `20261007T204253Z-notes-511e50d43d-20261007`; image `yshishenya/yshishenya:notes-511e50d43d-20261007`, digest `sha256:26ddb9a331228a468614903e7ab493e8741a7b8163495a65a53ee844ac55f535`. All4915frontend/427Python files match candidate; raw backend496files preserved in image,495unchanged at runtime and existing startup replaces static/site.webmanifest from accepted frontend.326generated Python caches map to existing owners. Healthy/restarts0, money SELECT-only/DML0, runtime ENV/compose/mounts/12neighbors preserved. Public health/version/env/guide and4changed compiled assets accepted; guide examples/support/Metrica111392024 retained.11-file backup, previous accepted backup and rollback image verified. Image atomically pinned without second recreation; free space11.76GiB.
+
+Two exact old06.10backups admin-model-listener95acc… and admin-settings-save1d7… copied to P4_codex:/var/tmp/airis-note-backups-20261007.22files/3134864657bytes match sizes/SHA256; both tar archives and pg_restore listings readable and listing hashes match. Only the two server originals removed under deploy lock after fresh source rehash and runtime checks; five latest07.10backups retained and verified. Direct SSH route failed before authentication; existing KVN hop and server-to-server copy used with known host key and forwarded agent. No server access configuration changed.
+
+Local cleanup removed only3own fixtures and own empty network,0volumes deleted;76foreign image/config/semantic mount records preserved.21foreign primary tracked files match original hashes. Full quality remains red:2318type errors/108warnings,1020ESLint; normalized new diagnostics0 and modified errors0. No dependency/backend/schema/suppression/config relaxation. Overall198/244 and all real-user/mail/payment/device/pilot/calendar conditions remain open. Private evidence: `/Users/yshishenya/.codex/private-artifacts/airis-note-data-contracts-20261007`.
