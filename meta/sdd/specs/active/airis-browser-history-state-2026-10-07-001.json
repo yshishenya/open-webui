@@ -1,0 +1,183 @@
+{
+  "spec_id": "airis-browser-history-state-2026-10-07-001",
+  "title": "AIRIS browser history state 2026-10-07",
+  "generated": "2026-10-07T02:31:27.048242Z",
+  "last_updated": "2026-10-07T02:48:01.061633Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__browser-history-state.md",
+    "status": "active",
+    "activated_date": "2026-10-07T02:31:56.612763Z",
+    "progress_percentage": 50,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS browser history state 2026-10-07",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce loss of navigation state and fix all paths",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-07T02:38:24.395068Z",
+        "journaled_at": "2026-10-07T02:38:24.397102Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify source and guarded production release",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Record production acceptance and close work item",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce all three browser state losses and trace callers",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-07T02:33:57.056584Z",
+        "needs_journaling": false,
+        "status_note": "All3 actual replaceState calls reproduced:13 failures/2passes across15 tests; message history has no navigation state; all callers traced",
+        "journaled_at": "2026-10-07T02:33:57.057532Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Use native navigation state and run full regression checks",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-07T02:48:01.060052Z",
+        "needs_journaling": false,
+        "status_note": "18/18 targeted,818/818 full; staleURL2failures reproduced;3native state reads and native URLguard fixed; compilerCSSdelta accepted;0newtypes/lint/formatting",
+        "journaled_at": "2026-10-07T02:48:01.061057Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Accept exact source CI, candidate, guarded rollout and live files",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Record verified release evidence and close SDD without closing global goal",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-07T02:33:57.057528Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce all three browser state losses and trace callers",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: All3 actual replaceState calls reproduced:13 failures/2passes across15 tests; message history has no navigation state; all callers traced",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-07T02:38:24.395940Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Use native navigation state and run full regression checks",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed. \nNote: 15/15 targeted and815/815 full frontend passed; types3315\u21923312/130warnings; lint1227 unchanged; no new formatting hunks; emitted code matches only3native-state corrections",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-07T02:38:24.397098Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce loss of navigation state and fix all paths",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-07T02:48:01.061052Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Use native navigation state and run full regression checks",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed. \nNote: 18/18 targeted,818/818 full; staleURL2failures reproduced;3native state reads and native URLguard fixed; compilerCSSdelta accepted;0newtypes/lint/formatting",
+      "metadata": {},
+      "task_id": "task-1-2"
+    }
+  ]
+}

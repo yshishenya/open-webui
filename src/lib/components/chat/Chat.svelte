@@ -412,7 +412,7 @@
 
 	let chatTasks: NonNullable<ComponentProps<MessageInput>['chatTasks']> = [];
 
-	let history: ChatHistory & { state?: unknown } = {
+	let history: ChatHistory = {
 		messages: {},
 		currentId: null
 	};
@@ -1888,8 +1888,8 @@
 		await showCallOverlay.set(false);
 		await showArtifacts.set(false);
 
-		if (!embedded && $page.url.pathname.includes('/c/')) {
-			window.history.replaceState(history.state, '', `/`);
+		if (!embedded && window.location.pathname.includes('/c/')) {
+			window.history.replaceState(window.history.state, '', `/`);
 		}
 
 		autoScroll = true;
@@ -3341,7 +3341,7 @@
 				if (res.chat_id && $chatId !== res.chat_id && $chatId === _chatId) {
 					await chatId.set(res.chat_id);
 					if (!$temporaryChatEnabled && !embedded) {
-						window.history.replaceState(history.state, '', `/c/${res.chat_id}`);
+						window.history.replaceState(window.history.state, '', `/c/${res.chat_id}`);
 						await refreshChatList(localStorage.token);
 
 						// Persist chat-level params (system prompt, advanced
@@ -3608,7 +3608,7 @@
 		}
 	};
 
-	const initChatHandler = async (history) => {
+	const initChatHandler = async (history: ChatHistory): Promise<string> => {
 		let _chatId = $chatId;
 		const selectedFolderId = $selectedFolder?.id;
 
@@ -3634,7 +3634,7 @@
 			await chatId.set(_chatId);
 
 			if (!embedded) {
-				window.history.replaceState(history.state, '', `/c/${_chatId}`);
+				window.history.replaceState(window.history.state, '', `/c/${_chatId}`);
 			}
 
 			await tick();
@@ -3657,7 +3657,7 @@
 		return _chatId;
 	};
 
-	const saveChatHandler = async (_chatId, history) => {
+	const saveChatHandler = async (_chatId: string, history: ChatHistory): Promise<void> => {
 		if ($chatId == _chatId) {
 			if (!$temporaryChatEnabled) {
 				chat = await updateChatById(localStorage.token, _chatId, {
