@@ -1,0 +1,131 @@
+{
+  "spec_id": "airis-valves-detail-load-save-2026-10-07-001",
+  "title": "AIRIS valves detail load save recovery",
+  "generated": "2026-10-07T05:21:47.226805Z",
+  "last_updated": "2026-10-07T05:43:05.123998Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__valves-detail-load-save.md",
+    "status": "active",
+    "activated_date": "2026-10-07T05:22:28.158595Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS valves detail load save recovery",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Recover user valve load and save without data loss",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace contracts and preserve baseline regressions",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "started_at": "2026-10-07T05:22:28.403022Z",
+        "completed_at": "2026-10-07T05:23:11.144828Z",
+        "actual_hours": 0.012,
+        "journaled_at": "2026-10-07T05:23:11.146304Z",
+        "file_path": "tests/user-valves.test.ts"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Implement and accept load/save recovery checks",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "started_at": "2026-10-07T05:23:11.394598Z",
+        "completed_at": "2026-10-07T05:33:07.831399Z",
+        "actual_hours": 0.166,
+        "journaled_at": "2026-10-07T05:33:07.832947Z",
+        "file_path": "src/lib/utils/airis/userValves.ts"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Accept exact source CI and guarded production release",
+      "status": "in_progress",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "needs_journaling": false,
+        "started_at": "2026-10-07T05:33:08.077962Z",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__valves-detail-load-save.md"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-07T05:23:11.146300Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace contracts and preserve baseline regressions",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-07T05:33:07.832943Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement and accept load/save recovery checks",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    }
+  ]
+}

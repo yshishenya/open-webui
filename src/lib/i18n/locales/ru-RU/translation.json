@@ -1,4 +1,7 @@
 {
+	"Could not load settings. Try again.": "Не удалось загрузить настройки. Попробуйте ещё раз.",
+	"Could not save settings. Try again.": "Не удалось сохранить настройки. Попробуйте ещё раз.",
+
 	"Could not load tools. Close and reopen the menu to retry.": "Не удалось загрузить инструменты. Закройте меню и откройте снова.",
 	"Could not load skills. Close and reopen the menu to retry.": "Не удалось загрузить навыки. Закройте меню и откройте снова.",
 	"0": "0",

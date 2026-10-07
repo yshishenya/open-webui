@@ -12,6 +12,7 @@
 	import MultiSelect from './MultiSelect.svelte';
 	import MapSelector from './Valves/MapSelector.svelte';
 
+	/** @type {{ properties?: object, required?: string[] } | null} */
 	export let valvesSpec = null;
 	export let valves = {};
 </script>
