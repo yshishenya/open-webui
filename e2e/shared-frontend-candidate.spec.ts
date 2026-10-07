@@ -114,7 +114,8 @@ test('knowledge editor keeps nullable files, lazy content, rename and read-only 
 	);
 	expect(contentReads).toBe(1);
 	await page.getByRole('button', { name: 'Close', exact: true }).click();
-	await rows.nth(1).getByRole('button', { name: 'Document', exact: true }).dblclick();
+	await rows.nth(1).getByRole('button').last().click();
+	await page.getByRole('button', { name: 'Rename', exact: true }).click();
 	const rename = rows.nth(1).locator('input');
 	await rename.fill('Renamed document');
 	await rename.press('Enter');
