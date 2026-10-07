@@ -21,6 +21,7 @@
 		{#if videoSrc}
 			<!-- svelte-ignore a11y-media-has-caption -->
 			<video
+				{id}
 				class="w-full my-2"
 				src={videoSrc}
 				title="Video player"
@@ -35,8 +36,8 @@
 	{:else if html && html.includes('<audio')}
 		{@const audioSrc = getMarkdownMediaSource(html, 'audio')}
 		{#if audioSrc}
-			<!-- svelte-ignore a11y-media-has-caption -->
 			<audio
+				{id}
 				class="w-full my-2"
 				src={audioSrc}
 				title="Audio player"
@@ -78,7 +79,9 @@
 					try {
 						e.currentTarget.style.height =
 							e.currentTarget.contentWindow.document.body.scrollHeight + 20 + 'px';
-					} catch {}
+					} catch {
+						// Cross-origin frames keep their current height when their document is inaccessible.
+					}
 				}}
 			></iframe>
 		{:else}
@@ -120,7 +123,9 @@
 					try {
 						e.currentTarget.style.height =
 							e.currentTarget.contentWindow.document.body.scrollHeight + 20 + 'px';
-					} catch {}
+					} catch {
+						// Cross-origin frames keep their current height when their document is inaccessible.
+					}
 				}}
 			></iframe>
 		{/if}

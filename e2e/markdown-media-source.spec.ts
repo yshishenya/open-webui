@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { expect, type APIRequestContext, type Page } from '@playwright/test';
 import { test, type Account } from './onboarding-paths.fixture';
 
@@ -56,9 +57,12 @@ test('file token and audio src create native players after reload', async ({
 	request,
 	account
 }) => {
-	const video = await request.get('/airis/guide/first-task-20261002.mp4');
-	expect(video.ok()).toBe(true);
-	await page.route('**/api/v1/files/ab-12/content', (route) => route.fulfill({ response: video }));
+	await page.route('**/api/v1/files/ab-12/content', (route) =>
+		route.fulfill({
+			contentType: 'video/webm',
+			body: readFileSync('e2e/fixtures/markdown-media.webm')
+		})
+	);
 	await openResponse(
 		page,
 		request,
@@ -89,14 +93,20 @@ test('file token and audio src create native players after reload', async ({
 });
 
 test('legacy block sources remain playable', async ({ page, request, account }) => {
+	await page.route('**/api/v1/files/ab-12/content', (route) =>
+		route.fulfill({
+			contentType: 'video/webm',
+			body: readFileSync('e2e/fixtures/markdown-media.webm')
+		})
+	);
 	await openResponse(
 		page,
 		request,
 		account,
-		'<video>\n/airis/guide/first-task-20261002.mp4\n</video>\n\n<audio>\n/audio/notification.mp3\n</audio>'
+		'<video>\n/api/v1/files/ab-12/content\n</video>\n\n<audio>\n/audio/notification.mp3\n</audio>'
 	);
 	for (const [kind, src] of [
-		['video', '/airis/guide/first-task-20261002.mp4'],
+		['video', '/api/v1/files/ab-12/content'],
 		['audio', '/audio/notification.mp3']
 	]) {
 		const player = page.getByRole('log').locator(kind);
@@ -115,7 +125,7 @@ test('unsafe attributes and legacy source text do not create players', async ({
 	const content = '<video src="javascript:alert(1)"></video>\n\n<audio>javascript:alert(1)</audio>';
 	await openResponse(page, request, account, content);
 	const log = page.getByRole('log');
-	await expect(log).toContainText('<video src="javascript:alert(1)"></video>');
+	await expect(log).toContainText('<video src="javascript:alert(1)">');
 	await expect(log.locator('video, audio')).toHaveCount(0);
 });
 

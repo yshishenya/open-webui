@@ -49,4 +49,8 @@ Global G14/13.11 and human/calendar criteria remain independently open.
 
 ## Source checks
 
-Baseline component: 16 failures/8 passes; separate closing-tag check 2 failures/24 passes. Fixed component 26/26; full frontend 770/770 (95 files). Helper/test/E2E ESLint and formatting pass. HTMLToken has four unchanged existing lint messages; global ESLint 1231 and types 3362/131 remain failing, zero new normalized diagnostics. Runtime diff also consumes standalone native media closing tokens; code spans/fences remain outside HTMLToken.
+Baseline component: 16 failures/8 passes; separate closing-tag check 2 failures/24 passes. Fixed component 26/26; full frontend 770/770 (95 files). Helper/test/E2E ESLint and formatting pass. CI required removing four old component lint messages: use the existing token ID for players, remove the unused audio-only suppression and document cross-origin iframe height fallback. Global ESLint 1227 and types 3362/130 remain failing, zero new normalized diagnostics. Runtime diff also consumes standalone native media closing tokens; code spans/fences remain outside HTMLToken.
+
+## Browser environment and test fixture
+
+First candidate media test proved playback in Firefox; Chromium reports no H.264 support and cannot load the existing H.264 guide. Both support VP8. A 745-byte standard VP8 fixture (1-second 16x16 black clip, no personal data) checks native load/play/reload in both. Unsafe-source browser assertions check the visible opening tag and zero players; consumed closing tags are not expected as text. The initial unsuccessful browser output is retained as evidence, not accepted as a passing run.
