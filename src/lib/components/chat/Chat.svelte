@@ -5,7 +5,7 @@
 	import { toast } from 'svelte-sonner';
 	import { PaneGroup, Pane, PaneResizer, type PaneAPI } from 'paneforge';
 
-	import { getContext, onDestroy, onMount, tick } from 'svelte';
+	import { getContext, onDestroy, onMount, tick, type ComponentProps } from 'svelte';
 	import { fade } from 'svelte/transition';
 	const i18n: Writable<i18nType> = getContext('i18n');
 
@@ -148,9 +148,9 @@
 	export let chatIdProp = '';
 	export let embedded = false;
 	export let embeddedTitle = '';
-	export let embeddedChats = [];
+	export let embeddedChats: SavedChat[] = [];
 	export let embeddedDraftKey = '';
-	export let suggestedPrompts = [];
+	export let suggestedPrompts: string[] = [];
 	export let selectedText = '';
 	export let onInsertToNote: ((content: string) => void) | null = null;
 	export let onCloseEmbedded: (() => void) | null = null;
@@ -344,7 +344,7 @@
 	let selectedToolIds: string[] = [];
 	let selectedSkillIds: string[] = [];
 	let selectedFilterIds: string[] = [];
-	let pendingOAuthTools = [];
+	let pendingOAuthTools: NonNullable<ComponentProps<MessageInput>['pendingOAuthTools']> = [];
 
 	let imageGenerationEnabled = false;
 	let webSearchEnabled = false;
@@ -398,7 +398,7 @@
 	let generating = false;
 	let dragged = false;
 	let generationController: AbortController | null = null;
-	let contextCompactionToastId = null;
+	let contextCompactionToastId: ReturnType<typeof toast.loading> | null = null;
 
 	let chat: SavedChat | null = null;
 	let tags = [];
@@ -406,7 +406,7 @@
 	// Read-only when viewing someone else's chat (e.g. via shared folder access)
 	$: readOnly = chat != null && chat.user_id !== $user?.id;
 
-	let chatTasks = [];
+	let chatTasks: NonNullable<ComponentProps<MessageInput>['chatTasks']> = [];
 
 	let history: ChatHistory & { state?: unknown } = {
 		messages: {},
@@ -585,7 +585,7 @@
 		initEmbeddedDraft();
 	}
 
-	let saveControlsTimer;
+	let saveControlsTimer: ReturnType<typeof setTimeout> | undefined;
 	$: if (!loading && !$temporaryChatEnabled && $chatId && params && chatFiles) {
 		clearTimeout(saveControlsTimer);
 		saveControlsTimer = setTimeout(saveControls, 400);

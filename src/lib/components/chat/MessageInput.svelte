@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ContextUsage } from '$lib/utils/airis/frontend-contracts';
+	import type { ContextUsage, SavedChat } from '$lib/utils/airis/frontend-contracts';
 	import { getAttachmentSource } from '$lib/utils/airis/attachment_source';
 	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 	import DOMPurify from 'dompurify';
@@ -154,7 +154,8 @@
 	export let webSearchEnabled = false;
 	export let codeInterpreterEnabled = false;
 
-	export let pendingOAuthTools = [];
+	export let pendingOAuthTools: (Parameters<typeof initiateOAuthRedirect>[0] & { name: string })[] =
+		[];
 
 	let showTerminalMenu = false;
 
@@ -163,7 +164,7 @@
 	export let onQueueEdit: (id: string) => void = () => {};
 	export let onQueueDelete: (id: string) => void = () => {};
 
-	export let chatTasks = [];
+	export let chatTasks: NonNullable<SavedChat['tasks']> = [];
 
 	let inputContent = null;
 

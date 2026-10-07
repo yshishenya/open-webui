@@ -53,7 +53,7 @@
 	export let selectedToolIds = [];
 	export let selectedSkillIds = [];
 	export let selectedFilterIds = [];
-	export let pendingOAuthTools = [];
+	export let pendingOAuthTools: NonNullable<ComponentProps<MessageInput>['pendingOAuthTools']> = [];
 
 	export let showCommands = false;
 
