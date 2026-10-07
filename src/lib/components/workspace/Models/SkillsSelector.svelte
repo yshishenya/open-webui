@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import Checkbox from '$lib/components/common/Checkbox.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import TypeaheadSelector from './TypeaheadSelector.svelte';
@@ -7,14 +9,14 @@
 	type Skill = {
 		id: string;
 		name?: string;
-		description?: string;
+		description?: string | null;
 		is_active?: boolean;
 	};
 
 	export let skills: Skill[] = [];
 	export let selectedSkillIds: string[] = [];
 
-	const i18n = getContext('i18n') as any;
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	$: activeSkills = skills.filter((skill) => skill.is_active !== false);
 	$: selectedSkills = activeSkills.filter((skill) => selectedSkillIds.includes(skill.id));
@@ -54,7 +56,7 @@
 	<div class="flex flex-col mb-1">
 		{#if activeSkills.length > 0}
 			<div class=" flex items-center flex-wrap mt-1">
-				{#each selectedSkills as skill, skillIdx}
+				{#each selectedSkills as skill}
 					<div class=" flex items-center gap-2 mr-3">
 						<div class="self-center flex items-center">
 							<Checkbox

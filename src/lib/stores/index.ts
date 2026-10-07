@@ -15,6 +15,7 @@ import type {
 	ImageCompressionSize,
 	SpeechSettings,
 	StoredTerminalServer,
+	FunctionListItem,
 	UserPermissions
 } from '$lib/utils/airis/frontend-contracts';
 
@@ -82,7 +83,7 @@ export const models: Writable<Model[]> = writable([]);
 export const knowledge: Writable<null | Document[]> = writable(null);
 export const tools = writable(null);
 export const skills = writable(null);
-export const functions = writable(null);
+export const functions = writable<FunctionListItem[] | null>(null);
 
 export type WorkspaceSection = 'models' | 'knowledge' | 'prompts' | 'skills' | 'tools';
 export type WorkspaceAction = {

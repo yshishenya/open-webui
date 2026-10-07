@@ -6,6 +6,24 @@ import type { updateOpenAIConfig } from '$lib/apis/openai';
 
 export type ArtifactContent = { type: 'iframe' | 'svg'; content: string };
 
+// GET /functions/ FunctionResponse; metadata may have null fields.
+export type FunctionListItem = {
+	id: string;
+	user_id: string | null;
+	type: string;
+	name: string;
+	meta: {
+		description: string | null;
+		manifest: Record<string, unknown> | null;
+		toggle?: boolean;
+		[key: string]: unknown;
+	};
+	is_active: boolean;
+	is_global: boolean;
+	updated_at: number;
+	created_at: number;
+};
+
 export type DirectModelConnections = Pick<
 	Parameters<typeof updateOpenAIConfig>[1],
 	'OPENAI_API_BASE_URLS' | 'OPENAI_API_KEYS'

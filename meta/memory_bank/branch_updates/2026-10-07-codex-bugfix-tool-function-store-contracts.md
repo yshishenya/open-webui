@@ -1,0 +1,5 @@
+- [ ] [BUG] Shared tool/function store contracts
+  - Spec: meta/memory_bank/specs/work_items/2026-10-07__bugfix__tool-function-store-contracts.md
+  - Owner: Codex
+  - Summary: Correct null-only store inference from existing server response schemas; preserve runtime and reduce type debt.
+  - Started: 2026-10-07
