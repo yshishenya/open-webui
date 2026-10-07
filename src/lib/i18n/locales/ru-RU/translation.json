@@ -1,4 +1,6 @@
 {
+	"Could not load tools. Close and reopen the menu to retry.": "Не удалось загрузить инструменты. Закройте меню и откройте снова.",
+	"Could not load skills. Close and reopen the menu to retry.": "Не удалось загрузить навыки. Закройте меню и откройте снова.",
 	"0": "0",
 	"-1 for no limit, or a positive integer for a specific limit": "-1 для отсутствия ограничений или положительное целое число для определенного ограничения.",
 	"(latest)": "(последняя)",

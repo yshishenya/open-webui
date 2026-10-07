@@ -24,6 +24,48 @@ export type FunctionListItem = {
 	created_at: number;
 };
 
+// GET /tools/ ToolUserResponse and GET /skills/ SkillUserResponse.
+export type ToolListItem = {
+	id: string;
+	user_id: string | null;
+	name: string;
+	meta: {
+		description: string | null;
+		manifest: Record<string, unknown> | null;
+		has_user_valves: boolean;
+	};
+	access_grants: {
+		id: string;
+		resource_type: string;
+		resource_id: string;
+		principal_type: string;
+		principal_id: string;
+		permission: string;
+		created_at: number;
+	}[];
+	updated_at: number;
+	created_at: number;
+	specs?: {
+		name?: string;
+		function?: { name?: string; [key: string]: unknown };
+		[key: string]: unknown;
+	}[];
+	authenticated?: boolean;
+	has_user_valves?: boolean;
+};
+
+export type SkillListItem = {
+	id: string;
+	user_id: string;
+	name: string;
+	description: string | null;
+	meta: { tags: string[] | null };
+	is_active: boolean;
+	access_grants: ToolListItem['access_grants'];
+	updated_at: number;
+	created_at: number;
+};
+
 export type DirectModelConnections = Pick<
 	Parameters<typeof updateOpenAIConfig>[1],
 	'OPENAI_API_BASE_URLS' | 'OPENAI_API_KEYS'

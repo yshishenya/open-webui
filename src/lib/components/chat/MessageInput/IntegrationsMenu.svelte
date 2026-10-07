@@ -1,17 +1,10 @@
 <script lang="ts">
-	import { getContext, onMount, tick } from 'svelte';
+	import { getContext, tick } from 'svelte';
 	import { fly } from 'svelte/transition';
 
-	import {
-		config,
-		user,
-		tools as _tools,
-		skills as _skills,
-		mobile,
-		settings,
-		toolServers,
-		terminalServers
-	} from '$lib/stores';
+	import { user, tools as _tools, skills as _skills, toolServers } from '$lib/stores';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 
 	import { initiateOAuthRedirect } from '$lib/apis/configs';
 	import { deleteOAuthSession } from '$lib/apis/auths';
@@ -25,7 +18,6 @@
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
-	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Wrench from '$lib/components/icons/Wrench.svelte';
 	import Cube from '$lib/components/icons/Cube.svelte';
 	import Sparkles from '$lib/components/icons/Sparkles.svelte';
@@ -36,16 +28,18 @@
 	import ChevronLeft from '$lib/components/icons/ChevronLeft.svelte';
 	import LinkSlash from '$lib/components/icons/LinkSlash.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let selectedToolIds: string[] = [];
 	export let selectedSkillIds: string[] = [];
 
-	export let selectedModels: string[] = [];
-	export let fileUploadCapableModels: string[] = [];
-
-	export let toggleFilters: { id: string; name: string; description?: string; icon?: string }[] =
-		[];
+	export let toggleFilters: {
+		id: string;
+		name: string;
+		description?: string | null;
+		icon?: string;
+		has_user_valves?: boolean;
+	}[] = [];
 	export let selectedFilterIds: string[] = [];
 
 	export let showWebSearchButton = false;
@@ -55,41 +49,49 @@
 	export let showCodeInterpreterButton = false;
 	export let codeInterpreterEnabled = false;
 
-	export let onShowValves: Function;
-	export let onClose: Function;
-	export let onWebSearchToggle: Function = () => {};
+	export let onShowValves: (item: { type: 'tool' | 'function'; id: string }) => void;
+	export let onClose: () => void | Promise<void>;
+	export let onWebSearchToggle: (enabled: boolean) => void = () => {};
 	export let closeOnOutsideClick = true;
 
 	let show = false;
 	let tab = '';
 
-	let tools = null;
-	let skills = null;
+	type MenuItem = {
+		name: string;
+		description: string | null;
+		enabled: boolean;
+		authenticated?: boolean;
+		has_user_valves?: boolean;
+	};
+	let tools: Record<string, MenuItem> = {};
+	let skills: Record<string, MenuItem> = {};
 
 	$: if (show) {
 		init();
 	}
 
-	let fileUploadEnabled = true;
-	$: fileUploadEnabled =
-		fileUploadCapableModels.length === selectedModels.length &&
-		($user?.role === 'admin' || $user?.permissions?.chat?.file_upload);
-
-	const init = async () => {
+	const init = async (): Promise<void> => {
+		tab = '';
+		tools = {};
+		skills = {};
 		if ($_tools === null) {
-			await _tools.set(await getTools(localStorage.token));
+			_tools.set(await getTools(localStorage.token).catch(() => null));
 		}
 
 		if ($_tools) {
-			tools = $_tools.reduce((a, tool, i, arr) => {
+			tools = $_tools.reduce<Record<string, MenuItem>>((a, tool) => {
 				a[tool.id] = {
-					name: tool.name,
+					...tool,
 					description: tool.meta.description,
-					enabled: selectedToolIds.includes(tool.id),
-					...tool
+					enabled: selectedToolIds.includes(tool.id)
 				};
 				return a;
 			}, {});
+		}
+
+		if ($_tools === null) {
+			toast.error($i18n.t('Could not load tools. Close and reopen the menu to retry.'));
 		}
 
 		if ($toolServers) {
@@ -105,32 +107,37 @@
 			}
 		}
 
-		selectedToolIds = selectedToolIds.filter((id) => Object.keys(tools).includes(id));
+		if ($_tools !== null) {
+			selectedToolIds = selectedToolIds.filter((id) => Object.keys(tools).includes(id));
+		}
 
 		if ($_skills === null) {
-			await _skills.set(await getSkills(localStorage.token));
+			_skills.set(await getSkills(localStorage.token).catch(() => null));
 		}
 
 		if ($_skills) {
 			skills = $_skills
 				.filter((skill) => skill.is_active)
-				.reduce((a, skill) => {
+				.reduce<Record<string, MenuItem>>((a, skill) => {
 					a[skill.id] = {
-						name: skill.name,
-						description: skill.description,
-						enabled: selectedSkillIds.includes(skill.id),
-						...skill
+						...skill,
+						enabled: selectedSkillIds.includes(skill.id)
 					};
 					return a;
 				}, {});
 		}
 
-		selectedSkillIds = selectedSkillIds.filter((id) => Object.keys(skills ?? {}).includes(id));
+		if ($_skills !== null) {
+			selectedSkillIds = selectedSkillIds.filter((id) => Object.keys(skills).includes(id));
+		} else {
+			toast.error($i18n.t('Could not load skills. Close and reopen the menu to retry.'));
+		}
 	};
 </script>
 
 <Dropdown
 	bind:show
+	{closeOnOutsideClick}
 	onOpenChange={(state) => {
 		if (state === false) {
 			onClose();
@@ -190,14 +197,10 @@
 								</div>
 							</button>
 						{/if}
-					{:else}
-						<div class="py-4">
-							<Spinner />
-						</div>
 					{/if}
 
 					{#if toggleFilters && toggleFilters.length > 0}
-						{#each toggleFilters.sort( (a, b) => a.name.localeCompare( b.name, undefined, { sensitivity: 'base' } ) ) as filter, filterIdx (filter.id)}
+						{#each toggleFilters.sort( (a, b) => a.name.localeCompare( b.name, undefined, { sensitivity: 'base' } ) ) as filter (filter.id)}
 							<Tooltip content={filter?.description} placement="top-start">
 								<button
 									class="flex w-full justify-between gap-2 items-center h-[1.6875rem] px-2 text-[13px] font-normal cursor-pointer rounded-xl hover:bg-gray-50/40 dark:hover:bg-gray-800/40"
@@ -256,8 +259,7 @@
 									<div class=" shrink-0">
 										<Switch
 											state={selectedFilterIds.includes(filter.id)}
-											on:change={async (e) => {
-												const state = e.detail;
+											on:change={async () => {
 												await tick();
 											}}
 										/>
@@ -293,8 +295,7 @@
 								<div class=" shrink-0">
 									<Switch
 										state={webSearchEnabled}
-										on:change={async (e) => {
-											const state = e.detail;
+										on:change={async () => {
 											await tick();
 										}}
 									/>
@@ -328,8 +329,7 @@
 								<div class=" shrink-0">
 									<Switch
 										state={imageGenerationEnabled}
-										on:change={async (e) => {
-											const state = e.detail;
+										on:change={async () => {
 											await tick();
 										}}
 									/>
@@ -363,8 +363,7 @@
 								<div class=" shrink-0">
 									<Switch
 										state={codeInterpreterEnabled}
-										on:change={async (e) => {
-											const state = e.detail;
+										on:change={async () => {
 											await tick();
 										}}
 									/>
@@ -421,7 +420,7 @@
 						>
 							{#if !(tools[toolId]?.authenticated ?? true)}
 								<!-- make it slighly darker and not clickable -->
-								<div class="absolute inset-0 opacity-50 rounded-xl cursor-pointer z-10" />
+								<div class="absolute inset-0 opacity-50 rounded-xl cursor-pointer z-10"></div>
 							{/if}
 							<div class="flex-1 truncate">
 								<div class="flex flex-1 gap-2 items-center">
