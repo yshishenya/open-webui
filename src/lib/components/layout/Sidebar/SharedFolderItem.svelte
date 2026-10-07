@@ -1,28 +1,24 @@
 <script lang="ts">
-	import { getContext, createEventDispatcher } from 'svelte';
-	import type { Writable } from 'svelte/store';
+	import { getContext } from 'svelte';
+	import type { SelectedFolder } from '$lib/utils/airis/frontend-contracts';
 
-	const i18n: Writable<any> = getContext('i18n');
-	const dispatch = createEventDispatcher();
+	const i18n = getContext('i18n');
 
-	import { goto } from '$app/navigation';
-	import { chatId, mobile, showSidebar } from '$lib/stores';
 	import { getSharedFolderChats } from '$lib/apis/folders';
 
 	import ChatItem from './ChatItem.svelte';
-	import Collapsible from '../../common/Collapsible.svelte';
 	import ChevronDown from './icons/ChevronDown.svelte';
 	import ChevronRight from './icons/ChevronRight.svelte';
 	import Eye from './icons/Eye.svelte';
 	import FolderIcon from './icons/Folder.svelte';
 
-	export let folder: any;
-	export let allSharedFolders: any[] = [];
+	export let folder: SelectedFolder & { owner_name?: string | null };
+	export let allSharedFolders: Array<SelectedFolder & { owner_name?: string | null }> = [];
 	export let className = '';
 
 	const SIDEBAR_CHATS_PAGE_SIZE = 10;
 	let expanded = false;
-	let chats: any[] = [];
+	let chats: Awaited<ReturnType<typeof getSharedFolderChats>>['chats'] = [];
 	let loading = false;
 	let loaded = false;
 	let page = 1;
@@ -32,7 +28,7 @@
 	$: permission = folder.permission || 'read';
 	$: isWritable = permission === 'write';
 
-	const toggleExpand = async () => {
+	const toggleExpand = async (): Promise<void> => {
 		expanded = !expanded;
 		if (expanded && !loaded) {
 			await loadChats();
@@ -66,7 +62,6 @@
 </script>
 
 <div class={className}>
-	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div class="w-full group">
 		<button
 			class="w-full py-1 flex items-center gap-1 text-xs text-left font-normal

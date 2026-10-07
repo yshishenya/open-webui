@@ -25,6 +25,15 @@ test('aborted folder list keeps chat usable and a subsequent load recovers', asy
 		await expect.poll(() => aborted).toBeGreaterThan(0);
 		await input.fill('Draft remains usable after cancelled folder request');
 		await expect(input).toContainText('Draft remains usable after cancelled folder request');
+		for (const prefix of ['#', '@']) {
+			await input.fill('');
+			await Promise.all([
+				page.waitForResponse((response) => response.url().includes('/api/v1/knowledge/search?')),
+				input.pressSequentially(prefix)
+			]);
+			await expect(input).toContainText(prefix);
+		}
+
 		await page.unroute('**/api/v1/folders/');
 		await page.goto(`/folders/${folder.id}`);
 		await expect(page).toHaveURL(new RegExp(`/folders/${folder.id}$`));

@@ -8,3 +8,7 @@
   - Risks: Formerly swallowed transport failures now reject; inspect every caller.
 
 - 2026-10-07: Source fix and focused regression accepted13/13; fullfrontend881/881. Check3040→3005/118warnings; fullESLint1158unchanged/0newdiagnostics. Compiledbrowser/productionpending,SDDactive. OriginalFirefoxtrace retained.
+
+- 2026-10-07: CI follow-up removes31existing violations without disabling rules. Actual # suggestion null-cache regression fails before fix; compiled case expanded to #/@. Local disk/Docker recovered with705verified APFS clones; backups/77containeridentities/249volumes preserved. Exact-source checks/browser acceptance remain in progress;SDDactive.
+
+- Final follow-up source checks:883/883frontend,107files;folderregressions15/15. Check3004errors/118warnings,0new,36removedfrominitial3040. FullESLint1127errors,31removed;all14changedruntime/test/configfiles ESLint0errors/0warnings. Globalqualitygate remainsopen. Browsercandidate and productionpending.

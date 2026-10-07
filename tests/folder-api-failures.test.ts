@@ -125,3 +125,36 @@ it('the actual Sidebar loader retains owned and shared folders on failure and ca
 	expect(context.sharedFolders).toEqual([]);
 	expect(context.folders).toEqual({ owned });
 });
+
+it.each(['AtCommands', 'Knowledge'])(
+	'the actual %s suggestion loader accepts an unavailable folders cache',
+	async (component) => {
+		const source = readFileSync(
+			`src/lib/components/chat/MessageInput/Commands/${component}.svelte`,
+			'utf8'
+		)
+			.split('<script lang="ts">')[1]
+			.split('</script>')[0];
+		const ast = ts.createSourceFile('commands.ts', source, ts.ScriptTarget.Latest);
+		const declaration = ast.statements
+			.filter(ts.isVariableStatement)
+			.flatMap((statement) => [...statement.declarationList.declarations])
+			.find((node) => node.name.getText(ast) === 'getFolderItems');
+		if (!declaration?.initializer) throw new Error('Suggestion loader missing');
+		const context = {
+			$folders: null,
+			folderItems: [],
+			query: 'folder',
+			$i18n: { t: () => 'Folder' }
+		};
+		const load = runInNewContext(
+			ts.transpileModule(`(${declaration.initializer.getText(ast)})`, {
+				compilerOptions: { target: ts.ScriptTarget.ES2022 }
+			}).outputText,
+			context
+		) as () => void | Promise<void>;
+		await load();
+		expect(context.folderItems).toEqual([]);
+		expect(context.$folders).toBeNull();
+	}
+);

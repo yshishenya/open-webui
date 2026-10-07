@@ -45,3 +45,13 @@ Original regression:11failed/1passed. Fixed API and actual Sidebar retention/ret
 FolderShareModal reuses the folder API grant contract; FolderModal retains arbitrary saved records and arrays, reading only required optional fields. Grants/data are neither filtered nor rewritten by the type correction. Folder title keeps the successful mutation response if a subsequent refresh fails. Every getFolders caller traced:Sidebar,AtCommands,Knowledge,AutomationModal,AutomationEditor,automationspage. Automation callers already catch→null and retain state. Shared-folder chat consumers retain successful pages and allow retry; selected model autosave now handles rejected requests.
 
 SDD remains active until downstream compiled browser acceptance; source publication and deployment are separate pending gates. New permanent browser case is included in the existing onboarding config; the combined candidate must pass66cases including the previous private model-editor case.
+
+## CI follow-up and local runtime recovery
+
+CI on b518f9c0289fba90ae002e2c2795278ccb736c66 rejected 31 existing lint errors across the four touched suggestion/shared-folder components. Reused Model, ChatAttachment, SelectedFolder, folder/chat API response and existing typed i18n context; removed proven unused imports/state and an unused accessibility suppression. No lint rules weakened or saved payload filtered. The # suggestion loader also dereferenced null folders after transport failure: the actual-handler regression failed1/15 before the cache guard; both # and @ paths are now included in the compiled abort/recovery case.
+
+Local packaging encountered disk full and Docker stopped. 705 identical large verification assets were replaced with independent APFS clones, with SHA256 checks before/after every replacement and original metadata retained. No backup content deleted. Free space recovered from633511936 to15577333760bytes; Docker daemon restored. 77 baseline container identities and249volumes remain; two pre-existing service states differ from the earlier baseline, so unchanged runtime is not claimed. Production remains the accepted PR344 image, healthy/restarts0, environment/config/mounts and12neighbors preserved at2026-10-07T10:55:31Z.
+
+Source/browser/image/production acceptance remain separate. SDD stays active until compiled validation is accepted; no numbered business-plan criteria close from these technical checks.
+
+- Final follow-up source checks:883/883frontend,107files;folderregressions15/15. Check3004errors/118warnings,0new,36removedfrominitial3040. FullESLint1127errors,31removed;all14changedruntime/test/configfiles ESLint0errors/0warnings. Globalqualitygate remainsopen. Browsercandidate and productionpending.

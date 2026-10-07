@@ -9,7 +9,7 @@
 	import { folders } from '$lib/stores';
 	import { getFolders } from '$lib/apis/folders';
 	import { searchKnowledgeBases, searchKnowledgeFiles } from '$lib/apis/knowledge';
-	import { removeLastWordFromString, isValidHttpUrl, isYoutubeUrl, decodeString } from '$lib/utils';
+	import { isValidHttpUrl, isYoutubeUrl, decodeString } from '$lib/utils';
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import DocumentPage from '$lib/components/icons/DocumentPage.svelte';
@@ -21,7 +21,7 @@
 	const i18n = getContext('i18n');
 
 	export let query = '';
-	export let onSelect = (e) => {};
+	export let onSelect: (e: { type: string; data: unknown }) => void = () => {};
 
 	let selectedIdx = 0;
 	let items = [];
@@ -88,7 +88,7 @@
 	};
 
 	const getFolderItems = async () => {
-		folderItems = $folders
+		folderItems = ($folders ?? [])
 			.map((folder) => ({
 				...folder,
 				type: 'folder',

@@ -15,29 +15,51 @@
 	import GlobeAlt from '$lib/components/icons/GlobeAlt.svelte';
 	import Youtube from '$lib/components/icons/Youtube.svelte';
 	import { toast } from 'svelte-sonner';
+	import type { Model } from '$lib/utils/airis/model-types';
+	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 
-	const i18n = getContext<any>('i18n');
+	type KnowledgeCommandItem = ChatAttachment & {
+		type: 'folder' | 'collection' | 'file' | 'youtube' | 'web';
+		name: string;
+		description?: string | null;
+		legacy?: boolean;
+		collection?: { name: string } | null;
+	};
+	type ModelCommandItem = Omit<Model, 'tags'> & {
+		modelName: string;
+		tags?: string;
+		desc?: string | null;
+	};
+	type CommandItem =
+		| { type: KnowledgeCommandItem['type']; data: KnowledgeCommandItem }
+		| { type: 'model'; data: ModelCommandItem };
+	type CommandSelection =
+		| { type: 'knowledge'; data: KnowledgeCommandItem }
+		| { type: 'web'; data: string }
+		| { type: 'model'; data: ModelCommandItem };
+
+	const i18n = getContext('i18n');
 
 	export let query = '';
-	export let onSelect: (e: any) => void = () => {};
+	export let onSelect: (e: CommandSelection) => void = () => {};
 
 	let selectedIdx = 0;
-	export let filteredItems: any[] = [];
+	export let filteredItems: { type: string; data: unknown }[] = [];
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 
-	let folderItems: any[] = [];
-	let knowledgeItems: any[] = [];
-	let fileItems: any[] = [];
-	let modelItems: any[] = [];
-	let filteredModels: any[] = [];
-	let knowledgeResults: any[] = [];
+	let folderItems: KnowledgeCommandItem[] = [];
+	let knowledgeItems: KnowledgeCommandItem[] = [];
+	let fileItems: KnowledgeCommandItem[] = [];
+	let modelItems: ModelCommandItem[] = [];
+	let filteredModels: ModelCommandItem[] = [];
+	let knowledgeResults: KnowledgeCommandItem[] = [];
 
-	$: modelItems = (($models ?? []) as any[])
+	$: modelItems = ($models ?? [])
 		.filter((model) => !model?.info?.meta?.hidden)
 		.map((model) => ({
 			...model,
 			modelName: model?.name,
-			tags: model?.info?.meta?.tags?.map((tag: any) => tag.name).join(' '),
+			tags: model?.info?.meta?.tags?.map((tag) => tag.name).join(' '),
 			desc: model?.info?.meta?.description
 		}));
 
@@ -50,8 +72,8 @@
 	$: knowledgeResults = [
 		...(query.startsWith('http')
 			? isYoutubeUrl(query)
-				? [{ type: 'youtube', name: query, description: query }]
-				: [{ type: 'web', name: query, description: query }]
+				? [{ type: 'youtube' as const, name: query, description: query }]
+				: [{ type: 'web' as const, name: query, description: query }]
 			: []),
 		...folderItems,
 		...knowledgeItems,
@@ -59,8 +81,8 @@
 	];
 
 	$: filteredItems = [
-		...knowledgeResults.map((data) => ({ type: data.type, data })),
-		...filteredModels.map((data) => ({ type: 'model', data }))
+		...knowledgeResults.map<CommandItem>((data) => ({ type: data.type, data })),
+		...filteredModels.map<CommandItem>((data) => ({ type: 'model', data }))
 	];
 
 	$: if (query) {
@@ -80,39 +102,45 @@
 		clearTimeout(searchDebounceTimer);
 	});
 
-	const getItems = () => {
+	const getItems = (): void => {
 		getFolderItems();
 		getKnowledgeItems();
 		getKnowledgeFileItems();
 	};
 
-	const getFolderItems = () => {
-		folderItems = (($folders ?? []) as any[])
-			.map((folder) => ({
+	const getFolderItems = (): void => {
+		folderItems = ($folders ?? [])
+			.map<KnowledgeCommandItem>((folder) => ({
 				...folder,
 				type: 'folder',
 				description: $i18n.t('Folder'),
 				title: folder.name
 			}))
-			.filter((folder: any) => folder.name.toLowerCase().includes(query.toLowerCase()));
+			.filter((folder) => folder.name.toLowerCase().includes(query.toLowerCase()));
 	};
 
-	const getKnowledgeItems = async () => {
+	const getKnowledgeItems = async (): Promise<void> => {
 		const res = await searchKnowledgeBases(localStorage.token, query).catch(() => null);
 
 		if (res) {
-			knowledgeItems = res.items.map((item: any) => ({
+			knowledgeItems = (
+				res.items as Array<ChatAttachment & { name: string; description: string }>
+			).map<KnowledgeCommandItem>((item) => ({
 				...item,
 				type: 'collection'
 			}));
 		}
 	};
 
-	const getKnowledgeFileItems = async () => {
+	const getKnowledgeFileItems = async (): Promise<void> => {
 		const res = await searchKnowledgeFiles(localStorage.token, query).catch(() => null);
 
 		if (res) {
-			fileItems = res.items.map((item: any) => ({
+			fileItems = (
+				res.items as Array<
+					ChatAttachment & { filename: string; collection?: { name: string } | null }
+				>
+			).map<KnowledgeCommandItem>((item) => ({
 				...item,
 				type: 'file',
 				name: item.filename,
@@ -121,7 +149,7 @@
 		}
 	};
 
-	const selectKnowledgeItem = (item: any) => {
+	const selectKnowledgeItem = (item: KnowledgeCommandItem): void => {
 		if (['youtube', 'web'].includes(item.type)) {
 			if (isValidHttpUrl(query)) {
 				onSelect({ type: 'web', data: query });
@@ -136,16 +164,16 @@
 		onSelect({ type: 'knowledge', data: item });
 	};
 
-	export const selectUp = () => {
+	export const selectUp = (): void => {
 		selectedIdx = Math.max(0, selectedIdx - 1);
 	};
 
-	export const selectDown = () => {
+	export const selectDown = (): void => {
 		selectedIdx = Math.min(selectedIdx + 1, filteredItems.length - 1);
 	};
 
-	export const select = async () => {
-		const item = filteredItems[selectedIdx];
+	export const select = async (): Promise<void> => {
+		const item = filteredItems[selectedIdx] as CommandItem | undefined;
 		if (!item) return;
 
 		if (item.type === 'model') {
