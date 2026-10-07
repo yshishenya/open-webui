@@ -28,8 +28,7 @@ and Navbar Menu. Reuse the existing fork-owned frontend contracts module.
 
 ## Scope and upstream impact
 
-Type-only changes in utils/index.ts, stores/index.ts, Chat.svelte and
-Artifacts.svelte; shared ArtifactContent in fork-owned frontend-contracts.ts.
+Type-only changes in utils/index.ts, stores/index.ts, Chat.svelte; shared ArtifactContent in fork-owned frontend-contracts.ts.
 No parser, iframe behavior, template or style changes. No backend/schema,
 money/quota/mail changes. No production restart for identical emitted JS/CSS.
 
@@ -44,8 +43,8 @@ protects the real five-field contract. Revert source commit if necessary.
 
 Docker full frontend 800/800 in97 files; new extraction test1/1. Typecheck
 3327 ->3315 errors/130 warnings; ESLint1227 unchanged, zero new normalized
-messages. Five changed source/test files ESLint clean; Artifacts retains three
-existing unused imports. Nine JS and two CSS comparisons match. No new formatter
+messages. All five changed source/test files ESLint clean. Artifacts already accepts the
+precise store array structurally and needs no modification. Nine JS and two CSS comparisons match. No new formatter
 residue; Chat retains seven existing hunks, utils/index one. Installed compilers
 match lock: TypeScript5.9.3/Svelte5.56.0. No dependencies changed. No preflight
 script exists; equivalent project Docker checks used. Full check/lint remain
@@ -55,3 +54,9 @@ full rerun passed. Track its stabilization separately; no retries hidden.
 
 Backend, migration and browser rollout are inapplicable to erased annotations.
 Exact source CI and merge still pending; SDD acceptance task remains open.
+
+CI on first source failed only because touching Artifacts exposed three existing
+unused imports. Removing those imports changed compiled module imports, so that
+attempt was rejected locally. The view already accepts the exact array contract:
+restore its original source and keep the correction at extractor/producer/store.
+No CI guard was weakened; nine JS and two CSS comparisons must still match.

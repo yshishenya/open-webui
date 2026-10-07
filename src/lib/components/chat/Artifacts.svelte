@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { ArtifactContent } from '$lib/utils/airis/frontend-contracts';
 	import { toast } from 'svelte-sonner';
 	import { onMount, getContext, createEventDispatcher } from 'svelte';
 	const i18n = getContext('i18n');
@@ -26,7 +25,7 @@
 
 	export let overlay = false;
 
-	let contents: ArtifactContent[] = [];
+	let contents: Array<{ type: string; content: string }> = [];
 	let selectedContentIdx = 0;
 
 	let copied = false;
