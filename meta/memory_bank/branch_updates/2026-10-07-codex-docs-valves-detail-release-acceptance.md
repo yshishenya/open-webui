@@ -1,0 +1,5 @@
+- [x] **[DOCS][CHAT]** Close accepted valve detail load/save release
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__valves-detail-load-save.md`
+  - Owner: Codex
+  - Done: 2026-10-07
+  - Summary: Record exact source and production acceptance, close SDD, retain rejected attempts and separate global acceptance criteria.
