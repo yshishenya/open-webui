@@ -1,7 +1,22 @@
 <script lang="ts">
-	import type { ContextUsage, SavedChat } from '$lib/utils/airis/frontend-contracts';
+	import type {
+		ContextUsage,
+		SavedChat,
+		FrontendConfig,
+		RichTextContent,
+		CommandSelection,
+		CommandUpload
+	} from '$lib/utils/airis/frontend-contracts';
 	import { getAttachmentSource } from '$lib/utils/airis/attachment_source';
-	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
+	import type {
+		ChatAttachment,
+		ChatHistory,
+		ChatHistoryMessage
+	} from '$lib/utils/airis/chat_history';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { MentionOptions } from '@tiptap/extension-mention';
+	import type { Settings } from '$lib/stores';
 	import DOMPurify from 'dompurify';
 	import { toast } from 'svelte-sonner';
 
@@ -105,7 +120,7 @@
 	import QueuedMessageItem from './MessageInput/QueuedMessageItem.svelte';
 	import TaskList from './Messages/ResponseMessage/TaskList.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<I18n>>('i18n');
 
 	export let onUpload: (event: { type: string; data: unknown }) => void | Promise<void> = () => {};
 	export let onChange: (draft: Record<string, unknown>) => void | Promise<void> = () => {};
@@ -135,7 +150,7 @@
 				?.length ?? 0) > 0
 	);
 
-	export let history;
+	export let history: ChatHistory;
 	export let taskIds: string[] | null = null;
 
 	$: isActive =
@@ -166,7 +181,7 @@
 
 	export let chatTasks: NonNullable<SavedChat['tasks']> = [];
 
-	let inputContent = null;
+	let inputContent: RichTextContent | null = null;
 
 	let showInputVariablesModal = false;
 	let inputVariablesModalCallback: (variableValues: Record<string, unknown>) => void = () => {};
@@ -178,8 +193,8 @@
 	let showValvesModal = false;
 	let showStatusPanel = false;
 	let copiedStatusChatId = false;
-	let selectedValvesType = 'tool'; // 'tool' or 'function'
-	let selectedValvesItemId = null;
+	let selectedValvesType: 'tool' | 'function' = 'tool'; // 'tool' or 'function'
+	let selectedValvesItemId: string | null = null;
 	let integrationsMenuCloseOnOutsideClick = true;
 
 	$: if (!showValvesModal) {
@@ -363,8 +378,8 @@
 		const chatInput = document.getElementById('chat-input');
 
 		if (chatInput) {
-			chatInputElement.replaceVariables(variables);
-			chatInputElement.focus();
+			chatInputElement?.replaceVariables(variables);
+			chatInputElement?.focus();
 		}
 	};
 
@@ -408,7 +423,7 @@
 	const trimNumber = (value: number) =>
 		value >= 10 ? String(Math.round(value)) : value.toFixed(1).replace(/\.0$/, '');
 
-	const estimateTokens = (value) => {
+	const estimateTokens = (value: unknown): number => {
 		if (value === null || value === undefined || value === '') {
 			return 0;
 		}
@@ -419,10 +434,10 @@
 				value = String(value);
 			}
 		}
-		return Math.max(1, Math.floor(value.length / 4));
+		return Math.max(1, Math.floor(String(value).length / 4));
 	};
 
-	const estimateMessagesTokens = (messages) =>
+	const estimateMessagesTokens = (messages: ChatHistoryMessage[]): number =>
 		messages.reduce((total, message) => {
 			let next = total + 4 + estimateTokens(message.content);
 			next += estimateTokens(message.output);
@@ -462,7 +477,7 @@
 				hasUsageCheckpoint = true;
 				estimatedTokens =
 					Number(inputTokens || 0) +
-					Number(usage.output_tokens ?? usage.completion_tokens ?? 0) +
+					Number(usage?.output_tokens ?? usage?.completion_tokens ?? 0) +
 					estimateMessagesTokens(activeMessages.slice(idx + 1));
 				break;
 			}
@@ -510,13 +525,13 @@
 		let word = '';
 
 		if (chatInput) {
-			word = chatInputElement?.getWordAtDocPos();
+			word = chatInputElement?.getWordAtDocPos() ?? '';
 		}
 
 		return word;
 	};
 
-	const replaceCommandWithText = (text) => {
+	const replaceCommandWithText = (text: string): void => {
 		const chatInput = document.getElementById('chat-input');
 		if (!chatInput) return;
 
@@ -564,7 +579,7 @@
 	export let showCommands = false;
 	$: showCommands =
 		['/', '#', '@', '$', ':'].includes(command?.charAt(0)) || '\\#' === command?.slice(0, 2);
-	let suggestions = null;
+	let suggestions: MentionOptions['suggestions'] | null = null;
 
 	let showTools = false;
 	let showSkills = false;
@@ -598,11 +613,11 @@
 		return false;
 	}
 
-	let chatInputElement;
+	let chatInputElement: RichTextInput | undefined;
 
-	let filesInputElement;
+	let filesInputElement: HTMLInputElement;
 
-	let inputFiles;
+	let inputFiles: FileList | null = null;
 
 	let showInputModal = false;
 
@@ -687,21 +702,21 @@
 	let showWebSearchButton = false;
 	$: showWebSearchButton =
 		selectedModelIds.length === webSearchCapableModels.length &&
-		$config?.features?.enable_web_search &&
-		($_user.role === 'admin' || $_user?.permissions?.features?.web_search);
+		($config?.features?.enable_web_search ?? false) &&
+		($_user?.role === 'admin' || ($_user?.permissions?.features?.web_search ?? false));
 
 	let showImageGenerationButton = false;
 	$: showImageGenerationButton =
 		selectedModelIds.length === imageGenerationCapableModels.length &&
-		$config?.features?.enable_image_generation &&
-		($_user.role === 'admin' || $_user?.permissions?.features?.image_generation);
+		($config?.features?.enable_image_generation ?? false) &&
+		($_user?.role === 'admin' || ($_user?.permissions?.features?.image_generation ?? false));
 
 	let showCodeInterpreterButton = false;
 	$: showCodeInterpreterButton =
 		!$selectedTerminalId &&
 		selectedModelIds.length === codeInterpreterCapableModels.length &&
-		$config?.features?.enable_code_interpreter &&
-		($_user.role === 'admin' || $_user?.permissions?.features?.code_interpreter);
+		($config?.features?.enable_code_interpreter ?? false) &&
+		($_user?.role === 'admin' || ($_user?.permissions?.features?.code_interpreter ?? false));
 
 	// Disable code interpreter when terminal is active (mutually exclusive)
 	$: if ($selectedTerminalId && codeInterpreterEnabled) {
@@ -715,6 +730,7 @@
 
 	const scrollToBottom = () => {
 		const element = document.getElementById('messages-container');
+		if (!element) return;
 		element.scrollTo({
 			top: element.scrollHeight,
 			behavior: 'smooth'
@@ -875,12 +891,12 @@
 		}
 	};
 
-	const inputFilesHandler = async (inputFiles) => {
+	const inputFilesHandler = async (inputFiles: File[]): Promise<void> => {
 		console.log('Input files handler called with:', inputFiles);
 
 		if (
-			($config?.file?.max_count ?? null) !== null &&
-			files.length + inputFiles.length > $config?.file?.max_count
+			typeof $config?.file?.max_count === 'number' &&
+			files.length + inputFiles.length > $config.file.max_count
 		) {
 			toast.error(
 				$i18n.t(`You can only chat with a maximum of {{maxCount}} file(s) at a time.`, {
@@ -920,7 +936,11 @@
 					return;
 				}
 
-				const compressImageHandler = async (imageUrl, settings = {}, config = {}) => {
+				const compressImageHandler = async (
+					imageUrl: string,
+					settings: Settings = {},
+					config: FrontendConfig | undefined = undefined
+				): Promise<string> => {
 					// Quick shortcut so we don’t do unnecessary work.
 					const settingsCompression = settings?.imageCompression ?? false;
 					const configWidth = config?.file?.image_compression?.width ?? null;
@@ -932,13 +952,13 @@
 					}
 
 					// Default to null (no compression unless set)
-					let width = null;
-					let height = null;
+					let width: number | null = null;
+					let height: number | null = null;
 
 					// If user/settings want compression, pick their preferred size.
 					if (settingsCompression) {
-						width = settings?.imageCompressionSize?.width ?? null;
-						height = settings?.imageCompressionSize?.height ?? null;
+						width = settings?.imageCompressionSize?.width || null;
+						height = settings?.imageCompressionSize?.height || null;
 					}
 
 					// Apply config limits as an upper bound if any
@@ -1141,7 +1161,7 @@
 				char: '@',
 				render: getSuggestionRenderer(CommandSuggestionList, {
 					i18n,
-					onSelect: (e) => {
+					onSelect: (e: CommandSelection) => {
 						const { type, data } = e;
 
 						if (type === 'model') {
@@ -1152,7 +1172,7 @@
 					},
 
 					insertTextHandler: insertTextAtCursor,
-					onUpload: (e) => {
+					onUpload: (e: CommandUpload) => {
 						const { type, data } = e;
 
 						if (type === 'file') {
@@ -1188,7 +1208,7 @@
 					onCompact: compactHandler,
 					onStatus: statusHandler,
 					onFork: forkHandler,
-					onSelect: (e) => {
+					onSelect: (e: CommandSelection) => {
 						const { type, data } = e;
 
 						if (type === 'model') {
@@ -1199,7 +1219,7 @@
 					},
 
 					insertTextHandler: insertTextAtCursor,
-					onUpload: (e) => {
+					onUpload: (e: CommandUpload) => {
 						const { type, data } = e;
 
 						if (type === 'file') {
@@ -1226,7 +1246,7 @@
 				char: '#',
 				render: getSuggestionRenderer(CommandSuggestionList, {
 					i18n,
-					onSelect: (e) => {
+					onSelect: (e: CommandSelection) => {
 						const { type, data } = e;
 
 						if (type === 'model') {
@@ -1237,7 +1257,7 @@
 					},
 
 					insertTextHandler: insertTextAtCursor,
-					onUpload: (e) => {
+					onUpload: (e: CommandUpload) => {
 						const { type, data } = e;
 
 						if (type === 'file') {
@@ -1278,7 +1298,7 @@
 				command: ({ editor, range, props }) => {
 					// Convert the Unicode hex codepoint (e.g. "1F44B") to the actual emoji character (👋)
 					const codepoint = props.id;
-					const emoji = String.fromCodePoint(parseInt(codepoint, 16));
+					const emoji = String.fromCodePoint(parseInt(codepoint ?? '', 16));
 					editor.chain().focus().deleteRange(range).insertContent(emoji).run();
 				},
 				render: getSuggestionRenderer(CommandSuggestionList, {
@@ -1587,7 +1607,11 @@
 							class="flex-1 flex flex-col relative w-full shadow-lg rounded-3xl border {$temporaryChatEnabled
 								? 'border-dashed border-gray-100 dark:border-gray-800 hover:border-gray-200 focus-within:border-gray-200 hover:dark:border-gray-700 focus-within:dark:border-gray-700'
 								: ' border-gray-100/30 dark:border-gray-850/30 hover:border-gray-200 focus-within:border-gray-100 hover:dark:border-gray-800 focus-within:dark:border-gray-800'}  transition px-0.5 bg-white/5 dark:bg-gray-500/5 backdrop-blur-sm dark:text-gray-100"
-							dir={$settings?.chatDirection ?? 'auto'}
+							dir={$settings.chatDirection === 'RTL'
+								? 'rtl'
+								: $settings.chatDirection === 'LTR'
+									? 'ltr'
+									: 'auto'}
 						>
 							{#if atSelectedModel !== undefined}
 								<div class="px-2.5 pt-2.5 text-left w-full flex flex-col z-10">
@@ -1596,7 +1620,7 @@
 											<img
 												alt="model profile"
 												class="size-3.5 max-w-[28px] object-cover rounded-full"
-												src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${$models.find((model) => model.id === atSelectedModel.id).id}&lang=${$i18n.language}`}
+												src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${atSelectedModel?.id}&lang=${$i18n.language}`}
 											/>
 											<div class="translate-y-[0.5px]">
 												<span class="">{atSelectedModel.name}</span>
@@ -1619,7 +1643,11 @@
 							{#if files.length > 0}
 								<div
 									class="mx-2 mt-2 pb-1 flex items-center flex-wrap gap-1.5"
-									dir={$settings?.chatDirection ?? 'auto'}
+									dir={$settings.chatDirection === 'RTL'
+										? 'rtl'
+										: $settings.chatDirection === 'LTR'
+											? 'ltr'
+											: 'auto'}
 								>
 									{#each files as file, fileIdx}
 										{#if file.type === 'image' || (file?.content_type ?? '').startsWith('image/')}
@@ -1755,11 +1783,7 @@
 													insertPromptAsRichText={$settings?.insertPromptAsRichText ?? false}
 													shiftEnter={!($settings?.ctrlEnterToSend ?? false) &&
 														!$mobile &&
-														!(
-															'ontouchstart' in window ||
-															navigator.maxTouchPoints > 0 ||
-															navigator.msMaxTouchPoints > 0
-														)}
+														!('ontouchstart' in window || navigator.maxTouchPoints > 0)}
 													placeholder={placeholder ? placeholder : $i18n.t('Send a Message')}
 													largeTextAsFile={($settings?.largeTextAsFile ?? false) && !shiftKey}
 													autocomplete={$config?.features?.enable_autocomplete_generation &&
@@ -1771,11 +1795,11 @@
 
 														const res = await generateAutoCompletion(
 															localStorage.token,
-															selectedModelIds.at(0),
+															selectedModelIds[0],
 															text,
 															history?.currentId
 																? createMessagesList(history, history.currentId)
-																: null
+																: undefined
 														).catch((error) => {
 															console.log(error);
 
@@ -1791,8 +1815,8 @@
 														compositionEndedAt = e.timeStamp;
 														isComposing = false;
 													}}
-													on:keydown={async (e) => {
-														e = e.detail.event;
+													on:keydown={async (event) => {
+														const e = event.detail.event;
 
 														const isCtrlPressed = e.ctrlKey || e.metaKey; // metaKey is for Cmd key on Mac
 														const suggestionsContainerElement =
@@ -1815,18 +1839,14 @@
 																	...document.getElementsByClassName('edit-user-message-button')
 																]?.at(-1);
 
-																editButton?.click();
+																if (editButton instanceof HTMLElement) editButton.click();
 															}
 														}
 
 														if (!suggestionsContainerElement) {
 															if (
 																!$mobile ||
-																!(
-																	'ontouchstart' in window ||
-																	navigator.maxTouchPoints > 0 ||
-																	navigator.msMaxTouchPoints > 0
-																)
+																!('ontouchstart' in window || navigator.maxTouchPoints > 0)
 															) {
 																if (inOrNearComposition(e)) {
 																	return;
@@ -1861,11 +1881,11 @@
 															codeInterpreterEnabled = false;
 														}
 													}}
-													on:paste={async (e) => {
-														e = e.detail.event;
+													on:paste={async (event) => {
+														const e = event.detail.event;
 														console.log(e);
 
-														const clipboardData = e.clipboardData || window.clipboardData;
+														const clipboardData = e.clipboardData;
 
 														if (clipboardData && clipboardData.items) {
 															for (const item of clipboardData.items) {
@@ -1930,12 +1950,12 @@
 												console.error('Google Drive Error:', error);
 												toast.error(
 													$i18n.t('Error accessing Google Drive: {{error}}', {
-														error: error.message
+														error: error instanceof Error ? error.message : String(error)
 													})
 												);
 											}
 										}}
-										uploadOneDriveHandler={async (authorityType) => {
+										uploadOneDriveHandler={async (authorityType: 'personal' | 'organizations') => {
 											try {
 												const fileData = await pickAndDownloadFile(authorityType);
 												if (fileData) {
@@ -2313,7 +2333,6 @@
 																	const tracks = stream.getTracks();
 																	tracks.forEach((track) => track.stop());
 																}
-																stream = null;
 															} catch {
 																toast.error($i18n.t('Permission denied when accessing microphone'));
 															}
@@ -2340,7 +2359,7 @@
 																return;
 															}
 
-															if ($config.audio.stt.engine === 'web') {
+															if ($config?.audio?.stt?.engine === 'web') {
 																toast.error(
 																	$i18n.t('Call feature is not supported when using Web STT engine')
 																);
@@ -2359,18 +2378,14 @@
 																	tracks.forEach((track) => track.stop());
 																}
 
-																stream = null;
-
 																if ($settings.audio?.tts?.engine === 'browser-kokoro') {
 																	// If the user has not initialized the TTS worker, initialize it
 																	if (!$TTSWorker) {
-																		await TTSWorker.set(
-																			new KokoroWorker({
-																				dtype: $settings.audio?.tts?.engineConfig?.dtype ?? 'fp32'
-																			})
+																		const worker = new KokoroWorker(
+																			$settings.audio?.tts?.engineConfig?.dtype ?? 'fp32'
 																		);
-
-																		await $TTSWorker.init();
+																		TTSWorker.set(worker);
+																		await worker.init();
 																	}
 																}
 

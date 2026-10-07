@@ -6,9 +6,9 @@ export class KokoroWorker {
 	private dtype: string;
 	private requestQueue: Array<{
 		text: string;
-		voice: string;
+		voice?: string;
 		resolve: (value: string) => void;
-		reject: (reason: any) => void;
+		reject: (reason: unknown) => void;
 	}> = [];
 	private processing = false; // To track if a request is being processed
 
@@ -70,7 +70,7 @@ export class KokoroWorker {
 		});
 	}
 
-	public async generate({ text, voice }: { text: string; voice: string }): Promise<string> {
+	public async generate({ text, voice }: { text: string; voice?: string }): Promise<string> {
 		if (!this.initialized || !this.worker) {
 			throw new Error('KokoroTTS Worker is not initialized yet.');
 		}

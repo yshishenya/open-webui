@@ -31,7 +31,6 @@ const validateCredentials = () => {
 	}
 };
 
-let pickerApiLoaded = false;
 let oauthToken: string | null = null;
 let initialized = false;
 
@@ -41,8 +40,7 @@ export const loadGoogleDriveApi = () => {
 			const script = document.createElement('script');
 			script.src = 'https://apis.google.com/js/api.js';
 			script.onload = () => {
-				(window as any).gapi?.load('picker', () => {
-					pickerApiLoaded = true;
+				gapi?.load('picker', () => {
 					resolve(true);
 				});
 			};
@@ -50,8 +48,7 @@ export const loadGoogleDriveApi = () => {
 			script.onerror = reject;
 			document.body.appendChild(script);
 		} else {
-			(window as any).gapi?.load('picker', () => {
-				pickerApiLoaded = true;
+			gapi?.load('picker', () => {
 				resolve(true);
 			});
 		}
@@ -72,13 +69,13 @@ export const loadGoogleAuthApi = () => {
 	});
 };
 
-export const getAuthToken = async () => {
+export const getAuthToken = async (): Promise<string> => {
 	if (!oauthToken) {
-		return new Promise((resolve, reject) => {
+		return new Promise<string>((resolve, reject) => {
 			const tokenClient = google.accounts.oauth2.initTokenClient({
 				client_id: CLIENT_ID,
 				scope: SCOPE.join(' '),
-				callback: (response: any) => {
+				callback: (response: { access_token?: string }) => {
 					if (response.access_token) {
 						oauthToken = response.access_token;
 						resolve(oauthToken);
@@ -86,7 +83,7 @@ export const getAuthToken = async () => {
 						reject(new Error('Failed to get access token'));
 					}
 				},
-				error_callback: (error: any) => {
+				error_callback: (error: { message?: string }) => {
 					reject(new Error(error.message || 'OAuth error occurred'));
 				}
 			});
@@ -105,19 +102,27 @@ const initialize = async () => {
 	}
 };
 
-export const createPicker = () => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			console.log('Initializing Google Drive Picker...');
-			await initialize();
-			console.log('Getting auth token...');
-			const token = await getAuthToken();
-			if (!token) {
-				console.error('Failed to get OAuth token');
-				throw new Error('Unable to get OAuth token');
-			}
-			console.log('Auth token obtained successfully');
+export type GoogleDriveFile = {
+	id: string;
+	name: string;
+	url: string;
+	blob: Blob;
+	headers: { Authorization: string; Accept: string };
+};
 
+export const createPicker = async (): Promise<GoogleDriveFile | null> => {
+	try {
+		console.log('Initializing Google Drive Picker...');
+		await initialize();
+		console.log('Getting auth token...');
+		const token = await getAuthToken();
+		if (!token) {
+			console.error('Failed to get OAuth token');
+			throw new Error('Unable to get OAuth token');
+		}
+		console.log('Auth token obtained successfully');
+
+		return await new Promise<GoogleDriveFile | null>((resolve, reject) => {
 			const picker = new google.picker.PickerBuilder()
 				.enableFeature(google.picker.Feature.NAV_HIDDEN)
 				.enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
@@ -132,20 +137,33 @@ export const createPicker = () => {
 				.setOAuthToken(token)
 				.setDeveloperKey(API_KEY)
 				// Remove app ID setting as it's not needed and can cause 404 errors
-				.setCallback(async (data: any) => {
+				.setCallback(async (data: Record<string, unknown>) => {
 					if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
 						try {
-							const doc = data[google.picker.Response.DOCUMENTS][0];
-							const fileId = doc[google.picker.Document.ID];
-							const fileName = doc[google.picker.Document.NAME];
-							const fileUrl = doc[google.picker.Document.URL];
+							const documents = data[google.picker.Response.DOCUMENTS];
+							if (!Array.isArray(documents) || !documents.length) {
+								reject(new Error('Required file details missing'));
+								return;
+							}
+							const doc: unknown = documents[0];
+							if (typeof doc !== 'object' || doc === null)
+								throw new Error('Required file details missing');
+							const details = doc as Record<string, unknown>;
+							const fileId = details[google.picker.Document.ID];
+							const fileName = details[google.picker.Document.NAME];
 
-							if (!fileId || !fileName) {
+							if (
+								typeof fileId !== 'string' ||
+								!fileId ||
+								typeof fileName !== 'string' ||
+								!fileName
+							) {
 								throw new Error('Required file details missing');
 							}
 
 							// Construct download URL based on MIME type
-							const mimeType = doc[google.picker.Document.MIME_TYPE];
+							const mimeType = details[google.picker.Document.MIME_TYPE];
+							if (typeof mimeType !== 'string') throw new Error('Required file MIME type missing');
 
 							let downloadUrl;
 							let exportFormat;
@@ -205,9 +223,9 @@ export const createPicker = () => {
 				})
 				.build();
 			picker.setVisible(true);
-		} catch (error) {
-			console.error('Google Drive Picker error:', error);
-			reject(error);
-		}
-	});
+		});
+	} catch (error) {
+		console.error('Google Drive Picker error:', error);
+		throw error;
+	}
 };

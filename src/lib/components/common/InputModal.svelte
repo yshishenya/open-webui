@@ -1,25 +1,28 @@
 <script lang="ts">
-	import { onMount, getContext } from 'svelte';
+	import { getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { RichTextContent } from '$lib/utils/airis/frontend-contracts';
 	import { settings } from '$lib/stores';
 
 	import Drawer from './Drawer.svelte';
 	import RichTextInput from './RichTextInput.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<I18n>>('i18n');
 
 	export let id = 'input-modal';
 
 	export let show = false;
-	export let value = null;
-	export let inputContent = null;
+	export let value: string | null = null;
+	export let inputContent: RichTextContent | null = null;
 
 	export let autocomplete = false;
-	export let generateAutoCompletion = null;
+	export let generateAutoCompletion: ((text: string) => Promise<string | null>) | null = null;
 
-	export let onChange = () => {};
+	export let onChange: (content: RichTextContent) => void = () => {};
 	export let onClose = () => {};
 
-	let inputElement;
+	let inputElement: RichTextInput;
 </script>
 
 <Drawer bind:show>

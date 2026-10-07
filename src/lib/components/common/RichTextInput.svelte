@@ -119,10 +119,21 @@
 	});
 
 	import { onMount, onDestroy, tick, getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { Socket } from 'socket.io-client';
+	import type { SessionUser } from '$lib/stores';
+	import type { RichTextContent } from '$lib/utils/airis/frontend-contracts';
+	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 	import { createEventDispatcher } from 'svelte';
 
-	const i18n = getContext('i18n');
-	const eventDispatch = createEventDispatcher();
+	const i18n = getContext<Writable<I18n>>('i18n');
+	const eventDispatch = createEventDispatcher<{
+		focus: { event: FocusEvent };
+		keyup: { event: KeyboardEvent };
+		keydown: { event: KeyboardEvent };
+		paste: { event: ClipboardEvent };
+	}>();
 
 	import {
 		Fragment,
@@ -184,7 +195,8 @@
 		}
 	});
 
-	import Mention from '@tiptap/extension-mention';
+	import Mention, { type MentionOptions } from '@tiptap/extension-mention';
+	import type { FloatingMenuOptions } from '@tiptap/extension-floating-menu';
 	import FormattingButtons from './RichTextInput/FormattingButtons.svelte';
 
 	import { PASTED_TEXT_CHARACTER_LIMIT } from '$lib/constants';
@@ -195,7 +207,7 @@
 
 	export let oncompositionstart: (event: CompositionEvent) => void = () => {};
 	export let oncompositionend: (event: CompositionEvent) => void = () => {};
-	export let onChange: (content: { md: string; html: string; json: Content }) => void = () => {};
+	export let onChange: (content: RichTextContent) => void = () => {};
 
 	// create a lowlight instance with all languages loaded
 	const lowlight = createLowlight(
@@ -211,9 +223,9 @@
 
 	export let editor: Editor | null = null;
 
-	export let socket = null;
-	export let user = null;
-	export let files = [];
+	export let socket: Socket | null = null;
+	export let user: SessionUser | null | undefined = null;
+	export let files: ChatAttachment[] = [];
 
 	export let documentId = '';
 
@@ -237,9 +249,9 @@
 	export let link = false;
 	export let image = false;
 	export let fileHandler = false;
-	export let suggestions = null;
+	export let suggestions: MentionOptions['suggestions'] | null = null;
 
-	export let onFileDrop = (currentEditor, files, pos) => {
+	export let onFileDrop = (currentEditor: Editor, files: File[], pos: number): void => {
 		files.forEach((file) => {
 			const fileReader = new FileReader();
 
@@ -259,7 +271,7 @@
 		});
 	};
 
-	export let onFilePaste = (currentEditor, files, htmlContent) => {
+	export let onFilePaste = (currentEditor: Editor, files: File[], htmlContent?: string): void => {
 		files.forEach((file) => {
 			if (htmlContent) {
 				// if there is htmlContent, stop manual insertion & let other extensions handle insertion via inputRule
@@ -286,7 +298,10 @@
 		});
 	};
 
-	const getMentionText = ({ node, suggestion }) => {
+	const getMentionText = ({
+		node,
+		suggestion
+	}: Pick<Parameters<MentionOptions['renderText']>[0], 'node' | 'suggestion'>): string => {
 		const id = node.attrs.id ?? '';
 		const label = node.attrs.label ?? id;
 		const ch = node.attrs.mentionSuggestionChar ?? suggestion?.char ?? '@';
@@ -315,20 +330,21 @@
 	export let shiftEnter = false;
 	export let largeTextAsFile = false;
 	export let insertPromptAsRichText = false;
-	export let floatingMenuPlacement = 'bottom-start';
+	export let floatingMenuPlacement: NonNullable<FloatingMenuOptions['options']>['placement'] =
+		'bottom-start';
 
-	let content = null;
+	let content: Content = null;
 	let htmlValue = '';
-	let jsonValue = '';
+	let jsonValue: ReturnType<Editor['getJSON']> | string = '';
 	let mdValue = '';
 
 	let provider: SocketIOCollaborationProvider | null = null;
 
-	let floatingMenuElement: Element | null = null;
-	let bubbleMenuElement: Element | null = null;
-	let element: Element | null = null;
+	let floatingMenuElement: HTMLElement | null = null;
+	let bubbleMenuElement: HTMLElement | null = null;
+	let element: HTMLElement | null = null;
 
-	let pendingUpdate = null;
+	let pendingUpdate: number | null = null;
 
 	$: if (editor) {
 		editor.setOptions({
@@ -505,7 +521,7 @@
 		let tr = state.tr;
 
 		// Collect all replacements first to avoid position conflicts
-		const replacements = [];
+		const replacements: { from: number; to: number; text: string }[] = [];
 
 		doc.descendants((node, pos) => {
 			if (node.isText && node.text) {
@@ -557,14 +573,14 @@
 	};
 
 	// Function to find the next template in the document
-	function findNextTemplate(doc, from = 0) {
+	function findNextTemplate(doc: ProseMirrorNode, from = 0): { from: number; to: number } | null {
 		const patterns = [{ start: '{{', end: '}}' }];
 
-		let result = null;
+		let result: { from: number; to: number } | null = null;
 
 		doc.nodesBetween(from, doc.content.size, (node, pos) => {
 			if (result) return false; // Stop if we've found a match
-			if (node.isText) {
+			if (node.isText && node.text) {
 				const text = node.text;
 				let index = Math.max(0, from - pos);
 				while (index < text.length) {
@@ -589,7 +605,10 @@
 	}
 
 	// Function to select the next template in the document
-	function selectNextTemplate(state, dispatch) {
+	function selectNextTemplate(
+		state: EditorState,
+		dispatch?: (transaction: EditorState['tr']) => void
+	): boolean {
 		const { doc, selection } = state;
 		const from = selection.to;
 		let template = findNextTemplate(doc, from);
@@ -645,7 +664,7 @@
 					props: {
 						decorations: (state) => {
 							const { selection } = state;
-							const { focused } = this.editor;
+							const focused = this.editor.isFocused;
 
 							if (focused || selection.empty) {
 								return null;
@@ -726,7 +745,7 @@
 			element: element,
 			extensions: [
 				StarterKit.configure({
-					link: link,
+					link: link ? {} : false,
 					code: false, // Disabled in favor of FixedCode (see workaround above)
 					...(messageInput ? { italic: false } : {}),
 					// When rich text is on, ListKit + CodeBlockLowlight provide these.
@@ -796,7 +815,7 @@
 				...(autocomplete
 					? [
 							AIAutocompletion.configure({
-								generateCompletion: async (text) => {
+								generateCompletion: async (text: string): Promise<string | null> => {
 									if (text.trim().length === 0) {
 										return null;
 									}
@@ -1010,6 +1029,7 @@
 						return false;
 					},
 					keydown: (view, event) => {
+						if (!editor) return false;
 						if (messageInput) {
 							// Check if the current selection is inside a structured block (like codeBlock or list)
 							const { state } = view;

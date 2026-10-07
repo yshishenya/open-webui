@@ -1,4 +1,6 @@
 import type { ModelParams } from '$lib/apis';
+import type { Content } from '@tiptap/core';
+import type { Model } from './model-types';
 import type { ModelTag } from './model-types';
 import type { ChatAttachment, ChatHistory, ChatHistoryMessage } from './chat_history';
 import type { DEFAULT_PERMISSIONS } from '$lib/constants/permissions';
@@ -93,7 +95,10 @@ export type UserPermissions = {
 export type StoredTerminalServer = Partial<Pick<TerminalServer, 'id' | 'name'>> &
 	Pick<TerminalServer, 'url'> & {
 		info?: { title?: string; description?: string };
-		openapi?: Record<string, unknown>;
+		openapi?: {
+			info?: { title?: string; version?: string; description?: string };
+			[key: string]: unknown;
+		};
 		specs?: Record<string, unknown>[];
 	};
 
@@ -344,3 +349,9 @@ export type SharedChatTitleResponse = Pick<
 	chat_id: string;
 	share_id: string | null;
 };
+
+export type RichTextContent = { md: string; html: string; json: Content };
+export type CommandSelection =
+	| { type: 'model'; data: Model }
+	| { type: 'skill'; data: SkillListItem };
+export type CommandUpload = { type: 'file'; data: ChatAttachment } | { type: 'web'; data: string };

@@ -75,6 +75,7 @@
 	export let done = true;
 	/** @type {import('$lib/stores').Model | null | undefined} */
 	export let model = null;
+	/** @type {import('$lib/utils/airis/chat_history').ChatHistoryMessage['sources'] | null} */
 	export let sources = null;
 
 	export let save = false;

@@ -940,8 +940,8 @@
 												content = md;
 												command = getCommand();
 											}}
-											on:keydown={async (e) => {
-												e = e.detail.event;
+											on:keydown={async (event) => {
+												const e = event.detail.event;
 
 												const suggestionsContainerElement =
 													document.getElementById('suggestions-container');
@@ -977,8 +977,8 @@
 													replyToMessage = null;
 												}
 											}}
-											on:paste={async (e) => {
-												e = e.detail.event;
+											on:paste={async (event) => {
+												const e = event.detail.event;
 												console.log(e);
 
 												const clipboardData = e.clipboardData || window.clipboardData;

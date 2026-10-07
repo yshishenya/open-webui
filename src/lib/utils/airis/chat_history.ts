@@ -15,6 +15,36 @@ export type ChatAttachment = Record<string, unknown> & {
 	file?: string | (Record<string, unknown> & { data?: Record<string, unknown> | null });
 };
 
+export type ChatStatus = Record<string, unknown> & {
+	action?: string;
+	done?: boolean;
+	hidden?: boolean;
+	description?: string;
+	urls?: string[];
+	query?: string;
+};
+
+export type ChatCodeExecution = Record<string, unknown> & {
+	id: string;
+	name?: string;
+	code?: string;
+	language?: string;
+	result?: {
+		error?: string;
+		output?: string;
+		files?: { name: string; url: string }[];
+	};
+};
+
+export type ChatAnnotation = Record<string, unknown> & {
+	rating?: number;
+	type?: string;
+	reason?: string | null;
+	comment?: string;
+	tags?: string[];
+	details?: { rating?: number | null };
+};
+
 /** Client history after the existing graph repair boundary. */
 export type ChatHistoryMessage = {
 	id: string;
@@ -35,19 +65,42 @@ export type ChatHistoryMessage = {
 	files?: ChatAttachment[];
 	contextSummary?: string;
 	context_summary?: string;
-	usage?: { input_tokens?: number; prompt_tokens?: number; [key: string]: unknown };
-	info?: { usage?: ChatHistoryMessage['usage']; [key: string]: unknown };
+	usage?: {
+		input_tokens?: number;
+		prompt_tokens?: number;
+		output_tokens?: number;
+		completion_tokens?: number;
+		[key: string]: unknown;
+	};
+	info?: {
+		usage?: ChatHistoryMessage['usage'];
+		openai?: boolean;
+		prompt_tokens?: number;
+		completion_tokens?: number;
+		total_tokens?: number;
+		eval_count?: number;
+		eval_duration?: number;
+		prompt_eval_count?: number;
+		prompt_eval_duration?: number;
+		total_duration?: number;
+		load_duration?: number;
+		[key: string]: unknown;
+	};
+	tool_calls?: unknown[];
 	sources?: unknown[];
-	error?: { content: unknown };
+	citations?: unknown[];
+	error?: boolean | { content: unknown };
 	output?: OutputItem[];
 	originalContent?: string;
-	statusHistory?: (Record<string, unknown> & { action?: string })[];
-	code_executions?: (Record<string, unknown> & { id: string })[];
+	status?: ChatStatus;
+	statusHistory?: ChatStatus[];
+	code_executions?: ChatCodeExecution[];
 	embeds?: string[];
 	followUps?: string[];
 	favorite?: boolean;
 	lastSentence?: string;
-	annotation?: { rating: number; [key: string]: unknown };
+	annotation?: ChatAnnotation;
+	feedbackId?: string;
 };
 
 export type ChatHistory = {
