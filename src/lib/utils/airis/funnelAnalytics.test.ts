@@ -12,9 +12,6 @@ describe('consent-bound product funnel', () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
 	});
-	const settle = async (): Promise<void> => {
-		await new Promise((resolve) => setTimeout(resolve, 25));
-	};
 	const successfulFetch = () =>
 		vi.fn().mockImplementation(
 			async () =>
@@ -36,8 +33,7 @@ describe('consent-bound product funnel', () => {
 		vi.stubGlobal('fetch', fetchMock);
 		const api = await import('./funnelAnalytics');
 		api.captureFunnelTouch();
-		api.trackFunnelEvent('product_first_visit');
-		await settle();
+		expect(await api.trackFunnelEvent('product_first_visit')).toBe(false);
 		expect(fetchMock).not.toHaveBeenCalled();
 		expect(localStorage.getItem(api.FUNNEL_STORAGE_KEY)).toBeNull();
 	});
@@ -78,9 +74,8 @@ describe('consent-bound product funnel', () => {
 		const identify = vi.fn();
 		api.configureFunnelProviders(identify, async () => '123');
 		api.syncFunnelIdentity('internal-user');
-		api.trackFunnelEvent('first_response_received', false);
-		api.trackFunnelEvent('first_response_received', true);
-		await settle();
+		expect(await api.trackFunnelEvent('first_response_received', false)).toBe(false);
+		expect(await api.trackFunnelEvent('first_response_received', true)).toBe(true);
 		expect(identify).toHaveBeenCalledWith('opaque');
 		expect(api.serverTracksPayments()).toBe(true);
 		const eventBodies = fetchMock.mock.calls
@@ -102,10 +97,10 @@ describe('consent-bound product funnel', () => {
 		const identify = vi.fn();
 		api.configureFunnelProviders(identify, async () => null);
 		api.syncFunnelIdentity('one');
-		await settle();
+		await vi.waitFor(() => expect(identify).toHaveBeenLastCalledWith('opaque'));
 		const previous = JSON.parse(localStorage.getItem(api.FUNNEL_STORAGE_KEY) || '{}').anonymous_id;
 		api.syncFunnelIdentity(null);
-		await settle();
+		await vi.waitFor(() => expect(identify).toHaveBeenLastCalledWith('opaque'));
 		expect(identify).toHaveBeenCalledWith(null);
 		expect(JSON.parse(localStorage.getItem(api.FUNNEL_STORAGE_KEY) || '{}').anonymous_id).not.toBe(
 			previous
@@ -209,6 +204,7 @@ describe('consent-bound product funnel', () => {
 		expect(JSON.stringify(fetchMock.mock.calls)).not.toContain('secret');
 	});
 	it('emits only server-proven signup once and suppresses server transport and revoked history', async () => {
+		vi.spyOn(Date, 'now').mockReturnValue(Date.now());
 		let serverTracking = false;
 		let signupAt = Math.floor(Date.now() / 1000);
 		vi.stubGlobal(
@@ -231,16 +227,16 @@ describe('consent-bound product funnel', () => {
 		const signup = vi.fn();
 		api.configureFunnelProviders(vi.fn(), async () => null, signup);
 		api.syncFunnelIdentity('one');
-		await settle();
+		await vi.waitFor(() => expect(signup).toHaveBeenCalledTimes(1));
 		api.syncFunnelIdentity('one');
-		await settle();
+		await api.trackFunnelEvent('landing_cta_click');
 		expect(signup).toHaveBeenCalledTimes(1);
 		setAnalyticsConsent('denied');
 		await api.revokeFunnelConsent();
 		signupAt -= 60;
 		setAnalyticsConsent('granted');
 		api.syncFunnelIdentity('one');
-		await settle();
+		await api.trackFunnelEvent('landing_cta_click');
 		expect(signup).toHaveBeenCalledTimes(1);
 		setAnalyticsConsent('denied');
 		await api.revokeFunnelConsent();
@@ -248,7 +244,7 @@ describe('consent-bound product funnel', () => {
 		signupAt = Math.floor(Date.now() / 1000);
 		setAnalyticsConsent('granted');
 		api.syncFunnelIdentity('one');
-		await settle();
+		await api.trackFunnelEvent('landing_cta_click');
 		expect(signup).toHaveBeenCalledTimes(1);
 	});
 });

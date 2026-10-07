@@ -1,0 +1,121 @@
+{
+  "spec_id": "airis-funnel-test-completion-2026-10-07-001",
+  "title": "AIRIS funnel test completion 2026-10-07",
+  "generated": "2026-10-07T03:12:12.575699Z",
+  "last_updated": "2026-10-07T03:14:33.483468Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__funnel-test-completion.md",
+    "status": "active",
+    "activated_date": "2026-10-07T03:12:50.052316Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS funnel test completion 2026-10-07",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce, fix and accept asynchronous test completion",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce premature assertion with slow provider",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-07T03:12:50.290236Z",
+        "needs_journaling": false,
+        "status_note": "60ms existing provider await causes original25ms assertion to fail; EROFS first harness attempt preserved, corrected writable config temp mount; runtime unchanged",
+        "journaled_at": "2026-10-07T03:12:50.291319Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Wait for operation results and check all frontend tests",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-07T03:14:33.481996Z",
+        "needs_journaling": false,
+        "status_note": "Slow provider11/11;full818/818;test formatting/lint clean;all3442 type diagnostics unchanged;runtime diff empty",
+        "journaled_at": "2026-10-07T03:14:33.482947Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Accept exact source CI, preserve runtime and record evidence",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-07T03:12:50.291310Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce premature assertion with slow provider",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: 60ms existing provider await causes original25ms assertion to fail; EROFS first harness attempt preserved, corrected writable config temp mount; runtime unchanged",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-07T03:14:33.482941Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Wait for operation results and check all frontend tests",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed. \nNote: Slow provider11/11;full818/818;test formatting/lint clean;all3442 type diagnostics unchanged;runtime diff empty",
+      "metadata": {},
+      "task_id": "task-1-2"
+    }
+  ]
+}
