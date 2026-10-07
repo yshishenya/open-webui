@@ -1,0 +1,32 @@
+- [ ] **[BUG]** Align model catalog contracts across all consumers
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__frontend-model-data-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/frontend-model-data-contracts`
+  - Started: 2026-10-07
+  - Summary: Trace actual catalog/direct-provider/Ollama responses and correct the shared model types without changing model visibility, requests or billing.
+  - Tests: baseline and acceptance in progress
+  - Risks: nullable partial metadata and direct-provider variants must remain truthful
+
+- [x] **[BUG]** Common model contracts — source acceptance completed
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__frontend-model-data-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/frontend-model-data-contracts`
+  - Done: 2026-10-07
+  - Summary: Common catalog/direct-provider types and existing metadata now match backend variants; full editor configuration stays distinct. Ten transformed app modules are identical.
+  - Tests: frontend861/861; types3234→3193/warnings121/new0; ESLint1180 unchanged; static original/fixed5/0; format clean; SDD3/3.
+  - Risks: declarations do not validate arbitrary provider data. Global quality debt and real acceptance remain open; exact-source CI/publication is required before merge.
+
+- [ ] **[BUG]** Renew acceptance after exact-head CI refusal
+  - Spec: meta/memory_bank/specs/work_items/2026-10-07**bugfix**frontend-model-data-contracts.md
+  - Owner: Codex
+  - Started: 2026-10-07
+  - Summary: Previous source acceptance is superseded by mandatory lint refusal. Remove 16 baseline touched-file errors without weakening CI; validate browser HTML/update and details parser. Runtime correction requires a candidate and release acceptance.
+  - Tests: in progress
+
+- [x] **[BUG]** Renewed source acceptance after CI lint refusal
+  - Spec: meta/memory_bank/specs/work_items/2026-10-07**bugfix**frontend-model-data-contracts.md
+  - Owner: Codex
+  - Done: 2026-10-07
+  - Summary: Supersedes the previous no-rollout acceptance. All touched-file lint errors removed; browser-only sanitized fragment action/update and callback contracts preserve model rendering, selection and suggestions. Actual details parser verified.
+  - Tests: frontend864/864; types3234→3189, warnings121→118, new0; ESLint1180→1164; static5/0; eight unchanged compiled modules; format clean.
+  - Risks: runtime changed in renderer/placeholder/import cleanup; exact-head CI and guarded candidate/release acceptance still required. G14 and real pilot remain open.

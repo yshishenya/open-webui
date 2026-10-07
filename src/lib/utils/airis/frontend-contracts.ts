@@ -1,4 +1,5 @@
 import type { ModelParams } from '$lib/apis';
+import type { ModelTag } from './model-types';
 import type { ChatAttachment, ChatHistory, ChatHistoryMessage } from './chat_history';
 import type { DEFAULT_PERMISSIONS } from '$lib/constants/permissions';
 import type { TerminalServer } from '$lib/apis/terminal';
@@ -76,7 +77,7 @@ export type DirectModelConnections = Pick<
 			enable?: boolean | null;
 			model_ids?: string[] | null;
 			prefix_id?: string | null;
-			tags?: unknown[] | null;
+			tags?: ModelTag[] | null;
 			[key: string]: unknown;
 		} | null
 	>;

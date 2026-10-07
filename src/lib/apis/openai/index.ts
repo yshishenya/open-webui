@@ -1,4 +1,5 @@
-import { OPENAI_API_BASE_URL, WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+import type { DirectProviderModelsResponse } from '$lib/utils/airis/model-types';
+import { OPENAI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 import { enhanceOpenAIChatCompletionBody } from '$lib/utils/airis/openai';
 
 export const getOpenAIConfig = async (token: string = '') => {
@@ -75,7 +76,10 @@ export const updateOpenAIConfig = async (token: string = '', config: OpenAIConfi
 	return res;
 };
 
-export const getOpenAIModelsDirect = async (url: string, key: string) => {
+export const getOpenAIModelsDirect = async (
+	url: string,
+	key: string
+): Promise<DirectProviderModelsResponse> => {
 	let error = null;
 
 	const res = await fetch(`${url}/models`, {
@@ -88,7 +92,7 @@ export const getOpenAIModelsDirect = async (url: string, key: string) => {
 	})
 		.then(async (res) => {
 			if (!res.ok) throw await res.json();
-			return res.json();
+			return res.json() as Promise<DirectProviderModelsResponse>;
 		})
 		.catch((err) => {
 			error = `OpenAI: ${err?.error?.message ?? 'Network Problem'}`;

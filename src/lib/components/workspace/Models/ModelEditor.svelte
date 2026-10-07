@@ -171,13 +171,7 @@
 
 	$: chatVariablesPreview = getChatVariablesPreview(system ?? '');
 
-	const getBaseModelItems = (
-		models: (Pick<Model, 'id' | 'name' | 'info'> & {
-			owned_by: Model['owned_by'] | 'arena';
-			preset?: boolean;
-			direct?: boolean;
-		})[] = []
-	) => {
+	const getBaseModelItems = (models: Model[] = []) => {
 		const currentModelId = (model as Model | null)?.id;
 
 		return models

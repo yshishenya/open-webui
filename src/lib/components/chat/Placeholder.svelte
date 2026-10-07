@@ -33,15 +33,7 @@
 
 	export let autoScroll = false;
 
-	export let atSelectedModel:
-		| (Model & {
-				info?: {
-					meta?: NonNullable<Model['info']>['meta'] & {
-						suggestion_prompts?: { content: string; title: [string, string] }[];
-					};
-				};
-		  })
-		| undefined;
+	export let atSelectedModel: Model | undefined;
 	export let selectedModels: [''];
 
 	export let history;
@@ -201,16 +193,16 @@
 							{#if models[selectedModelIdx]?.info?.meta?.user}
 								<div class="mt-0.5 text-sm font-normal text-gray-400 dark:text-gray-500">
 									By
-									{#if models[selectedModelIdx]?.info?.meta?.user.community}
+									{#if models[selectedModelIdx]?.info?.meta?.user!.community}
 										<a
 											href="#
 												.username}"
-											>{models[selectedModelIdx]?.info?.meta?.user.name
-												? models[selectedModelIdx]?.info?.meta?.user.name
-												: `@${models[selectedModelIdx]?.info?.meta?.user.username}`}</a
+											>{models[selectedModelIdx]?.info?.meta?.user!.name
+												? models[selectedModelIdx]?.info?.meta?.user!.name
+												: `@${models[selectedModelIdx]?.info?.meta?.user!.username}`}</a
 										>
 									{:else}
-										{models[selectedModelIdx]?.info?.meta?.user.name}
+										{models[selectedModelIdx]?.info?.meta?.user!.name}
 									{/if}
 								</div>
 							{/if}
