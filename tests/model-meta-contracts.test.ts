@@ -6,6 +6,19 @@ import { expect, it } from 'vitest';
 
 const api = readFileSync('src/lib/apis/index.ts', 'utf8');
 const constants = readFileSync('src/lib/constants.ts', 'utf8');
+const modelTypesSource = ts.createSourceFile(
+	'model-types.ts',
+	readFileSync('src/lib/utils/airis/model-types.ts', 'utf8'),
+	ts.ScriptTarget.Latest
+);
+const metadataTypes = modelTypesSource.statements
+	.filter(
+		(statement) =>
+			ts.isTypeAliasDeclaration(statement) &&
+			['ModelTag', 'SuggestionPrompt'].includes(statement.name.text)
+	)
+	.map((statement) => statement.getText(modelTypesSource))
+	.join('\n');
 const source = ts.createSourceFile('api.ts', api, ts.ScriptTarget.Latest);
 const meta = source.statements.find(
 	(statement): statement is ts.InterfaceDeclaration =>
@@ -24,7 +37,7 @@ if (!defaults) throw new Error('Capability defaults missing');
 
 const diagnostics = (fixture: string): string[] => {
 	const filename = resolve('model-meta-probe.ts');
-	const code = `${defaults.getText(defaultsSource)}\n${meta.getText(source)}\n${fixture}`;
+	const code = `${defaults.getText(defaultsSource)}\n${metadataTypes}\n${meta.getText(source)}\n${fixture}`;
 	const options: ts.CompilerOptions = {
 		strict: true,
 		noEmit: true,
@@ -57,10 +70,12 @@ const usage: boolean | undefined = meta.capabilities?.usage;
 const custom: unknown = meta.capabilities?.extension;
 const key: string | undefined = meta.chat_variables_schema?.fields[0]?.key;
 const defaultValue: unknown = meta.chat_variables_schema?.fields[0]?.default;
-const cleared: ModelMeta = {toolIds: null, capabilities: null, chat_variables_schema: null};
+const cleared: ModelMeta = {toolIds: null, capabilities: null, chat_variables_schema: null, description: null, profile_image_url: null, tags: null, user: null, suggestion_prompts: null};
+const details: ModelMeta = {tags: [{name: "tag"}], tts: {voice: "voice"}, user: {name: "Author"}, suggestion_prompts: [{content: "Plan", title: null}, {content: "Legacy", title: "Title"}]};
 `)
 	).toEqual([]);
 	expect(diagnostics('const invalid: ModelMeta = {toolIds: [1]};')).toHaveLength(1);
+	expect(diagnostics('const invalid: ModelMeta = {tags: [{name: 1}]};')).toHaveLength(1);
 	expect(diagnostics('const invalid: ModelMeta = {capabilities: {usage: "false"}};')).toHaveLength(
 		1
 	);

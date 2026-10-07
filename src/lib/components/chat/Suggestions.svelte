@@ -10,7 +10,7 @@
 	export let suggestionPrompts = [];
 	export let className = '';
 	export let inputValue = '';
-	export let onSelect = () => {};
+	export let onSelect: (event: { type: string; data: string }) => void | Promise<void> = () => {};
 
 	let sortedPrompts = [];
 

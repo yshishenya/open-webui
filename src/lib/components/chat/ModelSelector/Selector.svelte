@@ -46,13 +46,7 @@
 	export let items: {
 		label: string;
 		value: string;
-		model: Pick<Model, 'id' | 'name' | 'info'> & {
-			owned_by: Model['owned_by'] | 'arena';
-			connection_type?: string;
-			tags?: { name: string }[];
-			direct?: boolean;
-			preset?: boolean;
-		};
+		model: Model;
 		[key: string]: unknown;
 	}[] = [];
 

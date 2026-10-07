@@ -1,6 +1,7 @@
 import { APP_NAME } from '$lib/constants';
 import { type Writable, writable } from 'svelte/store';
-import type { ModelConfig } from '$lib/apis';
+import type { Model } from '$lib/utils/airis/model-types';
+export type { Model, OpenAIModel, OllamaModel } from '$lib/utils/airis/model-types';
 import type { Banner } from '$lib/types';
 import type { Socket } from 'socket.io-client';
 import type { AudioQueue } from '$lib/utils/audio';
@@ -164,56 +165,6 @@ export const desktopEvent: Writable<DesktopEvent | null> = writable(null);
 
 export const isLastActiveTab = writable(true);
 export const playingNotificationSound = writable(false);
-
-export type Model = OpenAIModel | OllamaModel;
-
-type BaseModel = {
-	id: string;
-	name: string;
-	info?: ModelConfig;
-	owned_by: 'ollama' | 'openai' | 'arena';
-};
-
-export interface OpenAIModel extends BaseModel {
-	owned_by: 'openai';
-	external: boolean;
-	source?: string;
-}
-
-export interface OllamaModel extends BaseModel {
-	owned_by: 'ollama';
-	details: OllamaModelDetails;
-	size: number;
-	description: string;
-	model: string;
-	modified_at: string;
-	digest: string;
-	ollama?: {
-		name?: string;
-		model?: string;
-		modified_at: string;
-		size?: number;
-		digest?: string;
-		details?: {
-			parent_model?: string;
-			format?: string;
-			family?: string;
-			families?: string[];
-			parameter_size?: string;
-			quantization_level?: string;
-		};
-		urls?: number[];
-	};
-}
-
-type OllamaModelDetails = {
-	parent_model: string;
-	format: string;
-	family: string;
-	families: string[] | null;
-	parameter_size: string;
-	quantization_level: string;
-};
 
 type Settings = {
 	pinnedModels?: string[];

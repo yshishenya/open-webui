@@ -1,6 +1,5 @@
 <script>
-	import { onDestroy, onMount, tick, getContext } from 'svelte';
-	const i18n = getContext('i18n');
+	import { onDestroy, tick } from 'svelte';
 
 	import Markdown from './Markdown.svelte';
 	import StructuredOutputRenderer from './StructuredOutputRenderer.svelte';
@@ -14,13 +13,14 @@
 		showEmbeds
 	} from '$lib/stores';
 	import FloatingButtons from '../ContentRenderer/FloatingButtons.svelte';
-	import { createMessagesList, replaceOutsideCode } from '$lib/utils';
+	import { replaceOutsideCode } from '$lib/utils';
 
 	/**
 	 * Extracts all top-level <details>...</details> blocks from content,
 	 * handling nested <details> via depth tracking.
 	 * Returns { detailsContent, plainContent }.
 	 */
+	/** @param {string} text @returns {{ detailsContent: string; plainContent: string }} */
 	const extractDetailsBlocks = (text) => {
 		const blocks = [];
 		let remaining = text;
@@ -28,7 +28,7 @@
 		const openTag = '<details';
 		const closeTag = '</details>';
 
-		while (true) {
+		for (;;) {
 			const start = remaining.indexOf(openTag);
 			if (start === -1) {
 				result += remaining;
@@ -72,12 +72,8 @@
 	/** @type {import('./structuredOutput').OutputItem[]} */
 	export let output = [];
 
-	export let history;
-	export let messageId;
-
-	export let selectedModels = [];
-
 	export let done = true;
+	/** @type {import('$lib/stores').Model | null | undefined} */
 	export let model = null;
 	export let sources = null;
 
@@ -89,10 +85,14 @@
 	export let editCodeBlock = true;
 	export let topPadding = false;
 
-	export let onSave = (e) => {};
-	export let onSourceClick = (e) => {};
-	export let onTaskClick = (e) => {};
-	export let onSetInputText = (text) => {};
+	/** @type {(event: { raw: string; oldContent: string; newContent: string }) => void} */
+	export let onSave = () => {};
+	/** @type {(id: string) => void} */
+	export let onSourceClick = () => {};
+	/** @type {(event: unknown) => void} */
+	export let onTaskClick = () => {};
+	/** @type {(text: string) => void} */
+	export let onSetInputText = () => {};
 
 	let contentContainerElement;
 	let floatingButtonsElement;

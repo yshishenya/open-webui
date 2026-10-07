@@ -2,6 +2,13 @@ import { WEBUI_BASE_URL, type DEFAULT_CAPABILITIES } from '$lib/constants';
 import { convertOpenApiToToolPayload } from '$lib/utils';
 import type { DirectModelConnections, GenerationParams } from '$lib/utils/airis/frontend-contracts';
 import { getOpenAIModelsDirect } from './openai';
+import type {
+	Model,
+	DirectProviderModel,
+	DirectProviderModelsResponse,
+	ModelTag,
+	SuggestionPrompt
+} from '$lib/utils/airis/model-types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -25,7 +32,7 @@ export const getModels = async (
 	connections: DirectModelConnections | false | null = null,
 	base: boolean = false,
 	refresh: boolean = false
-) => {
+): Promise<Model[]> => {
 	const searchParams = new URLSearchParams();
 	if (refresh) {
 		searchParams.append('refresh', 'true');
@@ -45,7 +52,7 @@ export const getModels = async (
 	)
 		.then(async (res) => {
 			if (!res.ok) throw await res.json();
-			return res.json();
+			return res.json() as Promise<{ data?: Model[] | null }>;
 		})
 		.catch((err) => {
 			error = err;
@@ -60,14 +67,14 @@ export const getModels = async (
 	let models = res?.data ?? [];
 
 	if (connections && !base) {
-		let localModels: any[] = [];
+		let localModels: DirectProviderModel[] = [];
 
 		if (connections) {
 			const OPENAI_API_BASE_URLS = connections.OPENAI_API_BASE_URLS;
 			const OPENAI_API_KEYS = connections.OPENAI_API_KEYS;
 			const OPENAI_API_CONFIGS = connections.OPENAI_API_CONFIGS;
 
-			const requests = [];
+			const requests: Promise<DirectProviderModelsResponse>[] = [];
 			for (const idx in OPENAI_API_BASE_URLS) {
 				const url = OPENAI_API_BASE_URLS[idx];
 
@@ -81,7 +88,7 @@ export const getModels = async (
 						if (modelIds.length > 0) {
 							const modelList = {
 								object: 'list',
-								data: modelIds.map((modelId: any) => ({
+								data: modelIds.map((modelId) => ({
 									id: modelId,
 									name: modelId,
 									owned_by: 'openai',
@@ -98,15 +105,15 @@ export const getModels = async (
 						} else {
 							requests.push(
 								(async () => {
-								return await getOpenAIModelsDirect(url, OPENAI_API_KEYS[idx])
-									.then((res) => {
-										return res;
-									})
-									.catch(() => {
-										return {
-											object: 'list',
-											data: [],
-											urlIdx: idx
+									return await getOpenAIModelsDirect(url, OPENAI_API_KEYS[idx])
+										.then((res) => {
+											return res;
+										})
+										.catch(() => {
+											return {
+												object: 'list',
+												data: [],
+												urlIdx: idx
 											};
 										});
 								})()
@@ -133,7 +140,7 @@ export const getModels = async (
 				const apiConfig = OPENAI_API_CONFIGS[idx.toString()] ?? {};
 
 				let models = Array.isArray(response) ? response : (response?.data ?? []);
-				models = models.map((model: any) => ({ ...model, openai: { id: model.id }, urlIdx: idx }));
+				models = models.map((model) => ({ ...model, openai: { id: model.id }, urlIdx: idx }));
 
 				const prefixId = apiConfig.prefix_id;
 				if (prefixId) {
@@ -162,7 +169,7 @@ export const getModels = async (
 		);
 
 		// Remove duplicates
-		const modelsMap = {};
+		const modelsMap: Record<string, Model> = {};
 		for (const model of models) {
 			const existing = modelsMap[model.id];
 			modelsMap[model.id] = existing
@@ -1702,25 +1709,29 @@ export interface ModelConfig {
 	id: string;
 	name: string;
 	meta: ModelMeta;
-	base_model_id?: string;
+	base_model_id?: string | null;
 	params: ModelParams;
 }
 
 export interface ModelMeta {
+	tags?: ModelTag[] | null;
+	tts?: { voice?: string | null } | null;
+	user?: { community?: boolean; username?: string; name?: string } | null;
+	suggestion_prompts?: SuggestionPrompt[] | null;
 	hidden?: boolean | null;
 	toolIds?: string[] | null;
 	skillIds?: string[] | null;
 	defaultFilterIds?: string[] | null;
 	defaultFeatureIds?: string[] | null;
 	terminalId?: string | null;
-	description?: string;
+	description?: string | null;
 	capabilities?:
 		| (Partial<Record<keyof typeof DEFAULT_CAPABILITIES, boolean>> & Record<string, unknown>)
 		| null;
 	chat_variables_schema?: {
 		fields: Array<Record<string, unknown> & { key: string; type: string; required: boolean }>;
 	} | null;
-	profile_image_url?: string;
+	profile_image_url?: string | null;
 	lead_magnet?: boolean;
 }
 

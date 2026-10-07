@@ -5,6 +5,7 @@
 	import { user, tools as _tools, skills as _skills, toolServers } from '$lib/stores';
 	import type { Readable } from 'svelte/store';
 	import type { i18n as I18n } from 'i18next';
+	import type { ModelFilter } from '$lib/utils/airis/model-types';
 
 	import { initiateOAuthRedirect } from '$lib/apis/configs';
 	import { deleteOAuthSession } from '$lib/apis/auths';
@@ -33,13 +34,7 @@
 	export let selectedToolIds: string[] = [];
 	export let selectedSkillIds: string[] = [];
 
-	export let toggleFilters: {
-		id: string;
-		name: string;
-		description?: string | null;
-		icon?: string;
-		has_user_valves?: boolean;
-	}[] = [];
+	export let toggleFilters: ModelFilter[] = [];
 	export let selectedFilterIds: string[] = [];
 
 	export let showWebSearchButton = false;

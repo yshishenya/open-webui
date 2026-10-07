@@ -1,15 +1,16 @@
 <script lang="ts">
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+	import { WEBUI_API_BASE_URL } from '$lib/constants';
 	import { marked } from 'marked';
 	import DOMPurify from 'dompurify';
 
 	import { config, user, models as _models, temporaryChatEnabled } from '$lib/stores';
 	import { onMount, getContext } from 'svelte';
 
-	import { blur, fade } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 
 	import Suggestions from './Suggestions.svelte';
 	import { sanitizeResponseContent } from '$lib/utils';
+	import { sanitizedHtml } from '$lib/utils/airis/sanitized_html';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import EyeSlash from '$lib/components/icons/EyeSlash.svelte';
 
@@ -19,7 +20,7 @@
 	export let models = [];
 	export let atSelectedModel;
 
-	export let onSelect = (e) => {};
+	export let onSelect: import('svelte').ComponentProps<Suggestions>['onSelect'] = () => {};
 
 	let mounted = false;
 	let selectedModelIdx = 0;
@@ -98,28 +99,25 @@
 					{#if models[selectedModelIdx]?.info?.meta?.description ?? null}
 						<div
 							class="mt-0.5 text-base font-normal text-gray-500 dark:text-gray-400 line-clamp-3 markdown"
-						>
-							{@html DOMPurify.sanitize(
-								marked.parse(
-									sanitizeResponseContent(
-										models[selectedModelIdx]?.info?.meta?.description
-									).replaceAll('\n', '<br>')
-								)
+							use:sanitizedHtml={marked.parse(
+								sanitizeResponseContent(
+									models[selectedModelIdx]?.info?.meta?.description ?? ''
+								).replaceAll('\n', '<br>')
 							)}
-						</div>
+						></div>
 						{#if models[selectedModelIdx]?.info?.meta?.user}
 							<div class="mt-0.5 text-sm font-normal text-gray-400 dark:text-gray-500">
 								By
-								{#if models[selectedModelIdx]?.info?.meta?.user.community}
+								{#if models[selectedModelIdx]?.info?.meta?.user!.community}
 									<a
 										href="#
 											.username}"
-										>{models[selectedModelIdx]?.info?.meta?.user.name
-											? models[selectedModelIdx]?.info?.meta?.user.name
-											: `@${models[selectedModelIdx]?.info?.meta?.user.username}`}</a
+										>{models[selectedModelIdx]?.info?.meta?.user!.name
+											? models[selectedModelIdx]?.info?.meta?.user!.name
+											: `@${models[selectedModelIdx]?.info?.meta?.user!.username}`}</a
 									>
 								{:else}
-									{models[selectedModelIdx]?.info?.meta?.user.name}
+									{models[selectedModelIdx]?.info?.meta?.user!.name}
 								{/if}
 							</div>
 						{/if}

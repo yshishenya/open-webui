@@ -1,0 +1,213 @@
+{
+	"spec_id": "airis-frontend-model-data-contracts-2026-10-07-001",
+	"title": "airis-frontend-model-data-contracts-2026-10-07",
+	"generated": "2026-10-07T08:07:05.810758Z",
+	"last_updated": "2026-10-07T09:00:23.945990Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 4,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__frontend-model-data-contracts.md",
+		"status": "completed",
+		"activated_date": "2026-10-07T08:08:47.066675Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-07T09:00:23.945693Z",
+		"actual_hours": 0.012
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-frontend-model-data-contracts-2026-10-07",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2", "phase-3"],
+			"total_tasks": 3,
+			"completed_tasks": 3,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace all server/provider response variants and reproduce contract failures",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T08:14:03.347596Z",
+				"journaled_at": "2026-10-07T08:14:03.349436Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Share truthful model contracts across API/store and all consumers",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T08:26:01.485132Z",
+				"journaled_at": "2026-10-07T08:26:01.487116Z"
+			}
+		},
+		"phase-3": {
+			"type": "phase",
+			"title": "Accept full diagnostics/tests/compiler output and prepare publication",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-3"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"journaled_at": "2026-10-07T09:00:23.466018Z",
+				"completed_at": "2026-10-07T09:00:23.463846Z"
+			}
+		},
+		"task-1": {
+			"type": "task",
+			"title": "Trace all server/provider response variants and reproduce contract failures",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"category": "investigation",
+				"completed_at": "2026-10-07T08:14:03.347452Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-07T08:14:03.348440Z"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		},
+		"task-2": {
+			"type": "task",
+			"title": "Share truthful model contracts across API/store and all consumers",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"metadata": {
+				"category": "implementation",
+				"completed_at": "2026-10-07T08:26:01.484986Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-07T08:26:01.485995Z"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		},
+		"task-3": {
+			"type": "task",
+			"title": "Accept full diagnostics/tests/compiler output and prepare publication",
+			"status": "completed",
+			"parent": "phase-3",
+			"children": [],
+			"metadata": {
+				"category": "implementation",
+				"completed_at": "2026-10-07T09:00:23.463676Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-07T09:00:23.465339Z",
+				"started_at": "2026-10-07T08:59:38.897052Z",
+				"status_note": "Actual component fixture must use Markdown: existing sanitizeResponseContent escapes literal HTML before rendering; full suite acceptance pending",
+				"actual_hours": 0.012
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-07T08:14:03.348432Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Trace all server/provider response variants and reproduce contract failures",
+			"author": "claude-code",
+			"content": "Task task-1 marked as completed.",
+			"metadata": {},
+			"task_id": "task-1"
+		},
+		{
+			"timestamp": "2026-10-07T08:14:03.349426Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace all server/provider response variants and reproduce contract failures",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-07T08:26:01.485987Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Share truthful model contracts across API/store and all consumers",
+			"author": "claude-code",
+			"content": "Task task-2 marked as completed.",
+			"metadata": {},
+			"task_id": "task-2"
+		},
+		{
+			"timestamp": "2026-10-07T08:26:01.487112Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Share truthful model contracts across API/store and all consumers",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		},
+		{
+			"timestamp": "2026-10-07T08:26:01.729966Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Accept full diagnostics/tests/compiler output and prepare publication",
+			"author": "claude-code",
+			"content": "Task task-3 marked as completed.",
+			"metadata": {},
+			"task_id": "task-3"
+		},
+		{
+			"timestamp": "2026-10-07T08:26:01.731076Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Accept full diagnostics/tests/compiler output and prepare publication",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-3 have been completed.",
+			"metadata": {},
+			"task_id": "phase-3"
+		},
+		{
+			"timestamp": "2026-10-07T08:59:11.697215Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Accept full diagnostics/tests/compiler output and prepare publication",
+			"author": "claude-code",
+			"content": "Task task-3 marked as completed.",
+			"metadata": {},
+			"task_id": "task-3"
+		},
+		{
+			"timestamp": "2026-10-07T08:59:11.697937Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Accept full diagnostics/tests/compiler output and prepare publication",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-3 have been completed.",
+			"metadata": {},
+			"task_id": "phase-3"
+		},
+		{
+			"timestamp": "2026-10-07T09:00:23.465334Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Accept full diagnostics/tests/compiler output and prepare publication",
+			"author": "claude-code",
+			"content": "Task task-3 marked as completed.",
+			"metadata": {},
+			"task_id": "task-3"
+		},
+		{
+			"timestamp": "2026-10-07T09:00:23.466013Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Accept full diagnostics/tests/compiler output and prepare publication",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-3 have been completed.",
+			"metadata": {},
+			"task_id": "phase-3"
+		}
+	]
+}
