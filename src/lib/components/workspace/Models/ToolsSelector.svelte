@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import Checkbox from '$lib/components/common/Checkbox.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import TypeaheadSelector from './TypeaheadSelector.svelte';
@@ -8,14 +10,14 @@
 		id: string;
 		name?: string;
 		meta?: {
-			description?: string;
+			description?: string | null;
 		};
 	};
 
 	export let tools: Tool[] = [];
 	export let selectedToolIds: string[] = [];
 
-	const i18n = getContext('i18n') as any;
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	$: selectedTools = tools.filter((tool) => selectedToolIds.includes(tool.id));
 
@@ -52,7 +54,7 @@
 	<div class="flex flex-col mb-1">
 		{#if tools.length > 0}
 			<div class=" flex items-center flex-wrap mt-1">
-				{#each selectedTools as tool, toolIdx}
+				{#each selectedTools as tool}
 					<div class=" flex items-center gap-2 mr-3">
 						<div class="self-center flex items-center">
 							<Checkbox

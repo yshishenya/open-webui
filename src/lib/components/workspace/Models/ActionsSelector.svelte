@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { getContext } from 'svelte';
 	import Checkbox from '$lib/components/common/Checkbox.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -9,11 +11,11 @@
 		name?: string;
 		is_global?: boolean;
 		meta?: {
-			description?: string;
+			description?: string | null;
 		};
 	};
 
-	const i18n = getContext('i18n') as any;
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let actions: Action[] = [];
 	export let selectedActionIds: string[] = [];
@@ -61,7 +63,7 @@
 
 		<div class="flex flex-col">
 			<div class=" flex items-center flex-wrap mt-1">
-				{#each selectedActions as action, actionIdx}
+				{#each selectedActions as action}
 					<div class=" flex items-center gap-2 mr-3">
 						<div class="self-center flex items-center">
 							<Checkbox
