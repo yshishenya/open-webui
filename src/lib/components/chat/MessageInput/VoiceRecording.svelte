@@ -2,7 +2,7 @@
 	import { toast } from 'svelte-sonner';
 	import { tick, getContext, onMount, onDestroy } from 'svelte';
 	import { config, settings } from '$lib/stores';
-	import { blobToFile, calculateSHA256, extractCurlyBraceWords } from '$lib/utils';
+	import { blobToFile } from '$lib/utils';
 
 	import { transcribeAudio } from '$lib/apis/audio';
 	import XMark from '$lib/components/icons/XMark.svelte';
@@ -24,24 +24,31 @@
 	export let className = ' p-2.5 w-full max-w-full';
 
 	export let onCancel = () => {};
-	export let onConfirm = (data) => {};
+	export let onConfirm: (data: {
+		text: string;
+		filename?: string;
+		file?: File;
+		blob?: Blob;
+	}) => void | Promise<void> = () => {};
 
 	let loading = false;
 	let confirmed = false;
 
 	let durationSeconds = 0;
-	let durationCounter = null;
+	let durationCounter: ReturnType<typeof setInterval> | null = null;
 
 	let transcription = '';
 
-	const startDurationCounter = () => {
+	const startDurationCounter = (): void => {
+		stopDurationCounter();
 		durationCounter = setInterval(() => {
 			durationSeconds++;
 		}, 1000);
 	};
 
-	const stopDurationCounter = () => {
-		clearInterval(durationCounter);
+	const stopDurationCounter = (): void => {
+		if (durationCounter !== null) clearInterval(durationCounter);
+		durationCounter = null;
 		durationSeconds = 0;
 	};
 
@@ -58,12 +65,29 @@
 		return `${minutes}:${formattedSeconds}`;
 	};
 
-	let wakeLock = null;
+	let wakeLock: Awaited<ReturnType<typeof navigator.wakeLock.request>> | null = null;
+	let recordingRequest = 0;
+	let destroyed = false;
+	let recognitionTimeout: ReturnType<typeof setTimeout> | undefined;
+	let audioContext: AudioContext | null = null;
 
-	const requestWakeLock = async () => {
+	const requestWakeLock = async (): Promise<void> => {
+		if (wakeLock?.released) wakeLock = null;
+		if (destroyed || !recording || confirmed || wakeLock) return;
+		const request = recordingRequest;
 		if ('wakeLock' in navigator) {
 			try {
-				wakeLock = await navigator.wakeLock.request('screen');
+				const lock = await navigator.wakeLock.request('screen');
+				// Another request can own/release a lock while this one awaits permission.
+				const currentLock = wakeLock as Awaited<
+					ReturnType<typeof navigator.wakeLock.request>
+				> | null;
+				if (currentLock?.released) wakeLock = null;
+				if (wakeLock || request !== recordingRequest || destroyed || !recording || confirmed) {
+					await lock.release();
+					return;
+				}
+				wakeLock = lock;
 				console.log('Wake Lock acquired');
 
 				wakeLock.addEventListener('release', () => {
@@ -75,22 +99,22 @@
 		}
 	};
 
-	const releaseWakeLock = async () => {
-		if (wakeLock) {
+	const releaseWakeLock = async (): Promise<void> => {
+		const lock = wakeLock;
+		wakeLock = null;
+		if (lock) {
 			try {
-				await wakeLock.release();
+				await lock.release();
 			} catch (err) {
 				console.log('Wake Lock release failed:', err);
 			}
-			wakeLock = null;
 		}
 	};
 
-	let stream;
+	let stream: MediaStream | null = null;
 	let speechRecognition;
 
-	let mediaRecorder;
-	let audioChunks = [];
+	let mediaRecorder: MediaRecorder | null = null;
 
 	const MIN_DECIBELS = -45;
 	let VISUALIZER_BUFFER_LENGTH = 300;
@@ -116,8 +140,9 @@
 		return Math.min(1.0, Math.max(0.01, scaledRMS));
 	};
 
-	const analyseAudio = (stream) => {
-		const audioContext = new AudioContext();
+	const analyseAudio = (stream: MediaStream): void => {
+		const request = recordingRequest;
+		audioContext = new AudioContext();
 		const audioStreamSource = audioContext.createMediaStreamSource(stream);
 
 		const analyser = audioContext.createAnalyser();
@@ -129,11 +154,9 @@
 		const domainData = new Uint8Array(bufferLength);
 		const timeDomainData = new Uint8Array(analyser.fftSize);
 
-		let lastSoundTime = Date.now();
-
 		const detectSound = () => {
 			const processFrame = () => {
-				if (!recording || loading) return;
+				if (request !== recordingRequest || destroyed || !recording || loading || confirmed) return;
 
 				if (recording && !loading) {
 					analyser.getByteTimeDomainData(timeDomainData);
@@ -171,15 +194,21 @@
 		detectSound();
 	};
 
-	const onStopHandler = async (audioBlob, ext: string = 'wav') => {
+	const onStopHandler = async (
+		audioBlob: Blob,
+		ext: string = 'wav',
+		request = recordingRequest
+	): Promise<void> => {
 		// Create a blob from the audio chunks
 
 		await tick();
+		if (request !== recordingRequest || destroyed || !confirmed) return;
 		const file = blobToFile(audioBlob, `Recording-${dayjs().format('L LT')}.${ext}`);
 
 		if (transcribe) {
 			if ($config.audio.stt.engine === 'web' || ($settings?.audio?.stt?.engine ?? '') === 'web') {
-				// with web stt, we don't need to send the file to the server
+				// Confirm from the recorder's terminal event, regardless of recognition/stop ordering.
+				onConfirm({ text: transcription });
 				return;
 			}
 
@@ -188,236 +217,242 @@
 				file,
 				$settings?.audio?.stt?.language
 			).catch((error) => {
-				toast.error(`${error}`);
+				if (request === recordingRequest && !destroyed) toast.error(`${error}`);
 				return null;
 			});
 
+			if (request !== recordingRequest || destroyed || !confirmed) return;
 			if (res) {
 				console.log(res);
 				onConfirm(res);
 			}
 		} else {
 			onConfirm({
+				text: '',
 				file: file,
 				blob: audioBlob
 			});
 		}
 	};
 
-	const startRecording = async () => {
+	const startRecording = async (): Promise<void> => {
+		if (destroyed || !recording || loading || mediaRecorder) return;
+		const request = ++recordingRequest;
 		loading = true;
-
+		let acquired: MediaStream | null = null;
+		let started = false;
 		try {
+			acquired = displayMedia
+				? await navigator.mediaDevices.getDisplayMedia({ audio: true })
+				: await navigator.mediaDevices.getUserMedia({
+						audio: { echoCancellation, noiseSuppression, autoGainControl }
+					});
+			if (request !== recordingRequest || destroyed || !recording) return;
 			if (displayMedia) {
-				const mediaStream = await navigator.mediaDevices.getDisplayMedia({
-					audio: true
-				});
-
-				stream = new MediaStream();
-				for (const track of mediaStream.getAudioTracks()) {
-					stream.addTrack(track);
-				}
-
-				for (const track of mediaStream.getVideoTracks()) {
-					track.stop();
-				}
+				stream = new MediaStream(acquired.getAudioTracks());
+				acquired.getVideoTracks().forEach((track) => track.stop());
 			} else {
-				stream = await navigator.mediaDevices.getUserMedia({
-					audio: {
-						echoCancellation: echoCancellation,
-						noiseSuppression: noiseSuppression,
-						autoGainControl: autoGainControl
-					}
-				});
+				stream = acquired;
 			}
-		} catch (err) {
-			console.error('Error accessing media devices.', err);
-			toast.error($i18n.t('Error accessing media devices.'));
-			loading = false;
-			recording = false;
-			return;
-		}
-
-		const mineTypes = [
-			'audio/webm; codecs=opus',
-			'audio/webm',
-			'audio/ogg; codecs=opus',
-			'audio/mp4',
-			'audio/wav'
-		];
-
-		mediaRecorder = new MediaRecorder(stream, {
-			mimeType: mineTypes.find((type) => MediaRecorder.isTypeSupported(type))
-		});
-
-		mediaRecorder.onstart = async () => {
-			console.log('Recording started');
-			loading = false;
-			startDurationCounter();
-
-			await requestWakeLock();
-
-			audioChunks = [];
-			analyseAudio(stream);
-		};
-		mediaRecorder.ondataavailable = (event) => audioChunks.push(event.data);
-		mediaRecorder.onstop = async () => {
-			console.log('Recording stopped');
-
-			if (confirmed) {
-				// Use the actual type provided by MediaRecorder
-				let type = audioChunks[0]?.type || mediaRecorder.mimeType || 'audio/webm';
-
-				// split `/` and `;` to get the extension
-				let ext = type.split('/')[1].split(';')[0] || 'webm';
-
-				// If not audio, default to audio/webm
-				if (!type.startsWith('audio/')) {
-					ext = 'webm';
-				}
-
-				const audioBlob = new Blob(audioChunks, { type: type });
-				await onStopHandler(audioBlob, ext);
-
-				confirmed = false;
+			const recordingStream = stream;
+			const mimeTypes = [
+				'audio/webm; codecs=opus',
+				'audio/webm',
+				'audio/ogg; codecs=opus',
+				'audio/mp4',
+				'audio/wav'
+			];
+			const recorder = new MediaRecorder(recordingStream, {
+				mimeType: mimeTypes.find((type) => MediaRecorder.isTypeSupported(type))
+			});
+			mediaRecorder = recorder;
+			const chunks: Blob[] = [];
+			recorder.onstart = async (): Promise<void> => {
+				if (request !== recordingRequest || destroyed || !recording || confirmed) return;
 				loading = false;
-			}
-
-			audioChunks = [];
-			recording = false;
-		};
-
-		try {
-			mediaRecorder.start();
-		} catch (error) {
-			console.error('Error starting recording:', error);
-			toast.error($i18n.t('Error starting recording.'));
-			loading = false;
-			recording = false;
-			return;
-		}
-
-		if (transcribe) {
-			if ($config.audio.stt.engine === 'web' || ($settings?.audio?.stt?.engine ?? '') === 'web') {
-				if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-					// reset accumulated transcription from previous sessions
-					transcription = '';
-
-					// Create a SpeechRecognition object
-					speechRecognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-
-					// Set continuous to true for continuous recognition
-					speechRecognition.continuous = true;
-
-					// Set the timeout for turning off the recognition after inactivity (in milliseconds)
-					const inactivityTimeout = 2000; // 3 seconds
-
-					let timeoutId;
-					// Start recognition
-					speechRecognition.start();
-
-					// Event triggered when speech is recognized
-					speechRecognition.onresult = async (event) => {
-						// Clear the inactivity timeout
-						clearTimeout(timeoutId);
-
-						// Handle recognized speech
-						console.log(event);
-						const transcript = event.results[Object.keys(event.results).length - 1][0].transcript;
-
-						transcription = `${transcription}${transcript}`;
-
-						await tick();
-						document.getElementById('chat-input')?.focus();
-
-						// Restart the inactivity timeout
-						timeoutId = setTimeout(() => {
-							console.log('Speech recognition turned off due to inactivity.');
-							speechRecognition.stop();
-						}, inactivityTimeout);
-					};
-
-					// Event triggered when recognition is ended
-					speechRecognition.onend = function () {
-						// Restart recognition after it ends
-						console.log('recognition ended');
-
-						confirmRecording();
-						onConfirm({
-							text: transcription
-						});
+				startDurationCounter();
+				try {
+					await requestWakeLock();
+					if (request !== recordingRequest || destroyed || !recording || confirmed) return;
+					analyseAudio(recordingStream);
+				} catch (error) {
+					if (request === recordingRequest && !destroyed) {
+						console.error('Error starting recording:', error);
+						toast.error($i18n.t('Error starting recording.'));
+						await cancelRecording();
+					}
+				}
+			};
+			recorder.ondataavailable = (event): void => {
+				chunks.push(event.data);
+			};
+			recorder.onstop = async (): Promise<void> => {
+				if (request !== recordingRequest || destroyed) return;
+				if (!confirmed) {
+					await stopRecording();
+					return;
+				}
+				const type = chunks[0]?.type || recorder.mimeType || 'audio/webm';
+				const ext = type.startsWith('audio/') ? type.split('/')[1].split(';')[0] || 'webm' : 'webm';
+				// Native stop queues final dataavailable before onstop; keep this session's chunks.
+				const audioBlob = new Blob(chunks, { type });
+				try {
+					await onStopHandler(audioBlob, ext, request);
+				} finally {
+					if (request === recordingRequest && !destroyed) {
 						confirmed = false;
 						loading = false;
-					};
+						recording = false;
+					}
+				}
+			};
+			recorder.start();
+			if (transcribe) {
+				if ($config.audio.stt.engine === 'web' || ($settings?.audio?.stt?.engine ?? '') === 'web') {
+					if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+						// reset accumulated transcription from previous sessions
+						transcription = '';
 
-					// Event triggered when an error occurs
-					speechRecognition.onerror = function (event) {
-						console.log(event);
-						toast.error($i18n.t(`Speech recognition error: {{error}}`, { error: event.error }));
-						onCancel();
+						// Create a SpeechRecognition object
+						const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+						speechRecognition = recognition;
 
-						cancelRecording();
-					};
+						// Set continuous to true for continuous recognition
+						recognition.continuous = true;
+
+						// Set the timeout for turning off the recognition after inactivity (in milliseconds)
+						const inactivityTimeout = 2000; // 3 seconds
+
+						// Start recognition
+						recognition.start();
+
+						// Event triggered when speech is recognized
+						recognition.onresult = async (event: {
+							results: Record<number, Record<number, { transcript: string }>>;
+						}): Promise<void> => {
+							if (request !== recordingRequest || destroyed || !recording || confirmed) return;
+							// Clear the inactivity timeout
+							clearTimeout(recognitionTimeout);
+
+							// Handle recognized speech
+							console.log(event);
+							const transcript = event.results[Object.keys(event.results).length - 1][0].transcript;
+
+							transcription = `${transcription}${transcript}`;
+
+							await tick();
+							if (request !== recordingRequest || destroyed || !recording || confirmed) return;
+							document.getElementById('chat-input')?.focus();
+
+							// Restart the inactivity timeout
+							recognitionTimeout = setTimeout(() => {
+								console.log('Speech recognition turned off due to inactivity.');
+								if (request === recordingRequest && !destroyed && recording) recognition.stop();
+							}, inactivityTimeout);
+						};
+
+						// Event triggered when recognition is ended
+						recognition.onend = function (): void {
+							if (request !== recordingRequest || destroyed || !recording || confirmed) return;
+							// Restart recognition after it ends
+							console.log('recognition ended');
+
+							confirmRecording();
+						};
+
+						// Event triggered when an error occurs
+						recognition.onerror = function (event: { error: string }): void {
+							if (request !== recordingRequest || destroyed) return;
+							console.log(event);
+							toast.error($i18n.t(`Speech recognition error: {{error}}`, { error: event.error }));
+							onCancel();
+
+							cancelRecording();
+						};
+					}
 				}
 			}
+			started = true;
+		} catch (error) {
+			if (request === recordingRequest && !destroyed) {
+				console.error('Error starting recording:', error);
+				toast.error(
+					$i18n.t(acquired ? 'Error starting recording.' : 'Error accessing media devices.')
+				);
+				await stopRecording();
+			}
+		} finally {
+			if (!started && acquired)
+				acquired.getTracks().forEach((track) => {
+					if (track.readyState !== 'ended') track.stop();
+				});
 		}
 	};
 
-	const cancelRecording = async () => {
-		if (speechRecognition) {
-			// detach onend so cancelling does not confirm the transcription
-			speechRecognition.onend = null;
-		}
+	const cancelRecording = async (): Promise<void> => {
 		await stopRecording();
 	};
 
-	const stopRecording = async () => {
-		if (recording && mediaRecorder) {
-			await mediaRecorder.stop();
+	const stopRecording = async (preserveConfirmation = false): Promise<void> => {
+		if (!preserveConfirmation) {
+			recordingRequest++;
+			confirmed = false;
+			recording = false;
+			loading = false;
+			if (speechRecognition) speechRecognition.onend = null;
 		}
-
-		if (speechRecognition) {
-			speechRecognition.stop();
-		}
-
-		await releaseWakeLock();
-
-		stopDurationCounter();
-		audioChunks = [];
-		visualizerData = Array(VISUALIZER_BUFFER_LENGTH).fill(0);
-
-		if (stream) {
-			const tracks = stream.getTracks();
-			tracks.forEach((track) => track.stop());
-		}
-
+		const recorder = mediaRecorder;
+		mediaRecorder = null;
+		const owned = stream;
 		stream = null;
+		const context = audioContext;
+		audioContext = null;
+		const recognition = speechRecognition;
+		speechRecognition = null;
+		clearTimeout(recognitionTimeout);
+		recognitionTimeout = undefined;
+		stopDurationCounter();
+		visualizerData = Array(VISUALIZER_BUFFER_LENGTH).fill(0);
+		try {
+			if (recorder && recorder.state !== 'inactive') recorder.stop();
+		} catch (error) {
+			console.error('Error stopping recording:', error);
+		} finally {
+			owned?.getTracks().forEach((track) => {
+				if (track.readyState !== 'ended') track.stop();
+			});
+		}
+		try {
+			recognition?.stop();
+		} catch (error) {
+			console.error('Error stopping speech recognition:', error);
+		}
+		await releaseWakeLock();
+		if (context) {
+			try {
+				await context.close();
+			} catch (error) {
+				console.error('Error closing audio analysis:', error);
+			}
+		}
 	};
 
-	const confirmRecording = async () => {
+	const confirmRecording = async (): Promise<void> => {
+		if (
+			destroyed ||
+			!recording ||
+			confirmed ||
+			!mediaRecorder ||
+			mediaRecorder.state === 'inactive'
+		)
+			return;
 		loading = true;
 		confirmed = true;
-
-		if (recording && mediaRecorder) {
-			await mediaRecorder.stop();
-		}
-		clearInterval(durationCounter);
-
-		await releaseWakeLock();
-
-		if (stream) {
-			const tracks = stream.getTracks();
-			tracks.forEach((track) => track.stop());
-		}
-
-		stream = null;
+		await stopRecording(true);
 	};
 
 	let resizeObserver;
 	let containerWidth;
-
-	let maxVisibleItems = 300;
-	$: maxVisibleItems = Math.floor(containerWidth / 5); // 2px width + 0.5px gap
 
 	const handleKeyDown = (e) => {
 		if (e.key === 'Escape') {
@@ -452,10 +487,11 @@
 		resizeObserver.observe(document.body);
 	});
 
-	onDestroy(() => {
+	onDestroy((): void => {
+		destroyed = true;
+		stopRecording();
 		window.removeEventListener('keydown', handleKeyDown);
 		document.removeEventListener('visibilitychange', handleVisibilityChange);
-		releaseWakeLock();
 		// remove resize observer
 		resizeObserver.disconnect();
 	});
@@ -470,6 +506,7 @@
 	<div class="flex items-center mr-1">
 		<button
 			type="button"
+			aria-label={$i18n.t('Cancel')}
 			class="p-1.5
 
             {loading
@@ -505,7 +542,7 @@
                     
                     inline-block h-full"
 						style="height: {Math.min(100, Math.max(14, rms * 100))}%;"
-					/>
+					></div>
 				</div>
 			{/each}
 		</div>
