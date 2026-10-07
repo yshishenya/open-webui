@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: codex/docs/onboarding-release-gate-audit
-- SDD Spec: meta/sdd/specs/completed/airis-release-gate-audit-2026--2026-10-07-0911.json
+- SDD Spec: meta/sdd/specs/completed/airis-release-gate-audit-2026-10-07-001.json
 - Created: 2026-10-07
 - Updated: 2026-10-07
 
@@ -101,7 +101,7 @@ The general implementation criterion and pilot are not complete. Do not substitu
 
 ## Failed preparation and limits
 
-Docker host/none networks returned a null IPAM config; preparation stopped before creating the test network or Compose file. Two dependent check commands therefore did not run tests. After handling this inventory shape, a non-overlapping internal test network was created; no other network was deleted. Initial Ruff attempted a cache in a read-only source mount and failed before diagnostics. An intermediate fresh helper lacked Ruff; the final helper installed the same current tool and used `--no-cache`, with all rules preserved. An unsupported SDD metadata command was rejected; metadata was linked in the saved JSON and subsequently validated.
+Docker host/none networks returned a null IPAM config; preparation stopped before creating the test network or Compose file. Two dependent check commands therefore did not run tests. After handling this inventory shape, a non-overlapping internal test network was created; no other network was deleted. Initial Ruff attempted a cache in a read-only source mount and failed before diagnostics. An intermediate fresh helper lacked Ruff; the final helper installed the same current tool and used `--no-cache`, with all rules preserved. An unsupported SDD metadata command was rejected; metadata was linked in the saved JSON and subsequently validated. Initial CI then rejected the CLI-generated spec ID format; the ID and file name were normalized to the mandatory three-digit suffix, without weakening policy.
 
 Accepted production source/image/configuration remained unchanged during the audit. Read-only pilot observation showed no participants and no queued jobs; A/B and dispatch remained off. No accounts, consent, payment, mail or production settings were changed. External delivery, both operators, physical phone, independent usefulness, voluntary participants, real observation windows, mature cohort and legacy payment provenance still require their own evidence.
 
