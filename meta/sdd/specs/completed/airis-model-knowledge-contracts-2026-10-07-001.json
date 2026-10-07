@@ -1,0 +1,185 @@
+{
+	"spec_id": "airis-model-knowledge-contracts-2026-10-07-001",
+	"title": "Model knowledge widget and selection contracts",
+	"generated": "2026-10-07T09:47:09.168710Z",
+	"last_updated": "2026-10-07T09:56:18.177547Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 24,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__model-knowledge-contracts.md",
+		"status": "completed",
+		"activated_date": "2026-10-07T09:48:03.586152Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-07T09:56:18.177137Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-model-knowledge-contracts-2026-10-07",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2", "phase-3"],
+			"total_tasks": 3,
+			"completed_tasks": 3,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace arbitrary saved knowledge and search/upload consumers",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T09:48:30.060346Z",
+				"journaled_at": "2026-10-07T09:48:30.062331Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Reuse existing contracts and minimum DOM guards",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T09:53:31.842849Z",
+				"journaled_at": "2026-10-07T09:53:31.844849Z"
+			}
+		},
+		"phase-3": {
+			"type": "phase",
+			"title": "Verify full diagnostics/tests and prepare source publication",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-3-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T09:56:17.726995Z",
+				"journaled_at": "2026-10-07T09:56:17.729188Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Trace arbitrary saved knowledge and search/upload consumers",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-07T09:48:30.060178Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-07T09:48:30.061292Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Reuse existing contracts and minimum DOM guards",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-07T09:53:31.842679Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-07T09:53:31.843709Z"
+			}
+		},
+		"task-3-1": {
+			"type": "task",
+			"title": "Verify full diagnostics/tests and prepare source publication",
+			"status": "completed",
+			"parent": "phase-3",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-07T09:56:17.726852Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-07T09:56:17.727873Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-07T09:48:30.061288Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Trace arbitrary saved knowledge and search/upload consumers",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-07T09:48:30.062324Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace arbitrary saved knowledge and search/upload consumers",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-07T09:53:31.843703Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reuse existing contracts and minimum DOM guards",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-07T09:53:31.844845Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Reuse existing contracts and minimum DOM guards",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		},
+		{
+			"timestamp": "2026-10-07T09:56:17.727868Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify full diagnostics/tests and prepare source publication",
+			"author": "claude-code",
+			"content": "Task task-3-1 marked as completed.",
+			"metadata": {},
+			"task_id": "task-3-1"
+		},
+		{
+			"timestamp": "2026-10-07T09:56:17.729183Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify full diagnostics/tests and prepare source publication",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-3 have been completed.",
+			"metadata": {},
+			"task_id": "phase-3"
+		}
+	]
+}

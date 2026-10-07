@@ -1,0 +1,7 @@
+- [ ] **[BUG][MODELS]** Type knowledge upload and selection state
+  - Spec: meta/memory_bank/specs/work_items/2026-10-07**bugfix**model-knowledge-contracts.md
+  - Owner: Codex
+  - Branch: codex/bugfix/model-knowledge-contracts
+  - Started: 2026-10-07
+  - Summary: Reuse attachment/note contracts without narrowing arbitrary saved knowledge values; remove the remaining widget and selector type errors. Tests/CI/candidate acceptance pending.
+  - Local acceptance: 868/868 frontend,25widget/selector type errors removed with no new global messages; full3040type errors/1158ESLint errors remain open.3changedfiles lint0. Real mounted upload preserves opaque knowledge and permissions; CSS unchanged, two accounted DOM changes. Source CI/publication and combined runtime acceptance pending.

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
+	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 	import { config, settings, user } from '$lib/stores';
 
 	import KnowledgeSelector from './Knowledge/KnowledgeSelector.svelte';
@@ -17,26 +18,29 @@
 	import { toast } from 'svelte-sonner';
 	import { v4 as uuidv4 } from 'uuid';
 
-	export let selectedItems = [];
+	type KnowledgeDisplayItem = ChatAttachment & { description?: string | null };
+	// This is only the optional display view; saved values remain unknown and unchanged.
+	type KnowledgeDisplayValue = KnowledgeDisplayItem | string | number | boolean | null | undefined;
+	export let selectedItems: unknown[] = [];
 	const i18n = getContext('i18n');
 
 	let loaded = false;
 
-	let filesInputElement = null;
-	let inputFiles = null;
+	let filesInputElement: HTMLInputElement | null = null;
+	let inputFiles: FileList | null = null;
 
 	$: if (selectedItems === null) {
 		selectedItems = [];
 	}
 
-	const uploadFileHandler = async (file, fullContext: boolean = false) => {
+	const uploadFileHandler = async (file: File, fullContext: boolean = false) => {
 		if ($user?.role !== 'admin' && !($user?.permissions?.chat?.file_upload ?? true)) {
 			toast.error($i18n.t('You do not have permission to upload files.'));
 			return null;
 		}
 
 		const tempItemId = uuidv4();
-		const fileItem = {
+		const fileItem: ChatAttachment = {
 			type: 'file',
 			file: '',
 			id: null,
@@ -59,7 +63,7 @@
 
 		try {
 			// If the file is an audio file, provide the language for STT.
-			let metadata = null;
+			let metadata: { language: string } | null = null;
 			if (
 				(file.type.startsWith('audio/') || file.type.startsWith('video/')) &&
 				$settings?.audio?.stt?.language
@@ -93,15 +97,19 @@
 
 				selectedItems = selectedItems;
 			} else {
-				selectedItems = selectedItems.filter((item) => item?.itemId !== tempItemId);
+				selectedItems = selectedItems.filter(
+					(item) => (item as ChatAttachment | null)?.itemId !== tempItemId
+				);
 			}
 		} catch (e) {
 			toast.error(`${e}`);
-			selectedItems = selectedItems.filter((item) => item?.itemId !== tempItemId);
+			selectedItems = selectedItems.filter(
+				(item) => (item as ChatAttachment | null)?.itemId !== tempItemId
+			);
 		}
 	};
 
-	const inputFilesHandler = async (inputFiles) => {
+	const inputFilesHandler = async (inputFiles: File[]) => {
 		console.log('Input files handler called with:', inputFiles);
 
 		inputFiles.forEach(async (file) => {
@@ -147,7 +155,7 @@
 	type="file"
 	hidden
 	multiple
-	on:change={async () => {
+	on:change={async (event) => {
 		if (inputFiles && inputFiles.length > 0) {
 			const _inputFiles = Array.from(inputFiles);
 			inputFilesHandler(_inputFiles);
@@ -155,7 +163,7 @@
 			toast.error($i18n.t(`File not found.`));
 		}
 
-		filesInputElement.value = '';
+		event.currentTarget.value = '';
 	}}
 />
 
@@ -177,7 +185,7 @@
 							on:select={(e) => {
 								const item = e.detail;
 
-								if (!selectedItems.find((k) => k?.id === item.id)) {
+								if (!selectedItems.find((k) => (k as ChatAttachment | null)?.id === item.id)) {
 									selectedItems = [
 										...selectedItems,
 										{
@@ -201,7 +209,7 @@
 							type="button"
 							aria-label={$i18n.t('Upload Files')}
 							on:click={() => {
-								filesInputElement.click();
+								filesInputElement?.click();
 							}}
 						>
 							{$i18n.t('Upload')}
@@ -215,7 +223,7 @@
 	<div class="flex flex-col mb-1">
 		{#if selectedItems?.length > 0}
 			<div class=" flex flex-wrap items-center gap-1.5 mb-2.5">
-				{#each selectedItems as file, fileIdx}
+				{#each selectedItems as KnowledgeDisplayValue[] as file, fileIdx}
 					{#if file !== null && typeof file === 'object'}
 						<Tooltip content={file.description || file.name || file.id}>
 							<div

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import dayjs from 'dayjs';
+	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
+	import type { NoteRecord } from '$lib/utils/airis/notes';
 
 	import { onMount, onDestroy, getContext, createEventDispatcher } from 'svelte';
 	import { searchNotes } from '$lib/apis/notes';
@@ -11,26 +13,30 @@
 	import Search from '$lib/components/icons/Search.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Database from '$lib/components/icons/Database.svelte';
-	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
-	import ChevronRight from '$lib/components/icons/ChevronRight.svelte';
 	import PageEdit from '$lib/components/icons/PageEdit.svelte';
 	import DocumentPage from '$lib/components/icons/DocumentPage.svelte';
 
 	const i18n = getContext('i18n');
-	const dispatch = createEventDispatcher();
+	type SelectionItem = ChatAttachment & { name: string; description?: string };
+	type SearchFile = ChatAttachment & {
+		filename: string;
+		meta?: { name?: string | null } | null;
+		description?: string | null;
+	};
+	const dispatch = createEventDispatcher<{ select: SelectionItem }>();
 
-	export let onClose: Function = () => {};
+	export let onClose: () => void = () => {};
 
 	let show = false;
 
 	let query = '';
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 
-	let noteItems = [];
-	let knowledgeItems = [];
-	let fileItems = [];
+	let noteItems: SelectionItem[] = [];
+	let knowledgeItems: SelectionItem[] = [];
+	let fileItems: SelectionItem[] = [];
 
-	let items = [];
+	let items: SelectionItem[] = [];
 
 	$: items = [...noteItems, ...knowledgeItems, ...fileItems];
 
@@ -57,7 +63,7 @@
 		});
 
 		if (res) {
-			noteItems = res.items.map((note) => {
+			noteItems = res.items.map((note: Pick<NoteRecord, 'id' | 'title' | 'updated_at'>) => {
 				return {
 					...note,
 					type: 'note',
@@ -74,7 +80,7 @@
 		});
 
 		if (res) {
-			knowledgeItems = res.items.map((note) => {
+			knowledgeItems = res.items.map((note: SelectionItem) => {
 				return {
 					...note,
 					type: 'collection'
@@ -89,7 +95,7 @@
 		});
 
 		if (res) {
-			fileItems = res.items.map((file) => {
+			fileItems = res.items.map((file: SearchFile) => {
 				return {
 					...file,
 					type: 'file',
