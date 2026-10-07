@@ -1,0 +1,8 @@
+- [ ] **[BUG][FRONTEND]** Model editor configuration contracts and nullable data
+  - Spec: meta/memory_bank/specs/work_items/2026-10-07**bugfix**model-editor-contracts.md
+  - Owner: Codex
+  - Branch: codex/bugfix/model-editor-contracts
+  - Started: 2026-10-07
+  - Summary: Resolve the editor's inaccurate literal inference using existing contracts; preserve arbitrary knowledge while handling null rows and unavailable canvas safely.
+  - Tests: Docker full frontend867/867; original regression failures3/current0; editor types124→0, total3189→3065/warnings118; normalized new0, changed-file lint0; publication/runtime acceptance pending.
+  - Risks: runtime fixes need candidate/final release acceptance; no global quality or pilot completion claimed.

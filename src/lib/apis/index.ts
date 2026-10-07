@@ -1721,6 +1721,10 @@ export interface ModelMeta {
 	hidden?: boolean | null;
 	toolIds?: string[] | null;
 	skillIds?: string[] | null;
+	filterIds?: string[] | null;
+	actionIds?: string[] | null;
+	knowledge?: unknown[] | null;
+	builtinTools?: Record<string, unknown> | null;
 	defaultFilterIds?: string[] | null;
 	defaultFeatureIds?: string[] | null;
 	terminalId?: string | null;

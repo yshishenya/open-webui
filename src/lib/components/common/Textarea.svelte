@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 
-	export let value = '';
+	export let value: string | null | undefined = '';
 	export let placeholder = '';
 	export let rows = 1;
 	export let minSize: number | null = null;
