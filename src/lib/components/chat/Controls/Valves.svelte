@@ -2,7 +2,13 @@
 	import { toast } from 'svelte-sonner';
 
 	import { functions, tools } from '$lib/stores';
-	import { createEventDispatcher, getContext, tick } from 'svelte';
+	import { createEventDispatcher, getContext, onDestroy } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import {
+		convertValveArrays,
+		type ValveSpec,
+		type ValveValues
+	} from '$lib/utils/airis/userValves';
 
 	import {
 		getUserValvesSpecById as getToolUserValvesSpecById,
@@ -22,7 +28,7 @@
 
 	const dispatch = createEventDispatcher();
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<{ t: (key: string) => string }>>('i18n');
 
 	export let show = false;
 
@@ -31,95 +37,104 @@
 
 	let loading = false;
 
-	let valvesSpec = null;
-	let valves = {};
+	let valvesSpec: ValveSpec | null = null;
+	let valves: ValveValues = {};
+	let detailLoading = false;
+	let loadFailed = false;
+	let saving = false;
+	let detailRequest = 0;
+	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
-	let debounceTimer;
+	const clearSubmitTimer = (): void => {
+		clearTimeout(debounceTimer);
+		debounceTimer = undefined;
+	};
 
-	const debounceSubmitHandler = async () => {
-		if (debounceTimer) {
-			clearTimeout(debounceTimer);
+	const resetValves = (): void => {
+		clearSubmitTimer();
+		detailRequest += 1;
+		valvesSpec = null;
+		valves = {};
+		detailLoading = false;
+		loadFailed = false;
+		saving = false;
+	};
+
+	const isCurrent = (request: number, category: string, id: string): boolean =>
+		show && request === detailRequest && tab === category && selectedId === id;
+
+	const getUserValves = async (category: string, id: string): Promise<void> => {
+		resetValves();
+		const request = detailRequest;
+		detailLoading = true;
+		try {
+			const values = await (
+				category === 'tools' ? getToolUserValvesById : getFunctionUserValvesById
+			)(localStorage.token, id);
+			if (!isCurrent(request, category, id)) return;
+			const spec = await (
+				category === 'tools' ? getToolUserValvesSpecById : getFunctionUserValvesSpecById
+			)(localStorage.token, id);
+			if (!isCurrent(request, category, id)) return;
+			const editorValues = convertValveArrays(values, spec, true);
+			valves = editorValues;
+			valvesSpec = spec;
+		} catch {
+			if (isCurrent(request, category, id)) {
+				loadFailed = true;
+				toast.error($i18n.t('Could not load settings. Try again.'));
+			}
+		} finally {
+			if (isCurrent(request, category, id)) detailLoading = false;
 		}
+	};
 
-		// Set a new timer
+	const submitHandler = async (): Promise<void> => {
+		clearSubmitTimer();
+		if (!show || !selectedId || !valvesSpec || detailLoading || loadFailed || saving) return;
+		const request = detailRequest,
+			category = tab,
+			id = selectedId;
+		saving = true;
+		try {
+			const values = convertValveArrays(valves, valvesSpec, false);
+			const res = await (
+				category === 'tools' ? updateToolUserValvesById : updateFunctionUserValvesById
+			)(localStorage.token, id, values);
+			if (!isCurrent(request, category, id)) return;
+			if (res === null) throw new Error('Missing settings save response');
+			valves = convertValveArrays(res, valvesSpec, true);
+			toast.success($i18n.t('Valves updated'));
+			dispatch('save');
+		} catch {
+			if (isCurrent(request, category, id))
+				toast.error($i18n.t('Could not save settings. Try again.'));
+		} finally {
+			if (isCurrent(request, category, id)) saving = false;
+		}
+	};
+
+	const debounceSubmitHandler = (): void => {
+		if (saving || detailLoading || loadFailed) return;
+		clearSubmitTimer();
+		const request = detailRequest,
+			category = tab,
+			id = selectedId;
 		debounceTimer = setTimeout(() => {
-			submitHandler();
-		}, 500); // 0.5 second debounce
+			if (isCurrent(request, category, id)) void submitHandler();
+		}, 500);
 	};
 
-	const getUserValves = async () => {
-		loading = true;
-		if (tab === 'tools') {
-			valves = await getToolUserValvesById(localStorage.token, selectedId);
-			valvesSpec = await getToolUserValvesSpecById(localStorage.token, selectedId);
-		} else if (tab === 'functions') {
-			valves = await getFunctionUserValvesById(localStorage.token, selectedId);
-			valvesSpec = await getFunctionUserValvesSpecById(localStorage.token, selectedId);
-		}
-
-		if (valvesSpec) {
-			// Convert array to string
-			for (const property in valvesSpec.properties) {
-				if (valvesSpec.properties[property]?.type === 'array') {
-					if (valvesSpec.properties[property]?.input?.type === 'multiselect') {
-						continue;
-					}
-					valves[property] = (valves[property] ?? []).join(',');
-				}
-			}
-		}
-
-		loading = false;
-	};
-
-	const submitHandler = async () => {
-		if (valvesSpec) {
-			// Convert string to array
-			for (const property in valvesSpec.properties) {
-				if (valvesSpec.properties[property]?.type === 'array') {
-					if (valvesSpec.properties[property]?.input?.type === 'multiselect') {
-						continue;
-					}
-					valves[property] = (valves[property] ?? '').split(',').map((v) => v.trim());
-				}
-			}
-
-			if (tab === 'tools') {
-				const res = await updateToolUserValvesById(localStorage.token, selectedId, valves).catch(
-					(error) => {
-						toast.error(`${error}`);
-						return null;
-					}
-				);
-
-				if (res) {
-					toast.success($i18n.t('Valves updated'));
-					valves = res;
-				}
-			} else if (tab === 'functions') {
-				const res = await updateFunctionUserValvesById(
-					localStorage.token,
-					selectedId,
-					valves
-				).catch((error) => {
-					toast.error(`${error}`);
-					return null;
-				});
-
-				if (res) {
-					toast.success($i18n.t('Valves updated'));
-					valves = res;
-				}
-			}
-		}
-	};
+	onDestroy(resetValves);
 
 	$: if (tab) {
 		selectedId = '';
 	}
 
-	$: if (selectedId) {
-		getUserValves();
+	$: if (show && selectedId) {
+		getUserValves(tab, selectedId);
+	} else {
+		resetValves();
 	}
 
 	$: if (show) {
@@ -150,8 +165,7 @@
 	<form
 		class="flex flex-col h-full justify-between space-y-2 text-xs"
 		on:submit|preventDefault={() => {
-			submitHandler();
-			dispatch('save');
+			void submitHandler();
 		}}
 	>
 		<div class="flex flex-col">
@@ -174,9 +188,6 @@
 						<select
 							class="w-full rounded-sm py-1 px-1 text-xs bg-transparent outline-hidden"
 							bind:value={selectedId}
-							on:change={async () => {
-								await tick();
-							}}
 						>
 							{#if tab === 'tools'}
 								<option value="" selected disabled class="bg-gray-100 dark:bg-gray-800"
@@ -203,19 +214,20 @@
 			</div>
 
 			{#if selectedId}
-				<div class="my-1 text-xs">
-					{#if !loading}
-						<div class="chat-control-valves">
-							<Valves
-								{valvesSpec}
-								bind:valves
-								on:change={() => {
-									debounceSubmitHandler();
-								}}
-							/>
-						</div>
-					{:else}
+				<div class="my-1 text-xs" aria-busy={detailLoading || saving}>
+					{#if detailLoading}
 						<Spinner className="size-5" />
+					{:else if loadFailed}
+						<p role="alert">{$i18n.t('Could not load settings. Try again.')}</p>
+						<button
+							type="button"
+							class="underline py-1"
+							on:click={() => getUserValves(tab, selectedId)}>{$i18n.t('Retry')}</button
+						>
+					{:else}
+						<fieldset class="chat-control-valves" disabled={saving}>
+							<Valves {valvesSpec} bind:valves on:change={debounceSubmitHandler} />
+						</fieldset>
 					{/if}
 				</div>
 			{/if}

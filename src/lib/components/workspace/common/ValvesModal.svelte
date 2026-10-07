@@ -106,10 +106,10 @@
 		try {
 			if (userValves) {
 				if (type === 'tool') {
-					valves = await getToolUserValvesById(localStorage.token, id);
+					valves = (await getToolUserValvesById(localStorage.token, id)) ?? {};
 					valvesSpec = await getToolUserValvesSpecById(localStorage.token, id);
 				} else if (type === 'function') {
-					valves = await getFunctionUserValvesById(localStorage.token, id);
+					valves = (await getFunctionUserValvesById(localStorage.token, id)) ?? {};
 					valvesSpec = await getFunctionUserValvesSpecById(localStorage.token, id);
 				}
 			} else {
