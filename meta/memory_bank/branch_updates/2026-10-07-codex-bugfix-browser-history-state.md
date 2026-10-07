@@ -1,12 +1,14 @@
-- [ ] **[BUG][CHAT]** Preserve browser entry state on chat URL replacement
+- [x] **[BUG][CHAT]** Preserve browser entry state on chat URL replacement
   - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__browser-history-state.md`
   - Owner: Codex
   - Branch: `codex/bugfix/browser-history-state`
   - Started: 2026-10-07
   - Summary: Correct all three reads of message history instead of browser state.
-  - Tests: Pending reproduction, Docker checks and guarded live release.
+  - Tests: 18/18 targeted;818/818 full;4/4 browsers;24/24 paths; exact source CI and guarded live hashes accepted.
   - Risks: UI navigation state; no backend/data/money changes.
 
   - Compiled acceptance found stale router URL after in-place creation; native URL guard fixed.
   - Source checks:18/18 targeted;818/818 full;3312/130 inherited types;1227 inherited lint,0new.
-  - Candidate/production acceptance pending final source.
+  - Done: 2026-10-07
+  - Candidate/production accepted; immutable image pinned, live4914/427 hashes equal, original12 neighbors and money preserved;1user terminal appeared after reload.
+  - Full types/lint remain inherited debt; G14/13.11 and global goal remain open.
