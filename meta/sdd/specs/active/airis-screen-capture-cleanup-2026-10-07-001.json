@@ -1,0 +1,146 @@
+{
+  "spec_id": "airis-screen-capture-cleanup-2026-10-07-001",
+  "title": "airis-screen-capture-cleanup-2026-10-07",
+  "generated": "2026-10-07T11:41:48.704773Z",
+  "last_updated": "2026-10-07T11:47:11.460221Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__screen-capture-cleanup.md",
+    "status": "active",
+    "activated_date": "2026-10-07T11:43:09.968728Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-screen-capture-cleanup-2026-10-07",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and release capture resources",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-07T11:47:11.458201Z",
+        "journaled_at": "2026-10-07T11:47:11.460193Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify source and compiled attachment flow",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace capture ownership and reproduce leaked tracks",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-07T11:47:11.226309Z",
+        "needs_journaling": false,
+        "status_note": "Actual-handler regression fails 7/8 on original; all callers traced; platform docs consulted.",
+        "journaled_at": "2026-10-07T11:47:11.227256Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Release tracks and video before conversion in every capture outcome",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-07T11:47:11.458018Z",
+        "needs_journaling": false,
+        "status_note": "Native finally releases both tracks and detaches before conversion; actual-handler regression passes 8/8. Full frontend891/891; check3004\u21923002, lint1127 unchanged, zero new diagnostics; scoped lint0.",
+        "journaled_at": "2026-10-07T11:47:11.459159Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify regression tests diagnostics and compiled candidate",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-07T11:47:11.227252Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace capture ownership and reproduce leaked tracks",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Actual-handler regression fails 7/8 on original; all callers traced; platform docs consulted.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-07T11:47:11.459154Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Release tracks and video before conversion in every capture outcome",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed. \nNote: Native finally releases both tracks and detaches before conversion; actual-handler regression passes 8/8. Full frontend891/891; check3004\u21923002, lint1127 unchanged, zero new diagnostics; scoped lint0.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-07T11:47:11.460189Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce and release capture resources",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}

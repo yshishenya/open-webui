@@ -12,7 +12,8 @@ export const onboardingTestFiles = [
 	'model-editor-save-recovery.spec.ts',
 	'note-record-state.spec.ts',
 	'onboarding-paths.spec.ts',
-	'rich_text_insertion.spec.ts'
+	'rich_text_insertion.spec.ts',
+	'screen-capture-cleanup.spec.ts'
 ];
 
 export default defineConfig({
