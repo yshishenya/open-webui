@@ -1,0 +1,166 @@
+{
+	"spec_id": "airis-chat-state-types-2026-10-07-001",
+	"title": "AIRIS chat state types 2026-10-07",
+	"generated": "2026-10-07T01:34:28.288436Z",
+	"last_updated": "2026-10-07T01:51:26.826042Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__chat-state-types.md",
+		"status": "completed",
+		"activated_date": "2026-10-07T01:35:06.339363Z",
+		"progress_percentage": 100,
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-07T01:51:26.825739Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS chat state types 2026-10-07",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 3,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace and type existing chat state",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T01:38:25.888553Z",
+				"journaled_at": "2026-10-07T01:38:25.890582Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify unchanged execution and source release",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T01:51:26.324233Z",
+				"journaled_at": "2026-10-07T01:51:26.326847Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Trace and reproduce existing state diagnostics",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-07T01:35:21.496024Z",
+				"needs_journaling": false,
+				"status_note": "Baseline source/config matches accepted4f15; traced all parent/child OAuth/tasks and note history/suggestion consumers",
+				"journaled_at": "2026-10-07T01:35:21.496950Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Annotate existing contracts and prove JS erasure",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-07T01:38:25.888358Z",
+				"needs_journaling": false,
+				"status_note": "Traced existing contracts;9/9 erasedScript/client/server equal;frontend799/799;no runtime or dependency change; preserved7existing formatter hunks",
+				"journaled_at": "2026-10-07T01:38:25.889411Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Accept complete checks and exact source release",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-07T01:51:26.324107Z",
+				"needs_journaling": false,
+				"status_note": "799/799; JS9/9 andCSS3/3equal; types3327/130,lint1227,zero new; source9a364CI12accepted and exact source/merge trees equal; no production rollout for types",
+				"journaled_at": "2026-10-07T01:51:26.325575Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-07T01:35:21.496945Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Trace and reproduce existing state diagnostics",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Baseline source/config matches accepted4f15; traced all parent/child OAuth/tasks and note history/suggestion consumers",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-07T01:38:25.889399Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Annotate existing contracts and prove JS erasure",
+			"author": "Codex",
+			"content": "Task task-1-2 marked as completed. \nNote: Traced existing contracts;9/9 erasedScript/client/server equal;frontend799/799;no runtime or dependency change; preserved7existing formatter hunks",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-07T01:38:25.890577Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace and type existing chat state",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-07T01:51:26.325569Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Accept complete checks and exact source release",
+			"author": "Codex",
+			"content": "Task task-2-1 marked as completed. \nNote: 799/799; JS9/9 andCSS3/3equal; types3327/130,lint1227,zero new; source9a364CI12accepted and exact source/merge trees equal; no production rollout for types",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-07T01:51:26.326843Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify unchanged execution and source release",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
