@@ -1,0 +1,170 @@
+{
+  "spec_id": "airis-call-camera-lifetime-202-2026-10-07-1523",
+  "title": "airis-call-camera-lifetime-2026-10-07",
+  "generated": "2026-10-07T12:23:27.464215Z",
+  "last_updated": "2026-10-07T12:33:12.100209Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 4,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__call-camera-lifetime.md",
+    "status": "active",
+    "activated_date": "2026-10-07T12:24:52.612375Z",
+    "progress_percentage": 66
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-call-camera-lifetime-2026-10-07",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace and reproduce every camera owner",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-07T12:30:19.235895Z",
+        "journaled_at": "2026-10-07T12:30:19.238200Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Apply minimal camera lifetime correction",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-07T12:33:12.098230Z",
+        "journaled_at": "2026-10-07T12:33:12.100183Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify source candidate and production",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce failures and cancellation races before changes",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-07T12:30:19.235559Z",
+        "needs_journaling": false,
+        "status_note": "Both original actual-handler regressions failed; both camera callers and unmount/late-acquisition flows traced; current platform docs checked.",
+        "journaled_at": "2026-10-07T12:30:19.236920Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Correct shared ownership and remove unowned permission stream",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-07T12:33:12.098083Z",
+        "needs_journaling": false,
+        "status_note": "Camera/screen regression2/2 passes; native cancellation and obsolete acquire/enumerate/play/rejection paths covered; fullfrontend893/893; zero new type/lint diagnostics, type errors3002 to2993 and lint1127 unchanged.",
+        "journaled_at": "2026-10-07T12:33:12.099086Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Pass source checks compiled browser and guarded production acceptance",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-07T12:30:19.236911Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce failures and cancellation races before changes",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Both original actual-handler regressions failed; both camera callers and unmount/late-acquisition flows traced; current platform docs checked.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-07T12:30:19.238194Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace and reproduce every camera owner",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-07T12:33:12.099081Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Correct shared ownership and remove unowned permission stream",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Camera/screen regression2/2 passes; native cancellation and obsolete acquire/enumerate/play/rejection paths covered; fullfrontend893/893; zero new type/lint diagnostics, type errors3002 to2993 and lint1127 unchanged.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-07T12:33:12.100178Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Apply minimal camera lifetime correction",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

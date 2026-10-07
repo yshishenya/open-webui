@@ -36,7 +36,9 @@
 
 	let emoji = null;
 	let camera = false;
-	let cameraStream = null;
+	let cameraStream: MediaStream | null = null;
+	let videoStreamRequest = 0;
+	let destroyed = false;
 
 	let chatStreaming = false;
 	let rmsLevel = 0;
@@ -73,53 +75,86 @@
 		}
 	};
 
-	const startCamera = async () => {
-		await getVideoInputDevices();
-
-		if (cameraStream === null) {
-			camera = true;
+	const startCamera = async (): Promise<void> => {
+		if (camera || destroyed) return;
+		const request = ++videoStreamRequest;
+		camera = true;
+		try {
+			await getVideoInputDevices();
 			await tick();
-			try {
+			if (request === videoStreamRequest && !destroyed && camera) {
 				await startVideoStream();
-			} catch (err) {
+			}
+		} catch (err) {
+			if (request === videoStreamRequest && !destroyed) {
+				stopCamera();
 				console.error('Error accessing webcam: ', err);
+				toast.error($i18n.t('Error accessing media devices.'));
 			}
 		}
 	};
 
-	const startVideoStream = async () => {
-		const video = document.getElementById('camera-feed');
-		if (video) {
+	const startVideoStream = async (): Promise<void> => {
+		if (!camera || destroyed) return;
+		stopVideoStream();
+		const request = videoStreamRequest;
+		const video = document.getElementById('camera-feed') as HTMLVideoElement | null;
+		if (!video) {
+			camera = false;
+			return;
+		}
+		let stream: MediaStream | null = null;
+		let started = false;
+		try {
 			if (selectedVideoInputDeviceId === 'screen') {
-				cameraStream = await navigator.mediaDevices.getDisplayMedia({
+				stream = await navigator.mediaDevices.getDisplayMedia({
 					video: {
 						cursor: 'always'
-					},
+					} as MediaTrackConstraints,
 					audio: false
 				});
 			} else {
-				cameraStream = await navigator.mediaDevices.getUserMedia({
+				stream = await navigator.mediaDevices.getUserMedia({
 					video: {
 						deviceId: selectedVideoInputDeviceId ? { exact: selectedVideoInputDeviceId } : undefined
 					}
 				});
 			}
 
-			if (cameraStream) {
-				await getVideoInputDevices();
-				video.srcObject = cameraStream;
-				await video.play();
+			if (request !== videoStreamRequest || destroyed || !camera) return;
+			cameraStream = stream;
+			await getVideoInputDevices();
+			if (request !== videoStreamRequest || destroyed || !camera) return;
+			video.srcObject = stream;
+			await video.play();
+			started = request === videoStreamRequest && !destroyed && camera;
+		} catch (err) {
+			if (request === videoStreamRequest && !destroyed) {
+				camera = false;
+				console.error('Error accessing webcam: ', err);
+				toast.error($i18n.t('Error accessing media devices.'));
+			}
+		} finally {
+			if (!started && stream) {
+				stream.getTracks().forEach((track) => {
+					if (track.readyState !== 'ended') track.stop();
+				});
+				if (video.srcObject === stream) video.srcObject = null;
+				if (cameraStream === stream) cameraStream = null;
 			}
 		}
 	};
 
-	const stopVideoStream = async () => {
+	const stopVideoStream = (): void => {
+		videoStreamRequest++;
 		if (cameraStream) {
 			const tracks = cameraStream.getTracks();
 			tracks.forEach((track) => track.stop());
 		}
 
 		cameraStream = null;
+		const video = document.getElementById('camera-feed') as HTMLVideoElement | null;
+		if (video) video.srcObject = null;
 	};
 
 	const takeScreenshot = () => {
@@ -146,9 +181,9 @@
 		return dataURL;
 	};
 
-	const stopCamera = async () => {
-		await stopVideoStream();
+	const stopCamera = (): void => {
 		camera = false;
+		stopVideoStream();
 	};
 
 	const MIN_DECIBELS = -55;
@@ -743,9 +778,10 @@
 	});
 
 	onDestroy(async () => {
+		destroyed = true;
+		stopCamera();
 		await stopAllAudio();
 		await stopRecordingCallback(false);
-		await stopCamera();
 
 		await stopAudioStream();
 		eventTarget.removeEventListener('chat:start', chatStartHandler);
@@ -981,7 +1017,6 @@
 							console.log(e.detail);
 							selectedVideoInputDeviceId = e.detail;
 							localStorage.setItem('selectedVideoInputDeviceId', e.detail);
-							await stopVideoStream();
 							await startVideoStream();
 						}}
 					>
@@ -1010,10 +1045,7 @@
 							aria-label={$i18n.t('Camera')}
 							class="p-3 rounded-full bg-gray-50 dark:bg-gray-900"
 							type="button"
-							on:click={async () => {
-								await navigator.mediaDevices.getUserMedia({ video: true });
-								startCamera();
-							}}
+							on:click={startCamera}
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
@@ -1096,8 +1128,8 @@
 					aria-label={$i18n.t('End call')}
 					class="p-3 rounded-full bg-gray-50 dark:bg-gray-900"
 					on:click={async () => {
+						stopCamera();
 						await stopAudioStream();
-						await stopVideoStream();
 
 						console.log(audioStream);
 						console.log(cameraStream);
