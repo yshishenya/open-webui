@@ -1,5 +1,5 @@
-- [ ] **[BUG][CHAT]** Type existing chat state without changing execution
-  - Spec: meta/memory_bank/specs/work_items/2026-10-07__bugfix__chat-state-types.md
+- [x] **[BUG][CHAT]** Type existing chat state without changing execution
+  - Spec: meta/memory_bank/specs/work_items/2026-10-07**bugfix**chat-state-types.md
   - Owner: Codex
-  - Started: 2026-10-07
-  - Summary: Trace OAuth/tasks/history/suggestions/handles; reuse existing contracts and verify JS erasure before source-only release.
+  - Done: 2026-10-07
+  - Summary: PR325 accepted:799/799tests,JS9/9/CSS3/3equal,30type diagnostics removed,zero new; source/merge trees match,SDD3/3closed. Global G14/13.11 and A/B goal remain open.
