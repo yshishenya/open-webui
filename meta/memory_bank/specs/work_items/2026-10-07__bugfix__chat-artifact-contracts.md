@@ -60,3 +60,8 @@ unused imports. Removing those imports changed compiled module imports, so that
 attempt was rejected locally. The view already accepts the exact array contract:
 restore its original source and keep the correction at extractor/producer/store.
 No CI guard was weakened; nine JS and two CSS comparisons must still match.
+
+The narrowed source passes CI frontend lint. SDD CI failed before validation
+during installation: PyPI reported no distribution for rpds-py>=0.25.0.
+This is an external package-fetch failure; the same schema/identity checks
+pass locally and are not bypassed. Acceptance waits for a successful CI run.

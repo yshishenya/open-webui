@@ -4,5 +4,5 @@
   - Branch: `codex/bugfix/chat-artifact-contracts`
   - Started: 2026-10-07
   - Summary: Trace and annotate extraction/store/consumer types without changing runtime.
-  - Tests: Pending Docker verification and exact source acceptance.
+  - Tests: Docker frontend 800/800; JS9/CSS2 unchanged; types3315/130, ESLint1227, zero new diagnostics; all5 changed files lint clean. Exact source CI/merge pending.
   - Risks: Low; type-only correction, existing runtime preserved.
