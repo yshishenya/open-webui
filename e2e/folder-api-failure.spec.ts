@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
-import { test } from './onboarding-paths.fixture';
+import { test, openSidebar } from './onboarding-paths.fixture';
 
 test('aborted folder list keeps chat usable and a subsequent load recovers', async ({
 	page,
@@ -22,13 +22,17 @@ test('aborted folder list keeps chat usable and a subsequent load recovers', asy
 		await page.goto('/');
 		const input = page.getByLabel(/^(Send a Message|How can I help you today\?)$/);
 		await expect(input).toBeVisible();
+		await openSidebar(page);
 		await expect.poll(() => aborted).toBeGreaterThan(0);
+		await page.getByRole('button', { name: 'Close Sidebar', exact: true }).click();
 		await input.fill('Draft remains usable after cancelled folder request');
 		await expect(input).toContainText('Draft remains usable after cancelled folder request');
 		for (const prefix of ['#', '@']) {
 			await input.fill('');
 			await Promise.all([
-				page.waitForResponse((response) => response.url().includes('/api/v1/knowledge/search?')),
+				page.waitForResponse(
+					(response) => new URL(response.url()).pathname === '/api/v1/knowledge/search'
+				),
 				input.pressSequentially(prefix)
 			]);
 			await expect(input).toContainText(prefix);

@@ -55,3 +55,5 @@ Local packaging encountered disk full and Docker stopped. 705 identical large ve
 Source/browser/image/production acceptance remain separate. SDD stays active until compiled validation is accepted; no numbered business-plan criteria close from these technical checks.
 
 - Final follow-up source checks:883/883frontend,107files;folderregressions15/15. Check3004errors/118warnings,0new,36removedfrominitial3040. FullESLint1127errors,31removed;all14changedruntime/test/configfiles ESLint0errors/0warnings. Globalqualitygate remainsopen. Browsercandidate and productionpending.
+
+- 2026-10-07: Chromium full run32/33 exposed a test setup gap: Sidebar fetches folders only after opening; both authenticated config features and folder permission were enabled in the retained trace. Reused openSidebar in the permanent test and match knowledge search by URL.pathname. Focused compiled Chromium1/1 and Firefox390px1/1 pass with real aborted GET, #/@ search and subsequent folder recovery; full exact-source rerun pending. No runtime code or assertions weakened.

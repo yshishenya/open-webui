@@ -12,3 +12,5 @@
 - 2026-10-07: CI follow-up removes31existing violations without disabling rules. Actual # suggestion null-cache regression fails before fix; compiled case expanded to #/@. Local disk/Docker recovered with705verified APFS clones; backups/77containeridentities/249volumes preserved. Exact-source checks/browser acceptance remain in progress;SDDactive.
 
 - Final follow-up source checks:883/883frontend,107files;folderregressions15/15. Check3004errors/118warnings,0new,36removedfrominitial3040. FullESLint1127errors,31removed;all14changedruntime/test/configfiles ESLint0errors/0warnings. Globalqualitygate remainsopen. Browsercandidate and productionpending.
+
+- 2026-10-07: Chromium full run32/33 exposed a test setup gap: Sidebar fetches folders only after opening; both authenticated config features and folder permission were enabled in the retained trace. Reused openSidebar in the permanent test and match knowledge search by URL.pathname. Focused compiled Chromium1/1 and Firefox390px1/1 pass with real aborted GET, #/@ search and subsequent folder recovery; full exact-source rerun pending. No runtime code or assertions weakened.
