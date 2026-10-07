@@ -1,0 +1,5 @@
+- [ ] **[BUG][VOICE]** Release microphone when a voice call closes
+  - Spec: meta/memory_bank/specs/work_items/2026-10-07**bugfix**call-audio-lifetime.md
+  - Owner: Codex
+  - Started: 2026-10-07
+  - Summary: Reproduced late microphone permission after close. Preserve complete phrase bytes and normal overlapping transcription while releasing owned media resources.
