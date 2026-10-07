@@ -46,7 +46,7 @@ function escapeRegExp(string: string): string {
 }
 
 // Replace tokens outside code blocks only
-export const replaceOutsideCode = (content: string, replacer: (str: string) => string) => {
+export const replaceOutsideCode = (content: string, replacer: (str: string) => string): string => {
 	return content
 		.split(/(```[\s\S]*?```|`[\s\S]*?`)/)
 		.map((segment) => {
@@ -55,34 +55,24 @@ export const replaceOutsideCode = (content: string, replacer: (str: string) => s
 		.join('');
 };
 
-export const replaceTokens = (content, char, user) => {
+export const replaceTokens = (
+	content: string,
+	char?: string | null,
+	user?: string | null
+): string => {
 	if (!content.includes('{{')) return content;
-	const tokens = [
-		{ regex: /{{char}}/gi, replacement: char },
-		{ regex: /{{user}}/gi, replacement: user },
-		{
-			regex: /{{VIDEO_FILE_ID_([a-f0-9-]+)}}/gi,
-			replacement: (_, fileId) =>
-				`<video src="${WEBUI_BASE_URL}/api/v1/files/${fileId}/content" controls></video>`
-		},
-		{
-			regex: /{{HTML_FILE_ID_([a-f0-9-]+)}}/gi,
-			replacement: (_, fileId) => `<file type="html" id="${fileId}" />`
-		}
-	];
-
-	// Apply replacements
-	content = replaceOutsideCode(content, (segment) => {
-		tokens.forEach(({ regex, replacement }) => {
-			if (replacement !== undefined && replacement !== null) {
-				segment = segment.replace(regex, replacement);
+	return replaceOutsideCode(content, (segment: string): string =>
+		segment.replace(
+			/{{(char|user|VIDEO_FILE_ID_([a-f0-9-]+)|HTML_FILE_ID_([a-f0-9-]+))}}/gi,
+			(match: string, token: string, videoId?: string, htmlId?: string): string => {
+				if (token.toLowerCase() === 'char') return char ?? match;
+				if (token.toLowerCase() === 'user') return user ?? match;
+				if (videoId)
+					return `<video src="${WEBUI_BASE_URL}/api/v1/files/${videoId}/content" controls></video>`;
+				return `<file type="html" id="${htmlId}" />`;
 			}
-		});
-
-		return segment;
-	});
-
-	return content;
+		)
+	);
 };
 
 export const sanitizeResponseContent = (content: string) => {
