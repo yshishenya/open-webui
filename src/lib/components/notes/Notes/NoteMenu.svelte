@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
+	import type { NoteDownloadType } from '$lib/utils/airis/notes';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
@@ -16,18 +17,18 @@
 	const i18n = getContext('i18n');
 
 	export let show = false;
-	export let className = 'max-w-[180px]';
+	export const className = 'max-w-[180px]';
 
-	export let onDownload = (type) => {};
+	export let onDownload: (type: NoteDownloadType) => void = () => {};
 	export let onDelete = () => {};
-	export let onPin = null;
+	export let onPin: (() => void) | null = null;
 	export let isPinned = false;
-	export let onUploadFiles = null;
+	export let onUploadFiles: (() => void) | null = null;
 
-	export let onCopyLink = null;
-	export let onCopyToClipboard = null;
+	export let onCopyLink: (() => void) | null = null;
+	export let onCopyToClipboard: (() => void) | null = null;
 
-	export let onChange = () => {};
+	export let onChange: (state: boolean) => void = () => {};
 </script>
 
 <Dropdown

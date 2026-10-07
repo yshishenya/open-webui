@@ -1,6 +1,14 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { getTimeRange } from '$lib/utils';
-import { normalizeNote, readNoteResponse, type NoteRecord } from '$lib/utils/airis/notes';
+import {
+	normalizeNote,
+	readNoteResponse,
+	type NoteRecord,
+	type NoteModelResponse,
+	type NoteListItem,
+	type NoteSearchResponse
+} from '$lib/utils/airis/notes';
+import type { SavedChat } from '$lib/utils/airis/frontend-contracts';
 
 export type NoteForm = {
 	title: string;
@@ -9,10 +17,13 @@ export type NoteForm = {
 	access_grants?: object[];
 };
 
-export const createNewNote = async (token: string, note: NoteForm) => {
+export const createNewNote = async (
+	token: string,
+	note: NoteForm
+): Promise<NoteModelResponse | null> => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/notes/create`, {
+	const res: NoteModelResponse | null = await fetch(`${WEBUI_API_BASE_URL}/notes/create`, {
 		method: 'POST',
 		headers: {
 			Accept: 'application/json',
@@ -40,10 +51,13 @@ export const createNewNote = async (token: string, note: NoteForm) => {
 	return res;
 };
 
-export const getNotes = async (token: string = '', raw: boolean = false) => {
+export const getNotes = async (
+	token: string = '',
+	raw: boolean = false
+): Promise<NoteListItem[] | Record<string, (NoteListItem & { timeRange: string })[]> | null> => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/notes/`, {
+	const res: NoteListItem[] | null = await fetch(`${WEBUI_API_BASE_URL}/notes/`, {
 		method: 'GET',
 		headers: {
 			Accept: 'application/json',
@@ -77,7 +91,7 @@ export const getNotes = async (token: string = '', raw: boolean = false) => {
 	}
 
 	// Build the grouped object
-	const grouped: Record<string, object[]> = {};
+	const grouped: Record<string, (NoteListItem & { timeRange: string })[]> = {};
 	for (const note of res) {
 		const timeRange = getTimeRange(note.updated_at / 1000000000);
 		if (!grouped[timeRange]) {
@@ -100,7 +114,7 @@ export const searchNotes = async (
 	sortKey: string | null = null,
 	page: number | null = null,
 	direction: string | null = null
-) => {
+): Promise<NoteSearchResponse | null> => {
 	let error = null;
 	const searchParams = new URLSearchParams();
 
@@ -128,14 +142,17 @@ export const searchNotes = async (
 		searchParams.append('page', `${page}`);
 	}
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/notes/search?${searchParams.toString()}`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
+	const res: NoteSearchResponse | null = await fetch(
+		`${WEBUI_API_BASE_URL}/notes/search?${searchParams.toString()}`,
+		{
+			method: 'GET',
+			headers: {
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+				authorization: `Bearer ${token}`
+			}
 		}
-	})
+	)
 		.then(async (res) => {
 			if (!res.ok) throw await res.json();
 			return res.json();
@@ -156,7 +173,10 @@ export const searchNotes = async (
 	return res;
 };
 
-export const getNoteList = async (token: string = '', page: number | null = null) => {
+export const getNoteList = async (
+	token: string = '',
+	page: number | null = null
+): Promise<NoteListItem[] | null> => {
 	let error = null;
 	const searchParams = new URLSearchParams();
 
@@ -164,14 +184,17 @@ export const getNoteList = async (token: string = '', page: number | null = null
 		searchParams.append('page', `${page}`);
 	}
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/notes/?${searchParams.toString()}`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
+	const res: NoteListItem[] | null = await fetch(
+		`${WEBUI_API_BASE_URL}/notes/?${searchParams.toString()}`,
+		{
+			method: 'GET',
+			headers: {
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+				authorization: `Bearer ${token}`
+			}
 		}
-	})
+	)
 		.then(async (res) => {
 			if (!res.ok) throw await res.json();
 			return res.json();
@@ -204,13 +227,13 @@ export const getNoteById = async (token: string, id: string): Promise<NoteRecord
 	return normalizeNote(await readNoteResponse(response));
 };
 
-export const getNoteChatById = async (token: string, id: string) => {
+export const getNoteChatById = async (token: string, id: string): Promise<SavedChat | null> => {
 	let error = null;
 	const url = `${WEBUI_API_BASE_URL}/notes/${id}/chat`;
 
 	console.info('[note-chat] fetching linked chat', { noteId: id, url });
 
-	const res = await fetch(url, {
+	const res: SavedChat | null = await fetch(url, {
 		method: 'GET',
 		headers: {
 			Accept: 'application/json',
@@ -240,11 +263,11 @@ export const getNoteChatById = async (token: string, id: string) => {
 	return res;
 };
 
-export const getNoteChatsById = async (token: string, id: string) => {
+export const getNoteChatsById = async (token: string, id: string): Promise<SavedChat[] | null> => {
 	let error = null;
 	const url = `${WEBUI_API_BASE_URL}/notes/${id}/chats`;
 
-	const res = await fetch(url, {
+	const res: SavedChat[] | null = await fetch(url, {
 		method: 'GET',
 		headers: {
 			Accept: 'application/json',
@@ -268,11 +291,11 @@ export const getNoteChatsById = async (token: string, id: string) => {
 	return res;
 };
 
-export const createNoteChatById = async (token: string, id: string) => {
+export const createNoteChatById = async (token: string, id: string): Promise<SavedChat | null> => {
 	let error = null;
 	const url = `${WEBUI_API_BASE_URL}/notes/${id}/chat`;
 
-	const res = await fetch(url, {
+	const res: SavedChat | null = await fetch(url, {
 		method: 'POST',
 		headers: {
 			Accept: 'application/json',
@@ -327,18 +350,25 @@ export const updateNoteById = async (
 	}
 };
 
-export const updateNoteAccessGrants = async (token: string, id: string, accessGrants: object[]) => {
+export const updateNoteAccessGrants = async (
+	token: string,
+	id: string,
+	accessGrants: object[]
+): Promise<NoteModelResponse | null> => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/notes/${id}/access/update`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({ access_grants: accessGrants })
-	})
+	const res: NoteModelResponse | null = await fetch(
+		`${WEBUI_API_BASE_URL}/notes/${id}/access/update`,
+		{
+			method: 'POST',
+			headers: {
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+				authorization: `Bearer ${token}`
+			},
+			body: JSON.stringify({ access_grants: accessGrants })
+		}
+	)
 		.then(async (res) => {
 			if (!res.ok) throw await res.json();
 			return res.json();
@@ -356,10 +386,10 @@ export const updateNoteAccessGrants = async (token: string, id: string, accessGr
 	return res;
 };
 
-export const deleteNoteById = async (token: string, id: string) => {
+export const deleteNoteById = async (token: string, id: string): Promise<boolean | null> => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/notes/${id}/delete`, {
+	const res: boolean | null = await fetch(`${WEBUI_API_BASE_URL}/notes/${id}/delete`, {
 		method: 'DELETE',
 		headers: {
 			Accept: 'application/json',
@@ -388,10 +418,10 @@ export const deleteNoteById = async (token: string, id: string) => {
 	return res;
 };
 
-export const getPinnedNoteList = async (token: string = '') => {
+export const getPinnedNoteList = async (token: string = ''): Promise<NoteListItem[]> => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/notes/pinned`, {
+	const res: NoteListItem[] | null = await fetch(`${WEBUI_API_BASE_URL}/notes/pinned`, {
 		method: 'GET',
 		headers: {
 			Accept: 'application/json',
@@ -419,10 +449,13 @@ export const getPinnedNoteList = async (token: string = '') => {
 	return res ?? [];
 };
 
-export const toggleNotePinnedStatusById = async (token: string, id: string) => {
+export const toggleNotePinnedStatusById = async (
+	token: string,
+	id: string
+): Promise<NoteModelResponse | null> => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/notes/${id}/pin`, {
+	const res: NoteModelResponse | null = await fetch(`${WEBUI_API_BASE_URL}/notes/${id}/pin`, {
 		method: 'POST',
 		headers: {
 			Accept: 'application/json',

@@ -1,4 +1,5 @@
 import type { Content, JSONContent } from '@tiptap/core';
+import type { SessionUser } from '$lib/stores';
 
 export type NoteContent = Record<string, unknown> & {
 	md: string;
@@ -40,6 +41,36 @@ export type NoteRecord = Record<string, unknown> & {
 	};
 	access_grants: NoteAccessGrant[];
 };
+
+// Raw model responses and socket updates may omit content/files; detail normalization is separate.
+export type NoteData = Record<string, unknown> & {
+	content?: NoteVersion | null;
+	files?: NoteFile[] | null;
+	versions?: NoteVersion[] | null;
+};
+export type NoteModelResponse = {
+	id: string;
+	user_id: string;
+	title: string;
+	data: NoteData | null;
+	meta: Record<string, unknown> | null;
+	is_pinned: boolean | null;
+	access_grants: NoteRecord['access_grants'];
+	created_at: number;
+	updated_at: number;
+};
+// GET /notes and /notes/pinned filter model fields and truncate content.md.
+export type NoteListItem = Pick<
+	NoteModelResponse,
+	'id' | 'title' | 'data' | 'is_pinned' | 'created_at' | 'updated_at'
+> & {
+	user?: Pick<SessionUser, 'id' | 'name' | 'email' | 'role' | 'profile_image_url'> | null;
+};
+// Search retains owner/grants/model fields, but also truncates content.md.
+export type NoteSearchItem = NoteModelResponse & Pick<NoteListItem, 'user'>;
+export type NoteSearchResponse = { items: NoteSearchItem[]; total: number };
+export type NoteEvent = Pick<NoteModelResponse, 'id'> & Partial<Omit<NoteModelResponse, 'id'>>;
+export type NoteDownloadType = 'txt' | 'md' | 'pdf';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value);

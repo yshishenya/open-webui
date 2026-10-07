@@ -2,8 +2,9 @@ import DOMPurify from 'dompurify';
 import { toast } from 'svelte-sonner';
 
 import { createNewNote } from '$lib/apis/notes';
+import type { NoteRecord } from '$lib/utils/airis/notes';
 
-export const downloadPdf = async (note) => {
+export const downloadPdf = async (note: NoteRecord): Promise<void> => {
 	const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
 		import('jspdf'),
 		import('html2canvas-pro')
@@ -17,14 +18,11 @@ export const downloadPdf = async (note) => {
 	const html = DOMPurify.sanitize(note.data?.content?.html ?? '');
 	const isDarkMode = document.documentElement.classList.contains('dark');
 
-	let node;
-	if (html instanceof HTMLElement) {
-		node = html;
-	} else {
+	const node = document.createElement('div');
+	{
 		const virtualWidth = 800; // px, fixed width for cloned element
 
 		// Clone and style
-		node = document.createElement('div');
 
 		// title node
 		const titleNode = document.createElement('div');
@@ -63,10 +61,7 @@ export const downloadPdf = async (note) => {
 		windowHeight: virtualHeight
 	});
 
-	// Remove hidden node if needed
-	if (!(html instanceof HTMLElement)) {
-		document.body.removeChild(node);
-	}
+	document.body.removeChild(node);
 
 	const imgData = canvas.toDataURL('image/jpeg', 0.7);
 

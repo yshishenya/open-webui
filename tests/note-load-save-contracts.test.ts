@@ -395,6 +395,58 @@ it('rejects events for B while the retained draft belongs to A', async () => {
 		expect(eventContext.note).toEqual(before);
 	}
 });
+it('keeps omitted content on socket updates and normalizes explicit legacy nulls', async () => {
+	const { context } = setup();
+	const eventContext = {
+		...context,
+		editor: null,
+		lastLocalContentChangeAt: 0,
+		normalizeNote,
+		console: { log: vi.fn(), info: vi.fn() },
+		tick: async (): Promise<void> => {},
+		applyExternalNoteContent: null as ((note: object) => Promise<boolean>) | null
+	};
+	eventContext.applyExternalNoteContent = evaluate<(note: object) => Promise<boolean>>(
+		`(${initializer(editorPath, 'applyExternalNoteContent')})`,
+		eventContext
+	);
+	const update = evaluate<(note: object) => Promise<void>>(
+		`(${initializer(editorPath, 'noteEventHandler')})`,
+		eventContext
+	);
+	const content = structuredClone(context.note.data.content);
+	await update({ id: 'A', title: 'Remote', data: { files: [] }, updated_at: 2 });
+	expect(eventContext.note.data.content).toEqual(content);
+	expect(eventContext.note.data.files).toEqual([]);
+	await update({ id: 'A', data: { content: { md: 'Remote text' } }, updated_at: 3 });
+	expect(eventContext.note.data.content).toEqual({ ...content, md: 'Remote text' });
+	await update({ id: 'A', data: { content: { md: null, html: null, json: null } }, updated_at: 4 });
+	expect(eventContext.note.data.content).toEqual({ md: '', html: '', json: null });
+	await update({ id: 'A', data: { content: { md: 'Stale' } }, updated_at: 1 });
+	expect(eventContext.note.data.content.md).toBe('');
+});
+it('keeps image compression optional and applies numeric upper bounds with empty settings', async () => {
+	const compressImage = vi.fn().mockResolvedValue('compressed');
+	const compress = evaluate<(url: string, settings?: object, config?: object) => Promise<string>>(
+		`(${initializer(editorPath, 'compressImageHandler')})`,
+		{ compressImage }
+	);
+	expect(await compress('image')).toBe('image');
+	expect(compressImage).not.toHaveBeenCalled();
+	expect(
+		await compress('image', {
+			imageCompression: true,
+			imageCompressionSize: { width: '', height: 900 }
+		})
+	).toBe('compressed');
+	expect(compressImage).toHaveBeenLastCalledWith('image', null, 900);
+	await compress(
+		'image',
+		{ imageCompression: true, imageCompressionSize: { width: 1200, height: 0 } },
+		{ file: { image_compression: { width: 800, height: 600 } } }
+	);
+	expect(compressImage).toHaveBeenLastCalledWith('image', 800, null);
+});
 it('lets another note save while A is slow, then recovers the queued A after failure', async () => {
 	const first = deferred<Response>();
 	const fetch = vi

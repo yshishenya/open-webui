@@ -2,7 +2,7 @@
 	"spec_id": "airis-note-data-contracts-2026-10-07-001",
 	"title": "Airis note data contracts",
 	"generated": "2026-10-07T19:45:03.106451Z",
-	"last_updated": "2026-10-07T19:45:44.570866Z",
+	"last_updated": "2026-10-07T20:17:52.041941Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "high",
@@ -22,23 +22,26 @@
 			"parent": null,
 			"children": ["phase-1", "phase-2"],
 			"total_tasks": 4,
-			"completed_tasks": 0,
+			"completed_tasks": 2,
 			"metadata": {}
 		},
 		"phase-1": {
 			"type": "phase",
 			"title": "Trace and align note producer/consumer contracts",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-1-1", "task-1-2"],
 			"total_tasks": 2,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": true,
+				"completed_at": "2026-10-07T20:17:51.810582Z"
+			}
 		},
 		"phase-2": {
 			"type": "phase",
 			"title": "Verify and integrate accepted note contracts",
-			"status": "pending",
+			"status": "in_progress",
 			"parent": "spec-root",
 			"children": ["task-2-1", "task-2-2"],
 			"total_tasks": 2,
@@ -48,40 +51,47 @@
 		"task-1-1": {
 			"type": "task",
 			"title": "Trace complete list/detail/linked chat/event and editor paths",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": "phase-1",
 			"children": [],
 			"metadata": {
 				"file_path": "backend/open_webui/routers/notes.py",
 				"category": "refactoring",
 				"started_at": "2026-10-07T19:45:44.570668Z",
-				"status_note": "Tracing notes list/detail/linked chat and partial event paths before implementation; actual list response is truncated and filtered by FastAPI."
+				"status_note": "Traced filtered/truncated lists, full detail, access/pin/delete and sparse socket responses; image data uses assigned editor storage.",
+				"completed_at": "2026-10-07T20:17:51.569600Z",
+				"needs_journaling": true
 			},
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"total_tasks": 1
 		},
 		"task-1-2": {
 			"type": "task",
 			"title": "Reuse and align note/API/store/editor/list contracts",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-1",
 			"children": [],
 			"metadata": {
 				"file_path": "src/lib/apis/notes/index.ts",
-				"category": "refactoring"
+				"category": "refactoring",
+				"completed_at": "2026-10-07T20:17:51.810380Z",
+				"needs_journaling": true,
+				"status_note": "Reused native editor and shared note/chat/user contracts; pagination reproduced before fix; selected type/lint errors zero."
 			},
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"total_tasks": 1
 		},
 		"task-2-1": {
 			"type": "task",
 			"title": "Verify full diagnostics, actual code and compiled paths",
-			"status": "pending",
+			"status": "in_progress",
 			"parent": "phase-2",
 			"children": [],
 			"metadata": {
 				"file_path": "src/lib/components/notes/NoteEditor.svelte",
-				"category": "refactoring"
+				"category": "refactoring",
+				"started_at": "2026-10-07T20:17:52.041640Z",
+				"status_note": "938/938 frontend checks passed; normalized new type/lint zero; compiled paths pending."
 			},
 			"completed_tasks": 0,
 			"total_tasks": 1

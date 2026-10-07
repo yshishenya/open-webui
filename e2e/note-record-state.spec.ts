@@ -100,6 +100,69 @@ test('notes preserve sparse content and recover malformed persisted fields', asy
 		await expect(page.locator('#note-editor [contenteditable="true"]')).toContainText(
 			'Preserved note text'
 		);
+		const remote = await request.post(`/api/v1/notes/${note.id}/update`, {
+			headers,
+			data: {
+				title: 'Retained title',
+				data: { content: { md: 'Remote note text', html: '<p>Remote note text</p>' } },
+				access_grants: []
+			}
+		});
+		expect(remote.ok()).toBe(true);
+		await expect(page.locator('#note-editor [contenteditable="true"]')).toContainText(
+			'Remote note text'
+		);
+		const row = (id: string) => ({
+			id,
+			title: `Recovery ${id}`,
+			user_id: 'fixture',
+			data: null,
+			meta: null,
+			is_pinned: false,
+			access_grants: [],
+			created_at: Date.now() * 1000000,
+			updated_at: Date.now() * 1000000
+		});
+		const rows = Array.from({ length: 40 }, (_, index) => row(`first-${index}`));
+		let failures = 0;
+		let initialFailures = 0;
+		const pages: number[] = [];
+		await page.route('**/api/v1/notes/search?**', async (route) => {
+			const number = Number(new URL(route.request().url()).searchParams.get('page'));
+			pages.push(number);
+			if (number === 1 && initialFailures === 0) {
+				initialFailures++;
+				await route.fulfill({
+					status: 503,
+					json: { detail: 'Fixture initial search unavailable' }
+				});
+			} else if (number === 2 && failures === 0) {
+				failures++;
+				await route.fulfill({ status: 503, json: { detail: 'Fixture search unavailable' } });
+			} else {
+				await route.fulfill({
+					json: {
+						items: number === 1 ? rows : number === 2 ? [rows[0], row('next')] : [],
+						total: 41
+					}
+				});
+			}
+		});
+		await page.goto('/notes');
+		await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
+		expect(initialFailures).toBe(1);
+		expect(pages).toEqual([1]);
+		await page.getByRole('button', { name: 'Retry', exact: true }).click();
+		await expect(page.getByRole('button', { name: 'Open note', exact: true })).toHaveCount(40);
+		await page.getByText('Loading...', { exact: true }).scrollIntoViewIfNeeded();
+		await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
+		expect(pages.filter((number) => number === 2)).toEqual([2]);
+		await page.getByRole('button', { name: 'Retry', exact: true }).click();
+		await expect(page.getByText('Recovery next', { exact: true })).toBeVisible();
+		expect(failures).toBe(1);
+		expect(pages.filter((number) => number === 2)).toEqual([2, 2]);
+		await expect(page.getByRole('button', { name: 'Open note', exact: true })).toHaveCount(41);
+		await expect(page.getByText('Recovery first-0', { exact: true })).toHaveCount(1);
 		expect(errors).toEqual([]);
 	} finally {
 		await request.delete(`/api/v1/notes/${note.id}/delete`, { headers });
