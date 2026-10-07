@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { createEventDispatcher } from 'svelte';
-	import { onMount, getContext } from 'svelte';
-	import { addUser } from '$lib/apis/auths';
+	import { getContext } from 'svelte';
 
 	import Modal from '../../common/Modal.svelte';
 	import {
@@ -15,18 +14,15 @@
 	import {
 		getUserValvesSpecById as getToolUserValvesSpecById,
 		getUserValvesById as getToolUserValvesById,
-		updateUserValvesById as updateToolUserValvesById,
-		getTools
+		updateUserValvesById as updateToolUserValvesById
 	} from '$lib/apis/tools';
 	import {
 		getUserValvesSpecById as getFunctionUserValvesSpecById,
 		getUserValvesById as getFunctionUserValvesById,
-		updateUserValvesById as updateFunctionUserValvesById,
-		getFunctions
+		updateUserValvesById as updateFunctionUserValvesById
 	} from '$lib/apis/functions';
 
 	import Spinner from '../../common/Spinner.svelte';
-	import Switch from '$lib/components/common/Switch.svelte';
 	import Valves from '$lib/components/common/Valves.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 
@@ -144,7 +140,7 @@
 			}
 
 			loading = false;
-		} catch (e) {
+		} catch {
 			toast.error(`Error fetching valves`);
 			show = false;
 		}
@@ -207,25 +203,3 @@
 		</div>
 	</div>
 </Modal>
-
-<style>
-	input::-webkit-outer-spin-button,
-	input::-webkit-inner-spin-button {
-		/* display: none; <- Crashes Chrome on hover */
-		-webkit-appearance: none;
-		margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
-	}
-
-	.tabs::-webkit-scrollbar {
-		display: none; /* for Chrome, Safari and Opera */
-	}
-
-	.tabs {
-		-ms-overflow-style: none; /* IE and Edge */
-		scrollbar-width: none; /* Firefox */
-	}
-
-	input[type='number'] {
-		-moz-appearance: textfield; /* Firefox */
-	}
-</style>

@@ -34,7 +34,7 @@ its admin API/lifecycle behavior is not changed by this release.
 ## Upstream impact
 
 Minimal Controls hooks and six user API wrappers route through one fork-owned
-helper. Two modal null-normalization hooks preserve its existing behavior; a JSDoc annotation corrects the shared renderer prop contract. No backend, schema, dependencies or authorization changes. Existing
+helper. Two modal null-normalization hooks preserve its existing behavior; a JSDoc annotation corrects the shared renderer prop contract. CI-required cleanup removes only unused modal code/styles and specifies the existing tools access-grant payload type. No backend, schema, dependencies or authorization changes. Existing
 Svelte5.56.0 legacy APIs retained (latest5.57.2 verified); upgrade is separate and
 requires full compatibility checks. Official pinned lifecycle/reactivity docs
 read. Reuse current fetch timeout pattern and notifications. Server successful
@@ -54,8 +54,11 @@ transpiled component methods4/4. Full frontend861/861 in103files. Compiled
 Controls with real Valves/Spinner children and controlled APIs:54/54 initially;
 extended multiselect/default/same-id reopen accepted66/66. Types3256→3245,
 127warnings unchanged;ESLint1192→1189,normalized new diagnostics0. Touched
-Controls/helper/tests lint clean. Existing tools API line234 any[] is unchanged
-legacy lint debt. Targeted nullable normalization in workspace modal and JSDoc
+Controls/helper/tests lint clean. CI on source9e870 rejected12 existing lint errors in touched files. Remove
+unused modal imports/catch binding and component-scoped selectors that match no
+elements; type updateToolAccessGrants using the actual AccessControlModal payload
+(id optional, user/group/anyone, principal_id, read/write). No runtime permission
+logic or backend contract changes. Recheck final source before release. Targeted nullable normalization in workspace modal and JSDoc
 renderer prop typing avoid new caller errors; no suppressions or weakening.
 
 Retained rejected checks: first API test collection lacked a browser location

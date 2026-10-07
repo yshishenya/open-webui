@@ -2,7 +2,7 @@
   "spec_id": "airis-valves-detail-load-save-2026-10-07-001",
   "title": "AIRIS valves detail load save recovery",
   "generated": "2026-10-07T05:21:47.226805Z",
-  "last_updated": "2026-10-07T05:33:08.078185Z",
+  "last_updated": "2026-10-07T05:43:05.123998Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -57,7 +57,8 @@
         "started_at": "2026-10-07T05:22:28.403022Z",
         "completed_at": "2026-10-07T05:23:11.144828Z",
         "actual_hours": 0.012,
-        "journaled_at": "2026-10-07T05:23:11.146304Z"
+        "journaled_at": "2026-10-07T05:23:11.146304Z",
+        "file_path": "tests/user-valves.test.ts"
       },
       "dependencies": {
         "blocks": [],
@@ -78,7 +79,8 @@
         "started_at": "2026-10-07T05:23:11.394598Z",
         "completed_at": "2026-10-07T05:33:07.831399Z",
         "actual_hours": 0.166,
-        "journaled_at": "2026-10-07T05:33:07.832947Z"
+        "journaled_at": "2026-10-07T05:33:07.832947Z",
+        "file_path": "src/lib/utils/airis/userValves.ts"
       },
       "dependencies": {
         "blocks": [],
@@ -96,7 +98,8 @@
       "completed_tasks": 0,
       "metadata": {
         "needs_journaling": false,
-        "started_at": "2026-10-07T05:33:08.077962Z"
+        "started_at": "2026-10-07T05:33:08.077962Z",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__valves-detail-load-save.md"
       },
       "dependencies": {
         "blocks": [],
