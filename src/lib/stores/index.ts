@@ -5,6 +5,7 @@ export type { Model, OpenAIModel, OllamaModel } from '$lib/utils/airis/model-typ
 import type { Banner } from '$lib/types';
 import type { Socket } from 'socket.io-client';
 import type { AudioQueue } from '$lib/utils/audio';
+import type { KokoroWorker } from '$lib/workers/KokoroWorker';
 import type {
 	ArtifactContent,
 	DirectModelConnections,
@@ -66,7 +67,7 @@ export const shortCodesToEmojis = writable(
 	}, {})
 );
 
-export const TTSWorker = writable(null);
+export const TTSWorker = writable<KokoroWorker | null>(null);
 
 export const chatId = writable('');
 export const chatTitle = writable('');
@@ -110,7 +111,7 @@ export const adminGroupCount: Writable<number | null> = writable(null);
 export const adminLeaderboardCount: Writable<number | null> = writable(null);
 export const adminFeedbackCount: Writable<number | null> = writable(null);
 
-export const toolServers = writable([]);
+export const toolServers = writable<StoredTerminalServer[]>([]);
 export const terminalServers: Writable<StoredTerminalServer[] | null> = writable(null);
 
 // Persistent Pyodide worker for code interpreter FS
@@ -166,7 +167,7 @@ export const desktopEvent: Writable<DesktopEvent | null> = writable(null);
 export const isLastActiveTab = writable(true);
 export const playingNotificationSound = writable(false);
 
-type Settings = {
+export type Settings = {
 	pinnedModels?: string[];
 	tools?: string[];
 	terminalServers?: DirectTerminalSettings[];

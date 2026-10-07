@@ -2,6 +2,7 @@
 	import { getContext } from 'svelte';
 	const i18n = getContext('i18n');
 
+	/** @type {import('@tiptap/core').Editor | null} */
 	export let editor = null;
 
 	import Bold from '$lib/components/icons/Bold.svelte';

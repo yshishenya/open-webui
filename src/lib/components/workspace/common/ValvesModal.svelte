@@ -32,7 +32,7 @@
 	export let show = false;
 
 	export let type = 'tool';
-	export let id = null;
+	export let id: string | null = null;
 	export let userValves = false;
 
 	let saving = false;
@@ -42,6 +42,7 @@
 	let valves = {};
 
 	const submitHandler = async () => {
+		if (!id) return;
 		saving = true;
 
 		if (valvesSpec) {
@@ -95,6 +96,7 @@
 	};
 
 	const initHandler = async () => {
+		if (!id) return;
 		loading = true;
 		valves = {};
 		valvesSpec = null;

@@ -8,7 +8,7 @@
 	import equal from 'fast-deep-equal';
 	const i18n = getContext('i18n');
 
-	export let selectedModels = [''];
+	export let selectedModels: string[] = [''];
 	export let disabled = false;
 
 	export let showSetDefault = true;

@@ -32,7 +32,7 @@ const generateUserColor = () => {
 export type EditorContentGetter = () => {
 	md: string;
 	html: string;
-	json: string;
+	json: Content;
 };
 
 // Custom Yjs Socket.IO provider

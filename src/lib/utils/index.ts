@@ -1438,9 +1438,8 @@ export const getWeekday = () => {
 	return weekdays[date.getDay()];
 };
 
-type MessageList<H extends { messages: Record<string, ChatHistoryMessage> }> = (
-	keyof H['messages'] extends never ? ChatHistoryMessage : H['messages'][keyof H['messages']]
-)[];
+type MessageList<H extends { messages: Record<string, ChatHistoryMessage> }> =
+	(keyof H['messages'] extends never ? ChatHistoryMessage : H['messages'][keyof H['messages']])[];
 
 export const createMessagesList = <H extends { messages: Record<string, ChatHistoryMessage> }>(
 	history: H,
@@ -1982,12 +1981,19 @@ export const getAge = (birthDate: string | number | Date): string => {
 	return age.toString();
 };
 
-export const convertHeicToJpeg = async (file: File) => {
+export const convertHeicToJpeg = async (file: File): Promise<Blob> => {
 	const { default: heic2any } = await import('heic2any');
 	try {
-		return await heic2any({ blob: file, toType: 'image/jpeg' });
-	} catch (err: any) {
-		if (err?.message?.includes('already browser readable')) {
+		// heic2any returns one Blob when multiple is false (the documented default).
+		return (await heic2any({ blob: file, toType: 'image/jpeg' })) as Blob;
+	} catch (err: unknown) {
+		if (
+			typeof err === 'object' &&
+			err !== null &&
+			'message' in err &&
+			typeof err.message === 'string' &&
+			err.message.includes('already browser readable')
+		) {
 			return file;
 		}
 		throw err;

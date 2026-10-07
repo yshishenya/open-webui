@@ -1,17 +1,17 @@
 <script lang="ts">
-	/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-function-type */
 	import { toast } from 'svelte-sonner';
 
 	import { createEventDispatcher, onDestroy } from 'svelte';
+	const dispatch = createEventDispatcher();
 	import { onMount, tick, getContext } from 'svelte';
+	import { fade } from 'svelte/transition';
+	import Sparkles from '$lib/components/icons/Sparkles.svelte';
 	import type { Writable } from 'svelte/store';
-	import type { i18n as i18nType, t } from 'i18next';
+	import type { i18n as i18nType } from 'i18next';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
-	const dispatch = createEventDispatcher();
-
-	import { createNewFeedback, getFeedbackById, updateFeedbackById } from '$lib/apis/evaluations';
+	import { createNewFeedback, updateFeedbackById } from '$lib/apis/evaluations';
 	import { getChatById } from '$lib/apis/chats';
 	import { generateTags } from '$lib/apis';
 
@@ -21,23 +21,21 @@
 		models,
 		settings,
 		temporaryChatEnabled,
-		TTSWorker,
-		user
+		user,
+		TTSWorker
 	} from '$lib/stores';
 	import { synthesizeOpenAISpeech } from '$lib/apis/audio';
 	import { imageGenerations } from '$lib/apis/images';
 	import {
 		copyToClipboard as _copyToClipboard,
-		approximateToHumanReadable,
 		getMessageContentParts,
 		sanitizeResponseContent,
 		createMessagesList,
 		formatMessageTimestamp,
 		formatMessageTimestampFull,
-		removeDetails,
 		removeAllDetails
 	} from '$lib/utils';
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+	import { WEBUI_API_BASE_URL } from '$lib/constants';
 	import equal from 'fast-deep-equal';
 
 	import Name from './Name.svelte';
@@ -46,9 +44,6 @@
 	import Image from '$lib/components/common/Image.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import RateComment from './RateComment.svelte';
-	import Spinner from '$lib/components/common/Spinner.svelte';
-	import WebSearchResults from './ResponseMessage/WebSearchResults.svelte';
-	import Sparkles from '$lib/components/icons/Sparkles.svelte';
 
 	import DeleteConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 
@@ -59,72 +54,25 @@
 	import { KokoroWorker } from '$lib/workers/KokoroWorker';
 	import FileItem from '$lib/components/common/FileItem.svelte';
 	import FollowUps from './ResponseMessage/FollowUps.svelte';
-	import { fade } from 'svelte/transition';
-	import { flyAndScale } from '$lib/utils/transitions';
 	import RegenerateMenu from './ResponseMessage/RegenerateMenu.svelte';
 	import StatusHistory from './ResponseMessage/StatusHistory.svelte';
 	import FullHeightIframe from '$lib/components/common/FullHeightIframe.svelte';
 	import OutputEditView from './OutputEditView.svelte';
 	import { getOutputText, replaceOutputMessageText, type OutputItem } from './structuredOutput';
 
-	interface MessageType {
-		id: string;
-		model: string;
-		content: string;
-		output?: OutputItem[];
-		files?: { type: string; url: string }[];
-		timestamp: number;
-		role: string;
-		statusHistory?: {
-			done: boolean;
-			action: string;
-			description: string;
-			urls?: string[];
-			query?: string;
-		}[];
-		status?: {
-			done: boolean;
-			action: string;
-			description: string;
-			urls?: string[];
-			query?: string;
-		};
-		done: boolean;
-		error?: boolean | { content: string };
-		sources?: string[];
-		code_executions?: {
-			uuid: string;
-			name: string;
-			code: string;
-			language?: string;
-			result?: {
-				error?: string;
-				output?: string;
-				files?: { name: string; url: string }[];
-			};
-		}[];
-		info?: {
-			openai?: boolean;
-			prompt_tokens?: number;
-			completion_tokens?: number;
-			total_tokens?: number;
-			eval_count?: number;
-			eval_duration?: number;
-			prompt_eval_count?: number;
-			prompt_eval_duration?: number;
-			total_duration?: number;
-			load_duration?: number;
-			usage?: unknown;
-		};
-		annotation?: { type: string; rating: number };
-	}
+	import type {
+		ChatAnnotation,
+		ChatHistory,
+		ChatHistoryMessage,
+		ChatMessageEdit
+	} from '$lib/utils/airis/chat_history';
 
 	export let chatId = '';
-	export let history;
-	export let messageId;
-	export let selectedModels = [];
+	export let history: ChatHistory;
+	export let messageId: string;
+	export let selectedModels: string[] = [];
 
-	let message: MessageType = structuredClone(history.messages[messageId]);
+	let message: ChatHistoryMessage = structuredClone(history.messages[messageId]);
 	$: if (history.messages) {
 		const source = history.messages[messageId];
 		if (source) {
@@ -143,27 +91,48 @@
 		}
 	}
 
-	export let siblings;
+	export let siblings: string[];
 
-	export let setInputText: Function = () => {};
-	export let gotoMessage: Function = () => {};
-	export let showPreviousMessage: Function;
-	export let showNextMessage: Function;
+	export let setInputText: (text: string) => void = () => {};
+	export let gotoMessage: (
+		message: ChatHistoryMessage,
+		index: number
+	) => void | Promise<void> = () => {};
+	export let showPreviousMessage: (message: ChatHistoryMessage) => void | Promise<void>;
+	export let showNextMessage: (message: ChatHistoryMessage) => void | Promise<void>;
 
-	export let updateChat: Function;
-	export let editMessage: Function;
-	export let saveMessage: Function;
-	export let rateMessage: Function;
-	export let actionMessage: Function;
-	export let deleteMessage: Function;
+	export let updateChat: () => void | Promise<void>;
+	export let editMessage: (
+		id: string,
+		edit: ChatMessageEdit,
+		submit?: boolean
+	) => void | Promise<void>;
+	export let saveMessage: (id: string, message: ChatHistoryMessage) => void | Promise<void>;
+	export let rateMessage: (id: string, rating: number) => void | Promise<void>;
+	export let actionMessage: (
+		actionId: string,
+		message: ChatHistoryMessage,
+		event?: unknown
+	) => void | Promise<void>;
+	export let deleteMessage: (id: string) => void | Promise<void>;
 
-	export let submitMessage: Function;
-	export let continueResponse: Function;
-	export let regenerateResponse: Function;
-	export let forkHandler: Function | null = null;
+	export let submitMessage: (parentId: string, prompt: string) => void | Promise<void>;
+	export let continueResponse: () => void | Promise<void>;
+	export let regenerateResponse: (
+		message: ChatHistoryMessage,
+		prompt?: string | null
+	) => void | Promise<void>;
+	export let forkHandler: ((messageId?: string | null) => void | Promise<void>) | null = null;
 
-	export let addMessages: Function;
+	export let addMessages: (request: {
+		modelId: string;
+		parentId: string | null;
+		messages: ChatHistoryMessage[];
+	}) => void | Promise<void>;
+	// Retain the upstream callback/selection props consumed by parent components.
 	$: void rateMessage;
+	$: void selectedModels;
+	$: void addMessages;
 
 	export let isLastMessage = true;
 	export let readOnly = false;
@@ -173,7 +142,7 @@
 	export let topPadding = false;
 	export let onInsertToNote: ((content: string) => void) | null = null;
 
-	let citationsElement: HTMLDivElement;
+	let citationsElement: Citations;
 
 	let contentContainerElement: HTMLDivElement;
 	let buttonsContainerElement: HTMLDivElement;
@@ -193,13 +162,12 @@
 
 	let edit = false;
 	let editedContent = '';
-	let editedOutput: any[] | null = null;
+	let editedOutput: OutputItem[] | null = null;
 	let editTextAreaElement: HTMLTextAreaElement;
 
 	let messageIndexEdit = false;
 
 	let speaking = false;
-	let speakingIdx: number | undefined;
 
 	let loadingSpeech = false;
 	let speakAbort: AbortController | null = null;
@@ -208,7 +176,7 @@
 
 	let generatingImage = false;
 
-	const generateImage = async (targetMessage: MessageType): Promise<void> => {
+	const generateImage = async (targetMessage: ChatHistoryMessage): Promise<void> => {
 		if (generatingImage) {
 			return;
 		}
@@ -260,7 +228,7 @@
 		}
 	};
 
-	const copyToClipboard = async (text) => {
+	const copyToClipboard = async (text: string): Promise<void> => {
 		text = removeAllDetails(text);
 
 		if (($config?.ui?.response_watermark ?? '').trim() !== '') {
@@ -279,20 +247,19 @@
 
 		try {
 			speechSynthesis.cancel();
-			$audioQueue.stop();
+			$audioQueue?.stop();
 		} catch {
 			// Ignore browser speech API failures.
 		}
 
 		speaking = false;
-		speakingIdx = undefined;
 		loadingSpeech = false;
 	};
 
 	// Resolve voice: model-specific > user settings > config default
 	const getVoiceId = () =>
 		model?.info?.meta?.tts?.voice ??
-		($settings?.audio?.tts?.defaultVoice === $config.audio.tts.voice
+		($settings?.audio?.tts?.defaultVoice === $config?.audio?.tts?.voice
 			? ($settings?.audio?.tts?.voice ?? $config?.audio?.tts?.voice)
 			: $config?.audio?.tts?.voice);
 
@@ -309,7 +276,7 @@
 
 		speaking = true;
 
-		if ($config.audio.tts.engine === '') {
+		if (($config?.audio?.tts?.engine ?? '') === '') {
 			let voices = [];
 			const getVoicesLoop = setInterval(() => {
 				voices = speechSynthesis.getVoices();
@@ -335,11 +302,15 @@
 				}
 			}, 100);
 		} else {
-			$audioQueue.setId(`${message.id}`);
-			$audioQueue.setPlaybackRate($settings.audio?.tts?.playbackRate ?? 1);
-			$audioQueue.onStopped = () => {
+			const queue = $audioQueue;
+			if (!queue) {
 				speaking = false;
-				speakingIdx = undefined;
+				return;
+			}
+			queue.setId(`${message.id}`);
+			queue.setPlaybackRate($settings.audio?.tts?.playbackRate ?? 1);
+			queue.onStopped = () => {
+				speaking = false;
 			};
 
 			loadingSpeech = true;
@@ -359,32 +330,27 @@
 			console.debug('Prepared message content for TTS', messageContentParts, 'voice:', voiceId);
 
 			if ($settings.audio?.tts?.engine === 'browser-kokoro') {
-				if (!$TTSWorker) {
-					await TTSWorker.set(
-						new KokoroWorker({
-							dtype: $settings.audio?.tts?.engineConfig?.dtype ?? 'fp32'
-						})
-					);
-
-					await $TTSWorker.init();
+				let worker = $TTSWorker;
+				if (!worker) {
+					worker = new KokoroWorker($settings.audio?.tts?.engineConfig?.dtype ?? 'fp32');
+					TTSWorker.set(worker);
+					await worker.init();
 				}
 
 				for (const [, sentence] of messageContentParts.entries()) {
 					if (signal.aborted) return;
 
-					const url = await $TTSWorker
-						.generate({ text: sentence, voice: voiceId })
-						.catch((error) => {
-							console.error(error);
-							toast.error(`${error}`);
-							speaking = false;
-							loadingSpeech = false;
-						});
+					const url = await worker.generate({ text: sentence, voice: voiceId }).catch((error) => {
+						console.error(error);
+						toast.error(`${error}`);
+						speaking = false;
+						loadingSpeech = false;
+					});
 
 					if (signal.aborted) return;
 
 					if (url && speaking) {
-						$audioQueue.enqueue(url);
+						queue.enqueue(url);
 						loadingSpeech = false;
 					}
 				}
@@ -406,7 +372,7 @@
 					if (res && speaking) {
 						const blob = await res.blob();
 						const url = URL.createObjectURL(blob);
-						$audioQueue.enqueue(url);
+						queue.enqueue(url);
 						loadingSpeech = false;
 					}
 				}
@@ -414,11 +380,11 @@
 		}
 	};
 
-	let preprocessedDetailsCache = [];
+	let preprocessedDetailsCache: string[] = [];
 
 	function preprocessForEditing(content: string): string {
 		// Replace <details>...</details> with unique ID placeholder
-		const detailsBlocks = [];
+		const detailsBlocks: string[] = [];
 		let i = 0;
 
 		content = content.replace(/<details[\s\S]*?<\/details>/gi, (match) => {
@@ -449,7 +415,7 @@
 			editedOutput = structuredClone(message.output);
 		} else {
 			// Legacy text edit: use the textarea
-			editedContent = preprocessForEditing(message.content);
+			editedContent = preprocessForEditing(message.content ?? '');
 		}
 
 		await tick();
@@ -506,7 +472,10 @@
 
 	let feedbackLoading = false;
 
-	const feedbackHandler = async (rating: number | null = null, details: object | null = null) => {
+	const feedbackHandler = async (
+		rating: number | null = null,
+		details: ChatAnnotation | null = null
+	) => {
 		feedbackLoading = true;
 		console.log('Feedback', rating, details);
 
@@ -528,20 +497,23 @@
 
 		const messages = createMessagesList(history, message.id);
 
-		let feedbackItem = {
+		const parent = message.parentId ? history.messages[message.parentId] : undefined;
+		const baseModels: Record<string, string | null> = {};
+		const feedbackItem = {
 			type: 'rating',
 			data: {
 				...(updatedMessage?.annotation ? updatedMessage.annotation : {}),
 				model_id: message?.selectedModelId ?? message.model,
-				...(history.messages[message.parentId].childrenIds.length > 1
+				...((parent?.childrenIds.length ?? 0) > 1
 					? {
-							sibling_model_ids: history.messages[message.parentId].childrenIds
+							sibling_model_ids: (parent?.childrenIds ?? [])
 								.filter((id) => id !== message.id)
-								.map((id) => history.messages[id]?.selectedModelId ?? history.messages[id].model)
+								.map((id) => history.messages[id]?.selectedModelId ?? history.messages[id]?.model)
 						}
 					: {})
 			},
 			meta: {
+				base_models: baseModels,
 				arena: message ? message.arena : false,
 				model_id: message.model,
 				message_id: message.id,
@@ -553,20 +525,17 @@
 			}
 		};
 
-		const baseModels = [
-			feedbackItem.data.model_id,
-			...(feedbackItem.data.sibling_model_ids ?? [])
-		].reduce((acc, modelId) => {
-			const model = $models.find((m) => m.id === modelId);
-			if (model) {
-				acc[model.id] = model?.info?.base_model_id ?? null;
-			} else {
-				// Log or handle cases where corresponding model is not found
-				console.warn(`Model with ID ${modelId} not found`);
+		[feedbackItem.data.model_id, ...(feedbackItem.data.sibling_model_ids ?? [])].forEach(
+			(modelId) => {
+				const model = $models.find((m) => m.id === modelId);
+				if (model) {
+					baseModels[model.id] = model?.info?.base_model_id ?? null;
+				} else {
+					// Log or handle cases where corresponding model is not found
+					console.warn(`Model with ID ${modelId} not found`);
+				}
 			}
-			return acc;
-		}, {});
-		feedbackItem.meta.base_models = baseModels;
+		);
 
 		let feedback = null;
 		if (message?.feedbackId) {
@@ -595,7 +564,7 @@
 		if (!details) {
 			showRateComment = true;
 
-			if (!updatedMessage.annotation?.tags && (message?.content ?? '') !== '') {
+			if (!updatedMessage.annotation?.tags && (message?.content ?? '') !== '' && message.model) {
 				// attempt to generate tags
 				const tags = await generateTags(localStorage.token, message.model, messages, chatId).catch(
 					(error) => {
@@ -610,13 +579,14 @@
 					feedbackItem.data.tags = tags;
 
 					saveMessage(message.id, updatedMessage);
-					await updateFeedbackById(
-						localStorage.token,
-						updatedMessage.feedbackId,
-						feedbackItem
-					).catch((error) => {
-						toast.error(`${error}`);
-					});
+					if (updatedMessage.feedbackId)
+						await updateFeedbackById(
+							localStorage.token,
+							updatedMessage.feedbackId,
+							feedbackItem
+						).catch((error) => {
+							toast.error(`${error}`);
+						});
 				}
 			}
 		}
@@ -650,11 +620,12 @@
 		}
 	};
 
-	const contentCopyHandler = (e) => {
+	const contentCopyHandler = (e: ClipboardEvent): void => {
 		if (contentContainerElement) {
-			e.preventDefault();
 			// Get the selected HTML
 			const selection = window.getSelection();
+			if (!selection?.rangeCount || !e.clipboardData) return;
+			e.preventDefault();
 			const range = selection.getRangeAt(0);
 			const tempDiv = document.createElement('div');
 
@@ -714,7 +685,11 @@
 	<div
 		class=" flex w-full message-{message.id}"
 		id="message-{message.id}"
-		dir={$settings.chatDirection}
+		dir={$settings.chatDirection === 'RTL'
+			? 'rtl'
+			: $settings.chatDirection === 'LTR'
+				? 'ltr'
+				: 'auto'}
 		style="scroll-margin-top: 3rem;"
 	>
 		<div class={`shrink-0 ltr:mr-2 rtl:ml-2 hidden @lg:flex mt-0.5 `}>
@@ -742,15 +717,19 @@
 							<StatusHistory statusHistory={message?.statusHistory} />
 						{/if}
 
-						{#if message?.files && message.files?.filter( (f) => ['image', 'file'].includes(f.type) ).length > 0}
+						{#if message?.files && message.files?.filter( (f) => ['image', 'file'].includes(f.type ?? '') ).length > 0}
 							<div
 								class="my-1 w-full flex overflow-x-auto gap-2 flex-wrap"
-								dir={$settings?.chatDirection ?? 'auto'}
+								dir={$settings.chatDirection === 'RTL'
+									? 'rtl'
+									: $settings.chatDirection === 'LTR'
+										? 'ltr'
+										: 'auto'}
 							>
-								{#each message.files.filter((f) => ['image', 'file'].includes(f.type)) as file}
+								{#each message.files.filter( (f) => ['image', 'file'].includes(f.type ?? '') ) as file}
 									<div>
 										{#if file.type === 'image' || (file?.content_type ?? '').startsWith('image/')}
-											<Image src={file.url} alt={message.content} />
+											<Image src={file.url ?? undefined} alt={message.content} />
 										{:else}
 											<FileItem
 												item={file}
@@ -916,13 +895,13 @@
 											if (updatedOutput !== sourceMessage.output) {
 												sourceMessage.output = updatedOutput;
 											} else {
-												sourceMessage.content = sourceMessage.content.replace(
+												sourceMessage.content = (sourceMessage.content ?? '').replace(
 													raw,
 													raw.replace(oldContent, newContent)
 												);
 											}
 										} else {
-											sourceMessage.content = sourceMessage.content.replace(
+											sourceMessage.content = (sourceMessage.content ?? '').replace(
 												raw,
 												raw.replace(oldContent, newContent)
 											);
@@ -934,7 +913,11 @@
 							{/if}
 
 							{#if message?.error}
-								<Error content={message?.error?.content ?? message.content} />
+								<Error
+									content={typeof message.error === 'object'
+										? message.error.content
+										: message.content}
+								/>
 							{/if}
 
 							{#if (message?.sources || message?.citations) && (model?.info?.meta?.capabilities?.citations ?? true)}
@@ -1012,15 +995,15 @@
 												min="1"
 												max={siblings.length}
 												on:focus={(e) => {
-													e.target.select();
+													e.currentTarget.select();
 												}}
 												on:blur={(e) => {
-													gotoMessage(message, e.target.value - 1);
+													gotoMessage(message, Number(e.currentTarget.value) - 1);
 													messageIndexEdit = false;
 												}}
 												on:keydown={(e) => {
 													if (e.key === 'Enter') {
-														gotoMessage(message, e.target.value - 1);
+														gotoMessage(message, Number(e.currentTarget.value) - 1);
 														messageIndexEdit = false;
 													}
 												}}
@@ -1036,7 +1019,7 @@
 
 												await tick();
 												const input = document.getElementById(`message-index-input-${message.id}`);
-												if (input) {
+												if (input instanceof HTMLInputElement) {
 													input.focus();
 													input.select();
 												}
@@ -1486,7 +1469,7 @@
 														});
 													});
 												}}
-												></button>
+											></button>
 
 											<RegenerateMenu
 												onRegenerate={(prompt = null) => {

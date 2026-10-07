@@ -84,9 +84,9 @@ type UsageCapableModel = {
 		meta?: {
 			capabilities?: {
 				usage?: unknown;
-			};
-		};
-	};
+			} | null;
+		} | null;
+	} | null;
 };
 
 export const shouldIncludeUsage = (model: UsageCapableModel): boolean => {

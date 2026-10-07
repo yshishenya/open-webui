@@ -1319,8 +1319,8 @@ ${content}
 								});
 							}}
 							onFilePaste={() => {}}
-							on:paste={async (e) => {
-								e = e.detail.event || e;
+							on:paste={async (event) => {
+								const e = event.detail.event;
 								const clipboardData = e.clipboardData || window.clipboardData;
 								console.log('Clipboard data:', clipboardData);
 

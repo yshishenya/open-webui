@@ -519,7 +519,7 @@ export const getToolServersData = async (servers: any[]) => {
 					}
 				})
 		)
-	).filter((server) => server);
+	).filter((server): server is NonNullable<typeof server> => server !== null);
 };
 
 export const executeToolServer = async (
@@ -817,7 +817,7 @@ export const generateTags = async (
 	model: string,
 	messages: { role: string; content?: string }[],
 	chat_id?: string
-): Promise<unknown[]> => {
+): Promise<string[]> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/tasks/tags/completions`, {
@@ -869,7 +869,9 @@ export const generateTags = async (
 
 			// Step 6: If there's a "tags" key, return the tags array; otherwise, return an empty array
 			if (parsed && parsed.tags) {
-				return Array.isArray(parsed.tags) ? parsed.tags : [];
+				return Array.isArray(parsed.tags)
+					? parsed.tags.filter((tag: unknown): tag is string => typeof tag === 'string')
+					: [];
 			} else {
 				return [];
 			}

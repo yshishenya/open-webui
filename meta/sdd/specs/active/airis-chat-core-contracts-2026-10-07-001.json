@@ -1,0 +1,150 @@
+{
+	"spec_id": "airis-chat-core-contracts-2026-10-07-001",
+	"title": "Airis chat core contracts 2026-10-07",
+	"generated": "2026-10-07T15:17:02.686209Z",
+	"last_updated": "2026-10-07T16:07:50.704236Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "high",
+		"risk_level": "medium",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__refactor__chat-core-contracts.md",
+		"status": "active",
+		"activated_date": "2026-10-07T15:17:53.046825Z",
+		"progress_percentage": 50,
+		"current_phase": "phase-2"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis chat core contracts 2026-10-07",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 4,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace and align shared contracts",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T16:07:50.701826Z",
+				"journaled_at": "2026-10-07T16:07:50.704211Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify and release coherent main-path quality block",
+			"status": "in_progress",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Trace producers and consumers",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"file_path": "src/lib/utils/airis/chat_history.ts",
+				"category": "refactoring",
+				"started_at": "2026-10-07T15:17:53.275546Z",
+				"completed_at": "2026-10-07T16:06:18.374048Z",
+				"needs_journaling": false,
+				"status_note": "Traced common history, socket, editor, attachment and TTS contracts and all sibling callers; minimal existing contracts reused.",
+				"actual_hours": 0.807,
+				"journaled_at": "2026-10-07T16:06:18.376079Z"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Align main chat, input, response and editor types",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"file_path": "src/lib/components/chat/Chat.svelte",
+				"category": "refactoring",
+				"started_at": "2026-10-07T15:36:26.471835Z",
+				"completed_at": "2026-10-07T16:07:50.701669Z",
+				"needs_journaling": false,
+				"status_note": "Four main components and changed fork-owned contracts have zero errors; full check2599/111, normalized additions0 vs2942/113; scoped ESLint0, full1097 vs1110 additions0.",
+				"actual_hours": 0.523,
+				"journaled_at": "2026-10-07T16:07:50.703160Z"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify source and compiled behavior",
+			"status": "in_progress",
+			"parent": "phase-2",
+			"children": [],
+			"metadata": {
+				"file_path": "e2e/onboarding-paths.config.ts",
+				"category": "refactoring",
+				"started_at": "2026-10-07T16:06:18.624829Z",
+				"status_note": "Measuring type/lint deltas and actual behavior before frozen source and compiled browser checks."
+			},
+			"completed_tasks": 0,
+			"total_tasks": 1
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Integrate and prove protected production release",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-07__refactor__chat-core-contracts.md",
+				"category": "refactoring"
+			},
+			"completed_tasks": 0,
+			"total_tasks": 1
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-07T16:06:18.376069Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Trace producers and consumers",
+			"author": "Codex",
+			"content": "Task task-1-1 marked as completed. \nNote: Traced common history, socket, editor, attachment and TTS contracts and all sibling callers; minimal existing contracts reused.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-07T16:07:50.703156Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Align main chat, input, response and editor types",
+			"author": "Codex",
+			"content": "Task task-1-2 marked as completed. \nNote: Four main components and changed fork-owned contracts have zero errors; full check2599/111, normalized additions0 vs2942/113; scoped ESLint0, full1097 vs1110 additions0.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-07T16:07:50.704207Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace and align shared contracts",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}
