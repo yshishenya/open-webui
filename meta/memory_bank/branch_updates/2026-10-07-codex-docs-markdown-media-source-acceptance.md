@@ -1,0 +1,5 @@
+- [x] **[DOCS]** Close accepted Markdown media source release
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__markdown-media-source.md`
+  - Owner: Codex
+  - Done: 2026-10-07
+  - Summary: Record exact-source compiled and guarded production acceptance and close SDD3/3; retain measured global frontend debt and independent human/calendar limits. Documentation only, no runtime rebuild.
