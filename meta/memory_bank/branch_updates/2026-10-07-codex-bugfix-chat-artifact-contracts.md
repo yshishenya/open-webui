@@ -1,8 +1,8 @@
-- [ ] **[BUG][CHAT]** Correct shared artifact result contracts
+- [x] **[BUG][CHAT]** Correct shared artifact result contracts
   - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__chat-artifact-contracts.md`
   - Owner: Codex
   - Branch: `codex/bugfix/chat-artifact-contracts`
-  - Started: 2026-10-07
+  - Done: 2026-10-07
   - Summary: Trace and annotate extraction/store/consumer types without changing runtime.
-  - Tests: Docker frontend 800/800; JS9/CSS2 unchanged; types3315/130, ESLint1227, zero new diagnostics; all5 changed files lint clean. Exact source CI/merge pending.
+  - Tests: Docker frontend 800/800; JS9/CSS2 unchanged; types3315/130, ESLint1227, zero new diagnostics; all5 changed files lint clean. PR327 source/merge accepted; SDD3/3 closed.
   - Risks: Low; type-only correction, existing runtime preserved.
