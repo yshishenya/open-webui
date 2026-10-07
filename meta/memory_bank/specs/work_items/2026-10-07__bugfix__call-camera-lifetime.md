@@ -6,7 +6,7 @@
 - Status: In Progress
 - Owner: Codex
 - Branch: `codex/bugfix/call-camera-lifetime`
-- SDD Spec: `meta/sdd/specs/active/airis-call-camera-lifetime-202-2026-10-07-1523.json`
+- SDD Spec: `meta/sdd/specs/active/airis-call-camera-lifetime-2026-10-07-001.json`
 - Created: 2026-10-07
 
 ## Context and final result

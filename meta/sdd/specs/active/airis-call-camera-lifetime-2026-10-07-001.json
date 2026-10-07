@@ -1,6 +1,6 @@
 {
-  "spec_id": "airis-call-camera-lifetime-202-2026-10-07-1523",
-  "title": "airis-call-camera-lifetime-2026-10-07",
+  "spec_id": "airis-call-camera-lifetime-2026-10-07-001",
+  "title": "Release call camera resources on failure and cancellation",
   "generated": "2026-10-07T12:23:27.464215Z",
   "last_updated": "2026-10-07T12:33:12.100209Z",
   "metadata": {
