@@ -6,7 +6,7 @@
 - Owner: Codex
 - Branch: `codex/bugfix/chat-state-types`
 - Created: 2026-10-07
-- SDD Spec: `meta/sdd/specs/active/airis-chat-state-types-2026-10-2026-10-07-0434.json`
+- SDD Spec: `meta/sdd/specs/active/airis-chat-state-types-2026-10-07-001.json`
 
 ## Problem and cause
 
