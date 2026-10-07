@@ -1,0 +1,6 @@
+- [ ] [BUG] Integration menu list recovery
+  - Spec: meta/memory_bank/specs/work_items/2026-10-07**bugfix**integration-menu-list-recovery.md
+  - Owner: Codex
+  - Summary: Reproduce failed/null list loading, recover menus without losing selections and declare existing list contracts.
+  - Started: 2026-10-07
+  - Validation: 6/6 baseline-backed regressions, 825/825 frontend, 14/14 compiled Chromium/Firefox cases; 0 new normalized type/lint diagnostics. Guarded release pending.

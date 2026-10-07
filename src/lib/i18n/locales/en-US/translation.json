@@ -1,4 +1,6 @@
 {
+	"Could not load tools. Close and reopen the menu to retry.": "Could not load tools. Close and reopen the menu to retry.",
+	"Could not load skills. Close and reopen the menu to retry.": "Could not load skills. Close and reopen the menu to retry.",
 	"0": "",
 	"-1 for no limit, or a positive integer for a specific limit": "",
 	"(latest)": "",

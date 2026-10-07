@@ -1976,7 +1976,6 @@
 									<div class="flex flex-1 items-center min-w-0 overflow-x-auto scrollbar-none">
 										{#if showWebSearchButton || showImageGenerationButton || showCodeInterpreterButton || showToolsButton || showSkillsButton || (toggleFilters && toggleFilters.length > 0)}
 											<IntegrationsMenu
-												selectedModels={selectedModelIds}
 												{toggleFilters}
 												{showWebSearchButton}
 												{showImageGenerationButton}
