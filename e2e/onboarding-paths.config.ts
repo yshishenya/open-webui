@@ -14,7 +14,8 @@ export const onboardingTestFiles = [
 	'note-record-state.spec.ts',
 	'onboarding-paths.spec.ts',
 	'rich_text_insertion.spec.ts',
-	'screen-capture-cleanup.spec.ts'
+	'screen-capture-cleanup.spec.ts',
+	'voice-recording-lifetime.spec.ts'
 ];
 
 export default defineConfig({
