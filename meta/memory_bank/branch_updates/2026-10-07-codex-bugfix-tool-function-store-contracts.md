@@ -1,5 +1,5 @@
-- [ ] [BUG] Shared tool/function store contracts
-  - Spec: meta/memory_bank/specs/work_items/2026-10-07__bugfix__tool-function-store-contracts.md
+- [x] [BUG] Function selector contracts and bulk selection accessibility
+  - Spec: meta/memory_bank/specs/work_items/2026-10-07**bugfix**tool-function-store-contracts.md
   - Owner: Codex
-  - Summary: Correct null-only store inference from existing server response schemas; preserve runtime and reduce type debt.
-  - Started: 2026-10-07
+  - Summary: Restore FunctionResponse list types and nullable selector descriptions; Enable all announces selected state. PR333 merged and guarded frontend release accepted; 819 frontend, 6 compiled browser and 24 path tests passed. Global quality gate remains open.
+  - Done: 2026-10-07
