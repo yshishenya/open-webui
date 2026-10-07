@@ -12,14 +12,13 @@
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import VideoInputMenu from './CallOverlay/VideoInputMenu.svelte';
-	import { KokoroWorker } from '$lib/workers/KokoroWorker';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 	const i18n = getContext('i18n');
 
 	export let eventTarget: EventTarget;
-	export let submitPrompt: Function;
-	export let stopResponse: Function;
+	export let submitPrompt: (prompt: string, options?: { _raw?: boolean }) => Promise<void>;
+	export let stopResponse: () => Promise<void>;
 	export let files;
 	export let chatId;
 	export let modelId;
@@ -30,13 +29,14 @@
 
 	let loading = false;
 	let confirmed = false;
-	let interrupted = false;
 	let assistantSpeaking = false;
 	let muted = false;
 
 	let emoji = null;
 	let camera = false;
-	let cameraStream = null;
+	let cameraStream: MediaStream | null = null;
+	let videoStreamRequest = 0;
+	let destroyed = false;
 
 	let chatStreaming = false;
 	let rmsLevel = 0;
@@ -73,53 +73,86 @@
 		}
 	};
 
-	const startCamera = async () => {
-		await getVideoInputDevices();
-
-		if (cameraStream === null) {
-			camera = true;
+	const startCamera = async (): Promise<void> => {
+		if (camera || destroyed) return;
+		const request = ++videoStreamRequest;
+		camera = true;
+		try {
+			await getVideoInputDevices();
 			await tick();
-			try {
+			if (request === videoStreamRequest && !destroyed && camera) {
 				await startVideoStream();
-			} catch (err) {
+			}
+		} catch (err) {
+			if (request === videoStreamRequest && !destroyed) {
+				stopCamera();
 				console.error('Error accessing webcam: ', err);
+				toast.error($i18n.t('Error accessing media devices.'));
 			}
 		}
 	};
 
-	const startVideoStream = async () => {
-		const video = document.getElementById('camera-feed');
-		if (video) {
+	const startVideoStream = async (): Promise<void> => {
+		if (!camera || destroyed) return;
+		stopVideoStream();
+		const request = videoStreamRequest;
+		const video = document.getElementById('camera-feed') as HTMLVideoElement | null;
+		if (!video) {
+			camera = false;
+			return;
+		}
+		let stream: MediaStream | null = null;
+		let started = false;
+		try {
 			if (selectedVideoInputDeviceId === 'screen') {
-				cameraStream = await navigator.mediaDevices.getDisplayMedia({
+				stream = await navigator.mediaDevices.getDisplayMedia({
 					video: {
 						cursor: 'always'
-					},
+					} as MediaTrackConstraints,
 					audio: false
 				});
 			} else {
-				cameraStream = await navigator.mediaDevices.getUserMedia({
+				stream = await navigator.mediaDevices.getUserMedia({
 					video: {
 						deviceId: selectedVideoInputDeviceId ? { exact: selectedVideoInputDeviceId } : undefined
 					}
 				});
 			}
 
-			if (cameraStream) {
-				await getVideoInputDevices();
-				video.srcObject = cameraStream;
-				await video.play();
+			if (request !== videoStreamRequest || destroyed || !camera) return;
+			cameraStream = stream;
+			await getVideoInputDevices();
+			if (request !== videoStreamRequest || destroyed || !camera) return;
+			video.srcObject = stream;
+			await video.play();
+			started = request === videoStreamRequest && !destroyed && camera;
+		} catch (err) {
+			if (request === videoStreamRequest && !destroyed) {
+				camera = false;
+				console.error('Error accessing webcam: ', err);
+				toast.error($i18n.t('Error accessing media devices.'));
+			}
+		} finally {
+			if (!started && stream) {
+				stream.getTracks().forEach((track) => {
+					if (track.readyState !== 'ended') track.stop();
+				});
+				if (video.srcObject === stream) video.srcObject = null;
+				if (cameraStream === stream) cameraStream = null;
 			}
 		}
 	};
 
-	const stopVideoStream = async () => {
+	const stopVideoStream = (): void => {
+		videoStreamRequest++;
 		if (cameraStream) {
 			const tracks = cameraStream.getTracks();
 			tracks.forEach((track) => track.stop());
 		}
 
 		cameraStream = null;
+		const video = document.getElementById('camera-feed') as HTMLVideoElement | null;
+		if (video) video.srcObject = null;
 	};
 
 	const takeScreenshot = () => {
@@ -146,13 +179,12 @@
 		return dataURL;
 	};
 
-	const stopCamera = async () => {
-		await stopVideoStream();
+	const stopCamera = (): void => {
 		camera = false;
+		stopVideoStream();
 	};
 
 	const MIN_DECIBELS = -55;
-	const VISUALIZER_BUFFER_LENGTH = 300;
 
 	const transcribeHandler = async (audioBlob) => {
 		// Create a blob from the audio chunks
@@ -378,7 +410,7 @@
 		detectSound();
 	};
 
-	let finishedMessages = {};
+	let finishedMessages: Record<string, boolean> = {};
 	let currentMessageId = null;
 	let currentUtterance = null;
 
@@ -457,9 +489,8 @@
 		}
 	};
 
-	const stopAllAudio = async () => {
+	const stopAllAudio = async (): Promise<void> => {
 		assistantSpeaking = false;
-		interrupted = true;
 
 		if (chatStreaming) {
 			stopResponse();
@@ -633,9 +664,8 @@
 		}
 	};
 
-	const chatFinishHandler = async (e) => {
-		const { id, content } = e.detail;
-		// "content" here is the entire message from the assistant
+	const chatFinishHandler = async (e: Event): Promise<void> => {
+		const { id } = (e as CustomEvent<{ id: string }>).detail;
 		finishedMessages[id] = true;
 
 		chatStreaming = false;
@@ -743,9 +773,10 @@
 	});
 
 	onDestroy(async () => {
+		destroyed = true;
+		stopCamera();
 		await stopAllAudio();
 		await stopRecordingCallback(false);
-		await stopCamera();
 
 		await stopAudioStream();
 		eventTarget.removeEventListener('chat:start', chatStartHandler);
@@ -834,7 +865,7 @@
 									? 'size-14'
 									: 'size-12'}  transition-all rounded-full bg-cover bg-center bg-no-repeat"
 						style={`background-image: url('${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}&voice=true');`}
-					/>
+					></div>
 				{/if}
 				<!-- navbar -->
 			</button>
@@ -910,20 +941,20 @@
 										? 'size-44'
 										: 'size-40'} transition-all rounded-full bg-cover bg-center bg-no-repeat"
 							style={`background-image: url('${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}&voice=true');`}
-						/>
+						></div>
 					{/if}
 				</button>
 			{:else}
 				<div class="relative flex video-container w-full max-h-full pt-2 pb-4 md:py-6 px-2 h-full">
-					<!-- svelte-ignore a11y-media-has-caption -->
 					<video
 						id="camera-feed"
 						autoplay
 						class="rounded-2xl h-full min-w-full object-cover object-center"
 						playsinline
-					/>
+						muted
+					></video>
 
-					<canvas id="camera-canvas" style="display:none;" />
+					<canvas id="camera-canvas" style="display:none;"></canvas>
 
 					<div class=" absolute top-4 md:top-8 left-4">
 						<button
@@ -981,7 +1012,6 @@
 							console.log(e.detail);
 							selectedVideoInputDeviceId = e.detail;
 							localStorage.setItem('selectedVideoInputDeviceId', e.detail);
-							await stopVideoStream();
 							await startVideoStream();
 						}}
 					>
@@ -1010,10 +1040,7 @@
 							aria-label={$i18n.t('Camera')}
 							class="p-3 rounded-full bg-gray-50 dark:bg-gray-900"
 							type="button"
-							on:click={async () => {
-								await navigator.mediaDevices.getUserMedia({ video: true });
-								startCamera();
-							}}
+							on:click={startCamera}
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
@@ -1096,8 +1123,8 @@
 					aria-label={$i18n.t('End call')}
 					class="p-3 rounded-full bg-gray-50 dark:bg-gray-900"
 					on:click={async () => {
+						stopCamera();
 						await stopAudioStream();
-						await stopVideoStream();
 
 						console.log(audioStream);
 						console.log(cameraStream);

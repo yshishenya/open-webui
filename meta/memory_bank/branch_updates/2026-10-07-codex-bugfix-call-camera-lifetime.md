@@ -1,0 +1,8 @@
+- [ ] **[BUG][CHAT][MEDIA]** Release call camera on failures and cancellation
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__call-camera-lifetime.md`
+  - Owner: Codex
+  - Started: 2026-10-07
+  - Summary: Trace both camera callers and native acquisition races; reuse shared stop functions, remove the discarded permission stream and verify no live tracks after cancellation.
+  - Tests: Actual-handler disposable media regression; source/compiled/production gates pending.
+
+- CI repair: scopedlint0; frontend893/893; types2990/114warnings and lint1116, zero new diagnostics. Compiled and production gates pending.

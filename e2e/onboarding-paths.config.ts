@@ -6,6 +6,7 @@ export const onboardingTestFiles = [
 	'admin-model-settings-save.spec.ts',
 	'billing-full-path-recovery.spec.ts',
 	'browser-history-state.spec.ts',
+	'call-camera-lifetime.spec.ts',
 	'chat-cancel-history.spec.ts',
 	'folder-api-failure.spec.ts',
 	'markdown-media-source.spec.ts',
