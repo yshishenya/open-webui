@@ -1,0 +1,173 @@
+{
+	"spec_id": "airis-model-editor-contracts-2026-10-07-001",
+	"title": "airis-model-editor-contracts-2026-10-07",
+	"generated": "2026-10-07T09:22:49.205083Z",
+	"last_updated": "2026-10-07T09:32:56.584700Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 4,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__model-editor-contracts.md",
+		"status": "completed",
+		"activated_date": "2026-10-07T09:24:31.065521Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-07T09:32:56.584336Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-model-editor-contracts-2026-10-07",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2", "phase-3"],
+			"total_tasks": 3,
+			"completed_tasks": 3,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace editor callers, configuration and arbitrary knowledge failures",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T09:24:31.291264Z",
+				"journaled_at": "2026-10-07T09:24:31.293205Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Apply existing contracts and minimal nullable-path guards",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T09:32:55.889834Z",
+				"journaled_at": "2026-10-07T09:32:55.891848Z"
+			}
+		},
+		"phase-3": {
+			"type": "phase",
+			"title": "Verify full suite, diagnostic delta and prepare publication",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-3"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T09:32:56.120386Z",
+				"journaled_at": "2026-10-07T09:32:56.122450Z"
+			}
+		},
+		"task-1": {
+			"type": "task",
+			"title": "Trace editor callers, configuration and arbitrary knowledge failures",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "investigation",
+				"completed_at": "2026-10-07T09:24:31.291018Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-07T09:24:31.292188Z"
+			}
+		},
+		"task-2": {
+			"type": "task",
+			"title": "Apply existing contracts and minimal nullable-path guards",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"completed_at": "2026-10-07T09:32:55.889687Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-07T09:32:55.890778Z"
+			}
+		},
+		"task-3": {
+			"type": "task",
+			"title": "Verify full suite, diagnostic delta and prepare publication",
+			"status": "completed",
+			"parent": "phase-3",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"completed_at": "2026-10-07T09:32:56.120143Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-07T09:32:56.121376Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-07T09:24:31.292184Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Trace editor callers, configuration and arbitrary knowledge failures",
+			"author": "claude-code",
+			"content": "Task task-1 marked as completed.",
+			"metadata": {},
+			"task_id": "task-1"
+		},
+		{
+			"timestamp": "2026-10-07T09:24:31.293200Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace editor callers, configuration and arbitrary knowledge failures",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-07T09:32:55.890772Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Apply existing contracts and minimal nullable-path guards",
+			"author": "claude-code",
+			"content": "Task task-2 marked as completed.",
+			"metadata": {},
+			"task_id": "task-2"
+		},
+		{
+			"timestamp": "2026-10-07T09:32:55.891843Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Apply existing contracts and minimal nullable-path guards",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		},
+		{
+			"timestamp": "2026-10-07T09:32:56.121367Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify full suite, diagnostic delta and publication",
+			"author": "claude-code",
+			"content": "Task task-3 marked as completed.",
+			"metadata": {},
+			"task_id": "task-3"
+		},
+		{
+			"timestamp": "2026-10-07T09:32:56.122444Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify full suite, diagnostic delta and publication",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-3 have been completed.",
+			"metadata": {},
+			"task_id": "phase-3"
+		}
+	]
+}

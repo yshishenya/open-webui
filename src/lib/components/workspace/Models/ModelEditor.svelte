@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 
-	import { onMount, getContext, tick } from 'svelte';
+	import { onMount, getContext, tick, type ComponentProps } from 'svelte';
+	import type { ModelConfig, ModelMeta, ModelParams } from '$lib/apis';
+	import type { SkillListItem } from '$lib/utils/airis/frontend-contracts';
 	import { models, tools, functions, user } from '$lib/stores';
 	import type { Model } from '$lib/stores';
 	import type { InputVariable } from '$lib/utils/airis/input_variables';
@@ -41,15 +43,25 @@
 	export let onSubmit: (modelInfo: typeof info) => unknown;
 	export let onBack: (() => void | Promise<void>) | null = null;
 
-	export let model = null;
+	type AccessGrants = ComponentProps<AccessControlModal>['accessGrants'];
+	type EditorModel = ModelConfig & {
+		base_model_id: string | null;
+		meta: ModelMeta & Record<string, unknown>;
+		access_grants?: AccessGrants;
+	};
+	export let model:
+		| (Pick<ModelConfig, 'id' | 'name'> &
+				Partial<ModelConfig> & { access_grants?: AccessGrants | null })
+		| null
+		| undefined = null;
 	export let edit = false;
 
 	export let preset = true;
 
 	let loading = false;
 
-	let filesInputElement;
-	let inputFiles;
+	let filesInputElement: HTMLInputElement;
+	let inputFiles: FileList | null;
 
 	let showAdvanced = false;
 	let showPreview = false;
@@ -76,7 +88,7 @@
 	}
 
 	let system = '';
-	let info = {
+	let info: EditorModel = {
 		id: '',
 		base_model_id: null,
 		name: '',
@@ -91,24 +103,24 @@
 		}
 	};
 
-	let params = {
+	let params: ModelParams = {
 		system: ''
 	};
 
-	let knowledge = [];
-	let toolIds = [];
-	let skillIds = [];
-	let skillsList = [];
+	let knowledge: unknown[] = [];
+	let toolIds: string[] = [];
+	let skillIds: string[] = [];
+	let skillsList: SkillListItem[] = [];
 
-	let filterIds = [];
-	let defaultFilterIds = [];
+	let filterIds: string[] = [];
+	let defaultFilterIds: string[] = [];
 
-	let capabilities = { ...DEFAULT_CAPABILITIES };
-	let defaultFeatureIds = [];
+	let capabilities: NonNullable<ModelMeta['capabilities']> = { ...DEFAULT_CAPABILITIES };
+	let defaultFeatureIds: string[] = [];
 	let builtinTools = {};
 
-	let actionIds = [];
-	let accessGrants = [];
+	let actionIds: string[] = [];
+	let accessGrants: AccessGrants = [];
 	let terminalId = '';
 	let tts = { voice: '' };
 	export let suggestionTags: { name: string }[] = [];
@@ -172,7 +184,7 @@
 	$: chatVariablesPreview = getChatVariablesPreview(system ?? '');
 
 	const getBaseModelItems = (models: Model[] = []) => {
-		const currentModelId = (model as Model | null)?.id;
+		const currentModelId = model?.id;
 
 		return models
 			.filter(
@@ -259,7 +271,15 @@
 			return;
 		}
 
-		if (knowledge.some((item) => item.status === 'uploading')) {
+		if (
+			knowledge.some(
+				(item) =>
+					item !== null &&
+					typeof item === 'object' &&
+					'status' in item &&
+					item.status === 'uploading'
+			)
+		) {
 			toast.error($i18n.t('Please wait until all files are uploaded.'));
 			loading = false;
 
@@ -446,17 +466,19 @@
 				: null;
 
 			knowledge = (model?.meta?.knowledge ?? []).map((item) => {
-				if (item?.collection_name && item?.type !== 'file') {
+				const reference =
+					item !== null && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+				if (reference.collection_name && reference.type !== 'file') {
 					return {
-						id: item.collection_name,
-						name: item.name,
+						id: reference.collection_name,
+						name: reference.name,
 						legacy: true
 					};
-				} else if (item?.collection_names) {
+				} else if (reference.collection_names) {
 					return {
-						name: item.name,
+						name: reference.name,
 						type: 'collection',
-						collection_names: item.collection_names,
+						collection_names: reference.collection_names,
 						legacy: true
 					};
 				} else {
@@ -481,16 +503,7 @@
 
 			info = {
 				...info,
-				...JSON.parse(
-					JSON.stringify(
-						model
-							? model
-							: {
-									id: model.id,
-									name: model.name
-								}
-					)
-				)
+				...JSON.parse(JSON.stringify(model))
 			};
 
 			console.log(model);
@@ -537,7 +550,7 @@
 						let originalImageUrl = `${event.target?.result}`;
 
 						// For animated formats (gif, webp), skip resizing to preserve animation
-						const fileType = (inputFiles[0] as File)?.['type'];
+						const fileType = inputFiles?.[0]?.type;
 						if (fileType === 'image/gif' || fileType === 'image/webp') {
 							info.meta.profile_image_url = originalImageUrl;
 							inputFiles = null;
@@ -551,6 +564,12 @@
 						img.onload = function () {
 							const canvas = document.createElement('canvas');
 							const ctx = canvas.getContext('2d');
+							if (!ctx) {
+								info.meta.profile_image_url = originalImageUrl;
+								inputFiles = null;
+								filesInputElement.value = '';
+								return;
+							}
 
 							// Calculate the aspect ratio of the image
 							const aspectRatio = img.width / img.height;
@@ -591,12 +610,12 @@
 						inputFiles &&
 						inputFiles.length > 0 &&
 						['image/gif', 'image/webp', 'image/jpeg', 'image/png', 'image/svg+xml'].includes(
-							(inputFiles[0] as File)?.['type']
+							inputFiles?.[0]?.type
 						)
 					) {
 						reader.readAsDataURL(inputFiles[0]);
 					} else {
-						console.log(`Unsupported File Type '${(inputFiles[0] as File)?.['type']}'.`);
+						console.log(`Unsupported File Type '${inputFiles?.[0]?.type}'.`);
 						inputFiles = null;
 					}
 				}}
@@ -753,14 +772,14 @@
 									{suggestionTags}
 									on:delete={(e) => {
 										const tagName = e.detail;
-										info.meta.tags = info.meta.tags.filter((tag) => tag.name !== tagName);
+										info.meta.tags = (info.meta.tags ?? []).filter((tag) => tag.name !== tagName);
 									}}
 									on:add={(e) => {
 										const tagName = e.detail;
 										if (!(info?.meta?.tags ?? null)) {
 											info.meta.tags = [{ name: tagName }];
 										} else {
-											info.meta.tags = [...info.meta.tags, { name: tagName }];
+											info.meta.tags = [...(info.meta.tags ?? []), { name: tagName }];
 										}
 									}}
 								/>
@@ -928,7 +947,7 @@
 									/>
 								</div>
 
-								{@const toggleableFilters = $functions.filter(
+								{@const toggleableFilters = ($functions ?? []).filter(
 									(func) =>
 										func.type === 'filter' &&
 										(filterIds.includes(func.id) || func?.is_global) &&

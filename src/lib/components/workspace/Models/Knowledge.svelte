@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
-	import { config, knowledge, settings, user } from '$lib/stores';
+	import { config, settings, user } from '$lib/stores';
 
 	import KnowledgeSelector from './Knowledge/KnowledgeSelector.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -12,12 +12,10 @@
 	import PageEdit from '$lib/components/icons/PageEdit.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 
-	import { getKnowledgeBases } from '$lib/apis/knowledge';
 	import { uploadFile } from '$lib/apis/files';
 
 	import { toast } from 'svelte-sonner';
 	import { v4 as uuidv4 } from 'uuid';
-	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 	export let selectedItems = [];
 	const i18n = getContext('i18n');
@@ -179,7 +177,7 @@
 							on:select={(e) => {
 								const item = e.detail;
 
-								if (!selectedItems.find((k) => k.id === item.id)) {
+								if (!selectedItems.find((k) => k?.id === item.id)) {
 									selectedItems = [
 										...selectedItems,
 										{
@@ -218,48 +216,50 @@
 		{#if selectedItems?.length > 0}
 			<div class=" flex flex-wrap items-center gap-1.5 mb-2.5">
 				{#each selectedItems as file, fileIdx}
-					<Tooltip content={file.description || file.name || file.id}>
-						<div
-							class="flex max-w-56 items-center gap-1.5 py-0.5 pr-2 text-xs text-gray-700 dark:text-gray-200"
-						>
-							<div class="shrink-0 text-gray-500 dark:text-gray-400">
-								{#if file.status === 'uploading'}
-									<Spinner className="size-3.5" />
-								{:else if file.type === 'collection'}
-									<Database className="size-3.5" />
-								{:else if file.type === 'note'}
-									<PageEdit className="size-3.5" />
-								{:else if file.type === 'chat'}
-									<ChatBubble className="size-3.5" />
-								{:else if file.type === 'folder'}
-									<Folder className="size-3.5" />
-								{:else}
-									<DocumentPage className="size-3.5" />
-								{/if}
-							</div>
-
-							<div class="min-w-0 truncate">
-								{file.name || file.id}
-							</div>
-
-							{#if file.status === 'uploading'}
-								<div class="shrink-0 text-gray-400 dark:text-gray-500">
-									{$i18n.t('Uploading')}
-								</div>
-							{/if}
-
-							<button
-								type="button"
-								class="flex size-4 shrink-0 items-center justify-center text-gray-400 dark:text-gray-500"
-								aria-label={$i18n.t('Remove File')}
-								on:click={() => {
-									selectedItems = selectedItems.filter((_, idx) => idx !== fileIdx);
-								}}
+					{#if file !== null && typeof file === 'object'}
+						<Tooltip content={file.description || file.name || file.id}>
+							<div
+								class="flex max-w-56 items-center gap-1.5 py-0.5 pr-2 text-xs text-gray-700 dark:text-gray-200"
 							>
-								<XMark className="size-3" />
-							</button>
-						</div>
-					</Tooltip>
+								<div class="shrink-0 text-gray-500 dark:text-gray-400">
+									{#if file.status === 'uploading'}
+										<Spinner className="size-3.5" />
+									{:else if file.type === 'collection'}
+										<Database className="size-3.5" />
+									{:else if file.type === 'note'}
+										<PageEdit className="size-3.5" />
+									{:else if file.type === 'chat'}
+										<ChatBubble className="size-3.5" />
+									{:else if file.type === 'folder'}
+										<Folder className="size-3.5" />
+									{:else}
+										<DocumentPage className="size-3.5" />
+									{/if}
+								</div>
+
+								<div class="min-w-0 truncate">
+									{file.name || file.id}
+								</div>
+
+								{#if file.status === 'uploading'}
+									<div class="shrink-0 text-gray-400 dark:text-gray-500">
+										{$i18n.t('Uploading')}
+									</div>
+								{/if}
+
+								<button
+									type="button"
+									class="flex size-4 shrink-0 items-center justify-center text-gray-400 dark:text-gray-500"
+									aria-label={$i18n.t('Remove File')}
+									on:click={() => {
+										selectedItems = selectedItems.filter((_, idx) => idx !== fileIdx);
+									}}
+								>
+									<XMark className="size-3" />
+								</button>
+							</div>
+						</Tooltip>
+					{/if}
 				{/each}
 
 				<button
