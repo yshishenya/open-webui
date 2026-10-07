@@ -1,5 +1,9 @@
 <script lang="ts">
-	import type { ContextUsage, SavedChat } from '$lib/utils/airis/frontend-contracts';
+	import type {
+		ArtifactContent,
+		ContextUsage,
+		SavedChat
+	} from '$lib/utils/airis/frontend-contracts';
 	/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
 	import { v4 as uuidv4 } from 'uuid';
 	import { toast } from 'svelte-sonner';
@@ -1711,7 +1715,7 @@
 
 	const getContents = () => {
 		const messages = history ? createMessagesList(history, history.currentId) : [];
-		let contents = [];
+		let contents: ArtifactContent[] = [];
 		messages.forEach((message) => {
 			if (message?.role !== 'user') {
 				const messageContent =

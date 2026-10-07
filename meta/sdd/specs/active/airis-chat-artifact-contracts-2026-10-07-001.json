@@ -1,0 +1,138 @@
+{
+	"spec_id": "airis-chat-artifact-contracts-2026-10-07-001",
+	"title": "AIRIS chat artifact contracts",
+	"generated": "2026-10-07T02:00:49.042479Z",
+	"last_updated": "2026-10-07T02:07:17.868040Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__chat-artifact-contracts.md",
+		"status": "active",
+		"activated_date": "2026-10-07T02:03:29.905174Z",
+		"progress_percentage": 66,
+		"current_phase": "phase-1"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS chat artifact contracts",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace and correct artifact contracts",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T02:07:17.866177Z",
+				"journaled_at": "2026-10-07T02:07:17.868009Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify and accept exact source",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Trace producer, store and consumers; reproduce diagnostics",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-07T02:03:30.141363Z",
+				"needs_journaling": false,
+				"status_note": "1087 baseline source/config files identical to accepted prior source; all artifact producers and consumers traced",
+				"journaled_at": "2026-10-07T02:03:30.142410Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Annotate artifact contracts and verify extraction",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-07T02:07:17.866025Z",
+				"needs_journaling": false,
+				"status_note": "Exact artifact types; extraction test passes;9 JS and2 CSS comparisons identical;800 frontend tests pass;12 type diagnostics removed and zero new diagnostics",
+				"journaled_at": "2026-10-07T02:07:17.866959Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Accept tests, unchanged JS/CSS and exact source CI/merge",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-07T02:03:30.142405Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Trace producer, store and consumers; reproduce diagnostics",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: 1087 baseline source/config files identical to accepted prior source; all artifact producers and consumers traced",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-07T02:07:17.866954Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Annotate artifact contracts and verify extraction",
+			"author": "claude-code",
+			"content": "Task task-1-2 marked as completed. \nNote: Exact artifact types; extraction test passes;9 JS and2 CSS comparisons identical;800 frontend tests pass;12 type diagnostics removed and zero new diagnostics",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-07T02:07:17.868005Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Trace and correct artifact contracts",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}

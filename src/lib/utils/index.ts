@@ -2120,14 +2120,22 @@ export const renderVegaVisualization = async (spec: string, lang: string = ''): 
 	return svg;
 };
 
-export const getCodeBlockContents = (content: string): object => {
+export const getCodeBlockContents = (
+	content: string
+): {
+	codeBlocks: { lang: string; code: string }[];
+	html: string;
+	css: string;
+	js: string;
+	htmlGroups: { html: string; css: string; js: string }[];
+} => {
 	// Strip thinking/reasoning and other detail blocks before extracting code
 	// to prevent code inside <details type="reasoning"> from being treated as artifacts
 	content = removeAllDetails(content);
 
 	const codeBlockContents = content.match(/```[\s\S]*?```/g);
 
-	const codeBlocks = [];
+	const codeBlocks: { lang: string; code: string }[] = [];
 
 	// Groups of related HTML/CSS/JS blocks. Each HTML block starts a new group;
 	// CSS and JS blocks attach to the current (most recent) group.

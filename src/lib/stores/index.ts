@@ -5,6 +5,7 @@ import type { Banner } from '$lib/types';
 import type { Socket } from 'socket.io-client';
 import type { AudioQueue } from '$lib/utils/audio';
 import type {
+	ArtifactContent,
 	DirectModelConnections,
 	DirectTerminalSettings,
 	FrontendConfig,
@@ -143,7 +144,7 @@ export const showFileNavDir: Writable<string | null> = writable(null);
 export const selectedTerminalId: Writable<string | null> = writable(null);
 
 export const artifactCode = writable(null);
-export const artifactContents = writable(null);
+export const artifactContents: Writable<ArtifactContent[] | null> = writable(null);
 
 export const embed = writable(null);
 
