@@ -72,9 +72,10 @@ test('call closes pending microphone/wake permission and releases resources afte
 			}
 		};
 		Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
-			value: async (): Promise<MediaStream> => {
+			value: async (constraints: MediaStreamConstraints): Promise<MediaStream> => {
 				requests++;
-				await permission();
+				// The input permission probe must finish before CallOverlay is mounted.
+				if (constraints.audio !== true) await permission();
 				const generator = new NativeContext();
 				const stream = generator.createMediaStreamDestination().stream;
 				streams.push(stream);
@@ -102,7 +103,7 @@ test('call closes pending microphone/wake permission and releases resources afte
 	const end = page.getByRole('button', { name: 'End call', exact: true });
 	await voice.click();
 	await expect(end).toBeVisible();
-	await expect.poll(() => page.evaluate(() => window.__airisCallAudio.requests)).toBe(1);
+	await expect.poll(() => page.evaluate(() => window.__airisCallAudio.requests)).toBe(2);
 	await end.click();
 	await expect(end).toBeHidden();
 	await page.evaluate(() => window.__airisCallAudio.resume());
