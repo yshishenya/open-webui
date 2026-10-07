@@ -4,7 +4,7 @@
 - Status: In Progress
 - Owner: Codex
 - Branch: codex/refactor/chat-core-contracts
-- SDD Spec: meta/sdd/specs/active/airis-chat-core-contracts-2026-2026-10-07-1817.json
+- SDD Spec: meta/sdd/specs/active/airis-chat-core-contracts-2026-10-07-001.json
 - Plan: 2026-10-01**local**onboarding-retention-implementation-plan.md, global quality gate G14/13.11
 
 ## Goal and measurable acceptance
@@ -44,3 +44,5 @@ Full frontend suite932/932 passed; the subsequently added actual installed TipTa
 Installed Kokoro1.2.1 latest confirmed, TipTap/HEIC/Turndown contracts inspected against installed source/docs. Kokoro calls now forward a string precision rather than an object. Editor focus uses installed isFocused; file storage and native custom-event payloads are shared with all sibling callers. Shared error rendering accepts legacy unknown values; Google Picker executor is synchronous and propagates failures.
 
 Private proofs: airis-chat-core-contracts-20261007/{types-r11.log,diagnostic-comparison.json,quality-r1.log,frontend-r1.log,regressions-r3.log}. Fresh production2026-10-07T16:05:54Z remains on b34184a147cc344d95336cd01923aebdc253dc91, healthy/restarts0. This source is not yet deployed.
+
+Verification correction: the initial frozen-suite selection test identified a bound callback by function text and failed. It now identifies the original plugin spec callback; actual installed behavior rechecked. CI found a generated SDD id outside the required NNN naming convention; corrected without changing validation rules. Frozen source and CI will be repeated for the new SHA.

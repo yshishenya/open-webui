@@ -37,7 +37,7 @@ it('actual selection plugin highlights a range only while the editor is blurred'
 	const editor = new Editor({ extensions: [StarterKit, extension], content: '<p>plan</p>' });
 	try {
 		const plugin = editor.state.plugins.find((item) =>
-			item.props.decorations?.toString().includes('editor-selection')
+			item.spec.props?.decorations?.toString().includes('editor-selection')
 		);
 		if (!plugin?.props.decorations) throw new Error('Missing installed selection plugin');
 		expect(plugin.props.decorations.call(plugin, editor.state)).toBeNull();
