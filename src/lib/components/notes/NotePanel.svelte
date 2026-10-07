@@ -1,25 +1,25 @@
 <script lang="ts">
-	import { onDestroy, onMount, tick } from 'svelte';
-	import { Pane, PaneResizer } from 'paneforge';
+	import { onDestroy, onMount } from 'svelte';
+	import { Pane, PaneResizer, type PaneAPI } from 'paneforge';
 
 	import Drawer from '../common/Drawer.svelte';
 
 	export let show = false;
-	export let pane = null;
+	export let pane: PaneAPI | undefined = undefined;
 
 	export let containerId = 'note-container';
 
-	let mediaQuery;
+	let mediaQuery: MediaQueryList;
 	let largeScreen = false;
 
 	let minSize = 0;
 
-	const handleMediaQuery = async (e) => {
+	const handleMediaQuery = async (e: MediaQueryList | MediaQueryListEvent): Promise<void> => {
 		if (e.matches) {
 			largeScreen = true;
 		} else {
 			largeScreen = false;
-			pane = null;
+			pane = undefined;
 		}
 	};
 
@@ -31,7 +31,8 @@
 		handleMediaQuery(mediaQuery);
 
 		// Select the container element you want to observe
-		const container = document.getElementById(containerId);
+		// NoteEditor is mounted inside the route's note-container.
+		const container = document.getElementById(containerId)!;
 
 		// initialize the minSize based on the container width
 		minSize = Math.floor((350 / container.clientWidth) * 100);
@@ -81,7 +82,7 @@
 	>
 		<div
 			class=" absolute -left-1.5 -right-1.5 -top-0 -bottom-0 z-20 cursor-col-resize bg-transparent"
-		/>
+		></div>
 	</PaneResizer>
 
 	<Pane

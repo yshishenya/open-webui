@@ -4,6 +4,7 @@
 
 	import { decodeString } from '$lib/utils';
 	import { getNoteList, searchNotes } from '$lib/apis/notes';
+	import type { NoteListItem } from '$lib/utils/airis/notes';
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import PageEdit from '$lib/components/icons/PageEdit.svelte';
@@ -13,11 +14,12 @@
 
 	const i18n = getContext('i18n');
 
-	export let onSelect = (e) => {};
+	type NoteSelection = NoteListItem & { type: string; name: string; description: string };
+	export let onSelect: (item: NoteSelection) => void = () => {};
 
 	let loaded = false;
 
-	let items = [];
+	let items: NoteSelection[] = [];
 	let selectedIdx = 0;
 	let query = '';
 
@@ -69,7 +71,7 @@
 				});
 		if (activeRequestId !== requestId) return res;
 
-		const pageItems = query.trim() ? (res?.items ?? []) : (res ?? []);
+		const pageItems = Array.isArray(res) ? res : (res?.items ?? []);
 
 		if ((pageItems ?? []).length === 0) {
 			allItemsLoaded = true;
@@ -159,7 +161,7 @@
 
 					{#if !allItemsLoaded}
 						<Loader
-							on:visible={(e) => {
+							on:visible={() => {
 								if (!itemsLoading) {
 									loadMoreItems();
 								}

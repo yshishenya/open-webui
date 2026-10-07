@@ -47,7 +47,7 @@
 	import NotePanel from '$lib/components/notes/NotePanel.svelte';
 	import AccessControlModal from '$lib/components/workspace/common/AccessControlModal.svelte';
 
-	async function loadLocale(locales) {
+	async function loadLocale(locales: readonly string[]): Promise<void> {
 		for (const locale of locales) {
 			try {
 				dayjs.locale(locale);
@@ -75,7 +75,16 @@
 	} from '$lib/apis/notes';
 	import { deleteChatById } from '$lib/apis/chats';
 
-	import type { NoteRecord, NoteFile } from '$lib/utils/airis/notes';
+	import {
+		normalizeNote,
+		type NoteRecord,
+		type NoteFile,
+		type NoteEvent,
+		type NoteDownloadType
+	} from '$lib/utils/airis/notes';
+	import type { Editor } from '@tiptap/core';
+	import type { SavedChat, FrontendConfig } from '$lib/utils/airis/frontend-contracts';
+	import type { Settings } from '$lib/stores';
 	import RichTextInput from '../common/RichTextInput.svelte';
 	import FileItem from '../common/FileItem.svelte';
 	import Spinner from '../common/Spinner.svelte';
@@ -98,32 +107,32 @@
 
 	export let id: null | string = null;
 
-	let editor = null;
+	let editor: Editor | null = null;
 	let note: NoteRecord | null = null;
 
-	let files = [];
+	let files: NoteFile[] = [];
 
 	let wordCount = 0;
 	let charCount = 0;
 
-	let versionIdx = null;
-	let selectedModelId = null;
+	let versionIdx: number | null = null;
+	let selectedModelId: string | null = null;
 
 	let recording = false;
 	let displayMediaRecord = false;
 
 	let showNoteChat = false;
-	let noteChatId = null;
+	let noteChatId: string | null = null;
 	let noteChatLoading = false;
-	let noteChats = [];
+	let noteChats: SavedChat[] = [];
 	let noteChatDraftKey = '';
 	let noteChatCreating = false;
 
-	let selectedContent = null;
-	let noteAttachmentFiles = [];
-	let noteChatSuggestedPrompts = [];
-	let pendingNoteEvent = null;
-	let pendingNoteEventTimer = null;
+	let selectedContent: { text: string; from: number; to: number } | null = null;
+	let noteAttachmentFiles: NoteFile[] = [];
+	let noteChatSuggestedPrompts: string[] = [];
+	let pendingNoteEvent: NoteEvent | null = null;
+	let pendingNoteEventTimer: ReturnType<typeof setTimeout> | null = null;
 	let lastLocalContentChangeAt = 0;
 	$: noteAttachmentFiles = (files ?? []).filter(
 		(file) => file?.type !== 'image' && !(file?.content_type ?? '').startsWith('image/')
@@ -145,7 +154,7 @@
 	let dragged = false;
 	let loading = false;
 
-	let inputElement = null;
+	let inputElement: RichTextInput | null = null;
 
 	// Computed HTML for editor: fall back to markdown if HTML is missing
 	$: editorHtml =
@@ -230,9 +239,10 @@
 		}
 	};
 
-	const applyExternalNoteContent = async (_note) => {
+	const applyExternalNoteContent = async (_note: NoteEvent): Promise<boolean> => {
 		if (!note || _note.id !== id || _note.id !== note.id) return false;
 		const incomingContent = _note.data?.content;
+		if (!incomingContent) return false;
 		const contentLength = incomingContent?.md?.length ?? incomingContent?.html?.length ?? 0;
 
 		console.info('[note-chat] external note event apply requested', {
@@ -277,10 +287,10 @@
 			return false;
 		}
 
-		note.data.content = {
-			...note.data.content,
-			...incomingContent
-		};
+		note.data.content = normalizeNote({
+			...note,
+			data: { ...note.data, content: { ...note.data.content, ...incomingContent } }
+		}).data.content;
 		if (_note.updated_at) {
 			note.updated_at = _note.updated_at;
 		}
@@ -503,7 +513,11 @@ ${content}
 		return fileItem;
 	};
 
-	const compressImageHandler = async (imageUrl, settings = {}, config = {}) => {
+	const compressImageHandler = async (
+		imageUrl: string,
+		settings: Pick<Settings, 'imageCompression' | 'imageCompressionSize'> = {},
+		config: Pick<FrontendConfig, 'file'> | null = {}
+	): Promise<string> => {
 		// Quick shortcut so we don’t do unnecessary work.
 		const settingsCompression = settings?.imageCompression ?? false;
 		const configWidth = config?.file?.image_compression?.width ?? null;
@@ -515,8 +529,8 @@ ${content}
 		}
 
 		// Default to null (no compression unless set)
-		let width = null;
-		let height = null;
+		let width: number | '' | null = null;
+		let height: number | '' | null = null;
 
 		// If user/settings want compression, pick their preferred size.
 		if (settingsCompression) {
@@ -525,16 +539,16 @@ ${content}
 		}
 
 		// Apply config limits as an upper bound if any
-		if (configWidth && (width === null || width > configWidth)) {
+		if (configWidth && (width === null || Number(width) > configWidth)) {
 			width = configWidth;
 		}
-		if (configHeight && (height === null || height > configHeight)) {
+		if (configHeight && (height === null || Number(height) > configHeight)) {
 			height = configHeight;
 		}
 
 		// Do the compression if required
 		if (width || height) {
-			return await compressImage(imageUrl, width, height);
+			return await compressImage(imageUrl, width || null, height || null);
 		}
 		return imageUrl;
 	};
@@ -584,7 +598,8 @@ ${content}
 				let reader = new FileReader();
 				reader.onload = async (event) => {
 					try {
-						let imageUrl = event.target.result;
+						let imageUrl = event.target?.result;
+						if (typeof imageUrl !== 'string') throw new Error('Invalid image data');
 						imageUrl = await compressImageHandler(imageUrl, $settings, $config);
 
 						if (!isCurrent()) {
@@ -620,7 +635,7 @@ ${content}
 		}
 	};
 
-	const inputFilesHandler = async (inputFiles) => {
+	const inputFilesHandler = async (inputFiles: File[]): Promise<void> => {
 		console.log('Input files handler called with:', inputFiles);
 		inputFiles.forEach(async (file) => {
 			await inputFileHandler(file);
@@ -715,7 +730,7 @@ ${content}
 		}
 	};
 
-	const deleteNoteChat = async (chatId) => {
+	const deleteNoteChat = async (chatId: string): Promise<void> => {
 		if (!note?.id || !chatId) return;
 
 		const deleted = await deleteChatById(localStorage.token, chatId).catch((error) => {
@@ -733,7 +748,7 @@ ${content}
 			})) ?? [];
 
 		if (noteChatId === chatId) {
-			let nextChat = chats[0];
+			let nextChat: SavedChat | null | undefined = chats[0];
 			if (!nextChat) {
 				nextChat = await getNoteChatById(localStorage.token, note.id).catch((error) => {
 					console.error('[note-chat] recreate failed after delete', { noteId: note?.id, error });
@@ -748,7 +763,7 @@ ${content}
 		noteChats = chats;
 	};
 
-	const downloadHandler = async (type: string): Promise<void> => {
+	const downloadHandler = async (type: NoteDownloadType): Promise<void> => {
 		if (!note) return;
 		console.log('downloadHandler', type);
 		if (type === 'txt') {
@@ -766,7 +781,7 @@ ${content}
 		}
 	};
 
-	const deleteNoteHandler = async (id) => {
+	const deleteNoteHandler = async (id: string): Promise<void> => {
 		const res = await deleteNoteById(localStorage.token, id).catch((error) => {
 			toast.error(`${error}`);
 			return null;
@@ -787,7 +802,7 @@ ${content}
 		inputElement?.insertContent(content);
 	};
 
-	const noteEventHandler = async (_note) => {
+	const noteEventHandler = async (_note: NoteEvent): Promise<void> => {
 		console.log('noteEventHandler', _note);
 		if (!note || _note.id !== id || _note.id !== note.id) return;
 
@@ -830,7 +845,7 @@ ${content}
 
 		for (const file of files) {
 			if (file.type === 'image' || (file?.content_type ?? '').startsWith('image/')) {
-				const e = new CustomEvent('data', { files: files });
+				const e = new CustomEvent('data');
 
 				const img = document.getElementById(`image:${file.id}`);
 				if (img) {
@@ -1017,7 +1032,7 @@ ${content}
 												<button
 													class="self-center p-1 hover:enabled:bg-black/5 dark:hover:enabled:bg-white/5 dark:hover:enabled:text-white hover:enabled:text-black rounded-md transition disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:text-gray-500"
 													on:click={() => {
-														editor.chain().focus().undo().run();
+														editor?.chain().focus().undo().run();
 													}}
 													disabled={!editor.can().undo()}
 												>
@@ -1027,7 +1042,7 @@ ${content}
 												<button
 													class="self-center p-1 hover:enabled:bg-black/5 dark:hover:enabled:bg-white/5 dark:hover:enabled:text-white hover:enabled:text-black rounded-md transition disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:text-gray-500"
 													on:click={() => {
-														editor.chain().focus().redo().run();
+														editor?.chain().focus().redo().run();
 													}}
 													disabled={!editor.can().redo()}
 												>
@@ -1088,8 +1103,8 @@ ${content}
 											input.multiple = false;
 											input.click();
 
-											input.onchange = async (e) => {
-												const files = e.target.files;
+											input.onchange = async () => {
+												const files = input.files;
 
 												if (files && files.length > 0) {
 													await uploadFileHandler(files[0]);
@@ -1236,7 +1251,7 @@ ${content}
 										dismissible={versionIdx === null && note?.write_access}
 										edit={true}
 										small={true}
-										modal={['file', 'collection'].includes(file?.type)}
+										modal={['file', 'collection'].includes(file?.type ?? '')}
 										className="w-56 max-w-full"
 										colorClassName="bg-gray-50/60 dark:bg-white/[0.03] border border-gray-100/80 dark:border-white/5"
 										on:dismiss={() => {

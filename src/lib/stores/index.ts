@@ -1,3 +1,4 @@
+import type { NoteListItem } from '$lib/utils/airis/notes';
 import type { KnowledgeListItem } from '$lib/utils/airis/knowledge-types';
 import { APP_NAME } from '$lib/constants';
 import { type Writable, writable } from 'svelte/store';
@@ -77,7 +78,7 @@ export const channels = writable([]);
 export const channelId = writable(null);
 
 export { chats, pinnedChats } from './chatList';
-export const pinnedNotes = writable([]);
+export const pinnedNotes = writable<NoteListItem[]>([]);
 export const tags = writable([]);
 export const folders = writable<FolderListItem[]>([]);
 

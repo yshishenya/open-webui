@@ -12,7 +12,7 @@
 	dayjs.extend(duration);
 	dayjs.extend(relativeTime);
 
-	async function loadLocale(locales) {
+	async function loadLocale(locales: readonly string[]): Promise<void> {
 		for (const locale of locales) {
 			try {
 				dayjs.locale(locale);
@@ -23,25 +23,29 @@
 		}
 	}
 
-	import { onMount, getContext, onDestroy } from 'svelte';
+	import { onMount, getContext } from 'svelte';
 
 	const i18n = getContext('i18n');
 	// Assuming $i18n.languages is an array of language codes
 	$: loadLocale($i18n.languages);
 
 	import { goto } from '$app/navigation';
-	import { WEBUI_NAME, config, user, pinnedNotes, mobile, showSidebar } from '$lib/stores';
+	import { WEBUI_NAME, pinnedNotes, mobile, showSidebar } from '$lib/stores';
 	import {
 		createNewNote,
 		deleteNoteById,
 		getNoteById,
-		getNoteList,
 		searchNotes,
 		toggleNotePinnedStatusById,
 		getPinnedNoteList
 	} from '$lib/apis/notes';
 	import { capitalizeFirstLetter, copyToClipboard, formatNumber, getTimeRange } from '$lib/utils';
 	import { downloadPdf, createNoteHandler } from './utils';
+	import type {
+		NoteSearchItem,
+		NoteSearchResponse,
+		NoteDownloadType
+	} from '$lib/utils/airis/notes';
 
 	import EllipsisHorizontal from '../icons/EllipsisHorizontal.svelte';
 	import DeleteConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
@@ -60,33 +64,32 @@
 
 	let loaded = false;
 
-	let importFiles = '';
 	let importDocumentFiles: FileList | null = null;
 	let notesImportInputElement: HTMLInputElement;
-	let selectedNote = null;
+	let selectedNote: NoteSearchItem | null = null;
 	let openNoteMenuId: string | null = null;
 	let showDeleteConfirm = false;
 
-	let notes = {};
-
-	let items = null;
-	let total = null;
+	let items: NoteSearchItem[] | null = null;
+	let total: number | null = null;
 
 	let query = '';
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 
 	let sortKey = 'updated_at';
 	let sortDirection = 'desc';
-	let displayOption = null;
-	let viewOption = null;
-	let permission = null;
+	let displayOption: string | null = null;
+	let viewOption: string | null = null;
+	let permission: string | null = null;
 
 	let page = 1;
 
 	let itemsLoading = false;
+	let itemsLoadFailed = false;
 	let allItemsLoaded = false;
 
-	const downloadHandler = async (type) => {
+	const downloadHandler = async (type: NoteDownloadType): Promise<void> => {
+		if (!selectedNote) return;
 		// Fetch the full note since the list response may not contain full content
 		const note = await getNoteById(localStorage.token, selectedNote.id).catch((error) => {
 			toast.error(`${error}`);
@@ -110,7 +113,7 @@
 		}
 	};
 
-	const deleteNoteHandler = async (id) => {
+	const deleteNoteHandler = async (id: string): Promise<void> => {
 		const res = await deleteNoteById(localStorage.token, id).catch((error) => {
 			toast.error(`${error}`);
 			return null;
@@ -171,13 +174,13 @@
 		total = null;
 		allItemsLoaded = false;
 		itemsLoading = false;
-		notes = {};
+		itemsLoadFailed = false;
 	};
 
-	const loadMoreItems = async () => {
+	const loadMoreItems = async (): Promise<void> => {
 		if (allItemsLoaded) return;
 		page += 1;
-		await getItemsPage();
+		if (!(await getItemsPage())) page -= 1;
 	};
 
 	const init = async () => {
@@ -204,8 +207,9 @@
 		init();
 	}
 
-	const getItemsPage = async () => {
+	const getItemsPage = async (): Promise<NoteSearchResponse | null> => {
 		itemsLoading = true;
+		itemsLoadFailed = false;
 
 		if (viewOption === 'created') {
 			permission = null;
@@ -220,7 +224,8 @@
 			page,
 			sortKey ? sortDirection : null
 		).catch(() => {
-			return [];
+			itemsLoadFailed = true;
+			return null;
 		});
 
 		if (res) {
@@ -246,13 +251,14 @@
 		return res;
 	};
 
-	const groupNotes = (res) => {
+	type GroupedNote = NoteSearchItem & { timeRange: string };
+	const groupNotes = (res: NoteSearchItem[] | null): [string, GroupedNote[]][] => {
 		if (!Array.isArray(res)) {
 			return []; // Return empty array for invalid input
 		}
 
 		// Build the grouped object while tracking order
-		const grouped: Record<string, any[]> = {};
+		const grouped: Record<string, GroupedNote[]> = {};
 		const orderedKeys: string[] = [];
 
 		for (const note of res) {
@@ -268,7 +274,7 @@
 		}
 
 		// Return as array of [timeRange, notes] to preserve insertion order
-		return orderedKeys.map((key) => [key, grouped[key]] as [string, any[]]);
+		return orderedKeys.map((key) => [key, grouped[key]] as [string, GroupedNote[]]);
 	};
 
 	const setSortKey = (key: string) => {
@@ -282,7 +288,7 @@
 
 	let dragged = false;
 
-	const onDragOver = (e) => {
+	const onDragOver = (e: DragEvent): void => {
 		e.preventDefault();
 
 		// Check if a file is being dragged.
@@ -372,12 +378,12 @@
 			bind:show={showDeleteConfirm}
 			title={$i18n.t('Delete note?')}
 			on:confirm={() => {
-				deleteNoteHandler(selectedNote.id);
+				if (selectedNote) deleteNoteHandler(selectedNote.id);
 				showDeleteConfirm = false;
 			}}
 		>
 			<div class=" text-sm text-gray-500 truncate">
-				{$i18n.t('This will delete')} <span class="  font-normal">{selectedNote.title}</span>.
+				{$i18n.t('This will delete')} <span class="  font-normal">{selectedNote?.title}</span>.
 			</div>
 		</DeleteConfirmDialog>
 
@@ -580,7 +586,7 @@
 									<div
 										class="{groupedNotes.length - 1 !== idx ? 'mb-3' : ''} gap-y-0.5 flex flex-col"
 									>
-										{#each notesList as note, idx (note.id)}
+										{#each notesList as note (note.id)}
 											<button
 												type="button"
 												aria-label={$i18n.t('Open note')}
@@ -681,7 +687,7 @@
 											? 'mb-5'
 											: ''} gap-2.5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
 									>
-										{#each notesList as note, idx (note.id)}
+										{#each notesList as note (note.id)}
 											<div
 												class="group flex min-h-32 w-full flex-col rounded-lg bg-gray-50/40 p-2.5 text-left transition hover:bg-gray-100/60 focus-within:bg-gray-100/60 dark:bg-gray-900/30 dark:hover:bg-gray-900 dark:focus-within:bg-gray-900"
 											>
@@ -775,20 +781,28 @@
 							{/each}
 
 							{#if !allItemsLoaded}
-								<Loader
-									on:visible={(e) => {
-										if (!itemsLoading) {
-											loadMoreItems();
-										}
-									}}
-								>
-									<div
-										class="w-full flex justify-center py-4 text-xs animate-pulse items-center gap-2"
+								{#if itemsLoadFailed}
+									<button
+										type="button"
+										class="w-full py-4 text-xs underline"
+										on:click={loadMoreItems}>{$i18n.t('Retry')}</button
 									>
-										<Spinner className=" size-4" />
-										<div class=" ">{$i18n.t('Loading...')}</div>
-									</div>
-								</Loader>
+								{:else}
+									<Loader
+										on:visible={() => {
+											if (!itemsLoading) {
+												loadMoreItems();
+											}
+										}}
+									>
+										<div
+											class="w-full flex justify-center py-4 text-xs animate-pulse items-center gap-2"
+										>
+											<Spinner className=" size-4" />
+											<div class=" ">{$i18n.t('Loading...')}</div>
+										</div>
+									</Loader>
+								{/if}
 							{/if}
 						</div>
 					</div>
@@ -805,6 +819,10 @@
 						</div>
 					</div>
 				{/if}
+			{:else if itemsLoadFailed}
+				<button type="button" class="w-full py-10 text-sm underline" on:click={getItemsPage}
+					>{$i18n.t('Retry')}</button
+				>
 			{:else}
 				<div class="w-full h-full flex justify-center items-center py-10">
 					<Spinner className="size-4" />
