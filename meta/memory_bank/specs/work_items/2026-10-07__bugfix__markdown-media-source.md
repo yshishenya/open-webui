@@ -6,7 +6,7 @@
 - Owner: Codex
 - Branch: `codex/bugfix/markdown-media-source`
 - Created: 2026-10-07
-- SDD Spec: `meta/sdd/specs/active/airis-markdown-media-source-2026-10-07-0312.json`
+- SDD Spec: `meta/sdd/specs/active/airis-markdown-media-source-2026-10-07-001.json`
 
 ## Root cause and scope
 
