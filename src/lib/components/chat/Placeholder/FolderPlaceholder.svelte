@@ -95,7 +95,8 @@
 		});
 	};
 
-	const setChatList = async (clear = false) => {
+	const setChatList = async (clear = false): Promise<void> => {
+		const previousChats = chats;
 		const folderId = folder?.id;
 		if (clear) {
 			chats = null;
@@ -117,9 +118,8 @@
 			if (res && res.chats) {
 				chats = res.chats;
 				totalChats = res.total ?? res.chats.length;
-			} else {
-				chats = [];
-				totalChats = 0;
+			} else if (clear) {
+				chats = previousChats;
 			}
 			chatListLoading = false;
 		} else {

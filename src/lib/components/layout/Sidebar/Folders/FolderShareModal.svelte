@@ -8,12 +8,7 @@
 	import { getFolderById, updateFolderAccessById } from '$lib/apis/folders';
 	import { user } from '$lib/stores';
 
-	type AccessGrant = {
-		id?: string;
-		principal_type: 'user' | 'group';
-		principal_id: string;
-		permission: 'read' | 'write';
-	};
+	import type { FolderAccessGrant as AccessGrant } from '$lib/apis/folders';
 
 	export let show = false;
 	export let folder: any = null;

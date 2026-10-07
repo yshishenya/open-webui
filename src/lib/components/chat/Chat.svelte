@@ -1301,17 +1301,17 @@
 		}
 	};
 
-	const savedModelIds = async () => {
+	const savedModelIds = async (): Promise<void> => {
 		if (
 			$selectedFolder &&
 			selectedModels.filter((modelId) => modelId !== '').length > 0 &&
 			!equal($selectedFolder?.data?.model_ids, selectedModels)
 		) {
-			const res = await updateFolderById(localStorage.token, $selectedFolder.id, {
+			await updateFolderById(localStorage.token, $selectedFolder.id, {
 				data: {
 					model_ids: selectedModels
 				}
-			});
+			}).catch((error: unknown) => toast.error(`${error}`));
 		}
 	};
 

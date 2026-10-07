@@ -39,7 +39,7 @@
 		}
 	};
 
-	const loadChats = async (append = false) => {
+	const loadChats = async (append = false): Promise<void> => {
 		if (loading) {
 			return;
 		}
@@ -55,14 +55,12 @@
 				chats = append ? [...chats, ...nextChats] : nextChats;
 				page = nextPage;
 				hasMoreChats = res.has_more ?? nextChats.length === SIDEBAR_CHATS_PAGE_SIZE;
+				loaded = true;
 			}
 		} catch (e) {
 			console.error('Failed to load shared folder chats', e);
-			chats = [];
-			hasMoreChats = false;
 		} finally {
 			loading = false;
-			loaded = true;
 		}
 	};
 </script>

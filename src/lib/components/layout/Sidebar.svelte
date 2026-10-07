@@ -76,6 +76,7 @@
 	import ChannelModal from './Sidebar/ChannelModal.svelte';
 	import ChannelItem from './Sidebar/ChannelItem.svelte';
 	import SearchModal from './SearchModal.svelte';
+	import type { SelectedFolder } from '$lib/utils/airis/frontend-contracts';
 	import type { FolderForm } from '$lib/apis/folders';
 	import FolderModal from './Sidebar/Folders/FolderModal.svelte';
 	import PinnedModelList from './Sidebar/PinnedModelList.svelte';
@@ -131,7 +132,8 @@
 	let showSharedFolders = false;
 	let showChatsMenu = false;
 
-	let folders = {};
+	let folders: Record<string, Partial<SelectedFolder> & { childrenIds?: string[]; new?: boolean }> =
+		{};
 	let folderRegistry: Record<
 		string,
 		{
@@ -241,9 +243,8 @@
 			return;
 		}
 
-		const folderList = await getFolders(localStorage.token).catch((error) => {
-			return [];
-		});
+		const folderList = await getFolders(localStorage.token).catch(() => null);
+		if (!folderList) return;
 		_folders.set(folderList.sort((a, b) => b.updated_at - a.updated_at));
 
 		folders = {};
@@ -273,8 +274,8 @@
 					: [folder.id];
 
 				// Sort the children by updated_at field
-				folders[folder.parent_id].childrenIds.sort((a, b) => {
-					return folders[b].updated_at - folders[a].updated_at;
+				folders[folder.parent_id].childrenIds?.sort((a, b) => {
+					return (folders[b].updated_at ?? 0) - (folders[a].updated_at ?? 0);
 				});
 			}
 		}
@@ -282,8 +283,8 @@
 		// Merge shared folders into the same structure
 		try {
 			sharedFolders = await getSharedFolders(localStorage.token);
-		} catch (e) {
-			sharedFolders = [];
+		} catch (error: unknown) {
+			toast.error(`${error}`);
 		}
 
 		for (const sf of sharedFolders) {
@@ -315,11 +316,11 @@
 		// Check for duplicate names in the same parent
 		const siblings = Object.values(folders).filter((folder) => folder.parent_id === parent_id);
 		const normalizedName = name.toLowerCase();
-		if (siblings.find((folder) => folder.name.toLowerCase() === normalizedName)) {
+		if (siblings.find((folder) => folder.name?.toLowerCase() === normalizedName)) {
 			// If a folder with the same name already exists, append a number to the name
 			let i = 1;
 			while (
-				siblings.find((folder) => folder.name.toLowerCase() === `${name} ${i}`.toLowerCase())
+				siblings.find((folder) => folder.name?.toLowerCase() === `${name} ${i}`.toLowerCase())
 			) {
 				i++;
 			}

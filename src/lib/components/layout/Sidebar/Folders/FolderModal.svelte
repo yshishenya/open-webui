@@ -29,10 +29,10 @@
 	let loadVersion = 0;
 	let initializing = false;
 	let name = '';
-	let meta = {
+	let meta: Record<string, unknown> & { background_image_url?: string | null } = {
 		background_image_url: null
 	};
-	let data = {
+	let data: Record<string, unknown> = {
 		system_prompt: '',
 		files: []
 	};
@@ -43,7 +43,16 @@
 		if (initializing || loading || !show) return;
 		loading = true;
 
-		if ((data?.files ?? []).some((file) => file.status === 'uploading')) {
+		if (
+			Array.isArray(data.files) &&
+			data.files.some(
+				(file: unknown) =>
+					file !== null &&
+					typeof file === 'object' &&
+					'status' in file &&
+					file.status === 'uploading'
+			)
+		) {
 			toast.error($i18n.t('Please wait until all files are uploaded.'));
 			loading = false;
 			return;
@@ -51,7 +60,7 @@
 
 		// Check folder max file count limit
 		const maxFileCount = $config?.features?.folder_max_file_count ?? '';
-		if (maxFileCount && (data?.files ?? []).length > maxFileCount) {
+		if (maxFileCount && (Array.isArray(data.files) ? data.files.length : 0) > maxFileCount) {
 			toast.error(
 				$i18n.t('Maximum number of files per folder is {{max}}.', { max: maxFileCount ?? 0 })
 			);
@@ -249,14 +258,14 @@
 										'Write your model system prompt content here\ne.g.) You are Mario from Super Mario Bros, acting as an assistant.'
 									)}
 									maxSize={200}
-									bind:value={data.system_prompt}
+									bind:value={(data as { system_prompt: string }).system_prompt}
 								/>
 							</div>
 						</div>
 					{/if}
 
 					<div class="my-2">
-						<Knowledge bind:selectedItems={data.files}>
+						<Knowledge bind:selectedItems={(data as { files: unknown[] }).files}>
 							<div slot="label">
 								<div class="flex w-full justify-between">
 									<div class=" text-xs text-gray-500">

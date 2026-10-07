@@ -132,7 +132,11 @@
 
 	onMount(async () => {
 		if ($folders === null) {
-			await folders.set(await getFolders(localStorage.token));
+			const res = await getFolders(localStorage.token).catch((error: unknown) => {
+				toast.error(`${error}`);
+				return null;
+			});
+			if (res) folders.set(res);
 		}
 
 		await tick();

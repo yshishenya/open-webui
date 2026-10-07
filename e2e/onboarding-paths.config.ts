@@ -7,6 +7,7 @@ export const onboardingTestFiles = [
 	'billing-full-path-recovery.spec.ts',
 	'browser-history-state.spec.ts',
 	'chat-cancel-history.spec.ts',
+	'folder-api-failure.spec.ts',
 	'markdown-media-source.spec.ts',
 	'model-editor-save-recovery.spec.ts',
 	'note-record-state.spec.ts',
