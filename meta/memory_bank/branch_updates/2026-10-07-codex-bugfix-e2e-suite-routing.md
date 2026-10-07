@@ -1,0 +1,8 @@
+- [x] **[BUG][TEST]** Route browser suites to their required disposable environment
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__e2e-suite-routing.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/e2e-suite-routing`
+  - Done: 2026-10-07
+  - Summary: Native Playwright projects prepare two isolated localhost environments. All 62 guarded cases execute in Chromium/Firefox; compiled analytics reuses existing authentication and current report contracts.
+  - Tests: Default 122 passed/4 explicit no-model legacy skips/0 failures; analytics43/43; billing UI18/18; corrections8/8; public Compose1/1; scoped lint/types/format; source hash checks. SDD3/3 complete; exact-source CI/merge remains the publication gate.
+  - Risks: Test-only configuration; no application/dependency/migration change. Full-project quality debt and actual pilot/human acceptance remain open.

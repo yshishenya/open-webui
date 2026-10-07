@@ -2,14 +2,15 @@ import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { adminUser, ensureAdmin, getUserMenuTrigger, loginAdmin } from './helpers/auth';
 
-const openUserMenu = async (page: Page): Promise<void> => {
+const openUserMenu = async (page: Page, name: string): Promise<void> => {
 	const userMenuButton = await getUserMenuTrigger(page);
 	await expect(userMenuButton.first()).toBeVisible();
 	await userMenuButton.first().click();
+	await expect(page.getByRole('menu').getByRole('button', { name, exact: true })).toBeVisible();
 };
 
 test.describe('Registration and Login', () => {
-	test('should register a new user as pending', async ({ page }) => {
+	test('registers a new user and displays the name in the account menu', async ({ page }) => {
 		await page.addInitScript(() => {
 			window.localStorage.setItem('locale', 'en-US');
 		});
@@ -18,16 +19,13 @@ test.describe('Registration and Login', () => {
 		const userName = `Test User - ${Date.now()}`;
 		const userEmail = `e2e-${Date.now()}@example.com`;
 		const userNameInput = page.locator('input[autocomplete="name"]');
-		const signupButton = page.getByRole('button', { name: /sign up|зарегистрироваться|create account/i });
+		const signupButton = page.getByRole('button', {
+			name: /sign up|зарегистрироваться|create account/i
+		});
 
-		const isSignupReady = async (): Promise<boolean> => {
-			return (await userNameInput.count()) > 0 && (await userNameInput.isVisible());
-		};
-
-		if (!(await isSignupReady())) {
-			if ((await signupButton.count()) === 0) {
-				test.skip(true, 'Registration form is unavailable in this environment');
-			}
+		await expect(page.locator('input[autocomplete="email"]')).toBeVisible();
+		if (!(await userNameInput.isVisible())) {
+			await expect(signupButton.first()).toBeVisible();
 			await signupButton.first().click();
 			await expect(userNameInput).toBeVisible({ timeout: 15_000 });
 		}
@@ -47,14 +45,12 @@ test.describe('Registration and Login', () => {
 				timeout: 15_000
 			}
 		);
-		await openUserMenu(page);
-		await expect(page.getByText(userName)).toBeVisible();
+		await openUserMenu(page, userName);
 	});
 
 	test('can login with the admin user', async ({ page, request }) => {
 		await ensureAdmin(request);
 		await loginAdmin(page);
-		await openUserMenu(page);
-		await expect(page.getByText(adminUser.name)).toBeVisible();
+		await openUserMenu(page, adminUser.name);
 	});
 });

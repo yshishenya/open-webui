@@ -147,7 +147,9 @@ test('native streaming task cancellation preserves partial answer without comple
 	await page.goto('/auth?form=1');
 	await signIn(page, account);
 	await page.goto('/?model=gpt-5.6-luna&q=E2E_WAIT_CANCEL&submit=false');
-	await page.getByLabel(/^(Send a Message|How can I help you today\?)$/).press('Enter');
+	const input = page.getByLabel(/^(Send a Message|How can I help you today\?)$/);
+	await expect(input).toContainText('E2E_WAIT_CANCEL');
+	await input.press('Enter');
 	await expect(page.getByRole('log')).toContainText('AIRIS deterministic answer.');
 	const stopped = page.waitForResponse(
 		(response) =>

@@ -206,7 +206,7 @@ unavailable_payments: set[str] = set()
 async def create_payment(body: PaymentBody) -> dict[str, object]:
     if body.amount != {'value': '500.00', 'currency': 'RUB'}:
         raise HTTPException(400, 'Fixture permits only a 500 RUB test payment')
-    if urlsplit(body.confirmation.get('return_url', '')).netloc != 'onboarding-paths:8080':
+    if urlsplit(body.confirmation.get('return_url', '')).netloc != 'localhost:8082':
         raise HTTPException(400, 'Fixture payment must return to the disposable application')
     payment = PaymentState(**body.model_dump(), id=str(uuid.uuid4()))
     payments[payment.id] = payment

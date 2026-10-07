@@ -22,7 +22,7 @@ for (const example of ['написать текст', 'разобраться в
 		await expect(page).toHaveURL(/\/auth\?/);
 		const draft = new URL(
 			new URL(page.url()).searchParams.get('redirect')!,
-			'http://onboarding-paths'
+			page.url()
 		).searchParams.get('q')!;
 		await signIn(page, account);
 		await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toContainText(

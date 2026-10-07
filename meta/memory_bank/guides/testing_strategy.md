@@ -28,8 +28,36 @@ This project is **Docker Compose-first** (especially for Codex Actions). Prefer 
 
 ### E2E
 
-- Run E2E tests:
-  - `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f .codex/docker-compose.codex.yaml run --rm --no-deps e2e "npm ci && npm run test:e2e"`
+- Run the complete `.spec.ts` suite against an explicitly selected compiled candidate:
+  - `ONBOARDING_PATHS_IMAGE='<verified candidate image>' npm run docker:test:e2e`
+- Default Playwright projects prepare ordinary `airis-e2e` and guarded
+  `onboarding-paths` separately. Guarded cases run in Chromium and narrow Firefox;
+  setup dependencies run even when cases are selected by filename. The Docker
+  command recreates ephemeral application containers for a fresh run. For the
+  optional PostgreSQL override, recreate its tmpfs database too; repeated runs
+  must not inherit accounts or consumed SMTP capacity.
+- `PLAYWRIGHT_BASE_URL` selects ordinary AIRIS;
+  `PLAYWRIGHT_ONBOARDING_BASE_URL` selects guarded AIRIS. They must not point to the
+  same ordinary app. Both services use ephemeral data in
+  `.codex/docker-compose.e2e-suite.yaml`.
+- The suite runner and ordinary AIRIS share guarded AIRIS's network namespace.
+  Ordinary AIRIS serves `http://localhost:8080`; guarded AIRIS serves
+  `http://localhost:8082`. Browsers recognize loopback as a secure context,
+  exposing APIs such as `crypto.randomUUID` that production HTTPS supplies.
+  This does not provide TLS or change application security rules. The routing
+  regression case checks this prerequisite in the actual browser.
+- Existing billing-confidence commands selecting only ordinary billing files
+  still use `.codex/docker-compose.codex.yaml`; the guarded project is not selected.
+- Separate `.pw.ts` suites keep their own configurations:
+  `e2e/billing_ui.config.ts` needs disposable ordinary accounts;
+  `e2e/analytics.config.ts` uses compiled pages and a fresh disposable API for
+  administrator/ordinary accounts (`ANALYTICS_TEST_API_URL` must select that API).
+  Both configurations run separately on the compiled image; no standalone source
+  component mount or Vite server is needed. Their 18 and 43 cases respectively
+  are not silently included in or claimed by the default `.spec.ts` run.
+- Keep the full JUnit and traces. A model-less ordinary environment can explicitly
+  skip legacy chat cases; record these prerequisites and do not call the full
+  suite accepted until required cases execute successfully.
 
 ## Coverage
 
