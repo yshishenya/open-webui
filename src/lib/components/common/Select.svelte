@@ -1,19 +1,24 @@
 <script lang="ts">
+	type Value = $$Generic<string | null>;
 	import { flyAndScale } from '$lib/utils/transitions';
 	import { tick } from 'svelte';
+	import type {
+		SelectOption,
+		SvelteGeneric as $$Generic
+	} from '$lib/utils/airis/frontend-contracts';
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
 
 	/** Currently selected value */
-	export let value = '';
+	export let value: Value = '' as Value;
 
 	/** Items array: { value: string, label: string }[] */
-	export let items = [];
+	export let items: SelectOption<Value>[] = [];
 
 	/** Placeholder text when no value is selected */
 	export let placeholder = '';
 
 	/** Callback when value changes */
-	export let onChange: (value: string) => void = () => {};
+	export let onChange: (value: Value) => void = () => {};
 
 	/** CSS classes for the trigger button */
 	export let triggerClass = '';
@@ -42,13 +47,13 @@
 
 	export let open = false;
 
-	let triggerEl;
-	let contentEl;
+	let triggerEl: HTMLButtonElement;
+	let contentEl: HTMLDivElement;
 
 	$: selectedLabel = items.find((i) => i.value === value)?.label ?? placeholder;
 
 	/** Svelte action: moves the node to document.body (portal) */
-	function portal(node) {
+	function portal(node: HTMLElement) {
 		document.body.appendChild(node);
 		return {
 			destroy() {
@@ -91,22 +96,22 @@
 		}
 	}
 
-	function handleWindowClick(event) {
+	function handleWindowClick(event: MouseEvent) {
 		if (!open) return;
-		if (triggerEl?.contains(event.target)) return;
-		if (contentEl?.contains(event.target)) return;
+		if (triggerEl?.contains(event.target as Node | null)) return;
+		if (contentEl?.contains(event.target as Node | null)) return;
 		open = false;
 		onClose();
 	}
 
-	function handleKeydown(event) {
+	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape' && open) {
 			open = false;
 			onClose();
 		}
 	}
 
-	export function selectItem(item) {
+	export function selectItem(item: SelectOption<Value>) {
 		value = item.value;
 		open = false;
 		onChange(value);

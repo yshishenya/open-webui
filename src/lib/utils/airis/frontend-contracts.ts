@@ -355,3 +355,8 @@ export type CommandSelection =
 	| { type: 'model'; data: Model }
 	| { type: 'skill'; data: SkillListItem };
 export type CommandUpload = { type: 'file'; data: ChatAttachment } | { type: 'web'; data: string };
+
+export type SelectOption<Value extends string | null = string> = { value: Value; label: string };
+
+// Legacy Svelte generic marker, imported explicitly for the pinned ESLint parser.
+export type SvelteGeneric<T> = T;

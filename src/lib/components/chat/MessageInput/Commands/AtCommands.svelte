@@ -123,9 +123,7 @@
 		const res = await searchKnowledgeBases(localStorage.token, query).catch(() => null);
 
 		if (res) {
-			knowledgeItems = (
-				res.items as Array<ChatAttachment & { name: string; description: string }>
-			).map<KnowledgeCommandItem>((item) => ({
+			knowledgeItems = res.items.map<KnowledgeCommandItem>((item) => ({
 				...item,
 				type: 'collection'
 			}));
@@ -136,11 +134,7 @@
 		const res = await searchKnowledgeFiles(localStorage.token, query).catch(() => null);
 
 		if (res) {
-			fileItems = (
-				res.items as Array<
-					ChatAttachment & { filename: string; collection?: { name: string } | null }
-				>
-			).map<KnowledgeCommandItem>((item) => ({
+			fileItems = res.items.map<KnowledgeCommandItem>((item) => ({
 				...item,
 				type: 'file',
 				name: item.filename,

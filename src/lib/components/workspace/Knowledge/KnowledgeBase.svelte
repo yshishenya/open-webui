@@ -1,40 +1,38 @@
 <script lang="ts">
-	import Fuse from 'fuse.js';
+	import 'fuse.js';
 	import { toast } from 'svelte-sonner';
 	import { v4 as uuidv4 } from 'uuid';
-	import { PaneGroup, Pane, PaneResizer } from 'paneforge';
+	import 'paneforge';
+	import type { Pane } from 'paneforge';
 
-	import { onMount, getContext, onDestroy, tick } from 'svelte';
+	import { onMount, getContext, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
+	import type {
+		KnowledgeEditable,
+		KnowledgeFile,
+		KnowledgeFileDisplay,
+		KnowledgeDirectory,
+		KnowledgeSyncDiff
+	} from '$lib/utils/airis/knowledge-types';
 	import type { i18n as i18nType } from 'i18next';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import {
-		mobile,
-		showSidebar,
-		knowledge as _knowledge,
-		config,
-		user,
-		settings
-	} from '$lib/stores';
+	import { config, user, settings } from '$lib/stores';
 
 	import {
 		updateFileDataContentById,
 		uploadFile,
-		deleteFileById,
 		getFileById,
 		renameFileById
 	} from '$lib/apis/files';
 	import {
-		addFileToKnowledgeById,
 		getKnowledgeById,
 		getPendingKnowledgeFiles,
 		removeFileFromKnowledgeById,
 		resetKnowledgeById,
-		updateFileFromKnowledgeById,
 		updateKnowledgeById,
 		updateKnowledgeAccessGrants,
 		searchKnowledgeFilesById,
@@ -46,15 +44,14 @@
 		syncKnowledgeCleanup,
 		testExternalKnowledgeRetrieval
 	} from '$lib/apis/knowledge';
-	import { processWeb, processYoutubeVideo } from '$lib/apis/retrieval';
+	import { processWeb } from '$lib/apis/retrieval';
 
-	import { blobToFile, isYoutubeUrl, copyToClipboard } from '$lib/utils';
+	import { blobToFile, copyToClipboard } from '$lib/utils';
 	import { computeFileHash } from '$lib/utils/hash';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Files from './KnowledgeBase/Files.svelte';
-	import AddFilesPlaceholder from '$lib/components/AddFilesPlaceholder.svelte';
 
 	import AddContentMenu from './KnowledgeBase/AddContentMenu.svelte';
 	import AddTextContentModal from './KnowledgeBase/AddTextContentModal.svelte';
@@ -79,7 +76,7 @@
 
 	let largeScreen = true;
 
-	let pane;
+	let pane: InstanceType<typeof Pane> | undefined;
 	let showSidepanel = true;
 
 	let showAddWebpageModal = false;
@@ -93,50 +90,42 @@
 	let showResetConfirm = false;
 
 	let minSize = 0;
+	type DirectoryHandle = InstanceType<typeof window.FileSystemDirectoryHandle> & {
+		values(): AsyncIterableIterator<
+			InstanceType<typeof window.FileSystemFileHandle> | DirectoryHandle
+		>;
+	};
 	type DirectoryFileEntry = { path: string; filename: string; file: File };
 	type DirectoryManifestEntry = DirectoryFileEntry & { checksum: string; size: number };
 
-	type Knowledge = {
-		id: string;
-		name: string;
-		description: string;
-		data: {
-			file_ids: string[];
-		};
-		files: any[];
-		access_grants?: any[];
-		write_access?: boolean;
-		meta?: any;
-	};
-
-	let id = null;
-	let knowledge: Knowledge | null = null;
-	let knowledgeId = null;
+	let id: string | null = null;
+	let knowledge: KnowledgeEditable | null = null;
+	let knowledgeId: string | null = null;
 	let isExternalKnowledge = false;
 
-	let selectedFileId = null;
-	let selectedFile = null;
+	let selectedFileId: string | null | undefined = null;
+	let selectedFile: KnowledgeFileDisplay | null = null;
 	let selectedFileContent = '';
 	let loadingFileContent = false;
 
-	let inputFiles = null;
+	let inputFiles: FileList | null = null;
 
 	let query = '';
 	let includeContent = false;
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 
-	let viewOption = null;
-	let sortKey = null;
-	let direction = null;
+	let viewOption: string | null = null;
+	let sortKey: string | null = null;
+	let direction: string | null = null;
 
 	let currentPage = 1;
-	let fileItems = null;
-	let fileItemsTotal = null;
+	let fileItems: KnowledgeFileDisplay[] | null = null;
+	let fileItemsTotal: number | null = null;
 
 	// Directory state
 	let currentDirectoryId: string | null = null;
-	let directoryItems = [];
-	let breadcrumbs = [];
+	let directoryItems: KnowledgeDirectory[] = [];
+	let breadcrumbs: KnowledgeDirectory[] = [];
 
 	let showDeleteDirectoryConfirm = false;
 	let pendingDeleteDirectoryId: string | null = null;
@@ -146,7 +135,7 @@
 	let externalTestQuery = '';
 	let externalTestResult: {
 		documents?: string[];
-		metadatas?: Record<string, any>[];
+		metadatas?: Record<string, unknown>[];
 		distances?: number[];
 	} | null = null;
 
@@ -197,7 +186,7 @@
 
 		const res = await searchKnowledgeFilesById(
 			localStorage.token,
-			knowledge.id,
+			knowledge!.id,
 			query,
 			viewOption,
 			sortKey,
@@ -217,9 +206,9 @@
 
 			// Merge in-flight files not yet linked to the knowledge base
 			try {
-				const pendingFiles = await getPendingKnowledgeFiles(localStorage.token, knowledgeId);
+				const pendingFiles = await getPendingKnowledgeFiles(localStorage.token, knowledgeId!);
 				if (pendingFiles && pendingFiles.length > 0) {
-					const existingIds = new Set(fileItems.map((f) => f.id));
+					const existingIds = new Set(fileItems!.map((f) => f.id));
 					const newPending = pendingFiles
 						.filter((f) => !existingIds.has(f.id))
 						.map((f) => ({
@@ -234,13 +223,15 @@
 						if (!pendingPollTimer) {
 							pendingPollTimer = setInterval(async () => {
 								try {
-									const still = await getPendingKnowledgeFiles(localStorage.token, knowledgeId);
+									const still = await getPendingKnowledgeFiles(localStorage.token, knowledgeId!);
 									if (!still || still.length === 0) {
-										clearInterval(pendingPollTimer);
+										clearInterval(pendingPollTimer!);
 										pendingPollTimer = null;
 										init();
 									}
-								} catch {}
+								} catch (error) {
+									console.warn('Failed to poll pending knowledge files:', error);
+								}
 							}, 5000);
 						}
 					}
@@ -253,7 +244,7 @@
 		return res;
 	};
 
-	const fileSelectHandler = async (file) => {
+	const fileSelectHandler = async (file: KnowledgeFileDisplay) => {
 		selectedFile = file;
 		selectedFileContent = file?.data?.content ?? '';
 		loadingFileContent = false;
@@ -264,12 +255,12 @@
 
 		loadingFileContent = true;
 		try {
-			const fileWithContent = await getFileById(localStorage.token, file.id);
+			const fileWithContent: KnowledgeFile | null = await getFileById(localStorage.token, file.id);
 			if (selectedFileId === file.id) {
 				selectedFile = fileWithContent ?? file;
 				selectedFileContent = fileWithContent?.data?.content ?? '';
 			}
-		} catch (e) {
+		} catch {
 			if (selectedFileId === file.id) {
 				toast.error($i18n.t('Failed to load file content.'));
 			}
@@ -284,7 +275,7 @@
 		if (!isExternalKnowledge || !externalTestQuery.trim()) return;
 
 		const external = knowledge?.meta?.external ?? {};
-		const res = await testExternalKnowledgeRetrieval(localStorage.token, external.connection_id, {
+		const res = await testExternalKnowledgeRetrieval(localStorage.token, external.connection_id!, {
 			query: externalTestQuery,
 			source: external.source,
 			count: 5
@@ -298,7 +289,7 @@
 		}
 	};
 
-	const createFileFromText = (name, content) => {
+	const createFileFromText = (name: string, content: string) => {
 		const blob = new Blob([content], { type: 'text/plain' });
 		const file = blobToFile(blob, `${name}.txt`);
 
@@ -306,12 +297,12 @@
 		return file;
 	};
 
-	const uploadWeb = async (urls) => {
+	const uploadWeb = async (urls: string | string[]) => {
 		if (!Array.isArray(urls)) {
 			urls = [urls];
 		}
 
-		const newFileItems = urls.map((url) => ({
+		const newFileItems = urls.map<KnowledgeFileDisplay & { url: string }>((url) => ({
 			type: 'file',
 			file: '',
 			id: null,
@@ -345,8 +336,8 @@
 						res.content
 					);
 
-					const uploadedFile = await uploadFile(localStorage.token, file, {
-						knowledge_id: knowledge.id,
+					const uploadedFile: KnowledgeFile | null = await uploadFile(localStorage.token, file, {
+						knowledge_id: knowledge!.id,
 						directory_id: currentDirectoryId
 					}).catch((e) => {
 						toast.error(`${e}`);
@@ -355,7 +346,7 @@
 
 					if (uploadedFile) {
 						console.log(uploadedFile);
-						fileItems = fileItems.map((item) => {
+						fileItems = fileItems!.map((item) => {
 							if (item.itemId === fileItem.itemId) {
 								item.id = uploadedFile.id;
 							}
@@ -365,7 +356,7 @@
 						if (uploadedFile.error) {
 							console.warn('File upload warning:', uploadedFile.error);
 							toast.warning(uploadedFile.error);
-							fileItems = fileItems.filter((file) => file.id !== uploadedFile.id);
+							fileItems = fileItems!.filter((file) => file.id !== uploadedFile.id);
 						} else {
 							toast.success($i18n.t('File added successfully.'));
 							init();
@@ -375,21 +366,21 @@
 					}
 				} else {
 					// remove the item from fileItems
-					fileItems = fileItems.filter((item) => item.itemId !== fileItem.itemId);
+					fileItems = fileItems!.filter((item) => item.itemId !== fileItem.itemId);
 					toast.error($i18n.t('Failed to process URL: {{url}}', { url: fileItem.url }));
 				}
 			} catch (e) {
 				// remove the item from fileItems
-				fileItems = fileItems.filter((item) => item.itemId !== fileItem.itemId);
+				fileItems = fileItems!.filter((item) => item.itemId !== fileItem.itemId);
 				toast.error(`${e}`);
 			}
 		}
 	};
 
-	const uploadFileHandler = async (file) => {
+	const uploadFileHandler = async (file: File) => {
 		console.log(file);
 
-		const fileItem = {
+		const fileItem: KnowledgeFileDisplay = {
 			type: 'file',
 			file: '',
 			id: null,
@@ -425,7 +416,7 @@
 		fileItems = [fileItem, ...(fileItems ?? [])];
 		try {
 			let metadata = {
-				knowledge_id: knowledge.id,
+				knowledge_id: knowledge!.id,
 				directory_id: currentDirectoryId,
 				// If the file is an audio file, provide the language for STT.
 				...((file.type.startsWith('audio/') || file.type.startsWith('video/')) &&
@@ -436,14 +427,18 @@
 					: {})
 			};
 
-			const uploadedFile = await uploadFile(localStorage.token, file, metadata).catch((e) => {
+			const uploadedFile: KnowledgeFile | null = await uploadFile(
+				localStorage.token,
+				file,
+				metadata
+			).catch((e) => {
 				toast.error(`${e}`);
 				return null;
 			});
 
 			if (uploadedFile) {
 				console.log(uploadedFile);
-				fileItems = fileItems.map((item) => {
+				fileItems = fileItems!.map((item) => {
 					if (item.itemId === fileItem.itemId) {
 						item.id = uploadedFile.id;
 					}
@@ -453,7 +448,7 @@
 				if (uploadedFile.error) {
 					console.warn('File upload warning:', uploadedFile.error);
 					toast.warning(uploadedFile.error);
-					fileItems = fileItems.filter((file) => file.id !== uploadedFile.id);
+					fileItems = fileItems!.filter((file) => file.id !== uploadedFile.id);
 				} else {
 					toast.success($i18n.t('File added successfully.'));
 					init();
@@ -474,12 +469,12 @@
 	};
 
 	// Helper function to check if a path contains hidden folders
-	const hasHiddenFolder = (path) => {
+	const hasHiddenFolder = (path: string) => {
 		return path.split('/').some((part) => part.startsWith('.'));
 	};
 
 	// Error handler
-	const handleUploadError = (error) => {
+	const handleUploadError = (error: { name?: string }) => {
 		if (error.name === 'AbortError') {
 			toast.info($i18n.t('Directory selection was cancelled'));
 		} else {
@@ -494,10 +489,12 @@
 
 		try {
 			if (isFileSystemAccessSupported) {
-				const dirHandle = await window.showDirectoryPicker();
+				const dirHandle = await (
+					window as typeof window & { showDirectoryPicker(): Promise<DirectoryHandle> }
+				).showDirectoryPicker();
 				const collected: DirectoryFileEntry[] = [];
 
-				async function traverse(handle: FileSystemDirectoryHandle, dirPath = '') {
+				const traverse = async (handle: DirectoryHandle, dirPath = ''): Promise<void> => {
 					for await (const entry of handle.values()) {
 						if (entry.name.startsWith('.')) continue;
 						const entryPath = dirPath ? `${dirPath}/${entry.name}` : entry.name;
@@ -510,7 +507,7 @@
 							await traverse(entry, entryPath);
 						}
 					}
-				}
+				};
 
 				await traverse(dirHandle, dirHandle.name);
 				return collected;
@@ -520,7 +517,7 @@
 					const input = document.createElement('input');
 					input.type = 'file';
 					input.webkitdirectory = true;
-					input.directory = true;
+					(input as HTMLInputElement & { directory: boolean }).directory = true;
 					input.multiple = true;
 					input.style.display = 'none';
 					document.body.appendChild(input);
@@ -555,7 +552,7 @@
 				});
 			}
 		} catch (error) {
-			handleUploadError(error);
+			handleUploadError(error as { name?: string });
 			return null;
 		}
 	};
@@ -572,7 +569,9 @@
 		);
 	};
 
-	const createMissingDirectories = async (diff: any) => {
+	const createMissingDirectories = async (
+		diff: KnowledgeSyncDiff
+	): Promise<Record<string, string>> => {
 		if (!knowledge) return {};
 
 		const directoryIdByPath: Record<string, string> = { ...(diff.directory_map || {}) };
@@ -585,7 +584,7 @@
 
 			const directory = await createKnowledgeDirectory(
 				localStorage.token,
-				knowledge.id,
+				knowledge!.id,
 				name,
 				parentId
 			);
@@ -612,7 +611,7 @@
 			syncing = $i18n.t('Comparing with knowledge base...');
 			const diff = await syncKnowledgeDiff(
 				localStorage.token,
-				id,
+				id!,
 				manifest.map(({ filename, path, checksum, size }) => ({
 					filename,
 					path: getDirectoryUploadPath(path),
@@ -640,7 +639,7 @@
 
 				const fileObject = new File([entry.file], entry.filename, { type: entry.file.type });
 				await uploadFile(localStorage.token, fileObject, {
-					knowledge_id: knowledge.id,
+					knowledge_id: knowledge!.id,
 					file_hash: entry.checksum,
 					directory_id: entry.path
 						? directoryIdByPath[getDirectoryUploadPath(entry.path)]
@@ -676,7 +675,7 @@
 			syncing = $i18n.t('Comparing with knowledge base...');
 			const diff = await syncKnowledgeDiff(
 				localStorage.token,
-				id,
+				id!,
 				manifest.map(({ filename, path, checksum, size }) => ({ filename, path, checksum, size }))
 			);
 
@@ -687,13 +686,13 @@
 
 			// ── 4. Cleanup — remove deleted + stale modified files first ──
 			const staleFileIds = [
-				...diff.deleted.map((d: any) => d.file_id),
-				...diff.modified.map((m: any) => m.stale_file_id)
+				...diff.deleted.map((d) => d.file_id),
+				...diff.modified.map((m) => m.stale_file_id)
 			];
 
 			if (staleFileIds.length > 0 || diff.rmdir.length > 0) {
 				syncing = $i18n.t('Removing {{count}} stale files...', { count: staleFileIds.length });
-				await syncKnowledgeCleanup(localStorage.token, id, staleFileIds, diff.rmdir);
+				await syncKnowledgeCleanup(localStorage.token, id!, staleFileIds, diff.rmdir);
 			}
 
 			// ── 5. mkdir — create missing directories (parents first) ──
@@ -702,8 +701,8 @@
 			// ── 6. Upload added + modified files ──
 			const filesToUpload = manifest.filter(
 				(entry) =>
-					diff.added.some((a: any) => a.filename === entry.filename && a.path === entry.path) ||
-					diff.modified.some((m: any) => m.filename === entry.filename && m.path === entry.path)
+					diff.added.some((a) => a.filename === entry.filename && a.path === entry.path) ||
+					diff.modified.some((m) => m.filename === entry.filename && m.path === entry.path)
 			);
 
 			let uploadedCount = 0;
@@ -718,7 +717,7 @@
 
 				const fileObject = new File([entry.file], entry.filename, { type: entry.file.type });
 				await uploadFile(localStorage.token, fileObject, {
-					knowledge_id: knowledge.id,
+					knowledge_id: knowledge!.id,
 					file_hash: entry.checksum,
 					directory_id: entry.path ? directoryIdByPath[entry.path] : null
 				}).catch(() => null);
@@ -744,26 +743,6 @@
 		}
 	};
 
-	const addFileHandler = async (fileId) => {
-		const res = await addFileToKnowledgeById(
-			localStorage.token,
-			id,
-			fileId,
-			currentDirectoryId
-		).catch((e) => {
-			toast.error(`${e}`);
-			return null;
-		});
-
-		if (res) {
-			toast.success($i18n.t('File added successfully.'));
-			init();
-		} else {
-			toast.error($i18n.t('Failed to add file.'));
-			fileItems = fileItems.filter((file) => file.id !== fileId);
-		}
-	};
-
 	// Directory handlers
 	const navigateToDirectory = (directoryId: string | null) => {
 		currentDirectoryId = directoryId;
@@ -778,7 +757,7 @@
 	const createDirectoryHandler = async (name: string) => {
 		const res = await createKnowledgeDirectory(
 			localStorage.token,
-			knowledge.id,
+			knowledge!.id,
 			name,
 			currentDirectoryId
 		).catch((e) => {
@@ -793,7 +772,7 @@
 	};
 
 	const renameDirectoryHandler = async (dirId: string, name: string) => {
-		const res = await updateKnowledgeDirectory(localStorage.token, knowledge.id, dirId, {
+		const res = await updateKnowledgeDirectory(localStorage.token, knowledge!.id, dirId, {
 			name
 		}).catch((e) => {
 			toast.error(`${e}`);
@@ -816,7 +795,7 @@
 
 		const res = await deleteKnowledgeDirectory(
 			localStorage.token,
-			knowledge.id,
+			knowledge!.id,
 			pendingDeleteDirectoryId,
 			moveFiles
 		).catch((e) => {
@@ -834,7 +813,7 @@
 	const moveFileToDirectoryHandler = async (fileId: string, directoryId: string | null) => {
 		const res = await moveFileInKnowledge(
 			localStorage.token,
-			knowledge.id,
+			knowledge!.id,
 			fileId,
 			directoryId
 		).catch((e) => {
@@ -850,7 +829,7 @@
 
 	const moveDirectoryHandler = async (dirId: string, targetParentId: string | null) => {
 		if (dirId === targetParentId) return;
-		const res = await updateKnowledgeDirectory(localStorage.token, knowledge.id, dirId, {
+		const res = await updateKnowledgeDirectory(localStorage.token, knowledge!.id, dirId, {
 			parent_id: targetParentId
 		}).catch((e) => {
 			toast.error(`${e}`);
@@ -863,12 +842,12 @@
 		}
 	};
 
-	const deleteFileHandler = async (fileId) => {
+	const deleteFileHandler = async (fileId: string) => {
 		try {
 			console.log('Starting file deletion process for:', fileId);
 
 			// Remove from knowledge base only
-			const res = await removeFileFromKnowledgeById(localStorage.token, id, fileId);
+			const res = await removeFileFromKnowledgeById(localStorage.token, id!, fileId);
 			console.log('Knowledge base updated:', res);
 
 			if (res) {
@@ -893,8 +872,8 @@
 		}
 	};
 
-	let debounceTimeout = null;
-	let mediaQuery;
+	let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
+	let mediaQuery: MediaQueryList | undefined;
 
 	let dragged = false;
 	let isSaving = false;
@@ -937,16 +916,16 @@
 		}
 
 		debounceTimeout = setTimeout(async () => {
-			if (knowledge.name.trim() === '' || knowledge.description.trim() === '') {
+			if (knowledge!.name.trim() === '' || knowledge!.description.trim() === '') {
 				toast.error($i18n.t('Please fill in all fields.'));
 				return;
 			}
 
-			const res = await updateKnowledgeById(localStorage.token, id, {
+			const res = await updateKnowledgeById(localStorage.token, id!, {
 				...knowledge,
-				name: knowledge.name,
-				description: knowledge.description,
-				access_grants: knowledge.access_grants ?? []
+				name: knowledge!.name,
+				description: knowledge!.description,
+				access_grants: knowledge!.access_grants ?? []
 			}).catch((e) => {
 				toast.error(`${e}`);
 			});
@@ -957,7 +936,7 @@
 		}, 1000);
 	};
 
-	const handleMediaQuery = async (e) => {
+	const handleMediaQuery = async (e: MediaQueryList | MediaQueryListEvent) => {
 		if (e.matches) {
 			largeScreen = true;
 		} else {
@@ -965,13 +944,17 @@
 		}
 	};
 
-	const readDirectoryEntries = async (reader: any) => {
-		const entries: any[] = [];
+	const readDirectoryEntries = async (
+		reader: InstanceType<typeof window.FileSystemDirectoryReader>
+	) => {
+		const entries: InstanceType<typeof window.FileSystemEntry>[] = [];
 
-		while (true) {
-			const batch = await new Promise<any[]>((resolve, reject) => {
-				reader.readEntries(resolve, reject);
-			});
+		for (;;) {
+			const batch = await new Promise<InstanceType<typeof window.FileSystemEntry>[]>(
+				(resolve, reject) => {
+					reader.readEntries(resolve, reject);
+				}
+			);
 
 			if (batch.length === 0) {
 				break;
@@ -984,7 +967,7 @@
 	};
 
 	const collectDroppedEntryFiles = async (
-		entry: any,
+		entry: InstanceType<typeof window.FileSystemEntry>,
 		entryPath = entry.name
 	): Promise<DirectoryFileEntry[]> => {
 		if (entry.name.startsWith('.') || hasHiddenFolder(entryPath)) {
@@ -993,7 +976,7 @@
 
 		if (entry.isFile) {
 			const file = await new Promise<File>((resolve, reject) => {
-				entry.file(resolve, reject);
+				(entry as InstanceType<typeof window.FileSystemFileEntry>).file(resolve, reject);
 			});
 			const parts = entryPath.split('/');
 			const filename = parts.pop() || file.name;
@@ -1001,7 +984,7 @@
 		}
 
 		if (entry.isDirectory) {
-			const reader = entry.createReader();
+			const reader = (entry as InstanceType<typeof window.FileSystemDirectoryEntry>).createReader();
 			const entries = await readDirectoryEntries(reader);
 			const nested = await Promise.all(
 				entries.map((child) => collectDroppedEntryFiles(child, `${entryPath}/${child.name}`))
@@ -1012,7 +995,7 @@
 		return [];
 	};
 
-	const onDragOver = (e) => {
+	const onDragOver = (e: DragEvent) => {
 		e.preventDefault();
 
 		// Check if a file is being draggedOver.
@@ -1027,7 +1010,7 @@
 		dragged = false;
 	};
 
-	const onDrop = async (e) => {
+	const onDrop = async (e: DragEvent) => {
 		e.preventDefault();
 		dragged = false;
 
@@ -1045,7 +1028,7 @@
 					const looseFiles: File[] = [];
 
 					for (const rawItem of Array.from(inputItems)) {
-						const item = rawItem as DataTransferItem & { webkitGetAsEntry?: () => any };
+						const item = rawItem;
 						const entry = item.webkitGetAsEntry?.();
 
 						if (entry?.isDirectory) {
@@ -1080,7 +1063,7 @@
 		handleMediaQuery(mediaQuery);
 
 		// Select the container element you want to observe
-		const container = document.getElementById('collection-container');
+		const container = document.getElementById('collection-container')!;
 
 		// initialize the minSize based on the container width
 		minSize = !largeScreen ? 100 : Math.floor((300 / container.clientWidth) * 100);
@@ -1109,8 +1092,8 @@
 			pane.expand();
 		}
 
-		id = $page.params.id;
-		const res = await getKnowledgeById(localStorage.token, id).catch((e) => {
+		id = $page.params.id!;
+		const res = await getKnowledgeById(localStorage.token, id!).catch((e) => {
 			toast.error(`${e}`);
 			return null;
 		});
@@ -1118,7 +1101,7 @@
 		if (res) {
 			knowledge = res;
 			if (!Array.isArray(knowledge?.access_grants)) {
-				knowledge.access_grants = [];
+				knowledge!.access_grants = [];
 			}
 			knowledgeId = knowledge?.id;
 		} else {
@@ -1134,7 +1117,7 @@
 	onDestroy(() => {
 		clearTimeout(searchDebounceTimer);
 		if (pendingPollTimer) {
-			clearInterval(pendingPollTimer);
+			clearInterval(pendingPollTimer!);
 			pendingPollTimer = null;
 		}
 		mediaQuery?.removeEventListener('change', handleMediaQuery);
@@ -1143,14 +1126,6 @@
 		dropZone?.removeEventListener('drop', onDrop);
 		dropZone?.removeEventListener('dragleave', onDragLeave);
 	});
-
-	const decodeString = (str: string) => {
-		try {
-			return decodeURIComponent(str);
-		} catch (e) {
-			return str;
-		}
-	};
 </script>
 
 <FilesOverlay show={dragged} />
@@ -1203,7 +1178,7 @@
 			}
 
 			inputFiles = null;
-			const fileInputElement = document.getElementById('files-input');
+			const fileInputElement = document.getElementById('files-input') as HTMLInputElement | null;
 
 			if (fileInputElement) {
 				fileInputElement.value = '';
@@ -1218,14 +1193,18 @@
 	{#if id && knowledge}
 		<AccessControlModal
 			bind:show={showAccessControlModal}
-			bind:accessGrants={knowledge.access_grants}
+			bind:accessGrants={knowledge!.access_grants}
 			share={$user?.permissions?.sharing?.knowledge || $user?.role === 'admin'}
 			sharePublic={$user?.permissions?.sharing?.public_knowledge || $user?.role === 'admin'}
 			shareUsers={($user?.permissions?.access_grants?.allow_users ?? true) ||
 				$user?.role === 'admin'}
 			onChange={async () => {
 				try {
-					await updateKnowledgeAccessGrants(localStorage.token, id, knowledge.access_grants ?? []);
+					await updateKnowledgeAccessGrants(
+						localStorage.token,
+						id!,
+						knowledge!.access_grants ?? []
+					);
 					toast.success($i18n.t('Saved'));
 				} catch (error) {
 					toast.error(`${error}`);
@@ -1252,7 +1231,7 @@
 							<input
 								type="text"
 								class="text-left w-full text-sm bg-transparent outline-hidden flex-1"
-								bind:value={knowledge.name}
+								bind:value={knowledge!.name}
 								aria-label={$i18n.t('Knowledge Name')}
 								placeholder={$i18n.t('Knowledge Name')}
 								disabled={!knowledge?.write_access}
@@ -1292,7 +1271,7 @@
 						<input
 							type="text"
 							class="text-left text-xs w-full text-gray-500 bg-transparent outline-hidden flex-1"
-							bind:value={knowledge.description}
+							bind:value={knowledge!.description}
 							aria-label={$i18n.t('Knowledge Description')}
 							placeholder={$i18n.t('Knowledge Description')}
 							disabled={!knowledge?.write_access}
@@ -1306,7 +1285,7 @@
 								<button
 									class="text-xs text-gray-500 font-mono shrink-0 px-2 py-1 rounded-lg cursor-pointer hover:underline transition whitespace-nowrap"
 									on:click={() => {
-										copyToClipboard(id);
+										copyToClipboard(id!);
 										toast.success($i18n.t('ID copied to clipboard'));
 									}}
 								>
@@ -1443,7 +1422,7 @@
 						{#if knowledge?.write_access}
 							<div>
 								<AddContentMenu
-									onUpload={(data) => {
+									onUpload={(data: { type: string }) => {
 										if (data.type === 'directory') {
 											uploadDirectoryHandler();
 										} else if (data.type === 'new_directory') {
@@ -1453,7 +1432,7 @@
 										} else if (data.type === 'text') {
 											showAddTextContentModal = true;
 										} else {
-											document.getElementById('files-input').click();
+											document.getElementById('files-input')!.click();
 										}
 									}}
 									onSync={async () => {
@@ -1530,7 +1509,7 @@
 				{#if currentDirectoryId !== null}
 					<div class="px-4 mb-1">
 						<KnowledgeBreadcrumbs
-							rootLabel={knowledge.name}
+							rootLabel={knowledge!.name}
 							{breadcrumbs}
 							onNavigate={(dirId) => navigateToDirectory(dirId)}
 							onMoveFile={(fileId, dirId) => moveFileToDirectoryHandler(fileId, dirId)}
@@ -1719,7 +1698,7 @@
 	bind:show={showResetConfirm}
 	title={$i18n.t('Reset knowledge base?')}
 	on:confirm={async () => {
-		await resetKnowledgeById(localStorage.token, id);
+		await resetKnowledgeById(localStorage.token, id!);
 		toast.success($i18n.t('Knowledge base has been reset'));
 		init();
 	}}

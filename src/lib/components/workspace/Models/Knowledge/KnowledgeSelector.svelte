@@ -18,11 +18,6 @@
 
 	const i18n = getContext('i18n');
 	type SelectionItem = ChatAttachment & { name: string; description?: string };
-	type SearchFile = ChatAttachment & {
-		filename: string;
-		meta?: { name?: string | null } | null;
-		description?: string | null;
-	};
 	const dispatch = createEventDispatcher<{ select: SelectionItem }>();
 
 	export let onClose: () => void = () => {};
@@ -80,7 +75,7 @@
 		});
 
 		if (res) {
-			knowledgeItems = res.items.map((note: SelectionItem) => {
+			knowledgeItems = res.items.map((note) => {
 				return {
 					...note,
 					type: 'collection'
@@ -95,7 +90,7 @@
 		});
 
 		if (res) {
-			fileItems = res.items.map((file: SearchFile) => {
+			fileItems = res.items.map((file) => {
 				return {
 					...file,
 					type: 'file',

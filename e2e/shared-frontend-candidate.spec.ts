@@ -29,6 +29,107 @@ const authHeaders = async (page: Page): Promise<{ Authorization: string }> => ({
 	Authorization: `Bearer ${await page.evaluate(() => localStorage.getItem('token'))}`
 });
 
+test('knowledge editor keeps nullable files, lazy content, rename and read-only controls', async ({
+	page
+}) => {
+	const errors = await prepare(page);
+	const id = 'isolated-knowledge-contract';
+	let writeAccess = true;
+	let name = 'Document';
+	let contentReads = 0;
+	const renames: string[] = [];
+	const file = () => ({
+		id: 'stored',
+		user_id: 'owner',
+		filename: 'document.txt',
+		hash: null,
+		meta: { name },
+		data: null,
+		created_at: 0,
+		updated_at: null
+	});
+	// Known server response shapes; these routes validate compiled UI, not live API storage.
+	await page.route(`**/api/v1/knowledge/${id}**`, async (route) => {
+		const path = new URL(route.request().url()).pathname;
+		if (path.endsWith('/files/pending')) return route.fulfill({ json: [] });
+		if (path.endsWith('/files'))
+			return route.fulfill({
+				json: {
+					items: [file(), { ...file(), id: 'legacy', meta: null }],
+					total: 2,
+					directories: [
+						{
+							id: 'folder',
+							knowledge_id: id,
+							name: 'Folder',
+							parent_id: null,
+							user_id: 'owner',
+							created_at: 0,
+							updated_at: 0
+						}
+					],
+					breadcrumbs: []
+				}
+			});
+		return route.fulfill({
+			json: {
+				id,
+				user_id: 'owner',
+				name: 'Contract knowledge',
+				description: 'Compiled acceptance',
+				meta: null,
+				access_grants: [],
+				files: null,
+				created_at: 0,
+				updated_at: 0,
+				write_access: writeAccess
+			}
+		});
+	});
+	await page.route('**/api/v1/files/stored**', async (route) => {
+		if (new URL(route.request().url()).pathname.endsWith('/rename')) {
+			const body = route.request().postDataJSON() as { filename: string };
+			renames.push(body.filename);
+			name = body.filename;
+			return route.fulfill({ json: file() });
+		}
+		contentReads++;
+		return route.fulfill({ json: { ...file(), data: { content: 'Lazy extracted content' } } });
+	});
+	await page.goto(`/workspace/knowledge/${id}`);
+	await expect(page.getByLabel('Knowledge Name', { exact: true })).toHaveValue(
+		'Contract knowledge'
+	);
+	const list = page
+		.getByRole('list')
+		.filter({ has: page.getByRole('listitem').filter({ hasText: 'Folder' }) });
+	const rows = list.getByRole('listitem');
+	await expect(rows).toHaveCount(3);
+	await expect(rows.nth(0)).toContainText('Folder');
+	await expect(rows.nth(1)).toContainText('Document');
+	expect(contentReads).toBe(0);
+	await rows.nth(1).getByRole('button', { name: 'Document', exact: true }).click();
+	await expect(page.getByLabel('File content', { exact: true })).toHaveValue(
+		'Lazy extracted content'
+	);
+	expect(contentReads).toBe(1);
+	await page.getByRole('button', { name: 'Close', exact: true }).click();
+	await rows.nth(1).getByRole('button').last().click();
+	await page.getByRole('button', { name: 'Rename', exact: true }).click();
+	const rename = rows.nth(1).locator('input');
+	await rename.fill('Renamed document');
+	await rename.press('Enter');
+	await expect.poll(() => renames).toEqual(['Renamed document']);
+	await expect(rows.nth(1)).toContainText('Renamed document');
+	writeAccess = false;
+	await page.reload();
+	await expect(page.getByLabel('Knowledge Name', { exact: true })).toBeDisabled();
+	await expect(page.getByRole('button', { name: 'Add Content', exact: true })).toHaveCount(0);
+	await rows.nth(1).getByRole('button', { name: 'Renamed document', exact: true }).click();
+	await expect(page.getByLabel('File content', { exact: true })).toBeDisabled();
+	expect(errors).toEqual([]);
+});
+
 test('stored assistant message renders inline and block math in the built chat', async ({
 	page
 }) => {
@@ -75,7 +176,7 @@ test('empty-data note accepts title and collaborative text and survives reload',
 }) => {
 	const errors = await prepare(page);
 	await page.goto('/notes');
-	await expect(page.getByLabel('User menu', { exact: true })).toBeVisible();
+	await expect(page.getByPlaceholder('Search Notes', { exact: true })).toBeVisible();
 	const headers = await authHeaders(page);
 	const response = await page.request.post('/api/v1/notes/create', {
 		headers,
