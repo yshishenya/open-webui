@@ -1,0 +1,103 @@
+{
+	"spec_id": "airis-note-data-contracts-2026-10-07-001",
+	"title": "Airis note data contracts",
+	"generated": "2026-10-07T19:45:03.106451Z",
+	"last_updated": "2026-10-07T19:45:44.570866Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "high",
+		"risk_level": "medium",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__refactor__note-data-contracts.md",
+		"status": "active",
+		"activated_date": "2026-10-07T19:45:44.321433Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis note data contracts",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 4,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Trace and align note producer/consumer contracts",
+			"status": "in_progress",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify and integrate accepted note contracts",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Trace complete list/detail/linked chat/event and editor paths",
+			"status": "in_progress",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"file_path": "backend/open_webui/routers/notes.py",
+				"category": "refactoring",
+				"started_at": "2026-10-07T19:45:44.570668Z",
+				"status_note": "Tracing notes list/detail/linked chat and partial event paths before implementation; actual list response is truncated and filtered by FastAPI."
+			},
+			"completed_tasks": 0,
+			"total_tasks": 1
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Reuse and align note/API/store/editor/list contracts",
+			"status": "pending",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"file_path": "src/lib/apis/notes/index.ts",
+				"category": "refactoring"
+			},
+			"completed_tasks": 0,
+			"total_tasks": 1
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify full diagnostics, actual code and compiled paths",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"metadata": {
+				"file_path": "src/lib/components/notes/NoteEditor.svelte",
+				"category": "refactoring"
+			},
+			"completed_tasks": 0,
+			"total_tasks": 1
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Integrate exact source and release required executable changes",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-07__refactor__note-data-contracts.md",
+				"category": "refactoring"
+			},
+			"completed_tasks": 0,
+			"total_tasks": 1
+		}
+	}
+}

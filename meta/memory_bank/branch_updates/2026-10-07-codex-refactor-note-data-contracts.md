@@ -1,0 +1,5 @@
+- [ ] **[REFACTOR][NOTES]** Align shared note and linked chat data contracts
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__refactor__note-data-contracts.md`
+  - Owner: Codex
+  - Started: 2026-10-07
+  - Summary: Trace truncated lists/full details/partial events and all consumers; reuse existing normalization/ordered writes. Baseline2451types/110warnings,1037lint,935tests; NoteEditor69/Notes42. Overall198/244goal active.
