@@ -1,6 +1,7 @@
 <script lang="ts">
 	import DOMPurify from 'dompurify';
 	import type { Token } from 'marked';
+	import { getMarkdownMediaSource } from '$lib/utils/airis/markdown_media_source';
 
 	import { WEBUI_BASE_URL } from '$lib/constants';
 	import { settings } from '$lib/stores';
@@ -16,13 +17,12 @@
 
 {#if token.type === 'html'}
 	{#if html && html.includes('<video')}
-		{@const video = html.match(/<video[^>]*>([\s\S]*?)<\/video>/)}
-		{@const videoSrc = video && video[1]}
+		{@const videoSrc = getMarkdownMediaSource(html, 'video')}
 		{#if videoSrc}
 			<!-- svelte-ignore a11y-media-has-caption -->
 			<video
 				class="w-full my-2"
-				src={videoSrc.replaceAll('&amp;', '&')}
+				src={videoSrc}
 				title="Video player"
 				frameborder="0"
 				referrerpolicy="strict-origin-when-cross-origin"
@@ -33,19 +33,20 @@
 			{token.text}
 		{/if}
 	{:else if html && html.includes('<audio')}
-		{@const audio = html.match(/<audio[^>]*>([\s\S]*?)<\/audio>/)}
-		{@const audioSrc = audio && audio[1]}
+		{@const audioSrc = getMarkdownMediaSource(html, 'audio')}
 		{#if audioSrc}
 			<!-- svelte-ignore a11y-media-has-caption -->
 			<audio
 				class="w-full my-2"
-				src={audioSrc.replaceAll('&amp;', '&')}
+				src={audioSrc}
 				title="Audio player"
 				controls
 			></audio>
 		{:else}
 			{token.text}
 		{/if}
+	{:else if /^<\/(?:video|audio)>$/i.test(token.text.trim())}
+		<!-- Native media elements already include their closing tag. -->
 	{:else if token.text && token.text.match(/<iframe\s+[^>]*src="https:\/\/www\.youtube\.com\/embed\/([a-zA-Z0-9_-]{11})(?:\?[^"]*)?"[^>]*><\/iframe>/)}
 		{@const match = token.text.match(
 			/<iframe\s+[^>]*src="https:\/\/www\.youtube\.com\/embed\/([a-zA-Z0-9_-]{11})(?:\?[^"]*)?"[^>]*><\/iframe>/

@@ -1,0 +1,5 @@
+- [ ] **[BUG]** Read sanitized video/audio src in shared Markdown renderer
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__markdown-media-source.md`
+  - Owner: Codex
+  - Started: 2026-10-07
+  - Summary: Accepted compiled baseline lacks a player for VIDEO_FILE_ID in both browsers; fix shared parsing while preserving safe legacy sources and code exclusions.

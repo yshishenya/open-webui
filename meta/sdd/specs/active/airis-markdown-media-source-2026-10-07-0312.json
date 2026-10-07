@@ -1,0 +1,113 @@
+{
+  "spec_id": "airis-markdown-media-source-2026-10-07-0312",
+  "title": "AIRIS Markdown media source",
+  "generated": "2026-10-07T00:12:01.040781Z",
+  "last_updated": "2026-10-07T00:17:06.447055Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "medium",
+    "estimated_hours": 2,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__markdown-media-source.md",
+    "status": "active",
+    "activated_date": "2026-10-07T00:12:50.830640Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS Markdown media source",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Repair shared media rendering",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1",
+        "task-2",
+        "task-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1": {
+      "type": "task",
+      "title": "Reproduce accepted-base player absence and safe legacy behavior",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "category": "investigation",
+        "priority": "high",
+        "completed_at": "2026-10-07T00:13:50.271548Z",
+        "needs_journaling": false,
+        "status_note": "Accepted compiled baseline fails 2/2 player tests; actual component baseline 16 fail/8 pass",
+        "journaled_at": "2026-10-07T00:13:50.272557Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-2": {
+      "type": "task",
+      "title": "Implement shared sanitized source extraction and regression checks",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "category": "implementation",
+        "priority": "high",
+        "completed_at": "2026-10-07T00:17:06.445598Z",
+        "needs_journaling": false,
+        "status_note": "Actual component 26/26; full frontend 770/770; helper/test formatting and ESLint pass; zero new normalized type/lint messages, global commands still fail",
+        "journaled_at": "2026-10-07T00:17:06.446524Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-3": {
+      "type": "task",
+      "title": "Accept exact compiled candidate and guarded production release",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "category": "implementation",
+        "priority": "high"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-07T00:13:50.272553Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce accepted-base player absence and safe legacy behavior",
+      "author": "claude-code",
+      "content": "Task task-1 marked as completed. \nNote: Accepted compiled baseline fails 2/2 player tests; actual component baseline 16 fail/8 pass",
+      "metadata": {},
+      "task_id": "task-1"
+    },
+    {
+      "timestamp": "2026-10-07T00:17:06.446516Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement shared sanitized source extraction and regression checks",
+      "author": "Codex",
+      "content": "Task task-2 marked as completed. \nNote: Actual component 26/26; full frontend 770/770; helper/test formatting and ESLint pass; zero new normalized type/lint messages, global commands still fail",
+      "metadata": {},
+      "task_id": "task-2"
+    }
+  ]
+}
