@@ -1,12 +1,12 @@
 # Markdown video/audio source extraction
 
 - Type: bugfix
-- Status: active
+- Status: completed
 - Workflow: bug_fix
 - Owner: Codex
 - Branch: `codex/bugfix/markdown-media-source`
 - Created: 2026-10-07
-- SDD Spec: `meta/sdd/specs/active/airis-markdown-media-source-2026-10-07-001.json`
+- SDD Spec: `meta/sdd/specs/completed/airis-markdown-media-source-2026-10-07-001.json`
 
 ## Root cause and scope
 
@@ -23,9 +23,9 @@ exclusions. URI sanitization must also cover legacy text promoted into src.
 
 - [x] Actual component regression fails on baseline, passes for video/audio src attributes, legacy text, escaped query strings, empty and unsafe sources.
 - [x] Helper/test checks pass; existing component diagnostics introduce no new messages; complete frontend suite passes; zero new normalized type/lint diagnostics.
-- [ ] Compiled Chromium/Firefox display actual players after load/reload; video file token and code exclusion pass with zero page errors.
-- [ ] Full onboarding/payment paths pass against the exact candidate.
-- [ ] Source/CI/merge/image/file identity and guarded production health/data preservation accepted before closure.
+- [x] Compiled Chromium/Firefox display actual players after load/reload; video file token and code exclusion pass with zero page errors.
+- [x] Full onboarding/payment paths pass against the exact candidate.
+- [x] Source/CI/merge/image/file identity and guarded production health/data preservation accepted before closure.
 
 ## Dependencies
 
@@ -54,3 +54,34 @@ Baseline component: 16 failures/8 passes; separate closing-tag check 2 failures/
 ## Browser environment and test fixture
 
 First candidate media test proved playback in Firefox; Chromium reports no H.264 support and cannot load the existing H.264 guide. Both support VP8. A 745-byte standard VP8 fixture (1-second 16x16 black clip, no personal data) checks native load/play/reload in both. Unsafe-source browser assertions check the visible opening tag and zero players; consumed closing tags are not expected as text. The initial unsuccessful browser output is retained as evidence, not accepted as a passing run.
+
+## Completed release acceptance — 2026-10-07
+
+Runtime PR321 source `a433c204bc2ac5259a6d1b6403c85e9b8bb2127e`, merge
+`5f6169dfdee5e23c19b32ffa640126e93c0899cd`; trees identical. All applicable
+CI checks passed; dependency review skipped, CodeRabbit disabled for the base.
+No independent human review is claimed. Compiled media 8/8 and complete
+onboarding/payment paths 24/24 passed in Chromium and Firefox, zero page errors.
+Native video/audio load, play, time advancement, pause, reload, safe legacy and
+inline sources, code exclusions and unsafe URI rejection are covered.
+
+Production image digest
+`sha256:0b5d6ab70ed534ce12a0aae535547b8547a6ed2103a387ed39975b9d2f86b56c`:
+4914 frontend and 427 backend files match the candidate; 97 accepted base layers
+and image environment preserved. Guarded backup SHA256/readability, hard Alembic,
+health and rollback passed. Healthy, zero restarts; application environment,
+Compose configuration, revision and monetary snapshots preserved. Image selection
+pinned without a second recreate. Live guide draft equals URL q, submit=false,
+free Luna selected; zero page errors and no new generation.
+
+First attempt stopped before migration/recreate when one disposable terminal was
+externally stopped/destroyed during backup. Initiator unknown. Application/config/
+money unchanged. Retry used the fresh 12-neighbor snapshot and the same verified
+backup. All 12 neighbors preserved; browser reload then recreated the existing
+per-user terminal with the same name/image. No loss of other runtime state claimed.
+The initial Docker starting snapshot was rejected; final healthy accepted.
+
+Global types 3362 errors/130 warnings and ESLint 1227 errors still fail with zero
+new normalized diagnostics. SDD 3/3 completed. Human phone/Inbox/operator access,
+independent utility and real voluntary/calendar pilot remain separate open gates.
+Overall plan 198/244; no new numbered plan closure.

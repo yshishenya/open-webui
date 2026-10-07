@@ -2,7 +2,7 @@
   "spec_id": "airis-markdown-media-source-2026-10-07-001",
   "title": "AIRIS Markdown media source",
   "generated": "2026-10-07T00:12:01.040781Z",
-  "last_updated": "2026-10-07T00:17:06.447055Z",
+  "last_updated": "2026-10-07T00:43:10.729799Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -10,28 +10,29 @@
     "estimated_hours": 2,
     "security_sensitive": true,
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__markdown-media-source.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-07T00:12:50.830640Z",
-    "progress_percentage": 66,
-    "current_phase": "phase-1"
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-07T00:43:10.729506Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "AIRIS Markdown media source",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
       "type": "phase",
       "title": "Repair shared media rendering",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-1",
@@ -39,8 +40,12 @@
         "task-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
-      "metadata": {}
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-07T00:43:10.233411Z",
+        "journaled_at": "2026-10-07T00:43:10.236667Z"
+      }
     },
     "task-1": {
       "type": "task",
@@ -79,14 +84,18 @@
     "task-3": {
       "type": "task",
       "title": "Accept exact compiled candidate and guarded production release",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1",
       "children": [],
       "metadata": {
         "category": "implementation",
-        "priority": "high"
+        "priority": "high",
+        "completed_at": "2026-10-07T00:43:10.233230Z",
+        "needs_journaling": false,
+        "status_note": "Exact a433 source CI/tree accepted; compiled media8/8 and full paths24/24; guarded production file/data/health/pin accepted. Global frontend and human/calendar gates remain open.",
+        "journaled_at": "2026-10-07T00:43:10.235213Z"
       },
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "total_tasks": 1
     }
   },
@@ -108,6 +117,24 @@
       "content": "Task task-2 marked as completed. \nNote: Actual component 26/26; full frontend 770/770; helper/test formatting and ESLint pass; zero new normalized type/lint messages, global commands still fail",
       "metadata": {},
       "task_id": "task-2"
+    },
+    {
+      "timestamp": "2026-10-07T00:43:10.235208Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Accept exact compiled candidate and guarded production release",
+      "author": "Codex",
+      "content": "Task task-3 marked as completed. \nNote: Exact a433 source CI/tree accepted; compiled media8/8 and full paths24/24; guarded production file/data/health/pin accepted. Global frontend and human/calendar gates remain open.",
+      "metadata": {},
+      "task_id": "task-3"
+    },
+    {
+      "timestamp": "2026-10-07T00:43:10.236657Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Repair shared media rendering",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
     }
   ]
 }
