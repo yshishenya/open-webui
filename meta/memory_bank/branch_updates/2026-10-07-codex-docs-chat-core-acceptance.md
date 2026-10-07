@@ -1,0 +1,5 @@
+- [x] **[DOCS][CHAT]** Publish measured core-chat release acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__refactor__chat-core-contracts.md`
+  - Owner: Codex
+  - Done: 2026-10-07
+  - Summary: Close scoped SDD and publish exact source/merge/image/test/protected-runtime evidence and limitations. Application image remains source62c57; global plan198/244 remains active.

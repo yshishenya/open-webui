@@ -1,11 +1,11 @@
 # Shared contracts for the main chat path
 
 - Type: refactor
-- Status: In Progress
+- Status: Done
 - Owner: Codex
 - Branch: codex/refactor/chat-core-contracts
-- SDD Spec: meta/sdd/specs/active/airis-chat-core-contracts-2026-10-07-001.json
-- Plan: 2026-10-01**local**onboarding-retention-implementation-plan.md, global quality gate G14/13.11
+- SDD Spec: meta/sdd/specs/completed/airis-chat-core-contracts-2026-10-07-001.json
+- Plan: `2026-10-01__docs__onboarding-retention-implementation-plan.md`, global quality gate G14/13.11
 
 ## Goal and measurable acceptance
 
@@ -15,9 +15,9 @@ Remove the shared-data and handler type errors in Chat, MessageInput, ResponseMe
 - [x] Reuse the existing fork-owned chat_history/frontend-contracts definitions; remove competing local message descriptions.
 - [x] Zero type errors in the four main files and directly modified shared contracts; zero new diagnostics elsewhere.
 - [x] Touched-file lint/format pass without suppression, any, dependency or configuration relaxation.
-- [ ] Full frontend tests pass (baseline 921), regression checks preserve actual chat editing/streaming/cancellation behavior.
-- [ ] Both compiled browser projects pass; integration tree matches tested source; applicable CI succeeds.
-- [ ] Protected production identity/assets/health/backups/money acceptance documented, with existing backend/static policy retained.
+- [x] Full frontend tests pass (baseline 921), regression checks preserve actual chat editing/streaming/cancellation behavior.
+- [x] Both compiled browser projects pass; integration tree matches tested source; applicable CI succeeds.
+- [x] Protected production identity/assets/health/backups/money acceptance documented, with existing backend/static policy retained.
 
 ## Boundaries and upstream impact
 
@@ -46,3 +46,15 @@ Installed Kokoro1.2.1 latest confirmed, TipTap/HEIC/Turndown contracts inspected
 Private proofs: airis-chat-core-contracts-20261007/{types-r11.log,diagnostic-comparison.json,quality-r1.log,frontend-r1.log,regressions-r3.log}. Fresh production2026-10-07T16:05:54Z remains on b34184a147cc344d95336cd01923aebdc253dc91, healthy/restarts0. This source is not yet deployed.
 
 Verification correction: the initial frozen-suite selection test identified a bound callback by function text and failed. It now identifies the original plugin spec callback; actual installed behavior rechecked. CI found a generated SDD id outside the required NNN naming convention; corrected without changing validation rules. Frozen source and CI will be repeated for the new SHA.
+
+## Final technical acceptance
+
+Application source `62c57ca58f6ad24650a51cff50cc2928e608420d`, PR357 merge `aae6d7c84c9400ab98bcbf0458b70d7b55d12e32`; Git trees identical. All applicable CI passed, including billing-confidence, SDD, CodeQL, gitleaks, lint and migration checks. CodeRabbit auto review is disabled for this target branch; no independent review claimed.
+
+Frozen Docker Compose frontend933/933 in116 files, core errors295 to0, full check2942/113 to2599/111 and full ESLint1110 to1097; normalized additions0. Scoped lint/format passed. Compiled Chromium38/38 and clean full Firefox390px38/38 passed, total76/76, setup excluded. The first Firefox run37/38 reached frontend500 in the unsafe-media test; the isolated scenario5/5 and clean full repeat38/38 passed without changing application or expectations. Root cause remains unconfirmed. First logs/XML/server logs retained; the inspected first trace was subsequently overwritten by the diagnostic run.
+
+Protected release `20261007T163620Z-chat-core-62c57ca58f-20261007`: immutable registry digest and server image id `sha256:f12ac55667f25b6d9c6a81e5a7a7eca173c5995d04a9c0205f269bc8b2fce207`. All4915 frontend/427 Python files match. Image preserves496 raw backend files; runtime495 match and existing startup replaces static/site.webmanifest with accepted frontend static. Additional326 Python cache files all have source owners in the accepted image. Healthy/restarts0, environment/Compose/data mount/12neighbors preserved. Money hashes identical; audit SELECT only, DML0. Fresh11file backup, previous backup and rollback verified. Public version/guide/Metrica and8changed JS assets match. Pin accepted without a second recreate; source and documentation SHAs remain distinct.
+
+One old backup was moved to Mac after11file SHA256/size/readability verification; only its exact server root removed, three latest retained. Local disk exhaustion during an incomplete export stopped Docker; removed only that export and hash-verified generated .svelte-kit directories, then recovered engine. No volumes, source, backups or data reset. All77 foreign container ids/images/env/mounts preserved; original snapshot did not include state/restart counters, so their invariance is not asserted. All21 primary tracked changes protected.
+
+SDD4/4 completed. No new dependency or rule relaxation. Global G14/13.11/13.16, physical devices, real OAuth/ML, mail replies, payments, usefulness, volunteer pilot and calendar/cohort criteria remain open; overall plan198/244 active. Private proof root: airis-chat-core-contracts-20261007.

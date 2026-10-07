@@ -2,7 +2,7 @@
 	"spec_id": "airis-chat-core-contracts-2026-10-07-001",
 	"title": "Airis chat core contracts 2026-10-07",
 	"generated": "2026-10-07T15:17:02.686209Z",
-	"last_updated": "2026-10-07T16:07:50.704236Z",
+	"last_updated": "2026-10-07T16:42:39.134808Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "high",
@@ -11,20 +11,22 @@
 		"security_sensitive": false,
 		"default_category": "refactoring",
 		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__refactor__chat-core-contracts.md",
-		"status": "active",
+		"status": "completed",
 		"activated_date": "2026-10-07T15:17:53.046825Z",
-		"progress_percentage": 50,
-		"current_phase": "phase-2"
+		"progress_percentage": 100,
+		"current_phase": "phase-2",
+		"completed_date": "2026-10-07T16:42:39.134414Z",
+		"actual_hours": 1.936
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
 			"title": "Airis chat core contracts 2026-10-07",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2"],
 			"total_tasks": 4,
-			"completed_tasks": 2,
+			"completed_tasks": 4,
 			"metadata": {}
 		},
 		"phase-1": {
@@ -44,12 +46,16 @@
 		"phase-2": {
 			"type": "phase",
 			"title": "Verify and release coherent main-path quality block",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-2-1", "task-2-2"],
 			"total_tasks": 2,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T16:42:38.683060Z",
+				"journaled_at": "2026-10-07T16:42:38.685521Z"
+			}
 		},
 		"task-1-1": {
 			"type": "task",
@@ -92,29 +98,39 @@
 		"task-2-1": {
 			"type": "task",
 			"title": "Verify source and compiled behavior",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": "phase-2",
 			"children": [],
 			"metadata": {
 				"file_path": "e2e/onboarding-paths.config.ts",
 				"category": "refactoring",
 				"started_at": "2026-10-07T16:06:18.624829Z",
-				"status_note": "Measuring type/lint deltas and actual behavior before frozen source and compiled browser checks."
+				"status_note": "Frozen source62c57:933/933 frontend; Chromium38/38, clean Firefox rerun38/38, isolated negative media5/5; first Firefox500 retained, cause unconfirmed. Scoped errors0, normalized additions0. Global2599/111 and lint1097 remain open.",
+				"completed_at": "2026-10-07T16:37:41.306661Z",
+				"needs_journaling": false,
+				"actual_hours": 0.523,
+				"journaled_at": "2026-10-07T16:37:41.308361Z"
 			},
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"total_tasks": 1
 		},
 		"task-2-2": {
 			"type": "task",
 			"title": "Integrate and prove protected production release",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-2",
 			"children": [],
 			"metadata": {
 				"file_path": "meta/memory_bank/specs/work_items/2026-10-07__refactor__chat-core-contracts.md",
-				"category": "refactoring"
+				"category": "refactoring",
+				"started_at": "2026-10-07T16:37:41.539789Z",
+				"status_note": "PR357 merged with identical tree. Source62c57 deployed as chat-core imagef12ac556:4915 frontend/427 Python match;496 raw backend preserved except existing runtime site.webmanifest,326 generated caches checked. Healthy/restarts0, ENV/mounts/money/12neighbors preserved;11file backup/rollback/public8assets/pin accepted. Overall198/244 active.",
+				"completed_at": "2026-10-07T16:42:38.682908Z",
+				"needs_journaling": false,
+				"actual_hours": 0.083,
+				"journaled_at": "2026-10-07T16:42:38.684453Z"
 			},
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"total_tasks": 1
 		}
 	},
@@ -145,6 +161,33 @@
 			"content": "All child tasks in phase phase-1 have been completed.",
 			"metadata": {},
 			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-07T16:37:41.308356Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify source and compiled behavior",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Frozen source62c57:933/933 frontend; Chromium38/38, clean Firefox rerun38/38, isolated negative media5/5; first Firefox500 retained, cause unconfirmed. Scoped errors0, normalized additions0. Global2599/111 and lint1097 remain open.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-07T16:42:38.684449Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Integrate and prove protected production release",
+			"author": "Codex",
+			"content": "Task task-2-2 marked as completed. \nNote: PR357 merged with identical tree. Source62c57 deployed as chat-core imagef12ac556:4915 frontend/427 Python match;496 raw backend preserved except existing runtime site.webmanifest,326 generated caches checked. Healthy/restarts0, ENV/mounts/money/12neighbors preserved;11file backup/rollback/public8assets/pin accepted. Overall198/244 active.",
+			"metadata": {},
+			"task_id": "task-2-2"
+		},
+		{
+			"timestamp": "2026-10-07T16:42:38.685516Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify and release coherent main-path quality block",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
 		}
 	]
 }
