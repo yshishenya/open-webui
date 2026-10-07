@@ -1,0 +1,5 @@
+- [ ] **[BUG][CHAT]** Recover valves tool/function list initialization
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__valves-list-load-recovery.md`
+  - Owner: Codex
+  - Started: 2026-10-07
+  - Summary: Reproduce nullable/rejected list failures; recover sibling/reopen loading and preserve shared list order.

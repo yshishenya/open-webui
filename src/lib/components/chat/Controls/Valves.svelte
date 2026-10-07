@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 
-	import { config, functions, models, settings, tools, user } from '$lib/stores';
-	import { createEventDispatcher, onMount, getContext, tick } from 'svelte';
+	import { functions, tools } from '$lib/stores';
+	import { createEventDispatcher, getContext, tick } from 'svelte';
 
 	import {
 		getUserValvesSpecById as getToolUserValvesSpecById,
@@ -17,7 +17,6 @@
 		getFunctions
 	} from '$lib/apis/functions';
 
-	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Valves from '$lib/components/common/Valves.svelte';
 
@@ -127,14 +126,20 @@
 		init();
 	}
 
-	const init = async () => {
+	const init = async (): Promise<void> => {
 		loading = true;
 
 		if ($functions === null) {
-			functions.set(await getFunctions(localStorage.token));
+			functions.set(await getFunctions(localStorage.token).catch(() => null));
+			if ($functions === null) {
+				toast.error($i18n.t('Could not load functions. Close this section and open it again.'));
+			}
 		}
 		if ($tools === null) {
-			tools.set(await getTools(localStorage.token));
+			tools.set(await getTools(localStorage.token).catch(() => null));
+			if ($tools === null) {
+				toast.error($i18n.t('Could not load tools. Close this section and open it again.'));
+			}
 		}
 
 		loading = false;
@@ -178,9 +183,9 @@
 									>{$i18n.t('Select a tool')}</option
 								>
 
-								{#each $tools
+								{#each ($tools ?? [])
 									.filter((tool) => !tool?.id?.startsWith('server:'))
-									.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')) as tool, toolIdx}
+									.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')) as tool}
 									<option value={tool.id} class="bg-gray-100 dark:bg-gray-800">{tool.name}</option>
 								{/each}
 							{:else if tab === 'functions'}
@@ -188,7 +193,7 @@
 									>{$i18n.t('Select a function')}</option
 								>
 
-								{#each $functions.sort( (a, b) => (a.name ?? '').localeCompare(b.name ?? '') ) as func, funcIdx}
+								{#each [...($functions ?? [])].sort( (a, b) => (a.name ?? '').localeCompare(b.name ?? '') ) as func}
 									<option value={func.id} class="bg-gray-100 dark:bg-gray-800">{func.name}</option>
 								{/each}
 							{/if}

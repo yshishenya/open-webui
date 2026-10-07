@@ -3333,5 +3333,7 @@
 	"New subscriptions are disabled. Existing plans and subscription history remain available.": "New subscriptions are disabled. Existing plans and subscription history remain available.",
 	"New subscriptions are enabled.": "New subscriptions are enabled.",
 	"Add subtitles (.vtt)": "Add subtitles (.vtt)",
-	"Invalid subtitles file": "Invalid subtitles file"
+	"Invalid subtitles file": "Invalid subtitles file",
+	"Could not load tools. Close this section and open it again.": "Could not load tools. Close this section and open it again.",
+	"Could not load functions. Close this section and open it again.": "Could not load functions. Close this section and open it again."
 }

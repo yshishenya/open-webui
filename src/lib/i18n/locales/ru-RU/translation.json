@@ -3859,5 +3859,7 @@
 	"New subscriptions are disabled. Existing plans and subscription history remain available.": "Новые подписки отключены. Существующие тарифы и история подписок доступны.",
 	"New subscriptions are enabled.": "Новые подписки доступны.",
 	"Add subtitles (.vtt)": "Добавить субтитры (.vtt)",
-	"Invalid subtitles file": "Не удалось прочитать субтитры. Выберите файл WebVTT размером до 5 МБ."
+	"Invalid subtitles file": "Не удалось прочитать субтитры. Выберите файл WebVTT размером до 5 МБ.",
+	"Could not load tools. Close this section and open it again.": "Не удалось загрузить инструменты. Закройте этот раздел и откройте снова.",
+	"Could not load functions. Close this section and open it again.": "Не удалось загрузить функции. Закройте этот раздел и откройте снова."
 }
