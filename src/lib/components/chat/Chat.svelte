@@ -82,7 +82,7 @@
 	import { AudioQueue } from '$lib/utils/audio';
 	import { createTemporaryChatId, isTemporaryChatId } from '$lib/utils/chatId';
 	import { getOutputText } from './Messages/structuredOutput';
-	import { getLastMessageId } from '$lib/utils/airis/chat_history';
+	import { finishResponseGroup, getLastMessageId } from '$lib/utils/airis/chat_history';
 	import type {
 		ChatAttachment,
 		ChatHistory,
@@ -397,7 +397,7 @@
 
 	let generating = false;
 	let dragged = false;
-	let generationController = null;
+	let generationController: AbortController | null = null;
 	let contextCompactionToastId = null;
 
 	let chat: SavedChat | null = null;
@@ -1008,9 +1008,11 @@
 
 	const chatEventHandler = async (event, cb) => {
 		console.log(event);
+		const eventHistory = history;
 
 		if (event.chat_id === $chatId) {
 			await tick();
+			if (event.chat_id !== $chatId || history !== eventHistory) return;
 			const type = event?.data?.type ?? null;
 			if (type === 'chat:reload') {
 				await loadChat();
@@ -1047,12 +1049,11 @@
 				} else if (type === 'chat:tasks:cancel') {
 					dismissContextCompactionToast();
 					if (event.message_id === history.currentId) {
+						const hadTasks = !!taskIds?.length;
 						taskIds = null;
-						// Set all response messages to done
-						for (const messageId of history.messages[message.parentId].childrenIds) {
-							history.messages[messageId].done = true;
+						if (finishResponseGroup(history, event.message_id) || hadTasks) {
+							await processNextInQueue(event.chat_id);
 						}
-						await processNextInQueue($chatId);
 					} else {
 						message.done = true;
 					}
@@ -1208,6 +1209,7 @@
 					console.log('Unknown message type', data);
 				}
 
+				if (event.chat_id !== $chatId || history !== eventHistory) return;
 				history.messages[event.message_id] = message;
 			}
 		}
@@ -3400,33 +3402,44 @@
 		history.messages[responseMessage.id] = responseMessage;
 	};
 
-	const stopResponse = async (processQueue = true) => {
+	const stopResponse = async (processQueue = true): Promise<void> => {
+		const stoppedChatId = $chatId;
+		const stoppedHistory = history;
+		const stoppedTasks = taskIds;
+		const stoppedController = generationController;
 		if (taskIds) {
-			if ($chatId) {
-				await stopTasksByChatId(localStorage.token, $chatId).catch((error) => {
-					toast.error(`${error}`);
-					return null;
-				});
-			} else {
-				for (const taskId of taskIds) {
-					const res = await stopTask(localStorage.token, taskId).catch((error) => {
-						toast.error(`${error}`);
-						return null;
-					});
+			try {
+				if (stoppedChatId) {
+					const result = await stopTasksByChatId(localStorage.token, stoppedChatId);
+					if (result?.status !== true) {
+						toast.error($i18n.t('Something went wrong :/'));
+						return;
+					}
+				} else {
+					for (const taskId of stoppedTasks ?? []) {
+						const result = await stopTask(localStorage.token, taskId);
+						if (result?.status !== true) {
+							toast.error($i18n.t('Something went wrong :/'));
+							return;
+						}
+					}
 				}
+			} catch (error) {
+				toast.error(`${error}`);
+				return;
 			}
 
+			if (
+				$chatId !== stoppedChatId ||
+				history !== stoppedHistory ||
+				taskIds !== stoppedTasks ||
+				generationController !== stoppedController
+			) {
+				return;
+			}
 			taskIds = null;
-
-			const responseMessage = history.messages[history.currentId];
-			// Set all response messages to done
-			if (responseMessage.parentId && history.messages[responseMessage.parentId]) {
-				for (const messageId of history.messages[responseMessage.parentId].childrenIds) {
-					history.messages[messageId].done = true;
-				}
-			}
-
-			history.messages[history.currentId] = responseMessage;
+			finishResponseGroup(history, history.currentId);
+			history = history;
 
 			if (shouldAutoScrollResponse()) {
 				scrollToBottom();
@@ -3440,7 +3453,7 @@
 		}
 
 		if (processQueue) {
-			await processNextInQueue($chatId);
+			await processNextInQueue(stoppedChatId);
 		}
 	};
 

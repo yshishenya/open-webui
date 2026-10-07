@@ -61,6 +61,22 @@ export type ChatMessageEdit = {
 	output?: OutputItem[];
 };
 
+/** Finish a response and its actual assistant siblings without repairing the graph. */
+export const finishResponseGroup = (history: ChatHistory, messageId: string | null): boolean => {
+	const response = messageId ? history.messages[messageId] : undefined;
+	if (!response || response.role !== 'assistant') return false;
+	const parent = response.parentId ? history.messages[response.parentId] : undefined;
+	let changed = false;
+	for (const id of [response.id, ...(parent?.childrenIds ?? [])]) {
+		const message = history.messages[id];
+		if (message?.role === 'assistant' && message.parentId === response.parentId) {
+			changed ||= message.done !== true;
+			message.done = true;
+		}
+	}
+	return changed;
+};
+
 /** Select the last reachable unique node without rewriting stored links. */
 export const getLastMessageId = (
 	history: Pick<ChatHistory, 'messages'>,
