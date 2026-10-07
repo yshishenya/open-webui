@@ -3,11 +3,11 @@
 ## Meta
 
 - Type: bugfix
-- Status: active
+- Status: Done
 - Owner: Codex
 - Branch: `codex/bugfix/folder-api-failure-contract`
 - Created: 2026-10-07
-- SDD Spec: `meta/sdd/specs/active/airis-folder-api-failure-contract-2026-10-07-001.json`
+- SDD Spec: `meta/sdd/specs/completed/airis-folder-api-failure-contract-2026-10-07-001.json`
 
 ## Context
 
@@ -19,8 +19,8 @@ The combined PR345/346 compiled candidate passed Chromium32/32 and Firefox31/32.
 - [x] Successful response data and existing request method/body/query/auth contracts preserved.
 - [x] Failed list reload retains existing owned/shared folder state; command mounts catch failures without page errors.
 - [x] Regression fails on original API and passes after fix; full frontend tests pass; no new type/lint diagnostics or disabled rules.
-- [ ] Compiled Chromium and Firefox mandatory paths pass, including deliberately aborted folder requests; source and image identity recorded.
-- [ ] Source branch committed/pushed and PR checked on exact SHA. Production acceptance recorded separately.
+- [x] Compiled Chromium and Firefox mandatory paths pass, including deliberately aborted folder requests; source and image identity recorded.
+- [x] Source branch committed/pushed and PR checked on exact SHA. Production acceptance recorded separately.
 
 ## Scope / Implementation
 
@@ -57,3 +57,13 @@ Source/browser/image/production acceptance remain separate. SDD stays active unt
 - Final follow-up source checks:883/883frontend,107files;folderregressions15/15. Check3004errors/118warnings,0new,36removedfrominitial3040. FullESLint1127errors,31removed;all14changedruntime/test/configfiles ESLint0errors/0warnings. Globalqualitygate remainsopen. Browsercandidate and productionpending.
 
 - 2026-10-07: Chromium full run32/33 exposed a test setup gap: Sidebar fetches folders only after opening; both authenticated config features and folder permission were enabled in the retained trace. Reused openSidebar in the permanent test and match knowledge search by URL.pathname. Focused compiled Chromium1/1 and Firefox390px1/1 pass with real aborted GET, #/@ search and subsequent folder recovery; full exact-source rerun pending. No runtime code or assertions weakened.
+
+## Final acceptance — 2026-10-07
+
+PR347: https://github.com/yshishenya/open-webui/pull/347. Accepted source `c1dd2c95dc23ae3c5b2dc8df599b9467de0dceaa`, merge `ed5cd44beba4e56e2e9e7838b2a7d553471d056f`; trees equal. Applicable CI passed; dependency-review skipped, CodeRabbit reported review skipped. Runtime-identical source binding proves 883/883 frontend tests and 15/15 folder regressions. Full checks still report 3004 type errors / 118 warnings and 1127 lint errors, with zero new diagnostics.
+
+Compiled acceptance: Chromium 33/33 and Firefox at 390px 33/33, total 66, zero failures/errors/skips. Two global setup executions excluded from 66. Separate disposable databases, unchanged sign-in limiter. The original browser failures and failed build attempts are retained as historical evidence.
+
+Production release `20261007T112730Z-folder-failures-c1dd2c95dc-20261007` accepted: exact frontend source, 4915 frontend / 427 Python file hashes match; healthy, restarts 0; environment, compose, mounts, 12 neighboring containers and monetary snapshot preserved (DML 0). Published digest `sha256:9c91fd670bb643718d8b68e40d70f8fa2da2e2f5dbfded9f17c061dc2138c1f9`; backend remains `6a2b5394518d4ac5bfc7e64039cc4db934a66107`. Image pinned in production .env without another container recreation. Public health/version/env/guide return 200; guide has three nonempty preset links and support address. Backup checked; rollback image retained; free disk above 10 GiB guard. No server backup deleted during this release.
+
+SDD completed 3/3. Evidence is private: revision-c1dd2c95dc/release-acceptance.json and its hash-bound references. This closes the folder defect only. Plan remains 198/244, 46 numbered items open; new numbered closures 0. G14/13.11/13.16, global backend/type/lint gates and real external/human/calendar criteria remain open. Browser width is not physical-phone acceptance; public guide smoke is not independent usefulness or a new payment.
