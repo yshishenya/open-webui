@@ -144,7 +144,8 @@ async def completion(body: Completion) -> JSONResponse | StreamingResponse:
     if body.model != MODEL:
         raise HTTPException(400, 'Unexpected model: no paid fallback in this fixture')
     failed = any('E2E_FORCE_ERROR' in str(item.get('content')) for item in body.messages)
-    calls.append({'model': body.model, 'failed': failed, 'usage': None if failed else USAGE})
+    wait_for_cancel = any('E2E_WAIT_CANCEL' in str(item.get('content')) for item in body.messages)
+    calls.append({'model': body.model, 'failed': failed, 'usage': None if failed or wait_for_cancel else USAGE})
     if failed:
         return JSONResponse({'error': {'message': 'Fixture provider failed'}}, status_code=503)
     common = {'id': 'chatcmpl-' + str(uuid.uuid4()), 'model': MODEL, 'created': 1}
@@ -175,6 +176,8 @@ async def completion(body: Completion) -> JSONResponse | StreamingResponse:
                 'choices': [{'index': 0, 'delta': delta, 'finish_reason': finish}],
             }
             yield 'data: ' + json.dumps(event) + '\n\n'
+            if wait_for_cancel and delta.get('content'):
+                await asyncio.sleep(60)
         yield 'data: ' + json.dumps({**common, 'choices': [], 'usage': USAGE}) + '\n\n'
         yield 'data: [DONE]\n\n'
 
