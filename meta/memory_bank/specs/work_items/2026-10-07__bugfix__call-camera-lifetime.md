@@ -37,3 +37,10 @@ Private evidence directory: `airis-call-camera-lifetime-20261007`. Source base i
 ## Source verification — 2026-10-07
 
 Both camera/screen actual-handler regressions failed on original source and pass after correction. Cases include enumeration/play/denial, cancellation while acquisition/enumeration/play is pending, and obsolete acquire/enumerate/play/rejection after a newer successful stream. Full frontend893/893,109files. Check3002→2993errors,118warnings; fullESLint1127unchanged; zero new diagnostics. Scoped new test/config lint0, CallOverlay retains11 pre-existing lint errors. Formatting passes. Compiled/production acceptance pending. No new dependencies. GlobalqualityG14/13.11/13.16 and numberedplan198/244 remain unchanged.
+
+
+## CI repair and packaging recovery — 2026-10-07
+
+Touched-component CI identified11 historical lint errors. Removed unused declarations, typed callback/event signatures against existing ChatControls contracts, typed the existing finish-message dictionary, corrected non-void tags and muted the video-only preview. No suppression, rule relaxation, dependency or broad formatting change. Final scopedlint0 and formatting pass; actual-handler2/2; fullfrontend893/893. Types3002→2990errors,118→114warnings, fullESLint1127→1116; zero new diagnostic identities. Fixed the compiled regression to open Voice mode on an empty composer, before filling a draft.
+
+Current production has127layers and the first overlay build hit max depth exceeded. The candidate uses the earlier85layer image with identical backend496files and non-label image config, whose layers are a prefix of current production. All56 intervening history instructions only affect frontend and labels. Restore current frontend static files, ENV and every current label; rebuild the current application from the exact accepted source. Preserve backend and verify complete manifests. Compiled/CI/production acceptance remains pending.

@@ -22,7 +22,6 @@ test('camera retries after playback failure and releases a late stream after end
 	await page.goto('/');
 	const input = page.getByLabel(/^(Send a Message|How can I help you today\?)$/);
 	await expect(input).toBeVisible();
-	await input.fill('Keep this draft after closing the camera');
 	await page.evaluate(() => {
 		// Synthetic silent audio and disposable video doubles; never accesses real devices.
 		const streams: MediaStream[] = [];
@@ -138,5 +137,6 @@ test('camera retries after playback failure and releases a late stream after end
 			}))
 		)
 		.toEqual({ requests: 3, stopped: 6, live: 0, attached: false });
-	await expect(input).toContainText('Keep this draft after closing the camera');
+	await input.fill('The draft remains usable after closing the camera');
+	await expect(input).toContainText('The draft remains usable after closing the camera');
 });

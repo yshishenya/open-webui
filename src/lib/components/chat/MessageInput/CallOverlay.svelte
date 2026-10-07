@@ -12,14 +12,13 @@
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import VideoInputMenu from './CallOverlay/VideoInputMenu.svelte';
-	import { KokoroWorker } from '$lib/workers/KokoroWorker';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 	const i18n = getContext('i18n');
 
 	export let eventTarget: EventTarget;
-	export let submitPrompt: Function;
-	export let stopResponse: Function;
+	export let submitPrompt: (prompt: string, options?: { _raw?: boolean }) => Promise<void>;
+	export let stopResponse: () => Promise<void>;
 	export let files;
 	export let chatId;
 	export let modelId;
@@ -30,7 +29,6 @@
 
 	let loading = false;
 	let confirmed = false;
-	let interrupted = false;
 	let assistantSpeaking = false;
 	let muted = false;
 
@@ -187,7 +185,6 @@
 	};
 
 	const MIN_DECIBELS = -55;
-	const VISUALIZER_BUFFER_LENGTH = 300;
 
 	const transcribeHandler = async (audioBlob) => {
 		// Create a blob from the audio chunks
@@ -413,7 +410,7 @@
 		detectSound();
 	};
 
-	let finishedMessages = {};
+	let finishedMessages: Record<string, boolean> = {};
 	let currentMessageId = null;
 	let currentUtterance = null;
 
@@ -492,9 +489,8 @@
 		}
 	};
 
-	const stopAllAudio = async () => {
+	const stopAllAudio = async (): Promise<void> => {
 		assistantSpeaking = false;
-		interrupted = true;
 
 		if (chatStreaming) {
 			stopResponse();
@@ -668,9 +664,8 @@
 		}
 	};
 
-	const chatFinishHandler = async (e) => {
-		const { id, content } = e.detail;
-		// "content" here is the entire message from the assistant
+	const chatFinishHandler = async (e: Event): Promise<void> => {
+		const { id } = (e as CustomEvent<{ id: string }>).detail;
 		finishedMessages[id] = true;
 
 		chatStreaming = false;
@@ -870,7 +865,7 @@
 									? 'size-14'
 									: 'size-12'}  transition-all rounded-full bg-cover bg-center bg-no-repeat"
 						style={`background-image: url('${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}&voice=true');`}
-					/>
+					></div>
 				{/if}
 				<!-- navbar -->
 			</button>
@@ -946,20 +941,20 @@
 										? 'size-44'
 										: 'size-40'} transition-all rounded-full bg-cover bg-center bg-no-repeat"
 							style={`background-image: url('${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}&voice=true');`}
-						/>
+						></div>
 					{/if}
 				</button>
 			{:else}
 				<div class="relative flex video-container w-full max-h-full pt-2 pb-4 md:py-6 px-2 h-full">
-					<!-- svelte-ignore a11y-media-has-caption -->
 					<video
 						id="camera-feed"
 						autoplay
 						class="rounded-2xl h-full min-w-full object-cover object-center"
 						playsinline
-					/>
+						muted
+					></video>
 
-					<canvas id="camera-canvas" style="display:none;" />
+					<canvas id="camera-canvas" style="display:none;"></canvas>
 
 					<div class=" absolute top-4 md:top-8 left-4">
 						<button
