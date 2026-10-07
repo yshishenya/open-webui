@@ -1,4 +1,41 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
+import type {
+	FolderListItem,
+	SelectedFolder,
+	ChatListItem
+} from '$lib/utils/airis/frontend-contracts';
+
+const rethrowFolderError = (error: unknown): never => {
+	if (error !== null && typeof error === 'object' && 'detail' in error) {
+		throw error.detail ?? error;
+	}
+	throw error;
+};
+
+export type FolderAccessGrant = {
+	id?: string;
+	principal_type: 'user' | 'group';
+	principal_id: string;
+	permission: 'read' | 'write';
+};
+
+type FolderResponse = SelectedFolder & {
+	access_grants?: FolderAccessGrant[];
+};
+
+type FolderReadResponse = {
+	folder_id: string;
+	folder_ids: string[];
+	updated_count: number;
+	folder_unread_counts: Record<string, number>;
+};
+
+type SharedFolderChatsResponse = {
+	chats: Array<ChatListItem & { user_id: string; owner_name: string; readonly: boolean }>;
+	folder_permission: 'read' | 'write';
+	total?: number;
+	has_more?: boolean;
+};
 
 export type FolderForm = {
 	name?: string;
@@ -7,9 +44,10 @@ export type FolderForm = {
 	parent_id?: string | null;
 };
 
-export const createNewFolder = async (token: string, folderForm: FolderForm) => {
-	let error = null;
-
+export const createNewFolder = async (
+	token: string,
+	folderForm: FolderForm
+): Promise<FolderResponse> => {
 	const res = await fetch(`${WEBUI_API_BASE_URL}/folders/`, {
 		method: 'POST',
 		headers: {
@@ -23,21 +61,12 @@ export const createNewFolder = async (token: string, folderForm: FolderForm) => 
 			if (!res.ok) throw await res.json();
 			return res.json();
 		})
-		.catch((err) => {
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
+		.catch(rethrowFolderError);
 
 	return res;
 };
 
-export const getFolders = async (token: string = '') => {
-	let error = null;
-
+export const getFolders = async (token: string = ''): Promise<FolderListItem[]> => {
 	const res = await fetch(`${WEBUI_API_BASE_URL}/folders/`, {
 		method: 'GET',
 		headers: {
@@ -53,22 +82,12 @@ export const getFolders = async (token: string = '') => {
 		.then((json) => {
 			return json;
 		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
+		.catch(rethrowFolderError);
 
 	return res;
 };
 
-export const getFolderById = async (token: string, id: string) => {
-	let error = null;
-
+export const getFolderById = async (token: string, id: string): Promise<FolderResponse> => {
 	const res = await fetch(`${WEBUI_API_BASE_URL}/folders/${id}`, {
 		method: 'GET',
 		headers: {
@@ -84,22 +103,16 @@ export const getFolderById = async (token: string, id: string) => {
 		.then((json) => {
 			return json;
 		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
+		.catch(rethrowFolderError);
 
 	return res;
 };
 
-export const updateFolderById = async (token: string, id: string, folderForm: FolderForm) => {
-	let error = null;
-
+export const updateFolderById = async (
+	token: string,
+	id: string,
+	folderForm: FolderForm
+): Promise<FolderResponse> => {
 	const res = await fetch(`${WEBUI_API_BASE_URL}/folders/${id}/update`, {
 		method: 'POST',
 		headers: {
@@ -116,15 +129,7 @@ export const updateFolderById = async (token: string, id: string, folderForm: Fo
 		.then((json) => {
 			return json;
 		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
+		.catch(rethrowFolderError);
 
 	return res;
 };
@@ -133,9 +138,7 @@ export const updateFolderIsExpandedById = async (
 	token: string,
 	id: string,
 	isExpanded: boolean
-) => {
-	let error = null;
-
+): Promise<FolderResponse> => {
 	const res = await fetch(`${WEBUI_API_BASE_URL}/folders/${id}/update/expanded`, {
 		method: 'POST',
 		headers: {
@@ -154,15 +157,7 @@ export const updateFolderIsExpandedById = async (
 		.then((json) => {
 			return json;
 		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
+		.catch(rethrowFolderError);
 
 	return res;
 };
@@ -171,9 +166,7 @@ export const updateFolderParentIdById = async (
 	token: string,
 	id: string,
 	parentId?: string | null
-) => {
-	let error = null;
-
+): Promise<FolderResponse> => {
 	const res = await fetch(`${WEBUI_API_BASE_URL}/folders/${id}/update/parent`, {
 		method: 'POST',
 		headers: {
@@ -192,22 +185,16 @@ export const updateFolderParentIdById = async (
 		.then((json) => {
 			return json;
 		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
+		.catch(rethrowFolderError);
 
 	return res;
 };
 
-export const deleteFolderById = async (token: string, id: string, deleteContents: boolean) => {
-	let error = null;
-
+export const deleteFolderById = async (
+	token: string,
+	id: string,
+	deleteContents: boolean
+): Promise<boolean> => {
 	const searchParams = new URLSearchParams();
 	searchParams.append('delete_contents', deleteContents ? 'true' : 'false');
 
@@ -226,22 +213,15 @@ export const deleteFolderById = async (token: string, id: string, deleteContents
 		.then((json) => {
 			return json;
 		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
+		.catch(rethrowFolderError);
 
 	return res;
 };
 
-export const markFolderChatsReadById = async (token: string, id: string) => {
-	let error = null;
-
+export const markFolderChatsReadById = async (
+	token: string,
+	id: string
+): Promise<FolderReadResponse> => {
 	const res = await fetch(`${WEBUI_API_BASE_URL}/folders/${id}/read`, {
 		method: 'POST',
 		headers: {
@@ -254,15 +234,7 @@ export const markFolderChatsReadById = async (token: string, id: string) => {
 			if (!res.ok) throw await res.json();
 			return res.json();
 		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
+		.catch(rethrowFolderError);
 
 	return res;
 };
@@ -271,9 +243,7 @@ export const updateFolderAccessById = async (
 	token: string,
 	id: string,
 	accessGrants: unknown[]
-) => {
-	let error = null;
-
+): Promise<FolderResponse> => {
 	const res = await fetch(`${WEBUI_API_BASE_URL}/folders/${id}/access/update`, {
 		method: 'POST',
 		headers: {
@@ -287,21 +257,12 @@ export const updateFolderAccessById = async (
 			if (!res.ok) throw await res.json();
 			return res.json();
 		})
-		.catch((err) => {
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
+		.catch(rethrowFolderError);
 
 	return res;
 };
 
-export const getSharedFolders = async (token: string) => {
-	let error = null;
-
+export const getSharedFolders = async (token: string): Promise<SelectedFolder[]> => {
 	const res = await fetch(`${WEBUI_API_BASE_URL}/folders/shared`, {
 		method: 'GET',
 		headers: {
@@ -314,14 +275,7 @@ export const getSharedFolders = async (token: string) => {
 			if (!res.ok) throw await res.json();
 			return res.json();
 		})
-		.catch((err) => {
-			error = err.detail;
-			return [];
-		});
-
-	if (error) {
-		throw error;
-	}
+		.catch(rethrowFolderError);
 
 	return res;
 };
@@ -334,9 +288,7 @@ export const getSharedFolderChats = async (
 		sortBy?: 'title' | 'updated_at';
 		sortDir?: 'asc' | 'desc';
 	} = {}
-) => {
-	let error = null;
-
+): Promise<SharedFolderChatsResponse> => {
 	const searchParams = new URLSearchParams();
 	if (params.page !== undefined && params.page !== null) {
 		searchParams.append('page', `${params.page}`);
@@ -364,14 +316,7 @@ export const getSharedFolderChats = async (
 			if (!res.ok) throw await res.json();
 			return res.json();
 		})
-		.catch((err) => {
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
+		.catch(rethrowFolderError);
 
 	return res;
 };

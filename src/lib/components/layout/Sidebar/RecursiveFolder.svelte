@@ -526,6 +526,7 @@
 	let queuedReload = false;
 	let pendingUpsertChats = [];
 
+	/** @returns {Promise<void>} */
 	export const setFolderItems = async (append = false) => {
 		await tick();
 		if (open && chatsLoading) {
@@ -557,9 +558,10 @@
 				const fallback = await getChatListByFolderId(localStorage.token, folderId, nextPage).catch(
 					(error) => {
 						toast.error(`${error}`);
-						return [];
+						return null;
 					}
 				);
+				if (!fallback) return;
 				const fallbackChats = fallback ?? [];
 				const merged = append ? mergeFolderChats(chats ?? [], fallbackChats) : fallbackChats;
 				chats = mergeFolderChats(merged, pendingUpsertChats);

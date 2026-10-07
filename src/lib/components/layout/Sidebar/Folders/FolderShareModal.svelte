@@ -8,26 +8,21 @@
 	import { getFolderById, updateFolderAccessById } from '$lib/apis/folders';
 	import { user } from '$lib/stores';
 
-	type AccessGrant = {
-		id?: string;
-		principal_type: 'user' | 'group';
-		principal_id: string;
-		permission: 'read' | 'write';
-	};
+	import type { FolderAccessGrant as AccessGrant } from '$lib/apis/folders';
+	import type { SelectedFolder } from '$lib/utils/airis/frontend-contracts';
 
 	export let show = false;
-	export let folder: any = null;
+	export let folder: Partial<Pick<SelectedFolder, 'id' | 'name' | 'access_grants'>> | null = null;
 
 	let accessGrants: AccessGrant[] = [];
-	let loading = false;
 
 	// Fetch fresh folder data (with access_grants) when modal opens
 	$: if (show && folder?.id) {
 		loadAccessGrants();
 	}
 
-	const loadAccessGrants = async () => {
-		loading = true;
+	const loadAccessGrants = async (): Promise<void> => {
+		if (!folder?.id) return;
 		try {
 			const freshFolder = await getFolderById(localStorage.token, folder.id);
 			if (freshFolder) {
@@ -35,14 +30,12 @@
 			}
 		} catch (e) {
 			console.error('Failed to load folder access grants', e);
-			accessGrants = folder?.access_grants ?? [];
-		} finally {
-			loading = false;
+			accessGrants = (folder?.access_grants as AccessGrant[] | undefined) ?? [];
 		}
 	};
 
-	const handleAccessChange = async () => {
-		if (!folder) return;
+	const handleAccessChange = async (): Promise<void> => {
+		if (!folder?.id) return;
 		try {
 			const res = await updateFolderAccessById(localStorage.token, folder.id, accessGrants);
 			if (res) {

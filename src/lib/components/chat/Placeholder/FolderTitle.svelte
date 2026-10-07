@@ -84,7 +84,8 @@
 		return Boolean(res);
 	};
 
-	const updateIconHandler = async (iconName) => {
+	const updateIconHandler = async (iconName: string | null | undefined): Promise<void> => {
+		if (!folder) return;
 		const res = await updateFolderById(localStorage.token, folder.id, {
 			meta: {
 				icon: iconName ?? ''
@@ -104,7 +105,7 @@
 				return null;
 			});
 
-			const updatedFolder = { ...folder, ..._folder };
+			const updatedFolder = { ...folder, ...res, ..._folder };
 			await selectedFolder.set(updatedFolder);
 			onUpdate(updatedFolder);
 		}
