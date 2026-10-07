@@ -1,0 +1,8 @@
+- [ ] **[BUG][CHAT]** Preserve browser entry state on chat URL replacement
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__browser-history-state.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/browser-history-state`
+  - Started: 2026-10-07
+  - Summary: Correct all three reads of message history instead of browser state.
+  - Tests: Pending reproduction, Docker checks and guarded live release.
+  - Risks: UI navigation state; no backend/data/money changes.
