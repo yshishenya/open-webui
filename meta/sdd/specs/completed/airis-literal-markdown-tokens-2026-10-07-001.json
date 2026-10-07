@@ -2,7 +2,7 @@
   "spec_id": "airis-literal-markdown-tokens-2026-10-07-001",
   "title": "Airis literal Markdown tokens",
   "generated": "2026-10-06T23:43:13.229395Z",
-  "last_updated": "2026-10-06T23:49:03.589697Z",
+  "last_updated": "2026-10-07T00:07:00.427342Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -10,23 +10,24 @@
     "estimated_hours": 2,
     "security_sensitive": false,
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__literal-markdown-tokens.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-06T23:44:07.344493Z",
-    "progress_percentage": 66,
-    "current_phase": "phase-1"
+    "progress_percentage": 100,
+    "current_phase": "phase-1",
+    "completed_date": "2026-10-07T00:07:00.427061Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Airis literal Markdown tokens",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
         "phase-2"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
@@ -49,14 +50,18 @@
     "phase-2": {
       "type": "phase",
       "title": "Accept exact source and runtime",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-2-1"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-07T00:06:59.939518Z",
+        "journaled_at": "2026-10-07T00:06:59.942155Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -101,7 +106,7 @@
     "task-2-1": {
       "type": "task",
       "title": "Accept exact source checks and guarded runtime",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -110,8 +115,13 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-07T00:06:59.939379Z",
+        "needs_journaling": false,
+        "status_note": "Exact source accepted in CI and merge tree; compiled 26/26 and full path 24/24; guarded production release, hashes/data/13 neighbors preserved, ordinary authenticated guide draft and zero errors accepted.",
+        "journaled_at": "2026-10-07T00:06:59.940941Z"
+      }
     }
   },
   "journal": [
@@ -141,6 +151,24 @@
       "content": "All child tasks in phase phase-1 have been completed.",
       "metadata": {},
       "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-07T00:06:59.940936Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Accept exact source checks and guarded runtime",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Exact source accepted in CI and merge tree; compiled 26/26 and full path 24/24; guarded production release, hashes/data/13 neighbors preserved, ordinary authenticated guide draft and zero errors accepted.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-07T00:06:59.942149Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Accept exact source and runtime",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
     }
   ]
 }

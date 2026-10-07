@@ -1,6 +1,7 @@
-- [ ] **[BUG]** Render user/model names literally in Markdown token replacement
+- [x] **[BUG]** Render user/model names literally in Markdown token replacement
   - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__literal-markdown-tokens.md`
   - Owner: Codex
-  - Started: 2026-10-07
+  - Done: 2026-10-07
   - Summary: Reproduce dollar replacement directives in the shared helper; preserve media callbacks and code exclusions.
   - Validation: baseline 7 failures/6 passes; fixed 13/13; full frontend 744/744; ordinary corpus 10000 unchanged; zero new type/lint messages, global commands remain failing.
+  - Runtime: PR319 merged; identical source/merge trees; compiled 26/26, full path 24/24, guarded release and authenticated production draft accepted, zero page errors. Linked SDD 3/3 completed.
