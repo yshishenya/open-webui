@@ -1,0 +1,3 @@
+- [x] Record accepted cancellation release
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__chat-cancel-history.md`
+  - Accepted source4f15ba1c280a46dc0ef198ff056de5ff9a471e39, PR323; source/CI/compiled/production proof accepted. SDD3/3 completed. Runtime stays on the accepted image; global goal active.

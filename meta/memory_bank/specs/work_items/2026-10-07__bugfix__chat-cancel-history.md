@@ -1,12 +1,12 @@
 # AIRIS chat cancellation and history ownership
 
 - Type: bugfix
-- Status: active
+- Status: completed
 - Workflow: bug_fix
 - Owner: Codex
 - Branch: `codex/bugfix/chat-cancel-history`
 - Created: 2026-10-07
-- SDD Spec: `meta/sdd/specs/active/airis-chat-cancel-history-2026-10-07-001.json`
+- SDD Spec: `meta/sdd/specs/completed/airis-chat-cancel-history-2026-10-07-001.json`
 
 ## Context and root cause
 
@@ -23,7 +23,7 @@ Both paths feed the existing queue; preserve its ownership and error behavior.
 - [x] Both paths safely finish only the selected assistant response group; missing current/parent/child do not throw, text/links/user messages preserved.
 - [x] Late stop/event never changes another history/chat/new task/controller or starts its queue; refused stop preserves pending state and reports an error.
 - [x] Existing suites and actual handler regressions pass; zero new normalized diagnostics; full type/lint commands retain their measured status.
-- [ ] Exact source/CI/tree/candidate and compiled browser/full paths accepted; guarded production files/data/config/health accepted before closure.
+- [x] Exact source/CI/tree/candidate and compiled browser/full paths accepted; guarded production files/data/config/health accepted before closure.
 
 ## Scope and upstream impact
 
@@ -53,3 +53,19 @@ task list to exercise saved UI state; only the fifth creates a real server task.
 The existing test-only provider wrapper delays after partial text with no final
 usage; production backend and provider settings remain untouched. Source
 format/ESLint and existing Python formatter/linter checks pass.
+
+## Final release acceptance
+
+Source `4f15ba1c280a46dc0ef198ff056de5ff9a471e39`, PR323 merged as
+`cbaaeb878f55fc2efa00c04efde79a6b74657d5e`; source/merge trees match,
+all applicable source CI accepted. Actual29/29, full frontend799/799,
+compiled cancellation10/10 (2 real native streaming tasks,8 synthetic saved
+history cases), complete onboarding/payment24/24; Chromium and narrow Firefox.
+4914frontend and427backend file hashes match the accepted candidate. Backend,
+schema, money, environment and Compose retained; image pin adds no recreate.
+Docker healthy/restarts0,12neighbors preserved, draft/free Luna/page errors0
+verified after reload. First attempt stopped before backup/migration/recreate
+after an externally removed temporary terminal; initiator unknown. Fresh exact
+preflight accepted the retry; browser reload created a new per-user terminal.
+Full types3357/130 and ESLint1227 remain inherited open debt; zero new normalized
+diagnostics. Global human/calendar/pilot and overall plan remain open.
