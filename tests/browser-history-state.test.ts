@@ -126,3 +126,20 @@ it.each(['normal', 'embedded', 'temporary'])(
 		}
 	}
 );
+
+const resetGuard = replacements[0].parent.parent.parent;
+if (!ts.isIfStatement(resetGuard)) throw new Error('Missing new-chat reset guard');
+it.each([
+	{ native: '/c/created', routed: '/', embedded: false, expected: true },
+	{ native: '/', routed: '/c/stale', embedded: false, expected: false },
+	{ native: '/c/created', routed: '/', embedded: true, expected: false }
+])('uses current browser URL to reset $native with routed $routed', (entry) => {
+	window.history.replaceState(states[0], '', entry.native);
+	expect(
+		evaluate<boolean>(resetGuard.expression.getText(source), {
+			window,
+			$page: { url: new URL(entry.routed, 'http://localhost') },
+			embedded: entry.embedded
+		})
+	).toBe(entry.expected);
+});

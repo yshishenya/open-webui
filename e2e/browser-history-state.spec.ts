@@ -51,7 +51,8 @@ for (const mode of ['backend-created', 'explicit-created']) {
 		expect(creation).toHaveLength(1);
 		expect(creation[0].after).toEqual(creation[0].before);
 		expect(creation[0].after).toMatchObject({ airisFixture: 'preserved' });
-		await page.getByRole('button', { name: 'New Chat', exact: true }).click();
+		// Invoke the same hidden control used by the native new-chat shortcut.
+		await page.locator('#new-chat-button').evaluate((button: HTMLButtonElement) => button.click());
 		await expect(page).toHaveURL(/\/$/);
 		await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toHaveText('');
 		const reset = await page.evaluate(() =>

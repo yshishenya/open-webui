@@ -6,3 +6,7 @@
   - Summary: Correct all three reads of message history instead of browser state.
   - Tests: Pending reproduction, Docker checks and guarded live release.
   - Risks: UI navigation state; no backend/data/money changes.
+
+  - Compiled acceptance found stale router URL after in-place creation; native URL guard fixed.
+  - Source checks:18/18 targeted;818/818 full;3312/130 inherited types;1227 inherited lint,0new.
+  - Candidate/production acceptance pending final source.

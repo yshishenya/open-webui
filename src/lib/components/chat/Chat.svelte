@@ -1888,7 +1888,7 @@
 		await showCallOverlay.set(false);
 		await showArtifacts.set(false);
 
-		if (!embedded && $page.url.pathname.includes('/c/')) {
+		if (!embedded && window.location.pathname.includes('/c/')) {
 			window.history.replaceState(window.history.state, '', `/`);
 		}
 
