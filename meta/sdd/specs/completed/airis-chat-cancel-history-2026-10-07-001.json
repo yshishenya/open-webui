@@ -1,0 +1,137 @@
+{
+	"spec_id": "airis-chat-cancel-history-2026-10-07-001",
+	"title": "AIRIS chat cancellation history",
+	"generated": "2026-10-07T00:50:04.795177Z",
+	"last_updated": "2026-10-07T01:21:59.652978Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-07__bugfix__chat-cancel-history.md",
+		"status": "completed",
+		"activated_date": "2026-10-07T00:50:27.224387Z",
+		"progress_percentage": 66,
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-07T01:21:59.652739Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS chat cancellation history",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 3,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Reproduce and fix cancellation",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1", "task-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-07T00:57:36.773755Z",
+				"journaled_at": "2026-10-07T00:57:36.775777Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Accept release",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-3"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": true,
+				"completed_at": "2026-10-07T01:21:59.189144Z"
+			}
+		},
+		"task-1": {
+			"type": "task",
+			"title": "Reproduce actual cancellation handlers",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"priority": "high",
+				"completed_at": "2026-10-07T00:57:36.519535Z",
+				"needs_journaling": false,
+				"status_note": "Actual accepted Chat handlers:24fail/5pass in29cases; original22case subset18fail/4pass",
+				"journaled_at": "2026-10-07T00:57:36.521167Z"
+			}
+		},
+		"task-2": {
+			"type": "task",
+			"title": "Fix shared history and asynchronous ownership",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"priority": "high",
+				"completed_at": "2026-10-07T00:57:36.773551Z",
+				"needs_journaling": false,
+				"status_note": "Shared helper and async ownership; actual29/29, full799/799, changed-file ESLint pass; types3357/130,lint1227,zero new normalized messages",
+				"journaled_at": "2026-10-07T00:57:36.774661Z"
+			}
+		},
+		"task-3": {
+			"type": "task",
+			"title": "Accept exact-source candidate and production",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"priority": "high",
+				"completed_at": "2026-10-07T01:21:59.188975Z",
+				"needs_journaling": true,
+				"status_note": "Exact4f15 source CI/tree accepted; actual29/29, frontend799/799, compiled cancellation10/10 and full paths24/24. Guarded production file/data/health/pin accepted. Global quality and human/calendar gates remain open."
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-07T00:57:36.521156Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce actual cancellation handlers",
+			"author": "Codex",
+			"content": "Task task-1 marked as completed. \nNote: Actual accepted Chat handlers:24fail/5pass in29cases; original22case subset18fail/4pass",
+			"metadata": {},
+			"task_id": "task-1"
+		},
+		{
+			"timestamp": "2026-10-07T00:57:36.774655Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Fix shared history and asynchronous ownership",
+			"author": "Codex",
+			"content": "Task task-2 marked as completed. \nNote: Shared helper and async ownership; actual29/29, full799/799, changed-file ESLint pass; types3357/130,lint1227,zero new normalized messages",
+			"metadata": {},
+			"task_id": "task-2"
+		},
+		{
+			"timestamp": "2026-10-07T00:57:36.775773Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Reproduce and fix cancellation",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}

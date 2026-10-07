@@ -1,6 +1,7 @@
-- [ ] **[BUG]** Preserve response/history ownership during cancellation
+- [x] **[BUG]** Preserve response/history ownership during cancellation
   - Spec: `meta/memory_bank/specs/work_items/2026-10-07__bugfix__chat-cancel-history.md`
   - Owner: Codex
   - Started: 2026-10-07
   - Summary: Reproduce missing graph and delayed cancellation in both actual Chat handlers, reuse one history helper, preserve new chat/generation and refuse false completion after a stop failure.
   - Source verification: actual29/29, frontend799/799; types3357/130, ESLint1227, zero new normalized diagnostics. Compiled10 and full paths24 pending. Test-only slow provider fixture added; no runtime backend/schema changes.
+  - Completed: exact source/CI/tree/candidate and guarded production accepted; actual29/29, frontend799/799, compiled10/10, full paths24/24; SDD3/3. Overall goal active and global frontend/human/calendar gates pending.
