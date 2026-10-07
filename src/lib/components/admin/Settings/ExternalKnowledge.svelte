@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
 	import type { Writable } from 'svelte/store';
+	import type { KnowledgeListItem, KnowledgeAccessGrant } from '$lib/utils/airis/knowledge-types';
 	import type { i18n as i18nType } from 'i18next';
 	import { toast } from 'svelte-sonner';
 
@@ -30,28 +31,16 @@
 		name: string;
 		provider: string;
 		endpoint: string;
-		config?: Record<string, any>;
-		capabilities?: Record<string, any>;
+		config?: { timeout?: number; db_name?: string; [key: string]: unknown };
+		capabilities?: Record<string, unknown>;
 		enabled?: boolean;
 		auth_configured?: boolean;
 	};
 
-	type ExternalKnowledgeItem = {
-		id: string;
-		name: string;
-		description?: string;
-		access_grants?: any[];
-		meta?: {
-			external?: {
-				connection_id?: string;
-				provider?: string;
-				source?: {
-					name?: string;
-					config?: Record<string, any>;
-				};
-			};
-		};
-	};
+	type ExternalKnowledgeItem = Pick<
+		KnowledgeListItem,
+		'id' | 'name' | 'description' | 'access_grants' | 'meta'
+	>;
 
 	let loading = false;
 	let testing = false;
@@ -61,10 +50,10 @@
 	let items: ExternalKnowledgeItem[] = [];
 	let editingItem: ExternalKnowledgeItem | null = null;
 	let editingConnection: ExternalKnowledgeConnection | null = null;
-	let accessGrants: any[] = [];
+	let accessGrants: KnowledgeAccessGrant[] = [];
 	let testResult: {
 		documents?: string[];
-		metadatas?: Record<string, any>[];
+		metadatas?: Record<string, unknown>[];
 		distances?: number[];
 	} | null = null;
 

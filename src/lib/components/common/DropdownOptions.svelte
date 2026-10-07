@@ -1,5 +1,10 @@
 <script lang="ts">
+	type Value = $$Generic<string | null>;
 	import { getContext } from 'svelte';
+	import type {
+		SelectOption,
+		SvelteGeneric as $$Generic
+	} from '$lib/utils/airis/frontend-contracts';
 
 	import Select from '$lib/components/common/Select.svelte';
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
@@ -8,14 +13,14 @@
 	export let align = 'center';
 	export let className = '';
 
-	export let value = '';
+	export let value: Value = '' as Value;
 	export let placeholder = 'Select an option';
-	export let items = [
-		{ value: 'new', label: $i18n.t('New') },
-		{ value: 'top', label: $i18n.t('Top') }
+	export let items: SelectOption<Value>[] = [
+		{ value: 'new' as Value, label: $i18n.t('New') },
+		{ value: 'top' as Value, label: $i18n.t('Top') }
 	];
 
-	export let onChange: (value: string) => void = () => {};
+	export let onChange: (value: Value) => void = () => {};
 
 	let selectComponent;
 	let open = false;

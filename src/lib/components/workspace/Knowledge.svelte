@@ -6,6 +6,7 @@
 	import { toast } from 'svelte-sonner';
 	import { onMount, getContext, tick, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
+	import type { KnowledgeListItem } from '$lib/utils/airis/knowledge-types';
 	import type { i18n as i18nType } from 'i18next';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
@@ -35,20 +36,6 @@
 	import TagSelector from './common/TagSelector.svelte';
 	import Loader from '../common/Loader.svelte';
 
-	type KnowledgeListItem = {
-		id: string;
-		name: string;
-		description?: string;
-		updated_at: number;
-		file_count?: number;
-		write_access?: boolean;
-		meta?: any;
-		user?: {
-			name?: string;
-			email?: string;
-		};
-	};
-
 	export let showCreateOnMount = false;
 	export let createModalCloseHref = '';
 
@@ -68,7 +55,7 @@
 	let sortDirection = 'desc';
 
 	let items: KnowledgeListItem[] | null = null;
-	let total: number | null = null;
+	let total: number | null | undefined = null;
 
 	let allItemsLoaded = false;
 	let itemsLoading = false;
@@ -147,7 +134,7 @@
 			sortKey,
 			sortDirection
 		).catch(() => {
-			return [];
+			return [] as [] & { total?: never; items?: never };
 		});
 
 		if (res) {
@@ -516,7 +503,7 @@
 
 				{#if !allItemsLoaded}
 					<Loader
-						on:visible={(e) => {
+						on:visible={() => {
 							if (!itemsLoading) {
 								loadMoreItems();
 							}

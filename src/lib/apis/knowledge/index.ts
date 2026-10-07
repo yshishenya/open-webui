@@ -1,11 +1,20 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
+import type {
+	KnowledgeAccessGrant,
+	KnowledgeDetails,
+	KnowledgeListResponse,
+	KnowledgeFile,
+	KnowledgeFileListResponse,
+	KnowledgeDirectory,
+	KnowledgeSyncDiff
+} from '$lib/utils/airis/knowledge-types';
 
 export const createNewKnowledge = async (
 	token: string,
 	name: string,
 	description: string,
-	accessGrants: object[]
-) => {
+	accessGrants: KnowledgeAccessGrant[]
+): Promise<KnowledgeDetails | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/create`, {
@@ -336,7 +345,10 @@ export const createExternalKnowledge = async (token: string, payload: object) =>
 	return res;
 };
 
-export const getKnowledgeBases = async (token: string = '', page: number | null = null) => {
+export const getKnowledgeBases = async (
+	token: string = '',
+	page: number | null = null
+): Promise<KnowledgeListResponse | null> => {
 	let error = null;
 
 	const searchParams = new URLSearchParams();
@@ -378,7 +390,7 @@ export const searchKnowledgeBases = async (
 	source: string | null = null,
 	orderBy: string | null = null,
 	direction: string | null = null
-) => {
+): Promise<KnowledgeListResponse | null> => {
 	let error = null;
 
 	const searchParams = new URLSearchParams();
@@ -425,7 +437,7 @@ export const searchKnowledgeFiles = async (
 	direction?: string | null,
 	page: number = 1,
 	includeContent: boolean = false
-) => {
+): Promise<KnowledgeFileListResponse | null> => {
 	let error = null;
 
 	const searchParams = new URLSearchParams();
@@ -468,7 +480,10 @@ export const searchKnowledgeFiles = async (
 	return res;
 };
 
-export const getKnowledgeById = async (token: string, id: string) => {
+export const getKnowledgeById = async (
+	token: string,
+	id: string
+): Promise<KnowledgeDetails | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}`, {
@@ -510,7 +525,7 @@ export const searchKnowledgeFilesById = async (
 	page: number = 1,
 	directoryId?: string | null,
 	includeContent: boolean = false
-) => {
+): Promise<KnowledgeFileListResponse | null> => {
 	let error = null;
 
 	const searchParams = new URLSearchParams();
@@ -557,7 +572,10 @@ export const searchKnowledgeFilesById = async (
 	return res;
 };
 
-export const getPendingKnowledgeFiles = async (token: string, id: string) => {
+export const getPendingKnowledgeFiles = async (
+	token: string,
+	id: string
+): Promise<KnowledgeFile[]> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}/files/pending`, {
@@ -585,7 +603,7 @@ export const getPendingKnowledgeFiles = async (token: string, id: string) => {
 	return res;
 };
 
-export const streamPendingKnowledgeFiles = async (token: string, id: string) => {
+export const streamPendingKnowledgeFiles = async (token: string, id: string): Promise<Response> => {
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}/files/pending?stream=true`, {
 		method: 'GET',
 		headers: {
@@ -605,10 +623,14 @@ type KnowledgeUpdateForm = {
 	name?: string;
 	description?: string;
 	data?: object;
-	access_grants?: object[];
+	access_grants?: KnowledgeAccessGrant[];
 };
 
-export const updateKnowledgeById = async (token: string, id: string, form: KnowledgeUpdateForm) => {
+export const updateKnowledgeById = async (
+	token: string,
+	id: string,
+	form: KnowledgeUpdateForm
+): Promise<KnowledgeDetails | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}/update`, {
@@ -649,8 +671,8 @@ export const updateKnowledgeById = async (token: string, id: string, form: Knowl
 export const updateKnowledgeAccessGrants = async (
 	token: string,
 	id: string,
-	accessGrants: any[]
-) => {
+	accessGrants: KnowledgeAccessGrant[]
+): Promise<KnowledgeDetails | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}/access/update`, {
@@ -684,7 +706,7 @@ export const addFileToKnowledgeById = async (
 	id: string,
 	fileId: string,
 	directoryId?: string | null
-) => {
+): Promise<KnowledgeDetails | null> => {
 	let error = null;
 
 	const body: Record<string, string> = { file_id: fileId };
@@ -720,7 +742,11 @@ export const addFileToKnowledgeById = async (
 	return res;
 };
 
-export const updateFileFromKnowledgeById = async (token: string, id: string, fileId: string) => {
+export const updateFileFromKnowledgeById = async (
+	token: string,
+	id: string,
+	fileId: string
+): Promise<KnowledgeDetails | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}/file/update`, {
@@ -755,7 +781,11 @@ export const updateFileFromKnowledgeById = async (token: string, id: string, fil
 	return res;
 };
 
-export const removeFileFromKnowledgeById = async (token: string, id: string, fileId: string) => {
+export const removeFileFromKnowledgeById = async (
+	token: string,
+	id: string,
+	fileId: string
+): Promise<KnowledgeDetails | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}/file/remove`, {
@@ -790,7 +820,10 @@ export const removeFileFromKnowledgeById = async (token: string, id: string, fil
 	return res;
 };
 
-export const resetKnowledgeById = async (token: string, id: string) => {
+export const resetKnowledgeById = async (
+	token: string,
+	id: string
+): Promise<KnowledgeDetails | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}/reset`, {
@@ -826,7 +859,7 @@ export const syncKnowledgeDiff = async (
 	token: string,
 	id: string,
 	manifest: Array<{ filename: string; path: string; checksum: string; size: number }>
-) => {
+): Promise<KnowledgeSyncDiff | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}/sync/diff`, {
@@ -863,7 +896,7 @@ export const syncKnowledgeCleanup = async (
 	id: string,
 	fileIds: string[],
 	dirIds: string[] = []
-) => {
+): Promise<{ status: boolean } | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}/sync/cleanup`, {
@@ -895,7 +928,7 @@ export const syncKnowledgeCleanup = async (
 	return res;
 };
 
-export const deleteKnowledgeById = async (token: string, id: string) => {
+export const deleteKnowledgeById = async (token: string, id: string): Promise<boolean | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}/delete`, {
@@ -927,7 +960,7 @@ export const deleteKnowledgeById = async (token: string, id: string) => {
 	return res;
 };
 
-export const reindexKnowledgeFiles = async (token: string) => {
+export const reindexKnowledgeFiles = async (token: string): Promise<boolean | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/reindex`, {
@@ -955,7 +988,7 @@ export const reindexKnowledgeFiles = async (token: string) => {
 	return res;
 };
 
-export const exportKnowledgeById = async (token: string, id: string) => {
+export const exportKnowledgeById = async (token: string, id: string): Promise<Blob | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}/export`, {
@@ -988,7 +1021,7 @@ export const createKnowledgeDirectory = async (
 	id: string,
 	name: string,
 	parentId?: string | null
-) => {
+): Promise<KnowledgeDirectory | null> => {
 	let error = null;
 
 	const body: Record<string, string | null> = { name };
@@ -1025,7 +1058,7 @@ export const updateKnowledgeDirectory = async (
 	id: string,
 	dirId: string,
 	form: { name?: string; parent_id?: string | null }
-) => {
+): Promise<KnowledgeDirectory | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}/dirs/${dirId}/update`, {
@@ -1059,7 +1092,7 @@ export const deleteKnowledgeDirectory = async (
 	id: string,
 	dirId: string,
 	moveFiles: boolean = true
-) => {
+): Promise<{ status: boolean } | null> => {
 	let error = null;
 
 	const searchParams = new URLSearchParams();
@@ -1097,7 +1130,7 @@ export const moveFileInKnowledge = async (
 	id: string,
 	fileId: string,
 	directoryId?: string | null
-) => {
+): Promise<{ status: boolean } | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}/file/move`, {

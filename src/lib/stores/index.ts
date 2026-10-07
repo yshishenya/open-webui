@@ -1,3 +1,4 @@
+import type { KnowledgeListItem } from '$lib/utils/airis/knowledge-types';
 import { APP_NAME } from '$lib/constants';
 import { type Writable, writable } from 'svelte/store';
 import type { Model } from '$lib/utils/airis/model-types';
@@ -54,7 +55,7 @@ export const USAGE_POOL: Writable<null | string[]> = writable(null);
 export const theme = writable('system');
 
 export const shortCodesToEmojis = writable(
-	Object.entries(emojiShortCodes).reduce((acc, [key, value]) => {
+	Object.entries(emojiShortCodes).reduce<Record<string, string>>((acc, [key, value]) => {
 		if (typeof value === 'string') {
 			acc[value] = key;
 		} else {
@@ -84,7 +85,7 @@ export const selectedFolder = writable<SelectedFolder | null>(null);
 
 export const models: Writable<Model[]> = writable([]);
 
-export const knowledge: Writable<null | Document[]> = writable(null);
+export const knowledge: Writable<null | KnowledgeListItem[]> = writable(null);
 export const tools = writable<ToolListItem[] | null>(null);
 export const skills = writable<SkillListItem[] | null>(null);
 export const functions = writable<FunctionListItem[] | null>(null);
@@ -275,13 +276,6 @@ type TitleSettings = {
 	model?: string;
 	modelExternal?: string;
 	prompt?: string;
-};
-
-type Document = {
-	collection_name: string;
-	filename: string;
-	name: string;
-	title: string;
 };
 
 export type SessionUser = {

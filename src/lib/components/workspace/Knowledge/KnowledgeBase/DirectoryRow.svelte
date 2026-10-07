@@ -7,6 +7,7 @@
 	dayjs.extend(relativeTime);
 
 	import { getContext } from 'svelte';
+	import type { KnowledgeDirectory } from '$lib/utils/airis/knowledge-types';
 	const i18n = getContext('i18n');
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -17,13 +18,8 @@
 	import Folder from '$lib/components/icons/Folder.svelte';
 	import EllipsisHorizontal from '$lib/components/icons/EllipsisHorizontal.svelte';
 
-	export let directory: {
-		id: string;
-		name: string;
-		created_at: number;
-		updated_at: number;
-	};
-	export let writeAccess = false;
+	export let directory: Pick<KnowledgeDirectory, 'id' | 'name' | 'created_at' | 'updated_at'>;
+	export let writeAccess: boolean | null | undefined = false;
 
 	export let onNavigate: (id: string) => void = () => {};
 	export let onRename: (id: string, name: string) => void = () => {};
@@ -57,8 +53,8 @@
 	};
 </script>
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
+	role="listitem"
 	class="group flex cursor-pointer w-full px-2 bg-transparent dark:hover:bg-gray-850/50 hover:bg-white rounded-xl transition
 		{dragOver
 		? 'bg-gray-100 dark:bg-gray-800 ring-1 ring-gray-300 dark:ring-gray-600'
@@ -90,7 +86,9 @@
 			try {
 				const data = JSON.parse(fileRaw);
 				onFileDrop(data.fileId, directory.id);
-			} catch {}
+			} catch (error) {
+				console.warn('Ignoring malformed knowledge drag payload:', error);
+			}
 			return;
 		}
 		const dirRaw = e.dataTransfer?.getData('application/x-kb-dir-move');
@@ -100,7 +98,9 @@
 				if (data.dirId !== directory.id) {
 					onDirDrop(data.dirId, directory.id);
 				}
-			} catch {}
+			} catch (error) {
+				console.warn('Ignoring malformed knowledge drag payload:', error);
+			}
 		}
 	}}
 >
