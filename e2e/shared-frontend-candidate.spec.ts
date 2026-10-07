@@ -176,7 +176,7 @@ test('empty-data note accepts title and collaborative text and survives reload',
 }) => {
 	const errors = await prepare(page);
 	await page.goto('/notes');
-	await expect(page.getByLabel('User menu', { exact: true })).toBeVisible();
+	await expect(page.getByPlaceholder('Search Notes', { exact: true })).toBeVisible();
 	const headers = await authHeaders(page);
 	const response = await page.request.post('/api/v1/notes/create', {
 		headers,
