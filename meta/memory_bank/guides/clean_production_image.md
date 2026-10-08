@@ -62,3 +62,29 @@ version and platform graph.
 Official references: [uv locking environments](https://docs.astral.sh/uv/pip/compile/),
 [PyTorch supported version combinations](https://pytorch.org/get-started/previous-versions/),
 [Docker build recommendations](https://docs.docker.com/build/building/best-practices/).
+
+## Accepted profile — 2026-10-09
+
+- Source: `c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908` (PR365).
+- Node: `node:22-alpine3.20@sha256:2289fb1fba0f4633b08ec47b94a89c7e20b829fc5679f9b7b298eaa2f1ed8b7e`.
+- Python: `python:3.11.16-slim-bookworm@sha256:a36c24f9cbdf4fd0f52d67f0823eeac19c2028c637cecc392d97f980d4fec56b`.
+- Image: `yshishenya/yshishenya:clean-c0ea9dd782-20261009`, digest
+  `sha256:1dd96829dfc0189ea08d95cdc429f533580d78e6a5443214f065ae0ae008fac5`.
+- Manifest: `sha256:f632875618184dccd9f5654e3243458aa459f4126e07c1d6172de16bd7494fca`.
+
+Two independent builds matched all compiled application files, Python and system
+package versions, frozen browser resources and model files/links. Their image build
+metadata digests differ; do not claim whole-image byte identity. Repeat native
+operations in the running production container because a mounted data directory
+can replace image-owned model resources. Offline/local_files_only checks confirmed
+both embedding models, tiktoken, NLTK and Whisper CPU inference.
+
+The accepted runtime lacks 26 cache service metadata files present in the image.
+They were already absent before deployment; all expected weights and links match.
+Treat runtime/image differences as acceptable only after comparison with the
+verified pre-release backup and an exact reviewed allowlist. Do not relax the
+immutable image manifest or copy files into a live cache to satisfy the checker.
+
+Image pinning changes only the two Compose image selector fields and does not
+recreate an already verified container. Check that the resolved Compose image
+matches the accepted reference and that every other configuration byte is preserved.

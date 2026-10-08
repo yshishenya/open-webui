@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: refactor
-- Status: active
+- Status: done
 - Owner: Codex
 - Branch: codex/refactor/clean-production-image
-- SDD Spec: meta/sdd/specs/active/airis-clean-production-image-2026-10-09-001.json
+- SDD Spec: meta/sdd/specs/completed/airis-clean-production-image-2026-10-09-001.json
 - Created: 2026-10-09
 - Updated: 2026-10-09
 
@@ -19,12 +19,12 @@ The accepted Python 3.11.16 runtime has torch 2.9.1+cpu, torchvision 0.24.1+cpu 
 ## Goal / Acceptance Criteria
 
 - [x] Freeze source, image digests, installed dependency versions and required public asset hashes before building; no production data enters the build context.
-- [ ] Build linux/amd64 from the project Dockerfile and immutable Node/Python platform images, with no prior AIRIS application image in FROM.
-- [ ] Install a hash-verified lock of the accepted runtime dependencies, changing only the incompatible torchaudio version; pip check and real torch/vision/audio imports pass.
-- [ ] Repeat the build using the same inputs; report package and application byte parity and any OS/model-resource limits precisely.
-- [ ] Verify backend/frontend and required browser paths against the candidate, migration rehearsal, compiled public measurement IDs, guide resources and source provenance.
-- [ ] Publish reviewed source, deploy with guarded backup/health checks and verify exact image/files, money, mounts, configuration and neighboring services.
-- [ ] Remove completed temporary build materials; preserve reports, hashes, source, working data and production backups in private storage.
+- [x] Build linux/amd64 from the project Dockerfile and immutable Node/Python platform images, with no prior AIRIS application image in FROM.
+- [x] Install a hash-verified lock of the accepted runtime dependencies, changing only the incompatible torchaudio version; pip check and real torch/vision/audio imports pass.
+- [x] Repeat the build using the same inputs; report package and application byte parity and any OS/model-resource limits precisely.
+- [x] Verify backend/frontend and required browser paths against the candidate, migration rehearsal, compiled public measurement IDs, guide resources and source provenance.
+- [x] Publish reviewed source, deploy with guarded backup/health checks and verify exact image/files, money, mounts, configuration and neighboring services.
+- [x] Remove completed temporary build materials; preserve reports, hashes, source, working data and production backups in private storage.
 
 ## Scope and implementation
 
@@ -47,3 +47,44 @@ Clean system libraries/model resources can differ from the layered release. Free
 - https://pytorch.org/get-started/previous-versions/
 - https://docs.docker.com/build/building/best-practices/
 - Main private onboarding plan: 198/244, 46 numbered tasks open. This packaging task does not by itself close human acceptance or calendar pilot criteria.
+
+## Accepted release — 2026-10-09
+
+Application source `c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908`, PR365,
+merge `c1c69b308e1cbe49b2c31f8af1e84f808ff49c39`; source and merge trees match.
+Exact-head CI: 13 success and one skipped. CodeRabbit review was skipped because
+reviews are disabled for this base; the recorded source review is Codex's own.
+
+Accepted image `yshishenya/yshishenya:clean-c0ea9dd782-20261009`, digest
+`sha256:1dd96829dfc0189ea08d95cdc429f533580d78e6a5443214f065ae0ae008fac5`.
+Final backend: 1017 passed, zero skipped, including 10 PostgreSQL cases on four
+fresh databases. Frontend: 946 passed. Browser: 42 Chromium + 42 Firefox at 390px,
+zero failures/skips. Migration rehearsal and financial preservation passed.
+The first final backend run reused a reporting database and failed with
+DuplicateTable; the complete rerun used fresh databases and changed no test code.
+
+Two builds match all 351 Python package versions, 529 backend source files,
+4916 compiled frontend files, 62 frozen browser resources, model files/links and
+system package versions. Whole-image byte identity is not claimed: build metadata
+digests differ, and OS mirrors remain mutable. Native imports, resampling and NMS
+passed inside production. Both embedding models produced 384 dimensions; tiktoken,
+NLTK and Whisper CPU inference passed with local_files_only/offline settings.
+
+The immutable image contains all 153 model-resource files and 27 links. The live
+volume lacks 26 service metadata files that were already absent in the verified
+pre-release backup. All 49 expected model files in the volume and 27 links match;
+no runtime cache files were copied, removed or unlocked.
+
+Guarded deployment, new verified backup and public health/version/env/guide/assets
+passed. Production is healthy with zero restarts. Financial hashes, the data mount,
+configuration and 12 neighboring services match. Runtime environment changes only
+WEBUI_BUILD_VERSION. Image pin changes only WEBUI_IMAGE and WEBUI_DOCKER_TAG in the
+server configuration, without recreating the container. Recovery image and current
+backups remain available. Completed build inputs and exact intermediate tags were
+removed with no volume deletion; reports, checksums, private checks and required
+production backups are retained.
+
+Global frontend checks remain 2293 type errors/108 warnings and 1020 lint errors.
+This packaging acceptance does not close the overall quality gate, physical-device
+acceptance, real payment/mail/operator acceptance or calendar pilot conditions.
+Main private plan remains 198/244, with 46 numbered tasks open.
