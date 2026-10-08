@@ -113,7 +113,16 @@ test('empty chat sidebar and embedded note chat fit their available width withou
 	await page.route('**/api/v1/chats/recovery-*', async (route) => {
 		const id = new URL(route.request().url()).pathname.split('/').at(-1);
 		const row = rows.find((item) => item.id === id)!;
-		await route.fulfill({ json: { ...row, chat: { title: row.title } } });
+		await route.fulfill({
+			json: {
+				...row,
+				chat: {
+					title: row.title,
+					models: ['gpt-5.6-luna'],
+					history: { messages: {}, currentId: null }
+				}
+			}
+		});
 	});
 	let pages: number[] = [];
 	await page.route('**/api/v1/chats/?*', async (route) => {
@@ -164,6 +173,7 @@ test('empty chat sidebar and embedded note chat fit their available width withou
 	await expect(modal).toBeHidden();
 	await page.unroute('**/api/v1/chats/?*');
 	await page.unroute('**/api/v1/chats/recovery-*');
+	if ((page.viewportSize()?.width ?? 1000) < 640) await openSidebar(page);
 	await page.getByRole('button', { name: 'Close Sidebar', exact: true }).click();
 	const created = await request.post('/api/v1/notes/create', {
 		headers: { Authorization: `Bearer ${account.token}` },
