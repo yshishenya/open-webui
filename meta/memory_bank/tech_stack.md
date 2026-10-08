@@ -8,6 +8,18 @@
 
 ## Dependency Policy (Important)
 
+- CPU production builds can use `backend/requirements-production.lock` with
+  `AIRIS_PRODUCTION_LOCK=true`. This freezes the accepted Python 3.11 amd64
+  environment by artifact URL and SHA256; dependencies are not implicitly upgraded.
+  The compatible native trio is torch 2.9.1, torchvision 0.24.1 and torchaudio 2.9.1.
+  The 2.9.1 compatibility exception preserves the tested runtime and the existing
+  ARM SIGILL constraint; upgrade all three together in a separate work item.
+- Build-time uv remains 0.12.5, the accepted installer version. Production builds
+  pass immutable Node/Python image digests and use the prepared static manifest to
+  avoid fetching newer Pyodide wheels. CUDA and CPU locks are separate; the CPU lock
+  rejects CUDA builds. `backend/check_native_audio.py` validates native imports and
+  operations that `pip check` cannot validate.
+
 - **Assume fast-moving dependencies**: your built-in knowledge of library APIs may be stale.
 - **Source of truth**: repo-pinned versions (lockfiles) + this document.
 - **Dependency currency rule**: always validate the latest stable release for any dependency you introduce or replace; default to the latest stable version unless a compatibility exception is explicitly documented.
