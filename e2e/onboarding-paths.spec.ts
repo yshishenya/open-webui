@@ -139,7 +139,7 @@ test('empty chat sidebar and embedded note chat fit their available width withou
 	pages = [];
 	await page.locator('#sidebar-search-button').click();
 	const modal = page
-		.locator('.modal-content')
+		.getByRole('dialog')
 		.filter({ has: page.getByPlaceholder('Search', { exact: true }) });
 	const searchRetry = modal.getByRole('button', { name: 'Retry', exact: true });
 	await expect(searchRetry).toBeVisible();
@@ -232,6 +232,8 @@ test('checkout → exact credit → visible history → one service email, repla
 	request,
 	account
 }) => {
+	// This fixture checks credit/navigation; host clock jumps must not expire the local return flow.
+	await page.clock.setFixedTime(new Date());
 	const headers = { Authorization: `Bearer ${account.token}` };
 	const providerBefore = (await state(request)).calls.length;
 	await page.goto('/auth?form=1');
