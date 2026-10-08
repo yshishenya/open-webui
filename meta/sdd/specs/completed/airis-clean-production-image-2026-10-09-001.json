@@ -1,0 +1,210 @@
+{
+	"spec_id": "airis-clean-production-image-2026-10-09-001",
+	"title": "Airis clean production image",
+	"generated": "2026-10-08T21:30:03.456282Z",
+	"last_updated": "2026-10-08T23:20:00.201793Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "medium",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__clean-production-image.md",
+		"status": "completed",
+		"activated_date": "2026-10-08T21:31:45.099428Z",
+		"progress_percentage": 100,
+		"current_phase": "phase-2",
+		"completed_date": "2026-10-08T23:20:00.201411Z",
+		"actual_hours": 2.354
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis clean production image",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 4,
+			"completed_tasks": 4,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Freeze clean build inputs",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-08T23:05:22.038014Z",
+				"journaled_at": "2026-10-08T23:05:22.040614Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify candidate and production",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-08T23:19:18.864682Z",
+				"journaled_at": "2026-10-08T23:19:18.867794Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Capture accepted source, dependency and static asset contracts",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "backend/requirements-production.lock",
+				"category": "refactoring",
+				"completed_at": "2026-10-08T21:37:31.765546Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-08T21:37:31.766993Z"
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Freeze dependency artifacts and build a clean image from project Dockerfile",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "Dockerfile",
+				"category": "refactoring",
+				"started_at": "2026-10-08T21:57:37.987032Z",
+				"status_note": "Clean amd64 image from frozen platform inputs and 351 hash-locked artifacts; full resource parity and independent frontend repeat accepted.",
+				"completed_at": "2026-10-08T23:05:22.037873Z",
+				"needs_journaling": false,
+				"actual_hours": 1.129,
+				"journaled_at": "2026-10-08T23:05:22.039531Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify imports, tests, migrations, browser paths and content parity",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "backend/check_native_audio.py",
+				"category": "refactoring",
+				"started_at": "2026-10-08T22:05:48.977278Z",
+				"status_note": "1017 backend tests, 10 PostgreSQL-specific cases, 946 frontend tests and 84 browser cases passed. Migration rehearsal and financial hash preservation accepted; global type/lint debt remains documented.",
+				"completed_at": "2026-10-08T23:05:22.340950Z",
+				"needs_journaling": false,
+				"actual_hours": 0.993,
+				"journaled_at": "2026-10-08T23:05:22.342542Z"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Commit, review, release and verify production preservation",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "scripts/deploy_guarded.sh",
+				"category": "refactoring",
+				"started_at": "2026-10-08T23:05:22.647572Z",
+				"status_note": "PR365 exact source merged with equal tree; production clean image, native/model operations, content, backup, pin and preservation accepted. Completed own build inputs and exact intermediate tags removed; reports and required backups retained. Global quality/pilot gates remain open.",
+				"completed_at": "2026-10-08T23:19:18.864475Z",
+				"needs_journaling": false,
+				"actual_hours": 0.232,
+				"journaled_at": "2026-10-08T23:19:18.866585Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-08T21:37:31.766982Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Capture accepted source, dependency and static asset contracts",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-08T23:05:22.039527Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Freeze dependency artifacts and build a clean image from project Dockerfile",
+			"author": "Codex",
+			"content": "Task task-1-2 marked as completed. \nNote: Clean amd64 image from frozen platform inputs and 351 hash-locked artifacts; full resource parity and independent frontend repeat accepted.",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-08T23:05:22.040608Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Freeze clean build inputs",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-08T23:05:22.342537Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify imports, tests, migrations, browser paths and content parity",
+			"author": "Codex",
+			"content": "Task task-2-1 marked as completed. \nNote: 1017 backend tests, 10 PostgreSQL-specific cases, 946 frontend tests and 84 browser cases passed. Migration rehearsal and financial hash preservation accepted; global type/lint debt remains documented.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-08T23:19:18.866579Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Commit, review, release and verify production preservation",
+			"author": "Codex",
+			"content": "Task task-2-2 marked as completed. \nNote: PR365 exact source merged with equal tree; production clean image, native/model operations, content, backup, pin and preservation accepted. Completed own build inputs and exact intermediate tags removed; reports and required backups retained. Global quality/pilot gates remain open.",
+			"metadata": {},
+			"task_id": "task-2-2"
+		},
+		{
+			"timestamp": "2026-10-08T23:19:18.867790Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify candidate and production",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
