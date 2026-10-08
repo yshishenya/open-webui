@@ -1,0 +1,8 @@
+- [ ] **[BUG][CHAT]** Release owned sidebar resources on teardown
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-09__bugfix__sidebar-lifecycle-cleanup.md`
+  - Owner: Codex
+  - Branch: codex/bugfix/sidebar-lifecycle-cleanup
+  - Started: 2026-10-09
+  - Summary: Reproduce ignored async mount destructor, then correct lifecycle ownership using existing APIs.
+  - Tests: Before reproduction failed; after 3/3 regression cases and full frontend 949/949 passed. Check 2292/108, ESLint1020, new normalized diagnostics0. Candidate/browser/release pending.
+  - Risks: Preserve tick ordering and prevent initialization after teardown.

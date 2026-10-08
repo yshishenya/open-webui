@@ -217,10 +217,10 @@
 
 	$: activeMenuItemId = getActiveMenuItemId($page.url.pathname);
 
-	const initPinnedMenuSortable = () => {
+	const initPinnedMenuSortable = (): (() => void) | null => {
 		const el = document.getElementById('pinned-menu-items-list');
 		if (el && !$mobile) {
-			new Sortable(el, {
+			const sortable = new Sortable(el, {
 				animation: 150,
 				onUpdate: async (event) => {
 					const itemId = event.item.dataset.id;
@@ -233,7 +233,9 @@
 					await updateUserSettings(localStorage.token, { ui: $settings });
 				}
 			});
+			return (): void => sortable.destroy();
 		}
+		return null;
 	};
 
 	$: if ($selectedFolder) {
@@ -659,7 +661,9 @@
 		document.documentElement.style.setProperty('--sidebar-width', `${newSidebarWidth}px`);
 	};
 
-	onMount(async () => {
+	onMount((): (() => void) => {
+		let mounted = true;
+		let destroyPinnedMenuSortable: (() => void) | null = null;
 		try {
 			const width = Number(localStorage.getItem('sidebarWidth'));
 			if (!Number.isNaN(width) && width >= MIN_WIDTH && width <= MAX_WIDTH) {
@@ -670,13 +674,14 @@
 		}
 
 		document.documentElement.style.setProperty('--sidebar-width', `${$sidebarWidth}px`);
-		sidebarWidth.subscribe((w) => {
+		const unsubscribeSidebarWidth = sidebarWidth.subscribe((w) => {
 			document.documentElement.style.setProperty('--sidebar-width', `${w}px`);
 		});
 
 		showSidebar.set(!$mobile ? localStorage.sidebar === 'true' : false);
 
 		const unsubscribers = [
+			unsubscribeSidebarWidth,
 			mobile.subscribe((value) => {
 				if ($showSidebar && value) {
 					showSidebar.set(false);
@@ -758,10 +763,16 @@
 			return Promise.all(Object.values(folderRegistry).map((folder) => folder?.setFolderItems?.()));
 		});
 
-		await tick();
-		initPinnedMenuSortable();
+		void tick()
+			.then((): void => {
+				if (mounted) destroyPinnedMenuSortable = initPinnedMenuSortable();
+			})
+			.catch((error: unknown): void => {
+				console.error('Failed to initialize sidebar pin sorting', error);
+			});
 
-		return () => {
+		return (): void => {
+			mounted = false;
 			unsubscribers.forEach((unsubscriber) => unsubscriber());
 
 			window.removeEventListener('keydown', onKeyDown);
@@ -783,6 +794,7 @@
 			socketInstance?.off('connect', refreshChatRows);
 
 			unregisterFolderRefreshHandler();
+			destroyPinnedMenuSortable?.();
 		};
 	});
 
