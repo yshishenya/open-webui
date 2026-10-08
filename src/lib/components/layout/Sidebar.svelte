@@ -118,6 +118,8 @@
 
 	// Pagination variables
 	let chatListLoading = false;
+	let chatListFailed = false;
+	let chatListRequestGeneration = 0;
 	let chatListReady = false;
 	let allChatsLoaded = false;
 
@@ -408,23 +410,39 @@
 		]);
 	};
 
-	const refreshChatRows = async () => {
-		const result = await refreshChatList(localStorage.token, { refreshPinned: true });
-		if (result.accepted) {
+	const refreshChatRows = async (): Promise<void> => {
+		const generation = ++chatListRequestGeneration;
+		chatListReady = false;
+		chatListFailed = false;
+		chatListLoading = true;
+		try {
+			const result = await refreshChatList(localStorage.token, { refreshPinned: true });
+			if (generation !== chatListRequestGeneration || !result.accepted) return;
 			await initFolders();
 			await Promise.all(Object.values(folderRegistry).map((folder) => folder?.setFolderItems?.()));
+			if (generation !== chatListRequestGeneration) return;
 			allChatsLoaded = result.allLoaded;
 			chatListReady = true;
+		} catch {
+			if (generation === chatListRequestGeneration) chatListFailed = true;
+		} finally {
+			if (generation === chatListRequestGeneration) chatListLoading = false;
 		}
 	};
 
-	const loadMoreChats = async () => {
+	const loadMoreChats = async (): Promise<void> => {
+		if (chatListLoading) return;
+		const generation = chatListRequestGeneration;
 		chatListLoading = true;
-
-		const result = await loadNextChatListPage(localStorage.token);
-		allChatsLoaded = result.allLoaded;
-
-		chatListLoading = false;
+		chatListFailed = false;
+		try {
+			const result = await loadNextChatListPage(localStorage.token);
+			if (generation === chatListRequestGeneration) allChatsLoaded = result.allLoaded;
+		} catch {
+			if (generation === chatListRequestGeneration) chatListFailed = true;
+		} finally {
+			if (generation === chatListRequestGeneration) chatListLoading = false;
+		}
 	};
 
 	const applyFolderUnreadCounts = (folderUnreadCounts: Record<string, number>) => {
@@ -1646,7 +1664,14 @@
 									/>
 								{/each}
 
-								{#if chatListReady && !allChatsLoaded}
+								{#if chatListFailed}
+									<button
+										type="button"
+										class="w-full py-2 text-xs underline"
+										on:click={chatListReady ? loadMoreChats : refreshChatRows}
+										>{$i18n.t('Retry')}</button
+									>
+								{:else if chatListReady && !allChatsLoaded}
 									<Loader
 										on:visible={(e) => {
 											if (!chatListLoading) {
@@ -1662,6 +1687,12 @@
 										</div>
 									</Loader>
 								{/if}
+							{:else if chatListFailed}
+								<button
+									type="button"
+									class="w-full py-2 text-xs underline"
+									on:click={refreshChatRows}>{$i18n.t('Retry')}</button
+								>
 							{:else}
 								<div
 									class="w-full flex justify-center py-1 text-xs animate-pulse items-center gap-2"

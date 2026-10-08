@@ -103,6 +103,61 @@ test('empty chat sidebar and embedded note chat fit their available width withou
 	await signIn(page, account);
 	await openSidebar(page);
 	await page.getByRole('button', { name: 'Close Sidebar', exact: true }).click();
+	const rows = ['Retained recovery chat', 'Next recovery chat'].map((title, i) => ({
+		id: `recovery-${i}`,
+		title,
+		created_at: 1,
+		updated_at: 1
+	}));
+	let pages: number[] = [];
+	await page.route('**/api/v1/chats/?*', async (route) => {
+		const n = Number(new URL(route.request().url()).searchParams.get('page'));
+		pages.push(n);
+		const attempts = pages.filter((p) => p === n).length;
+		if ((n === 1 || n === 2) && attempts === 1) {
+			await route.fulfill({ status: 503, json: { detail: 'Local list failure' } });
+		} else {
+			await route.fulfill({ json: n === 1 ? [rows[0]] : n === 2 ? rows : [] });
+		}
+	});
+	await page.goto('/');
+	await openSidebar(page);
+	const sidebar = page.locator('#sidebar');
+	const retry = sidebar.getByRole('button', { name: 'Retry', exact: true });
+	await expect(retry).toBeVisible();
+	await page.waitForTimeout(400);
+	expect(pages).toEqual([1]);
+	await retry.click();
+	await expect(sidebar.getByText(rows[0].title, { exact: true })).toBeVisible();
+	await expect(retry).toBeVisible();
+	await page.waitForTimeout(400);
+	expect(pages).toEqual([1, 1, 2]);
+	await retry.click();
+	await expect(sidebar.getByText(rows[1].title, { exact: true })).toBeVisible();
+	await expect(sidebar.getByText(rows[0].title, { exact: true })).toHaveCount(1);
+	await expect.poll(() => pages).toEqual([1, 1, 2, 2, 3]);
+	pages = [];
+	await page.locator('#sidebar-search-button').click();
+	const modal = page
+		.locator('.modal-content')
+		.filter({ has: page.getByPlaceholder('Search', { exact: true }) });
+	const searchRetry = modal.getByRole('button', { name: 'Retry', exact: true });
+	await expect(searchRetry).toBeVisible();
+	await page.waitForTimeout(400);
+	expect(pages).toEqual([1]);
+	await searchRetry.click();
+	await expect(modal.getByText(rows[0].title, { exact: true })).toBeVisible();
+	await expect(searchRetry).toBeVisible();
+	await page.waitForTimeout(400);
+	expect(pages).toEqual([1, 1, 2]);
+	await searchRetry.click();
+	await expect(modal.getByText(rows[1].title, { exact: true })).toBeVisible();
+	await expect(modal.getByText(rows[0].title, { exact: true })).toHaveCount(1);
+	await expect.poll(() => pages).toEqual([1, 1, 2, 2, 3]);
+	await page.keyboard.press('Escape');
+	await expect(modal).toBeHidden();
+	await page.unroute('**/api/v1/chats/?*');
+	await page.getByRole('button', { name: 'Close Sidebar', exact: true }).click();
 	const created = await request.post('/api/v1/notes/create', {
 		headers: { Authorization: `Bearer ${account.token}` },
 		data: { title: 'Local sidebar layout note' }
