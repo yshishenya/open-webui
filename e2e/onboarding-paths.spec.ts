@@ -109,6 +109,12 @@ test('empty chat sidebar and embedded note chat fit their available width withou
 		created_at: 1,
 		updated_at: 1
 	}));
+	// Synthetic list rows also need a readable preview when pointer movement selects them.
+	await page.route('**/api/v1/chats/recovery-*', async (route) => {
+		const id = new URL(route.request().url()).pathname.split('/').at(-1);
+		const row = rows.find((item) => item.id === id)!;
+		await route.fulfill({ json: { ...row, chat: { title: row.title } } });
+	});
 	let pages: number[] = [];
 	await page.route('**/api/v1/chats/?*', async (route) => {
 		const n = Number(new URL(route.request().url()).searchParams.get('page'));
@@ -157,6 +163,7 @@ test('empty chat sidebar and embedded note chat fit their available width withou
 	await page.keyboard.press('Escape');
 	await expect(modal).toBeHidden();
 	await page.unroute('**/api/v1/chats/?*');
+	await page.unroute('**/api/v1/chats/recovery-*');
 	await page.getByRole('button', { name: 'Close Sidebar', exact: true }).click();
 	const created = await request.post('/api/v1/notes/create', {
 		headers: { Authorization: `Bearer ${account.token}` },
