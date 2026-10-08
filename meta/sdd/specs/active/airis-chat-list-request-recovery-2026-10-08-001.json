@@ -1,0 +1,122 @@
+{
+  "spec_id": "airis-chat-list-request-recovery-2026-10-08-001",
+  "title": "Airis chat list request recovery",
+  "generated": "2026-10-08T01:54:47.497999Z",
+  "last_updated": "2026-10-08T05:32:09.853900Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-08__bugfix__chat-list-request-recovery.md",
+    "status": "active",
+    "activated_date": "2026-10-08T02:55:58.359426Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis chat list request recovery",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and repair both chat list failures",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-10-08T05:32:09.604659Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify exact source and required release",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace both list consumers and reproduce rejected requests",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/lib/components/layout/SearchModal.svelte",
+        "category": "implementation",
+        "started_at": "2026-10-08T02:55:58.589454Z",
+        "status_note": "Real SearchModal initial/page rejected handlers and Sidebar wrappers fail4/4 runnable checks; store requestGeneration/page/finally traced and Loader100ms loop traced.",
+        "completed_at": "2026-10-08T05:07:38.695819Z",
+        "needs_journaling": true
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Preserve rows and page and provide explicit retry",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/lib/components/layout/Sidebar.svelte",
+        "category": "implementation",
+        "started_at": "2026-10-08T05:07:39.870551Z",
+        "completed_at": "2026-10-08T05:32:09.604514Z",
+        "needs_journaling": true,
+        "status_note": "Both wrappers handle failures with Retry and release loading; page commits after success. Compiled reactive dependency regression fixed; 7 actual-handler/compiler tests pass."
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Run actual-handler and compiled browser regressions",
+      "status": "in_progress",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/chat-list-request-recovery.test.ts",
+        "category": "implementation",
+        "started_at": "2026-10-08T05:32:09.853689Z"
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Integrate exact source and accept guarded release",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-08__bugfix__chat-list-request-recovery.md",
+        "category": "implementation"
+      }
+    }
+  }
+}

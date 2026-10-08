@@ -24,6 +24,7 @@
 	import Loader from '../common/Loader.svelte';
 	import { createMessagesList } from '$lib/utils';
 	import type { ChatHistoryMessage } from '$lib/utils/airis/chat_history';
+	import type { ChatTitleIdResponse } from '$lib/utils/airis/frontend-contracts';
 	import { getOutputText } from '$lib/components/chat/Messages/structuredOutput';
 	import { config, user, chatId as currentChatId, tags } from '$lib/stores';
 	import { refreshChatList } from '$lib/stores/chatList';
@@ -253,12 +254,14 @@
 	let query = '';
 	let page = 1;
 
-	let chatList = null;
+	let chatList: (ChatTitleIdResponse & { time_range: string })[] | null = null;
 
 	let chatListLoading = false;
+	let chatListFailed = false;
+	let searchGeneration = 0;
 	let allChatsLoaded = false;
 
-	let searchDebounceTimeout;
+	let searchDebounceTimeout: ReturnType<typeof setTimeout> | undefined;
 
 	let selectedIdx = null;
 	let selectedChat = null;
@@ -377,70 +380,67 @@
 		}
 	};
 
-	const searchHandler = async () => {
-		if (!show) {
-			return;
+	const requestChatPage = async (
+		nextPage: number,
+		generation = searchGeneration
+	): Promise<void> => {
+		if (!show || generation !== searchGeneration) return;
+		chatListLoading = true;
+		chatListFailed = false;
+		try {
+			const nextChats = query
+				? await getChatListBySearchText(localStorage.token, query, nextPage)
+				: await getChatList(localStorage.token, nextPage);
+			if (!show || generation !== searchGeneration) return;
+			if (nextPage === 1) {
+				chatList = nextChats;
+			} else {
+				const existingIds = new Set((chatList ?? []).map((chat) => chat.id));
+				chatList = [...(chatList ?? []), ...nextChats.filter((chat) => !existingIds.has(chat.id))];
+			}
+			page = nextPage;
+			allChatsLoaded = nextChats.length === 0;
+		} catch {
+			if (show && generation === searchGeneration) chatListFailed = true;
+		} finally {
+			if (generation === searchGeneration) chatListLoading = false;
 		}
+	};
 
-		if (searchDebounceTimeout) {
-			clearTimeout(searchDebounceTimeout);
-		}
-
+	const searchHandler = async (): Promise<void> => {
+		if (!show) return;
+		if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout);
+		const generation = ++searchGeneration;
 		page = 1;
 		chatList = null;
-		if (query === '') {
-			chatList = await getChatList(localStorage.token, page);
-		} else {
-			searchDebounceTimeout = setTimeout(async () => {
-				chatList = await getChatListBySearchText(localStorage.token, query, page);
-
-				if ((chatList ?? []).length === 0) {
-					allChatsLoaded = true;
-				} else {
-					allChatsLoaded = false;
-				}
-			}, 500);
-		}
-
+		chatListLoading = false;
+		chatListFailed = false;
+		allChatsLoaded = false;
 		selectedChat = null;
 		messages = null;
 		history = null;
 		selectedModels = [''];
-
-		if ((chatList ?? []).length === 0) {
-			allChatsLoaded = true;
+		if (query === '') {
+			await requestChatPage(1, generation);
 		} else {
-			allChatsLoaded = false;
+			searchDebounceTimeout = setTimeout(() => requestChatPage(1, generation), 500);
 		}
 	};
 
-	const loadMoreChats = async () => {
-		chatListLoading = true;
-		page += 1;
+	const loadMoreChats = async (): Promise<void> => {
+		if (chatListLoading || allChatsLoaded) return;
+		await requestChatPage(page + 1);
+	};
 
-		let newChatList = [];
-
-		if (query) {
-			newChatList = await getChatListBySearchText(localStorage.token, query, page);
-		} else {
-			newChatList = await getChatList(localStorage.token, page);
-		}
-
-		// once the bottom of the list has been reached (no results) there is no need to continue querying
-		allChatsLoaded = newChatList.length === 0;
-
-		if (newChatList.length > 0) {
-			const existingIds = new Set(chatList.map((c) => c.id));
-			const uniqueNewChats = newChatList.filter((c) => !existingIds.has(c.id));
-			chatList = [...chatList, ...uniqueNewChats];
-		}
-
-		chatListLoading = false;
+	const cancelSearch = (): void => {
+		searchGeneration += 1;
+		if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout);
 	};
 
 	$: if (show) {
 		searchHandler();
 	} else {
+		cancelSearch();
 		editingChatId = null;
 		editingChatTitle = '';
 		generating = false;
@@ -533,9 +533,7 @@
 	});
 
 	onDestroy(() => {
-		if (searchDebounceTimeout) {
-			clearTimeout(searchDebounceTimeout);
-		}
+		cancelSearch();
 		document.removeEventListener('keydown', onKeyDown);
 		document.removeEventListener('keydown', onShiftKeyDown);
 		document.removeEventListener('keyup', onShiftKeyUp);
@@ -845,7 +843,11 @@
 						</div>
 					{/each}
 
-					{#if !allChatsLoaded}
+					{#if chatListFailed}
+						<button type="button" class="w-full py-4 text-xs underline" on:click={loadMoreChats}
+							>{$i18n.t('Retry')}</button
+						>
+					{:else if !allChatsLoaded}
 						<Loader
 							on:visible={() => {
 								if (!chatListLoading) {
@@ -859,6 +861,10 @@
 							</div>
 						</Loader>
 					{/if}
+				{:else if chatListFailed}
+					<button type="button" class="w-full py-10 text-sm underline" on:click={searchHandler}
+						>{$i18n.t('Retry')}</button
+					>
 				{:else}
 					<div class="w-full h-full flex justify-center items-center">
 						<Spinner className="size-5" />
