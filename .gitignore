@@ -354,3 +354,6 @@ nginx/certs/
 
 # Claude Code project metadata cache
 .cptr
+# Private, hash-verified dependency resources for clean production builds.
+/airis-build-resources/*.tar.gz
+/airis-build-resources/*.sha256

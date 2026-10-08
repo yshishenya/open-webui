@@ -1,0 +1,11 @@
+- [ ] **[REFACTOR][DEPLOY]** Build AIRIS from a clean reproducible production base
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-09__refactor__clean-production-image.md`
+  - Owner: Codex
+  - Branch: codex/refactor/clean-production-image
+  - Started: 2026-10-09
+  - Summary: Freeze accepted dependencies and platform digests; replace incompatible torchaudio in the next clean build. Preserve application behavior, data and deployment-specific public resources.
+  - Tests: Runtime pip check passed but real torchaudio import reproduced undefined symbol; preview: 1017 backend and 946 frontend tests passed; native imports and 351-package/529-source/62-resource parity verified. Full model/final-source browser/release acceptance pending.
+  - Risks: Clean OS/model dependency parity requires candidate acceptance before rollout.
+
+- Preview CPU build completed from frozen platform digests. Native imports, resampling and NMS passed; full backend with four isolated PostgreSQL databases is running. Frontend: 946/946 passed; full type/lint baseline remains 2293/1020 errors.
+- Eight older production backups (88 files, 12,564,515,196 bytes) were moved to private P4 storage, verified by SHA256/size/archive and dump readability, and removed from the source under the deployment lock. Seven recent backups retained; production image/configuration/mounts and 12 neighbors preserved.

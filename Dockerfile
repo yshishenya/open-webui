@@ -22,9 +22,11 @@ ARG BUILD_HASH=dev-build
 # Override at your own risk - non-root configurations are untested
 ARG UID=0
 ARG GID=0
+ARG AIRIS_NODE_IMAGE=node:22-alpine3.20
+ARG AIRIS_PYTHON_IMAGE=python:3.11-slim-bookworm
 
 ######## WebUI frontend ########
-FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
+FROM --platform=$BUILDPLATFORM ${AIRIS_NODE_IMAGE} AS build
 ARG BUILD_HASH
 ARG PUBLIC_YANDEX_METRICA_ID=
 ARG PUBLIC_GA_MEASUREMENT_ID=
@@ -47,10 +49,13 @@ RUN npm ci --legacy-peer-deps
 COPY . .
 ENV APP_BUILD_HASH=${BUILD_HASH}
 ARG AIRIS_VITE_SOURCEMAP=false
-RUN AIRIS_VITE_SOURCEMAP=${AIRIS_VITE_SOURCEMAP} npm run build
+ARG AIRIS_PREPARED_STATIC=false
+RUN if [ "$AIRIS_PREPARED_STATIC" = "true" ]; then \
+    sha256sum -c static/.airis-production.sha256 && AIRIS_VITE_SOURCEMAP=${AIRIS_VITE_SOURCEMAP} npm run build:vite; \
+    else AIRIS_VITE_SOURCEMAP=${AIRIS_VITE_SOURCEMAP} npm run build; fi
 
 ######## WebUI backend ########
-FROM python:3.11-slim-bookworm AS base
+FROM ${AIRIS_PYTHON_IMAGE} AS base
 
 # Use args
 ARG USE_CUDA
@@ -63,6 +68,8 @@ ARG USE_RERANKING_MODEL
 ARG USE_AUXILIARY_EMBEDDING_MODEL
 ARG UID
 ARG GID
+ARG AIRIS_PRODUCTION_LOCK=false
+ARG AIRIS_PREPARED_MODELS=false
 
 # Python settings
 ENV PYTHONUNBUFFERED=1
@@ -141,16 +148,19 @@ RUN apt-get update && \
 
 # install python dependencies
 COPY --chown=$UID:$GID ./backend/requirements.txt ./requirements.txt
+COPY --chown=$UID:$GID ./backend/requirements-production.lock ./requirements-production.lock
+COPY ./airis-build-resources/ /tmp/airis-build-resources/
 
 # Set UV_LINK_MODE to copy to prevent 0-byte file corruption in QEMU arm64 cross-builds
 ENV UV_LINK_MODE=copy
 
 RUN set -e; \
-    pip3 install --no-cache-dir uv; \
+    pip3 install --no-cache-dir uv==0.12.5; \
     if [ "$USE_CUDA" = "true" ]; then \
+    test "$AIRIS_PRODUCTION_LOCK" = "false"; \
     # If you use CUDA the whisper and embedding model will be downloaded on first use
-    # fix: pin torch<=2.9.1 - torch 2.10.0 aarch64 wheels cause SIGILL on ARM devices (RPi 4 Cortex-A72) #21349
-    pip3 install 'torch<=2.9.1' torchvision torchaudio --index-url https://download.pytorch.org/whl/$USE_CUDA_DOCKER_VER --no-cache-dir; \
+    # Keep the compatible 2.9.1 trio; torch 2.10.0 aarch64 wheels cause SIGILL on RPi 4 (#21349).
+    pip3 install 'torch==2.9.1' 'torchvision==0.24.1' 'torchaudio==2.9.1' --index-url https://download.pytorch.org/whl/$USE_CUDA_DOCKER_VER --no-cache-dir; \
     uv pip install --system -r requirements.txt --no-cache-dir; \
     python -c "import os; from sentence_transformers import SentenceTransformer; SentenceTransformer(os.environ['RAG_EMBEDDING_MODEL'], device='cpu')"; \
     python -c "import os; from sentence_transformers import SentenceTransformer; SentenceTransformer(os.environ.get('AUXILIARY_EMBEDDING_MODEL', 'TaylorAI/bge-micro-v2'), device='cpu')"; \
@@ -158,9 +168,16 @@ RUN set -e; \
     python -c "import os; import tiktoken; tiktoken.get_encoding(os.environ['TIKTOKEN_ENCODING_NAME'])"; \
     python -c "import nltk; nltk.download('punkt_tab')"; \
     else \
-    pip3 install 'torch<=2.9.1' torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --no-cache-dir; \
+    if [ "$AIRIS_PRODUCTION_LOCK" = "true" ]; then \
+    uv pip sync --system --require-hashes requirements-production.lock --no-cache-dir; \
+    else \
+    pip3 install 'torch==2.9.1' 'torchvision==0.24.1' 'torchaudio==2.9.1' --index-url https://download.pytorch.org/whl/cpu --no-cache-dir; \
     uv pip install --system -r requirements.txt --no-cache-dir; \
-    if [ "$USE_SLIM" != "true" ]; then \
+    fi; \
+    if [ "$AIRIS_PREPARED_MODELS" = "true" ]; then \
+    cd /tmp/airis-build-resources && sha256sum -c model-resources.sha256; \
+    tar -xzf model-resources.tar.gz -C /; cd /app/backend; \
+    elif [ "$USE_SLIM" != "true" ]; then \
     python -c "import os; from sentence_transformers import SentenceTransformer; SentenceTransformer(os.environ['RAG_EMBEDDING_MODEL'], device='cpu')"; \
     python -c "import os; from sentence_transformers import SentenceTransformer; SentenceTransformer(os.environ.get('AUXILIARY_EMBEDDING_MODEL', 'TaylorAI/bge-micro-v2'), device='cpu')"; \
     python -c "import os; from faster_whisper import WhisperModel; WhisperModel(os.environ['WHISPER_MODEL'], device='cpu', compute_type='int8', download_root=os.environ['WHISPER_MODEL_DIR'])"; \
@@ -169,7 +186,7 @@ RUN set -e; \
     fi; \
     fi; \
     mkdir -p /app/backend/data; chown -R $UID:$GID /app/backend/data/; \
-    rm -rf /var/lib/apt/lists/*;
+    rm -rf /var/lib/apt/lists/* /tmp/airis-build-resources;
 
 # Install Ollama if requested
 RUN if [ "$USE_OLLAMA" = "true" ]; then \
@@ -190,6 +207,8 @@ COPY --chown=$UID:$GID --from=build /app/package.json /app/package.json
 
 # copy backend files
 COPY --chown=$UID:$GID ./backend .
+RUN if [ "$AIRIS_PRODUCTION_LOCK" = "true" ]; then \
+    python -m pip check && python check_native_audio.py; fi
 
 # The backend rewrites its bundled static assets (favicons, splash, manifest,
 # loader.js, ...) under open_webui/static at startup. Make that directory
