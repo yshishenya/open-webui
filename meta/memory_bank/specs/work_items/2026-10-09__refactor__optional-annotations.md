@@ -18,7 +18,7 @@
 - [x] No new normalized Ruff diagnostic; all backend files pass Black with the unchanged root configuration.
 - [x] Full backend suite passes on four fresh disposable PostgreSQL databases with no failures or skips; full frontend tests pass and type/lint counts do not increase.
 - [x] Existing executable frontend, runtime dependencies, native audio verifier and protected primary changes are preserved.
-- [ ] Save proof, commit and push source.
+- [x] Save proof, commit and push source.
 - [ ] General quality gate, independent PR/CI and release remain separate acceptance conditions.
 
 ## Scope / upstream impact
@@ -44,3 +44,5 @@ Use the existing Docker Compose test environment with read-only source mounts fo
 - Four temporary databases and test containers removed; actual HostConfig.Tmpfs verified, no persistent volume use/removal. Temporary baseline source directory removed after checking; hashes, schemas, diagnostic output, XML and logs retained. Native audio verifier unchanged; 21 protected primary files unchanged.
 - Production read 2026-10-09T04:36:18 UTC: c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908, healthy, zero restarts; image, environment, configs, mounts and neighbors match the preceding snapshot. No deployment, SMTP or financial mutation.
 - PR #367 still exposes zero checks for exact head 34b6e676fe9998e4da80de36a485f66c968c3753, including a read explicitly selecting the yshishenya account. The cause remains unestablished. No CI/merge/release acceptance is claimed.
+
+Source commit `049d4e535f4f91037674cb0f06b24aa23b4367ec` is pushed to `codex/refactor/optional-annotations`. SDD implementation/checks: 2/3; the general quality/PR/release task remains open. The following documentation commit preserves the tested application source.
