@@ -69,7 +69,8 @@
 				"completed_at": "2026-10-09T05:02:52.458824Z",
 				"needs_journaling": false,
 				"actual_hours": 0.101,
-				"journaled_at": "2026-10-09T05:02:52.460221Z"
+				"journaled_at": "2026-10-09T05:02:52.460221Z",
+				"file_path": "backend/open_webui"
 			}
 		},
 		"task-2-1": {
@@ -88,7 +89,8 @@
 			"metadata": {
 				"completed_at": "2026-10-09T05:03:41.118656Z",
 				"needs_journaling": false,
-				"journaled_at": "2026-10-09T05:03:41.119689Z"
+				"journaled_at": "2026-10-09T05:03:41.119689Z",
+				"file_path": "backend/open_webui/test"
 			}
 		},
 		"task-2-2": {
@@ -104,7 +106,9 @@
 			},
 			"total_tasks": 1,
 			"completed_tasks": 0,
-			"metadata": {}
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-09__refactor__container-type-annotations.md"
+			}
 		}
 	},
 	"journal": [
