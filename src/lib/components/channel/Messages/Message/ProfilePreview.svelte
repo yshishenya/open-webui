@@ -11,21 +11,20 @@
 
 <script lang="ts">
 	import { LinkPreview } from 'bits-ui';
-	import { getContext, onDestroy } from 'svelte';
+	import { onDestroy, type ComponentProps } from 'svelte';
+	import type { SessionUser } from '$lib/stores';
 
-	const i18n = getContext('i18n');
-	import UserStatus from './UserStatus.svelte';
 	import UserStatusLinkPreview from './UserStatusLinkPreview.svelte';
 
-	export let user = null;
+	export let user: Pick<SessionUser, 'id'> | null | undefined = null;
 
-	export let align = 'center';
-	export let side = 'right';
+	export let align: ComponentProps<typeof LinkPreview.Content>['align'] = 'center';
+	export let side: ComponentProps<typeof LinkPreview.Content>['side'] = 'right';
 	export let sideOffset = 8;
 
 	let openPreview = false;
 
-	const closeProfilePreview = () => {
+	const closeProfilePreview = (): void => {
 		if (openPreview) {
 			openPreview = false;
 		}

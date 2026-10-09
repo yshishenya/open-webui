@@ -1,41 +1,54 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { onDestroy, type ComponentProps } from 'svelte';
 	import { LinkPreview } from 'bits-ui';
 
-	const i18n = getContext('i18n');
-	import { getUserInfoById } from '$lib/apis/users';
+	import { getUserInfoById, type UserInfoResponse } from '$lib/apis/users';
 
 	import UserStatus from './UserStatus.svelte';
 
-	export let id: string | null = null;
+	export let id: string | null | undefined = null;
 	export let openPreview = false;
 
-	export let side = 'top';
-	export let align = 'start';
+	export let side: ComponentProps<typeof LinkPreview.Content>['side'] = 'top';
+	export let align: ComponentProps<typeof LinkPreview.Content>['align'] = 'start';
 	export let sideOffset = 6;
 
-	let user = null;
+	let user: UserInfoResponse | null = null;
+	let pendingRequest: object | null = null;
 	let requestedUserId: string | null = null;
 
-	const loadUser = async (userId: string) => {
+	const loadUser = async (userId: string): Promise<void> => {
+		const request = {};
+		pendingRequest = request;
 		requestedUserId = userId;
+		user = null;
 
 		const loadedUser = await getUserInfoById(localStorage.token, userId).catch((error) => {
-			if (requestedUserId === userId) {
+			if (pendingRequest === request) {
 				console.error('Error fetching user by ID:', error);
 			}
-
 			return null;
 		});
 
-		if (requestedUserId === userId) {
+		// Request identity also rejects an older response after A -> B -> A.
+		if (pendingRequest === request && openPreview && id === userId) {
 			user = loadedUser;
 		}
 	};
 
-	$: if (openPreview && id && id !== requestedUserId) {
-		loadUser(id);
+	$: if (openPreview && id) {
+		if (id !== requestedUserId) loadUser(id);
+	} else {
+		pendingRequest = null;
+		if (!id || id !== requestedUserId || !user) {
+			user = null;
+			requestedUserId = null;
+		}
 	}
+
+	onDestroy(() => {
+		pendingRequest = null;
+	});
 </script>
 
 {#if user}

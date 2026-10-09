@@ -1,5 +1,21 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { getUserPosition } from '$lib/utils';
+import type { SessionUser } from '$lib/stores';
+import type { GroupDetails } from '$lib/utils/airis/group-types';
+
+export type UserInfoResponse = Required<
+	Pick<
+		SessionUser,
+		| 'id'
+		| 'name'
+		| 'email'
+		| 'role'
+		| 'bio'
+		| 'status_emoji'
+		| 'status_message'
+		| 'status_expires_at'
+	>
+> & { groups: Pick<GroupDetails, 'id' | 'name'>[] | null; is_active: boolean };
 
 export const getUserGroups = async (token: string) => {
 	let error = null;
@@ -327,7 +343,10 @@ export const updateUserSettings = async (token: string, settings: object) => {
 	return res;
 };
 
-export const getUserInfoById = async (token: string, userId: string) => {
+export const getUserInfoById = async (
+	token: string,
+	userId: string
+): Promise<UserInfoResponse | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/users/${userId}/info`, {

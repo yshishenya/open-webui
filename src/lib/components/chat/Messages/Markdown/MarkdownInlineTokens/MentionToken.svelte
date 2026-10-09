@@ -6,25 +6,25 @@
 
 	import { goto } from '$app/navigation';
 	import { channels, models } from '$lib/stores';
-	import UserStatus from '$lib/components/channel/Messages/Message/UserStatus.svelte';
 	import UserStatusLinkPreview from '$lib/components/channel/Messages/Message/UserStatusLinkPreview.svelte';
 
 	const i18n = getContext('i18n');
 
-	export let token: Token;
+	export let token: Token & { id?: string; label?: string; triggerChar?: string };
 
 	let triggerChar = '';
 	let label = '';
 
-	let idType = null;
+	let idType: string | null = null;
+	let openPreview = false;
 	let id = '';
 
 	$: if (token) {
 		init();
 	}
 
-	const init = () => {
-		const _id = token?.id;
+	const init = (): void => {
+		const _id = token?.id ?? '';
 		triggerChar = token?.triggerChar ?? '@';
 
 		if (triggerChar === '$') {
@@ -81,7 +81,7 @@
 	};
 </script>
 
-<LinkPreview.Root openDelay={0} closeDelay={0}>
+<LinkPreview.Root openDelay={0} closeDelay={0} bind:open={openPreview}>
 	<LinkPreview.Trigger class=" cursor-pointer no-underline! font-normal! ">
 		<!-- svelte-ignore a11y-click-events-have-key-events -->
 		<!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -117,6 +117,6 @@
 	</LinkPreview.Trigger>
 
 	{#if triggerChar === '@' && idType === 'U'}
-		<UserStatusLinkPreview {id} />
+		<UserStatusLinkPreview {id} {openPreview} />
 	{/if}
 </LinkPreview.Root>

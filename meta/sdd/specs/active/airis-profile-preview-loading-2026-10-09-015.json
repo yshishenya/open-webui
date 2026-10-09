@@ -1,0 +1,130 @@
+{
+  "spec_id": "airis-profile-preview-loading-2026-10-09-015",
+  "title": "Airis profile preview loading",
+  "generated": "2026-10-09T11:22:22.580346Z",
+  "last_updated": "2026-10-09T11:38:11.916669Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 3,
+    "security_sensitive": false,
+    "default_category": "investigation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__bugfix__profile-preview-loading.md",
+    "status": "active",
+    "activated_date": "2026-10-09T11:25:36.300731Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis profile preview loading",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce profile loading,fix and verify",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce actual preview opening and stale results",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "investigation",
+        "file_path": "src/lib/utils/airis/profile_preview_loading.test.ts",
+        "completed_at": "2026-10-09T11:38:11.458711Z",
+        "needs_journaling": false,
+        "status_note": "Actual native preview regression: original 9 failed/5 passed;no harness compiler failures",
+        "journaled_at": "2026-10-09T11:38:11.459718Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Fix shared load lifecycle and mention root binding",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "implementation",
+        "file_path": "src/lib/components/channel/Messages/Message/UserStatusLinkPreview.svelte",
+        "completed_at": "2026-10-09T11:38:11.689416Z",
+        "needs_journaling": false,
+        "status_note": "Fixed 14/14;full frontend1046/128;no added diagnostics",
+        "journaled_at": "2026-10-09T11:38:11.690447Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Verify source delivery and preservation",
+      "status": "in_progress",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "category": "investigation",
+        "file_path": "src/lib/components/chat/Messages/Markdown/MarkdownInlineTokens/MentionToken.svelte",
+        "started_at": "2026-10-09T11:38:11.916452Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-09T11:38:11.459712Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce actual preview opening and stale results",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Actual native preview regression: original 9 failed/5 passed;no harness compiler failures",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-09T11:38:11.690442Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Fix shared load lifecycle and mention root binding",
+      "author": "claude-code",
+      "content": "Task task-1-2 marked as completed. \nNote: Fixed 14/14;full frontend1046/128;no added diagnostics",
+      "metadata": {},
+      "task_id": "task-1-2"
+    }
+  ]
+}
