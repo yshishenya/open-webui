@@ -986,7 +986,7 @@ class ChatTable:
 
         try:
             async with get_async_db_context() as session:
-                chat_item = await session.get(Chat, id)
+                chat_item = await session.scalar(select(Chat).filter_by(id=id).with_for_update())
                 if chat_item is None:
                     return None
 

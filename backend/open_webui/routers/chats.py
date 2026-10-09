@@ -1348,37 +1348,17 @@ async def update_chat_by_id(
     request: Request,
     id: str,
     form_data: ChatForm,
-    user=Depends(get_verified_user),
+    user: UserModel = Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
-):
-    chat = await Chats.get_chat_by_id_and_user_id(id, user.id, db=db)
+) -> ChatResponse | None:
+    from open_webui.utils.airis.chat_save import save_chat_patch
+
+    try:
+        chat = await save_chat_patch(id, user.id, form_data)
+    except Exception as error:
+        log.error('Failed to save chat %s (%s)', id, type(error).__name__)
+        raise HTTPException(status_code=500, detail=ERROR_MESSAGES.DEFAULT()) from error
     if chat:
-        updated_chat = {**chat.chat, **form_data.chat}
-        if 'history' in form_data.chat:
-            updated_chat['history'] = Chats.merge_history(
-                chat.chat.get('history'),
-                form_data.chat.get('history'),
-            )
-
-        touch = 'history' in form_data.chat or 'messages' in form_data.chat
-        chat = await Chats.update_chat_by_id(id, updated_chat, db=db, touch=touch)
-        if form_data.variables is not None:
-            chat = (
-                await Chats.update_chat_variables_by_id(
-                    id,
-                    form_data.variables,
-                    db=db,
-                    touch=False,
-                )
-                or chat
-            )
-
-        # Reconcile chat_message rows without inferring deletes from missing IDs.
-        # Message deletion has its own endpoint below.
-        messages = (updated_chat.get('history') or {}).get('messages') or {}
-        if messages:
-            await Chats.reconcile_messages_by_chat_id(id, user.id, messages)
-
         await publish_event(
             request,
             EVENTS.CHAT_UPDATED,

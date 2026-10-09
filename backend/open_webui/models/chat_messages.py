@@ -1,5 +1,6 @@
-import time
 from collections import Counter
+from contextlib import nullcontext
+import time
 from datetime import datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -223,9 +224,12 @@ class ChatMessageTable:
         db: AsyncSession | None = None,
         *,
         success_checkpoint: SuccessCheckpoint | None = None,
+        commit: bool = True,
     ) -> ChatMessageModel | None:
-        """Insert or update a chat message; completion proof is a server-only keyword."""
-        async with get_async_db_context(db) as db:
+        """Upsert a message; commit=False flushes into the caller's explicit session."""
+        if not commit and db is None:
+            raise ValueError('An explicit session is required for an uncommitted message write')
+        async with get_async_db_context(db) if commit else nullcontext(db) as db:
             now = int(time.time())
             timestamp = data.get('timestamp', now)
 
@@ -272,7 +276,7 @@ class ChatMessageTable:
                     existing.usage = existing_usage if usage == existing_usage else merge_usage(existing_usage, usage)
                 existing.updated_at = now
                 existing.success_checkpoints = pending_checkpoints(existing.success_checkpoints, success_checkpoint)
-                await db.commit()
+                await (db.commit if commit else db.flush)()
                 return ChatMessageModel.model_validate(existing)
             else:
                 # Insert new
@@ -301,7 +305,7 @@ class ChatMessageTable:
                     updated_at=now,
                 )
                 db.add(message)
-                await db.commit()
+                await (db.commit if commit else db.flush)()
                 return ChatMessageModel.model_validate(message)
 
     async def get_message_by_id(self, id: str, db: AsyncSession | None = None) -> ChatMessageModel | None:

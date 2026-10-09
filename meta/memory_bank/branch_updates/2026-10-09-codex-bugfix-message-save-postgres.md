@@ -1,0 +1,5 @@
+- [ ] **[BUG]** Приёмка сохранения сообщений с PostgreSQL
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09__bugfix__message-save-postgres.md
+  - Owner: Codex
+  - Started: 2026-10-09
+  - Summary: Настоящие API/JWT и база PostgreSQL в собственном tmpfs стенде; исходники frontend уже проверены, выпуск остаётся открытым.
