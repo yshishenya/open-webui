@@ -8,21 +8,15 @@ from open_webui.utils.billing import BillingService
 
 
 class TestBillingServiceExtended:
-    def test_get_active_plans_delegates_to_storage(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_get_active_plans_delegates_to_storage(self, monkeypatch: MonkeyPatch) -> None:
         service = BillingService()
-        monkeypatch.setattr(
-            service.plans, 'get_all_plans', lambda active_only=True: [active_only]
-        )
+        monkeypatch.setattr(service.plans, 'get_all_plans', lambda active_only=True: [active_only])
 
         result = service.get_active_plans()
 
         assert result == [True]
 
-    def test_get_usage_for_period_delegates_to_storage(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_get_usage_for_period_delegates_to_storage(self, monkeypatch: MonkeyPatch) -> None:
         service = BillingService()
         monkeypatch.setattr(
             service.usage_tracking,
@@ -44,9 +38,7 @@ class TestBillingServiceExtended:
 
         assert result == ['user_1', 10, 20, UsageMetric.REQUESTS]
 
-    def test_create_plan_delegates_and_sets_defaults(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_create_plan_delegates_and_sets_defaults(self, monkeypatch: MonkeyPatch) -> None:
         service = BillingService()
 
         created_payload: dict[str, object] = {}
@@ -91,14 +83,10 @@ class TestBillingServiceExtended:
         )
         assert service.has_active_subscription('user_1') is True
 
-    def test_create_subscription_handles_intervals_and_invalid_values(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_create_subscription_handles_intervals_and_invalid_values(self, monkeypatch: MonkeyPatch) -> None:
         service = BillingService()
 
-        monkeypatch.setattr(
-            service.subscriptions, 'create_subscription', lambda sub: sub
-        )
+        monkeypatch.setattr(service.subscriptions, 'create_subscription', lambda sub: sub)
 
         service.get_plan = lambda *_: None  # type: ignore[method-assign]
         with pytest.raises(ValueError, match='Plan .* not found'):
@@ -130,9 +118,7 @@ class TestBillingServiceExtended:
             updates.append(payload)
             return SimpleNamespace(id='sub_1')
 
-        monkeypatch.setattr(
-            service.subscriptions, 'update_subscription', _update_subscription
-        )
+        monkeypatch.setattr(service.subscriptions, 'update_subscription', _update_subscription)
 
         immediate_result = service.cancel_subscription('sub_1', immediate=True)
         assert immediate_result is not None
@@ -143,9 +129,7 @@ class TestBillingServiceExtended:
         assert delayed_result is not None
         assert updates[-1] == {'cancel_at_period_end': True}
 
-    def test_resume_subscription_clears_scheduled_cancellation(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_resume_subscription_clears_scheduled_cancellation(self, monkeypatch: MonkeyPatch) -> None:
         service = BillingService()
         updates: list[dict[str, object]] = []
 
@@ -153,18 +137,14 @@ class TestBillingServiceExtended:
             updates.append(payload)
             return SimpleNamespace(id='sub_1', **payload)
 
-        monkeypatch.setattr(
-            service.subscriptions, 'update_subscription', _update_subscription
-        )
+        monkeypatch.setattr(service.subscriptions, 'update_subscription', _update_subscription)
 
         resumed = service.resume_subscription('sub_1')
 
         assert resumed is not None
         assert updates == [{'cancel_at_period_end': False}]
 
-    def test_get_current_period_usage_without_subscription_uses_fallback_window(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_get_current_period_usage_without_subscription_uses_fallback_window(self, monkeypatch: MonkeyPatch) -> None:
         service = BillingService()
 
         service.get_user_subscription = lambda *_: None  # type: ignore[method-assign]
@@ -190,14 +170,9 @@ class TestBillingServiceExtended:
         assert total == 7
         assert captured['user_id'] == 'user_1'
         assert captured['metric'] == UsageMetric.REQUESTS
-        assert (
-            int(captured['period_end']) - int(captured['period_start'])
-            == 30 * 24 * 60 * 60
-        )
+        assert int(captured['period_end']) - int(captured['period_start']) == 30 * 24 * 60 * 60
 
-    def test_track_usage_without_subscription_sets_period_to_now(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_track_usage_without_subscription_sets_period_to_now(self, monkeypatch: MonkeyPatch) -> None:
         service = BillingService()
         service.get_user_subscription = lambda *_: None  # type: ignore[method-assign]
 
@@ -226,15 +201,11 @@ class TestBillingServiceExtended:
         assert usage.period_start == usage.period_end
         assert usage.extra_metadata == {'source': 'test'}
 
-    def test_renew_subscription_handles_missing_entities_and_valid_flow(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_renew_subscription_handles_missing_entities_and_valid_flow(self, monkeypatch: MonkeyPatch) -> None:
         service = BillingService()
         now = int(time.time())
 
-        monkeypatch.setattr(
-            service.subscriptions, 'get_subscription_by_id', lambda *_: None
-        )
+        monkeypatch.setattr(service.subscriptions, 'get_subscription_by_id', lambda *_: None)
         assert service.renew_subscription('sub_1') is None
 
         monkeypatch.setattr(
@@ -260,9 +231,7 @@ class TestBillingServiceExtended:
             updates.append(payload)
             return SimpleNamespace(id='sub_1', **payload)
 
-        monkeypatch.setattr(
-            service.subscriptions, 'update_subscription', _update_subscription
-        )
+        monkeypatch.setattr(service.subscriptions, 'update_subscription', _update_subscription)
 
         renewed = service.renew_subscription('sub_1')
 

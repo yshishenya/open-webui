@@ -1,6 +1,5 @@
 import os
 import re
-from typing import Dict
 
 from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -34,7 +33,7 @@ class SecurityHeadersMiddleware:
         await self.app(scope, receive, send_with_security_headers)
 
 
-def set_security_headers() -> Dict[str, str]:
+def set_security_headers() -> dict[str, str]:
     """
     Sets security headers based on environment variables.
 

@@ -1,0 +1,8 @@
+- [ ] **[REFACTOR][QUALITY]** Union type annotations
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-09__refactor__union-type-annotations.md`
+  - Owner: Codex
+  - Branch: `codex/refactor/union-type-annotations`
+  - Started: 2026-10-09
+  - Summary:132 safe Union annotations in49 backend files; preserve migrations, runtime types, API and auth/filter behavior. General quality/CI/release remain separate.
+  - Tests: backend1017/1017 and frontend946/946;453 source AST,525 model schemas,53 tools,305 hints,75 migration revisions/175 migration hints,561 API paths and70 actual forms preserved;84 adapter/5 coercion cases and native declarations agree.
+  - Acceptance: Ruff1166→1034,0new; source/runtime accepted, general check2293/108 and ESLint1020 remain open. CI/merge/release pending.

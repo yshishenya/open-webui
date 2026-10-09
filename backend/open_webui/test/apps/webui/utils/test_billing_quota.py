@@ -12,16 +12,16 @@ class TestBillingQuota(AbstractPostgresTest):
         from open_webui.models.billing import PlanModel, Plans
 
         now = int(time.time())
-        self.plan_id = "plan_quota"
+        self.plan_id = 'plan_quota'
 
         Plans.create_plan(
             PlanModel(
                 id=self.plan_id,
-                name="Quota Plan",
+                name='Quota Plan',
                 price=0,
-                currency="RUB",
-                interval="month",
-                quotas={"requests": 1},
+                currency='RUB',
+                interval='month',
+                quotas={'requests': 1},
                 features=[],
                 is_active=True,
                 display_order=0,
@@ -41,8 +41,8 @@ class TestBillingQuota(AbstractPostgresTest):
 
         now = int(time.time())
         subscription = SubscriptionModel(
-            id="sub_quota_1",
-            user_id="user_1",
+            id='sub_quota_1',
+            user_id='user_1',
             plan_id=self.plan_id,
             status=SubscriptionStatus.ACTIVE.value,
             current_period_start=now - 60,
@@ -54,11 +54,8 @@ class TestBillingQuota(AbstractPostgresTest):
         Subscriptions.create_subscription(subscription)
 
         billing_service = BillingService()
-        billing_service.track_usage("user_1", UsageMetric.REQUESTS, 1)
+        billing_service.track_usage('user_1', UsageMetric.REQUESTS, 1)
 
-        assert (
-            billing_service.check_quota("user_1", UsageMetric.REQUESTS, 1) is False
-        )
+        assert billing_service.check_quota('user_1', UsageMetric.REQUESTS, 1) is False
         with pytest.raises(QuotaExceededError):
-            billing_service.enforce_quota("user_1", UsageMetric.REQUESTS, 1)
-
+            billing_service.enforce_quota('user_1', UsageMetric.REQUESTS, 1)

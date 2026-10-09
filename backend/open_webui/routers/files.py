@@ -6,7 +6,7 @@ import logging
 import os
 import uuid
 from pathlib import Path
-from typing import Optional
+
 from urllib.parse import quote
 
 from fastapi import (
@@ -29,7 +29,6 @@ from open_webui.internal.db import get_async_db_context, get_async_session
 from open_webui.models.access_grants import AccessGrants
 from open_webui.models.channels import Channels
 from open_webui.models.config import Config
-from open_webui.models.chats import Chats
 from open_webui.models.files import (
     FileForm,
     FileListResponse,
@@ -37,7 +36,6 @@ from open_webui.models.files import (
     FileModelResponse,
     Files,
 )
-from open_webui.models.groups import Groups
 from open_webui.models.knowledge import Knowledges
 from open_webui.models.users import Users
 from open_webui.retrieval.vector.async_client import ASYNC_VECTOR_DB_CLIENT
@@ -132,7 +130,7 @@ async def process_uploaded_file(
     file_item,
     file_metadata,
     user,
-    db: Optional[AsyncSession] = None,
+    db: AsyncSession | None = None,
 ):
     async def _process_handler(db_session):
         try:
@@ -273,7 +271,7 @@ async def upload_file(
     request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    metadata: Optional[dict | str] = Form(None),
+    metadata: dict | str | None = Form(None),
     process: bool = Query(True),
     process_in_background: bool = Query(True),
     user=Depends(get_verified_user),
@@ -315,12 +313,12 @@ async def upload_file(
 async def upload_file_handler(
     request: Request,
     file: UploadFile = File(...),
-    metadata: Optional[dict | str] = Form(None),
+    metadata: dict | str | None = Form(None),
     process: bool = Query(True),
     process_in_background: bool = Query(True),
     user=Depends(get_verified_user),
-    background_tasks: Optional[BackgroundTasks] = None,
-    db: Optional[AsyncSession] = None,
+    background_tasks: BackgroundTasks | None = None,
+    db: AsyncSession | None = None,
 ):
     log.info(f'file.content_type: {file.content_type} {process}')
 
@@ -589,7 +587,7 @@ async def delete_all_files(
 ############################
 
 
-@router.get('/{id}', response_model=Optional[FileModel])
+@router.get('/{id}', response_model=FileModel | None)
 async def get_file_by_id(id: str, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)):
     file = await Files.get_file_by_id(id, db=db)
 

@@ -1,0 +1,7 @@
+- [ ] **[REFACTOR][QUALITY]** Remove unused grouped import bindings
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-09__refactor__partial-unused-imports.md`
+  - Owner: Codex
+  - Branch: `codex/refactor/partial-unused-imports`
+  - Started: 2026-10-09
+  - Summary: Review123 unused bindings while retaining target module imports, compare runtime/ORM/lazy-loader contracts and run full tests; general quality/release remains pending.
+  - Tests: Backend1017/frontend952 passed; all453 AST/comments and runtime/ORM/API/YouTube contracts preserved. Ruff1003->880; check2271/108 andESLint1020 remain pending.

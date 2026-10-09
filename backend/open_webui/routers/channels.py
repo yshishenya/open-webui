@@ -1,12 +1,10 @@
 import base64
 import io
-import json
 import logging
-from typing import Optional
+
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.responses import FileResponse, Response, StreamingResponse
-from open_webui.config import ENABLE_ADMIN_CHAT_ACCESS, ENABLE_ADMIN_EXPORT
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.events import EVENTS, publish_event
 from open_webui.env import STATIC_DIR
@@ -22,7 +20,6 @@ from open_webui.models.channels import (
     ChannelWebhookModel,
     CreateChannelForm,
 )
-from open_webui.models.groups import Groups
 from open_webui.models.messages import (
     MessageForm,
     MessageModel,
@@ -30,13 +27,7 @@ from open_webui.models.messages import (
     Messages,
     MessageWithReactionsResponse,
 )
-from open_webui.models.users import (
-    UserIdNameResponse,
-    UserIdNameStatusResponse,
-    UserModel,
-    UserNameResponse,
-    Users,
-)
+from open_webui.models.users import UserIdNameStatusResponse, UserModel, UserNameResponse, Users
 from open_webui.socket.main import (
     emit_to_users,
     enter_room_for_users,
@@ -44,7 +35,7 @@ from open_webui.socket.main import (
     sio,
 )
 from open_webui.utils.access_control import filter_allowed_access_grants, has_permission
-from open_webui.utils.auth import get_admin_user, get_verified_user
+from open_webui.utils.auth import get_verified_user
 from open_webui.utils.channels import extract_mentions, replace_mentions
 from open_webui.utils.files import get_image_base64_from_file_id
 from open_webui.utils.models import (
@@ -64,7 +55,7 @@ async def channel_has_access(
     channel: ChannelModel,
     permission: str = 'read',
     strict: bool = True,
-    db: Optional[AsyncSession] = None,
+    db: AsyncSession | None = None,
 ) -> bool:
     if await AccessGrants.has_access(
         user_id=user_id,
@@ -82,7 +73,7 @@ async def channel_has_access(
 
 
 async def get_channel_users_with_access(
-    channel: ChannelModel, permission: str = 'read', db: Optional[AsyncSession] = None
+    channel: ChannelModel, permission: str = 'read', db: AsyncSession | None = None
 ):
     return await AccessGrants.get_users_with_access(
         resource_type='channel',
@@ -94,7 +85,7 @@ async def get_channel_users_with_access(
 
 def get_channel_permitted_group_and_user_ids(
     channel: ChannelModel, permission: str = 'read'
-) -> Optional[dict[str, list[str]]]:
+) -> dict[str, list[str]] | None:
     if permission == 'read' and has_public_read_access_grant(channel.access_grants):
         return None
 
@@ -122,7 +113,7 @@ def get_channel_permitted_group_and_user_ids(
 ############################
 
 
-async def check_channels_access(request: Request, user: Optional[UserModel] = None):
+async def check_channels_access(request: Request, user: UserModel | None = None):
     """Dependency to ensure channels are globally enabled."""
     if not await Config.get('channels.enable'):
         raise HTTPException(
@@ -146,10 +137,10 @@ async def check_channels_access(request: Request, user: Optional[UserModel] = No
 
 
 class ChannelListItemResponse(ChannelModel):
-    user_ids: Optional[list[str]] = None  # 'dm' channels only
-    users: Optional[list[UserIdNameStatusResponse]] = None  # 'dm' channels only
+    user_ids: list[str] | None = None  # 'dm' channels only
+    users: list[UserIdNameStatusResponse] | None = None  # 'dm' channels only
 
-    last_message_at: Optional[int] = None  # timestamp in epoch (time_ns)
+    last_message_at: int | None = None  # timestamp in epoch (time_ns)
     unread_count: int = 0
 
 
@@ -218,7 +209,7 @@ async def get_all_channels(
 ############################
 
 
-@router.get('/users/{user_id}', response_model=Optional[ChannelModel])
+@router.get('/users/{user_id}', response_model=ChannelModel | None)
 async def get_dm_channel_by_user_id(
     request: Request,
     user_id: str,
@@ -276,7 +267,7 @@ async def get_dm_channel_by_user_id(
 ############################
 
 
-@router.post('/create', response_model=Optional[ChannelModel])
+@router.post('/create', response_model=ChannelModel | None)
 async def create_new_channel(
     request: Request,
     form_data: CreateChannelForm,
@@ -357,14 +348,14 @@ async def create_new_channel(
 
 
 class ChannelFullResponse(ChannelResponse):
-    user_ids: Optional[list[str]] = None  # 'group'/'dm' channels only
-    users: Optional[list[UserIdNameStatusResponse]] = None  # 'group'/'dm' channels only
+    user_ids: list[str] | None = None  # 'group'/'dm' channels only
+    users: list[UserIdNameStatusResponse] | None = None  # 'group'/'dm' channels only
 
-    last_read_at: Optional[int] = None  # timestamp in epoch (time_ns)
+    last_read_at: int | None = None  # timestamp in epoch (time_ns)
     unread_count: int = 0
 
 
-@router.get('/{id}', response_model=Optional[ChannelFullResponse])
+@router.get('/{id}', response_model=ChannelFullResponse | None)
 async def get_channel_by_id(
     request: Request,
     id: str,
@@ -490,10 +481,10 @@ def serialize_channel_member(user: UserModel) -> ChannelMemberResponse:
 async def get_channel_members_by_id(
     request: Request,
     id: str,
-    query: Optional[str] = None,
-    order_by: Optional[str] = None,
-    direction: Optional[str] = None,
-    page: Optional[int] = 1,
+    query: str | None = None,
+    order_by: str | None = None,
+    direction: str | None = None,
+    page: int | None = 1,
     user=Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
 ):
@@ -681,7 +672,7 @@ async def remove_members_by_id(
 ############################
 
 
-@router.post('/{id}/update', response_model=Optional[ChannelModel])
+@router.post('/{id}/update', response_model=ChannelModel | None)
 async def update_channel_by_id(
     request: Request,
     id: str,
@@ -1201,7 +1192,7 @@ async def new_message_handler(request: Request, id: str, form_data: MessageForm,
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERROR_MESSAGES.DEFAULT())
 
 
-@router.post('/{id}/messages/post', response_model=Optional[MessageModel])
+@router.post('/{id}/messages/post', response_model=MessageModel | None)
 async def post_new_message(
     request: Request,
     id: str,
@@ -1263,7 +1254,7 @@ async def post_new_message(
 ############################
 
 
-@router.get('/{id}/messages/{message_id}', response_model=Optional[MessageResponse])
+@router.get('/{id}/messages/{message_id}', response_model=MessageResponse | None)
 async def get_channel_message(
     request: Request,
     id: str,
@@ -1304,7 +1295,7 @@ async def get_channel_message(
 ############################
 
 
-@router.get('/{id}/messages/{message_id}/data', response_model=Optional[dict])
+@router.get('/{id}/messages/{message_id}/data', response_model=dict | None)
 async def get_channel_message_data(
     request: Request,
     id: str,
@@ -1343,7 +1334,7 @@ class PinMessageForm(BaseModel):
     is_pinned: bool
 
 
-@router.post('/{id}/messages/{message_id}/pin', response_model=Optional[MessageUserResponse])
+@router.post('/{id}/messages/{message_id}/pin', response_model=MessageUserResponse | None)
 async def pin_channel_message(
     request: Request,
     id: str,
@@ -1479,7 +1470,7 @@ async def get_channel_thread_messages(
 ############################
 
 
-@router.post('/{id}/messages/{message_id}/update', response_model=Optional[MessageModel])
+@router.post('/{id}/messages/{message_id}/update', response_model=MessageModel | None)
 async def update_message_by_id(
     request: Request,
     id: str,
