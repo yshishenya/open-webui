@@ -2,8 +2,6 @@
 NOTE: This vector database integration is community-supported and maintained on a best-effort basis.
 """
 
-import ssl
-
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk, scan
 from open_webui.config import (

@@ -1,5 +1,4 @@
 import logging
-import re
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse

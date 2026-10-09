@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import re
 import time
-from pathlib import Path
 
 import aiohttp
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -15,7 +14,6 @@ from open_webui.internal.db import get_async_session
 from open_webui.models.access_grants import AccessGrants
 from open_webui.models.config import Config
 from open_webui.models.groups import Groups
-from open_webui.models.oauth_sessions import OAuthSessions
 from open_webui.models.tools import (
     ToolAccessResponse,
     ToolForm,

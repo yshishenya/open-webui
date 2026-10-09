@@ -15,7 +15,8 @@ from typing import Sequence
 import aiohttp
 import mimeparse
 from open_webui.env import CHAT_STREAM_RESPONSE_CHUNK_MAX_BUFFER_SIZE
-from open_webui.utils.airis.safe_get import deep_get_bool, deep_get_mapping
+from open_webui.utils.airis.safe_get import deep_get_bool as deep_get_bool
+from open_webui.utils.airis.safe_get import deep_get_mapping as deep_get_mapping
 
 log = logging.getLogger(__name__)
 SURROGATE_RE = re.compile('[\ud800-\udfff]')

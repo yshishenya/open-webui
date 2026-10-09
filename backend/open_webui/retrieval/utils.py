@@ -8,7 +8,6 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Awaitable
-from urllib.parse import quote
 
 import aiohttp
 import requests

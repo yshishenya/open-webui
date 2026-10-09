@@ -1,11 +1,9 @@
-import json
 import logging
 import time
 import uuid
 
 from open_webui.env import DEFAULT_GROUP_SHARE_PERMISSION
 from open_webui.internal.db import Base, get_async_db_context
-from open_webui.models.files import FileMetadataResponse
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import JSON, BigInteger, Column, ForeignKey, Text, and_, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession

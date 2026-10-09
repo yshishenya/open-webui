@@ -1,0 +1,5 @@
+- [ ] **[REFACTOR]** Review unused import statements
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09**refactor**unused-import-statements.md
+  - Owner: Codex
+  - Started: 2026-10-09
+  - Summary: Remove only reviewed unused bindings; preserve initialization, contracts and existing production. General quality/release remain open.

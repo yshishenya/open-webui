@@ -5,8 +5,6 @@ Revises: c7d4e8f9a2b1, c9d7e2a1b4f0
 Create Date: 2025-12-18 00:00:00.000000
 """
 
-from alembic import op
-
 revision = 'd5f2c8a9b1e0'
 down_revision = ('c7d4e8f9a2b1', 'c9d7e2a1b4f0')
 branch_labels = None

@@ -1,5 +1,4 @@
 import time
-from types import SimpleNamespace
 
 from _pytest.monkeypatch import MonkeyPatch
 

@@ -6,7 +6,6 @@ import copy
 import inspect
 import json
 import logging
-import os
 import re
 from functools import cache, partial, update_wrapper
 from typing import Any, Awaitable, Callable, get_args, get_type_hints
@@ -99,7 +98,6 @@ from open_webui.utils.misc import is_string_allowed
 from open_webui.utils.plugin import get_tool_contents_cache, get_tools_cache, load_tool_module_by_id
 from open_webui.utils.terminals import get_terminal_server_url
 from pydantic import BaseModel, Field, create_model
-from pydantic.fields import FieldInfo
 
 log = logging.getLogger(__name__)
 

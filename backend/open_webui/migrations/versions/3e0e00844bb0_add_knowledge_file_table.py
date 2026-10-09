@@ -14,7 +14,6 @@ from typing import Sequence
 import open_webui.internal.db
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
 revision: str = '3e0e00844bb0'

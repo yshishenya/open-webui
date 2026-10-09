@@ -31,7 +31,6 @@ ORACLE_DB_POOL_INCREMENT = 1
 import array
 import json
 import logging
-import os
 import threading
 import time
 from decimal import Decimal

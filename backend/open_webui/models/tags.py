@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import logging
-import time
-import uuid
 
 # local imports
 from open_webui.internal.db import Base, get_async_db_context

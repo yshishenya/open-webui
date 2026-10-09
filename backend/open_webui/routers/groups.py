@@ -1,9 +1,6 @@
 import logging
-import os
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from open_webui.config import CACHE_DIR
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.events import EVENTS, publish_event
 from open_webui.internal.db import get_async_session

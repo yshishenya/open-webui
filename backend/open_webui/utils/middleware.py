@@ -1,21 +1,16 @@
 import ast
 import asyncio
-import base64
 import copy
-import inspect
 import json
 import logging
-import os
 import random
 import re
 import sys
 import textwrap
 import time
 from collections.abc import AsyncIterator
-from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
 
-from aiocache import cached
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from open_webui.config import (
@@ -41,9 +36,7 @@ from open_webui.env import (
 from open_webui.models.chats import Chats
 from open_webui.models.config import Config
 from open_webui.models.folders import Folders
-from open_webui.models.models import Models
 from open_webui.models.notes import Notes
-from open_webui.models.oauth_sessions import OAuthSessions
 from open_webui.models.users import UserModel
 from open_webui.events import EVENTS, publish_event
 from open_webui.retrieval.utils import get_sources_from_items
@@ -118,7 +111,6 @@ from open_webui.utils.misc import (
     strip_empty_content_blocks,
 )
 from open_webui.utils.payload import apply_system_prompt_to_body, resolve_system_prompt
-from open_webui.utils.plugin import load_function_module_by_id
 from open_webui.utils.response import merge_usage, normalize_usage
 from open_webui.utils.sanitize import sanitize_code
 from open_webui.utils.task import (

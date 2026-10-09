@@ -1,4 +1,3 @@
-import json
 import secrets
 import time
 import uuid
@@ -26,7 +25,6 @@ from sqlalchemy import (
     or_,
     select,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
 ####################

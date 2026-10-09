@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import time
 import uuid
@@ -2362,7 +2361,6 @@ class ChatTable:
     async def delete_shared_chats_by_user_id(self, user_id: str, db: AsyncSession | None = None) -> bool:
         """Delete all shared chat snapshots created by a user."""
         from open_webui.models.shared_chats import SharedChat as SharedChatTable
-        from open_webui.models.shared_chats import SharedChats
 
         try:
             async with get_async_db_context(db) as session:

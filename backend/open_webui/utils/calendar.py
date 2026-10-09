@@ -8,8 +8,6 @@ import logging
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from open_webui.utils.automations import _parse_rule
-
 log = logging.getLogger(__name__)
 
 

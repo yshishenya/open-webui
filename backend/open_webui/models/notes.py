@@ -1,7 +1,5 @@
-import json
 import time
 import uuid
-from functools import lru_cache
 
 from open_webui.internal.db import Base, get_async_db_context
 from open_webui.models.access_grants import AccessGrantModel, AccessGrants

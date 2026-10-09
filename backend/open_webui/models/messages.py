@@ -1,15 +1,12 @@
-import json
 import time
 import uuid
 
 from open_webui.internal.db import Base, get_async_db_context
 from open_webui.models.channels import Channels
-from open_webui.models.tags import Tag, TagModel, Tags
 from open_webui.models.users import User, UserNameResponse, Users
 from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy import JSON, BigInteger, Boolean, Column, Text, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import exists
 
 ####################
 # Message DB Schema

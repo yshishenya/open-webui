@@ -8,7 +8,6 @@ IMPORTANT: DO NOT IMPORT THIS MODULE DIRECTLY IN OTHER PARTS OF THE CODEBASE.
 
 from open_webui.tools.knowledge_fs import kb_exec  # noqa: F401 — re-exported
 
-import asyncio
 import json
 import logging
 import time

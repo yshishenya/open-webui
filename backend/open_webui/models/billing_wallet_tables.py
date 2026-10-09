@@ -1,6 +1,5 @@
 import time
 
-import sqlalchemy as sa
 
 from open_webui.internal.db import get_db
 from open_webui.models.billing_wallet import (
