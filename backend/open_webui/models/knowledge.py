@@ -4,7 +4,7 @@ import time
 import uuid
 
 from open_webui.config import RAG_FILE_CONTENT_SEARCH_MAX_CHARS
-from open_webui.internal.db import Base, JSONField, get_async_db_context
+from open_webui.internal.db import Base, get_async_db_context
 from open_webui.models.access_grants import AccessGrantModel, AccessGrants
 from open_webui.models.files import (
     File,
@@ -21,7 +21,6 @@ from sqlalchemy import (
     Column,
     ForeignKey,
     Index,
-    String,
     Text,
     UniqueConstraint,
     delete,

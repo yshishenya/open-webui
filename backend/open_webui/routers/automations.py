@@ -7,7 +7,6 @@ from open_webui.events import EVENTS, publish_event
 from open_webui.internal.db import get_async_session
 from open_webui.models.automations import (
     AutomationForm,
-    AutomationListResponse,
     AutomationModel,
     AutomationResponse,
     AutomationRunModel,
@@ -17,7 +16,7 @@ from open_webui.models.automations import (
 from open_webui.models.config import Config
 from open_webui.models.folders import Folders
 from open_webui.utils.access_control import has_permission
-from open_webui.utils.auth import get_admin_user, get_verified_user
+from open_webui.utils.auth import get_verified_user
 from open_webui.utils.automations import (
     execute_automation,
     next_n_runs_ns,

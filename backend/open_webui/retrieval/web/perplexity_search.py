@@ -2,7 +2,7 @@ import logging
 
 import requests
 from open_webui.env import VERSION
-from open_webui.retrieval.web.main import SearchResult, get_filtered_results
+from open_webui.retrieval.web.main import SearchResult
 from open_webui.utils.headers import include_user_info_headers
 
 log = logging.getLogger(__name__)

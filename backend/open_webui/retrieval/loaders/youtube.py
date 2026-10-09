@@ -76,11 +76,7 @@ class YoutubeLoader:
     def load(self) -> list[Document]:
         """Load YouTube transcripts into `Document` objects."""
         try:
-            from youtube_transcript_api import (
-                NoTranscriptFound,
-                TranscriptsDisabled,
-                YouTubeTranscriptApi,
-            )
+            from youtube_transcript_api import NoTranscriptFound, YouTubeTranscriptApi
             from youtube_transcript_api.proxies import GenericProxyConfig
         except ImportError:
             raise ImportError(

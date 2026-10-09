@@ -31,7 +31,6 @@ from open_webui.env import (
     OTEL_METRICS_EXPORTER_OTLP_ENDPOINT,
     OTEL_METRICS_EXPORTER_OTLP_INSECURE,
     OTEL_METRICS_OTLP_SPAN_EXPORTER,
-    OTEL_SERVICE_NAME,
 )
 from open_webui.models.users import User
 from opentelemetry import metrics

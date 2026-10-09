@@ -3,9 +3,9 @@ import re
 import time
 import uuid
 
-from open_webui.internal.db import Base, JSONField, get_async_db_context
+from open_webui.internal.db import Base, get_async_db_context
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import JSON, BigInteger, Boolean, Column, Text, delete, func, select, or_, and_
+from sqlalchemy import JSON, BigInteger, Boolean, Column, Text, select, or_, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger(__name__)

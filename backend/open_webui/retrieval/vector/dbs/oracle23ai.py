@@ -46,7 +46,6 @@ from open_webui.config import (
     ORACLE_DB_POOL_MIN,
     ORACLE_DB_USE_WALLET,
     ORACLE_DB_USER,
-    ORACLE_VECTOR_LENGTH,
     ORACLE_WALLET_DIR,
     ORACLE_WALLET_PASSWORD,
 )

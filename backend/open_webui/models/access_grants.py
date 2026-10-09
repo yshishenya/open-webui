@@ -686,7 +686,7 @@ class AccessGrantsTable:
         Returns a list of UserModel instances.
         """
         from open_webui.models.groups import Groups
-        from open_webui.models.users import UserModel, Users
+        from open_webui.models.users import Users
 
         async with get_async_db_context(db) as db:
             result = await db.execute(

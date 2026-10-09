@@ -2,12 +2,8 @@ import json
 import logging
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
-from open_webui.config import (
-    BYPASS_ADMIN_ACCESS_CONTROL,
-    ENABLE_ADMIN_CHAT_ACCESS,
-    ENABLE_ADMIN_EXPORT,
-)
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from open_webui.config import BYPASS_ADMIN_ACCESS_CONTROL
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.events import EVENTS, publish_event
 from open_webui.internal.db import get_async_session
@@ -24,13 +20,8 @@ from open_webui.models.notes import (
 )
 from open_webui.models.users import UserResponse, Users
 from open_webui.socket.main import sio
-from open_webui.utils.access_control import (
-    filter_allowed_access_grants,
-    has_permission,
-    has_public_read_access_grant,
-    has_public_write_access_grant,
-)
-from open_webui.utils.auth import get_admin_user, get_verified_user
+from open_webui.utils.access_control import filter_allowed_access_grants, has_permission, has_public_write_access_grant
+from open_webui.utils.auth import get_verified_user
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 

@@ -30,13 +30,7 @@ from open_webui.models.messages import (
     Messages,
     MessageWithReactionsResponse,
 )
-from open_webui.models.users import (
-    UserIdNameResponse,
-    UserIdNameStatusResponse,
-    UserModel,
-    UserNameResponse,
-    Users,
-)
+from open_webui.models.users import UserIdNameStatusResponse, UserModel, UserNameResponse, Users
 from open_webui.socket.main import (
     emit_to_users,
     enter_room_for_users,
@@ -44,7 +38,7 @@ from open_webui.socket.main import (
     sio,
 )
 from open_webui.utils.access_control import filter_allowed_access_grants, has_permission
-from open_webui.utils.auth import get_admin_user, get_verified_user
+from open_webui.utils.auth import get_verified_user
 from open_webui.utils.channels import extract_mentions, replace_mentions
 from open_webui.utils.files import get_image_base64_from_file_id
 from open_webui.utils.models import (

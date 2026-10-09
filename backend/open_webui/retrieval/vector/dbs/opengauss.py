@@ -8,22 +8,7 @@ import re
 from typing import Any
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import (
-    Column,
-    Integer,
-    LargeBinary,
-    MetaData,
-    Table,
-    Text,
-    cast,
-    column,
-    create_engine,
-    func,
-    literal,
-    select,
-    text,
-    values,
-)
+from sqlalchemy import Column, Integer, MetaData, Table, Text, cast, column, create_engine, select, text, values
 from sqlalchemy.dialects import registry
 from sqlalchemy.dialects.postgresql import JSONB, array
 from sqlalchemy.dialects.postgresql.psycopg2 import PGDialect_psycopg2

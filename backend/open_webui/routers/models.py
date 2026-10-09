@@ -29,7 +29,6 @@ from open_webui.models.models import (
     ModelAccessListResponse,
     ModelAccessResponse,
     ModelForm,
-    ModelListResponse,
     ModelMeta,
     ModelModel,
     ModelParams,

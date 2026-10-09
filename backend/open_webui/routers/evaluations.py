@@ -13,7 +13,6 @@ from open_webui.models.feedbacks import (
     FeedbackModel,
     Feedbacks,
     LeaderboardFeedbackData,
-    ModelHistoryEntry,
     ModelHistoryResponse,
 )
 from open_webui.models.users import UserModel, Users

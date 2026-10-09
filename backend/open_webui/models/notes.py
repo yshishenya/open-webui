@@ -6,9 +6,9 @@ from functools import lru_cache
 from open_webui.internal.db import Base, get_async_db_context
 from open_webui.models.access_grants import AccessGrantModel, AccessGrants
 from open_webui.models.groups import Groups
-from open_webui.models.users import User, UserModel, UserResponse, Users
+from open_webui.models.users import User, UserModel, UserResponse
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import JSON, BigInteger, Boolean, Column, ForeignKey, Text, delete, func, or_, select, update
+from sqlalchemy import JSON, BigInteger, Column, ForeignKey, Text, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 ####################

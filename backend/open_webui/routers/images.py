@@ -10,7 +10,7 @@ import re
 import uuid
 from pathlib import Path
 from types import SimpleNamespace
-from urllib.parse import quote, urlparse
+from urllib.parse import urlparse
 
 import aiofiles
 import aiohttp

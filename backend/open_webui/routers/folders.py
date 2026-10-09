@@ -5,7 +5,7 @@ import shutil
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, StreamingResponse
 from open_webui.config import UPLOAD_DIR
 from open_webui.constants import ERROR_MESSAGES
@@ -14,13 +14,7 @@ from open_webui.internal.db import get_async_session
 from open_webui.models.chat_messages import ChatMessages
 from open_webui.models.config import Config
 from open_webui.models.chats import Chats
-from open_webui.models.folders import (
-    FolderForm,
-    FolderModel,
-    FolderNameIdResponse,
-    Folders,
-    FolderUpdateForm,
-)
+from open_webui.models.folders import FolderForm, FolderNameIdResponse, Folders, FolderUpdateForm
 from open_webui.models.access_grants import AccessGrants
 from open_webui.models.automations import Automations
 from open_webui.models.groups import Groups
@@ -30,7 +24,7 @@ from open_webui.utils.access_control import (
     filter_allowed_access_grants,
 )
 from open_webui.utils.access_control.files import can_read_all_folder_files, get_accessible_folder_files
-from open_webui.utils.auth import get_admin_user, get_verified_user
+from open_webui.utils.auth import get_verified_user
 from open_webui.tasks import has_active_tasks
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
