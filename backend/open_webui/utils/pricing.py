@@ -1,5 +1,4 @@
 from decimal import Decimal, ROUND_CEILING
-from typing import Optional, Tuple
 
 from open_webui.models.billing import PricingRateCardModel, RateCards
 
@@ -14,9 +13,7 @@ class PricingService:
     def __init__(self):
         self.rate_cards = RateCards
 
-    def get_rate_card(
-        self, model_id: str, modality: str, unit: str
-    ) -> Optional[PricingRateCardModel]:
+    def get_rate_card(self, model_id: str, modality: str, unit: str) -> PricingRateCardModel | None:
         """Fetch active rate card for model/modality/unit."""
         return self.rate_cards.get_active_rate_card(model_id, modality, unit)
 
@@ -44,7 +41,7 @@ class PricingService:
         max_units: Decimal,
         rate: PricingRateCardModel,
         discount_percent: int = 0,
-    ) -> Tuple[int, int]:
+    ) -> tuple[int, int]:
         """Calculate min/max cost in kopeks for unit range."""
         min_cost = self.calculate_cost_kopeks(min_units, rate, discount_percent)
         max_cost = self.calculate_cost_kopeks(max_units, rate, discount_percent)
