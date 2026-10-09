@@ -153,3 +153,12 @@ native pointer check; fix/test tracked in2026-10-09__bugfix__wallet-period-layou
 f21 is rejected and must not be published or released. Updated full source suite
 951/951,0fail/skip; check2289/108 and lint1020 with normalized additions0.
 New exact source, CI, native and44+44 browser acceptance remain pending.
+
+## Wallet API refusal regression
+
+d0e passed focused4/4 and Chromium44/44, but is rejected: delayed503
+moves the top-up preset58px between native down/up. The error branch
+removed amount slots. Retain those nodes and use one grid cell to reserve
+natural caption height for loading, success and retry. Component failures
+reproduced before; after6/6 focused source cases and952/952 frontend pass.
+New candidate needs focused6/full90/cold native3; release remains pending.

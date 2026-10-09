@@ -2,7 +2,7 @@
   "spec_id": "airis-sidebar-lifecycle-2026-10-09-001",
   "title": "Airis sidebar lifecycle cleanup",
   "generated": "2026-10-08T23:24:32.554348Z",
-  "last_updated": "2026-10-09T01:14:21.277809Z",
+  "last_updated": "2026-10-09T02:41:05.178427Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -139,8 +139,8 @@
       "total_tasks": 1,
       "completed_tasks": 0,
       "metadata": {
-        "started_at": "2026-10-09T01:14:21.277611Z",
-        "status_note": "Trace proves period totals move the preset between pointer down/up; preserve a shared layout while amounts are unknown."
+        "started_at": "2026-10-09T02:41:05.178135Z",
+        "status_note": "d0e rejected: delayed503 moves preset58px; retain amount nodes and reserve natural caption height for loading/success/error. Focused source6/6, frontend952/952; new browser6+90 and original cold-native3 pending."
       },
       "description": "Firefox acceptance reproduced a roughly 220px shift between pointer down and up; preserve the existing totals layout with unknown values until the actual response, and verify native pointer payment entry."
     }

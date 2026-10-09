@@ -104,38 +104,59 @@
 	<p class="mt-2 text-xs text-gray-600 dark:text-gray-300">
 		{$i18n.t('Dates include the full day in UTC')}
 	</p>
-	{#if error}<div class="mt-3 text-sm text-red-700 dark:text-red-300" role="alert">
-			{error}<button type="button" class="ml-3 min-h-11 underline" on:click={apply}
-				>{$i18n.t('Retry')}</button
+	<!-- Reserve the natural caption height in every state, including retry. -->
+	<div class="mt-3 grid">
+		<p
+			class="col-start-1 row-start-1 text-sm font-medium"
+			class:invisible={loading || error !== '' || !summary}
+			aria-hidden={loading || error !== '' || !summary}
+		>
+			{appliedStart} — {appliedEnd}
+		</p>
+		<p
+			class="col-start-1 row-start-1 text-sm font-medium"
+			class:invisible={!loading}
+			aria-hidden={!loading}
+		>
+			<span role={loading ? 'status' : undefined}>{$i18n.t('Loading period totals…')}</span>
+		</p>
+		<div
+			class="col-start-1 row-start-1 text-sm text-red-700 dark:text-red-300"
+			class:invisible={!error}
+			aria-hidden={!error}
+			role={error ? 'alert' : undefined}
+		>
+			{error || $i18n.t('Period totals could not be loaded')}<button
+				type="button"
+				class="ml-3 min-h-11 underline"
+				disabled={!error}
+				on:click={apply}>{$i18n.t('Retry')}</button
 			>
 		</div>
-	{:else if loading || summary}<p class="mt-3 text-sm font-medium">
-			{#if loading}<span role="status">{$i18n.t('Loading period totals…')}</span>
-			{:else}{appliedStart} — {appliedEnd}{/if}
-		</p>
-		<dl class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-			<div>
-				<dt class="text-sm text-gray-600 dark:text-gray-300">{$i18n.t('Credited top-ups')}</dt>
-				<dd class="mt-1 text-xl font-semibold tabular-nums">
-					{summary ? money(summary.topup_kopeks) : '—'}
-				</dd>
-			</div>
-			<div>
-				<dt class="text-sm text-gray-600 dark:text-gray-300">{$i18n.t('Charged for usage')}</dt>
-				<dd class="mt-1 text-xl font-semibold tabular-nums">
-					{summary ? money(summary.spent_kopeks) : '—'}
-				</dd>
-			</div>
-			<div>
-				<dt class="text-sm text-gray-600 dark:text-gray-300">
-					{$i18n.t('Confirmed payment refunds')}
-				</dt>
-				<dd class="mt-1 text-xl font-semibold tabular-nums">
-					{summary ? money(summary.refund_kopeks) : '—'}
-				</dd>
-			</div>
-		</dl>
-		<p class="mt-3 text-xs text-gray-600 dark:text-gray-300">
-			{$i18n.t('Refund confirmation and its reflection in the wallet are checked separately')}
-		</p>{/if}
+	</div>
+	<dl class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+		<div>
+			<dt class="text-sm text-gray-600 dark:text-gray-300">{$i18n.t('Credited top-ups')}</dt>
+			<dd class="mt-1 text-xl font-semibold tabular-nums">
+				{summary && !error ? money(summary.topup_kopeks) : '—'}
+			</dd>
+		</div>
+		<div>
+			<dt class="text-sm text-gray-600 dark:text-gray-300">{$i18n.t('Charged for usage')}</dt>
+			<dd class="mt-1 text-xl font-semibold tabular-nums">
+				{summary && !error ? money(summary.spent_kopeks) : '—'}
+			</dd>
+		</div>
+		<div>
+			<dt class="text-sm text-gray-600 dark:text-gray-300">
+				{$i18n.t('Confirmed payment refunds')}
+			</dt>
+			<dd class="mt-1 text-xl font-semibold tabular-nums">
+				{summary && !error ? money(summary.refund_kopeks) : '—'}
+			</dd>
+		</div>
+	</dl>
+	<p class="mt-3 text-xs text-gray-600 dark:text-gray-300">
+		{$i18n.t('Refund confirmation and its reflection in the wallet are checked separately')}
+	</p>
 </section>

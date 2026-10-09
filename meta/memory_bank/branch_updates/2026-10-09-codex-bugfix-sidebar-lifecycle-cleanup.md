@@ -31,3 +31,10 @@
   - Started: 2026-10-09
   - Summary: Native Firefox check reproduces236px shift on f21. Shared loading/result markup preserves3slots; component fails before and passes after.
   - Tests:951/951 frontend; check2289/108 and ESLint1020 unchanged. New clean candidate44+44 browser checks/release pending. f21 rejected.
+
+- [ ] [BUG][BILLING] Preserve top-up controls when period API refuses
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09__bugfix__wallet-period-layout.md
+  - Owner: Codex
+  - Started: 2026-10-09
+  - Summary: d0e rejected by native58px error transition. Keep3amount nodes and reserve natural caption height with CSS grid; old totals are hidden after invalid dates.
+  - Tests:6/6 focused source and952/952 frontend; scoped format/lint passed. Check2289/108 and ESLint1020 unchanged; global gates open. New candidate focused6/full90/cold3 and release pending.
