@@ -69,6 +69,7 @@ const setup = (history = graph()) => {
 		history,
 		structuredClone,
 		pendingCopyIds: new Map<string, string>(),
+		pendingSendIds: new Map<string, { id: string; draft: string }>(),
 		savingMessageIds: new Set<string>(),
 		messages: [] as ChatHistoryMessage[],
 		messagesCount: 8 as number | null,

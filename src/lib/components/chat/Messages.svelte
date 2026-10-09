@@ -39,7 +39,10 @@
 
 	export let setInputText: (text: string) => void = () => {};
 
-	export let sendMessage: (history: ChatHistory, parentId: string) => void | Promise<void>;
+	export let sendMessage: (
+		history: ChatHistory,
+		parentId: string
+	) => boolean | void | Promise<boolean | void>;
 	export let continueResponse: () => void | Promise<void>;
 	export let regenerateResponse: (
 		message: ChatHistoryMessage,
@@ -349,6 +352,7 @@
 
 	// ponytail: retry IDs live with this component; persist drafts if retries must survive reload.
 	const pendingCopyIds = new Map<string, string>();
+	const pendingSendIds = new Map<string, { id: string; draft: string }>();
 	const savingMessageIds = new Set<string>();
 
 	const editMessage = async (
@@ -372,12 +376,15 @@
 				}
 				// New user message
 				let userPrompt = content!;
-				let userMessageId = uuidv4();
+				const draft = JSON.stringify({ content, files, models: selectedModels });
+				const pending = pendingSendIds.get(key);
+				const userMessageId = pending?.draft === draft ? pending.id : uuidv4();
+				pendingSendIds.set(key, { id: userMessageId, draft });
 
 				let userMessage = {
 					id: userMessageId,
 					parentId: message.parentId,
-					childrenIds: [],
+					childrenIds: history.messages[userMessageId]?.childrenIds ?? [],
 					role: 'user',
 					content: userPrompt,
 					...(files && { files: files }),
@@ -387,7 +394,10 @@
 
 				let messageParentId = message.parentId;
 
-				if (messageParentId !== null) {
+				if (
+					messageParentId !== null &&
+					!history.messages[messageParentId].childrenIds.includes(userMessageId)
+				) {
 					history.messages[messageParentId].childrenIds = [
 						...history.messages[messageParentId].childrenIds,
 						userMessageId
@@ -398,7 +408,10 @@
 				history.currentId = userMessageId;
 
 				await tick();
-				await sendMessage(history, userMessageId);
+				if (history !== sourceHistory || chatId !== sourceChatId) return false;
+				const accepted = await sendMessage(history, userMessageId);
+				if (accepted !== true) return false;
+				pendingSendIds.delete(key);
 				return true;
 			}
 
