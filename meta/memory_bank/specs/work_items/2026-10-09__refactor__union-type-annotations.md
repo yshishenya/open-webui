@@ -17,7 +17,7 @@ Remove132 safe UP007 diagnostics in49 backend files.33 files are existing migrat
 - [x] Representative Union TypeAdapter validation/serialization, tool coercion and native Google declarations agree, no external requests.
 - [x] Full backend with four fresh PostgreSQL databases and frontend pass; existing type/lint debt measured independently.
 - [x] Primary21 files, native audio, frontend/dependency/config boundaries preserved; temporary sources and fixtures removed after acceptance.
-- [ ] Source committed/pushed; pre-test453 hashes equal final source, SDD valid without warnings.
+- [x] Source committed/pushed; pre-test453 hashes equal final source, SDD valid without warnings.
 - [ ] General quality, CI, combined merge/source acceptance and production completed.
 
 ## Upstream impact
@@ -43,3 +43,5 @@ Production05:14:24UTC:c0ea,healthy,restarts0;image/ENV/config/mounts/neighbors e
 The initial private migration capture assumed the wrong alembic.ini location and was rejected. The accepted capture configures the actual existing open_webui/migrations directory explicitly. No application correction was needed.
 
 CI was read only through the required Code Review connector with the selected yshishenya account. PR367 exact34b6 still yields checks[]/jobs[] and only skipped CodeRabbit; source workflows are present but do not prove a live run. Cause unknown. General quality, CI, review/merge, combined-source tests and deployment remain independent open gates; no new PR or numbered plan closure is claimed.
+
+Source commit: `cb7b393c949beaeaf01d10778224ef82d28346fb`. Remote branch matched; final documentation must preserve all453 source hashes. SDD2/3, validation0errors/0warnings. All49 changed-file comment token sequences match the dependency. General quality, CI and release remain pending.
