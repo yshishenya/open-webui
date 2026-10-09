@@ -2,7 +2,7 @@
   "spec_id": "airis-nullable-response-models-2026-10-09-0742",
   "title": "airis-nullable-response-models",
   "generated": "2026-10-09T04:42:45.424288Z",
-  "last_updated": "2026-10-09T04:51:30.791850Z",
+  "last_updated": "2026-10-09T04:52:11.481873Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -13,7 +13,8 @@
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__nullable-response-models.md",
     "status": "active",
     "activated_date": "2026-10-09T04:43:40.566321Z",
-    "progress_percentage": 33
+    "progress_percentage": 66,
+    "current_phase": "phase-2"
   },
   "hierarchy": {
     "spec-root": {
@@ -26,7 +27,7 @@
         "phase-2"
       ],
       "total_tasks": 3,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {}
     },
     "phase-1": {
@@ -48,14 +49,14 @@
     "phase-2": {
       "type": "phase",
       "title": "Checks and source delivery",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "spec-root",
       "children": [
         "task-2-1",
         "task-2-2"
       ],
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {}
     },
     "task-1-1": {
@@ -81,7 +82,7 @@
     "task-2-1": {
       "type": "task",
       "title": "Run full checks and commit/push source",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -90,9 +91,12 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "file_path": "backend/open_webui/test"
+        "file_path": "backend/open_webui/test",
+        "completed_at": "2026-10-09T04:52:11.480118Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-09T04:52:11.481349Z"
       }
     },
     "task-2-2": {
@@ -131,6 +135,15 @@
       "content": "All child tasks in phase phase-1 have been completed.",
       "metadata": {},
       "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-09T04:52:11.481339Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run full checks and commit/push source",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
     }
   ]
 }

@@ -17,7 +17,7 @@
 - [x] All 28 changed actual FastAPI response fields serialize null identically; valid and invalid response cases preserve results/errors.
 - [x] Full backend tests pass with four fresh disposable PostgreSQL databases and zero skips; full frontend tests pass, type/lint counts do not increase; Black accepts all source.
 - [x] Preserve frontend, dependencies, native audio verifier, protected primary changes and production.
-- [ ] Record evidence, commit and push source.
+- [x] Record evidence, commit and push source.
 - [ ] Independent full quality/PR/CI/release remains open until actually accepted.
 
 ## Scope / upstream impact
@@ -32,7 +32,6 @@ Use the existing Python 3.11/Pydantic/FastAPI runtime and Docker Compose source 
 
 Evidence: /Users/yshishenya/.codex/private-artifacts/airis-nullable-response-models-20261009
 
-
 ## Accepted evidence
 
 - Six changed routers, 28 declarations; all 453 canonical source trees match. Ruff 1624 -> 1596, 28 removed, zero added; UP045 zero. Black accepts all 453 files.
@@ -41,3 +40,5 @@ Evidence: /Users/yshishenya/.codex/private-artifacts/airis-nullable-response-mod
 - Changed-file guard rejected removal of 18 existing unused Optional imports outside the six routers; all restored. Import whitespace guard caught three newly introduced blank-line diagnostics; fixed. Accepted scope preserves every neighboring import and handler.
 - Temporary source directory and all four tmpfs databases removed; no persistent volume use/removal. Native audio verifier and 21 protected primary files preserved. Production 04:49:32 UTC: c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908, healthy, restarts 0; image/environment/configs/mounts/neighbors unchanged. No deployment, SMTP or financial action.
 - PR #367 exact head 34b6e676fe9998e4da80de36a485f66c968c3753 still exposes zero checks through the required connector; reason unestablished. Full quality, PR/CI and release are not accepted.
+
+Source commit `9ecf29a1159daa063685d8cd94388322a228a5f8` pushed to `codex/refactor/nullable-response-models`. SDD 2/3; independent general quality/PR/release remains open. Subsequent documentation does not change application source.
