@@ -5,6 +5,7 @@
 
 	import { models, MODEL_DOWNLOAD_POOL, config, settings } from '$lib/stores';
 	import { splitStream } from '$lib/utils';
+	import type { ModelDownload } from '$lib/utils/airis/model-types';
 
 	import {
 		createModel,
@@ -166,9 +167,8 @@
 		updateProgress = null;
 	};
 
-	const pullModelHandler = async () => {
+	const pullModelHandler = async (): Promise<void> => {
 		const sanitizedModelTag = modelTag.trim().replace(/^ollama\s+(run|pull)\s+/, '');
-		console.log($MODEL_DOWNLOAD_POOL);
 		if ($MODEL_DOWNLOAD_POOL[sanitizedModelTag]) {
 			toast.error(
 				$i18n.t(`Model '{{modelTag}}' is already in queue for downloading.`, {
@@ -187,7 +187,9 @@
 		modelLoading = true;
 		const [res, controller] = await pullModel(localStorage.token, sanitizedModelTag, urlIdx).catch(
 			(error) => {
-				if (error.name !== 'AbortError') {
+				if (
+					!(error && typeof error === 'object' && 'name' in error && error.name === 'AbortError')
+				) {
 					toast.error(`${error}`);
 				}
 				return [null, null] as const;
@@ -202,98 +204,91 @@
 				.pipeThrough(splitStream('\n'))
 				.getReader();
 
-			MODEL_DOWNLOAD_POOL.set({
-				...$MODEL_DOWNLOAD_POOL,
-				[sanitizedModelTag]: {
-					...$MODEL_DOWNLOAD_POOL[sanitizedModelTag],
-					abortController: controller,
-					reader,
-					done: false
-				}
-			});
+			const download: ModelDownload = {
+				urlIdx: String(urlIdx ?? 0),
+				abortController: controller,
+				reader,
+				done: false,
+				cancelled: false
+			};
+			MODEL_DOWNLOAD_POOL.set({ ...$MODEL_DOWNLOAD_POOL, [sanitizedModelTag]: download });
 
-			for (;;) {
-				try {
-					const { value, done } = await reader.read();
-					if (done) break;
+			try {
+				for (;;) {
+					try {
+						const { value, done } = await reader.read();
+						if (download.cancelled || $MODEL_DOWNLOAD_POOL[sanitizedModelTag] !== download) return;
+						if (done) break;
 
-					let lines = value.split('\n');
+						const lines = value.split('\n');
 
-					for (const line of lines) {
-						if (line !== '') {
-							let data = JSON.parse(line);
-							console.log(data);
-							if (data.error) {
-								throw data.error;
-							}
-							if (data.detail) {
-								throw data.detail;
-							}
+						for (const line of lines) {
+							if (line !== '') {
+								const data = JSON.parse(line);
+								if (data.error) {
+									throw data.error;
+								}
+								if (data.detail) {
+									throw data.detail;
+								}
 
-							if (data.status) {
-								if (data.digest) {
-									let downloadProgress = 0;
-									if (data.completed) {
-										downloadProgress = Math.round((data.completed / data.total) * 1000) / 10;
+								if (data.status) {
+									if (data.digest) {
+										let downloadProgress = 0;
+										if (data.completed) {
+											downloadProgress = Math.round((data.completed / data.total) * 1000) / 10;
+										} else {
+											downloadProgress = 100;
+										}
+
+										download.pullProgress = downloadProgress;
+										download.digest = data.digest;
+										MODEL_DOWNLOAD_POOL.set({ ...$MODEL_DOWNLOAD_POOL });
 									} else {
-										downloadProgress = 100;
+										download.done = data.status === 'success';
+										MODEL_DOWNLOAD_POOL.set({ ...$MODEL_DOWNLOAD_POOL });
 									}
-
-									MODEL_DOWNLOAD_POOL.set({
-										...$MODEL_DOWNLOAD_POOL,
-										[sanitizedModelTag]: {
-											...$MODEL_DOWNLOAD_POOL[sanitizedModelTag],
-											pullProgress: downloadProgress,
-											digest: data.digest
-										}
-									});
-								} else {
-									MODEL_DOWNLOAD_POOL.set({
-										...$MODEL_DOWNLOAD_POOL,
-										[sanitizedModelTag]: {
-											...$MODEL_DOWNLOAD_POOL[sanitizedModelTag],
-											done: data.status === 'success'
-										}
-									});
 								}
 							}
 						}
-					}
-				} catch (err) {
-					if (err.name !== 'AbortError') {
-						console.error(err);
-						toast.error(`${typeof err === 'string' ? err : err.message}`);
-						// opts.callback({ success: false, error, modelName: opts.modelName });
-					} else {
+					} catch (error) {
+						if (download.cancelled || $MODEL_DOWNLOAD_POOL[sanitizedModelTag] !== download) return;
+						toast.error(`${error}`);
 						break;
 					}
 				}
-			}
 
-			console.log($MODEL_DOWNLOAD_POOL[sanitizedModelTag]);
+				if (download.done) {
+					toast.success(
+						$i18n.t(`Model '{{modelName}}' has been successfully downloaded.`, {
+							modelName: sanitizedModelTag
+						})
+					);
 
-			if ($MODEL_DOWNLOAD_POOL[sanitizedModelTag]?.done) {
-				toast.success(
-					$i18n.t(`Model '{{modelName}}' has been successfully downloaded.`, {
-						modelName: sanitizedModelTag
-					})
-				);
-
-				models.set(
-					await getModels(
+					const refreshedModels = await getModels(
 						localStorage.token,
 						$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null)
-					)
-				);
-			} else {
-				toast.error($i18n.t('Download canceled'));
+					);
+					if (!download.cancelled && $MODEL_DOWNLOAD_POOL[sanitizedModelTag] === download) {
+						models.set(refreshedModels);
+					}
+				} else {
+					toast.error($i18n.t('Download canceled'));
+				}
+			} catch (error) {
+				toast.error(`${error}`);
+			} finally {
+				if (!download.cancelled)
+					await reader.cancel().catch((error: unknown) => toast.error(`${error}`));
+				reader.releaseLock();
+				// Cancellation owns this slot until its delete request settles.
+				if (!download.cancelled && $MODEL_DOWNLOAD_POOL[sanitizedModelTag] === download) {
+					delete $MODEL_DOWNLOAD_POOL[sanitizedModelTag];
+					MODEL_DOWNLOAD_POOL.set({ ...$MODEL_DOWNLOAD_POOL });
+				}
+				modelTag = '';
+				modelLoading = false;
 			}
-
-			delete $MODEL_DOWNLOAD_POOL[sanitizedModelTag];
-
-			MODEL_DOWNLOAD_POOL.set({
-				...$MODEL_DOWNLOAD_POOL
-			});
 		}
 
 		modelTag = '';
@@ -472,19 +467,23 @@
 		}
 	};
 
-	const cancelModelPullHandler = async (model: string) => {
-		const { reader, abortController } = $MODEL_DOWNLOAD_POOL[model];
-		if (abortController) {
-			abortController.abort();
-		}
-		if (reader) {
-			await reader.cancel();
-			delete $MODEL_DOWNLOAD_POOL[model];
-			MODEL_DOWNLOAD_POOL.set({
-				...$MODEL_DOWNLOAD_POOL
-			});
-			await deleteModel(localStorage.token, model);
-			toast.success($i18n.t('{{model}} download has been canceled', { model: model }));
+	const cancelModelPullHandler = async (model: string): Promise<void> => {
+		const download = $MODEL_DOWNLOAD_POOL[model];
+		if (!download || download.cancelled) return;
+		download.cancelled = true;
+		MODEL_DOWNLOAD_POOL.set({ ...$MODEL_DOWNLOAD_POOL });
+		download.abortController.abort();
+		try {
+			await download.reader.cancel();
+			await deleteModel(localStorage.token, model, download.urlIdx);
+			toast.success($i18n.t('{{model}} download has been canceled', { model }));
+		} catch (error) {
+			toast.error(`${error}`);
+		} finally {
+			if ($MODEL_DOWNLOAD_POOL[model] === download) {
+				delete $MODEL_DOWNLOAD_POOL[model];
+				MODEL_DOWNLOAD_POOL.set({ ...$MODEL_DOWNLOAD_POOL });
+			}
 		}
 	};
 

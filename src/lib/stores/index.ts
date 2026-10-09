@@ -3,7 +3,7 @@ import type { ChannelListItem } from '$lib/utils/airis/channel-types';
 import type { KnowledgeListItem } from '$lib/utils/airis/knowledge-types';
 import { APP_NAME } from '$lib/constants';
 import { type Writable, writable } from 'svelte/store';
-import type { Model } from '$lib/utils/airis/model-types';
+import type { Model, ModelDownload } from '$lib/utils/airis/model-types';
 export type { Model, OpenAIModel, OllamaModel } from '$lib/utils/airis/model-types';
 import type { Banner } from '$lib/types';
 import type { Socket } from 'socket.io-client';
@@ -45,7 +45,7 @@ export const appInfo = writable(null);
 export const appData = writable(null);
 
 // Frontend
-export const MODEL_DOWNLOAD_POOL = writable({});
+export const MODEL_DOWNLOAD_POOL = writable<Record<string, ModelDownload>>({});
 
 export const mobile = writable(false);
 
