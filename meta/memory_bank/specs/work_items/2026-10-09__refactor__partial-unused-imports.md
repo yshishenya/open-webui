@@ -16,7 +16,7 @@ Review123 unused aliases across53 files. Every import declaration retains used n
 - [x] Review lazy YoutubeLoader source/module effects; exercise actual project YoutubeLoader with mocked transcript transport and compare outcomes.
 - [x] No new normalized Ruff diagnostic; Black453 passes; full backend1017/frontend952 pass and frontend check/lint do not increase.
 - [x] Capture pre-test source hashes, preserve all453backend/1061frontend afterward, protected primary21 files, production and dependency/config/nativeaudio boundaries.
-- [ ] Remove disposable baseline source/four PostgreSQL tmpfs databases; commit/push and prove exact final source/remote; update SDD focused tasks.
+- [x] Remove disposable baseline source/four PostgreSQL tmpfs databases; commit/push and prove exact final source/remote; update SDD focused tasks.
 - [ ] General quality0, clean image, combined browser/native/runtime/CI/review/merge/deploy/live accepted.
 
 ## Upstream impact and rollback
@@ -40,3 +40,5 @@ Full Docker Compose backend1017 passed,0failures/errors/skips,107.841sec XML dur
 Fresh queue/preferences/success/reporting databases used tmpfs and were removed with the container. Temporary baseline source removed after checking all453 original hashes; permanent volumes deleted0.21 protected primary files preserved. Dependencies/config/nativeaudio/frontend unchanged. Production2026-10-09T05:59:39.745419UTC:c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908,healthy,restarts0; image/environment/config/mounts/neighbors preserved. Deploy/SMTP/payment changes0.
 
 All176 source SDD specs valid; initial generated0850 suffix normalized to850 and all tasks/file paths/cross-links populated before implementation. Current specification remains active; general quality/image/browser/native/CI/review/merge/release task is not complete. No new PR or CI/merge/deploy acceptance; previous PR367 observations remain tied to34b6. Overall plan198/244, new numbered closures0. Remaining144 F401 candidates in68 files are recorded for analysis, not approved for removal.
+
+Source7861af74bfb2b27e73a3403a8b14f72eae9eb3ac pushed and remote SHA verified. SDD2/3 focused tasks completed; general quality/release task pending. Final documentation-only commit preserves the full tested application snapshot.
