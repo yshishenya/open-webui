@@ -135,7 +135,7 @@ class ElasticsearchClient(VectorDBBase):
             yield items[i : min(i + batch_size, len(items))]
 
     # Status: works
-    def has_collection(self, collection_name) -> bool:
+    def has_collection(self, collection_name: str) -> bool | None:
         query_body = {'query': {'bool': {'filter': []}}}
         query_body['query']['bool']['filter'].append({'term': {'collection': collection_name}})
 
@@ -143,7 +143,7 @@ class ElasticsearchClient(VectorDBBase):
             result = self.client.count(index=f'{self.index_prefix}*', body=query_body)
 
             return result.body['count'] > 0
-        except Exception as e:
+        except Exception:
             return None
 
     def delete_collection(self, collection_name: str):

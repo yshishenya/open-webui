@@ -1,0 +1,114 @@
+{
+	"spec_id": "airis-unused-binding-types-2026-10-09-954",
+	"title": "airis-unused-binding-types",
+	"generated": "2026-10-09T06:54:12.946913Z",
+	"last_updated": "2026-10-09T07:05:25.485378Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__unused-binding-types.md",
+		"status": "active",
+		"activated_date": "2026-10-09T06:55:17.342778Z",
+		"progress_percentage": 50
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-unused-binding-types",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 1,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Annotate18 functions and remove22 unused bindings without behavioral changes",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T07:05:25.483234Z",
+				"journaled_at": "2026-10-09T07:05:25.485352Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify runtime/API/full tests, cleanup and push accepted source",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Annotate18 reviewed functions and remove22 unused bindings",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "backend/open_webui",
+				"completed_at": "2026-10-09T07:05:25.482992Z",
+				"needs_journaling": false,
+				"status_note": "18 reviewed signatures/callers,453 canonical runtime AST/comments preserved;22 removals/5 retained evaluations;API561 and614 dependency contracts identical;Ruff712\u2192690,added0/F4010/F8410. General acceptance pending.",
+				"journaled_at": "2026-10-09T07:05:25.484109Z"
+			},
+			"description": "Preserve actual results, dependency/schema inference, runtime AST/comments and5 evaluated expressions."
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify contracts, full suites, isolated cleanup and source delivery",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"file_path": "backend/open_webui"
+			},
+			"description": "Accept focused source only; preserve general quality/release gates."
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T07:05:25.484101Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Annotate18 reviewed functions and remove22 unused bindings",
+			"author": "Codex",
+			"content": "Task task-1-1 marked as completed. \nNote: 18 reviewed signatures/callers,453 canonical runtime AST/comments preserved;22 removals/5 retained evaluations;API561 and614 dependency contracts identical;Ruff712\u2192690,added0/F4010/F8410. General acceptance pending.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T07:05:25.485347Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Annotate18 functions and remove22 unused bindings without behavioral changes",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}

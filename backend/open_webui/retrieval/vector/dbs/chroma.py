@@ -169,8 +169,8 @@ class ChromaClient(VectorDBBase):
         self,
         collection_name: str,
         ids: list[str] | None = None,
-        filter: dict | None = None,
-    ):
+        filter: dict[str, object] | None = None,
+    ) -> None:
         # Delete the items from the collection based on the ids.
         try:
             collection = self.client.get_collection(name=collection_name)
@@ -179,7 +179,7 @@ class ChromaClient(VectorDBBase):
                     collection.delete(ids=ids)
                 elif filter:
                     collection.delete(where=filter)
-        except Exception as e:
+        except Exception:
             # If collection doesn't exist, that's fine - nothing to delete
             log.debug(f'Attempted to delete from non-existent collection {collection_name}. Ignoring.')
             pass

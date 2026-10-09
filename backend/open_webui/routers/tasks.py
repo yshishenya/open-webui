@@ -1,7 +1,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from open_webui.config import (
     DEFAULT_AUTOCOMPLETE_GENERATION_PROMPT_TEMPLATE,
     DEFAULT_EMOJI_GENERATION_PROMPT_TEMPLATE,
@@ -14,6 +14,7 @@ from open_webui.config import (
 )
 from open_webui.constants import ERROR_MESSAGES, TASKS
 from open_webui.models.config import Config
+from open_webui.models.users import UserModel
 from open_webui.routers.pipelines import process_pipeline_inlet_filter
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.chat import generate_chat_completion
@@ -104,8 +105,10 @@ async def update_task_config(request: Request, form_data: TaskConfigForm, user=D
     return await get_config_values(TASK_CONFIG_KEYS)
 
 
-@router.post('/title/completions')
-async def generate_title(request: Request, form_data: dict, user=Depends(get_verified_user)):
+@router.post('/title/completions', response_model=None)
+async def generate_title(
+    request: Request, form_data: dict[str, object], user: UserModel = Depends(get_verified_user)
+) -> dict[str, object] | Response:
     if not await Config.get('task.title.enable'):
         return JSONResponse(
             status_code=status.HTTP_200_OK,
@@ -180,7 +183,7 @@ async def generate_title(request: Request, form_data: dict, user=Depends(get_ver
 
     try:
         return await generate_chat_completion(request, form_data=payload, user=user)
-    except Exception as e:
+    except Exception:
         log.error('Exception occurred', exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -188,8 +191,10 @@ async def generate_title(request: Request, form_data: dict, user=Depends(get_ver
         )
 
 
-@router.post('/follow_up/completions')
-async def generate_follow_ups(request: Request, form_data: dict, user=Depends(get_verified_user)):
+@router.post('/follow_up/completions', response_model=None)
+async def generate_follow_ups(
+    request: Request, form_data: dict[str, object], user: UserModel = Depends(get_verified_user)
+) -> dict[str, object] | Response:
     if not await Config.get('task.follow_up.enable'):
         return JSONResponse(
             status_code=status.HTTP_200_OK,
@@ -250,7 +255,7 @@ async def generate_follow_ups(request: Request, form_data: dict, user=Depends(ge
 
     try:
         return await generate_chat_completion(request, form_data=payload, user=user)
-    except Exception as e:
+    except Exception:
         log.error('Exception occurred', exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -328,8 +333,10 @@ async def generate_chat_tags(request: Request, form_data: dict, user=Depends(get
         )
 
 
-@router.post('/image_prompt/completions')
-async def generate_image_prompt(request: Request, form_data: dict, user=Depends(get_verified_user)):
+@router.post('/image_prompt/completions', response_model=None)
+async def generate_image_prompt(
+    request: Request, form_data: dict[str, object], user: UserModel = Depends(get_verified_user)
+) -> dict[str, object] | Response:
     if getattr(request.state, 'direct', False) and hasattr(request.state, 'model'):
         models = {
             **request.app.state.MODELS,
@@ -384,7 +391,7 @@ async def generate_image_prompt(request: Request, form_data: dict, user=Depends(
 
     try:
         return await generate_chat_completion(request, form_data=payload, user=user)
-    except Exception as e:
+    except Exception:
         log.error('Exception occurred', exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,

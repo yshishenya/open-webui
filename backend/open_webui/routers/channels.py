@@ -772,9 +772,9 @@ async def get_channel_messages(
     id: str,
     skip: int = 0,
     limit: int = 50,
-    user=Depends(get_verified_user),
+    user: UserModel = Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
-):
+) -> list[MessageUserResponse]:
     await check_channels_access(request, user)
     channel = await Channels.get_channel_by_id(id, db=db)
     if not channel:
@@ -787,7 +787,7 @@ async def get_channel_messages(
         if user.role != 'admin' and not await channel_has_access(user.id, channel, permission='read', db=db):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ERROR_MESSAGES.DEFAULT())
 
-        channel_member = await Channels.join_channel(id, user.id, db=db)  # Ensure user is a member of the channel
+        await Channels.join_channel(id, user.id, db=db)  # Ensure user is a member of the channel
 
     message_list = await Messages.get_messages_by_channel_id(id, skip, limit, db=db)
 
@@ -1795,7 +1795,7 @@ async def delete_message_by_id(
 
 
 @router.get('/webhooks/{webhook_id}/profile/image')
-async def get_webhook_profile_image(webhook_id: str, user=Depends(get_verified_user)):
+async def get_webhook_profile_image(webhook_id: str, user: UserModel = Depends(get_verified_user)) -> Response:
     """Get webhook profile image by webhook ID."""
     webhook = await Channels.get_webhook_by_id(webhook_id)
     if not webhook:
@@ -1821,7 +1821,7 @@ async def get_webhook_profile_image(webhook_id: str, user=Depends(get_verified_u
                     media_type=media_type,
                     headers={'Content-Disposition': 'inline'},
                 )
-            except Exception as e:
+            except Exception:
                 pass
 
     # Return default favicon if no profile image

@@ -1358,7 +1358,9 @@ async def chat_completion_tools_handler(
     return body, {'sources': sources}
 
 
-async def chat_web_search_handler(request: Request, form_data: dict, extra_params: dict, user):
+async def chat_web_search_handler(
+    request: Request, form_data: dict[str, object], extra_params: dict[str, object], user: UserModel
+) -> dict[str, object]:
     event_emitter = extra_params['__event_emitter__']
     await event_emitter(
         {
@@ -1412,7 +1414,7 @@ async def chat_web_search_handler(request: Request, form_data: dict, extra_param
             response = response[bracket_start:bracket_end]
             queries = JSONCodec.loads(response)
             queries = queries.get('queries', [])
-        except Exception as e:
+        except Exception:
             queries = [response]
 
         if ENABLE_QUERIES_CACHE:
@@ -1625,7 +1627,9 @@ async def add_file_context(messages: list, chat_id: str, user) -> list:
     return messages
 
 
-async def chat_image_generation_handler(request: Request, form_data: dict, extra_params: dict, user):
+async def chat_image_generation_handler(
+    request: Request, form_data: dict[str, object], extra_params: dict[str, object], user: UserModel
+) -> dict[str, object]:
     metadata = extra_params.get('__metadata__', {})
     chat_id = metadata.get('chat_id', None)
     __event_emitter__ = extra_params.get('__event_emitter__', None)
@@ -1759,7 +1763,7 @@ async def chat_image_generation_handler(request: Request, form_data: dict, extra
                     response = response[bracket_start:bracket_end]
                     response = JSONCodec.loads(response)
                     prompt = response.get('prompt', [])
-                except Exception as e:
+                except Exception:
                     prompt = user_message
 
             except Exception as e:
@@ -2251,7 +2255,13 @@ async def connect_mcp_server(
     return client, tool_specs
 
 
-async def process_chat_payload(request, form_data, user, metadata, model):
+async def process_chat_payload(
+    request: Request,
+    form_data: dict[str, object],
+    user: UserModel,
+    metadata: dict[str, object],
+    model: dict[str, object],
+) -> tuple[dict[str, object], dict[str, object], list[dict[str, object]]]:
     # Ensure chat_id is always a string — external API clients may omit it.
     if not isinstance(metadata.get('chat_id'), str):
         metadata['chat_id'] = ''
@@ -2508,7 +2518,7 @@ async def process_chat_payload(request, form_data, user, metadata, model):
         files.extend(knowledge_files)
         form_data['files'] = files
 
-    variables = form_data.pop('variables', None)
+    form_data.pop('variables', None)
     payload_tools = form_data.get('tools', None)  # snapshot before filters
 
     # Process the form_data through the pipeline
@@ -3212,7 +3222,7 @@ async def get_system_oauth_token(request, user):
     return oauth_token
 
 
-async def background_tasks_handler(ctx):
+async def background_tasks_handler(ctx: dict[str, object]) -> None:
     request = ctx['request']
     form_data = ctx['form_data']
     user = ctx['user']
@@ -3316,7 +3326,7 @@ async def background_tasks_handler(ctx):
                                 touch=False,
                             )
 
-                    except Exception as e:
+                    except Exception:
                         pass
 
             if is_saved_chat_id(metadata.get('chat_id')):  # Only update titles and tags for saved chats
@@ -3355,7 +3365,7 @@ async def background_tasks_handler(ctx):
 
                             try:
                                 title = JSONCodec.loads(title_string).get('title', user_message)
-                            except Exception as e:
+                            except Exception:
                                 title = ''
 
                             if not title:
@@ -3415,7 +3425,7 @@ async def background_tasks_handler(ctx):
                                     'data': tags,
                                 }
                             )
-                        except Exception as e:
+                        except Exception:
                             pass
 
         if messages:

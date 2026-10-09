@@ -33,7 +33,7 @@ from open_webui.env import (
 )
 from open_webui.models.auths import Auths
 from open_webui.models.config import Config
-from open_webui.models.users import Users
+from open_webui.models.users import UserModel, Users
 from open_webui.utils.access_control import has_permission
 from pytz import UTC
 
@@ -315,12 +315,12 @@ async def get_current_user(
     request: Request,
     response: Response,
     background_tasks: BackgroundTasks,
-    auth_token: HTTPAuthorizationCredentials = Depends(bearer_security),
+    auth_token: HTTPAuthorizationCredentials | None = Depends(bearer_security),
     # NOTE: We intentionally do NOT use Depends(get_session) here.
     # Sessions are managed internally with short-lived context managers.
     # This ensures connections are released immediately after auth queries,
     # not held for the entire request duration (e.g., during 30+ second LLM calls).
-):
+) -> UserModel:
     token = None
 
     if auth_token is not None:
@@ -359,7 +359,7 @@ async def get_current_user(
     try:
         try:
             data = decode_token(token)
-        except Exception as e:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='Invalid token',

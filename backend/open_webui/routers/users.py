@@ -803,7 +803,7 @@ async def get_user_oauth_sessions_by_id(
 
 
 @router.get('/{user_id}/profile/image')
-async def get_user_profile_image_by_id(user_id: str, user=Depends(get_verified_user)):
+async def get_user_profile_image_by_id(user_id: str, user: UserModel = Depends(get_verified_user)) -> Response:
     user = await Users.get_user_by_id(user_id)
     if user:
         if user.profile_image_url:
@@ -834,7 +834,7 @@ async def get_user_profile_image_by_id(user_id: str, user=Depends(get_verified_u
                             'X-Content-Type-Options': 'nosniff',
                         },
                     )
-                except Exception as e:
+                except Exception:
                     pass
         return FileResponse(f'{STATIC_DIR}/user.png')
     else:

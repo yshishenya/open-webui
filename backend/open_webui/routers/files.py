@@ -21,7 +21,7 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from open_webui.config import BYPASS_ADMIN_ACCESS_CONTROL, STORAGE_LOCAL_CACHE, STORAGE_PROVIDER, UPLOAD_DIR
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.events import EVENTS, publish_event
@@ -37,7 +37,7 @@ from open_webui.models.files import (
     Files,
 )
 from open_webui.models.knowledge import Knowledges
-from open_webui.models.users import Users
+from open_webui.models.users import UserModel, Users
 from open_webui.retrieval.vector.async_client import ASYNC_VECTOR_DB_CLIENT
 from open_webui.routers.audio import transcribe
 from open_webui.routers.retrieval import ProcessFileForm, process_file
@@ -891,8 +891,8 @@ async def get_html_file_content_by_id(
 
 @router.get('/{id}/content/{file_name}')
 async def get_file_content_by_id(
-    id: str, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)
-):
+    id: str, user: UserModel = Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)
+) -> Response:
     file = await Files.get_file_by_id(id, db=db)
 
     if not file:
@@ -924,7 +924,7 @@ async def get_file_content_by_id(
         else:
             # File path doesn’t exist, return the content as .txt if possible
             file_content = file.data.get('content', '')
-            file_name = file.filename
+            file.filename
 
             # Create a generator that encodes the file content
             def generator():

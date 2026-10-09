@@ -1,0 +1,5 @@
+- [ ] **[REFACTOR]** Annotate remaining unused-binding functions
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09**refactor**unused-binding-types.md
+  - Owner: Codex
+  - Started: 2026-10-09
+  - Summary: Review18 functions/callers, preserve runtime/API and remove22 unused bindings. Integration/release pending.

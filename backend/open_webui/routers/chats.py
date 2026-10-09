@@ -31,6 +31,7 @@ from open_webui.models.chats import (
 from open_webui.models.folders import Folders
 from open_webui.models.shared_chats import SharedChatResponse, SharedChats
 from open_webui.models.tags import TagModel, Tags
+from open_webui.models.users import UserModel
 from open_webui.socket.main import get_event_emitter
 from open_webui.tasks import has_active_tasks, stop_item_tasks
 from open_webui.utils.access_control import filter_allowed_access_grants, has_permission
@@ -277,9 +278,9 @@ async def mark_chats_read_by_user_id(
 async def get_session_user_chat_usage_stats(
     items_per_page: int | None = 50,
     page: int | None = 1,
-    user=Depends(get_verified_user),
+    user: UserModel = Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
-):
+) -> ChatUsageStatsListResponse:
     try:
         limit = items_per_page
         skip = (page - 1) * limit
@@ -348,7 +349,7 @@ async def get_session_user_chat_usage_stats(
                                     models[model] = 0
                                 models[model] += 1
 
-                            annotation = message.get('annotation', {})
+                            message.get('annotation', {})
 
                     chat_stats.append(
                         {
@@ -368,7 +369,7 @@ async def get_session_user_chat_usage_stats(
                             'created_at': chat.created_at,
                         }
                     )
-                except Exception as e:
+                except Exception:
                     pass
 
         return ChatUsageStatsListResponse(items=chat_stats, total=total)
