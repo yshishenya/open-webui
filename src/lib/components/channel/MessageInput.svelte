@@ -332,27 +332,30 @@
 	$: showCommands = ['/'].includes(command?.charAt(0));
 	let suggestions = null;
 
-	const screenCaptureHandler = async () => {
+	const screenCaptureHandler = async (): Promise<void> => {
 		try {
+			const video = document.createElement('video');
+			const videoConstraints: MediaTrackConstraints & { cursor: 'never' } = { cursor: 'never' };
 			// Request screen media
 			const mediaStream = await navigator.mediaDevices.getDisplayMedia({
-				video: { cursor: 'never' },
+				video: videoConstraints,
 				audio: false
 			});
-			// Once the user selects a screen, temporarily create a video element
-			const video = document.createElement('video');
-			video.srcObject = mediaStream;
-			// Ensure the video loads without affecting user experience or tab switching
-			await video.play();
-			// Set up the canvas to match the video dimensions
-			const canvas = document.createElement('canvas');
-			canvas.width = video.videoWidth;
-			canvas.height = video.videoHeight;
-			// Grab a single frame from the video stream using the canvas
-			const context = canvas.getContext('2d');
-			context.drawImage(video, 0, 0, canvas.width, canvas.height);
-			// Stop all video tracks (stop screen sharing) after capturing the image
-			mediaStream.getTracks().forEach((track) => track.stop());
+			let canvas: HTMLCanvasElement;
+			try {
+				video.srcObject = mediaStream;
+				await video.play();
+				canvas = document.createElement('canvas');
+				canvas.width = video.videoWidth;
+				canvas.height = video.videoHeight;
+				const context = canvas.getContext('2d');
+				if (!context) throw new Error('Screen capture canvas is unavailable');
+				context.drawImage(video, 0, 0, canvas.width, canvas.height);
+			} finally {
+				// Release capture before conversion/upload, including a failed frame acquisition.
+				mediaStream.getTracks().forEach((track) => track.stop());
+				video.srcObject = null;
+			}
 
 			// bring back focus to this current tab, so that the user can see the screen capture
 			window.focus();
@@ -362,8 +365,6 @@
 			const blob = await (await fetch(imageUrl)).blob();
 			const file = new File([blob], `screen-capture-${Date.now()}.png`, { type: 'image/png' });
 			inputFilesHandler([file]);
-			// Clean memory: Clear video srcObject
-			video.srcObject = null;
 		} catch (error) {
 			// Handle any errors (e.g., user cancels screen sharing)
 			console.error('Error capturing screen:', error);
