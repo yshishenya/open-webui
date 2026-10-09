@@ -30,10 +30,14 @@
 		}
 	};
 
-	$: if (openPreview && closeActiveProfilePreview !== closeProfilePreview) {
-		closeActiveProfilePreview?.();
-		closeActiveProfilePreview = closeProfilePreview;
-	}
+	const activateProfilePreview = (): void => {
+		if (closeActiveProfilePreview !== closeProfilePreview) {
+			closeActiveProfilePreview?.();
+			closeActiveProfilePreview = closeProfilePreview;
+		}
+	};
+
+	$: if (openPreview) activateProfilePreview();
 
 	onDestroy(() => {
 		if (closeActiveProfilePreview === closeProfilePreview) {

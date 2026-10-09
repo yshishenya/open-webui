@@ -14,9 +14,9 @@
 	dayjs.extend(relativeTime);
 	dayjs.extend(isToday);
 	dayjs.extend(isYesterday);
-	import { tick, getContext, onMount, createEventDispatcher } from 'svelte';
+	import { tick, getContext } from 'svelte';
 
-	import { settings, user } from '$lib/stores';
+	import { user } from '$lib/stores';
 
 	import Message from './Messages/Message.svelte';
 	import Loader from '../common/Loader.svelte';
@@ -65,7 +65,7 @@
 	<div>
 		{#if !top}
 			<Loader
-				on:visible={(e) => {
+				on:visible={() => {
 					console.info('visible');
 					if (!messagesLoading) {
 						loadMoreMessages();
@@ -149,12 +149,10 @@
 					if (!message.channel_id) return;
 					messages = messages.filter((m) => m.id !== message.id);
 
-					const res = deleteMessage(localStorage.token, message.channel_id, message.id).catch(
-						(error) => {
-							toast.error(`${error}`);
-							return null;
-						}
-					);
+					deleteMessage(localStorage.token, message.channel_id, message.id).catch((error) => {
+						toast.error(`${error}`);
+						return null;
+					});
 				}}
 				onEdit={(content) => {
 					if (!message.channel_id) return;
@@ -165,7 +163,7 @@
 						return m;
 					});
 
-					const res = updateMessage(localStorage.token, message.channel_id, message.id, {
+					updateMessage(localStorage.token, message.channel_id, message.id, {
 						content: content
 					}).catch((error) => {
 						toast.error(`${error}`);
@@ -227,15 +225,12 @@
 							return m;
 						});
 
-						const res = removeReaction(
-							localStorage.token,
-							message.channel_id,
-							message.id,
-							name
-						).catch((error) => {
-							toast.error(`${error}`);
-							return null;
-						});
+						removeReaction(localStorage.token, message.channel_id, message.id, name).catch(
+							(error) => {
+								toast.error(`${error}`);
+								return null;
+							}
+						);
 					} else {
 						messages = messages.map((m) => {
 							if (m.id === message.id) {
@@ -257,17 +252,15 @@
 							return m;
 						});
 
-						const res = addReaction(localStorage.token, message.channel_id, message.id, name).catch(
-							(error) => {
-								toast.error(`${error}`);
-								return null;
-							}
-						);
+						addReaction(localStorage.token, message.channel_id, message.id, name).catch((error) => {
+							toast.error(`${error}`);
+							return null;
+						});
 					}
 				}}
 			/>
 		{/each}
 
-		<div class="pb-6" />
+		<div class="pb-6"></div>
 	</div>
 {/if}

@@ -323,7 +323,7 @@
 		let currentPage = 1;
 		let fetchedTotal = 0;
 
-		while (true) {
+		for (;;) {
 			const res = await getWorkspaceModels(
 				localStorage.token,
 				query,
@@ -488,7 +488,7 @@
 						throw new Error('Invalid JSON file');
 					}
 					savedModels = parsed as Record<string, unknown>[];
-				} catch (e) {
+				} catch {
 					toast.error($i18n.t('Invalid JSON file'));
 					return;
 				}

@@ -13,7 +13,7 @@
 
 	import { oneDark } from '@codemirror/theme-one-dark';
 
-	import { onMount, createEventDispatcher, getContext, tick, onDestroy } from 'svelte';
+	import { onMount, getContext, tick, onDestroy } from 'svelte';
 
 	import { createPyodideWorker } from '$lib/pyodide/createPyodideWorker';
 
@@ -21,7 +21,6 @@
 	import { toast } from 'svelte-sonner';
 	import { user } from '$lib/stores';
 
-	const dispatch = createEventDispatcher();
 	const i18n = getContext('i18n');
 
 	export let boilerplate = '';
@@ -133,13 +132,16 @@ print("${endTag}")
 				if (stderr) {
 					reject(stderr);
 				} else {
-					function extractBetweenDelimiters(stdout, start, end) {
-						console.log('stdout', stdout);
+					const extractBetweenDelimiters = (
+						stdout: string,
+						start: string,
+						end: string
+					): string | null => {
 						const startIdx = stdout.indexOf(start);
 						const endIdx = stdout.indexOf(end, startIdx + start.length);
 						if (startIdx === -1 || endIdx === -1) return null;
 						return stdout.slice(startIdx + start.length, endIdx).trim();
-					}
+					};
 
 					const formatted = extractBetweenDelimiters(
 						stdout && typeof stdout === 'string' ? stdout : '',
@@ -170,7 +172,9 @@ print("${endTag}")
 				worker.removeEventListener('error', handleError);
 				try {
 					worker.terminate();
-				} catch {}
+				} catch {
+					console.warn('Failed to terminate formatter worker');
+				}
 				pyodideWorkerInstance = null;
 				reject('Execution Time Limit Exceeded');
 			}, 60000);
@@ -319,4 +323,4 @@ print("${endTag}")
 	});
 </script>
 
-<div id="code-textarea-{id}" class="{className} h-full w-full min-w-0 overflow-hidden" />
+<div id="code-textarea-{id}" class="{className} h-full w-full min-w-0 overflow-hidden"></div>

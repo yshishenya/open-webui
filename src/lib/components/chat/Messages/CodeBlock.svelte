@@ -1,5 +1,6 @@
 <script lang="ts">
 	import hljs from 'highlight.js';
+	import { sanitizedHtml } from '$lib/utils/airis/sanitized_html';
 	import type { Token } from 'marked';
 	import { toast } from 'svelte-sonner';
 	import { getContext, onMount, tick, onDestroy } from 'svelte';
@@ -21,10 +22,7 @@
 	import CodeEditor from '$lib/components/common/CodeEditor.svelte';
 	import SvgPanZoom from '$lib/components/common/SVGPanZoom.svelte';
 
-	import ChevronUp from '$lib/components/icons/ChevronUp.svelte';
 	import ChevronUpDown from '$lib/components/icons/ChevronUpDown.svelte';
-	import CommandLine from '$lib/components/icons/CommandLine.svelte';
-	import Cube from '$lib/components/icons/Cube.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 
 	const i18n = getContext('i18n');
@@ -32,9 +30,9 @@
 	export let id = '';
 	export let edit = true;
 
-	export let onSave = (e: string) => {};
-	export let onUpdate = (e: Token | null | undefined, codeBlockId = '') => {};
-	export let onPreview = (e: string) => {};
+	export let onSave: (code: string) => unknown = () => {};
+	export let onUpdate: (token: Token | null | undefined, codeBlockId: string) => unknown = () => {};
+	export let onPreview: (code: string) => unknown = () => {};
 
 	export let save = false;
 	export let run = true;
@@ -474,13 +472,12 @@
 								stdout ||
 								stderr ||
 								hasResult) &&
-								'border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;'}"><code
-								class="language-{lang} rounded-t-none whitespace-pre text-sm"
-								>{#if lang && hljs.getLanguage(lang)}{@html hljs.highlight(code, {
-										language: lang,
-										ignoreIllegals: true
-									}).value}{:else}{code}{/if}</code
-							></pre>
+								'border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;'}">{#if lang && hljs.getLanguage(lang)}<code
+									class="language-{lang} rounded-t-none whitespace-pre text-sm"
+									use:sanitizedHtml={hljs.highlight(code, { language: lang, ignoreIllegals: true })
+										.value}></code>{:else}<code
+									class="language-{lang} rounded-t-none whitespace-pre text-sm">{code}</code
+								>{/if}</pre>
 					{/if}
 				{:else}
 					<div

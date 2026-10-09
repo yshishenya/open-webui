@@ -1,0 +1,9 @@
+- [x] **[BUG][QUALITY]** Ошибки ESLint изменённых файлов кандидата
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-09__bugfix__candidate-frontend-lint-contracts.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Started: 2026-10-09
+  - Done: 2026-10-10
+  - Summary: Устранены59 исходных и15 связанных диагностик; безопасный вывод/обновление кода и сносок, конкретные договоры обработчиков и проверка внешних terminal данных сохраняют действующие пути. Новых зависимостей/подавлений0.
+  - Tests: Docker1284/1284 в139файлах, failed/skipped0; 13 новых проверок, terminal before3pass/8fail. ESLint970→896/новых0/21изменённыйфайл0замечаний; types1666/103→1663/94/новых0; форматирование и diff-check проходят. Backend464/542trackedхешей неизменны, прежний1063 переиспользован. Production/12соседей/protected21 сохранены.
+  - Risks: Общие Markdown/код/каналы и terminal форма; внешний terminal API не принят. Общие gates красные; PR/CI/интеграция/чистый образ/выпуск/внешние услуги и реальные пилотные сроки остаются. План198/244,номерныхзакрытий0,конечнаяцельactive; dispatch SDD1/2active.

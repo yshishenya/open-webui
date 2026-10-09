@@ -317,7 +317,7 @@ export const getOrchestratorPolicy = async (
 	key: string,
 	policyId: string,
 	authType: string = 'bearer'
-): Promise<any> => {
+): Promise<unknown> => {
 	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/terminal_servers/policy`, {
 		method: 'POST',
 		headers: {
@@ -385,7 +385,7 @@ export const getOrchestratorLifecycle = async (
 	key: string,
 	policyId: string,
 	authType: string = 'bearer'
-): Promise<any> => {
+): Promise<unknown> => {
 	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/terminal_servers/lifecycle`, {
 		method: 'POST',
 		headers: {

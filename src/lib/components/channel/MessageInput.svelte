@@ -613,7 +613,6 @@
 				char: '@',
 				render: getSuggestionRenderer(MentionList, {
 					i18n,
-					triggerChar: '@',
 					modelSuggestions: true,
 					userSuggestions
 				})
@@ -624,7 +623,6 @@
 							char: '#',
 							render: getSuggestionRenderer(MentionList, {
 								i18n,
-								triggerChar: '#',
 								channelSuggestions
 							})
 						}

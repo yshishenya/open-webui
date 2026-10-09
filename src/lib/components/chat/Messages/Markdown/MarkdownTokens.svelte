@@ -44,12 +44,25 @@
 	export let topPadding = false;
 	export let allowEmbeds = true;
 
-	export let onSave: Function = () => {};
-	export let onUpdate: Function = () => {};
-	export let onPreview: Function = () => {};
+	export let onSave: (change: {
+		raw: string;
+		oldContent: string | undefined;
+		newContent: string;
+	}) => unknown = () => {};
+	export let onUpdate: NonNullable<ComponentProps<typeof CodeBlock>['onUpdate']> = () => {};
+	export let onPreview: NonNullable<ComponentProps<typeof CodeBlock>['onPreview']> = () => {};
 
-	export let onTaskClick: Function = () => {};
-	export let onSourceClick: Function = () => {};
+	export let onTaskClick: (task: {
+		id: string;
+		token: Token;
+		tokenIdx: number;
+		item: Tokens.ListItem;
+		itemIdx: number;
+		checked: boolean;
+	}) => unknown = () => {};
+	export let onSourceClick: NonNullable<
+		ComponentProps<typeof MarkdownInlineTokens>['onSourceClick']
+	> = () => {};
 
 	const headerComponent = (depth: number) => {
 		return 'h' + depth;
@@ -280,7 +293,7 @@
 	{:else if token.type === 'blockquote'}
 		{@const alert = alertComponent(token)}
 		{#if alert}
-			<AlertRenderer {token} {alert} />
+			<AlertRenderer {alert} />
 		{:else}
 			<blockquote dir="auto">
 				<svelte:self

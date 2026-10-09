@@ -171,7 +171,7 @@
 			return;
 		}
 
-		const res = await sendMessage(localStorage.token, channel.id, {
+		await sendMessage(localStorage.token, channel.id, {
 			parent_id: threadId,
 			reply_to_id: replyToMessage?.id ?? null,
 			content: content,

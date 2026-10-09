@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, getContext, type ComponentProps } from 'svelte';
+	import { getContext, type ComponentProps } from 'svelte';
 
 	import CodeEditor from './CodeEditor.svelte';
 	import Drawer from './Drawer.svelte';

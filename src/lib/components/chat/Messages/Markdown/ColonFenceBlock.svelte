@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { getContext, type ComponentProps } from 'svelte';
+	import type { Token } from 'marked';
 	const i18n = getContext('i18n');
 
 	import { copyToClipboard } from '$lib/utils';
@@ -9,14 +10,18 @@
 	import DocumentDuplicate from '$lib/components/icons/DocumentDuplicate.svelte';
 
 	export let id: string = '';
-	export let token: any;
+	export let token: Token & { fenceType?: string; text?: string; tokens?: Token[] };
 	export let tokenIdx: number = 0;
 
 	export let done: boolean = true;
 	export let editCodeBlock: boolean = true;
 	export let sourceIds: string[] = [];
-	export let onTaskClick: Function = () => {};
-	export let onSourceClick: Function = () => {};
+	export let onTaskClick: NonNullable<
+		ComponentProps<typeof MarkdownTokens>['onTaskClick']
+	> = () => {};
+	export let onSourceClick: NonNullable<
+		ComponentProps<typeof MarkdownTokens>['onSourceClick']
+	> = () => {};
 
 	const fenceType: string = token.fenceType ?? 'default';
 
@@ -26,7 +31,7 @@
 
 	const copyText = async () => {
 		copied = true;
-		await copyToClipboard(token.text, null, $settings?.copyFormatted ?? false);
+		await copyToClipboard(token.text ?? '', null, $settings?.copyFormatted ?? false);
 		setTimeout(() => {
 			copied = false;
 		}, 1000);
@@ -72,7 +77,7 @@
 	<div class="prose-sm" dir="auto">
 		<MarkdownTokens
 			id={`${id}-${tokenIdx}-cf`}
-			tokens={token.tokens}
+			tokens={token.tokens ?? []}
 			{done}
 			{editCodeBlock}
 			{sourceIds}

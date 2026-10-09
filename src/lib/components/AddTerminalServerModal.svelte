@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { getContext, onMount } from 'svelte';
-	const i18n = getContext<any>('i18n');
+	import { getContext, type ComponentProps } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { DirectTerminalSettings } from '$lib/utils/airis/frontend-contracts';
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	import Modal from '$lib/components/common/Modal.svelte';
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
@@ -11,7 +14,6 @@
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import {
-		detectTerminalServerType,
 		verifyTerminalServerConnection,
 		putOrchestratorPolicy,
 		putOrchestratorLifecycle,
@@ -24,9 +26,18 @@
 	export let show = false;
 	export let edit = false;
 	export let direct = false;
-	export let connection: any = null;
+	type TerminalConnection = Pick<DirectTerminalSettings, 'url'> &
+		Partial<DirectTerminalSettings> & {
+			id?: string;
+			config?: { access_grants?: ComponentProps<typeof AccessControlModal>['accessGrants'] } | null;
+			server_type?: 'orchestrator' | 'terminal' | null;
+			policy_id?: string | null;
+		};
+	export let connection: Partial<TerminalConnection> | null = null;
 
-	export let onSubmit: Function = () => {};
+	export let onSubmit: (
+		connection: TerminalConnection & { enabled: boolean }
+	) => unknown = () => {};
 	export let onDelete: () => void = () => {};
 
 	let url = '';
@@ -39,7 +50,7 @@
 	let showAdvanced = false;
 	let showAccessControlModal = false;
 	let showDeleteConfirmDialog = false;
-	let accessGrants: any[] = [];
+	let accessGrants: NonNullable<ComponentProps<typeof AccessControlModal>['accessGrants']> = [];
 
 	// Policy / auto-detect state
 	let serverType: 'orchestrator' | 'terminal' | null = null;
@@ -71,7 +82,7 @@
 	const init = () => {
 		if (connection) {
 			id = connection?.id ?? '';
-			url = connection.url;
+			url = connection.url ?? '';
 			key = connection?.key ?? '';
 			name = connection?.name ?? '';
 			auth_type = connection?.auth_type ?? 'bearer';
@@ -83,19 +94,13 @@
 			serverType = connection?.server_type ?? (connection?.policy_id ? 'orchestrator' : null);
 			policyId = connection?.policy_id ?? '';
 
-			const p: Record<string, any> = {};
-			policyImage = p.image ?? '';
-			policyIdleTimeout = p.idle_timeout_minutes ?? 30;
-			policyStorage = p.storage ? 'persistent' : 'ephemeral';
-			policyStorageSize = p.storage ?? '5Gi';
-
-			// Restore env pairs
-			const env = p.env ?? {};
-			policyEnvPairs = Object.entries(env).map(([k, v]) => ({ key: k, value: v as string }));
-
-			// Restore resources
-			policyCpu = p.cpu_limit ?? '1';
-			policyMemory = p.memory_limit ?? '1Gi';
+			policyImage = '';
+			policyIdleTimeout = 30;
+			policyStorage = 'ephemeral';
+			policyStorageSize = '5Gi';
+			policyEnvPairs = [];
+			policyCpu = '1';
+			policyMemory = '1Gi';
 			lifecycleJson = stringifyJson({});
 			refreshOnlyIdle = true;
 			refreshReset = false;
@@ -128,17 +133,30 @@
 		}
 	};
 
-	const loadPolicy = async () => {
+	const responseData = (response: unknown): Record<string, unknown> => {
+		if (!response || typeof response !== 'object' || Array.isArray(response)) {
+			throw new Error('Invalid orchestrator response');
+		}
+		const data = 'data' in response ? (response.data ?? {}) : {};
+		if (typeof data !== 'object' || Array.isArray(data)) {
+			throw new Error('Invalid orchestrator response');
+		}
+		return data as Record<string, unknown>;
+	};
+
+	const loadPolicy = async (): Promise<void> => {
 		if (!connection || serverType !== 'orchestrator' || !policyId || direct) return;
 
 		loadingPolicy = true;
 		policyLoadError = '';
 		try {
-			let policy: any = null;
+			let policy: unknown = {};
 			try {
 				policy = await getOrchestratorPolicy(localStorage.token, url, key, policyId, auth_type);
-			} catch (error: any) {
-				if (error?.status !== 404) throw error;
+			} catch (error) {
+				if (!error || typeof error !== 'object' || !('status' in error) || error.status !== 404) {
+					throw error;
+				}
 			}
 
 			const lifecycle = await getOrchestratorLifecycle(
@@ -148,20 +166,36 @@
 				policyId,
 				auth_type
 			);
-			const data = policy?.data ?? {};
-			policyImage = data.image ?? '';
+			const data = responseData(policy);
+			const lifecycleData = responseData(lifecycle);
+			for (const field of ['image', 'cpu_limit', 'memory_limit', 'storage']) {
+				if (data[field] != null && typeof data[field] !== 'string') {
+					throw new Error('Invalid orchestrator policy');
+				}
+			}
+			if (
+				data.idle_timeout_minutes != null &&
+				(typeof data.idle_timeout_minutes !== 'number' ||
+					!Number.isFinite(data.idle_timeout_minutes))
+			) {
+				throw new Error('Invalid orchestrator policy');
+			}
+			if (data.env != null && (typeof data.env !== 'object' || Array.isArray(data.env))) {
+				throw new Error('Invalid orchestrator policy');
+			}
+			policyImage = typeof data.image === 'string' ? data.image : '';
 			policyIdleTimeout = data.idle_timeout_minutes ?? 30;
 			policyStorage = data.storage ? 'persistent' : 'ephemeral';
-			policyStorageSize = data.storage ?? '5Gi';
+			policyStorageSize = typeof data.storage === 'string' ? data.storage : '5Gi';
 			policyEnvPairs = Object.entries(data.env ?? {}).map(([key, value]) => ({
 				key,
 				value: String(value)
 			}));
-			policyCpu = data.cpu_limit ?? '1';
-			policyMemory = data.memory_limit ?? '1Gi';
-			lifecycleJson = stringifyJson(lifecycle?.data);
-		} catch (error: any) {
-			policyLoadError = error?.message || String(error);
+			policyCpu = typeof data.cpu_limit === 'string' ? data.cpu_limit : '1';
+			policyMemory = typeof data.memory_limit === 'string' ? data.memory_limit : '1Gi';
+			lifecycleJson = stringifyJson(lifecycleData);
+		} catch (error) {
+			policyLoadError = error instanceof Error ? error.message : String(error);
 		} finally {
 			loadingPolicy = false;
 		}
@@ -244,7 +278,7 @@
 	};
 
 	const buildPolicyData = (): object => {
-		const data: Record<string, any> = {};
+		const data: Record<string, unknown> = {};
 
 		if (policyImage) data.image = policyImage;
 		if (policyCpu) data.cpu_limit = policyCpu;

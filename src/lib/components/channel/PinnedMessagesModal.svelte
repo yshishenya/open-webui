@@ -19,7 +19,7 @@
 
 	export let show = false;
 	export let channel: ChannelDetail | null = null;
-	export let onPin: ChannelPinHandler = (messageId, pinned) => {};
+	export let onPin: ChannelPinHandler = () => {};
 
 	let page = 1;
 	let pinnedMessages: ChannelDisplayMessage[] | null = null;
@@ -116,7 +116,7 @@
 												pinnedMessages = pinnedMessages.filter((m) => m.id !== message.id);
 												onPin(message.id, !message.is_pinned);
 
-												const updatedMessage = await pinMessage(
+												await pinMessage(
 													localStorage.token,
 													message.channel_id,
 													message.id,
@@ -137,7 +137,7 @@
 
 										{#if messageIdx === pinnedMessages.length - 1 && !allItemsLoaded}
 											<Loader
-												on:visible={(e) => {
+												on:visible={() => {
 													console.log('visible');
 													if (!loading) {
 														page += 1;
