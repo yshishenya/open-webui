@@ -1,5 +1,5 @@
-- [ ] **[BUG]** Приёмка сохранения сообщений с PostgreSQL
+- [x] **[BUG]** Исходники атомарного сохранения сообщений с PostgreSQL
   - Spec: meta/memory_bank/specs/work_items/2026-10-09__bugfix__message-save-postgres.md
   - Owner: Codex
-  - Started: 2026-10-09
-  - Summary: Настоящие API/JWT и база PostgreSQL в собственном tmpfs стенде; исходники frontend уже проверены, выпуск остаётся открытым.
+  - Done: 2026-10-09
+  - Summary: Два200 с потерей соседней записи воспроизведены; fork-owned helper выполняет merge иdual-write под блокировкой строки.1026/0skip,PG API и3конкурентных сценария проходят; rollback/ownership/replay проверены. Исходники a7a378afed59baac304ee1b0572e48bd7da3c098 отправлены,1530blobs сверены; SDD2/2 завершён. Ruff547/существующаясложность17 иproductionприёмка остаются открытыми.

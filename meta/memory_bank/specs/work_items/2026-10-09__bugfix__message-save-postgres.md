@@ -1,9 +1,9 @@
 # [BUG] Проверка сохранения сообщений через API и PostgreSQL
 
-Status: source-verified; delivery-in-progress
+Status: source-complete; release-pending
 Owner: Codex
 Started: 2026-10-09
-SDD Spec: meta/sdd/specs/active/airis-message-save-postgres-2026-10-09-025.json
+SDD Spec: meta/sdd/specs/completed/airis-message-save-postgres-2026-10-09-025.json
 
 Продолжение message-edit-save-result; база airis_b2c d579f5c02926cace8c8da60434ce1c39c7284361, явная зависимость 5f8ecc15496e91b861efee2090a7e16193e01dae. Полная цель A/B G01–G17 остаётся active.
 
@@ -12,7 +12,7 @@ SDD Spec: meta/sdd/specs/active/airis-message-save-postgres-2026-10-09-025.json
 - [x] После подтверждённой записи повторить copy с тем же id: ровно4 сообщения, без второй копии; сверить JSON чата и normalized rows.
 - [x] Чужой JWT, отсутствующий chat, malformed input и отсутствие JWT: отказ без изменений.
 - [x] Привязать результаты к hashes исходников, проверить форматирование/линтер, сохранить отчёт и очистить собственный tmpfs стенд.
-- [ ] Commit/push и CAS-обновление закрытого плана без вымышленных номерных закрытий.
+- [x] Commit/push исходников и сверка remote/1530Git blobs; CAS-обновление закрытого плана отдельным receipt без вымышленных номерных закрытий.
 
 Причина подтверждена: два заблокированных PostgreSQL писателя с ответами200 потеряли New B в JSON истории при сохранении New B в normalized rows. Перед исправлением concurrent-before.json содержит history[New A,Old B] иrows[New A,New B].
 
@@ -29,3 +29,5 @@ Evidence: /Users/yshishenya/.codex/private-artifacts/airis-message-save-postgres
 Промежуточные неудачи сохранены: первоначальный тест требовал отсутствующие пустые ключи parentId/childrenIds; первый pytools запуск не смог создать Docker сеть (использован существующий external network); новый SDD id генератора имел неверный формат и исправлен в собственном незакоммиченном файле; Ruff baseline cache требовал записи вroкаталог (повтор с--no-cache); повтор suite на reused reporting fixture упал DuplicateTable(user), окончательный suite1026/0skip выполнен с4новыми пустыми базами. Промежуточные результаты не приняты за окончательные.
 
 Source delivery и image/production приёмка — отдельные шаги. Реальный API здесьASGI/TestClient сJWT иPostgreSQL, без auth/dependency overrides; отдельный case stream использует настоящий общий метод записи, а не LLM провайдера. G01/G05/финальная A/B цель не закрыты.
+
+Исходники `a7a378afed59baac304ee1b0572e48bd7da3c098` отправлены в`codex/bugfix/message-save-postgres`, remote совпал,1530testedGit blobs совпали. SDD2/2 завершён; production`c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908` healthy/restarts0,окружение/подключения/12соседей и21защищённый файл сохранены. Собственный PostgreSQL tmpfs контейнер удалён после приёмки; резервные копии/общие сеть икэши не изменены. PR/интеграция/выпуск и настоящая браузерная/LLM приёмка остаются открытыми. План198/244,новыхномерныхзакрытий0,цельactive.
