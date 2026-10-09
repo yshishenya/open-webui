@@ -1,6 +1,14 @@
-- [ ] **[BUG][G14]** Исполнение кода: жизненный цикл и результат
+- [x] **[BUG][G14][SOURCE]** Исполнение кода: жизненный цикл и результат
   - Spec: meta/memory_bank/specs/work_items/2026-10-09__bugfix__codeblock-execution-lifecycle.md
   - Owner: Codex
   - Branch: codex/bugfix/codeblock-execution-lifecycle
   - Started: 2026-10-09
   - Summary: Воспроизведение тайм-аутов, старых ответов, структурированных результатов и очистки; проверка минимального исправления исходников.
+
+- [x] **[BUG][G14][SOURCE]** Исполнение кода: исходники проверены и отправлены; выпуск открыт
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09__bugfix__codeblock-execution-lifecycle.md
+  - Owner: Codex
+  - Done: 2026-10-09
+  - Summary: Каждый запуск изолирован; очищаются только свои обработчики/таймер, общий worker и файлы сохраняются, 0/false/JSON/PNG поддержаны. Исходный набор19/3 и2 необработанные ошибки; исправленный22/22, полный frontend1108/131. Типы1793/103, ESLint973, новых диагностик0.
+  - Source: 4c4ea8e1b2b80d2d8368b686a4430810acff99f9; удалённый SHA и1523 Git-объекта совпадают. SDD2/2 завершён,193 спецификации валидны; backend454/primary21/runtime12 сохранены.
+  - Pending: нулевые общие проверки, preflight, PR/интеграция, новые backend/E2E, образ/выпуск и настоящие условия A/B; план198/244, цель active.
