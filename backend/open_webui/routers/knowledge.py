@@ -7,7 +7,6 @@ import logging
 import time
 import uuid
 import zipfile
-from typing import List
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status

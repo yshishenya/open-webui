@@ -1,0 +1,132 @@
+{
+	"spec_id": "airis-unused-typing-imports-2026-10-09-836",
+	"title": "airis-unused-typing-imports",
+	"generated": "2026-10-09T05:36:34.466178Z",
+	"last_updated": "2026-10-09T05:41:29.595696Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__unused-typing-imports.md",
+		"status": "active",
+		"activated_date": "2026-10-09T05:38:08.249729Z",
+		"progress_percentage": 33
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-unused-typing-imports",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 1,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Remove reviewed unused typing bindings",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T05:41:29.344444Z",
+				"journaled_at": "2026-10-09T05:41:29.347014Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Contracts, full tests and source delivery",
+			"status": "in_progress",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Review imports and remove only approved typing names",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "backend/open_webui",
+				"started_at": "2026-10-09T05:38:08.473024Z",
+				"completed_at": "2026-10-09T05:41:29.344242Z",
+				"needs_journaling": false,
+				"status_note": "28 exact typing aliases removed, all453 AST/comments preserved. Ruff1034->1003, no new normalized diagnostics; neighboring aliases retained.",
+				"actual_hours": 0.056,
+				"journaled_at": "2026-10-09T05:41:29.345887Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Preserve runtime contracts, full tests and commit/push",
+			"status": "in_progress",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"file_path": "backend/open_webui/test",
+				"started_at": "2026-10-09T05:41:29.595439Z"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Accept general source quality, image, browser/native, CI and release",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-09__refactor__unused-typing-imports.md"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T05:41:29.345882Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Review imports and remove only approved typing names",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: 28 exact typing aliases removed, all453 AST/comments preserved. Ruff1034->1003, no new normalized diagnostics; neighboring aliases retained.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T05:41:29.347009Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Remove reviewed unused typing bindings",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}

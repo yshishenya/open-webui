@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Optional
 
 import aiohttp
 from fastapi import APIRouter, Depends, HTTPException, Request

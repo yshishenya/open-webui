@@ -1,5 +1,4 @@
 import time
-from typing import Optional
 
 from open_webui.env import REDIS_KEY_PREFIX
 

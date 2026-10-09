@@ -9,7 +9,6 @@ import logging
 import os
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional
 
 import bcrypt
 import jwt

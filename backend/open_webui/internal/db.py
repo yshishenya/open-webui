@@ -6,7 +6,7 @@ import os
 import sys
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from open_webui.env import (

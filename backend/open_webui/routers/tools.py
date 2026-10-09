@@ -4,7 +4,6 @@ import logging
 import re
 import time
 from pathlib import Path
-from typing import Optional
 
 import aiohttp
 from fastapi import APIRouter, Depends, HTTPException, Request, status

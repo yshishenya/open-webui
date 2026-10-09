@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Optional
 
 import bcrypt
 from open_webui.internal.db import Base, JSONField, get_async_db_context

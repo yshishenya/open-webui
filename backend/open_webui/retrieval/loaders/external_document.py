@@ -1,6 +1,5 @@
 import logging
 import os
-from typing import Iterator, Union
 from urllib.parse import quote
 
 import requests

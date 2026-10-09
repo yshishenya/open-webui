@@ -9,7 +9,6 @@ import socket
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union
 from urllib.parse import urlparse
 
 import redis

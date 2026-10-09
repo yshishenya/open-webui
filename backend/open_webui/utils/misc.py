@@ -10,7 +10,7 @@ import time
 import uuid
 from datetime import timedelta
 from pathlib import Path
-from typing import Callable, Optional, Sequence
+from typing import Sequence
 
 import aiohttp
 import mimeparse

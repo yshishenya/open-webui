@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Callable, Iterator, Optional, Sequence
+from typing import Callable
 
 import tiktoken
 from fastapi import (

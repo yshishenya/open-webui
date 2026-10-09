@@ -4,7 +4,7 @@ import json
 import logging
 import time
 from copy import deepcopy
-from typing import Any, Optional
+from typing import Any
 
 from open_webui.internal.db import Base, JSONField, get_async_db_context
 from open_webui.models.access_grants import AccessGrantModel, AccessGrants

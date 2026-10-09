@@ -13,7 +13,6 @@ import textwrap
 import time
 from collections.abc import AsyncIterator
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any
 from uuid import uuid4
 
 from aiocache import cached
