@@ -1,0 +1,142 @@
+{
+	"spec_id": "airis-python-string-literals-2026-10-09-113",
+	"title": "airis-python-string-literals",
+	"generated": "2026-10-09T08:30:50.211527Z",
+	"last_updated": "2026-10-09T08:46:08.180770Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 2,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__python-string-literals.md",
+		"status": "completed",
+		"activated_date": "2026-10-09T08:35:29.492898Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-09T08:46:08.180511Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-python-string-literals",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Preserve source and runtime values",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T08:43:42.969735Z",
+				"journaled_at": "2026-10-09T08:43:42.971942Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify and deliver isolated source change",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T08:46:07.733392Z",
+				"journaled_at": "2026-10-09T08:46:07.735187Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Preserve 24 module string values and 454 AST/comments/function sources",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"estimated_hours": 1.0,
+				"description": "Correct 66 diagnosed module literal layout issues; module/class docstrings and all functions excluded",
+				"completed_at": "2026-10-09T08:43:42.969541Z",
+				"needs_journaling": false,
+				"status_note": "454 exact AST/comments/function sources and 52261 string values match on Python 3.11/3.12; Ruff613 to547, removed66/added0; Black454 passes",
+				"journaled_at": "2026-10-09T08:43:42.970844Z"
+			},
+			"description": "Correct 66 diagnosed module literal layout issues; module/class docstrings and all functions excluded"
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify full suites, exact source and preserved production; deliver source/docs",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"estimated_hours": 1.0,
+				"completed_at": "2026-10-09T08:46:07.733234Z",
+				"needs_journaling": false,
+				"status_note": "Docker1025 backend/952 frontend,source frozen,production14 neighbors preserved;source6e88840a80d1fadedf02be89090c4352eaa3c28a remote verified,owned tmpfs fixture/baseline removed;general quality red and PR/integration/deploy pending separately",
+				"journaled_at": "2026-10-09T08:46:07.734198Z"
+			},
+			"description": "Run required checks, retain the overall red quality gate and open A/B criteria, clean only owned fixtures"
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T08:43:42.970836Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Preserve 24 module string values and 454 AST/comments/function sources",
+			"author": "Codex",
+			"content": "Task task-1-1 marked as completed. \nNote: 454 exact AST/comments/function sources and 52261 string values match on Python 3.11/3.12; Ruff613 to547, removed66/added0; Black454 passes",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T08:43:42.971937Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Preserve source and runtime values",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-09T08:46:07.734194Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify full suites, exact source and preserved production; deliver source/docs",
+			"author": "Codex",
+			"content": "Task task-2-1 marked as completed. \nNote: Docker1025 backend/952 frontend,source frozen,production14 neighbors preserved;source6e88840a80d1fadedf02be89090c4352eaa3c28a remote verified,owned tmpfs fixture/baseline removed;general quality red and PR/integration/deploy pending separately",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-09T08:46:07.735183Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify and deliver isolated source change",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
