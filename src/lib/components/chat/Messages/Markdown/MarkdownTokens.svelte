@@ -180,8 +180,8 @@
 						newContent: value
 					});
 				}}
-				{onUpdate}
-				{onPreview}
+				onUpdate={(token, codeBlockId) => onUpdate(token, codeBlockId)}
+				onPreview={(code) => onPreview(code)}
 			/>
 		{:else}
 			{token.text}

@@ -1,0 +1,6 @@
+- [ ] **[BUG][G14]** Исполнение кода: жизненный цикл и результат
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09__bugfix__codeblock-execution-lifecycle.md
+  - Owner: Codex
+  - Branch: codex/bugfix/codeblock-execution-lifecycle
+  - Started: 2026-10-09
+  - Summary: Воспроизведение тайм-аутов, старых ответов, структурированных результатов и очистки; проверка минимального исправления исходников.

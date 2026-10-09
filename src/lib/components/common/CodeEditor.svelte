@@ -29,7 +29,7 @@
 	export let className = 'text-sm';
 
 	export let onSave = () => {};
-	export let onChange = () => {};
+	export let onChange: (value: string) => unknown = () => {};
 
 	let _value = '';
 

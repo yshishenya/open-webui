@@ -27,7 +27,16 @@ export const getGravatarUrl = async (token: string, email: string) => {
 	return res;
 };
 
-export const executeCode = async (token: string, code: string) => {
+export type CodeExecutionOutput = {
+	stdout: string | null;
+	stderr: string | null;
+	result: string | null;
+};
+
+export const executeCode = async (
+	token: string,
+	code: string
+): Promise<CodeExecutionOutput | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/utils/code/execute`, {

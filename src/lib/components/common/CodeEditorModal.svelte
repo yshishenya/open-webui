@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, getContext } from 'svelte';
+	import { onMount, getContext, type ComponentProps } from 'svelte';
 
 	import CodeEditor from './CodeEditor.svelte';
 	import Drawer from './Drawer.svelte';
@@ -12,11 +12,13 @@
 		lang = 'python',
 		onChange = () => {},
 		onSave = () => {}
+	}: Pick<ComponentProps<typeof CodeEditor>, 'value' | 'lang' | 'onChange' | 'onSave'> & {
+		show: boolean;
 	} = $props();
 
 	let boilerplate = ``;
 
-	let codeEditor = $state(null);
+	let codeEditor = $state<CodeEditor | null>(null);
 	let _content = $state(value);
 
 	$effect(() => {

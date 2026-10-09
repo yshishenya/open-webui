@@ -1,5 +1,6 @@
 <script lang="ts">
 	import hljs from 'highlight.js';
+	import type { Token } from 'marked';
 	import { toast } from 'svelte-sonner';
 	import { getContext, onMount, tick, onDestroy } from 'svelte';
 	import { config, pyodideWorker as pyodideWorkerStore } from '$lib/stores';
@@ -31,25 +32,28 @@
 	export let id = '';
 	export let edit = true;
 
-	export let onSave = (e) => {};
-	export let onUpdate = (e, codeBlockId = '') => {};
-	export let onPreview = (e) => {};
+	export let onSave = (e: string) => {};
+	export let onUpdate = (e: Token | null | undefined, codeBlockId = '') => {};
+	export let onPreview = (e: string) => {};
 
 	export let save = false;
 	export let run = true;
 	export let preview = false;
 	export let collapsed = false;
 
-	export let token;
+	export let token: (Token & { text?: string }) | null | undefined = undefined;
 	export let lang = '';
 	export let code = '';
-	export let attributes = {};
+	export let attributes: Record<string, unknown> = {};
 
 	export let className = '';
 	export let editorClassName = '';
 	export let stickyButtonsClassName = 'top-0';
 
-	let localPyodideWorker = null;
+	let localPyodideWorker: Worker | null = null;
+	let cleanupExecution: (() => void) | null = null;
+	let activeExecution: object | null = null;
+	let destroyed = false;
 
 	let _code = '';
 	$: if (code) {
@@ -60,18 +64,18 @@
 		_code = code;
 	};
 
-	let _token = null;
+	let _token: typeof token | null = null;
 
-	let renderHTML = null;
-	let renderError = null;
+	let renderHTML: string | null = null;
+	let renderError: string | null = null;
 
-	let highlightedCode = null;
 	let executing = false;
 
-	let stdout = null;
-	let stderr = null;
-	let result = null;
-	let files = null;
+	let stdout: string | null = null;
+	let stderr: string | null = null;
+	let result: unknown = null;
+	$: hasResult = result !== null && result !== undefined;
+	let files: { type: string; data: string }[] | null = null;
 
 	let copied = false;
 	let saved = false;
@@ -104,7 +108,7 @@
 		onPreview(code);
 	};
 
-	const checkPythonCode = (str) => {
+	const checkPythonCode = (str: string) => {
 		// Check if the string contains typical Python syntax characters
 		const pythonSyntax = [
 			'def ',
@@ -139,89 +143,65 @@
 		return false;
 	};
 
-	const executePython = async (code) => {
+	type ExecutionOutput = { stdout?: unknown; stderr?: unknown; result?: unknown };
+	const applyExecutionOutput = (output: ExecutionOutput): void => {
+		const extractImages = (text: string): string => {
+			for (const line of text.split('\n')) {
+				if (line.startsWith('data:image/png;base64')) {
+					(files ??= []).push({ type: 'image/png', data: line });
+					text = text.replace(`${line}\n`, '').replace(line, '');
+				}
+			}
+			return text;
+		};
+		stdout =
+			typeof output.stdout === 'string' && output.stdout ? extractImages(output.stdout) : null;
+		stderr = typeof output.stderr === 'string' && output.stderr ? output.stderr : null;
+		result =
+			typeof output.result === 'string'
+				? extractImages(output.result) || null
+				: (output.result ?? null);
+	};
+
+	const executePython = async (code: string): Promise<void> => {
+		if (executing || destroyed) return;
+		cleanupExecution?.();
+		const request = {};
+		activeExecution = request;
 		result = null;
 		stdout = null;
 		stderr = null;
-
+		files = null;
 		executing = true;
 
 		if ($config?.code?.engine === 'jupyter') {
-			const output = await executeCode(localStorage.token, code).catch((error) => {
-				toast.error(`${error}`);
-				return null;
-			});
-
-			if (output) {
-				if (output['stdout']) {
-					stdout = output['stdout'];
-					const stdoutLines = stdout.split('\n');
-
-					for (const [idx, line] of stdoutLines.entries()) {
-						if (line.startsWith('data:image/png;base64')) {
-							if (files) {
-								files.push({
-									type: 'image/png',
-									data: line
-								});
-							} else {
-								files = [
-									{
-										type: 'image/png',
-										data: line
-									}
-								];
-							}
-
-							if (stdout.includes(`${line}\n`)) {
-								stdout = stdout.replace(`${line}\n`, ``);
-							} else if (stdout.includes(`${line}`)) {
-								stdout = stdout.replace(`${line}`, ``);
-							}
-						}
-					}
+			try {
+				const output = await executeCode(localStorage.token, code);
+				if (activeExecution === request && !destroyed && output) applyExecutionOutput(output);
+			} catch (error) {
+				if (activeExecution === request && !destroyed) toast.error(`${error}`);
+			} finally {
+				if (activeExecution === request) {
+					executing = false;
+					activeExecution = null;
 				}
-
-				if (output['result']) {
-					result = output['result'];
-					const resultLines = result.split('\n');
-
-					for (const [idx, line] of resultLines.entries()) {
-						if (line.startsWith('data:image/png;base64')) {
-							if (files) {
-								files.push({
-									type: 'image/png',
-									data: line
-								});
-							} else {
-								files = [
-									{
-										type: 'image/png',
-										data: line
-									}
-								];
-							}
-
-							if (result.includes(`${line}\n`)) {
-								result = result.replace(`${line}\n`, ``);
-							} else if (result.includes(`${line}`)) {
-								result = result.replace(`${line}`, ``);
-							}
-						}
-					}
-				}
-
-				output['stderr'] && (stderr = output['stderr']);
 			}
-
-			executing = false;
 		} else {
-			executePythonAsWorker(code);
+			try {
+				await executePythonAsWorker(code, request);
+			} catch (error) {
+				if (activeExecution === request && !destroyed) {
+					cleanupExecution?.();
+					stderr = error instanceof Error ? error.message : String(error);
+					executing = false;
+					activeExecution = null;
+				}
+			}
 		}
 	};
 
-	const executePythonAsWorker = async (code) => {
-		let packages = [
+	const executePythonAsWorker = async (code: string, request: object): Promise<void> => {
+		const packages = [
 			/\bimport\s+requests\b|\bfrom\s+requests\b/.test(code) ? 'requests' : null,
 			/\bimport\s+bs4\b|\bfrom\s+bs4\b/.test(code) ? 'beautifulsoup4' : null,
 			/\bimport\s+numpy\b|\bfrom\s+numpy\b/.test(code) ? 'numpy' : null,
@@ -235,128 +215,57 @@
 			/\bimport\s+sympy\b|\bfrom\s+sympy\b/.test(code) ? 'sympy' : null,
 			/\bimport\s+tiktoken\b|\bfrom\s+tiktoken\b/.test(code) ? 'tiktoken' : null,
 			/\bimport\s+pytz\b|\bfrom\s+pytz\b/.test(code) ? 'pytz' : null
-		].filter(Boolean);
+		].filter((name): name is string => name !== null);
 
-		console.log(packages);
-
-		// Reuse the shared Pyodide worker when code interpreter is active,
-		// so files written here are immediately visible in PyodideFileNav.
-		// Otherwise fall back to a throwaway worker.
 		const sharedWorker = $pyodideWorkerStore;
-		const isShared = !!sharedWorker;
 		const worker = sharedWorker ?? createPyodideWorker();
-
-		if (!isShared) {
-			localPyodideWorker = worker;
-		}
-
-		worker.postMessage({
-			id: id,
-			code: code,
-			packages: packages
-		});
-
-		const timeoutId = setTimeout(() => {
-			if (executing) {
-				executing = false;
-				stderr = 'Execution Time Limit Exceeded';
-				if (!isShared) {
-					worker.terminate();
-					localPyodideWorker = null;
-				}
-			}
-		}, 60000);
-
-		const handler = (event) => {
-			// Ignore messages from other requests on the shared worker
-			if (event.data?.id !== id) return;
-
-			console.log('pyodideWorker.onmessage', event);
-			const { id: _id, ...data } = event.data;
-
-			console.log(_id, data);
-
-			if (data['stdout']) {
-				stdout = data['stdout'];
-				const stdoutLines = stdout.split('\n');
-
-				for (const [idx, line] of stdoutLines.entries()) {
-					if (line.startsWith('data:image/png;base64')) {
-						if (files) {
-							files.push({
-								type: 'image/png',
-								data: line
-							});
-						} else {
-							files = [
-								{
-									type: 'image/png',
-									data: line
-								}
-							];
-						}
-
-						if (stdout.includes(`${line}\n`)) {
-							stdout = stdout.replace(`${line}\n`, ``);
-						} else if (stdout.includes(`${line}`)) {
-							stdout = stdout.replace(`${line}`, ``);
-						}
-					}
-				}
-			}
-
-			if (data['result']) {
-				result = data['result'];
-				const resultLines = result.split('\n');
-
-				for (const [idx, line] of resultLines.entries()) {
-					if (line.startsWith('data:image/png;base64')) {
-						if (files) {
-							files.push({
-								type: 'image/png',
-								data: line
-							});
-						} else {
-							files = [
-								{
-									type: 'image/png',
-									data: line
-								}
-							];
-						}
-
-						if (result.startsWith(`${line}\n`)) {
-							result = result.replace(`${line}\n`, ``);
-						} else if (result.startsWith(`${line}`)) {
-							result = result.replace(`${line}`, ``);
-						}
-					}
-				}
-			}
-
-			data['stderr'] && (stderr = data['stderr']);
-			data['result'] && (result = data['result']);
-
-			clearTimeout(timeoutId);
-			worker.removeEventListener('message', handler);
+		if (!sharedWorker) localPyodideWorker = worker;
+		const requestId = `${id}:${crypto.randomUUID()}`;
+		const finish = (): void => {
+			cleanupExecution?.();
 			executing = false;
-
-			// Signal PyodideFileNav to auto-refresh after execution
+			activeExecution = null;
+		};
+		const handler = (event: MessageEvent<unknown>): void => {
+			if (destroyed || activeExecution !== request || !event.data || typeof event.data !== 'object')
+				return;
+			const data = event.data as Record<string, unknown>;
+			if (data.id !== requestId || (typeof data.type === 'string' && data.type.startsWith('fs:')))
+				return;
+			applyExecutionOutput(data);
+			finish();
 			window.dispatchEvent(new Event('pyodide:files'));
 		};
-
-		worker.addEventListener('message', handler);
-
-		worker.onerror = (event) => {
-			console.log('pyodideWorker.onerror', event);
+		const errorHandler = (event: Event): void => {
+			if (destroyed || activeExecution !== request) return;
+			stderr =
+				event instanceof ErrorEvent && event.message
+					? event.message
+					: $i18n.t('Something went wrong :/');
+			finish();
+		};
+		const timeoutId = setTimeout(() => {
+			if (activeExecution !== request || destroyed) return;
+			stderr = 'Execution Time Limit Exceeded';
+			finish();
+		}, 60000);
+		cleanupExecution = () => {
 			clearTimeout(timeoutId);
 			worker.removeEventListener('message', handler);
-			executing = false;
+			worker.removeEventListener('error', errorHandler);
+			if (!sharedWorker) {
+				worker.terminate();
+				localPyodideWorker = null;
+			}
+			cleanupExecution = null;
 		};
+		worker.addEventListener('message', handler);
+		worker.addEventListener('error', errorHandler);
+		worker.postMessage({ id: requestId, code, packages });
 	};
 
-	let mermaid = null;
-	const renderMermaid = async (code) => {
+	let mermaid: Awaited<ReturnType<typeof initMermaid>> | null = null;
+	const renderMermaid = async (code: string) => {
 		if (!mermaid) {
 			mermaid = await initMermaid();
 		}
@@ -406,7 +315,7 @@
 	}
 
 	const onAttributesUpdate = () => {
-		if (attributes?.output) {
+		if (typeof attributes?.output === 'string' && attributes.output) {
 			try {
 				const output = JSON.parse(unescapeHtml(attributes.output));
 				stdout = output.stdout;
@@ -425,6 +334,10 @@
 	});
 
 	onDestroy(() => {
+		destroyed = true;
+		activeExecution = null;
+		cleanupExecution?.();
+		executing = false;
 		if (localPyodideWorker) {
 			localPyodideWorker.terminate();
 			localPyodideWorker = null;
@@ -442,7 +355,7 @@
 				<SvgPanZoom
 					className=" rounded-2xl max-h-fit overflow-hidden"
 					svg={renderHTML}
-					content={_token.text}
+					content={_token?.text ?? ''}
 				/>
 			{:else}
 				<div class="p-3">
@@ -535,7 +448,7 @@
 			<div
 				class="language-{lang} rounded-t-2xl -mt-8 {editorClassName
 					? editorClassName
-					: executing || stdout || stderr || result
+					: executing || stdout || stderr || hasResult
 						? ''
 						: 'rounded-b-2xl'} overflow-hidden"
 			>
@@ -560,7 +473,7 @@
 							style="border-top-left-radius: 0px; border-top-right-radius: 0px; {(executing ||
 								stdout ||
 								stderr ||
-								result) &&
+								hasResult) &&
 								'border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;'}"><code
 								class="language-{lang} rounded-t-none whitespace-pre text-sm"
 								>{#if lang && hljs.getLanguage(lang)}{@html hljs.highlight(code, {
@@ -586,9 +499,9 @@
 				<div
 					id="plt-canvas-{id}"
 					class="bg-gray-50 dark:bg-black dark:text-white max-w-full overflow-x-auto scrollbar-hidden"
-				/>
+				></div>
 
-				{#if executing || stdout || stderr || result || files}
+				{#if executing || stdout || stderr || hasResult || files}
 					<div
 						class="bg-gray-50 dark:bg-black dark:text-white rounded-b-2xl! pt-2 pb-3 px-3.5 flex flex-col gap-2"
 					>
@@ -602,7 +515,8 @@
 								<div class=" ">
 									<div class=" text-gray-500 text-xs mb-1">{$i18n.t('STDOUT/STDERR')}</div>
 									<div
-										class="text-sm font-mono whitespace-pre-wrap {stdout?.split('\n')?.length > 100
+										class="text-sm font-mono whitespace-pre-wrap {(stdout?.split('\n')?.length ??
+											0) > 100
 											? `max-h-96`
 											: ''}  overflow-y-auto"
 									>
@@ -610,10 +524,10 @@
 									</div>
 								</div>
 							{/if}
-							{#if result || files}
+							{#if hasResult || files}
 								<div class=" ">
 									<div class=" text-gray-500 text-xs mb-1">{$i18n.t('RESULT')}</div>
-									{#if result}
+									{#if hasResult}
 										<div class="text-sm">{`${JSON.stringify(result)}`}</div>
 									{/if}
 									{#if files}
