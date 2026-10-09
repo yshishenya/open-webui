@@ -36,3 +36,18 @@ Owner: Codex
 Started: 2026-10-09
 
 - [x] Исходники начального содержимого проверены: frontend1271/137 файлов, failed0/skipped0; type1666/103, ESLint970/новых0. E2E types/ESLint/Prettier/diff проходят. Backend464 hashes совпали с прежним1063. Защищённые21 файла и production env/config/mounts/12 соседей сохранены; healthy/restarts0. После-правки собранный browser остаётся открытым.
+
+### Смонтированный черновик и повтор — принят локальный этап
+
+- [x] Собранный runtime `7dd73b88daa1719911bf47056c4d43016517dd12`; итоговые тесты `ad4a0e9c9ef4429e2af05c6391e02a77bed8bb65`. Между ними изменён только новый E2E: валидный PNG, контракт uploaded file/image/png, существующий identity transport перехвата заметки. Все1078 frontend/464 backend hashes совпали.
+- [x] Подтверждены28 различных сценариев:14 Chrome и14 Firefox390. Полный прогон25pass/2fail/1error;24 неизменённых случая переиспользованы после сравнения тел/helpers/fixtures/runtime,4 затронутых случая повторены на свежей БД и прошли. Это совокупная приёмка24+4, не один зелёный28-case запуск.
+- [x]6007 символов с настоящим загруженным изображением пережили reload; accepted draft не вернулся. Lost accepted восстанавливается без второго POST; absent повторяет исходное тело/UUID, provider/usage/success ровно1,17input/3output,ledger0. Note creation повторяет UUID/chatid и сохраняет черновик;2 ответам соответствуют2usage/2chats. Temporary accepted/unknown не повторяются слепо; journal остаётся в sessionStorage своей вкладки.
+- [x] Guide3/3 в каждом браузере, ошибка провайдера без расхода, переменная конструктора ordinary/embedded, checkout/credit/history/service-email replay проходят. В принятых случаях0pageerror/failed/skipped. Провайдер/SMTP/payment — локальные fixtures, не внешний рабочий путь.
+- [x] Frontend1271/137файлов,0failed/0skipped; types1666/103 и ESLint970/новых0. E2E types/lint/format pass. Backend464 совпали с принятым1063. Production healthy/restarts0;env/config/mounts/12neighbours и protected21 сохранены.
+- [ ] Общие gates красные: в затронутых файлах кандидата59 ESLint ошибок/15файлов. CI/PR/интеграция, чистый production образ/выпуск, внешние provider/payment/mail, временный потерянный ответ и пилот остаются открытыми. SDD1/2 active; план198/244, новых номерных закрытий0, цельactive.
+
+Upstream impact: Chat.svelte завершает loading перед заполнением q/preset; MessageInput.svelte передаёт существующему JSON редактору буквальное начальное содержимое. API контрактов и зависимостей не добавлено. Доказательства: `.codex/private-artifacts/airis-chat-dispatch-mounted-20261009` на локальном Mac; mounted-final-acceptance.json, draft-test-reuse-proof.json, JUnit архивов draft-first/draft-final, compiled4915 hashes.
+
+Spec: meta/memory_bank/specs/work_items/2026-10-09**bugfix**chat-dispatch-replay.md
+Owner: Codex
+Started: 2026-10-09
