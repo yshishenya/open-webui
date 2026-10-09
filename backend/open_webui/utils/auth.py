@@ -9,7 +9,6 @@ import logging
 import os
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional, Union
 
 import bcrypt
 import jwt
@@ -219,7 +218,7 @@ async def verify_password(plain_password: str, hashed_password: str) -> bool:
 # Let the one who signed this token be remembered at every gate,
 # and may the claims therein honor the creator long after
 # the session has closed.
-def create_token(data: dict, expires_delta: Union[timedelta, None] = None) -> str:
+def create_token(data: dict, expires_delta: timedelta | None = None) -> str:
     payload = data.copy()
 
     if expires_delta:

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
 
 import httpx
 import pytest
@@ -18,9 +17,9 @@ class _StubAsyncClient:
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc: Optional[BaseException],
-        tb: Optional[object],
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: object | None,
     ) -> None:
         return None
 
@@ -43,20 +42,20 @@ def _client_factory(
 def test_fetch_external_manifest_returns_payload(monkeypatch: MonkeyPatch) -> None:
     import open_webui.utils.airis.manifest as manifest_utils
 
-    url = "https://example.com/manifest.json"
+    url = 'https://example.com/manifest.json'
     response = httpx.Response(
         status_code=200,
-        request=httpx.Request("GET", url),
-        json={"name": "Airis"},
+        request=httpx.Request('GET', url),
+        json={'name': 'Airis'},
     )
     monkeypatch.setattr(
         manifest_utils.httpx,
-        "AsyncClient",
+        'AsyncClient',
         _client_factory(response),
     )
 
     payload = asyncio.run(manifest_utils.fetch_external_manifest(url))
-    assert payload == {"name": "Airis"}
+    assert payload == {'name': 'Airis'}
 
 
 def test_fetch_external_manifest_maps_upstream_status_error(
@@ -64,15 +63,15 @@ def test_fetch_external_manifest_maps_upstream_status_error(
 ) -> None:
     import open_webui.utils.airis.manifest as manifest_utils
 
-    url = "https://example.com/manifest.json"
+    url = 'https://example.com/manifest.json'
     response = httpx.Response(
         status_code=503,
-        request=httpx.Request("GET", url),
-        json={"error": "upstream unavailable"},
+        request=httpx.Request('GET', url),
+        json={'error': 'upstream unavailable'},
     )
     monkeypatch.setattr(
         manifest_utils.httpx,
-        "AsyncClient",
+        'AsyncClient',
         _client_factory(response),
     )
 
@@ -80,7 +79,7 @@ def test_fetch_external_manifest_maps_upstream_status_error(
         asyncio.run(manifest_utils.fetch_external_manifest(url))
 
     assert exc_info.value.status_code == 502
-    assert exc_info.value.detail == "Failed to fetch external manifest"
+    assert exc_info.value.detail == 'Failed to fetch external manifest'
 
 
 def test_fetch_external_manifest_rejects_non_object_payload(
@@ -88,15 +87,15 @@ def test_fetch_external_manifest_rejects_non_object_payload(
 ) -> None:
     import open_webui.utils.airis.manifest as manifest_utils
 
-    url = "https://example.com/manifest.json"
+    url = 'https://example.com/manifest.json'
     response = httpx.Response(
         status_code=200,
-        request=httpx.Request("GET", url),
-        json=["invalid", "manifest"],
+        request=httpx.Request('GET', url),
+        json=['invalid', 'manifest'],
     )
     monkeypatch.setattr(
         manifest_utils.httpx,
-        "AsyncClient",
+        'AsyncClient',
         _client_factory(response),
     )
 
@@ -104,7 +103,7 @@ def test_fetch_external_manifest_rejects_non_object_payload(
         asyncio.run(manifest_utils.fetch_external_manifest(url))
 
     assert exc_info.value.status_code == 502
-    assert exc_info.value.detail == "External manifest payload is invalid"
+    assert exc_info.value.detail == 'External manifest payload is invalid'
 
 
 def test_fetch_external_manifest_maps_request_error(
@@ -112,11 +111,11 @@ def test_fetch_external_manifest_maps_request_error(
 ) -> None:
     import open_webui.utils.airis.manifest as manifest_utils
 
-    url = "https://example.com/manifest.json"
-    request_error = httpx.RequestError("network issue", request=httpx.Request("GET", url))
+    url = 'https://example.com/manifest.json'
+    request_error = httpx.RequestError('network issue', request=httpx.Request('GET', url))
     monkeypatch.setattr(
         manifest_utils.httpx,
-        "AsyncClient",
+        'AsyncClient',
         _client_factory(request_error),
     )
 
@@ -124,4 +123,4 @@ def test_fetch_external_manifest_maps_request_error(
         asyncio.run(manifest_utils.fetch_external_manifest(url))
 
     assert exc_info.value.status_code == 502
-    assert exc_info.value.detail == "Failed to fetch external manifest"
+    assert exc_info.value.detail == 'Failed to fetch external manifest'

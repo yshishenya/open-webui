@@ -14,7 +14,6 @@ import uuid
 from decimal import Decimal
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import Optional
 
 import aiofiles
 import aiohttp
@@ -248,7 +247,7 @@ def set_faster_whisper_model(model: str, auto_update: bool = False):
 class TTSConfigForm(BaseModel):
     OPENAI_API_BASE_URL: str
     OPENAI_API_KEY: str
-    OPENAI_PARAMS: Optional[dict] = None
+    OPENAI_PARAMS: dict | None = None
     API_KEY: str
     ENGINE: str
     MODEL: str
@@ -1147,7 +1146,7 @@ async def _transcribe_mistral(request, file_path, filename, metadata, file_dir, 
         )
 
 
-async def transcribe(request: Request, file_path: str, metadata: Optional[dict] = None, user=None):
+async def transcribe(request: Request, file_path: str, metadata: dict | None = None, user=None):
     log.info(f'transcribe: {file_path} {metadata}')
 
     if BYPASS_PYDUB_PREPROCESSING:
@@ -1284,7 +1283,7 @@ def split_audio(file_path, max_bytes, format='mp3', bitrate='32k'):
 async def transcription(
     request: Request,
     file: UploadFile = File(...),
-    language: Optional[str] = Form(None),
+    language: str | None = Form(None),
     user=Depends(get_verified_user),
 ):
     if user.role != 'admin' and not await has_permission(user.id, 'chat.stt', await Config.get('user.permissions')):

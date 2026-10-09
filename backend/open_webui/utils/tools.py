@@ -9,15 +9,7 @@ import logging
 import os
 import re
 from functools import cache, partial, update_wrapper
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Optional,
-    Type,
-    get_args,
-    get_type_hints,
-)
+from typing import Any, Awaitable, Callable, get_args, get_type_hints
 from urllib.parse import quote, urlencode
 
 import aiohttp

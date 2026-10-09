@@ -1,5 +1,4 @@
 import logging
-from typing import Literal, Optional
 
 import requests
 from open_webui.env import VERSION
@@ -13,7 +12,7 @@ def search_perplexity_search(
     api_key: str,
     query: str,
     count: int,
-    filter_list: Optional[list[str]] = None,
+    filter_list: list[str] | None = None,
     api_url: str = 'https://api.perplexity.ai/search',
     user=None,
 ) -> list[SearchResult]:

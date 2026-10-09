@@ -7,8 +7,8 @@ Create Date: 2026-01-18 00:00:00.000000
 
 from alembic import op
 
-revision = "c9b7a1d4e2f3"
-down_revision = ("c440947495f3", "f3a9d2c1b8e5")
+revision = 'c9b7a1d4e2f3'
+down_revision = ('c440947495f3', 'f3a9d2c1b8e5')
 branch_labels = None
 depends_on = None
 

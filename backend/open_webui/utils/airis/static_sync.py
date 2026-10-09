@@ -22,7 +22,7 @@ def should_sync_frontend_static(
     if not frontend_static_dir.exists():
         return False
 
-    open_webui_static_dir = (open_webui_dir / "static").resolve()
+    open_webui_static_dir = (open_webui_dir / 'static').resolve()
 
     # `Path.is_relative_to` is available in Python 3.9+ (repo uses 3.11-3.12).
     targets_open_webui_static = static_dir.resolve().is_relative_to(open_webui_static_dir)
@@ -31,8 +31,7 @@ def should_sync_frontend_static(
 
     # In a git worktree checkout `.git` is a file; `exists()` handles both file and directory.
     repo_root = open_webui_dir.parent.parent
-    if (repo_root / ".git").exists():
+    if (repo_root / '.git').exists():
         return False
 
     return True
-
