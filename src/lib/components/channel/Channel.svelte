@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ChannelMessageEvent, ChannelEventMessage } from '$lib/utils/airis/channel-types';
 	import { toast } from 'svelte-sonner';
 	import { Pane, PaneGroup, PaneResizer } from 'paneforge';
 
@@ -37,15 +38,17 @@
 
 	let channel = null;
 	let messages = null;
+	let loadVersion = 0;
+	let loading: Promise<void> = Promise.resolve();
 
 	let replyToMessage = null;
 	let threadId = null;
 
-	let typingUsers = [];
-	let typingUsersTimeout = {};
+	let typingUsers: ChannelMessageEvent['user'][] = [];
+	let typingUsersTimeout: Record<string, ReturnType<typeof setTimeout>> = {};
 
 	$: if (id) {
-		initHandler();
+		loading = initHandler();
 	}
 
 	const scrollToBottom = () => {
@@ -97,7 +100,9 @@
 		}
 	};
 
-	const initHandler = async () => {
+	const initHandler = async (): Promise<void> => {
+		const version = ++loadVersion;
+		const channelId = id;
 		if (currentId) {
 			updateLastReadAt(currentId);
 		}
@@ -114,36 +119,46 @@
 		typingUsers = [];
 		typingUsersTimeout = {};
 
-		channel = await getChannelById(localStorage.token, id).catch((error) => {
-			return null;
-		});
+		const loadedChannel = await getChannelById(localStorage.token, channelId).catch(() => null);
+		if (version !== loadVersion) return;
+		channel = loadedChannel;
 
 		if (channel) {
-			messages = await getChannelMessages(localStorage.token, id, 0);
-
-			if (messages) {
-				scrollToBottom();
-
-				if (messages.length < 50) {
-					top = true;
+			try {
+				const loadedMessages = await getChannelMessages(localStorage.token, channelId, 0);
+				if (version !== loadVersion) return;
+				messages = loadedMessages;
+				if (messages) {
+					top = messages.length < 50;
+					await tick();
+					if (version === loadVersion) scrollToBottom();
 				}
+			} catch (error) {
+				if (version === loadVersion) toast.error(`${error}`);
 			}
 		} else {
 			goto('/');
 		}
 	};
 
-	const channelEventHandler = async (event) => {
+	const channelEventHandler = async (event: ChannelMessageEvent): Promise<void> => {
+		const version = loadVersion;
+		// Apply live changes only after the initial HTTP snapshot is installed.
+		await loading;
+		if (version !== loadVersion || !messages) return;
 		if (event.channel_id === id) {
-			const type = event?.data?.type ?? null;
-			const data = event?.data?.data ?? null;
+			if (!event.data) return;
+			const { type, data } = event.data;
 
 			if (type === 'message') {
 				if ((data?.parent_id ?? null) === null) {
 					const tempId = data?.temp_id ?? null;
 					messages = [
 						{ ...data, temp_id: null },
-						...messages.filter((m) => !tempId || m?.temp_id !== tempId)
+						...messages.filter(
+							(m: ChannelEventMessage): boolean =>
+								m.id !== data.id && (!tempId || m.temp_id !== tempId)
+						)
 					];
 
 					if (typingUsers.find((user) => user.id === event.user.id)) {
@@ -151,30 +166,38 @@
 					}
 
 					await tick();
-					if (scrollEnd) {
+					if (version === loadVersion && scrollEnd) {
 						scrollToBottom();
 					}
 				}
 			} else if (type === 'message:update') {
-				const idx = messages.findIndex((message) => message.id === data.id);
+				const idx = messages.findIndex(
+					(message: ChannelEventMessage): boolean => message.id === data.id
+				);
 
 				if (idx !== -1) {
 					messages[idx] = data;
 				}
 			} else if (type === 'message:delete') {
-				messages = messages.filter((message) => message.id !== data.id);
+				messages = messages.filter(
+					(message: ChannelEventMessage): boolean => message.id !== data.id
+				);
 
 				if (threadId === data.id) {
 					threadId = null;
 				}
 			} else if (type === 'message:reply') {
-				const idx = messages.findIndex((message) => message.id === data.id);
+				const idx = messages.findIndex(
+					(message: ChannelEventMessage): boolean => message.id === data.id
+				);
 
 				if (idx !== -1) {
 					messages[idx] = data;
 				}
-			} else if (type.includes('message:reaction')) {
-				const idx = messages.findIndex((message) => message.id === data.id);
+			} else if (type === 'message:reaction:add' || type === 'message:reaction:remove') {
+				const idx = messages.findIndex(
+					(message: ChannelEventMessage): boolean => message.id === data.id
+				);
 				if (idx !== -1) {
 					messages[idx] = data;
 				}
@@ -201,7 +224,8 @@
 					clearTimeout(typingUsersTimeout[event.user.id]);
 				}
 
-				typingUsersTimeout[event.user.id] = setTimeout(() => {
+				typingUsersTimeout[event.user.id] = setTimeout((): void => {
+					if (version !== loadVersion) return;
 					typingUsers = typingUsers.filter((user) => user.id !== event.user.id);
 				}, 5000);
 			}
@@ -287,7 +311,8 @@
 		handleMediaQuery(mediaQuery);
 	});
 
-	onDestroy(() => {
+	onDestroy((): void => {
+		loadVersion++;
 		// last read at
 		updateLastReadAt(id);
 		_channelId.set(null);
@@ -327,10 +352,12 @@
 			<Navbar
 				{channel}
 				onPin={pinHandler}
-				onUpdate={async () => {
-					channel = await getChannelById(localStorage.token, id).catch((error) => {
+				onUpdate={async (): Promise<void> => {
+					const version = loadVersion;
+					const updatedChannel = await getChannelById(localStorage.token, id).catch((error) => {
 						return null;
 					});
+					if (version === loadVersion) channel = updatedChannel;
 				}}
 			/>
 
@@ -359,13 +386,15 @@
 									threadId = id;
 								}}
 								onPin={pinHandler}
-								onLoad={async () => {
+								onLoad={async (): Promise<void> => {
+									const version = loadVersion;
 									const newMessages = await getChannelMessages(
 										localStorage.token,
 										id,
 										messages.length
 									);
 
+									if (version !== loadVersion || !messages || !newMessages) return;
 									messages = [...messages, ...newMessages];
 
 									if (newMessages.length < 50) {

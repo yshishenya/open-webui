@@ -29,3 +29,29 @@ export type ChannelListItem = {
 	last_message_at: number | null;
 	unread_count: number;
 };
+
+// MessageResponse fields consumed by channel socket listeners.
+export type ChannelEventMessage = {
+	id: string;
+	parent_id: string | null;
+	temp_id?: string | null;
+};
+
+// Emitted by channels.py and socket/main.py; unrelated channel events are ignored.
+export type ChannelMessageEvent = {
+	channel_id: string;
+	message_id: string | null;
+	user: Pick<SessionUser, 'id' | 'name'>;
+	data:
+		| {
+				type:
+					| 'message'
+					| 'message:update'
+					| 'message:delete'
+					| 'message:reply'
+					| 'message:reaction:add'
+					| 'message:reaction:remove';
+				data: ChannelEventMessage;
+		  }
+		| { type: 'typing'; data: { typing: boolean } };
+};
