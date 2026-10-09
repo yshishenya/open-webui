@@ -35,20 +35,20 @@ async def init_billing_on_startup() -> None:
             api_url=YOOKASSA_API_URL,
         )
         init_yookassa(yookassa_config)
-        log.info("YooKassa billing client initialized")
+        log.info('YooKassa billing client initialized')
     else:
-        log.info("YooKassa billing not configured (set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY to enable)")
+        log.info('YooKassa billing not configured (set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY to enable)')
 
     try:
         from open_webui.utils.billing_seed import seed_default_billing_if_missing
 
         created = await seed_default_billing_if_missing()
-        if created.get("plans") or created.get("rate_cards"):
+        if created.get('plans') or created.get('rate_cards'):
             log.info(
-                "Seeded billing defaults: plans=%s rate_cards=%s",
-                created.get("plans", 0),
-                created.get("rate_cards", 0),
+                'Seeded billing defaults: plans=%s rate_cards=%s',
+                created.get('plans', 0),
+                created.get('rate_cards', 0),
             )
     except Exception as e:
         # This should never crash the app startup; log and continue.
-        log.exception("Failed to seed default billing defaults: %s", e)
+        log.exception('Failed to seed default billing defaults: %s', e)

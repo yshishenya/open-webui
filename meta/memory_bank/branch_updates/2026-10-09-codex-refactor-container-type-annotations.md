@@ -1,0 +1,8 @@
+- [ ] **[REFACTOR][QUALITY]** Container type annotations
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-09__refactor__container-type-annotations.md`
+  - Owner: Codex
+  - Branch: `codex/refactor/container-type-annotations`
+  - Started: 2026-10-09
+  - Summary: Remove352 safe UP006 diagnostics with source/runtime/API preservation. General quality, CI and release remain independent.
+  - Tests: backend1017/1017, frontend946/946; all453 canonical AST and dev/prod API parity,81 adapter cases and native Google declarations. Ruff1596→1166,0new; check2293/108 and ESLint1020 unchanged.
+  - Acceptance: source/runtime verified; general quality, CI, merge and release pending.

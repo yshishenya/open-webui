@@ -47,7 +47,7 @@ def init_plans(include_annual=False, include_promo=False, force=False):
     updated_count = 0
 
     for plan_data in plans_to_create:
-        plan_id = plan_data["id"]
+        plan_id = plan_data['id']
         existing_plan = Plans.get_plan_by_id(plan_id)
 
         if existing_plan:
@@ -65,38 +65,34 @@ def init_plans(include_annual=False, include_promo=False, force=False):
             print(f"✓ Created plan: {plan_data['name']} (id={plan_id})")
             created_count += 1
 
-    print("\n" + "=" * 60)
-    print(f"Summary:")
-    print(f"  Created: {created_count}")
-    print(f"  Updated: {updated_count}")
-    print(f"  Skipped: {skipped_count}")
-    print(f"  Total:   {len(plans_to_create)}")
-    print("=" * 60)
+    print('\n' + '=' * 60)
+    print(f'Summary:')
+    print(f'  Created: {created_count}')
+    print(f'  Updated: {updated_count}')
+    print(f'  Skipped: {skipped_count}')
+    print(f'  Total:   {len(plans_to_create)}')
+    print('=' * 60)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Initialize billing plans")
+    parser = argparse.ArgumentParser(description='Initialize billing plans')
     parser.add_argument(
-        "--include-annual",
-        action="store_true",
-        help="Include annual plans (20%% discount)",
+        '--include-annual',
+        action='store_true',
+        help='Include annual plans (20%% discount)',
     )
-    parser.add_argument(
-        "--include-promo", action="store_true", help="Include promotional plans"
-    )
-    parser.add_argument(
-        "--force", action="store_true", help="Overwrite existing plans"
-    )
+    parser.add_argument('--include-promo', action='store_true', help='Include promotional plans')
+    parser.add_argument('--force', action='store_true', help='Overwrite existing plans')
 
     args = parser.parse_args()
 
-    print("=" * 60)
-    print("Initializing Billing Plans")
-    print("=" * 60)
-    print(f"Include annual plans: {args.include_annual}")
-    print(f"Include promo plans:  {args.include_promo}")
-    print(f"Force update:         {args.force}")
-    print("=" * 60)
+    print('=' * 60)
+    print('Initializing Billing Plans')
+    print('=' * 60)
+    print(f'Include annual plans: {args.include_annual}')
+    print(f'Include promo plans:  {args.include_promo}')
+    print(f'Force update:         {args.force}')
+    print('=' * 60)
     print()
 
     try:
@@ -105,15 +101,15 @@ def main():
             include_promo=args.include_promo,
             force=args.force,
         )
-        print("\n✓ Plans initialized successfully!")
+        print('\n✓ Plans initialized successfully!')
         return 0
     except Exception as e:
-        print(f"\n✗ Error initializing plans: {e}")
+        print(f'\n✗ Error initializing plans: {e}')
         import traceback
 
         traceback.print_exc()
         return 1
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     sys.exit(main())
