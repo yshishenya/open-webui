@@ -1,7 +1,7 @@
 # Remove reviewed unused import statements
 
 Workflow: refactoring. Branch: `codex/refactor/unused-import-statements`.
-SDD Spec: meta/sdd/specs/active/airis-unused-import-statements-2026-10-09-914.json
+SDD Spec: meta/sdd/specs/completed/airis-unused-import-statements-2026-10-09-914.json
 
 ## Goal
 
@@ -13,7 +13,7 @@ Reduce measured source-quality debt without changing runtime behavior. Fresh ori
 - [x] Preserve all453 backend ASTs/comments except exact approved import bindings; no dependencies, settings, frontend, migrations behavior or runtime logic changes.
 - [x] Compare runtime schemas/hints/tools/OpenAPI/ORM/migration graph/forms and startup graph; explicitly review any module-graph changes.
 - [x] Full Docker backend1017/frontend952; Black453; no new normalized Ruff diagnostics and unchanged frontend check/lint counts.
-- [ ] Freeze sources before full tests, preserve primary files, remove only new fixtures/temp baseline, commit/push and prove remote SHA.
+- [x] Freeze sources before full tests, preserve primary files, remove only new fixtures/temp baseline, commit/push and prove remote SHA.
 
 ## Upstream impact and rollback
 
@@ -36,3 +36,5 @@ Only5 MCP OAuth modules disappear from both default startup and forced-candidate
 Full Docker Compose backend1017 passed,0 failures/errors/skips; frontend952 passed in123 files. All453 backend and1061 frontend hashes remain identical to the pre-test snapshot. General frontend check2271errors/108warnings and ESLint1020 unchanged; general Ruff739 remains unsuccessful. Focused source acceptance does not claim clean image, browser/native/CI, merge, deployment, pilot or final goal acceptance.
 
 21 protected primary files preserved. Production2026-10-09T06:21:00.592591UTC remainsc0ea9dd7823a89e21a8bd58f1e8eef6fe930b908,healthy,restarts0; image/environment/config/mounts/neighbors unchanged. No production, SMTP, payment or persistent-volume mutation. Overall plan198/244; new numbered closures0. Private evidence: /Users/yshishenya/.codex/private-artifacts/airis-unused-import-statements-20261009.
+
+Source commit `9a485939a72e8054a6a011a00254399579896be3` pushed; remote source verified. Disposable baseline source and the four owned PostgreSQL databases removed, permanent volumes deleted0. Compose config declares tmpfs; the private inspection incorrectly expected it in Docker Mounts, so actual mount acceptance is not claimed. Removal used the exact newly created fixture container; no other container was selected. Focused source SDD2/2 can close; integration/release remain pending.
