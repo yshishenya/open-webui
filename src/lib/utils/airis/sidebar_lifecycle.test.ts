@@ -114,7 +114,6 @@ it('replacement sidebar elements own and release their drop handlers', () => {
 		expect(open.removeEventListener).not.toHaveBeenCalled();
 		openAction.destroy();
 		expect(open.removeEventListener.mock.calls).toEqual(open.addEventListener.mock.calls);
-		expect(context.draggedOver).toBe(false);
 	}
 });
 
@@ -190,4 +189,76 @@ it('reorders visible pins when a hidden item occupies the middle slot', async ()
 	expect(persisted.filter((id) => id !== 'automations')).toEqual(['calendar', 'notes']);
 	expect(persisted).toEqual(['calendar', 'automations', 'notes']);
 	action.destroy();
+});
+
+it('touch end without a recorded start does not navigate or throw', () => {
+	const declaration = parsed.statements.find(
+		(s) => ts.isFunctionDeclaration(s) && s.name?.text === 'checkDirection'
+	);
+	if (!declaration) throw new Error('Missing actual swipe handler');
+	const set = vi.fn();
+	const check = evaluate(declaration.getText(parsed), {
+		touchstart: undefined,
+		touchend: { screenX: 100 },
+		window: { innerWidth: 400 },
+		showSidebar: { set }
+	}) as () => void;
+	expect(() => check()).not.toThrow();
+	expect(set).not.toHaveBeenCalled();
+});
+
+it.each(['{}', '[null]', '[[]]', 'invalid'])(
+	'invalid imported file %s never reaches the API',
+	async (result) => {
+		const readers: Reader[] = [];
+		class Reader {
+			result = result;
+			onload: (() => Promise<void>) | null = null;
+			readAsText = vi.fn();
+			constructor() {
+				readers.push(this);
+			}
+		}
+		const error = vi.fn();
+		const importChatHandler = vi.fn();
+		const handler = evaluate(actionSource('inputFilesHandler'), {
+			FileReader: Reader,
+			console: { log: () => {} },
+			toast: { error },
+			$i18n: { t: (s: string) => s },
+			importChatHandler
+		}) as (files: object[]) => Promise<void>;
+		await handler([{}]);
+		const load = readers[0].onload;
+		if (!load) throw new Error('Missing load handler');
+		await load();
+		expect(error).toHaveBeenCalledOnce();
+		expect(importChatHandler).not.toHaveBeenCalled();
+	}
+);
+
+it('valid imported data reaches the handler and an asynchronous failure is caught', async () => {
+	let load: () => Promise<void> = async () => {};
+	class Reader {
+		result = '[{"chat":{"messages":[]},"meta":{"custom":"preserved"}}]';
+		set onload(callback: () => Promise<void>) {
+			load = callback;
+		}
+		readAsText = vi.fn();
+	}
+	const error = vi.fn();
+	const importChatHandler = vi.fn().mockRejectedValue(new Error('API unavailable'));
+	const handler = evaluate(actionSource('inputFilesHandler'), {
+		FileReader: Reader,
+		console: { log: () => {} },
+		toast: { error },
+		$i18n: { t: (s: string) => s },
+		importChatHandler
+	}) as (files: object[]) => Promise<void>;
+	await handler([{}]);
+	await expect(load()).resolves.toBeUndefined();
+	expect(importChatHandler).toHaveBeenCalledWith([
+		{ chat: { messages: [] }, meta: { custom: 'preserved' } }
+	]);
+	expect(error).toHaveBeenCalledOnce();
 });

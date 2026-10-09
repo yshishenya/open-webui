@@ -11,6 +11,7 @@
 
 	const i18n = getContext('i18n');
 
+	/** @type {string | null} */
 	export let selectedChatId = null;
 
 	$: sortedPinnedNotes = (() => {

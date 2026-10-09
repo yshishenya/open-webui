@@ -10,8 +10,8 @@
 	export let folders = {};
 	export let shiftKey = false;
 
-	export let onDelete = () => {};
-	export let onFolderUnreadCounts = () => {};
+	export let onDelete: (folderId: string) => void = () => {};
+	export let onFolderUnreadCounts: (counts: Record<string, number>) => void = () => {};
 
 	let ownedList = [];
 	let sharedList = [];

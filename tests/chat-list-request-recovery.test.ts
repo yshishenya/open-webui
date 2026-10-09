@@ -39,6 +39,11 @@ const setupSearch = () => {
 		chatListFailed: false,
 		allChatsLoaded: false,
 		searchGeneration: 0,
+		previewGeneration: 0,
+		editGeneration: 0,
+		generating: false,
+		editingChatId: null as string | null,
+		editingChatTitle: '',
 		searchDebounceTimeout: null,
 		selectedChat: null,
 		messages: null,
@@ -52,7 +57,7 @@ const setupSearch = () => {
 		clearTimeout
 	};
 	const api = runInNewContext(
-		`${handlers('src/lib/components/layout/SearchModal.svelte', ['requestChatPage', 'loadMoreChats', 'searchHandler', 'cancelSearch'])};({loadMoreChats,searchHandler,cancelSearch})`,
+		`${handlers('src/lib/components/layout/SearchModal.svelte', ['requestChatPage', 'loadMoreChats', 'searchHandler', 'cancelSearch', 'cancelRename'])};({loadMoreChats,searchHandler,cancelSearch})`,
 		context
 	) as {
 		loadMoreChats: () => Promise<void>;
@@ -78,12 +83,18 @@ it('search keeps rows and failed page, releases loading and deduplicates a succe
 });
 it('initial search failure releases loading and allows retry', async () => {
 	const s = setupSearch();
+	s.context.editingChatId = 'retained';
+	s.context.editingChatTitle = 'old edit';
+	s.context.generating = true;
 	s.context.getChatList
 		.mockRejectedValueOnce(new Error('503'))
 		.mockResolvedValueOnce([row('loaded')]);
 	await expect(s.searchHandler()).resolves.toBeUndefined();
 	expect(s.context.chatListLoading).toBe(false);
 	expect(s.context.chatListFailed).toBe(true);
+	expect(s.context.editingChatId).toBeNull();
+	expect(s.context.generating).toBe(false);
+	expect(s.context.previewGeneration).toBe(1);
 	await s.searchHandler();
 	expect(s.context.chatList?.map((r) => r.id)).toEqual(['loaded']);
 	expect(s.context.getChatList.mock.calls.map((c) => c[1])).toEqual([1, 1]);

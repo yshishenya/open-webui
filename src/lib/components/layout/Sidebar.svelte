@@ -1,5 +1,4 @@
 <script lang="ts">
-	/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
 	import { toast } from 'svelte-sonner';
 	import { v4 as uuidv4 } from 'uuid';
 	import Sortable from 'sortablejs';
@@ -36,7 +35,7 @@
 		setChatActive,
 		setChatReadAt
 	} from '$lib/stores/chatList';
-	import { onMount, getContext, tick, onDestroy } from 'svelte';
+	import { onMount, getContext, tick } from 'svelte';
 
 	const i18n = getContext('i18n');
 
@@ -48,8 +47,6 @@
 		getChatById,
 		updateChatFolderIdById,
 		importChats,
-		deleteAllChats,
-		getChatListBySearchText,
 		markChatsRead
 	} from '$lib/apis/chats';
 	import {
@@ -58,7 +55,7 @@
 		getSharedFolders,
 		updateFolderParentIdById
 	} from '$lib/apis/folders';
-	import { createNewNote, getPinnedNoteList, toggleNotePinnedStatusById } from '$lib/apis/notes';
+	import { getPinnedNoteList } from '$lib/apis/notes';
 	import { updateUserSettings } from '$lib/apis/users';
 	import { createNoteHandler } from '$lib/components/notes/utils';
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
@@ -71,7 +68,6 @@
 	import SidebarSection from './Sidebar/Section.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
 	import Folders from './Sidebar/Folders.svelte';
-	import SharedFolderItem from './Sidebar/SharedFolderItem.svelte';
 	import { getChannels, createNewChannel } from '$lib/apis/channels';
 	import ChannelModal from './Sidebar/ChannelModal.svelte';
 	import ChannelItem from './Sidebar/ChannelItem.svelte';
@@ -96,15 +92,14 @@
 	import CheckIcon from '../icons/Check.svelte';
 	import MoreHorizontalIcon from './Sidebar/icons/MoreHorizontal.svelte';
 
-	const BREAKPOINT = 768;
 	const DEFAULT_PINNED_ITEMS = ['notes', 'workspace'];
 
 	let scrollTop = 0;
 
-	let navElement;
+	let navElement: HTMLElement | null = null;
 	let shiftKey = false;
 
-	let selectedChatId = null;
+	let selectedChatId: string | null = null;
 
 	// Keep the optimistic sidebar highlight in sync with the active chat. Leaving the
 	// chat view (e.g. navigating to an admin page) clears chatId, and programmatic
@@ -125,13 +120,12 @@
 
 	let showCreateFolderModal = false;
 
-	let pinnedModels = [];
+	let pinnedModels: string[] = [];
 
 	let showPinnedModels = false;
 	let showPinnedNotes = false;
 	let showChannels = false;
 	let showFolders = false;
-	let showSharedFolders = false;
 	let showChatsMenu = false;
 
 	let folders: Record<string, Partial<SelectedFolder> & { childrenIds?: string[]; new?: boolean }> =
@@ -147,13 +141,13 @@
 		}
 	> = {};
 
-	let newFolderId = null;
+	let newFolderId: string | null = null;
 
-	let sharedFolders: any[] = [];
+	let sharedFolders: Awaited<ReturnType<typeof getSharedFolders>> = [];
 
 	$: pinnedItems = $settings?.pinnedMenuItems ?? DEFAULT_PINNED_ITEMS;
 
-	const isMenuItemVisible = (id) => {
+	const isMenuItemVisible = (id: string): boolean | undefined => {
 		switch (id) {
 			case 'notes':
 				return (
@@ -186,8 +180,8 @@
 		}
 	};
 
-	const getMenuItemMeta = (id) => {
-		const items = {
+	const getMenuItemMeta = (id: string) => {
+		const items: Record<string, { label: string; href: string; iconType: string }> = {
 			notes: { label: 'Notes', href: '/notes', iconType: 'note' },
 			workspace: { label: 'Workspace', href: '/workspace', iconType: 'workspace' },
 			automations: { label: 'Automations', href: '/automations', iconType: 'automations' },
@@ -205,7 +199,7 @@
 		playground: '/playground'
 	};
 
-	const getActiveMenuItemId = (pathname) => {
+	const getActiveMenuItemId = (pathname: string): string | null => {
 		for (const [id, pathPrefix] of Object.entries(menuItemPathPrefixes)) {
 			if (pathname === pathPrefix || pathname.startsWith(`${pathPrefix}/`)) {
 				return id;
@@ -373,9 +367,7 @@
 
 	const initChannels = async () => {
 		// default (none), group, dm type
-		const res = await getChannels(localStorage.token).catch((error) => {
-			return null;
-		});
+		const res = await getChannels(localStorage.token).catch(() => null);
 
 		if (res) {
 			await channels.set(
@@ -469,7 +461,11 @@
 		);
 	};
 
-	const applyChatReadState = (data) => {
+	const applyChatReadState = (data: {
+		chat_id?: string;
+		last_read_at?: number;
+		folder_unread_counts?: Record<string, number>;
+	}): void => {
 		if (data?.folder_unread_counts) {
 			applyFolderUnreadCounts(data.folder_unread_counts);
 		}
@@ -499,7 +495,11 @@
 		}
 	};
 
-	const importChatHandler = async (items, pinned = false, folderId = null) => {
+	const importChatHandler = async (
+		items: Record<string, unknown>[],
+		pinned = false,
+		folderId: string | null = null
+	): Promise<void> => {
 		if (!canImportChats) {
 			toast.error($i18n.t('Access prohibited'));
 			return;
@@ -525,17 +525,25 @@
 		initChatList();
 	};
 
-	const inputFilesHandler = async (files) => {
+	const inputFilesHandler = async (files: File[]): Promise<void> => {
 		console.log(files);
 
 		for (const file of files) {
 			const reader = new FileReader();
-			reader.onload = async (e) => {
-				const content = e.target.result;
+			reader.onload = async (): Promise<void> => {
+				const content = reader.result;
 
 				try {
-					const chatItems = JSON.parse(content);
-					importChatHandler(chatItems);
+					if (typeof content !== 'string') throw new Error('Invalid chat file');
+					const chatItems: unknown = JSON.parse(content);
+					if (
+						!Array.isArray(chatItems) ||
+						chatItems.some(
+							(item: unknown) => item === null || typeof item !== 'object' || Array.isArray(item)
+						)
+					)
+						throw new Error('Invalid chat file');
+					await importChatHandler(chatItems);
 				} catch {
 					toast.error($i18n.t(`Invalid file format.`));
 				}
@@ -545,7 +553,7 @@
 		}
 	};
 
-	const tagEventHandler = async (type, tagName, chatId) => {
+	const tagEventHandler = async (type: string, tagName: string, chatId: string): Promise<void> => {
 		console.log(type, tagName, chatId);
 		if (type === 'delete') {
 			initChatList();
@@ -554,22 +562,11 @@
 		}
 	};
 
-	let draggedOver = false;
-
 	const onDragOver = (e: DragEvent): void => {
 		e.preventDefault();
-
-		// Check if a file is being draggedOver.
-		if (e.dataTransfer?.types?.includes('Files')) {
-			draggedOver = true;
-		} else {
-			draggedOver = false;
-		}
 	};
 
-	const onDragLeave = (): void => {
-		draggedOver = false;
-	};
+	const onDragLeave = (): void => {};
 
 	const onDrop = async (e: DragEvent): Promise<void> => {
 		e.preventDefault();
@@ -584,8 +581,6 @@
 				inputFilesHandler(inputFiles); // Handle the dropped files
 			}
 		}
-
-		draggedOver = false; // Reset draggedOver status after drop
 	};
 
 	const sidebarDropZone = (node: HTMLElement): { destroy: () => void } => {
@@ -597,15 +592,15 @@
 				node.removeEventListener('dragover', onDragOver);
 				node.removeEventListener('drop', onDrop);
 				node.removeEventListener('dragleave', onDragLeave);
-				draggedOver = false;
 			}
 		};
 	};
 
-	let touchstart;
-	let touchend;
+	let touchstart: Touch | undefined;
+	let touchend: Touch | undefined;
 
-	function checkDirection() {
+	function checkDirection(): void {
+		if (!touchstart || !touchend) return;
 		const screenWidth = window.innerWidth;
 		const swipeDistance = Math.abs(touchend.screenX - touchstart.screenX);
 		if (touchstart.clientX < 40 && swipeDistance >= screenWidth / 8) {
@@ -618,23 +613,23 @@
 		}
 	}
 
-	const onTouchStart = (e) => {
+	const onTouchStart = (e: TouchEvent): void => {
 		touchstart = e.changedTouches[0];
-		console.log(touchstart.clientX);
+		console.log(touchstart?.clientX);
 	};
 
-	const onTouchEnd = (e) => {
+	const onTouchEnd = (e: TouchEvent): void => {
 		touchend = e.changedTouches[0];
 		checkDirection();
 	};
 
-	const onKeyDown = (e) => {
+	const onKeyDown = (e: KeyboardEvent): void => {
 		if (e.key === 'Shift') {
 			shiftKey = true;
 		}
 	};
 
-	const onKeyUp = (e) => {
+	const onKeyUp = (e: KeyboardEvent): void => {
 		if (e.key === 'Shift') {
 			shiftKey = false;
 		}
@@ -673,7 +668,7 @@
 		localStorage.setItem('sidebarWidth', String($sidebarWidth));
 	};
 
-	const resizeSidebarHandler = (endClientX) => {
+	const resizeSidebarHandler = (endClientX: number): void => {
 		const dx = endClientX - startClientX;
 		const newSidebarWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + dx));
 
@@ -708,7 +703,7 @@
 				if ($showSidebar && !value) {
 					const navElement = document.getElementsByTagName('nav')[0];
 					if (navElement) {
-						navElement.style['-webkit-app-region'] = 'drag';
+						navElement.style.setProperty('-webkit-app-region', 'drag');
 					}
 				}
 			}),
@@ -721,12 +716,12 @@
 				if (navElement) {
 					if ($mobile) {
 						if (!value) {
-							navElement.style['-webkit-app-region'] = 'drag';
+							navElement.style.setProperty('-webkit-app-region', 'drag');
 						} else {
-							navElement.style['-webkit-app-region'] = 'no-drag';
+							navElement.style.setProperty('-webkit-app-region', 'no-drag');
 						}
 					} else {
-						navElement.style['-webkit-app-region'] = 'drag';
+						navElement.style.setProperty('-webkit-app-region', 'drag');
 					}
 				}
 
@@ -742,7 +737,7 @@
 				}
 			}),
 			settings.subscribe((value) => {
-				if (pinnedModels != value?.pinnedModels ?? []) {
+				if (pinnedModels !== value?.pinnedModels) {
 					pinnedModels = value?.pinnedModels ?? [];
 					showPinnedModels = pinnedModels.length > 0;
 				}
@@ -876,7 +871,7 @@
 
 <ChannelModal
 	bind:show={showCreateChannel}
-	onSubmit={async (payload: any) => {
+	onSubmit={async (payload: Parameters<typeof createNewChannel>[1]) => {
 		let { type, name, is_private, access_grants, group_ids, user_ids } = payload ?? {};
 		name = name?.trim();
 
@@ -905,7 +900,7 @@
 		});
 
 		if (res) {
-			$socket.emit('join-channels', { auth: { token: $user?.token } });
+			$socket?.emit('join-channels', { auth: { token: $user?.token } });
 			await initChannels();
 			showCreateChannel = false;
 			showChannels = true;
@@ -1112,12 +1107,12 @@
 
 									{#if $config?.features?.enable_user_status}
 										<div class="absolute -bottom-0.5 -right-0.5">
-												<span class="relative flex size-2.5">
-													<span
-														class="relative inline-flex size-2.5 rounded-full bg-green-500 border-2 border-white dark:border-gray-900"
-													></span>
-												</span>
-											</div>
+											<span class="relative flex size-2.5">
+												<span
+													class="relative inline-flex size-2.5 rounded-full bg-green-500 border-2 border-white dark:border-gray-900"
+												></span>
+											</span>
+										</div>
 									{/if}
 								</div>
 							</button>
@@ -1207,11 +1202,7 @@
 			<div
 				class="relative flex flex-col flex-1 overflow-y-auto scrollbar-hidden pt-2.5 pb-2.5"
 				on:scroll={(e) => {
-					if (e.target.scrollTop === 0) {
-						scrollTop = 0;
-					} else {
-						scrollTop = e.target.scrollTop;
-					}
+					scrollTop = e.currentTarget.scrollTop;
 				}}
 			>
 				<div class="pb-1">
@@ -1378,7 +1369,7 @@
 						}}
 						onAddLabel={$i18n.t('New Folder')}
 						on:drop={async (e) => {
-							const { type, id, item } = e.detail;
+							const { type, id } = e.detail;
 
 							if (type === 'folder') {
 								if (folders[id].parent_id === null) {
@@ -1403,7 +1394,7 @@
 							{folders}
 							{shiftKey}
 							onFolderUnreadCounts={applyFolderUnreadCounts}
-							onDelete={(folderId) => {
+							onDelete={() => {
 								selectedFolder.set(null);
 								initChatList();
 							}}
@@ -1425,7 +1416,7 @@
 					id="sidebar-chats"
 					className="mt-0.5"
 					name={$i18n.t('Chats')}
-					on:change={async (e) => {
+					on:change={async () => {
 						selectedFolder.set(null);
 					}}
 					on:import={(e) => {
@@ -1435,9 +1426,7 @@
 						const { type, id, item } = e.detail;
 
 						if (type === 'chat') {
-							let chat = await getChatById(localStorage.token, id).catch((error) => {
-								return null;
-							});
+							let chat = await getChatById(localStorage.token, id).catch(() => null);
 							if (!chat && item) {
 								if (!canImportChats) {
 									toast.error($i18n.t('Access prohibited'));
@@ -1459,18 +1448,16 @@
 							if (chat) {
 								console.log(chat);
 								if (chat.folder_id) {
-									const res = await updateChatFolderIdById(localStorage.token, chat.id, null).catch(
-										(error) => {
-											toast.error(`${error}`);
-											return null;
-										}
-									);
+									await updateChatFolderIdById(localStorage.token, chat.id, null).catch((error) => {
+										toast.error(`${error}`);
+										return null;
+									});
 
-									folderRegistry[chat.folder_id]?.setFolderItems();
+									folderRegistry[chat.folder_id]?.setFolderItems?.();
 								}
 
 								if (chat.pinned) {
-									const res = await toggleChatPinnedStatusById(localStorage.token, chat.id);
+									await toggleChatPinnedStatusById(localStorage.token, chat.id);
 								}
 
 								initChatList();
@@ -1533,9 +1520,7 @@
 										const { type, id, item } = e.detail;
 
 										if (type === 'chat') {
-											let chat = await getChatById(localStorage.token, id).catch((error) => {
-												return null;
-											});
+											let chat = await getChatById(localStorage.token, id).catch(() => null);
 											if (!chat && item) {
 												if (!canImportChats) {
 													toast.error($i18n.t('Access prohibited'));
@@ -1557,18 +1542,16 @@
 											if (chat) {
 												console.log(chat);
 												if (chat.folder_id) {
-													const res = await updateChatFolderIdById(
-														localStorage.token,
-														chat.id,
-														null
-													).catch((error) => {
-														toast.error(`${error}`);
-														return null;
-													});
+													await updateChatFolderIdById(localStorage.token, chat.id, null).catch(
+														(error) => {
+															toast.error(`${error}`);
+															return null;
+														}
+													);
 												}
 
 												if (!chat.pinned) {
-													const res = await toggleChatPinnedStatusById(localStorage.token, chat.id);
+													await toggleChatPinnedStatusById(localStorage.token, chat.id);
 												}
 
 												initChatList();
@@ -1624,7 +1607,7 @@
 												? ''
 												: 'pt-4'} pb-1"
 										>
-											{$i18n.t(chat.time_range)}
+											{$i18n.t(chat.time_range ?? '')}
 											<!-- localisation keys for time_range to be recognized from the i18next parser (so they don't get automatically removed):
 							{$i18n.t('Today')}
 							{$i18n.t('Yesterday')}
@@ -1682,7 +1665,7 @@
 									>
 								{:else if chatListReady && !allChatsLoaded}
 									<Loader
-										on:visible={(e) => {
+										on:visible={() => {
 											if (!chatListLoading) {
 												loadMoreChats();
 											}
@@ -1741,12 +1724,12 @@
 
 									{#if $config?.features?.enable_user_status}
 										<div class="absolute -bottom-0.5 -right-0.5">
-												<span class="relative flex size-2.5">
-													<span
-														class="relative inline-flex size-2.5 rounded-full bg-green-500 border-2 border-white dark:border-gray-900"
-													></span>
-												</span>
-											</div>
+											<span class="relative flex size-2.5">
+												<span
+													class="relative inline-flex size-2.5 rounded-full bg-green-500 border-2 border-white dark:border-gray-900"
+												></span>
+											</span>
+										</div>
 									{/if}
 								</div>
 								<div class=" self-center font-normal truncate">{$user?.name}</div>

@@ -58,8 +58,10 @@
 
 	export let parentDragged = false;
 
+	/** @type {(folderId: string) => void} */
 	export let onDelete = () => {};
 	export let onItemMove = () => {};
+	/** @type {(counts: Record<string, number>) => void} */
 	export let onFolderUnreadCounts = () => {};
 
 	let folderElement;
@@ -500,12 +502,10 @@
 	};
 
 	const isExpandedUpdateHandler = async () => {
-		await updateFolderIsExpandedById(localStorage.token, folderId, open).catch(
-			(error) => {
-				toast.error(`${error}`);
-				return null;
-			}
-		);
+		await updateFolderIsExpandedById(localStorage.token, folderId, open).catch((error) => {
+			toast.error(`${error}`);
+			return null;
+		});
 	};
 
 	let isExpandedUpdateTimeout;

@@ -23,8 +23,8 @@
 	import calendar from 'dayjs/plugin/calendar';
 	import Loader from '../common/Loader.svelte';
 	import { createMessagesList } from '$lib/utils';
-	import type { ChatHistoryMessage } from '$lib/utils/airis/chat_history';
-	import type { ChatTitleIdResponse } from '$lib/utils/airis/frontend-contracts';
+	import type { ChatHistory, ChatHistoryMessage } from '$lib/utils/airis/chat_history';
+	import type { SavedChat, ChatTitleIdResponse } from '$lib/utils/airis/frontend-contracts';
 	import { getOutputText } from '$lib/components/chat/Messages/structuredOutput';
 	import { config, user, chatId as currentChatId, tags } from '$lib/stores';
 	import { refreshChatList } from '$lib/stores/chatList';
@@ -52,16 +52,17 @@
 	let menuChatId = '';
 	let menuChatTitle = '';
 
-	let editingChatId = null;
+	let editingChatId: string | null = null;
+	let editGeneration = 0;
 	let editingChatTitle = '';
 
 	let shiftKey = false;
 
-	const onShiftKeyDown = (e) => {
+	const onShiftKeyDown = (e: KeyboardEvent): void => {
 		if (e.key === 'Shift') shiftKey = true;
 	};
 
-	const onShiftKeyUp = (e) => {
+	const onShiftKeyUp = (e: KeyboardEvent): void => {
 		if (e.key === 'Shift') shiftKey = false;
 	};
 	let generating = false;
@@ -70,7 +71,7 @@
 		await refreshChatList(localStorage.token, { refreshPinned: true });
 	};
 
-	const cloneChatHandler = async (id) => {
+	const cloneChatHandler = async (id: string): Promise<void> => {
 		const chat = chatList?.find((c) => c.id === id);
 		const res = await cloneChatById(
 			localStorage.token,
@@ -89,7 +90,7 @@
 		}
 	};
 
-	const archiveChatHandler = async (id) => {
+	const archiveChatHandler = async (id: string): Promise<void> => {
 		try {
 			await archiveChatById(localStorage.token, id);
 
@@ -107,7 +108,7 @@
 		}
 	};
 
-	const deleteChatHandler = async (id) => {
+	const deleteChatHandler = async (id: string): Promise<void> => {
 		const res = await deleteChatById(localStorage.token, id).catch((error) => {
 			toast.error(`${error}`);
 			return null;
@@ -126,7 +127,7 @@
 		}
 	};
 
-	const moveChatHandler = async (chatId, folderId) => {
+	const moveChatHandler = async (chatId: string, folderId: string): Promise<void> => {
 		if (chatId && folderId) {
 			const res = await updateChatFolderIdById(localStorage.token, chatId, folderId).catch(
 				(error) => {
@@ -143,48 +144,60 @@
 		}
 	};
 
-	const renameHandler = async (id) => {
+	const renameHandler = async (id: string): Promise<void> => {
+		cancelRename();
 		editingChatId = id;
 		editingChatTitle = chatList?.find((c) => c.id === id)?.title ?? '';
 
 		await tick();
 		const input = document.getElementById(`search-chat-title-input-${id}`);
-		if (input) {
+		if (input instanceof HTMLInputElement) {
 			input.focus();
 			input.select();
 		}
 	};
 
-	const confirmRename = async () => {
+	const confirmRename = async (): Promise<void> => {
 		if (!editingChatId) return;
 
+		const id = editingChatId;
+		const generation = editGeneration;
 		const trimmed = editingChatTitle.trim();
 		if (trimmed === '') {
 			toast.error($i18n.t('Title cannot be an empty string.'));
 			return;
 		}
 
-		await updateChatById(localStorage.token, editingChatId, { title: trimmed });
-
-		if (chatList) {
-			chatList = chatList.map((c) => (c.id === editingChatId ? { ...c, title: trimmed } : c));
+		try {
+			await updateChatById(localStorage.token, id, { title: trimmed });
+		} catch (error: unknown) {
+			if (show && generation === editGeneration) toast.error(`${error}`);
+			return;
 		}
 
-		editingChatId = null;
-		editingChatTitle = '';
+		if (chatList) {
+			chatList = chatList.map((c) => (c.id === id ? { ...c, title: trimmed } : c));
+		}
+
+		if (generation === editGeneration && editingChatTitle.trim() === trimmed) cancelRename();
 		await refreshSidebar();
 	};
 
-	const cancelRename = () => {
+	const cancelRename = (): void => {
+		editGeneration += 1;
+		generating = false;
 		editingChatId = null;
 		editingChatTitle = '';
 	};
 
-	const generateTitleHandler = async () => {
+	const generateTitleHandler = async (): Promise<void> => {
 		if (!editingChatId || generating) return;
 
+		const id = editingChatId;
+		const generation = editGeneration;
 		generating = true;
-		const chat = await getChatById(localStorage.token, editingChatId).catch(() => null);
+		const chat = await getChatById(localStorage.token, id).catch(() => null);
+		if (!show || generation !== editGeneration) return;
 
 		if (!chat) {
 			toast.error($i18n.t('Failed to load chat'));
@@ -194,7 +207,7 @@
 
 		const chatContent = chat.chat;
 		const history = chatContent?.history;
-		let msgList = [];
+		let msgList: { role: string; content: string }[] = [];
 
 		if (history?.messages && history?.currentId) {
 			msgList = createMessagesList(history, history.currentId).map((m: ChatHistoryMessage) => ({
@@ -219,14 +232,13 @@
 			model = chatContent?.models?.at(0) ?? '';
 		}
 
-		editingChatTitle = '';
-
 		const generatedTitle = await generateTitle(localStorage.token, model, msgList).catch(
 			(error) => {
-				toast.error(`${error}`);
+				if (show && generation === editGeneration) toast.error(`${error}`);
 				return null;
 			}
 		);
+		if (!show || generation !== editGeneration) return;
 
 		if (generatedTitle) {
 			editingChatTitle = generatedTitle;
@@ -263,12 +275,13 @@
 
 	let searchDebounceTimeout: ReturnType<typeof setTimeout> | undefined;
 
-	let selectedIdx = null;
-	let selectedChat = null;
+	let selectedIdx: number | null = null;
+	let previewGeneration = 0;
+	let selectedChat: SavedChat | null = null;
 
 	let selectedModels = [''];
-	let history = null;
-	let messages = null;
+	let history: ChatHistory | null = null;
+	let messages: ChatHistoryMessage[] | null = null;
 	let messagesContainerElement: HTMLElement | null = null;
 	const messagesContainerId = 'chat-preview';
 
@@ -331,23 +344,16 @@
 		}, 80);
 	};
 
-	const loadChatPreview = async (selectedIdx) => {
-		if (!chatList || chatList.length === 0 || selectedIdx === null) {
-			selectedChat = null;
-			messages = null;
-			history = null;
-			selectedModels = [''];
-			return;
-		}
+	const loadChatPreview = async (selectedIdx: number | null): Promise<void> => {
+		const generation = ++previewGeneration;
+		selectedChat = null;
+		messages = null;
+		history = null;
+		selectedModels = [''];
+		if (!show || !chatList || chatList.length === 0 || selectedIdx === null) return;
 
 		const selectedChatIdx = selectedIdx - actions.length;
-		if (selectedChatIdx < 0 || selectedChatIdx >= chatList.length) {
-			selectedChat = null;
-			messages = null;
-			history = null;
-			selectedModels = [''];
-			return;
-		}
+		if (selectedChatIdx < 0 || selectedChatIdx >= chatList.length) return;
 
 		const chatId = chatList[selectedChatIdx].id;
 
@@ -355,14 +361,12 @@
 			return null;
 		});
 
+		if (!show || generation !== previewGeneration) return;
 		if (chat) {
 			selectedChat = chat;
 
 			if (chat?.chat?.history) {
-				selectedModels =
-					(chat?.chat?.models ?? undefined) !== undefined
-						? chat?.chat?.models
-						: [chat?.chat?.models ?? ''];
+				selectedModels = chat.chat.models ?? [''];
 
 				history = chat?.chat?.history;
 				messages = [];
@@ -411,6 +415,8 @@
 		if (!show) return;
 		if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout);
 		const generation = ++searchGeneration;
+		previewGeneration += 1;
+		cancelRename();
 		page = 1;
 		chatList = null;
 		chatListLoading = false;
@@ -434,6 +440,8 @@
 
 	const cancelSearch = (): void => {
 		searchGeneration += 1;
+		previewGeneration += 1;
+		cancelRename();
 		if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout);
 	};
 
@@ -441,12 +449,9 @@
 		searchHandler();
 	} else {
 		cancelSearch();
-		editingChatId = null;
-		editingChatTitle = '';
-		generating = false;
 	}
 
-	const onKeyDown = (e) => {
+	const onKeyDown = (e: KeyboardEvent): void => {
 		// Ignore keydown fired while confirming an IME composition (e.g. Japanese/Chinese/Korean)
 		// so confirming the composition with Enter doesn't trigger search actions (#26172).
 		if (e.isComposing || e.keyCode === 229) {
@@ -467,7 +472,7 @@
 			show = false;
 			onClose();
 		} else if (e.code === 'Enter') {
-			const item = document.querySelector(`[data-arrow-selected="true"]`);
+			const item = document.querySelector<HTMLElement>(`[data-arrow-selected="true"]`);
 			if (item) {
 				item?.click();
 				show = false;
@@ -486,7 +491,7 @@
 				}
 			}
 
-			selectedIdx = Math.min(selectedIdx + 1, (chatList ?? []).length - 1 + actions.length);
+			selectedIdx = Math.min((selectedIdx ?? 0) + 1, (chatList ?? []).length - 1 + actions.length);
 		} else if (e.code === 'ArrowUp') {
 			if (selectedIdx === 0) {
 				const searchInput = document.getElementById('search-input');
@@ -501,10 +506,10 @@
 				}
 			}
 
-			selectedIdx = Math.max(selectedIdx - 1, 0);
+			selectedIdx = Math.max((selectedIdx ?? 0) - 1, 0);
 		}
 
-		const item = document.querySelector(`[data-arrow-selected="true"]`);
+		const item = document.querySelector<HTMLElement>(`[data-arrow-selected="true"]`);
 		item?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
 	};
 
@@ -566,9 +571,9 @@
 					selectedIdx = null;
 					messages = null;
 				}}
-				onKeydown={(e) => {
+				onKeydown={(e: KeyboardEvent): void => {
 					if (e.code === 'Enter' && (chatList ?? []).length > 0) {
-						const item = document.querySelector(`[data-arrow-selected="true"]`);
+						const item = document.querySelector<HTMLElement>(`[data-arrow-selected="true"]`);
 						if (item) {
 							item?.click();
 						}
@@ -576,14 +581,17 @@
 						show = false;
 						return;
 					} else if (e.code === 'ArrowDown') {
-						selectedIdx = Math.min(selectedIdx + 1, (chatList ?? []).length - 1 + actions.length);
+						selectedIdx = Math.min(
+							(selectedIdx ?? 0) + 1,
+							(chatList ?? []).length - 1 + actions.length
+						);
 					} else if (e.code === 'ArrowUp') {
-						selectedIdx = Math.max(selectedIdx - 1, 0);
+						selectedIdx = Math.max((selectedIdx ?? 0) - 1, 0);
 					} else {
 						selectedIdx = 0;
 					}
 
-					const item = document.querySelector(`[data-arrow-selected="true"]`);
+					const item = document.querySelector<HTMLElement>(`[data-arrow-selected="true"]`);
 					item?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
 				}}
 			/>
@@ -876,7 +884,7 @@
 				bind:this={messagesContainerElement}
 				class="hidden md:flex md:flex-1 w-full overflow-y-auto h-96 md:h-[40rem] scrollbar-hidden @container"
 			>
-				{#if messages === null}
+				{#if messages === null || history === null}
 					<div
 						class="w-full h-full flex justify-center items-center text-gray-500 dark:text-gray-400 text-sm"
 					>
@@ -891,6 +899,9 @@
 							readOnly={true}
 							{selectedModels}
 							bind:history
+							atSelectedModel={undefined}
+							mergeResponses={() => {}}
+							chatActionHandler={() => {}}
 							autoScroll={true}
 							{messagesContainerId}
 							messagesCount={8}
