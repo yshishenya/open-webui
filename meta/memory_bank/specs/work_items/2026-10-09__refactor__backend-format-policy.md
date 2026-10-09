@@ -25,7 +25,7 @@ report must distinguish environment drift from actual source formatting debt.
 - [x] Apply only Ruff Q000 fixes for the existing single-quote policy; preserve every literal value and all other rules. Q000 errors become zero and no new normalized Ruff diagnostics appear.
 - [x] Full backend suite passes; PostgreSQL-only scenarios run against disposable databases without unresolved skips.
 - [x] Full frontend suite passes; executable frontend files and lockfiles stay unchanged.
-- [ ] Record the source, checks and corrected earlier count; commit and push the branch.
+- [x] Record the source, checks and corrected earlier count; commit and push the branch.
 - [ ] General quality gate and eventual PR/CI/release are accepted independently.
 
 ## Non-goals
@@ -74,3 +74,10 @@ Do not report a successful formatting check as acceptance of G14.
 - All 453 syntax trees (same Python 3.11 interpreter, excluding source coordinates) match the integration base; 105 files changed. Literal values, docstrings and type comments are included in the comparison.
 - Native audio verification source, frontend, E2E, pyproject and every runtime lockfile remain unchanged.
 - Rejected rerun: 1016 passed/1 failed because a reporting test received a reused PostgreSQL database containing its user table. Recreated all four disposable databases; fresh full acceptance passed: 1017/1017, zero failures/errors/skips (97.09s). All four temporary databases were removed. No test exclusions, source guards or assertions were weakened.
+
+## Source delivery
+
+Application/source commit `b272dae75` was pushed to
+`codex/refactor/backend-format-policy`. SDD implementation/checks: 2/3;
+remaining task is the independently measured general quality/PR/release gate.
+This source block is ready for review but the whole product is not accepted.
