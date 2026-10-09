@@ -1,10 +1,10 @@
 # Administrative model contracts and lifecycle guards
 
 - Type: bugfix
-- Status: in progress
+- Status: source stage complete; release pending
 - Owner: Codex
 - Branch: codex/bugfix/admin-model-contracts
-- SDD Spec: meta/sdd/specs/active/airis-admin-model-contracts-2026-10-09-018.json
+- SDD Spec: meta/sdd/specs/completed/airis-admin-model-contracts-2026-10-09-018.json
 - Base: origin/airis_b2c; explicit fast-forward dependency27faf127f7e4c137b461edd18f5042e3f4dae630.
 
 ## Goal / measurable acceptance
@@ -15,7 +15,7 @@ G14 source work. Admin Models currently has64 type errors. Read full handler flo
 - [x] Prevent missing FileList/invalid reader/non-array JSON import and detached/reloaded reorder;valid imports/reorders preserve payloads and local order. No real import/delete/model settings mutation in verification.
 - [x] Exact existing model/config/Sortable/component instance types;no new diagnostics,suppressions or dependencies.
 - [x] Full frontend,own format,compiled-equivalence outside explicit guards;backend/primary/runtime/neighbor preservation andfrozen source evidence.
-- [ ] Commit/push/remote/Git-object match;source SDD completed.
+- [x] Commit/push/remote/Git-object match;source SDD completed.
 - [ ] General zero-error/preflight/PR/integration/fresh same-SHA full tests/image/production/realA/B acceptance.
 
 ## Scope / upstream impact
@@ -33,3 +33,5 @@ Full Docker frontend1063/1063,129files. Types1978→1914,warnings104unchanged;ES
 Shared config response matches server ModelsConfigForm,including nullable defaults/nullable order entries/open metadata/params dictionaries. Settings list uses existing Model/ModelMeta andAccessControlModal prop types;it accepts the existing anyone principal without narrowing grant behavior. This clone's Sortable declaration provides constructor/destroy only,no event namespace. Three-field native callback type follows official SortableJS1.15.7 README:itemHTMLElement,oldIndex/newIndexnumber|undefined. Repo-pinned1.15.7 matches official latest stable release1.15.7,prereleasefalse;README/release evidence saved. No dependency installation orambient declaration expansion.
 
 Production12:04:08.912025UTC:c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908,healthy,restarts0;image/env/config/mounts andall12 neighbors identical tolatest baseline.21protected primary files unchanged. Remote actions read-only. General zero-error/preflight/PR/integration/image/production gates andrealA/B remain open;numbered plan198/244,46open,new closures0;goalactive.
+
+Source delivery:`3a562b8513a6d204fb08eeb9025633883a745214` pushed to codex/bugfix/admin-model-contracts;remote SHA andall1521 tested Git blobs match. Source SDD2/2 complete;all191 specs schema-valid. Temporary runners0;persistent fixture volumes created0;shared cache/network preserved. Full release gates remain pending.
