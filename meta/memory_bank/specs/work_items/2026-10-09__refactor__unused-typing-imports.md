@@ -16,7 +16,7 @@ Ruff reports28 unused typing bindings in22 files. Their names have no loaded AST
 - [x] Full backend1017 and frontend952 pass; Black453 unchanged; full check/lint measured, no new normalized diagnostics.
 - [x] Freeze application before full tests; preserve453 backend/1061 frontend hashes afterward, primary21 files, production and dependency/config/nativeaudio boundaries.
 - [x] Remove temporary baseline source and four fresh tmpfs PostgreSQL databases after checks; delete no persistent volume.
-- [ ] Document, commit/push source and prove final source/remote/hash correspondence; SDD implementation/checks updated.
+- [x] Document, commit/push source and prove final source/remote/hash correspondence; SDD implementation/checks updated.
 - [ ] General source quality0, clean image, combined browser/native/runtime, CI/review/merge/deploy/live accepted.
 
 ## Upstream impact and rollback
@@ -40,3 +40,5 @@ Fresh PostgreSQL queue/preferences/success/reporting databases used tmpfs. Conta
 Initial private checker correctly rejected a new import-spacing error after deleting Optional in prompts.py. The implementation now removes the redundant separator and preserves the accepted import order. Initial comparison also exposed line-bearing F811 text and narrowed UP035 lists; their exact documented normalization compares the same underlying diagnostics. Rejected initial output retained privately. The SDD simple template initially had no tasks; tasks/file paths and cross-links were explicitly populated before application edits. Source specs validate175/175; current SDD remains active.
 
 No new PR/CI/merge/release acceptance. The previous combined turn's required connector observation ofPR367 remains only an observation for34b6; no check result is claimed for this new branch. A clean combined image and fresh browser/native/runtime acceptance remain mandatory after general source gates pass. Overall onboarding plan198/244, new numbered closures0.
+
+Source91452741334c030a1c2b8846748c557dd17768a5 pushed; remote SHA verified. SDD2/3, general quality/PR/release task still pending. The following documentation-only commit preserves the tested source snapshot.
