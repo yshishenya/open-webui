@@ -1,30 +1,17 @@
 import asyncio
 import logging
 import os
-from typing import Optional
 
 import aiofiles
 import aiohttp
-from fastapi import (
-    APIRouter,
-    Depends,
-    FastAPI,
-    File,
-    Form,
-    HTTPException,
-    Request,
-    UploadFile,
-    status,
-)
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from open_webui.config import CACHE_DIR
-from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import AIOHTTP_CLIENT_SESSION_SSL, AIOHTTP_FILE_STREAM_CHUNK_SIZE
 from open_webui.events import EVENTS, publish_event
 from open_webui.models.config import Config
 from open_webui.routers.openai import get_all_models_responses
 from open_webui.utils.auth import get_admin_user
 from pydantic import BaseModel
-from starlette.responses import FileResponse
 
 log = logging.getLogger(__name__)
 
@@ -403,7 +390,7 @@ async def delete_pipeline(request: Request, form_data: DeletePipelineForm, user=
 
 
 @router.get('/')
-async def get_pipelines(request: Request, urlIdx: Optional[int] = None, user=Depends(get_admin_user)):
+async def get_pipelines(request: Request, urlIdx: int | None = None, user=Depends(get_admin_user)):
     response = None
     try:
         url, key = await get_openai_connection(urlIdx)
@@ -440,7 +427,7 @@ async def get_pipelines(request: Request, urlIdx: Optional[int] = None, user=Dep
 @router.get('/{pipeline_id}/valves')
 async def get_pipeline_valves(
     request: Request,
-    urlIdx: Optional[int],
+    urlIdx: int | None,
     pipeline_id: str,
     user=Depends(get_admin_user),
 ):
@@ -487,7 +474,7 @@ async def get_pipeline_valves(
 @router.get('/{pipeline_id}/valves/spec')
 async def get_pipeline_valves_spec(
     request: Request,
-    urlIdx: Optional[int],
+    urlIdx: int | None,
     pipeline_id: str,
     user=Depends(get_admin_user),
 ):
@@ -527,7 +514,7 @@ async def get_pipeline_valves_spec(
 @router.post('/{pipeline_id}/valves/update')
 async def update_pipeline_valves(
     request: Request,
-    urlIdx: Optional[int],
+    urlIdx: int | None,
     pipeline_id: str,
     form_data: dict,
     user=Depends(get_admin_user),

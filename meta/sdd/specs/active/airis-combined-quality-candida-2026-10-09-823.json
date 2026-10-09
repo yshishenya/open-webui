@@ -1,0 +1,147 @@
+{
+	"spec_id": "airis-combined-quality-candida-2026-10-09-823",
+	"title": "airis-combined-quality-candidate",
+	"generated": "2026-10-09T05:23:13.676458Z",
+	"last_updated": "2026-10-09T05:32:43.080894Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__combined-quality-candidate.md",
+		"status": "active",
+		"activated_date": "2026-10-09T05:24:22.232674Z",
+		"progress_percentage": 66,
+		"current_phase": "phase-2"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-combined-quality-candidate",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Assemble and preserve dependency source",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T05:28:59.764968Z",
+				"journaled_at": "2026-10-09T05:28:59.767424Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Checks and source delivery",
+			"status": "in_progress",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 1,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Merge verified dependencies and validate all source SDD metadata",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "backend/open_webui",
+				"started_at": "2026-10-09T05:24:22.455049Z",
+				"completed_at": "2026-10-09T05:28:59.764795Z",
+				"needs_journaling": false,
+				"status_note": "Three exact dependency merges, 453 backend files and eight owned frontend files preserved; 174 source specs valid, review-report dot directories excluded because they are not specs.",
+				"actual_hours": 0.077,
+				"journaled_at": "2026-10-09T05:28:59.766350Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Run combined source checks, freeze and commit/push",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "backend/open_webui/test",
+				"started_at": "2026-10-09T05:29:00.029622Z",
+				"completed_at": "2026-10-09T05:32:43.078587Z",
+				"needs_journaling": false,
+				"status_note": "Combined backend1017/frontend952 passed, source hashes preserved, full debt measured, c662f26267fc637f0e742461a34eee8549cf9025 pushed. General quality/image/browser/native/CI/release pending.",
+				"actual_hours": 0.062,
+				"journaled_at": "2026-10-09T05:32:43.080369Z"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Accept general quality, clean image/browser/runtime, CI, merge and production",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-09__refactor__combined-quality-candidate.md"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T05:28:59.766345Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Merge verified dependencies and validate all source SDD metadata",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Three exact dependency merges, 453 backend files and eight owned frontend files preserved; 174 source specs valid, review-report dot directories excluded because they are not specs.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T05:28:59.767419Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Assemble and preserve dependency source",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-09T05:32:43.080365Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Run combined source checks, freeze and commit/push",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Combined backend1017/frontend952 passed, source hashes preserved, full debt measured, c662f26267fc637f0e742461a34eee8549cf9025 pushed. General quality/image/browser/native/CI/release pending.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		}
+	]
+}

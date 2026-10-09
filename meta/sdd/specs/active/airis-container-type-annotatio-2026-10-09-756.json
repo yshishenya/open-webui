@@ -1,0 +1,143 @@
+{
+	"spec_id": "airis-container-type-annotatio-2026-10-09-756",
+	"title": "airis-container-type-annotations",
+	"generated": "2026-10-09T04:56:15.697429Z",
+	"last_updated": "2026-10-09T05:03:41.120221Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 24,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__container-type-annotations.md",
+		"default_category": "refactoring",
+		"status": "active",
+		"activated_date": "2026-10-09T04:56:49.304256Z",
+		"progress_percentage": 66,
+		"current_phase": "phase-2"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-container-type-annotations",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Container annotation preservation",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T05:02:52.458972Z",
+				"journaled_at": "2026-10-09T05:02:52.461179Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Checks and source delivery",
+			"status": "in_progress",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 1,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Modernize safe container annotations and prove runtime/source parity",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"started_at": "2026-10-09T04:56:49.523721Z",
+				"completed_at": "2026-10-09T05:02:52.458824Z",
+				"needs_journaling": false,
+				"actual_hours": 0.101,
+				"journaled_at": "2026-10-09T05:02:52.460221Z",
+				"file_path": "backend/open_webui"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Run full checks and commit/push source",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-09T05:03:41.118656Z",
+				"needs_journaling": false,
+				"journaled_at": "2026-10-09T05:03:41.119689Z",
+				"file_path": "backend/open_webui/test"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Accept independent general quality, CI and release",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-09__refactor__container-type-annotations.md"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T05:02:52.460216Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Modernize safe container annotations and prove runtime/source parity",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T05:02:52.461175Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Container annotation preservation",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-09T05:03:41.119684Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Run full checks and commit/push source",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		}
+	]
+}

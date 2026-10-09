@@ -1,0 +1,147 @@
+{
+	"spec_id": "airis-partial-unused-imports-2026-10-09-850",
+	"title": "airis-partial-unused-imports",
+	"generated": "2026-10-09T05:50:20.792224Z",
+	"last_updated": "2026-10-09T06:06:06.776180Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__partial-unused-imports.md",
+		"status": "active",
+		"activated_date": "2026-10-09T05:52:53.631829Z",
+		"progress_percentage": 66,
+		"current_phase": "phase-2"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-partial-unused-imports",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 3,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Preserve target-module imports while removing unused bindings",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T05:59:36.420664Z",
+				"journaled_at": "2026-10-09T05:59:36.423093Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Runtime contracts, tests and source delivery",
+			"status": "in_progress",
+			"parent": "spec-root",
+			"children": ["task-2-1", "task-2-2"],
+			"total_tasks": 2,
+			"completed_tasks": 1,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Review123 bindings, retain module imports and preserve source trees",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "backend/open_webui",
+				"started_at": "2026-10-09T05:52:53.857606Z",
+				"completed_at": "2026-10-09T05:59:36.420361Z",
+				"needs_journaling": false,
+				"status_note": "123 exact aliases removed; target module imports/order and all453 AST/comments retained. Ruff1003->880, no new diagnostics. All53 candidate modules loaded; runtime/ORM/API/YouTube preserved; default startup graph identical.",
+				"actual_hours": 0.112,
+				"journaled_at": "2026-10-09T05:59:36.421990Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Compare runtime/ORM/API/tool contracts, full tests and commit/push",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "backend/open_webui/test",
+				"started_at": "2026-10-09T05:59:36.670512Z",
+				"completed_at": "2026-10-09T06:06:06.773922Z",
+				"needs_journaling": false,
+				"status_note": "Exact7861af74bfb2b27e73a3403a8b14f72eae9eb3ac pushed and remote verified; backend1017/frontend952, runtime/ORM/API/loader/source preservation and cleanup accepted. General quality/image/native/browser/CI/merge/release pending.",
+				"actual_hours": 0.108,
+				"journaled_at": "2026-10-09T06:06:06.775630Z"
+			}
+		},
+		"task-2-2": {
+			"type": "task",
+			"title": "Accept general quality, clean image/browser/native, CI/merge/release",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-09__refactor__partial-unused-imports.md"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T05:59:36.421985Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Review123 bindings, retain module imports and preserve source trees",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: 123 exact aliases removed; target module imports/order and all453 AST/comments retained. Ruff1003->880, no new diagnostics. All53 candidate modules loaded; runtime/ORM/API/YouTube preserved; default startup graph identical.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T05:59:36.423088Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Preserve target-module imports while removing unused bindings",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-09T06:06:06.775624Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Compare runtime/ORM/API/tool contracts, full tests and commit/push",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Exact7861af74bfb2b27e73a3403a8b14f72eae9eb3ac pushed and remote verified; backend1017/frontend952, runtime/ORM/API/loader/source preservation and cleanup accepted. General quality/image/native/browser/CI/merge/release pending.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		}
+	]
+}

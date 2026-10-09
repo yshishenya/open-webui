@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import copy
 import logging
-from typing import Optional
 
 import aiohttp
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -11,14 +9,12 @@ from open_webui.config import BannerModel
 from open_webui.env import AIOHTTP_CLIENT_SESSION_SSL, AIOHTTP_CLIENT_TIMEOUT
 from open_webui.events import EVENTS, publish_event
 from open_webui.models.config import Config
-from open_webui.models.oauth_sessions import OAuthSessions
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.headers import get_custom_headers
 from open_webui.utils.mcp.client import MCPClient
 from open_webui.utils.oauth import (
     OAuthClientInformationFull,
     apply_connection_oauth_options,
-    decrypt_data,
     encrypt_data,
     get_discovery_urls,
     get_oauth_client_info_with_dynamic_client_registration,
