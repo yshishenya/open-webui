@@ -1,0 +1,98 @@
+{
+  "spec_id": "airis-member-selector-contracts-2026-10-09-016",
+  "title": "Airis member selector contracts",
+  "generated": "2026-10-09T11:43:37.320009Z",
+  "last_updated": "2026-10-09T11:48:14.953496Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__member-selector-contracts.md",
+    "status": "active",
+    "activated_date": "2026-10-09T11:44:11.025502Z",
+    "progress_percentage": 50,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis member selector contracts",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reuse contracts and verify source",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Type shared selector without changing compiled behavior",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "category": "refactoring",
+        "file_path": "src/lib/components/workspace/common/MemberSelector.svelte",
+        "completed_at": "2026-10-09T11:48:14.717017Z",
+        "needs_journaling": false,
+        "status_note": "Full compiled component equality after unused bindings removal;frontend1046;35 type/1warning/6lint removed;new0",
+        "journaled_at": "2026-10-09T11:48:14.717978Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Verify source delivery and protected state",
+      "status": "in_progress",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "category": "investigation",
+        "file_path": "src/lib/components/workspace/common/MemberSelector.svelte",
+        "started_at": "2026-10-09T11:48:14.953186Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-09T11:48:14.717973Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Type shared selector without changing compiled behavior",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Full compiled component equality after unused bindings removal;frontend1046;35 type/1warning/6lint removed;new0",
+      "metadata": {},
+      "task_id": "task-1-1"
+    }
+  ]
+}

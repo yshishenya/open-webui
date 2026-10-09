@@ -5,48 +5,45 @@
 	const i18n = getContext('i18n');
 
 	import { user as _user } from '$lib/stores';
-	import { getUserInfoById, searchUsers } from '$lib/apis/users';
+	import { getUserInfoById, searchUsers, type UserInfoResponse } from '$lib/apis/users';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 	import XMark from '$lib/components/icons/XMark.svelte';
-	import Pagination from '$lib/components/common/Pagination.svelte';
 	import ProfilePreview from '$lib/components/channel/Messages/Message/ProfilePreview.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import ChevronUp from '$lib/components/icons/ChevronUp.svelte';
-	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Checkbox from '$lib/components/common/Checkbox.svelte';
 	import { getGroups } from '$lib/apis/groups';
+	import type { GroupDetails } from '$lib/utils/airis/group-types';
 
 	export let includeGroups = true;
 	export let includeUsers = true;
-	export let pagination = false;
 	export let includeSessionUser = false;
 	export let accessGrants: { principal_type: string; principal_id: string }[] = [];
 
-	export let groupIds = [];
-	export let userIds = [];
+	export let groupIds: string[] = [];
+	export let userIds: string[] = [];
 
-	let groups = null;
-	let filteredGroups = [];
+	let groups: GroupDetails[] | null = null;
+	let filteredGroups: GroupDetails[] = [];
 
 	$: filteredGroups = groups
 		? groups.filter((group) => group.name.toLowerCase().includes(query.toLowerCase()))
 		: [];
 
-	let selectedGroup = {};
-	let selectedUsers = {};
+	let selectedGroup: Partial<Record<string, GroupDetails>> = {};
+	let selectedUsers: Partial<Record<string, UserInfoResponse>> = {};
 
 	let page = 1;
-	let users = null;
-	let total = null;
+	let users: UserInfoResponse[] | null = null;
+	let total: number | null = null;
 
 	let query = '';
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 	let orderBy = 'name'; // default sort key
 	let direction = 'asc'; // default sort order
 
-	const getUserList = async () => {
+	const getUserList = async (): Promise<void> => {
 		try {
 			const res = await searchUsers(localStorage.token, query, orderBy, direction, page).catch(
 				(error) => {
@@ -64,7 +61,7 @@
 		}
 	};
 
-	const handleSearchInput = () => {
+	const handleSearchInput = (): void => {
 		clearTimeout(searchDebounceTimer);
 		searchDebounceTimer = setTimeout(() => {
 			getUserList();
@@ -205,7 +202,7 @@
 							</div>
 
 							<div class="mb-3">
-								{#each filteredGroups as group, groupIdx (group.id)}
+								{#each filteredGroups as group (group.id)}
 									<button
 										class=" dark:border-gray-850 text-xs flex items-center justify-between w-full"
 										type="button"
@@ -247,7 +244,7 @@
 							</div>
 
 							<div>
-								{#each users as user, userIdx (user.id)}
+								{#each users as user (user.id)}
 									{#if !accessGrants.some((grant) => grant.principal_type === 'user' && grant.principal_id === user.id) && (includeSessionUser || user?.id !== $_user?.id)}
 										<button
 											class=" dark:border-gray-850 text-xs flex items-center justify-between w-full"
