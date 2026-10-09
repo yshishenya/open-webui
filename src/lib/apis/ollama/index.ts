@@ -1,107 +1,49 @@
+import type { ModelConnectionConfig } from '$lib/utils/airis/frontend-contracts';
+import { requestModelConnection } from '$lib/utils/airis/model_connection_request';
 import { OLLAMA_API_BASE_URL } from '$lib/constants';
 
-export const verifyOllamaConnection = async (token: string = '', connection: dict = {}) => {
-	let error = null;
-
-	const res = await fetch(`${OLLAMA_API_BASE_URL}/verify`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			Authorization: `Bearer ${token}`,
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({
-			...connection
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = `Ollama: ${err?.error?.message ?? 'Network Problem'}`;
-			return [];
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
-
-export const getOllamaConfig = async (token: string = '') => {
-	let error = null;
-
-	const res = await fetch(`${OLLAMA_API_BASE_URL}/config`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			if ('detail' in err) {
-				error = err.detail;
-			} else {
-				error = 'Server connection failed';
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
-
-type OllamaConfig = {
-	ENABLE_OLLAMA_API: boolean;
+export type OllamaConfig = {
+	ENABLE_OLLAMA_API: boolean | null;
 	OLLAMA_BASE_URLS: string[];
-	OLLAMA_API_CONFIGS: object;
+	OLLAMA_API_CONFIGS: Record<string, ModelConnectionConfig | null>;
 };
-
-export const updateOllamaConfig = async (token: string = '', config: OllamaConfig) => {
-	let error = null;
-
-	const res = await fetch(`${OLLAMA_API_BASE_URL}/config/update`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
+export const verifyOllamaConnection = (
+	token: string,
+	connection: { url: string; key?: string },
+	signal?: AbortSignal
+): Promise<unknown> =>
+	requestModelConnection(
+		`${OLLAMA_API_BASE_URL}/verify`,
+		{
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+			body: JSON.stringify(connection)
 		},
-		body: JSON.stringify({
-			...config
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			if ('detail' in err) {
-				error = err.detail;
-			} else {
-				error = 'Server connection failed';
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
+		signal
+	);
+export const getOllamaConfig = (token = '', signal?: AbortSignal): Promise<OllamaConfig> =>
+	requestModelConnection(
+		`${OLLAMA_API_BASE_URL}/config`,
+		{
+			method: 'GET',
+			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+		},
+		signal
+	);
+export const updateOllamaConfig = (
+	token: string,
+	config: OllamaConfig,
+	signal?: AbortSignal
+): Promise<OllamaConfig> =>
+	requestModelConnection(
+		`${OLLAMA_API_BASE_URL}/config/update`,
+		{
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+			body: JSON.stringify(config)
+		},
+		signal
+	);
 
 export const getOllamaUrls = async (token: string = '') => {
 	let error = null;

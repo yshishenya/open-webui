@@ -1,80 +1,38 @@
+import type { ModelConnection, ModelConnectionConfig } from '$lib/utils/airis/frontend-contracts';
+import { requestModelConnection } from '$lib/utils/airis/model_connection_request';
 import type { DirectProviderModelsResponse } from '$lib/utils/airis/model-types';
 import { OPENAI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 import { enhanceOpenAIChatCompletionBody } from '$lib/utils/airis/openai';
 
-export const getOpenAIConfig = async (token: string = '') => {
-	let error = null;
-
-	const res = await fetch(`${OPENAI_API_BASE_URL}/config`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			if ('detail' in err) {
-				error = err.detail;
-			} else {
-				error = 'Server connection failed';
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
-
-type OpenAIConfig = {
-	ENABLE_OPENAI_API: boolean;
+export type OpenAIConfig = {
+	ENABLE_OPENAI_API: boolean | null;
 	OPENAI_API_BASE_URLS: string[];
 	OPENAI_API_KEYS: string[];
-	OPENAI_API_CONFIGS: object;
+	OPENAI_API_CONFIGS: Record<string, ModelConnectionConfig | null>;
 };
-
-export const updateOpenAIConfig = async (token: string = '', config: OpenAIConfig) => {
-	let error = null;
-
-	const res = await fetch(`${OPENAI_API_BASE_URL}/config/update`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
+export const getOpenAIConfig = (token = '', signal?: AbortSignal): Promise<OpenAIConfig> =>
+	requestModelConnection(
+		`${OPENAI_API_BASE_URL}/config`,
+		{
+			method: 'GET',
+			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
 		},
-		body: JSON.stringify({
-			...config
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			if ('detail' in err) {
-				error = err.detail;
-			} else {
-				error = 'Server connection failed';
-			}
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
+		signal
+	);
+export const updateOpenAIConfig = (
+	token: string,
+	config: OpenAIConfig,
+	signal?: AbortSignal
+): Promise<OpenAIConfig> =>
+	requestModelConnection(
+		`${OPENAI_API_BASE_URL}/config/update`,
+		{
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+			body: JSON.stringify(config)
+		},
+		signal
+	);
 
 export const getOpenAIModelsDirect = async (
 	url: string,
@@ -136,69 +94,30 @@ export const getOpenAIModels = async (token: string, urlIdx?: number) => {
 	return res;
 };
 
-export const verifyOpenAIConnection = async (
-	token: string = '',
-	connection: dict = {},
-	direct: boolean = false
-) => {
+export const verifyOpenAIConnection = (
+	token: string,
+	connection: Pick<ModelConnection, 'url' | 'key'> & { config?: ModelConnectionConfig },
+	direct = false,
+	signal?: AbortSignal
+): Promise<unknown> => {
 	const { url, key, config } = connection;
-	if (!url) {
-		throw 'OpenAI: URL is required';
-	}
-
-	let error = null;
-	let res = null;
-
+	if (!url) return Promise.reject(new Error('OpenAI: URL is required'));
+	const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 	if (direct) {
-		res = await fetch(`${url}/models`, {
-			method: 'GET',
-			headers: {
-				Accept: 'application/json',
-				Authorization: `Bearer ${key}`,
-				'Content-Type': 'application/json'
-			}
-		})
-			.then(async (res) => {
-				if (!res.ok) throw await res.json();
-				return res.json();
-			})
-			.catch((err) => {
-				error = `OpenAI: ${err?.error?.message ?? 'Network Problem'}`;
-				return [];
-			});
-
-		if (error) {
-			throw error;
-		}
-	} else {
-		res = await fetch(`${OPENAI_API_BASE_URL}/verify`, {
-			method: 'POST',
-			headers: {
-				Accept: 'application/json',
-				Authorization: `Bearer ${token}`,
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				url,
-				key,
-				config
-			})
-		})
-			.then(async (res) => {
-				if (!res.ok) throw await res.json();
-				return res.json();
-			})
-			.catch((err) => {
-				error = `OpenAI: ${err?.error?.message ?? 'Network Problem'}`;
-				return [];
-			});
-
-		if (error) {
-			throw error;
-		}
-	}
-
-	return res;
+		const auth = config?.auth_type ?? 'bearer';
+		if (auth === 'session') headers.Authorization = `Bearer ${token}`;
+		else if (auth !== 'none' && key) headers.Authorization = `Bearer ${key}`;
+		Object.assign(headers, config?.headers);
+	} else headers.Authorization = `Bearer ${token}`;
+	return requestModelConnection(
+		direct ? `${url}/models` : `${OPENAI_API_BASE_URL}/verify`,
+		{
+			method: direct ? 'GET' : 'POST',
+			headers,
+			...(direct ? {} : { body: JSON.stringify(connection) })
+		},
+		signal
+	);
 };
 
 export const chatCompletion = async (

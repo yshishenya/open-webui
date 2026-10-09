@@ -1,22 +1,57 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
-	const i18n = getContext('i18n');
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type {
+		ModelConnection,
+		ModelConnectionConfig,
+		ConnectionSave,
+		ConnectionDelete
+	} from '$lib/utils/airis/frontend-contracts';
+	import { toast } from 'svelte-sonner';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
+	const i18n = getContext<Writable<I18n>>('i18n');
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
 	import Cog6 from '$lib/components/icons/Cog6.svelte';
 	import AddConnectionModal from '$lib/components/AddConnectionModal.svelte';
 
-	export let onDelete = () => {};
-	export let onSubmit = () => {};
+	export let onDelete: ConnectionDelete = () => {};
+	export let onSubmit: ConnectionSave = () => {};
 
 	export let pipeline = false;
 
 	export let url = '';
 	export let key = '';
-	export let config = {};
+	export let config: ModelConnectionConfig | null = {};
 
 	let showConfigModal = false;
+	let saving = false;
+	let enabled = true;
+	$: enabled = config?.enable ?? true;
+	const submitConnection = async (connection: ModelConnection): Promise<boolean> => {
+		if (saving) return false;
+		saving = true;
+		try {
+			if ((await onSubmit(connection)) === false) return false;
+			url = connection.url;
+			key = connection.key;
+			config = connection.config;
+			return true;
+		} finally {
+			saving = false;
+		}
+	};
+	const toggleConnection = async (): Promise<void> => {
+		try {
+			await submitConnection({ url, key: key, config: { ...config, enable: enabled } });
+		} catch (error) {
+			toast.error(getErrorMessage(error));
+		} finally {
+			enabled = config?.enable ?? true;
+		}
+	};
 </script>
 
 <AddConnectionModal
@@ -28,16 +63,8 @@
 		key,
 		config
 	}}
-	onDelete={() => {
-		onDelete();
-		showConfigModal = false;
-	}}
-	onSubmit={(connection) => {
-		url = connection.url;
-		key = connection.key;
-		config = connection.config;
-		onSubmit(connection);
-	}}
+	{onDelete}
+	onSubmit={submitConnection}
 />
 
 <div class="flex w-full items-center gap-3">
@@ -80,13 +107,7 @@
 		</Tooltip>
 
 		<Tooltip content={(config?.enable ?? true) ? $i18n.t('Enabled') : $i18n.t('Disabled')}>
-			<Switch
-				bind:state={config.enable}
-				on:change={() => {
-					config.enable = config.enable ?? false;
-					onSubmit({ url, key, config });
-				}}
-			/>
+			<Switch bind:state={enabled} disabled={saving} on:change={toggleConnection} />
 		</Tooltip>
 	</div>
 </div>

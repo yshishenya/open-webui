@@ -4,7 +4,7 @@
 	import type { Writable } from 'svelte/store';
 	import { toast } from 'svelte-sonner';
 	import { config, models, settings, user } from '$lib/stores';
-	import type { SettingsModalRequest } from '$lib/stores';
+	import type { Settings, SettingsModalRequest } from '$lib/stores';
 	import { updateUserSettings } from '$lib/apis/users';
 	import { getBackendConfig, getModels as _getModels } from '$lib/apis';
 
@@ -814,11 +814,16 @@
 		scrollToSelectedTab();
 	};
 
-	const saveSettings = async (updated: Record<string, any>) => {
-		console.log(updated);
-		await settings.set({ ...$settings, ...updated });
-		await models.set(await getModels());
-		await updateUserSettings(localStorage.token, { ui: $settings });
+	const saveSettings = async (updated: Partial<Settings>): Promise<void> => {
+		const snapshot = { ...$settings, ...updated };
+		const saved = await updateUserSettings(localStorage.token, { ui: snapshot });
+		if (!saved) throw new Error('Settings could not be saved.');
+		settings.set(snapshot);
+		try {
+			models.set(await getModels());
+		} catch {
+			toast.error($i18n.t('Server connection failed'));
+		}
 	};
 
 	const getModels = async () => {
@@ -1179,14 +1184,14 @@
 				<Shortcuts {saveSettings} />
 			{:else if selectedTab === 'connections'}
 				<Connections
-					saveSettings={async (updated: Record<string, any>) => {
+					saveSettings={async (updated: Partial<Settings>) => {
 						await saveSettings(updated);
 						toast.success($i18n.t('Settings saved successfully!'));
 					}}
 				/>
 			{:else if selectedTab === 'tools'}
 				<Integrations
-					saveSettings={async (updated: Record<string, any>) => {
+					saveSettings={async (updated: Partial<Settings>) => {
 						await saveSettings(updated);
 						toast.success($i18n.t('Settings saved successfully!'));
 					}}

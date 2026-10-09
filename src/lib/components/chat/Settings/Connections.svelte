@@ -1,7 +1,16 @@
 <script lang="ts">
 	import { onMount, getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type {
+		DirectModelConnections,
+		ModelConnection
+	} from '$lib/utils/airis/frontend-contracts';
+	import type { Settings } from '$lib/stores';
+	import { toast } from 'svelte-sonner';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<I18n>>('i18n');
 
 	import { settings } from '$lib/stores';
 
@@ -13,54 +22,73 @@
 
 	import AddConnectionModal from '$lib/components/AddConnectionModal.svelte';
 
-	export let saveSettings: Function;
-
-	let config = null;
-
+	export let saveSettings: (updated: Partial<Settings>) => void | Promise<void>;
+	let config: DirectModelConnections | null = null;
+	let saving = false;
 	let showConnectionModal = false;
 
-	const addConnectionHandler = async (connection) => {
-		config.OPENAI_API_BASE_URLS.push(connection.url);
-		config.OPENAI_API_KEYS.push(connection.key);
-		config.OPENAI_API_CONFIGS[config.OPENAI_API_BASE_URLS.length - 1] = connection.config;
-
-		await updateHandler();
-	};
-
-	const updateHandler = async () => {
-		// Remove trailing slashes
-		config.OPENAI_API_BASE_URLS = config.OPENAI_API_BASE_URLS.map((url) => url.replace(/\/$/, ''));
-
-		// Check if API KEYS length is same than API URLS length
-		if (config.OPENAI_API_KEYS.length !== config.OPENAI_API_BASE_URLS.length) {
-			// if there are more keys than urls, remove the extra keys
-			if (config.OPENAI_API_KEYS.length > config.OPENAI_API_BASE_URLS.length) {
-				config.OPENAI_API_KEYS = config.OPENAI_API_KEYS.slice(
-					0,
-					config.OPENAI_API_BASE_URLS.length
-				);
-			}
-
-			// if there are more urls than keys, add empty keys
-			if (config.OPENAI_API_KEYS.length < config.OPENAI_API_BASE_URLS.length) {
-				const diff = config.OPENAI_API_BASE_URLS.length - config.OPENAI_API_KEYS.length;
-				for (let i = 0; i < diff; i++) {
-					config.OPENAI_API_KEYS.push('');
-				}
-			}
+	const updateHandler = async (next = config): Promise<boolean> => {
+		if (!next || saving) return false;
+		saving = true;
+		try {
+			const snapshot: DirectModelConnections = {
+				...structuredClone(next),
+				OPENAI_API_BASE_URLS: next.OPENAI_API_BASE_URLS.map((url) => url.replace(/\/$/, '')),
+				OPENAI_API_KEYS: next.OPENAI_API_BASE_URLS.map((_, idx) => next.OPENAI_API_KEYS[idx] ?? '')
+			};
+			await saveSettings({ directConnections: snapshot });
+			config = snapshot;
+			return true;
+		} catch (error) {
+			toast.error(getErrorMessage(error));
+			return false;
+		} finally {
+			saving = false;
 		}
-
-		await saveSettings({
-			directConnections: config
+	};
+	const addConnectionHandler = (connection: ModelConnection): Promise<boolean> => {
+		if (!config) return Promise.resolve(false);
+		return updateHandler({
+			OPENAI_API_BASE_URLS: [...config.OPENAI_API_BASE_URLS, connection.url],
+			OPENAI_API_KEYS: [...config.OPENAI_API_KEYS, connection.key],
+			OPENAI_API_CONFIGS: {
+				...config.OPENAI_API_CONFIGS,
+				[config.OPENAI_API_BASE_URLS.length]: connection.config
+			}
 		});
+	};
+	const editConnectionHandler = (idx: number, connection: ModelConnection): Promise<boolean> => {
+		if (!config) return Promise.resolve(false);
+		return updateHandler({
+			OPENAI_API_BASE_URLS: config.OPENAI_API_BASE_URLS.map((url, i) =>
+				i === idx ? connection.url : url
+			),
+			OPENAI_API_KEYS: config.OPENAI_API_KEYS.map((key, i) => (i === idx ? connection.key : key)),
+			OPENAI_API_CONFIGS: { ...config.OPENAI_API_CONFIGS, [idx]: connection.config }
+		});
+	};
+	const deleteConnectionHandler = (idx: number): Promise<boolean> => {
+		if (!config) return Promise.resolve(false);
+		const next = structuredClone(config);
+		next.OPENAI_API_BASE_URLS.splice(idx, 1);
+		next.OPENAI_API_KEYS.splice(idx, 1);
+		next.OPENAI_API_CONFIGS = Object.fromEntries(
+			next.OPENAI_API_BASE_URLS.map((_, i) => [
+				i,
+				config?.OPENAI_API_CONFIGS[i < idx ? i : i + 1] ?? {}
+			])
+		);
+		return updateHandler(next);
 	};
 
 	onMount(async () => {
-		config = $settings?.directConnections ?? {
-			OPENAI_API_BASE_URLS: [],
-			OPENAI_API_KEYS: [],
-			OPENAI_API_CONFIGS: {}
-		};
+		config = structuredClone(
+			$settings?.directConnections ?? {
+				OPENAI_API_BASE_URLS: [],
+				OPENAI_API_KEYS: [],
+				OPENAI_API_CONFIGS: {}
+			}
+		);
 	});
 </script>
 
@@ -70,7 +98,7 @@
 	id="tab-connections"
 	class="flex flex-col h-full justify-between text-sm"
 	on:submit|preventDefault={() => {
-		updateHandler();
+		void updateHandler();
 	}}
 >
 	<h2 class="text-sm font-medium text-gray-900 dark:text-white mb-4">{$i18n.t('Connections')}</h2>
@@ -102,24 +130,9 @@
 						<Connection
 							bind:url
 							bind:key={config.OPENAI_API_KEYS[idx]}
-							bind:config={config.OPENAI_API_CONFIGS[idx]}
-							onSubmit={() => {
-								updateHandler();
-							}}
-							onDelete={() => {
-								config.OPENAI_API_BASE_URLS = config.OPENAI_API_BASE_URLS.filter(
-									(url, urlIdx) => idx !== urlIdx
-								);
-								config.OPENAI_API_KEYS = config.OPENAI_API_KEYS.filter(
-									(key, keyIdx) => idx !== keyIdx
-								);
-
-								let newConfig = {};
-								config.OPENAI_API_BASE_URLS.forEach((url, newIdx) => {
-									newConfig[newIdx] = config.OPENAI_API_CONFIGS[newIdx < idx ? newIdx : newIdx + 1];
-								});
-								config.OPENAI_API_CONFIGS = newConfig;
-							}}
+							config={config.OPENAI_API_CONFIGS[idx]}
+							onSubmit={(connection) => editConnectionHandler(idx, connection)}
+							onDelete={() => deleteConnectionHandler(idx)}
 						/>
 					{/each}
 				</div>
@@ -143,6 +156,7 @@
 		<button
 			class="px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full"
 			type="submit"
+			disabled={saving}
 		>
 			{$i18n.t('Save')}
 		</button>

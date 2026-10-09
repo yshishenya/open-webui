@@ -1,7 +1,17 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { getContext, onMount } from 'svelte';
-	const i18n = getContext('i18n');
+	import { getContext, onDestroy } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type {
+		ModelConnection,
+		ConnectionSave,
+		ConnectionDelete
+	} from '$lib/utils/airis/frontend-contracts';
+	import type { ModelTag } from '$lib/utils/airis/model-types';
+	import { parseConnectionHeaders } from '$lib/utils/airis/model_connection_request';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
+	const i18n = getContext<Writable<I18n>>('i18n');
 
 	import { verifyOpenAIConnection } from '$lib/apis/openai';
 	import { verifyOllamaConnection } from '$lib/apis/ollama';
@@ -9,7 +19,6 @@
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import Minus from '$lib/components/icons/Minus.svelte';
-	import PencilSolid from '$lib/components/icons/PencilSolid.svelte';
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
@@ -19,8 +28,8 @@
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Textarea from './common/Textarea.svelte';
 
-	export let onSubmit: Function = () => {};
-	export let onDelete: Function = () => {};
+	export let onSubmit: ConnectionSave = () => {};
+	export let onDelete: ConnectionDelete = () => {};
 
 	export let show = false;
 	export let edit = false;
@@ -28,7 +37,9 @@
 	export let ollama = false;
 	export let direct = false;
 
-	export let connection = null;
+	export let connection:
+		| (Pick<ModelConnection, 'url' | 'key'> & { config?: ModelConnection['config'] | null })
+		| null = null;
 
 	let url = '';
 	let key = '';
@@ -51,10 +62,10 @@
 	let headers = '';
 	let passthroughParams = '';
 
-	let tags = [];
+	let tags: ModelTag[] = [];
 
 	let modelId = '';
-	let modelIds = [];
+	let modelIds: string[] = [];
 
 	let loading = false;
 	let showDeleteConfirmDialog = false;
@@ -65,187 +76,185 @@
 	const selectClass =
 		'bg-transparent pr-5 outline-hidden placeholder:text-gray-300 dark:placeholder:text-gray-700';
 
-	const parsePassthroughParams = (value: string) =>
+	const parsePassthroughParams = (value: string): string[] =>
 		value
 			.split(',')
 			.map((param) => param.trim())
 			.filter(Boolean);
 
-	const verifyOllamaHandler = async () => {
-		// remove trailing slash from url
-		url = url.replace(/\/$/, '');
+	let destroyed = false;
+	let session = 0;
+	let verifying = false;
+	let verifyAbort: AbortController | null = null;
+	onDestroy(() => {
+		destroyed = true;
+		verifyAbort?.abort();
+	});
 
-		const res = await verifyOllamaConnection(localStorage.token, {
-			url,
-			key
-		}).catch((error) => {
-			toast.error(`${error}`);
-		});
-
-		if (res) {
-			toast.success($i18n.t('Server connection verified'));
+	const verifyConnection = async (useOllama: boolean): Promise<void> => {
+		if (verifying || loading) return;
+		verifyAbort = new AbortController();
+		const request = verifyAbort;
+		const currentSession = session;
+		verifying = true;
+		try {
+			const parsedHeaders = parseConnectionHeaders(headers);
+			url = url.replace(/\/$/, '');
+			if (useOllama) await verifyOllamaConnection(localStorage.token, { url, key }, request.signal);
+			else
+				await verifyOpenAIConnection(
+					localStorage.token,
+					{
+						url,
+						key,
+						config: {
+							auth_type,
+							...(provider ? { provider } : {}),
+							...(azure ? { azure: true } : {}),
+							api_version: apiVersion,
+							passthrough_params: parsePassthroughParams(passthroughParams),
+							...(parsedHeaders ? { headers: parsedHeaders } : {})
+						}
+					},
+					direct,
+					request.signal
+				);
+			if (!destroyed && show && currentSession === session)
+				toast.success($i18n.t('Server connection verified'));
+		} catch (error) {
+			if (!destroyed && show && currentSession === session && !request.signal.aborted)
+				toast.error(getErrorMessage(error));
+		} finally {
+			verifying = false;
 		}
 	};
+	const verifyHandler = (): Promise<void> => verifyConnection(ollama);
 
-	const verifyOpenAIHandler = async () => {
-		// remove trailing slash from url
-		url = url.replace(/\/$/, '');
-
-		let _headers = null;
-
-		if (headers) {
-			try {
-				_headers = JSON.parse(headers);
-				if (typeof _headers !== 'object' || Array.isArray(_headers)) {
-					_headers = null;
-					throw new Error('Headers must be a valid JSON object');
-				}
-				headers = JSON.stringify(_headers, null, 2);
-			} catch (error) {
-				toast.error($i18n.t('Headers must be a valid JSON object'));
-				return;
-			}
-		}
-
-		const res = await verifyOpenAIConnection(
-			localStorage.token,
-			{
-				url,
-				key,
-				config: {
-					auth_type,
-					...(provider ? { provider } : {}),
-					...(azure ? { azure: true } : {}),
-					api_version: apiVersion,
-					passthrough_params: parsePassthroughParams(passthroughParams),
-					...(_headers ? { headers: _headers } : {})
-				}
-			},
-			direct
-		).catch((error) => {
-			toast.error(`${error}`);
-		});
-
-		if (res) {
-			toast.success($i18n.t('Server connection verified'));
-		}
-	};
-
-	const verifyHandler = () => {
-		if (ollama) {
-			verifyOllamaHandler();
-		} else {
-			verifyOpenAIHandler();
-		}
-	};
-
-	const addModelHandler = () => {
+	const addModelHandler = (): void => {
 		if (modelId) {
 			modelIds = [...modelIds, modelId];
 			modelId = '';
 		}
 	};
 
-	const submitHandler = async () => {
+	const submitHandler = async (): Promise<void> => {
+		if (loading || destroyed) return;
 		loading = true;
-
-		if (!ollama && !url) {
-			loading = false;
-			toast.error($i18n.t('URL is required'));
-			return;
-		}
-
-		if (azure) {
-			if (!apiVersion) {
+		const currentSession = session;
+		try {
+			if (!ollama && !url) {
 				loading = false;
-				showAdvanced = true;
-
-				toast.error($i18n.t('API Version is required'));
+				toast.error($i18n.t('URL is required'));
 				return;
 			}
 
-			if (!key && !['azure_ad', 'microsoft_entra_id'].includes(auth_type)) {
-				loading = false;
+			if (azure) {
+				if (!apiVersion) {
+					loading = false;
+					showAdvanced = true;
 
-				toast.error($i18n.t('Key is required'));
-				return;
-			}
-
-			if (modelIds.length === 0) {
-				loading = false;
-				showAdvanced = true;
-				toast.error($i18n.t('Deployment names are required for Azure OpenAI'));
-				return;
-			}
-		}
-
-		if (headers) {
-			try {
-				const _headers = JSON.parse(headers);
-				if (typeof _headers !== 'object' || Array.isArray(_headers)) {
-					throw new Error('Headers must be a valid JSON object');
+					toast.error($i18n.t('API Version is required'));
+					return;
 				}
-				headers = JSON.stringify(_headers, null, 2);
-			} catch (error) {
-				toast.error($i18n.t('Headers must be a valid JSON object'));
+
+				if (!key && !['azure_ad', 'microsoft_entra_id'].includes(auth_type)) {
+					loading = false;
+
+					toast.error($i18n.t('Key is required'));
+					return;
+				}
+
+				if (modelIds.length === 0) {
+					loading = false;
+					showAdvanced = true;
+					toast.error($i18n.t('Deployment names are required for Azure OpenAI'));
+					return;
+				}
+			}
+
+			const parsedHeaders = parseConnectionHeaders(headers);
+
+			// remove trailing slash from url
+			url = url.replace(/\/$/, '');
+
+			const connection: ModelConnection = {
+				url,
+				key,
+				config: {
+					enable: enable,
+					tags: tags,
+					prefix_id: prefixId,
+					model_ids: modelIds,
+					connection_type: connectionType,
+					auth_type,
+					headers: parsedHeaders,
+					passthrough_params: parsePassthroughParams(passthroughParams),
+					...(provider ? { provider } : {}),
+					...(!ollama && azure ? { azure: true } : {}),
+					...(azure ? { api_version: apiVersion } : {}),
+					...(apiType ? { api_type: apiType } : {})
+				}
+			};
+
+			if (
+				(await onSubmit(connection)) === false ||
+				destroyed ||
+				!show ||
+				currentSession !== session
+			)
 				return;
-			}
+
+			loading = false;
+			show = false;
+
+			url = '';
+			key = '';
+			auth_type = 'bearer';
+			prefixId = '';
+			passthroughParams = '';
+			showAdvanced = false;
+			tags = [];
+			modelIds = [];
+		} catch (error) {
+			if (!destroyed && show && currentSession === session) toast.error(getErrorMessage(error));
+		} finally {
+			loading = false;
 		}
+	};
 
-		// remove trailing slash from url
-		url = url.replace(/\/$/, '');
-
-		const connection = {
-			url,
-			key,
-			config: {
-				enable: enable,
-				tags: tags,
-				prefix_id: prefixId,
-				model_ids: modelIds,
-				connection_type: connectionType,
-				auth_type,
-				headers: headers ? JSON.parse(headers) : undefined,
-				passthrough_params: parsePassthroughParams(passthroughParams),
-				...(provider ? { provider } : {}),
-				...(!ollama && azure ? { azure: true } : {}),
-				...(azure ? { api_version: apiVersion } : {}),
-				...(apiType ? { api_type: apiType } : {})
-			}
-		};
-
-		await onSubmit(connection);
-
-		loading = false;
-		show = false;
-
+	const init = (): void => {
+		session += 1;
+		verifyAbort?.abort();
 		url = '';
 		key = '';
 		auth_type = 'bearer';
-		prefixId = '';
-		passthroughParams = '';
-		showAdvanced = false;
+		headers = '';
+		enable = true;
 		tags = [];
 		modelIds = [];
-	};
-
-	const init = () => {
+		prefixId = '';
+		provider = '';
+		apiVersion = '';
+		apiType = '';
+		passthroughParams = '';
+		connectionType = ollama ? 'local' : 'external';
+		showAdvanced = false;
 		if (connection) {
 			url = connection.url;
 			key = connection.key;
 
-			auth_type = connection.config.auth_type ?? 'bearer';
+			auth_type = connection.config?.auth_type ?? 'bearer';
 			headers = connection.config?.headers
 				? JSON.stringify(connection.config.headers, null, 2)
 				: '';
 
 			enable = connection.config?.enable ?? true;
-			tags = connection.config?.tags ?? [];
+			tags = [...(connection.config?.tags ?? [])];
 			prefixId = connection.config?.prefix_id ?? '';
 			passthroughParams = Array.isArray(connection.config?.passthrough_params)
 				? connection.config.passthrough_params.join(', ')
 				: (connection.config?.passthrough_params ?? '');
-			modelIds = connection.config?.model_ids ?? [];
+			modelIds = [...(connection.config?.model_ids ?? [])];
 
 			if (ollama) {
 				connectionType = connection.config?.connection_type ?? 'local';
@@ -262,9 +271,18 @@
 		init();
 	}
 
-	onMount(() => {
-		init();
-	});
+	const deleteHandler = async (): Promise<void> => {
+		if (loading || destroyed) return;
+		loading = true;
+		const currentSession = session;
+		try {
+			if ((await onDelete()) !== false && !destroyed && currentSession === session) show = false;
+		} catch (error) {
+			if (!destroyed && show && currentSession === session) toast.error(getErrorMessage(error));
+		} finally {
+			loading = false;
+		}
+	};
 </script>
 
 <Modal size="sm" bind:show>
@@ -344,13 +362,14 @@
 
 									{#if !ollama}
 										<datalist id="suggestions">
-											<option value="https://api.openai.com/v1" />
-											<option value="https://api.anthropic.com/v1" />
-											<option value="https://generativelanguage.googleapis.com/v1beta/openai" />
-											<option value="https://api.mistral.ai/v1" />
-											<option value="https://api.groq.com/openai/v1" />
-											<option value="https://openrouter.ai/api/v1" />
-											<option value="https://api.x.ai/v1" />
+											<option value="https://api.openai.com/v1"></option>
+											<option value="https://api.anthropic.com/v1"></option>
+											<option value="https://generativelanguage.googleapis.com/v1beta/openai"
+											></option>
+											<option value="https://api.mistral.ai/v1"></option>
+											<option value="https://api.groq.com/openai/v1"></option>
+											<option value="https://openrouter.ai/api/v1"></option>
+											<option value="https://api.x.ai/v1"></option>
 										</datalist>
 									{/if}
 								</div>
@@ -364,6 +383,7 @@
 									}}
 									type="button"
 									aria-label={$i18n.t('Verify Connection')}
+									disabled={verifying || loading}
 								>
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
@@ -781,8 +801,5 @@
 		'Are you sure you want to delete this connection? This action cannot be undone.'
 	)}
 	confirmLabel={$i18n.t('Delete')}
-	on:confirm={() => {
-		onDelete();
-		show = false;
-	}}
+	on:confirm={deleteHandler}
 />

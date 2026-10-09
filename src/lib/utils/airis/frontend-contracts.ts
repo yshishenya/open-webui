@@ -69,21 +69,31 @@ export type SkillListItem = {
 	created_at: number;
 };
 
+export type ModelConnectionConfig = {
+	enable?: boolean | null;
+	model_ids?: string[] | null;
+	prefix_id?: string | null;
+	tags?: ModelTag[] | null;
+	auth_type?: string;
+	headers?: Record<string, string>;
+	connection_type?: string;
+	provider?: string;
+	azure?: boolean;
+	api_version?: string;
+	api_type?: string;
+	passthrough_params?: string[] | string | null;
+	key?: string;
+	[key: string]: unknown;
+};
+export type ModelConnection = { url: string; key: string; config: ModelConnectionConfig };
+export type ConnectionSave = (
+	connection: ModelConnection
+) => boolean | void | Promise<boolean | void>;
+export type ConnectionDelete = () => boolean | void | Promise<boolean | void>;
 export type DirectModelConnections = Pick<
 	Parameters<typeof updateOpenAIConfig>[1],
 	'OPENAI_API_BASE_URLS' | 'OPENAI_API_KEYS'
-> & {
-	OPENAI_API_CONFIGS: Record<
-		string,
-		{
-			enable?: boolean | null;
-			model_ids?: string[] | null;
-			prefix_id?: string | null;
-			tags?: ModelTag[] | null;
-			[key: string]: unknown;
-		} | null
-	>;
-};
+> & { OPENAI_API_CONFIGS: Record<string, ModelConnectionConfig | null> };
 
 export type UserPermissions = {
 	[Section in keyof typeof DEFAULT_PERMISSIONS]?: {

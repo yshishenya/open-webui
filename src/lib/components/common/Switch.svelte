@@ -8,6 +8,7 @@
 
 	import Tooltip from './Tooltip.svelte';
 	export let state = true;
+	export let disabled = false;
 	export let id = '';
 	export let ariaLabelledbyId = '';
 	export let ariaLabel = '';
@@ -29,6 +30,7 @@
 >
 	<Switch.Root
 		bind:checked={state}
+		{disabled}
 		{id}
 		aria-labelledby={ariaLabelledbyId || undefined}
 		aria-label={ariaLabel || undefined}

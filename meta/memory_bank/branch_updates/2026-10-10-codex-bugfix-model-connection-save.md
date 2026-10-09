@@ -1,0 +1,5 @@
+- [x] **[BUG][CONNECTIONS]** Сохранение подключений моделей без ложного успеха
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__model-connection-save.md
+  - Owner: Codex
+  - Done: 2026-10-10
+  - Summary: Исправлены общая форма и все OpenAI/Ollama/direct потребители; отказ сохраняет черновик и списки. 11 исходных отказов, 32 адресные и 1426/1426 полных тестов; types/ESLint новых 0. SDD 2/2 завершена.

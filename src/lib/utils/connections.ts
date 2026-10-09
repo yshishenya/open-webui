@@ -1,3 +1,4 @@
+import type { ModelConnectionConfig } from '$lib/utils/airis/frontend-contracts';
 /**
  * Shared helpers for managing system-level connections.
  * Used by both the admin settings UI and the desktop event handler
@@ -15,7 +16,7 @@ import { getTerminalServerConnections, setTerminalServerConnections } from '$lib
  */
 export const addOpenAIConnection = async (
 	token: string,
-	connection: { url: string; key?: string; config?: object }
+	connection: { url: string; key?: string; config?: ModelConnectionConfig }
 ) => {
 	const current = await getOpenAIConfig(token);
 	const urls = current?.OPENAI_API_BASE_URLS ?? [];
@@ -51,7 +52,7 @@ export const removeOpenAIConnection = async (token: string, url: string) => {
 	const current = await getOpenAIConfig(token);
 	const urls: string[] = current?.OPENAI_API_BASE_URLS ?? [];
 	const keys: string[] = current?.OPENAI_API_KEYS ?? [];
-	const configs: Record<string, any> = current?.OPENAI_API_CONFIGS ?? {};
+	const configs: Record<string, ModelConnectionConfig | null> = current?.OPENAI_API_CONFIGS ?? {};
 
 	const normalizedUrl = url.replace(/\/$/, '');
 	const idx = urls.findIndex((u: string) => u.replace(/\/$/, '') === normalizedUrl);
@@ -61,7 +62,7 @@ export const removeOpenAIConnection = async (token: string, url: string) => {
 	const newKeys = keys.filter((_: string, i: number) => i !== idx);
 
 	// Re-index configs (mirrors admin/Settings/Connections.svelte onDelete)
-	const newConfigs: Record<string, any> = {};
+	const newConfigs: Record<string, ModelConnectionConfig | null> = {};
 	newUrls.forEach((_: string, newIdx: number) => {
 		newConfigs[newIdx] = configs[newIdx < idx ? newIdx : newIdx + 1];
 	});
