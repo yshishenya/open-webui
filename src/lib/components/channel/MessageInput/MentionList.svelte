@@ -1,12 +1,15 @@
 <script lang="ts">
-	import { getContext, onDestroy, onMount } from 'svelte';
+	import { getContext, onMount } from 'svelte';
+	import type { ChannelListItem } from '$lib/utils/airis/channel-types';
+	import type { Model } from '$lib/utils/airis/model-types';
+	import type { SessionUser } from '$lib/stores';
 	const i18n = getContext('i18n');
 
-	import { channels, models, user } from '$lib/stores';
+	import { channels, models } from '$lib/stores';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Hashtag from '$lib/components/icons/Hashtag.svelte';
 	import Lock from '$lib/components/icons/Lock.svelte';
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+	import { WEBUI_API_BASE_URL } from '$lib/constants';
 	import { searchUsers } from '$lib/apis/users';
 
 	export let query = '';
@@ -21,9 +24,14 @@
 	export let userSuggestions = false;
 	export let channelSuggestions = false;
 
-	let _models = [];
-	let _users = [];
-	let _channels = [];
+	type MentionItem = { id: string; label: string } & (
+		| { type: 'user' }
+		| { type: 'model'; data: Model }
+		| { type: 'channel'; data: ChannelListItem }
+	);
+	let _models: MentionItem[] = [];
+	let _users: MentionItem[] = [];
+	let _channels: MentionItem[] = [];
 
 	$: filteredItems = [..._users, ..._models, ..._channels].filter(
 		(u) =>
@@ -38,9 +46,13 @@
 		});
 
 		if (res) {
-			_users = [...res.users.map((u) => ({ type: 'user', id: u.id, label: u.name }))].sort((a, b) =>
-				a.label.localeCompare(b.label)
-			);
+			_users = [
+				...res.users.map((u: Pick<SessionUser, 'id' | 'name'>) => ({
+					type: 'user' as const,
+					id: u.id,
+					label: u.name
+				}))
+			].sort((a, b) => a.label.localeCompare(b.label));
 		}
 	};
 
@@ -48,7 +60,7 @@
 		getUserList();
 	}
 
-	const select = (index: number) => {
+	const select = (index: number): void => {
 		const item = filteredItems[index];
 		if (!item) return;
 
@@ -62,7 +74,7 @@
 			});
 	};
 
-	const onKeyDown = (event: KeyboardEvent) => {
+	const onKeyDown = (event: KeyboardEvent): boolean => {
 		if (!['ArrowUp', 'ArrowDown', 'Enter', 'Tab', 'Escape'].includes(event.key)) return false;
 
 		if (event.key === 'ArrowUp') {
@@ -93,8 +105,7 @@
 	};
 
 	// This method will be called from the suggestion renderer
-	// @ts-ignore
-	export function _onKeyDown(event: KeyboardEvent) {
+	export function _onKeyDown(event: KeyboardEvent): boolean {
 		return onKeyDown(event);
 	}
 
@@ -114,14 +125,14 @@
 			_channels = [
 				...$channels
 					.filter((c) => c?.type !== 'dm')
-					.map((c) => ({ type: 'channel', id: c.id, label: c.name, data: c }))
+					.map((c) => ({ type: 'channel' as const, id: c.id, label: c.name, data: c }))
 			];
 		} else {
 			if (modelSuggestions) {
 				_models = [
 					...$models
 						.filter((m) => !m?.direct)
-						.map((m) => ({ type: 'model', id: m.id, label: m.name, data: m }))
+						.map((m) => ({ type: 'model' as const, id: m.id, label: m.name, data: m }))
 				];
 			}
 		}
@@ -131,7 +142,7 @@
 		};
 	});
 
-	const hasPublicReadGrant = (grants: any) =>
+	const hasPublicReadGrant = (grants: ChannelListItem['access_grants'] | undefined): boolean =>
 		Array.isArray(grants) &&
 		grants.some(
 			(grant) =>
@@ -140,7 +151,7 @@
 				grant?.permission === 'read'
 		);
 
-	const isPublicChannel = (channel: any): boolean => {
+	const isPublicChannel = (channel: ChannelListItem | undefined): boolean => {
 		if (channel?.type === 'group') {
 			if (typeof channel?.is_private === 'boolean') {
 				return !channel.is_private;
@@ -197,7 +208,7 @@
 								alt={item?.data?.name ?? item.id}
 								class="rounded-full size-5 items-center mr-2"
 								on:error={(e) => {
-									e.currentTarget.src = '/favicon.png';
+									(e.currentTarget as HTMLImageElement).src = '/favicon.png';
 								}}
 							/>
 						{:else if item.type === 'user'}
@@ -206,7 +217,7 @@
 								alt={item?.label ?? item.id}
 								class="rounded-full size-5 items-center mr-2"
 								on:error={(e) => {
-									e.currentTarget.src = '/favicon.png';
+									(e.currentTarget as HTMLImageElement).src = '/favicon.png';
 								}}
 							/>
 						{/if}
