@@ -35,7 +35,7 @@ import os
 import threading
 import time
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import oracledb
 from open_webui.config import (
@@ -46,7 +46,6 @@ from open_webui.config import (
     ORACLE_DB_POOL_MIN,
     ORACLE_DB_USE_WALLET,
     ORACLE_DB_USER,
-    ORACLE_VECTOR_LENGTH,
     ORACLE_WALLET_DIR,
     ORACLE_WALLET_PASSWORD,
 )
@@ -251,8 +250,7 @@ class Oracle23aiClient(VectorDBBase):
         with connection.cursor() as cursor:
             try:
                 log.info('Creating Table document_chunk')
-                cursor.execute(
-                    """
+                cursor.execute("""
                     BEGIN
                         EXECUTE IMMEDIATE '
                             CREATE TABLE IF NOT EXISTS document_chunk (
@@ -269,12 +267,10 @@ class Oracle23aiClient(VectorDBBase):
                                 RAISE;
                             END IF;
                     END;
-                """
-                )
+                """)
 
                 log.info('Creating Index document_chunk_collection_name_idx')
-                cursor.execute(
-                    """
+                cursor.execute("""
                     BEGIN
                         EXECUTE IMMEDIATE '
                             CREATE INDEX IF NOT EXISTS document_chunk_collection_name_idx
@@ -286,12 +282,10 @@ class Oracle23aiClient(VectorDBBase):
                                 RAISE;
                             END IF;
                     END;
-                """
-                )
+                """)
 
                 log.info('Creating VECTOR INDEX document_chunk_vector_ivf_idx')
-                cursor.execute(
-                    """
+                cursor.execute("""
                     BEGIN
                         EXECUTE IMMEDIATE '
                             CREATE VECTOR INDEX IF NOT EXISTS document_chunk_vector_ivf_idx 
@@ -307,8 +301,7 @@ class Oracle23aiClient(VectorDBBase):
                                 RAISE;
                             END IF;
                     END;
-                """
-                )
+                """)
 
                 connection.commit()
                 log.info('Database initialization completed successfully.')
@@ -327,7 +320,7 @@ class Oracle23aiClient(VectorDBBase):
         """
         pass
 
-    def _vector_to_blob(self, vector: List[float]) -> bytes:
+    def _vector_to_blob(self, vector: list[float]) -> bytes:
         """
         Convert a vector to Oracle BLOB format.
 
@@ -339,7 +332,7 @@ class Oracle23aiClient(VectorDBBase):
         """
         return array.array('f', vector)
 
-    def adjust_vector_length(self, vector: List[float]) -> List[float]:
+    def adjust_vector_length(self, vector: list[float]) -> list[float]:
         """
         Adjust vector to the expected length if needed.
 
@@ -368,7 +361,7 @@ class Oracle23aiClient(VectorDBBase):
             return float(obj)
         raise TypeError(f'{obj} is not JSON serializable')
 
-    def _metadata_to_json(self, metadata: Dict) -> str:
+    def _metadata_to_json(self, metadata: dict) -> str:
         """
         Convert metadata dictionary to JSON string.
 
@@ -380,7 +373,7 @@ class Oracle23aiClient(VectorDBBase):
         """
         return json.dumps(metadata, default=self._decimal_handler) if metadata else '{}'
 
-    def _json_to_metadata(self, json_str: str) -> Dict:
+    def _json_to_metadata(self, json_str: str) -> dict:
         """
         Convert JSON string to metadata dictionary.
 
@@ -392,7 +385,7 @@ class Oracle23aiClient(VectorDBBase):
         """
         return json.loads(json_str) if json_str else {}
 
-    def insert(self, collection_name: str, items: List[VectorItem]) -> None:
+    def insert(self, collection_name: str, items: list[VectorItem]) -> None:
         """
         Insert vector items into the database.
 
@@ -443,7 +436,7 @@ class Oracle23aiClient(VectorDBBase):
                 log.exception(f'Error during insert: {e}')
                 raise
 
-    def upsert(self, collection_name: str, items: List[VectorItem]) -> None:
+    def upsert(self, collection_name: str, items: list[VectorItem]) -> None:
         """
         Update or insert vector items into the database.
 
@@ -514,10 +507,10 @@ class Oracle23aiClient(VectorDBBase):
     def search(
         self,
         collection_name: str,
-        vectors: List[List[Union[float, int]]],
-        filter: Optional[dict] = None,
+        vectors: list[list[float | int]],
+        filter: dict | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         """
         Search for similar vectors in the database.
 
@@ -594,7 +587,7 @@ class Oracle23aiClient(VectorDBBase):
             log.exception(f'Error during search: {e}')
             return None
 
-    def query(self, collection_name: str, filter: Dict, limit: Optional[int] = None) -> Optional[GetResult]:
+    def query(self, collection_name: str, filter: dict, limit: int | None = None) -> GetResult | None:
         """
         Query items based on metadata filters.
 
@@ -663,7 +656,7 @@ class Oracle23aiClient(VectorDBBase):
             log.exception(f'Error during query: {e}')
             return None
 
-    def get(self, collection_name: str) -> Optional[GetResult]:
+    def get(self, collection_name: str) -> GetResult | None:
         """
         Get all items in a collection.
 
@@ -723,8 +716,8 @@ class Oracle23aiClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        filter: Optional[Dict[str, Any]] = None,
+        ids: list[str] | None = None,
+        filter: dict[str, Any] | None = None,
     ) -> None:
         """
         Delete items from the database.

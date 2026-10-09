@@ -23,14 +23,14 @@ def coerce_direct_ack(value: object, *, context: DirectAckContext) -> dict[str, 
 
     # Avoid leaking provider details; include only safe context.
     log.warning(
-        "Direct connection returned invalid ack payload",
+        'Direct connection returned invalid ack payload',
         extra={
-            "request_id": context.request_id,
-            "channel": context.channel,
-            "ack_type": type(value).__name__,
+            'request_id': context.request_id,
+            'channel': context.channel,
+            'ack_type': type(value).__name__,
         },
     )
 
     raise Exception(
-        "Direct connection error: invalid response from client. Please retry, or disable direct connections."
+        'Direct connection error: invalid response from client. Please retry, or disable direct connections.'
     )

@@ -6,7 +6,7 @@ import os
 import sys
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from open_webui.env import (
@@ -25,14 +25,12 @@ from open_webui.env import (
     DATABASE_SQLITE_PRAGMA_SYNCHRONOUS,
     DATABASE_SQLITE_PRAGMA_TEMP_STORE,
     DATABASE_URL,
-    ENABLE_DB_MIGRATIONS,
-    OPEN_WEBUI_DIR,
 )
 from sqlalchemy import Dialect, MetaData, create_engine, event, types
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session, scoped_session, sessionmaker
+from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import NullPool, QueuePool
 from sqlalchemy.sql.type_api import _T
 from typing_extensions import Self
@@ -384,6 +382,7 @@ if 'sqlite' in ASYNC_SQLALCHEMY_DATABASE_URL:
     @event.listens_for(async_engine.sync_engine, 'connect')
     def _set_sqlite_pragmas(dbapi_connection, connection_record):
         _apply_sqlite_pragmas(dbapi_connection)
+
 else:
     if isinstance(DATABASE_POOL_SIZE, int):
         if DATABASE_POOL_SIZE > 0:

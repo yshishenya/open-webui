@@ -6,7 +6,6 @@ import io
 import json
 import logging
 import posixpath
-from typing import Optional
 from urllib.parse import unquote
 
 from fastapi import (
@@ -30,7 +29,6 @@ from open_webui.models.models import (
     ModelAccessListResponse,
     ModelAccessResponse,
     ModelForm,
-    ModelListResponse,
     ModelMeta,
     ModelModel,
     ModelParams,

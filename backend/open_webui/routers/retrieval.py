@@ -11,21 +11,10 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Callable, Iterator, Optional, Sequence, Union
+from typing import Callable
 
 import tiktoken
-from fastapi import (
-    APIRouter,
-    Depends,
-    FastAPI,
-    File,
-    Form,
-    HTTPException,
-    Query,
-    Request,
-    UploadFile,
-    status,
-)
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.documents import Document
@@ -921,10 +910,10 @@ class ConfigForm(BaseModel):
     CHUNK_OVERLAP: int | None = None
 
     # File upload settings
-    FILE_MAX_SIZE: Union[int, str | None] = None
-    FILE_MAX_COUNT: Union[int, str | None] = None
-    FILE_IMAGE_COMPRESSION_WIDTH: Union[int, str | None] = None
-    FILE_IMAGE_COMPRESSION_HEIGHT: Union[int, str | None] = None
+    FILE_MAX_SIZE: int | (str | None) = None
+    FILE_MAX_COUNT: int | (str | None) = None
+    FILE_IMAGE_COMPRESSION_WIDTH: int | (str | None) = None
+    FILE_IMAGE_COMPRESSION_HEIGHT: int | (str | None) = None
     ALLOWED_FILE_EXTENSIONS: list[str | None] | None = None
 
     # Integration settings

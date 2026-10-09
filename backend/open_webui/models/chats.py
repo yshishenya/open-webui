@@ -8,11 +8,11 @@ import time
 import uuid
 
 # local imports
-from open_webui.internal.db import Base, JSONField, get_async_db_context
+from open_webui.internal.db import Base, get_async_db_context
 from open_webui.models.automations import AutomationRun
 from open_webui.models.chat_messages import ChatMessage, ChatMessages
 from open_webui.models.folders import Folders
-from open_webui.models.tags import Tag, TagModel, Tags
+from open_webui.models.tags import TagModel, Tags
 from open_webui.models.task_success import SuccessCheckpoint
 from open_webui.utils.misc import get_output_text, sanitize_data_for_db, sanitize_text_for_db
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -1860,14 +1860,12 @@ class ChatTable:
 
                 # Check if there are any tags to filter
                 if 'none' in tag_ids:
-                    stmt = stmt.filter(
-                        text("""
+                    stmt = stmt.filter(text("""
                             NOT EXISTS (
                                 SELECT 1
                                 FROM json_each(Chat.meta, '$.tags') AS tag
                             )
-                            """)
-                    )
+                            """))
                 elif tag_ids:
                     stmt = stmt.filter(
                         and_(
@@ -1924,14 +1922,12 @@ class ChatTable:
                 ).params(title_key=f'%{search_text}%', content_key=search_text.lower())
 
                 if 'none' in tag_ids:
-                    stmt = stmt.filter(
-                        text("""
+                    stmt = stmt.filter(text("""
                             NOT EXISTS (
                                 SELECT 1
                                 FROM json_array_elements_text(Chat.meta->'tags') AS tag
                             )
-                            """)
-                    )
+                            """))
                 elif tag_ids:
                     stmt = stmt.filter(
                         and_(

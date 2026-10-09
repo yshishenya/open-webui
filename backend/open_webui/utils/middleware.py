@@ -13,14 +13,12 @@ import textwrap
 import time
 from collections.abc import AsyncIterator
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Optional
 from uuid import uuid4
 
 from aiocache import cached
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from open_webui.config import (
-    CACHE_DIR,
     CODE_INTERPRETER_BLOCKED_MODULES,
     CODE_INTERPRETER_PYODIDE_PROMPT,
     DEFAULT_CODE_INTERPRETER_PROMPT,
@@ -29,7 +27,6 @@ from open_webui.config import (
 )
 from open_webui.constants import TASKS
 from open_webui.env import (
-    BYPASS_MODEL_ACCESS_CONTROL,
     CHAT_RESPONSE_MAX_TOOL_CALL_ITERATIONS,
     CHAT_RESPONSE_STREAM_DELTA_CHUNK_SIZE,
     ENABLE_API_OUTLET_FILTERS,
@@ -47,7 +44,7 @@ from open_webui.models.folders import Folders
 from open_webui.models.models import Models
 from open_webui.models.notes import Notes
 from open_webui.models.oauth_sessions import OAuthSessions
-from open_webui.models.users import UserModel, Users
+from open_webui.models.users import UserModel
 from open_webui.events import EVENTS, publish_event
 from open_webui.retrieval.utils import get_sources_from_items
 from open_webui.routers.images import (
@@ -107,7 +104,6 @@ from open_webui.utils.misc import (
     convert_logit_bias_input_to_json,
     convert_output_to_messages,
     deep_update,
-    extract_urls,
     get_content_from_message,
     get_last_assistant_message,
     get_last_user_message,
@@ -117,7 +113,6 @@ from open_webui.utils.misc import (
     get_system_message,
     is_string_allowed,
     merge_system_messages,
-    prepend_to_first_user_message_content,
     replace_system_message_content,
     set_last_user_message_content,
     strip_empty_content_blocks,
@@ -1152,7 +1147,7 @@ async def terminal_event_handler(
 async def chat_completion_tools_handler(
     request: Request, body: dict, extra_params: dict, user: UserModel, models, tools
 ) -> tuple[dict, dict]:
-    async def get_content_from_response(response) -> Optional[str]:
+    async def get_content_from_response(response) -> str | None:
         content = None
         if hasattr(response, 'body_iterator'):
             async for chunk in response.body_iterator:
@@ -2056,7 +2051,7 @@ async def convert_url_images_to_base64(form_data, user=None):
     return form_data
 
 
-async def load_messages_from_db(chat_id: str, message_id: str) -> Optional[list[dict]]:
+async def load_messages_from_db(chat_id: str, message_id: str) -> list[dict] | None:
     """
     Load the message chain from DB up to message_id,
     keeping only LLM-relevant fields (role, content, output).

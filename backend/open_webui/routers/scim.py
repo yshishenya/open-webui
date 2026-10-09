@@ -10,7 +10,7 @@ import logging
 import time
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
@@ -45,7 +45,7 @@ SCIM_RESOURCE_TYPE_USER = 'User'
 SCIM_RESOURCE_TYPE_GROUP = 'Group'
 
 
-def scim_error(status_code: int, detail: str, scim_type: Optional[str] = None):
+def scim_error(status_code: int, detail: str, scim_type: str | None = None):
     """Create a SCIM-compliant error response"""
     error_body = {
         'schemas': [SCIM_ERROR_SCHEMA],
@@ -68,10 +68,10 @@ def scim_error(status_code: int, detail: str, scim_type: Optional[str] = None):
 class SCIMError(BaseModel):
     """SCIM Error Response"""
 
-    schemas: List[str] = [SCIM_ERROR_SCHEMA]
+    schemas: list[str] = [SCIM_ERROR_SCHEMA]
     status: str
-    scimType: Optional[str] = None
-    detail: Optional[str] = None
+    scimType: str | None = None
+    detail: str | None = None
 
 
 class SCIMMeta(BaseModel):
@@ -80,46 +80,46 @@ class SCIMMeta(BaseModel):
     resourceType: str
     created: str
     lastModified: str
-    location: Optional[str] = None
-    version: Optional[str] = None
+    location: str | None = None
+    version: str | None = None
 
 
 class SCIMName(BaseModel):
     """SCIM User Name"""
 
-    formatted: Optional[str] = None
-    familyName: Optional[str] = None
-    givenName: Optional[str] = None
-    middleName: Optional[str] = None
-    honorificPrefix: Optional[str] = None
-    honorificSuffix: Optional[str] = None
+    formatted: str | None = None
+    familyName: str | None = None
+    givenName: str | None = None
+    middleName: str | None = None
+    honorificPrefix: str | None = None
+    honorificSuffix: str | None = None
 
 
 class SCIMEmail(BaseModel):
     """SCIM Email"""
 
     value: str
-    type: Optional[str] = 'work'
+    type: str | None = 'work'
     primary: bool = True
-    display: Optional[str] = None
+    display: str | None = None
 
 
 class SCIMPhoto(BaseModel):
     """SCIM Photo"""
 
     value: str
-    type: Optional[str] = 'photo'
+    type: str | None = 'photo'
     primary: bool = True
-    display: Optional[str] = None
+    display: str | None = None
 
 
 class SCIMGroupMember(BaseModel):
     """SCIM Group Member"""
 
     value: str  # User ID
-    ref: Optional[str] = Field(None, alias='$ref')
-    type: Optional[str] = 'User'
-    display: Optional[str] = None
+    ref: str | None = Field(None, alias='$ref')
+    type: str | None = 'User'
+    display: str | None = None
 
 
 class SCIMUser(BaseModel):
@@ -127,16 +127,16 @@ class SCIMUser(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: List[str] = [SCIM_USER_SCHEMA]
+    schemas: list[str] = [SCIM_USER_SCHEMA]
     id: str
-    externalId: Optional[str] = None
+    externalId: str | None = None
     userName: str
-    name: Optional[SCIMName] = None
+    name: SCIMName | None = None
     displayName: str
-    emails: List[SCIMEmail]
+    emails: list[SCIMEmail]
     active: bool = True
-    photos: Optional[List[SCIMPhoto]] = None
-    groups: Optional[List[Dict[str, str]]] = None
+    photos: list[SCIMPhoto] | None = None
+    groups: list[dict[str, str]] | None = None
     meta: SCIMMeta
 
 
@@ -145,15 +145,15 @@ class SCIMUserCreateRequest(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: List[str] = [SCIM_USER_SCHEMA]
-    externalId: Optional[str] = None
+    schemas: list[str] = [SCIM_USER_SCHEMA]
+    externalId: str | None = None
     userName: str
-    name: Optional[SCIMName] = None
+    name: SCIMName | None = None
     displayName: str
-    emails: List[SCIMEmail]
+    emails: list[SCIMEmail]
     active: bool = True
-    password: Optional[str] = None
-    photos: Optional[List[SCIMPhoto]] = None
+    password: str | None = None
+    photos: list[SCIMPhoto] | None = None
 
 
 class SCIMUserUpdateRequest(BaseModel):
@@ -161,15 +161,15 @@ class SCIMUserUpdateRequest(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: List[str] = [SCIM_USER_SCHEMA]
-    id: Optional[str] = None
-    externalId: Optional[str] = None
-    userName: Optional[str] = None
-    name: Optional[SCIMName] = None
-    displayName: Optional[str] = None
-    emails: Optional[List[SCIMEmail]] = None
-    active: Optional[bool] = None
-    photos: Optional[List[SCIMPhoto]] = None
+    schemas: list[str] = [SCIM_USER_SCHEMA]
+    id: str | None = None
+    externalId: str | None = None
+    userName: str | None = None
+    name: SCIMName | None = None
+    displayName: str | None = None
+    emails: list[SCIMEmail] | None = None
+    active: bool | None = None
+    photos: list[SCIMPhoto] | None = None
 
 
 class SCIMGroup(BaseModel):
@@ -177,10 +177,10 @@ class SCIMGroup(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: List[str] = [SCIM_GROUP_SCHEMA]
+    schemas: list[str] = [SCIM_GROUP_SCHEMA]
     id: str
     displayName: str
-    members: Optional[List[SCIMGroupMember]] = []
+    members: list[SCIMGroupMember] | None = []
     meta: SCIMMeta
 
 
@@ -189,9 +189,9 @@ class SCIMGroupCreateRequest(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: List[str] = [SCIM_GROUP_SCHEMA]
+    schemas: list[str] = [SCIM_GROUP_SCHEMA]
     displayName: str
-    members: Optional[List[SCIMGroupMember]] = []
+    members: list[SCIMGroupMember] | None = []
 
 
 class SCIMGroupUpdateRequest(BaseModel):
@@ -199,37 +199,37 @@ class SCIMGroupUpdateRequest(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: List[str] = [SCIM_GROUP_SCHEMA]
-    displayName: Optional[str] = None
-    members: Optional[List[SCIMGroupMember]] = None
+    schemas: list[str] = [SCIM_GROUP_SCHEMA]
+    displayName: str | None = None
+    members: list[SCIMGroupMember] | None = None
 
 
 class SCIMListResponse(BaseModel):
     """SCIM List Response"""
 
-    schemas: List[str] = [SCIM_LIST_RESPONSE_SCHEMA]
+    schemas: list[str] = [SCIM_LIST_RESPONSE_SCHEMA]
     totalResults: int
     itemsPerPage: int
     startIndex: int
-    Resources: List[Any]
+    Resources: list[Any]
 
 
 class SCIMPatchOperation(BaseModel):
     """SCIM Patch Operation"""
 
     op: str  # "add", "replace", "remove"
-    path: Optional[str] = None
-    value: Optional[Any] = None
+    path: str | None = None
+    value: Any | None = None
 
 
 class SCIMPatchRequest(BaseModel):
     """SCIM Patch Request"""
 
-    schemas: List[str] = ['urn:ietf:params:scim:api:messages:2.0:PatchOp']
-    Operations: List[SCIMPatchOperation]
+    schemas: list[str] = ['urn:ietf:params:scim:api:messages:2.0:PatchOp']
+    Operations: list[SCIMPatchOperation]
 
 
-def get_scim_auth(request: Request, authorization: Optional[str] = Header(None)) -> bool:
+def get_scim_auth(request: Request, authorization: str | None = Header(None)) -> bool:
     """
     Verify SCIM authentication
     Checks for SCIM-specific bearer token configured in the system
@@ -290,7 +290,7 @@ def get_scim_auth(request: Request, authorization: Optional[str] = Header(None))
         )
 
 
-def get_external_id(user: UserModel) -> Optional[str]:
+def get_external_id(user: UserModel) -> str | None:
     """Extract externalId from a user's scim data.
 
     Checks all stored provider entries and returns the first external_id found.
@@ -316,7 +316,7 @@ def get_scim_provider() -> str:
     return SCIM_AUTH_PROVIDER
 
 
-async def find_user_by_external_id(external_id: str, db=None) -> Optional[UserModel]:
+async def find_user_by_external_id(external_id: str, db=None) -> UserModel | None:
     """Find a user by SCIM externalId, falling back to OAuth sub match."""
     provider = get_scim_provider()
     user = await Users.get_user_by_scim_external_id(provider, external_id, db=db)
@@ -500,7 +500,7 @@ async def get_users(
     request: Request,
     startIndex: int = Query(1),
     count: int = Query(20),
-    filter: Optional[str] = None,
+    filter: str | None = None,
     _: bool = Depends(get_scim_auth),
     db: AsyncSession = Depends(get_async_session),
 ):
@@ -814,7 +814,7 @@ async def get_groups(
     request: Request,
     startIndex: int = Query(1),
     count: int = Query(20),
-    filter: Optional[str] = None,
+    filter: str | None = None,
     _: bool = Depends(get_scim_auth),
     db: AsyncSession = Depends(get_async_session),
 ):
