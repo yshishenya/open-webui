@@ -2135,6 +2135,8 @@
 			showCallOverlay.set(true);
 			showControls.set(true);
 		}
+		loading = false;
+		await tick();
 
 		// Consume one-shot desktop event (e.g. Spotlight query, call shortcut)
 		if ($desktopEvent) {
@@ -2190,7 +2192,6 @@
 			}
 		}
 		clearWelcomePresetPrompt();
-		loading = false;
 
 		selectedModels = selectedModels.map((modelId) =>
 			$models.map((m) => m.id).includes(modelId) ? modelId : ''

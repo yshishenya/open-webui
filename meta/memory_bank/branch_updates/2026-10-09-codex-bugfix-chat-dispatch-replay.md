@@ -17,3 +17,7 @@
       Owner: Codex
       Started: 2026-10-09
   - Update: 2026-10-09 — итоговый frontend1270/137 файлов, 0failed; 8 регрессий до исправления. Явная модель URL перекрывает сохранённый paid draft и atSelectedModel; unavailable не подменяется, submit=false не отправляет. Типы1666/103, ESLint970/новых0; SDD validate0/0 после заполнения двух metadata.file_path. Серверные464 SHA256 и21 защищённый файл совпали; production healthy/restarts0, изменений нет. Exact-source/remote доставка и частный CAS отчёт фиксируются в proof airis-chat-draft-recovery-20261009; SDD1/2 active, план198/244.
+
+  - Update: 2026-10-09 — начата проверка собранного UI, исходный e922b4fdce отправлен и сверён. Новая регрессия готовности поля воспроизвела пустой guide q при loading=true; изменение ещё не выпущено. Доказательства: airis-chat-dispatch-mounted-20261009.
+
+  - Update: 2026-10-09 — подтверждено пустое поле guide q в настоящем собранном Chrome после входа. Поле теперь монтируется после restore, перед заполнением q/desktop/preset. Frontend1271/137/0failed/0skipped; type1666/103, ESLint970/новых0; backend464 SHA256 и21 защищённый файл сохранены, production healthy/restarts0. После-правки browser и полный выпуск открыты, SDD1/2, цельactive, план198/244. Evidence: airis-chat-dispatch-mounted-20261009.

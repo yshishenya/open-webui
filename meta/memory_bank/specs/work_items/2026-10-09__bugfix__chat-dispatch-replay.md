@@ -88,3 +88,19 @@ Evidence: /Users/yshishenya/.codex/private-artifacts/airis-chat-draft-recovery-2
 Явно выбранная модель URL применяется после восстановления черновика и снимает старое упоминание платной модели. До исправления настоящий initNewChat выбрал paid вместо model; submit=false не запускает отправку. Недоступный явный выбор остаётся пустым, без подстановки модели из прежнего черновика.
 
 Принятое дерево: frontend1270/137 файлов/0failed, type1666/103 и ESLint970/новых0; Prettier и git diff --check проходят. SDD validate нашёл отсутствующий metadata.file_path у обеих задач; пути заполнены через update-task-metadata, validate теперь0errors/0warnings. Lifecycle остаётся1/2 active. Git доставка и CAS отчёт фиксируются отдельными receipt.json и private-goal-sync.json; production не выпускался.
+
+## Смонтированный интерфейс — в работе
+
+Source e922b4fdce4ecc2f2ace799b46f088980ffeb290 отправлен, 1600 Git blobs сверены. Проверяется временный собранный frontend и текущий backend с принятыми зависимостями, без выпуска на production. Новая регрессия настоящего initNewChat показала пустой q: loading оставался true при setTextWithRetries, новое поле не могло смонтироваться. Browser до правки проверяется по трём существующим guide сценариям. Требуется сначала восстановить draft, затем смонтировать composer и только потом заполнить/отправить явный q. Native/AST проверки прежнего этапа не считались полной браузерной приёмкой.
+
+Evidence: /Users/yshishenya/.codex/private-artifacts/airis-chat-dispatch-mounted-20261009. Общая цель active, SDD1/2, план198/244.
+
+
+### Готовность поля первой задачи — исходники проверены
+
+- [x] Реальный initNewChat с настоящим setTextWithRetries воспроизвёл пустой q до правки: expected empty to be guide. В собранном e922 Chrome после настоящего входа первый guide сценарий также получил пустое поле; это дефект интерфейса, не ошибка подготовки аккаунта.
+- [x] Минимальная правка переносит loading=false и tick после восстановления draft/параметров, перед заполнением desktop event/q/preset. Новых зависимостей и контрактов нет; upstream impact: перестановка одного присваивания и ожидание существующего tick в Chat.svelte.
+- [x] Полный frontend1271/137 файлов/0failed/0skipped. Типы1666/103 и ESLint970, новых диагностик0. Prettier и git diff --check проходят. Backend464 SHA256 совпали с принятым1063/0skip; protected21 и production/environment/config/mounts/neighbors сохранены.
+- [ ] После-правки собранный browser, draft/replay/note/temporary, CI/PR/интеграция/чистый образ/production ещё не приняты. Текущий commit доказывает доставку исходников; общий план198/244, SDD1/2 active, конечная цельactive.
+
+Evidence: airis-chat-dispatch-mounted-20261009/verify-source.py, test-acceptance.json, frontend-full.json, draft-guide-mount-before.json и browser trace до правки. Выбор тестов ^guide сначала дал No tests found; этот запуск не засчитан воспроизведением. Повтор с корректным фильтром исполняет3 настоящих сценария. Сборка первого frontend выполнена с чистого pinned Node digest; backend runtime dependencies взяты из принятого clean image только для временного стенда, новым production образом это не считается.

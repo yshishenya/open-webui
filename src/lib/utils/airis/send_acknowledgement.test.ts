@@ -10,7 +10,7 @@ import {
 	type PendingDispatch
 } from './chat_dispatch';
 import { readComposerDraft, writeComposerDraft, consumeComposerDraft } from './chat_draft';
-import { resolveRequestedModels } from './chat';
+import { resolveRequestedModels, setTextWithRetries } from './chat';
 import { runInNewContext } from 'node:vm';
 import { parse } from 'svelte/compiler';
 import ts from 'typescript';
@@ -1201,5 +1201,51 @@ it('an explicit free guide model takes precedence over a saved paid composer sel
 	await handler<() => Promise<void>>('Chat', 'initNewChat', c)();
 	expect(c.selectedModels).toEqual(['']);
 	expect(c.atSelectedModel).toBeUndefined();
+	expect(c.submitPrompt).not.toHaveBeenCalled();
+});
+
+it('guide query fills the composer after its loading view has mounted', async () => {
+	const c = Object.assign(setup(), {
+		$chatId: '',
+		loading: false,
+		$mobile: false,
+		$page: { url: new URL('https://chat.airis.you/?models=model&q=guide&submit=false') },
+		$desktopEvent: null,
+		desktopEvent: { set: vi.fn() },
+		resetWebSearchConfirmation: vi.fn(),
+		updateLastReadAt: vi.fn(),
+		resolveRequestedModels,
+		setTextWithRetries,
+		temporaryChatEnabled: { set: vi.fn().mockResolvedValue(undefined) },
+		showControls: { set: vi.fn() },
+		showCallOverlay: { set: vi.fn() },
+		showArtifacts: { set: vi.fn() },
+		resetInput: vi.fn().mockResolvedValue(undefined),
+		clearWelcomePresetPrompt: vi.fn(),
+		consumeWelcomePresetPrompt: vi.fn().mockReturnValue(null),
+		setTimeout: vi.fn()
+	});
+	Object.assign(c.window, { location: { pathname: '/' } });
+	Object.assign(c, {
+		messageInput: undefined,
+		chatId: {
+			set: vi.fn(async (id: string) => {
+				c.$chatId = id;
+			})
+		}
+	});
+	c.prompt = '';
+	const composer = {
+		setText: vi.fn(async (text: string) => {
+			c.prompt = text;
+			return true;
+		})
+	};
+	c.tick.mockImplementation(async () => {
+		if (!c.loading) c.messageInput = composer;
+	});
+	await handler<() => Promise<void>>('Chat', 'initNewChat', c)();
+	expect(c.prompt).toBe('guide');
+	expect(composer.setText).toHaveBeenCalledWith('guide');
 	expect(c.submitPrompt).not.toHaveBeenCalled();
 });
