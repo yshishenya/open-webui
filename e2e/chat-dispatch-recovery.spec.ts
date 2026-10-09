@@ -31,7 +31,7 @@ test('long composer and image survive reload; accepted guide draft does not retu
 		.toMatchObject({
 			prompt: text,
 			selectedModels: ['gpt-5.6-luna'],
-			files: [{ type: 'image' }]
+			files: [{ type: 'file', content_type: 'image/png', status: 'uploaded' }]
 		});
 	const snapshot = await saved(page, account.id, 'home');
 	await page.reload();
