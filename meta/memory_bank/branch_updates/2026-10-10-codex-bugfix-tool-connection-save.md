@@ -1,0 +1,6 @@
+- [x] **[BUG]** Tool connections persistence/import/OAuth
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__tool-connection-save.md
+  - Owner: Codex
+  - Done: 2026-10-10
+  - Summary: Reproduce actual handlers, preserve drafts and saved snapshots on failure, validate import before mutation and remove secret logs.
+  - Tests: 12 original failures; 39 focused; frontend1465/1465; types1324/87, ESLint822, new0; frozen1743/backend542/protected21/production12 preserved.

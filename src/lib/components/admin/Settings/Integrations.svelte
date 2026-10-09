@@ -1,14 +1,13 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { createEventDispatcher, onMount, getContext, tick } from 'svelte';
-	import { getModels as _getModels } from '$lib/apis';
+	import { onMount, onDestroy, getContext } from 'svelte';
+	import type { ToolServerConnection } from '$lib/utils/airis/frontend-contracts';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 
-	const dispatch = createEventDispatcher();
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
-	import { models, settings, user, terminalServers } from '$lib/stores';
+	import { terminalServers } from '$lib/stores';
 	import { getTerminalServers } from '$lib/apis/terminal';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
@@ -19,7 +18,6 @@
 	import Cog6 from '$lib/components/icons/Cog6.svelte';
 	import Cloud from '$lib/components/icons/Cloud.svelte';
 	import Connection from '$lib/components/chat/Settings/Tools/Connection.svelte';
-	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
 
 	import AddToolServerModal from '$lib/components/AddToolServerModal.svelte';
 	import AddTerminalServerModal from '$lib/components/AddTerminalServerModal.svelte';
@@ -33,9 +31,7 @@
 		setTerminalServerConnections
 	} from '$lib/apis/configs';
 
-	export let saveSettings: Function;
-
-	type ToolServerConnection = any;
+	export let saveSettings: (settings: Record<string, unknown>) => void | Promise<void>;
 	type TerminalConnection = {
 		id?: string;
 		url?: string;
@@ -53,23 +49,54 @@
 	let showAddTerminalModal = false;
 	let editTerminalIdx: number | null = null;
 
-	const addConnectionHandler = async (server: ToolServerConnection) => {
-		servers = [...(servers ?? []), server];
-		await updateHandler();
-	};
-
-	const updateHandler = async () => {
-		const res = await setToolServerConnections(localStorage.token, {
-			TOOL_SERVER_CONNECTIONS: servers
-		}).catch((err) => {
-			toast.error($i18n.t('Failed to save connections'));
-			return null;
-		});
-
-		if (res) {
-			toast.success($i18n.t('Connections saved successfully'));
+	let saving = false;
+	let loadError = false;
+	let destroyed = false;
+	const loadAbort = new AbortController();
+	onDestroy(() => {
+		destroyed = true;
+		loadAbort.abort();
+	});
+	const loadConnections = async (): Promise<void> => {
+		loadError = false;
+		try {
+			const res = await getToolServerConnections(localStorage.token, loadAbort.signal);
+			if (!destroyed) servers = structuredClone(res.TOOL_SERVER_CONNECTIONS);
+		} catch {
+			if (!destroyed) {
+				loadError = true;
+				toast.error($i18n.t('Connection failed'));
+			}
 		}
 	};
+	const saveConnections = async (next: ToolServerConnection[]): Promise<boolean> => {
+		if (saving || destroyed || servers === null) return false;
+		saving = true;
+		try {
+			const res = await setToolServerConnections(localStorage.token, {
+				TOOL_SERVER_CONNECTIONS: structuredClone(next)
+			});
+			if (!res || !Array.isArray(res.TOOL_SERVER_CONNECTIONS))
+				throw new Error('Failed to save connections');
+			if (!destroyed) {
+				servers = res.TOOL_SERVER_CONNECTIONS;
+				toast.success($i18n.t('Connections saved successfully'));
+			}
+			return true;
+		} catch {
+			if (!destroyed) toast.error($i18n.t('Failed to save connections'));
+			return false;
+		} finally {
+			saving = false;
+		}
+	};
+	const updateHandler = (): Promise<boolean> => saveConnections(servers ?? []);
+	const addConnectionHandler = (server: ToolServerConnection): Promise<boolean> =>
+		saveConnections([...(servers ?? []), server]);
+	const editConnectionHandler = (idx: number, server: ToolServerConnection): Promise<boolean> =>
+		saveConnections((servers ?? []).map((c, i) => (i === idx ? server : c)));
+	const deleteConnectionHandler = (idx: number): Promise<boolean> =>
+		saveConnections((servers ?? []).filter((_, i) => i !== idx));
 
 	const saveTerminalServers = async () => {
 		const res = await setTerminalServerConnections(localStorage.token, {
@@ -119,8 +146,7 @@
 	};
 
 	onMount(async () => {
-		const res = await getToolServerConnections(localStorage.token);
-		servers = res.TOOL_SERVER_CONNECTIONS as ToolServerConnection[];
+		await loadConnections();
 
 		try {
 			const terminalRes = await getTerminalServerConnections(localStorage.token);
@@ -189,13 +215,8 @@
 						{#each servers ?? [] as server, idx}
 							<Connection
 								bind:connection={server}
-								onSubmit={() => {
-									updateHandler();
-								}}
-								onDelete={() => {
-									servers = (servers ?? []).filter((_, i) => i !== idx);
-									updateHandler();
-								}}
+								onSubmit={(next) => editConnectionHandler(idx, next)}
+								onDelete={() => deleteConnectionHandler(idx)}
 							/>
 						{/each}
 					</div>
@@ -309,7 +330,9 @@
 		{:else}
 			<div class="flex h-full justify-center">
 				<div class="my-auto">
-					<Spinner className="size-6" />
+					{#if loadError}
+						<button type="button" on:click={loadConnections}>{$i18n.t('Retry')}</button>
+					{:else}<Spinner className="size-6" />{/if}
 				</div>
 			</div>
 		{/if}
@@ -319,6 +342,7 @@
 		<button
 			class="px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full"
 			type="submit"
+			disabled={saving || servers === null}
 		>
 			{$i18n.t('Save')}
 		</button>

@@ -5,8 +5,21 @@
 	const { saveAs } = fileSaver;
 
 	import { toast } from 'svelte-sonner';
-	import { getContext, onMount } from 'svelte';
-	const i18n = getContext('i18n');
+	import { getContext, onMount, onDestroy } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type {
+		ToolServerConnection,
+		ToolConnectionSave,
+		ConnectionDelete
+	} from '$lib/utils/airis/frontend-contracts';
+	import { parseConnectionHeaders } from '$lib/utils/airis/model_connection_request';
+	import {
+		parseToolConnectionImport,
+		parseToolSpec
+	} from '$lib/utils/airis/tool_connection_import';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Plus from '$lib/components/icons/Plus.svelte';
@@ -25,16 +38,16 @@
 	import Textarea from './common/Textarea.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 
-	export let onSubmit: Function = () => {};
-	export let onDelete: Function = () => {};
+	export let onSubmit: ToolConnectionSave = () => {};
+	export let onDelete: ConnectionDelete = () => {};
 
 	export let show = false;
 	export let edit = false;
 
 	export let direct = false;
-	export let connection = null;
+	export let connection: ToolServerConnection | null = null;
 
-	let inputElement = null;
+	let inputElement: HTMLInputElement | null = null;
 
 	let type = 'openapi'; // 'openapi', 'mcp'
 
@@ -49,13 +62,24 @@
 	let headers = '';
 
 	let functionNameFilterList = '';
-	let accessGrants = [];
+	let accessGrants: NonNullable<NonNullable<ToolServerConnection['config']>['access_grants']> = [];
 
 	let id = '';
 	let name = '';
 	let description = '';
 
-	let oauthClientInfo = null;
+	let oauthClientInfo: string | null = null;
+	let oauthIdentity = '';
+	const registrationIdentity = (): string =>
+		JSON.stringify([
+			url,
+			id,
+			auth_type,
+			oauthClientId,
+			oauthClientSecret,
+			oauthServerUrl,
+			oauthScope
+		]);
 
 	let oauthClientId = '';
 	let oauthClientSecret = '';
@@ -74,367 +98,246 @@
 	const selectClass =
 		'bg-transparent pr-5 outline-hidden placeholder:text-gray-300 dark:placeholder:text-gray-700';
 
-	const registerOAuthClientHandler = async () => {
-		if (url === '') {
-			toast.error($i18n.t('Please enter a valid URL'));
+	let session = 0;
+	let destroyed = false;
+	let verifying = false;
+	let requestAbort: AbortController | null = null;
+	onDestroy(() => {
+		destroyed = true;
+		requestAbort?.abort();
+	});
+
+	const registerOAuthClientHandler = async (): Promise<void> => {
+		if (loading || verifying || destroyed) return;
+		if (!url || !id) {
+			toast.error($i18n.t('Please enter a valid URL and ID'));
 			return;
 		}
-
-		if (id === '') {
-			toast.error($i18n.t('Please enter a valid ID'));
-			return;
-		}
-
 		if (auth_type === 'oauth_2.1_static' && (!oauthClientId || !oauthClientSecret)) {
 			toast.error($i18n.t('Please enter Client ID and Client Secret'));
 			return;
 		}
-
-		// client_id is the tool server ID (used as the internal lookup key for both flows).
-		// For static, client_secret signals the backend to use the static credential path.
-		// The actual OAuth client_id/secret come from the connection info at save time.
-		const formData: {
-			url: string;
-			client_id: string;
-			client_secret?: string;
-			oauth_server_url?: string;
-			oauth_scope?: string;
-		} = {
-			url: url,
-			client_id: id,
-			...(oauthScope ? { oauth_scope: oauthScope } : {}),
-			...(auth_type === 'oauth_2.1_static'
-				? { client_secret: oauthClientSecret, oauth_server_url: oauthServerUrl }
-				: {})
-		};
-
-		const res = await registerOAuthClient(localStorage.token, formData, 'mcp').catch((err) => {
-			toast.error($i18n.t('Registration failed'));
-			return null;
-		});
-
-		if (res) {
+		const currentSession = session;
+		const identity = registrationIdentity();
+		const request = new AbortController();
+		requestAbort = request;
+		verifying = true;
+		try {
+			const res = await registerOAuthClient(
+				localStorage.token,
+				{
+					url,
+					client_id: id,
+					...(oauthScope ? { oauth_scope: oauthScope } : {}),
+					...(auth_type === 'oauth_2.1_static'
+						? { client_secret: oauthClientSecret, oauth_server_url: oauthServerUrl }
+						: {})
+				},
+				'mcp',
+				request.signal
+			);
+			if (!res?.status || !res.oauth_client_info) throw new Error('Registration failed');
+			if (destroyed || !show || currentSession !== session || identity !== registrationIdentity())
+				return;
+			oauthClientInfo = res.oauth_client_info;
+			oauthIdentity = identity;
 			toast.warning(
 				$i18n.t(
 					'Please save the connection to persist the OAuth client information and do not change the ID'
 				)
 			);
 			toast.success($i18n.t('Registration successful'));
-
-			console.debug('Registration successful', res);
-			oauthClientInfo = res?.oauth_client_info ?? null;
+		} catch {
+			if (!destroyed && show && currentSession === session)
+				toast.error($i18n.t('Registration failed'));
+		} finally {
+			if (requestAbort === request) {
+				requestAbort = null;
+				verifying = false;
+			}
 		}
 	};
 
-	const verifyHandler = async () => {
-		if (url === '') {
+	const verifyHandler = async (): Promise<void> => {
+		if (loading || verifying || destroyed) return;
+		if (!url) {
 			toast.error($i18n.t('Please enter a valid URL'));
 			return;
 		}
-
-		if (['openapi', ''].includes(type)) {
-			if (spec_type === 'json' && spec === '') {
-				toast.error($i18n.t('Please enter a valid JSON spec'));
-				return;
-			}
-
-			if (spec_type === 'url' && path === '') {
-				toast.error($i18n.t('Please enter a valid path'));
-				return;
-			}
-		}
-
-		if (headers) {
-			try {
-				let _headers = JSON.parse(headers);
-				if (typeof _headers !== 'object' || Array.isArray(_headers)) {
-					_headers = null;
-					throw new Error('Headers must be a valid JSON object');
+		const currentSession = session;
+		const request = new AbortController();
+		requestAbort = request;
+		verifying = true;
+		try {
+			const data = formConnection();
+			if (direct) {
+				if (spec_type === 'json') parseToolSpec(spec);
+				else {
+					if (!path) throw new Error('Please enter a valid path');
+					const res = await getToolServerData(
+						auth_type === 'bearer' ? key : auth_type === 'session' ? localStorage.token : '',
+						path.includes('://') ? path : `${url}${path.startsWith('/') ? '' : '/'}${path}`,
+						data.headers ?? {},
+						request.signal
+					);
+					if (!res || !res.paths) throw new Error('Invalid OpenAPI spec');
 				}
-				headers = JSON.stringify(_headers, null, 2);
-			} catch (error) {
-				toast.error($i18n.t('Headers must be a valid JSON object'));
-				return;
+			} else {
+				const res = await verifyToolServerConnection(localStorage.token, data, request.signal);
+				if (!res || res.status === false) throw new Error('Connection failed');
 			}
-		}
-
-		if (direct) {
-			const res = await getToolServerData(
-				auth_type === 'bearer' ? key : localStorage.token,
-				path.includes('://') ? path : `${url}${path.startsWith('/') ? '' : '/'}${path}`
-			).catch((err) => {
-				toast.error($i18n.t('Connection failed'));
-			});
-
-			if (res) {
+			if (!destroyed && show && currentSession === session)
 				toast.success($i18n.t('Connection successful'));
-				console.debug('Connection successful', res);
-			}
-		} else {
-			const res = await verifyToolServerConnection(localStorage.token, {
-				url,
-				path,
-				type,
-				auth_type,
-				headers: headers ? JSON.parse(headers) : undefined,
-				key,
-				config: {
-					enable: enable,
-					access_grants: accessGrants
-				},
-				info: {
-					id,
-					name,
-					description
-				}
-			}).catch((err) => {
+		} catch {
+			if (!destroyed && show && currentSession === session)
 				toast.error($i18n.t('Connection failed'));
-			});
-
-			if (res) {
-				toast.success($i18n.t('Connection successful'));
-				console.debug('Connection successful', res);
+		} finally {
+			if (requestAbort === request) {
+				requestAbort = null;
+				verifying = false;
 			}
 		}
 	};
 
-	const importHandler = async (e) => {
-		const file = e.target.files[0];
+	const importHandler = async (e: Event): Promise<void> => {
+		if (loading || verifying || destroyed) return;
+		const input = e.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
 		if (!file) return;
-
-		const reader = new FileReader();
-		reader.onload = (event) => {
-			const json = event.target.result;
-			console.log('importHandler', json);
-
-			try {
-				let data = JSON.parse(json);
-				// validate data
-				if (Array.isArray(data)) {
-					if (data.length === 0) {
-						toast.error($i18n.t('Please select a valid JSON file'));
-						return;
-					}
-					data = data[0];
-				}
-
-				if (data.type) type = data.type;
-				if (data.url) url = data.url;
-
-				if (data.spec_type) spec_type = data.spec_type;
-				if (data.spec) spec = data.spec;
-				if (data.path) path = data.path;
-
-				if (data.auth_type) auth_type = data.auth_type;
-				if (data.headers) headers = JSON.stringify(data.headers, null, 2);
-				if (data.key) key = data.key;
-
-				if (data.info) {
-					id = data.info.id ?? '';
-					name = data.info.name ?? '';
-					description = data.info.description ?? '';
-					oauthScope = data.info.oauth_scope ?? '';
-					oauthResourceParameter = data.info.oauth_resource_parameter ?? 'auto';
-				}
-
-				if (data.config) {
-					enable = data.config.enable ?? true;
-					accessGrants = data.config.access_grants ?? [];
-				}
-
+		const currentSession = session;
+		try {
+			const data = parseToolConnectionImport(await file.text());
+			if (!destroyed && show && currentSession === session) {
+				setConnectionFields(data);
 				toast.success($i18n.t('Import successful'));
-			} catch (error) {
+			}
+		} catch {
+			if (!destroyed && show && currentSession === session)
 				toast.error($i18n.t('Please select a valid JSON file'));
-			}
-		};
-		reader.readAsText(file);
+		} finally {
+			input.value = '';
+		}
 	};
 
-	const exportHandler = async () => {
-		// export current connection as json file
-		const json = JSON.stringify([
-			{
-				type,
-				url,
+	const formConnection = (): ToolServerConnection => ({
+		type,
+		url: type === 'mcp' ? url : url.replace(/\/$/, ''),
+		spec_type,
+		spec: spec_type === 'json' ? JSON.stringify(parseToolSpec(spec), null, 2) : spec,
+		path,
+		auth_type,
+		headers: parseConnectionHeaders(headers),
+		key,
+		config: {
+			enable,
+			function_name_filter_list: functionNameFilterList,
+			access_grants: structuredClone(accessGrants)
+		},
+		info: {
+			id,
+			name,
+			description,
+			...(type === 'mcp' && ['oauth_2.1', 'oauth_2.1_static'].includes(auth_type)
+				? {
+						...(oauthScope ? { oauth_scope: oauthScope } : {}),
+						oauth_resource_parameter: oauthResourceParameter
+					}
+				: {}),
+			...(oauthClientInfo ? { oauth_client_info: oauthClientInfo } : {}),
+			...(auth_type === 'oauth_2.1_static'
+				? {
+						oauth_client_id: oauthClientId,
+						oauth_client_secret: oauthClientSecret,
+						oauth_server_url: oauthServerUrl
+					}
+				: {})
+		}
+	});
 
-				spec_type,
-				spec,
-				path,
-
-				auth_type,
-				headers: headers ? JSON.parse(headers) : undefined,
-				key,
-
-				info: {
-					id: id,
-					name: name,
-					description: description,
-					...(type === 'mcp' && ['oauth_2.1', 'oauth_2.1_static'].includes(auth_type)
-						? {
-								...(oauthScope ? { oauth_scope: oauthScope } : {}),
-								oauth_resource_parameter: oauthResourceParameter
-							}
-						: {})
-				}
-			}
-		]);
-
-		const blob = new Blob([json], {
-			type: 'application/json'
-		});
-
-		saveAs(blob, `tool-server-${id || name || 'export'}.json`);
+	const exportHandler = (): void => {
+		try {
+			saveAs(
+				new Blob([JSON.stringify([formConnection()])], { type: 'application/json' }),
+				`tool-server-${id || name || 'export'}.json`
+			);
+		} catch (error) {
+			toast.error(getErrorMessage(error));
+		}
 	};
 
-	const submitHandler = async () => {
+	const submitHandler = async (): Promise<void> => {
+		if (loading || verifying || destroyed) return;
 		loading = true;
-
-		// remove trailing slash from url for non-MCP connections
-		// MCP servers may require a trailing slash; stripping it can cause
-		// 301 redirects that lose auth headers (see #21179)
-		if (type !== 'mcp') {
-			url = url.replace(/\/$/, '');
-		}
-		if (id.includes(':') || id.includes('|')) {
-			toast.error($i18n.t('ID cannot contain ":" or "|" characters'));
+		const currentSession = session;
+		try {
+			if (id.includes(':') || id.includes('|'))
+				throw new Error('ID cannot contain ":" or "|" characters');
+			if (
+				type === 'mcp' &&
+				['oauth_2.1', 'oauth_2.1_static'].includes(auth_type) &&
+				(!oauthClientInfo || oauthIdentity !== registrationIdentity())
+			)
+				throw new Error('Please register the OAuth client');
+			if (
+				(await onSubmit(formConnection())) !== false &&
+				!destroyed &&
+				show &&
+				currentSession === session
+			)
+				show = false;
+		} catch (error) {
+			if (!destroyed && show && currentSession === session) toast.error(getErrorMessage(error));
+		} finally {
 			loading = false;
-			return;
 		}
-
-		if (
-			type === 'mcp' &&
-			['oauth_2.1', 'oauth_2.1_static'].includes(auth_type) &&
-			!oauthClientInfo
-		) {
-			toast.error($i18n.t('Please register the OAuth client'));
-			loading = false;
-			return;
-		}
-
-		// validate spec
-		if (spec_type === 'json') {
-			try {
-				const specJSON = JSON.parse(spec);
-				spec = JSON.stringify(specJSON, null, 2);
-			} catch (e) {
-				toast.error($i18n.t('Please enter a valid JSON spec'));
-				loading = false;
-				return;
-			}
-		}
-
-		if (headers) {
-			try {
-				const _headers = JSON.parse(headers);
-				if (typeof _headers !== 'object' || Array.isArray(_headers)) {
-					throw new Error('Headers must be a valid JSON object');
-				}
-				headers = JSON.stringify(_headers, null, 2);
-			} catch (error) {
-				toast.error($i18n.t('Headers must be a valid JSON object'));
-				loading = false;
-				return;
-			}
-		}
-
-		const connection = {
-			type,
-			url,
-
-			spec_type,
-			spec,
-			path,
-
-			auth_type,
-			headers: headers ? JSON.parse(headers) : undefined,
-
-			key,
-			config: {
-				enable: enable,
-				function_name_filter_list: functionNameFilterList,
-				access_grants: accessGrants
-			},
-			info: {
-				id: id,
-				name: name,
-				description: description,
-				...(type === 'mcp' && ['oauth_2.1', 'oauth_2.1_static'].includes(auth_type)
-					? {
-							...(oauthScope ? { oauth_scope: oauthScope } : {}),
-							oauth_resource_parameter: oauthResourceParameter
-						}
-					: {}),
-				...(oauthClientInfo ? { oauth_client_info: oauthClientInfo } : {}),
-				...(auth_type === 'oauth_2.1_static'
-					? {
-							oauth_client_id: oauthClientId,
-							oauth_client_secret: oauthClientSecret,
-							oauth_server_url: oauthServerUrl
-						}
-					: {})
-			}
-		};
-
-		await onSubmit(connection);
-
-		loading = false;
-		show = false;
-
-		// reset form
-		type = 'openapi';
-		url = '';
-
-		spec_type = 'url';
-		spec = '';
-		path = 'openapi.json';
-
-		key = '';
-		auth_type = 'bearer';
-
-		id = '';
-		name = '';
-		description = '';
-
-		oauthClientInfo = null;
-		oauthClientId = '';
-		oauthClientSecret = '';
-		oauthServerUrl = '';
-		oauthScope = '';
-		oauthResourceParameter = 'auto';
-
-		enable = true;
-		functionNameFilterList = '';
-		accessGrants = [];
 	};
 
-	const init = () => {
-		if (connection) {
-			type = connection?.type ?? 'openapi';
-			url = connection.url;
-
-			spec_type = connection?.spec_type ?? 'url';
-			spec = connection?.spec ?? '';
-			path = connection?.path ?? 'openapi.json';
-
-			auth_type = connection?.auth_type ?? 'bearer';
-			headers = connection?.headers ? JSON.stringify(connection.headers, null, 2) : '';
-
-			key = connection?.key ?? '';
-
-			id = connection.info?.id ?? '';
-			name = connection.info?.name ?? '';
-			description = connection.info?.description ?? '';
-			oauthClientInfo = connection.info?.oauth_client_info ?? null;
-			oauthClientId = connection.info?.oauth_client_id ?? '';
-			oauthClientSecret = connection.info?.oauth_client_secret ?? '';
-			oauthServerUrl = connection.info?.oauth_server_url ?? '';
-			oauthScope = connection.info?.oauth_scope ?? '';
-			oauthResourceParameter = connection.info?.oauth_resource_parameter ?? 'auto';
-
-			enable = connection.config?.enable ?? true;
-			functionNameFilterList = connection.config?.function_name_filter_list ?? '';
-			accessGrants = connection.config?.access_grants ?? [];
+	const deleteHandler = async (): Promise<void> => {
+		if (loading || verifying || destroyed) return;
+		loading = true;
+		const currentSession = session;
+		try {
+			if ((await onDelete()) !== false && !destroyed && show && currentSession === session)
+				show = false;
+		} catch (error) {
+			if (!destroyed && show && currentSession === session) toast.error(getErrorMessage(error));
+		} finally {
+			loading = false;
 		}
+	};
+
+	const setConnectionFields = (data: ToolServerConnection | null): void => {
+		const c = data ? structuredClone(data) : null;
+		type = c?.type ?? 'openapi';
+		url = c?.url ?? '';
+		spec_type = c?.spec_type ?? 'url';
+		spec = c?.spec ?? '';
+		path = c?.path ?? 'openapi.json';
+		auth_type = c?.auth_type ?? 'bearer';
+		headers = c?.headers ? JSON.stringify(c.headers, null, 2) : '';
+		key = c?.key ?? '';
+		id = c?.info?.id ?? '';
+		name = c?.info?.name ?? '';
+		description = c?.info?.description ?? '';
+		oauthClientInfo = c?.info?.oauth_client_info ?? null;
+		oauthClientId = c?.info?.oauth_client_id ?? '';
+		oauthClientSecret = c?.info?.oauth_client_secret ?? '';
+		oauthServerUrl = c?.info?.oauth_server_url ?? '';
+		oauthScope = c?.info?.oauth_scope ?? '';
+		oauthResourceParameter = c?.info?.oauth_resource_parameter ?? 'auto';
+		enable = c?.config?.enable ?? true;
+		functionNameFilterList = c?.config?.function_name_filter_list ?? '';
+		accessGrants = c?.config?.access_grants ?? [];
+		oauthIdentity = registrationIdentity();
+		showAdvanced = false;
+		showAccessControlModal = false;
+		showDeleteConfirmDialog = false;
+	};
+
+	const init = (): void => {
+		session++;
+		requestAbort?.abort();
+		setConnectionFields(connection);
 	};
 
 	$: if (show) {
@@ -619,6 +522,7 @@
 												verifyHandler();
 											}}
 											aria-label={$i18n.t('Verify Connection')}
+											disabled={loading || verifying}
 											type="button"
 										>
 											<svg
@@ -990,7 +894,7 @@
 								? ' cursor-not-allowed'
 								: ''}"
 							type="submit"
-							disabled={loading}
+							disabled={loading || verifying}
 						>
 							{$i18n.t('Save')}
 
@@ -1015,8 +919,5 @@
 		'Are you sure you want to delete this connection? This action cannot be undone.'
 	)}
 	confirmLabel={$i18n.t('Delete')}
-	on:confirm={() => {
-		onDelete();
-		show = false;
-	}}
+	on:confirm={deleteHandler}
 />

@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { onMount, getContext } from 'svelte';
+	import { onMount, onDestroy, getContext } from 'svelte';
+	import type { Settings } from '$lib/stores';
+	import type {
+		ToolServerConnection,
+		StoredTerminalServer,
+		DirectTerminalSettings
+	} from '$lib/utils/airis/frontend-contracts';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 	import { getToolServersData } from '$lib/apis';
@@ -18,71 +24,85 @@
 
 	import AddToolServerModal from '$lib/components/AddToolServerModal.svelte';
 
-	type TerminalServerConfig = {
-		url: string;
-		key?: string;
-		name?: string;
-		enabled: boolean;
-		auth_type?: string;
-		path?: string;
-		[key: string]: any;
-	};
-
-	type ToolServerConnection = any;
-
-	export let saveSettings: (settings: any) => void | Promise<void>;
+	type TerminalServerConfig = DirectTerminalSettings;
+	export let saveSettings: (settings: Partial<Settings>) => void | Promise<void>;
 
 	let servers: ToolServerConnection[] | null = null;
 	let terminalServerConfigs: TerminalServerConfig[] = [];
 	let showConnectionModal = false;
 	const helpTextClass = 'text-[0.6875rem] text-gray-400 dark:text-gray-600';
 
-	const addConnectionHandler = async (server: ToolServerConnection) => {
-		servers = [...(servers ?? []), server];
-		await updateHandler();
-	};
+	let saving = false;
+	let destroyed = false;
+	onDestroy(() => {
+		destroyed = true;
+	});
 
-	const updateHandler = async () => {
-		await saveSettings({
-			toolServers: servers,
-			terminalServers: terminalServerConfigs
-		});
-
-		let toolServersData = await getToolServersData($settings?.toolServers ?? []);
-		toolServersData = toolServersData.filter((data: any) => {
-			if (data.error) {
+	const refreshConnections = async (): Promise<void> => {
+		const data = await getToolServersData(servers ?? []);
+		const active: StoredTerminalServer[] = [];
+		for (const entry of data) {
+			if ('error' in entry)
 				toast.error(
-					$i18n.t(`Failed to connect to {{URL}} OpenAPI tool server`, { URL: data?.url })
+					$i18n.t('Failed to connect to {{URL}} OpenAPI tool server', { URL: entry.url })
 				);
-				return false;
-			}
-			return true;
-		});
-		toolServers.set(toolServersData as any);
-
-		// Refresh terminal servers store (preserve system terminals)
-		const existingSystemTerminals = (($terminalServers ?? []) as any[]).filter((t) => t.id);
-		const activeTerminals = terminalServerConfigs.filter((s) => s.enabled);
-		if (activeTerminals.length > 0) {
-			let terminalServersData = await getToolServersData(
-				activeTerminals.map((t) => ({
+			else active.push(entry);
+		}
+		if (destroyed) return;
+		toolServers.set(active);
+		const system = ($terminalServers ?? []).filter((t) => t.id);
+		const terminalData = await getToolServersData(
+			terminalServerConfigs
+				.filter((s) => s.enabled)
+				.map((t) => ({
 					url: t.url,
 					auth_type: t.auth_type ?? 'bearer',
 					key: t.key ?? '',
 					path: t.path ?? '/openapi.json',
 					config: { enable: true }
 				}))
-			);
-			terminalServersData = terminalServersData.filter((data: any) => data && !data.error);
-			terminalServers.set([...terminalServersData, ...existingSystemTerminals] as any);
-		} else {
-			terminalServers.set(existingSystemTerminals as any);
-		}
+		);
+		if (destroyed) return;
+		const direct: StoredTerminalServer[] = [];
+		for (const entry of terminalData) if (!('error' in entry)) direct.push(entry);
+		terminalServers.set([...direct, ...system]);
 	};
 
-	onMount(async () => {
-		servers = $settings?.toolServers ?? [];
-		terminalServerConfigs = ($settings as any)?.terminalServers ?? [];
+	const saveConnections = async (next: ToolServerConnection[]): Promise<boolean> => {
+		if (saving || destroyed) return false;
+		saving = true;
+		try {
+			const snapshot = structuredClone(next);
+			await saveSettings({
+				toolServers: snapshot,
+				terminalServers: structuredClone(terminalServerConfigs)
+			});
+			if (!destroyed) servers = snapshot;
+			// The connection is already saved even if catalog refresh fails.
+			try {
+				if (!destroyed) await refreshConnections();
+			} catch {
+				if (!destroyed) toast.error($i18n.t('Connection failed'));
+			}
+			return true;
+		} catch {
+			if (!destroyed) toast.error($i18n.t('Failed to save connections'));
+			return false;
+		} finally {
+			saving = false;
+		}
+	};
+	const updateHandler = (): Promise<boolean> => saveConnections(servers ?? []);
+	const addConnectionHandler = (server: ToolServerConnection): Promise<boolean> =>
+		saveConnections([...(servers ?? []), server]);
+	const editConnectionHandler = (idx: number, server: ToolServerConnection): Promise<boolean> =>
+		saveConnections((servers ?? []).map((c, i) => (i === idx ? server : c)));
+	const deleteConnectionHandler = (idx: number): Promise<boolean> =>
+		saveConnections((servers ?? []).filter((_, i) => i !== idx));
+
+	onMount(() => {
+		servers = structuredClone($settings?.toolServers ?? []);
+		terminalServerConfigs = structuredClone($settings?.terminalServers ?? []);
 	});
 </script>
 
@@ -123,11 +143,8 @@
 							<Connection
 								bind:connection={server}
 								direct
-								onSubmit={() => updateHandler()}
-								onDelete={() => {
-									servers = (servers ?? []).filter((_, i) => i !== idx);
-									updateHandler();
-								}}
+								onSubmit={(next) => editConnectionHandler(idx, next)}
+								onDelete={() => deleteConnectionHandler(idx)}
 							/>
 						{/each}
 					</div>
@@ -171,6 +188,7 @@
 		<button
 			class="px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full"
 			type="submit"
+			disabled={saving}
 		>
 			{$i18n.t('Save')}
 		</button>

@@ -6,6 +6,8 @@ import type { ChatAttachment, ChatHistory, ChatHistoryMessage } from './chat_his
 import type { DEFAULT_PERMISSIONS } from '$lib/constants/permissions';
 import type { TerminalServer } from '$lib/apis/terminal';
 import type { updateOpenAIConfig } from '$lib/apis/openai';
+import type { ComponentProps } from 'svelte';
+import type AccessControlModal from '$lib/components/workspace/common/AccessControlModal.svelte';
 
 export type ArtifactContent = { type: 'iframe' | 'svg'; content: string };
 
@@ -118,6 +120,37 @@ export type DirectTerminalSettings = Pick<StoredTerminalServer, 'url' | 'name'> 
 	auth_type?: string;
 	path?: string;
 };
+
+// configs.ToolServerConnection; optional fields also accept legacy user settings.
+export type ToolServerConnection = {
+	url: string;
+	path?: string;
+	type?: string | null;
+	spec_type?: string;
+	spec?: string;
+	auth_type?: string | null;
+	headers?: Record<string, string> | null;
+	key?: string | null;
+	config?: {
+		enable?: boolean;
+		function_name_filter_list?: string;
+		access_grants?: ComponentProps<typeof AccessControlModal>['accessGrants'];
+	} | null;
+	info?: {
+		id?: string;
+		name?: string;
+		description?: string;
+		oauth_client_info?: string | null;
+		oauth_client_id?: string;
+		oauth_client_secret?: string;
+		oauth_server_url?: string;
+		oauth_scope?: string;
+		oauth_resource_parameter?: string;
+	} | null;
+};
+export type ToolConnectionSave = (
+	connection: ToolServerConnection
+) => boolean | void | Promise<boolean | void>;
 
 export type GenerationParams = {
 	stream_response?: boolean | null;

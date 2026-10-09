@@ -1,6 +1,12 @@
 import { WEBUI_BASE_URL, type DEFAULT_CAPABILITIES } from '$lib/constants';
 import { convertOpenApiToToolPayload } from '$lib/utils';
-import type { DirectModelConnections, GenerationParams } from '$lib/utils/airis/frontend-contracts';
+import type {
+	DirectModelConnections,
+	GenerationParams,
+	ToolServerConnection
+} from '$lib/utils/airis/frontend-contracts';
+import { parseToolSpec, type ToolServerSpec } from '$lib/utils/airis/tool_connection_import';
+import { requestModelConnection } from '$lib/utils/airis/model_connection_request';
 import { getOpenAIModelsDirect } from './openai';
 import type {
 	Model,
@@ -409,51 +415,41 @@ export const getTaskIdsByChatId = async (token: string, chat_id: string) => {
 	return res;
 };
 
-export const getToolServerData = async (token: string, url: string) => {
-	let error = null;
-
-	const res = await fetch(`${url}`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		}
-	})
-		.then(async (res) => {
-			// Check if URL ends with .yaml or .yml to determine format
+export const getToolServerData = async (
+	token: string | null | undefined,
+	url: string,
+	headers: Record<string, string> = {},
+	signal?: AbortSignal
+): Promise<ToolServerSpec> =>
+	requestModelConnection(
+		url,
+		{
+			method: 'GET',
+			headers: {
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+				...(token && { authorization: `Bearer ${token}` }),
+				...headers
+			}
+		},
+		signal,
+		async (response) => {
 			if (url.toLowerCase().endsWith('.yaml') || url.toLowerCase().endsWith('.yml')) {
-				if (!res.ok) throw await res.text();
-				const [text, { parse }] = await Promise.all([res.text(), import('yaml')]);
-				return parse(text);
-			} else {
-				if (!res.ok) throw await res.json();
-				return res.json();
+				const [text, { parse }] = await Promise.all([response.text(), import('yaml')]);
+				return parseToolSpec(JSON.stringify(parse(text)));
 			}
-		})
-		.catch((err) => {
-			console.error(err);
-			if ('detail' in err) {
-				error = err.detail;
-			} else {
-				error = err;
-			}
-			return null;
-		});
+			return parseToolSpec(JSON.stringify(await response.json()));
+		}
+	);
 
-	if (error) {
-		throw error;
-	}
-
-	console.log(res);
-	return res;
-};
-
-export const getToolServersData = async (servers: any[]) => {
+export const getToolServersData = async (servers: (Partial<ToolServerConnection> | null)[]) => {
 	return (
 		await Promise.all(
 			servers
-				.filter((server) => server?.config?.enable)
+				.filter(
+					(server): server is ToolServerConnection =>
+						!!server?.url && (server.config?.enable ?? true)
+				)
 				.map(async (server) => {
 					let error = null;
 
@@ -471,19 +467,21 @@ export const getToolServersData = async (servers: any[]) => {
 					let res = null;
 					const specType = server?.spec_type ?? 'url';
 
+					const path = server.path ?? 'openapi.json';
 					if (specType === 'url') {
 						res = await getToolServerData(
 							toolServerToken,
-							(server?.path ?? '').includes('://')
-								? server?.path
-								: `${server?.url}${(server?.path ?? '').startsWith('/') ? '' : '/'}${server?.path}`
+							path.includes('://')
+								? path
+								: `${server.url}${path.startsWith('/') ? '' : '/'}${path}`,
+							server.headers ?? {}
 						).catch(() => {
 							error = 'Failed to fetch OpenAPI spec';
 							return null;
 						});
-					} else if ((specType === 'json' && server?.spec) ?? null) {
+					} else if (specType === 'json' && server.spec) {
 						try {
-							res = JSON.parse(server?.spec);
+							res = parseToolSpec(server.spec);
 						} catch {
 							error = 'Failed to parse JSON spec';
 						}

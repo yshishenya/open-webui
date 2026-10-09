@@ -13,6 +13,7 @@ import type {
 	ArtifactContent,
 	DirectModelConnections,
 	DirectTerminalSettings,
+	ToolServerConnection,
 	FrontendConfig,
 	FolderListItem,
 	SelectedFolder,
@@ -175,7 +176,7 @@ export type Settings = {
 	tools?: string[];
 	terminalServers?: DirectTerminalSettings[];
 	version?: string;
-	toolServers?: never[];
+	toolServers?: ToolServerConnection[];
 	detectArtifacts?: boolean;
 	showUpdateToast?: boolean;
 	showChangelog?: boolean;

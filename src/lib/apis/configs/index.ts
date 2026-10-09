@@ -1,5 +1,7 @@
 import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 import type { Banner } from '$lib/types';
+import type { ToolServerConnection } from '$lib/utils/airis/frontend-contracts';
+import { requestModelConnection } from '$lib/utils/airis/model_connection_request';
 
 export const importConfig = async (token: string, config: object) => {
 	let error = null;
@@ -115,62 +117,48 @@ export const setConnectionsConfig = async (token: string, config: object) => {
 	return res;
 };
 
-export const getToolServerConnections = async (token: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/tool_servers`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+type ToolServersConfig = { TOOL_SERVER_CONNECTIONS: ToolServerConnection[] };
+const readToolServersConfig = async (response: Response): Promise<ToolServersConfig> => {
+	const data: unknown = await response.json();
+	if (
+		!data ||
+		typeof data !== 'object' ||
+		!('TOOL_SERVER_CONNECTIONS' in data) ||
+		!Array.isArray(data.TOOL_SERVER_CONNECTIONS)
+	)
+		throw new Error('Invalid tool server configuration');
+	return data as ToolServersConfig;
 };
 
-export const setToolServerConnections = async (token: string, connections: object) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/tool_servers`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
+export const getToolServerConnections = async (
+	token: string,
+	signal?: AbortSignal
+): Promise<ToolServersConfig> =>
+	requestModelConnection(
+		`${WEBUI_API_BASE_URL}/configs/tool_servers`,
+		{
+			method: 'GET',
+			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
 		},
-		body: JSON.stringify({
-			...connections
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail;
-			return null;
-		});
+		signal,
+		readToolServersConfig
+	);
 
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
+export const setToolServerConnections = async (
+	token: string,
+	connections: ToolServersConfig,
+	signal?: AbortSignal
+): Promise<ToolServersConfig> =>
+	requestModelConnection(
+		`${WEBUI_API_BASE_URL}/configs/tool_servers`,
+		{
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+			body: JSON.stringify(connections)
+		},
+		signal,
+		readToolServersConfig
+	);
 
 export const getTerminalServerConnections = async (token: string) => {
 	let error = null;
@@ -486,35 +474,20 @@ export const verifyTerminalServerConnection = async (token: string, connection: 
 	return res;
 };
 
-export const verifyToolServerConnection = async (token: string, connection: object) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/tool_servers/verify`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
+export const verifyToolServerConnection = async (
+	token: string,
+	connection: ToolServerConnection,
+	signal?: AbortSignal
+): Promise<Record<string, unknown>> =>
+	requestModelConnection(
+		`${WEBUI_API_BASE_URL}/configs/tool_servers/verify`,
+		{
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+			body: JSON.stringify(connection)
 		},
-		body: JSON.stringify({
-			...connection
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
+		signal
+	);
 
 type RegisterOAuthClientForm = {
 	url: string;
@@ -528,36 +501,19 @@ type RegisterOAuthClientForm = {
 export const registerOAuthClient = async (
 	token: string,
 	formData: RegisterOAuthClientForm,
-	type: null | string = null
-) => {
-	let error = null;
-
-	const searchParams = type ? `?type=${type}` : '';
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/oauth/clients/register${searchParams}`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
+	type: null | string = null,
+	signal?: AbortSignal
+): Promise<{ status: boolean; oauth_client_info: string }> => {
+	const searchParams = type ? `?type=${encodeURIComponent(type)}` : '';
+	return requestModelConnection(
+		`${WEBUI_API_BASE_URL}/configs/oauth/clients/register${searchParams}`,
+		{
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+			body: JSON.stringify(formData)
 		},
-		body: JSON.stringify({
-			...formData
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+		signal
+	);
 };
 
 export const getOAuthClientAuthorizationUrl = (clientId: string, type: null | string = null) => {

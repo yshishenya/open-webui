@@ -4,7 +4,8 @@ import { getErrorMessage } from './error_message';
 export const requestModelConnection = async <T>(
 	url: string,
 	options: RequestInit,
-	signal?: AbortSignal
+	signal?: AbortSignal,
+	read: (response: Response) => Promise<T> = (response) => response.json()
 ): Promise<T> => {
 	signal?.throwIfAborted();
 	const controller = new AbortController();
@@ -23,7 +24,7 @@ export const requestModelConnection = async <T>(
 				detail ? getErrorMessage(detail) : `Connection request failed (${response.status}).`
 			);
 		}
-		const data: T = await response.json();
+		const data = await read(response);
 		controller.signal.throwIfAborted();
 		if (data === null) throw new Error('Connection request returned no result.');
 		return data;

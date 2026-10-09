@@ -1,0 +1,148 @@
+{
+  "spec_id": "airis-tool-connection-save-2026-10-10-007",
+  "title": "Airis Tool Connection Save",
+  "generated": "2026-10-09T23:12:30.287726Z",
+  "last_updated": "2026-10-09T23:31:11.737580Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__tool-connection-save.md",
+    "status": "completed",
+    "activated_date": "2026-10-09T23:13:04.130588Z",
+    "progress_percentage": 100,
+    "current_phase": "phase-2",
+    "completed_date": "2026-10-09T23:31:11.737188Z",
+    "actual_hours": 0.022
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Tool Connection Save",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and fix tool connection persistence",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-09T23:31:11.000676Z",
+        "journaled_at": "2026-10-09T23:31:11.002955Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Frozen-source verification and evidence",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-09T23:31:11.243253Z",
+        "journaled_at": "2026-10-09T23:31:11.245753Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce and correct actual tool handlers and API",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2026-10-09T23:30:33.138327Z",
+        "completed_at": "2026-10-09T23:31:11.000558Z",
+        "needs_journaling": false,
+        "status_note": "12 corrected original failures; 39 actual-handler and API checks pass in frozen full1465",
+        "actual_hours": 0.011,
+        "journaled_at": "2026-10-09T23:31:11.001918Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify frozen source tests diagnostics and preservation",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2026-10-09T23:30:33.389432Z",
+        "completed_at": "2026-10-09T23:31:11.243074Z",
+        "needs_journaling": false,
+        "status_note": "Docker frontend1465/148files; types1324/87 ESLint822 new0; frozen1743 backend542 protected21 production12 preserved",
+        "actual_hours": 0.011,
+        "journaled_at": "2026-10-09T23:31:11.244587Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-09T23:31:11.001914Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce and correct actual tool handlers and API",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: 12 corrected original failures; 39 actual-handler and API checks pass in frozen full1465",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-09T23:31:11.002950Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce and fix tool connection persistence",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-09T23:31:11.244581Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify frozen source tests diagnostics and preservation",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Docker frontend1465/148files; types1324/87 ESLint822 new0; frozen1743 backend542 protected21 production12 preserved",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-09T23:31:11.245748Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Frozen-source verification and evidence",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
