@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { createEventDispatcher, onMount, getContext } from 'svelte';
+	import { createEventDispatcher, onMount, onDestroy, getContext } from 'svelte';
 	const dispatch = createEventDispatcher();
 
 	import { getBackendConfig } from '$lib/apis';
@@ -8,9 +8,10 @@
 		getAudioConfig,
 		updateAudioConfig,
 		getModels as _getModels,
-		getVoices as _getVoices
+		getVoices as _getVoices,
+		type AudioVoice
 	} from '$lib/apis/audio';
-	import { config, settings } from '$lib/stores';
+	import { config } from '$lib/stores';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
@@ -39,7 +40,7 @@
 	let TTS_MODEL = '';
 	let TTS_VOICE = '';
 	let TTS_OPENAI_PARAMS = '';
-	let TTS_SPLIT_ON: TTS_RESPONSE_SPLIT = TTS_RESPONSE_SPLIT.PUNCTUATION;
+	let TTS_SPLIT_ON: string = TTS_RESPONSE_SPLIT.PUNCTUATION;
 	let TTS_AZURE_SPEECH_REGION = '';
 	let TTS_AZURE_SPEECH_BASE_URL = '';
 	let TTS_AZURE_SPEECH_OUTPUT_FORMAT = '';
@@ -52,6 +53,7 @@
 	let STT_ENGINE = '';
 	let STT_MODEL = '';
 	let STT_SUPPORTED_CONTENT_TYPES = '';
+	let STT_ALLOWED_EXTENSIONS: string[] = [];
 	let STT_WHISPER_MODEL = '';
 	let STT_AZURE_API_KEY = '';
 	let STT_AZURE_REGION = '';
@@ -65,18 +67,14 @@
 
 	let STT_WHISPER_MODEL_LOADING = false;
 
-	type Voice = {
-		id: string;
-		name?: string;
-		description?: string;
-		meta?: {
-			description?: string;
-		};
-	};
-
-	// eslint-disable-next-line no-undef
-	let voices: SpeechSynthesisVoice[] = [];
-	let providerVoices: Voice[] = [];
+	let voices: ReturnType<typeof speechSynthesis.getVoices> = [];
+	let providerVoices: AudioVoice[] = [];
+	let destroyed = false;
+	let configLoaded = false;
+	let saving = false;
+	const lifetime = new AbortController();
+	let voicesRequest: AbortController | null = null;
+	let modelsRequest: AbortController | null = null;
 	let models: Awaited<ReturnType<typeof _getModels>>['models'] = [];
 	const inputClass =
 		'w-full h-7 rounded-lg border border-gray-100/50 bg-gray-50/40 px-2 text-xs text-gray-700 outline-hidden transition-colors placeholder:text-gray-300 focus:border-blue-400 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder:text-gray-700 dark:focus:border-blue-500';
@@ -85,163 +83,205 @@
 	const linkedHelpClass =
 		'text-[0.6875rem] text-gray-400 dark:text-gray-600 [&_a]:text-gray-900 [&_a]:hover:underline dark:[&_a]:text-gray-300';
 
-	const getModels = async () => {
+	const getModels = async (): Promise<void> => {
+		modelsRequest?.abort();
+		if (destroyed) return;
 		if (TTS_ENGINE === '') {
 			models = [];
-		} else {
-			const res = await _getModels(
-				localStorage.token,
-				$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null)
-			).catch((e) => {
-				toast.error(`${e}`);
-			});
-
-			if (res) {
-				console.log(res);
-				models = res.models;
-			}
-		}
-	};
-
-	const getVoices = async () => {
-		if (TTS_ENGINE === '') {
-			providerVoices = [];
-
-			const getVoicesLoop = setInterval(() => {
-				voices = speechSynthesis.getVoices();
-
-				// do your loop
-				if (voices.length > 0) {
-					clearInterval(getVoicesLoop);
-					voices.sort((a, b) => a.name.localeCompare(b.name, $i18n.resolvedLanguage));
-				}
-			}, 100);
-		} else {
-			voices = [];
-
-			const res = await _getVoices(localStorage.token).catch((e) => {
-				toast.error(`${e}`);
-			});
-
-			if (res) {
-				console.log(res);
-				providerVoices = res.voices ?? [];
-				providerVoices.sort((a, b) =>
-					(a.name ?? a.id).localeCompare(b.name ?? b.id, $i18n.resolvedLanguage)
-				);
-			}
-		}
-	};
-
-	const updateConfigHandler = async () => {
-		let openaiParams = {};
-		try {
-			openaiParams = TTS_OPENAI_PARAMS ? JSON.parse(TTS_OPENAI_PARAMS) : {};
-			TTS_OPENAI_PARAMS = JSON.stringify(openaiParams, null, 2);
-		} catch (e) {
-			toast.error($i18n.t('Invalid JSON format for Parameters'));
 			return;
 		}
+		const controller = new AbortController();
+		modelsRequest = controller;
+		try {
+			const res = await _getModels(localStorage.token, controller.signal);
+			if (!controller.signal.aborted && !destroyed) models = res.models;
+		} catch (error) {
+			if (!controller.signal.aborted && !destroyed) toast.error(`${error}`);
+		}
+	};
 
-		const res = await updateAudioConfig(localStorage.token, {
-			tts: {
-				OPENAI_API_BASE_URL: TTS_OPENAI_API_BASE_URL,
-				OPENAI_API_KEY: TTS_OPENAI_API_KEY,
-				OPENAI_PARAMS: openaiParams,
-				API_KEY: TTS_API_KEY,
-				ENGINE: TTS_ENGINE,
-				MODEL: TTS_MODEL,
-				VOICE: TTS_VOICE,
-				AZURE_SPEECH_REGION: TTS_AZURE_SPEECH_REGION,
-				AZURE_SPEECH_BASE_URL: TTS_AZURE_SPEECH_BASE_URL,
-				AZURE_SPEECH_OUTPUT_FORMAT: TTS_AZURE_SPEECH_OUTPUT_FORMAT,
-				MISTRAL_API_KEY: TTS_MISTRAL_API_KEY,
-				MISTRAL_API_BASE_URL: TTS_MISTRAL_API_BASE_URL,
-				SPLIT_ON: TTS_SPLIT_ON
-			},
-			stt: {
-				OPENAI_API_BASE_URL: STT_OPENAI_API_BASE_URL,
-				OPENAI_API_KEY: STT_OPENAI_API_KEY,
-				OPENAI_API_REQUEST_FORMAT: STT_OPENAI_API_REQUEST_FORMAT,
-				ENGINE: STT_ENGINE,
-				MODEL: STT_MODEL,
-				SUPPORTED_CONTENT_TYPES: STT_SUPPORTED_CONTENT_TYPES.split(','),
-				WHISPER_MODEL: STT_WHISPER_MODEL,
-				DEEPGRAM_API_KEY: STT_DEEPGRAM_API_KEY,
-				AZURE_API_KEY: STT_AZURE_API_KEY,
-				AZURE_REGION: STT_AZURE_REGION,
-				AZURE_LOCALES: STT_AZURE_LOCALES,
-				AZURE_BASE_URL: STT_AZURE_BASE_URL,
-				AZURE_MAX_SPEAKERS: STT_AZURE_MAX_SPEAKERS,
-				MISTRAL_API_KEY: STT_MISTRAL_API_KEY,
-				MISTRAL_API_BASE_URL: STT_MISTRAL_API_BASE_URL,
-				MISTRAL_USE_CHAT_COMPLETIONS: STT_MISTRAL_USE_CHAT_COMPLETIONS
+	const getVoices = async (): Promise<void> => {
+		voicesRequest?.abort();
+		if (destroyed) return;
+		if (TTS_ENGINE === '') {
+			providerVoices = [];
+			voices = typeof speechSynthesis === 'undefined' ? [] : speechSynthesis.getVoices();
+			voices.sort((a, b) => a.name.localeCompare(b.name, $i18n.resolvedLanguage));
+			return;
+		}
+		voices = [];
+		const controller = new AbortController();
+		voicesRequest = controller;
+		try {
+			const res = await _getVoices(localStorage.token, controller.signal);
+			if (controller.signal.aborted || destroyed) return;
+			providerVoices = res.voices;
+			providerVoices.sort((a, b) => a.name.localeCompare(b.name, $i18n.resolvedLanguage));
+		} catch (error) {
+			if (!controller.signal.aborted && !destroyed) toast.error(`${error}`);
+		}
+	};
+
+	const nativeVoicesChanged = (): void => {
+		if (TTS_ENGINE === '') void getVoices();
+	};
+
+	const updateConfigHandler = async (): Promise<boolean> => {
+		if (destroyed || !configLoaded || saving) return false;
+		let openaiParams: Record<string, unknown> = {};
+		try {
+			const parsed: unknown = TTS_OPENAI_PARAMS ? JSON.parse(TTS_OPENAI_PARAMS) : {};
+			if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+				throw new Error('Parameters must be an object');
+			openaiParams = parsed as Record<string, unknown>;
+			TTS_OPENAI_PARAMS = JSON.stringify(openaiParams, null, 2);
+		} catch {
+			toast.error($i18n.t('Invalid JSON format for Parameters'));
+			return false;
+		}
+
+		saving = true;
+		try {
+			const res = await updateAudioConfig(
+				localStorage.token,
+				{
+					tts: {
+						OPENAI_API_BASE_URL: TTS_OPENAI_API_BASE_URL,
+						OPENAI_API_KEY: TTS_OPENAI_API_KEY,
+						OPENAI_PARAMS: openaiParams,
+						API_KEY: TTS_API_KEY,
+						ENGINE: TTS_ENGINE,
+						MODEL: TTS_MODEL,
+						VOICE: TTS_VOICE,
+						AZURE_SPEECH_REGION: TTS_AZURE_SPEECH_REGION,
+						AZURE_SPEECH_BASE_URL: TTS_AZURE_SPEECH_BASE_URL,
+						AZURE_SPEECH_OUTPUT_FORMAT: TTS_AZURE_SPEECH_OUTPUT_FORMAT,
+						MISTRAL_API_KEY: TTS_MISTRAL_API_KEY,
+						MISTRAL_API_BASE_URL: TTS_MISTRAL_API_BASE_URL,
+						SPLIT_ON: TTS_SPLIT_ON
+					},
+					stt: {
+						OPENAI_API_BASE_URL: STT_OPENAI_API_BASE_URL,
+						OPENAI_API_KEY: STT_OPENAI_API_KEY,
+						OPENAI_API_REQUEST_FORMAT: STT_OPENAI_API_REQUEST_FORMAT,
+						ENGINE: STT_ENGINE,
+						MODEL: STT_MODEL,
+						SUPPORTED_CONTENT_TYPES: STT_SUPPORTED_CONTENT_TYPES.split(',')
+							.map((value) => value.trim())
+							.filter(Boolean),
+						ALLOWED_EXTENSIONS: STT_ALLOWED_EXTENSIONS,
+						WHISPER_MODEL: STT_WHISPER_MODEL,
+						DEEPGRAM_API_KEY: STT_DEEPGRAM_API_KEY,
+						AZURE_API_KEY: STT_AZURE_API_KEY,
+						AZURE_REGION: STT_AZURE_REGION,
+						AZURE_LOCALES: STT_AZURE_LOCALES,
+						AZURE_BASE_URL: STT_AZURE_BASE_URL,
+						AZURE_MAX_SPEAKERS: STT_AZURE_MAX_SPEAKERS,
+						MISTRAL_API_KEY: STT_MISTRAL_API_KEY,
+						MISTRAL_API_BASE_URL: STT_MISTRAL_API_BASE_URL,
+						MISTRAL_USE_CHAT_COMPLETIONS: STT_MISTRAL_USE_CHAT_COMPLETIONS
+					}
+				},
+				lifetime.signal
+			);
+			if (destroyed) return false;
+			if (!res) return false;
+			{
+				const nextConfig = await getBackendConfig();
+				if (destroyed) return false;
+				config.set(nextConfig);
+				saveHandler();
 			}
-		});
-
-		if (res) {
-			saveHandler();
-			config.set(await getBackendConfig());
+			return true;
+		} catch (error) {
+			if (!destroyed) toast.error(`${error}`);
+			return false;
+		} finally {
+			saving = false;
 		}
 	};
 
-	const sttModelUpdateHandler = async () => {
+	const sttModelUpdateHandler = async (): Promise<void> => {
 		STT_WHISPER_MODEL_LOADING = true;
-		await updateConfigHandler();
-		STT_WHISPER_MODEL_LOADING = false;
+		try {
+			await updateConfigHandler();
+		} finally {
+			STT_WHISPER_MODEL_LOADING = false;
+		}
 	};
 
-	onMount(async () => {
-		const res = await getAudioConfig(localStorage.token);
+	const loadConfig = async (): Promise<void> => {
+		try {
+			const res = await getAudioConfig(localStorage.token, lifetime.signal);
+			if (destroyed) return;
 
-		if (res) {
-			console.log(res);
-			TTS_OPENAI_API_BASE_URL = res.tts.OPENAI_API_BASE_URL;
-			TTS_OPENAI_API_KEY = res.tts.OPENAI_API_KEY;
-			TTS_OPENAI_PARAMS = JSON.stringify(res?.tts?.OPENAI_PARAMS ?? '', null, 2);
-			TTS_API_KEY = res.tts.API_KEY;
+			if (res) {
+				TTS_OPENAI_API_BASE_URL = res.tts.OPENAI_API_BASE_URL ?? TTS_OPENAI_API_BASE_URL;
+				TTS_OPENAI_API_KEY = res.tts.OPENAI_API_KEY ?? TTS_OPENAI_API_KEY;
+				TTS_OPENAI_PARAMS = JSON.stringify(res.tts.OPENAI_PARAMS ?? {}, null, 2);
+				TTS_API_KEY = res.tts.API_KEY ?? TTS_API_KEY;
 
-			TTS_ENGINE = res.tts.ENGINE;
-			TTS_MODEL = res.tts.MODEL;
-			TTS_VOICE = res.tts.VOICE;
+				TTS_ENGINE = res.tts.ENGINE ?? TTS_ENGINE;
+				TTS_MODEL = res.tts.MODEL ?? TTS_MODEL;
+				TTS_VOICE = res.tts.VOICE ?? TTS_VOICE;
 
-			TTS_SPLIT_ON = res.tts.SPLIT_ON || TTS_RESPONSE_SPLIT.PUNCTUATION;
+				TTS_SPLIT_ON = res.tts.SPLIT_ON || TTS_RESPONSE_SPLIT.PUNCTUATION;
 
-			TTS_AZURE_SPEECH_REGION = res.tts.AZURE_SPEECH_REGION;
-			TTS_AZURE_SPEECH_BASE_URL = res.tts.AZURE_SPEECH_BASE_URL;
-			TTS_AZURE_SPEECH_OUTPUT_FORMAT = res.tts.AZURE_SPEECH_OUTPUT_FORMAT;
-			TTS_MISTRAL_API_KEY = res.tts.MISTRAL_API_KEY;
-			TTS_MISTRAL_API_BASE_URL = res.tts.MISTRAL_API_BASE_URL;
+				TTS_AZURE_SPEECH_REGION = res.tts.AZURE_SPEECH_REGION ?? TTS_AZURE_SPEECH_REGION;
+				TTS_AZURE_SPEECH_BASE_URL = res.tts.AZURE_SPEECH_BASE_URL ?? TTS_AZURE_SPEECH_BASE_URL;
+				TTS_AZURE_SPEECH_OUTPUT_FORMAT =
+					res.tts.AZURE_SPEECH_OUTPUT_FORMAT ?? TTS_AZURE_SPEECH_OUTPUT_FORMAT;
+				TTS_MISTRAL_API_KEY = res.tts.MISTRAL_API_KEY ?? TTS_MISTRAL_API_KEY;
+				TTS_MISTRAL_API_BASE_URL = res.tts.MISTRAL_API_BASE_URL ?? TTS_MISTRAL_API_BASE_URL;
 
-			STT_OPENAI_API_BASE_URL = res.stt.OPENAI_API_BASE_URL;
-			STT_OPENAI_API_KEY = res.stt.OPENAI_API_KEY;
-			STT_OPENAI_API_REQUEST_FORMAT = res.stt.OPENAI_API_REQUEST_FORMAT || 'multipart';
+				STT_OPENAI_API_BASE_URL = res.stt.OPENAI_API_BASE_URL ?? STT_OPENAI_API_BASE_URL;
+				STT_OPENAI_API_KEY = res.stt.OPENAI_API_KEY ?? STT_OPENAI_API_KEY;
+				STT_OPENAI_API_REQUEST_FORMAT = res.stt.OPENAI_API_REQUEST_FORMAT || 'multipart';
 
-			STT_ENGINE = res.stt.ENGINE;
-			STT_MODEL = res.stt.MODEL;
-			STT_SUPPORTED_CONTENT_TYPES = (res?.stt?.SUPPORTED_CONTENT_TYPES ?? []).join(',');
-			STT_WHISPER_MODEL = res.stt.WHISPER_MODEL;
-			STT_AZURE_API_KEY = res.stt.AZURE_API_KEY;
-			STT_AZURE_REGION = res.stt.AZURE_REGION;
-			STT_AZURE_LOCALES = res.stt.AZURE_LOCALES;
-			STT_AZURE_BASE_URL = res.stt.AZURE_BASE_URL;
-			STT_AZURE_MAX_SPEAKERS = res.stt.AZURE_MAX_SPEAKERS;
-			STT_DEEPGRAM_API_KEY = res.stt.DEEPGRAM_API_KEY;
-			STT_MISTRAL_API_KEY = res.stt.MISTRAL_API_KEY;
-			STT_MISTRAL_API_BASE_URL = res.stt.MISTRAL_API_BASE_URL;
-			STT_MISTRAL_USE_CHAT_COMPLETIONS = res.stt.MISTRAL_USE_CHAT_COMPLETIONS;
+				STT_ENGINE = res.stt.ENGINE ?? STT_ENGINE;
+				STT_MODEL = res.stt.MODEL ?? STT_MODEL;
+				STT_SUPPORTED_CONTENT_TYPES = (res.stt.SUPPORTED_CONTENT_TYPES ?? []).join(',');
+				STT_ALLOWED_EXTENSIONS = res.stt.ALLOWED_EXTENSIONS ?? STT_ALLOWED_EXTENSIONS;
+				STT_WHISPER_MODEL = res.stt.WHISPER_MODEL ?? STT_WHISPER_MODEL;
+				STT_AZURE_API_KEY = res.stt.AZURE_API_KEY ?? STT_AZURE_API_KEY;
+				STT_AZURE_REGION = res.stt.AZURE_REGION ?? STT_AZURE_REGION;
+				STT_AZURE_LOCALES = res.stt.AZURE_LOCALES ?? STT_AZURE_LOCALES;
+				STT_AZURE_BASE_URL = res.stt.AZURE_BASE_URL ?? STT_AZURE_BASE_URL;
+				STT_AZURE_MAX_SPEAKERS = res.stt.AZURE_MAX_SPEAKERS ?? STT_AZURE_MAX_SPEAKERS;
+				STT_DEEPGRAM_API_KEY = res.stt.DEEPGRAM_API_KEY ?? STT_DEEPGRAM_API_KEY;
+				STT_MISTRAL_API_KEY = res.stt.MISTRAL_API_KEY ?? STT_MISTRAL_API_KEY;
+				STT_MISTRAL_API_BASE_URL = res.stt.MISTRAL_API_BASE_URL ?? STT_MISTRAL_API_BASE_URL;
+				STT_MISTRAL_USE_CHAT_COMPLETIONS =
+					res.stt.MISTRAL_USE_CHAT_COMPLETIONS ?? STT_MISTRAL_USE_CHAT_COMPLETIONS;
+			}
+
+			configLoaded = true;
+			await getVoices();
+			await getModels();
+		} catch (error) {
+			if (!destroyed) toast.error(`${error}`);
 		}
+	};
 
-		await getVoices();
-		await getModels();
+	onMount(() => {
+		if (typeof speechSynthesis !== 'undefined')
+			speechSynthesis.addEventListener('voiceschanged', nativeVoicesChanged);
+		void loadConfig();
+	});
+	onDestroy(() => {
+		destroyed = true;
+		lifetime.abort();
+		voicesRequest?.abort();
+		modelsRequest?.abort();
+		if (typeof speechSynthesis !== 'undefined')
+			speechSynthesis.removeEventListener('voiceschanged', nativeVoicesChanged);
 	});
 </script>
 
 <form
 	class="flex h-full flex-col justify-between text-sm"
 	on:submit|preventDefault={async () => {
-		await updateConfigHandler();
-		dispatch('save');
+		if (await updateConfigHandler()) dispatch('save');
 	}}
 >
 	<h2 class="text-sm font-medium text-gray-900 dark:text-white mb-4">{$i18n.t('Audio')}</h2>
@@ -477,22 +517,21 @@
 				<SettingsSelect
 					bind:value={TTS_ENGINE}
 					placeholder={$i18n.t('Select a mode')}
-					on:change={async (e) => {
-						await updateConfigHandler();
-						await getVoices();
-						await getModels();
-
-						const value = (e.currentTarget as HTMLSelectElement).value;
-
-						if (value === 'openai') {
+					disabled={saving || !configLoaded}
+					on:change={async () => {
+						if (TTS_ENGINE === 'openai') {
 							TTS_VOICE = 'alloy';
 							TTS_MODEL = 'tts-1';
-						} else if (value === 'mistral') {
+						} else if (TTS_ENGINE === 'mistral') {
 							TTS_VOICE = '';
 							TTS_MODEL = 'voxtral-mini-tts-2603';
 						} else {
 							TTS_VOICE = '';
 							TTS_MODEL = '';
+						}
+						if (await updateConfigHandler()) {
+							await getVoices();
+							await getModels();
 						}
 					}}
 				>
@@ -721,6 +760,7 @@
 		<button
 			class="px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full"
 			type="submit"
+			disabled={saving || !configLoaded}
 		>
 			{$i18n.t('Save')}
 		</button>

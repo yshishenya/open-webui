@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 
-	import { onMount, getContext, tick, type ComponentProps } from 'svelte';
+	import { onMount, onDestroy, getContext, tick, type ComponentProps } from 'svelte';
 	import type { ModelConfig, ModelMeta, ModelParams } from '$lib/apis';
 	import type { SkillListItem } from '$lib/utils/airis/frontend-contracts';
 	import { models, tools, functions, user } from '$lib/stores';
@@ -213,9 +213,12 @@
 		suggestionTags = res.map((tag) => ({ name: tag }));
 	};
 
-	const loadVoices = async () => {
-		const res = await getVoices(localStorage.token).catch(() => null);
-		voices = res?.voices ?? [];
+	const voicesAbort = new AbortController();
+	onDestroy(() => voicesAbort.abort());
+	const loadVoices = async (): Promise<void> => {
+		if (voicesAbort.signal.aborted) return;
+		const res = await getVoices(localStorage.token, voicesAbort.signal).catch(() => null);
+		if (!voicesAbort.signal.aborted) voices = res?.voices ?? [];
 	};
 
 	const toModelKnowledgeReference = (item: unknown): unknown => {
@@ -414,6 +417,7 @@
 		}
 		if (voices.length === 0) {
 			await loadVoices();
+			if (voicesAbort.signal.aborted) return;
 		}
 
 		// Fetch admin-configured default model metadata so the editor

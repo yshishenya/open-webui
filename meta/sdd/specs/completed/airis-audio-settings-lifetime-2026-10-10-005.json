@@ -1,0 +1,187 @@
+{
+  "spec_id": "airis-audio-settings-lifetime-2026-10-10-005",
+  "title": "Airis audio settings lifetime",
+  "generated": "2026-10-09T22:34:25.552345Z",
+  "last_updated": "2026-10-09T22:50:43.968004Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__audio-settings-lifetime.md",
+    "status": "completed",
+    "activated_date": "2026-10-09T22:35:10.811786Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-09T22:50:43.967516Z",
+    "current_phase": "phase-2",
+    "actual_hours": 0.094
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis audio settings lifetime",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "API \u0438 \u0436\u0438\u0437\u043d\u0435\u043d\u043d\u044b\u0439 \u0446\u0438\u043a\u043b \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043a",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "journaled_at": "2026-10-09T22:48:56.633169Z",
+        "completed_at": "2026-10-09T22:48:56.630507Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "\u041f\u043e\u043b\u043d\u0430\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0438 \u0441\u043e\u0445\u0440\u0430\u043d\u043d\u043e\u0441\u0442\u044c",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "journaled_at": "2026-10-09T22:50:43.437514Z",
+        "completed_at": "2026-10-09T22:50:43.434637Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Repair shared audio settings contracts",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/lib/apis/audio/index.ts",
+        "completed_at": "2026-10-09T22:48:56.630258Z",
+        "needs_journaling": false,
+        "status_note": "Final focused44 passed, including unsaved precision preservation and null provider name normalization",
+        "journaled_at": "2026-10-09T22:48:56.631984Z",
+        "started_at": "2026-10-09T22:47:01.035073Z",
+        "actual_hours": 0.032
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify behavior and preservation",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/lib/utils/airis/audio_settings_lifetime.test.ts",
+        "completed_at": "2026-10-09T22:50:43.434469Z",
+        "needs_journaling": false,
+        "status_note": "Final frozen Docker frontend1394/1394 and focused44 passed; types1472/94, ESLint888 new0; all preservation checks accepted",
+        "journaled_at": "2026-10-09T22:50:43.436209Z",
+        "started_at": "2026-10-09T22:47:01.280485Z",
+        "actual_hours": 0.062
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-09T22:44:04.711993Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Repair shared audio settings contracts",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: 16 original failures reproduced; 42 focused checks passed, actual audio contracts and three voice consumers repaired",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-09T22:44:04.713275Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: API \u0438 \u0436\u0438\u0437\u043d\u0435\u043d\u043d\u044b\u0439 \u0446\u0438\u043a\u043b \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043a",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-09T22:45:30.691594Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify behavior and preservation",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Docker frontend1392/1392, focused42, types32/ESLint5 removed with new0, frozen1739/backend542/protected21/production12 preserved",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-09T22:45:30.692942Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: \u041f\u043e\u043b\u043d\u0430\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0438 \u0441\u043e\u0445\u0440\u0430\u043d\u043d\u043e\u0441\u0442\u044c",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-09T22:48:56.631978Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Repair shared audio settings contracts",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Final focused44 passed, including unsaved precision preservation and null provider name normalization",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-09T22:48:56.633164Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: API \u0438 \u0436\u0438\u0437\u043d\u0435\u043d\u043d\u044b\u0439 \u0446\u0438\u043a\u043b \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043a",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-09T22:50:43.436205Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify behavior and preservation",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Final frozen Docker frontend1394/1394 and focused44 passed; types1472/94, ESLint888 new0; all preservation checks accepted",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-09T22:50:43.437508Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: \u041f\u043e\u043b\u043d\u0430\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0438 \u0441\u043e\u0445\u0440\u0430\u043d\u043d\u043e\u0441\u0442\u044c",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

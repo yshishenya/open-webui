@@ -1,69 +1,92 @@
 import { AUDIO_API_BASE_URL } from '$lib/constants';
 import { getErrorMessage } from '$lib/utils/airis/error_message';
 
-export const getAudioConfig = async (token: string) => {
-	let error = null;
+export type AudioConfigForm = {
+	tts: {
+		OPENAI_API_BASE_URL: string;
+		OPENAI_API_KEY: string;
+		OPENAI_PARAMS?: Record<string, unknown> | null;
+		API_KEY: string;
+		ENGINE: string;
+		MODEL: string;
+		VOICE: string;
+		SPLIT_ON: string;
+		AZURE_SPEECH_REGION: string;
+		AZURE_SPEECH_BASE_URL: string;
+		AZURE_SPEECH_OUTPUT_FORMAT: string;
+		MISTRAL_API_KEY: string;
+		MISTRAL_API_BASE_URL: string;
+	};
+	stt: {
+		OPENAI_API_BASE_URL: string;
+		OPENAI_API_KEY: string;
+		OPENAI_API_REQUEST_FORMAT?: string;
+		ENGINE: string;
+		MODEL: string;
+		SUPPORTED_CONTENT_TYPES?: string[];
+		ALLOWED_EXTENSIONS?: string[];
+		WHISPER_MODEL: string;
+		DEEPGRAM_API_KEY: string;
+		AZURE_API_KEY: string;
+		AZURE_REGION: string;
+		AZURE_LOCALES: string;
+		AZURE_BASE_URL: string;
+		AZURE_MAX_SPEAKERS: string;
+		MISTRAL_API_KEY: string;
+		MISTRAL_API_BASE_URL: string;
+		MISTRAL_USE_CHAT_COMPLETIONS: boolean;
+	};
+};
+// Config.get_many omits absent keys; the form keeps its defaults for them.
+export type AudioConfigResponse = {
+	tts: Partial<AudioConfigForm['tts']>;
+	stt: Partial<AudioConfigForm['stt']>;
+};
+export type AudioVoice = { id: string; name: string };
 
-	const res = await fetch(`${AUDIO_API_BASE_URL}/config`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
+const requestAudioJSON = async <T>(
+	token: string,
+	path: string,
+	body?: AudioConfigForm,
+	signal?: AbortSignal
+): Promise<T> => {
+	signal?.throwIfAborted();
+	const controller = new AbortController();
+	const abort = (): void => controller.abort(signal?.reason);
+	signal?.addEventListener('abort', abort, { once: true });
+	const timeout = setTimeout(
+		() => controller.abort(new DOMException('Audio request timed out.', 'TimeoutError')),
+		60_000
+	);
+	try {
+		const res = await fetch(`${AUDIO_API_BASE_URL}${path}`, {
+			method: body === undefined ? 'GET' : 'POST',
+			signal: controller.signal,
+			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+			...(body === undefined ? {} : { body: JSON.stringify(body) })
+		});
+		if (!res.ok) {
+			const detail: unknown = await res.json().catch(() => null);
+			controller.signal.throwIfAborted();
+			throw new Error(detail ? getErrorMessage(detail) : `Audio request failed (${res.status}).`);
 		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
+		const data: T = await res.json();
+		controller.signal.throwIfAborted();
+		return data;
+	} finally {
+		clearTimeout(timeout);
+		signal?.removeEventListener('abort', abort);
 	}
-
-	return res;
 };
 
-type OpenAIConfigForm = {
-	url: string;
-	key: string;
-	model: string;
-	speaker: string;
-};
+export const getAudioConfig = (token: string, signal?: AbortSignal): Promise<AudioConfigResponse> =>
+	requestAudioJSON(token, '/config', undefined, signal);
 
-export const updateAudioConfig = async (token: string, payload: OpenAIConfigForm) => {
-	let error = null;
-
-	const res = await fetch(`${AUDIO_API_BASE_URL}/config/update`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			...payload
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
+export const updateAudioConfig = (
+	token: string,
+	payload: AudioConfigForm,
+	signal?: AbortSignal
+): Promise<AudioConfigResponse> => requestAudioJSON(token, '/config/update', payload, signal);
 
 export const transcribeAudio = async (token: string, file: File, language?: string) => {
 	const data = new FormData();
@@ -138,61 +161,23 @@ export const synthesizeOpenAISpeech = async (
 };
 
 interface AvailableModelsResponse {
-	models: { name: string; id: string }[] | { id: string }[];
+	models: { id: string; name?: string }[];
 }
 
-export const getModels = async (token: string = ''): Promise<AvailableModelsResponse> => {
-	let error = null;
+export const getModels = (
+	token: string = '',
+	signal?: AbortSignal
+): Promise<AvailableModelsResponse> => requestAudioJSON(token, '/models', undefined, signal);
 
-	const res = await fetch(`${AUDIO_API_BASE_URL}/models`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
-
-export const getVoices = async (token: string = '') => {
-	let error = null;
-
-	const res = await fetch(`${AUDIO_API_BASE_URL}/voices`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
+export const getVoices = (
+	token: string = '',
+	signal?: AbortSignal
+): Promise<{ voices: AudioVoice[] }> =>
+	requestAudioJSON<{ voices: { id: string; name: unknown }[] }>(
+		token,
+		'/voices',
+		undefined,
+		signal
+	).then(({ voices }) => ({
+		voices: voices.map(({ id, name }) => ({ id, name: typeof name === 'string' ? name : id }))
+	}));
