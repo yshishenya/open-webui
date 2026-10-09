@@ -1,8 +1,13 @@
 <script lang="ts">
-	import type { ChatHistoryMessage, ChatMessageEdit } from '$lib/utils/airis/chat_history';
+	import type {
+		ChatHistory,
+		ChatHistoryMessage,
+		ChatMessageEdit
+	} from '$lib/utils/airis/chat_history';
 	import { getAttachmentSource } from '$lib/utils/airis/attachment_source';
 	import { toast } from 'svelte-sonner';
-	import { tick, getContext, onMount } from 'svelte';
+	import { tick, getContext } from 'svelte';
+	import type { SessionUser } from '$lib/stores';
 
 	import { settings } from '$lib/stores';
 	import { user as _user } from '$lib/stores';
@@ -24,19 +29,23 @@
 	import SubagentResultRow from './SubagentResultRow.svelte';
 
 	const i18n = getContext('i18n');
-	export let user;
+	export let user: Pick<SessionUser, 'id' | 'name'> | null | undefined;
 
-	export let chatId;
-	export let history;
-	export let messageId;
+	export let chatId: string;
+	export let history: ChatHistory;
+	export let messageId: string;
 
-	export let siblings;
+	export let siblings: string[];
 
 	export let gotoMessage: (message: ChatHistoryMessage, index: number) => void | Promise<void>;
 	export let showPreviousMessage: (message: ChatHistoryMessage) => void | Promise<void>;
 	export let showNextMessage: (message: ChatHistoryMessage) => void | Promise<void>;
 
-	export let editMessage: (id: string, edit: ChatMessageEdit, submit?: boolean) => void | Promise<void>;
+	export let editMessage: (
+		id: string,
+		edit: ChatMessageEdit,
+		submit?: boolean
+	) => void | Promise<void>;
 	export let deleteMessage: (id: string) => void | Promise<void>;
 
 	export let isFirstMessage: boolean;
@@ -52,7 +61,7 @@
 
 	let edit = false;
 	let editedContent = '';
-	let editedFiles = [];
+	let editedFiles: ChatHistoryMessage['files'] = [];
 
 	let messageEditTextAreaElement: HTMLTextAreaElement;
 	let editScrollContainer: HTMLDivElement;
@@ -69,23 +78,23 @@
 			}
 		}
 	}
-	const copyToClipboard = async (text) => {
+	const copyToClipboard = async (text: string): Promise<void> => {
 		const res = await _copyToClipboard(text);
 		if (res) {
 			toast.success($i18n.t('Copying to clipboard was successful!'));
 		}
 	};
 
-	const editMessageHandler = async () => {
+	const editMessageHandler = async (): Promise<void> => {
 		edit = true;
 		editedContent = message?.content ?? '';
-		editedFiles = message.files;
+		editedFiles = message.files?.slice();
 
 		await tick();
 
 		if (messageEditTextAreaElement) {
 			const messagesContainer = document.getElementById('messages-container');
-			const savedScrollTop = messagesContainer?.scrollTop;
+			const savedScrollTop = messagesContainer?.scrollTop ?? 0;
 
 			messageEditTextAreaElement.style.height = '';
 			messageEditTextAreaElement.style.height = `${messageEditTextAreaElement.scrollHeight}px`;
@@ -95,7 +104,7 @@
 		}
 	};
 
-	const editMessageConfirmHandler = async (submit = true) => {
+	const editMessageConfirmHandler = async (submit = true): Promise<void> => {
 		if (!editedContent && (editedFiles ?? []).length === 0) {
 			toast.error($i18n.t('Please enter a message or attach a file.'));
 			return;
@@ -108,19 +117,15 @@
 		editedFiles = [];
 	};
 
-	const cancelEditMessage = () => {
+	const cancelEditMessage = (): void => {
 		edit = false;
 		editedContent = '';
 		editedFiles = [];
 	};
 
-	const deleteMessageHandler = async () => {
+	const deleteMessageHandler = async (): Promise<void> => {
 		deleteMessage(message.id);
 	};
-
-	onMount(() => {
-		// console.log('UserMessage mounted');
-	});
 </script>
 
 <DeleteConfirmDialog
@@ -133,7 +138,7 @@
 
 <div
 	class=" flex w-full user-message group"
-	dir={$settings.chatDirection}
+	dir={$settings.chatDirection?.toLowerCase() as 'ltr' | 'rtl' | 'auto' | undefined}
 	id="message-{message.id}"
 	style="scroll-margin-top: 3rem;"
 >
@@ -174,7 +179,7 @@
 				{#if message.files}
 					<div
 						class="mb-1 w-full flex flex-col justify-end overflow-x-auto gap-1 flex-wrap"
-						dir={$settings?.chatDirection ?? 'auto'}
+						dir={($settings?.chatDirection?.toLowerCase() ?? 'auto') as 'ltr' | 'rtl' | 'auto'}
 					>
 						{#each message.files as file}
 							{@const fileUrl = getAttachmentSource(file)}
@@ -201,7 +206,7 @@
 				<div class=" w-full bg-gray-50 dark:bg-gray-800 rounded-3xl px-4 py-3 mb-2">
 					{#if (editedFiles ?? []).length > 0}
 						<div class="flex items-center flex-wrap gap-2 -mx-2 mb-1">
-							{#each editedFiles as file, fileIdx}
+							{#each editedFiles ?? [] as file, fileIdx}
 								{#if file.type === 'image' || (file?.content_type ?? '').startsWith('image/')}
 									{@const fileUrl = getAttachmentSource(file)}
 									<div class=" relative group">
@@ -221,7 +226,7 @@
 													: 'group-hover:visible invisible transition'}"
 												type="button"
 												on:click={() => {
-													editedFiles.splice(fileIdx, 1);
+													editedFiles?.splice(fileIdx, 1);
 
 													editedFiles = editedFiles;
 												}}
@@ -249,12 +254,9 @@
 										dismissible={true}
 										edit={true}
 										on:dismiss={async () => {
-											editedFiles.splice(fileIdx, 1);
+											editedFiles?.splice(fileIdx, 1);
 
 											editedFiles = editedFiles;
-										}}
-										on:click={() => {
-											console.log(file);
 										}}
 									/>
 								{/if}
@@ -270,11 +272,11 @@
 							bind:value={editedContent}
 							on:input={(e) => {
 								const messagesContainer = document.getElementById('messages-container');
-								const savedScrollTop = messagesContainer?.scrollTop;
-								const savedInnerScroll = editScrollContainer?.scrollTop;
+								const savedScrollTop = messagesContainer?.scrollTop ?? 0;
+								const savedInnerScroll = editScrollContainer?.scrollTop ?? 0;
 
-								e.target.style.height = '';
-								e.target.style.height = `${e.target.scrollHeight}px`;
+								e.currentTarget.style.height = '';
+								e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
 
 								if (messagesContainer) messagesContainer.scrollTop = savedScrollTop;
 								if (editScrollContainer) editScrollContainer.scrollTop = savedInnerScroll;
@@ -358,14 +360,14 @@
 					{#if timerExpanded}
 						<div
 							class="mt-2 ml-3 whitespace-pre-wrap break-words border-l border-gray-100 pl-3 text-[0.78125rem] leading-relaxed text-gray-600 dark:border-white/10 dark:text-gray-400"
-							dir={$settings?.chatDirection ?? 'auto'}
+							dir={($settings?.chatDirection?.toLowerCase() ?? 'auto') as 'ltr' | 'rtl' | 'auto'}
 						>
 							{message.content}
 						</div>
 					{/if}
 				</div>
 			{:else if message?.meta?.internal === true && message?.meta?.type === 'subagent'}
-				<SubagentResultRow content={message.content} result={message.meta} />
+				<SubagentResultRow content={message.content ?? ''} result={message.meta} />
 			{:else if message.content !== ''}
 				<div class="w-full">
 					<div class="flex {($settings?.chatBubble ?? true) ? 'justify-end pb-1' : 'w-full'}">
@@ -389,7 +391,10 @@
 								{:else}
 									<div
 										class="whitespace-pre-wrap text-[0.9375rem]"
-										dir={$settings?.chatDirection ?? 'auto'}
+										dir={($settings?.chatDirection?.toLowerCase() ?? 'auto') as
+											| 'ltr'
+											| 'rtl'
+											| 'auto'}
 									>
 										{message.content}
 									</div>
@@ -462,15 +467,15 @@
 											min="1"
 											max={siblings.length}
 											on:focus={(e) => {
-												e.target.select();
+												e.currentTarget.select();
 											}}
 											on:blur={(e) => {
-												gotoMessage(message, e.target.value - 1);
+												gotoMessage(message, Number(e.currentTarget.value) - 1);
 												messageIndexEdit = false;
 											}}
 											on:keydown={(e) => {
 												if (e.key === 'Enter') {
-													gotoMessage(message, e.target.value - 1);
+													gotoMessage(message, Number(e.currentTarget.value) - 1);
 													messageIndexEdit = false;
 												}
 											}}
@@ -485,7 +490,9 @@
 											messageIndexEdit = true;
 
 											await tick();
-											const input = document.getElementById(`message-index-input-${message.id}`);
+											const input = document.getElementById(
+												`message-index-input-${message.id}`
+											) as HTMLInputElement | null;
 											if (input) {
 												input.focus();
 												input.select();
@@ -558,7 +565,7 @@
 									: 'invisible group-hover:visible'} p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg dark:hover:text-white hover:text-black transition"
 								aria-label={$i18n.t('Copy')}
 								on:click={() => {
-									copyToClipboard(message.content);
+									if (message.content) copyToClipboard(message.content);
 								}}
 							>
 								<svg
@@ -651,15 +658,15 @@
 											min="1"
 											max={siblings.length}
 											on:focus={(e) => {
-												e.target.select();
+												e.currentTarget.select();
 											}}
 											on:blur={(e) => {
-												gotoMessage(message, e.target.value - 1);
+												gotoMessage(message, Number(e.currentTarget.value) - 1);
 												messageIndexEdit = false;
 											}}
 											on:keydown={(e) => {
 												if (e.key === 'Enter') {
-													gotoMessage(message, e.target.value - 1);
+													gotoMessage(message, Number(e.currentTarget.value) - 1);
 													messageIndexEdit = false;
 												}
 											}}
@@ -674,7 +681,9 @@
 											messageIndexEdit = true;
 
 											await tick();
-											const input = document.getElementById(`message-index-input-${message.id}`);
+											const input = document.getElementById(
+												`message-index-input-${message.id}`
+											) as HTMLInputElement | null;
 											if (input) {
 												input.focus();
 												input.select();

@@ -1,3 +1,5 @@
+import type { ComponentProps } from 'svelte';
+import type SubagentResultRow from '$lib/components/chat/Messages/SubagentResultRow.svelte';
 import type { OutputItem } from '$lib/components/chat/Messages/structuredOutput';
 
 export type ChatAttachment = Record<string, unknown> & {
@@ -51,6 +53,8 @@ export type ChatHistoryMessage = {
 	parentId: string | null;
 	childrenIds: string[];
 	role: string;
+	user?: string;
+	meta?: ComponentProps<typeof SubagentResultRow>['result'] & { internal?: boolean; type?: string };
 	content?: string;
 	timestamp?: number;
 	model?: string;
