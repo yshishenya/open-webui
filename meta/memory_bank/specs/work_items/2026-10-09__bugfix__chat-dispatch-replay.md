@@ -95,7 +95,6 @@ Source e922b4fdce4ecc2f2ace799b46f088980ffeb290 отправлен, 1600 Git blo
 
 Evidence: /Users/yshishenya/.codex/private-artifacts/airis-chat-dispatch-mounted-20261009. Общая цель active, SDD1/2, план198/244.
 
-
 ### Готовность поля первой задачи — исходники проверены
 
 - [x] Реальный initNewChat с настоящим setTextWithRetries воспроизвёл пустой q до правки: expected empty to be guide. В собранном e922 Chrome после настоящего входа первый guide сценарий также получил пустое поле; это дефект интерфейса, не ошибка подготовки аккаунта.
@@ -104,3 +103,24 @@ Evidence: /Users/yshishenya/.codex/private-artifacts/airis-chat-dispatch-mounted
 - [ ] После-правки собранный browser, draft/replay/note/temporary, CI/PR/интеграция/чистый образ/production ещё не приняты. Текущий commit доказывает доставку исходников; общий план198/244, SDD1/2 active, конечная цельactive.
 
 Evidence: airis-chat-dispatch-mounted-20261009/verify-source.py, test-acceptance.json, frontend-full.json, draft-guide-mount-before.json и browser trace до правки. Выбор тестов ^guide сначала дал No tests found; этот запуск не засчитан воспроизведением. Повтор с корректным фильтром исполняет3 настоящих сценария. Сборка первого frontend выполнена с чистого pinned Node digest; backend runtime dependencies взяты из принятого clean image только для временного стенда, новым production образом это не считается.
+
+### Полная проверка собранного чата — в работе
+
+- [x] Собранный e922 воспроизвёл пустое поле во всех3 guide сценариях; trace/screenshot/error-context сохранены, вход и аккаунт прошли.
+- [x] Исправление готовности поля fcf844f13cf199f42f4c22ee216da126ca7cefd8 отправлено; remote совпал,1600 Git blobs сверены.
+- [ ] Новые браузерные проверки полного черновика6007символов/image, обычного accepted/absent восстановления без дубля, повторного создания чата заметки, безопасного временного accepted/unknown. Два существующих browser проекта: Chrome desktop и Firefox390. Для unknown подменяется только статус GET; accepted и absent используют настоящий HTTP/backend/DB и контролируемый provider fixture.
+
+Evidence: airis-chat-dispatch-mounted-20261009. Runtime/dependencies не изменяются; e2e использует прежний account/SMTP/payment fixture. Сборка после правки проверяет все6739 tracked source hashes, кроме одной static/pyodide/pyodide-lock.json, заменённой принятым frozen browser ресурсом и отдельно проверенной по manifest. Generated fixture traces исключены из build context после сохранения проверенного архива.
+
+### Начальное содержимое редактора черновика — в работе
+
+- [x] Полный собранный Chrome подтвердил пустое поле после reload ordinary accepted/absent и temporary accepted/unknown. Начальный raw draft загружался до монтирования MessageInput; RichTextInput не получал начальное содержимое и создавался пустым.
+- [x] Общая минимальная правка: существующий JSON Content RichTextInput получает plain text document из prompt; строки не проходят HTML/Markdown или подстановку переменных. Все три caller restoreDraft используют одно поле. Новых зависимостей и повторных таймеров нет.
+- [ ] Полный frontend и типы/ESLint, новая сборка, повтор обоих браузеров и сохранность source/production проверяются. Ошибка file selector в новом тесте исправлена отдельно; она не считается дефектом продукта.
+- [ ] SDD task-2-1, внешний provider/списания, временный потерянный результат, CI/PR/интеграция/production и пилот остаются открытыми. План198/244 сохраняется; новых номерных закрытий нет.
+
+Spec: meta/memory_bank/specs/work_items/2026-10-09**bugfix**chat-dispatch-replay.md
+Owner: Codex
+Started: 2026-10-09
+
+- [x] Исходники начального содержимого проверены: frontend1271/137 файлов, failed0/skipped0; type1666/103, ESLint970/новых0. E2E types/ESLint/Prettier/diff проходят. Backend464 hashes совпали с прежним1063. Защищённые21 файла и production env/config/mounts/12 соседей сохранены; healthy/restarts0. После-правки собранный browser остаётся открытым.

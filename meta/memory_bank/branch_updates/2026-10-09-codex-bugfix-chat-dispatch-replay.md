@@ -21,3 +21,18 @@
   - Update: 2026-10-09 — начата проверка собранного UI, исходный e922b4fdce отправлен и сверён. Новая регрессия готовности поля воспроизвела пустой guide q при loading=true; изменение ещё не выпущено. Доказательства: airis-chat-dispatch-mounted-20261009.
 
   - Update: 2026-10-09 — подтверждено пустое поле guide q в настоящем собранном Chrome после входа. Поле теперь монтируется после restore, перед заполнением q/desktop/preset. Frontend1271/137/0failed/0skipped; type1666/103, ESLint970/новых0; backend464 SHA256 и21 защищённый файл сохранены, production healthy/restarts0. После-правки browser и полный выпуск открыты, SDD1/2, цельactive, план198/244. Evidence: airis-chat-dispatch-mounted-20261009.
+
+  - Update: 2026-10-09 — собранный e922:3/3 guide пусты после успешного входа; runtime правка fcf844f13 отправлена,1600 blobs сверены. Добавляются6 реальных browser проверок reload/accepted/absent/note/temp на desktop и390px. Unknown GET явно подменяется только для клиентского отказа; production и общий план198/244 сохранены.
+
+### Начальное содержимое редактора черновика — в работе
+
+- [x] Полный собранный Chrome подтвердил пустое поле после reload ordinary accepted/absent и temporary accepted/unknown. Начальный raw draft загружался до монтирования MessageInput; RichTextInput не получал начальное содержимое и создавался пустым.
+- [x] Общая минимальная правка: существующий JSON Content RichTextInput получает plain text document из prompt; строки не проходят HTML/Markdown или подстановку переменных. Все три caller restoreDraft используют одно поле. Новых зависимостей и повторных таймеров нет.
+- [ ] Полный frontend и типы/ESLint, новая сборка, повтор обоих браузеров и сохранность source/production проверяются. Ошибка file selector в новом тесте исправлена отдельно; она не считается дефектом продукта.
+- [ ] SDD task-2-1, внешний provider/списания, временный потерянный результат, CI/PR/интеграция/production и пилот остаются открытыми. План198/244 сохраняется; новых номерных закрытий нет.
+
+Spec: meta/memory_bank/specs/work_items/2026-10-09**bugfix**chat-dispatch-replay.md
+Owner: Codex
+Started: 2026-10-09
+
+- [x] Исходники начального содержимого проверены: frontend1271/137 файлов, failed0/skipped0; type1666/103, ESLint970/новых0. E2E types/ESLint/Prettier/diff проходят. Backend464 hashes совпали с прежним1063. Защищённые21 файла и production env/config/mounts/12 соседей сохранены; healthy/restarts0. После-правки собранный browser остаётся открытым.

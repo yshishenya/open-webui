@@ -9,6 +9,7 @@ export const onboardingTestFiles = [
 	'call-audio-lifetime.spec.ts',
 	'call-camera-lifetime.spec.ts',
 	'chat-cancel-history.spec.ts',
+	'chat-dispatch-recovery.spec.ts',
 	'folder-api-failure.spec.ts',
 	'markdown-media-source.spec.ts',
 	'model-editor-save-recovery.spec.ts',
