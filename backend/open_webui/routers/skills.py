@@ -70,11 +70,11 @@ async def get_skills(
 
 @router.get('/list', response_model=SkillAccessListResponse)
 async def get_skill_list(
-    query: Optional[str] = None,
-    view_option: Optional[str] = None,
-    order_by: Optional[str] = None,
-    direction: Optional[str] = None,
-    page: Optional[int] = 1,
+    query: str | None = None,
+    view_option: str | None = None,
+    order_by: str | None = None,
+    direction: str | None = None,
+    page: int | None = 1,
     user=Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
 ):

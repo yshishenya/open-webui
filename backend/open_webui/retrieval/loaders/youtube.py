@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Generator, List, Optional, Sequence, Union
+from typing import Any, Dict, Generator, List, Sequence, Union
 from urllib.parse import parse_qs, urlparse
 from xml.etree.ElementTree import ParseError
 
@@ -18,7 +18,7 @@ ALLOWED_NETLOCS = {
 }
 
 
-def _parse_video_id(url: str) -> Optional[str]:
+def _parse_video_id(url: str) -> str | None:
     """Parse a YouTube URL and return the video ID if valid, otherwise None."""
     parsed_url = urlparse(url)
 
@@ -55,7 +55,7 @@ class YoutubeLoader:
         self,
         video_id: str,
         language: Union[str, Sequence[str]] = 'en',
-        proxy_url: Optional[str] = None,
+        proxy_url: str | None = None,
     ):
         """Initialize with YouTube video ID."""
         _video_id = _parse_video_id(video_id)

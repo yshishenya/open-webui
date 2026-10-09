@@ -14,7 +14,6 @@ from typing import (
     Iterator,
     List,
     Literal,
-    Optional,
     Sequence,
     Union,
 )
@@ -328,14 +327,14 @@ class SafeFireCrawlLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
         web_paths,
         verify_ssl: bool = True,
         trust_env: bool = False,
-        requests_per_second: Optional[float] = None,
+        requests_per_second: float | None = None,
         continue_on_failure: bool = True,
-        api_key: Optional[str] = None,
-        api_url: Optional[str] = None,
-        timeout: Optional[int] = None,
+        api_key: str | None = None,
+        api_url: str | None = None,
+        timeout: int | None = None,
         mode: Literal['crawl', 'scrape', 'map'] = 'scrape',
-        proxy: Optional[Dict[str, str]] = None,
-        params: Optional[Dict] = None,
+        proxy: Dict[str, str] | None = None,
+        params: Dict | None = None,
     ):
         proxy_server = proxy.get('server') if proxy else None
         if trust_env and not proxy_server:
@@ -408,10 +407,10 @@ class SafeTavilyLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
         api_key: str,
         extract_depth: Literal['basic', 'advanced'] = 'basic',
         continue_on_failure: bool = True,
-        requests_per_second: Optional[float] = None,
+        requests_per_second: float | None = None,
         verify_ssl: bool = True,
         trust_env: bool = False,
-        proxy: Optional[Dict[str, str]] = None,
+        proxy: Dict[str, str] | None = None,
     ):
         """Initialize SafeTavilyLoader with rate limiting and SSL verification support.
 
@@ -522,9 +521,9 @@ class SafeMicrosoftWebIQLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
         language: str = 'en',
         verify_ssl: bool = True,
         trust_env: bool = False,
-        requests_per_second: Optional[float] = None,
+        requests_per_second: float | None = None,
         continue_on_failure: bool = True,
-        timeout: Optional[int] = None,
+        timeout: int | None = None,
     ):
         self.web_paths = web_paths if isinstance(web_paths, list) else [web_paths]
         self.api_key = api_key
@@ -595,13 +594,13 @@ class SafePlaywrightURLLoader(PlaywrightURLLoader, RateLimitMixin, URLProcessing
         web_paths: List[str],
         verify_ssl: bool = True,
         trust_env: bool = False,
-        requests_per_second: Optional[float] = None,
+        requests_per_second: float | None = None,
         continue_on_failure: bool = True,
         headless: bool = True,
-        remove_selectors: Optional[List[str]] = None,
-        proxy: Optional[Dict[str, str]] = None,
-        playwright_ws_url: Optional[str] = None,
-        playwright_timeout: Optional[int] = 10000,
+        remove_selectors: List[str] | None = None,
+        proxy: Dict[str, str] | None = None,
+        playwright_ws_url: str | None = None,
+        playwright_timeout: int | None = 10000,
     ):
         """Initialize with additional safety parameters and remote browser support."""
 
@@ -875,7 +874,7 @@ def get_web_loader(
     verify_ssl: bool = True,
     requests_per_second: int = 2,
     trust_env: bool = False,
-    loader_config: Optional[dict] = None,
+    loader_config: dict | None = None,
 ):
     # Check if the URLs are valid
     safe_urls = safe_validate_urls([urls] if isinstance(urls, str) else urls)

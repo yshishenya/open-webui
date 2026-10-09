@@ -31,9 +31,7 @@ class _FakeSession:
 
 
 @pytest.mark.asyncio
-async def test_transcription_handler_streams_and_closes_uploaded_file(
-    monkeypatch: MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_transcription_handler_streams_and_closes_uploaded_file(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     import open_webui.routers.audio as audio_router
 
     request = SimpleNamespace()
@@ -71,6 +69,4 @@ async def test_transcription_handler_streams_and_closes_uploaded_file(
 
     transcript_path = source_audio.with_suffix('.json')
     assert transcript_path.is_file()
-    assert json.loads(transcript_path.read_text(encoding='utf-8')) == {
-        'text': 'hello from test'
-    }
+    assert json.loads(transcript_path.read_text(encoding='utf-8')) == {'text': 'hello from test'}

@@ -14,7 +14,6 @@ import re
 import shlex
 import time
 from contextlib import contextmanager
-from typing import Optional
 
 import regex
 from fastapi import Request
@@ -181,7 +180,7 @@ def _extract_flags(tokens: list[str]) -> tuple[set[str], list[str]]:
     return flags, args
 
 
-def _extract_numeric_flag(tokens: list[str]) -> tuple[Optional[int], list[str]]:
+def _extract_numeric_flag(tokens: list[str]) -> tuple[int | None, list[str]]:
     """Extract a numeric flag like -20 from tokens. Returns (number, remaining)."""
     num = None
     remaining = []
@@ -1126,7 +1125,7 @@ async def kb_exec(
     command: str,
     __request__: Request = None,
     __user__: dict = None,
-    __model_knowledge__: Optional[list[dict]] = None,
+    __model_knowledge__: list[dict] | None = None,
 ) -> str:
     """
     Run a filesystem command against the knowledge base.

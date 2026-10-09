@@ -3,7 +3,7 @@ NOTE: This vector database integration is community-supported and maintained on 
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 from urllib.parse import urlparse
 
 import grpc
@@ -213,8 +213,8 @@ class QdrantClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        filter: Optional[Dict[str, Any]] = None,
+        ids: List[str] | None = None,
+        filter: Dict[str, Any] | None = None,
     ):
         """
         Delete vectors by ID or filter from a collection with tenant isolation.
@@ -245,9 +245,9 @@ class QdrantClient(VectorDBBase):
         self,
         collection_name: str,
         vectors: List[List[float | int]],
-        filter: Optional[Dict] = None,
+        filter: Dict | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         """
         Search for the nearest neighbor items based on the vectors with tenant isolation.
         """
@@ -273,7 +273,7 @@ class QdrantClient(VectorDBBase):
             distances=[[(point.score + 1.0) / 2.0 for point in query_response.points]],
         )
 
-    def query(self, collection_name: str, filter: Dict[str, Any], limit: Optional[int] = None):
+    def query(self, collection_name: str, filter: Dict[str, Any], limit: int | None = None):
         """
         Query points with filters and tenant isolation.
         """
@@ -295,7 +295,7 @@ class QdrantClient(VectorDBBase):
         )
         return self._result_to_get_result(points[0])
 
-    def get(self, collection_name: str) -> Optional[GetResult]:
+    def get(self, collection_name: str) -> GetResult | None:
         """
         Get all items in a collection with tenant isolation.
         """

@@ -3,7 +3,7 @@ import os
 import tempfile
 import time
 import zipfile
-from typing import List, Optional
+from typing import List
 
 import requests
 from fastapi import HTTPException, status
@@ -27,8 +27,8 @@ class MinerULoader:
         api_url: str = 'http://localhost:8000',
         api_key: str = '',
         params: dict = None,
-        timeout: Optional[int] = 300,
-        max_markdown_bytes: Optional[int] = None,
+        timeout: int | None = 300,
+        max_markdown_bytes: int | None = None,
     ):
         self.file_path = file_path
         self.api_mode = api_mode.lower()

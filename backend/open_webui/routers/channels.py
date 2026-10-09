@@ -64,7 +64,7 @@ async def channel_has_access(
     channel: ChannelModel,
     permission: str = 'read',
     strict: bool = True,
-    db: Optional[AsyncSession] = None,
+    db: AsyncSession | None = None,
 ) -> bool:
     if await AccessGrants.has_access(
         user_id=user_id,
@@ -82,7 +82,7 @@ async def channel_has_access(
 
 
 async def get_channel_users_with_access(
-    channel: ChannelModel, permission: str = 'read', db: Optional[AsyncSession] = None
+    channel: ChannelModel, permission: str = 'read', db: AsyncSession | None = None
 ):
     return await AccessGrants.get_users_with_access(
         resource_type='channel',
@@ -94,7 +94,7 @@ async def get_channel_users_with_access(
 
 def get_channel_permitted_group_and_user_ids(
     channel: ChannelModel, permission: str = 'read'
-) -> Optional[dict[str, list[str]]]:
+) -> dict[str, list[str]] | None:
     if permission == 'read' and has_public_read_access_grant(channel.access_grants):
         return None
 
@@ -122,7 +122,7 @@ def get_channel_permitted_group_and_user_ids(
 ############################
 
 
-async def check_channels_access(request: Request, user: Optional[UserModel] = None):
+async def check_channels_access(request: Request, user: UserModel | None = None):
     """Dependency to ensure channels are globally enabled."""
     if not await Config.get('channels.enable'):
         raise HTTPException(
@@ -146,10 +146,10 @@ async def check_channels_access(request: Request, user: Optional[UserModel] = No
 
 
 class ChannelListItemResponse(ChannelModel):
-    user_ids: Optional[list[str]] = None  # 'dm' channels only
-    users: Optional[list[UserIdNameStatusResponse]] = None  # 'dm' channels only
+    user_ids: list[str] | None = None  # 'dm' channels only
+    users: list[UserIdNameStatusResponse] | None = None  # 'dm' channels only
 
-    last_message_at: Optional[int] = None  # timestamp in epoch (time_ns)
+    last_message_at: int | None = None  # timestamp in epoch (time_ns)
     unread_count: int = 0
 
 
@@ -357,10 +357,10 @@ async def create_new_channel(
 
 
 class ChannelFullResponse(ChannelResponse):
-    user_ids: Optional[list[str]] = None  # 'group'/'dm' channels only
-    users: Optional[list[UserIdNameStatusResponse]] = None  # 'group'/'dm' channels only
+    user_ids: list[str] | None = None  # 'group'/'dm' channels only
+    users: list[UserIdNameStatusResponse] | None = None  # 'group'/'dm' channels only
 
-    last_read_at: Optional[int] = None  # timestamp in epoch (time_ns)
+    last_read_at: int | None = None  # timestamp in epoch (time_ns)
     unread_count: int = 0
 
 
@@ -490,10 +490,10 @@ def serialize_channel_member(user: UserModel) -> ChannelMemberResponse:
 async def get_channel_members_by_id(
     request: Request,
     id: str,
-    query: Optional[str] = None,
-    order_by: Optional[str] = None,
-    direction: Optional[str] = None,
-    page: Optional[int] = 1,
+    query: str | None = None,
+    order_by: str | None = None,
+    direction: str | None = None,
+    page: int | None = 1,
     user=Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
 ):

@@ -4,7 +4,6 @@ import io
 import mimetypes
 import re
 from pathlib import Path
-from typing import Optional
 
 import aiofiles
 from fastapi import (
@@ -51,7 +50,7 @@ _IMAGE_MIME_FALLBACK = {
 }
 
 
-async def get_image_base64_from_url(url: str, user=None) -> Optional[str]:
+async def get_image_base64_from_url(url: str, user=None) -> str | None:
     try:
         if url.startswith('http'):
             # Validate URL to prevent SSRF attacks against local/private networks.
@@ -180,7 +179,7 @@ async def get_file_url_from_base64(request, base64_file_string, metadata, user):
     return None
 
 
-async def get_image_base64_from_file_id(id: str, user=None) -> Optional[str]:
+async def get_image_base64_from_file_id(id: str, user=None) -> str | None:
     file = await Files.get_file_by_id(id)
     if not file:
         return None

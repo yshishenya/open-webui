@@ -216,18 +216,18 @@ class GCSStorageProvider(StorageProvider):
         if self.gcs_client is not None and self.bucket is not None:
             return
 
-        emulator_host = os.environ.get("STORAGE_EMULATOR_HOST")
+        emulator_host = os.environ.get('STORAGE_EMULATOR_HOST')
 
         if GOOGLE_APPLICATION_CREDENTIALS_JSON:
             self.gcs_client = storage.Client.from_service_account_info(
                 info=json.loads(GOOGLE_APPLICATION_CREDENTIALS_JSON)
             )
         elif emulator_host:
-            project = os.environ.get("GOOGLE_CLOUD_PROJECT", "test-project")
+            project = os.environ.get('GOOGLE_CLOUD_PROJECT', 'test-project')
             self.gcs_client = storage.Client(
                 project=project,
                 credentials=AnonymousCredentials(),
-                client_options={"api_endpoint": emulator_host},
+                client_options={'api_endpoint': emulator_host},
             )
         else:
             # if no credentials json is provided, credentials will be picked up from the environment

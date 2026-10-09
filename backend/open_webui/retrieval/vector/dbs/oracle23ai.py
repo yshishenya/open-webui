@@ -35,7 +35,7 @@ import os
 import threading
 import time
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
 import oracledb
 from open_webui.config import (
@@ -251,8 +251,7 @@ class Oracle23aiClient(VectorDBBase):
         with connection.cursor() as cursor:
             try:
                 log.info('Creating Table document_chunk')
-                cursor.execute(
-                    """
+                cursor.execute("""
                     BEGIN
                         EXECUTE IMMEDIATE '
                             CREATE TABLE IF NOT EXISTS document_chunk (
@@ -269,12 +268,10 @@ class Oracle23aiClient(VectorDBBase):
                                 RAISE;
                             END IF;
                     END;
-                """
-                )
+                """)
 
                 log.info('Creating Index document_chunk_collection_name_idx')
-                cursor.execute(
-                    """
+                cursor.execute("""
                     BEGIN
                         EXECUTE IMMEDIATE '
                             CREATE INDEX IF NOT EXISTS document_chunk_collection_name_idx
@@ -286,12 +283,10 @@ class Oracle23aiClient(VectorDBBase):
                                 RAISE;
                             END IF;
                     END;
-                """
-                )
+                """)
 
                 log.info('Creating VECTOR INDEX document_chunk_vector_ivf_idx')
-                cursor.execute(
-                    """
+                cursor.execute("""
                     BEGIN
                         EXECUTE IMMEDIATE '
                             CREATE VECTOR INDEX IF NOT EXISTS document_chunk_vector_ivf_idx 
@@ -307,8 +302,7 @@ class Oracle23aiClient(VectorDBBase):
                                 RAISE;
                             END IF;
                     END;
-                """
-                )
+                """)
 
                 connection.commit()
                 log.info('Database initialization completed successfully.')
@@ -515,9 +509,9 @@ class Oracle23aiClient(VectorDBBase):
         self,
         collection_name: str,
         vectors: List[List[Union[float, int]]],
-        filter: Optional[dict] = None,
+        filter: dict | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         """
         Search for similar vectors in the database.
 
@@ -594,7 +588,7 @@ class Oracle23aiClient(VectorDBBase):
             log.exception(f'Error during search: {e}')
             return None
 
-    def query(self, collection_name: str, filter: Dict, limit: Optional[int] = None) -> Optional[GetResult]:
+    def query(self, collection_name: str, filter: Dict, limit: int | None = None) -> GetResult | None:
         """
         Query items based on metadata filters.
 
@@ -663,7 +657,7 @@ class Oracle23aiClient(VectorDBBase):
             log.exception(f'Error during query: {e}')
             return None
 
-    def get(self, collection_name: str) -> Optional[GetResult]:
+    def get(self, collection_name: str) -> GetResult | None:
         """
         Get all items in a collection.
 
@@ -723,8 +717,8 @@ class Oracle23aiClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        filter: Optional[Dict[str, Any]] = None,
+        ids: List[str] | None = None,
+        filter: Dict[str, Any] | None = None,
     ) -> None:
         """
         Delete items from the database.

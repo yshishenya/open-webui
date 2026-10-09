@@ -7,9 +7,7 @@ from test.util.abstract_integration_test import AbstractPostgresTest
 from test.util.mock_user import mock_webui_user
 
 
-def _sign_telegram_payload(
-    payload: dict[str, object], bot_token: str
-) -> dict[str, object]:
+def _sign_telegram_payload(payload: dict[str, object], bot_token: str) -> dict[str, object]:
     from open_webui.utils.telegram_auth import (
         build_telegram_data_check_string,
         compute_telegram_login_hash,
@@ -293,9 +291,7 @@ class TestAuths(AbstractPostgresTest):
             json={'state': state, 'payload': payload},
         )
         assert response.status_code == 400
-        assert (
-            response.json()['detail'] == 'You must accept the terms and privacy policy'
-        )
+        assert response.json()['detail'] == 'You must accept the terms and privacy policy'
 
         assert asyncio.run(self.users.get_user_by_email('telegram@777.local')) is None
 
