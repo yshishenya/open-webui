@@ -3,7 +3,6 @@ import uuid
 from decimal import Decimal
 
 import pytest
-
 from test.util.abstract_integration_test import AbstractPostgresTest
 
 

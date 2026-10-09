@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-
 from _pytest.monkeypatch import MonkeyPatch
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 from starlette.responses import Response
-
 from test.util.abstract_integration_test import AbstractPostgresTest
 
 

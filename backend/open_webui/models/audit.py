@@ -7,7 +7,7 @@ from enum import Enum
 
 from open_webui.internal.db import Base, get_db
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import BigInteger, Column, String, Text, JSON, Index
+from sqlalchemy import JSON, BigInteger, Column, Index, String, Text
 
 ####################
 # Audit Enums

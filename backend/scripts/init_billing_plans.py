@@ -20,8 +20,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from open_webui.models.billing import Plans
 from open_webui.utils.plan_templates import (
-    get_default_plans,
     get_annual_plans,
+    get_default_plans,
     get_promo_plans,
 )
 

@@ -1,7 +1,6 @@
 import time
 
 from _pytest.monkeypatch import MonkeyPatch
-
 from open_webui.models.billing import SubscriptionModel, SubscriptionStatus
 from test.util.abstract_integration_test import AbstractPostgresTest
 from test.util.mock_user import mock_webui_user

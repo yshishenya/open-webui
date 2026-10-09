@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
-
 from open_webui.utils.airis.ollama_upload import (
     create_model,
     persist_upload_file,

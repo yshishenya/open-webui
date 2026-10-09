@@ -3,7 +3,6 @@ import hmac
 import time
 
 import pytest
-
 from open_webui.utils.telegram_auth import (
     TelegramAuthError,
     build_telegram_data_check_string,

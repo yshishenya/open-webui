@@ -1,7 +1,6 @@
 import time
 
 import pytest
-
 from test.util.abstract_integration_test import AbstractPostgresTest
 
 

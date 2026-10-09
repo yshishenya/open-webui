@@ -8,7 +8,6 @@ from collections.abc import Mapping
 from urllib.parse import urlencode
 
 from fastapi.testclient import TestClient
-
 from open_webui.internal.db import Base, ScopedSession, engine
 from open_webui.main import app
 

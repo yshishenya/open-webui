@@ -1,5 +1,4 @@
 from fastapi import HTTPException, status
-
 from open_webui.utils.airis.task_error_payload import (
     build_task_ws_error_payload,
     is_billing_block_http_exception,

@@ -1,4 +1,4 @@
-from decimal import Decimal, ROUND_CEILING
+from decimal import ROUND_CEILING, Decimal
 
 from open_webui.models.billing import PricingRateCardModel, RateCards
 
