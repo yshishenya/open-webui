@@ -133,7 +133,7 @@ test('lost note creation acknowledgement reuses its UUID and keeps the draft on 
 	await composer(page).fill('First note question');
 	await composer(page).press('Enter');
 	await expect(embedded.getByRole('log')).toContainText('AIRIS deterministic answer.');
-	await embedded.getByRole('button', { name: 'Chat history', exact: true }).click();
+	await embedded.getByLabel('Chat history', { exact: true }).click();
 	await page.getByRole('button', { name: 'New chat', exact: true }).click();
 	const operations: string[] = [];
 	const chats: string[] = [];
