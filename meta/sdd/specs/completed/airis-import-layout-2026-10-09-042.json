@@ -1,0 +1,139 @@
+{
+	"spec_id": "airis-import-layout-2026-10-09-042",
+	"title": "airis-import-layout",
+	"generated": "2026-10-09T07:42:51.474237Z",
+	"last_updated": "2026-10-09T07:55:07.603884Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__import-layout.md",
+		"status": "completed",
+		"activated_date": "2026-10-09T07:43:30.031377Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-09T07:55:07.603644Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-import-layout",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Phase 1: [To Be Defined]",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T07:51:23.193039Z",
+				"journaled_at": "2026-10-09T07:51:23.194782Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Phase 2: [To Be Defined]",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T07:55:07.154811Z",
+				"journaled_at": "2026-10-09T07:55:07.156581Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Apply25 reviewed module layout fixes, preserve AST and loading",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "backend/open_webui/migrations/versions/7e5b5dc7342b_init.py",
+				"completed_at": "2026-10-09T07:51:23.192887Z",
+				"needs_journaling": false,
+				"status_note": "25 module layout fixes;454 AST/comments preserved;binding and first-load order unchanged;Ruff638\u2192613",
+				"journaled_at": "2026-10-09T07:51:23.193789Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify contracts/full tests,cleanup,source delivery",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-09__refactor__import-layout.md",
+				"completed_at": "2026-10-09T07:55:07.154660Z",
+				"needs_journaling": false,
+				"status_note": "11 contracts/startup7639/PG77 match;backend1025/frontend952/Black454;source ea09c414ee445d4ec2a0883350be656aaa80d8f8 pushed;primary/production preserved;6DB fixture/baseline removed;general acceptance pending",
+				"journaled_at": "2026-10-09T07:55:07.155569Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T07:51:23.193785Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Apply25 reviewed module layout fixes, preserve AST and loading",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: 25 module layout fixes;454 AST/comments preserved;binding and first-load order unchanged;Ruff638\u2192613",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T07:51:23.194778Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Phase 1: [To Be Defined]",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-09T07:55:07.155565Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify contracts/full tests,cleanup,source delivery",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: 11 contracts/startup7639/PG77 match;backend1025/frontend952/Black454;source ea09c414ee445d4ec2a0883350be656aaa80d8f8 pushed;primary/production preserved;6DB fixture/baseline removed;general acceptance pending",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-09T07:55:07.156577Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Phase 2: [To Be Defined]",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}

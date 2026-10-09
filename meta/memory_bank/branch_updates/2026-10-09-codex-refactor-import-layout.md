@@ -1,0 +1,5 @@
+- [x] **[REFACTOR]** Correct25 import layouts without changing module loading (focused source acceptance)
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09**refactor**import-layout.md
+  - Owner: Codex
+  - Done: 2026-10-09
+  - Summary: 25files,454 AST/comments and25first-load/binding sets preserved.11contract sets/startup7639/PG77 match;backend1025/frontend952 pass. Ruff638→613,0new;one old F811 reference line relocated only. Source `ea09c414ee445d4ec2a0883350be656aaa80d8f8` pushed;SDD2/2 complete;temporary6DB fixture/baseline removed. General checks/integration/release andplan198/244 remain open.
