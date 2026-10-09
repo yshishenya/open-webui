@@ -132,7 +132,9 @@ test('lost note creation acknowledgement reuses its UUID and keeps the draft on 
 	const chats: string[] = [];
 	await page.route(`**/api/v1/notes/${note.id}/chat?*`, async (route) => {
 		operations.push(new URL(route.request().url()).searchParams.get('operation_id')!);
-		const response = await route.fetch();
+		const response = await route.fetch({
+			headers: { ...route.request().headers(), 'accept-encoding': 'identity' }
+		});
 		expect(response.ok()).toBe(true);
 		chats.push(((await response.json()) as { id: string }).id);
 		if (operations.length === 1) await route.abort('failed');
