@@ -124,3 +124,32 @@ regressions. Full check2290→2289 errors/108 warnings, ESLint1020 unchanged,
 normalized additions0. Scoped lint passes, formatting differs only in the same
 two old untouched markup locations. Hidden middle slot is preserved and visible
 order is [calendar,notes]. New source/CI/clean candidate/browser/release pending.
+
+## Candidate verification — exact source f21d22bb341ceb2e1890d49814dc2994fca0ce66
+
+The first focused browser attempt failed in the second navigation cycle: its
+document marker was captured outside the loop, while the existing root
+beforeNavigate deliberately reloads public-to-app navigation. The trace contains
+one document request for that return; app-to-guide navigation stayed in the same
+document. Preserve the teardown assertion before return, capture each cycle's
+own marker and additionally assert the intentional document replacement on return.
+Application code and candidate image were unchanged. Corrected focused case
+passes five cycles; full Chromium passes43/43, zero failures/skips. Firefox390px
+and production acceptance remain pending.
+
+Clean candidate native/file/package checks passed:351 Python packages,529 backend
+files,62 frozen static files,153 model files and27 links; native torch/vision/audio
+operations passed. Exact-head CI completed11 success/1 skipped; CodeRabbit reviews
+are disabled for the base, so no independent review is claimed. Global quality
+gates remain open. The initial failed trace/log/XML and corrected runnable check
+are retained privately.
+
+## Full Firefox findings and next source
+
+f21 Firefox390px:41/43. One private check expected a sidebar node while the
+mobile sidebar was closed; corrected expectation checks0 before opening and1
+after. A separate real wallet loading shift236px is reproduced by a controlled
+native pointer check; fix/test tracked in2026-10-09__bugfix__wallet-period-layout.md.
+f21 is rejected and must not be published or released. Updated full source suite
+951/951,0fail/skip; check2289/108 and lint1020 with normalized additions0.
+New exact source, CI, native and44+44 browser acceptance remain pending.

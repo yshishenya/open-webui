@@ -74,6 +74,7 @@
 <section
 	class="rounded-xl border border-gray-200 p-4 dark:border-gray-800"
 	aria-label={$i18n.t('Spending for selected dates')}
+	aria-busy={loading}
 >
 	<form class="flex flex-wrap items-end gap-3" on:submit|preventDefault={apply}>
 		<label class="text-sm"
@@ -108,22 +109,30 @@
 				>{$i18n.t('Retry')}</button
 			>
 		</div>
-	{:else if loading}<p class="mt-3 text-sm" role="status">{$i18n.t('Loading period totals…')}</p>
-	{:else if summary}<p class="mt-3 text-sm font-medium">{appliedStart} — {appliedEnd}</p>
+	{:else if loading || summary}<p class="mt-3 text-sm font-medium">
+			{#if loading}<span role="status">{$i18n.t('Loading period totals…')}</span>
+			{:else}{appliedStart} — {appliedEnd}{/if}
+		</p>
 		<dl class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
 			<div>
 				<dt class="text-sm text-gray-600 dark:text-gray-300">{$i18n.t('Credited top-ups')}</dt>
-				<dd class="mt-1 text-xl font-semibold tabular-nums">{money(summary.topup_kopeks)}</dd>
+				<dd class="mt-1 text-xl font-semibold tabular-nums">
+					{summary ? money(summary.topup_kopeks) : '—'}
+				</dd>
 			</div>
 			<div>
 				<dt class="text-sm text-gray-600 dark:text-gray-300">{$i18n.t('Charged for usage')}</dt>
-				<dd class="mt-1 text-xl font-semibold tabular-nums">{money(summary.spent_kopeks)}</dd>
+				<dd class="mt-1 text-xl font-semibold tabular-nums">
+					{summary ? money(summary.spent_kopeks) : '—'}
+				</dd>
 			</div>
 			<div>
 				<dt class="text-sm text-gray-600 dark:text-gray-300">
 					{$i18n.t('Confirmed payment refunds')}
 				</dt>
-				<dd class="mt-1 text-xl font-semibold tabular-nums">{money(summary.refund_kopeks)}</dd>
+				<dd class="mt-1 text-xl font-semibold tabular-nums">
+					{summary ? money(summary.refund_kopeks) : '—'}
+				</dd>
 			</div>
 		</dl>
 		<p class="mt-3 text-xs text-gray-600 dark:text-gray-300">
