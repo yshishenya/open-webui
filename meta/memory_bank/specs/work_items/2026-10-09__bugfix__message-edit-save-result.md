@@ -1,10 +1,10 @@
 # Результат асинхронного сохранения сообщений
 
 - Type: bugfix
-- Status: verified-source; delivery-pending
+- Status: source-complete; release-pending
 - Owner: Codex
 - Branch: codex/bugfix/message-edit-save-result
-- SDD Spec: meta/sdd/specs/active/airis-message-edit-save-result-2026-10-09-024.json
+- SDD Spec: meta/sdd/specs/completed/airis-message-edit-save-result-2026-10-09-024.json
 - Base: origin/airis_b2c; явная зависимость 85e6537c9037c51bd79dadaaedacddfd94e908e8.
 
 ## Цель и измеримые критерии
@@ -15,7 +15,7 @@
 - [x] Runnable-набор реальных обработчиков падает до исправления и проходит после.
 - [x] Исправлены оба редактора и общий результат записи; существующее sparse-объединение API сохраняет соседние сообщения. Нет новых зависимостей или серверных изменений.
 - [x] Полный frontend, форматирование и сопоставление диагностик: 0 новых ошибок; сохранность backend, основной папки и runtime.
-- [ ] Проверенные файлы заморожены, source/remote/Git-объекты совпали; документы и SDD доставлены.
+- [x] Проверенные файлы заморожены, source/remote/Git-объекты совпали; документы и SDD доставлены.
 - [ ] Общие нулевые проверки, PR/интеграция, свежие backend/E2E одной версии, образ, выпуск и настоящая приёмка A/B.
 
 ## Решение и границы
@@ -39,3 +39,7 @@ Upstream impact: UserMessage.svelte/ResponseMessage.svelte — тонкие из
 Заморожены1527 файлов:frontend1073/backend454. Backend совпадает с прежним набором1025 успешных тестов, свежие backend/Black/Ruff здесь не повторялись. Production c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908,healthy,перезапусков0; образ/окружение/подключения/12соседей и21защищённый файл основной папки сохранены. Mac169GiB свободно. Собственные временные runners завершаются с --rm, общие сеть/кэш/чужой E2E контейнер сохранены.197 SDD-спецификаций валидны. Ошибочный запуск pytools с повторным sh -lc не исполнял проверку; подтверждён корректный запуск через штатный bash -lc entrypoint.
 
 Native Mail.app снова недоступен: Mac заблокирован; UI операций0. Mail/Reply-To/два оператора и настоящая приёмка A/B не закрыты. Общие проверки, PR/интеграция, свежие backend/API/E2E, образ и выпуск открыты. План198/244, цельactive.
+
+## Доставка исходников
+
+Source SHA: `015d3fd49ee5b44eddad3961c722d0725e61f0c2`. Отправлен в codex/bugfix/message-edit-save-result; удалённый SHA и1527 проверенных Git-объектов совпали. SDD исходников2/2 завершён. PR/интеграция/образ/deploy отсутствуют; общий G14 и полная продуктовая цель открыты.
