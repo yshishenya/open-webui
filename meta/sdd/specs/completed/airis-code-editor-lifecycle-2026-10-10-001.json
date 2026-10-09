@@ -1,0 +1,142 @@
+{
+	"spec_id": "airis-code-editor-lifecycle-2026-10-10-001",
+	"title": "Airis code editor value and format lifecycle",
+	"generated": "2026-10-09T21:14:55.158848Z",
+	"last_updated": "2026-10-09T21:27:44.064905Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "implementation",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__code-editor-value-lifecycle.md",
+		"status": "completed",
+		"activated_date": "2026-10-09T21:15:43.369194Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-09T21:27:44.064183Z",
+		"actual_hours": 0.137
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis code editor value and format lifecycle",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "\u041e\u0431\u0449\u0438\u0439 \u0440\u0435\u0434\u0430\u043a\u0442\u043e\u0440: \u0432\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0434\u0435\u043d\u0438\u0435 \u0438 \u0441\u043e\u0445\u0440\u0430\u043d\u043d\u043e\u0441\u0442\u044c",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T21:24:52.267210Z",
+				"journaled_at": "2026-10-09T21:24:52.269981Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "\u041f\u043e\u043b\u043d\u044b\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0438 \u043f\u0440\u0438\u0451\u043c\u043a\u0430",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T21:27:43.545466Z",
+				"journaled_at": "2026-10-09T21:27:43.548769Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "\u041c\u0438\u043d\u0438\u043c\u0430\u043b\u044c\u043d\u043e\u0435 \u0438\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f, \u043a\u043e\u043d\u0442\u0435\u0439\u043d\u0435\u0440\u0430 \u0438 \u0444\u043e\u0440\u043c\u0430\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"started_at": "2026-10-09T21:16:38.534954Z",
+				"completed_at": "2026-10-09T21:24:52.267059Z",
+				"needs_journaling": false,
+				"status_note": "Six original mounted failures reproduced; 13 native-editor checks accepted; changed type/lint files clean",
+				"actual_hours": 0.137,
+				"journaled_at": "2026-10-09T21:24:52.268634Z",
+				"file_path": "src/lib/components/common/CodeEditor.svelte"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Docker regression, full checks and preservation acceptance",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "src/lib/utils/airis/code_editor_lifecycle.test.ts",
+				"completed_at": "2026-10-09T21:27:43.545076Z",
+				"needs_journaling": false,
+				"status_note": "Docker1297/140, failed/skipped0; 14 types removed/new0, scoped types/lint0, backend/production/protected preserved",
+				"journaled_at": "2026-10-09T21:27:43.547327Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T21:24:52.268629Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: \u041c\u0438\u043d\u0438\u043c\u0430\u043b\u044c\u043d\u043e\u0435 \u0438\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f, \u043a\u043e\u043d\u0442\u0435\u0439\u043d\u0435\u0440\u0430 \u0438 \u0444\u043e\u0440\u043c\u0430\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Six original mounted failures reproduced; 13 native-editor checks accepted; changed type/lint files clean",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T21:24:52.269965Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: \u041e\u0431\u0449\u0438\u0439 \u0440\u0435\u0434\u0430\u043a\u0442\u043e\u0440: \u0432\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0434\u0435\u043d\u0438\u0435 \u0438 \u0441\u043e\u0445\u0440\u0430\u043d\u043d\u043e\u0441\u0442\u044c",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-09T21:27:43.547316Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Docker regression, full checks and preservation acceptance",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Docker1297/140, failed/skipped0; 14 types removed/new0, scoped types/lint0, backend/production/protected preserved",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-09T21:27:43.548764Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: \u041f\u043e\u043b\u043d\u044b\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0438 \u043f\u0440\u0438\u0451\u043c\u043a\u0430",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}

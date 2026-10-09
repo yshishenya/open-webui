@@ -3,12 +3,12 @@
 
 	import { basicSetup, EditorView } from 'codemirror';
 	import { keymap, placeholder } from '@codemirror/view';
-	import { Compartment, EditorState } from '@codemirror/state';
+	import { Compartment, EditorState, type ChangeSpec, type Extension } from '@codemirror/state';
 
 	import { acceptCompletion } from '@codemirror/autocomplete';
 	import { indentWithTab } from '@codemirror/commands';
 
-	import { indentUnit } from '@codemirror/language';
+	import { indentUnit, type LanguageSupport } from '@codemirror/language';
 	import { languages } from '@codemirror/language-data';
 
 	import { oneDark } from '@codemirror/theme-one-dark';
@@ -21,25 +21,25 @@
 	import { toast } from 'svelte-sonner';
 	import { user } from '$lib/stores';
 
-	const i18n = getContext('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let boilerplate = '';
 	export let value = '';
 	export let className = 'text-sm';
 
-	export let onSave = () => {};
+	export let onSave: () => unknown = () => {};
 	export let onChange: (value: string) => unknown = () => {};
 
 	let _value = '';
 
-	$: if (value) {
-		updateValue();
-	}
+	$: updateValue(value);
 
-	const updateValue = () => {
-		if (_value !== value) {
-			const changes = findChanges(_value, value);
-			_value = value;
+	const updateValue = (nextValue: string): void => {
+		if (_value !== nextValue) {
+			const changes = findChanges(_value, nextValue);
+			_value = nextValue;
 
 			if (codeEditor && changes.length > 0) {
 				codeEditor.dispatch({ changes });
@@ -50,7 +50,7 @@
 	/**
 	 * Finds multiple diffs in two strings and generates minimal change edits.
 	 */
-	function findChanges(oldStr: string, newStr: string) {
+	function findChanges(oldStr: string, newStr: string): ChangeSpec[] {
 		// Find the start of the difference
 		let start = 0;
 		while (start < oldStr.length && start < newStr.length && oldStr[start] === newStr[start]) {
@@ -78,8 +78,11 @@
 	export let lang = '';
 
 	let codeEditor: EditorView | null = null;
+	let container: HTMLDivElement;
+	let activeFormat: object | null = null;
+	let cancelFormatting: (() => void) | null = null;
 
-	export const focus = () => {
+	export const focus = (): void => {
 		codeEditor?.focus();
 	};
 
@@ -87,14 +90,14 @@
 	let editorTheme = new Compartment();
 	let editorLanguage = new Compartment();
 
-	const getLang = async () => {
+	const getLang = async (): Promise<LanguageSupport | undefined> => {
 		const language = languages.find((l) => l.alias.includes(lang));
 		return await language?.load();
 	};
 
-	let pyodideWorkerInstance = null;
+	let pyodideWorkerInstance: Worker | null = null;
 
-	const getPyodideWorker = () => {
+	const getPyodideWorker = (): Worker => {
 		if (!pyodideWorkerInstance) {
 			pyodideWorkerInstance = createPyodideWorker();
 		}
@@ -104,10 +107,11 @@
 	// Generate unique IDs for requests
 	let _formatReqId = 0;
 
-	const formatPythonCodePyodide = (code) => {
+	const formatPythonCodePyodide = (code: string): Promise<{ code: string | null }> => {
+		cancelFormatting?.();
 		return new Promise((resolve, reject) => {
 			const id = `format-${++_formatReqId}`;
-			let timeout;
+			let timeout: ReturnType<typeof setTimeout>;
 			const worker = getPyodideWorker();
 
 			const startTag = `--||CODE-START-${id}||--`;
@@ -122,12 +126,23 @@ print("${endTag}")
 
 			const packages = ['black'];
 
-			function handleMessage(event) {
-				const { id: eventId, stdout, stderr } = event.data;
-				if (eventId !== id) return; // Only handle our message
+			const cleanup = (): void => {
 				clearTimeout(timeout);
 				worker.removeEventListener('message', handleMessage);
 				worker.removeEventListener('error', handleError);
+				if (cancelFormatting === cancel) cancelFormatting = null;
+			};
+			const cancel = (): void => {
+				cleanup();
+				resolve({ code: null });
+			};
+			cancelFormatting = cancel;
+
+			function handleMessage(event: MessageEvent<unknown>): void {
+				if (!event.data || typeof event.data !== 'object') return;
+				const { id: eventId, stdout, stderr } = event.data as Record<string, unknown>;
+				if (eventId !== id) return; // Only handle our message
+				cleanup();
 
 				if (stderr) {
 					reject(stderr);
@@ -153,23 +168,17 @@ print("${endTag}")
 				}
 			}
 
-			function handleError(event) {
-				clearTimeout(timeout);
-				worker.removeEventListener('message', handleMessage);
-				worker.removeEventListener('error', handleError);
+			function handleError(event: ErrorEvent): void {
+				cleanup();
 				reject(event.message || 'Pyodide worker error');
 			}
 
 			worker.addEventListener('message', handleMessage);
 			worker.addEventListener('error', handleError);
 
-			// Send to worker
-			worker.postMessage({ id, code: script, packages });
-
 			// Timeout
 			timeout = setTimeout(() => {
-				worker.removeEventListener('message', handleMessage);
-				worker.removeEventListener('error', handleError);
+				cleanup();
 				try {
 					worker.terminate();
 				} catch {
@@ -178,30 +187,40 @@ print("${endTag}")
 				pyodideWorkerInstance = null;
 				reject('Execution Time Limit Exceeded');
 			}, 60000);
+			try {
+				worker.postMessage({ id, code: script, packages });
+			} catch (error) {
+				cleanup();
+				reject(error);
+			}
 		});
 	};
 
-	export const formatPythonCodeHandler = async () => {
+	export const formatPythonCodeHandler = async (): Promise<boolean> => {
 		if (codeEditor) {
+			const editor = codeEditor;
+			const original = _value;
+			const request = {};
+			activeFormat = request;
 			const res = await (
 				$user?.role === 'admin'
 					? formatPythonCode(localStorage.token, _value)
 					: formatPythonCodePyodide(_value)
 			).catch((error) => {
-				toast.error(`${error}`);
+				if (activeFormat === request && codeEditor === editor) toast.error(`${error}`);
 				return null;
 			});
-			if (res && res.code) {
+			if (activeFormat !== request || codeEditor !== editor || _value !== original) return false;
+			activeFormat = null;
+			if (res && typeof res.code === 'string' && res.code) {
 				const formattedCode = res.code;
-				codeEditor.dispatch({
-					changes: [{ from: 0, to: codeEditor.state.doc.length, insert: formattedCode }]
+				editor.dispatch({
+					changes: [{ from: 0, to: editor.state.doc.length, insert: formattedCode }]
 				});
 
-				_value = formattedCode;
-				onChange(_value);
 				await tick();
 
-				toast.success($i18n.t('Code formatted successfully'));
+				if (codeEditor === editor) toast.success($i18n.t('Code formatted successfully'));
 				return true;
 			}
 			return false;
@@ -209,7 +228,7 @@ print("${endTag}")
 		return false;
 	};
 
-	let extensions = [
+	let extensions: Extension[] = [
 		basicSetup,
 		keymap.of([{ key: 'Tab', run: acceptCompletion }, indentWithTab]),
 		indentUnit.of('    '),
@@ -228,7 +247,7 @@ print("${endTag}")
 		setLanguage();
 	}
 
-	const setLanguage = async () => {
+	const setLanguage = async (): Promise<void> => {
 		const language = await getLang();
 		if (language && codeEditor) {
 			codeEditor.dispatch({
@@ -248,16 +267,17 @@ print("${endTag}")
 		isDarkMode = document.documentElement.classList.contains('dark');
 
 		// python code editor, highlight python code
-		codeEditor = new EditorView({
+		const editor = new EditorView({
 			state: EditorState.create({
 				doc: _value,
 				extensions: extensions
 			}),
-			parent: document.getElementById(`code-textarea-${id}`)
+			parent: container
 		});
+		codeEditor = editor;
 
 		if (isDarkMode) {
-			codeEditor.dispatch({
+			editor.dispatch({
 				effects: editorTheme.reconfigure(oneDark)
 			});
 		}
@@ -271,12 +291,12 @@ print("${endTag}")
 					if (_isDarkMode !== isDarkMode) {
 						isDarkMode = _isDarkMode;
 						if (_isDarkMode) {
-							codeEditor.dispatch({
+							editor.dispatch({
 								effects: editorTheme.reconfigure(oneDark)
 							});
 						} else {
-							codeEditor.dispatch({
-								effects: editorTheme.reconfigure()
+							editor.dispatch({
+								effects: editorTheme.reconfigure([])
 							});
 						}
 					}
@@ -289,7 +309,7 @@ print("${endTag}")
 			attributeFilter: ['class']
 		});
 
-		const keydownHandler = async (e) => {
+		const keydownHandler = async (e: KeyboardEvent): Promise<void> => {
 			if ((e.ctrlKey || e.metaKey) && e.key === 's') {
 				e.preventDefault();
 
@@ -317,10 +337,16 @@ print("${endTag}")
 	});
 
 	onDestroy(() => {
+		activeFormat = null;
+		cancelFormatting?.();
 		if (pyodideWorkerInstance) {
 			pyodideWorkerInstance.terminate();
 		}
 	});
 </script>
 
-<div id="code-textarea-{id}" class="{className} h-full w-full min-w-0 overflow-hidden"></div>
+<div
+	bind:this={container}
+	id="code-textarea-{id}"
+	class="{className} h-full w-full min-w-0 overflow-hidden"
+></div>

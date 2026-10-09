@@ -1,5 +1,5 @@
 {
-	"spec_id": "airis-candidate-frontend-lint--2026-10-09-2353",
+	"spec_id": "airis-candidate-frontend-lint-2026-10-09-028",
 	"title": "Airis candidate frontend lint contracts",
 	"generated": "2026-10-09T20:53:18.262427Z",
 	"last_updated": "2026-10-09T21:12:20.853353Z",
@@ -75,7 +75,8 @@
 				"needs_journaling": false,
 				"status_note": "Minimal contracts, sanitized rendering and terminal boundary checks accepted",
 				"actual_hours": 0.296,
-				"journaled_at": "2026-10-09T21:12:20.078570Z"
+				"journaled_at": "2026-10-09T21:12:20.078570Z",
+				"file_path": "src/lib/components/chat/Messages/CodeBlock.svelte"
 			}
 		},
 		"task-2-1": {
@@ -95,7 +96,8 @@
 				"completed_at": "2026-10-09T21:12:20.337877Z",
 				"needs_journaling": false,
 				"status_note": "Docker frontend1284/139, changed lint0, new diagnostics0; general gate remains red",
-				"journaled_at": "2026-10-09T21:12:20.339183Z"
+				"journaled_at": "2026-10-09T21:12:20.339183Z",
+				"file_path": "src/lib/utils/airis/candidate_rendering.test.ts"
 			}
 		}
 	},

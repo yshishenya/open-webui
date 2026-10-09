@@ -6,7 +6,7 @@
 - Status: done
 - Owner: Codex
 - Branch: codex/bugfix/chat-dispatch-replay
-- SDD Spec: meta/sdd/specs/completed/airis-candidate-frontend-lint--2026-10-09-2353.json
+- SDD Spec: meta/sdd/specs/completed/airis-candidate-frontend-lint-2026-10-09-028.json
 - Created: 2026-10-09
 
 ## Context
@@ -48,3 +48,5 @@ Docker Compose-first на существующем принятом томе з�
 - Общая приёмка остаётся открытой: types1663/94, ESLint896, ранее измеренный Ruff547; CI/PR/интеграция, чистая сборка и рабочий выпуск, внешние provider/payment/mail/mobile и реальные пилотные окна. План198/244, номерных закрытий0, конечная цельactive. SDD chat-dispatch-replay остаётся1/2 active.
 
 Проверки выполнены Docker Compose-first. Форматирование исходников и тестов проходит; существующая настройка pluginSearchDirs выдаёт предупреждение Prettier. SDD JSON оформлен отдельно после штатного завершения. Проверка diff не выявила пробелов/ошибок патча. Новых зависимостей, подавлений и ослаблений правил нет.
+
+SDD номер нормализован в следующей партии до airis-candidate-frontend-lint-2026-10-09-028; metadata.file_path задач добавлены. JSON validate0errors/0warnings. Это оформление документа, принятый runtime данной партии не меняется.
