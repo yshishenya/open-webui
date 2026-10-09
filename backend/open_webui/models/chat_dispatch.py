@@ -17,6 +17,12 @@ class ChatDispatch(Base):
     created_at = Column(BigInteger, nullable=False)
 
 
+async def get_dispatch(user_id: str, operation_id: str) -> ChatDispatch | None:
+    """Read only this account's journal without reserving or starting work."""
+    async with get_async_db() as db:
+        return await db.scalar(select(ChatDispatch).filter_by(user_id=user_id, operation_id=operation_id))
+
+
 async def reserve_dispatch(user_id: str, operation_id: str, digest: str) -> tuple[ChatDispatch, bool]:
     """One committed owner; a missing receipt remains unknown even after process death."""
     async with get_async_db() as db:

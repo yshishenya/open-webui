@@ -1,11 +1,21 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
+import { webcrypto } from 'node:crypto';
+import {
+	readPendingDispatch,
+	preparePendingDispatch,
+	replayPendingBody,
+	removePendingDispatch,
+	validDispatchReceipt,
+	type PendingDispatch
+} from './chat_dispatch';
 import { runInNewContext } from 'node:vm';
 import { parse } from 'svelte/compiler';
 import ts from 'typescript';
 import equal from 'fast-deep-equal';
-import { createMessagesList } from '../index';
+import { createMessagesList, processDetails } from '../index';
 import { expect, it, vi } from 'vitest';
+vi.stubGlobal('crypto', webcrypto);
 import type {
 	ChatHistory,
 	ChatHistoryMessage,
@@ -49,6 +59,40 @@ function deferred<T>() {
 }
 
 const same = (a: unknown, b: unknown): boolean => equal(structuredClone(a), structuredClone(b));
+class MemoryStorage implements Storage {
+	private values = new Map<string, string>();
+	get length(): number {
+		return this.values.size;
+	}
+	clear(): void {
+		this.values.clear();
+	}
+	getItem(key: string): string | null {
+		return this.values.get(key) ?? null;
+	}
+	setItem(key: string, value: string): void {
+		this.values.set(key, value);
+	}
+	removeItem(key: string): void {
+		this.values.delete(key);
+	}
+	key(index: number): string | null {
+		return [...this.values.keys()][index] ?? null;
+	}
+	token = 'fixture';
+}
+function bindDispatch(c: object): void {
+	for (const name of [
+		'dispatchScope',
+		'dispatchStorage',
+		'availableDispatchServers',
+		'refreshPendingDispatch',
+		'dispatchPreparedRequest',
+		'recoverPendingDispatch'
+	]) {
+		Object.assign(c, { [name]: handler('Chat', name, c) });
+	}
+}
 function setup() {
 	const history: ChatHistory = {
 		messages: {
@@ -82,7 +126,7 @@ function setup() {
 		embedded: false,
 		onCreateEmbeddedChat: undefined,
 		tick: vi.fn().mockResolvedValue(undefined),
-		uuidv4: () => `id${++counter}`,
+		uuidv4: () => `00000000-0000-4000-8000-${String(++counter).padStart(12, '0')}`,
 		structuredClone,
 		equal: same,
 		$i18n: { t: (s: string) => s },
@@ -91,6 +135,7 @@ function setup() {
 		getChatEventEmitter: vi.fn().mockResolvedValue(123),
 		clearInterval: vi.fn(),
 		createMessagesList,
+		processDetails,
 		sendMessageSocket: vi.fn().mockResolvedValue(false),
 		imageGenerationEnabled: false,
 		chatFiles: [] as ChatAttachment[],
@@ -133,10 +178,30 @@ function setup() {
 		getFeatures: () => ({}),
 		getStopTokens: () => undefined,
 		getPromptVariables: () => ({}),
-		$user: { name: 'Fixture' },
+		$user: { id: 'fixture-user', name: 'Fixture' },
 		$socket: { id: 'socket' },
 		$selectedFolder: null,
-		localStorage: { token: 'fixture' },
+		localStorage: new MemoryStorage(),
+		sessionStorage: new MemoryStorage(),
+		crypto: webcrypto,
+		navigator: {
+			locks: { request: vi.fn(async (_key: string, run: () => Promise<unknown>) => await run()) }
+		},
+		pendingDispatch: null as PendingDispatch | null,
+		dispatchNotice: '',
+		checkingDispatch: false,
+		dispatchIntent: '',
+		readPendingDispatch,
+		preparePendingDispatch,
+		replayPendingBody,
+		removePendingDispatch,
+		validDispatchReceipt,
+		getChatDispatch: vi.fn().mockResolvedValue({ state: 'absent', receipt: null }),
+		getTaskIdsByChatId: vi.fn().mockResolvedValue({ task_ids: [] }),
+		getChatById: vi.fn(),
+		sanitizeHistory: vi.fn(),
+		chat: null as object | null,
+		chatTitle: { set: vi.fn() },
 		isTemporaryChatId: () => false,
 		WEBUI_BASE_URL: '',
 		shouldIncludeUsage: () => false,
@@ -158,6 +223,7 @@ function setup() {
 			c.$chatRequestQueues = fn(c.$chatRequestQueues);
 		})
 	});
+	bindDispatch(c);
 	return c;
 }
 it.each([{ ids: [] }, { ids: ['missing'] }, { ids: ['model', 'missing'] }])(
@@ -303,7 +369,8 @@ function socketSetup() {
 			context.$chatId = id;
 		})
 	};
-	const context = { ...c, chatId: store };
+	const context = Object.assign(c, { chatId: store });
+	bindDispatch(context);
 	return {
 		c: context,
 		send: handler<
@@ -545,3 +612,330 @@ it('send-now stop rejection retains item without dispatch', async () => {
 	expect(c.submitPrompt).not.toHaveBeenCalled();
 	expect(c.$chatRequestQueues.chat1).toHaveLength(1);
 });
+
+it('lost acknowledgement retries the same operation and complete payload after reconnect', async () => {
+	const c = setup();
+	c.sendMessageSocket = handler('Chat', 'sendMessageSocket', c);
+	const send = handler<(h: ChatHistory, id: string) => Promise<boolean>>('Chat', 'sendMessage', c);
+	c.generateOpenAIChatCompletion.mockRejectedValueOnce(new Error('lost HTTP response'));
+	expect(await send(c.history, 'u')).toBe(false);
+	const first = structuredClone(c.generateOpenAIChatCompletion.mock.calls[0][1]);
+	c.$socket.id = 'reconnected';
+	c.params = { temperature: 0.9 };
+	c.getChatById.mockImplementation(async () => {
+		const saved = structuredClone(c.pendingDispatch!.history);
+		for (const message of Object.values(saved.messages))
+			if (message.role === 'assistant') {
+				message.done = true;
+				message.content = 'Native saved answer';
+			}
+		return { id: 'chat1', title: 'Chat', chat: { title: 'Chat', history: saved } };
+	});
+	Object.assign(c, {
+		chatId: {
+			set: vi.fn(async (id: string) => {
+				c.$chatId = id;
+			})
+		}
+	});
+	expect(await send(c.history, 'u')).toBe(true);
+	const retry = structuredClone(c.generateOpenAIChatCompletion.mock.calls[1][1]);
+	delete first.session_id;
+	delete retry.session_id;
+	expect(retry).toEqual(first);
+	expect(first.operation_id).toEqual(expect.any(String));
+});
+
+it('pending operation survives a new component and restores saved result without a POST', async () => {
+	const first = setup();
+	first.sendMessageSocket = handler('Chat', 'sendMessageSocket', first);
+	first.generateOpenAIChatCompletion.mockRejectedValueOnce(new Error('lost HTTP response'));
+	await handler<(h: ChatHistory, id: string) => Promise<boolean>>(
+		'Chat',
+		'sendMessage',
+		first
+	)(first.history, 'u');
+	const operation = first.pendingDispatch!;
+	const next = setup();
+	next.localStorage = first.localStorage;
+	next.history = { messages: {}, currentId: null };
+	next.params = { temperature: 0.2 };
+	next.getChatDispatch.mockResolvedValue({
+		state: 'accepted',
+		receipt: { status: true, chat_id: 'chat1', task_ids: ['old-task'] }
+	});
+	const saved = structuredClone(operation.history);
+	for (const message of Object.values(saved.messages))
+		if (message.role === 'assistant') {
+			message.done = true;
+			message.content = 'Authoritative saved answer';
+		}
+	next.getChatById.mockResolvedValue({
+		id: 'chat1',
+		title: 'Saved',
+		chat: { title: 'Saved', history: saved }
+	});
+	Object.assign(next, { chatId: { set: vi.fn() } });
+	const recover = handler<(retry: boolean) => Promise<boolean>>(
+		'Chat',
+		'recoverPendingDispatch',
+		next
+	);
+	expect(await recover(true)).toBe(true);
+	expect(next.generateOpenAIChatCompletion).not.toHaveBeenCalled();
+	expect(next.getChatDispatch).toHaveBeenCalledWith('fixture', operation.operationId);
+	expect(next.history).toEqual(saved);
+	expect(next.taskIds).toBe(null);
+	expect(next.localStorage.length).toBe(0);
+});
+
+it.each(['original', 'new-text', 'new-files'])(
+	'accepted recovery clears only the original composer draft: %s',
+	async (draft) => {
+		const { c, send } = socketSetup();
+		c.generateOpenAIChatCompletion.mockRejectedValueOnce(new Error('lost HTTP response'));
+		await send(c.$models[0], createMessagesList(c.history, 'a'), c.history, 'a', 'chat1');
+		c.prompt = draft === 'new-text' ? 'new draft' : 'original';
+		c.files = draft === 'new-files' ? [{ id: 'new-file', type: 'file' }] : [];
+		const before = { prompt: c.prompt, files: structuredClone(c.files) };
+		c.getChatDispatch.mockResolvedValue({
+			state: 'accepted',
+			receipt: { status: true, chat_id: 'chat1', task_ids: ['old-task'] }
+		});
+		c.getChatById.mockResolvedValue({
+			id: 'chat1',
+			chat: { title: 'Saved', history: structuredClone(c.history) }
+		});
+		expect(await handler<() => Promise<boolean>>('Chat', 'recoverPendingDispatch', c)()).toBe(true);
+		expect(c.generateOpenAIChatCompletion).toHaveBeenCalledTimes(1);
+		expect({ prompt: c.prompt, files: c.files }).toEqual(
+			draft === 'original' ? { prompt: '', files: [] } : before
+		);
+		expect(c.messageInput.setText).toHaveBeenCalledTimes(draft === 'original' ? 1 : 0);
+	}
+);
+
+it('saved-chat journal omits unrelated history without changing the replay payload', async () => {
+	const c = setup();
+	c.history.messages.unrelated = {
+		id: 'unrelated',
+		parentId: null,
+		childrenIds: [],
+		role: 'assistant',
+		content: 'x'.repeat(6 * 1024 * 1024)
+	};
+	vi.spyOn(c.localStorage, 'setItem').mockImplementation((key, value) => {
+		if (value.length > 5 * 1024 * 1024) throw new Error('quota exceeded');
+		MemoryStorage.prototype.setItem.call(c.localStorage, key, value);
+	});
+	const body = {
+		operation_id: c.uuidv4(),
+		id: 'a',
+		user_message: c.history.messages.u,
+		messages: [{ role: 'user', content: 'original' }]
+	};
+	const pending = await preparePendingDispatch(
+		c.localStorage,
+		{
+			actor: c.$user.id,
+			scope: 'chat1',
+			chatId: 'chat1',
+			parentId: 'u',
+			intent: 'send',
+			history: c.history
+		},
+		body
+	);
+	expect(pending.history.messages.unrelated).toBeUndefined();
+	expect(pending.history.messages.u).toEqual(c.history.messages.u);
+	expect(pending.history.messages.a).toEqual(c.history.messages.a);
+	expect((await replayPendingBody(pending, 'new-session', [])).messages).toEqual(body.messages);
+	expect(c.history.messages.unrelated.content?.length).toBe(6 * 1024 * 1024);
+});
+
+it.each(['unknown', 'failure', 'accepted-dead'])(
+	'%s never causes a blind replay or clears the saved operation',
+	async (mode) => {
+		const { c, send } = socketSetup();
+		c.generateOpenAIChatCompletion.mockRejectedValueOnce(new Error('lost HTTP response'));
+		await send(c.$models[0], createMessagesList(c.history, 'a'), c.history, 'a', 'chat1');
+		const before = c.localStorage.getItem(c.localStorage.key(0)!);
+		if (mode === 'failure') c.getChatDispatch.mockRejectedValueOnce(new Error('offline'));
+		else
+			c.getChatDispatch.mockResolvedValue({
+				state: mode === 'unknown' ? 'unknown' : 'accepted',
+				receipt: mode === 'unknown' ? null : { status: true, task_ids: ['dead'], chat_id: 'chat1' }
+			});
+		if (mode === 'accepted-dead') c.history.messages.a.done = false;
+		c.getChatById.mockResolvedValue({ id: 'chat1', chat: { history: structuredClone(c.history) } });
+		const recover = handler<(retry: boolean) => Promise<boolean>>(
+			'Chat',
+			'recoverPendingDispatch',
+			c
+		);
+		expect(await recover(true)).toBe(false);
+		expect(c.generateOpenAIChatCompletion).toHaveBeenCalledTimes(1);
+		expect(c.localStorage.getItem(c.localStorage.key(0)!)).toBe(before);
+		expect(c.taskIds).toBe(null);
+	}
+);
+
+it('storage refusal prevents the provider request and preserves input', async () => {
+	const { c, send } = socketSetup();
+	vi.spyOn(c.localStorage, 'setItem').mockImplementation(() => {
+		throw new Error('quota exceeded');
+	});
+	expect(
+		await send(c.$models[0], createMessagesList(c.history, 'a'), c.history, 'a', 'chat1')
+	).toBe(false);
+	expect(c.generateOpenAIChatCompletion).not.toHaveBeenCalled();
+	expect(c.prompt).toBe('draft');
+});
+
+it('account change during status lookup cannot replay or replace the new conversation', async () => {
+	const { c, send } = socketSetup();
+	c.generateOpenAIChatCompletion.mockRejectedValueOnce(new Error('lost HTTP response'));
+	await send(c.$models[0], createMessagesList(c.history, 'a'), c.history, 'a', 'chat1');
+	const lookup = deferred<{ state: string; receipt: null }>();
+	c.getChatDispatch.mockReturnValueOnce(lookup.promise);
+	const recover = handler<(retry: boolean) => Promise<boolean>>(
+		'Chat',
+		'recoverPendingDispatch',
+		c
+	);
+	const request = recover(true);
+	c.$user.id = 'another-account';
+	c.localStorage.token = 'another-token';
+	c.history = { messages: {}, currentId: null };
+	lookup.resolve({ state: 'absent', receipt: null });
+	expect(await request).toBe(false);
+	expect(c.generateOpenAIChatCompletion).toHaveBeenCalledTimes(1);
+	expect(c.history).toEqual({ messages: {}, currentId: null });
+	expect(readPendingDispatch(c.localStorage, 'another-account', 'chat1')).toBe(null);
+	expect(readPendingDispatch(c.localStorage, 'fixture-user', 'chat1')).not.toBe(null);
+});
+
+it('a pending operation holds the automatic and manual queue without consuming items', async () => {
+	const { c, send } = socketSetup();
+	c.generateOpenAIChatCompletion.mockRejectedValueOnce(new Error('lost HTTP response'));
+	await send(c.$models[0], createMessagesList(c.history, 'a'), c.history, 'a', 'chat1');
+	c.$chatRequestQueues = { chat1: [{ id: 'q', prompt: 'next', files: [] }] };
+	const queue = handler<(id: string, item?: string) => Promise<void>>(
+		'Chat',
+		'processNextInQueue',
+		c
+	);
+	await queue('chat1');
+	await queue('chat1', 'q');
+	expect(c.submitPrompt).not.toHaveBeenCalled();
+	expect(c.stopResponse).not.toHaveBeenCalled();
+	expect(c.$chatRequestQueues.chat1).toHaveLength(1);
+});
+
+it('temporary pending payload uses only tab storage', async () => {
+	const { c, send } = socketSetup();
+	c.$temporaryChatEnabled = true;
+	c.generateOpenAIChatCompletion.mockRejectedValueOnce(new Error('lost HTTP response'));
+	await send(c.$models[0], createMessagesList(c.history, 'a'), c.history, 'a', 'chat1');
+	expect(c.localStorage.length).toBe(0);
+	expect(c.sessionStorage.length).toBe(1);
+	expect(readPendingDispatch(c.sessionStorage, c.$user.id, 'temporary')?.body.operation_id).toEqual(
+		expect.any(String)
+	);
+});
+
+it('each accepted intentional continuation has a fresh operation UUID', async () => {
+	const c = setup();
+	c.history.messages.a.model = 'model';
+	c.sendMessageSocket = handler('Chat', 'sendMessageSocket', c);
+	const resume = handler<() => Promise<void>>('Chat', 'continueResponse', c);
+	await resume();
+	c.history.messages.a.done = true;
+	await resume();
+	expect(c.generateOpenAIChatCompletion).toHaveBeenCalledTimes(2);
+	const [first, second] = c.generateOpenAIChatCompletion.mock.calls.map((call) => call[1]);
+	expect(first.operation_id).not.toBe(second.operation_id);
+	expect(first.assistant_message_id).toBe(second.assistant_message_id);
+	expect(c.localStorage.length).toBe(0);
+});
+
+it('credentials are not copied into the operation journal; unchanged connections can be restored', async () => {
+	const c = setup(),
+		server = { url: 'https://example.invalid', api_key: 'fixture-private-key' };
+	const operation = await preparePendingDispatch(
+		c.localStorage,
+		{
+			actor: c.$user.id,
+			scope: 'chat1',
+			chatId: 'chat1',
+			parentId: 'u',
+			intent: 'send',
+			history: c.history
+		},
+		{
+			operation_id: webcrypto.randomUUID(),
+			id: 'a',
+			params: { temperature: 0.1 },
+			tool_servers: [server]
+		}
+	);
+	expect(c.localStorage.getItem(c.localStorage.key(0)!)).not.toContain('fixture-private-key');
+	const reloaded = readPendingDispatch(c.localStorage, c.$user.id, 'chat1')!;
+	const request = await replayPendingBody(reloaded, 'new-socket', [server]);
+	expect(request.tool_servers).toEqual([server]);
+	expect(request.operation_id).toBe(operation.operationId);
+	await expect(
+		replayPendingBody(reloaded, 'new-socket', [{ ...server, api_key: 'changed' }])
+	).rejects.toThrow('Tool connections changed');
+	expect(readPendingDispatch(c.localStorage, c.$user.id, 'chat1')).not.toBe(null);
+});
+
+it('recovered queued dispatch removes only its original queue items', async () => {
+	const { c } = socketSetup();
+	c.sendMessageSocket = handler('Chat', 'sendMessageSocket', c);
+	c.sendMessage = handler('Chat', 'sendMessage', c);
+	c.submitPrompt.mockImplementation(handler('Chat', 'submitPrompt', c));
+	c.generateOpenAIChatCompletion.mockRejectedValueOnce(new Error('lost HTTP response'));
+	c.$chatRequestQueues = { chat1: [{ id: 'original', prompt: 'queued request', files: [] }] };
+	await handler<(id: string) => Promise<void>>('Chat', 'processNextInQueue', c)('chat1');
+	expect(c.pendingDispatch!.queueIds).toEqual(['original']);
+	c.$chatRequestQueues.chat1.push({ id: 'new', prompt: 'new request', files: [] });
+	const saved = structuredClone(c.pendingDispatch!.history);
+	for (const message of Object.values(saved.messages))
+		if (message.role === 'assistant') {
+			message.done = true;
+			message.content = 'Native result';
+		}
+	c.getChatDispatch.mockResolvedValue({
+		state: 'accepted',
+		receipt: { status: true, task_ids: ['accepted'], chat_id: 'chat1' }
+	});
+	c.getChatById.mockResolvedValue({
+		id: 'chat1',
+		title: 'Saved',
+		chat: { title: 'Saved', history: saved }
+	});
+	expect(
+		await handler<(retry: boolean) => Promise<boolean>>('Chat', 'recoverPendingDispatch', c)(true)
+	).toBe(true);
+	expect(c.generateOpenAIChatCompletion).toHaveBeenCalledTimes(1);
+	expect(c.$chatRequestQueues.chat1.map((item) => item.id)).toEqual(['new']);
+});
+
+it.each(['getItem', 'corrupt', 'no-locks'])(
+	'%s refuses unsafe dispatch instead of silently skipping the journal',
+	async (failure) => {
+		const { c, send } = socketSetup();
+		if (failure === 'getItem')
+			vi.spyOn(c.localStorage, 'getItem').mockImplementation(() => {
+				throw new Error('disabled');
+			});
+		if (failure === 'corrupt')
+			c.localStorage.setItem('airis-pending-dispatch:["fixture-user","chat1"]', '{broken');
+		if (failure === 'no-locks') Object.assign(c.navigator, { locks: undefined });
+		expect(
+			await send(c.$models[0], createMessagesList(c.history, 'a'), c.history, 'a', 'chat1')
+		).toBe(false);
+		expect(c.generateOpenAIChatCompletion).not.toHaveBeenCalled();
+	}
+);

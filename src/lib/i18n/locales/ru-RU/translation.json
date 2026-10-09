@@ -1,7 +1,6 @@
 {
 	"Could not load settings. Try again.": "Не удалось загрузить настройки. Попробуйте ещё раз.",
 	"Could not save settings. Try again.": "Не удалось сохранить настройки. Попробуйте ещё раз.",
-
 	"Could not load tools. Close and reopen the menu to retry.": "Не удалось загрузить инструменты. Закройте меню и откройте снова.",
 	"Could not load skills. Close and reopen the menu to retry.": "Не удалось загрузить навыки. Закройте меню и откройте снова.",
 	"0": "0",
@@ -3864,5 +3863,22 @@
 	"Add subtitles (.vtt)": "Добавить субтитры (.vtt)",
 	"Invalid subtitles file": "Не удалось прочитать субтитры. Выберите файл WebVTT размером до 5 МБ.",
 	"Could not load tools. Close this section and open it again.": "Не удалось загрузить инструменты. Закройте этот раздел и откройте снова.",
-	"Could not load functions. Close this section and open it again.": "Не удалось загрузить функции. Закройте этот раздел и откройте снова."
+	"Could not load functions. Close this section and open it again.": "Не удалось загрузить функции. Закройте этот раздел и откройте снова.",
+	"The saved request could not be read. Sending is paused to avoid a duplicate.": "Не удалось прочитать сохранённый запрос. Отправка приостановлена, чтобы избежать повтора.",
+	"The request could not be saved safely. Sending is paused.": "Не удалось сохранить запрос для восстановления. Отправка приостановлена.",
+	"The request may have started. Check its status again; it will not be sent twice.": "Запрос мог уже запуститься. Проверьте его состояние ещё раз — повторно он не отправится.",
+	"The request has not been accepted. You can retry the saved request.": "Сервер ещё не принял запрос. Можно повторить отправку сохранённого запроса.",
+	"The temporary request was accepted. Its status can be checked, but it will not be sent twice.": "Временный запрос принят. Можно проверить его состояние; повторная отправка заблокирована.",
+	"The request was accepted, but a completed response is unavailable. Contact support before retrying.": "Запрос принят, но готовый ответ недоступен. Перед повторной отправкой обратитесь в поддержку.",
+	"The request status could not be checked. The saved request was kept.": "Не удалось проверить состояние запроса. Исходный запрос сохранён.",
+	"Check the previous request before sending another one": "Проверьте предыдущий запрос перед отправкой нового.",
+	"A request is awaiting confirmation. Check it before sending another one.": "Запрос ожидает подтверждения. Проверьте его перед отправкой нового.",
+	"Check request status": "Проверить состояние запроса",
+	"Retry saved request": "Повторить сохранённый запрос",
+	"Account is required to save a pending request": "Для сохранения запроса нужно войти в аккаунт.",
+	"The pending request contains credentials and cannot be saved safely": "В запросе есть данные доступа. Не удалось безопасно сохранить его для восстановления.",
+	"The pending request could not be saved": "Не удалось сохранить запрос для восстановления.",
+	"Connection is required to send the saved request": "Для отправки сохранённого запроса нужно подключение.",
+	"Tool connections changed. The saved request was kept; check its status first": "Настройки подключений изменились. Запрос сохранён; сначала проверьте его состояние.",
+	"Contact support": "Обратиться в поддержку"
 }

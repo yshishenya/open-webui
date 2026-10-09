@@ -435,3 +435,68 @@ async def test_native_bypass_contracts(dispatch_api: DispatchAPI, monkeypatch: p
     assert await rules.dispatch_chat(request, payload, user, handler) is result
     handler.assert_awaited_once_with(request, payload, user)
     reserve.assert_not_awaited()
+
+
+def test_read_receipt_never_dispatches_and_requires_actor(dispatch_api: DispatchAPI) -> None:
+    client, headers, payload, scheduled = dispatch_api
+    url = f"/api/v1/chat/dispatches/{payload['operation_id']}"
+    assert client.get(url).status_code == 401
+    absent = client.get(url, headers=headers)
+    assert absent.status_code == 200, absent.text
+    assert absent.json() == {'state': 'absent', 'receipt': None}
+    assert scheduled == []
+    accepted = client.post('/api/chat/completions', headers=headers, json=payload)
+    assert accepted.status_code == 200
+    for _ in range(2):
+        read = client.get(url, headers=headers)
+        assert read.status_code == 200, read.text
+        assert read.json() == {'state': 'accepted', 'receipt': accepted.json()}
+        assert read.headers['cache-control'] == 'no-store'
+    assert len(scheduled) == 1
+
+
+def test_read_unknown_never_launches_or_expires(dispatch_api: DispatchAPI) -> None:
+    from open_webui.models.chat_dispatch import reserve_dispatch
+
+    client, headers, payload, scheduled = dispatch_api
+    token = decode_token(headers['Authorization'].split()[1])
+    assert token is not None
+    key = rules.operation_id(payload['operation_id'], [])
+    asyncio.run(reserve_dispatch(token['id'], key, rules.dispatch_hash(payload)))
+    url = f"/api/v1/chat/dispatches/{payload['operation_id']}"
+    for _ in range(2):
+        response = client.get(url, headers=headers)
+        assert response.status_code == 200
+        assert response.json() == {'state': 'unknown', 'receipt': None}
+    assert scheduled == []
+
+
+def test_read_receipt_account_isolation_and_uuid_normalization(dispatch_api: DispatchAPI) -> None:
+    client, headers, payload, scheduled = dispatch_api
+    first = client.post('/api/chat/completions', headers=headers, json=payload)
+    assert first.status_code == 200
+    url = f"/api/v1/chat/dispatches/{str(payload['operation_id']).upper()}"
+    assert client.get(url, headers=headers).json()['receipt'] == first.json()
+    other = asyncio.run(
+        Users.insert_new_user(str(uuid4()), 'Lookup other', f'{uuid4()}@example.invalid', '/user.png', role='user')
+    )
+    assert other is not None
+    response = client.get(url, headers={'Authorization': f'Bearer {create_token({"id": other.id})}'})
+    assert response.status_code == 200
+    assert response.json() == {'state': 'absent', 'receipt': None}
+    assert len(scheduled) == 1
+
+
+def test_read_invalid_id_and_database_failure(dispatch_api: DispatchAPI, monkeypatch: pytest.MonkeyPatch) -> None:
+    from open_webui.routers.airis import chat_dispatch as router
+
+    client, headers, payload, scheduled = dispatch_api
+    assert client.get('/api/v1/chat/dispatches/invalid', headers=headers).status_code == 422
+    monkeypatch.setattr(
+        router, 'get_dispatch', AsyncMock(side_effect=OperationalError('private', {}, Exception('private')))
+    )
+    response = client.get(f"/api/v1/chat/dispatches/{payload['operation_id']}", headers=headers)
+    assert response.status_code == 503
+    assert response.json() == {'detail': {'error': 'dispatch_journal_unavailable'}}
+    assert 'private' not in response.text
+    assert scheduled == []

@@ -108,6 +108,16 @@
 		updateChatFolderIdById
 	} from '$lib/apis/chats';
 	import { generateOpenAIChatCompletion } from '$lib/apis/openai';
+	import { getChatDispatch } from '$lib/apis/airis/chat_dispatch';
+	import {
+		readPendingDispatch,
+		preparePendingDispatch,
+		replayPendingBody,
+		removePendingDispatch,
+		validDispatchReceipt,
+		type PendingDispatch,
+		type NativeDispatchAcknowledgement
+	} from '$lib/utils/airis/chat_dispatch';
 	import { processWeb, processYoutubeVideo } from '$lib/apis/retrieval';
 	import { getAndUpdateUserLocation } from '$lib/apis/users';
 	import {
@@ -413,6 +423,209 @@
 	};
 
 	let taskIds: string[] | null = null;
+	let pendingDispatch: PendingDispatch | null = null;
+	let checkingDispatch = false;
+	let dispatchNotice = '';
+	const dispatchScope = (): string => ($temporaryChatEnabled ? 'temporary' : $chatId || 'home');
+	const dispatchStorage = (): Storage => ($temporaryChatEnabled ? sessionStorage : localStorage);
+	const availableDispatchServers = (): unknown[] => [
+		...($toolServers ?? []),
+		...($terminalServers ?? []).filter((server) => !server.id)
+	];
+	const refreshPendingDispatch = (): void => {
+		try {
+			pendingDispatch = $user?.id
+				? readPendingDispatch(dispatchStorage(), $user.id, dispatchScope())
+				: null;
+			dispatchNotice = '';
+		} catch {
+			dispatchNotice = $i18n.t(
+				'The saved request could not be read. Sending is paused to avoid a duplicate.'
+			);
+		}
+	};
+
+	const dispatchPreparedRequest = async (
+		token: string,
+		body: Record<string, unknown>,
+		url: string,
+		intent: string,
+		queueIds: string[]
+	): Promise<NativeDispatchAcknowledgement | null> => {
+		const actor = $user?.id;
+		const scope = dispatchScope();
+		const storage = dispatchStorage();
+		const sourceHistory = history;
+		const isCurrent = (): boolean =>
+			$user?.id === actor &&
+			localStorage.token === token &&
+			history === sourceHistory &&
+			dispatchScope() === scope;
+		if (!actor || !navigator.locks)
+			throw new Error($i18n.t('The request could not be saved safely. Sending is paused.'));
+		return await navigator.locks.request(
+			`airis-dispatch:${JSON.stringify([actor, scope])}`,
+			async () => {
+				if (!isCurrent()) return null;
+				const pending = await preparePendingDispatch(
+					storage,
+					{
+						actor,
+						scope,
+						chatId: $chatId,
+						parentId: String(
+							body.user_message &&
+								typeof body.user_message === 'object' &&
+								'id' in body.user_message
+								? body.user_message.id
+								: ''
+						),
+						intent,
+						queueIds,
+						history: structuredClone(history)
+					},
+					body
+				);
+				if (!isCurrent()) return null;
+				pendingDispatch = pending;
+				const replay = await replayPendingBody(
+					pending,
+					$socket?.id ?? '',
+					availableDispatchServers()
+				);
+				if (!isCurrent()) return null;
+				const result: unknown = await generateOpenAIChatCompletion(token, replay, url);
+				if (
+					validDispatchReceipt(result) &&
+					(!pending.chatId || result.chat_id === pending.chatId)
+				) {
+					try {
+						removePendingDispatch(storage, pending);
+						if (pendingDispatch === pending) pendingDispatch = null;
+					} catch {
+						console.warn('Request accepted; pending request cleanup failed');
+					}
+				}
+				return typeof result === 'object' && result !== null
+					? (result as NativeDispatchAcknowledgement)
+					: null;
+			}
+		);
+	};
+
+	const recoverPendingDispatch = async (retry = false): Promise<boolean> => {
+		refreshPendingDispatch();
+		const pending = pendingDispatch;
+		if (!pending || checkingDispatch || !$user?.id) return false;
+		const actor = $user.id,
+			token = localStorage.token,
+			scope = dispatchScope(),
+			storage = dispatchStorage();
+		const sourceHistory = history;
+		const sourceInput = messageInput;
+		const isCurrent = (): boolean =>
+			$user?.id === actor &&
+			localStorage.token === token &&
+			history === sourceHistory &&
+			dispatchScope() === scope;
+		checkingDispatch = true;
+		try {
+			let state = await getChatDispatch(token, pending.operationId);
+			if (!isCurrent()) return false;
+			if (state.state === 'absent' && retry) {
+				const replay = await replayPendingBody(
+					pending,
+					$socket?.id ?? '',
+					availableDispatchServers()
+				);
+				if (!isCurrent()) return false;
+				const result: unknown = await generateOpenAIChatCompletion(
+					token,
+					replay,
+					`${WEBUI_BASE_URL}/api`
+				);
+				if (!validDispatchReceipt(result)) throw new Error('Invalid dispatch receipt');
+				state = { state: 'accepted', receipt: result };
+			}
+			if (!isCurrent()) return false;
+			if (state.state !== 'accepted' || !state.receipt) {
+				dispatchNotice = $i18n.t(
+					state.state === 'unknown'
+						? 'The request may have started. Check its status again; it will not be sent twice.'
+						: 'The request has not been accepted. You can retry the saved request.'
+				);
+				return false;
+			}
+			if (pending.chatId && state.receipt.chat_id !== pending.chatId)
+				throw new Error('Invalid dispatch chat');
+			if ($temporaryChatEnabled) {
+				dispatchNotice = $i18n.t(
+					'The temporary request was accepted. Its status can be checked, but it will not be sent twice.'
+				);
+				return false;
+			}
+			const saved = await getChatById(token, state.receipt.chat_id);
+			const active = await getTaskIdsByChatId(token, state.receipt.chat_id);
+			if (!isCurrent() || !saved?.chat?.history || !Array.isArray(active?.task_ids)) return false;
+			const restored = saved.chat.history as ChatHistory;
+			sanitizeHistory(restored);
+			const ids = Array.isArray(pending.body.message_ids)
+				? pending.body.message_ids.map((entry) =>
+						typeof entry === 'object' && entry !== null && 'message_id' in entry
+							? String(entry.message_id)
+							: ''
+					)
+				: [String(pending.body.id ?? '')];
+			const completed = ids.length > 0 && ids.every((id) => restored.messages[id]?.done === true);
+			if (!completed && active.task_ids.length === 0) {
+				dispatchNotice = $i18n.t(
+					'The request was accepted, but a completed response is unavailable. Contact support before retrying.'
+				);
+				return false;
+			}
+			const original = pending.history.messages[pending.parentId];
+			if (
+				original &&
+				messageInput === sourceInput &&
+				prompt === original.content &&
+				equal(files, original.files ?? [])
+			) {
+				messageInput?.setText('');
+				prompt = '';
+				files = [];
+			}
+			if (pendingPrompt?.history === sourceHistory && pendingPrompt.id === pending.parentId)
+				pendingPrompt = null;
+			chat = saved;
+			history = restored;
+			taskIds = completed ? null : active.task_ids;
+			const consumed = new Set(pending.queueIds);
+			if (consumed.size)
+				chatRequestQueues.update((queues) => ({
+					...queues,
+					[pending.chatId]: (queues[pending.chatId] ?? []).filter((item) => !consumed.has(item.id))
+				}));
+			chatId.set(saved.id);
+			chatTitle.set(saved.chat.title ?? saved.title);
+			if (!embedded) window.history.replaceState(window.history.state, '', `/c/${saved.id}`);
+			try {
+				removePendingDispatch(storage, pending);
+				pendingDispatch = null;
+				dispatchNotice = '';
+			} catch {
+				console.warn('Request restored; pending request cleanup failed');
+			}
+			return true;
+		} catch {
+			if (isCurrent())
+				dispatchNotice = $i18n.t(
+					'The request status could not be checked. The saved request was kept.'
+				);
+			return false;
+		} finally {
+			checkingDispatch = false;
+		}
+	};
 
 	// Chat Input
 	let prompt = '';
@@ -634,10 +847,11 @@
 					updateLastReadAt(chatIdProp);
 				}
 
+				refreshPendingDispatch();
 				// Process any queued requests if the chat is idle
 				const lastMessage = history.currentId ? history.messages[history.currentId] : null;
 				const isIdle = !lastMessage || lastMessage.role !== 'assistant' || lastMessage.done;
-				if (isIdle) {
+				if (isIdle && !pendingDispatch && !dispatchNotice) {
 					await processNextInQueue(chatIdProp);
 				}
 
@@ -722,6 +936,7 @@
 		await chatTitle.set('');
 
 		await setDefaults();
+		refreshPendingDispatch();
 		loading = false;
 		await tick();
 		document.getElementById('chat-input')?.focus();
@@ -1925,6 +2140,7 @@
 		chatVariables = {};
 		taskIds = null;
 		chatTasks = [];
+		refreshPendingDispatch();
 
 		if ($page.url.searchParams.get('youtube')) {
 			await uploadWeb(`https://www.youtube.com/watch?v=${$page.url.searchParams.get('youtube')}`);
@@ -2248,6 +2464,8 @@
 
 	const processNextInQueue = async (targetChatId: string, itemId?: string): Promise<void> => {
 		if ($chatId !== targetChatId || processingQueueChats.has(targetChatId)) return;
+		refreshPendingDispatch();
+		if (pendingDispatch || dispatchNotice) return;
 		if (!itemId && failedQueueChats.has(targetChatId)) return;
 		const queue = ($chatRequestQueues[targetChatId] ?? []).filter(
 			(item) => !itemId || item.id === itemId
@@ -2263,7 +2481,8 @@
 			}
 			const accepted = await submitPrompt(
 				queue.map((m) => m.prompt).join('\n\n'),
-				queue.flatMap((m) => m.files)
+				queue.flatMap((m) => m.files),
+				queue.map((m) => m.id)
 			);
 			if (!accepted) {
 				failedQueueChats.add(targetChatId);
@@ -2625,7 +2844,7 @@
 	//////////////////////////
 
 	let submittingPrompt = false;
-	// ponytail: retry drafts survive within this component; durable recovery needs server dispatch deduplication.
+	// Keep the editable draft separate from the immutable pending dispatch.
 	let pendingPrompt: {
 		history: ChatHistory;
 		id: string;
@@ -2634,9 +2853,27 @@
 
 	const submitPrompt = async (
 		inputContent: string,
-		inputFiles: ChatAttachment[]
+		inputFiles: ChatAttachment[],
+		queueIds: string[] = []
 	): Promise<boolean> => {
 		if (submittingPrompt) return false;
+		refreshPendingDispatch();
+		if (dispatchNotice) {
+			toast.error(dispatchNotice);
+			return false;
+		}
+		if (pendingDispatch) {
+			const original = pendingDispatch.history.messages[pendingDispatch.parentId];
+			if (
+				!original ||
+				original.content !== inputContent ||
+				!equal(original.files ?? [], inputFiles)
+			) {
+				toast.error($i18n.t('Check the previous request before sending another one'));
+				return false;
+			}
+			return await recoverPendingDispatch(true);
+		}
 		const sourceHistory = history;
 		const draft = {
 			content: inputContent,
@@ -2691,7 +2928,7 @@
 			saveSessionSelectedModels();
 
 			pendingPrompt = { history: sourceHistory, id: userMessageId, draft };
-			const accepted = await sendMessage(history, userMessageId);
+			const accepted = await sendMessage(history, userMessageId, { queueIds });
 			if (accepted && pendingPrompt?.id === userMessageId) pendingPrompt = null;
 			return accepted;
 		} finally {
@@ -2944,12 +3181,14 @@
 			messages = null,
 			modelId = null,
 			modelIdx = null,
-			regenerationPrompt = null
+			regenerationPrompt = null,
+			queueIds = []
 		}: {
 			messages?: ChatHistoryMessage[] | null;
 			modelId?: string | null;
 			modelIdx?: number | null;
 			regenerationPrompt?: string | null;
+			queueIds?: string[];
 		} = {}
 	): Promise<boolean> => {
 		if (autoScroll) {
@@ -2957,6 +3196,19 @@
 		}
 
 		if (_history !== history) return false;
+		refreshPendingDispatch();
+		const intent = JSON.stringify([parentId, modelId, modelIdx, regenerationPrompt, messages]);
+		if (dispatchNotice) {
+			toast.error(dispatchNotice);
+			return false;
+		}
+		if (pendingDispatch) {
+			if (pendingDispatch.intent !== intent) {
+				toast.error($i18n.t('Check the previous request before sending another one'));
+				return false;
+			}
+			return await recoverPendingDispatch(true);
+		}
 		const sourceHistory = history;
 		let _chatId = $chatId;
 		_history = structuredClone(_history);
@@ -3108,6 +3360,8 @@
 				{
 					// Preserve each response's column identity, including single-column regenerations.
 					messageIdsList,
+					operationIntent: intent,
+					queueIds,
 					regenerationPrompt
 				}
 			);
@@ -3178,11 +3432,15 @@
 		{
 			messageIdsList,
 			regenerationPrompt,
-			continueResponse = false
+			continueResponse = false,
+			operationIntent = '',
+			queueIds = []
 		}: {
 			messageIdsList?: Array<{ model_id: string; message_id: string }>;
 			regenerationPrompt?: string | null;
 			continueResponse?: boolean;
+			operationIntent?: string;
+			queueIds?: string[];
 		} = {}
 	): Promise<boolean> => {
 		const sourceHistory = history;
@@ -3336,9 +3594,10 @@
 		const useChatVariablesFallback =
 			!_chatId || $temporaryChatEnabled || isTemporaryChatId(_chatId);
 
-		const res = await generateOpenAIChatCompletion(
+		const res = await dispatchPreparedRequest(
 			localStorage.token,
 			{
+				operation_id: uuidv4(),
 				stream: stream,
 				model: model.id,
 				...(messages.length > 0 ? { messages } : {}),
@@ -3407,7 +3666,9 @@
 						}
 					: {})
 			},
-			`${WEBUI_BASE_URL}/api`
+			`${WEBUI_BASE_URL}/api`,
+			operationIntent,
+			queueIds
 		).catch(async (error) => {
 			console.error(error);
 			if (!isCurrentChat()) return null;
@@ -3445,7 +3706,7 @@
 			if (error?.error?.message) {
 				errorMessage = error.error.message;
 			} else if (error?.message) {
-				errorMessage = error.message;
+				errorMessage = $i18n.t(error.message);
 			}
 
 			if (typeof errorMessage === 'object') {
@@ -3679,6 +3940,15 @@
 			toast.error($i18n.t('Model not found'));
 			return;
 		}
+		refreshPendingDispatch();
+		if (pendingDispatch) {
+			await recoverPendingDispatch(true);
+			return;
+		}
+		if (dispatchNotice) {
+			toast.error(dispatchNotice);
+			return;
+		}
 		responseMessage.done = false;
 		let accepted = false;
 		try {
@@ -3690,7 +3960,10 @@
 				history,
 				responseMessage.id,
 				sourceChatId,
-				{ continueResponse: true }
+				{
+					continueResponse: true,
+					operationIntent: JSON.stringify(['continue', responseMessage.id])
+				}
 			);
 		} catch {
 			console.warn('Failed to continue response');
@@ -4172,6 +4445,38 @@
 								}
 							}}
 						/>
+					{/if}
+
+					{#if pendingDispatch || dispatchNotice}
+						<div class="mx-4 my-2 rounded-lg border border-amber-400 p-3 text-sm" role="status">
+							<p>
+								{dispatchNotice ||
+									$i18n.t(
+										'A request is awaiting confirmation. Check it before sending another one.'
+									)}
+							</p>
+							{#if pendingDispatch}
+								<div class="mt-2 flex flex-wrap gap-3">
+									<button
+										type="button"
+										class="underline"
+										disabled={checkingDispatch}
+										on:click={() => recoverPendingDispatch()}
+										>{$i18n.t('Check request status')}</button
+									>
+									<button
+										type="button"
+										class="underline"
+										disabled={checkingDispatch}
+										on:click={() => recoverPendingDispatch(true)}
+										>{$i18n.t('Retry saved request')}</button
+									>
+									<a class="underline" href="mailto:support@airis.you"
+										>{$i18n.t('Contact support')}</a
+									>
+								</div>
+							{/if}
+						</div>
 					{/if}
 					<div id="chat-pane" class="flex flex-col flex-auto z-10 w-full @container overflow-auto">
 						{#if ($settings?.landingPageMode === 'chat' && !$selectedFolder) || createMessagesList(history, history.currentId).length > 0}

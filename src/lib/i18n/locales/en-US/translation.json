@@ -1,7 +1,6 @@
 {
 	"Could not load settings. Try again.": "Could not load settings. Try again.",
 	"Could not save settings. Try again.": "Could not save settings. Try again.",
-
 	"Could not load tools. Close and reopen the menu to retry.": "Could not load tools. Close and reopen the menu to retry.",
 	"Could not load skills. Close and reopen the menu to retry.": "Could not load skills. Close and reopen the menu to retry.",
 	"0": "",
@@ -3338,5 +3337,22 @@
 	"Add subtitles (.vtt)": "Add subtitles (.vtt)",
 	"Invalid subtitles file": "Invalid subtitles file",
 	"Could not load tools. Close this section and open it again.": "Could not load tools. Close this section and open it again.",
-	"Could not load functions. Close this section and open it again.": "Could not load functions. Close this section and open it again."
+	"Could not load functions. Close this section and open it again.": "Could not load functions. Close this section and open it again.",
+	"The saved request could not be read. Sending is paused to avoid a duplicate.": "The saved request could not be read. Sending is paused to avoid a duplicate.",
+	"The request could not be saved safely. Sending is paused.": "The request could not be saved safely. Sending is paused.",
+	"The request may have started. Check its status again; it will not be sent twice.": "The request may have started. Check its status again; it will not be sent twice.",
+	"The request has not been accepted. You can retry the saved request.": "The request has not been accepted. You can retry the saved request.",
+	"The temporary request was accepted. Its status can be checked, but it will not be sent twice.": "The temporary request was accepted. Its status can be checked, but it will not be sent twice.",
+	"The request was accepted, but a completed response is unavailable. Contact support before retrying.": "The request was accepted, but a completed response is unavailable. Contact support before retrying.",
+	"The request status could not be checked. The saved request was kept.": "The request status could not be checked. The saved request was kept.",
+	"Check the previous request before sending another one": "Check the previous request before sending another one",
+	"A request is awaiting confirmation. Check it before sending another one.": "A request is awaiting confirmation. Check it before sending another one.",
+	"Check request status": "Check request status",
+	"Retry saved request": "Retry saved request",
+	"Account is required to save a pending request": "Account is required to save a pending request",
+	"The pending request contains credentials and cannot be saved safely": "The pending request contains credentials and cannot be saved safely",
+	"The pending request could not be saved": "The pending request could not be saved",
+	"Connection is required to send the saved request": "Connection is required to send the saved request",
+	"Tool connections changed. The saved request was kept; check its status first": "Tool connections changed. The saved request was kept; check its status first",
+	"Contact support": "Contact support"
 }
