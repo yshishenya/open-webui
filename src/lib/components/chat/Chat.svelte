@@ -118,6 +118,13 @@
 		type PendingDispatch,
 		type NativeDispatchAcknowledgement
 	} from '$lib/utils/airis/chat_dispatch';
+	import {
+		readComposerDraft,
+		writeComposerDraft,
+		consumeComposerDraft,
+		type ComposerDraft,
+		type ComposerSnapshot
+	} from '$lib/utils/airis/chat_draft';
 	import { processWeb, processYoutubeVideo } from '$lib/apis/retrieval';
 	import { getAndUpdateUserLocation } from '$lib/apis/users';
 	import {
@@ -450,7 +457,8 @@
 		body: Record<string, unknown>,
 		url: string,
 		intent: string,
-		queueIds: string[]
+		queueIds: string[],
+		composer?: ComposerSnapshot
 	): Promise<NativeDispatchAcknowledgement | null> => {
 		const actor = $user?.id;
 		const scope = dispatchScope();
@@ -482,6 +490,7 @@
 						),
 						intent,
 						queueIds,
+						...(composer ? { composer: { ...composer, scope } } : {}),
 						history: structuredClone(history)
 					},
 					body
@@ -500,10 +509,15 @@
 					(!pending.chatId || result.chat_id === pending.chatId)
 				) {
 					try {
+						if (pending.composer) consumeComposerDraft(sessionStorage, pending.composer);
 						removePendingDispatch(storage, pending);
 						if (pendingDispatch === pending) pendingDispatch = null;
 					} catch {
 						console.warn('Request accepted; pending request cleanup failed');
+						if (isCurrent())
+							dispatchNotice = $i18n.t(
+								'The saved request could not be read. Sending is paused to avoid a duplicate.'
+							);
 					}
 				}
 				return typeof result === 'object' && result !== null
@@ -583,12 +597,13 @@
 				);
 				return false;
 			}
+			if (pending.composer) consumeComposerDraft(sessionStorage, pending.composer);
 			const original = pending.history.messages[pending.parentId];
 			if (
-				original &&
 				messageInput === sourceInput &&
-				prompt === original.content &&
-				equal(files, original.files ?? [])
+				(pending.composer
+					? equal(composerDraft(), pending.composer.draft)
+					: original && prompt === original.content && equal(files, original.files ?? []))
 			) {
 				messageInput?.setText('');
 				prompt = '';
@@ -804,7 +819,7 @@
 		saveControlsTimer = setTimeout(saveControls, 400);
 	}
 
-	const navigateHandler = async () => {
+	const navigateHandler = async (): Promise<void> => {
 		noteChatDebug('navigateHandler start');
 		try {
 			// Mark the outgoing chat as read before loading the new one.
@@ -828,13 +843,10 @@
 			webSearchEnabled = false;
 			imageGenerationEnabled = false;
 
-			const storageChatInput = sessionStorage.getItem(
-				`chat-input${chatIdProp ? `-${chatIdProp}` : ''}`
-			);
-
 			const loaded = chatIdProp ? await loadChat() : false;
 			noteChatDebug('loadChat completed inside navigateHandler', { loaded });
 			if (loaded) {
+				if (!restoreDraft(chatIdProp)) await setDefaults();
 				await tick();
 				loading = false;
 				noteChatDebug('embedded chat loading false');
@@ -853,27 +865,6 @@
 				const isIdle = !lastMessage || lastMessage.role !== 'assistant' || lastMessage.done;
 				if (isIdle && !pendingDispatch && !dispatchNotice) {
 					await processNextInQueue(chatIdProp);
-				}
-
-				if (storageChatInput) {
-					try {
-						const input = JSON.parse(storageChatInput);
-
-						if (!$temporaryChatEnabled) {
-							messageInput?.setText(input.prompt);
-							files = input.files;
-							selectedToolIds = input.selectedToolIds;
-							selectedSkillIds = input.selectedSkillIds ?? [];
-							selectedFilterIds = input.selectedFilterIds;
-							webSearchEnabled = input.webSearchEnabled;
-							imageGenerationEnabled = input.imageGenerationEnabled;
-							codeInterpreterEnabled = input.codeInterpreterEnabled;
-						}
-					} catch {
-						// Ignore malformed chat input snapshot and keep defaults.
-					}
-				} else {
-					await setDefaults();
 				}
 
 				const chatInput = document.getElementById('chat-input');
@@ -900,7 +891,7 @@
 		}
 	};
 
-	const initEmbeddedDraft = async () => {
+	const initEmbeddedDraft = async (): Promise<void> => {
 		clearTimeout(saveControlsTimer);
 		await saveControls();
 
@@ -937,6 +928,7 @@
 
 		await setDefaults();
 		refreshPendingDispatch();
+		restoreDraft(draftScope());
 		loading = false;
 		await tick();
 		document.getElementById('chat-input')?.focus();
@@ -1602,7 +1594,7 @@
 		}
 
 		const pageSubscribe = page.subscribe(async (p) => {
-			if (p.url.pathname === '/' || p.url.pathname.startsWith('/folders/')) {
+			if (!embedded && (p.url.pathname === '/' || p.url.pathname.startsWith('/folders/'))) {
 				await tick();
 				initNewChat();
 			}
@@ -1639,51 +1631,6 @@
 				console.log('Set selectedModels from folder data:', selectedModels);
 			}
 		});
-
-		const storageChatInput = sessionStorage.getItem(
-			`chat-input${chatIdProp ? `-${chatIdProp}` : ''}`
-		);
-
-		const init = async () => {
-			if (!chatIdProp) {
-				loading = false;
-				await tick();
-			}
-
-			if (storageChatInput) {
-				prompt = '';
-				messageInput?.setText('');
-
-				files = [];
-				selectedToolIds = [];
-				selectedSkillIds = [];
-				selectedFilterIds = [];
-				webSearchEnabled = false;
-				imageGenerationEnabled = false;
-				codeInterpreterEnabled = false;
-
-				try {
-					const input = JSON.parse(storageChatInput);
-
-					if (!$temporaryChatEnabled) {
-						messageInput?.setText(input.prompt);
-						files = input.files;
-						selectedToolIds = input.selectedToolIds;
-						selectedSkillIds = input.selectedSkillIds ?? [];
-						selectedFilterIds = input.selectedFilterIds;
-						webSearchEnabled = input.webSearchEnabled;
-						imageGenerationEnabled = input.imageGenerationEnabled;
-						codeInterpreterEnabled = input.codeInterpreterEnabled;
-					}
-				} catch (error) {
-					console.warn('Failed to restore chat draft', error);
-				}
-			}
-
-			const chatInput = document.getElementById('chat-input');
-			chatInput?.focus();
-		};
-		init();
 
 		return () => {
 			try {
@@ -2003,7 +1950,8 @@
 	// Web functions
 	//////////////////////////
 
-	const initNewChat = async () => {
+	const initNewChat = async (): Promise<void> => {
+		loading = true;
 		console.log('initNewChat');
 		resetWebSearchConfirmation();
 
@@ -2141,6 +2089,11 @@
 		taskIds = null;
 		chatTasks = [];
 		refreshPendingDispatch();
+		restoreDraft(draftScope());
+		if (requestedModels) {
+			selectedModels = requestedModels;
+			atSelectedModel = undefined;
+		}
 
 		if ($page.url.searchParams.get('youtube')) {
 			await uploadWeb(`https://www.youtube.com/watch?v=${$page.url.searchParams.get('youtube')}`);
@@ -2237,6 +2190,7 @@
 			}
 		}
 		clearWelcomePresetPrompt();
+		loading = false;
 
 		selectedModels = selectedModels.map((modelId) =>
 			$models.map((m) => m.id).includes(modelId) ? modelId : ''
@@ -2854,7 +2808,8 @@
 	const submitPrompt = async (
 		inputContent: string,
 		inputFiles: ChatAttachment[],
-		queueIds: string[] = []
+		queueIds: string[] = [],
+		composer?: ComposerSnapshot
 	): Promise<boolean> => {
 		if (submittingPrompt) return false;
 		refreshPendingDispatch();
@@ -2928,7 +2883,7 @@
 			saveSessionSelectedModels();
 
 			pendingPrompt = { history: sourceHistory, id: userMessageId, draft };
-			const accepted = await sendMessage(history, userMessageId, { queueIds });
+			const accepted = await sendMessage(history, userMessageId, { queueIds, composer });
 			if (accepted && pendingPrompt?.id === userMessageId) pendingPrompt = null;
 			return accepted;
 		} finally {
@@ -3155,15 +3110,27 @@
 		const sourceInput = messageInput;
 		const submittedPrompt = prompt;
 		const submittedFiles = structuredClone(files);
+		const sourceActor = $user?.id;
+		const sourceToken = localStorage.token;
+		const composer: ComposerSnapshot = {
+			actor: sourceActor ?? '',
+			scope: draftScope(),
+			draft: composerDraft()
+		};
 		try {
-			const accepted = await submitPrompt(userPrompt, submittedFiles);
+			writeComposerDraft(sessionStorage, composer);
+			const accepted = await submitPrompt(userPrompt, submittedFiles, [], composer);
 			if (
 				accepted &&
+				$user?.id === sourceActor &&
+				localStorage.token === sourceToken &&
 				history === sourceHistory &&
 				messageInput === sourceInput &&
 				prompt === submittedPrompt &&
-				equal(files, submittedFiles)
+				equal(files, submittedFiles) &&
+				equal(composerDraft(), composer.draft)
 			) {
+				consumeComposerDraft(sessionStorage, composer);
 				messageInput?.setText('');
 				prompt = '';
 				files = [];
@@ -3182,13 +3149,15 @@
 			modelId = null,
 			modelIdx = null,
 			regenerationPrompt = null,
-			queueIds = []
+			queueIds = [],
+			composer
 		}: {
 			messages?: ChatHistoryMessage[] | null;
 			modelId?: string | null;
 			modelIdx?: number | null;
 			regenerationPrompt?: string | null;
 			queueIds?: string[];
+			composer?: ComposerSnapshot;
 		} = {}
 	): Promise<boolean> => {
 		if (autoScroll) {
@@ -3210,7 +3179,14 @@
 			return await recoverPendingDispatch(true);
 		}
 		const sourceHistory = history;
+		const sourceActor = $user?.id,
+			sourceToken = localStorage.token;
 		let _chatId = $chatId;
+		const isCurrentChat = (): boolean =>
+			history === sourceHistory &&
+			$chatId === _chatId &&
+			$user?.id === sourceActor &&
+			localStorage.token === sourceToken;
 		_history = structuredClone(_history);
 
 		const responseMessageIds: Record<PropertyKey, string> = {};
@@ -3237,7 +3213,7 @@
 		if (!_chatId) {
 			if (embedded && onCreateEmbeddedChat) {
 				const createdChat = await onCreateEmbeddedChat();
-				if (history !== sourceHistory || $chatId !== _chatId) return false;
+				if (!isCurrentChat()) return false;
 				if (!createdChat?.id) {
 					toast.error($i18n.t('Failed to create chat'));
 					return false;
@@ -3249,7 +3225,7 @@
 				await chatId.set(_chatId);
 				await chatTitle.set(createdChat?.chat?.title ?? createdChat?.title ?? $i18n.t('Chat'));
 
-				params = structuredClone(createdChat?.chat?.params ?? {});
+				params = { ...structuredClone(createdChat?.chat?.params ?? {}), ...params };
 				delete params.note_id;
 				chatFiles = mergeFiles(chatFiles, createdChat?.chat?.files ?? []);
 				await onSelectEmbeddedChat?.(_chatId);
@@ -3260,7 +3236,7 @@
 			await tick();
 		}
 
-		if (history !== sourceHistory || $chatId !== _chatId) return false;
+		if (!isCurrentChat()) return false;
 
 		// Create response messages for each selected model
 		// Build message_ids list: [{model_id, message_id, modelIdx}, ...]
@@ -3347,7 +3323,7 @@
 		try {
 			if (!primaryModel || !primaryResponseMessageId) return false;
 			chatEventEmitter = await getChatEventEmitter(primaryModel.id, _chatId);
-			if (history !== sourceHistory || $chatId !== _chatId) return false;
+			if (!isCurrentChat()) return false;
 			scrollToBottom();
 			accepted = await sendMessageSocket(
 				primaryModel,
@@ -3362,6 +3338,7 @@
 					messageIdsList,
 					operationIntent: intent,
 					queueIds,
+					composer,
 					regenerationPrompt
 				}
 			);
@@ -3373,7 +3350,7 @@
 			return false;
 		} finally {
 			if (chatEventEmitter) clearInterval(chatEventEmitter);
-			if (!accepted && history === sourceHistory && $chatId === _chatId) {
+			if (!accepted && isCurrentChat()) {
 				for (const { message_id } of messageIdsList) {
 					const response = history.messages[message_id];
 					if (response && !response.done) {
@@ -3434,17 +3411,25 @@
 			regenerationPrompt,
 			continueResponse = false,
 			operationIntent = '',
-			queueIds = []
+			queueIds = [],
+			composer
 		}: {
 			messageIdsList?: Array<{ model_id: string; message_id: string }>;
 			regenerationPrompt?: string | null;
 			continueResponse?: boolean;
 			operationIntent?: string;
 			queueIds?: string[];
+			composer?: ComposerSnapshot;
 		} = {}
 	): Promise<boolean> => {
 		const sourceHistory = history;
-		const isCurrentChat = (): boolean => history === sourceHistory && $chatId === _chatId;
+		const sourceActor = $user?.id,
+			sourceToken = localStorage.token;
+		const isCurrentChat = (): boolean =>
+			history === sourceHistory &&
+			$chatId === _chatId &&
+			$user?.id === sourceActor &&
+			localStorage.token === sourceToken;
 		if (!isCurrentChat() || !$socket?.id) return false;
 		const requestParams = structuredClone(params);
 		const responseMessage = _history.messages[responseMessageId];
@@ -3595,7 +3580,7 @@
 			!_chatId || $temporaryChatEnabled || isTemporaryChatId(_chatId);
 
 		const res = await dispatchPreparedRequest(
-			localStorage.token,
+			sourceToken,
 			{
 				operation_id: uuidv4(),
 				stream: stream,
@@ -3668,7 +3653,8 @@
 			},
 			`${WEBUI_BASE_URL}/api`,
 			operationIntent,
-			queueIds
+			queueIds,
+			composer
 		).catch(async (error) => {
 			console.error(error);
 			if (!isCurrentChat()) return null;
@@ -4109,31 +4095,86 @@
 		if (res) chat = res;
 	};
 
-	const MAX_DRAFT_LENGTH = 5000;
-	let saveDraftTimeout: ReturnType<typeof setTimeout> | null = null;
-
-	const saveDraft = async (draft: Record<string, unknown>, chatId: string | null = null) => {
-		if (saveDraftTimeout) {
-			clearTimeout(saveDraftTimeout);
-		}
-
-		if (typeof draft.prompt === 'string' && draft.prompt.length < MAX_DRAFT_LENGTH) {
-			saveDraftTimeout = setTimeout(async () => {
-				await sessionStorage.setItem(
-					`chat-input${chatId ? `-${chatId}` : ''}`,
-					JSON.stringify(draft)
-				);
-			}, 500);
-		} else {
-			sessionStorage.removeItem(`chat-input${chatId ? `-${chatId}` : ''}`);
+	const draftScope = (): string =>
+		embedded && !$chatId && embeddedDraftKey
+			? `note:${embeddedDraftKey}`
+			: $temporaryChatEnabled
+				? 'temporary'
+				: $chatId || 'home';
+	const composerDraft = (): ComposerDraft =>
+		JSON.parse(
+			JSON.stringify({
+				prompt,
+				files: files.map((file) =>
+					Object.fromEntries(
+						Object.entries(file).filter(([name]) => !['user', 'access_grants'].includes(name))
+					)
+				),
+				selectedModels,
+				atSelectedModelId: atSelectedModel?.id,
+				selectedToolIds,
+				selectedSkillIds,
+				selectedFilterIds,
+				webSearchEnabled,
+				imageGenerationEnabled,
+				codeInterpreterEnabled,
+				selectedText: embedded ? selectedText : '',
+				params,
+				chatVariables
+			})
+		);
+	const saveDraft = (data: Record<string, unknown>): void => {
+		if (loading || !$user?.id) return;
+		try {
+			writeComposerDraft(sessionStorage, {
+				actor: $user.id,
+				scope: draftScope(),
+				draft: {
+					...composerDraft(),
+					prompt: typeof data.prompt === 'string' ? data.prompt : prompt
+				}
+			});
+		} catch {
+			toast.error($i18n.t('The request could not be saved safely. Sending is paused.'));
 		}
 	};
+	$: if (!loading)
+		saveDraft({ prompt, selectedModels, atSelectedModel, params, chatVariables, selectedText });
 
-	const clearDraft = async (chatId: string | null = null) => {
-		if (saveDraftTimeout) {
-			clearTimeout(saveDraftTimeout);
+	const restoreDraft = (scope: string): boolean => {
+		if (!$user?.id) return false;
+		try {
+			const input = readComposerDraft(
+				sessionStorage,
+				$user.id,
+				scope,
+				chat?.id === scope && chat.user_id === $user.id ? `chat-input-${scope}` : undefined
+			);
+			if (!input) return false;
+			prompt = input.prompt;
+			messageInput?.setText(input.prompt);
+			files = input.files;
+			selectedModels = input.selectedModels ?? selectedModels;
+			atSelectedModel = input.atSelectedModelId
+				? $models.find((model) => model.id === input.atSelectedModelId)
+				: undefined;
+			selectedToolIds = input.selectedToolIds ?? [];
+			selectedSkillIds = input.selectedSkillIds ?? [];
+			selectedFilterIds = input.selectedFilterIds ?? [];
+			webSearchEnabled = input.webSearchEnabled ?? false;
+			imageGenerationEnabled = input.imageGenerationEnabled ?? false;
+			codeInterpreterEnabled = input.codeInterpreterEnabled ?? false;
+			if (embedded) selectedText = input.selectedText ?? '';
+			params = input.params ?? params;
+			chatVariables = input.chatVariables ?? {};
+			return true;
+		} catch {
+			dispatchNotice = $i18n.t(
+				'The saved request could not be read. Sending is paused to avoid a duplicate.'
+			);
+			toast.error(dispatchNotice);
+			return true;
 		}
-		await sessionStorage.removeItem(`chat-input${chatId ? `-${chatId}` : ''}`);
 	};
 
 	const moveChatHandler = async (chatId: string, folderId: string): Promise<void> => {
@@ -4585,17 +4626,12 @@
 												[$chatId]: queue.filter((m) => m.id !== id)
 											}));
 										}}
-										onChange={(data) => {
-											if (!$temporaryChatEnabled) {
-												saveDraft(data, $chatId);
-											}
-										}}
+										onChange={saveDraft}
 										onWebSearchToggle={handleWebSearchToggle}
 										on:chatVariables={() => {
 											showChatVariablesModal = true;
 										}}
 										on:submit={async (e) => {
-											clearDraft($chatId);
 											if (e.detail || files.length > 0) {
 												await tick();
 
@@ -4672,8 +4708,8 @@
 										on:chatVariables={() => {
 											showChatVariablesModal = true;
 										}}
+										onChange={saveDraft}
 										on:submit={async (e) => {
-											clearDraft($chatId);
 											if (e.detail || files.length > 0) {
 												await tick();
 												submitHandler(withSelectedText(e.detail));
@@ -4710,13 +4746,8 @@
 									on:chatVariables={() => {
 										showChatVariablesModal = true;
 									}}
-									onChange={(data) => {
-										if (!$temporaryChatEnabled) {
-											saveDraft(data);
-										}
-									}}
+									onChange={saveDraft}
 									on:submit={async (e) => {
-										clearDraft();
 										if (e.detail || files.length > 0) {
 											await tick();
 											submitHandler(withSelectedText(e.detail));

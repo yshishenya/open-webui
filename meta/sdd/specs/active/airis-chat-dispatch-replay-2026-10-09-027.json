@@ -2,7 +2,7 @@
   "spec_id": "airis-chat-dispatch-replay-2026-10-09-027",
   "title": "Airis chat dispatch replay",
   "generated": "2026-10-09T16:00:40.482303Z",
-  "last_updated": "2026-10-09T16:32:07.942970Z",
+  "last_updated": "2026-10-09T19:25:33.349671Z",
   "metadata": {
     "template": "simple",
     "complexity": "high",
@@ -75,7 +75,8 @@
         "completed_at": "2026-10-09T16:25:04.380918Z",
         "needs_journaling": false,
         "actual_hours": 0.191,
-        "journaled_at": "2026-10-09T16:25:04.382345Z"
+        "journaled_at": "2026-10-09T16:25:04.382345Z",
+        "file_path": "backend/open_webui/utils/airis/chat_dispatch.py"
       }
     },
     "task-2-1": {
@@ -92,7 +93,8 @@
         "depends": []
       },
       "metadata": {
-        "started_at": "2026-10-09T16:32:07.942776Z"
+        "started_at": "2026-10-09T16:32:07.942776Z",
+        "file_path": "src/lib/components/chat/Chat.svelte"
       }
     }
   },

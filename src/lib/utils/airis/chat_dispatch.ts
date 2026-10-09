@@ -1,5 +1,6 @@
 import { enhanceOpenAIChatCompletionBody } from './openai';
 import type { ChatHistory } from './chat_history';
+import { hasCredential, validComposerDraft, type ComposerSnapshot } from './chat_draft';
 
 export type NativeDispatchAcknowledgement = {
 	status?: boolean;
@@ -25,6 +26,7 @@ export type PendingDispatch = {
 	history: ChatHistory;
 	body: Record<string, unknown>;
 	toolServerDigests: string[];
+	composer?: ComposerSnapshot;
 };
 
 const key = (actor: string, scope: string): string =>
@@ -34,18 +36,6 @@ const uuid = (value: unknown): value is string =>
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const record = (value: unknown): value is Record<string, unknown> =>
 	value !== null && typeof value === 'object' && !Array.isArray(value);
-const hasCredential = (value: unknown): boolean => {
-	if (Array.isArray(value)) return value.some(hasCredential);
-	return (
-		record(value) &&
-		Object.entries(value).some(
-			([name, child]) =>
-				/^(authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|password|secret|token)$/i.test(
-					name
-				) || hasCredential(child)
-		)
-	);
-};
 const digest = async (value: unknown): Promise<string> => {
 	const bytes = new TextEncoder().encode(JSON.stringify(value));
 	return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), (b) =>
@@ -86,7 +76,12 @@ export const readPendingDispatch = (
 		!record(value.body) ||
 		value.body.operation_id !== value.operationId ||
 		!record(value.history) ||
-		!record(value.history.messages)
+		!record(value.history.messages) ||
+		(value.composer !== undefined &&
+			(!record(value.composer) ||
+				value.composer.actor !== actor ||
+				value.composer.scope !== scope ||
+				!validComposerDraft(value.composer.draft)))
 	)
 		throw new Error('Pending request could not be restored safely');
 	return value as PendingDispatch;
@@ -97,11 +92,18 @@ export const preparePendingDispatch = async (
 	context: Pick<
 		PendingDispatch,
 		'actor' | 'scope' | 'chatId' | 'parentId' | 'intent' | 'history'
-	> & { queueIds?: string[] },
+	> & { queueIds?: string[]; composer?: ComposerSnapshot },
 	request: Record<string, unknown>
 ): Promise<PendingDispatch> => {
 	if (!context.actor || !context.scope)
 		throw new Error('Account is required to save a pending request');
+	if (
+		context.composer &&
+		(context.composer.actor !== context.actor ||
+			context.composer.scope !== context.scope ||
+			!validComposerDraft(context.composer.draft))
+	)
+		throw new Error('Invalid composer snapshot');
 	if (readPendingDispatch(storage, context.actor, context.scope))
 		throw new Error('Check the previous request before sending another one');
 	const body = JSON.parse(JSON.stringify(enhanceOpenAIChatCompletionBody(request))) as Record<
@@ -114,7 +116,11 @@ export const preparePendingDispatch = async (
 	// Direct server settings can contain credentials. Restore them only if their digest is unchanged.
 	delete body.tool_servers;
 	delete body.session_id;
-	if (hasCredential(body) || hasCredential(context.history))
+	if (
+		hasCredential(body) ||
+		hasCredential(context.history) ||
+		(context.composer && !validComposerDraft(context.composer.draft))
+	)
 		throw new Error('The pending request contains credentials and cannot be saved safely');
 	if (!uuid(body.operation_id)) throw new Error('Operation is required');
 	// Saved chats are restored from the server; keep only this operation's local messages.

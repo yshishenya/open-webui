@@ -9,6 +9,8 @@ import {
 	validDispatchReceipt,
 	type PendingDispatch
 } from './chat_dispatch';
+import { readComposerDraft, writeComposerDraft, consumeComposerDraft } from './chat_draft';
+import { resolveRequestedModels } from './chat';
 import { runInNewContext } from 'node:vm';
 import { parse } from 'svelte/compiler';
 import ts from 'typescript';
@@ -48,6 +50,42 @@ function handler<T>(component: string, name: string, context: object): T {
 		context
 	) as T;
 }
+
+function submitEvents(context: object): ((event: { detail: string }) => Promise<void>)[] {
+	const path = `${process.env.AIRIS_COMPONENT_ROOT ?? 'src/lib/components/chat'}/Chat.svelte`;
+	const source = readFileSync(path, 'utf8');
+	const callbacks: string[] = [];
+	const visit = (value: unknown): void => {
+		if (!value || typeof value !== 'object') return;
+		if (Array.isArray(value)) {
+			value.forEach(visit);
+			return;
+		}
+		const node = value as Record<string, unknown>;
+		if (
+			node.type === 'EventHandler' &&
+			node.name === 'submit' &&
+			node.expression &&
+			typeof node.expression === 'object'
+		) {
+			const expression = node.expression as { start: number; end: number };
+			const callback = source.slice(expression.start, expression.end);
+			if (callback.includes('submitHandler(')) callbacks.push(callback);
+		}
+		Object.values(node).forEach(visit);
+	};
+	visit(parse(source).html);
+	if (callbacks.length !== 3) throw new Error('Missing composer submit entry points');
+	return callbacks.map(
+		(callback) =>
+			runInNewContext(
+				ts.transpileModule(`(${callback})`, {
+					compilerOptions: { target: ts.ScriptTarget.ES2022 }
+				}).outputText,
+				context
+			) as (event: { detail: string }) => Promise<void>
+	);
+}
 function deferred<T>() {
 	let resolve!: (value: T) => void, reject!: (error: Error) => void;
 	const promise = new Promise<T>((done, fail) => {
@@ -83,6 +121,9 @@ class MemoryStorage implements Storage {
 }
 function bindDispatch(c: object): void {
 	for (const name of [
+		'draftScope',
+		'composerDraft',
+		'restoreDraft',
 		'dispatchScope',
 		'dispatchStorage',
 		'availableDispatchServers',
@@ -116,7 +157,7 @@ function setup() {
 		sourceHistory: history,
 		$models: [{ id: 'model', name: 'Model', info: {} }],
 		selectedModels: ['model'],
-		atSelectedModel: undefined,
+		atSelectedModel: undefined as { id: string; name: string; info: object } | undefined,
 		autoScroll: false,
 		scrollToBottom: vi.fn(),
 		shouldAutoScrollResponse: () => false,
@@ -124,6 +165,10 @@ function setup() {
 		params: {},
 		$temporaryChatEnabled: false,
 		embedded: false,
+		embeddedDraftKey: '',
+		selectedText: '',
+		webSearchEnabled: false,
+		codeInterpreterEnabled: false,
 		onCreateEmbeddedChat: undefined,
 		tick: vi.fn().mockResolvedValue(undefined),
 		uuidv4: () => `00000000-0000-4000-8000-${String(++counter).padStart(12, '0')}`,
@@ -169,7 +214,7 @@ function setup() {
 		submitPrompt: vi.fn().mockResolvedValue(false),
 		eventTarget: { dispatchEvent: vi.fn() },
 		CustomEvent: class {},
-		selectedToolIds: [],
+		selectedToolIds: [] as string[],
 		selectedSkillIds: [],
 		selectedFilterIds: [],
 		$selectedTerminalId: null,
@@ -183,6 +228,8 @@ function setup() {
 		$selectedFolder: null,
 		localStorage: new MemoryStorage(),
 		sessionStorage: new MemoryStorage(),
+		saveDraftTimeout: null,
+		clearTimeout: vi.fn(),
 		crypto: webcrypto,
 		navigator: {
 			locks: { request: vi.fn(async (_key: string, run: () => Promise<unknown>) => await run()) }
@@ -191,6 +238,9 @@ function setup() {
 		dispatchNotice: '',
 		checkingDispatch: false,
 		dispatchIntent: '',
+		readComposerDraft,
+		writeComposerDraft,
+		consumeComposerDraft,
 		readPendingDispatch,
 		preparePendingDispatch,
 		replayPendingBody,
@@ -224,6 +274,7 @@ function setup() {
 		})
 	});
 	bindDispatch(c);
+
 	return c;
 }
 it.each([{ ids: [] }, { ids: ['missing'] }, { ids: ['model', 'missing'] }])(
@@ -309,6 +360,71 @@ it.each([false, true])('composer clears only after accepted=%s', async (accepted
 	expect(c.prompt).toBe(accepted ? '' : 'draft');
 	expect(c.files).toHaveLength(accepted ? 0 : 1);
 });
+
+it('composer storage refusal prevents creation and dispatch', async () => {
+	const c = setup();
+	vi.spyOn(c.sessionStorage, 'setItem').mockImplementation(() => {
+		throw new Error('quota exceeded');
+	});
+	await handler<(text: string) => Promise<void>>('Chat', 'submitHandler', c)('draft');
+	expect(c.submitPrompt).not.toHaveBeenCalled();
+	expect(c.prompt).toBe('draft');
+	expect(c.files).toHaveLength(1);
+});
+
+it('accepted cleanup refusal keeps the pending operation across reload', async () => {
+	const { c, send } = socketSetup();
+	c.generateOpenAIChatCompletion.mockRejectedValueOnce(new Error('lost response'));
+	await send(c.$models[0], createMessagesList(c.history, 'a'), c.history, 'a', 'chat1');
+	const operation = c.pendingDispatch!;
+	Object.assign(operation, {
+		composer: { actor: c.$user.id, scope: 'chat1', draft: { prompt: 'original', files: [] } }
+	});
+	c.localStorage.setItem(
+		`airis-pending-dispatch:${JSON.stringify([c.$user.id, 'chat1'])}`,
+		JSON.stringify(operation)
+	);
+	vi.spyOn(c.sessionStorage, 'getItem').mockImplementation(() => {
+		throw new Error('storage refused');
+	});
+	c.getChatDispatch.mockResolvedValue({
+		state: 'accepted',
+		receipt: { status: true, chat_id: 'chat1', task_ids: ['old-task'] }
+	});
+	c.getChatById.mockResolvedValue({
+		id: 'chat1',
+		chat: { title: 'Saved', history: structuredClone(c.history) }
+	});
+	await handler<() => Promise<boolean>>('Chat', 'recoverPendingDispatch', c)();
+	expect(readPendingDispatch(c.localStorage, c.$user.id, 'chat1')?.operationId).toBe(
+		operation.operationId
+	);
+	expect(c.generateOpenAIChatCompletion).toHaveBeenCalledTimes(1);
+});
+
+it.each([0, 1, 2])(
+	'composer entry %s keeps the stored draft after rejected submission',
+	async (entry) => {
+		const c = setup();
+		c.files = [];
+		if (entry === 2) c.$chatId = '';
+		Object.assign(c, {
+			withSelectedText: (text: string): string => text,
+			saveDraftTimeout: null,
+			clearTimeout: vi.fn(),
+			submitHandler: handler('Chat', 'submitHandler', c)
+		});
+		c.submitPrompt.mockResolvedValue(false);
+		const key = `airis-chat-draft:${JSON.stringify([c.$user.id, c.$chatId || 'home'])}`;
+		const snapshot = JSON.stringify(handler<() => object>('Chat', 'composerDraft', c)());
+		c.sessionStorage.setItem(key, snapshot);
+		await submitEvents(c)[entry]({ detail: 'draft' });
+		await Promise.resolve();
+		expect(c.submitPrompt).toHaveBeenCalled();
+		expect(c.sessionStorage.getItem(key)).toBe(snapshot);
+		expect(c.prompt).toBe('draft');
+	}
+);
 it.each(['draft', 'files', 'navigation'])(
 	'composer preserves newer %s after acceptance',
 	async (change) => {
@@ -379,7 +495,8 @@ function socketSetup() {
 				m: ChatHistoryMessage[],
 				h: ChatHistory,
 				id: string,
-				chatId: string
+				chatId: string,
+				options?: { composer?: import('./chat_draft').ComposerSnapshot }
 			) => Promise<boolean>
 		>('Chat', 'sendMessageSocket', context)
 	};
@@ -939,3 +1056,150 @@ it.each(['getItem', 'corrupt', 'no-locks'])(
 		expect(c.generateOpenAIChatCompletion).not.toHaveBeenCalled();
 	}
 );
+
+it.each(['original', 'new-settings'])(
+	'note selection recovery consumes raw snapshot and preserves %s',
+	async (change) => {
+		const { c, send } = socketSetup();
+		c.embedded = true;
+		c.selectedText = 'selected note text';
+		c.atSelectedModel = c.$models[0];
+		c.prompt = 'raw draft';
+		c.files = [{ type: 'image', url: 'data:image/png;base64,fixture' }];
+		const draft = handler<() => import('./chat_draft').ComposerDraft>('Chat', 'composerDraft', c)();
+		const composer = { actor: c.$user.id, scope: 'chat1', draft };
+		writeComposerDraft(c.sessionStorage, composer);
+		c.history.messages.u.content =
+			'raw draft\n\nSelected note text for replace_note_content operations:\nselected note text';
+		c.generateOpenAIChatCompletion.mockRejectedValueOnce(new Error('lost HTTP response'));
+		await send(c.$models[0], createMessagesList(c.history, 'a'), c.history, 'a', 'chat1', {
+			composer
+		});
+		expect(c.pendingDispatch?.composer).toEqual(composer);
+		const operation = c.pendingDispatch!;
+		c.prompt = '';
+		c.files = [];
+		c.selectedText = '';
+		expect(handler<(scope: string) => boolean>('Chat', 'restoreDraft', c)('chat1')).toBe(true);
+		expect(c.prompt).toBe('raw draft');
+		expect(c.selectedText).toBe('selected note text');
+		expect(c.atSelectedModel?.id).toBe('model');
+		if (change === 'new-settings') {
+			c.selectedToolIds = ['new-tool'];
+			writeComposerDraft(c.sessionStorage, {
+				...composer,
+				draft: handler<() => import('./chat_draft').ComposerDraft>('Chat', 'composerDraft', c)()
+			});
+		}
+		c.getChatDispatch.mockResolvedValue({
+			state: 'accepted',
+			receipt: { status: true, chat_id: 'chat1', task_ids: ['old-task'] }
+		});
+		c.getChatById.mockResolvedValue({
+			id: 'chat1',
+			chat: { title: 'Saved', history: structuredClone(c.history) }
+		});
+		expect(await handler<() => Promise<boolean>>('Chat', 'recoverPendingDispatch', c)()).toBe(true);
+		expect(c.generateOpenAIChatCompletion).toHaveBeenCalledTimes(1);
+		expect(readPendingDispatch(c.localStorage, c.$user.id, 'chat1')).toBe(null);
+		expect(c.prompt).toBe(change === 'original' ? '' : 'raw draft');
+		expect(readComposerDraft(c.sessionStorage, c.$user.id, 'chat1')).toEqual(
+			change === 'original' ? null : { ...draft, selectedToolIds: ['new-tool'] }
+		);
+		expect(operation.composer?.draft.prompt).toBe('raw draft');
+	}
+);
+
+it('chat navigation restores before a newly mounted composer can autosave empty input', async () => {
+	const c = Object.assign(setup(), {
+		loading: false,
+		chatIdProp: 'chat1',
+		saveControlsTimer: undefined,
+		noteChatDebug: vi.fn(),
+		saveControls: vi.fn().mockResolvedValue(undefined),
+		loadChat: vi.fn().mockResolvedValue(true),
+		updateLastReadAt: vi.fn(),
+		processNextInQueue: vi.fn().mockResolvedValue(undefined),
+		setDefaults: vi.fn(),
+		goto: vi.fn()
+	});
+	Object.assign(c.window, { setTimeout: vi.fn() });
+	c.chat = { id: 'chat1', user_id: c.$user.id };
+	const draft = handler<() => import('./chat_draft').ComposerDraft>('Chat', 'composerDraft', c)();
+	writeComposerDraft(c.sessionStorage, { actor: c.$user.id, scope: 'chat1', draft });
+	c.tick.mockImplementation(async () => {
+		handler<(data: object) => void>('Chat', 'saveDraft', c)({ prompt: c.prompt });
+	});
+	await handler<() => Promise<void>>('Chat', 'navigateHandler', c)();
+	expect(c.prompt).toBe('draft');
+	expect(readComposerDraft(c.sessionStorage, c.$user.id, 'chat1')).toEqual(draft);
+	expect(c.goto).not.toHaveBeenCalled();
+});
+
+it('account switch while awaiting the emitter cannot dispatch an old draft', async () => {
+	const c = setup(),
+		ready = deferred<number>();
+	c.getChatEventEmitter.mockReturnValueOnce(ready.promise);
+	const sending = handler<(h: ChatHistory, id: string) => Promise<boolean>>(
+		'Chat',
+		'sendMessage',
+		c
+	)(c.history, 'u');
+	c.$user.id = 'new-account';
+	c.localStorage.token = 'new-token';
+	ready.resolve(123);
+	expect(await sending).toBe(false);
+	expect(c.sendMessageSocket).not.toHaveBeenCalled();
+});
+
+it('an explicit free guide model takes precedence over a saved paid composer selection', async () => {
+	const c = Object.assign(setup(), {
+		$chatId: '',
+		loading: false,
+		$mobile: false,
+		$page: { url: new URL('https://chat.airis.you/?models=model&q=guide&submit=false') },
+		$desktopEvent: null,
+		desktopEvent: { set: vi.fn() },
+		resetWebSearchConfirmation: vi.fn(),
+		updateLastReadAt: vi.fn(),
+		resolveRequestedModels,
+		temporaryChatEnabled: { set: vi.fn().mockResolvedValue(undefined) },
+		showControls: { set: vi.fn() },
+		showCallOverlay: { set: vi.fn() },
+		showArtifacts: { set: vi.fn() },
+		resetInput: vi.fn().mockResolvedValue(undefined),
+		clearWelcomePresetPrompt: vi.fn(),
+		consumeWelcomePresetPrompt: vi.fn().mockReturnValue(null),
+		setTextWithRetries: vi.fn().mockResolvedValue(true),
+		setTimeout: vi.fn()
+	});
+	Object.assign(c.window, { location: { pathname: '/' } });
+	Object.assign(c, {
+		chatId: {
+			set: vi.fn(async (id: string) => {
+				c.$chatId = id;
+			})
+		}
+	});
+	c.$models.push({ id: 'paid', name: 'Paid', info: {} });
+	writeComposerDraft(c.sessionStorage, {
+		actor: c.$user.id,
+		scope: 'home',
+		draft: {
+			prompt: 'old paid question',
+			files: [],
+			selectedModels: ['paid'],
+			atSelectedModelId: 'paid'
+		}
+	});
+	await handler<() => Promise<void>>('Chat', 'initNewChat', c)();
+	expect(c.selectedModels).toEqual(['model']);
+	expect(c.atSelectedModel).toBeUndefined();
+	expect(c.submitPrompt).not.toHaveBeenCalled();
+	c.$page.url.searchParams.set('models', 'missing');
+	Object.assign(c.toast, { info: vi.fn() });
+	await handler<() => Promise<void>>('Chat', 'initNewChat', c)();
+	expect(c.selectedModels).toEqual(['']);
+	expect(c.atSelectedModel).toBeUndefined();
+	expect(c.submitPrompt).not.toHaveBeenCalled();
+});

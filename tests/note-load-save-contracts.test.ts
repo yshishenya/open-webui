@@ -74,6 +74,10 @@ it('note backing creation retries the original operation after a lost response',
 			.mockResolvedValue(chat),
 		getNoteChatsById: vi.fn().mockResolvedValue([chat]),
 		completeNoteChatOperation: vi.fn(),
+		transferComposerDraft: vi.fn(),
+		readComposerDraft: vi.fn().mockReturnValue(null),
+		consumeComposerDraft: vi.fn(),
+		sessionStorage: {},
 		console: { error: vi.fn(), warn: vi.fn() },
 		toast: { error: vi.fn() },
 		$i18n: { t: (s: string) => s }
@@ -106,6 +110,10 @@ it.each(['account', 'note', 'draft'])(
 			createNoteChatById: vi.fn().mockReturnValue(response.promise),
 			getNoteChatsById: vi.fn().mockResolvedValue([]),
 			completeNoteChatOperation: vi.fn(),
+			transferComposerDraft: vi.fn(),
+			readComposerDraft: vi.fn().mockReturnValue(null),
+			consumeComposerDraft: vi.fn(),
+			sessionStorage: {},
 			console: { error: vi.fn(), warn: vi.fn() },
 			toast: { error: vi.fn() },
 			$i18n: { t: (s: string) => s }
@@ -740,4 +748,60 @@ it('keeps valid JSON awareness states and rejects malformed decoded records', ()
 		expect(second.getStates().get(7)).toEqual({ user: state });
 	}
 	expect(warn).toHaveBeenCalledTimes(3);
+});
+
+it('opening a pending note restores its operation without a new backing creation', async () => {
+	const c = {
+		note: noteRecord(),
+		$user: { id: 'user' },
+		localStorage: { token: 'token' },
+		noteChatLoading: false,
+		noteChatId: null,
+		noteChatDraftKey: '',
+		showNoteChat: false,
+		readNoteChatOperation: vi.fn().mockReturnValue('saved-operation'),
+		getNoteChatById: vi.fn(),
+		console: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+		toast: { error: vi.fn() },
+		$i18n: { t: (s: string) => s }
+	};
+	await evaluate<() => Promise<void>>(`(${initializer(editorPath, 'openNoteChat')})`, c)();
+	expect(c.noteChatDraftKey).toBe('saved-operation');
+	expect(c.showNoteChat).toBe(true);
+	expect(c.getNoteChatById).not.toHaveBeenCalled();
+});
+
+it('failed draft transfer keeps the note operation and does not accept its backing chat', async () => {
+	const c = {
+		note: noteRecord(),
+		$user: { id: 'user' },
+		localStorage: { token: 'token' },
+		sessionStorage: {},
+		noteChatDraftKey: 'operation',
+		noteChatCreating: false,
+		noteChats: [],
+		showNoteChat: false,
+		createNoteChatById: vi
+			.fn()
+			.mockResolvedValue({ id: 'backing', user_id: 'user', meta: { note_id: 'A' } }),
+		getNoteChatsById: vi.fn().mockResolvedValue([]),
+		readComposerDraft: vi.fn().mockReturnValue({ prompt: 'raw', files: [] }),
+		transferComposerDraft: vi.fn(() => {
+			throw new Error('quota exceeded');
+		}),
+		consumeComposerDraft: vi.fn(),
+		completeNoteChatOperation: vi.fn(),
+		console: { error: vi.fn(), warn: vi.fn() },
+		toast: { error: vi.fn() },
+		$i18n: { t: (s: string) => s }
+	};
+	expect(
+		await evaluate<() => Promise<object | null>>(
+			`(${initializer(editorPath, 'createNoteChatOnFirstMessage')})`,
+			c
+		)()
+	).toBe(null);
+	expect(c.completeNoteChatOperation).not.toHaveBeenCalled();
+	expect(c.consumeComposerDraft).not.toHaveBeenCalled();
+	expect(c.noteChatDraftKey).toBe('operation');
 });

@@ -67,3 +67,24 @@ Upstream impact браузера: Chat.svelte содержит привязки 
 - [ ] Восстановление незавершённого черновика заметки до модели после reload ещё не проверено; существующий saveDraft/initEmbeddedDraft путь требует следующего прохода. Временный потерянный результат, настоящая модель/списание и production выпуск остаются открытыми.
 
 Evidence: /Users/yshishenya/.codex/private-artifacts/airis-note-chat-create-replay-20261009. SDD остаётся 1/2 active, task-2-1 in_progress; план198/244 и конечная цельactive.
+
+## Черновик до модели и его подтверждённая очистка — проверяемый этап исходников
+
+В трёх настоящих on:submit callbacks clearDraft выполнялся до проверки/принятия. Все три регрессии до исправления потеряли запись sessionStorage при rejected submission; 62 прежних сценария прошли. Общая очистка переносится в submitHandler после accepted и проверки прежних actor/token/history/input/content/files.
+
+Измеримые критерии следующего этапа:
+
+- [x] 3/3 entry points после отказа сохраняют полный исходный draft; принятый исходный input снимается только после подтверждения; новые текст/вложения/настройки и другой аккаунт/чат не стираются.
+- [x] Заметочный draft сохраняется по actor/operation UUID перед внешним созданием backing chat; отказ/повреждение/переполнение Storage даёт 0 созданий/0 provider запусков.
+- [x] После reload и возврата к заметке восстанавливаются тот же raw prompt, attachments, model/tool selection и submitted note text; принятие backing chat переносит snapshot к chat scope до снятия note-operation key.
+- [x] Model dispatch journal связывает принятую операцию с исходным raw composer snapshot, включая выбранный текст заметки; повтор accepted не оставляет старый snapshot для новой платной отправки после следующего reload.
+- [x] Native browser Storage и реальные component handlers подтверждают reload, lost acknowledgement, accepted cleanup refusal, actor/scope changes, новые черновики; никаких слепых provider повторов.
+- [ ] Полный frontend, качество/типы без новых диагностик, exact source/remote и защищённые данные/production сверены; commit/push, отдельный отчёт и CAS обновление плана завершены.
+
+Evidence: /Users/yshishenya/.codex/private-artifacts/airis-chat-draft-recovery-20261009. Это часть task-2-1, SDD1/2 active; общий план198/244 и конечная A/B цельactive. Provider/billing/native production/pilot остаются обязательными.
+
+Финальная проверка источников: 8 воспроизведённых регрессий до правки (3 submit callbacks, 2 Storage, 1 navigation autosave, 1 actor switch, 1 приоритет бесплатной модели URL). Native Chrome на отдельном helper подтвердил6007 символов/image/settings, reload/transfer/refusal/selective consume. Backend464 файла неизменны; переиспользуется1063/0skip после сверки всех SHA256. Фактический финальный frontend/type/lint результат и точный commit/remote фиксируются в receipt/test-acceptance.json; общий контроль качества и полный work item остаются открытыми. Legacy чаты мигрируются после проверки owner, общий старый home draft сохраняется без автоматической привязки к новому аккаунту.
+
+Явно выбранная модель URL применяется после восстановления черновика и снимает старое упоминание платной модели. До исправления настоящий initNewChat выбрал paid вместо model; submit=false не запускает отправку. Недоступный явный выбор остаётся пустым, без подстановки модели из прежнего черновика.
+
+Принятое дерево: frontend1270/137 файлов/0failed, type1666/103 и ESLint970/новых0; Prettier и git diff --check проходят. SDD validate нашёл отсутствующий metadata.file_path у обеих задач; пути заполнены через update-task-metadata, validate теперь0errors/0warnings. Lifecycle остаётся1/2 active. Git доставка и CAS отчёт фиксируются отдельными receipt.json и private-goal-sync.json; production не выпускался.
