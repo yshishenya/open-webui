@@ -457,14 +457,21 @@ DEFAULT_CODE_INTERPRETER_PROMPT = """
 
 You have access to a Python code interpreter via: `<code_interpreter type="code" lang="python"></code_interpreter>`
 
-- The Python shell runs directly in the user's browser for fast execution of analysis, calculations, or problem-solving. Use it in this response.
-- You can use a wide array of libraries for data manipulation, visualization, API calls, or any computational task. Think outside the box and harness Python's full potential.
-- **You must enclose your code within `<code_interpreter type="code" lang="python">` XML tags** and stop right away. If you don't, the code won't execute.
-- Do NOT use triple backticks (```py ... ```) inside the XML tags — that is markdown formatting, not executable Python code.
-- **Always print meaningful outputs** (results, tables, summaries, visuals). Avoid implicit outputs; use explicit print statements.
-- After obtaining output, **provide a concise analysis, interpretation, or next steps** to help the user understand the findings.
+- The Python shell runs directly in the user's browser for fast execution of analysis, calculations, or \
+problem-solving. Use it in this response.
+- You can use a wide array of libraries for data manipulation, visualization, API calls, or any computational task. \
+Think outside the box and harness Python's full potential.
+- **You must enclose your code within `<code_interpreter type="code" lang="python">` XML tags** and stop right away. \
+If you don't, the code won't execute.
+- Do NOT use triple backticks (```py ... ```) inside the XML tags — that is markdown formatting, not executable \
+Python code.
+- **Always print meaningful outputs** (results, tables, summaries, visuals). Avoid implicit outputs; use explicit \
+print statements.
+- After obtaining output, **provide a concise analysis, interpretation, or next steps** to help the user understand \
+the findings.
 - If results are unclear or unexpected, refine the code and re-execute. Iterate until you deliver meaningful insights.
-- **If a link to an image, audio, or any file appears in the output, display it exactly as-is** in your response so the user can access it. Do not modify the link.
+- **If a link to an image, audio, or any file appears in the output, display it exactly as-is** in your response so \
+the user can access it. Do not modify the link.
 - Respond in the chat's primary language. Default to English if multilingual.
 
 Ensure the code interpreter is effectively utilized to achieve the highest-quality analysis for the user."""
@@ -474,12 +481,15 @@ CODE_INTERPRETER_PYODIDE_PROMPT = """
 
 ##### Pyodide Environment
 
-- This Python environment runs via Pyodide in the browser. **Do not install packages** — `pip install`, `subprocess`, and `micropip.install()` are not available.
-- If a required library is unavailable, use an alternative approach with available modules. Do not attempt to install anything.
+- This Python environment runs via Pyodide in the browser. **Do not install packages** — `pip install`, `subprocess`, \
+and `micropip.install()` are not available.
+- If a required library is unavailable, use an alternative approach with available modules. Do not attempt to install \
+anything.
 
 ##### Persistent File System
 
-- User-uploaded files are available at `/mnt/uploads/`. When the user asks you to work with their files, read from this directory.
+- User-uploaded files are available at `/mnt/uploads/`. When the user asks you to work with their files, read from \
+this directory.
 - You can also write output files to `/mnt/uploads/` so the user can access and download them from the file browser.
 - The file system persists across code executions within the same session.
 - Use `import os; os.listdir('/mnt/uploads')` to discover available files."""
@@ -1049,25 +1059,29 @@ CHUNK_MIN_SIZE_TARGET = int(os.getenv('CHUNK_MIN_SIZE_TARGET', '0'))
 CHUNK_OVERLAP = int(os.getenv('CHUNK_OVERLAP', '100'))
 
 DEFAULT_RAG_TEMPLATE = """### Task:
-Respond to the user query using the provided context, incorporating inline citations in the format [id] **only when the <source> tag includes an explicit id attribute** (e.g., <source id="1">).
+Respond to the user query using the provided context, incorporating inline citations in the format [id] **only when \
+the <source> tag includes an explicit id attribute** (e.g., <source id="1">).
 
 ### Guidelines:
 - If you don't know the answer, clearly state that.
 - If uncertain, ask the user for clarification.
 - Respond in the same language as the user's query.
 - If the context is unreadable or of poor quality, inform the user and provide the best possible answer.
-- If the answer isn't present in the context but you possess the knowledge, explain this to the user and provide the answer using your own understanding.
+- If the answer isn't present in the context but you possess the knowledge, explain this to the user and provide the \
+answer using your own understanding.
 - **Only include inline citations using [id] (e.g., [1], [2]) when the <source> tag includes an id attribute.**
 - Do not cite if the <source> tag does not contain an id attribute.
 - Do not use XML tags in your response.
 - Ensure citations are concise and directly related to the information provided.
 
 ### Example of Citation:
-If the user asks about a specific topic and the information is found in a source with a provided id attribute, the response should include the citation like in the following example:
+If the user asks about a specific topic and the information is found in a source with a provided id attribute, the \
+response should include the citation like in the following example:
 * "According to the study, the proposed method increases efficiency by 20% [1]."
 
 ### Output:
-Provide a clear and direct response to the user's query, including inline citations in the format [id] only when the <source> tag with id attribute is present in the context.
+Provide a clear and direct response to the user's query, including inline citations in the format [id] only when the \
+<source> tag with id attribute is present in the context.
 
 <context>
 {{CONTEXT}}
@@ -1642,11 +1656,17 @@ if default_prompt_suggestions == []:
     default_prompt_suggestions = [
         {
             'title': ['Help me study', 'vocabulary for a college entrance exam'],
-            'content': "Help me study vocabulary: write a sentence for me to fill in the blank, and I'll try to pick the correct option.",
+            'content': (
+                "Help me study vocabulary: write a sentence for me to fill in the blank, and I'll try to pick "
+                'the correct option.'
+            ),
         },
         {
             'title': ['Give me ideas', "for what to do with my kids' art"],
-            'content': "What are 5 creative things I could do with my kids' art? I don't want to throw them away, but it's also so much clutter.",
+            'content': (
+                "What are 5 creative things I could do with my kids' art? I don't want to throw them away, but "
+                "it's also so much clutter."
+            ),
         },
         {
             'title': ['Tell me a fun fact', 'about the Roman Empire'],
@@ -1665,7 +1685,10 @@ if default_prompt_suggestions == []:
         },
         {
             'title': ['Overcome procrastination', 'give me tips'],
-            'content': 'Could you start by asking me about instances when I procrastinate the most and then give me some suggestions to overcome it?',
+            'content': (
+                'Could you start by asking me about instances when I procrastinate the most and then give me '
+                'some suggestions to overcome it?'
+            ),
         },
     ]
 
@@ -2183,7 +2206,8 @@ Generate a concise title summarizing the chat history.
 - Prioritize accuracy over creativity.
 - Your entire response must consist solely of the JSON object, without any introductory or concluding text.
 - The output must be a single, raw JSON object, without any markdown code fences or other encapsulating text.
-- Ensure no conversational text, affirmations, or explanations precede or follow the raw JSON output, as this will cause direct parsing failure.
+- Ensure no conversational text, affirmations, or explanations precede or follow the raw JSON output, as this will \
+cause direct parsing failure.
 ### Output:
 JSON format: { "title": "your concise title here" }
 ### Examples:
@@ -2202,7 +2226,8 @@ DEFAULT_TAGS_GENERATION_PROMPT_TEMPLATE = """### Task:
 Generate 1-3 broad tags categorizing the main themes of the chat history, along with 1-3 more specific subtopic tags.
 
 ### Guidelines:
-- Start with high-level domains (e.g. Science, Technology, Philosophy, Arts, Politics, Business, Health, Sports, Entertainment, Education)
+- Start with high-level domains (e.g. Science, Technology, Philosophy, Arts, Politics, Business, Health, Sports, \
+Entertainment, Education)
 - Consider including relevant subfields/subdomains if they are strongly represented throughout the conversation
 - If content is too short (less than 3 messages) or too diverse, use only ["General"]
 - Use the chat's primary language; default to English if multilingual
@@ -2219,7 +2244,9 @@ JSON format: { "tags": ["tag1", "tag2", "tag3"] }
 IMAGE_PROMPT_GENERATION_PROMPT_TEMPLATE = os.getenv('IMAGE_PROMPT_GENERATION_PROMPT_TEMPLATE', '')
 
 DEFAULT_IMAGE_PROMPT_GENERATION_PROMPT_TEMPLATE = """### Task:
-Generate a detailed prompt for am image generation task based on the given language and context. Describe the image as if you were explaining it to someone who cannot see it. Include relevant details, colors, shapes, and any other important elements.
+Generate a detailed prompt for am image generation task based on the given language and context. Describe the image \
+as if you were explaining it to someone who cannot see it. Include relevant details, colors, shapes, and any other \
+important elements.
 
 ### Guidelines:
 - Be descriptive and detailed, focusing on the most important aspects of the image.
@@ -2242,7 +2269,8 @@ Strictly return in JSON format:
 FOLLOW_UP_GENERATION_PROMPT_TEMPLATE = os.getenv('FOLLOW_UP_GENERATION_PROMPT_TEMPLATE', '')
 
 DEFAULT_FOLLOW_UP_GENERATION_PROMPT_TEMPLATE = """### Task:
-Suggest 3-5 relevant follow-up questions or prompts that the user might naturally ask next in this conversation as a **user**, based on the chat history, to help continue or deepen the discussion.
+Suggest 3-5 relevant follow-up questions or prompts that the user might naturally ask next in this conversation as a \
+**user**, based on the chat history, to help continue or deepen the discussion.
 ### Guidelines:
 - Write all follow-up questions from the user’s point of view, directed to the assistant.
 - Make questions concise, clear, and directly related to the discussed topic(s).
@@ -2272,19 +2300,26 @@ ENABLE_RETRIEVAL_QUERY_GENERATION = os.getenv('ENABLE_RETRIEVAL_QUERY_GENERATION
 QUERY_GENERATION_PROMPT_TEMPLATE = os.getenv('QUERY_GENERATION_PROMPT_TEMPLATE', '')
 
 DEFAULT_QUERY_GENERATION_PROMPT_TEMPLATE = """### Task:
-Analyze the chat history to determine the necessity of generating search queries, in the given language. By default, **prioritize generating 1-3 broad and relevant search queries** unless it is absolutely certain that no additional information is required. The aim is to retrieve comprehensive, updated, and valuable information even with minimal uncertainty. If no search is unequivocally needed, return an empty list.
+Analyze the chat history to determine the necessity of generating search queries, in the given language. By default, \
+**prioritize generating 1-3 broad and relevant search queries** unless it is absolutely certain that no additional \
+information is required. The aim is to retrieve comprehensive, updated, and valuable information even with minimal \
+uncertainty. If no search is unequivocally needed, return an empty list.
 
 ### Guidelines:
-- Respond **EXCLUSIVELY** with a JSON object. Any form of extra commentary, explanation, or additional text is strictly prohibited.
-- When generating search queries, respond in the format: { "queries": ["query1", "query2"] }, ensuring each query is distinct, concise, and relevant to the topic.
+- Respond **EXCLUSIVELY** with a JSON object. Any form of extra commentary, explanation, or additional text is \
+strictly prohibited.
+- When generating search queries, respond in the format: { "queries": ["query1", "query2"] }, ensuring each query is \
+distinct, concise, and relevant to the topic.
 - If and only if it is entirely certain that no useful results can be retrieved by a search, return: { "queries": [] }.
-- Err on the side of suggesting search queries if there is **any chance** they might provide useful or updated information.
-- Be concise and focused on composing high-quality search queries, avoiding unnecessary elaboration, commentary, or assumptions.
+- Err on the side of suggesting search queries if there is **any chance** they might provide useful or updated \
+information.
+- Be concise and focused on composing high-quality search queries, avoiding unnecessary elaboration, commentary, or \
+assumptions.
 - Today's date is: {{CURRENT_DATE}}.
 - Always prioritize providing actionable and broad queries that maximize informational coverage.
 
 ### Output:
-Strictly return in JSON format: 
+Strictly return in JSON format:\x20
 {
   "queries": ["query1", "query2"]
 }
@@ -2303,44 +2338,46 @@ AUTOCOMPLETE_GENERATION_PROMPT_TEMPLATE = os.getenv('AUTOCOMPLETE_GENERATION_PRO
 
 
 DEFAULT_AUTOCOMPLETE_GENERATION_PROMPT_TEMPLATE = """### Task:
-You are an autocompletion system. Continue the text in `<text>` based on the **completion type** in `<type>` and the given language.  
+You are an autocompletion system. Continue the text in `<text>` based on the **completion type** in `<type>` and the \
+given language.\x20\x20
 
 ### **Instructions**:
-1. Analyze `<text>` for context and meaning.  
-2. Use `<type>` to guide your output:  
-   - **General**: Provide a natural, concise continuation.  
-   - **Search Query**: Complete as if generating a realistic search query.  
-3. Start as if you are directly continuing `<text>`. Do **not** repeat, paraphrase, or respond as a model. Simply complete the text.  
+1. Analyze `<text>` for context and meaning.\x20\x20
+2. Use `<type>` to guide your output:\x20\x20
+   - **General**: Provide a natural, concise continuation.\x20\x20
+   - **Search Query**: Complete as if generating a realistic search query.\x20\x20
+3. Start as if you are directly continuing `<text>`. Do **not** repeat, paraphrase, or respond as a model. Simply \
+complete the text.\x20\x20
 4. Ensure the continuation:
-   - Flows naturally from `<text>`.  
-   - Avoids repetition, overexplaining, or unrelated ideas.  
-5. If unsure, return: `{ "text": "" }`.  
+   - Flows naturally from `<text>`.\x20\x20
+   - Avoids repetition, overexplaining, or unrelated ideas.\x20\x20
+5. If unsure, return: `{ "text": "" }`.\x20\x20
 
 ### **Output Rules**:
 - Respond only in JSON format: `{ "text": "<your_completion>" }`.
 
 ### **Examples**:
-#### Example 1:  
-Input:  
-<type>General</type>  
-<text>The sun was setting over the horizon, painting the sky</text>  
-Output:  
+#### Example 1:\x20\x20
+Input:\x20\x20
+<type>General</type>\x20\x20
+<text>The sun was setting over the horizon, painting the sky</text>\x20\x20
+Output:\x20\x20
 { "text": "with vibrant shades of orange and pink." }
 
-#### Example 2:  
-Input:  
-<type>Search Query</type>  
-<text>Top-rated restaurants in</text>  
-Output:  
-{ "text": "New York City for Italian cuisine." }  
+#### Example 2:\x20\x20
+Input:\x20\x20
+<type>Search Query</type>\x20\x20
+<text>Top-rated restaurants in</text>\x20\x20
+Output:\x20\x20
+{ "text": "New York City for Italian cuisine." }\x20\x20
 
 ---
 ### Context:
 <chat_history>
 {{MESSAGES:END:6}}
 </chat_history>
-<type>{{TYPE}}</type>  
-<text>{{PROMPT}}</text>  
+<type>{{TYPE}}</type>\x20\x20
+<text>{{PROMPT}}</text>\x20\x20
 #### Output:
 """
 
@@ -2379,16 +2416,18 @@ TOOLS_FUNCTION_CALLING_PROMPT_TEMPLATE = os.getenv('TOOLS_FUNCTION_CALLING_PROMP
 
 DEFAULT_TOOLS_FUNCTION_CALLING_PROMPT_TEMPLATE = """Available Tools: {{TOOLS}}
 
-Your task is to choose and return the correct tool(s) from the list of available tools based on the query. Follow these guidelines:
+Your task is to choose and return the correct tool(s) from the list of available tools based on the query. Follow \
+these guidelines:
 
 - Return only the JSON object, without any additional text or explanation.
 
-- If no tools match the query, return an empty array: 
+- If no tools match the query, return an empty array:\x20
    {
      "tool_calls": []
    }
 
-- If one or more tools match the query, construct a JSON response containing a "tool_calls" array with objects that include:
+- If one or more tools match the query, construct a JSON response containing a "tool_calls" array with objects that \
+include:
    - "name": The tool's name.
    - "parameters": A dictionary of required parameters and their corresponding values.
 
@@ -2401,13 +2440,20 @@ The format for the JSON response is strictly:
 }"""
 
 
-DEFAULT_EMOJI_GENERATION_PROMPT_TEMPLATE = """Your task is to reflect the speaker's likely facial expression through a fitting emoji. Interpret emotions from the message and reflect their facial expression using fitting, diverse emojis (e.g., 😊, 😢, 😡, 😱).
+DEFAULT_EMOJI_GENERATION_PROMPT_TEMPLATE = """Your task is to reflect the speaker's likely facial expression through \
+a fitting emoji. Interpret emotions from the message and reflect their facial expression using fitting, diverse \
+emojis (e.g., 😊, 😢, 😡, 😱).
 
 Message: ```{{prompt}}```"""
 
-DEFAULT_MOA_GENERATION_PROMPT_TEMPLATE = """You have been provided with a set of responses from various models to the latest user query: "{{prompt}}"
+DEFAULT_MOA_GENERATION_PROMPT_TEMPLATE = """You have been provided with a set of responses from various models to the \
+latest user query: "{{prompt}}"
 
-Your task is to synthesize these responses into a single, high-quality response. It is crucial to critically evaluate the information provided in these responses, recognizing that some of it may be biased or incorrect. Your response should not simply replicate the given answers but should offer a refined, accurate, and comprehensive reply to the instruction. Ensure your response is well-structured, coherent, and adheres to the highest standards of accuracy and reliability.
+Your task is to synthesize these responses into a single, high-quality response. It is crucial to critically evaluate \
+the information provided in these responses, recognizing that some of it may be biased or incorrect. Your response \
+should not simply replicate the given answers but should offer a refined, accurate, and comprehensive reply to the \
+instruction. Ensure your response is well-structured, coherent, and adheres to the highest standards of accuracy and \
+reliability.
 
 Responses from models: {{responses}}"""
 
