@@ -9,3 +9,9 @@
   - Owner: Codex
   - Summary: One component,existing UserInfoResponse/GroupDetails,sparse selection maps;three callers checked before unused pagination removal.
   - Started: 2026-10-09
+
+- [x] Source stage complete and pushed:`41d06f564224535d6794a9542677b695db295c17`;1520 Git blobs matched,190 valid SDD specs,source tasks2/2. Temporary runners0;shared cache/network andprotected primary/runtime preserved. General release andreal A/B remain open.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09__refactor__member-selector-contracts.md
+  - Owner: Codex
+  - Summary: One compiled-equal component;frontend1046/128;types1978/104,ESLint986,new0. No integration,image build ordeployment.
+  - Done: 2026-10-09
