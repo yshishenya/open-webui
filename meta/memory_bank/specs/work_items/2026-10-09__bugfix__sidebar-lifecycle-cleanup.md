@@ -108,3 +108,19 @@ fail3/3 on rejected31e and pass3/3 on the action-based correction,21 cycles each
 Full check2292→2290 errors,108 warnings; full ESLint1020 unchanged. Normalized
 diagnostic delta0 additions; scoped lint passes. Only the same two pre-existing
 untouched markup indentation differences remain. Browser and release are pending.
+
+## Hidden pin ordering — actual-source reproduction
+
+Actual Sortable callback fails with stored [notes,automations,calendar] and
+a hidden automations item: dropping notes after calendar leaves visible order
+[notes,calendar]. DOM indices and full stored-array indices describe different
+positions. Read the reordered visible DOM ids and replace only visible slots
+in the existing settings array. Hidden ids/slots and other settings are preserved.
+Candidatea2e is superseded; it must not be released. A fourth permanent check
+reproduces this behavior; the browser case now uses a hidden middle slot.
+
+Final pin-order source checks:950/950 frontend in122 files,4/4 actual-source
+regressions. Full check2290→2289 errors/108 warnings, ESLint1020 unchanged,
+normalized additions0. Scoped lint passes, formatting differs only in the same
+two old untouched markup locations. Hidden middle slot is preserved and visible
+order is [calendar,notes]. New source/CI/clean candidate/browser/release pending.

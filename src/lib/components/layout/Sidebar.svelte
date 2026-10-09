@@ -229,13 +229,11 @@
 			} else if (!sortable) {
 				sortable = new Sortable(el, {
 					animation: 150,
-					onUpdate: async (event) => {
-						const itemId = event.item.dataset.id;
-						const newIndex = event.newIndex;
-						const current = [...pinnedItems];
-						const oldIndex = current.indexOf(itemId);
-						current.splice(oldIndex, 1);
-						current.splice(newIndex, 0, itemId);
+					onUpdate: async (): Promise<void> => {
+						const orderedIds = Array.from(el.children, (item) => item.getAttribute('data-id'));
+						const current = pinnedItems.map((id: string) =>
+							isMenuItemVisible(id) ? (orderedIds.shift() ?? id) : id
+						);
 						settings.set({ ...$settings, pinnedMenuItems: current });
 						await updateUserSettings(localStorage.token, { ui: $settings });
 					}

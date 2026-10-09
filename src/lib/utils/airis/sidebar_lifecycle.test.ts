@@ -150,3 +150,44 @@ it('pin list sorting follows element replacement and mobile changes', () => {
 	}
 	instances.forEach((item) => expect(item.destroy).toHaveBeenCalledTimes(1));
 });
+
+it('reorders visible pins when a hidden item occupies the middle slot', async () => {
+	let onUpdate: (event: {
+		item: { dataset: { id: string } };
+		newIndex: number;
+	}) => Promise<void> = async () => {
+		throw new Error('Not initialized');
+	};
+	let persisted: string[] = [];
+	class Sortable {
+		constructor(node: object, options: { onUpdate: typeof onUpdate }) {
+			onUpdate = options.onUpdate;
+		}
+		destroy = vi.fn();
+	}
+	const context = {
+		Sortable,
+		pinnedItems: ['notes', 'automations', 'calendar'],
+		$settings: {},
+		settings: {
+			set: (value: { pinnedMenuItems: string[] }) => {
+				persisted = value.pinnedMenuItems;
+			}
+		},
+		localStorage: { token: 'fixture' },
+		updateUserSettings: vi.fn(),
+		isMenuItemVisible: (id: string) => id !== 'automations'
+	};
+	const bind = evaluate(actionSource('initPinnedMenuSortable'), context) as (
+		node: object,
+		isMobile: boolean
+	) => { destroy: () => void };
+	const action = bind(
+		{ children: [{ getAttribute: () => 'calendar' }, { getAttribute: () => 'notes' }] },
+		false
+	);
+	await onUpdate({ item: { dataset: { id: 'notes' } }, newIndex: 1 });
+	expect(persisted.filter((id) => id !== 'automations')).toEqual(['calendar', 'notes']);
+	expect(persisted).toEqual(['calendar', 'automations', 'notes']);
+	action.destroy();
+});
