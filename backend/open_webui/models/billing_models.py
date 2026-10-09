@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional, List
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import (
@@ -22,26 +21,26 @@ from open_webui.internal.db import Base
 
 
 class SubscriptionStatus(str, Enum):
-    ACTIVE = "active"
-    CANCELED = "canceled"
-    PAST_DUE = "past_due"
-    TRIALING = "trialing"
-    PAUSED = "paused"
+    ACTIVE = 'active'
+    CANCELED = 'canceled'
+    PAST_DUE = 'past_due'
+    TRIALING = 'trialing'
+    PAUSED = 'paused'
 
 
 class TransactionStatus(str, Enum):
-    PENDING = "pending"
-    SUCCEEDED = "succeeded"
-    FAILED = "failed"
-    CANCELED = "canceled"
+    PENDING = 'pending'
+    SUCCEEDED = 'succeeded'
+    FAILED = 'failed'
+    CANCELED = 'canceled'
 
 
 class UsageMetric(str, Enum):
-    TOKENS_INPUT = "tokens_input"
-    TOKENS_OUTPUT = "tokens_output"
-    REQUESTS = "requests"
-    IMAGES = "images"
-    AUDIO_MINUTES = "audio_minutes"
+    TOKENS_INPUT = 'tokens_input'
+    TOKENS_OUTPUT = 'tokens_output'
+    REQUESTS = 'requests'
+    IMAGES = 'images'
+    AUDIO_MINUTES = 'audio_minutes'
 
 
 ####################
@@ -52,7 +51,7 @@ class UsageMetric(str, Enum):
 class Plan(Base):
     """Subscription plans (тарифные планы)"""
 
-    __tablename__ = "billing_plan"
+    __tablename__ = 'billing_plan'
 
     id = Column(String, primary_key=True, unique=True)
     name = Column(String, nullable=False)  # "Free", "Pro", "Business"
@@ -63,7 +62,7 @@ class Plan(Base):
     # Pricing
     price = Column(Numeric(10, 2), nullable=False)  # Цена в рублях (UI)
     price_kopeks = Column(BigInteger, nullable=False, default=0)  # Источник истины
-    currency = Column(String, default="RUB", nullable=False)
+    currency = Column(String, default='RUB', nullable=False)
     interval = Column(String, nullable=False)  # "month", "year"
     included_kopeks_per_period = Column(BigInteger, nullable=False, default=0)
     discount_percent = Column(Integer, nullable=False, default=0)
@@ -90,29 +89,29 @@ class Plan(Base):
 class PlanModel(BaseModel):
     id: str
     name: str
-    name_ru: Optional[str] = None
-    description: Optional[str] = None
-    description_ru: Optional[str] = None
+    name_ru: str | None = None
+    description: str | None = None
+    description_ru: str | None = None
 
     price: float
     price_kopeks: int = 0
-    currency: str = "RUB"
+    currency: str = 'RUB'
     interval: str
     included_kopeks_per_period: int = 0
     discount_percent: int = 0
-    model_tiers_allowed: Optional[list[str]] = None
-    images_per_period: Optional[int] = None
-    tts_seconds_per_period: Optional[int] = None
-    max_reply_cost_kopeks: Optional[int] = None
-    daily_cap_kopeks: Optional[int] = None
+    model_tiers_allowed: list[str] | None = None
+    images_per_period: int | None = None
+    tts_seconds_per_period: int | None = None
+    max_reply_cost_kopeks: int | None = None
+    daily_cap_kopeks: int | None = None
     is_annual: bool = False
 
-    quotas: Optional[dict] = None
-    features: Optional[List[str]] = None
+    quotas: dict | None = None
+    features: list[str] | None = None
 
     is_active: bool = True
     display_order: int = 0
-    plan_extra_metadata: Optional[dict] = None
+    plan_extra_metadata: dict | None = None
 
     created_at: int
     updated_at: int
@@ -128,7 +127,7 @@ class PlanModel(BaseModel):
 class Subscription(Base):
     """User subscriptions"""
 
-    __tablename__ = "billing_subscription"
+    __tablename__ = 'billing_subscription'
 
     id = Column(String, primary_key=True, unique=True)
     user_id = Column(String, nullable=False, index=True)
@@ -162,7 +161,7 @@ class Subscription(Base):
 
 
 # Index for faster queries
-Index("idx_subscription_user_status", Subscription.user_id, Subscription.status)
+Index('idx_subscription_user_status', Subscription.user_id, Subscription.status)
 
 
 class SubscriptionModel(BaseModel):
@@ -172,21 +171,21 @@ class SubscriptionModel(BaseModel):
 
     status: str
 
-    yookassa_payment_id: Optional[str] = None
-    yookassa_subscription_id: Optional[str] = None
+    yookassa_payment_id: str | None = None
+    yookassa_subscription_id: str | None = None
 
     current_period_start: int
     current_period_end: int
 
     cancel_at_period_end: bool = False
     auto_renew: bool = False
-    trial_end: Optional[int] = None
-    last_payment_id: Optional[str] = None
-    wallet_id: Optional[str] = None
-    payment_method_id: Optional[str] = None
-    next_plan_id: Optional[str] = None
+    trial_end: int | None = None
+    last_payment_id: str | None = None
+    wallet_id: str | None = None
+    payment_method_id: str | None = None
+    next_plan_id: str | None = None
 
-    extra_metadata: Optional[dict] = None
+    extra_metadata: dict | None = None
 
     created_at: int
     updated_at: int
@@ -202,7 +201,7 @@ class SubscriptionModel(BaseModel):
 class Usage(Base):
     """Track user usage metrics"""
 
-    __tablename__ = "billing_usage"
+    __tablename__ = 'billing_usage'
 
     id = Column(String, primary_key=True, unique=True)
     user_id = Column(String, nullable=False, index=True)
@@ -225,14 +224,14 @@ class Usage(Base):
 
 
 # Indexes for analytics queries
-Index("idx_usage_user_metric", Usage.user_id, Usage.metric)
-Index("idx_usage_period", Usage.period_start, Usage.period_end)
+Index('idx_usage_user_metric', Usage.user_id, Usage.metric)
+Index('idx_usage_period', Usage.period_start, Usage.period_end)
 
 
 class UsageModel(BaseModel):
     id: str
     user_id: str
-    subscription_id: Optional[str] = None
+    subscription_id: str | None = None
 
     metric: str
     amount: int
@@ -240,9 +239,9 @@ class UsageModel(BaseModel):
     period_start: int
     period_end: int
 
-    model_id: Optional[str] = None
-    chat_id: Optional[str] = None
-    extra_metadata: Optional[dict] = None
+    model_id: str | None = None
+    chat_id: str | None = None
+    extra_metadata: dict | None = None
 
     created_at: int
 
@@ -257,7 +256,7 @@ class UsageModel(BaseModel):
 class Transaction(Base):
     """Payment transactions history"""
 
-    __tablename__ = "billing_transaction"
+    __tablename__ = 'billing_transaction'
 
     id = Column(String, primary_key=True, unique=True)
     user_id = Column(String, nullable=False, index=True)
@@ -265,7 +264,7 @@ class Transaction(Base):
 
     # Payment details
     amount = Column(Numeric(10, 2), nullable=False)
-    currency = Column(String, default="RUB", nullable=False)
+    currency = Column(String, default='RUB', nullable=False)
     status = Column(String, nullable=False)  # TransactionStatus enum
 
     # Payment provider
@@ -286,28 +285,28 @@ class Transaction(Base):
     updated_at = Column(BigInteger, nullable=False)
 
 
-Index("idx_transaction_user", Transaction.user_id)
-Index("idx_transaction_yookassa", Transaction.yookassa_payment_id)
+Index('idx_transaction_user', Transaction.user_id)
+Index('idx_transaction_yookassa', Transaction.yookassa_payment_id)
 
 
 class TransactionModel(BaseModel):
     id: str
     user_id: str
-    subscription_id: Optional[str] = None
+    subscription_id: str | None = None
 
     amount: float
-    currency: str = "RUB"
+    currency: str = 'RUB'
     status: str
 
-    yookassa_payment_id: Optional[str] = None
-    yookassa_status: Optional[str] = None
+    yookassa_payment_id: str | None = None
+    yookassa_status: str | None = None
 
-    description: Optional[str] = None
-    description_ru: Optional[str] = None
+    description: str | None = None
+    description_ru: str | None = None
 
-    receipt_url: Optional[str] = None
+    receipt_url: str | None = None
 
-    extra_metadata: Optional[dict] = None
+    extra_metadata: dict | None = None
 
     created_at: int
     updated_at: int
@@ -328,7 +327,7 @@ class PlanSubscriberInfo(BaseModel):
     user_name: str
     user_email: str
     user_role: str
-    user_profile_image_url: Optional[str] = None
+    user_profile_image_url: str | None = None
     plan_id: str
     status: str
     current_period_start: int
@@ -336,10 +335,10 @@ class PlanSubscriberInfo(BaseModel):
     created_at: int
     # Usage data
     tokens_input_used: int = 0
-    tokens_input_limit: Optional[int] = None
+    tokens_input_limit: int | None = None
     tokens_output_used: int = 0
-    tokens_output_limit: Optional[int] = None
+    tokens_output_limit: int | None = None
     requests_used: int = 0
-    requests_limit: Optional[int] = None
+    requests_limit: int | None = None
 
     model_config = ConfigDict(from_attributes=True)

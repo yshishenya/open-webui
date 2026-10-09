@@ -9,14 +9,10 @@ import logging
 import os
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional, Union
 
 import bcrypt
 import jwt
-import pytz
 import requests
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi import BackgroundTasks, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -25,7 +21,6 @@ from open_webui.env import (
     ENABLE_OTEL,
     ENABLE_PASSWORD_VALIDATION,
     LICENSE_BLOB,
-    OFFLINE_MODE,
     PASSWORD_HASH_ALGORITHM,
     PASSWORD_VALIDATION_HINT,
     PASSWORD_VALIDATION_REGEX_PATTERN,
@@ -38,7 +33,7 @@ from open_webui.env import (
 )
 from open_webui.models.auths import Auths
 from open_webui.models.config import Config
-from open_webui.models.users import Users
+from open_webui.models.users import UserModel, Users
 from open_webui.utils.access_control import has_permission
 from pytz import UTC
 
@@ -219,7 +214,7 @@ async def verify_password(plain_password: str, hashed_password: str) -> bool:
 # Let the one who signed this token be remembered at every gate,
 # and may the claims therein honor the creator long after
 # the session has closed.
-def create_token(data: dict, expires_delta: Union[timedelta, None] = None) -> str:
+def create_token(data: dict, expires_delta: timedelta | None = None) -> str:
     payload = data.copy()
 
     if expires_delta:
@@ -320,12 +315,12 @@ async def get_current_user(
     request: Request,
     response: Response,
     background_tasks: BackgroundTasks,
-    auth_token: HTTPAuthorizationCredentials = Depends(bearer_security),
+    auth_token: HTTPAuthorizationCredentials | None = Depends(bearer_security),
     # NOTE: We intentionally do NOT use Depends(get_session) here.
     # Sessions are managed internally with short-lived context managers.
     # This ensures connections are released immediately after auth queries,
     # not held for the entire request duration (e.g., during 30+ second LLM calls).
-):
+) -> UserModel:
     token = None
 
     if auth_token is not None:
@@ -364,7 +359,7 @@ async def get_current_user(
     try:
         try:
             data = decode_token(token)
-        except Exception as e:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='Invalid token',

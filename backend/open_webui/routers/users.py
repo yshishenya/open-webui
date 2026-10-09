@@ -6,7 +6,6 @@ import logging
 import time
 from collections import Counter
 from datetime import datetime, timedelta
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, Response, StreamingResponse
@@ -26,7 +25,6 @@ from open_webui.models.users import (
     UserInfoListResponse,
     UserInfoResponse,
     UserModel,
-    UserRoleUpdateForm,
     Users,
     UserSettings,
     UserStatus,
@@ -304,7 +302,7 @@ class UserUsageToolEntry(BaseModel):
 
 
 class UserUsageInsights(BaseModel):
-    most_used_model: Optional[str] = None
+    most_used_model: str | None = None
     average_tokens_per_chat: float = 0
     average_messages_per_active_day: float = 0
     user_message_share: float = 0
@@ -657,9 +655,9 @@ async def update_user_info_by_session_user(  # PATCH-style merge
 
 @router.get('/usage', response_model=UserUsageResponse)
 async def get_user_usage_by_session_user(
-    days: Optional[int] = Query(None, ge=7, le=732),
-    start_date: Optional[int] = Query(None),
-    end_date: Optional[int] = Query(None),
+    days: int | None = Query(None, ge=7, le=732),
+    start_date: int | None = Query(None),
+    end_date: int | None = Query(None),
     user=Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
 ):
@@ -805,7 +803,7 @@ async def get_user_oauth_sessions_by_id(
 
 
 @router.get('/{user_id}/profile/image')
-async def get_user_profile_image_by_id(user_id: str, user=Depends(get_verified_user)):
+async def get_user_profile_image_by_id(user_id: str, user: UserModel = Depends(get_verified_user)) -> Response:
     user = await Users.get_user_by_id(user_id)
     if user:
         if user.profile_image_url:
@@ -836,7 +834,7 @@ async def get_user_profile_image_by_id(user_id: str, user=Depends(get_verified_u
                             'X-Content-Type-Options': 'nosniff',
                         },
                     )
-                except Exception as e:
+                except Exception:
                     pass
         return FileResponse(f'{STATIC_DIR}/user.png')
     else:

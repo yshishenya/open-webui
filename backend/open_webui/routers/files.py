@@ -6,7 +6,7 @@ import logging
 import os
 import uuid
 from pathlib import Path
-from typing import Optional
+
 from urllib.parse import quote
 
 from fastapi import (
@@ -21,7 +21,7 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from open_webui.config import BYPASS_ADMIN_ACCESS_CONTROL, STORAGE_LOCAL_CACHE, STORAGE_PROVIDER, UPLOAD_DIR
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.events import EVENTS, publish_event
@@ -29,7 +29,6 @@ from open_webui.internal.db import get_async_db_context, get_async_session
 from open_webui.models.access_grants import AccessGrants
 from open_webui.models.channels import Channels
 from open_webui.models.config import Config
-from open_webui.models.chats import Chats
 from open_webui.models.files import (
     FileForm,
     FileListResponse,
@@ -37,9 +36,8 @@ from open_webui.models.files import (
     FileModelResponse,
     Files,
 )
-from open_webui.models.groups import Groups
 from open_webui.models.knowledge import Knowledges
-from open_webui.models.users import Users
+from open_webui.models.users import UserModel, Users
 from open_webui.retrieval.vector.async_client import ASYNC_VECTOR_DB_CLIENT
 from open_webui.routers.audio import transcribe
 from open_webui.routers.retrieval import ProcessFileForm, process_file
@@ -132,7 +130,7 @@ async def process_uploaded_file(
     file_item,
     file_metadata,
     user,
-    db: Optional[AsyncSession] = None,
+    db: AsyncSession | None = None,
 ):
     async def _process_handler(db_session):
         try:
@@ -273,7 +271,7 @@ async def upload_file(
     request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    metadata: Optional[dict | str] = Form(None),
+    metadata: dict | str | None = Form(None),
     process: bool = Query(True),
     process_in_background: bool = Query(True),
     user=Depends(get_verified_user),
@@ -315,12 +313,12 @@ async def upload_file(
 async def upload_file_handler(
     request: Request,
     file: UploadFile = File(...),
-    metadata: Optional[dict | str] = Form(None),
+    metadata: dict | str | None = Form(None),
     process: bool = Query(True),
     process_in_background: bool = Query(True),
     user=Depends(get_verified_user),
-    background_tasks: Optional[BackgroundTasks] = None,
-    db: Optional[AsyncSession] = None,
+    background_tasks: BackgroundTasks | None = None,
+    db: AsyncSession | None = None,
 ):
     log.info(f'file.content_type: {file.content_type} {process}')
 
@@ -589,7 +587,7 @@ async def delete_all_files(
 ############################
 
 
-@router.get('/{id}', response_model=Optional[FileModel])
+@router.get('/{id}', response_model=FileModel | None)
 async def get_file_by_id(id: str, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)):
     file = await Files.get_file_by_id(id, db=db)
 
@@ -893,8 +891,8 @@ async def get_html_file_content_by_id(
 
 @router.get('/{id}/content/{file_name}')
 async def get_file_content_by_id(
-    id: str, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)
-):
+    id: str, user: UserModel = Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)
+) -> Response:
     file = await Files.get_file_by_id(id, db=db)
 
     if not file:
@@ -926,7 +924,7 @@ async def get_file_content_by_id(
         else:
             # File path doesn’t exist, return the content as .txt if possible
             file_content = file.data.get('content', '')
-            file_name = file.filename
+            file.filename
 
             # Create a generator that encodes the file content
             def generator():

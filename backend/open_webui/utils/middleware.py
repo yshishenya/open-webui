@@ -1,26 +1,19 @@
 import ast
 import asyncio
-import base64
 import copy
-import inspect
 import json
 import logging
-import os
 import random
 import re
 import sys
 import textwrap
 import time
 from collections.abc import AsyncIterator
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Optional
 from uuid import uuid4
 
-from aiocache import cached
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from open_webui.config import (
-    CACHE_DIR,
     CODE_INTERPRETER_BLOCKED_MODULES,
     CODE_INTERPRETER_PYODIDE_PROMPT,
     DEFAULT_CODE_INTERPRETER_PROMPT,
@@ -29,7 +22,6 @@ from open_webui.config import (
 )
 from open_webui.constants import TASKS
 from open_webui.env import (
-    BYPASS_MODEL_ACCESS_CONTROL,
     CHAT_RESPONSE_MAX_TOOL_CALL_ITERATIONS,
     CHAT_RESPONSE_STREAM_DELTA_CHUNK_SIZE,
     ENABLE_API_OUTLET_FILTERS,
@@ -44,10 +36,8 @@ from open_webui.env import (
 from open_webui.models.chats import Chats
 from open_webui.models.config import Config
 from open_webui.models.folders import Folders
-from open_webui.models.models import Models
 from open_webui.models.notes import Notes
-from open_webui.models.oauth_sessions import OAuthSessions
-from open_webui.models.users import UserModel, Users
+from open_webui.models.users import UserModel
 from open_webui.events import EVENTS, publish_event
 from open_webui.retrieval.utils import get_sources_from_items
 from open_webui.routers.images import (
@@ -107,7 +97,6 @@ from open_webui.utils.misc import (
     convert_logit_bias_input_to_json,
     convert_output_to_messages,
     deep_update,
-    extract_urls,
     get_content_from_message,
     get_last_assistant_message,
     get_last_user_message,
@@ -117,13 +106,11 @@ from open_webui.utils.misc import (
     get_system_message,
     is_string_allowed,
     merge_system_messages,
-    prepend_to_first_user_message_content,
     replace_system_message_content,
     set_last_user_message_content,
     strip_empty_content_blocks,
 )
 from open_webui.utils.payload import apply_system_prompt_to_body, resolve_system_prompt
-from open_webui.utils.plugin import load_function_module_by_id
 from open_webui.utils.response import merge_usage, normalize_usage
 from open_webui.utils.sanitize import sanitize_code
 from open_webui.utils.task import (
@@ -1152,7 +1139,7 @@ async def terminal_event_handler(
 async def chat_completion_tools_handler(
     request: Request, body: dict, extra_params: dict, user: UserModel, models, tools
 ) -> tuple[dict, dict]:
-    async def get_content_from_response(response) -> Optional[str]:
+    async def get_content_from_response(response) -> str | None:
         content = None
         if hasattr(response, 'body_iterator'):
             async for chunk in response.body_iterator:
@@ -1371,7 +1358,9 @@ async def chat_completion_tools_handler(
     return body, {'sources': sources}
 
 
-async def chat_web_search_handler(request: Request, form_data: dict, extra_params: dict, user):
+async def chat_web_search_handler(
+    request: Request, form_data: dict[str, object], extra_params: dict[str, object], user: UserModel
+) -> dict[str, object]:
     event_emitter = extra_params['__event_emitter__']
     await event_emitter(
         {
@@ -1425,7 +1414,7 @@ async def chat_web_search_handler(request: Request, form_data: dict, extra_param
             response = response[bracket_start:bracket_end]
             queries = JSONCodec.loads(response)
             queries = queries.get('queries', [])
-        except Exception as e:
+        except Exception:
             queries = [response]
 
         if ENABLE_QUERIES_CACHE:
@@ -1638,7 +1627,9 @@ async def add_file_context(messages: list, chat_id: str, user) -> list:
     return messages
 
 
-async def chat_image_generation_handler(request: Request, form_data: dict, extra_params: dict, user):
+async def chat_image_generation_handler(
+    request: Request, form_data: dict[str, object], extra_params: dict[str, object], user: UserModel
+) -> dict[str, object]:
     metadata = extra_params.get('__metadata__', {})
     chat_id = metadata.get('chat_id', None)
     __event_emitter__ = extra_params.get('__event_emitter__', None)
@@ -1772,7 +1763,7 @@ async def chat_image_generation_handler(request: Request, form_data: dict, extra
                     response = response[bracket_start:bracket_end]
                     response = JSONCodec.loads(response)
                     prompt = response.get('prompt', [])
-                except Exception as e:
+                except Exception:
                     prompt = user_message
 
             except Exception as e:
@@ -1877,7 +1868,7 @@ async def chat_completion_files_handler(
 
                     queries_response = queries_response[bracket_start:bracket_end]
                     queries_response = JSONCodec.loads(queries_response)
-                except Exception as e:
+                except Exception:
                     queries_response = {'queries': [queries_response]}
 
                 queries = queries_response.get('queries', [])
@@ -2056,7 +2047,7 @@ async def convert_url_images_to_base64(form_data, user=None):
     return form_data
 
 
-async def load_messages_from_db(chat_id: str, message_id: str) -> Optional[list[dict]]:
+async def load_messages_from_db(chat_id: str, message_id: str) -> list[dict] | None:
     """
     Load the message chain from DB up to message_id,
     keeping only LLM-relevant fields (role, content, output).
@@ -2264,7 +2255,13 @@ async def connect_mcp_server(
     return client, tool_specs
 
 
-async def process_chat_payload(request, form_data, user, metadata, model):
+async def process_chat_payload(
+    request: Request,
+    form_data: dict[str, object],
+    user: UserModel,
+    metadata: dict[str, object],
+    model: dict[str, object],
+) -> tuple[dict[str, object], dict[str, object], list[dict[str, object]]]:
     # Ensure chat_id is always a string — external API clients may omit it.
     if not isinstance(metadata.get('chat_id'), str):
         metadata['chat_id'] = ''
@@ -2521,7 +2518,7 @@ async def process_chat_payload(request, form_data, user, metadata, model):
         files.extend(knowledge_files)
         form_data['files'] = files
 
-    variables = form_data.pop('variables', None)
+    form_data.pop('variables', None)
     payload_tools = form_data.get('tools', None)  # snapshot before filters
 
     # Process the form_data through the pipeline
@@ -3225,7 +3222,7 @@ async def get_system_oauth_token(request, user):
     return oauth_token
 
 
-async def background_tasks_handler(ctx):
+async def background_tasks_handler(ctx: dict[str, object]) -> None:
     request = ctx['request']
     form_data = ctx['form_data']
     user = ctx['user']
@@ -3329,7 +3326,7 @@ async def background_tasks_handler(ctx):
                                 touch=False,
                             )
 
-                    except Exception as e:
+                    except Exception:
                         pass
 
             if is_saved_chat_id(metadata.get('chat_id')):  # Only update titles and tags for saved chats
@@ -3368,7 +3365,7 @@ async def background_tasks_handler(ctx):
 
                             try:
                                 title = JSONCodec.loads(title_string).get('title', user_message)
-                            except Exception as e:
+                            except Exception:
                                 title = ''
 
                             if not title:
@@ -3428,7 +3425,7 @@ async def background_tasks_handler(ctx):
                                     'data': tags,
                                 }
                             )
-                        except Exception as e:
+                        except Exception:
                             pass
 
         if messages:
@@ -3834,7 +3831,7 @@ async def streaming_chat_response_handler(response: StreamingResponse, ctx: dict
     # event_caller is optional — only needed for direct (client-side) tools
     # and pyodide code interpreter. Server-side tools work without it.
     if event_emitter:
-        task_id = str(uuid4())  # Create a unique task ID.
+        str(uuid4())  # Create a unique task ID.
         model_id = form_data.get('model', '')
 
         # Handle as a background task
@@ -4113,7 +4110,7 @@ async def streaming_chat_response_handler(response: StreamingResponse, ctx: dict
             try:
                 if form_data['messages'][-1]['role'] == 'assistant':
                     last_assistant_message = get_last_assistant_message(form_data['messages'])
-            except Exception as e:
+            except Exception:
                 pass
 
             initial_content = (

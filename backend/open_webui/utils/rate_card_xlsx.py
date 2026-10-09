@@ -3,7 +3,7 @@ import json
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Iterable, Sequence
 
 from openpyxl import Workbook, load_workbook
 
@@ -13,13 +13,13 @@ log = logging.getLogger(__name__)
 
 
 class XlsxExportMode(str, Enum):
-    ACTIVE_ONLY = "active_only"
-    ALL_UNITS_TEMPLATE = "all_units_template"
+    ACTIVE_ONLY = 'active_only'
+    ALL_UNITS_TEMPLATE = 'all_units_template'
 
 
 class XlsxImportMode(str, Enum):
-    PATCH = "patch"
-    FULL_SYNC = "full_sync"
+    PATCH = 'patch'
+    FULL_SYNC = 'full_sync'
 
 
 @dataclass(frozen=True)
@@ -28,21 +28,21 @@ class RateCardUnit:
     unit: str
 
 
-ALLOWED_UNITS: Tuple[RateCardUnit, ...] = (
-    RateCardUnit(modality="text", unit="token_in"),
-    RateCardUnit(modality="text", unit="token_out"),
-    RateCardUnit(modality="image", unit="image_1024"),
-    RateCardUnit(modality="tts", unit="tts_char"),
-    RateCardUnit(modality="stt", unit="stt_second"),
+ALLOWED_UNITS: tuple[RateCardUnit, ...] = (
+    RateCardUnit(modality='text', unit='token_in'),
+    RateCardUnit(modality='text', unit='token_out'),
+    RateCardUnit(modality='image', unit='image_1024'),
+    RateCardUnit(modality='tts', unit='tts_char'),
+    RateCardUnit(modality='stt', unit='stt_second'),
 )
 
-ALLOWED_MODALITIES = {"text", "image", "tts", "stt"}
+ALLOWED_MODALITIES = {'text', 'image', 'tts', 'stt'}
 
-ALLOWED_UNITS_BY_MODALITY: Dict[str, set[str]] = {
-    "text": {"token_in", "token_out"},
-    "image": {"image_1024"},
-    "tts": {"tts_char"},
-    "stt": {"stt_second"},
+ALLOWED_UNITS_BY_MODALITY: dict[str, set[str]] = {
+    'text': {'token_in', 'token_out'},
+    'image': {'image_1024'},
+    'tts': {'tts_char'},
+    'stt': {'stt_second'},
 }
 
 
@@ -51,15 +51,15 @@ class XlsxWarning:
     row_number: int
     code: str
     message: str
-    model_id: Optional[str] = None
+    model_id: str | None = None
 
 
 @dataclass
 class XlsxError:
     code: str
     message: str
-    row_number: Optional[int] = None
-    column: Optional[str] = None
+    row_number: int | None = None
+    column: str | None = None
 
 
 @dataclass
@@ -82,10 +82,10 @@ class ParsedRateCardRow:
     modality: str
     unit: str
     is_active: bool
-    raw_cost_per_unit_kopeks: Optional[int]
-    provider: Optional[str]
-    model_tier: Optional[str]
-    is_default: Optional[bool]
+    raw_cost_per_unit_kopeks: int | None
+    provider: str | None
+    model_tier: str | None
+    is_default: bool | None
 
 
 @dataclass(frozen=True)
@@ -95,15 +95,15 @@ class ImportAction:
     modality: str
     unit: str
     desired_active: bool
-    desired_price: Optional[int]
-    provider: Optional[str]
-    model_tier: Optional[str]
-    is_default: Optional[bool]
+    desired_price: int | None
+    provider: str | None
+    model_tier: str | None
+    is_default: bool | None
 
 
 def normalize_str(value: object) -> str:
     if value is None:
-        return ""
+        return ''
     return str(value).strip()
 
 
@@ -111,11 +111,11 @@ def _is_empty(value: object) -> bool:
     if value is None:
         return True
     if isinstance(value, str):
-        return value.strip() == ""
+        return value.strip() == ''
     return False
 
 
-def parse_bool(value: object) -> Optional[bool]:
+def parse_bool(value: object) -> bool | None:
     if value is None:
         return None
     if isinstance(value, bool):
@@ -126,97 +126,97 @@ def parse_bool(value: object) -> Optional[bool]:
         if value == 0:
             return False
     text = normalize_str(value).lower()
-    if text == "":
+    if text == '':
         return None
-    if text in {"true", "1", "yes"}:
+    if text in {'true', '1', 'yes'}:
         return True
-    if text in {"false", "0", "no"}:
+    if text in {'false', '0', 'no'}:
         return False
     return None
 
 
-def parse_price_kopeks(value: object) -> Tuple[Optional[int], Optional[str]]:
+def parse_price_kopeks(value: object) -> tuple[int | None, str | None]:
     """Return (parsed_int, error_message)."""
 
     if value is None:
         return None, None
 
     if isinstance(value, bool):
-        return None, "Price must be a number"
+        return None, 'Price must be a number'
 
     if isinstance(value, int):
         if value < 0:
-            return None, "Price must be >= 0"
+            return None, 'Price must be >= 0'
         return value, None
 
     if isinstance(value, float):
         if value < 0:
-            return None, "Price must be >= 0"
+            return None, 'Price must be >= 0'
         if value.is_integer():
             return int(value), None
-        return None, "Price must be an integer (or *.0)"
+        return None, 'Price must be an integer (or *.0)'
 
     text = normalize_str(value)
-    if text == "":
+    if text == '':
         return None, None
 
     try:
-        if "." in text:
+        if '.' in text:
             parsed_float = float(text)
             if parsed_float < 0:
-                return None, "Price must be >= 0"
+                return None, 'Price must be >= 0'
             if parsed_float.is_integer():
                 return int(parsed_float), None
-            return None, "Price must be an integer (or *.0)"
+            return None, 'Price must be an integer (or *.0)'
         parsed_int = int(text)
         if parsed_int < 0:
-            return None, "Price must be >= 0"
+            return None, 'Price must be >= 0'
         return parsed_int, None
     except Exception:
-        return None, "Price must be a number"
+        return None, 'Price must be a number'
 
 
 def dump_scope_model_ids(scope_model_ids: Sequence[str]) -> str:
     return json.dumps(list(scope_model_ids))
 
 
-def parse_scope_model_ids(value: str) -> Tuple[Optional[List[str]], Optional[str]]:
+def parse_scope_model_ids(value: str) -> tuple[list[str] | None, str | None]:
     """Return (ids, error)."""
 
     text = normalize_str(value)
     if not text:
-        return None, "scope_model_ids is required"
+        return None, 'scope_model_ids is required'
 
     try:
         parsed = json.loads(text)
     except Exception:
-        return None, "scope_model_ids must be a JSON array"
+        return None, 'scope_model_ids must be a JSON array'
 
     if not isinstance(parsed, list):
-        return None, "scope_model_ids must be a JSON array"
+        return None, 'scope_model_ids must be a JSON array'
 
-    ids: List[str] = []
+    ids: list[str] = []
     for item in parsed:
         item_text = normalize_str(item)
         if item_text:
             ids.append(item_text)
 
     if not ids:
-        return None, "scope_model_ids must contain at least one model id"
+        return None, 'scope_model_ids must contain at least one model id'
 
     return ids, None
 
 
 def build_rate_card_key(model_id: str, modality: str, unit: str) -> str:
-    return f"{model_id}:{modality}:{unit}"
+    return f'{model_id}:{modality}:{unit}'
 
 
 def build_latest_active_index(
     entries: Iterable[PricingRateCardModel],
-) -> Dict[str, PricingRateCardModel]:
+) -> dict[str, PricingRateCardModel]:
     """Defensive: if multiple active rows exist, pick max created_at."""
 
-    index: Dict[str, PricingRateCardModel] = {}
+    index: dict[str, PricingRateCardModel] = {}
     for entry in entries:
         if not entry.is_active:
             continue
@@ -231,7 +231,7 @@ def build_export_workbook(
     *,
     mode: XlsxExportMode,
     model_ids: Sequence[str],
-    model_names: Dict[str, str],
+    model_names: dict[str, str],
     active_entries: Iterable[PricingRateCardModel],
 ) -> bytes:
     """Create XLSX bytes for export.
@@ -244,20 +244,20 @@ def build_export_workbook(
     wb = Workbook()
     ws = wb.active
     if ws is None:
-        raise RuntimeError("Failed to create workbook")
-    ws.title = "RateCards"
+        raise RuntimeError('Failed to create workbook')
+    ws.title = 'RateCards'
 
     headers = [
-        "model_id",
-        "model_name",
-        "modality",
-        "unit",
-        "is_active",
-        "raw_cost_per_unit_kopeks",
-        "provider",
-        "model_tier",
-        "is_default",
-        "comment",
+        'model_id',
+        'model_name',
+        'modality',
+        'unit',
+        'is_active',
+        'raw_cost_per_unit_kopeks',
+        'provider',
+        'model_tier',
+        'is_default',
+        'comment',
     ]
     ws.append(headers)
 
@@ -269,15 +269,15 @@ def build_export_workbook(
             ws.append(
                 [
                     entry.model_id,
-                    model_names.get(entry.model_id, ""),
+                    model_names.get(entry.model_id, ''),
                     entry.modality,
                     entry.unit,
                     True,
                     entry.raw_cost_per_unit_kopeks,
-                    entry.provider or "",
-                    entry.model_tier or "",
+                    entry.provider or '',
+                    entry.model_tier or '',
                     bool(entry.is_default),
-                    "",
+                    '',
                 ]
             )
 
@@ -290,113 +290,111 @@ def build_export_workbook(
                     ws.append(
                         [
                             model_id,
-                            model_names.get(model_id, ""),
+                            model_names.get(model_id, ''),
                             allowed.modality,
                             allowed.unit,
                             True,
                             active.raw_cost_per_unit_kopeks,
-                            active.provider or "",
-                            active.model_tier or "",
+                            active.provider or '',
+                            active.model_tier or '',
                             bool(active.is_default),
-                            "",
+                            '',
                         ]
                     )
                 else:
                     ws.append(
                         [
                             model_id,
-                            model_names.get(model_id, ""),
+                            model_names.get(model_id, ''),
                             allowed.modality,
                             allowed.unit,
                             False,
-                            "",
-                            "",
-                            "",
-                            "",
-                            "",
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
                         ]
                     )
     else:
-        raise ValueError(f"Unsupported export mode: {mode}")
+        raise ValueError(f'Unsupported export mode: {mode}')
 
     stream = io.BytesIO()
     wb.save(stream)
     return stream.getvalue()
 
 
-def parse_import_workbook(file_bytes: bytes) -> Tuple[List[ParsedRateCardRow], List[XlsxError]]:
-    errors: List[XlsxError] = []
+def parse_import_workbook(file_bytes: bytes) -> tuple[list[ParsedRateCardRow], list[XlsxError]]:
+    errors: list[XlsxError] = []
 
     try:
         wb = load_workbook(io.BytesIO(file_bytes), data_only=True)
     except Exception:
-        return [], [XlsxError(code="invalid_template", message="Invalid XLSX file")]
+        return [], [XlsxError(code='invalid_template', message='Invalid XLSX file')]
 
-    if "RateCards" not in wb.sheetnames:
-        return [], [
-            XlsxError(code="invalid_template", message="Missing required sheet: RateCards")
-        ]
+    if 'RateCards' not in wb.sheetnames:
+        return [], [XlsxError(code='invalid_template', message='Missing required sheet: RateCards')]
 
-    ws = wb["RateCards"]
+    ws = wb['RateCards']
     assert ws is not None
 
     rows = list(ws.iter_rows(values_only=True))
     if not rows:
-        return [], [XlsxError(code="invalid_template", message="Empty workbook")]
+        return [], [XlsxError(code='invalid_template', message='Empty workbook')]
 
     header_row = rows[0]
-    header_map: Dict[str, int] = {}
+    header_map: dict[str, int] = {}
     for idx, cell in enumerate(header_row):
         name = normalize_str(cell)
         if name:
             header_map[name] = idx
 
     required_headers = [
-        "model_id",
-        "modality",
-        "unit",
-        "raw_cost_per_unit_kopeks",
+        'model_id',
+        'modality',
+        'unit',
+        'raw_cost_per_unit_kopeks',
     ]
 
     missing = [h for h in required_headers if h not in header_map]
     if missing:
         return [], [
             XlsxError(
-                code="invalid_template",
+                code='invalid_template',
                 message=f"Missing required columns: {', '.join(missing)}",
             )
         ]
 
-    parsed_rows: List[ParsedRateCardRow] = []
+    parsed_rows: list[ParsedRateCardRow] = []
 
     for excel_idx, row in enumerate(rows[1:], start=2):
-        model_id = normalize_str(row[header_map["model_id"]] if header_map.get("model_id") is not None else "")
-        modality = normalize_str(row[header_map["modality"]]).lower()
-        unit = normalize_str(row[header_map["unit"]]).lower()
+        model_id = normalize_str(row[header_map['model_id']] if header_map.get('model_id') is not None else '')
+        modality = normalize_str(row[header_map['modality']]).lower()
+        unit = normalize_str(row[header_map['unit']]).lower()
 
         is_active_val = None
-        if "is_active" in header_map:
-            is_active_val = parse_bool(row[header_map["is_active"]])
+        if 'is_active' in header_map:
+            is_active_val = parse_bool(row[header_map['is_active']])
         is_active = True if is_active_val is None else bool(is_active_val)
 
-        price_cell = row[header_map["raw_cost_per_unit_kopeks"]]
+        price_cell = row[header_map['raw_cost_per_unit_kopeks']]
         price, price_error = parse_price_kopeks(price_cell)
 
-        provider: Optional[str] = None
-        if "provider" in header_map:
-            provider_raw = row[header_map["provider"]]
+        provider: str | None = None
+        if 'provider' in header_map:
+            provider_raw = row[header_map['provider']]
             if not _is_empty(provider_raw):
                 provider = normalize_str(provider_raw)
 
-        model_tier: Optional[str] = None
-        if "model_tier" in header_map:
-            model_tier_raw = row[header_map["model_tier"]]
+        model_tier: str | None = None
+        if 'model_tier' in header_map:
+            model_tier_raw = row[header_map['model_tier']]
             if not _is_empty(model_tier_raw):
                 model_tier = normalize_str(model_tier_raw)
 
-        is_default: Optional[bool] = None
-        if "is_default" in header_map:
-            is_default_raw = row[header_map["is_default"]]
+        is_default: bool | None = None
+        if 'is_default' in header_map:
+            is_default_raw = row[header_map['is_default']]
             is_default = parse_bool(is_default_raw)
 
         parsed_rows.append(
@@ -416,20 +414,20 @@ def parse_import_workbook(file_bytes: bytes) -> Tuple[List[ParsedRateCardRow], L
         if not model_id:
             errors.append(
                 XlsxError(
-                    code="missing_model_id",
-                    message="model_id is required",
+                    code='missing_model_id',
+                    message='model_id is required',
                     row_number=excel_idx,
-                    column="model_id",
+                    column='model_id',
                 )
             )
 
         if modality not in ALLOWED_MODALITIES:
             errors.append(
                 XlsxError(
-                    code="invalid_modality",
-                    message="Invalid modality",
+                    code='invalid_modality',
+                    message='Invalid modality',
                     row_number=excel_idx,
-                    column="modality",
+                    column='modality',
                 )
             )
         else:
@@ -437,30 +435,30 @@ def parse_import_workbook(file_bytes: bytes) -> Tuple[List[ParsedRateCardRow], L
             if unit not in allowed_units:
                 errors.append(
                     XlsxError(
-                        code="invalid_unit",
-                        message="Invalid unit for modality",
+                        code='invalid_unit',
+                        message='Invalid unit for modality',
                         row_number=excel_idx,
-                        column="unit",
+                        column='unit',
                     )
                 )
 
         if price_error:
             errors.append(
                 XlsxError(
-                    code="invalid_price",
+                    code='invalid_price',
                     message=price_error,
                     row_number=excel_idx,
-                    column="raw_cost_per_unit_kopeks",
+                    column='raw_cost_per_unit_kopeks',
                 )
             )
 
         if is_active and price is None:
             errors.append(
                 XlsxError(
-                    code="missing_price",
-                    message="raw_cost_per_unit_kopeks is required when is_active is true",
+                    code='missing_price',
+                    message='raw_cost_per_unit_kopeks is required when is_active is true',
                     row_number=excel_idx,
-                    column="raw_cost_per_unit_kopeks",
+                    column='raw_cost_per_unit_kopeks',
                 )
             )
 
@@ -475,19 +473,17 @@ def compute_import_plan(
     known_model_ids: set[str],
     current_active_entries: Iterable[PricingRateCardModel],
     base_errors: Sequence[XlsxError] = (),
-) -> Tuple[XlsxImportSummary, List[XlsxWarning], List[XlsxError], List[ImportAction]]:
-    warnings: List[XlsxWarning] = []
-    errors: List[XlsxError] = list(base_errors)
+) -> tuple[XlsxImportSummary, list[XlsxWarning], list[XlsxError], list[ImportAction]]:
+    warnings: list[XlsxWarning] = []
+    errors: list[XlsxError] = list(base_errors)
 
-    invalid_row_numbers = {
-        err.row_number for err in base_errors if err.row_number is not None
-    }
+    invalid_row_numbers = {err.row_number for err in base_errors if err.row_number is not None}
 
     scope_set = set(scope_model_ids)
 
     active_index = build_latest_active_index(current_active_entries)
 
-    seen_keys: Dict[str, int] = {}
+    seen_keys: dict[str, int] = {}
 
     creates = 0
     updates_via_create = 0
@@ -496,9 +492,9 @@ def compute_import_plan(
     skipped_unknown_model = 0
     skipped_out_of_scope = 0
 
-    actions: List[ImportAction] = []
+    actions: list[ImportAction] = []
 
-    valid_rows: List[ParsedRateCardRow] = []
+    valid_rows: list[ParsedRateCardRow] = []
 
     for row in rows:
         if row.row_number in invalid_row_numbers:
@@ -511,8 +507,8 @@ def compute_import_plan(
         if key in seen_keys:
             errors.append(
                 XlsxError(
-                    code="duplicate_key",
-                    message=f"Duplicate key also found at row {seen_keys[key]}",
+                    code='duplicate_key',
+                    message=f'Duplicate key also found at row {seen_keys[key]}',
                     row_number=row.row_number,
                 )
             )
@@ -525,8 +521,8 @@ def compute_import_plan(
             warnings.append(
                 XlsxWarning(
                     row_number=row.row_number,
-                    code="unknown_model",
-                    message="Model does not exist in the system; row skipped",
+                    code='unknown_model',
+                    message='Model does not exist in the system; row skipped',
                     model_id=row.model_id,
                 )
             )
@@ -537,8 +533,8 @@ def compute_import_plan(
             warnings.append(
                 XlsxWarning(
                     row_number=row.row_number,
-                    code="model_out_of_scope",
-                    message="Model is not selected (out of scope); row skipped",
+                    code='model_out_of_scope',
+                    message='Model is not selected (out of scope); row skipped',
                     model_id=row.model_id,
                 )
             )
@@ -552,7 +548,7 @@ def compute_import_plan(
                 creates += 1
                 actions.append(
                     ImportAction(
-                        action="create",
+                        action='create',
                         model_id=row.model_id,
                         modality=row.modality,
                         unit=row.unit,
@@ -569,7 +565,7 @@ def compute_import_plan(
                     noops += 1
                     actions.append(
                         ImportAction(
-                            action="noop",
+                            action='noop',
                             model_id=row.model_id,
                             modality=row.modality,
                             unit=row.unit,
@@ -584,7 +580,7 @@ def compute_import_plan(
                     updates_via_create += 1
                     actions.append(
                         ImportAction(
-                            action="update_via_create",
+                            action='update_via_create',
                             model_id=row.model_id,
                             modality=row.modality,
                             unit=row.unit,
@@ -600,7 +596,7 @@ def compute_import_plan(
                 noops += 1
                 actions.append(
                     ImportAction(
-                        action="noop",
+                        action='noop',
                         model_id=row.model_id,
                         modality=row.modality,
                         unit=row.unit,
@@ -615,7 +611,7 @@ def compute_import_plan(
                 deactivations += 1
                 actions.append(
                     ImportAction(
-                        action="deactivate",
+                        action='deactivate',
                         model_id=row.model_id,
                         modality=row.modality,
                         unit=row.unit,
@@ -642,7 +638,7 @@ def compute_import_plan(
                 deactivations += 1
                 actions.append(
                     ImportAction(
-                        action="deactivate",
+                        action='deactivate',
                         model_id=model_id,
                         modality=allowed.modality,
                         unit=allowed.unit,

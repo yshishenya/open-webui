@@ -1,4 +1,5 @@
 import type { NoteListItem } from '$lib/utils/airis/notes';
+import type { ChannelListItem } from '$lib/utils/airis/channel-types';
 import type { KnowledgeListItem } from '$lib/utils/airis/knowledge-types';
 import { APP_NAME } from '$lib/constants';
 import { type Writable, writable } from 'svelte/store';
@@ -74,8 +75,8 @@ export const TTSWorker = writable<KokoroWorker | null>(null);
 export const chatId = writable('');
 export const chatTitle = writable('');
 
-export const channels = writable([]);
-export const channelId = writable(null);
+export const channels = writable<ChannelListItem[]>([]);
+export const channelId = writable<string | null>(null);
 
 export { chats, pinnedChats } from './chatList';
 export const pinnedNotes = writable<NoteListItem[]>([]);

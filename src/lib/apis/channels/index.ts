@@ -1,4 +1,5 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
+import type { ChannelListItem } from '$lib/utils/airis/channel-types';
 
 type ChannelForm = {
 	type?: string;
@@ -43,7 +44,7 @@ export const createNewChannel = async (token: string = '', channel: ChannelForm)
 	return res;
 };
 
-export const getChannels = async (token: string = '') => {
+export const getChannels = async (token: string = ''): Promise<ChannelListItem[] | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/channels/`, {

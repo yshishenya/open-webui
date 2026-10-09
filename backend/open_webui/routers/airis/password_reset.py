@@ -37,7 +37,7 @@ class ResendVerificationForm(BaseModel):
     email: str
 
 
-@router.get("/verify-email")
+@router.get('/verify-email')
 async def verify_email(token: str, db: AsyncSession = Depends(get_async_session)) -> dict[str, object]:
     """Verify email address using verification token.
 
@@ -47,21 +47,21 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_async_session)
     if not await EmailVerificationTokens.is_token_valid(token, db=db):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired verification token",
+            detail='Invalid or expired verification token',
         )
 
     token_record = await EmailVerificationTokens.get_token_by_token_string(token, db=db)
     if not token_record:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Verification token not found",
+            detail='Verification token not found',
         )
 
     user = await Users.get_user_by_id(token_record.user_id, db=db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            detail='User not found',
         )
 
     verified = await Users.update_user_by_id(
@@ -74,23 +74,23 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_async_session)
     try:
         await email_service.send_welcome_email(user.id)
     except Exception as e:
-        log.error(f"Failed to send welcome email to {user.email}: {e}")
+        log.error(f'Failed to send welcome email to {user.email}: {e}')
 
-    log.info(f"Email verified for user {user.id} ({user.email})")
+    log.info(f'Email verified for user {user.id} ({user.email})')
 
     return {
-        "success": True,
-        "message": "Email verified successfully",
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "name": user.name,
-            "email_verified": True,
+        'success': True,
+        'message': 'Email verified successfully',
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'name': user.name,
+            'email_verified': True,
         },
     }
 
 
-@router.post("/resend-verification")
+@router.post('/resend-verification')
 async def resend_verification_email(
     form_data: ResendVerificationForm,
     db: AsyncSession = Depends(get_async_session),
@@ -101,31 +101,31 @@ async def resend_verification_email(
     """
     if await asyncio.to_thread(
         email_verification_rate_limiter.is_limited,
-        f"email_verification:{form_data.email}",
+        f'email_verification:{form_data.email}',
     ):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many verification emails sent. Please try again in an hour.",
+            detail='Too many verification emails sent. Please try again in an hour.',
         )
 
     if not validate_email_format(form_data.email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid email format",
+            detail='Invalid email format',
         )
 
     user = await Users.get_user_by_email(form_data.email.lower(), db=db)
     if not user:
         # Don't reveal if email exists for security
         return {
-            "success": True,
-            "message": "If the email exists, a verification link has been sent.",
+            'success': True,
+            'message': 'If the email exists, a verification link has been sent.',
         }
 
     if user.email_verified:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email is already verified",
+            detail='Email is already verified',
         )
 
     existing_tokens = await EmailVerificationTokens.get_tokens_by_user_id(user.id, db=db)
@@ -140,13 +140,13 @@ async def resend_verification_email(
     if not token_record:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create verification token",
+            detail='Failed to create verification token',
         )
 
     if not email_service.is_configured():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Email service is not configured",
+            detail='Email service is not configured',
         )
 
     success = await email_service.send_verification_email(
@@ -158,14 +158,14 @@ async def resend_verification_email(
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send verification email",
+            detail='Failed to send verification email',
         )
 
-    log.info(f"Verification email sent to {user.email}")
+    log.info(f'Verification email sent to {user.email}')
 
     return {
-        "success": True,
-        "message": "Verification email sent successfully",
+        'success': True,
+        'message': 'Verification email sent successfully',
     }
 
 
@@ -178,7 +178,7 @@ class ResetPasswordForm(BaseModel):
     new_password: str
 
 
-@router.post("/request-password-reset")
+@router.post('/request-password-reset')
 async def request_password_reset(
     form_data: RequestPasswordResetForm,
     db: AsyncSession = Depends(get_async_session),
@@ -189,31 +189,31 @@ async def request_password_reset(
     """
     if await asyncio.to_thread(
         password_reset_rate_limiter.is_limited,
-        f"password_reset:{form_data.email}",
+        f'password_reset:{form_data.email}',
     ):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many password reset requests. Please try again in an hour.",
+            detail='Too many password reset requests. Please try again in an hour.',
         )
 
     if not validate_email_format(form_data.email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid email format",
+            detail='Invalid email format',
         )
 
     user = await Users.get_user_by_email(form_data.email.lower(), db=db)
     if not user:
         # Don't reveal if email exists for security
         return {
-            "success": True,
-            "message": "If the email exists, a password reset link has been sent.",
+            'success': True,
+            'message': 'If the email exists, a password reset link has been sent.',
         }
 
     if not email_service.is_configured():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Email service is not configured",
+            detail='Email service is not configured',
         )
 
     existing_tokens = await PasswordResetTokens.get_tokens_by_user_id(user.id, db=db)
@@ -224,7 +224,7 @@ async def request_password_reset(
     if not token_record:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create password reset token",
+            detail='Failed to create password reset token',
         )
 
     success = await email_service.send_password_reset_email(
@@ -236,47 +236,47 @@ async def request_password_reset(
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send password reset email",
+            detail='Failed to send password reset email',
         )
 
-    log.info(f"Password reset email sent to {user.email}")
+    log.info(f'Password reset email sent to {user.email}')
 
     return {
-        "success": True,
-        "message": "If the email exists, a password reset link has been sent.",
+        'success': True,
+        'message': 'If the email exists, a password reset link has been sent.',
     }
 
 
-@router.get("/validate-reset-token/{token}")
+@router.get('/validate-reset-token/{token}')
 async def validate_reset_token(token: str, db: AsyncSession = Depends(get_async_session)):
     """Validate password reset token before showing reset form."""
     if not await PasswordResetTokens.is_token_valid(token, db=db):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired password reset token",
+            detail='Invalid or expired password reset token',
         )
 
     token_record = await PasswordResetTokens.get_token_by_token_string(token, db=db)
     if not token_record:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password reset token not found",
+            detail='Password reset token not found',
         )
 
     user = await Users.get_user_by_id(token_record.user_id, db=db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            detail='User not found',
         )
 
-    email_parts = user.email.split("@")
-    masked_email = email_parts[0][:2] + "***@" + email_parts[1] if len(email_parts) == 2 else "***"
+    email_parts = user.email.split('@')
+    masked_email = email_parts[0][:2] + '***@' + email_parts[1] if len(email_parts) == 2 else '***'
 
-    return {"valid": True, "email": masked_email}
+    return {'valid': True, 'email': masked_email}
 
 
-@router.post("/reset-password")
+@router.post('/reset-password')
 async def reset_password(
     form_data: ResetPasswordForm,
     db: AsyncSession = Depends(get_async_session),
@@ -288,21 +288,21 @@ async def reset_password(
     if not await PasswordResetTokens.is_token_valid(form_data.token, db=db):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired password reset token",
+            detail='Invalid or expired password reset token',
         )
 
     token_record = await PasswordResetTokens.get_token_by_token_string(form_data.token, db=db)
     if not token_record:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password reset token not found",
+            detail='Password reset token not found',
         )
 
     user = await Users.get_user_by_id(token_record.user_id, db=db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            detail='User not found',
         )
 
     try:
@@ -318,7 +318,7 @@ async def reset_password(
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update password",
+            detail='Failed to update password',
         )
 
     await PasswordResetTokens.mark_token_as_used(token_record.id, db=db)
@@ -326,8 +326,8 @@ async def reset_password(
     try:
         await email_service.send_password_changed_email(user.email, user.name)
     except Exception as e:
-        log.error(f"Failed to send password changed email to {user.email}: {e}")
+        log.error(f'Failed to send password changed email to {user.email}: {e}')
 
-    log.info(f"Password reset successfully for user {user.id} ({user.email})")
+    log.info(f'Password reset successfully for user {user.id} ({user.email})')
 
-    return {"success": True, "message": "Password reset successfully"}
+    return {'success': True, 'message': 'Password reset successfully'}

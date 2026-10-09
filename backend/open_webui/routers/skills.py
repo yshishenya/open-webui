@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from open_webui.config import BYPASS_ADMIN_ACCESS_CONTROL
@@ -19,7 +18,7 @@ from open_webui.models.skills import (
     SkillUserResponse,
 )
 from open_webui.utils.access_control import filter_allowed_access_grants, has_permission
-from open_webui.utils.auth import get_admin_user, get_verified_user
+from open_webui.utils.auth import get_verified_user
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -70,11 +69,11 @@ async def get_skills(
 
 @router.get('/list', response_model=SkillAccessListResponse)
 async def get_skill_list(
-    query: Optional[str] = None,
-    view_option: Optional[str] = None,
-    order_by: Optional[str] = None,
-    direction: Optional[str] = None,
-    page: Optional[int] = 1,
+    query: str | None = None,
+    view_option: str | None = None,
+    order_by: str | None = None,
+    direction: str | None = None,
+    page: int | None = 1,
     user=Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
 ):
@@ -157,7 +156,7 @@ async def export_skills(
 ############################
 
 
-@router.post('/create', response_model=Optional[SkillResponse])
+@router.post('/create', response_model=SkillResponse | None)
 async def create_new_skill(
     request: Request,
     form_data: SkillForm,
@@ -226,7 +225,7 @@ async def create_new_skill(
 ############################
 
 
-@router.get('/id/{id}', response_model=Optional[SkillAccessResponse])
+@router.get('/id/{id}', response_model=SkillAccessResponse | None)
 async def get_skill_by_id(id: str, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)):
     skill = await Skills.get_skill_by_id(id, db=db)
 
@@ -273,7 +272,7 @@ async def get_skill_by_id(id: str, user=Depends(get_verified_user), db: AsyncSes
 ############################
 
 
-@router.post('/id/{id}/update', response_model=Optional[SkillModel])
+@router.post('/id/{id}/update', response_model=SkillModel | None)
 async def update_skill_by_id(
     request: Request,
     id: str,
@@ -356,7 +355,7 @@ class SkillAccessGrantsForm(BaseModel):
     access_grants: list[dict]
 
 
-@router.post('/id/{id}/access/update', response_model=Optional[SkillModel])
+@router.post('/id/{id}/access/update', response_model=SkillModel | None)
 async def update_skill_access_by_id(
     request: Request,
     id: str,
@@ -413,7 +412,7 @@ async def update_skill_access_by_id(
 ############################
 
 
-@router.post('/id/{id}/toggle', response_model=Optional[SkillModel])
+@router.post('/id/{id}/toggle', response_model=SkillModel | None)
 async def toggle_skill_by_id(
     request: Request,
     id: str,
