@@ -5,6 +5,7 @@ import importlib
 import json
 import os
 from collections.abc import Coroutine, Iterator
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
@@ -17,7 +18,10 @@ from anyio.from_thread import BlockingPortal, start_blocking_portal
 from fastapi.testclient import TestClient
 from open_webui import tasks
 from open_webui.internal import db as native_db
+from open_webui.models.access_grants import AccessGrants
+from open_webui.models.chats import ChatForm, ChatModel, Chats
 from open_webui.models.models import ModelForm, ModelMeta, ModelParams, Models
+from open_webui.models.notes import NoteForm, Notes
 from open_webui.models.task_success import success_summary
 from open_webui.models.users import Users
 from open_webui.utils.airis import chat_dispatch as rules
@@ -30,6 +34,159 @@ from starlette.requests import Request
 
 main = importlib.import_module('open_webui.main')
 DispatchAPI = tuple[TestClient, dict[str, str], dict[str, object], list[str]]
+
+
+def test_note_chat_creation_replays_the_original_chat(dispatch_api: DispatchAPI) -> None:
+    client, headers, _, scheduled = dispatch_api
+    token = decode_token(headers['Authorization'].split()[1])
+    assert token is not None
+    note = asyncio.run(Notes.insert_new_note(token['id'], NoteForm(title='Replay note')))
+    assert note is not None
+    url = f'/api/v1/notes/{note.id}/chat?operation_id={uuid4()}'
+    first = client.post(url, headers=headers)
+    second = client.post(url, headers=headers)
+    assert first.status_code == second.status_code == 200, (first.text, second.text)
+    assert first.json()['id'] == second.json()['id']
+    assert len(client.get(f'/api/v1/notes/{note.id}/chats', headers=headers).json()) == 1
+    assert scheduled == []
+
+
+@pytest.mark.parametrize('method', ['GET', 'POST'])
+def test_concurrent_note_chat_creation_has_one_row(
+    dispatch_api: DispatchAPI, monkeypatch: pytest.MonkeyPatch, method: str
+) -> None:
+    client, headers, _, scheduled = dispatch_api
+    token = decode_token(headers['Authorization'].split()[1])
+    assert token is not None
+    note = asyncio.run(Notes.insert_new_note(token['id'], NoteForm(title='Concurrent note')))
+    assert note is not None
+    ready = asyncio.Event()
+    entered = 0
+    native_insert = Chats.insert_new_chat
+
+    async def concurrent_insert(
+        id: str,
+        user_id: str,
+        form_data: ChatForm,
+        db: native_db.AsyncSession | None = None,
+        *,
+        internal_meta: dict[str, object] | None = None,
+    ) -> ChatModel | None:
+        nonlocal entered
+        entered += 1
+        if entered == 2:
+            ready.set()
+        await asyncio.wait_for(ready.wait(), timeout=5)
+        return await native_insert(id, user_id, form_data, db=db, internal_meta=internal_meta)
+
+    monkeypatch.setattr(Chats, 'insert_new_chat', concurrent_insert)
+    url = f'/api/v1/notes/{note.id}/chat?operation_id={uuid4()}'
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        responses = list(executor.map(lambda _: client.request(method, url, headers=headers), range(2)))
+    assert [response.status_code for response in responses] == [200, 200], [response.text for response in responses]
+    assert responses[0].json()['id'] == responses[1].json()['id']
+    assert len(client.get(f'/api/v1/notes/{note.id}/chats', headers=headers).json()) == 1
+    assert entered == 2 and scheduled == []
+
+
+def test_note_chat_replay_preserves_edits_and_distinct_intents(dispatch_api: DispatchAPI) -> None:
+    client, headers, _, _ = dispatch_api
+    token = decode_token(headers['Authorization'].split()[1])
+    assert token is not None
+    note = asyncio.run(Notes.insert_new_note(token['id'], NoteForm(title='Edited note')))
+    assert note is not None
+    url = f'/api/v1/notes/{note.id}/chat?operation_id={uuid4()}'
+    first = client.post(url, headers=headers)
+    assert first.status_code == 200
+    chat_id = first.json()['id']
+    updated = asyncio.run(
+        Chats.update_chat_by_id(chat_id, {'title': 'User title', 'history': {'messages': {}, 'currentId': None}})
+    )
+    assert updated is not None
+    replay = client.post(url, headers=headers)
+    assert replay.status_code == 200 and replay.json()['chat']['title'] == 'User title'
+    new_intent = client.post(f'/api/v1/notes/{note.id}/chat?operation_id={uuid4()}', headers=headers)
+    legacy = client.post(f'/api/v1/notes/{note.id}/chat', headers=headers)
+    assert new_intent.status_code == legacy.status_code == 200
+    assert len({chat_id, new_intent.json()['id'], legacy.json()['id']}) == 3
+
+
+def test_note_chat_operation_requires_auth_access_and_uuid(dispatch_api: DispatchAPI) -> None:
+    client, headers, _, _ = dispatch_api
+    token = decode_token(headers['Authorization'].split()[1])
+    assert token is not None
+    note = asyncio.run(Notes.insert_new_note(token['id'], NoteForm(title='Private note')))
+    assert note is not None
+    url = f'/api/v1/notes/{note.id}/chat?operation_id={uuid4()}'
+    assert client.post(url).status_code == 401
+    assert client.post(f'/api/v1/notes/{note.id}/chat?operation_id=broken', headers=headers).status_code == 422
+    other = asyncio.run(
+        Users.insert_new_user(str(uuid4()), 'Other reader', f'{uuid4()}@example.invalid', '/user.png', role='user')
+    )
+    assert other is not None
+    assert client.post(url, headers={'Authorization': f'Bearer {create_token({"id": other.id})}'}).status_code == 403
+    assert client.get(f'/api/v1/notes/{note.id}/chats', headers=headers).json() == []
+
+
+def test_same_note_operation_is_isolated_by_note_and_authorized_actor(dispatch_api: DispatchAPI) -> None:
+    client, headers, _, _ = dispatch_api
+    token = decode_token(headers['Authorization'].split()[1])
+    assert token is not None
+    first = asyncio.run(Notes.insert_new_note(token['id'], NoteForm(title='First note')))
+    second = asyncio.run(Notes.insert_new_note(token['id'], NoteForm(title='Second note')))
+    assert first is not None and second is not None
+    other = asyncio.run(
+        Users.insert_new_user(str(uuid4()), 'Shared reader', f'{uuid4()}@example.invalid', '/user.png', role='user')
+    )
+    assert other is not None
+    asyncio.run(
+        AccessGrants.set_access_grants(
+            'note', first.id, [{'principal_type': 'user', 'principal_id': other.id, 'permission': 'read'}]
+        )
+    )
+    operation = uuid4()
+    first_result = client.post(f'/api/v1/notes/{first.id}/chat?operation_id={operation}', headers=headers)
+    second_result = client.post(f'/api/v1/notes/{second.id}/chat?operation_id={operation}', headers=headers)
+    shared = client.post(
+        f'/api/v1/notes/{first.id}/chat?operation_id={operation}',
+        headers={'Authorization': f'Bearer {create_token({"id": other.id})}'},
+    )
+    assert first_result.status_code == second_result.status_code == shared.status_code == 200
+    assert len({first_result.json()['id'], second_result.json()['id'], shared.json()['id']}) == 3
+    assert shared.json()['user_id'] == other.id
+
+
+def test_note_operation_collision_does_not_overwrite_unrelated_chat(dispatch_api: DispatchAPI) -> None:
+    from open_webui.utils.airis.note_chat import note_chat_id
+
+    client, headers, _, _ = dispatch_api
+    token = decode_token(headers['Authorization'].split()[1])
+    assert token is not None
+    note = asyncio.run(Notes.insert_new_note(token['id'], NoteForm(title='Collision note')))
+    assert note is not None
+    operation = uuid4()
+    chat_id = note_chat_id(token['id'], note.id, operation)
+    original = asyncio.run(Chats.insert_new_chat(chat_id, token['id'], ChatForm(chat={'title': 'Keep this chat'})))
+    assert original is not None
+    response = client.post(f'/api/v1/notes/{note.id}/chat?operation_id={operation}', headers=headers)
+    assert response.status_code == 409
+    assert response.json()['detail']['error'] == 'note_chat_operation_conflict'
+    saved = asyncio.run(Chats.get_chat_by_id(chat_id))
+    assert saved is not None and saved.title == 'Keep this chat' and saved.meta == {}
+
+
+@pytest.mark.asyncio
+async def test_note_operation_database_failure_is_a_safe_503() -> None:
+    from fastapi import HTTPException
+    from open_webui.utils.airis.note_chat import create_or_replay_note_chat
+
+    db = AsyncMock(spec=native_db.AsyncSession)
+    db.get.side_effect = OperationalError('fixture sensitive database message', {}, RuntimeError('fixture'))
+    with pytest.raises(HTTPException) as caught:
+        await create_or_replay_note_chat('chat', 'user', 'note', ChatForm(chat={}), db)
+    assert caught.value.status_code == 503
+    assert caught.value.detail == {'error': 'note_chat_creation_unavailable'}
+    db.commit.assert_not_called()
 
 
 @pytest.fixture(autouse=True)

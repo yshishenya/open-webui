@@ -47,9 +47,23 @@ Evidence: /Users/yshishenya/.codex/private-artifacts/airis-chat-dispatch-replay-
 - [x] Ключи прямых tool servers в журнал не записываются; сохраняются SHA256, повтор использует только неизменённые текущие настройки. Явные credentials в оставшемся теле/истории запрещают сохранение. Полный набор frontend: 1247/136 файлов; Black: 463 файла; типов 1666/103, ESLint 970, Ruff 547 — новых диагностик 0.
 - [x] Fresh production 17:05:30 UTC: revision c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908, healthy, restarts 0; environment/config/mounts и 12 соседей совпали. Все 21 защищённых файла основной копии сохранены. Production этого этапа не менялся.
 - [ ] Принятый временный ответ после потерянных событий/перезагрузки пока не извлекается: повтор блокируется и показывается объяснение. Ограничение остаётся до отдельной полной приёмки, не считается готовым восстановлением.
-- [ ] Создание backing chat заметки до отправки модели не имеет долговечного ключа: потеря ответа createNoteChatById может создать второй скрытый чат. Следующий необходимый путь для исправления.
+- [ ] Создание backing chat заметки имело повтор после потерянного ответа; исправление исходников проверяется в следующем разделе. Рабочий выпуск и сохранение черновика до модели ещё не приняты.
 - [ ] Полная проверка Chat.svelte через настоящую модель, квоту и списание, CI/PR, интеграция, чистый образ и выпуск остаются открытыми. Общая цель active, SDD 1/2, план 198/244. Новых номерных закрытий нет.
 
 Evidence: /Users/yshishenya/.codex/private-artifacts/airis-chat-dispatch-client-20261009. Проверяемый итог: verify-checks.py, test-acceptance.json, tested-source-snapshot.json; raw XML/JSON/logs и native Chrome snapshots. Native harness проверяет настоящий helper и браузерные Storage/Locks, без провайдера и биллинга. Исторические тесты сервера 1051 заменены актуальным полным прогоном 1055.
 
 Upstream impact браузера: Chat.svelte содержит привязки состояния, Locks и восстановления к текущему actor/token/history/scope, панель проверки и общие hooks отправки; независимый журнал/валидация/digests вынесены в utils/airis/chat_dispatch.ts, GET клиент — apis/airis/chat_dispatch.ts. Никаких controllers, новых dependencies или изменений OpenAI API contract. main.py подключает один fork-owned GET router.
+
+## Исправление создания чата заметки — в работе
+
+Следующая граница task-2-1: createNoteChatById до запуска модели. Настоящий HTTP/JWT тест подтвердил два различных чата при повторе одного operation_id. Дополнительные проверки прежнего NoteEditor подтвердили потерю идентификатора операции и изменение текущего аккаунта/заметки/черновика поздним ответом: четыре сценария упали до исправления.
+
+- [x] Все callers изучены: явный POST создаёт новый чат по пользовательскому намерению, GET открывает последний или создаёт первый. Оба используют общий fork-owned create_or_replay_note_chat и существующий primary key chat.id, без таблиц/миграций/dependencies.
+- [x] UUID5 связывает user/note/client UUID. Повтор возвращает существующий чат; уникальность БД защищает гонку; конфликт метаданных/владельца отклоняется. Legacy POST без UUID сохраняет новый чат; первое GET создание имеет стабильный ключ.
+- [x] Браузер сохраняет UUID по user/note до создания нового черновика под Web Lock; повтор использует тот же UUID. Отказ Storage не разрешает отправку. actor/token/note/draft сверяются после ожиданий; ключ снимается только после подтверждённого создания.
+- [x] PostgreSQL: 37/0 skip; SQLite: 37/0 skip. Конкурентные GET/POST создали один чат; проверены разные actor/note/intents, сохранение изменённого title, чужой доступ/UUID/коллизия и безопасный 503. Авторизация настоящая, model boundary не вызывается.
+- [x] 117 затронутых frontend сценариев; первый полный прогон 1253/136 файлов. Native Chrome подтвердил UUID после reload и во второй вкладке, отдельные user/note keys и новый UUID после подтверждённой очистки. Новые type/import замечания первого QA исправлены; окончательные типы1666/103, ESLint970, Ruff547 — новых0; Black464.
+- [x] Окончательные runtime/test hashes сверены; полный backend на свежих PostgreSQL fixtures: 1063/0 skip, предупреждений25, UnhandledThread0. Source подготовлен к commit/push; удалённое совпадение фиксируется отдельным receipt.json. Первый full backend1063/0skip прошёл; повтор на прежней report базе дал DuplicateTable в подготовке financial test и UnhandledThread warning. Не ослабляли тест: создан отдельный пустой набор fixture DB, failed logs сохранены.
+- [ ] Восстановление незавершённого черновика заметки до модели после reload ещё не проверено; существующий saveDraft/initEmbeddedDraft путь требует следующего прохода. Временный потерянный результат, настоящая модель/списание и production выпуск остаются открытыми.
+
+Evidence: /Users/yshishenya/.codex/private-artifacts/airis-note-chat-create-replay-20261009. SDD остаётся 1/2 active, task-2-1 in_progress; план198/244 и конечная цельactive.

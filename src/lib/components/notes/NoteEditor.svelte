@@ -77,6 +77,8 @@
 
 	import {
 		normalizeNote,
+		prepareNoteChatOperation,
+		completeNoteChatOperation,
 		type NoteRecord,
 		type NoteFile,
 		type NoteEvent,
@@ -694,34 +696,57 @@ ${content}
 		}
 	};
 
-	const createNoteChat = async () => {
-		if (!note?.id || noteChatLoading) return;
-
-		noteChatId = null;
-		noteChatDraftKey = `${Date.now()}`;
-		showNoteChat = true;
+	const createNoteChat = async (): Promise<void> => {
+		if (!note?.id || !$user?.id || noteChatLoading || noteChatCreating) return;
+		const actor = $user.id,
+			noteId = note.id,
+			token = localStorage.token;
+		try {
+			const operation = await prepareNoteChatOperation(localStorage, actor, noteId);
+			if ($user?.id !== actor || note?.id !== noteId || localStorage.token !== token) return;
+			noteChatId = null;
+			noteChatDraftKey = operation;
+			showNoteChat = true;
+		} catch {
+			toast.error($i18n.t('The request could not be saved safely. Sending is paused.'));
+		}
 	};
 
-	const createNoteChatOnFirstMessage = async () => {
-		if (!note?.id || noteChatCreating) return null;
+	const createNoteChatOnFirstMessage = async (): Promise<SavedChat | null> => {
+		if (!note?.id || !$user?.id || !noteChatDraftKey || noteChatCreating) return null;
+		const actor = $user.id,
+			noteId = note.id,
+			token = localStorage.token,
+			operation = noteChatDraftKey;
+		const isCurrent = (): boolean =>
+			$user?.id === actor &&
+			note?.id === noteId &&
+			localStorage.token === token &&
+			noteChatDraftKey === operation;
 
 		noteChatCreating = true;
 		try {
-			const chat = await createNoteChatById(localStorage.token, note.id).catch((error) => {
-				console.error('[note-chat] create failed', { noteId: note?.id, error });
-				toast.error(`${error}`);
+			const chat = await createNoteChatById(token, noteId, operation).catch((error) => {
+				console.error('[note-chat] create failed', { noteId, error });
+				if (isCurrent()) toast.error(`${error}`);
 				return null;
 			});
-			const chats = chat
-				? await getNoteChatsById(localStorage.token, note.id).catch((error) => {
-						console.error('[note-chat] history failed', { noteId: note?.id, error });
-						return null;
-					})
-				: null;
+			if (!isCurrent() || !chat || chat.user_id !== actor || chat.meta?.note_id !== noteId)
+				return null;
+			const chats = await getNoteChatsById(token, noteId).catch((error) => {
+				console.error('[note-chat] history failed', { noteId, error });
+				return null;
+			});
+			if (!isCurrent()) return null;
 
 			if (chat?.id) {
 				noteChats = chats ?? [chat, ...noteChats.filter((item) => item.id !== chat.id)];
 				showNoteChat = true;
+				try {
+					completeNoteChatOperation(localStorage, actor, noteId, operation);
+				} catch {
+					console.warn('Note chat created; pending operation cleanup failed');
+				}
 			}
 
 			return chat;

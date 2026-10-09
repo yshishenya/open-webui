@@ -298,6 +298,7 @@ export type ContextUsage = {
 export type SavedChat = {
 	id: string;
 	user_id: string;
+	meta?: Record<string, unknown>;
 	title: string;
 	created_at: number;
 	updated_at: number;

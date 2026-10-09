@@ -2,7 +2,13 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 import { expect, it, vi } from 'vitest';
-import { normalizeNote, readNoteResponse } from '../src/lib/utils/airis/notes';
+import {
+	normalizeNote,
+	readNoteResponse,
+	prepareNoteChatOperation,
+	completeNoteChatOperation
+} from '../src/lib/utils/airis/notes';
+import { webcrypto } from 'node:crypto';
 
 const editorPath = 'src/lib/components/notes/NoteEditor.svelte';
 const apiPath = 'src/lib/apis/notes/index.ts';
@@ -48,6 +54,132 @@ const noteRecord = (id = 'A') => ({
 	write_access: true,
 	created_at: 1,
 	updated_at: 1
+});
+
+it('note backing creation retries the original operation after a lost response', async () => {
+	const operation = '00000000-0000-4000-8000-000000000001';
+	const chat = { id: 'backing-chat', user_id: 'user', meta: { note_id: 'A' } };
+	const c = {
+		note: noteRecord(),
+		$user: { id: 'user' },
+		localStorage: { token: 'token' },
+		noteChatDraftKey: operation,
+		noteChatCreating: false,
+		noteChatId: null,
+		noteChats: [],
+		showNoteChat: false,
+		createNoteChatById: vi
+			.fn()
+			.mockRejectedValueOnce(new Error('lost response'))
+			.mockResolvedValue(chat),
+		getNoteChatsById: vi.fn().mockResolvedValue([chat]),
+		completeNoteChatOperation: vi.fn(),
+		console: { error: vi.fn(), warn: vi.fn() },
+		toast: { error: vi.fn() },
+		$i18n: { t: (s: string) => s }
+	};
+	const create = evaluate<() => Promise<object | null>>(
+		`(${initializer(editorPath, 'createNoteChatOnFirstMessage')})`,
+		c
+	);
+	expect(await create()).toBe(null);
+	expect(await create()).toEqual(chat);
+	expect(c.createNoteChatById.mock.calls).toEqual([
+		['token', 'A', operation],
+		['token', 'A', operation]
+	]);
+	expect(c.completeNoteChatOperation).toHaveBeenCalledTimes(1);
+});
+
+it.each(['account', 'note', 'draft'])(
+	'late backing creation cannot change the new %s',
+	async (change) => {
+		const response = deferred<object>();
+		const c = {
+			note: noteRecord(),
+			$user: { id: 'user' },
+			localStorage: { token: 'token' },
+			noteChatDraftKey: '00000000-0000-4000-8000-000000000001',
+			noteChatCreating: false,
+			noteChats: [] as object[],
+			showNoteChat: false,
+			createNoteChatById: vi.fn().mockReturnValue(response.promise),
+			getNoteChatsById: vi.fn().mockResolvedValue([]),
+			completeNoteChatOperation: vi.fn(),
+			console: { error: vi.fn(), warn: vi.fn() },
+			toast: { error: vi.fn() },
+			$i18n: { t: (s: string) => s }
+		};
+		const create = evaluate<() => Promise<object | null>>(
+			`(${initializer(editorPath, 'createNoteChatOnFirstMessage')})`,
+			c
+		);
+		const pending = create();
+		if (change === 'account') {
+			c.$user.id = 'other';
+			c.localStorage.token = 'other-token';
+		}
+		if (change === 'note') c.note = noteRecord('B');
+		if (change === 'draft') c.noteChatDraftKey = '00000000-0000-4000-8000-000000000002';
+		response.resolve({ id: 'old-chat', user_id: 'user', meta: { note_id: 'A' } });
+		expect(await pending).toBe(null);
+		expect(c.noteChats).toEqual([]);
+		expect(c.getNoteChatsById).not.toHaveBeenCalled();
+		expect(c.completeNoteChatOperation).not.toHaveBeenCalled();
+	}
+);
+
+it('note operation persists across retries and is isolated by actor and note', async () => {
+	const data = new Map<string, string>();
+	const storage = {
+		getItem: (key: string): string | null => data.get(key) ?? null,
+		setItem: (key: string, value: string): void => {
+			data.set(key, value);
+		},
+		removeItem: (key: string): void => {
+			data.delete(key);
+		},
+		clear: (): void => {
+			data.clear();
+		},
+		key: (index: number): string | null => [...data.keys()][index] ?? null,
+		get length(): number {
+			return data.size;
+		}
+	};
+	vi.stubGlobal('crypto', webcrypto);
+	vi.stubGlobal('navigator', {
+		locks: { request: async (_key: string, run: () => Promise<string>) => await run() }
+	});
+	try {
+		const original = await prepareNoteChatOperation(storage, 'user', 'A');
+		expect(await prepareNoteChatOperation(storage, 'user', 'A')).toBe(original);
+		expect(await prepareNoteChatOperation(storage, 'other', 'A')).not.toBe(original);
+		expect(await prepareNoteChatOperation(storage, 'user', 'B')).not.toBe(original);
+		completeNoteChatOperation(storage, 'user', 'A', 'stale');
+		expect(await prepareNoteChatOperation(storage, 'user', 'A')).toBe(original);
+		completeNoteChatOperation(storage, 'user', 'A', original);
+		expect(await prepareNoteChatOperation(storage, 'user', 'A')).not.toBe(original);
+		storage.setItem('airis-pending-note-chat:["user","A"]', 'corrupt');
+		await expect(prepareNoteChatOperation(storage, 'user', 'A')).rejects.toThrow('Invalid saved');
+		vi.spyOn(storage, 'setItem').mockImplementation(() => {
+			throw new Error('quota exceeded');
+		});
+		await expect(prepareNoteChatOperation(storage, 'user', 'C')).rejects.toThrow('quota exceeded');
+	} finally {
+		vi.unstubAllGlobals();
+	}
+});
+
+it('note chat API sends the operation identifier to the native endpoint', async () => {
+	const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'created' }) });
+	const create = evaluate<(token: string, noteId: string, operation: string) => Promise<object>>(
+		`(${initializer(apiPath, 'createNoteChatById')})`,
+		{ fetch, WEBUI_API_BASE_URL: '/api/v1', encodeURIComponent }
+	);
+	const operation = '00000000-0000-4000-8000-000000000001';
+	expect(await create('token', 'A', operation)).toEqual({ id: 'created' });
+	expect(fetch.mock.calls[0][0]).toBe(`/api/v1/notes/A/chat?operation_id=${operation}`);
 });
 const setup = () => {
 	const timers = new Map<number, () => unknown>();

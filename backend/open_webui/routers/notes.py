@@ -1,5 +1,5 @@
 import logging
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from open_webui.config import BYPASS_ADMIN_ACCESS_CONTROL
@@ -7,7 +7,7 @@ from open_webui.constants import ERROR_MESSAGES
 from open_webui.events import EVENTS, publish_event
 from open_webui.internal.db import get_async_session
 from open_webui.models.access_grants import AccessGrants
-from open_webui.models.chats import ChatForm, ChatResponse, Chats
+from open_webui.models.chats import ChatForm, ChatModel, ChatResponse, Chats
 from open_webui.models.config import Config
 from open_webui.models.groups import Groups
 from open_webui.models.notes import (
@@ -17,9 +17,10 @@ from open_webui.models.notes import (
     Notes,
     NoteUserResponse,
 )
-from open_webui.models.users import UserResponse, Users
+from open_webui.models.users import UserModel, UserResponse, Users
 from open_webui.socket.main import sio
 from open_webui.utils.access_control import filter_allowed_access_grants, has_permission, has_public_write_access_grant
+from open_webui.utils.airis.note_chat import create_or_replay_note_chat, note_chat_id
 from open_webui.utils.auth import get_verified_user
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -298,9 +299,9 @@ async def get_note_by_id(
 async def get_note_chat_by_id(
     request: Request,
     id: str,
-    user=Depends(get_verified_user),
+    user: UserModel = Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
-):
+) -> ChatModel:
     log.info('[note-chat] get-or-create requested note_id=%s user_id=%s', id, user.id)
     if user.role != 'admin' and not await has_permission(
         user.id, 'features.notes', await Config.get('user.permissions'), db=db
@@ -357,10 +358,11 @@ async def get_note_chat_by_id(
 
         return chat
 
-    chat_id = str(uuid4())
-    chat = await Chats.insert_new_chat(
+    chat_id = note_chat_id(user.id, note.id, UUID(int=0))
+    chat = await create_or_replay_note_chat(
         chat_id,
         user.id,
+        note.id,
         ChatForm(
             chat={
                 'id': chat_id,
@@ -380,7 +382,6 @@ async def get_note_chat_by_id(
             }
         ),
         db=db,
-        internal_meta={'internal': True, 'type': 'note', 'note_id': note.id},
     )
     if not chat:
         log.error('[note-chat] failed creating hidden chat note_id=%s user_id=%s', note.id, user.id)
@@ -457,9 +458,10 @@ async def get_note_chats_by_id(
 async def create_note_chat_by_id(
     request: Request,
     id: str,
-    user=Depends(get_verified_user),
+    operation_id: UUID | None = None,
+    user: UserModel = Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
-):
+) -> ChatModel:
     if user.role != 'admin' and not await has_permission(
         user.id, 'features.notes', await Config.get('user.permissions'), db=db
     ):
@@ -484,10 +486,11 @@ async def create_note_chat_by_id(
     ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ERROR_MESSAGES.DEFAULT())
 
-    chat_id = str(uuid4())
-    chat = await Chats.insert_new_chat(
+    chat_id = note_chat_id(user.id, note.id, operation_id or uuid4())
+    chat = await create_or_replay_note_chat(
         chat_id,
         user.id,
+        note.id,
         ChatForm(
             chat={
                 'id': chat_id,
@@ -507,7 +510,6 @@ async def create_note_chat_by_id(
             }
         ),
         db=db,
-        internal_meta={'internal': True, 'type': 'note', 'note_id': note.id},
     )
     if not chat:
         log.error('[note-chat] failed creating hidden chat note_id=%s user_id=%s', note.id, user.id)

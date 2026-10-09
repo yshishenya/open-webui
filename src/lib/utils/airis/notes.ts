@@ -1,6 +1,40 @@
 import type { Content, JSONContent } from '@tiptap/core';
 import type { SessionUser } from '$lib/stores';
 
+const pendingNoteChatKey = (actor: string, noteId: string): string =>
+	`airis-pending-note-chat:${JSON.stringify([actor, noteId])}`;
+
+export const prepareNoteChatOperation = async (
+	storage: Storage,
+	actor: string,
+	noteId: string
+): Promise<string> => {
+	if (!actor || !noteId || !navigator.locks) throw new Error('Cannot save note chat operation');
+	const key = pendingNoteChatKey(actor, noteId);
+	return await navigator.locks.request(key, async () => {
+		const previous = storage.getItem(key);
+		if (previous !== null) {
+			if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(previous))
+				throw new Error('Invalid saved note chat operation');
+			return previous;
+		}
+		const operation = crypto.randomUUID();
+		storage.setItem(key, operation);
+		if (storage.getItem(key) !== operation) throw new Error('Cannot save note chat operation');
+		return operation;
+	});
+};
+
+export const completeNoteChatOperation = (
+	storage: Storage,
+	actor: string,
+	noteId: string,
+	operation: string
+): void => {
+	const key = pendingNoteChatKey(actor, noteId);
+	if (storage.getItem(key) === operation) storage.removeItem(key);
+};
+
 export type NoteContent = Record<string, unknown> & {
 	md: string;
 	html: string;
