@@ -2,7 +2,7 @@
 	"spec_id": "airis-unused-binding-types-2026-10-09-954",
 	"title": "airis-unused-binding-types",
 	"generated": "2026-10-09T06:54:12.946913Z",
-	"last_updated": "2026-10-09T07:05:25.485378Z",
+	"last_updated": "2026-10-09T07:09:44.019761Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "low",
@@ -11,19 +11,20 @@
 		"security_sensitive": false,
 		"default_category": "refactoring",
 		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__unused-binding-types.md",
-		"status": "active",
+		"status": "completed",
 		"activated_date": "2026-10-09T06:55:17.342778Z",
-		"progress_percentage": 50
+		"progress_percentage": 100,
+		"completed_date": "2026-10-09T07:09:44.019519Z"
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
 			"title": "airis-unused-binding-types",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2"],
 			"total_tasks": 2,
-			"completed_tasks": 1,
+			"completed_tasks": 2,
 			"metadata": {}
 		},
 		"phase-1": {
@@ -43,12 +44,16 @@
 		"phase-2": {
 			"type": "phase",
 			"title": "Verify runtime/API/full tests, cleanup and push accepted source",
-			"status": "pending",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-2-1"],
 			"total_tasks": 1,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T07:09:43.433929Z",
+				"journaled_at": "2026-10-09T07:09:43.436538Z"
+			}
 		},
 		"task-1-1": {
 			"type": "task",
@@ -75,7 +80,7 @@
 		"task-2-1": {
 			"type": "task",
 			"title": "Verify contracts, full suites, isolated cleanup and source delivery",
-			"status": "pending",
+			"status": "completed",
 			"parent": "phase-2",
 			"children": [],
 			"dependencies": {
@@ -84,9 +89,13 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"metadata": {
-				"file_path": "backend/open_webui"
+				"file_path": "backend/open_webui",
+				"completed_at": "2026-10-09T07:09:43.433586Z",
+				"needs_journaling": false,
+				"status_note": "Source9ca67a83bdf6ad5e11a2a4dd1108bf91ea3acc30 pushed/remote verified. Backend1025/frontend952/HTTP8, Black454;614 route/dependency contracts identical; no new Ruff diagnostics. Source454/frontend1061 hashes and primary21/production preserved; owned4 PG databases/baseline removed,0 volumes deleted. General checks/release remain open.",
+				"journaled_at": "2026-10-09T07:09:43.435130Z"
 			},
 			"description": "Accept focused source only; preserve general quality/release gates."
 		}
@@ -109,6 +118,24 @@
 			"content": "All child tasks in phase phase-1 have been completed.",
 			"metadata": {},
 			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-09T07:09:43.435125Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify contracts, full suites, isolated cleanup and source delivery",
+			"author": "Codex",
+			"content": "Task task-2-1 marked as completed. \nNote: Source9ca67a83bdf6ad5e11a2a4dd1108bf91ea3acc30 pushed/remote verified. Backend1025/frontend952/HTTP8, Black454;614 route/dependency contracts identical; no new Ruff diagnostics. Source454/frontend1061 hashes and primary21/production preserved; owned4 PG databases/baseline removed,0 volumes deleted. General checks/release remain open.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-09T07:09:43.436533Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify runtime/API/full tests, cleanup and push accepted source",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
 		}
 	]
 }

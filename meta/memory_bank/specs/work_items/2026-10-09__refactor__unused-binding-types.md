@@ -1,7 +1,7 @@
 # Type and remove remaining unused bindings
 
 Workflow: refactoring. Branch: `codex/refactor/unused-binding-types`.
-SDD Spec: meta/sdd/specs/active/airis-unused-binding-types-2026-10-09-954.json
+SDD Spec: meta/sdd/specs/completed/airis-unused-binding-types-2026-10-09-954.json
 
 ## Goal and scope
 
@@ -13,7 +13,7 @@ Fresh airis_b2c d579f5c02926cace8c8da60434ce1c39c7284361; explicitly merge accep
 - [x] Remove22 unused bindings, preserve5 evaluations and453 canonical runtime ASTs/comments under exact reviewed allowances;0 new diagnostics, F8410.
 - [x] Runtime schemas/API/dependencies/response encoding, forms/tools/ORM/migrations identical apart from reviewed annotations; focused HTTP regression and full Docker suites pass.
 - [x] Black454; frontend type/lint counts unchanged; source454/frontend1061 hashes preserved; primary21/production preserved.
-- [ ] Validate179 SDD specs; cleanup only owned fixtures/baseline; commit/push, prove remote SHA.
+- [x] Validate179 SDD specs; cleanup only owned fixtures/baseline; commit/push, prove remote SHA.
 
 ## Upstream impact
 
@@ -30,3 +30,7 @@ Ruff712→690, added0, F4010/F8410. All453 existing source ASTs/comments preserv
 ## Full verification
 
 1025 backend tests passed,0 failures/errors/skips (115.563s);952 frontend tests/123 files passed. The8 new HTTP cases passed before and after annotations. Black454 accepted,454 backend/1061 frontend hashes remained unchanged during tests. Type2271/108 and ESLint1020 remain unsuccessful.179 SDD files valid. Primary21 and production c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908 preserved at2026-10-09T07:05:47.910395 UTC. Four owned temporary PostgreSQL DBs removed; HostConfig.Tmpfs verified;0 persistent volumes deleted. Baseline453 hashes checked before removal.
+
+## Source delivery
+
+Application source9ca67a83bdf6ad5e11a2a4dd1108bf91ea3acc30 pushed to codex/refactor/unused-binding-types; remote SHA matches. Focused SDD2/2 complete. General quality, PR/integration, clean image and release remain pending. Plan198/244 unchanged; no numbered closure.
