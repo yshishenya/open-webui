@@ -1,10 +1,10 @@
 # Изоляция вложений черновика пользовательского сообщения
 
 - Type: bugfix
-- Status: in-progress
+- Status: source-complete; release-pending
 - Owner: Codex
 - Branch: codex/bugfix/user-message-draft-isolation
-- SDD Spec: meta/sdd/specs/active/airis-user-message-draft-isolation-2026-10-09-023.json
+- SDD Spec: meta/sdd/specs/completed/airis-user-message-draft-isolation-2026-10-09-023.json
 - Base: origin/airis_b2c; явная зависимость 3fd83efc031192a100a2e23c79b41a2334e1b9e8.
 
 ## Цель и измеримые критерии
@@ -15,7 +15,7 @@
 - [x] Один runnable-набор исполняет реальные обработчики, падает на исходной версии для дефекта и проходит после исправления.
 - [x] Минимальное копирование массива, точные типы и нативный DOM; пустая metadata/content защищены существующими контрактами.
 - [x] Полный frontend/форматирование/диагностики; полный compiled-diff вне перечисленных изменений; backend/primary/runtime сохранены.
-- [ ] Исходники заморожены; отправка/удалённый SHA/Git-объекты сверены; SDD исходников завершён.
+- [x] Исходники заморожены; отправка/удалённый SHA/Git-объекты сверены; SDD исходников завершён.
 - [ ] Общие нулевые проверки, preflight/PR/интеграция, fresh backend/E2E одной версии, выпуск и приёмка A/B.
 
 ## Причина и область
@@ -37,3 +37,7 @@ Upstream impact: UserMessage.svelte — изоляция массива и су�
 1526 файлов заморожены: frontend1072/backend454. Backend совпадает с прежними1025 успешными тестами; backend/Black/Ruff здесь не повторялись. Primary21 и production/12 соседей сохранены; production c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908, healthy, перезапусков0. Только чтение рабочего сервера.
 
 Свежий cua.getApp(Mail): Mac заблокирован, автоматическая разблокировка не удалась. Native UI операций0; Reply-To и доступ двух операторов не подтверждены. Кодовая работа доступна, вся цель не заблокирована. Общие нулевые проверки, full backend/E2E одной версии, preflight/PR/интеграция/образ/выпуск и настоящая приёмка A/B открыты. План198/244, цельactive.
+
+## Доставка исходников
+
+Source SHA: `740ac2594923faaf84e7e029f0544328f73d5bae`. Отправлен в codex/bugfix/user-message-draft-isolation; удалённый SHA и1526 проверенных Git-объектов совпали. SDD исходников2/2 завершён;196 спецификаций валидны. PR/интеграция/образ/deploy отсутствуют. G14 и полная продуктовая цель остаются открытыми.
