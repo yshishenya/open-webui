@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Union
+from typing import Any, Union
 
 from pydantic import BaseModel
 
@@ -7,18 +7,18 @@ from pydantic import BaseModel
 class VectorItem(BaseModel):
     id: str
     text: str
-    vector: List[float | int]
+    vector: list[float | int]
     metadata: Any
 
 
 class GetResult(BaseModel):
-    ids: List[List[str]] | None
-    documents: List[List[str]] | None
-    metadatas: List[List[Any]] | None
+    ids: list[list[str]] | None
+    documents: list[list[str]] | None
+    metadatas: list[list[Any]] | None
 
 
 class SearchResult(GetResult):
-    distances: List[List[float | int]] | None
+    distances: list[list[float | int]] | None
 
 
 class VectorDBBase(ABC):
@@ -43,12 +43,12 @@ class VectorDBBase(ABC):
         pass
 
     @abstractmethod
-    def insert(self, collection_name: str, items: List[VectorItem]) -> None:
+    def insert(self, collection_name: str, items: list[VectorItem]) -> None:
         """Insert a list of vector items into a collection."""
         pass
 
     @abstractmethod
-    def upsert(self, collection_name: str, items: List[VectorItem]) -> None:
+    def upsert(self, collection_name: str, items: list[VectorItem]) -> None:
         """Insert or update vector items in a collection."""
         pass
 
@@ -56,8 +56,8 @@ class VectorDBBase(ABC):
     def search(
         self,
         collection_name: str,
-        vectors: List[List[Union[float, int]]],
-        filter: Dict | None = None,
+        vectors: list[list[Union[float, int]]],
+        filter: dict | None = None,
         limit: int = 10,
     ) -> SearchResult | None:
         """Search for similar vectors in a collection."""
@@ -67,8 +67,8 @@ class VectorDBBase(ABC):
         self,
         collection_name: str,
         query: str,
-        vectors: List[List[Union[float, int]]],
-        filter: Dict | None = None,
+        vectors: list[list[Union[float, int]]],
+        filter: dict | None = None,
         limit: int = 10,
         hybrid_bm25_weight: float = 0.5,
     ) -> SearchResult | None:
@@ -76,7 +76,7 @@ class VectorDBBase(ABC):
         return None
 
     @abstractmethod
-    def query(self, collection_name: str, filter: Dict, limit: int | None = None) -> GetResult | None:
+    def query(self, collection_name: str, filter: dict, limit: int | None = None) -> GetResult | None:
         """Query vectors from a collection using metadata filter."""
         pass
 
@@ -89,8 +89,8 @@ class VectorDBBase(ABC):
     def delete(
         self,
         collection_name: str,
-        ids: List[str] | None = None,
-        filter: Dict | None = None,
+        ids: list[str] | None = None,
+        filter: dict | None = None,
     ) -> None:
         """Delete vectors by ID or filter from a collection."""
         pass

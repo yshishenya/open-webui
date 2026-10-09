@@ -3,7 +3,7 @@ NOTE: This vector database integration is community-supported and maintained on 
 """
 
 import logging
-from typing import Any, Dict, List, Union
+from typing import Any, Union
 
 import boto3
 from open_webui.config import S3_VECTOR_BUCKET_NAME, S3_VECTOR_REGION
@@ -75,7 +75,7 @@ class S3VectorClient(VectorDBBase):
             log.error(f"Error creating S3 index '{index_name}': {e}")
             raise
 
-    def _filter_metadata(self, metadata: Dict[str, Any], item_id: str) -> Dict[str, Any]:
+    def _filter_metadata(self, metadata: dict[str, Any], item_id: str) -> dict[str, Any]:
         """
         Filter vector metadata keys to comply with S3 Vector API limit of 10 keys maximum.
         """
@@ -144,7 +144,7 @@ class S3VectorClient(VectorDBBase):
             log.error(f"Error deleting collection '{collection_name}': {e}")
             raise
 
-    def insert(self, collection_name: str, items: List[VectorItem]) -> None:
+    def insert(self, collection_name: str, items: list[VectorItem]) -> None:
         """
         Insert vector items into the S3 Vector index. Create index if it does not exist.
         """
@@ -209,7 +209,7 @@ class S3VectorClient(VectorDBBase):
             log.error(f'Error inserting vectors: {e}')
             raise
 
-    def upsert(self, collection_name: str, items: List[VectorItem]) -> None:
+    def upsert(self, collection_name: str, items: list[VectorItem]) -> None:
         """
         Insert or update vector items in the S3 Vector index. Create index if it does not exist.
         """
@@ -283,7 +283,7 @@ class S3VectorClient(VectorDBBase):
     def search(
         self,
         collection_name: str,
-        vectors: List[List[Union[float, int]]],
+        vectors: list[list[Union[float, int]]],
         filter: dict | None = None,
         limit: int = 10,
     ) -> SearchResult | None:
@@ -388,7 +388,7 @@ class S3VectorClient(VectorDBBase):
                     return None
             raise
 
-    def query(self, collection_name: str, filter: Dict, limit: int | None = None) -> GetResult | None:
+    def query(self, collection_name: str, filter: dict, limit: int | None = None) -> GetResult | None:
         """
         Query vectors from a collection using metadata filter.
         """
@@ -559,8 +559,8 @@ class S3VectorClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: List[str] | None = None,
-        filter: Dict | None = None,
+        ids: list[str] | None = None,
+        filter: dict | None = None,
     ) -> None:
         """
         Delete vectors by ID or filter from a collection.
@@ -655,7 +655,7 @@ class S3VectorClient(VectorDBBase):
             log.error(f'Error during reset: {e}')
             raise
 
-    def _matches_filter(self, metadata: Dict[str, Any], filter: Dict[str, Any]) -> bool:
+    def _matches_filter(self, metadata: dict[str, Any], filter: dict[str, Any]) -> bool:
         """
         Check if metadata matches the given filter conditions.
         """

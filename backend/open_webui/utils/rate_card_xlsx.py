@@ -3,7 +3,7 @@ import json
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Iterable, List, Sequence, Tuple
+from typing import Iterable, Sequence
 
 from openpyxl import Workbook, load_workbook
 
@@ -28,7 +28,7 @@ class RateCardUnit:
     unit: str
 
 
-ALLOWED_UNITS: Tuple[RateCardUnit, ...] = (
+ALLOWED_UNITS: tuple[RateCardUnit, ...] = (
     RateCardUnit(modality='text', unit='token_in'),
     RateCardUnit(modality='text', unit='token_out'),
     RateCardUnit(modality='image', unit='image_1024'),
@@ -38,7 +38,7 @@ ALLOWED_UNITS: Tuple[RateCardUnit, ...] = (
 
 ALLOWED_MODALITIES = {'text', 'image', 'tts', 'stt'}
 
-ALLOWED_UNITS_BY_MODALITY: Dict[str, set[str]] = {
+ALLOWED_UNITS_BY_MODALITY: dict[str, set[str]] = {
     'text': {'token_in', 'token_out'},
     'image': {'image_1024'},
     'tts': {'tts_char'},
@@ -135,7 +135,7 @@ def parse_bool(value: object) -> bool | None:
     return None
 
 
-def parse_price_kopeks(value: object) -> Tuple[int | None, str | None]:
+def parse_price_kopeks(value: object) -> tuple[int | None, str | None]:
     """Return (parsed_int, error_message)."""
 
     if value is None:
@@ -180,7 +180,7 @@ def dump_scope_model_ids(scope_model_ids: Sequence[str]) -> str:
     return json.dumps(list(scope_model_ids))
 
 
-def parse_scope_model_ids(value: str) -> Tuple[List[str] | None, str | None]:
+def parse_scope_model_ids(value: str) -> tuple[list[str] | None, str | None]:
     """Return (ids, error)."""
 
     text = normalize_str(value)
@@ -195,7 +195,7 @@ def parse_scope_model_ids(value: str) -> Tuple[List[str] | None, str | None]:
     if not isinstance(parsed, list):
         return None, 'scope_model_ids must be a JSON array'
 
-    ids: List[str] = []
+    ids: list[str] = []
     for item in parsed:
         item_text = normalize_str(item)
         if item_text:
@@ -213,10 +213,10 @@ def build_rate_card_key(model_id: str, modality: str, unit: str) -> str:
 
 def build_latest_active_index(
     entries: Iterable[PricingRateCardModel],
-) -> Dict[str, PricingRateCardModel]:
+) -> dict[str, PricingRateCardModel]:
     """Defensive: if multiple active rows exist, pick max created_at."""
 
-    index: Dict[str, PricingRateCardModel] = {}
+    index: dict[str, PricingRateCardModel] = {}
     for entry in entries:
         if not entry.is_active:
             continue
@@ -231,7 +231,7 @@ def build_export_workbook(
     *,
     mode: XlsxExportMode,
     model_ids: Sequence[str],
-    model_names: Dict[str, str],
+    model_names: dict[str, str],
     active_entries: Iterable[PricingRateCardModel],
 ) -> bytes:
     """Create XLSX bytes for export.
@@ -324,8 +324,8 @@ def build_export_workbook(
     return stream.getvalue()
 
 
-def parse_import_workbook(file_bytes: bytes) -> Tuple[List[ParsedRateCardRow], List[XlsxError]]:
-    errors: List[XlsxError] = []
+def parse_import_workbook(file_bytes: bytes) -> tuple[list[ParsedRateCardRow], list[XlsxError]]:
+    errors: list[XlsxError] = []
 
     try:
         wb = load_workbook(io.BytesIO(file_bytes), data_only=True)
@@ -343,7 +343,7 @@ def parse_import_workbook(file_bytes: bytes) -> Tuple[List[ParsedRateCardRow], L
         return [], [XlsxError(code='invalid_template', message='Empty workbook')]
 
     header_row = rows[0]
-    header_map: Dict[str, int] = {}
+    header_map: dict[str, int] = {}
     for idx, cell in enumerate(header_row):
         name = normalize_str(cell)
         if name:
@@ -365,7 +365,7 @@ def parse_import_workbook(file_bytes: bytes) -> Tuple[List[ParsedRateCardRow], L
             )
         ]
 
-    parsed_rows: List[ParsedRateCardRow] = []
+    parsed_rows: list[ParsedRateCardRow] = []
 
     for excel_idx, row in enumerate(rows[1:], start=2):
         model_id = normalize_str(row[header_map['model_id']] if header_map.get('model_id') is not None else '')
@@ -473,9 +473,9 @@ def compute_import_plan(
     known_model_ids: set[str],
     current_active_entries: Iterable[PricingRateCardModel],
     base_errors: Sequence[XlsxError] = (),
-) -> Tuple[XlsxImportSummary, List[XlsxWarning], List[XlsxError], List[ImportAction]]:
-    warnings: List[XlsxWarning] = []
-    errors: List[XlsxError] = list(base_errors)
+) -> tuple[XlsxImportSummary, list[XlsxWarning], list[XlsxError], list[ImportAction]]:
+    warnings: list[XlsxWarning] = []
+    errors: list[XlsxError] = list(base_errors)
 
     invalid_row_numbers = {err.row_number for err in base_errors if err.row_number is not None}
 
@@ -483,7 +483,7 @@ def compute_import_plan(
 
     active_index = build_latest_active_index(current_active_entries)
 
-    seen_keys: Dict[str, int] = {}
+    seen_keys: dict[str, int] = {}
 
     creates = 0
     updates_via_create = 0
@@ -492,9 +492,9 @@ def compute_import_plan(
     skipped_unknown_model = 0
     skipped_out_of_scope = 0
 
-    actions: List[ImportAction] = []
+    actions: list[ImportAction] = []
 
-    valid_rows: List[ParsedRateCardRow] = []
+    valid_rows: list[ParsedRateCardRow] = []
 
     for row in rows:
         if row.row_number in invalid_row_numbers:

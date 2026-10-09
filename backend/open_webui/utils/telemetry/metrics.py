@@ -21,7 +21,7 @@ import datetime
 import logging
 import time
 from base64 import b64encode
-from typing import Dict, Iterable, List
+from typing import Iterable
 
 from fastapi import FastAPI, Request
 from open_webui.env import (
@@ -101,14 +101,14 @@ def _build_meter_provider(resource: Resource) -> MeterProvider:
 
     # Periodic reader pushes metrics over OTLP/gRPC to collector
     if OTEL_METRICS_OTLP_SPAN_EXPORTER == 'http':
-        readers: List[PeriodicExportingMetricReader] = [
+        readers: list[PeriodicExportingMetricReader] = [
             PeriodicExportingMetricReader(
                 OTLPHttpMetricExporter(endpoint=OTEL_METRICS_EXPORTER_OTLP_ENDPOINT, headers=headers),
                 export_interval_millis=OTEL_METRICS_EXPORT_INTERVAL_MILLIS,
             )
         ]
     else:
-        readers: List[PeriodicExportingMetricReader] = [
+        readers: list[PeriodicExportingMetricReader] = [
             PeriodicExportingMetricReader(
                 OTLPMetricExporter(
                     endpoint=OTEL_METRICS_EXPORTER_OTLP_ENDPOINT,
@@ -120,7 +120,7 @@ def _build_meter_provider(resource: Resource) -> MeterProvider:
         ]
 
     # Optional view to limit cardinality: drop user-agent etc.
-    views: List[View] = [
+    views: list[View] = [
         View(
             instrument_name='http.server.duration',
             attribute_keys=['http.method', 'http.route', 'http.status_code'],
@@ -242,7 +242,7 @@ def setup_metrics(app: FastAPI, resource: Resource, db_engine: Engine) -> None:
             route = request.scope.get('route')
             route_path = getattr(route, 'path', request.url.path)
 
-            attrs: Dict[str, str | int] = {
+            attrs: dict[str, str | int] = {
                 'http.method': request.method,
                 'http.route': route_path,
                 'http.status_code': status_code,

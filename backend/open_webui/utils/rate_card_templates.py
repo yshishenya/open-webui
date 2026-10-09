@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Dict, List, Sequence, Tuple
+from typing import Sequence
 
 from open_webui.env import BILLING_RATE_CARD_VERSION
 
-RateCardTemplate = Dict[str, object]
-ModalityUnit = Tuple[str, str]
+RateCardTemplate = dict[str, object]
+ModalityUnit = tuple[str, str]
 
 
-DEFAULT_RATE_CARD_TEMPLATES: List[RateCardTemplate] = [
+DEFAULT_RATE_CARD_TEMPLATES: list[RateCardTemplate] = [
     {
         'modality': 'text',
         'unit': 'token_in',
@@ -43,13 +43,13 @@ def build_rate_cards_for_model(
     is_active: bool = True,
     is_default: bool = True,
     allowed_units: Sequence[ModalityUnit] | None = None,
-) -> List[RateCardTemplate]:
+) -> list[RateCardTemplate]:
     """Build rate card entries for a model based on default templates."""
     now = created_at or int(time.time())
     version_value = version or BILLING_RATE_CARD_VERSION
     allowed = set(allowed_units) if allowed_units else None
 
-    entries: List[RateCardTemplate] = []
+    entries: list[RateCardTemplate] = []
     for template in DEFAULT_RATE_CARD_TEMPLATES:
         modality = str(template.get('modality', ''))
         unit = str(template.get('unit', ''))

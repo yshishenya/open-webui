@@ -53,7 +53,7 @@ their own `asyncio.to_thread`, e.g. ::
 from __future__ import annotations
 
 import asyncio
-from typing import Dict, List, Union
+from typing import Union
 
 from open_webui.retrieval.vector.factory import VECTOR_DB_CLIENT
 from open_webui.retrieval.vector.main import (
@@ -92,17 +92,17 @@ class AsyncVectorDBClient:
     async def delete_collection(self, collection_name: str) -> None:
         return await asyncio.to_thread(self._sync.delete_collection, collection_name)
 
-    async def insert(self, collection_name: str, items: List[VectorItem]) -> None:
+    async def insert(self, collection_name: str, items: list[VectorItem]) -> None:
         return await asyncio.to_thread(self._sync.insert, collection_name, items)
 
-    async def upsert(self, collection_name: str, items: List[VectorItem]) -> None:
+    async def upsert(self, collection_name: str, items: list[VectorItem]) -> None:
         return await asyncio.to_thread(self._sync.upsert, collection_name, items)
 
     async def search(
         self,
         collection_name: str,
-        vectors: List[List[Union[float, int]]],
-        filter: Dict | None = None,
+        vectors: list[list[Union[float, int]]],
+        filter: dict | None = None,
         limit: int = 10,
     ) -> SearchResult | None:
         return await asyncio.to_thread(self._sync.search, collection_name, vectors, filter, limit)
@@ -111,8 +111,8 @@ class AsyncVectorDBClient:
         self,
         collection_name: str,
         query: str,
-        vectors: List[List[Union[float, int]]],
-        filter: Dict | None = None,
+        vectors: list[list[Union[float, int]]],
+        filter: dict | None = None,
         limit: int = 10,
         hybrid_bm25_weight: float = 0.5,
     ) -> SearchResult | None:
@@ -129,7 +129,7 @@ class AsyncVectorDBClient:
     async def query(
         self,
         collection_name: str,
-        filter: Dict,
+        filter: dict,
         limit: int | None = None,
     ) -> GetResult | None:
         return await asyncio.to_thread(self._sync.query, collection_name, filter, limit)
@@ -140,8 +140,8 @@ class AsyncVectorDBClient:
     async def delete(
         self,
         collection_name: str,
-        ids: List[str] | None = None,
-        filter: Dict | None = None,
+        ids: list[str] | None = None,
+        filter: dict | None = None,
     ) -> None:
         return await asyncio.to_thread(self._sync.delete, collection_name, ids, filter)
 

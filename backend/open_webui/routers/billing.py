@@ -9,7 +9,6 @@ import hmac
 import json
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Dict, List
 from urllib.parse import urlsplit, urlunsplit
 from pydantic import BaseModel
 
@@ -141,7 +140,7 @@ def _sanitize_payment_return_url(return_url: str) -> str:
     return urlunsplit((parsed.scheme, parsed.netloc, normalized_path, parsed.query, ''))
 
 
-def _is_webhook_replay(parsed_data: Dict[str, object]) -> bool:
+def _is_webhook_replay(parsed_data: dict[str, object]) -> bool:
     event_type = parsed_data.get('event_type')
     payment_id = parsed_data.get('payment_id')
     if not isinstance(event_type, str) or not isinstance(payment_id, str):
@@ -190,8 +189,8 @@ def _require_subscriptions_enabled() -> None:
         )
 
 
-def _normalize_public_lead_magnet_quotas(raw: Dict[str, object]) -> Dict[str, int]:
-    defaults: Dict[str, int] = {
+def _normalize_public_lead_magnet_quotas(raw: dict[str, object]) -> dict[str, int]:
+    defaults: dict[str, int] = {
         'tokens_input': 0,
         'tokens_output': 0,
         'images': 0,
@@ -251,8 +250,8 @@ class CreatePlanRequest(BaseModel):
     price: float
     currency: str = 'RUB'
     interval: str
-    quotas: Dict[str, int] | None = None
-    features: List[str] | None = None
+    quotas: dict[str, int] | None = None
+    features: list[str] | None = None
     is_active: bool = True
     display_order: int = 0
 
@@ -300,14 +299,14 @@ class PublicRateCardModel(BaseModel):
     id: str
     display_name: str
     provider: str | None = None
-    capabilities: List[str]
+    capabilities: list[str]
     rates: PublicRateCardRates
 
 
 class PublicRateCardResponse(BaseModel):
     currency: str
     updated_at: str
-    models: List[PublicRateCardModel]
+    models: list[PublicRateCardModel]
 
 
 class PublicPricingFreeLimits(BaseModel):
@@ -325,9 +324,9 @@ class PublicPricingRecommendedModels(BaseModel):
 
 
 class PublicPricingConfigResponse(BaseModel):
-    topup_amounts_rub: List[int]
+    topup_amounts_rub: list[int]
     free_limits: PublicPricingFreeLimits
-    popular_model_ids: List[str]
+    popular_model_ids: list[str]
     recommended_model_ids: PublicPricingRecommendedModels
 
 
@@ -397,12 +396,12 @@ class PublicPlanResponse(BaseModel):
     price: float
     currency: str
     interval: str
-    features: List[str] = []
-    quotas: Dict[str, int] = {}
+    features: list[str] = []
+    quotas: dict[str, int] = {}
     display_order: int = 0
 
 
-@router.get('/plans/public', response_model=List[PublicPlanResponse])
+@router.get('/plans/public', response_model=list[PublicPlanResponse])
 def get_public_plans():
     """
     Get all active billing plans for public display.
@@ -564,7 +563,7 @@ async def get_billing_refunds(
     }
 
 
-@router.get('/ledger', response_model=List[LedgerEntryModel])
+@router.get('/ledger', response_model=list[LedgerEntryModel])
 def get_ledger(
     limit: int = 50,
     skip: int = 0,
@@ -587,7 +586,7 @@ def get_ledger(
         )
 
 
-@router.get('/usage-events', response_model=List[UsageEventModel])
+@router.get('/usage-events', response_model=list[UsageEventModel])
 def get_usage_events(
     limit: int = 50,
     skip: int = 0,
@@ -638,7 +637,7 @@ def update_auto_topup(
         )
 
     wallet = wallet_service.get_or_create_wallet(user.id, BILLING_DEFAULT_CURRENCY)
-    updates: Dict[str, object] = {'auto_topup_enabled': request.enabled}
+    updates: dict[str, object] = {'auto_topup_enabled': request.enabled}
 
     if request.enabled:
         if request.threshold_kopeks is None or request.amount_kopeks is None:
@@ -688,7 +687,7 @@ async def update_billing_settings(
         user.id,
         BILLING_DEFAULT_CURRENCY,
     )
-    updates: Dict[str, object] = {}
+    updates: dict[str, object] = {}
     if 'max_reply_cost_kopeks' in request.model_fields_set:
         if request.max_reply_cost_kopeks is not None and request.max_reply_cost_kopeks < 0:
             raise HTTPException(
@@ -712,7 +711,7 @@ async def update_billing_settings(
                 detail='Failed to update billing settings',
             )
 
-    contact_updates: Dict[str, object] = {}
+    contact_updates: dict[str, object] = {}
     if 'billing_contact_email' in request.model_fields_set:
         contact_updates['billing_contact_email'] = request.billing_contact_email
     if 'billing_contact_phone' in request.model_fields_set:
@@ -731,7 +730,7 @@ async def update_billing_settings(
 ############################
 
 
-@router.get('/plans', response_model=List[PlanModel])
+@router.get('/plans', response_model=list[PlanModel])
 def get_plans(user=Depends(get_admin_user)):
     """Get all active subscription plans (admin only)"""
     _require_subscriptions_enabled()
@@ -981,7 +980,7 @@ async def create_payment(
         )
 
 
-@router.get('/transactions', response_model=List[TransactionModel])
+@router.get('/transactions', response_model=list[TransactionModel])
 def get_my_transactions(
     limit: int = 50,
     skip: int = 0,
@@ -1238,7 +1237,7 @@ async def get_public_rate_cards(
     workspace_base_models = await Models.get_base_models()
 
     excluded_model_ids = set()
-    merged_models_by_id: Dict[str, Dict[str, str | None]] = {}
+    merged_models_by_id: dict[str, dict[str, str | None]] = {}
     for model in workspace_base_models:
         if not model.is_active:
             excluded_model_ids.add(model.id)
@@ -1311,14 +1310,14 @@ async def get_public_rate_cards(
             )
         )
 
-    latest_by_model: Dict[str, Dict[tuple[str, str], object]] = {}
+    latest_by_model: dict[str, dict[tuple[str, str], object]] = {}
     for entry in rate_cards:
         model_latest = latest_by_model.setdefault(entry.model_id, {})
         key = (entry.modality, entry.unit)
         if key not in model_latest:
             model_latest[key] = entry
 
-    models: List[PublicRateCardModel] = []
+    models: list[PublicRateCardModel] = []
     updated_at_ts: int | None = None
 
     for model in active_models:
@@ -1326,7 +1325,7 @@ async def get_public_rate_cards(
         if not latest:
             continue
 
-        rates_payload: Dict[str, int | None] = {
+        rates_payload: dict[str, int | None] = {
             'text_in_1000_tokens': None,
             'text_out_1000_tokens': None,
             'image_1024': None,

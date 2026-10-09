@@ -6,7 +6,6 @@ Manage model pricing entries and sync defaults.
 import logging
 import time
 import uuid
-from typing import Dict, List, Set, Tuple
 
 from fastapi import (
     APIRouter,
@@ -72,11 +71,11 @@ class RateCardUpdateRequest(BaseModel):
 
 
 class RateCardBulkDeleteRequest(BaseModel):
-    rate_card_ids: List[str] = Field(default_factory=list)
+    rate_card_ids: list[str] = Field(default_factory=list)
 
 
 class RateCardDeleteModelsRequest(BaseModel):
-    model_ids: List[str] = Field(default_factory=list)
+    model_ids: list[str] = Field(default_factory=list)
 
 
 class RateCardDeleteResponse(BaseModel):
@@ -88,7 +87,7 @@ class RateCardDeactivateResponse(BaseModel):
 
 
 class RateCardListResponse(BaseModel):
-    items: List[PricingRateCardModel]
+    items: list[PricingRateCardModel]
     total: int
     page: int
     page_size: int
@@ -96,8 +95,8 @@ class RateCardListResponse(BaseModel):
 
 
 class RateCardSyncRequest(BaseModel):
-    model_ids: List[str] | None = None
-    modality_units: List[ModalityUnitRequest] | None = None
+    model_ids: list[str] | None = None
+    modality_units: list[ModalityUnitRequest] | None = None
     version: str | None = None
     provider: str | None = None
     model_tier: str | None = None
@@ -108,7 +107,7 @@ class RateCardSyncRequest(BaseModel):
 class RateCardSyncResponse(BaseModel):
     created: int
     skipped: int
-    model_ids: List[str]
+    model_ids: list[str]
 
 
 class RateCardXlsxImportSummary(BaseModel):
@@ -139,15 +138,15 @@ class RateCardXlsxImportError(BaseModel):
 
 class RateCardXlsxImportPreviewResponse(BaseModel):
     summary: RateCardXlsxImportSummary
-    warnings: List[RateCardXlsxImportWarning] = Field(default_factory=list)
-    errors: List[RateCardXlsxImportError] = Field(default_factory=list)
-    actions_preview: List[dict] = Field(default_factory=list)
+    warnings: list[RateCardXlsxImportWarning] = Field(default_factory=list)
+    errors: list[RateCardXlsxImportError] = Field(default_factory=list)
+    actions_preview: list[dict] = Field(default_factory=list)
 
 
 class RateCardXlsxImportApplyResponse(BaseModel):
     summary: RateCardXlsxImportSummary
-    warnings: List[RateCardXlsxImportWarning] = Field(default_factory=list)
-    errors: List[RateCardXlsxImportError] = Field(default_factory=list)
+    warnings: list[RateCardXlsxImportWarning] = Field(default_factory=list)
+    errors: list[RateCardXlsxImportError] = Field(default_factory=list)
 
 
 def ensure_wallet_enabled() -> None:
@@ -162,7 +161,7 @@ async def _get_rate_card_import_known_models(
     request: Request,
     *,
     admin_user,
-) -> Tuple[Set[str], Dict[str, str], Set[str]]:
+) -> tuple[set[str], dict[str, str], set[str]]:
     """Return (known_model_ids, model_names_by_id, db_base_model_ids).
 
     XLSX import is used on the Rate Cards page which supports provider-only models.
@@ -174,7 +173,7 @@ async def _get_rate_card_import_known_models(
     db_base_model_ids = {model.id for model in db_base_models}
 
     known_model_ids = set(db_base_model_ids)
-    model_names_by_id: Dict[str, str] = {model.id: (model.name or model.id) for model in db_base_models}
+    model_names_by_id: dict[str, str] = {model.id: (model.name or model.id) for model in db_base_models}
 
     try:
         provider_base_models = await get_all_base_models(request, user=admin_user)
@@ -194,8 +193,8 @@ async def _get_rate_card_import_known_models(
 
 async def _ensure_base_models_exist(
     *,
-    model_ids: Set[str],
-    model_names_by_id: Dict[str, str],
+    model_ids: set[str],
+    model_names_by_id: dict[str, str],
     owner_user_id: str,
 ) -> None:
     for model_id in sorted(model_ids):
@@ -219,7 +218,7 @@ async def _ensure_base_models_exist(
 
 @router.get('/rate-card/export-xlsx')
 async def export_rate_cards_xlsx(
-    model_ids: List[str] = Query(default_factory=list),
+    model_ids: list[str] = Query(default_factory=list),
     mode: XlsxExportMode = XlsxExportMode.ACTIVE_ONLY,
     admin_user=Depends(get_admin_user),
 ):
@@ -239,7 +238,7 @@ async def export_rate_cards_xlsx(
 
     try:
         base_models = await Models.get_base_models()
-        model_names: Dict[str, str] = {model.id: (model.name or model.id) for model in base_models}
+        model_names: dict[str, str] = {model.id: (model.name or model.id) for model in base_models}
 
         entries = await run_in_threadpool(
             RateCards.list_rate_cards_by_model_ids,
@@ -867,8 +866,8 @@ async def import_rate_cards_xlsx_apply(
 
 
 def _sync_rate_cards_for_models(
-    model_ids: List[str],
-    allowed_units: List[tuple[str, str]] | None,
+    model_ids: list[str],
+    allowed_units: list[tuple[str, str]] | None,
     version: str,
     created_at: int,
     provider: str | None,

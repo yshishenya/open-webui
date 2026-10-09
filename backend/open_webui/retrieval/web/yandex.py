@@ -3,7 +3,6 @@ import io
 import json
 import logging
 import os
-from typing import List
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element
 
@@ -36,9 +35,9 @@ def search_yandex(
     yandex_search_config: str,
     query: str,
     count: int,
-    filter_list: List[str] | None = None,
+    filter_list: list[str] | None = None,
     user=None,
-) -> List[SearchResult]:
+) -> list[SearchResult]:
     try:
         headers = {
             'User-Agent': 'Airis (https://airis.you) RAG Bot',

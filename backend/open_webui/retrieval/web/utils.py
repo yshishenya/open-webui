@@ -7,16 +7,7 @@ import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    AsyncIterator,
-    Dict,
-    Iterator,
-    List,
-    Literal,
-    Sequence,
-    Union,
-)
+from typing import Any, AsyncIterator, Iterator, Literal, Sequence, Union
 
 import aiohttp
 import aiohttp.resolver
@@ -333,8 +324,8 @@ class SafeFireCrawlLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
         api_url: str | None = None,
         timeout: int | None = None,
         mode: Literal['crawl', 'scrape', 'map'] = 'scrape',
-        proxy: Dict[str, str] | None = None,
-        params: Dict | None = None,
+        proxy: dict[str, str] | None = None,
+        params: dict | None = None,
     ):
         proxy_server = proxy.get('server') if proxy else None
         if trust_env and not proxy_server:
@@ -402,7 +393,7 @@ class SafeFireCrawlLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
 class SafeTavilyLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
     def __init__(
         self,
-        web_paths: Union[str, List[str]],
+        web_paths: Union[str, list[str]],
         api_base_url: str,
         api_key: str,
         extract_depth: Literal['basic', 'advanced'] = 'basic',
@@ -410,7 +401,7 @@ class SafeTavilyLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
         requests_per_second: float | None = None,
         verify_ssl: bool = True,
         trust_env: bool = False,
-        proxy: Dict[str, str] | None = None,
+        proxy: dict[str, str] | None = None,
     ):
         """Initialize SafeTavilyLoader with rate limiting and SSL verification support.
 
@@ -516,7 +507,7 @@ class SafeTavilyLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
 class SafeMicrosoftWebIQLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
     def __init__(
         self,
-        web_paths: Union[str, List[str]],
+        web_paths: Union[str, list[str]],
         api_key: str,
         language: str = 'en',
         verify_ssl: bool = True,
@@ -591,14 +582,14 @@ class SafePlaywrightURLLoader(PlaywrightURLLoader, RateLimitMixin, URLProcessing
 
     def __init__(
         self,
-        web_paths: List[str],
+        web_paths: list[str],
         verify_ssl: bool = True,
         trust_env: bool = False,
         requests_per_second: float | None = None,
         continue_on_failure: bool = True,
         headless: bool = True,
-        remove_selectors: List[str] | None = None,
-        proxy: Dict[str, str] | None = None,
+        remove_selectors: list[str] | None = None,
+        proxy: dict[str, str] | None = None,
         playwright_ws_url: str | None = None,
         playwright_timeout: int | None = 10000,
     ):
@@ -796,7 +787,7 @@ class SafeWebBaseLoader(WebBaseLoader):
         async with aiohttp.ClientSession(trust_env=self.trust_env, connector=connector) as session:
             for i in range(retries):
                 try:
-                    kwargs: Dict = dict(
+                    kwargs: dict = dict(
                         headers=self.session.headers,
                         cookies=self.session.cookies.get_dict(),
                     )
@@ -820,7 +811,7 @@ class SafeWebBaseLoader(WebBaseLoader):
                         await asyncio.sleep(cooldown * backoff**i)
         raise ValueError('retry count exceeded')
 
-    def _unpack_fetch_results(self, results: Any, urls: List[str], parser: Union[str, None] = None) -> List[Any]:
+    def _unpack_fetch_results(self, results: Any, urls: list[str], parser: Union[str, None] = None) -> list[Any]:
         """Unpack fetch results into BeautifulSoup objects."""
         from bs4 import BeautifulSoup
 

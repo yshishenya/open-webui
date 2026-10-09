@@ -1,5 +1,4 @@
 import time
-from typing import Dict, List
 
 import sqlalchemy as sa
 
@@ -69,7 +68,7 @@ class LedgerEntriesTable:
             db.refresh(entry)
             return LedgerEntryModel.model_validate(entry)
 
-    def get_entries_by_user(self, user_id: str, limit: int = 100, offset: int = 0) -> List[LedgerEntryModel]:
+    def get_entries_by_user(self, user_id: str, limit: int = 100, offset: int = 0) -> list[LedgerEntryModel]:
         """Get ledger entries for user"""
         with get_db() as db:
             entries = (
@@ -137,7 +136,7 @@ class PaymentsTable:
         status: str | None = None,
         kind: str | None = None,
         limit: int = 20,
-    ) -> List[PaymentModel]:
+    ) -> list[PaymentModel]:
         """List payments for a wallet with optional filters."""
         with get_db() as db:
             query = db.query(Payment).filter(Payment.wallet_id == wallet_id)
@@ -184,7 +183,7 @@ class UsageEventsTable:
         limit: int = 100,
         offset: int = 0,
         billing_source: str | None = None,
-    ) -> List[UsageEventModel]:
+    ) -> list[UsageEventModel]:
         """List usage events for user with optional billing source filter."""
         with get_db() as db:
             query = db.query(UsageEvent).filter(UsageEvent.user_id == user_id)
@@ -225,7 +224,7 @@ class LeadMagnetStatesTable:
             db.refresh(state)
             return LeadMagnetStateModel.model_validate(state)
 
-    def list_states(self, skip: int = 0, limit: int = 1000) -> List[LeadMagnetStateModel]:
+    def list_states(self, skip: int = 0, limit: int = 1000) -> list[LeadMagnetStateModel]:
         """List lead magnet states for recalculation."""
         with get_db() as db:
             states = (
@@ -290,7 +289,7 @@ class RateCardsTable:
             )
             return PricingRateCardModel.model_validate(entry) if entry else None
 
-    def create_rate_card(self, rate_card_data: Dict[str, object]) -> PricingRateCardModel:
+    def create_rate_card(self, rate_card_data: dict[str, object]) -> PricingRateCardModel:
         """Create a rate card entry."""
         with get_db() as db:
             entry = PricingRateCard(**rate_card_data)
@@ -299,7 +298,7 @@ class RateCardsTable:
             db.refresh(entry)
             return PricingRateCardModel.model_validate(entry)
 
-    def update_rate_card(self, rate_card_id: str, updates: Dict[str, object]) -> PricingRateCardModel | None:
+    def update_rate_card(self, rate_card_id: str, updates: dict[str, object]) -> PricingRateCardModel | None:
         """Update rate card entry by ID."""
         with get_db() as db:
             entry = db.query(PricingRateCard).filter(PricingRateCard.id == rate_card_id).first()
@@ -321,7 +320,7 @@ class RateCardsTable:
             db.commit()
             return True
 
-    def delete_rate_cards_by_ids(self, rate_card_ids: List[str]) -> int:
+    def delete_rate_cards_by_ids(self, rate_card_ids: list[str]) -> int:
         """Delete rate card entries by IDs."""
         if not rate_card_ids:
             return 0
@@ -334,7 +333,7 @@ class RateCardsTable:
             db.commit()
             return int(deleted or 0)
 
-    def delete_rate_cards_by_model_ids(self, model_ids: List[str]) -> int:
+    def delete_rate_cards_by_model_ids(self, model_ids: list[str]) -> int:
         """Delete rate card entries by model IDs."""
         if not model_ids:
             return 0
@@ -347,7 +346,7 @@ class RateCardsTable:
             db.commit()
             return int(deleted or 0)
 
-    def deactivate_rate_cards_by_model_ids(self, model_ids: List[str]) -> int:
+    def deactivate_rate_cards_by_model_ids(self, model_ids: list[str]) -> int:
         """Deactivate rate card entries by model IDs."""
         if not model_ids:
             return 0
@@ -370,7 +369,7 @@ class RateCardsTable:
         is_active: bool | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[PricingRateCardModel]:
+    ) -> list[PricingRateCardModel]:
         """List rate card entries with optional filters."""
         with get_db() as db:
             query = db.query(PricingRateCard)
@@ -402,11 +401,11 @@ class RateCardsTable:
 
     def list_rate_cards_by_model_ids(
         self,
-        model_ids: List[str],
+        model_ids: list[str],
         is_active: bool | None = None,
         limit: int | None = None,
         offset: int = 0,
-    ) -> List[PricingRateCardModel]:
+    ) -> list[PricingRateCardModel]:
         """List rate cards for a set of model IDs."""
         if not model_ids:
             return []

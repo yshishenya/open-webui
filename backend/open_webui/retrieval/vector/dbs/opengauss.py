@@ -5,7 +5,7 @@ NOTE: This vector database integration is community-supported and maintained on 
 import json
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -160,7 +160,7 @@ class OpenGaussClient(VectorDBBase):
         else:
             raise Exception("The 'vector' column does not exist in the 'document_chunk' table.")
 
-    def adjust_vector_length(self, vector: List[float]) -> List[float]:
+    def adjust_vector_length(self, vector: list[float]) -> list[float]:
         current_length = len(vector)
         if current_length < VECTOR_LENGTH:
             vector += [0.0] * (VECTOR_LENGTH - current_length)
@@ -168,7 +168,7 @@ class OpenGaussClient(VectorDBBase):
             vector = vector[:VECTOR_LENGTH]
         return vector
 
-    def insert(self, collection_name: str, items: List[VectorItem]) -> None:
+    def insert(self, collection_name: str, items: list[VectorItem]) -> None:
         try:
             new_items = []
             for item in items:
@@ -189,7 +189,7 @@ class OpenGaussClient(VectorDBBase):
             log.exception(f'Failed to insert data: {e}')
             raise
 
-    def upsert(self, collection_name: str, items: List[VectorItem]) -> None:
+    def upsert(self, collection_name: str, items: list[VectorItem]) -> None:
         try:
             for item in items:
                 vector = self.adjust_vector_length(item['vector'])
@@ -218,8 +218,8 @@ class OpenGaussClient(VectorDBBase):
     def search(
         self,
         collection_name: str,
-        vectors: List[List[float]],
-        filter: Dict[str, Any] | None = None,
+        vectors: list[list[float]],
+        filter: dict[str, Any] | None = None,
         limit: int = 10,
     ) -> SearchResult | None:
         try:
@@ -291,7 +291,7 @@ class OpenGaussClient(VectorDBBase):
             log.exception(f'Vector search failed: {e}')
             return None
 
-    def query(self, collection_name: str, filter: Dict[str, Any], limit: int | None = None) -> GetResult | None:
+    def query(self, collection_name: str, filter: dict[str, Any], limit: int | None = None) -> GetResult | None:
         try:
             query = self.session.query(DocumentChunk).filter(DocumentChunk.collection_name == collection_name)
 
@@ -342,8 +342,8 @@ class OpenGaussClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: List[str] | None = None,
-        filter: Dict[str, Any] | None = None,
+        ids: list[str] | None = None,
+        filter: dict[str, Any] | None = None,
     ) -> None:
         try:
             query = self.session.query(DocumentChunk).filter(DocumentChunk.collection_name == collection_name)

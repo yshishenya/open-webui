@@ -4,12 +4,11 @@ Provides default plans for B2C monetization
 """
 
 import time
-from typing import Dict, List
 
-PlanSeed = Dict[str, object]
+PlanSeed = dict[str, object]
 
 
-def get_default_plans() -> List[PlanSeed]:
+def get_default_plans() -> list[PlanSeed]:
     """Get default subscription plans for Stage 1/2 rollout."""
     now = int(time.time())
 
@@ -251,7 +250,7 @@ def get_default_plans() -> List[PlanSeed]:
     ]
 
 
-def get_promo_plans() -> List[PlanSeed]:
+def get_promo_plans() -> list[PlanSeed]:
     """Get promotional/seasonal plans."""
     now = int(time.time())
 
@@ -292,6 +291,6 @@ def get_promo_plans() -> List[PlanSeed]:
     ]
 
 
-def get_annual_plans() -> List[PlanSeed]:
+def get_annual_plans() -> list[PlanSeed]:
     """Get annual versions of main plans (16% discount)."""
     return [plan for plan in get_default_plans() if isinstance(plan.get('is_annual'), bool) and plan.get('is_annual')]

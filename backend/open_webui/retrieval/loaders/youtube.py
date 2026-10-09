@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Generator, List, Sequence, Union
+from typing import Any, Generator, Sequence, Union
 from urllib.parse import parse_qs, urlparse
 from xml.etree.ElementTree import ParseError
 
@@ -73,7 +73,7 @@ class YoutubeLoader:
         if 'en' not in self.language:
             self.language.append('en')
 
-    def load(self) -> List[Document]:
+    def load(self) -> list[Document]:
         """Load YouTube transcripts into `Document` objects."""
         try:
             from youtube_transcript_api import (
@@ -116,7 +116,7 @@ class YoutubeLoader:
 
                 log.debug(f"Found transcript for language '{lang}'")
                 try:
-                    transcript_pieces: List[Dict[str, Any]] = transcript.fetch()
+                    transcript_pieces: list[dict[str, Any]] = transcript.fetch()
                 except ParseError:
                     log.debug(f"Empty or invalid transcript for language '{lang}'")
                     continue

@@ -3,14 +3,7 @@ import uuid
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    AsyncGenerator,
-    Dict,
-    MutableMapping,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, AsyncGenerator, MutableMapping, cast
 
 from asgiref.typing import (
     ASGI3Application,
@@ -101,7 +94,7 @@ class AuditContext:
         self.request_body = bytearray()
         self.response_body = bytearray()
         self.max_body_size = max_body_size
-        self.metadata: Dict[str, Any] = {}
+        self.metadata: dict[str, Any] = {}
 
     def add_request_chunk(self, chunk: bytes):
         if len(self.request_body) < self.max_body_size:

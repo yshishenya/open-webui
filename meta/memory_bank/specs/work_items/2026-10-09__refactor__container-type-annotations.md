@@ -1,0 +1,40 @@
+# Container type annotations
+
+Workflow: refactoring. Branch: `codex/refactor/container-type-annotations`.
+Base: `origin/airis_b2c` d579f5c02926cace8c8da60434ce1c39c7284361; explicit dependency: nullable-response-models 939497628ec6ba3dee171112d6a2e9bf4f5ca7f5.
+SDD Spec: meta/sdd/specs/active/airis-container-type-annotatio-2026-10-09-0756.json
+
+## Purpose and scope
+
+Remove the measured UP006 debt that blocks the mandatory general quality gate. Use only Ruff safe fixes for List/Dict/Tuple/Set and remove only newly unused imports in the 43 affected files. No runtime dependencies, provider calls, suppression, changed defaults, ORM, request paths, permissions, API contracts or billing calculations. Bare typing containers must preserve their effective runtime/schema meaning.
+
+## Acceptance
+
+- [x] All 352 offered safe UP006 fixes applied; zero new normalized Ruff diagnostics.
+- [x] Canonical AST for all 453 Python files differs only by allowed container names and unused imports; Black accepts all453.
+- [x] Pydantic schemas, resolved type hints, builtin tools and OpenAPI equal before/after (561 production paths, 562 dev paths). Explicit normalization of bare builtins versus bare typing aliases.
+- [x] Native Google GenAI container declarations and actual Pydantic coercion/serialization agree.
+- [x] Full backend including four fresh PostgreSQL fixtures and frontend pass; frontend type/lint debt measured independently.
+- [x] Primary, native audio verifier, frontend and dependency/config boundaries preserved. Temporary source/fixtures cleaned after checks.
+- [ ] Source committed/pushed and final application hashes frozen; documentation recorded.
+- [ ] General quality, CI, review/merge and production accepted on combined frozen source.
+
+## Upstream impact
+
+Mechanical annotation substitutions in the existing backend modules, no control-flow edits or hooks. Necessary to satisfy existing quality rules; do not reorder unrelated imports or apply general F401/unsafe cleanup. New verification scripts and full evidence remain private.
+
+## Final goal
+
+The onboarding-retention goal remains active198/244. This block only reduces mandatory G14 debt and does not imply real SMTP, payment, volunteers, physical-phone acceptance, pilot, 24h/72h/14d windows or a mature cohort.
+
+## Accepted measurements
+
+Ruff1596→1166 (430 removed/0 new); UP006352→0, UP045 remains0. Source: exactly43 files changed and all453 canonical AST preserved; Black453/453. Runtime:525 models/1050 schemas,53 builtin tools,465 resolved hints,25 loaded candidate modules. Four pre-existing NameErrors remain identical;18 optional candidate modules were not exercised against external providers. 81 adapter cases/18 schemas agree, Google GenAI list function declarations agree without network requests.
+
+Both dev and production contract snapshots agree byte-for-byte. Dev has562 paths and includes the pre-existing `/api/v1/retrieval/ef/{text}` endpoint guarded by ENV=dev; production has561 and excludes it. No new endpoint was added.
+
+Backend1017/1017,0failures/errors/skips,111.007s on four fresh PostgreSQL databases. Frontend946/946; full check2293errors/108warnings and ESLint1020 remain unchanged. No code changes occurred during/after the tests;453 final hashes match the pre-test snapshot.
+
+All four temporary databases and their tmpfs container, plus the temporary baseline source directory, were removed after accepted checks; no persistent volumes were used/deleted.21 protected primary files, native audio verifier, frontend, dependency and configuration boundaries preserved. Production05:00:07UTC:c0ea,healthy,restarts0;image/ENV/config/mounts/neighbors agree with previous read. Deployment/SMTP/financial changes0.
+
+PR367 exact34b6 still returns no checks through the required connector with the selected account yshishenya; cause unknown. Its CodeRabbit status skips review for the base branch and does not prove CI. No new PR or merge/release is claimed. Source-level acceptance does not close general G14/13.11/13.16 or any of the46 remaining numbered plan items.

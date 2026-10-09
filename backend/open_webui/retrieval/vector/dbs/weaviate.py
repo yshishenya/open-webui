@@ -4,7 +4,7 @@ NOTE: This vector database integration is community-supported and maintained on 
 
 import re
 import uuid
-from typing import Any, Dict, List, Union
+from typing import Any, Union
 
 import weaviate
 from open_webui.config import (
@@ -118,7 +118,7 @@ class WeaviateClient(VectorDBBase):
             ],
         )
 
-    def insert(self, collection_name: str, items: List[VectorItem]) -> None:
+    def insert(self, collection_name: str, items: list[VectorItem]) -> None:
         sane_collection_name = self._sanitize_collection_name(collection_name)
         if not self.client.collections.exists(sane_collection_name):
             self._create_collection(sane_collection_name)
@@ -137,7 +137,7 @@ class WeaviateClient(VectorDBBase):
 
                 batch.add_object(properties=properties, uuid=item_uuid, vector=item['vector'])
 
-    def upsert(self, collection_name: str, items: List[VectorItem]) -> None:
+    def upsert(self, collection_name: str, items: list[VectorItem]) -> None:
         sane_collection_name = self._sanitize_collection_name(collection_name)
         if not self.client.collections.exists(sane_collection_name):
             self._create_collection(sane_collection_name)
@@ -159,7 +159,7 @@ class WeaviateClient(VectorDBBase):
     def search(
         self,
         collection_name: str,
-        vectors: List[List[Union[float, int]]],
+        vectors: list[list[Union[float, int]]],
         filter: dict | None = None,
         limit: int = 10,
     ) -> SearchResult | None:
@@ -220,7 +220,7 @@ class WeaviateClient(VectorDBBase):
             }
         )
 
-    def query(self, collection_name: str, filter: Dict, limit: int | None = None) -> GetResult | None:
+    def query(self, collection_name: str, filter: dict, limit: int | None = None) -> GetResult | None:
         sane_collection_name = self._sanitize_collection_name(collection_name)
         if not self.client.collections.exists(sane_collection_name):
             return None
@@ -290,8 +290,8 @@ class WeaviateClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: List[str] | None = None,
-        filter: Dict | None = None,
+        ids: list[str] | None = None,
+        filter: dict | None = None,
     ) -> None:
         sane_collection_name = self._sanitize_collection_name(collection_name)
         if not self.client.collections.exists(sane_collection_name):

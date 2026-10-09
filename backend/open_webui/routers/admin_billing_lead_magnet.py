@@ -3,7 +3,6 @@ Admin endpoints for lead magnet configuration.
 """
 
 import logging
-from typing import Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -98,8 +97,8 @@ async def update_lead_magnet_config(
     )
 
 
-def _normalize_quotas(raw: Dict[str, object]) -> Dict[str, int]:
-    defaults: Dict[str, int] = {
+def _normalize_quotas(raw: dict[str, object]) -> dict[str, int]:
+    defaults: dict[str, int] = {
         'tokens_input': 0,
         'tokens_output': 0,
         'images': 0,

@@ -10,7 +10,7 @@ import logging
 import time
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
@@ -68,7 +68,7 @@ def scim_error(status_code: int, detail: str, scim_type: str | None = None):
 class SCIMError(BaseModel):
     """SCIM Error Response"""
 
-    schemas: List[str] = [SCIM_ERROR_SCHEMA]
+    schemas: list[str] = [SCIM_ERROR_SCHEMA]
     status: str
     scimType: str | None = None
     detail: str | None = None
@@ -127,16 +127,16 @@ class SCIMUser(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: List[str] = [SCIM_USER_SCHEMA]
+    schemas: list[str] = [SCIM_USER_SCHEMA]
     id: str
     externalId: str | None = None
     userName: str
     name: SCIMName | None = None
     displayName: str
-    emails: List[SCIMEmail]
+    emails: list[SCIMEmail]
     active: bool = True
-    photos: List[SCIMPhoto] | None = None
-    groups: List[Dict[str, str]] | None = None
+    photos: list[SCIMPhoto] | None = None
+    groups: list[dict[str, str]] | None = None
     meta: SCIMMeta
 
 
@@ -145,15 +145,15 @@ class SCIMUserCreateRequest(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: List[str] = [SCIM_USER_SCHEMA]
+    schemas: list[str] = [SCIM_USER_SCHEMA]
     externalId: str | None = None
     userName: str
     name: SCIMName | None = None
     displayName: str
-    emails: List[SCIMEmail]
+    emails: list[SCIMEmail]
     active: bool = True
     password: str | None = None
-    photos: List[SCIMPhoto] | None = None
+    photos: list[SCIMPhoto] | None = None
 
 
 class SCIMUserUpdateRequest(BaseModel):
@@ -161,15 +161,15 @@ class SCIMUserUpdateRequest(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: List[str] = [SCIM_USER_SCHEMA]
+    schemas: list[str] = [SCIM_USER_SCHEMA]
     id: str | None = None
     externalId: str | None = None
     userName: str | None = None
     name: SCIMName | None = None
     displayName: str | None = None
-    emails: List[SCIMEmail] | None = None
+    emails: list[SCIMEmail] | None = None
     active: bool | None = None
-    photos: List[SCIMPhoto] | None = None
+    photos: list[SCIMPhoto] | None = None
 
 
 class SCIMGroup(BaseModel):
@@ -177,10 +177,10 @@ class SCIMGroup(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: List[str] = [SCIM_GROUP_SCHEMA]
+    schemas: list[str] = [SCIM_GROUP_SCHEMA]
     id: str
     displayName: str
-    members: List[SCIMGroupMember] | None = []
+    members: list[SCIMGroupMember] | None = []
     meta: SCIMMeta
 
 
@@ -189,9 +189,9 @@ class SCIMGroupCreateRequest(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: List[str] = [SCIM_GROUP_SCHEMA]
+    schemas: list[str] = [SCIM_GROUP_SCHEMA]
     displayName: str
-    members: List[SCIMGroupMember] | None = []
+    members: list[SCIMGroupMember] | None = []
 
 
 class SCIMGroupUpdateRequest(BaseModel):
@@ -199,19 +199,19 @@ class SCIMGroupUpdateRequest(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: List[str] = [SCIM_GROUP_SCHEMA]
+    schemas: list[str] = [SCIM_GROUP_SCHEMA]
     displayName: str | None = None
-    members: List[SCIMGroupMember] | None = None
+    members: list[SCIMGroupMember] | None = None
 
 
 class SCIMListResponse(BaseModel):
     """SCIM List Response"""
 
-    schemas: List[str] = [SCIM_LIST_RESPONSE_SCHEMA]
+    schemas: list[str] = [SCIM_LIST_RESPONSE_SCHEMA]
     totalResults: int
     itemsPerPage: int
     startIndex: int
-    Resources: List[Any]
+    Resources: list[Any]
 
 
 class SCIMPatchOperation(BaseModel):
@@ -225,8 +225,8 @@ class SCIMPatchOperation(BaseModel):
 class SCIMPatchRequest(BaseModel):
     """SCIM Patch Request"""
 
-    schemas: List[str] = ['urn:ietf:params:scim:api:messages:2.0:PatchOp']
-    Operations: List[SCIMPatchOperation]
+    schemas: list[str] = ['urn:ietf:params:scim:api:messages:2.0:PatchOp']
+    Operations: list[SCIMPatchOperation]
 
 
 def get_scim_auth(request: Request, authorization: str | None = Header(None)) -> bool:

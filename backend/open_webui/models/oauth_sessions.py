@@ -4,7 +4,6 @@ import json
 import logging
 import time
 import uuid
-from typing import List
 
 from cryptography.fernet import Fernet
 from open_webui.env import OAUTH_SESSION_TOKEN_ENCRYPTION_KEY
@@ -221,7 +220,7 @@ class OAuthSessionTable:
             log.error(f'Error getting OAuth session by provider and user ID: {e}')
             return None
 
-    async def get_sessions_by_user_id(self, user_id: str, db: AsyncSession | None = None) -> List[OAuthSessionModel]:
+    async def get_sessions_by_user_id(self, user_id: str, db: AsyncSession | None = None) -> list[OAuthSessionModel]:
         """Get all OAuth sessions for a user"""
         try:
             async with get_async_db_context(db) as db:

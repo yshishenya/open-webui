@@ -1,5 +1,4 @@
 import logging
-from typing import List, Tuple
 from urllib.parse import quote
 
 import requests
@@ -23,7 +22,7 @@ class ExternalReranker(BaseReranker):
         self.model = model
         self.timeout = timeout
 
-    def predict(self, sentences: List[Tuple[str, str]], user=None) -> List[float] | None:
+    def predict(self, sentences: list[tuple[str, str]], user=None) -> list[float] | None:
         query = sentences[0][0]
         docs = [i[1] for i in sentences]
 

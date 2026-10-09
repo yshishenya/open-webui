@@ -1,5 +1,4 @@
 from decimal import Decimal, ROUND_CEILING
-from typing import Tuple
 
 from open_webui.models.billing import PricingRateCardModel, RateCards
 
@@ -42,7 +41,7 @@ class PricingService:
         max_units: Decimal,
         rate: PricingRateCardModel,
         discount_percent: int = 0,
-    ) -> Tuple[int, int]:
+    ) -> tuple[int, int]:
         """Calculate min/max cost in kopeks for unit range."""
         min_cost = self.calculate_cost_kopeks(min_units, rate, discount_percent)
         max_cost = self.calculate_cost_kopeks(max_units, rate, discount_percent)

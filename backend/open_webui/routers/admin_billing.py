@@ -6,7 +6,6 @@ Only accessible by administrators for managing billing plans
 import logging
 import time
 import uuid
-from typing import List, Dict
 
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -54,8 +53,8 @@ class CreatePlanRequest(BaseModel):
     currency: str = Field(default='RUB', pattern='^(RUB|USD|EUR)$')
     interval: str = Field(..., pattern='^(day|week|month|year)$')
 
-    quotas: Dict[str, int] | None = None
-    features: List[str] | None = None
+    quotas: dict[str, int] | None = None
+    features: list[str] | None = None
 
     is_active: bool = True
     display_order: int = Field(default=0, ge=0)
@@ -71,8 +70,8 @@ class UpdatePlanRequest(BaseModel):
     currency: str | None = Field(None, pattern='^(RUB|USD|EUR)$')
     interval: str | None = Field(None, pattern='^(day|week|month|year)$')
 
-    quotas: Dict[str, int] | None = None
-    features: List[str] | None = None
+    quotas: dict[str, int] | None = None
+    features: list[str] | None = None
 
     is_active: bool | None = None
     display_order: int | None = Field(None, ge=0)
@@ -112,7 +111,7 @@ class PlanSubscriberModel(BaseModel):
 class PaginatedSubscribersResponse(BaseModel):
     """Paginated response for plan subscribers"""
 
-    items: List[PlanSubscriberModel]
+    items: list[PlanSubscriberModel]
     total: int
     page: int
     page_size: int
@@ -124,7 +123,7 @@ class UserWalletSummaryResponse(BaseModel):
 
     user_id: str
     wallet: WalletModel
-    ledger_preview: List[LedgerEntryModel]
+    ledger_preview: list[LedgerEntryModel]
 
 
 class AdjustUserWalletRequest(BaseModel):
@@ -160,7 +159,7 @@ def generate_plan_id(name: str) -> str:
     return f'{base_id}_{str(uuid.uuid4())[:8]}'
 
 
-def validate_plan_update(plan: PlanModel, update_data: Dict[str, object]) -> None:
+def validate_plan_update(plan: PlanModel, update_data: dict[str, object]) -> None:
     """
     Validate that plan updates don't violate business rules
     Raises HTTPException if validation fails
@@ -199,7 +198,7 @@ def validate_plan_update(plan: PlanModel, update_data: Dict[str, object]) -> Non
             )
 
 
-def detect_changes(old_plan: PlanModel, new_data: Dict[str, object]) -> Dict[str, Dict[str, object]]:
+def detect_changes(old_plan: PlanModel, new_data: dict[str, object]) -> dict[str, dict[str, object]]:
     """Detect what changed between old plan and new data"""
     changes = {}
 
@@ -231,7 +230,7 @@ def _get_user_wallet_summary(user_id: str, ledger_limit: int = 20) -> UserWallet
 ############################
 
 
-@router.get('/plans', response_model=List[PlanStatsModel])
+@router.get('/plans', response_model=list[PlanStatsModel])
 async def get_all_plans_with_stats(admin_user=Depends(get_admin_user)):
     """Get all plans (including inactive) with subscription statistics"""
     try:
