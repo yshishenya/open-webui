@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from open_webui.constants import ERROR_MESSAGES
@@ -8,7 +7,6 @@ from open_webui.events import EVENTS, publish_event
 from open_webui.internal.db import get_async_session
 from open_webui.models.automations import (
     AutomationForm,
-    AutomationListResponse,
     AutomationModel,
     AutomationResponse,
     AutomationRunModel,
@@ -18,7 +16,7 @@ from open_webui.models.automations import (
 from open_webui.models.config import Config
 from open_webui.models.folders import Folders
 from open_webui.utils.access_control import has_permission
-from open_webui.utils.auth import get_admin_user, get_verified_user
+from open_webui.utils.auth import get_verified_user
 from open_webui.utils.automations import (
     execute_automation,
     next_n_runs_ns,
@@ -93,7 +91,7 @@ async def check_automation_limits(request, user, rrule_str: str, db, is_create: 
                 )
 
 
-async def check_automation_folder_access(folder_id: Optional[str], user, db: AsyncSession):
+async def check_automation_folder_access(folder_id: str | None, user, db: AsyncSession):
     if folder_id is None:
         return
     folder = await Folders.get_folder_by_id_and_user_id(folder_id, user.id, db=db)
@@ -122,10 +120,10 @@ async def enrich_automation(automation: AutomationModel, db: AsyncSession, tz: s
 @router.get('/list')
 async def get_automation_items(
     request: Request,
-    query: Optional[str] = None,
-    status: Optional[str] = None,
-    folder_id: Optional[str] = None,
-    page: Optional[int] = 1,
+    query: str | None = None,
+    status: str | None = None,
+    folder_id: str | None = None,
+    page: int | None = 1,
     user=Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
 ):

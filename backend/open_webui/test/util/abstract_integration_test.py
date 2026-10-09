@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib
 import pkgutil
-from typing import Mapping, Optional
+from collections.abc import Mapping
 from urllib.parse import urlencode
 
 from fastapi.testclient import TestClient
@@ -19,16 +19,14 @@ def _import_all_models() -> None:
     """Ensure all SQLAlchemy models are imported before creating tables."""
     import open_webui.models
 
-    for module in pkgutil.iter_modules(
-        open_webui.models.__path__, f"{open_webui.models.__name__}."
-    ):
+    for module in pkgutil.iter_modules(open_webui.models.__path__, f'{open_webui.models.__name__}.'):
         importlib.import_module(module.name)
 
 
 class AbstractPostgresTest:
     """Base class with test client + database reset helpers."""
 
-    BASE_PATH: str = ""
+    BASE_PATH: str = ''
     fast_api_client: TestClient
 
     @classmethod
@@ -47,23 +45,23 @@ class AbstractPostgresTest:
         Base.metadata.create_all(bind=engine)
         ScopedSession.remove()
 
-    def create_url(self, path: str, query_params: Optional[QueryParams] = None) -> str:
-        base = self.BASE_PATH.rstrip("/")
-        if path in {"", "/"}:
-            url = f"{base}/" if base else "/"
+    def create_url(self, path: str, query_params: QueryParams | None = None) -> str:
+        base = self.BASE_PATH.rstrip('/')
+        if path in {'', '/'}:
+            url = f'{base}/' if base else '/'
         else:
-            tail = path.lstrip("/")
+            tail = path.lstrip('/')
             if base and tail:
-                url = f"{base}/{tail}"
+                url = f'{base}/{tail}'
             elif base:
                 url = base
             elif tail:
-                url = f"/{tail}"
+                url = f'/{tail}'
             else:
-                url = "/"
+                url = '/'
 
         if query_params:
-            separator = "&" if "?" in url else "?"
-            url = f"{url}{separator}{urlencode(query_params, doseq=True)}"
+            separator = '&' if '?' in url else '?'
+            url = f'{url}{separator}{urlencode(query_params, doseq=True)}'
 
         return url
