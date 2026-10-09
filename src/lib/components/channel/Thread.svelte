@@ -1,5 +1,11 @@
 <script lang="ts">
-	import type { ChannelMessageEvent, ChannelEventMessage } from '$lib/utils/airis/channel-types';
+	import type {
+		ChannelMessageEvent,
+		ChannelDetail,
+		ChannelDisplayMessage,
+		ChannelMessageInput,
+		ChannelPinHandler
+	} from '$lib/utils/airis/channel-types';
 	import { goto } from '$app/navigation';
 
 	import { socket, user } from '$lib/stores';
@@ -10,26 +16,27 @@
 	import MessageInput from './MessageInput.svelte';
 	import Messages from './Messages.svelte';
 	import { onDestroy, onMount, tick, getContext } from 'svelte';
+	import type RichTextInput from '../common/RichTextInput.svelte';
 	import { toast } from 'svelte-sonner';
 	import Spinner from '../common/Spinner.svelte';
 
 	const i18n = getContext('i18n');
 
-	export let threadId = null;
-	export let channel = null;
+	export let threadId: string | null = null;
+	export let channel: ChannelDetail | null = null;
 
 	export let onClose = () => {};
-	export let onPin = () => {};
+	export let onPin: ChannelPinHandler = () => {};
 
-	let messages = null;
+	let messages: ChannelDisplayMessage[] | null = null;
 	let loadVersion = 0;
 	let loading: Promise<void> = Promise.resolve();
 	let top = false;
 
-	let messagesContainerElement = null;
-	let chatInputElement = null;
+	let messagesContainerElement: HTMLDivElement | null = null;
+	let chatInputElement: RichTextInput | null = null;
 
-	let replyToMessage = null;
+	let replyToMessage: ChannelDisplayMessage | null = null;
 
 	let typingUsers: ChannelMessageEvent['user'][] = [];
 	let typingUsersTimeout: Record<string, ReturnType<typeof setTimeout>> = {};
@@ -54,7 +61,7 @@
 		typingUsers = [];
 		typingUsersTimeout = {};
 
-		if (selectedChannel) {
+		if (selectedChannel && selectedThreadId) {
 			try {
 				const loadedMessages = await getChannelThreadMessages(
 					localStorage.token,
@@ -91,7 +98,7 @@
 					if (messages) {
 						messages = [
 							data,
-							...messages.filter((m: ChannelEventMessage): boolean => m.id !== data.id)
+							...messages.filter((m: ChannelDisplayMessage): boolean => m.id !== data.id)
 						];
 
 						if (typingUsers.find((user) => user.id === event.user.id)) {
@@ -102,7 +109,7 @@
 			} else if (type === 'message:update' || type === 'message:reply') {
 				if (messages) {
 					const idx = messages.findIndex(
-						(message: ChannelEventMessage): boolean => message.id === data.id
+						(message: ChannelDisplayMessage): boolean => message.id === data.id
 					);
 
 					if (idx !== -1) {
@@ -116,13 +123,13 @@
 
 				if (messages) {
 					messages = messages.filter(
-						(message: ChannelEventMessage): boolean => message.id !== data.id
+						(message: ChannelDisplayMessage): boolean => message.id !== data.id
 					);
 				}
 			} else if (type === 'message:reaction:add' || type === 'message:reaction:remove') {
 				if (messages) {
 					const idx = messages.findIndex(
-						(message: ChannelEventMessage): boolean => message.id === data.id
+						(message: ChannelDisplayMessage): boolean => message.id === data.id
 					);
 					if (idx !== -1) {
 						messages[idx] = data;
@@ -159,8 +166,8 @@
 		}
 	};
 
-	const submitHandler = async ({ content, data }) => {
-		if (!content && (data?.files ?? []).length === 0) {
+	const submitHandler = async ({ content, data }: ChannelMessageInput): Promise<void> => {
+		if (!channel || (!content && (data?.files ?? []).length === 0)) {
 			return;
 		}
 
@@ -177,7 +184,8 @@
 		replyToMessage = null;
 	};
 
-	const onChange = async () => {
+	const onChange = async (): Promise<void> => {
+		if (!channel) return;
 		$socket?.emit('events:channel', {
 			channel_id: channel.id,
 			message_id: threadId,
@@ -234,6 +242,7 @@
 						chatInputElement?.focus();
 					}}
 					onLoad={async (): Promise<void> => {
+						if (!channel || !threadId || !messages) return;
 						const version = loadVersion;
 						const newMessages = await getChannelThreadMessages(
 							localStorage.token,

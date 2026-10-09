@@ -1,4 +1,9 @@
 <script lang="ts">
+	import type {
+		ChannelDetail,
+		ChannelDisplayMessage,
+		ChannelPinHandler
+	} from '$lib/utils/airis/channel-types';
 	import { toast } from 'svelte-sonner';
 
 	import dayjs from 'dayjs';
@@ -27,24 +32,24 @@
 
 	const i18n = getContext('i18n');
 
-	export let id = null;
-	export let channel = null;
-	export let messages = [];
-	export let replyToMessage = null;
+	export let id: string | null = null;
+	export let channel: ChannelDetail | null = null;
+	export let messages: ChannelDisplayMessage[] = [];
+	export let replyToMessage: ChannelDisplayMessage | null = null;
 	export let top = false;
 	export let thread = false;
 
-	export let onLoad: Function = () => {};
-	export let onReply: Function = () => {};
-	export let onThread: Function = () => {};
-	export let onPin: Function = () => {};
+	export let onLoad: () => void | Promise<void> = () => {};
+	export let onReply: (message: ChannelDisplayMessage) => void | Promise<void> = () => {};
+	export let onThread: (id: string) => void | Promise<void> = () => {};
+	export let onPin: ChannelPinHandler = () => {};
 
 	let messagesLoading = false;
 
-	const loadMoreMessages = async () => {
+	const loadMoreMessages = async (): Promise<void> => {
 		// scroll slightly down to disable continuous loading
 		const element = document.getElementById('messages-container');
-		element.scrollTop = element.scrollTop + 100;
+		if (element) element.scrollTop = element.scrollTop + 100;
 
 		messagesLoading = true;
 
@@ -78,7 +83,9 @@
 					<div class="flex flex-col gap-1.5 pb-5 pt-10">
 						{#if channel?.type === 'dm'}
 							<div class="flex ml-[1px] mr-0.5">
-								{#each channel.users.filter((u) => u.id !== $user?.id).slice(0, 2) as u, index}
+								{#each (channel.users ?? [])
+									.filter((u) => u.id !== $user?.id)
+									.slice(0, 2) as u, index}
 									<img
 										src={`${WEBUI_API_BASE_URL}/users/${u.id}/profile/image`}
 										alt={u.name}
@@ -131,7 +138,7 @@
 				{thread}
 				{id}
 				replyToMessage={replyToMessage?.id === message.id}
-				disabled={!channel?.write_access || message?.temp_id}
+				disabled={Boolean(!channel?.write_access || message?.temp_id)}
 				pending={!!message?.temp_id}
 				showUserProfile={messageIdx === 0 ||
 					messageList.at(messageIdx - 1)?.user_id !== message.user_id ||
@@ -139,6 +146,7 @@
 					messageList.at(messageIdx - 1)?.meta?.model_id !== message?.meta?.model_id ||
 					message?.reply_to_message !== null}
 				onDelete={() => {
+					if (!message.channel_id) return;
 					messages = messages.filter((m) => m.id !== message.id);
 
 					const res = deleteMessage(localStorage.token, message.channel_id, message.id).catch(
@@ -149,6 +157,7 @@
 					);
 				}}
 				onEdit={(content) => {
+					if (!message.channel_id) return;
 					messages = messages.map((m) => {
 						if (m.id === message.id) {
 							m.content = content;
@@ -167,6 +176,7 @@
 					onReply(message);
 				}}
 				onPin={async (message) => {
+					if (!message.channel_id) return;
 					const pinned = !message.is_pinned;
 					const pinnedBy = pinned ? ($user?.id ?? null) : null;
 					const pinnedAt = pinned ? Date.now() * 1000000 : null;
@@ -193,6 +203,8 @@
 					onThread(id);
 				}}
 				onReaction={(name) => {
+					const reactionUser = $user;
+					if (!reactionUser || !message.channel_id || !message.reactions) return;
 					if (
 						(message?.reactions ?? [])
 							.find((reaction) => reaction.name === name)
@@ -201,14 +213,14 @@
 					) {
 						messages = messages.map((m) => {
 							if (m.id === message.id) {
-								const reaction = m.reactions.find((reaction) => reaction.name === name);
+								const reaction = m.reactions?.find((reaction) => reaction.name === name);
 
 								if (reaction) {
 									reaction.users = reaction.users.filter((u) => u.id !== $user?.id);
 									reaction.count = reaction.users.length;
 
 									if (reaction.count === 0) {
-										m.reactions = m.reactions.filter((r) => r.name !== name);
+										m.reactions = m.reactions?.filter((r) => r.name !== name);
 									}
 								}
 							}
@@ -228,15 +240,15 @@
 						messages = messages.map((m) => {
 							if (m.id === message.id) {
 								if (m.reactions) {
-									const reaction = m.reactions.find((reaction) => reaction.name === name);
+									const reaction = m.reactions?.find((reaction) => reaction.name === name);
 
 									if (reaction) {
-										reaction.users.push({ id: $user?.id, name: $user?.name });
+										reaction.users.push({ id: reactionUser.id, name: reactionUser.name });
 										reaction.count = reaction.users.length;
 									} else {
 										m.reactions.push({
 											name: name,
-											users: [{ id: $user?.id, name: $user?.name }],
+											users: [{ id: reactionUser.id, name: reactionUser.name }],
 											count: 1
 										});
 									}

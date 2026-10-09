@@ -1,4 +1,10 @@
 <script lang="ts">
+	import type {
+		ChannelDetail,
+		ChannelDisplayMessage,
+		ChannelMessageInput,
+		ChannelMessageEvent
+	} from '$lib/utils/airis/channel-types';
 	import { getAttachmentSource } from '$lib/utils/airis/attachment_source';
 	import { toast } from 'svelte-sonner';
 	import { v4 as uuidv4 } from 'uuid';
@@ -42,18 +48,15 @@
 	import XMark from '../icons/XMark.svelte';
 
 	export let placeholder = $i18n.t('Type here...');
-	export let chatInputElement;
+	export let chatInputElement: RichTextInput | null | undefined;
 
 	export let id: string | null = null;
-	export let channel = null;
+	export let channel: ChannelDetail | null = null;
 
-	export let typingUsers = [];
+	export let typingUsers: ChannelMessageEvent['user'][] = [];
 	export let inputLoading = false;
 
-	export let onSubmit: (value: {
-		content: string;
-		data: { files: Record<string, unknown>[] };
-	}) => void | Promise<void> = () => {};
+	export let onSubmit: (value: ChannelMessageInput) => void | Promise<void> = () => {};
 	export let onChange: () => void | Promise<void> = () => {};
 	export let onStop: () => void | Promise<void> = () => {};
 
@@ -66,7 +69,7 @@
 	export let userSuggestions = false;
 	export let channelSuggestions = false;
 
-	export let replyToMessage = null;
+	export let replyToMessage: ChannelDisplayMessage | null = null;
 
 	export let typingUsersClassName = 'from-white dark:from-gray-900';
 
@@ -243,8 +246,8 @@
 		const chatInput = document.getElementById('chat-input');
 
 		if (chatInput) {
-			chatInputElement.replaceVariables(variables);
-			chatInputElement.focus();
+			chatInputElement?.replaceVariables(variables);
+			chatInputElement?.focus();
 		}
 	};
 
@@ -276,7 +279,7 @@
 		let word = '';
 
 		if (chatInput) {
-			word = chatInputElement?.getWordAtDocPos();
+			word = chatInputElement?.getWordAtDocPos() ?? '';
 		}
 
 		return word;
@@ -578,7 +581,7 @@
 
 			await tick();
 
-			chatInputElement.focus();
+			chatInputElement?.focus();
 		}
 	};
 
@@ -666,7 +669,7 @@
 
 		window.setTimeout(() => {
 			if (chatInputElement) {
-				chatInputElement.focus();
+				chatInputElement?.focus();
 			}
 		}, 100);
 
@@ -797,7 +800,7 @@
 							await tick();
 
 							if (chatInputElement) {
-								chatInputElement.focus();
+								chatInputElement?.focus();
 							}
 						}}
 						onConfirm={async (data) => {
@@ -810,7 +813,7 @@
 							await tick();
 
 							if (chatInputElement) {
-								chatInputElement.focus();
+								chatInputElement?.focus();
 							}
 						}}
 					/>
@@ -834,7 +837,7 @@
 											<div class="translate-y-[0.5px]">
 												<span class=""
 													>{$i18n.t('Replying to {{NAME}}', {
-														NAME: replyToMessage?.meta?.model_name ?? replyToMessage.user.name
+														NAME: replyToMessage?.meta?.model_name ?? replyToMessage.user?.name
 													})}</span
 												>
 											</div>

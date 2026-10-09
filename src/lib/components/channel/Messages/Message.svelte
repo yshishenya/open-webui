@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ChannelDisplayMessage } from '$lib/utils/airis/channel-types';
 	import { getAttachmentSource } from '$lib/utils/airis/attachment_source';
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
@@ -53,7 +54,7 @@
 
 	export let showUserProfile = true;
 	export let thread = false;
-	export let id = null;
+	export let id: string | null = null;
 
 	export let replyToMessage = false;
 	export let disabled = false;
@@ -61,8 +62,8 @@
 
 	export let onDelete: false | (() => void | Promise<void>) = () => {};
 	export let onEdit: false | ((content: string) => void | Promise<void>) = () => {};
-	export let onReply: false | ((message: { id: string; channel_id: string; is_pinned?: boolean; [key: string]: unknown }) => void | Promise<void>) = () => {};
-	export let onPin: false | ((message: { id: string; channel_id: string; is_pinned?: boolean; [key: string]: unknown }) => void | Promise<void>) = () => {};
+	export let onReply: false | ((message: ChannelDisplayMessage) => void | Promise<void>) = () => {};
+	export let onPin: false | ((message: ChannelDisplayMessage) => void | Promise<void>) = () => {};
 	export let onThread: false | ((value: string) => void | Promise<void>) = () => {};
 	export let onReaction: false | ((value: string) => void | Promise<void>) = () => {};
 

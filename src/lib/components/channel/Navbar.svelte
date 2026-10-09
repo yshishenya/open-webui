@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ChannelDetail, ChannelPinHandler } from '$lib/utils/airis/channel-types';
 	import { getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
@@ -25,7 +26,7 @@
 	let showChannelPinnedMessagesModal = false;
 	let showChannelInfoModal = false;
 
-	const hasPublicReadGrant = (grants: any) =>
+	const hasPublicReadGrant = (grants: ChannelDetail['access_grants'] | undefined): boolean =>
 		Array.isArray(grants) &&
 		grants.some(
 			(grant) =>
@@ -34,7 +35,7 @@
 				grant?.permission === 'read'
 		);
 
-	const isPublicChannel = (channel: any): boolean => {
+	const isPublicChannel = (channel: ChannelDetail | null): boolean => {
 		if (channel?.type === 'group') {
 			if (typeof channel?.is_private === 'boolean') {
 				return !channel.is_private;
@@ -44,9 +45,9 @@
 		return hasPublicReadGrant(channel?.access_grants);
 	};
 
-	export let channel;
+	export let channel: ChannelDetail | null;
 
-	export let onPin = (messageId, pinned) => {};
+	export let onPin: ChannelPinHandler = (messageId, pinned) => {};
 	export let onUpdate = () => {};
 </script>
 

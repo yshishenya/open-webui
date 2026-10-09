@@ -1,5 +1,13 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
-import type { ChannelListItem } from '$lib/utils/airis/channel-types';
+import type {
+	ChannelListItem,
+	ChannelDetail,
+	ChannelListMessage,
+	ChannelPinnedMessage,
+	ChannelMessageData,
+	ChannelMessageForm,
+	ChannelMessageResponse
+} from '$lib/utils/airis/channel-types';
 
 type ChannelForm = {
 	type?: string;
@@ -75,7 +83,10 @@ export const getChannels = async (token: string = ''): Promise<ChannelListItem[]
 	return res;
 };
 
-export const getChannelById = async (token: string = '', channel_id: string) => {
+export const getChannelById = async (
+	token: string = '',
+	channel_id: string
+): Promise<ChannelDetail | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/channels/${channel_id}`, {
@@ -381,7 +392,7 @@ export const getChannelMessages = async (
 	channel_id: string,
 	skip: number = 0,
 	limit: number = 50
-) => {
+): Promise<ChannelListMessage[] | null> => {
 	let error = null;
 
 	const res = await fetch(
@@ -419,7 +430,7 @@ export const getChannelPinnedMessages = async (
 	token: string = '',
 	channel_id: string,
 	page: number = 1
-) => {
+): Promise<ChannelPinnedMessage[] | null> => {
 	let error = null;
 
 	const res = await fetch(
@@ -459,7 +470,7 @@ export const getChannelThreadMessages = async (
 	message_id: string,
 	skip: number = 0,
 	limit: number = 50
-) => {
+): Promise<ChannelListMessage[] | null> => {
 	let error = null;
 
 	const res = await fetch(
@@ -497,7 +508,7 @@ export const getMessageData = async (
 	token: string = '',
 	channel_id: string,
 	message_id: string
-) => {
+): Promise<ChannelMessageData | null> => {
 	let error = null;
 
 	const res = await fetch(
@@ -531,16 +542,11 @@ export const getMessageData = async (
 	return res;
 };
 
-type MessageForm = {
-	temp_id?: string;
-	reply_to_id?: string;
-	parent_id?: string;
-	content: string;
-	data?: object;
-	meta?: object;
-};
-
-export const sendMessage = async (token: string = '', channel_id: string, message: MessageForm) => {
+export const sendMessage = async (
+	token: string = '',
+	channel_id: string,
+	message: ChannelMessageForm
+): Promise<ChannelMessageResponse | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/channels/${channel_id}/messages/post`, {
@@ -616,7 +622,7 @@ export const updateMessage = async (
 	token: string = '',
 	channel_id: string,
 	message_id: string,
-	message: MessageForm
+	message: ChannelMessageForm
 ) => {
 	let error = null;
 
