@@ -25,14 +25,7 @@ test('long composer and image survive reload; accepted guide draft does not retu
 	await page.goto('/?model=gpt-5.6-luna&submit=false');
 	const text = 'Draft: ' + 'x'.repeat(6000);
 	await composer(page).fill(text);
-	await page.locator('input[type="file"][multiple]').setInputFiles({
-		name: 'draft.png',
-		mimeType: 'image/png',
-		buffer: Buffer.from(
-			'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6T58AAAAASUVORK5CYII=',
-			'base64'
-		)
-	});
+	await page.locator('input[type="file"][multiple]').setInputFiles('static/favicon.png');
 	await expect
 		.poll(() => saved(page, account.id, 'home'))
 		.toMatchObject({
