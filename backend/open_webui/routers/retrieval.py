@@ -6,7 +6,7 @@ import os
 import shutil
 import uuid
 from types import SimpleNamespace
-from typing import Callable
+from collections.abc import Callable
 
 import tiktoken
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status

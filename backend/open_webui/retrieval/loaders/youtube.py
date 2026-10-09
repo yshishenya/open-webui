@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Generator, Sequence
+from collections.abc import Generator, Sequence
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 from xml.etree.ElementTree import ParseError
 

@@ -1,6 +1,6 @@
 import logging
 import traceback
-from typing import Collection
+from collections.abc import Collection
 
 from aiohttp import (
     TraceRequestEndParams,

@@ -1,9 +1,10 @@
 import re
 import uuid
+from collections.abc import AsyncGenerator, MutableMapping
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any, AsyncGenerator, MutableMapping, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from asgiref.typing import (
     ASGI3Application,

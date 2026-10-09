@@ -7,7 +7,8 @@ import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
-from typing import Any, AsyncIterator, Iterator, Literal, Sequence
+from typing import Any, Literal
+from collections.abc import AsyncIterator, Iterator, Sequence
 
 import aiohttp
 import aiohttp.resolver

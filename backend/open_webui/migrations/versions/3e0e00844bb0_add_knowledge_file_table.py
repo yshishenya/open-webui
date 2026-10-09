@@ -9,7 +9,7 @@ Create Date: 2025-12-02 06:54:19.401334
 import json
 import time
 import uuid
-from typing import Sequence
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op

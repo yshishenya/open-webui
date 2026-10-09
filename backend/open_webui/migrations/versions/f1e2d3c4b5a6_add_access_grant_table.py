@@ -13,7 +13,7 @@ Access control semantics:
 
 import time
 import uuid
-from typing import Sequence
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op

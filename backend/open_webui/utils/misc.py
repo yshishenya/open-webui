@@ -8,9 +8,9 @@ import re
 import threading
 import time
 import uuid
+from collections.abc import Sequence
 from datetime import timedelta
 from pathlib import Path
-from typing import Sequence
 
 import aiohttp
 import mimeparse

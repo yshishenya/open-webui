@@ -3,7 +3,7 @@ import json
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 from openpyxl import Workbook, load_workbook
 

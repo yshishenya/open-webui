@@ -1,5 +1,5 @@
 import json
-from typing import Callable
+from collections.abc import Callable
 
 from open_webui.utils.airis.stop_sequences import decode_stop_sequences
 from open_webui.utils.chat_variables import render_chat_variables, render_user_variables

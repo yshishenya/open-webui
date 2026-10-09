@@ -1,5 +1,6 @@
 import logging
-from typing import Iterator, Literal
+from collections.abc import Iterator
+from typing import Literal
 
 import requests
 from langchain_core.document_loaders import BaseLoader

@@ -7,7 +7,7 @@ import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Awaitable
+from collections.abc import Awaitable
 
 import aiohttp
 import requests
@@ -1693,7 +1693,7 @@ def get_model_path(model: str, update_model: bool = False):
 
 
 import operator
-from typing import Sequence
+from collections.abc import Sequence
 
 from langchain_core.callbacks import Callbacks
 from langchain_core.documents import BaseDocumentCompressor, Document

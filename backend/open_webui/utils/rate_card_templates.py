@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Sequence
+from collections.abc import Sequence
 
 from open_webui.env import BILLING_RATE_CARD_VERSION
 

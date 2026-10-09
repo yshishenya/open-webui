@@ -21,7 +21,7 @@ import datetime
 import logging
 import time
 from base64 import b64encode
-from typing import Iterable
+from collections.abc import Iterable
 
 from fastapi import FastAPI, Request
 from open_webui.env import (

@@ -3,7 +3,7 @@ import inspect
 import json
 import logging
 import sys
-from typing import AsyncGenerator, Generator, Iterator
+from collections.abc import AsyncGenerator, Generator, Iterator
 
 from fastapi import Request
 from pydantic import BaseModel

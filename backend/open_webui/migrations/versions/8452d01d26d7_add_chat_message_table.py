@@ -9,7 +9,7 @@ Create Date: 2026-02-01 04:00:00.000000
 import json
 import logging
 import time
-from typing import Sequence
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op

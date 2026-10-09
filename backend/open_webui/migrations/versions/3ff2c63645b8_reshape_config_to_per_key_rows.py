@@ -8,7 +8,7 @@ Create Date: 2026-06-17 00:50:51.477073
 
 import json
 import time
-from typing import Sequence
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op

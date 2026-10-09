@@ -8,7 +8,8 @@ import json
 import logging
 import re
 from functools import cache, partial, update_wrapper
-from typing import Any, Awaitable, Callable, get_args, get_type_hints
+from typing import Any, get_args, get_type_hints
+from collections.abc import Awaitable, Callable
 from urllib.parse import quote, urlencode
 
 import aiohttp
