@@ -1,0 +1,5 @@
+- [ ] **[REFACTOR]** Preserve nullable FastAPI response contracts
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09__refactor__nullable-response-models.md
+  - Owner: Codex
+  - Started: 2026-10-09
+  - Summary: Remaining 28 Optional runtime response declarations; exact source/API/response serialization preservation and full tests. General quality/CI/release remains open.

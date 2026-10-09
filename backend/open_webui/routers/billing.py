@@ -9,7 +9,7 @@ import hmac
 import json
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Optional, Dict, List
+from typing import Dict, List
 from urllib.parse import urlsplit, urlunsplit
 from pydantic import BaseModel
 
@@ -794,7 +794,7 @@ def create_plan(
 ############################
 
 
-@router.get('/subscription', response_model=Optional[SubscriptionModel])
+@router.get('/subscription', response_model=SubscriptionModel | None)
 def get_my_subscription(user=Depends(get_verified_user)):
     """Get current user's subscription"""
     _require_subscriptions_enabled()
