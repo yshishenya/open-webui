@@ -3,10 +3,10 @@
 ## Meta
 
 - Type: bugfix
-- Status: in progress
+- Status: source stage complete; release pending
 - Owner: Codex
 - Branch: codex/bugfix/profile-preview-loading
-- SDD Spec: meta/sdd/specs/active/airis-profile-preview-loading-2026-10-09-015.json
+- SDD Spec: meta/sdd/specs/completed/airis-profile-preview-loading-2026-10-09-015.json
 - Created: 2026-10-09
 - Base: origin/airis_b2c d579f5c02926cace8c8da60434ce1c39c7284361; explicit fast-forward dependency 85015155b82fb7fac43ebe7ac0a94bde075e068c.
 
@@ -22,7 +22,7 @@ G14 source work. ProfilePreview forwards openPreview; MentionToken uses a separa
 - [x] Success is cached for same-id reopen; a failed/abandoned load can retry on reopen without a reactive loop.
 - [x] Reuse exact backend UserInfoResponse fields and installed LinkPreview prop types; eliminate local type errors without new diagnostics elsewhere.
 - [x] Full frontend and relevant regressions pass; own formatting; backend byte equality and protected state verified.
-- [ ] Source committed/pushed/remote-matched; linked documentation/SDD completed for source scope.
+- [x] Source committed/pushed/remote-matched; linked documentation/SDD completed for source scope.
 - [ ] General zero-error gate/preflight/PR/integration/same-SHA backend/frontend/E2E/image/production/real A/B acceptance.
 
 ## Scope / upstream impact
@@ -48,3 +48,5 @@ Entire compiled ProfilePreview (including single-open module) and erased users A
 Dependency compatibility:installed bits-ui2.16.3 API and official repository README/changelog reviewed;latest stable2.19.5. No new integration or upgrade;preserve pinned tested dependencies,upgrade separately with full acceptance. Official documentation site returned403;official repository material fetched200. marked9.1.6 remains unchanged.
 
 General zero-error/preflight/PR/integration/image/deployment gates and real A/B conditions remain pending. Numbered plan198/244,46 open,new closures0. The SDD covers this source-stage delivery only.
+
+Source delivery: `2bea931bde541cab2c23ca0707ed78732e389bbd` pushed to codex/bugfix/profile-preview-loading;remote SHA and all1520 tested Git blobs match. Source SDD3/3 complete;all189 specs schema-valid. Temporary frontend/pytools runners0;no persistent fixture volumes created. Existing shared cache(created2026-10-01) and network preserved. Source scope reviewed against bug_fix/code_review;general release checklist remains pending.
