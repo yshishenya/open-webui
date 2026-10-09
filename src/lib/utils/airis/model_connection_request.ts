@@ -20,8 +20,11 @@ export const requestModelConnection = async <T>(
 		if (!response.ok) {
 			const detail: unknown = await response.json().catch(() => null);
 			controller.signal.throwIfAborted();
-			throw new Error(
-				detail ? getErrorMessage(detail) : `Connection request failed (${response.status}).`
+			throw Object.assign(
+				new Error(
+					detail ? getErrorMessage(detail) : `Connection request failed (${response.status}).`
+				),
+				{ status: response.status }
 			);
 		}
 		const data = await read(response);

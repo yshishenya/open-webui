@@ -121,6 +121,18 @@ export type DirectTerminalSettings = Pick<StoredTerminalServer, 'url' | 'name'> 
 	path?: string;
 };
 
+export type TerminalServerConnection = Pick<DirectTerminalSettings, 'url'> &
+	Partial<DirectTerminalSettings> & {
+		id?: string;
+		config?: { access_grants?: ComponentProps<typeof AccessControlModal>['accessGrants'] } | null;
+		server_type?: 'orchestrator' | 'terminal' | null;
+		policy_id?: string | null;
+		[key: string]: unknown;
+	};
+export type TerminalConnectionSave = (
+	connection: TerminalServerConnection & { enabled: boolean }
+) => boolean | void | Promise<boolean | void>;
+
 // configs.ToolServerConnection; optional fields also accept legacy user settings.
 export type ToolServerConnection = {
 	url: string;

@@ -46,11 +46,14 @@ function terminal(
 	const submit = vi.fn();
 	const api = runInNewContext(
 		ts.transpileModule(
-			`${script}\nconnection={url:'https://terminal.invalid',key:'fixture',enabled:true,server_type:'orchestrator',policy_id:'fixture'}; onSubmit=submit; init(); ({load:loadPolicy, save:submitHandler, read:()=>({policyImage,policyCpu,policyMemory,policyStorageSize,policyIdleTimeout,policyEnvPairs,lifecycleJson,policyLoadError,loadingPolicy})});`,
+			`${script}\nconnection={url:'https://terminal.invalid',key:'fixture',enabled:true,server_type:'orchestrator',policy_id:'fixture'}; onSubmit=submit; show=true; init(); ({load:loadPolicy, save:submitHandler, read:()=>({policyImage,policyCpu,policyMemory,policyStorageSize,policyIdleTimeout,policyEnvPairs,lifecycleJson,policyLoadError,loadingPolicy})});`,
 			{ compilerOptions: { target: ts.ScriptTarget.ES2022 } }
 		).outputText,
 		{
 			getContext: () => ({}),
+			onDestroy: () => {},
+			structuredClone,
+			AbortController,
 			getOrchestratorPolicy: async () => {
 				if (policy instanceof Error) throw policy;
 				return policy;

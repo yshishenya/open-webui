@@ -27,6 +27,7 @@ export type TerminalCwd = {
 };
 
 import { WEBUI_API_BASE_URL } from '$lib/constants';
+import { requestModelConnection } from '$lib/utils/airis/model_connection_request';
 
 const bearerHeaders = (apiKey: string): Record<string, string> => ({
 	Authorization: `Bearer ${apiKey.trim()}`
@@ -38,26 +39,46 @@ export type TerminalServer = {
 	name: string;
 };
 
-export const getTerminalServers = async (token: string): Promise<TerminalServer[]> => {
-	const res = await fetch(`${WEBUI_API_BASE_URL}/terminals/`, {
-		headers: {
-			Authorization: `Bearer ${token}`
-		}
-	}).catch(() => null);
-	if (!res || !res.ok) return [];
-	return res.json().catch(() => []);
+export const getTerminalServers = async (
+	token: string,
+	signal?: AbortSignal,
+	strict = false
+): Promise<TerminalServer[]> => {
+	try {
+		return await requestModelConnection(
+			`${WEBUI_API_BASE_URL}/terminals/`,
+			{
+				headers: { Authorization: `Bearer ${token}` }
+			},
+			signal,
+			async (response) => {
+				const data: unknown = await response.json();
+				if (!Array.isArray(data)) throw new Error('Invalid terminal server list');
+				return data as TerminalServer[];
+			}
+		);
+	} catch (error) {
+		if (strict) throw error;
+		return [];
+	}
 };
 
 export const getTerminalConfig = async (
 	baseUrl: string,
-	apiKey: string
+	apiKey: string,
+	signal?: AbortSignal
 ): Promise<{ features: TerminalFeatures } | null> => {
-	const url = `${baseUrl.replace(/\/$/, '')}/api/config`;
-	const res = await fetch(url, {
-		headers: bearerHeaders(apiKey)
-	}).catch(() => null);
-	if (!res || !res.ok) return null;
-	return res.json().catch(() => null);
+	try {
+		return await requestModelConnection(
+			`${baseUrl.replace(/\/$/, '')}/api/config`,
+			{
+				headers: apiKey.trim() ? bearerHeaders(apiKey) : {}
+			},
+			signal
+		);
+	} catch {
+		return null;
+	}
 };
 
 export const getCwd = async (

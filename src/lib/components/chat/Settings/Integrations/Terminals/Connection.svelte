@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 
@@ -11,28 +12,42 @@
 	import AddTerminalServerModal from '$lib/components/AddTerminalServerModal.svelte';
 	import Cloud from '$lib/components/icons/Cloud.svelte';
 
-	type TerminalServerConfig = {
-		url: string;
-		key?: string;
-		name?: string;
-		path?: string;
-		enabled: boolean;
-		[key: string]: any;
-	};
-
-	export let connection: TerminalServerConfig = {
-		url: '',
-		key: '',
-		name: '',
-		path: '/openapi.json',
-		enabled: false
-	};
-	export let onSubmit: (c: TerminalServerConfig) => void = () => {};
-	export let onDelete: () => void = () => {};
-	export let onEnable: () => void = () => {};
-	export let onDisable: () => void = () => {};
-
+	import type {
+		DirectTerminalSettings,
+		ConnectionDelete
+	} from '$lib/utils/airis/frontend-contracts';
+	type TerminalServerConfig = DirectTerminalSettings;
+	export let connection: TerminalServerConfig = { url: '', enabled: false };
+	export let onSubmit: (
+		c: TerminalServerConfig
+	) => boolean | void | Promise<boolean | void> = () => {};
+	export let onDelete: ConnectionDelete = () => {};
+	export let onEnable: ConnectionDelete = () => {};
+	export let onDisable: ConnectionDelete = () => {};
 	let showConfigModal = false;
+	let saving = false;
+	const saveConnection = async (next: TerminalServerConfig): Promise<boolean> => {
+		if (saving) return false;
+		saving = true;
+		try {
+			if ((await onSubmit(next)) === false) return false;
+			connection = next;
+			return true;
+		} finally {
+			saving = false;
+		}
+	};
+	const toggle = async (): Promise<void> => {
+		if (saving) return;
+		saving = true;
+		try {
+			await (connection.enabled ? onDisable() : onEnable());
+		} catch {
+			toast.error($i18n.t('Failed to save connections'));
+		} finally {
+			saving = false;
+		}
+	};
 </script>
 
 <AddTerminalServerModal
@@ -40,14 +55,8 @@
 	edit
 	bind:show={showConfigModal}
 	{connection}
-	onDelete={() => {
-		onDelete();
-		showConfigModal = false;
-	}}
-	onSubmit={(c: TerminalServerConfig) => {
-		connection = c;
-		onSubmit(c);
-	}}
+	{onDelete}
+	onSubmit={saveConnection}
 />
 
 <div class="flex w-full gap-2 items-center">
@@ -81,10 +90,9 @@
 		</Tooltip>
 
 		<Tooltip content={connection?.enabled ? $i18n.t('Enabled') : $i18n.t('Disabled')}>
-			<Switch
-				state={connection?.enabled}
-				on:change={() => (connection?.enabled ? onDisable() : onEnable())}
-			/>
+			{#key saving}
+				<Switch state={connection?.enabled} on:change={toggle} disabled={saving} />
+			{/key}
 		</Tooltip>
 	</div>
 </div>

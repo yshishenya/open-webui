@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { onMount, onDestroy, getContext } from 'svelte';
-	import type { ToolServerConnection } from '$lib/utils/airis/frontend-contracts';
+	import type {
+		ToolServerConnection,
+		TerminalServerConnection
+	} from '$lib/utils/airis/frontend-contracts';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 
@@ -32,14 +35,7 @@
 	} from '$lib/apis/configs';
 
 	export let saveSettings: (settings: Record<string, unknown>) => void | Promise<void>;
-	type TerminalConnection = {
-		id?: string;
-		url?: string;
-		name?: string;
-		key?: string;
-		enabled?: boolean;
-		[key: string]: any;
-	};
+	type TerminalConnection = TerminalServerConnection;
 
 	let servers: ToolServerConnection[] | null = null;
 	let showConnectionModal = false;
@@ -98,64 +94,97 @@
 	const deleteConnectionHandler = (idx: number): Promise<boolean> =>
 		saveConnections((servers ?? []).filter((_, i) => i !== idx));
 
-	const saveTerminalServers = async () => {
-		const res = await setTerminalServerConnections(localStorage.token, {
-			TERMINAL_SERVER_CONNECTIONS: terminalConnections
-		}).catch((err) => {
-			toast.error($i18n.t('Failed to save terminal servers'));
-			return null;
-		});
-
-		if (res) {
-			toast.success($i18n.t('Terminal servers saved'));
-
-			// Refresh the terminalServers store so changes are reflected immediately
-			// Preserve user direct terminals, refresh system terminals from backend
-			const existingDirectTerminals = (($terminalServers ?? []) as TerminalConnection[]).filter(
-				(t) => !t.id
-			);
-			const systemTerminals = await getTerminalServers(localStorage.token);
-			const systemEntries = systemTerminals.map((t) => ({
-				id: t.id,
-				url: `${WEBUI_API_BASE_URL}/terminals/${t.id}`,
-				name: t.name,
-				key: localStorage.token
-			}));
-			terminalServers.set([...existingDirectTerminals, ...systemEntries] as any);
-		}
-	};
-
-	const addTerminalConnection = (server: TerminalConnection) => {
-		terminalConnections = [
-			...terminalConnections,
-			{ ...server, id: server.id ?? crypto.randomUUID() }
-		];
-		saveTerminalServers();
-	};
-
-	const updateTerminalConnection = (idx: number, updated: TerminalConnection) => {
-		terminalConnections = terminalConnections.map((c, i) =>
-			i === idx ? { ...c, ...updated, id: updated.id ?? c.id } : c
-		);
-		saveTerminalServers();
-	};
-
-	const removeTerminalConnection = (idx: number) => {
-		terminalConnections = terminalConnections.filter((_, i) => i !== idx);
-		saveTerminalServers();
-	};
-
-	onMount(async () => {
-		await loadConnections();
-
+	let savingTerminals = false;
+	let terminalLoaded = false;
+	let terminalLoadError = false;
+	const loadTerminalConnections = async (): Promise<void> => {
+		terminalLoadError = false;
 		try {
-			const terminalRes = await getTerminalServerConnections(localStorage.token);
-			if (terminalRes?.TERMINAL_SERVER_CONNECTIONS) {
-				terminalConnections = terminalRes.TERMINAL_SERVER_CONNECTIONS as TerminalConnection[];
+			const res = await getTerminalServerConnections(localStorage.token, loadAbort.signal);
+			if (!destroyed) {
+				terminalConnections = structuredClone(res.TERMINAL_SERVER_CONNECTIONS);
+				terminalLoaded = true;
 			}
 		} catch {
-			// Not configured yet
+			if (!destroyed) {
+				terminalLoadError = true;
+				toast.error($i18n.t('Connection failed'));
+			}
 		}
+	};
+	const saveTerminalServers = async (
+		next: TerminalConnection[] = terminalConnections
+	): Promise<boolean> => {
+		if (savingTerminals || destroyed || !terminalLoaded) return false;
+		savingTerminals = true;
+		try {
+			const res = await setTerminalServerConnections(localStorage.token, {
+				TERMINAL_SERVER_CONNECTIONS: structuredClone(next)
+			});
+			if (!res || !Array.isArray(res.TERMINAL_SERVER_CONNECTIONS))
+				throw new Error('Failed to save terminals');
+			if (!destroyed) {
+				terminalConnections = res.TERMINAL_SERVER_CONNECTIONS;
+				toast.success($i18n.t('Terminal servers saved'));
+			}
+			try {
+				const system = await getTerminalServers(localStorage.token, loadAbort.signal, true);
+				if (!destroyed)
+					terminalServers.set([
+						...($terminalServers ?? []).filter((t) => !t.id),
+						...system.map((t) => ({
+							id: t.id,
+							url: `${WEBUI_API_BASE_URL}/terminals/${t.id}`,
+							name: t.name,
+							key: localStorage.token
+						}))
+					]);
+			} catch {
+				if (!destroyed) toast.error($i18n.t('Connection failed'));
+			}
+			return true;
+		} catch {
+			if (!destroyed) toast.error($i18n.t('Failed to save terminal servers'));
+			return false;
+		} finally {
+			savingTerminals = false;
+		}
+	};
+	const addTerminalConnection = (server: TerminalConnection): Promise<boolean> =>
+		saveTerminalServers([
+			...terminalConnections,
+			{ ...server, id: server.id ?? crypto.randomUUID() }
+		]);
+	const updateTerminalConnection = (idx: number, updated: TerminalConnection): Promise<boolean> =>
+		saveTerminalServers(
+			terminalConnections.map((c, i) =>
+				i === idx ? { ...c, ...updated, id: updated.id ?? c.id } : c
+			)
+		);
+	const removeTerminalConnection = (idx: number): Promise<boolean> =>
+		saveTerminalServers(terminalConnections.filter((_, i) => i !== idx));
+	const toggleTerminalConnection = (idx: number): Promise<boolean> =>
+		saveTerminalServers(
+			terminalConnections.map((c, i) => (i === idx ? { ...c, enabled: c.enabled === false } : c))
+		);
+	const submitTerminalConnection = async (
+		c: TerminalConnection & { enabled: boolean }
+	): Promise<boolean> => {
+		const idx = editTerminalIdx;
+		const saved = await (idx === null
+			? addTerminalConnection(c)
+			: updateTerminalConnection(idx, c));
+		return saved;
+	};
+	const deleteTerminalConnection = async (): Promise<boolean> => {
+		const idx = editTerminalIdx;
+		if (idx === null) return false;
+		const saved = await removeTerminalConnection(idx);
+		return saved;
+	};
+	onMount(async () => {
+		await loadConnections();
+		await loadTerminalConnections();
 	});
 </script>
 
@@ -165,20 +194,8 @@
 	bind:show={showAddTerminalModal}
 	edit={editTerminalIdx !== null}
 	connection={editTerminalIdx !== null ? terminalConnections[editTerminalIdx] : null}
-	onSubmit={(c: TerminalConnection) => {
-		if (editTerminalIdx !== null) {
-			updateTerminalConnection(editTerminalIdx, c);
-			editTerminalIdx = null;
-		} else {
-			addTerminalConnection(c);
-		}
-	}}
-	onDelete={() => {
-		if (editTerminalIdx !== null) {
-			removeTerminalConnection(editTerminalIdx);
-			editTerminalIdx = null;
-		}
-	}}
+	onSubmit={submitTerminalConnection}
+	onDelete={deleteTerminalConnection}
 />
 
 <form
@@ -234,6 +251,11 @@
 			</AdminSettingSection>
 
 			<AdminSettingSection title={$i18n.t('Terminal')}>
+				{#if terminalLoadError}
+					<button type="button" disabled={savingTerminals} on:click={loadTerminalConnections}
+						>{$i18n.t('Retry')}</button
+					>
+				{/if}
 				<div>
 					<div class="mb-2 flex items-center justify-between">
 						<div class="text-xs text-gray-600 dark:text-gray-400">{$i18n.t('Open Terminal')}</div>
@@ -246,6 +268,7 @@
 									showAddTerminalModal = true;
 								}}
 								type="button"
+								disabled={savingTerminals || !terminalLoaded}
 							>
 								<Plus />
 							</button>
@@ -295,15 +318,13 @@
 											? $i18n.t('Enabled')
 											: $i18n.t('Disabled')}
 									>
-										<Switch
-											state={connection?.enabled !== false}
-											on:change={() => {
-												terminalConnections = terminalConnections.map((c, i) =>
-													i === idx ? { ...c, enabled: !(c?.enabled !== false) } : c
-												);
-												saveTerminalServers();
-											}}
-										/>
+										{#key savingTerminals}
+											<Switch
+												state={connection?.enabled !== false}
+												on:change={() => toggleTerminalConnection(idx)}
+												disabled={savingTerminals}
+											/>
+										{/key}
 									</Tooltip>
 								</div>
 							</div>

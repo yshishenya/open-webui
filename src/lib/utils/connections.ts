@@ -89,20 +89,23 @@ export const addTerminalConnection = async (
 	const servers = current?.TERMINAL_SERVER_CONNECTIONS ?? [];
 
 	// Don't add duplicates
-	if (servers.find((s: any) => s.url === connection.url)) {
+	if (servers.find((s) => s.url === connection.url)) {
 		return current;
 	}
 
-	servers.push({
-		url: connection.url,
-		key: connection.key ?? '',
-		auth_type: connection.auth_type ?? 'bearer',
-		name: connection.name ?? 'Open Terminal',
-		enabled: true
-	});
+	const next = [
+		...servers,
+		{
+			url: connection.url,
+			key: connection.key ?? '',
+			auth_type: connection.auth_type ?? 'bearer',
+			name: connection.name ?? 'Open Terminal',
+			enabled: true
+		}
+	];
 
 	return await setTerminalServerConnections(token, {
-		TERMINAL_SERVER_CONNECTIONS: servers
+		TERMINAL_SERVER_CONNECTIONS: next
 	});
 };
 
@@ -113,7 +116,7 @@ export const removeTerminalConnection = async (token: string, url: string) => {
 	const current = await getTerminalServerConnections(token);
 	const servers = current?.TERMINAL_SERVER_CONNECTIONS ?? [];
 
-	const filtered = servers.filter((s: any) => s.url !== url);
+	const filtered = servers.filter((s) => s.url !== url);
 	if (filtered.length === servers.length) return current; // nothing to remove
 
 	return await setTerminalServerConnections(token, {

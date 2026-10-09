@@ -68,16 +68,23 @@
 		terminalServers.set([...direct, ...system]);
 	};
 
-	const saveConnections = async (next: ToolServerConnection[]): Promise<boolean> => {
+	const saveConnections = async (
+		next: ToolServerConnection[],
+		nextTerminals: TerminalServerConfig[] = terminalServerConfigs
+	): Promise<boolean> => {
 		if (saving || destroyed) return false;
 		saving = true;
 		try {
 			const snapshot = structuredClone(next);
+			const terminalSnapshot = structuredClone(nextTerminals);
 			await saveSettings({
 				toolServers: snapshot,
-				terminalServers: structuredClone(terminalServerConfigs)
+				terminalServers: terminalSnapshot
 			});
-			if (!destroyed) servers = snapshot;
+			if (!destroyed) {
+				servers = snapshot;
+				terminalServerConfigs = terminalSnapshot;
+			}
 			// The connection is already saved even if catalog refresh fails.
 			try {
 				if (!destroyed) await refreshConnections();
@@ -167,7 +174,10 @@
 			</UserSettingSection>
 
 			<UserSettingSection title={$i18n.t('Terminal')}>
-				<Terminals bind:servers={terminalServerConfigs} onChange={() => updateHandler()} />
+				<Terminals
+					servers={terminalServerConfigs}
+					onChange={(next) => saveConnections(servers ?? [], next)}
+				/>
 
 				<div class="mt-1 {helpTextClass}">
 					{$i18n.t(

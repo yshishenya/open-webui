@@ -10,44 +10,34 @@
 	import Connection from './Terminals/Connection.svelte';
 	import AddTerminalServerModal from '$lib/components/AddTerminalServerModal.svelte';
 
-	type TerminalServerConfig = {
-		url: string;
-		key?: string;
-		name?: string;
-		path?: string;
-		enabled: boolean;
-		[key: string]: any;
-	};
-
+	import type { DirectTerminalSettings } from '$lib/utils/airis/frontend-contracts';
+	type TerminalServerConfig = DirectTerminalSettings;
 	export let servers: TerminalServerConfig[] = [];
-	export let onChange: (servers: TerminalServerConfig[]) => void = () => {};
-
+	export let onChange: (
+		servers: TerminalServerConfig[]
+	) => boolean | void | Promise<boolean | void> = () => {};
 	let showAddModal = false;
-
-	const addServer = (server: TerminalServerConfig) => {
-		servers = [...servers, server];
-		onChange(servers);
+	let saving = false;
+	const save = async (next: TerminalServerConfig[]): Promise<boolean> => {
+		if (saving) return false;
+		saving = true;
+		try {
+			const snapshot = structuredClone(next);
+			if ((await onChange(snapshot)) === false) return false;
+			servers = snapshot;
+			return true;
+		} finally {
+			saving = false;
+		}
 	};
-
-	const enableServer = (idx: number) => {
-		servers = servers.map((s, i) => ({ ...s, enabled: i === idx }));
-		onChange(servers);
-	};
-
-	const disableServer = (idx: number) => {
-		servers = servers.map((s, i) => (i === idx ? { ...s, enabled: false } : s));
-		onChange(servers);
-	};
-
-	const updateServer = (idx: number, updated: TerminalServerConfig) => {
-		servers = servers.map((s, i) => (i === idx ? updated : s));
-		onChange(servers);
-	};
-
-	const deleteServer = (idx: number) => {
-		servers = servers.filter((_, i) => i !== idx);
-		onChange(servers);
-	};
+	const addServer = (server: TerminalServerConfig): Promise<boolean> => save([...servers, server]);
+	const enableServer = (idx: number): Promise<boolean> =>
+		save(servers.map((s, i) => ({ ...s, enabled: i === idx })));
+	const disableServer = (idx: number): Promise<boolean> =>
+		save(servers.map((s, i) => (i === idx ? { ...s, enabled: false } : s)));
+	const updateServer = (idx: number, updated: TerminalServerConfig): Promise<boolean> =>
+		save(servers.map((s, i) => (i === idx ? updated : s)));
+	const deleteServer = (idx: number): Promise<boolean> => save(servers.filter((_, i) => i !== idx));
 </script>
 
 <AddTerminalServerModal
@@ -66,6 +56,7 @@
 				class="flex size-6 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-black/5 hover:text-gray-900 dark:text-gray-600 dark:hover:bg-white/5 dark:hover:text-white"
 				on:click={() => (showAddModal = true)}
 				type="button"
+				disabled={saving}
 				aria-label={$i18n.t('Add Connection')}
 			>
 				<Plus />
@@ -76,7 +67,7 @@
 	<div class="flex flex-col gap-1.5">
 		{#each servers as server, idx}
 			<Connection
-				bind:connection={server}
+				connection={server}
 				onSubmit={(updated) => updateServer(idx, updated)}
 				onDelete={() => deleteServer(idx)}
 				onEnable={() => enableServer(idx)}

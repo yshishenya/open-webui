@@ -439,6 +439,7 @@
 		worker.addEventListener('error', onError);
 	};
 
+	/** @param {string | undefined} serverUrl */
 	const resolveToolServer = (serverUrl) => {
 		let toolServer = $settings?.toolServers?.find((server) => server.url === serverUrl);
 		if (!toolServer) {
@@ -469,41 +470,44 @@
 		return { toolServer, toolServerData, token };
 	};
 
+	/**
+	 * @param {{name: string, params: Record<string, unknown>, server?: {url?: string}}} data
+	 * @param {((result: unknown) => void) | undefined} cb
+	 * @param {string} chatId
+	 */
 	const executeTool = async (data, cb, chatId) => {
-		const { toolServer, toolServerData, token } = resolveToolServer(data.server?.url);
-
-		console.log('executeTool', data, toolServer);
-
-		if (toolServer) {
-			const res = await executeToolServer(
-				token,
-				toolServer.url,
-				data?.name,
-				data?.params,
-				toolServerData,
-				chatId
-			);
-
-			console.log('executeToolServer', res);
-
-			if (data?.name === 'display_file' && data?.params?.path) {
-				if (res?.exists !== false) {
-					displayFileHandler(data.params.path, { showControls, showFileNavPath });
+		let result = [{ error: 'Tool execution failed.' }, null];
+		try {
+			const { toolServer, toolServerData, token } = resolveToolServer(data.server?.url);
+			if (toolServer) {
+				const res = await executeToolServer(
+					token,
+					toolServer.url,
+					data.name,
+					data.params,
+					toolServerData,
+					chatId,
+					toolServer.headers
+				);
+				result = res;
+				try {
+					const value = res[0];
+					const fields = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+					if (!fields.error && res[1] !== null && typeof data.params?.path === 'string') {
+						if (data.name === 'display_file' && fields.exists !== false)
+							displayFileHandler(data.params.path, { showControls, showFileNavPath });
+						if (data.name === 'write_file')
+							showFileNavDir.set(typeof fields.path === 'string' ? fields.path : data.params.path);
+					}
+				} catch {
+					console.error('Tool file display failed.');
 				}
-			}
-
-			if (['write_file'].includes(data?.name) && data?.params?.path) {
-				showFileNavDir.set(res?.path ?? data.params.path);
-			}
-
-			if (cb) {
-				cb(structuredClone(res));
-			}
-		} else {
-			if (cb) {
-				cb({ error: 'Tool Server Not Found' });
-			}
+			} else result = { error: 'Tool Server Not Found' };
+		} catch {
+			// Always acknowledge the RPC; request/config/result bodies may contain secrets.
+			result = [{ error: 'Tool execution failed.' }, null];
 		}
+		cb?.(result);
 	};
 
 	const chatEventHandler = async (event, cb) => {
@@ -570,8 +574,7 @@
 				executePythonAsWorker(data.id, data.code, cb, data.files || []);
 				return;
 			} else if (type === 'execute:tool') {
-				console.log('execute:tool', data);
-				executeTool(data, cb, event.chat_id);
+				await executeTool(data, cb, event.chat_id);
 				return;
 			} else if (type === 'request:chat:completion') {
 				console.log(data, $socket.id);
@@ -1316,7 +1319,10 @@
 
 <svelte:head>
 	{#if isPublicMarketingRoute($page.url.pathname)}
-		<meta name="robots" content={$page.url.pathname === '/unsubscribe' ? 'noindex,nofollow' : 'index,follow'} />
+		<meta
+			name="robots"
+			content={$page.url.pathname === '/unsubscribe' ? 'noindex,nofollow' : 'index,follow'}
+		/>
 	{:else}
 		<meta name="robots" content="noindex,nofollow" />
 		<title>{$WEBUI_NAME}</title>
@@ -1374,9 +1380,9 @@
 	theme={$theme.includes('dark')
 		? 'dark'
 		: $theme === 'system'
-				? typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
-					? 'dark'
-					: 'light'
+			? typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+				? 'dark'
+				: 'light'
 			: 'light'}
 	richColors
 	position="top-right"
