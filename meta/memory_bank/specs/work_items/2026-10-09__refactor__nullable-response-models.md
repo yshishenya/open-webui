@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/refactor/nullable-response-models
-- SDD Spec: meta/sdd/specs/active/airis-nullable-response-models-2026-10-09-0742.json
+- SDD Spec: meta/sdd/specs/active/airis-nullable-response-models-2026-10-09-742.json
 - Created: 2026-10-09
 
 ## Goal / measurable criteria

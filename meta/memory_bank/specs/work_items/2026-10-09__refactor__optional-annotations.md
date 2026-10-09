@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/refactor/optional-annotations
-- SDD Spec: meta/sdd/specs/active/airis-optional-annotations-2026-10-09-0724.json
+- SDD Spec: meta/sdd/specs/active/airis-optional-annotations-2026-10-09-724.json
 - Created: 2026-10-09
 
 ## Goal / measurable criteria

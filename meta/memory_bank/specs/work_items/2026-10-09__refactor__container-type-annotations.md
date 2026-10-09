@@ -2,7 +2,7 @@
 
 Workflow: refactoring. Branch: `codex/refactor/container-type-annotations`.
 Base: `origin/airis_b2c` d579f5c02926cace8c8da60434ce1c39c7284361; explicit dependency: nullable-response-models 939497628ec6ba3dee171112d6a2e9bf4f5ca7f5.
-SDD Spec: meta/sdd/specs/active/airis-container-type-annotatio-2026-10-09-0756.json
+SDD Spec: meta/sdd/specs/active/airis-container-type-annotatio-2026-10-09-756.json
 
 ## Purpose and scope
 

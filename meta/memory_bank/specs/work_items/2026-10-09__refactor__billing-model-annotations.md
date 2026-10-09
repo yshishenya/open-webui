@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/refactor/billing-model-annotations
-- SDD Spec: meta/sdd/specs/active/airis-billing-model-annotation-2026-10-09-0713.json
+- SDD Spec: meta/sdd/specs/active/airis-billing-model-annotation-2026-10-09-713.json
 - Created: 2026-10-09
 
 ## Goal / measurable acceptance
