@@ -217,25 +217,33 @@
 
 	$: activeMenuItemId = getActiveMenuItemId($page.url.pathname);
 
-	const initPinnedMenuSortable = (): (() => void) | null => {
-		const el = document.getElementById('pinned-menu-items-list');
-		if (el && !$mobile) {
-			const sortable = new Sortable(el, {
-				animation: 150,
-				onUpdate: async (event) => {
-					const itemId = event.item.dataset.id;
-					const newIndex = event.newIndex;
-					const current = [...pinnedItems];
-					const oldIndex = current.indexOf(itemId);
-					current.splice(oldIndex, 1);
-					current.splice(newIndex, 0, itemId);
-					settings.set({ ...$settings, pinnedMenuItems: current });
-					await updateUserSettings(localStorage.token, { ui: $settings });
-				}
-			});
-			return (): void => sortable.destroy();
-		}
-		return null;
+	const initPinnedMenuSortable = (
+		el: HTMLElement,
+		isMobile: boolean
+	): { update: (isMobile: boolean) => void; destroy: () => void } => {
+		let sortable: Sortable | null = null;
+		const update = (isMobile: boolean): void => {
+			if (isMobile) {
+				sortable?.destroy();
+				sortable = null;
+			} else if (!sortable) {
+				sortable = new Sortable(el, {
+					animation: 150,
+					onUpdate: async (event) => {
+						const itemId = event.item.dataset.id;
+						const newIndex = event.newIndex;
+						const current = [...pinnedItems];
+						const oldIndex = current.indexOf(itemId);
+						current.splice(oldIndex, 1);
+						current.splice(newIndex, 0, itemId);
+						settings.set({ ...$settings, pinnedMenuItems: current });
+						await updateUserSettings(localStorage.token, { ui: $settings });
+					}
+				});
+			}
+		};
+		update(isMobile);
+		return { update, destroy: (): void => sortable?.destroy() };
 	};
 
 	$: if ($selectedFolder) {
@@ -550,7 +558,7 @@
 
 	let draggedOver = false;
 
-	const onDragOver = (e) => {
+	const onDragOver = (e: DragEvent): void => {
 		e.preventDefault();
 
 		// Check if a file is being draggedOver.
@@ -561,11 +569,11 @@
 		}
 	};
 
-	const onDragLeave = () => {
+	const onDragLeave = (): void => {
 		draggedOver = false;
 	};
 
-	const onDrop = async (e) => {
+	const onDrop = async (e: DragEvent): Promise<void> => {
 		e.preventDefault();
 		console.log(e); // Log the drop event
 
@@ -580,6 +588,20 @@
 		}
 
 		draggedOver = false; // Reset draggedOver status after drop
+	};
+
+	const sidebarDropZone = (node: HTMLElement): { destroy: () => void } => {
+		node.addEventListener('dragover', onDragOver);
+		node.addEventListener('drop', onDrop);
+		node.addEventListener('dragleave', onDragLeave);
+		return {
+			destroy: (): void => {
+				node.removeEventListener('dragover', onDragOver);
+				node.removeEventListener('drop', onDrop);
+				node.removeEventListener('dragleave', onDragLeave);
+				draggedOver = false;
+			}
+		};
 	};
 
 	let touchstart;
@@ -662,8 +684,6 @@
 	};
 
 	onMount((): (() => void) => {
-		let mounted = true;
-		let destroyPinnedMenuSortable: (() => void) | null = null;
 		try {
 			const width = Number(localStorage.getItem('sidebarWidth'));
 			if (!Number.isNaN(width) && width >= MIN_WIDTH && width <= MAX_WIDTH) {
@@ -740,13 +760,6 @@
 		window.addEventListener('focus', onFocus);
 		window.addEventListener('blur', onBlur);
 
-		const dropZone = document.getElementById('sidebar');
-		if (dropZone) {
-			dropZone.addEventListener('dragover', onDragOver);
-			dropZone.addEventListener('drop', onDrop);
-			dropZone.addEventListener('dragleave', onDragLeave);
-		}
-
 		const socketInstance = $socket;
 		socketInstance?.on('events', chatActiveEventHandler);
 		socketInstance?.on('connect', refreshChatRows);
@@ -763,16 +776,7 @@
 			return Promise.all(Object.values(folderRegistry).map((folder) => folder?.setFolderItems?.()));
 		});
 
-		void tick()
-			.then((): void => {
-				if (mounted) destroyPinnedMenuSortable = initPinnedMenuSortable();
-			})
-			.catch((error: unknown): void => {
-				console.error('Failed to initialize sidebar pin sorting', error);
-			});
-
 		return (): void => {
-			mounted = false;
 			unsubscribers.forEach((unsubscriber) => unsubscriber());
 
 			window.removeEventListener('keydown', onKeyDown);
@@ -784,17 +788,10 @@
 			window.removeEventListener('focus', onFocus);
 			window.removeEventListener('blur', onBlur);
 
-			if (dropZone) {
-				dropZone.removeEventListener('dragover', onDragOver);
-				dropZone.removeEventListener('drop', onDrop);
-				dropZone.removeEventListener('dragleave', onDragLeave);
-			}
-
 			socketInstance?.off('events', chatActiveEventHandler);
 			socketInstance?.off('connect', refreshChatRows);
 
 			unregisterFolderRefreshHandler();
-			destroyPinnedMenuSortable?.();
 		};
 	});
 
@@ -967,6 +964,7 @@
 	<div
 		class=" w-[42px] shrink-0 py-1 px-1 flex flex-col justify-between text-gray-700 dark:text-gray-300 hover:bg-gray-50/30 dark:hover:bg-gray-800/30 h-full z-10 transition-all border-e-[0.5px] border-gray-50 dark:border-gray-850/30"
 		id="sidebar"
+		use:sidebarDropZone
 		role="navigation"
 		aria-label={$i18n.t('Chat history')}
 	>
@@ -1140,6 +1138,7 @@
 	<div
 		bind:this={navElement}
 		id="sidebar"
+		use:sidebarDropZone
 		role="navigation"
 		aria-label={$i18n.t('Chat history')}
 		class="h-screen max-h-[100dvh] min-h-screen select-none {$showSidebar
@@ -1260,7 +1259,7 @@
 						</button>
 					</div>
 
-					<div id="pinned-menu-items-list">
+					<div id="pinned-menu-items-list" use:initPinnedMenuSortable={$mobile}>
 						{#each pinnedItems as itemId (itemId)}
 							{@const meta = getMenuItemMeta(itemId)}
 							{#if meta && isMenuItemVisible(itemId)}

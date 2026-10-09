@@ -23,10 +23,11 @@ Official Svelte lifecycle docs and the installed 5.56.0 runtime confirm the cont
 
 - [x] Execute the actual source callback and reproduce the ignored destructor before editing.
 - [x] Mount returns a destructor synchronously; four owned store subscriptions, six
-      window handlers, three drop handlers, two socket handlers and one folder handler
-      are removed exactly once at teardown.
-- [x] If teardown precedes tick, zero late Sortable instances are created. If tick
-      finishes first, the owned Sortable instance is destroyed once.
+      window handlers, two socket handlers and one folder handler are removed exactly
+      once at component teardown; each sidebar DOM node owns three drop handlers.
+- [ ] Opening the sidebar after closed-at-login creates sorting; closing/reopening
+      replaces the owned Sortable and drop handlers without leaving stale resources.
+      Mobile changes disable/re-enable sorting for the actual live list.
 - [ ] Repeated mount/unmount leaves zero owned handlers/subscriptions; live sidebar
       opening and pin ordering still work.
 - [ ] Full frontend tests, scoped formatting/lint and required browser paths pass
@@ -36,9 +37,10 @@ Official Svelte lifecycle docs and the installed 5.56.0 runtime confirm the cont
 
 ## Scope and implementation
 
-Keep onMount synchronous, move only the tick-dependent initialization into a guarded
-continuation, include width cleanup in the existing unsubscriber list and destroy
-the one owned Sortable instance. Reuse installed lifecycle/Sortable APIs. No new
+Keep onMount synchronous and include width cleanup in the existing unsubscriber
+list. Native Svelte actions own Sortable on the actual pin-list node and drop
+handlers on both collapsed/expanded sidebar nodes; teardown follows DOM replacement.
+The sorting action updates when mobile mode changes. Reuse installed lifecycle/Sortable APIs. No new
 runtime module, dependency, backend, schema, consent, payment or email change.
 
 ## Dependency compatibility
@@ -64,8 +66,8 @@ Retain backup/rollback and preserve application data and neighboring services.
 
 ## Risks / Rollback
 
-Deferred initialization must not run after unmount. Check both tick orderings and
-repeated lifetime cycles. Roll back the application image through guarded deploy;
+DOM replacement must release the previous element resources and create the new
+ones, including closed-at-login and mobile transitions. Check repeated lifetime cycles. Roll back the application image through guarded deploy;
 no database or account state rollback.
 
 ## References
@@ -89,3 +91,20 @@ zero failures/skips. Full check: 2293 -> 2292 errors, 108 warnings; ESLint remai
 markup indentation differences remain in Sidebar; unrelated formatting was restored.
 Backend/schema/dependencies are byte-identical to the accepted source. Candidate
 image, browser acceptance, source CI/review and production release remain pending.
+
+## Browser-discovered DOM replacement — 2026-10-09
+
+Candidate31e was rejected: Chromium42/43; drag ordering did not change after
+closed-at-login sidebar opening. The component remained mounted while the actual
+sidebar/pin-list nodes appeared or were replaced. Initial-only setup missed the
+new list and retained handlers on the old node. Use native Svelte actions for
+node lifetimes, preserve synchronous component cleanup. Updated actual-source
+regression passes3/3, each exercising21 cycles; full checks and new candidate
+browser/release acceptance are still pending. The first failed trace/log/XML is
+preserved in the private proof root. Do not release the rejected candidate.
+
+Updated source checks:949/949 frontend tests,122 files; new actual-source checks
+fail3/3 on rejected31e and pass3/3 on the action-based correction,21 cycles each.
+Full check2292→2290 errors,108 warnings; full ESLint1020 unchanged. Normalized
+diagnostic delta0 additions; scoped lint passes. Only the same two pre-existing
+untouched markup indentation differences remain. Browser and release are pending.
