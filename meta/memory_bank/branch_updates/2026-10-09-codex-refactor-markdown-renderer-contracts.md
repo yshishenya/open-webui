@@ -1,0 +1,6 @@
+- [ ] **[REFACTOR][G14][SOURCE]** Контракты отображения Markdown
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09__refactor__markdown-renderer-contracts.md
+  - Owner: Codex
+  - Branch: codex/refactor/markdown-renderer-contracts
+  - Started: 2026-10-09
+  - Summary: Проверить и сохранить группировку, экспорт таблиц, дочерние токены, нативные обработчики и callback-контракты; уточнить типы без переписывания отображения.

@@ -23,8 +23,8 @@
 
 	export let id: string;
 	export let done = true;
-	export let tokens: Token[];
-	export let sourceIds = [];
+	export let tokens: Token[] = [];
+	export let sourceIds: string[] = [];
 	export let onSourceClick: Function = () => {};
 
 	/**
@@ -71,7 +71,7 @@
 	{#if token.type === 'escape'}
 		{unescapeHtml(token.text)}
 	{:else if token.type === 'html'}
-		<HtmlToken {id} {token} {onSourceClick} />
+		<HtmlToken {id} {token} />
 	{:else if token.type === 'link'}
 		{@const noteId = getNoteIdFromHref(token.href)}
 		{#if noteId}
@@ -119,9 +119,13 @@
 			frameborder="0"
 			on:load={(e) => {
 				try {
-					e.currentTarget.style.height =
-						e.currentTarget.contentWindow.document.body.scrollHeight + 20 + 'px';
-				} catch {}
+					const frame = e.currentTarget as HTMLIFrameElement;
+					const body = frame.contentWindow?.document.body;
+					if (body) frame.style.height = body.scrollHeight + 20 + 'px';
+				} catch {
+					// Inaccessible frames retain their existing height.
+					return;
+				}
 			}}
 		></iframe>
 	{:else if token.type === 'mention'}
