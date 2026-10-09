@@ -7,7 +7,7 @@ import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
-from typing import Any, AsyncIterator, Iterator, Literal, Sequence, Union
+from typing import Any, AsyncIterator, Iterator, Literal, Sequence
 
 import aiohttp
 import aiohttp.resolver
@@ -93,7 +93,7 @@ def _is_global_addr(ip: str) -> bool:
     return all(ip.is_global for ip in embedded)
 
 
-def validate_url(url: Union[str, Sequence[str]]):
+def validate_url(url: str | Sequence[str]):
     if isinstance(url, str):
         if isinstance(validators.url(url), validators.ValidationError):
             raise ValueError(ERROR_MESSAGES.INVALID_URL)
@@ -393,7 +393,7 @@ class SafeFireCrawlLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
 class SafeTavilyLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
     def __init__(
         self,
-        web_paths: Union[str, list[str]],
+        web_paths: str | list[str],
         api_base_url: str,
         api_key: str,
         extract_depth: Literal['basic', 'advanced'] = 'basic',
@@ -507,7 +507,7 @@ class SafeTavilyLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
 class SafeMicrosoftWebIQLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
     def __init__(
         self,
-        web_paths: Union[str, list[str]],
+        web_paths: str | list[str],
         api_key: str,
         language: str = 'en',
         verify_ssl: bool = True,
@@ -811,7 +811,7 @@ class SafeWebBaseLoader(WebBaseLoader):
                         await asyncio.sleep(cooldown * backoff**i)
         raise ValueError('retry count exceeded')
 
-    def _unpack_fetch_results(self, results: Any, urls: list[str], parser: Union[str, None] = None) -> list[Any]:
+    def _unpack_fetch_results(self, results: Any, urls: list[str], parser: str | None = None) -> list[Any]:
         """Unpack fetch results into BeautifulSoup objects."""
         from bs4 import BeautifulSoup
 
@@ -861,7 +861,7 @@ class SafeWebBaseLoader(WebBaseLoader):
 
 
 def get_web_loader(
-    urls: Union[str, Sequence[str]],
+    urls: str | Sequence[str],
     verify_ssl: bool = True,
     requests_per_second: int = 2,
     trust_env: bool = False,

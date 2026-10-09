@@ -53,7 +53,6 @@ their own `asyncio.to_thread`, e.g. ::
 from __future__ import annotations
 
 import asyncio
-from typing import Union
 
 from open_webui.retrieval.vector.factory import VECTOR_DB_CLIENT
 from open_webui.retrieval.vector.main import (
@@ -101,7 +100,7 @@ class AsyncVectorDBClient:
     async def search(
         self,
         collection_name: str,
-        vectors: list[list[Union[float, int]]],
+        vectors: list[list[float | int]],
         filter: dict | None = None,
         limit: int = 10,
     ) -> SearchResult | None:
@@ -111,7 +110,7 @@ class AsyncVectorDBClient:
         self,
         collection_name: str,
         query: str,
-        vectors: list[list[Union[float, int]]],
+        vectors: list[list[float | int]],
         filter: dict | None = None,
         limit: int = 10,
         hybrid_bm25_weight: float = 0.5,

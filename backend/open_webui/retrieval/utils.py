@@ -7,7 +7,7 @@ import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Awaitable, Union
+from typing import Awaitable
 from urllib.parse import quote
 
 import aiohttp
@@ -1181,8 +1181,8 @@ def get_embedding_function(
 async def generate_embeddings(
     engine: str,
     model: str,
-    text: Union[str, list[str]],
-    prefix: Union[str, None] = None,
+    text: str | list[str],
+    prefix: str | None = None,
     **kwargs,
 ):
     url = kwargs.get('url', '')

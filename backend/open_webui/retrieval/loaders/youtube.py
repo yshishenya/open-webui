@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Generator, Sequence, Union
+from typing import Any, Generator, Sequence
 from urllib.parse import parse_qs, urlparse
 from xml.etree.ElementTree import ParseError
 
@@ -54,7 +54,7 @@ class YoutubeLoader:
     def __init__(
         self,
         video_id: str,
-        language: Union[str, Sequence[str]] = 'en',
+        language: str | Sequence[str] = 'en',
         proxy_url: str | None = None,
     ):
         """Initialize with YouTube video ID."""

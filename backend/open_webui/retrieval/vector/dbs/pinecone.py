@@ -4,7 +4,7 @@ NOTE: This vector database integration is community-supported and maintained on 
 
 import logging
 import time  # for measuring elapsed time
-from typing import Any, Union
+from typing import Any
 
 from pinecone import Pinecone, ServerlessSpec
 
@@ -351,7 +351,7 @@ class PineconeClient(VectorDBBase):
     def search(
         self,
         collection_name: str,
-        vectors: list[list[Union[float, int]]],
+        vectors: list[list[float | int]],
         filter: dict | None = None,
         limit: int = 10,
     ) -> SearchResult | None:

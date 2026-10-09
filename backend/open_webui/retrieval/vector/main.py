@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Union
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -56,7 +56,7 @@ class VectorDBBase(ABC):
     def search(
         self,
         collection_name: str,
-        vectors: list[list[Union[float, int]]],
+        vectors: list[list[float | int]],
         filter: dict | None = None,
         limit: int = 10,
     ) -> SearchResult | None:
@@ -67,7 +67,7 @@ class VectorDBBase(ABC):
         self,
         collection_name: str,
         query: str,
-        vectors: list[list[Union[float, int]]],
+        vectors: list[list[float | int]],
         filter: dict | None = None,
         limit: int = 10,
         hybrid_bm25_weight: float = 0.5,

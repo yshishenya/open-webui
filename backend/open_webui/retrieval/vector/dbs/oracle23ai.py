@@ -35,7 +35,7 @@ import os
 import threading
 import time
 from decimal import Decimal
-from typing import Any, Union
+from typing import Any
 
 import oracledb
 from open_webui.config import (
@@ -508,7 +508,7 @@ class Oracle23aiClient(VectorDBBase):
     def search(
         self,
         collection_name: str,
-        vectors: list[list[Union[float, int]]],
+        vectors: list[list[float | int]],
         filter: dict | None = None,
         limit: int = 10,
     ) -> SearchResult | None:

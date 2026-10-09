@@ -3,7 +3,7 @@ NOTE: This vector database integration is community-supported and maintained on 
 """
 
 import logging
-from typing import Any, Union
+from typing import Any
 
 import boto3
 from open_webui.config import S3_VECTOR_BUCKET_NAME, S3_VECTOR_REGION
@@ -283,7 +283,7 @@ class S3VectorClient(VectorDBBase):
     def search(
         self,
         collection_name: str,
-        vectors: list[list[Union[float, int]]],
+        vectors: list[list[float | int]],
         filter: dict | None = None,
         limit: int = 10,
     ) -> SearchResult | None:

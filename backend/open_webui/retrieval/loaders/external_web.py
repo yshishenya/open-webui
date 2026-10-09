@@ -1,5 +1,5 @@
 import logging
-from typing import Iterator, Union
+from typing import Iterator
 
 import requests
 from langchain_core.document_loaders import BaseLoader
@@ -11,7 +11,7 @@ log = logging.getLogger(__name__)
 class ExternalWebLoader(BaseLoader):
     def __init__(
         self,
-        web_paths: Union[str, list[str]],
+        web_paths: str | list[str],
         external_url: str,
         external_api_key: str,
         continue_on_failure: bool = True,
