@@ -6,6 +6,15 @@
 		ChannelMessageEvent
 	} from '$lib/utils/airis/channel-types';
 	import { getAttachmentSource } from '$lib/utils/airis/attachment_source';
+	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
+	import type {
+		FrontendConfig,
+		RichTextContent,
+		CommandSelection,
+		CommandUpload
+	} from '$lib/utils/airis/frontend-contracts';
+	import type { MentionOptions } from '@tiptap/extension-mention';
+	import type { Settings } from '$lib/stores';
 	import { toast } from 'svelte-sonner';
 	import { v4 as uuidv4 } from 'uuid';
 
@@ -78,10 +87,10 @@
 
 	let recording = false;
 	let content = '';
-	let files = [];
+	let files: ChatAttachment[] = [];
 
-	let filesInputElement;
-	let inputFiles;
+	let filesInputElement: HTMLInputElement | undefined;
+	let inputFiles: FileList | null | undefined;
 
 	let showInputVariablesModal = false;
 	let inputVariablesModalCallback: (variableValues: Record<string, unknown>) => void;
@@ -285,7 +294,7 @@
 		return word;
 	};
 
-	const replaceCommandWithText = (text) => {
+	const replaceCommandWithText = (text: string): void => {
 		const chatInput = document.getElementById('chat-input');
 		if (!chatInput) return;
 
@@ -333,7 +342,7 @@
 
 	export let showCommands = false;
 	$: showCommands = ['/'].includes(command?.charAt(0));
-	let suggestions = null;
+	let suggestions: MentionOptions['suggestions'] | null = null;
 
 	const screenCaptureHandler = async (): Promise<void> => {
 		try {
@@ -374,7 +383,7 @@
 		}
 	};
 
-	const inputFilesHandler = async (inputFiles) => {
+	const inputFilesHandler = async (inputFiles: File[]): Promise<void> => {
 		inputFiles.forEach(async (file) => {
 			console.info('Processing file:', {
 				name: file.name,
@@ -400,7 +409,11 @@
 			}
 
 			if (file['type'].startsWith('image/')) {
-				const compressImageHandler = async (imageUrl, settings = {}, config = {}) => {
+				const compressImageHandler = async (
+					imageUrl: string,
+					settings: Settings = {},
+					config: Partial<FrontendConfig> = {}
+				): Promise<string> => {
 					// Quick shortcut so we don’t do unnecessary work.
 					const settingsCompression =
 						(settings?.imageCompression && settings?.imageCompressionInChannels) ?? false;
@@ -413,8 +426,8 @@
 					}
 
 					// Default to null (no compression unless set)
-					let width = null;
-					let height = null;
+					let width: number | '' | null = null;
+					let height: number | '' | null = null;
 
 					// If user/settings want compression, pick their preferred size.
 					if (settingsCompression) {
@@ -423,16 +436,16 @@
 					}
 
 					// Apply config limits as an upper bound if any
-					if (configWidth && (width === null || width > configWidth)) {
+					if (configWidth && (width === null || Number(width) > configWidth)) {
 						width = configWidth;
 					}
-					if (configHeight && (height === null || height > configHeight)) {
+					if (configHeight && (height === null || Number(height) > configHeight)) {
 						height = configHeight;
 					}
 
 					// Do the compression if required
 					if (width || height) {
-						return await compressImage(imageUrl, width, height);
+						return await compressImage(imageUrl, width || null, height || null);
 					}
 					return imageUrl;
 				};
@@ -440,7 +453,11 @@
 				let reader = new FileReader();
 
 				reader.onload = async (event) => {
-					let imageUrl = event.target.result;
+					let imageUrl = event.target?.result;
+					if (typeof imageUrl !== 'string') {
+						toast.error($i18n.t('File not found.'));
+						return;
+					}
 
 					// Compress the image if settings or config require it
 					imageUrl = await compressImageHandler(imageUrl, $settings, $config);
@@ -458,9 +475,9 @@
 		});
 	};
 
-	const uploadFileHandler = async (file, process = true) => {
+	const uploadFileHandler = async (file: File, process = true): Promise<void | null> => {
 		const tempItemId = uuidv4();
-		const fileItem = {
+		const fileItem: ChatAttachment = {
 			type: 'file',
 			file: '',
 			id: null,
@@ -481,6 +498,7 @@
 		files = [...files, fileItem];
 
 		try {
+			if (!channel) throw new Error($i18n.t('Failed to upload file.'));
 			// During the file upload, file content is automatically extracted.
 			// If the file is an audio file, provide the language for STT.
 			let metadata = {
@@ -616,7 +634,7 @@
 				char: '/',
 				render: getSuggestionRenderer(CommandSuggestionList, {
 					i18n,
-					onSelect: (e) => {
+					onSelect: (e: CommandSelection): void => {
 						const { type, data } = e;
 
 						if (type === 'model') {
@@ -627,7 +645,7 @@
 					},
 
 					insertTextHandler: insertTextAtCursor,
-					onUpload: (e) => {
+					onUpload: (e: CommandUpload): void => {
 						const { type, data } = e;
 
 						if (type === 'file') {
@@ -651,6 +669,7 @@
 				command: ({ editor, range, props }) => {
 					// Convert the Unicode hex codepoint (e.g. "1F44B") to the actual emoji character (👋)
 					const codepoint = props.id;
+					if (!codepoint) return;
 					const emoji = String.fromCodePoint(parseInt(codepoint, 16));
 					editor.chain().focus().deleteRange(range).insertContent(emoji).run();
 				},
@@ -721,7 +740,7 @@
 					toast.error($i18n.t(`File not found.`));
 				}
 
-				filesInputElement.value = '';
+				if (filesInputElement) filesInputElement.value = '';
 			}}
 		/>
 	{/if}
@@ -828,7 +847,11 @@
 							id="message-input-container"
 							data-input-id={id}
 							class="flex-1 flex flex-col relative w-full shadow-lg rounded-3xl border border-gray-50 dark:border-gray-850/30 hover:border-gray-100 focus-within:border-gray-100 hover:dark:border-gray-800 focus-within:dark:border-gray-800 transition px-0.5 bg-white/90 dark:bg-gray-400/5 dark:text-gray-100"
-							dir={$settings?.chatDirection ?? 'auto'}
+							dir={$settings?.chatDirection === 'LTR'
+								? 'ltr'
+								: $settings?.chatDirection === 'RTL'
+									? 'rtl'
+									: 'auto'}
 						>
 							{#if replyToMessage !== null}
 								<div class="px-3 pt-3 text-left w-full flex flex-col z-10">
@@ -934,12 +957,13 @@
 												!(
 													'ontouchstart' in window ||
 													navigator.maxTouchPoints > 0 ||
-													navigator.msMaxTouchPoints > 0
+													((navigator as Navigator & { msMaxTouchPoints?: number })
+														.msMaxTouchPoints ?? 0) > 0
 												)}
 											largeTextAsFile={$settings?.largeTextAsFile ?? false}
 											floatingMenuPlacement={'top-start'}
 											{suggestions}
-											onChange={(e) => {
+											onChange={(e: RichTextContent): void => {
 												const { md } = e;
 												content = md;
 												command = getCommand();
@@ -956,7 +980,8 @@
 														!(
 															'ontouchstart' in window ||
 															navigator.maxTouchPoints > 0 ||
-															navigator.msMaxTouchPoints > 0
+															((navigator as Navigator & { msMaxTouchPoints?: number })
+																.msMaxTouchPoints ?? 0) > 0
 														)
 													) {
 														// Prevent Enter key from creating a new line
@@ -985,7 +1010,9 @@
 												const e = event.detail.event;
 												console.log(e);
 
-												const clipboardData = e.clipboardData || window.clipboardData;
+												const clipboardData =
+													e.clipboardData ||
+													(window as Window & { clipboardData?: DataTransfer }).clipboardData;
 
 												if (clipboardData && clipboardData.items) {
 													for (const item of clipboardData.items) {
@@ -1009,7 +1036,7 @@
 											<InputMenu
 												{screenCaptureHandler}
 												uploadFilesHandler={() => {
-													filesInputElement.click();
+													filesInputElement?.click();
 												}}
 											>
 												<button
