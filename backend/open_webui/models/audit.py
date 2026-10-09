@@ -10,7 +10,6 @@ from open_webui.internal.db import Base, get_db
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import BigInteger, Column, String, Text, JSON, Index
 
-
 ####################
 # Audit Enums
 ####################
@@ -19,16 +18,16 @@ from sqlalchemy import BigInteger, Column, String, Text, JSON, Index
 class AuditAction(str, Enum):
     """Types of auditable actions"""
 
-    PLAN_CREATED = "plan_created"
-    PLAN_UPDATED = "plan_updated"
-    PLAN_DELETED = "plan_deleted"
-    PLAN_ACTIVATED = "plan_activated"
-    PLAN_DEACTIVATED = "plan_deactivated"
-    PLAN_DUPLICATED = "plan_duplicated"
-    SUBSCRIPTION_CREATED = "subscription_created"
-    SUBSCRIPTION_PLAN_CHANGED = "subscription_plan_changed"
-    WALLET_ADJUSTED = "wallet_adjusted"
-    BILLING = "billing"  # Backward compatibility for legacy billing logs.
+    PLAN_CREATED = 'plan_created'
+    PLAN_UPDATED = 'plan_updated'
+    PLAN_DELETED = 'plan_deleted'
+    PLAN_ACTIVATED = 'plan_activated'
+    PLAN_DEACTIVATED = 'plan_deactivated'
+    PLAN_DUPLICATED = 'plan_duplicated'
+    SUBSCRIPTION_CREATED = 'subscription_created'
+    SUBSCRIPTION_PLAN_CHANGED = 'subscription_plan_changed'
+    WALLET_ADJUSTED = 'wallet_adjusted'
+    BILLING = 'billing'  # Backward compatibility for legacy billing logs.
 
 
 ####################
@@ -39,7 +38,7 @@ class AuditAction(str, Enum):
 class AuditLog(Base):
     """Audit log for administrative actions"""
 
-    __tablename__ = "billing_audit_log"
+    __tablename__ = 'billing_audit_log'
 
     id = Column(String, primary_key=True, unique=True)
 
@@ -61,9 +60,9 @@ class AuditLog(Base):
 
 
 # Indexes for faster queries
-Index("idx_audit_user", AuditLog.user_id)
-Index("idx_audit_entity", AuditLog.entity_type, AuditLog.entity_id)
-Index("idx_audit_created", AuditLog.created_at)
+Index('idx_audit_user', AuditLog.user_id)
+Index('idx_audit_entity', AuditLog.entity_type, AuditLog.entity_id)
+Index('idx_audit_created', AuditLog.created_at)
 
 
 class AuditLogModel(BaseModel):
@@ -137,10 +136,5 @@ class AuditLogs:
             if user_id:
                 query = query.filter(AuditLog.user_id == user_id)
 
-            logs = (
-                query.order_by(AuditLog.created_at.desc())
-                .limit(limit)
-                .offset(offset)
-                .all()
-            )
+            logs = query.order_by(AuditLog.created_at.desc()).limit(limit).offset(offset).all()
             return [AuditLogModel.model_validate(log) for log in logs]

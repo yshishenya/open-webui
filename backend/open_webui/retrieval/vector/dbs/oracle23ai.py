@@ -251,8 +251,7 @@ class Oracle23aiClient(VectorDBBase):
         with connection.cursor() as cursor:
             try:
                 log.info('Creating Table document_chunk')
-                cursor.execute(
-                    """
+                cursor.execute("""
                     BEGIN
                         EXECUTE IMMEDIATE '
                             CREATE TABLE IF NOT EXISTS document_chunk (
@@ -269,12 +268,10 @@ class Oracle23aiClient(VectorDBBase):
                                 RAISE;
                             END IF;
                     END;
-                """
-                )
+                """)
 
                 log.info('Creating Index document_chunk_collection_name_idx')
-                cursor.execute(
-                    """
+                cursor.execute("""
                     BEGIN
                         EXECUTE IMMEDIATE '
                             CREATE INDEX IF NOT EXISTS document_chunk_collection_name_idx
@@ -286,12 +283,10 @@ class Oracle23aiClient(VectorDBBase):
                                 RAISE;
                             END IF;
                     END;
-                """
-                )
+                """)
 
                 log.info('Creating VECTOR INDEX document_chunk_vector_ivf_idx')
-                cursor.execute(
-                    """
+                cursor.execute("""
                     BEGIN
                         EXECUTE IMMEDIATE '
                             CREATE VECTOR INDEX IF NOT EXISTS document_chunk_vector_ivf_idx 
@@ -307,8 +302,7 @@ class Oracle23aiClient(VectorDBBase):
                                 RAISE;
                             END IF;
                     END;
-                """
-                )
+                """)
 
                 connection.commit()
                 log.info('Database initialization completed successfully.')

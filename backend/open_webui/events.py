@@ -1202,13 +1202,11 @@ async def publish_model_provider_request_failed(
         'model_not_found'
         if status == 404
         and any(value in marker for value in ('model_not_found', 'model not found', 'does not exist', 'no such model'))
-        else 'authentication_failed'
-        if status in (401, 403)
-        else 'rate_limited'
-        if status == 429
-        else 'server_failed'
-        if status >= 500
-        else 'upstream_error'
+        else (
+            'authentication_failed'
+            if status in (401, 403)
+            else 'rate_limited' if status == 429 else 'server_failed' if status >= 500 else 'upstream_error'
+        )
     )
 
     # Server-log only; the upstream error body is otherwise invisible to admins

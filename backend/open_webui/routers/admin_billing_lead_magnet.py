@@ -21,7 +21,7 @@ from open_webui.utils.airis.runtime_config import (
 )
 
 log = logging.getLogger(__name__)
-log.setLevel(SRC_LOG_LEVELS.get("BILLING", logging.INFO))
+log.setLevel(SRC_LOG_LEVELS.get('BILLING', logging.INFO))
 
 router = APIRouter()
 
@@ -47,7 +47,7 @@ class LeadMagnetConfigRequest(BaseModel):
     quotas: LeadMagnetQuotas
 
 
-@router.get("/lead-magnet", response_model=LeadMagnetConfigResponse)
+@router.get('/lead-magnet', response_model=LeadMagnetConfigResponse)
 async def get_lead_magnet_config(
     admin_user=Depends(get_admin_user),
 ) -> LeadMagnetConfigResponse:
@@ -60,7 +60,7 @@ async def get_lead_magnet_config(
     )
 
 
-@router.post("/lead-magnet", response_model=LeadMagnetConfigResponse)
+@router.post('/lead-magnet', response_model=LeadMagnetConfigResponse)
 async def update_lead_magnet_config(
     form_data: LeadMagnetConfigRequest,
     admin_user=Depends(get_admin_user),
@@ -84,10 +84,10 @@ async def update_lead_magnet_config(
             config_version=config_version,
         )
     except Exception as e:
-        log.exception(f"Failed to update lead magnet config: {e}")
+        log.exception(f'Failed to update lead magnet config: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update lead magnet configuration",
+            detail='Failed to update lead magnet configuration',
         )
 
     return LeadMagnetConfigResponse(
@@ -100,11 +100,11 @@ async def update_lead_magnet_config(
 
 def _normalize_quotas(raw: Dict[str, object]) -> Dict[str, int]:
     defaults: Dict[str, int] = {
-        "tokens_input": 0,
-        "tokens_output": 0,
-        "images": 0,
-        "tts_seconds": 0,
-        "stt_seconds": 0,
+        'tokens_input': 0,
+        'tokens_output': 0,
+        'images': 0,
+        'tts_seconds': 0,
+        'stt_seconds': 0,
     }
     for key, value in raw.items():
         if key in defaults and isinstance(value, int):

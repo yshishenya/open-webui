@@ -40,7 +40,7 @@ from open_webui.utils.rate_card_xlsx import (
 )
 
 log = logging.getLogger(__name__)
-log.setLevel(SRC_LOG_LEVELS.get("BILLING", logging.INFO))
+log.setLevel(SRC_LOG_LEVELS.get('BILLING', logging.INFO))
 
 router = APIRouter()
 
@@ -154,7 +154,7 @@ def ensure_wallet_enabled() -> None:
     if not ENABLE_BILLING_WALLET:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Billing wallet is disabled",
+            detail='Billing wallet is disabled',
         )
 
 
@@ -179,15 +179,15 @@ async def _get_rate_card_import_known_models(
     try:
         provider_base_models = await get_all_base_models(request, user=admin_user)
     except Exception as e:
-        log.debug(f"Failed to fetch provider base models for import: {e}")
+        log.debug(f'Failed to fetch provider base models for import: {e}')
         provider_base_models = []
 
     for item in provider_base_models:
-        model_id = (item.get("id") or "").strip()
+        model_id = (item.get('id') or '').strip()
         if not model_id:
             continue
         known_model_ids.add(model_id)
-        model_names_by_id.setdefault(model_id, (item.get("name") or model_id))
+        model_names_by_id.setdefault(model_id, (item.get('name') or model_id))
 
     return known_model_ids, model_names_by_id, db_base_model_ids
 
@@ -217,7 +217,7 @@ async def _ensure_base_models_exist(
         )
 
 
-@router.get("/rate-card/export-xlsx")
+@router.get('/rate-card/export-xlsx')
 async def export_rate_cards_xlsx(
     model_ids: List[str] = Query(default_factory=list),
     mode: XlsxExportMode = XlsxExportMode.ACTIVE_ONLY,
@@ -234,7 +234,7 @@ async def export_rate_cards_xlsx(
     if not clean_model_ids:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="model_ids is required",
+            detail='model_ids is required',
         )
 
     try:
@@ -260,22 +260,22 @@ async def export_rate_cards_xlsx(
 
         return Response(
             content=content,
-            media_type=("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+            media_type=('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
             headers={
-                "Content-Disposition": "attachment; filename=rate-cards.xlsx",
+                'Content-Disposition': 'attachment; filename=rate-cards.xlsx',
             },
         )
     except HTTPException:
         raise
     except Exception as e:
-        log.exception(f"Error exporting rate cards XLSX: {e}")
+        log.exception(f'Error exporting rate cards XLSX: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to export rate cards",
+            detail='Failed to export rate cards',
         )
 
 
-@router.get("/rate-card", response_model=RateCardListResponse)
+@router.get('/rate-card', response_model=RateCardListResponse)
 async def list_rate_cards(
     model_id: Optional[str] = None,
     modality: Optional[str] = None,
@@ -316,10 +316,10 @@ async def list_rate_cards(
             is_active,
         )
     except Exception as e:
-        log.exception(f"Error listing rate cards: {e}")
+        log.exception(f'Error listing rate cards: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to list rate cards",
+            detail='Failed to list rate cards',
         )
 
     total_pages = (total + safe_page_size - 1) // safe_page_size if total else 1
@@ -332,7 +332,7 @@ async def list_rate_cards(
     )
 
 
-@router.get("/rate-card/{rate_card_id}", response_model=PricingRateCardModel)
+@router.get('/rate-card/{rate_card_id}', response_model=PricingRateCardModel)
 async def get_rate_card(rate_card_id: str, admin_user=Depends(get_admin_user)):
     """Get rate card entry by ID."""
     ensure_wallet_enabled()
@@ -341,13 +341,13 @@ async def get_rate_card(rate_card_id: str, admin_user=Depends(get_admin_user)):
     if not entry:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Rate card entry not found",
+            detail='Rate card entry not found',
         )
     return entry
 
 
 @router.post(
-    "/rate-card",
+    '/rate-card',
     response_model=PricingRateCardModel,
     status_code=status.HTTP_201_CREATED,
 )
@@ -369,34 +369,34 @@ async def create_rate_card(request: RateCardCreateRequest, admin_user=Depends(ge
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Rate card entry already exists for this timestamp",
+            detail='Rate card entry already exists for this timestamp',
         )
 
     entry_data = {
-        "id": request.id or str(uuid.uuid4()),
-        "model_id": request.model_id,
-        "model_tier": request.model_tier,
-        "modality": request.modality,
-        "unit": request.unit,
-        "raw_cost_per_unit_kopeks": request.raw_cost_per_unit_kopeks,
-        "version": version,
-        "created_at": created_at,
-        "provider": request.provider,
-        "is_default": request.is_default,
-        "is_active": request.is_active,
+        'id': request.id or str(uuid.uuid4()),
+        'model_id': request.model_id,
+        'model_tier': request.model_tier,
+        'modality': request.modality,
+        'unit': request.unit,
+        'raw_cost_per_unit_kopeks': request.raw_cost_per_unit_kopeks,
+        'version': version,
+        'created_at': created_at,
+        'provider': request.provider,
+        'is_default': request.is_default,
+        'is_active': request.is_active,
     }
 
     try:
         return await run_in_threadpool(RateCards.create_rate_card, entry_data)
     except Exception as e:
-        log.exception(f"Error creating rate card: {e}")
+        log.exception(f'Error creating rate card: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create rate card",
+            detail='Failed to create rate card',
         )
 
 
-@router.patch("/rate-card/{rate_card_id}", response_model=PricingRateCardModel)
+@router.patch('/rate-card/{rate_card_id}', response_model=PricingRateCardModel)
 async def update_rate_card(
     rate_card_id: str,
     request: RateCardUpdateRequest,
@@ -409,55 +409,55 @@ async def update_rate_card(
     if not updates:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No fields to update",
+            detail='No fields to update',
         )
 
     existing = await run_in_threadpool(RateCards.get_rate_card_by_id, rate_card_id)
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Rate card entry not found",
+            detail='Rate card entry not found',
         )
 
     created_at = int(time.time())
 
     try:
-        if "raw_cost_per_unit_kopeks" in updates:
+        if 'raw_cost_per_unit_kopeks' in updates:
             entry_data = {
-                "id": str(uuid.uuid4()),
-                "model_id": existing.model_id,
-                "model_tier": updates.get("model_tier", existing.model_tier),
-                "modality": existing.modality,
-                "unit": existing.unit,
-                "raw_cost_per_unit_kopeks": updates["raw_cost_per_unit_kopeks"],
-                "version": existing.version,
-                "created_at": created_at,
-                "provider": updates.get("provider", existing.provider),
-                "is_default": updates.get("is_default", existing.is_default),
-                "is_active": updates.get("is_active", True),
+                'id': str(uuid.uuid4()),
+                'model_id': existing.model_id,
+                'model_tier': updates.get('model_tier', existing.model_tier),
+                'modality': existing.modality,
+                'unit': existing.unit,
+                'raw_cost_per_unit_kopeks': updates['raw_cost_per_unit_kopeks'],
+                'version': existing.version,
+                'created_at': created_at,
+                'provider': updates.get('provider', existing.provider),
+                'is_default': updates.get('is_default', existing.is_default),
+                'is_active': updates.get('is_active', True),
             }
             created = await run_in_threadpool(RateCards.create_rate_card, entry_data)
-            await run_in_threadpool(RateCards.update_rate_card, rate_card_id, {"is_active": False})
+            await run_in_threadpool(RateCards.update_rate_card, rate_card_id, {'is_active': False})
             return created
 
         updated = await run_in_threadpool(RateCards.update_rate_card, rate_card_id, updates)
         if not updated:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Rate card entry not found",
+                detail='Rate card entry not found',
             )
         return updated
     except HTTPException:
         raise
     except Exception as e:
-        log.exception(f"Error updating rate card: {e}")
+        log.exception(f'Error updating rate card: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update rate card",
+            detail='Failed to update rate card',
         )
 
 
-@router.delete("/rate-card/{rate_card_id}", response_model=bool)
+@router.delete('/rate-card/{rate_card_id}', response_model=bool)
 async def delete_rate_card(rate_card_id: str, admin_user=Depends(get_admin_user)):
     """Delete a rate card entry."""
     ensure_wallet_enabled()
@@ -467,20 +467,20 @@ async def delete_rate_card(rate_card_id: str, admin_user=Depends(get_admin_user)
         if not deleted:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Rate card entry not found",
+                detail='Rate card entry not found',
             )
         return deleted
     except HTTPException:
         raise
     except Exception as e:
-        log.exception(f"Error deleting rate card: {e}")
+        log.exception(f'Error deleting rate card: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete rate card",
+            detail='Failed to delete rate card',
         )
 
 
-@router.post("/rate-card/bulk-delete", response_model=RateCardDeleteResponse)
+@router.post('/rate-card/bulk-delete', response_model=RateCardDeleteResponse)
 async def bulk_delete_rate_cards(request: RateCardBulkDeleteRequest, admin_user=Depends(get_admin_user)):
     """Delete multiple rate card entries by ID."""
     ensure_wallet_enabled()
@@ -490,21 +490,21 @@ async def bulk_delete_rate_cards(request: RateCardBulkDeleteRequest, admin_user=
     if not rate_card_ids:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="rate_card_ids is required",
+            detail='rate_card_ids is required',
         )
 
     try:
         deleted = await run_in_threadpool(RateCards.delete_rate_cards_by_ids, rate_card_ids)
         return RateCardDeleteResponse(deleted=deleted)
     except Exception as e:
-        log.exception(f"Error deleting rate cards: {e}")
+        log.exception(f'Error deleting rate cards: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete rate cards",
+            detail='Failed to delete rate cards',
         )
 
 
-@router.post("/rate-card/delete-models", response_model=RateCardDeleteResponse)
+@router.post('/rate-card/delete-models', response_model=RateCardDeleteResponse)
 async def delete_rate_cards_by_model_ids(request: RateCardDeleteModelsRequest, admin_user=Depends(get_admin_user)):
     """Delete rate card entries for one or more models."""
     ensure_wallet_enabled()
@@ -514,21 +514,21 @@ async def delete_rate_cards_by_model_ids(request: RateCardDeleteModelsRequest, a
     if not model_ids:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="model_ids is required",
+            detail='model_ids is required',
         )
 
     try:
         deleted = await run_in_threadpool(RateCards.delete_rate_cards_by_model_ids, model_ids)
         return RateCardDeleteResponse(deleted=deleted)
     except Exception as e:
-        log.exception(f"Error deleting model rate cards: {e}")
+        log.exception(f'Error deleting model rate cards: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete rate cards",
+            detail='Failed to delete rate cards',
         )
 
 
-@router.post("/rate-card/deactivate-models", response_model=RateCardDeactivateResponse)
+@router.post('/rate-card/deactivate-models', response_model=RateCardDeactivateResponse)
 async def deactivate_rate_cards_by_model_ids(request: RateCardDeleteModelsRequest, admin_user=Depends(get_admin_user)):
     """Deactivate rate card entries for one or more models."""
     ensure_wallet_enabled()
@@ -538,21 +538,21 @@ async def deactivate_rate_cards_by_model_ids(request: RateCardDeleteModelsReques
     if not model_ids:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="model_ids is required",
+            detail='model_ids is required',
         )
 
     try:
         deactivated = await run_in_threadpool(RateCards.deactivate_rate_cards_by_model_ids, model_ids)
         return RateCardDeactivateResponse(deactivated=deactivated)
     except Exception as e:
-        log.exception(f"Error deactivating model rate cards: {e}")
+        log.exception(f'Error deactivating model rate cards: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to deactivate rate cards",
+            detail='Failed to deactivate rate cards',
         )
 
 
-@router.post("/rate-card/sync-models", response_model=RateCardSyncResponse)
+@router.post('/rate-card/sync-models', response_model=RateCardSyncResponse)
 async def sync_rate_cards_for_models(request: RateCardSyncRequest, admin_user=Depends(get_admin_user)):
     """Create default rate card entries for models missing pricing."""
     ensure_wallet_enabled()
@@ -584,14 +584,14 @@ async def sync_rate_cards_for_models(request: RateCardSyncRequest, admin_user=De
 
         return RateCardSyncResponse(created=created, skipped=skipped, model_ids=model_ids)
     except Exception as e:
-        log.exception(f"Error syncing rate cards: {e}")
+        log.exception(f'Error syncing rate cards: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to sync rate cards",
+            detail='Failed to sync rate cards',
         )
 
 
-@router.post("/rate-card/import-xlsx/preview", response_model=RateCardXlsxImportPreviewResponse)
+@router.post('/rate-card/import-xlsx/preview', response_model=RateCardXlsxImportPreviewResponse)
 async def import_rate_cards_xlsx_preview(
     request: Request,
     file: UploadFile = File(...),
@@ -605,16 +605,16 @@ async def import_rate_cards_xlsx_preview(
     if scope_error or parsed_scope is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=scope_error or "scope_model_ids is required",
+            detail=scope_error or 'scope_model_ids is required',
         )
 
     try:
         file_bytes = await file.read()
     except Exception as e:
-        log.exception(f"Error reading XLSX file: {e}")
+        log.exception(f'Error reading XLSX file: {e}')
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to read XLSX file",
+            detail='Failed to read XLSX file',
         )
 
     rows, parse_errors = await run_in_threadpool(parse_import_workbook, file_bytes)
@@ -669,7 +669,7 @@ async def import_rate_cards_xlsx_preview(
     )
 
 
-@router.post("/rate-card/import-xlsx/apply", response_model=RateCardXlsxImportApplyResponse)
+@router.post('/rate-card/import-xlsx/apply', response_model=RateCardXlsxImportApplyResponse)
 async def import_rate_cards_xlsx_apply(
     request: Request,
     file: UploadFile = File(...),
@@ -683,16 +683,16 @@ async def import_rate_cards_xlsx_apply(
     if scope_error or parsed_scope is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=scope_error or "scope_model_ids is required",
+            detail=scope_error or 'scope_model_ids is required',
         )
 
     try:
         file_bytes = await file.read()
     except Exception as e:
-        log.exception(f"Error reading XLSX file: {e}")
+        log.exception(f'Error reading XLSX file: {e}')
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to read XLSX file",
+            detail='Failed to read XLSX file',
         )
 
     rows, parse_errors = await run_in_threadpool(parse_import_workbook, file_bytes)
@@ -780,82 +780,82 @@ async def import_rate_cards_xlsx_apply(
         return created_at
 
     for action in actions:
-        key = f"{action.model_id}:{action.modality}:{action.unit}"
+        key = f'{action.model_id}:{action.modality}:{action.unit}'
         existing_active = next(
-            (entry for entry in active_entries if f"{entry.model_id}:{entry.modality}:{entry.unit}" == key),
+            (entry for entry in active_entries if f'{entry.model_id}:{entry.modality}:{entry.unit}' == key),
             None,
         )
 
-        if action.action == "create":
+        if action.action == 'create':
             entry_data = {
-                "id": str(uuid.uuid4()),
-                "model_id": action.model_id,
-                "model_tier": (
+                'id': str(uuid.uuid4()),
+                'model_id': action.model_id,
+                'model_tier': (
                     action.model_tier
                     if action.model_tier is not None
                     else (existing_active.model_tier if existing_active else None)
                 ),
-                "modality": action.modality,
-                "unit": action.unit,
-                "raw_cost_per_unit_kopeks": int(action.desired_price or 0),
-                "version": BILLING_RATE_CARD_VERSION,
-                "created_at": _next_created_at(action.model_id, action.modality, action.unit),
-                "provider": (
+                'modality': action.modality,
+                'unit': action.unit,
+                'raw_cost_per_unit_kopeks': int(action.desired_price or 0),
+                'version': BILLING_RATE_CARD_VERSION,
+                'created_at': _next_created_at(action.model_id, action.modality, action.unit),
+                'provider': (
                     action.provider
                     if action.provider is not None
                     else (existing_active.provider if existing_active else None)
                 ),
-                "is_default": (
+                'is_default': (
                     bool(action.is_default)
                     if action.is_default is not None
                     else (bool(existing_active.is_default) if existing_active else False)
                 ),
-                "is_active": True,
+                'is_active': True,
             }
             await run_in_threadpool(RateCards.create_rate_card, entry_data)
 
-        elif action.action == "update_via_create":
+        elif action.action == 'update_via_create':
             entry_data = {
-                "id": str(uuid.uuid4()),
-                "model_id": action.model_id,
-                "model_tier": (
+                'id': str(uuid.uuid4()),
+                'model_id': action.model_id,
+                'model_tier': (
                     action.model_tier
                     if action.model_tier is not None
                     else (existing_active.model_tier if existing_active else None)
                 ),
-                "modality": action.modality,
-                "unit": action.unit,
-                "raw_cost_per_unit_kopeks": int(action.desired_price or 0),
-                "version": BILLING_RATE_CARD_VERSION,
-                "created_at": _next_created_at(action.model_id, action.modality, action.unit),
-                "provider": (
+                'modality': action.modality,
+                'unit': action.unit,
+                'raw_cost_per_unit_kopeks': int(action.desired_price or 0),
+                'version': BILLING_RATE_CARD_VERSION,
+                'created_at': _next_created_at(action.model_id, action.modality, action.unit),
+                'provider': (
                     action.provider
                     if action.provider is not None
                     else (existing_active.provider if existing_active else None)
                 ),
-                "is_default": (
+                'is_default': (
                     bool(action.is_default)
                     if action.is_default is not None
                     else (bool(existing_active.is_default) if existing_active else False)
                 ),
-                "is_active": True,
+                'is_active': True,
             }
             created = await run_in_threadpool(RateCards.create_rate_card, entry_data)
             if existing_active:
                 await run_in_threadpool(
                     RateCards.update_rate_card,
                     existing_active.id,
-                    {"is_active": False},
+                    {'is_active': False},
                 )
                 active_entries = [entry for entry in active_entries if entry.id != existing_active.id]
             active_entries.append(created)
 
-        elif action.action == "deactivate":
+        elif action.action == 'deactivate':
             if existing_active:
                 await run_in_threadpool(
                     RateCards.update_rate_card,
                     existing_active.id,
-                    {"is_active": False},
+                    {'is_active': False},
                 )
                 active_entries = [entry for entry in active_entries if entry.id != existing_active.id]
 
@@ -891,8 +891,8 @@ def _sync_rate_cards_for_models(
             allowed_units=allowed_units,
         )
         for template in templates:
-            modality = str(template.get("modality", ""))
-            unit = str(template.get("unit", ""))
+            modality = str(template.get('modality', ''))
+            unit = str(template.get('unit', ''))
             if RateCards.get_rate_card_by_version(model_id, modality, unit, version):
                 skipped += 1
                 continue

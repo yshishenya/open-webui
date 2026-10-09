@@ -256,8 +256,7 @@ async def _retrieve_pgvector(connection, auth_config, knowledge, query, count, e
             register_vector(conn)
             with conn.cursor() as cur:
                 cur.execute(
-                    sql.SQL(
-                        """
+                    sql.SQL("""
                     SELECT {document_id} AS id,
                            {content} AS content,
                            {metadata} AS metadata,
@@ -266,8 +265,7 @@ async def _retrieve_pgvector(connection, auth_config, knowledge, query, count, e
                     WHERE {collection} = %s
                     ORDER BY distance ASC
                     LIMIT %s
-                    """
-                    ).format(
+                    """).format(
                         document_id=document_id_identifier,
                         content=content_identifier,
                         metadata=metadata_sql,
