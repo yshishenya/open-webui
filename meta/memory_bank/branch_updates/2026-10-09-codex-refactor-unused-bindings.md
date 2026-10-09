@@ -1,0 +1,5 @@
+- [ ] **[REFACTOR]** Remove unused bindings while preserving evaluations
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09**refactor**unused-bindings.md
+  - Owner: Codex
+  - Started: 2026-10-09
+  - Summary: Review42 locals and7 migration imports; preserve evaluations, exception handling and migration initialization. General release pending.

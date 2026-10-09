@@ -97,7 +97,7 @@ class MCPClient:
             inputSchema = tool.inputSchema
 
             # TODO: handle outputSchema if needed
-            outputSchema = getattr(tool, 'outputSchema', None)
+            getattr(tool, 'outputSchema', None)
 
             tool_specs.append({'name': name, 'description': description, 'parameters': inputSchema})
 

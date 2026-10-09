@@ -169,7 +169,7 @@ def upgrade() -> None:
 
             try:
                 timestamp = int(float(timestamp))
-            except Exception as e:
+            except Exception:
                 timestamp = now
 
             # Normalize timestamp: convert ms to seconds, validate range

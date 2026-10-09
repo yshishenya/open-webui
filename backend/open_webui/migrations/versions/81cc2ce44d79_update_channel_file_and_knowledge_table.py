@@ -8,7 +8,6 @@ Create Date: 2025-12-10 16:07:58.001282
 
 from typing import Sequence
 
-import open_webui.internal.db
 import sqlalchemy as sa
 from alembic import op
 

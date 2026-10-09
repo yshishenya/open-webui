@@ -53,7 +53,7 @@ async def prompt_template(template: str, user: Any | None = None) -> str:
 
                     today = datetime.now()
                     age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-                except Exception as e:
+                except Exception:
                     pass
 
             # Resolve user groups from DB only when the template uses {{USER_GROUPS}}

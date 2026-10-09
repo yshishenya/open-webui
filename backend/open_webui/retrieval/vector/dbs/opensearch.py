@@ -144,7 +144,7 @@ class OpenSearchClient(VectorDBBase):
 
             return self._result_to_search_result(result)
 
-        except Exception as e:
+        except Exception:
             return None
 
     def query(self, collection_name: str, filter: dict, limit: int | None = None) -> GetResult | None:
@@ -170,7 +170,7 @@ class OpenSearchClient(VectorDBBase):
 
             return self._result_to_get_result(result)
 
-        except Exception as e:
+        except Exception:
             return None
 
     def _create_index_if_not_exists(self, collection_name: str, dimension: int):

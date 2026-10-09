@@ -1864,7 +1864,7 @@ async def chat_completion_files_handler(
 
                     queries_response = queries_response[bracket_start:bracket_end]
                     queries_response = JSONCodec.loads(queries_response)
-                except Exception as e:
+                except Exception:
                     queries_response = {'queries': [queries_response]}
 
                 queries = queries_response.get('queries', [])
@@ -3821,7 +3821,7 @@ async def streaming_chat_response_handler(response: StreamingResponse, ctx: dict
     # event_caller is optional — only needed for direct (client-side) tools
     # and pyodide code interpreter. Server-side tools work without it.
     if event_emitter:
-        task_id = str(uuid4())  # Create a unique task ID.
+        str(uuid4())  # Create a unique task ID.
         model_id = form_data.get('model', '')
 
         # Handle as a background task
@@ -4100,7 +4100,7 @@ async def streaming_chat_response_handler(response: StreamingResponse, ctx: dict
             try:
                 if form_data['messages'][-1]['role'] == 'assistant':
                     last_assistant_message = get_last_assistant_message(form_data['messages'])
-            except Exception as e:
+            except Exception:
                 pass
 
             initial_content = (

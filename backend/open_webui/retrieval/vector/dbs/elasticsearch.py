@@ -200,7 +200,7 @@ class ElasticsearchClient(VectorDBBase):
 
             return self._result_to_get_result(result)
 
-        except Exception as e:
+        except Exception:
             return None
 
     # Status: works

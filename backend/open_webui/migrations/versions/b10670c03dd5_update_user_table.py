@@ -10,7 +10,6 @@ import json
 import time
 from typing import Sequence
 
-import open_webui.internal.db
 import sqlalchemy as sa
 from alembic import op
 

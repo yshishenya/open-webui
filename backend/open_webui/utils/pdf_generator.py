@@ -32,7 +32,7 @@ class PDFGenerator:
         try:
             date_time = datetime.fromtimestamp(timestamp)
             return date_time.strftime('%Y-%m-%d, %H:%M:%S')
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             # Log the error if necessary
             return ''
 

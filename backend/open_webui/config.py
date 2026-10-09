@@ -1148,7 +1148,7 @@ WEB_SEARCH_RESULT_COUNT = int(os.getenv('WEB_SEARCH_RESULT_COUNT', '3'))
 
 try:
     web_search_domain_filter_list = json.loads(os.getenv('WEB_SEARCH_DOMAIN_FILTER_LIST', '[]'))
-except Exception as e:
+except Exception:
     web_search_domain_filter_list = [
         # "wikipedia.com",
         # "wikimedia.org",

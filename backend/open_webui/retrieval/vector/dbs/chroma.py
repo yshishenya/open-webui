@@ -98,7 +98,7 @@ class ChromaClient(VectorDBBase):
                     }
                 )
             return None
-        except Exception as e:
+        except Exception:
             return None
 
     def query(self, collection_name: str, filter: dict, limit: int | None = None) -> GetResult | None:
