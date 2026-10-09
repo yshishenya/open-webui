@@ -1,14 +1,13 @@
 <script lang="ts">
-	import { getContext, createEventDispatcher } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
 
-	const i18n = getContext('i18n');
-	const dispatch = createEventDispatcher();
+	const dispatch = createEventDispatcher<{ change: string }>();
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
 
-	export let onClose: Function = () => {};
-	export let devices: any;
+	export let onClose: () => void = () => {};
+	export let devices: Pick<MediaDeviceInfo, 'deviceId' | 'label'>[];
 
 	let show = false;
 </script>
