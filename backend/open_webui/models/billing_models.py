@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional, List
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import (
@@ -90,9 +89,9 @@ class Plan(Base):
 class PlanModel(BaseModel):
     id: str
     name: str
-    name_ru: Optional[str] = None
-    description: Optional[str] = None
-    description_ru: Optional[str] = None
+    name_ru: str | None = None
+    description: str | None = None
+    description_ru: str | None = None
 
     price: float
     price_kopeks: int = 0
@@ -100,19 +99,19 @@ class PlanModel(BaseModel):
     interval: str
     included_kopeks_per_period: int = 0
     discount_percent: int = 0
-    model_tiers_allowed: Optional[list[str]] = None
-    images_per_period: Optional[int] = None
-    tts_seconds_per_period: Optional[int] = None
-    max_reply_cost_kopeks: Optional[int] = None
-    daily_cap_kopeks: Optional[int] = None
+    model_tiers_allowed: list[str] | None = None
+    images_per_period: int | None = None
+    tts_seconds_per_period: int | None = None
+    max_reply_cost_kopeks: int | None = None
+    daily_cap_kopeks: int | None = None
     is_annual: bool = False
 
-    quotas: Optional[dict] = None
-    features: Optional[List[str]] = None
+    quotas: dict | None = None
+    features: list[str] | None = None
 
     is_active: bool = True
     display_order: int = 0
-    plan_extra_metadata: Optional[dict] = None
+    plan_extra_metadata: dict | None = None
 
     created_at: int
     updated_at: int
@@ -172,21 +171,21 @@ class SubscriptionModel(BaseModel):
 
     status: str
 
-    yookassa_payment_id: Optional[str] = None
-    yookassa_subscription_id: Optional[str] = None
+    yookassa_payment_id: str | None = None
+    yookassa_subscription_id: str | None = None
 
     current_period_start: int
     current_period_end: int
 
     cancel_at_period_end: bool = False
     auto_renew: bool = False
-    trial_end: Optional[int] = None
-    last_payment_id: Optional[str] = None
-    wallet_id: Optional[str] = None
-    payment_method_id: Optional[str] = None
-    next_plan_id: Optional[str] = None
+    trial_end: int | None = None
+    last_payment_id: str | None = None
+    wallet_id: str | None = None
+    payment_method_id: str | None = None
+    next_plan_id: str | None = None
 
-    extra_metadata: Optional[dict] = None
+    extra_metadata: dict | None = None
 
     created_at: int
     updated_at: int
@@ -232,7 +231,7 @@ Index('idx_usage_period', Usage.period_start, Usage.period_end)
 class UsageModel(BaseModel):
     id: str
     user_id: str
-    subscription_id: Optional[str] = None
+    subscription_id: str | None = None
 
     metric: str
     amount: int
@@ -240,9 +239,9 @@ class UsageModel(BaseModel):
     period_start: int
     period_end: int
 
-    model_id: Optional[str] = None
-    chat_id: Optional[str] = None
-    extra_metadata: Optional[dict] = None
+    model_id: str | None = None
+    chat_id: str | None = None
+    extra_metadata: dict | None = None
 
     created_at: int
 
@@ -293,21 +292,21 @@ Index('idx_transaction_yookassa', Transaction.yookassa_payment_id)
 class TransactionModel(BaseModel):
     id: str
     user_id: str
-    subscription_id: Optional[str] = None
+    subscription_id: str | None = None
 
     amount: float
     currency: str = 'RUB'
     status: str
 
-    yookassa_payment_id: Optional[str] = None
-    yookassa_status: Optional[str] = None
+    yookassa_payment_id: str | None = None
+    yookassa_status: str | None = None
 
-    description: Optional[str] = None
-    description_ru: Optional[str] = None
+    description: str | None = None
+    description_ru: str | None = None
 
-    receipt_url: Optional[str] = None
+    receipt_url: str | None = None
 
-    extra_metadata: Optional[dict] = None
+    extra_metadata: dict | None = None
 
     created_at: int
     updated_at: int
@@ -328,7 +327,7 @@ class PlanSubscriberInfo(BaseModel):
     user_name: str
     user_email: str
     user_role: str
-    user_profile_image_url: Optional[str] = None
+    user_profile_image_url: str | None = None
     plan_id: str
     status: str
     current_period_start: int
@@ -336,10 +335,10 @@ class PlanSubscriberInfo(BaseModel):
     created_at: int
     # Usage data
     tokens_input_used: int = 0
-    tokens_input_limit: Optional[int] = None
+    tokens_input_limit: int | None = None
     tokens_output_used: int = 0
-    tokens_output_limit: Optional[int] = None
+    tokens_output_limit: int | None = None
     requests_used: int = 0
-    requests_limit: Optional[int] = None
+    requests_limit: int | None = None
 
     model_config = ConfigDict(from_attributes=True)

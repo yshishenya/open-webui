@@ -1,0 +1,5 @@
+- [ ] **[REFACTOR]** Preserve billing model contracts while modernizing annotations
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09**refactor**billing-model-annotations.md
+  - Owner: Codex
+  - Started: 2026-10-09
+  - Summary: Incremental G14 quality work; five billing models, exact schema/validation comparison and full tests. Independent general quality/CI/release remains open.
