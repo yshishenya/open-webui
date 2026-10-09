@@ -104,9 +104,7 @@ const rig = () => {
 		showCallOverlay: { set: vi.fn() },
 		dispatch: vi.fn(),
 		localStorage: { token: 'fixture' },
-		synthesizeOpenAISpeech: vi.fn(async () => ({
-			blob: async (): Promise<Blob> => new Blob(['audio'])
-		})),
+		synthesizeOpenAISpeech: vi.fn(async (): Promise<Blob> => new Blob(['audio'])),
 		generateEmoji: vi.fn(async (): Promise<string> => '🙂'),
 		URL: { createObjectURL: vi.fn(() => 'blob:server'), revokeObjectURL: vi.fn() },
 		stopResponse: vi.fn(async (): Promise<void> => {}),
@@ -219,11 +217,11 @@ it('records failed synthesis so the finished queue can drain', async () => {
 });
 it('discards late server audio after interruption before creating a URL', async () => {
 	const r = rig();
-	const late = deferred<{ blob: () => Promise<Blob> }>();
+	const late = deferred<Blob>();
 	r.context.synthesizeOpenAISpeech.mockReturnValue(late.promise);
 	const p = r.api.fetchAudio('late');
 	await r.api.stopAllAudio();
-	late.resolve({ blob: async () => new Blob(['late']) });
+	late.resolve(new Blob(['late']));
 	await p;
 	expect(r.api.cache.size).toBe(0);
 	expect(r.context.URL.createObjectURL).not.toHaveBeenCalled();

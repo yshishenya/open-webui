@@ -17,6 +17,7 @@
 
 	import {
 		audioQueue,
+		type Model,
 		config,
 		models,
 		settings,
@@ -25,6 +26,7 @@
 		TTSWorker
 	} from '$lib/stores';
 	import { synthesizeOpenAISpeech } from '$lib/apis/audio';
+	import type { OnStoppedCallback } from '$lib/utils/audio';
 	import { imageGenerations } from '$lib/apis/images';
 	import {
 		copyToClipboard as _copyToClipboard,
@@ -148,7 +150,7 @@
 	let buttonsContainerElement: HTMLDivElement;
 	let showDeleteConfirm = false;
 
-	let model = null;
+	let model: Model | undefined;
 	$: model = $models.find((m) => m.id === message.model);
 
 	$: statusEntries = message?.statusHistory ?? [...(message?.status ? [message?.status] : [])];
@@ -242,141 +244,143 @@
 		}
 	};
 
-	const stopAudio = () => {
+	const stopAudio = (): void => {
 		speakAbort?.abort();
 		speakAbort = null;
-
-		try {
-			speechSynthesis.cancel();
-			$audioQueue?.stop();
-		} catch {
-			// Ignore browser speech API failures.
-		}
-
 		speaking = false;
 		loadingSpeech = false;
 	};
 
-	// Resolve voice: model-specific > user settings > config default
-	const getVoiceId = () =>
+	const getVoiceId = (): string | undefined =>
 		model?.info?.meta?.tts?.voice ??
 		($settings?.audio?.tts?.defaultVoice === $config?.audio?.tts?.voice
 			? ($settings?.audio?.tts?.voice ?? $config?.audio?.tts?.voice)
 			: $config?.audio?.tts?.voice);
 
-	const speak = async () => {
+	const speak = async (): Promise<void> => {
 		const content = visibleResponseContent;
-		if (!content.trim().length) {
+		if (!content.trim()) {
 			toast.info($i18n.t('No content to speak'));
 			return;
 		}
-
 		stopAudio();
-		speakAbort = new AbortController();
-		const { signal } = speakAbort;
-
-		speaking = true;
-
-		if (($config?.audio?.tts?.engine ?? '') === '') {
-			let voices = [];
-			const getVoicesLoop = setInterval(() => {
-				voices = speechSynthesis.getVoices();
-				if (voices.length > 0) {
-					clearInterval(getVoicesLoop);
-
-					const voice = voices.find((v) => v.voiceURI === getVoiceId());
-					const speech = new SpeechSynthesisUtterance(content);
-					speech.rate = $settings.audio?.tts?.playbackRate ?? 1;
-
-					speech.onend = () => {
-						speaking = false;
-						if ($settings.conversationMode) {
-							document.getElementById('voice-input-button')?.click();
-						}
-					};
-
-					if (voice) {
-						speech.voice = voice;
-					}
-
-					speechSynthesis.speak(speech);
+		const controller = new AbortController();
+		speakAbort = controller;
+		const { signal } = controller;
+		const queue = $audioQueue;
+		const id = message.id;
+		let speech: SpeechSynthesisUtterance | null = null;
+		let generating = true;
+		let queueEmpty = true;
+		const onStopped: OnStoppedCallback = ({ event }): void => {
+			if (event === 'empty-queue') {
+				queueEmpty = true;
+				if (!generating && speakAbort === controller) speaking = false;
+			} else controller.abort();
+		};
+		const cancelled = (): void => {
+			if (queue?.onStopped === onStopped) {
+				queue.onStopped = null;
+				if (queue.id === id) queue.stop();
+			}
+			if (speech) {
+				speech.onend = null;
+				speech.onerror = null;
+				try {
+					speechSynthesis.cancel();
+				} catch (error) {
+					console.error('Error cancelling response speech:', error);
 				}
-			}, 100);
-		} else {
-			const queue = $audioQueue;
-			if (!queue) {
+				speech = null;
+			}
+			if (speakAbort === controller) {
 				speaking = false;
+				loadingSpeech = false;
+			}
+		};
+		signal.addEventListener('abort', cancelled, { once: true });
+		if (queue) {
+			queue.setId(id);
+			queue.onStopped = onStopped;
+			queue.setPlaybackRate($settings.audio?.tts?.playbackRate ?? 1);
+		}
+		speaking = true;
+		const engine =
+			$settings.audio?.tts?.engine === 'browser-kokoro'
+				? 'browser-kokoro'
+				: ($config?.audio?.tts?.engine ?? '');
+		try {
+			if (!engine) {
+				speechSynthesis.cancel();
+				speech = new SpeechSynthesisUtterance(content);
+				speech.rate = $settings.audio?.tts?.playbackRate ?? 1;
+				const voice = speechSynthesis.getVoices().find((v) => v.voiceURI === getVoiceId());
+				if (voice) speech.voice = voice;
+				speech.onend = (): void => {
+					if (signal.aborted || speakAbort !== controller) return;
+					speaking = false;
+					speech = null;
+					if ($settings.conversationMode) document.getElementById('voice-input-button')?.click();
+				};
+				speech.onerror = (): void => controller.abort();
+				speechSynthesis.speak(speech);
 				return;
 			}
-			queue.setId(`${message.id}`);
-			queue.setPlaybackRate($settings.audio?.tts?.playbackRate ?? 1);
-			queue.onStopped = () => {
-				speaking = false;
-			};
-
+			if (!queue) {
+				controller.abort();
+				return;
+			}
 			loadingSpeech = true;
-			const messageContentParts: string[] = getMessageContentParts(
+			const parts: string[] = getMessageContentParts(
 				content,
 				$config?.audio?.tts?.split_on ?? 'punctuation'
 			);
-
-			if (!messageContentParts.length) {
-				toast.info($i18n.t('No content to speak'));
-				speaking = false;
-				loadingSpeech = false;
+			if (!parts.length) {
+				controller.abort();
 				return;
 			}
-
-			const voiceId = getVoiceId();
-			console.debug('Prepared message content for TTS', messageContentParts, 'voice:', voiceId);
-
-			if ($settings.audio?.tts?.engine === 'browser-kokoro') {
-				let worker = $TTSWorker;
-				if (!worker) {
-					worker = new KokoroWorker($settings.audio?.tts?.engineConfig?.dtype ?? 'fp32');
-					TTSWorker.set(worker);
-					await worker.init();
-				}
-
-				for (const [, sentence] of messageContentParts.entries()) {
-					if (signal.aborted) return;
-
-					const url = await worker.generate({ text: sentence, voice: voiceId }).catch((error) => {
-						console.error(error);
-						toast.error(`${error}`);
-						speaking = false;
-						loadingSpeech = false;
-					});
-
-					if (signal.aborted) return;
-
-					if (url && speaking) {
-						queue.enqueue(url);
-						loadingSpeech = false;
+			const voice = getVoiceId();
+			let worker = $TTSWorker;
+			if (engine === 'browser-kokoro' && !worker) {
+				worker = new KokoroWorker($settings.audio?.tts?.engineConfig?.dtype ?? 'fp32');
+				TTSWorker.set(worker);
+				await worker.init();
+			}
+			for (const sentence of parts) {
+				if (signal.aborted) return;
+				let url: string;
+				if (engine === 'browser-kokoro' && worker) {
+					url = await worker.generate({ text: sentence, voice });
+					if (signal.aborted) {
+						URL.revokeObjectURL(url);
+						return;
 					}
-				}
-			} else {
-				for (const [, sentence] of messageContentParts.entries()) {
-					if (signal.aborted) return;
-
-					const res = await synthesizeOpenAISpeech(localStorage.token, voiceId, sentence).catch(
-						(error) => {
-							console.error(error);
-							toast.error(`${error}`);
-							speaking = false;
-							loadingSpeech = false;
-						}
+				} else {
+					const blob = await synthesizeOpenAISpeech(
+						localStorage.token,
+						voice,
+						sentence,
+						undefined,
+						signal
 					);
-
 					if (signal.aborted) return;
-
-					if (res && speaking) {
-						const blob = await res.blob();
-						const url = URL.createObjectURL(blob);
-						queue.enqueue(url);
-						loadingSpeech = false;
-					}
+					url = URL.createObjectURL(blob);
 				}
+				queueEmpty = false;
+				queue.enqueue(url);
+				loadingSpeech = false;
+			}
+		} catch (error) {
+			if (!signal.aborted && speakAbort === controller) {
+				console.error('Error synthesizing response speech:', error);
+				toast.error(`${error}`);
+				controller.abort();
+			}
+		} finally {
+			generating = false;
+			if (engine && !signal.aborted && speakAbort === controller) {
+				loadingSpeech = false;
+				if (queueEmpty) speaking = false;
 			}
 		}
 	};
@@ -673,6 +677,7 @@
 	});
 
 	onDestroy(() => {
+		stopAudio();
 		if (buttonsContainerElement) {
 			buttonsContainerElement.removeEventListener('wheel', buttonsWheelHandler);
 		}

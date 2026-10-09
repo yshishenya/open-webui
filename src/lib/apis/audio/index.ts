@@ -1,4 +1,5 @@
 import { AUDIO_API_BASE_URL } from '$lib/constants';
+import { getErrorMessage } from '$lib/utils/airis/error_message';
 
 export const getAudioConfig = async (token: string) => {
 	let error = null;
@@ -101,38 +102,39 @@ export const synthesizeOpenAISpeech = async (
 	token: string = '',
 	speaker: string = 'alloy',
 	text: string = '',
-	model?: string
-) => {
-	let error = null;
-
-	const res = await fetch(`${AUDIO_API_BASE_URL}/speech`, {
-		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${token}`,
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({
-			input: text,
-			voice: speaker,
-			...(model && { model })
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res;
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-
-			return null;
+	model?: string,
+	signal?: AbortSignal
+): Promise<Blob> => {
+	signal?.throwIfAborted();
+	const controller = new AbortController();
+	const abort = (): void => controller.abort(signal?.reason);
+	signal?.addEventListener('abort', abort, { once: true });
+	const timeout = setTimeout(
+		() => controller.abort(new DOMException('Speech synthesis timed out.', 'TimeoutError')),
+		60_000
+	);
+	try {
+		const res = await fetch(`${AUDIO_API_BASE_URL}/speech`, {
+			method: 'POST',
+			signal: controller.signal,
+			headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+			body: JSON.stringify({ input: text, voice: speaker, ...(model && { model }) })
 		});
-
-	if (error) {
-		throw error;
+		if (!res.ok) {
+			const detail: unknown = await res.json().catch(() => null);
+			controller.signal.throwIfAborted();
+			throw new Error(
+				detail ? getErrorMessage(detail) : `Speech synthesis failed (${res.status}).`
+			);
+		}
+		// Read inside the deadline: response headers alone do not finish the request.
+		const blob = await res.blob();
+		controller.signal.throwIfAborted();
+		return blob;
+	} finally {
+		clearTimeout(timeout);
+		signal?.removeEventListener('abort', abort);
 	}
-
-	return res;
 };
 
 interface AvailableModelsResponse {

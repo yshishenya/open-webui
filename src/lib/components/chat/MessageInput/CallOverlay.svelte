@@ -1,5 +1,13 @@
 <script lang="ts">
-	import { config, models, settings, showCallOverlay, TTSWorker, type Model } from '$lib/stores';
+	import {
+		audioQueue,
+		config,
+		models,
+		settings,
+		showCallOverlay,
+		TTSWorker,
+		type Model
+	} from '$lib/stores';
 	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 	import { onMount, tick, getContext, onDestroy, createEventDispatcher } from 'svelte';
 
@@ -571,13 +579,15 @@
 				if (!$TTSWorker) throw new Error('KokoroTTS Worker is not initialized yet.');
 				audio = await $TTSWorker.generate({ text: content, voice: getVoiceId() });
 			} else if ($config?.audio?.tts?.engine) {
-				const res = await synthesizeOpenAISpeech(localStorage.token, getVoiceId(), content);
+				const blob = await synthesizeOpenAISpeech(
+					localStorage.token,
+					getVoiceId(),
+					content,
+					undefined,
+					signal
+				);
 				if (signal.aborted || destroyed || !$showCallOverlay) return;
-				if (res) {
-					const blob = await res.blob();
-					if (signal.aborted || destroyed || !$showCallOverlay) return;
-					audio = URL.createObjectURL(blob);
-				}
+				audio = URL.createObjectURL(blob);
 			} else audio = true;
 		} catch (error) {
 			if (!signal.aborted && !destroyed && $showCallOverlay) {
@@ -728,6 +738,7 @@
 	};
 
 	onMount(() => {
+		$audioQueue?.stop();
 		model = $models.find((m) => m.id === modelId);
 		void startRecording();
 		void setWakeLock();

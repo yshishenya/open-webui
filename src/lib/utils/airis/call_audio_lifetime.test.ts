@@ -167,6 +167,7 @@ const rig = () => {
 		toast: { error: vi.fn() },
 		$i18n: { t: (s: string): string => s },
 		$settings: {},
+		$audioQueue: null as { stop: () => void } | null,
 		localStorage: { token: 'fixture' },
 		tick: async (): Promise<void> => {},
 		blobToFile: (blob: Blob, name: string) => ({ blob, name }),
@@ -245,6 +246,15 @@ const rig = () => {
 		}
 	};
 };
+
+it('stops message speech before opening the call', async () => {
+	const t = rig();
+	const stop = vi.fn();
+	t.context.$audioQueue = { stop };
+	await t.mount();
+	expect(stop).toHaveBeenCalledTimes(1);
+	t.destroy();
+});
 
 it('closes a call before delayed permission; late stream cannot record', async () => {
 	const t = rig();
