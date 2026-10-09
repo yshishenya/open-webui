@@ -1,7 +1,7 @@
 # Remove unused bindings while preserving evaluated operations
 
 Workflow: refactoring. Branch: `codex/refactor/unused-bindings`.
-SDD Spec: meta/sdd/specs/active/airis-unused-bindings-2026-10-09-931.json
+SDD Spec: meta/sdd/specs/completed/airis-unused-bindings-2026-10-09-931.json
 
 ## Goal and scope
 
@@ -14,7 +14,7 @@ Reviewed42 unused locals and7 migration imports. Only fully annotated functions 
 - [x] Review callers/scopes; remove27 approved declarations (20 locals and7 imports); defer22 locals in18 untyped functions and preserve453 canonical ASTs/comments under exact allowances.
 - [x] Runtime/API/ORM/schemas/tools/forms/migration graph match; isolated PostgreSQL migration outcome matches; review import graph.
 - [x] Docker backend1017/frontend952, Black453; no new Ruff diagnostics; unchanged frontend check/lint counts.
-- [ ] Freeze453backend/1061frontend; preserve primary21/production; remove owned fixtures/temp source; commit/push and prove remote SHA.
+- [x] Freeze453backend/1061frontend; preserve primary21/production; remove owned fixtures/temp source; commit/push and prove remote SHA.
 
 ## Upstream impact and rollback
 
@@ -35,3 +35,7 @@ Fresh accepted27 contracts are identical for9 captured sets, including real Post
 Accepted27 source: backend1017 passed,0 failures/errors/skips (116.307s); frontend952/123 passed. Backend453 and frontend1061 hashes remained unchanged. Black453 accepted. Type check remains2271 errors/108 warnings; ESLint1020; both exit1. General quality and PR/release readiness are not passed.
 
 Preserved primary21 and production c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908 at2026-10-09T06:45:23.950474 UTC. Six disposable PostgreSQL databases removed with owned container; actual HostConfig.Tmpfs verified,0 persistent volumes removed. Temporary baseline453 hashes verified before removal.
+
+## Source delivery
+
+Source commit5889cfca3880918d38c79de5eee6440339aa6a66 pushed to codex/refactor/unused-bindings; remote SHA matches. Focused SDD2/2 completed. General checks remain failing, so PR/integration/clean image/production acceptance remain open. No numbered onboarding task closed;198/244 unchanged.
