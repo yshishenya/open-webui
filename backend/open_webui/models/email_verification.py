@@ -2,7 +2,6 @@ import time
 import uuid
 import secrets
 import logging
-from typing import Optional
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import BigInteger, Column, String, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -63,7 +62,7 @@ class EmailVerificationTokensTable:
         email: str,
         expiry_hours: int = 24,
         db: AsyncSession | None = None,
-    ) -> Optional[EmailVerificationTokenModel]:
+    ) -> EmailVerificationTokenModel | None:
         """Create a new email verification token"""
         token = self.generate_token()
         expires_at = int(time.time()) + (expiry_hours * 3600)
@@ -90,7 +89,7 @@ class EmailVerificationTokensTable:
 
     async def get_token_by_token_string(
         self, token: str, db: AsyncSession | None = None
-    ) -> Optional[EmailVerificationTokenModel]:
+    ) -> EmailVerificationTokenModel | None:
         """Get verification token by token string"""
         try:
             async with get_async_db_context(db) as session:

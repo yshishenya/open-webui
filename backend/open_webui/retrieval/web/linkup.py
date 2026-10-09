@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 import requests
 
@@ -18,8 +17,8 @@ def search_linkup(
     api_key: str,
     query: str,
     count: int,
-    filter_list: Optional[list[str]] = None,
-    params: Optional[dict] = None,
+    filter_list: list[str] | None = None,
+    params: dict | None = None,
 ) -> list[SearchResult]:
     """Search using the Linkup Search API.
 

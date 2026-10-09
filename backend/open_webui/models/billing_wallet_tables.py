@@ -1,5 +1,5 @@
 import time
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import sqlalchemy as sa
 
@@ -24,13 +24,13 @@ from open_webui.models.billing_wallet import (
 
 
 class WalletsTable:
-    def get_wallet_by_id(self, wallet_id: str) -> Optional[WalletModel]:
+    def get_wallet_by_id(self, wallet_id: str) -> WalletModel | None:
         """Get wallet by ID"""
         with get_db() as db:
             wallet = db.query(Wallet).filter(Wallet.id == wallet_id).first()
             return WalletModel.model_validate(wallet) if wallet else None
 
-    def get_wallet_by_user(self, user_id: str, currency: str) -> Optional[WalletModel]:
+    def get_wallet_by_user(self, user_id: str, currency: str) -> WalletModel | None:
         """Get wallet by user and currency"""
         with get_db() as db:
             wallet = db.query(Wallet).filter(Wallet.user_id == user_id, Wallet.currency == currency).first()
@@ -45,7 +45,7 @@ class WalletsTable:
             db.refresh(wallet)
             return WalletModel.model_validate(wallet)
 
-    def update_wallet(self, wallet_id: str, updates: JsonDict) -> Optional[WalletModel]:
+    def update_wallet(self, wallet_id: str, updates: JsonDict) -> WalletModel | None:
         """Update wallet by ID"""
         with get_db() as db:
             wallet = db.query(Wallet).filter(Wallet.id == wallet_id).first()
@@ -93,19 +93,19 @@ class PaymentsTable:
             db.refresh(payment)
             return PaymentModel.model_validate(payment)
 
-    def get_payment_by_provider_id(self, provider_payment_id: str) -> Optional[PaymentModel]:
+    def get_payment_by_provider_id(self, provider_payment_id: str) -> PaymentModel | None:
         """Get payment by provider ID"""
         with get_db() as db:
             payment = db.query(Payment).filter(Payment.provider_payment_id == provider_payment_id).first()
             return PaymentModel.model_validate(payment) if payment else None
 
-    def get_payment_by_id(self, payment_id: str) -> Optional[PaymentModel]:
+    def get_payment_by_id(self, payment_id: str) -> PaymentModel | None:
         """Get payment by ID"""
         with get_db() as db:
             payment = db.query(Payment).filter(Payment.id == payment_id).first()
             return PaymentModel.model_validate(payment) if payment else None
 
-    def update_payment_by_id(self, payment_id: str, updates: JsonDict) -> Optional[PaymentModel]:
+    def update_payment_by_id(self, payment_id: str, updates: JsonDict) -> PaymentModel | None:
         """Update payment by ID"""
         with get_db() as db:
             payment = db.query(Payment).filter(Payment.id == payment_id).first()
@@ -118,7 +118,7 @@ class PaymentsTable:
             db.refresh(payment)
             return PaymentModel.model_validate(payment)
 
-    def update_payment_by_provider_id(self, provider_payment_id: str, updates: JsonDict) -> Optional[PaymentModel]:
+    def update_payment_by_provider_id(self, provider_payment_id: str, updates: JsonDict) -> PaymentModel | None:
         """Update payment by provider payment ID"""
         with get_db() as db:
             payment = db.query(Payment).filter(Payment.provider_payment_id == provider_payment_id).first()
@@ -134,8 +134,8 @@ class PaymentsTable:
     def list_payments_by_wallet(
         self,
         wallet_id: str,
-        status: Optional[str] = None,
-        kind: Optional[str] = None,
+        status: str | None = None,
+        kind: str | None = None,
         limit: int = 20,
     ) -> List[PaymentModel]:
         """List payments for a wallet with optional filters."""
@@ -151,9 +151,9 @@ class PaymentsTable:
     def get_latest_payment_with_method(
         self,
         wallet_id: str,
-        status: Optional[str] = None,
-        kind: Optional[str] = None,
-    ) -> Optional[PaymentModel]:
+        status: str | None = None,
+        kind: str | None = None,
+    ) -> PaymentModel | None:
         """Get latest payment with saved payment method for a wallet."""
         with get_db() as db:
             query = db.query(Payment).filter(
@@ -183,7 +183,7 @@ class UsageEventsTable:
         user_id: str,
         limit: int = 100,
         offset: int = 0,
-        billing_source: Optional[str] = None,
+        billing_source: str | None = None,
     ) -> List[UsageEventModel]:
         """List usage events for user with optional billing source filter."""
         with get_db() as db:
@@ -197,7 +197,7 @@ class UsageEventsTable:
 
 
 class LeadMagnetStatesTable:
-    def get_state_by_user(self, user_id: str) -> Optional[LeadMagnetStateModel]:
+    def get_state_by_user(self, user_id: str) -> LeadMagnetStateModel | None:
         """Get lead magnet state by user ID."""
         with get_db() as db:
             state = db.query(LeadMagnetState).filter(LeadMagnetState.user_id == user_id).first()
@@ -212,7 +212,7 @@ class LeadMagnetStatesTable:
             db.refresh(state)
             return LeadMagnetStateModel.model_validate(state)
 
-    def update_state_by_id(self, state_id: str, updates: JsonDict) -> Optional[LeadMagnetStateModel]:
+    def update_state_by_id(self, state_id: str, updates: JsonDict) -> LeadMagnetStateModel | None:
         """Update lead magnet state by ID."""
         with get_db() as db:
             state = db.query(LeadMagnetState).filter(LeadMagnetState.id == state_id).first()
@@ -235,7 +235,7 @@ class LeadMagnetStatesTable:
 
 
 class PromoCodesTable:
-    def get_promo_code(self, code: str) -> Optional[PromoCodeModel]:
+    def get_promo_code(self, code: str) -> PromoCodeModel | None:
         """Get promo code by code"""
         with get_db() as db:
             promo = db.query(PromoCode).filter(PromoCode.code == code).first()
@@ -243,7 +243,7 @@ class PromoCodesTable:
 
 
 class RateCardsTable:
-    def get_rate_card_by_id(self, rate_card_id: str) -> Optional[PricingRateCardModel]:
+    def get_rate_card_by_id(self, rate_card_id: str) -> PricingRateCardModel | None:
         """Get rate card by ID."""
         with get_db() as db:
             entry = db.query(PricingRateCard).filter(PricingRateCard.id == rate_card_id).first()
@@ -251,7 +251,7 @@ class RateCardsTable:
 
     def get_rate_card_by_version(
         self, model_id: str, modality: str, unit: str, version: str
-    ) -> Optional[PricingRateCardModel]:
+    ) -> PricingRateCardModel | None:
         """Get latest rate card entry for model/modality/unit/version."""
         with get_db() as db:
             entry = (
@@ -274,7 +274,7 @@ class RateCardsTable:
         unit: str,
         version: str,
         created_at: int,
-    ) -> Optional[PricingRateCardModel]:
+    ) -> PricingRateCardModel | None:
         """Get rate card entry by unique version+created_at tuple."""
         with get_db() as db:
             entry = (
@@ -299,7 +299,7 @@ class RateCardsTable:
             db.refresh(entry)
             return PricingRateCardModel.model_validate(entry)
 
-    def update_rate_card(self, rate_card_id: str, updates: Dict[str, object]) -> Optional[PricingRateCardModel]:
+    def update_rate_card(self, rate_card_id: str, updates: Dict[str, object]) -> PricingRateCardModel | None:
         """Update rate card entry by ID."""
         with get_db() as db:
             entry = db.query(PricingRateCard).filter(PricingRateCard.id == rate_card_id).first()
@@ -362,12 +362,12 @@ class RateCardsTable:
 
     def list_rate_cards(
         self,
-        model_id: Optional[str] = None,
-        modality: Optional[str] = None,
-        unit: Optional[str] = None,
-        version: Optional[str] = None,
-        provider: Optional[str] = None,
-        is_active: Optional[bool] = None,
+        model_id: str | None = None,
+        modality: str | None = None,
+        unit: str | None = None,
+        version: str | None = None,
+        provider: str | None = None,
+        is_active: bool | None = None,
         limit: int = 100,
         offset: int = 0,
     ) -> List[PricingRateCardModel]:
@@ -403,8 +403,8 @@ class RateCardsTable:
     def list_rate_cards_by_model_ids(
         self,
         model_ids: List[str],
-        is_active: Optional[bool] = None,
-        limit: Optional[int] = None,
+        is_active: bool | None = None,
+        limit: int | None = None,
         offset: int = 0,
     ) -> List[PricingRateCardModel]:
         """List rate cards for a set of model IDs."""
@@ -430,12 +430,12 @@ class RateCardsTable:
 
     def count_rate_cards(
         self,
-        model_id: Optional[str] = None,
-        modality: Optional[str] = None,
-        unit: Optional[str] = None,
-        version: Optional[str] = None,
-        provider: Optional[str] = None,
-        is_active: Optional[bool] = None,
+        model_id: str | None = None,
+        modality: str | None = None,
+        unit: str | None = None,
+        version: str | None = None,
+        provider: str | None = None,
+        is_active: bool | None = None,
     ) -> int:
         """Count rate card entries with optional filters."""
         with get_db() as db:
@@ -454,7 +454,7 @@ class RateCardsTable:
                 query = query.filter(PricingRateCard.is_active == is_active)
             return query.count()
 
-    def get_active_rate_card(self, model_id: str, modality: str, unit: str) -> Optional[PricingRateCardModel]:
+    def get_active_rate_card(self, model_id: str, modality: str, unit: str) -> PricingRateCardModel | None:
         """Get latest active rate card entry for model/modality/unit."""
         with get_db() as db:
             query = (

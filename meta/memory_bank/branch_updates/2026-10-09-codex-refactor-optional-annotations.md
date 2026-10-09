@@ -1,0 +1,5 @@
+- [ ] **[REFACTOR]** Preserve runtime contracts while modernizing Optional annotations
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09__refactor__optional-annotations.md
+  - Owner: Codex
+  - Started: 2026-10-09
+  - Summary: G14 quality gate; existing safe UP045 fixes, all-source AST preservation and full runtime schema/tool/test comparisons. General release acceptance remains open.

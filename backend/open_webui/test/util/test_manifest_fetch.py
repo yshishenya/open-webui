@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
 
 import httpx
 import pytest
@@ -18,9 +17,9 @@ class _StubAsyncClient:
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc: Optional[BaseException],
-        tb: Optional[object],
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: object | None,
     ) -> None:
         return None
 

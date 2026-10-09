@@ -5,7 +5,7 @@ NOTE: This vector database integration is community-supported and maintained on 
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -219,9 +219,9 @@ class OpenGaussClient(VectorDBBase):
         self,
         collection_name: str,
         vectors: List[List[float]],
-        filter: Optional[Dict[str, Any]] = None,
+        filter: Dict[str, Any] | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         try:
             if not vectors:
                 return None
@@ -291,7 +291,7 @@ class OpenGaussClient(VectorDBBase):
             log.exception(f'Vector search failed: {e}')
             return None
 
-    def query(self, collection_name: str, filter: Dict[str, Any], limit: Optional[int] = None) -> Optional[GetResult]:
+    def query(self, collection_name: str, filter: Dict[str, Any], limit: int | None = None) -> GetResult | None:
         try:
             query = self.session.query(DocumentChunk).filter(DocumentChunk.collection_name == collection_name)
 
@@ -317,7 +317,7 @@ class OpenGaussClient(VectorDBBase):
             log.exception(f'Conditional query failed: {e}')
             return None
 
-    def get(self, collection_name: str, limit: Optional[int] = None) -> Optional[GetResult]:
+    def get(self, collection_name: str, limit: int | None = None) -> GetResult | None:
         try:
             query = self.session.query(DocumentChunk).filter(DocumentChunk.collection_name == collection_name)
             if limit is not None:
@@ -342,8 +342,8 @@ class OpenGaussClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        filter: Optional[Dict[str, Any]] = None,
+        ids: List[str] | None = None,
+        filter: Dict[str, Any] | None = None,
     ) -> None:
         try:
             query = self.session.query(DocumentChunk).filter(DocumentChunk.collection_name == collection_name)

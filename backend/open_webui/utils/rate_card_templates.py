@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 from open_webui.env import BILLING_RATE_CARD_VERSION
 
@@ -36,13 +36,13 @@ DEFAULT_RATE_CARD_TEMPLATES: List[RateCardTemplate] = [
 
 def build_rate_cards_for_model(
     model_id: str,
-    model_tier: Optional[str] = None,
-    provider: Optional[str] = None,
-    version: Optional[str] = None,
-    created_at: Optional[int] = None,
+    model_tier: str | None = None,
+    provider: str | None = None,
+    version: str | None = None,
+    created_at: int | None = None,
     is_active: bool = True,
     is_default: bool = True,
-    allowed_units: Optional[Sequence[ModalityUnit]] = None,
+    allowed_units: Sequence[ModalityUnit] | None = None,
 ) -> List[RateCardTemplate]:
     """Build rate card entries for a model based on default templates."""
     now = created_at or int(time.time())

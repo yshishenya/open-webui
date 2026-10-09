@@ -4,7 +4,7 @@ NOTE: This vector database integration is community-supported and maintained on 
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from open_webui.config import (
     MILVUS_COLLECTION_PREFIX,
@@ -208,9 +208,9 @@ class MilvusClient(VectorDBBase):
         self,
         collection_name: str,
         vectors: List[List[float]],
-        filter: Optional[Dict] = None,
+        filter: Dict | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         if not vectors:
             return None
 
@@ -250,8 +250,8 @@ class MilvusClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        filter: Optional[Dict[str, Any]] = None,
+        ids: List[str] | None = None,
+        filter: Dict[str, Any] | None = None,
     ):
         mt_collection, resource_id = self._get_collection_and_resource_id(collection_name)
         _validate_resource_id(resource_id)
@@ -284,7 +284,7 @@ class MilvusClient(VectorDBBase):
 
         self.client.delete(collection_name=mt_collection, filter=f"{RESOURCE_ID_FIELD} == '{resource_id}'")
 
-    def query(self, collection_name: str, filter: Dict[str, Any], limit: Optional[int] = None) -> Optional[GetResult]:
+    def query(self, collection_name: str, filter: Dict[str, Any], limit: int | None = None) -> GetResult | None:
         mt_collection, resource_id = self._get_collection_and_resource_id(collection_name)
         _validate_resource_id(resource_id)
         if not self.client.has_collection(mt_collection):
@@ -326,7 +326,7 @@ class MilvusClient(VectorDBBase):
 
         return GetResult(ids=[ids], documents=[documents], metadatas=[metadatas])
 
-    def get(self, collection_name: str) -> Optional[GetResult]:
+    def get(self, collection_name: str) -> GetResult | None:
         return self.query(collection_name, filter={}, limit=None)
 
     def insert(self, collection_name: str, items: List[VectorItem]):

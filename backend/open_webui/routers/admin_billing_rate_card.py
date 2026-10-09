@@ -6,7 +6,7 @@ Manage model pricing entries and sync defaults.
 import logging
 import time
 import uuid
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 from fastapi import (
     APIRouter,
@@ -51,24 +51,24 @@ class ModalityUnitRequest(BaseModel):
 
 
 class RateCardCreateRequest(BaseModel):
-    id: Optional[str] = None
+    id: str | None = None
     model_id: str = Field(..., min_length=1)
-    model_tier: Optional[str] = None
+    model_tier: str | None = None
     modality: str = Field(..., min_length=1)
     unit: str = Field(..., min_length=1)
     raw_cost_per_unit_kopeks: int = Field(0, ge=0)
-    version: Optional[str] = None
-    provider: Optional[str] = None
+    version: str | None = None
+    provider: str | None = None
     is_default: bool = False
     is_active: bool = True
 
 
 class RateCardUpdateRequest(BaseModel):
-    model_tier: Optional[str] = None
-    raw_cost_per_unit_kopeks: Optional[int] = Field(None, ge=0)
-    provider: Optional[str] = None
-    is_default: Optional[bool] = None
-    is_active: Optional[bool] = None
+    model_tier: str | None = None
+    raw_cost_per_unit_kopeks: int | None = Field(None, ge=0)
+    provider: str | None = None
+    is_default: bool | None = None
+    is_active: bool | None = None
 
 
 class RateCardBulkDeleteRequest(BaseModel):
@@ -96,11 +96,11 @@ class RateCardListResponse(BaseModel):
 
 
 class RateCardSyncRequest(BaseModel):
-    model_ids: Optional[List[str]] = None
-    modality_units: Optional[List[ModalityUnitRequest]] = None
-    version: Optional[str] = None
-    provider: Optional[str] = None
-    model_tier: Optional[str] = None
+    model_ids: List[str] | None = None
+    modality_units: List[ModalityUnitRequest] | None = None
+    version: str | None = None
+    provider: str | None = None
+    model_tier: str | None = None
     is_active: bool = True
     is_default: bool = True
 
@@ -127,14 +127,14 @@ class RateCardXlsxImportWarning(BaseModel):
     row_number: int
     code: str
     message: str
-    model_id: Optional[str] = None
+    model_id: str | None = None
 
 
 class RateCardXlsxImportError(BaseModel):
     code: str
     message: str
-    row_number: Optional[int] = None
-    column: Optional[str] = None
+    row_number: int | None = None
+    column: str | None = None
 
 
 class RateCardXlsxImportPreviewResponse(BaseModel):
@@ -277,12 +277,12 @@ async def export_rate_cards_xlsx(
 
 @router.get('/rate-card', response_model=RateCardListResponse)
 async def list_rate_cards(
-    model_id: Optional[str] = None,
-    modality: Optional[str] = None,
-    unit: Optional[str] = None,
-    version: Optional[str] = None,
-    provider: Optional[str] = None,
-    is_active: Optional[bool] = None,
+    model_id: str | None = None,
+    modality: str | None = None,
+    unit: str | None = None,
+    version: str | None = None,
+    provider: str | None = None,
+    is_active: bool | None = None,
     page: int = 1,
     page_size: int = 50,
     admin_user=Depends(get_admin_user),
@@ -868,11 +868,11 @@ async def import_rate_cards_xlsx_apply(
 
 def _sync_rate_cards_for_models(
     model_ids: List[str],
-    allowed_units: Optional[List[tuple[str, str]]],
+    allowed_units: List[tuple[str, str]] | None,
     version: str,
     created_at: int,
-    provider: Optional[str],
-    model_tier: Optional[str],
+    provider: str | None,
+    model_tier: str | None,
     is_active: bool,
     is_default: bool,
 ) -> tuple[int, int]:

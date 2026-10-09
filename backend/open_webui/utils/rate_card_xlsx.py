@@ -3,7 +3,7 @@ import json
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Sequence, Tuple
 
 from openpyxl import Workbook, load_workbook
 
@@ -51,15 +51,15 @@ class XlsxWarning:
     row_number: int
     code: str
     message: str
-    model_id: Optional[str] = None
+    model_id: str | None = None
 
 
 @dataclass
 class XlsxError:
     code: str
     message: str
-    row_number: Optional[int] = None
-    column: Optional[str] = None
+    row_number: int | None = None
+    column: str | None = None
 
 
 @dataclass
@@ -82,10 +82,10 @@ class ParsedRateCardRow:
     modality: str
     unit: str
     is_active: bool
-    raw_cost_per_unit_kopeks: Optional[int]
-    provider: Optional[str]
-    model_tier: Optional[str]
-    is_default: Optional[bool]
+    raw_cost_per_unit_kopeks: int | None
+    provider: str | None
+    model_tier: str | None
+    is_default: bool | None
 
 
 @dataclass(frozen=True)
@@ -95,10 +95,10 @@ class ImportAction:
     modality: str
     unit: str
     desired_active: bool
-    desired_price: Optional[int]
-    provider: Optional[str]
-    model_tier: Optional[str]
-    is_default: Optional[bool]
+    desired_price: int | None
+    provider: str | None
+    model_tier: str | None
+    is_default: bool | None
 
 
 def normalize_str(value: object) -> str:
@@ -115,7 +115,7 @@ def _is_empty(value: object) -> bool:
     return False
 
 
-def parse_bool(value: object) -> Optional[bool]:
+def parse_bool(value: object) -> bool | None:
     if value is None:
         return None
     if isinstance(value, bool):
@@ -135,7 +135,7 @@ def parse_bool(value: object) -> Optional[bool]:
     return None
 
 
-def parse_price_kopeks(value: object) -> Tuple[Optional[int], Optional[str]]:
+def parse_price_kopeks(value: object) -> Tuple[int | None, str | None]:
     """Return (parsed_int, error_message)."""
 
     if value is None:
@@ -180,7 +180,7 @@ def dump_scope_model_ids(scope_model_ids: Sequence[str]) -> str:
     return json.dumps(list(scope_model_ids))
 
 
-def parse_scope_model_ids(value: str) -> Tuple[Optional[List[str]], Optional[str]]:
+def parse_scope_model_ids(value: str) -> Tuple[List[str] | None, str | None]:
     """Return (ids, error)."""
 
     text = normalize_str(value)
@@ -380,19 +380,19 @@ def parse_import_workbook(file_bytes: bytes) -> Tuple[List[ParsedRateCardRow], L
         price_cell = row[header_map['raw_cost_per_unit_kopeks']]
         price, price_error = parse_price_kopeks(price_cell)
 
-        provider: Optional[str] = None
+        provider: str | None = None
         if 'provider' in header_map:
             provider_raw = row[header_map['provider']]
             if not _is_empty(provider_raw):
                 provider = normalize_str(provider_raw)
 
-        model_tier: Optional[str] = None
+        model_tier: str | None = None
         if 'model_tier' in header_map:
             model_tier_raw = row[header_map['model_tier']]
             if not _is_empty(model_tier_raw):
                 model_tier = normalize_str(model_tier_raw)
 
-        is_default: Optional[bool] = None
+        is_default: bool | None = None
         if 'is_default' in header_map:
             is_default_raw = row[header_map['is_default']]
             is_default = parse_bool(is_default_raw)

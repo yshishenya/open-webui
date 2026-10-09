@@ -53,7 +53,7 @@ their own `asyncio.to_thread`, e.g. ::
 from __future__ import annotations
 
 import asyncio
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 
 from open_webui.retrieval.vector.factory import VECTOR_DB_CLIENT
 from open_webui.retrieval.vector.main import (
@@ -102,9 +102,9 @@ class AsyncVectorDBClient:
         self,
         collection_name: str,
         vectors: List[List[Union[float, int]]],
-        filter: Optional[Dict] = None,
+        filter: Dict | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         return await asyncio.to_thread(self._sync.search, collection_name, vectors, filter, limit)
 
     async def hybrid_search(
@@ -112,10 +112,10 @@ class AsyncVectorDBClient:
         collection_name: str,
         query: str,
         vectors: List[List[Union[float, int]]],
-        filter: Optional[Dict] = None,
+        filter: Dict | None = None,
         limit: int = 10,
         hybrid_bm25_weight: float = 0.5,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         return await asyncio.to_thread(
             self._sync.hybrid_search,
             collection_name,
@@ -130,18 +130,18 @@ class AsyncVectorDBClient:
         self,
         collection_name: str,
         filter: Dict,
-        limit: Optional[int] = None,
-    ) -> Optional[GetResult]:
+        limit: int | None = None,
+    ) -> GetResult | None:
         return await asyncio.to_thread(self._sync.query, collection_name, filter, limit)
 
-    async def get(self, collection_name: str) -> Optional[GetResult]:
+    async def get(self, collection_name: str) -> GetResult | None:
         return await asyncio.to_thread(self._sync.get, collection_name)
 
     async def delete(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        filter: Optional[Dict] = None,
+        ids: List[str] | None = None,
+        filter: Dict | None = None,
     ) -> None:
         return await asyncio.to_thread(self._sync.delete, collection_name, ids, filter)
 

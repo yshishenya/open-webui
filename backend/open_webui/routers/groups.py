@@ -35,7 +35,7 @@ router = APIRouter()
 
 @router.get('/', response_model=list[GroupResponse])
 async def get_groups(
-    share: Optional[bool] = None,
+    share: bool | None = None,
     user=Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
 ):

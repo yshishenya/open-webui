@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from open_webui.config import (
     PGVECTOR_CREATE_EXTENSION,
@@ -164,7 +164,7 @@ class PgvectorClient(VectorDBBase):
             raise
 
     @staticmethod
-    def _extract_index_method(index_def: Optional[str]) -> Optional[str]:
+    def _extract_index_method(index_def: str | None) -> str | None:
         if not index_def:
             return None
         try:
@@ -405,9 +405,9 @@ class PgvectorClient(VectorDBBase):
         self,
         collection_name: str,
         vectors: List[List[float]],
-        filter: Optional[Dict[str, Any]] = None,
+        filter: Dict[str, Any] | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         try:
             if not vectors:
                 return None
@@ -536,10 +536,10 @@ class PgvectorClient(VectorDBBase):
         collection_name: str,
         query: str,
         vectors: List[List[float]],
-        filter: Optional[Dict[str, Any]] = None,
+        filter: Dict[str, Any] | None = None,
         limit: int = 10,
         hybrid_bm25_weight: float = 0.5,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         if PGVECTOR_PGCRYPTO or filter:
             return None
 
@@ -596,7 +596,7 @@ class PgvectorClient(VectorDBBase):
             log.exception(f'Error during hybrid search: {e}')
             return None
 
-    def query(self, collection_name: str, filter: Dict[str, Any], limit: Optional[int] = None) -> Optional[GetResult]:
+    def query(self, collection_name: str, filter: Dict[str, Any], limit: int | None = None) -> GetResult | None:
         try:
             if PGVECTOR_PGCRYPTO:
                 # Build where clause for vmetadata filter
@@ -644,7 +644,7 @@ class PgvectorClient(VectorDBBase):
             log.exception(f'Error during query: {e}')
             return None
 
-    def get(self, collection_name: str, limit: Optional[int] = None) -> Optional[GetResult]:
+    def get(self, collection_name: str, limit: int | None = None) -> GetResult | None:
         try:
             if PGVECTOR_PGCRYPTO:
                 stmt = select(
@@ -682,8 +682,8 @@ class PgvectorClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        filter: Optional[Dict[str, Any]] = None,
+        ids: List[str] | None = None,
+        filter: Dict[str, Any] | None = None,
     ) -> None:
         try:
             if PGVECTOR_PGCRYPTO:

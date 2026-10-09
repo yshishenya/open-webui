@@ -21,7 +21,7 @@ import datetime
 import logging
 import time
 from base64 import b64encode
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List
 
 from fastapi import FastAPI, Request
 from open_webui.env import (
@@ -66,13 +66,13 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-def _count_total_users(db_engine: Engine) -> Optional[int]:
+def _count_total_users(db_engine: Engine) -> int | None:
     """Return the total number of registered users (sync)."""
     with Session(db_engine) as session:
         return session.execute(select(func.count()).select_from(User)).scalar()
 
 
-def _count_active_users(db_engine: Engine) -> Optional[int]:
+def _count_active_users(db_engine: Engine) -> int | None:
     """Return the number of users active within the last 3 minutes (sync)."""
     three_minutes_ago = int(time.time()) - 180
     with Session(db_engine) as session:
@@ -81,7 +81,7 @@ def _count_active_users(db_engine: Engine) -> Optional[int]:
         ).scalar()
 
 
-def _count_users_active_today(db_engine: Engine) -> Optional[int]:
+def _count_users_active_today(db_engine: Engine) -> int | None:
     """Return the number of users active since midnight today (sync)."""
     now = int(datetime.datetime.now().timestamp())
     today_midnight = now - (now % 86400)

@@ -5,7 +5,7 @@ import os
 import sys
 import time
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import aiohttp
 import requests
@@ -40,7 +40,7 @@ class MistralLoader:
         max_retries: int = 3,
         enable_debug_logging: bool = False,
         use_base64: bool = False,
-        user: Optional[Any] = None,
+        user: Any | None = None,
     ):
         """
         Initializes the loader with enhanced features.

@@ -5,7 +5,6 @@ import secrets
 import time
 import uuid
 
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import Response
@@ -82,11 +81,11 @@ class TelegramWidgetPayload(BaseModel):
     auth_date: int
     hash: str
 
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    username: Optional[str] = None
-    photo_url: Optional[str] = None
-    query_id: Optional[str] = None
+    first_name: str | None = None
+    last_name: str | None = None
+    username: str | None = None
+    photo_url: str | None = None
+    query_id: str | None = None
 
     model_config = ConfigDict(extra='allow')
 
@@ -107,8 +106,8 @@ class TelegramStateResponse(BaseModel):
 
 
 class SessionUserResponse(Token, UserProfileImageResponse):
-    expires_at: Optional[int] = None
-    permissions: Optional[dict] = None
+    expires_at: int | None = None
+    permissions: dict | None = None
 
 
 TELEGRAM_SESSION_STATE_KEY = 'telegram_auth_state'

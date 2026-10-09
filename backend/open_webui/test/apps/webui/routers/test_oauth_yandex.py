@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
 
 from _pytest.monkeypatch import MonkeyPatch
 from fastapi.responses import PlainTextResponse
@@ -38,7 +37,7 @@ class TestYandexOAuthRouter(AbstractPostgresTest):
             request: Request,
             provider: str,
             response: Response,
-            db: Optional[Session] = None,
+            db: Session | None = None,
         ) -> Response:
             captured['provider'] = provider
             captured['db_present'] = db is not None

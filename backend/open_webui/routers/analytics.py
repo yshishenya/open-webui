@@ -1,6 +1,5 @@
 import datetime as dt
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from open_webui.config import ENABLE_ADMIN_CHAT_ACCESS
@@ -43,8 +42,8 @@ class ModelAnalyticsResponse(BaseModel):
 
 class UserAnalyticsEntry(BaseModel):
     user_id: str
-    name: Optional[str] = None
-    email: Optional[str] = None
+    name: str | None = None
+    email: str | None = None
     count: int
     input_tokens: int = 0
     output_tokens: int = 0
@@ -62,9 +61,9 @@ class UserAnalyticsResponse(BaseModel):
 
 @router.get('/models', response_model=ModelAnalyticsResponse)
 async def get_model_analytics(
-    start_date: Optional[int] = Query(None, description='Start timestamp (epoch)'),
-    end_date: Optional[int] = Query(None, description='End timestamp (epoch)'),
-    group_id: Optional[str] = Query(None, description='Filter by user group ID'),
+    start_date: int | None = Query(None, description='Start timestamp (epoch)'),
+    end_date: int | None = Query(None, description='End timestamp (epoch)'),
+    group_id: str | None = Query(None, description='Filter by user group ID'),
     user=Depends(get_admin_user),
     db: AsyncSession = Depends(get_async_session),
 ):
@@ -89,9 +88,9 @@ async def get_model_analytics(
 
 @router.get('/users', response_model=UserAnalyticsResponse)
 async def get_user_analytics(
-    start_date: Optional[int] = Query(None, description='Start timestamp (epoch)'),
-    end_date: Optional[int] = Query(None, description='End timestamp (epoch)'),
-    group_id: Optional[str] = Query(None, description='Filter by user group ID'),
+    start_date: int | None = Query(None, description='Start timestamp (epoch)'),
+    end_date: int | None = Query(None, description='End timestamp (epoch)'),
+    group_id: str | None = Query(None, description='Filter by user group ID'),
     limit: int = Query(50, description='Max users to return'),
     user=Depends(get_admin_user),
     db: AsyncSession = Depends(get_async_session),
@@ -129,11 +128,11 @@ async def get_user_analytics(
 
 @router.get('/messages', response_model=list[ChatMessageModel])
 async def get_messages(
-    model_id: Optional[str] = Query(None, description='Filter by model ID'),
-    user_id: Optional[str] = Query(None, description='Filter by user ID'),
-    chat_id: Optional[str] = Query(None, description='Filter by chat ID'),
-    start_date: Optional[int] = Query(None, description='Start timestamp (epoch)'),
-    end_date: Optional[int] = Query(None, description='End timestamp (epoch)'),
+    model_id: str | None = Query(None, description='Filter by model ID'),
+    user_id: str | None = Query(None, description='Filter by user ID'),
+    chat_id: str | None = Query(None, description='Filter by chat ID'),
+    start_date: int | None = Query(None, description='Start timestamp (epoch)'),
+    end_date: int | None = Query(None, description='End timestamp (epoch)'),
     skip: int = Query(0),
     limit: int = Query(50, le=100),
     user=Depends(get_admin_user),
@@ -167,9 +166,9 @@ class SummaryResponse(BaseModel):
 
 @router.get('/summary', response_model=SummaryResponse)
 async def get_summary(
-    start_date: Optional[int] = Query(None, description='Start timestamp (epoch)'),
-    end_date: Optional[int] = Query(None, description='End timestamp (epoch)'),
-    group_id: Optional[str] = Query(None, description='Filter by user group ID'),
+    start_date: int | None = Query(None, description='Start timestamp (epoch)'),
+    end_date: int | None = Query(None, description='End timestamp (epoch)'),
+    group_id: str | None = Query(None, description='Filter by user group ID'),
     user=Depends(get_admin_user),
     db: AsyncSession = Depends(get_async_session),
 ):
@@ -203,9 +202,9 @@ class DailyStatsResponse(BaseModel):
 
 @router.get('/daily', response_model=DailyStatsResponse)
 async def get_daily_stats(
-    start_date: Optional[int] = Query(None, description='Start timestamp (epoch)'),
-    end_date: Optional[int] = Query(None, description='End timestamp (epoch)'),
-    group_id: Optional[str] = Query(None, description='Filter by user group ID'),
+    start_date: int | None = Query(None, description='Start timestamp (epoch)'),
+    end_date: int | None = Query(None, description='End timestamp (epoch)'),
+    group_id: str | None = Query(None, description='Filter by user group ID'),
     granularity: str = Query('daily', description="Granularity: 'hourly' or 'daily'"),
     user=Depends(get_admin_user),
     db: AsyncSession = Depends(get_async_session),
@@ -241,9 +240,9 @@ class TokenUsageResponse(BaseModel):
 
 @router.get('/tokens', response_model=TokenUsageResponse)
 async def get_token_usage(
-    start_date: Optional[int] = Query(None),
-    end_date: Optional[int] = Query(None),
-    group_id: Optional[str] = Query(None, description='Filter by user group ID'),
+    start_date: int | None = Query(None),
+    end_date: int | None = Query(None),
+    group_id: str | None = Query(None, description='Filter by user group ID'),
     user=Depends(get_admin_user),
     db: AsyncSession = Depends(get_async_session),
 ):
@@ -275,9 +274,9 @@ async def get_token_usage(
 
 class ModelChatEntry(BaseModel):
     chat_id: str
-    user_id: Optional[str] = None
-    user_name: Optional[str] = None
-    first_message: Optional[str] = None
+    user_id: str | None = None
+    user_name: str | None = None
+    first_message: str | None = None
     updated_at: int
 
 

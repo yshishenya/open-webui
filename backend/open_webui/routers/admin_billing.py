@@ -6,7 +6,7 @@ Only accessible by administrators for managing billing plans
 import logging
 import time
 import uuid
-from typing import Optional, List, Dict
+from typing import List, Dict
 
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -44,38 +44,38 @@ router = APIRouter()
 
 
 class CreatePlanRequest(BaseModel):
-    id: Optional[str] = None  # Auto-generate if not provided
+    id: str | None = None  # Auto-generate if not provided
     name: str = Field(..., min_length=1, max_length=100)
-    name_ru: Optional[str] = Field(None, max_length=100)
-    description: Optional[str] = Field(None, max_length=1000)
-    description_ru: Optional[str] = Field(None, max_length=1000)
+    name_ru: str | None = Field(None, max_length=100)
+    description: str | None = Field(None, max_length=1000)
+    description_ru: str | None = Field(None, max_length=1000)
 
     price: float = Field(..., ge=0)  # Price >= 0
     currency: str = Field(default='RUB', pattern='^(RUB|USD|EUR)$')
     interval: str = Field(..., pattern='^(day|week|month|year)$')
 
-    quotas: Optional[Dict[str, int]] = None
-    features: Optional[List[str]] = None
+    quotas: Dict[str, int] | None = None
+    features: List[str] | None = None
 
     is_active: bool = True
     display_order: int = Field(default=0, ge=0)
 
 
 class UpdatePlanRequest(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    name_ru: Optional[str] = Field(None, max_length=100)
-    description: Optional[str] = Field(None, max_length=1000)
-    description_ru: Optional[str] = Field(None, max_length=1000)
+    name: str | None = Field(None, min_length=1, max_length=100)
+    name_ru: str | None = Field(None, max_length=100)
+    description: str | None = Field(None, max_length=1000)
+    description_ru: str | None = Field(None, max_length=1000)
 
-    price: Optional[float] = Field(None, ge=0)
-    currency: Optional[str] = Field(None, pattern='^(RUB|USD|EUR)$')
-    interval: Optional[str] = Field(None, pattern='^(day|week|month|year)$')
+    price: float | None = Field(None, ge=0)
+    currency: str | None = Field(None, pattern='^(RUB|USD|EUR)$')
+    interval: str | None = Field(None, pattern='^(day|week|month|year)$')
 
-    quotas: Optional[Dict[str, int]] = None
-    features: Optional[List[str]] = None
+    quotas: Dict[str, int] | None = None
+    features: List[str] | None = None
 
-    is_active: Optional[bool] = None
-    display_order: Optional[int] = Field(None, ge=0)
+    is_active: bool | None = None
+    display_order: int | None = Field(None, ge=0)
 
 
 class PlanStatsModel(BaseModel):
@@ -94,7 +94,7 @@ class PlanSubscriberModel(BaseModel):
     user_id: str
     email: str
     name: str
-    profile_image_url: Optional[str] = None
+    profile_image_url: str | None = None
     role: str = 'user'
     subscription_status: str
     subscribed_at: int
@@ -102,11 +102,11 @@ class PlanSubscriberModel(BaseModel):
     current_period_end: int
     # Usage data
     tokens_input_used: int = 0
-    tokens_input_limit: Optional[int] = None
+    tokens_input_limit: int | None = None
     tokens_output_used: int = 0
-    tokens_output_limit: Optional[int] = None
+    tokens_output_limit: int | None = None
     requests_used: int = 0
-    requests_limit: Optional[int] = None
+    requests_limit: int | None = None
 
 
 class PaginatedSubscribersResponse(BaseModel):
@@ -133,8 +133,8 @@ class AdjustUserWalletRequest(BaseModel):
     delta_topup_kopeks: int = 0
     delta_included_kopeks: int = 0
     reason: str = Field(..., min_length=1, max_length=500)
-    idempotency_key: Optional[str] = Field(default=None, max_length=128)
-    reference_id: Optional[str] = Field(default=None, max_length=128)
+    idempotency_key: str | None = Field(default=None, max_length=128)
+    reference_id: str | None = Field(default=None, max_length=128)
 
 
 class AdjustUserWalletResponse(BaseModel):

@@ -2,7 +2,6 @@ import time
 import uuid
 import secrets
 import logging
-from typing import Optional
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import BigInteger, Boolean, Column, String, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -67,7 +66,7 @@ class PasswordResetTokensTable:
         user_id: str,
         expiry_hours: int = 1,
         db: AsyncSession | None = None,
-    ) -> Optional[PasswordResetTokenModel]:
+    ) -> PasswordResetTokenModel | None:
         """Create a new password reset token"""
         token = self.generate_token()
         expires_at = int(time.time()) + (expiry_hours * 3600)
@@ -94,7 +93,7 @@ class PasswordResetTokensTable:
 
     async def get_token_by_token_string(
         self, token: str, db: AsyncSession | None = None
-    ) -> Optional[PasswordResetTokenModel]:
+    ) -> PasswordResetTokenModel | None:
         """Get reset token by token string"""
         try:
             async with get_async_db_context(db) as session:

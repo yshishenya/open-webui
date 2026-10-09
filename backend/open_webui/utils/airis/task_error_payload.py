@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from fastapi import HTTPException
 
@@ -37,7 +36,7 @@ def is_billing_block_http_exception(exc: Exception) -> bool:
     return isinstance(error_code_value, str) and error_code_value in _BILLING_BLOCK_ERROR_CODES
 
 
-def build_task_ws_error_payload(exc: Exception) -> Optional[dict[str, object]]:
+def build_task_ws_error_payload(exc: Exception) -> dict[str, object] | None:
     """Convert exceptions raised inside async chat tasks to a websocket-safe payload.
 
     Goal: preserve machine-readable details for billing blocks while keeping the

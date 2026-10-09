@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib
 import pkgutil
-from typing import Mapping, Optional
+from typing import Mapping
 from urllib.parse import urlencode
 
 from fastapi.testclient import TestClient
@@ -45,7 +45,7 @@ class AbstractPostgresTest:
         Base.metadata.create_all(bind=engine)
         ScopedSession.remove()
 
-    def create_url(self, path: str, query_params: Optional[QueryParams] = None) -> str:
+    def create_url(self, path: str, query_params: QueryParams | None = None) -> str:
         base = self.BASE_PATH.rstrip('/')
         if path in {'', '/'}:
             url = f'{base}/' if base else '/'

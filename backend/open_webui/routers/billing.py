@@ -238,21 +238,21 @@ class TopupReconcileRequest(BaseModel):
 
 class TopupReconcileResponse(BaseModel):
     payment_id: str
-    provider_status: Optional[str] = None
-    payment_status: Optional[str] = None
+    provider_status: str | None = None
+    payment_status: str | None = None
     credited: bool
 
 
 class CreatePlanRequest(BaseModel):
     name: str
-    name_ru: Optional[str] = None
-    description: Optional[str] = None
-    description_ru: Optional[str] = None
+    name_ru: str | None = None
+    description: str | None = None
+    description_ru: str | None = None
     price: float
     currency: str = 'RUB'
     interval: str
-    quotas: Optional[Dict[str, int]] = None
-    features: Optional[List[str]] = None
+    quotas: Dict[str, int] | None = None
+    features: List[str] | None = None
     is_active: bool = True
     display_order: int = 0
 
@@ -269,8 +269,8 @@ class CheckQuotaRequest(BaseModel):
 class CheckQuotaResponse(BaseModel):
     allowed: bool
     current_usage: int
-    quota_limit: Optional[int]
-    remaining: Optional[int]
+    quota_limit: int | None
+    remaining: int | None
 
 
 class PublicLeadMagnetQuotas(BaseModel):
@@ -289,17 +289,17 @@ class PublicLeadMagnetResponse(BaseModel):
 
 
 class PublicRateCardRates(BaseModel):
-    text_in_1000_tokens: Optional[int] = None
-    text_out_1000_tokens: Optional[int] = None
-    image_1024: Optional[int] = None
-    tts_1000_chars: Optional[int] = None
-    stt_minute: Optional[int] = None
+    text_in_1000_tokens: int | None = None
+    text_out_1000_tokens: int | None = None
+    image_1024: int | None = None
+    tts_1000_chars: int | None = None
+    stt_minute: int | None = None
 
 
 class PublicRateCardModel(BaseModel):
     id: str
     display_name: str
-    provider: Optional[str] = None
+    provider: str | None = None
     capabilities: List[str]
     rates: PublicRateCardRates
 
@@ -319,9 +319,9 @@ class PublicPricingFreeLimits(BaseModel):
 
 
 class PublicPricingRecommendedModels(BaseModel):
-    text: Optional[str] = None
-    image: Optional[str] = None
-    audio: Optional[str] = None
+    text: str | None = None
+    image: str | None = None
+    audio: str | None = None
 
 
 class PublicPricingConfigResponse(BaseModel):
@@ -334,33 +334,33 @@ class PublicPricingConfigResponse(BaseModel):
 class BalanceResponse(BaseModel):
     balance_topup_kopeks: int
     balance_included_kopeks: int
-    included_expires_at: Optional[int] = None
+    included_expires_at: int | None = None
     topup_expires_at: int | None = None
     daily_reserved_kopeks: int = 0
-    max_reply_cost_kopeks: Optional[int] = None
-    daily_cap_kopeks: Optional[int] = None
+    max_reply_cost_kopeks: int | None = None
+    daily_cap_kopeks: int | None = None
     daily_spent_kopeks: int
-    daily_reset_at: Optional[int] = None
+    daily_reset_at: int | None = None
     auto_topup_enabled: bool = False
-    auto_topup_threshold_kopeks: Optional[int] = None
-    auto_topup_amount_kopeks: Optional[int] = None
+    auto_topup_threshold_kopeks: int | None = None
+    auto_topup_amount_kopeks: int | None = None
     auto_topup_fail_count: int = 0
-    auto_topup_last_failed_at: Optional[int] = None
+    auto_topup_last_failed_at: int | None = None
     auto_topup_payment_method_saved: bool = False
     currency: str
 
 
 class AutoTopupRequest(BaseModel):
     enabled: bool
-    threshold_kopeks: Optional[int] = None
-    amount_kopeks: Optional[int] = None
+    threshold_kopeks: int | None = None
+    amount_kopeks: int | None = None
 
 
 class BillingSettingsRequest(BaseModel):
-    max_reply_cost_kopeks: Optional[int] = None
-    daily_cap_kopeks: Optional[int] = None
-    billing_contact_email: Optional[str] = None
-    billing_contact_phone: Optional[str] = None
+    max_reply_cost_kopeks: int | None = None
+    daily_cap_kopeks: int | None = None
+    billing_contact_email: str | None = None
+    billing_contact_phone: str | None = None
 
 
 class LeadMagnetUsageResponse(BaseModel):
@@ -373,8 +373,8 @@ class LeadMagnetUsageResponse(BaseModel):
 
 class LeadMagnetInfoResponse(BaseModel):
     enabled: bool
-    cycle_start: Optional[int] = None
-    cycle_end: Optional[int] = None
+    cycle_start: int | None = None
+    cycle_end: int | None = None
     usage: LeadMagnetUsageResponse
     quotas: LeadMagnetUsageResponse
     remaining: LeadMagnetUsageResponse
@@ -391,9 +391,9 @@ class PublicPlanResponse(BaseModel):
 
     id: str
     name: str
-    name_ru: Optional[str] = None
-    description: Optional[str] = None
-    description_ru: Optional[str] = None
+    name_ru: str | None = None
+    description: str | None = None
+    description_ru: str | None = None
     price: float
     currency: str
     interval: str
@@ -591,7 +591,7 @@ def get_ledger(
 def get_usage_events(
     limit: int = 50,
     skip: int = 0,
-    billing_source: Optional[str] = None,
+    billing_source: str | None = None,
     user=Depends(get_verified_user),
 ):
     """Get usage events for current user."""
@@ -1219,7 +1219,7 @@ async def get_public_pricing_config(request: Request) -> PublicPricingConfigResp
 
 @router.get('/public/rate-cards', response_model=PublicRateCardResponse)
 async def get_public_rate_cards(
-    request: Request, response: Response, currency: Optional[str] = None
+    request: Request, response: Response, currency: str | None = None
 ) -> PublicRateCardResponse:
     """Expose rate cards for public pricing tables."""
     response.headers['Cache-Control'] = 'public, max-age=600'
@@ -1238,7 +1238,7 @@ async def get_public_rate_cards(
     workspace_base_models = await Models.get_base_models()
 
     excluded_model_ids = set()
-    merged_models_by_id: Dict[str, Dict[str, Optional[str]]] = {}
+    merged_models_by_id: Dict[str, Dict[str, str | None]] = {}
     for model in workspace_base_models:
         if not model.is_active:
             excluded_model_ids.add(model.id)
@@ -1319,14 +1319,14 @@ async def get_public_rate_cards(
             model_latest[key] = entry
 
     models: List[PublicRateCardModel] = []
-    updated_at_ts: Optional[int] = None
+    updated_at_ts: int | None = None
 
     for model in active_models:
         latest = latest_by_model.get(model['id'], {})
         if not latest:
             continue
 
-        rates_payload: Dict[str, Optional[int]] = {
+        rates_payload: Dict[str, int | None] = {
             'text_in_1000_tokens': None,
             'text_out_1000_tokens': None,
             'image_1024': None,
@@ -1334,8 +1334,8 @@ async def get_public_rate_cards(
             'stt_minute': None,
         }
         capabilities = set()
-        provider: Optional[str] = None
-        model_updated_at: Optional[int] = None
+        provider: str | None = None
+        model_updated_at: int | None = None
 
         for (modality, unit), entry in latest.items():
             mapping = display_units.get((modality, unit))
@@ -1402,9 +1402,9 @@ async def get_public_rate_cards(
 @router.post('/webhook/yookassa')
 async def yookassa_webhook(
     request: Request,
-    x_yookassa_signature: Optional[str] = Header(None, alias='X-YooKassa-Signature'),
-    x_yookassa_timestamp: Optional[str] = Header(None, alias='X-YooKassa-Timestamp'),
-    token: Optional[str] = Query(None),
+    x_yookassa_signature: str | None = Header(None, alias='X-YooKassa-Signature'),
+    x_yookassa_timestamp: str | None = Header(None, alias='X-YooKassa-Timestamp'),
+    token: str | None = Query(None),
 ):
     """
     Webhook endpoint for YooKassa payment notifications

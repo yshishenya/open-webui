@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
@@ -24,8 +23,8 @@ class LegalDocResponse(BaseModel):
 
 
 class LegalDocStatusResponse(LegalDocResponse):
-    accepted_at: Optional[int] = None
-    accepted_version: Optional[str] = None
+    accepted_at: int | None = None
+    accepted_version: str | None = None
 
 
 class LegalRequirementsResponse(BaseModel):
@@ -41,7 +40,7 @@ class LegalStatusResponse(BaseModel):
 
 class AcceptLegalDocsForm(BaseModel):
     keys: list[str] = Field(default_factory=list, description='Legal doc keys to accept')
-    method: Optional[str] = Field(
+    method: str | None = Field(
         default='ui',
         description='Acceptance method (e.g. signup, ui_gate, oauth_complete)',
     )

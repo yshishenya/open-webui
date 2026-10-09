@@ -3,7 +3,6 @@ Audit logging for tracking administrative actions
 """
 
 import time
-from typing import Optional
 from enum import Enum
 
 from open_webui.internal.db import Base, get_db
@@ -71,9 +70,9 @@ class AuditLogModel(BaseModel):
     action: str
     entity_type: str
     entity_id: str
-    description: Optional[str] = None
-    changes: Optional[dict] = None
-    audit_metadata: Optional[dict] = None
+    description: str | None = None
+    changes: dict | None = None
+    audit_metadata: dict | None = None
     created_at: int
 
     model_config = ConfigDict(from_attributes=True)
@@ -93,9 +92,9 @@ class AuditLogs:
         action: AuditAction,
         entity_type: str,
         entity_id: str,
-        description: Optional[str] = None,
-        changes: Optional[dict] = None,
-        audit_metadata: Optional[dict] = None,
+        description: str | None = None,
+        changes: dict | None = None,
+        audit_metadata: dict | None = None,
     ) -> AuditLogModel:
         """Create an audit log entry"""
         import uuid
@@ -119,9 +118,9 @@ class AuditLogs:
 
     @staticmethod
     def get_logs(
-        entity_type: Optional[str] = None,
-        entity_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        entity_type: str | None = None,
+        entity_id: str | None = None,
+        user_id: str | None = None,
         limit: int = 100,
         offset: int = 0,
     ) -> list[AuditLogModel]:

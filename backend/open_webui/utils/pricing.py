@@ -1,5 +1,5 @@
 from decimal import Decimal, ROUND_CEILING
-from typing import Optional, Tuple
+from typing import Tuple
 
 from open_webui.models.billing import PricingRateCardModel, RateCards
 
@@ -14,7 +14,7 @@ class PricingService:
     def __init__(self):
         self.rate_cards = RateCards
 
-    def get_rate_card(self, model_id: str, modality: str, unit: str) -> Optional[PricingRateCardModel]:
+    def get_rate_card(self, model_id: str, modality: str, unit: str) -> PricingRateCardModel | None:
         """Fetch active rate card for model/modality/unit."""
         return self.rate_cards.get_active_rate_card(model_id, modality, unit)
 
