@@ -1,0 +1,94 @@
+{
+  "spec_id": "airis-admin-model-contracts-2026-10-09-018",
+  "title": "Airis admin model contracts",
+  "generated": "2026-10-09T11:57:07.616431Z",
+  "last_updated": "2026-10-09T12:07:53.886567Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "investigation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__bugfix__admin-model-contracts.md",
+    "status": "active",
+    "activated_date": "2026-10-09T11:59:10.037925Z",
+    "progress_percentage": 50,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis admin model contracts",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce,fix and verify source",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce andfix actual import/reorder lifecycle andcontracts",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-09T12:07:53.656117Z",
+        "needs_journaling": false,
+        "status_note": "Original8fail/9pass,fixed17/17;frontend1063/129;64type errors removed,new0;whole compiled behavior equivalent outside explicit guards",
+        "journaled_at": "2026-10-09T12:07:53.656992Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Verify source delivery andprotected state",
+      "status": "in_progress",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "started_at": "2026-10-09T12:07:53.886356Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-09T12:07:53.656985Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce andfix actual import/reorder lifecycle andcontracts",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Original8fail/9pass,fixed17/17;frontend1063/129;64type errors removed,new0;whole compiled behavior equivalent outside explicit guards",
+      "metadata": {},
+      "task_id": "task-1-1"
+    }
+  ]
+}

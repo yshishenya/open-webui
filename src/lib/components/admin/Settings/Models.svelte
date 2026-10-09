@@ -4,7 +4,7 @@
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
-	import { onMount, onDestroy, getContext, tick } from 'svelte';
+	import { onMount, onDestroy, getContext, tick, type ComponentProps } from 'svelte';
 	const i18n = getContext('i18n');
 
 	import { config, models as _models, settings, showSettings, user } from '$lib/stores';
@@ -22,8 +22,10 @@
 	import { copyToClipboard } from '$lib/utils';
 	import { updateUserSettings } from '$lib/apis/users';
 
-	import { getModels } from '$lib/apis';
-	import { getModelsConfig, setModelsConfig } from '$lib/apis/configs';
+	import { getModels, type ModelMeta } from '$lib/apis';
+	import type { Model } from '$lib/stores';
+	import type AccessControlModal from '$lib/components/workspace/common/AccessControlModal.svelte';
+	import { getModelsConfig, setModelsConfig, type ModelsConfig } from '$lib/apis/configs';
 	import Search from '$lib/components/icons/Search.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
@@ -60,44 +62,47 @@
 	import AdminViewSelector from './Models/AdminViewSelector.svelte';
 	import TagSelector from '$lib/components/workspace/common/TagSelector.svelte';
 
+	type ModelAccessGrants = ComponentProps<AccessControlModal>['accessGrants'];
 	type ModelListItem = { id: string; name?: string };
 	type ModelMutation = ModelListItem & {
 		base_model_id?: string | null;
 		is_active?: boolean;
-		meta?: Record<string, unknown>;
+		meta?: ModelMeta & Record<string, unknown>;
+		access_grants?: ModelAccessGrants | null;
 	};
 
+	type AdminModel = Model & ModelMutation;
 	let shiftKey = false;
 
 	export let tabState: Record<string, unknown> | null = null;
 
 	let modelsImportInProgress = false;
-	let importFiles;
+	let importFiles: FileList | null | undefined;
 	let modelsImportInputElement: HTMLInputElement;
 	let tagsContainerElement: HTMLDivElement;
 	let modelListElement: HTMLDivElement;
-	let sortable = null;
+	let sortable: Sortable | null = null;
 
-	let models = null;
-	let modelsConfig = null;
-	let modelOrderList: string[] = [];
+	let models: AdminModel[] | null = null;
+	let modelsConfig: ModelsConfig | null = null;
+	let modelOrderList: (string | null)[] = [];
 	let defaultModelIds: string[] = [];
 	let defaultPinnedModelIds: string[] = [];
 	let defaultModelIdSet = new Set<string>();
 	let defaultPinnedModelIdSet = new Set<string>();
 
 	let workspaceModels: ModelListItem[] = [];
-	let baseModels: ModelListItem[] = [];
+	let baseModels: Model[] = [];
 
-	let filteredModels = [];
-	let selectedModelId = null;
+	let filteredModels: AdminModel[] = [];
+	let selectedModelId: string | null = null;
 
 	let showManageModal = false;
 	let showResetModal = false;
 	let savingModelOrder = false;
 	let savingModelsSettings = false;
 	let modelOrderDirty = false;
-	let modelDefaultsPanel = null;
+	let modelDefaultsPanel: ModelDefaultsPanel | null = null;
 	let modelDefaultsDirty = false;
 
 	let viewOption = ''; // '' = All, 'enabled', 'disabled', 'visible', 'hidden'
@@ -109,15 +114,16 @@
 		tabState = null;
 	}
 
-	const isPublicModel = (model) => {
+	const isPublicModel = (model: Pick<ModelMutation, 'access_grants'>): boolean => {
 		return (model?.access_grants ?? []).some(
 			(g) => g.principal_type === 'user' && g.principal_id === '*' && g.permission === 'read'
 		);
 	};
 
-	const isSharedModel = (model) => (model?.access_grants ?? []).length > 0 && !isPublicModel(model);
+	const isSharedModel = (model: Pick<ModelMutation, 'access_grants'>): boolean =>
+		(model?.access_grants ?? []).length > 0 && !isPublicModel(model);
 
-	const modelAccessLabel = (model) => {
+	const modelAccessLabel = (model: Pick<ModelMutation, 'access_grants'>): string => {
 		if (isPublicModel(model)) {
 			return $i18n.t('Public');
 		}
@@ -127,7 +133,7 @@
 		return $i18n.t('Private');
 	};
 
-	const modelAccessClass = (model) => {
+	const modelAccessClass = (model: Pick<ModelMutation, 'access_grants'>): string => {
 		if (isPublicModel(model)) {
 			return 'text-[#4f7a5a] dark:text-[#8db395]';
 		}
@@ -233,7 +239,7 @@
 		await init();
 	};
 
-	const downloadModels = async (models) => {
+	const downloadModels = async (models: ModelListItem[]): Promise<void> => {
 		models = await Promise.all(models.map(getFullModel));
 		let blob = new Blob([JSON.stringify(models)], {
 			type: 'application/json'
@@ -262,7 +268,7 @@
 
 		models = baseModels
 			.filter((m: ModelListItem) => !selectedTag || workspaceModelIds.has(m.id))
-			.map((m: ModelListItem) => {
+			.map((m: Model) => {
 				const workspaceModel = workspaceModels.find((wm: ModelListItem) => wm.id === m.id);
 
 				if (workspaceModel) {
@@ -282,7 +288,7 @@
 			});
 
 		modelOrderList = [
-			...modelOrderList.filter((id) => models.some((model) => model.id === id)),
+			...modelOrderList.filter((id) => models!.some((model) => model.id === id)),
 			...models
 				.map((model) => model.id)
 				.filter((id) => !modelOrderList.includes(id))
@@ -298,7 +304,7 @@
 		);
 	};
 
-	const saveModelOrder = async (orderedModelIds: string[]): Promise<void> => {
+	const saveModelOrder = async (orderedModelIds: (string | null)[]): Promise<void> => {
 		savingModelOrder = true;
 
 		try {
@@ -346,7 +352,7 @@
 		nextDefaultModelIds: string[],
 		nextDefaultPinnedModelIds: string[],
 		successMessage: string
-	) => {
+	): Promise<void> => {
 		const previousDefaultModelIds = defaultModelIds;
 		const previousDefaultPinnedModelIds = defaultPinnedModelIds;
 
@@ -373,7 +379,7 @@
 		}
 	};
 
-	const toggleDefaultModelHandler = async (model) => {
+	const toggleDefaultModelHandler = async (model: ModelListItem): Promise<void> => {
 		const isSelected = defaultModelIdSet.has(model.id);
 		const nextDefaultModelIds = isSelected
 			? defaultModelIds.filter((id) => id !== model.id)
@@ -388,7 +394,7 @@
 		);
 	};
 
-	const toggleDefaultPinnedModelHandler = async (model) => {
+	const toggleDefaultPinnedModelHandler = async (model: ModelListItem): Promise<void> => {
 		const isPinned = defaultPinnedModelIdSet.has(model.id);
 		const nextDefaultPinnedModelIds = isPinned
 			? defaultPinnedModelIds.filter((id) => id !== model.id)
@@ -403,7 +409,11 @@
 		);
 	};
 
-	const positionChangeHandler = async (event) => {
+	const positionChangeHandler = async (event: {
+		oldIndex?: number;
+		newIndex?: number;
+		item: HTMLElement;
+	}): Promise<void> => {
 		const { oldIndex, newIndex, item } = event;
 
 		if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) {
@@ -411,6 +421,7 @@
 		}
 
 		const parent = item.parentNode;
+		if (!parent || !models) return;
 		const target = parent.children[oldIndex < newIndex ? oldIndex : oldIndex + 1];
 		parent.insertBefore(item, target);
 
@@ -426,7 +437,7 @@
 		modelOrderDirty = true;
 	};
 
-	const initSortable = () => {
+	const initSortable = (): void => {
 		if (sortable) {
 			sortable.destroy();
 			sortable = null;
@@ -495,7 +506,7 @@
 		);
 	};
 
-	const hideModelHandler = async (model: ModelMutation): Promise<void> => {
+	const hideModelHandler = async (model: AdminModel): Promise<void> => {
 		const updatedModel = {
 			...model,
 			meta: {
@@ -510,7 +521,7 @@
 			toast.error(typeof error === 'string' ? error : $i18n.t('Something went wrong :/'));
 			return;
 		}
-		models = models.map((model) => (model.id === updatedModel.id ? updatedModel : model));
+		models = models?.map((model) => (model.id === updatedModel.id ? updatedModel : model)) ?? null;
 		_models.set(
 			await getModels(
 				localStorage.token,
@@ -529,8 +540,8 @@
 		);
 	};
 
-	const toggleModelPrivacyHandler = async (model) => {
-		const nextAccessGrants = isPublicModel(model)
+	const toggleModelPrivacyHandler = async (model: AdminModel): Promise<void> => {
+		const nextAccessGrants: ModelAccessGrants = isPublicModel(model)
 			? []
 			: [
 					...(model?.access_grants ?? []),
@@ -549,9 +560,10 @@
 		).catch(() => null);
 
 		if (res) {
-			models = models.map((m) =>
-				m.id === model.id ? { ...m, access_grants: res.access_grants ?? nextAccessGrants } : m
-			);
+			models =
+				models?.map((m) =>
+					m.id === model.id ? { ...m, access_grants: res.access_grants ?? nextAccessGrants } : m
+				) ?? null;
 			_models.set(
 				await getModels(
 					localStorage.token,
@@ -566,7 +578,7 @@
 		}
 	};
 
-	const copyLinkHandler = async (model) => {
+	const copyLinkHandler = async (model: ModelListItem): Promise<void> => {
 		const baseUrl = window.location.origin;
 		const res = await copyToClipboard(`${baseUrl}/?model=${encodeURIComponent(model.id)}`);
 
@@ -582,7 +594,7 @@
 			? ((await getModelById(localStorage.token, model.id).catch(() => null)) ?? model)
 			: model;
 
-	const cloneHandler = async (model) => {
+	const cloneHandler = async (model: ModelListItem): Promise<void> => {
 		model = await getFullModel(model);
 		sessionStorage.model = JSON.stringify({
 			...model,
@@ -594,7 +606,7 @@
 		await goto('/workspace/models/create');
 	};
 
-	const exportModelHandler = async (model) => {
+	const exportModelHandler = async (model: ModelListItem): Promise<void> => {
 		model = await getFullModel(model);
 		let blob = new Blob([JSON.stringify([model])], {
 			type: 'application/json'
@@ -602,7 +614,7 @@
 		saveAs(blob, `${model.id}-${Date.now()}.json`);
 	};
 
-	const pinModelHandler = async (modelId) => {
+	const pinModelHandler = async (modelId: string): Promise<void> => {
 		let pinnedModels = $settings?.pinnedModels ?? [];
 
 		if (pinnedModels.includes(modelId)) {
@@ -698,13 +710,16 @@
 					accept=".json"
 					hidden
 					on:change={() => {
-						if (importFiles.length > 0) {
+						if (importFiles && importFiles.length > 0) {
 							const reader = new FileReader();
 							reader.onload = async (event) => {
 								modelsImportInProgress = true;
 
 								try {
-									const models = JSON.parse(String(event.target.result));
+									const result = event.target?.result;
+									if (typeof result !== 'string') throw new Error('Invalid JSON file');
+									const models: unknown = JSON.parse(result);
+									if (!Array.isArray(models)) throw new Error('Invalid JSON file');
 									const res = await importModels(localStorage.token, models);
 
 									if (res) {
@@ -714,7 +729,14 @@
 										toast.error($i18n.t('Failed to import models'));
 									}
 								} catch (e) {
-									toast.error(e?.detail ?? $i18n.t('Invalid JSON file'));
+									toast.error(
+										typeof e === 'object' &&
+											e !== null &&
+											'detail' in e &&
+											typeof e.detail === 'string'
+											? e.detail
+											: $i18n.t('Invalid JSON file')
+									);
 									console.error(e);
 								}
 
@@ -952,7 +974,7 @@
 													loading="lazy"
 													decoding="async"
 													on:error={(e) => {
-														e.target.src = '/favicon.png';
+														(e.currentTarget as HTMLImageElement).src = '/favicon.png';
 													}}
 												/>
 											</div>

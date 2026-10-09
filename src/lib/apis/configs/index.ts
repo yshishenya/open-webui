@@ -660,7 +660,15 @@ export const getModelsDefaults = async (token: string) => {
 	return res;
 };
 
-export const getModelsConfig = async (token: string) => {
+export type ModelsConfig = {
+	DEFAULT_MODELS: string | null;
+	DEFAULT_PINNED_MODELS: string | null;
+	MODEL_ORDER_LIST: (string | null)[];
+	DEFAULT_MODEL_METADATA: Record<string, unknown> | null;
+	DEFAULT_MODEL_PARAMS: Record<string, unknown> | null;
+};
+
+export const getModelsConfig = async (token: string): Promise<ModelsConfig | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/models`, {
@@ -687,7 +695,10 @@ export const getModelsConfig = async (token: string) => {
 	return res;
 };
 
-export const setModelsConfig = async (token: string, config: object) => {
+export const setModelsConfig = async (
+	token: string,
+	config: object
+): Promise<ModelsConfig | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/models`, {
