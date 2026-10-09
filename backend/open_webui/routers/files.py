@@ -6,7 +6,7 @@ import logging
 import os
 import uuid
 from pathlib import Path
-from typing import Optional
+
 from urllib.parse import quote
 
 from fastapi import (
@@ -132,7 +132,7 @@ async def process_uploaded_file(
     file_item,
     file_metadata,
     user,
-    db: Optional[AsyncSession] = None,
+    db: AsyncSession | None = None,
 ):
     async def _process_handler(db_session):
         try:
@@ -273,7 +273,7 @@ async def upload_file(
     request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    metadata: Optional[dict | str] = Form(None),
+    metadata: dict | str | None = Form(None),
     process: bool = Query(True),
     process_in_background: bool = Query(True),
     user=Depends(get_verified_user),
@@ -315,12 +315,12 @@ async def upload_file(
 async def upload_file_handler(
     request: Request,
     file: UploadFile = File(...),
-    metadata: Optional[dict | str] = Form(None),
+    metadata: dict | str | None = Form(None),
     process: bool = Query(True),
     process_in_background: bool = Query(True),
     user=Depends(get_verified_user),
-    background_tasks: Optional[BackgroundTasks] = None,
-    db: Optional[AsyncSession] = None,
+    background_tasks: BackgroundTasks | None = None,
+    db: AsyncSession | None = None,
 ):
     log.info(f'file.content_type: {file.content_type} {process}')
 
@@ -589,7 +589,7 @@ async def delete_all_files(
 ############################
 
 
-@router.get('/{id}', response_model=Optional[FileModel])
+@router.get('/{id}', response_model=FileModel | None)
 async def get_file_by_id(id: str, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)):
     file = await Files.get_file_by_id(id, db=db)
 

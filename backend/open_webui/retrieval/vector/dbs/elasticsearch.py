@@ -3,7 +3,6 @@ NOTE: This vector database integration is community-supported and maintained on 
 """
 
 import ssl
-from typing import Optional
 
 from elasticsearch import BadRequestError, Elasticsearch
 from elasticsearch.helpers import bulk, scan
@@ -158,9 +157,9 @@ class ElasticsearchClient(VectorDBBase):
         self,
         collection_name: str,
         vectors: list[list[float]],
-        filter: Optional[dict] = None,
+        filter: dict | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         query = {
             'size': limit,
             '_source': ['text', 'metadata'],
@@ -180,7 +179,7 @@ class ElasticsearchClient(VectorDBBase):
         return self._result_to_search_result(result)
 
     # Status: only tested halfwat
-    def query(self, collection_name: str, filter: dict, limit: Optional[int] = None) -> Optional[GetResult]:
+    def query(self, collection_name: str, filter: dict, limit: int | None = None) -> GetResult | None:
         if not self.has_collection(collection_name):
             return None
 
@@ -215,7 +214,7 @@ class ElasticsearchClient(VectorDBBase):
             self._create_index(dimension=dimension)
 
     # Status: works
-    def get(self, collection_name: str) -> Optional[GetResult]:
+    def get(self, collection_name: str) -> GetResult | None:
         # Get all the items in the collection.
         query = {
             'query': {'bool': {'filter': [{'term': {'collection': collection_name}}]}},
@@ -272,8 +271,8 @@ class ElasticsearchClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: Optional[list[str]] = None,
-        filter: Optional[dict] = None,
+        ids: list[str] | None = None,
+        filter: dict | None = None,
     ):
         query = {'query': {'bool': {'filter': [{'term': {'collection': collection_name}}]}}}
         # logic based on chromaDB

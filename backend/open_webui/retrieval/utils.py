@@ -7,7 +7,7 @@ import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Awaitable, Optional, Union
+from typing import Awaitable
 from urllib.parse import quote
 
 import aiohttp
@@ -408,7 +408,7 @@ async def query_doc_with_native_hybrid_search(
     k_reranker: int,
     r: float,
     hybrid_bm25_weight: float,
-) -> Optional[dict]:
+) -> dict | None:
     try:
         if not _supports_native_hybrid_search():
             return None
@@ -464,7 +464,7 @@ async def query_doc_with_native_hybrid_search(
 
 async def query_doc_with_hybrid_search(
     collection_name: str,
-    collection_result: Optional[GetResult],
+    collection_result: GetResult | None,
     query: str,
     embedding_function,
     k: int,
@@ -1181,8 +1181,8 @@ def get_embedding_function(
 async def generate_embeddings(
     engine: str,
     model: str,
-    text: Union[str, list[str]],
-    prefix: Union[str, None] = None,
+    text: str | list[str],
+    prefix: str | None = None,
     **kwargs,
 ):
     url = kwargs.get('url', '')
@@ -1699,7 +1699,7 @@ def get_model_path(model: str, update_model: bool = False):
 
 
 import operator
-from typing import Optional, Sequence
+from typing import Sequence
 
 from langchain_core.callbacks import Callbacks
 from langchain_core.documents import BaseDocumentCompressor, Document

@@ -42,10 +42,9 @@ def deep_get_bool(root: Mapping[str, object], keys: Sequence[str], default: bool
         return bool(current)
     if isinstance(current, str):
         value = current.strip().lower()
-        if value in {"1", "true", "yes", "y", "on"}:
+        if value in {'1', 'true', 'yes', 'y', 'on'}:
             return True
-        if value in {"0", "false", "no", "n", "off"}:
+        if value in {'0', 'false', 'no', 'n', 'off'}:
             return False
 
     return default
-
