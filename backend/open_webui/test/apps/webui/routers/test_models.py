@@ -53,18 +53,14 @@ class TestModels(AbstractPostgresTest):
         assert payload['total'] == 1
 
         with mock_webui_user(id='2'):
-            response = self.fast_api_client.get(
-                self.create_url('/model', query_params={'id': 'my-model'})
-            )
+            response = self.fast_api_client.get(self.create_url('/model', query_params={'id': 'my-model'}))
         assert response.status_code == 200
         data = response.json()
         assert data['id'] == 'my-model'
         assert data['name'] == 'Hello World'
 
         with mock_webui_user(id='2'):
-            response = self.fast_api_client.post(
-                self.create_url('/model/delete'), json={'id': 'my-model'}
-            )
+            response = self.fast_api_client.post(self.create_url('/model/delete'), json={'id': 'my-model'})
         assert response.status_code == 200
 
         with mock_webui_user(id='2'):

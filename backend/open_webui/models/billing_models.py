@@ -22,26 +22,26 @@ from open_webui.internal.db import Base
 
 
 class SubscriptionStatus(str, Enum):
-    ACTIVE = "active"
-    CANCELED = "canceled"
-    PAST_DUE = "past_due"
-    TRIALING = "trialing"
-    PAUSED = "paused"
+    ACTIVE = 'active'
+    CANCELED = 'canceled'
+    PAST_DUE = 'past_due'
+    TRIALING = 'trialing'
+    PAUSED = 'paused'
 
 
 class TransactionStatus(str, Enum):
-    PENDING = "pending"
-    SUCCEEDED = "succeeded"
-    FAILED = "failed"
-    CANCELED = "canceled"
+    PENDING = 'pending'
+    SUCCEEDED = 'succeeded'
+    FAILED = 'failed'
+    CANCELED = 'canceled'
 
 
 class UsageMetric(str, Enum):
-    TOKENS_INPUT = "tokens_input"
-    TOKENS_OUTPUT = "tokens_output"
-    REQUESTS = "requests"
-    IMAGES = "images"
-    AUDIO_MINUTES = "audio_minutes"
+    TOKENS_INPUT = 'tokens_input'
+    TOKENS_OUTPUT = 'tokens_output'
+    REQUESTS = 'requests'
+    IMAGES = 'images'
+    AUDIO_MINUTES = 'audio_minutes'
 
 
 ####################
@@ -52,7 +52,7 @@ class UsageMetric(str, Enum):
 class Plan(Base):
     """Subscription plans (тарифные планы)"""
 
-    __tablename__ = "billing_plan"
+    __tablename__ = 'billing_plan'
 
     id = Column(String, primary_key=True, unique=True)
     name = Column(String, nullable=False)  # "Free", "Pro", "Business"
@@ -63,7 +63,7 @@ class Plan(Base):
     # Pricing
     price = Column(Numeric(10, 2), nullable=False)  # Цена в рублях (UI)
     price_kopeks = Column(BigInteger, nullable=False, default=0)  # Источник истины
-    currency = Column(String, default="RUB", nullable=False)
+    currency = Column(String, default='RUB', nullable=False)
     interval = Column(String, nullable=False)  # "month", "year"
     included_kopeks_per_period = Column(BigInteger, nullable=False, default=0)
     discount_percent = Column(Integer, nullable=False, default=0)
@@ -96,7 +96,7 @@ class PlanModel(BaseModel):
 
     price: float
     price_kopeks: int = 0
-    currency: str = "RUB"
+    currency: str = 'RUB'
     interval: str
     included_kopeks_per_period: int = 0
     discount_percent: int = 0
@@ -128,7 +128,7 @@ class PlanModel(BaseModel):
 class Subscription(Base):
     """User subscriptions"""
 
-    __tablename__ = "billing_subscription"
+    __tablename__ = 'billing_subscription'
 
     id = Column(String, primary_key=True, unique=True)
     user_id = Column(String, nullable=False, index=True)
@@ -162,7 +162,7 @@ class Subscription(Base):
 
 
 # Index for faster queries
-Index("idx_subscription_user_status", Subscription.user_id, Subscription.status)
+Index('idx_subscription_user_status', Subscription.user_id, Subscription.status)
 
 
 class SubscriptionModel(BaseModel):
@@ -202,7 +202,7 @@ class SubscriptionModel(BaseModel):
 class Usage(Base):
     """Track user usage metrics"""
 
-    __tablename__ = "billing_usage"
+    __tablename__ = 'billing_usage'
 
     id = Column(String, primary_key=True, unique=True)
     user_id = Column(String, nullable=False, index=True)
@@ -225,8 +225,8 @@ class Usage(Base):
 
 
 # Indexes for analytics queries
-Index("idx_usage_user_metric", Usage.user_id, Usage.metric)
-Index("idx_usage_period", Usage.period_start, Usage.period_end)
+Index('idx_usage_user_metric', Usage.user_id, Usage.metric)
+Index('idx_usage_period', Usage.period_start, Usage.period_end)
 
 
 class UsageModel(BaseModel):
@@ -257,7 +257,7 @@ class UsageModel(BaseModel):
 class Transaction(Base):
     """Payment transactions history"""
 
-    __tablename__ = "billing_transaction"
+    __tablename__ = 'billing_transaction'
 
     id = Column(String, primary_key=True, unique=True)
     user_id = Column(String, nullable=False, index=True)
@@ -265,7 +265,7 @@ class Transaction(Base):
 
     # Payment details
     amount = Column(Numeric(10, 2), nullable=False)
-    currency = Column(String, default="RUB", nullable=False)
+    currency = Column(String, default='RUB', nullable=False)
     status = Column(String, nullable=False)  # TransactionStatus enum
 
     # Payment provider
@@ -286,8 +286,8 @@ class Transaction(Base):
     updated_at = Column(BigInteger, nullable=False)
 
 
-Index("idx_transaction_user", Transaction.user_id)
-Index("idx_transaction_yookassa", Transaction.yookassa_payment_id)
+Index('idx_transaction_user', Transaction.user_id)
+Index('idx_transaction_yookassa', Transaction.yookassa_payment_id)
 
 
 class TransactionModel(BaseModel):
@@ -296,7 +296,7 @@ class TransactionModel(BaseModel):
     subscription_id: Optional[str] = None
 
     amount: float
-    currency: str = "RUB"
+    currency: str = 'RUB'
     status: str
 
     yookassa_payment_id: Optional[str] = None

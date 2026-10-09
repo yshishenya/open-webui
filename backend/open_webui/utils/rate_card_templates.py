@@ -12,24 +12,24 @@ ModalityUnit = Tuple[str, str]
 
 DEFAULT_RATE_CARD_TEMPLATES: List[RateCardTemplate] = [
     {
-        "modality": "text",
-        "unit": "token_in",
-        "raw_cost_per_unit_kopeks": 0,
+        'modality': 'text',
+        'unit': 'token_in',
+        'raw_cost_per_unit_kopeks': 0,
     },
     {
-        "modality": "text",
-        "unit": "token_out",
-        "raw_cost_per_unit_kopeks": 0,
+        'modality': 'text',
+        'unit': 'token_out',
+        'raw_cost_per_unit_kopeks': 0,
     },
     {
-        "modality": "image",
-        "unit": "image_1024",
-        "raw_cost_per_unit_kopeks": 0,
+        'modality': 'image',
+        'unit': 'image_1024',
+        'raw_cost_per_unit_kopeks': 0,
     },
     {
-        "modality": "tts",
-        "unit": "tts_char",
-        "raw_cost_per_unit_kopeks": 0,
+        'modality': 'tts',
+        'unit': 'tts_char',
+        'raw_cost_per_unit_kopeks': 0,
     },
 ]
 
@@ -51,8 +51,8 @@ def build_rate_cards_for_model(
 
     entries: List[RateCardTemplate] = []
     for template in DEFAULT_RATE_CARD_TEMPLATES:
-        modality = str(template.get("modality", ""))
-        unit = str(template.get("unit", ""))
+        modality = str(template.get('modality', ''))
+        unit = str(template.get('unit', ''))
         if not modality or not unit:
             continue
         if allowed is not None and (modality, unit) not in allowed:
@@ -60,17 +60,17 @@ def build_rate_cards_for_model(
 
         entries.append(
             {
-                "id": str(uuid.uuid4()),
-                "model_id": model_id,
-                "model_tier": model_tier,
-                "modality": modality,
-                "unit": unit,
-                "raw_cost_per_unit_kopeks": int(template.get("raw_cost_per_unit_kopeks", 0)),
-                "version": version_value,
-                "created_at": now,
-                "provider": provider,
-                "is_default": is_default,
-                "is_active": is_active,
+                'id': str(uuid.uuid4()),
+                'model_id': model_id,
+                'model_tier': model_tier,
+                'modality': modality,
+                'unit': unit,
+                'raw_cost_per_unit_kopeks': int(template.get('raw_cost_per_unit_kopeks', 0)),
+                'version': version_value,
+                'created_at': now,
+                'provider': provider,
+                'is_default': is_default,
+                'is_active': is_active,
             }
         )
 

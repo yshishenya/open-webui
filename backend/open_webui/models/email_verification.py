@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 
 class EmailVerificationToken(Base):
-    __tablename__ = "email_verification_token"
+    __tablename__ = 'email_verification_token'
 
     id = Column(String, primary_key=True, unique=True)
     user_id = Column(String, nullable=False)
@@ -71,12 +71,12 @@ class EmailVerificationTokensTable:
         async with get_async_db_context(db) as session:
             verification_token = EmailVerificationTokenModel(
                 **{
-                    "id": str(uuid.uuid4()),
-                    "user_id": user_id,
-                    "email": email,
-                    "token": token,
-                    "expires_at": expires_at,
-                    "created_at": int(time.time()),
+                    'id': str(uuid.uuid4()),
+                    'user_id': user_id,
+                    'email': email,
+                    'token': token,
+                    'expires_at': expires_at,
+                    'created_at': int(time.time()),
                 }
             )
             result = EmailVerificationToken(**verification_token.model_dump())
@@ -100,7 +100,7 @@ class EmailVerificationTokensTable:
                 token_record = result.scalar_one_or_none()
                 return EmailVerificationTokenModel.model_validate(token_record) if token_record else None
         except Exception as e:
-            log.error(f"Error getting verification token: {e}")
+            log.error(f'Error getting verification token: {e}')
             return None
 
     async def get_tokens_by_user_id(
@@ -122,7 +122,7 @@ class EmailVerificationTokensTable:
                 await session.commit()
                 return True
         except Exception as e:
-            log.error(f"Error deleting verification token {token_id}: {e}")
+            log.error(f'Error deleting verification token {token_id}: {e}')
             return False
 
     async def delete_tokens_by_user_id(self, user_id: str, db: AsyncSession | None = None) -> bool:
@@ -133,7 +133,7 @@ class EmailVerificationTokensTable:
                 await session.commit()
                 return True
         except Exception as e:
-            log.error(f"Error deleting verification tokens for user {user_id}: {e}")
+            log.error(f'Error deleting verification tokens for user {user_id}: {e}')
             return False
 
     async def is_token_valid(self, token: str, db: AsyncSession | None = None) -> bool:
@@ -160,7 +160,7 @@ class EmailVerificationTokensTable:
                 await session.commit()
                 return result.rowcount or 0
         except Exception as e:
-            log.error(f"Error cleaning up expired verification tokens: {e}")
+            log.error(f'Error cleaning up expired verification tokens: {e}')
             return 0
 
 

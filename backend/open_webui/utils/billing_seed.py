@@ -15,7 +15,7 @@ def seed_default_plans_if_missing() -> int:
     plans.extend(get_promo_plans())
 
     for plan_data in plans:
-        plan_id = str(plan_data.get("id", ""))
+        plan_id = str(plan_data.get('id', ''))
         if not plan_id:
             continue
         if Plans.get_plan_by_id(plan_id):
@@ -35,10 +35,10 @@ def _seed_default_rate_cards_for_models(models: list[ModelModel]) -> int:
             is_active=False,
         )
         for template in templates:
-            model_id = str(template.get("model_id", ""))
-            modality = str(template.get("modality", ""))
-            unit = str(template.get("unit", ""))
-            version = str(template.get("version", ""))
+            model_id = str(template.get('model_id', ''))
+            modality = str(template.get('modality', ''))
+            unit = str(template.get('unit', ''))
+            version = str(template.get('version', ''))
             if not model_id or not modality or not unit or not version:
                 continue
             if RateCards.get_rate_card_by_version(model_id, modality, unit, version):
@@ -61,6 +61,6 @@ async def seed_default_rate_cards_if_missing() -> int:
 async def seed_default_billing_if_missing() -> dict[str, int]:
     """Seed default billing data (plans + rate cards)."""
     return {
-        "plans": await anyio.to_thread.run_sync(seed_default_plans_if_missing),
-        "rate_cards": await seed_default_rate_cards_if_missing(),
+        'plans': await anyio.to_thread.run_sync(seed_default_plans_if_missing),
+        'rate_cards': await seed_default_rate_cards_if_missing(),
     }

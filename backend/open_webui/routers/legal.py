@@ -40,10 +40,10 @@ class LegalStatusResponse(BaseModel):
 
 
 class AcceptLegalDocsForm(BaseModel):
-    keys: list[str] = Field(default_factory=list, description="Legal doc keys to accept")
+    keys: list[str] = Field(default_factory=list, description='Legal doc keys to accept')
     method: Optional[str] = Field(
-        default="ui",
-        description="Acceptance method (e.g. signup, ui_gate, oauth_complete)",
+        default='ui',
+        description='Acceptance method (e.g. signup, ui_gate, oauth_complete)',
     )
 
 
@@ -79,7 +79,7 @@ async def _build_status_for_user(user: UserModel) -> LegalStatusResponse:
     return LegalStatusResponse(docs=docs, needs_accept=needs_accept, server_time=int(time.time()))
 
 
-@router.get("/requirements", response_model=LegalRequirementsResponse)
+@router.get('/requirements', response_model=LegalRequirementsResponse)
 async def get_legal_requirements() -> LegalRequirementsResponse:
     return LegalRequirementsResponse(
         docs=[
@@ -96,12 +96,12 @@ async def get_legal_requirements() -> LegalRequirementsResponse:
     )
 
 
-@router.get("/status", response_model=LegalStatusResponse)
+@router.get('/status', response_model=LegalStatusResponse)
 async def get_legal_status(user=Depends(get_current_user)) -> LegalStatusResponse:
     return await _build_status_for_user(user)
 
 
-@router.post("/accept", response_model=AcceptLegalDocsResponse)
+@router.post('/accept', response_model=AcceptLegalDocsResponse)
 async def accept_legal_docs(
     request: Request,
     form_data: AcceptLegalDocsForm,
@@ -111,7 +111,7 @@ async def accept_legal_docs(
     if not requested_keys:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No document keys provided",
+            detail='No document keys provided',
         )
 
     unknown = [key for key in requested_keys if get_legal_doc(key) is None]
@@ -125,7 +125,7 @@ async def accept_legal_docs(
         user_id=user.id,
         keys=requested_keys,
         request=request,
-        method=form_data.method or "ui",
+        method=form_data.method or 'ui',
     )
 
     refreshed_user = await Users.get_user_by_id(user.id) or user
