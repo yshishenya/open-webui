@@ -16,7 +16,7 @@ Remove the measured UP006 debt that blocks the mandatory general quality gate. U
 - [x] Native Google GenAI container declarations and actual Pydantic coercion/serialization agree.
 - [x] Full backend including four fresh PostgreSQL fixtures and frontend pass; frontend type/lint debt measured independently.
 - [x] Primary, native audio verifier, frontend and dependency/config boundaries preserved. Temporary source/fixtures cleaned after checks.
-- [ ] Source committed/pushed and final application hashes frozen; documentation recorded.
+- [x] Source committed/pushed and final application hashes frozen; documentation recorded.
 - [ ] General quality, CI, review/merge and production accepted on combined frozen source.
 
 ## Upstream impact
@@ -38,3 +38,5 @@ Backend1017/1017,0failures/errors/skips,111.007s on four fresh PostgreSQL databa
 All four temporary databases and their tmpfs container, plus the temporary baseline source directory, were removed after accepted checks; no persistent volumes were used/deleted.21 protected primary files, native audio verifier, frontend, dependency and configuration boundaries preserved. Production05:00:07UTC:c0ea,healthy,restarts0;image/ENV/config/mounts/neighbors agree with previous read. Deployment/SMTP/financial changes0.
 
 PR367 exact34b6 still returns no checks through the required connector with the selected account yshishenya; cause unknown. Its CodeRabbit status skips review for the base branch and does not prove CI. No new PR or merge/release is claimed. Source-level acceptance does not close general G14/13.11/13.16 or any of the46 remaining numbered plan items.
+
+Source commit: `50c0e2bbe0a1949257479b1f922dbb8e768439b7`. Remote branch matched; final documentation commit must preserve all453 source hashes. SDD2/3; independent general quality/CI/release remains pending. Evidence: `source-acceptance.json` in the private airis-container-type-annotations-20261009 proof directory.
