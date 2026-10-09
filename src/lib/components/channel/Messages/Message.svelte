@@ -12,7 +12,7 @@
 	dayjs.extend(isYesterday);
 	dayjs.extend(localizedFormat);
 
-	import { getContext, onMount } from 'svelte';
+	import { getContext, onMount, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 	import AttachmentVideo from '$lib/components/airis/AttachmentVideo.svelte';
@@ -141,20 +141,55 @@
 		swipeLocked = false;
 	};
 
-	const loadMessageData = async () => {
-		if (message && message?.data === true) {
-			const res = await getMessageData(localStorage.token, channel?.id, message.id);
-			if (res) {
+	let mounted = false;
+	let dataLoad: { message: ChannelDisplayMessage; channelId: string } | null = null;
+	let dataLoadError = false;
+
+	const loadMessageData = async (
+		target: ChannelDisplayMessage,
+		channelId: string
+	): Promise<void> => {
+		if (dataLoad?.message === target && dataLoad.channelId === channelId) return;
+		const request = { message: target, channelId };
+		dataLoad = request;
+		dataLoadError = false;
+		try {
+			const res = await getMessageData(localStorage.token, channelId, target.id);
+			if (
+				dataLoad === request &&
+				mounted &&
+				message === target &&
+				channel?.id === channelId &&
+				target.data === true
+			) {
 				message.data = res;
 			}
+		} catch (error) {
+			if (
+				dataLoad === request &&
+				mounted &&
+				message === target &&
+				channel?.id === channelId &&
+				target.data === true
+			) {
+				dataLoadError = true;
+				console.error('Failed to load channel message data', error);
+			}
+		} finally {
+			if (dataLoad === request) dataLoad = null;
 		}
 	};
 
-	onMount(async () => {
-		if (message && message?.data === true) {
-			await loadMessageData();
-		}
+	onMount(() => {
+		mounted = true;
 	});
+	onDestroy(() => {
+		mounted = false;
+	});
+	// Pin/unpin replaces an already mounted message with a slim data:true response.
+	$: if (mounted && message?.data === true && channel?.id) {
+		void loadMessageData(message, channel.id);
+	}
 
 	$: messageOutput = Array.isArray(message?.data?.output) ? message.data.output : [];
 	$: hasStructuredOutput = buildOutputDisplayItems(messageOutput).length > 0;
@@ -457,7 +492,19 @@
 					{#if message?.data === true}
 						<!-- loading indicator -->
 						<div class=" my-2">
-							<Skeleton />
+							{#if dataLoadError}
+								<div role="alert" class="text-sm text-gray-500">
+									{$i18n.t('Failed to load file content.')}
+									<button
+										class="underline ml-2"
+										on:click={() => {
+											if (channel?.id) void loadMessageData(message, channel.id);
+										}}>{$i18n.t('Retry')}</button
+									>
+								</div>
+							{:else}
+								<Skeleton />
+							{/if}
 						</div>
 					{:else if (message?.data?.files ?? []).length > 0}
 						<div
