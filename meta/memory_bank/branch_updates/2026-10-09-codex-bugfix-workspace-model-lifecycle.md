@@ -1,0 +1,6 @@
+- [ ] **[BUG][G14]** Загрузка и действия со списком моделей
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09__bugfix__workspace-model-lifecycle.md
+  - Owner: Codex
+  - Branch: codex/bugfix/workspace-model-lifecycle
+  - Started: 2026-10-09
+  - Summary: Воспроизведение загрузки после ухода со страницы, гонок запросов, импорта и передачи модели; минимальное исправление и проверка исходников.

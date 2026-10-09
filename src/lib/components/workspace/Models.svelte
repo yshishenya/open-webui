@@ -2,7 +2,6 @@
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
 	import { toast } from 'svelte-sonner';
-	import Sortable from 'sortablejs';
 
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
@@ -15,7 +14,6 @@
 	import {
 		WEBUI_NAME,
 		config,
-		mobile,
 		models as _models,
 		settings,
 		user,
@@ -29,11 +27,11 @@
 		getModelItems as getWorkspaceModels,
 		getModelTags,
 		toggleModelById,
-		updateModelById
+		updateModelById,
+		type WorkspaceModel
 	} from '$lib/apis/models';
 
 	import { getModels } from '$lib/apis';
-	import { getGroups } from '$lib/apis/groups';
 	import { updateUserSettings } from '$lib/apis/users';
 
 	import { capitalizeFirstLetter, copyToClipboard } from '$lib/utils';
@@ -63,7 +61,7 @@
 
 	let shiftKey = false;
 
-	let importFiles;
+	let importFiles: FileList | null | undefined;
 	let modelsImportInputElement: HTMLInputElement;
 	let tagsContainerElement: HTMLDivElement;
 
@@ -71,11 +69,9 @@
 
 	let showModelDeleteConfirm = false;
 
-	let selectedModel = null;
+	let selectedModel: WorkspaceModel | null = null;
 
-	let groupIds = [];
-
-	let tags = [];
+	let tags: string[] = [];
 	let selectedTag = '';
 
 	let query = '';
@@ -84,10 +80,12 @@
 	let sortDirection = 'desc';
 
 	let page = 1;
-	let models = null;
-	let total = null;
+	let models: WorkspaceModel[] | null = null;
+	let total: number | null = null;
 
-	let searchDebounceTimer;
+	let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+	let listRequest: object | null = null;
+	const listenerController = new AbortController();
 
 	$: if (loaded) {
 		workspaceActions.set([
@@ -133,7 +131,7 @@
 		}
 	};
 
-	const openModel = (model) => {
+	const openModel = (model: WorkspaceModel) => {
 		if (model.write_access) {
 			goto(`/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
 		}
@@ -145,6 +143,17 @@
 
 	const getModelList = async () => {
 		if (!loaded) return;
+		const request = { query, viewOption, selectedTag, sortKey, sortDirection, page };
+		listRequest = request;
+		const isCurrent = (): boolean =>
+			loaded &&
+			listRequest === request &&
+			request.query === query &&
+			request.viewOption === viewOption &&
+			request.selectedTag === selectedTag &&
+			request.sortKey === sortKey &&
+			request.sortDirection === sortDirection &&
+			request.page === page;
 
 		try {
 			const res = await getWorkspaceModels(
@@ -156,26 +165,28 @@
 				sortDirection,
 				page
 			).catch((error) => {
-				toast.error(`${error}`);
+				if (isCurrent()) toast.error(`${error}`);
 				return null;
 			});
 
-			if (res) {
+			if (res && isCurrent()) {
 				models = res.items;
 				total = res.total;
 
 				// get tags
-				tags = await getModelTags(localStorage.token).catch((error) => {
-					toast.error(`${error}`);
+				const nextTags = await getModelTags(localStorage.token).catch((error) => {
+					if (isCurrent()) toast.error(`${error}`);
 					return [];
 				});
+				if (isCurrent()) tags = nextTags ?? [];
 			}
 		} catch (err) {
 			console.error(err);
 		}
 	};
 
-	const deleteModelHandler = async (model) => {
+	const deleteModelHandler = async (model: WorkspaceModel | null) => {
+		if (!model) return;
 		const res = await deleteModelById(localStorage.token, model.id).catch((e) => {
 			toast.error(`${e}`);
 			return null;
@@ -196,10 +207,10 @@
 		);
 	};
 
-	const getFullModel = async (model: any) =>
+	const getFullModel = async (model: WorkspaceModel): Promise<WorkspaceModel> =>
 		(await getModelById(localStorage.token, model.id).catch(() => null)) ?? model;
 
-	const cloneModelHandler = async (model) => {
+	const cloneModelHandler = async (model: WorkspaceModel) => {
 		model = await getFullModel(model);
 		sessionStorage.model = JSON.stringify({
 			...model,
@@ -209,26 +220,30 @@
 		goto('/workspace/models/create');
 	};
 
-	const shareModelHandler = async (model) => {
+	const shareModelHandler = async (model: WorkspaceModel) => {
 		toast.success($i18n.t('Redirecting you to Airis Community'));
 
 		const url = window.location.origin;
 		const fullModel = getFullModel(model);
 
-		const tab = await window.open(`${url}/post?type=model`, '_blank');
+		const tab = window.open(`${url}/post?type=model`, '_blank');
+		if (!tab) return;
 
-		const messageHandler = async (event) => {
-			if (event.origin !== url) return;
+		const messageHandler = async (event: MessageEvent) => {
+			if (event.origin !== url || event.source !== tab || tab.closed) return;
 			if (event.data === 'loaded') {
-				tab.postMessage(JSON.stringify(await fullModel), '*');
 				window.removeEventListener('message', messageHandler);
+				const payload = await fullModel;
+				if (!listenerController.signal.aborted && !tab.closed) {
+					tab.postMessage(JSON.stringify(payload), url);
+				}
 			}
 		};
 
-		window.addEventListener('message', messageHandler, false);
+		window.addEventListener('message', messageHandler, { signal: listenerController.signal });
 	};
 
-	const hideModelHandler = async (model) => {
+	const hideModelHandler = async (model: WorkspaceModel) => {
 		const updatedModel = {
 			...model,
 			meta: {
@@ -240,7 +255,8 @@
 		const res = await updateModelById(localStorage.token, updatedModel.id, updatedModel);
 
 		if (res) {
-			models = models.map((model) => (model.id === updatedModel.id ? updatedModel : model));
+			models =
+				models?.map((model) => (model.id === updatedModel.id ? updatedModel : model)) ?? null;
 			toast.success(
 				$i18n.t(`Model {{name}} is now {{status}}`, {
 					name: updatedModel.id,
@@ -260,7 +276,7 @@
 		);
 	};
 
-	const copyLinkHandler = async (model) => {
+	const copyLinkHandler = async (model: WorkspaceModel) => {
 		const baseUrl = window.location.origin;
 		const res = await copyToClipboard(`${baseUrl}/?model=${encodeURIComponent(model.id)}`);
 
@@ -271,7 +287,8 @@
 		}
 	};
 
-	const downloadModels = async (models) => {
+	const downloadModels = async (models: WorkspaceModel[] | null) => {
+		if (!models) return;
 		models = await Promise.all(models.map(getFullModel));
 		let blob = new Blob([JSON.stringify(models)], {
 			type: 'application/json'
@@ -279,7 +296,7 @@
 		saveAs(blob, `models-export-${Date.now()}.json`);
 	};
 
-	const exportModelHandler = async (model) => {
+	const exportModelHandler = async (model: WorkspaceModel) => {
 		model = await getFullModel(model);
 		let blob = new Blob([JSON.stringify([model])], {
 			type: 'application/json'
@@ -287,7 +304,7 @@
 		saveAs(blob, `${model.id}-${Date.now()}.json`);
 	};
 
-	const pinModelHandler = async (modelId) => {
+	const pinModelHandler = async (modelId: string) => {
 		let pinnedModels = $settings?.pinnedModels ?? [];
 
 		if (pinnedModels.includes(modelId)) {
@@ -302,7 +319,7 @@
 
 	const fetchAllWorkspaceModels = async () => {
 		// Fetch all workspace models across every page
-		const allModels = [];
+		const allModels: WorkspaceModel[] = [];
 		let currentPage = 1;
 		let fetchedTotal = 0;
 
@@ -392,23 +409,21 @@
 		toast.success($i18n.t('All models are now hidden'));
 	};
 
-	onMount(async () => {
+	onMount(() => {
 		viewOption = localStorage.workspaceViewOption ?? '';
 		page = 1;
 
-		let groups = await getGroups(localStorage.token);
-		groupIds = groups.map((group) => group.id);
+		void tick().then(() => {
+			if (!listenerController.signal.aborted) loaded = true;
+		});
 
-		await tick();
-		loaded = true;
-
-		const onKeyDown = (event) => {
+		const onKeyDown = (event: KeyboardEvent) => {
 			if (event.key === 'Shift') {
 				shiftKey = true;
 			}
 		};
 
-		const onKeyUp = (event) => {
+		const onKeyUp = (event: KeyboardEvent) => {
 			if (event.key === 'Shift') {
 				shiftKey = false;
 			}
@@ -418,14 +433,16 @@
 			shiftKey = false;
 		};
 
-		window.addEventListener('keydown', onKeyDown);
-		window.addEventListener('keyup', onKeyUp);
-		window.addEventListener('blur', onBlur);
+		window.addEventListener('keydown', onKeyDown, { signal: listenerController.signal });
+		window.addEventListener('keyup', onKeyUp, { signal: listenerController.signal });
+		window.addEventListener('blur', onBlur, { signal: listenerController.signal });
 
 		return () => {
-			window.removeEventListener('keydown', onKeyDown);
-			window.removeEventListener('keyup', onKeyUp);
-			window.removeEventListener('blur', onBlur);
+			loaded = false;
+			listRequest = null;
+			listenerController.abort();
+			clearTimeout(searchDebounceTimer);
+			workspaceActions.set([]);
 		};
 	});
 </script>
@@ -452,21 +469,37 @@
 		accept=".json"
 		hidden
 		on:change={() => {
-			console.log(importFiles);
+			if (!importFiles?.length) return;
 
 			let reader = new FileReader();
 			reader.onload = async (event) => {
-				let savedModels = [];
+				let savedModels: Record<string, unknown>[] = [];
 				try {
-					savedModels = JSON.parse(event.target.result);
-					console.log(savedModels);
+					const result = event.target?.result;
+					if (typeof result !== 'string') throw new Error('Invalid JSON file');
+					const parsed: unknown = JSON.parse(result);
+					if (
+						!Array.isArray(parsed) ||
+						!parsed.every(
+							(model: unknown) =>
+								typeof model === 'object' && model !== null && !Array.isArray(model)
+						)
+					) {
+						throw new Error('Invalid JSON file');
+					}
+					savedModels = parsed as Record<string, unknown>[];
 				} catch (e) {
 					toast.error($i18n.t('Invalid JSON file'));
 					return;
 				}
 
 				for (const model of savedModels) {
-					if (model?.info ?? false) {
+					if (
+						model.info &&
+						typeof model.info === 'object' &&
+						!Array.isArray(model.info) &&
+						typeof model.id === 'string'
+					) {
 						if ($_models.find((m) => m.id === model.id)) {
 							await updateModelById(localStorage.token, model.id, model.info).catch((error) => {
 								toast.error(`${error}`);
@@ -479,7 +512,12 @@
 							});
 						}
 					} else {
-						if (model?.id && model?.name) {
+						if (
+							typeof model.id === 'string' &&
+							model.id &&
+							typeof model.name === 'string' &&
+							model.name
+						) {
 							await createNewModel(localStorage.token, model).catch((error) => {
 								toast.error(`${error}`);
 								return null;
@@ -707,7 +745,7 @@
 											loading="lazy"
 											decoding="async"
 											on:error={(e) => {
-												e.target.src = '/favicon.png';
+												(e.currentTarget as HTMLImageElement).src = '/favicon.png';
 											}}
 										/>
 									</div>
@@ -820,7 +858,7 @@
 											<ModelMenu
 												user={$user}
 												{model}
-												writeAccess={model.write_access}
+												writeAccess={model.write_access ?? false}
 												editHandler={() => {
 													goto(`/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
 												}}
@@ -891,8 +929,8 @@
 					</div>
 				</div>
 
-				{#if total > 30}
-					<Pagination bind:page count={total} perPage={30} />
+				{#if (total ?? 0) > 30}
+					<Pagination bind:page count={total ?? 0} perPage={30} />
 				{/if}
 			{:else}
 				<div class="flex w-full flex-col items-center justify-center py-16 pb-24">
@@ -910,7 +948,6 @@
 			</div>
 		{/if}
 	</div>
-
 {:else}
 	<div class="w-full h-full flex justify-center items-center">
 		<Spinner className="size-5" />

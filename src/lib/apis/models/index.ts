@@ -1,17 +1,32 @@
+import type { ComponentProps } from 'svelte';
+import type { ModelConfig } from '$lib/apis';
+import type { SessionUser } from '$lib/stores';
+import type AccessControlModal from '$lib/components/workspace/common/AccessControlModal.svelte';
+
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { buildModelMutationPayload } from '$lib/utils/airis/model_payload';
 
 export { buildModelMutationPayload } from '$lib/utils/airis/model_payload';
 
+export type WorkspaceModel = ModelConfig & {
+	user_id: string;
+	is_active: boolean;
+	created_at: number;
+	updated_at: number;
+	access_grants: ComponentProps<AccessControlModal>['accessGrants'];
+	user?: Pick<SessionUser, 'id' | 'name' | 'role' | 'email'> | null;
+	write_access?: boolean | null;
+};
+
 export const getModelItems = async (
 	token: string = '',
-	query,
-	viewOption,
-	selectedTag,
-	orderBy,
-	direction,
-	page
-) => {
+	query: string | null,
+	viewOption: string | null,
+	selectedTag: string | null,
+	orderBy: string | null,
+	direction: string | null,
+	page: number
+): Promise<{ items: WorkspaceModel[]; total: number } | null> => {
 	let error = null;
 
 	const searchParams = new URLSearchParams();
@@ -62,7 +77,7 @@ export const getModelItems = async (
 	return res;
 };
 
-export const getModelTags = async (token: string = '') => {
+export const getModelTags = async (token: string = ''): Promise<string[] | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/models/tags`, {
